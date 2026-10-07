@@ -2,6 +2,7 @@
 
 > Estado: **Fases 0 a 5 escritas en el repo (nada ejecutado en n8n ni probado en navegador); falta medir la extracción con órdenes reales (compuerta) y la Fase 6 (QA y despliegue)** · Rama: `orden-servicio` · Fecha: 2026-09-30
 > **Actualización 2026-10-05 — Separación de workflows:** el agente de órdenes ya no vive dentro de `Whats App`. Quedó en el workflow **`WhatsApp - Order Agent`** (`docs/n8n-flows/WhatsApp - Order Agent.json`), que el router del workflow normal invoca con **Execute Workflow**; los 6 webhooks `agent-tools/order-*` quedaron embebidos ahí. Ver §15.
+> **Actualización 2026-10-06 — Agente único (diseño, sin implementar):** se reemplaza el router de dos agentes por **un solo agente** (`Whatsapp Agent1`) que suma la capacidad de órdenes cuando el flag está encendido. `WhatsApp - Order Agent` deja de tener LLM: queda la ingesta de archivos y los webhooks `order-*`. Ver **§17**, que reemplaza a §4.1 y a la parte de router de §15.
 > Documento de partida: artefacto "Órdenes de Estudio por WhatsApp" (Parte A funcional, Parte B diseño técnico).
 > Este documento recoge las decisiones tomadas tras revisar el código real de `docs/n8n-flows/Whats App.json` y `scripts/n8n/`.
 
@@ -105,7 +106,7 @@ El LLM nunca elige `patient_id`, `order_id` ni tokens. Salen del contexto y del 
 ### 4.4 Autenticación
 
 - **Webhooks `agent-tools/*`:** credencial Header Auth de n8n (secreto compartido). Las herramientas HTTP del agente envían el header. Son llamadas internas de n8n a n8n.
-- **Endpoints de órdenes (`jwtAuth`):** el agente usa un JWT del usuario "Agente WhatsApp" con rol `agente_ia` y permisos mínimos (`STUDY_ORDERS_CREATE`, `CREATE_FOR_DOCTOR`, `SUBMIT`, `SCHEDULE`, `VIEW_ALL`, `SEARCH_PATIENT`). **No** incluye `CANCEL`, `ACKNOWLEDGE` ni `DELETE`.
+- **Órdenes:** desde 2026-10-07 el agente **no llama** a los endpoints `jwtAuth`: ejecuta su mismo SQL directo con el usuario "Agente WhatsApp" como actor (§18.3), así que no hace falta un JWT. Ese usuario tiene el rol `agente_ia` con permisos mínimos (`STUDY_ORDERS_CREATE`, `CREATE_FOR_DOCTOR`, `SUBMIT`, `SCHEDULE`, `VIEW_ALL`, `SEARCH_PATIENT`). **No** incluye `CANCEL`, `ACKNOWLEDGE` ni `DELETE`.
 - `wa-message-received` y `wa-message-sent` siguen públicos (los llama YCloud, que no puede mandar un header propio). Su protección (firma del webhook) se evalúa aparte.
 
 ## 5. Cuándo se deriva a un humano
@@ -330,6 +331,7 @@ Entrada: `intake_id`, `mode` (`extract` o `revalidate`) y `answers` (JSON con `c
 | Falta el nombre o la cédula, o la cédula uruguaya tiene dígito verificador inválido | Se pregunta una vez; si sigue mal, `handoff` · `unreadable` (los pasaportes no se validan) |
 | El paciente de la orden no es quien escribe (otra cédula, nombre distinto, cédula de otro teléfono o duplicada) | `handoff` · `patient_mismatch` |
 | Línea con confianza menor al umbral | Se pregunta por esa línea; si sigue dudosa, `handoff` · `low_confidence` |
+| Falta la otra cara (dorso) u otra hoja (`missing_other_side`, §18) | Se pide una vez, antes que el resto y sin gastar el reenvío; si sigue faltando o el usuario dice que no hay, advertencia `possibly_incomplete` |
 | Sin firma, fecha antigua, detalles que no encajan en el formulario | Advertencia; **no** deriva |
 | Mismos estudios que una orden abierta del paciente | `duplicate_of` (la Fase 4 decide ofrecer esa orden) |
 | Todo en orden | `ready`, con la orden armada y la duración total |
@@ -406,7 +408,7 @@ El modelo nunca maneja ids: todo se resuelve por el teléfono (que sale del cont
 | `answer_order_question` | `order-answer` | Traduce la respuesta (sí/no, cédula, nombre) y **revalida** sin volver a llamar al modelo de visión. Si el resultado es derivación, la ejecuta. |
 | `list_order_sedes` | `order-list-sedes` | Sedes con agenda y calendarios elegibles, numeradas, con dirección. **La sede la elige el usuario** (D4). |
 | `list_order_slots` | `order-list-slots` | Hasta 6 horarios para la **duración total** de la orden, según día/hora pedidos. |
-| `confirm_order_and_book` | `order-confirm-and-book` | Registra al paciente si falta → crea la orden **sin doctor** (`without_doctor`, `source = whatsapp`) y la envía → revisa que el horario siga libre → genera el token y reserva con `public-book` → marca el intake como `booked`. Idempotente por intake. |
+| `confirm_order_and_book` | `order-confirm-and-book` | Registra al paciente si falta → crea la orden **sin doctor** (`without_doctor`, `source = whatsapp`) y la envía → revisa que el horario siga libre → genera un token de un uso y reserva con el SQL de `public-book` → marca el intake como `booked`. Todo con SQL directo, sin llamar a endpoints (§18.3). Idempotente por intake. |
 | `handoff_order` | `order-handoff` | Deriva con motivo y original. |
 | `get_clinic_info`, `list_sedes` | (existentes) | Preguntas sueltas. |
 
@@ -420,7 +422,7 @@ La orden de WhatsApp y su cita **no llevan doctor ni técnico** (D2); el nombre 
 
 - Todo en hora de pared de Montevideo, como texto sin zona.
 - Los calendarios elegibles se pueden acotar con `whatsapp_orders_calendar_ids` (ids separados por coma; vacío = todos los activos de la sede).
-- La antelación mínima de 4 h no es arbitraria: `public-book` compara la hora local contra el reloj del servidor de n8n (UTC) y rechazaría como "pasado" un hueco más cercano a 3 h.
+- La antelación mínima de 4 h venía de que el endpoint `public-book` comparaba la hora local contra el reloj del servidor de n8n (UTC). Desde §18.3 el agente usa solo su SQL, que compara contra la hora de Montevideo, así que ese límite ya no aplica; se mantiene en 4 h como margen operativo.
 
 ### Fallos y derivación al reservar
 
@@ -430,10 +432,10 @@ La orden de WhatsApp y su cita **no llevan doctor ni técnico** (D2); el nombre 
 
 ### Puesta en marcha (en este orden)
 
-1. Credenciales en n8n (Header Auth): **`WhatsApp Agent Tools Header Auth`** (`X-Agent-Key`, Fase 0) y **`Invoke Agent Service JWT`** (`Authorization: Bearer <jwt>`, generado con `generate-agent-jwt.mjs`).
+1. Credencial en n8n (Header Auth): **`WhatsApp Agent Tools Header Auth`** (`X-Agent-Key`, Fase 0). La credencial `Invoke Agent Service JWT` ya **no** hace falta (§18.3).
 2. Migraciones 122 y 123.
 3. Importar, en este orden: `whatsapp-study-order-intake.json` → **`WhatsApp - Order Agent.json`** → **`Whats App.json`** (y los demás importados antes). **No importar `whatsapp-order-agent-tools.json`**: sus 6 webhooks quedaron embebidos en `WhatsApp - Order Agent`; si ya está importado, desactivarlo/eliminarlo para no duplicar los paths `agent-tools/order-*`.
-4. **Reemplazar los placeholders** `REPLACE_WITH_…`: credenciales Header Auth y JWT; el id del workflow `WhatsApp - Study Order Intake` en **dos** lugares (`Answer: Run Intake Subflow` y `Run Order Extraction`); y el id de `WhatsApp - Order Agent` en el nodo `Run Orders Agent` de `Whats App`.
+4. **Reemplazar los placeholders** `REPLACE_WITH_…`: credenciales Header Auth; el id del workflow `WhatsApp - Study Order Intake` en **dos** lugares (`Answer: Run Intake Subflow` y `Run Order Extraction`); y el id de `WhatsApp - Order Agent` en el nodo `Run Orders Agent` de `Whats App`.
 5. Comprobar `whatsapp_orders_vision_model` y, si hace falta, `whatsapp_orders_calendar_ids`.
 6. Probar en modo test (lista blanca) con `whatsapp_orders_enabled = true`; al terminar, volver a `false`.
 
@@ -502,3 +504,211 @@ Migración 123: columnas `resolved_at`, `resolved_by` y `resolution_note` en `wh
 - Las consultas nuevas dependen de la migración 123 y no se ejecutaron (solo se comprobó la sintaxis de fragmentos equivalentes y la ausencia de columnas repetidas en `v_study_orders_board`).
 - El motivo de la derivación en el aviso se reconoce por el texto `Orden de estudio…` que arma `order-handoff`; si ese texto cambia, la tarjeta vuelve a mostrar el comportamiento anterior.
 - `pnpm lint` a nivel de todo el proyecto ya tenía 58 errores previos en otros archivos; ninguno está en los archivos de esta fase.
+
+## 17. Rediseño: un solo agente con capacidad de órdenes (2026-10-06)
+
+> Estado: **diseño**. Todavía no se modificaron los JSON. Reemplaza a §4.1 y al router de §15.
+
+### 17.1 Por qué
+
+La idea original era que el agente de WhatsApp siguiera siendo **el mismo** y que, al activar la opción, pudiera además procesar órdenes de estudio. Lo construido en §15 es otra cosa: un router determinista que manda el mensaje a **otro agente**, con otro prompt y otras herramientas. Problemas:
+
+| Problema | Consecuencia |
+| --- | --- |
+| Con un intake en curso, todo va al agente de órdenes durante hasta 24 h | El usuario no puede consultar su cuenta, sus citas ni pedir una consulta: el agente de órdenes lo deriva a una persona. |
+| Dos personalidades con la misma memoria (`whatsapp_agent_chat_memory`, clave = teléfono) | Cada agente lee lo que respondió el otro sin conocer sus reglas. |
+| La ruta la decide el estado del intake, no la intención del mensaje | "¿Cuánto debo?" con una orden a medio cargar va al agente equivocado. |
+| Con el flag encendido y algo mal desplegado (workflow sin importar, credencial, subflujo) | `Run Orders Agent` falla y el mensaje queda **sin respuesta**, ni siquiera del agente general; el lock se libera recién al vencer (90 s). |
+
+### 17.2 Principios
+
+1. **Un solo agente** (`Whatsapp Agent1`), un prompt base y una memoria.
+2. **Las órdenes son un agregado.** Con el flag apagado, sin configurar o **sin las migraciones 122/123**, el comportamiento tiene que ser idéntico al del agente sin órdenes.
+3. **Ninguna falla del lado de órdenes deja al usuario sin respuesta.** El peor caso es que el agente diga que no pudo procesar la orden y ofrezca una persona.
+4. **Lo determinista sigue fuera del LLM:** descarga, guardado, extracción con visión, validación y derivación por reglas (§5).
+
+### 17.3 Qué ya cumple el principio 2 (no se toca)
+
+Verificado en `Whats App.json`:
+
+- `Get WhatsApp Agent Config` calcula `whatsapp_orders_schema_ready` (existe `whatsapp_order_intakes` y la columna `media_kind` en `whatsapp_inbound_buffer` y `whatsapp_conversation_messages`). `whatsapp_orders_enabled` solo puede ser `true` si eso se cumple.
+- `Dedupe Check`, `Buffer Inbound Message` y `Claim Batch If Latest` usan las consultas de antes (sin `media_*`) con el flag apagado; `Get Active Intake` no lee la tabla nueva.
+- `Filter & Extract Inbound Message` solo procesa texto con el flag apagado: fotos y PDF se ignoran como antes y no hay respuesta de "formato no soportado".
+- Los webhooks `agent-tools/*` del agente general no dependen de credenciales nuevas en este export.
+
+### 17.4 Arquitectura nueva
+
+```mermaid
+flowchart TD
+  A[wa-message-received] --> B[pipeline común: filtro, lista blanca, dedupe, buffer, debounce, identidad]
+  B --> C[Get Active Intake → Build Agent Context]
+  C --> D[pausa humana, horario, lock]
+  D --> E{orders_enabled y el lote trae archivos?}
+  E -- no --> G[Whatsapp Agent1]
+  E -- sí --> F[Run Order Ingest: WhatsApp - Orders, sin LLM]
+  F -- falla --> G
+  F -- outcome = handoff --> H[respuesta fija de derivación]
+  F -- ready / needs_input --> G
+  G --> I[Format output → Send Reply → logs → Release Agent Lock]
+  H --> I
+```
+
+- **No hay router de agentes.** Siempre responde `Whatsapp Agent1`; la única bifurcación es la **ingesta** (archivos con el flag encendido), que no conversa.
+- La derivación por reglas de la extracción (`outcome = handoff`) mantiene su respuesta fija sin LLM, como hoy.
+- Si la ingesta falla (workflow no importado, error de Drive o del modelo de visión), el mensaje sigue al agente con el contexto "no se pudo procesar el archivo", y el agente ofrece reenviarlo o hablar con una persona.
+
+### 17.5 Cambios en `Whats App.json`
+
+| Nodo | Cambio |
+| --- | --- |
+| `Route To Orders?`, `Run Orders Agent` | **Se eliminan.** |
+| `Orders Ingest?` (nuevo, IF) | Después de `Lock Acquired?`: `orders_enabled && has_media`. Falso → `Whatsapp Agent1`. |
+| `Run Order Ingest` (nuevo, Execute Workflow → `WhatsApp - Orders`) | Entradas: `phone`, `wamid`, `media_json`, `patient_id`, `phone_ambiguous`. `onError: continueRegularOutput` y `alwaysOutputData: true`: un error o una salida vacía siguen hacia el agente con `ingest_ok = false`. |
+| `Ingest Handoff?` (nuevo, IF) | `outcome === 'handoff'` → `Ingest Handoff Reply` (Code, devuelve `{ output }` con el texto fijo + `<<PENDING:NO>>`) → `Format output`. Si no → `Whatsapp Agent1`. |
+| `Build Agent Context` | Sin `route`. Mantiene `orders_enabled` e `intake_status` para el prompt. |
+| `Whatsapp Agent1` | Se le conectan las 6 herramientas de órdenes (17.7) y cambia el prompt (17.6). El estado de la orden se arma con expresiones: si corrió la ingesta (`$('Run Order Ingest').isExecuted`) usa su resultado; si no, `intake_status` de `Get Active Intake`. |
+| `Get WhatsApp Agent Config` | Lectura tolerante de las claves booleanas (17.9). |
+
+### 17.6 Prompt de `Whatsapp Agent1`
+
+La sección de órdenes se inyecta **solo** con el flag encendido, con una expresión del tipo `{{ orders_enabled ? SECCION_ORDENES : SECCION_ORDENES_APAGADAS }}`. Con el flag apagado el prompt queda como hoy.
+
+**Flag apagado.** La regla actual "Si las órdenes de estudio están habilitadas…" se reduce a: por este medio todavía no se pueden agendar estudios con orden; ofrecele hablar con una persona (`handoff_to_human`). No usar ninguna herramienta `*_order*`.
+
+**Flag encendido.** Sección de órdenes, adaptada del prompt actual de `Order Agent`:
+
+- **Alcance:** agendar estudios a partir de una orden (foto o PDF). Si el usuario quiere agendar estudios y no mandó la orden, pedirle la foto o el PDF por este chat.
+- **Estado de la orden en el contexto:** `sin orden`, `recién recibida: ready / needs_input`, `en curso: <status>` o `no se pudo procesar el archivo`.
+- **Si hay una orden en curso y el mensaje es sobre ella:** llamar primero a `get_order_intake` y seguir `next_step` (`wait`, `answer_questions`, `ask_sede_date_time`, `book_slot`) con las reglas de §15: preguntas todas juntas, la sede la elige el usuario, horarios con `list_order_slots`, elegir un horario es la confirmación → `confirm_order_and_book`.
+- **Si el mensaje es sobre otra cosa** (cuenta, citas, consulta general), se atiende normalmente con las herramientas generales. La orden queda en curso hasta que el usuario vuelva a ella o venza.
+- **Separación de herramientas:** estudios de una orden → solo herramientas `*_order*`; consulta general → `check_availability` / `create_appointment`. Nunca mezclarlas.
+- **Derivación:** si hay una orden en curso y el usuario pide una persona por algo de la orden, `handoff_order` (marca el intake y adjunta los originales); en cualquier otro caso, `handoff_to_human`.
+
+**Ajustes en reglas existentes:**
+
+- "El servicio a agendar es SIEMPRE Consulta general" y "no agendar si ya tiene una cita pendiente" pasan a aplicar **solo a turnos de consulta**. Una orden puede necesitar su propia cita aunque haya otra pendiente.
+- `is_known_patient = false`: las herramientas de órdenes sí se pueden usar, porque `confirm_order_and_book` registra al paciente con los datos de la orden.
+- `phone_ambiguous = true`: las herramientas de órdenes también quedan prohibidas (la ingesta ya deriva con `patient_mismatch`).
+- La línea de alcance ("TU ÚNICO ROL…") suma "agendar estudios con una orden" solo con el flag encendido.
+
+### 17.7 Herramientas de órdenes en el agente único
+
+Se conectan a `Whatsapp Agent1` las 6 herramientas HTTP que hoy tiene `Order Agent`, sin cambiar sus webhooks: `get_order_intake`, `answer_order_question`, `list_order_sedes`, `list_order_slots`, `confirm_order_and_book` y `handoff_order`. `get_clinic_info` y `list_sedes` ya las tiene el agente general.
+
+- Ya usan `$('Build Agent Context').first().json.phone`, que existe con el mismo nombre en `Whats App`. El teléfono sigue saliendo del contexto, nunca del LLM.
+- La descripción de cada una empieza con "(Solo para estudios de una orden de estudio.)".
+- **Costo:** n8n no permite conectar herramientas según una condición, así que sus 6 definiciones van en todas las llamadas al modelo, aunque el flag esté apagado.
+
+### 17.8 `WhatsApp - Order Agent` → `WhatsApp - Orders` (sin LLM)
+
+| Pieza | Cambio |
+| --- | --- |
+| `Order Agent`, `OpenAI Chat Model (Orders)`, `Chat Memory (Postgres) (Orders)`, sus 8 herramientas y `Order Output` | **Se eliminan.** |
+| `Has Media?` | Se elimina: el workflow solo se invoca con archivos. |
+| Ingesta (`Expire Old Intakes` … `Run Order Extraction`) | Sin cambios de lógica. |
+| Salida | Un solo item `{ ingest_ok, outcome, intake_id, next_step, handoff_reason }`. Con `outcome = handoff` antes llama a `order-handoff`, como hoy. |
+| `Collapse Media Results` | **Corregido (2026-10-07):** leía `from_phone`, que `Build Agent Context` no expone; la derivación por extracción mandaba el teléfono vacío y `order-handoff` respondía `bad_phone` (sin pausa ni aviso a recepción). Ahora lee `phone`. |
+| `order-handoff` con intake ya derivado | **Corregido (2026-10-07):** cuando deriva el validador, `Save Result` deja el intake en `handed_off` antes de llamar a `order-handoff`, y `Handoff: Mark Intake` (que solo actualiza intakes en curso) no lo encontraba: el aviso salía sin paciente ni link al original. `Call Order Handoff` y `Answer: Call Handoff` ahora mandan `intake_id`, y `Mark Intake` usa ese intake (mismo teléfono, `handed_off`, sin resolver) solo para leer, sin modificarlo. |
+| Webhooks `order-*` (6) | Se quedan acá. Cada `*: Parse` suma una guarda: si `whatsapp_orders_enabled` no está activo o falta el esquema, responde `{ ok: false, error_code: 'orders_disabled' }` sin tocar las tablas nuevas. |
+| Nombre | `WhatsApp - Orders`. El id del workflow no cambia si se reimporta sobre el mismo. |
+
+### 17.9 Configuración tolerante
+
+`COALESCE((SELECT value …)::boolean, false)` tira error si el valor no es un booleano válido (`'si'`, `'1 '`), y con eso **cae todo el agente**. Se reemplaza, para `whatsapp_agent_enabled` y `whatsapp_orders_enabled`, por una comparación de texto:
+
+```sql
+COALESCE((SELECT lower(trim(value)) IN ('true','t','1','yes','si','sí','on')
+            FROM public.system_configurations WHERE key = 'whatsapp_orders_enabled'), false)
+```
+
+`whatsapp_agent_enabled` conserva su valor por defecto `true` (solo se apaga con un valor falso reconocido), y `whatsapp_agent_debounce_seconds` se castea solo si el valor es numérico.
+
+### 17.10 Comportamiento esperado por escenario
+
+| Escenario | Resultado |
+| --- | --- |
+| Flag apagado o sin la clave | Igual que antes de las órdenes: solo texto, agente general, herramientas de órdenes sin usar. |
+| Flag encendido sin la migración 123 | `whatsapp_orders_enabled` sale `false` (esquema no listo): igual que el anterior. |
+| Valor de configuración mal escrito | Cuenta como apagado (o como encendido el agente, por su valor por defecto); el agente responde. |
+| Flag encendido y `WhatsApp - Orders` sin importar | Texto: normal. Archivo: la ingesta falla, el agente avisa que no pudo leer la orden y ofrece una persona. Las herramientas `order-*` devuelven 404 y el agente lo informa. |
+| Archivo con la orden, todo en orden | Ingesta → `ready` → el agente resume la orden y pregunta sede, día y hora. |
+| Extracción que debe derivar | Respuesta fija, conversación pausada, recepción avisada (como hoy). |
+| Orden en curso y el usuario pregunta "¿cuánto debo?" | Responde con `get_account_status`; la orden sigue en curso. |
+| Orden en curso y el usuario vuelve a ella ("el martes a las 10") | `get_order_intake` → `list_order_slots` → `confirm_order_and_book`. |
+
+### 17.11 Riesgos
+
+- **Confusión entre herramientas de consulta y de orden.** Se mitiga con las descripciones, la sección del prompt y el estado de la orden en el contexto. Es lo primero a probar.
+- **Prompt más largo** con el flag encendido, y 6 definiciones de herramientas siempre presentes.
+- **Lock durante la extracción:** sigue corriendo dentro del lock (§15). Hay que medirlo contra `whatsapp_agent_lock_timeout_seconds`.
+- **Nada de esto está probado en n8n**, ni el diseño anterior ni este.
+
+### 17.12 Plan de implementación
+
+1. `Whats App.json`: eliminar el router; agregar `Orders Ingest?`, `Run Order Ingest`, `Ingest Handoff?` e `Ingest Handoff Reply`; conectar las 6 herramientas; cambiar el prompt y la lectura de configuración.
+2. `WhatsApp - Order Agent.json` → `WhatsApp - Orders.json`: quitar el LLM y las herramientas, definir la salida, corregir `Collapse Media Results` y agregar la guarda `orders_disabled` a los 6 webhooks. Si `scripts/n8n/generate-order-agent-tools-workflow.mjs` sigue siendo la fuente de esos webhooks, la guarda va también ahí.
+3. Validar los JSON con un script: conexiones sin nodos colgados, ningún nodo que referencie nodos eliminados, y que el JS de los Code nodes compile.
+4. Actualizar §4.1, §15 y la puesta en marcha (orden de importación: `whatsapp-study-order-intake.json` → `WhatsApp - Orders.json` → `Whats App.json`).
+5. Probar en modo test con la lista blanca los escenarios de 17.10, empezando con el flag apagado.
+
+## 18. Frente y dorso de la orden (2026-10-07)
+
+Muchas órdenes llegan en dos fotos. Antes, si el dorso llegaba después del lote, se leía solo el frente: podía mostrar una orden incompleta, gastar el único reenvío ("no tiene ningún estudio legible") o derivar sin el dorso.
+
+| Cambio | Dónde |
+| --- | --- |
+| Campo `missing_other_side` en el esquema estricto y regla en el prompt: true solo si se nota que falta una cara u hoja ("ver al dorso", lista cortada, llegó solo el dorso). El mensaje al modelo aclara que los archivos pueden ser frente y dorso. Versiones `so-intake-v2` / `so-extraction-v2` | `intake-lib.mjs`, generador, `WhatsApp - Study Order Intake.json` |
+| Validador: con `missing_other_side` pregunta `missing_other_side` **antes** de validar estudios y paciente (lo que falta puede estar en el dorso), una sola vez y **sin** gastar el reenvío. Si ya se pidió y sigue faltando, o el usuario dice que no hay, sigue con la advertencia `possibly_incomplete`. Una extracción vieja sin el campo no pregunta. 6 pruebas nuevas | `intake-lib.mjs`, `intake-lib.test.mjs` |
+| `order-answer`: "no" → `overrides.no_other_side`; cualquier otra respuesta pide que mande la foto | `generate-order-agent-tools-workflow.mjs`, `WhatsApp - Order Agent.json` |
+| Prompt de `Order Agent`: cómo preguntar por el dorso; el reenvío también lo menciona | `WhatsApp - Order Agent.json` |
+| **Debounce más largo con archivos:** si el lote pendiente trae una foto o PDF, `Wait (debounce)` espera `whatsapp_orders_media_debounce_seconds` (60 por defecto, tope 300, nunca menos que el debounce normal). `Buffer Inbound Message` devuelve `pending_media` | `Whats App.json` |
+| Ajuste "Espera al recibir una foto o PDF" en Sistema → Agente de WhatsApp (30 a 300 s) | `whatsapp-orders-settings-card.tsx`, `messages/{es,en}.json` |
+| `eval-extraction.mjs`: `missing_other_side` opcional en `.expected.json` para medir la detección (muestras con solo el frente) | `eval-extraction.mjs` |
+
+**No probado en n8n ni en el navegador.** Lo importante a medir es que el modelo marque `missing_other_side` cuando corresponde **y no lo marque** en órdenes de una sola cara (cada falso positivo es una pregunta de más). Una espera de más de 65 s hace que n8n guarde la ejecución en la base mientras espera; con 60 no pasa.
+
+### 18.1 Archivos que llegan con la orden ya creada
+
+Si el intake está en `order_created` (orden creada en Invoke, falta la cita) y llega otro archivo, antes se re-extraía igual: el resultado no se guardaba (`Save Result` no toca `order_created`), pero `Extraction Handoff?` miraba solo el `outcome` y podía derivar; si no derivaba, la foto quedaba guardada sin que nadie la mirara.
+
+| Cambio | Dónde |
+| --- | --- |
+| `Run Order Extraction` usa el modo **`compare`** cuando `Get Or Create Intake` devuelve `order_created` | `WhatsApp - Order Agent.json` |
+| Modo `compare` del subflujo: lee **todos** los archivos juntos y los compara con la orden (`compareLateFiles`, 7 pruebas). No toca estado, extracción ni validación; la lectura nueva queda en `extraction_meta.late_files` para auditoría | `intake-lib.mjs`, generador, `WhatsApp - Study Order Intake.json` |
+| Resultado: **no agrega estudios** → `unchanged`: el agente recibe una nota (`Agent Input`), se lo dice al usuario en una frase y sigue con los horarios. **Agrega estudios** → deriva `order_changed` con el número de orden y los estudios que agrega. Estudio fuera del catálogo → `service_not_found`; documento de otro paciente → `patient_mismatch`; ilegible → `unreadable`. Que falte un estudio en la lectura nueva no cuenta (la orden ya lo tiene) | ídem |
+| `Extraction Handoff?` deriva solo si el resultado se guardó (`saved`): un intake que ya no estaba en curso no se deriva | `WhatsApp - Order Agent.json` |
+| Motivo `order_changed` en el CHECK de `whatsapp_order_intakes` y clave `whatsapp_orders_media_debounce_seconds` | `database/scripts/125_20261007_whatsapp-order-late-files.sql` |
+| `order_changed` en `order-handoff` (lista y texto del aviso) y en la vista "Derivadas de WhatsApp" (tipo, lista y textos es/en) | generador de tools, `types.ts`, `whatsapp-intakes-panel.tsx`, `messages` |
+
+**Aplicar la 125 antes de importar los workflows**: sin ella, derivar con `order_changed` viola el CHECK y `order-handoff` falla.
+
+**No probado en n8n**; el código de `Validate`, `Format Result` y `Agent Input` se ejecutó con datos simulados, y las consultas con `INSERT`/`UPDATE` (`Save Result`, `Get Or Create Intake`, `Handoff: Mark Intake`) solo se validaron en su parte de lectura contra DEV.
+
+### 18.2 Archivos que llegan con la cita ya agendada
+
+Un intake `booked` ya no está en curso: antes, un archivo que llegaba después (el dorso) abría un intake nuevo solo con el dorso, que pedía "la otra cara".
+
+- **`Get Or Create Intake`:** si no hay un intake en curso y el teléfono tiene uno `booked` con actividad (`updated_at`) dentro de la vigencia (`whatsapp_orders_intake_ttl_hours`, 24 h), el archivo se suma a esa orden en lugar de abrir otra. Pasado ese plazo, abre una orden nueva como siempre.
+- **Mismo modo `compare`** que con `order_created` (§18.1). La lectura nueva queda en `extraction_meta.late_files`; los originales, en los adjuntos de ese intake, así que se ven en la pestaña "Original" de la orden.
+- **No agrega estudios:** el agente le dice al usuario que la orden y la cita quedan igual (número, día, hora y sede, vía `Agent Input`) y no llama a herramientas de la orden.
+- **Agrega estudios u otro motivo de derivación:** `order-handoff` marca ese intake `booked` como `handed_off` (solo el del `intake_id` recibido y solo si no hay otro en curso), así aparece en "Derivadas". La orden y la cita no se tocan: recepción agrega los estudios y ajusta la cita si hace falta.
+- **Costo de la ventana:** si dentro de las 24 h el mismo teléfono manda otra orden distinta (otros estudios u otro paciente), se deriva en lugar de procesarse sola.
+
+### 18.3 La reserva sin endpoints protegidos (SQL directo)
+
+`confirm_order_and_book` llamaba por HTTP a `study-orders/upsert`, `submit` y `booking-token`, que exigen JWT (`jwtAuth`). Sin la credencial del agente, n8n rechazaba la llamada con un cuerpo que no es JSON y la herramienta fallaba ("Response body is not valid JSON"). Se reemplazaron por SQL directo dentro de `WhatsApp - Order Agent`:
+
+| Antes (HTTP) | Ahora (Postgres) |
+| --- | --- |
+| `POST /study-orders/upsert` | `UPSERT_SQL` |
+| `POST /study-orders/submit` | `SUBMIT_SQL` |
+| `POST /study-orders/booking-token` | `Book: Make Token` (token de un uso, solo el sha256 a la base) + `BOOKING_TOKEN_SQL` |
+| `POST /study-orders/public-book_noauth` | `PUBLIC_BOOK_SQL` |
+
+- **Sin SQL duplicado a mano:** el generador (`generate-order-agent-tools-workflow.mjs`) importa esas constantes de `scripts/n8n/study-orders-sql.mjs`, las mismas que usan los endpoints. Si cambia el SQL de un endpoint, hay que **regenerar y reimportar** `WhatsApp - Order Agent` para que el agente lo tome.
+- **Actor:** el usuario "Agente WhatsApp" (migración 122), que `Book: Load` busca por email. Los permisos se siguen resolviendo en el SQL contra su rol `agente_ia` (`CREATE_FOR_DOCTOR` para la orden sin doctor, `VIEW_ALL` para enviarla, `SCHEDULE` para el token). Si el usuario no existe, la herramienta responde `agent_user_missing` y el agente deriva.
+- **Lo que los endpoints hacían después de responder** se replica en ramas aparte, que si fallan no tumban la reserva: bitácora (`created`, `submitted` y `scheduled` con el agente como actor) y aviso a recepción con su push por SSE (orden nueva y "el paciente agendó", como antes). No se avisa al derivador: estas órdenes no tienen doctor. No se registra `link_created`: el token no se comparte.
+- **Errores:** los nodos de SQL siguen ante un error (`continueRegularOutput`) y el nodo de chequeo responde `ok: false` con el motivo, en vez de cortar la ejecución sin respuesta.
+- Quedan llamadas HTTP solo a webhooks propios del agente sin JWT (`agent-tools/order-handoff`, `agent-tools/handoff`) y la descarga de YCloud.
+
+**Verificado:** los Code nodes de la cadena con datos simulados; contra DEV (solo lectura), la consulta de `Book: Load` y que el usuario de servicio tiene los tres permisos. **No probado en n8n**: los `INSERT`/`UPDATE` son los de los endpoints, pero no se ejecutaron desde el agente.

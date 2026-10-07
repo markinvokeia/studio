@@ -22,7 +22,7 @@ import api, { REQUEST_TIMEOUT_MS } from '@/services/api';
  * Ajustes de las órdenes de estudio por WhatsApp (system_configurations).
  *
  * Es una tarjeta con su propio guardado y no parte del guardado de la página: esos
- * cinco valores no dependen del horario del agente, y mezclarlos en la misma
+ * seis valores no dependen del horario del agente, y mezclarlos en la misma
  * secuencia de upserts haría que un fallo en uno deje al otro a medias.
  *
  * El interruptor de "Activar" nace apagado (migración 123): hasta que alguien lo
@@ -35,6 +35,7 @@ const KEYS = {
     visionModel: 'whatsapp_orders_vision_model',
     calendarIds: 'whatsapp_orders_calendar_ids',
     ttlHours: 'whatsapp_orders_intake_ttl_hours',
+    mediaDebounceSeconds: 'whatsapp_orders_media_debounce_seconds',
 } as const;
 
 const DEFAULTS = {
@@ -43,6 +44,7 @@ const DEFAULTS = {
     visionModel: '',
     calendarIds: '',
     ttlHours: '24',
+    mediaDebounceSeconds: '60',
 };
 
 type OrdersSettings = typeof DEFAULTS;
@@ -64,6 +66,7 @@ async function loadSettings(signal: AbortSignal): Promise<OrdersLoaded> {
             visionModel: read(KEYS.visionModel, DEFAULTS.visionModel),
             calendarIds: read(KEYS.calendarIds, DEFAULTS.calendarIds),
             ttlHours: read(KEYS.ttlHours, DEFAULTS.ttlHours),
+            mediaDebounceSeconds: read(KEYS.mediaDebounceSeconds, DEFAULTS.mediaDebounceSeconds),
         },
     };
 }
@@ -111,6 +114,9 @@ export function WhatsappOrdersSettingsCard({ canUpdate }: WhatsappOrdersSettings
         if (!Number.isFinite(confidence) || confidence < 0.5 || confidence > 1) errors.minConfidence = t('errors.confidence');
         const ttl = Number(values.ttlHours);
         if (!Number.isInteger(ttl) || ttl < 1 || ttl > 168) errors.ttlHours = t('errors.ttl');
+        // n8n acota a 300 s: más espera demora la respuesta sin juntar más fotos.
+        const mediaDebounce = Number(values.mediaDebounceSeconds);
+        if (!Number.isInteger(mediaDebounce) || mediaDebounce < 30 || mediaDebounce > 300) errors.mediaDebounceSeconds = t('errors.mediaDebounce');
         if (values.enabled && !values.visionModel.trim()) errors.visionModel = t('errors.model');
         if (values.calendarIds.trim() && !/^\d+(\s*,\s*\d+)*$/.test(values.calendarIds.trim())) errors.calendarIds = t('errors.calendars');
         return errors;
@@ -127,6 +133,7 @@ export function WhatsappOrdersSettingsCard({ canUpdate }: WhatsappOrdersSettings
                 { key: KEYS.visionModel, value: values.visionModel.trim(), data_type: 'string', description: t('descriptions.visionModel') },
                 { key: KEYS.calendarIds, value: values.calendarIds.replace(/\s+/g, ''), data_type: 'string', description: t('descriptions.calendarIds') },
                 { key: KEYS.ttlHours, value: String(Number(values.ttlHours)), data_type: 'number', description: t('descriptions.ttlHours') },
+                { key: KEYS.mediaDebounceSeconds, value: String(Number(values.mediaDebounceSeconds)), data_type: 'number', description: t('descriptions.mediaDebounce') },
                 // El interruptor va al final: si algo antes falla, no queda activado con ajustes a medias.
                 { key: KEYS.enabled, value: values.enabled ? 'true' : 'false', data_type: 'boolean', description: t('descriptions.enabled') },
             ];
@@ -267,6 +274,23 @@ export function WhatsappOrdersSettingsCard({ canUpdate }: WhatsappOrdersSettings
                         />
                         <p className="text-xs text-muted-foreground">{t('ttlHoursHelp')}</p>
                         {fieldErrors.ttlHours && <p className="text-xs text-destructive">{fieldErrors.ttlHours}</p>}
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <Label htmlFor="orders-media-debounce">{t('mediaDebounce')}</Label>
+                        <Input
+                            id="orders-media-debounce"
+                            type="number"
+                            inputMode="numeric"
+                            min="30"
+                            max="300"
+                            value={form.mediaDebounceSeconds}
+                            onChange={(e) => set('mediaDebounceSeconds', e.target.value)}
+                            disabled={!canUpdate || save.isPending}
+                            aria-invalid={!!fieldErrors.mediaDebounceSeconds}
+                        />
+                        <p className="text-xs text-muted-foreground">{t('mediaDebounceHelp')}</p>
+                        {fieldErrors.mediaDebounceSeconds && <p className="text-xs text-destructive">{fieldErrors.mediaDebounceSeconds}</p>}
                     </div>
                 </div>
 

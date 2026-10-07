@@ -39,7 +39,7 @@ const PAGE_SIZE = 10;
 
 const REASONS: readonly WhatsappHandoffReason[] = [
     'service_not_found', 'unreadable', 'low_confidence', 'patient_mismatch',
-    'booking_failed', 'user_request', 'system_error',
+    'booking_failed', 'user_request', 'system_error', 'order_changed',
 ];
 
 export interface WhatsappIntakesPanelProps {

@@ -19,8 +19,11 @@
  *       "outcome": "ready" | "needs_input" | "handoff",        // lo que DEBERÍA pasar
  *       "handoff_reason": "service_not_found",                  // si outcome = handoff
  *       "items": ["ci-orden:svc:opt", "ci-orden:svc:hemiarco"], // estudios que figuran
- *       "patient_document": "12345672"                          // normalizado
+ *       "patient_document": "12345672",                         // normalizado
+ *       "missing_other_side": true                              // opcional: falta el dorso u otra hoja
  *     }
+ *   Para medir la detección del dorso faltante, armar muestras con SOLO el frente
+ *   de una orden de dos caras y "missing_other_side": true.
  *
  * Reporta por línea (precisión y cobertura), por orden (coincidencia exacta) y si
  * la decisión de derivar coincide con la esperada. Lo más importante de mirar:
@@ -80,7 +83,7 @@ async function extract(pages) {
     try { return { extraction: JSON.parse(msg.content), usage: json.usage }; } catch { return { error: 'JSON inválido' }; }
 }
 
-const tot = { orders: 0, exact: 0, tp: 0, fp: 0, fn: 0, decisionOk: 0, docOk: 0, docN: 0, mustHandoffMissed: 0, errors: 0 };
+const tot = { orders: 0, exact: 0, tp: 0, fp: 0, fn: 0, decisionOk: 0, docOk: 0, docN: 0, sideOk: 0, sideN: 0, mustHandoffMissed: 0, errors: 0 };
 const rows = [];
 
 for (const [key, pages] of groups) {
@@ -108,6 +111,14 @@ for (const [key, pages] of groups) {
     const exact = fp.length === 0 && fn.length === 0;
     if (exact) tot.exact += 1;
 
+    let sideNote = '-';
+    if (typeof expected.missing_other_side === 'boolean') {
+        tot.sideN += 1;
+        const ok = (r.extraction.missing_other_side === true) === expected.missing_other_side;
+        if (ok) tot.sideOk += 1;
+        sideNote = ok ? 'ok' : `MAL (${r.extraction.missing_other_side === true ? 'dijo que falta' : 'no lo notó'})`;
+    }
+
     let docNote = '-';
     if (expected.patient_document) {
         tot.docN += 1;
@@ -128,6 +139,7 @@ for (const [key, pages] of groups) {
         'estudios (ok/sobran/faltan)': `${tp}/${fp.length}/${fn.length}`,
         exacta: exact ? 'sí' : 'NO',
         cédula: docNote,
+        'otra cara': sideNote,
         decisión: `${decision}${decisionOk ? '' : `  ← esperado ${expectedDecision}`}`,
         sobran: fp.join(', ') || '-',
         faltan: fn.join(', ') || '-',
@@ -141,6 +153,7 @@ Modelo: ${model}  ·  Confianza mínima: ${minConfidence}  ·  Órdenes evaluada
 Líneas   precisión ${pct(tot.tp, tot.tp + tot.fp)}   cobertura ${pct(tot.tp, tot.tp + tot.fn)}
 Órdenes  lectura exacta ${pct(tot.exact, tot.orders - tot.errors)}
 Cédula   correcta ${pct(tot.docOk, tot.docN)}
+Otra cara detectada bien ${pct(tot.sideOk, tot.sideN)}
 Decisión coincide con la esperada ${pct(tot.decisionOk, tot.orders - tot.errors)}
 *** Órdenes que debían derivarse y salieron "ready": ${tot.mustHandoffMissed} (debe ser 0) ***
 `);

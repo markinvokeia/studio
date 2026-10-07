@@ -13,12 +13,16 @@
  * la incrusta tal cual en los nodos Code: no se edita a mano en n8n.
  *
  * Se invoca con Execute Workflow:
- *   { intake_id, mode: 'extract' | 'revalidate', answers?: '<json>' }
+ *   { intake_id, mode: 'extract' | 'revalidate' | 'compare', answers?: '<json>' }
  *
  *   extract     descarga los originales, llama al modelo de visión y valida.
  *   revalidate  NO vuelve a llamar al modelo: revalida la extracción guardada
  *               con lo que el usuario respondió (answers: { confirmed:[ids],
  *               removed:[ids], overrides:{ patient_name, patient_document } }).
+ *   compare     la orden ya está creada (order_created) o agendada (booked) y llegaron más
+ *               archivos: lee todos juntos y los compara con la orden sin tocarla
+ *               (compareLateFiles). Devuelve outcome unchanged|handoff; la lectura
+ *               nueva queda en extraction_meta.late_files.
  *
  * Devuelve { intake_id, outcome: ready|needs_input|handoff, status, ... } y deja
  * el intake actualizado (status, extraction, validation, extraction_meta).
@@ -74,6 +78,9 @@ SELECT i.id::text AS id,
        i.extraction,
        i.validation,
        i.sender_user_id::text AS sender_user_id,
+       (SELECT o.order_number FROM study_orders o WHERE o.id = i.study_order_id) AS order_number,
+       (SELECT to_char(a.start_datetime, 'YYYY-MM-DD HH24:MI') FROM appointments a WHERE a.id = i.appointment_id) AS appointment_start,
+       (SELECT s.name FROM sedes s WHERE s.id = i.chosen_sede_id) AS sede_name,
        (SELECT row_to_json(u) FROM (
            SELECT us.id::text AS id, us.name, us.phone_number AS phone, us.identity_document
              FROM users us WHERE us.id = i.sender_user_id) u) AS sender,
@@ -117,7 +124,7 @@ add('Needs Extraction?', 'n8n-nodes-base.if', 2.2, {
         options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
         conditions: [{
             id: 'so-intake-needs-extraction',
-            leftValue: `={{ ($('When Executed by Another Workflow').first().json.mode || 'extract') === 'extract' && ($json.files || []).length > 0 }}`,
+            leftValue: `={{ ['extract', 'compare'].includes($('When Executed by Another Workflow').first().json.mode || 'extract') && ($json.files || []).length > 0 }}`,
             rightValue: true,
             operator: { type: 'boolean', operation: 'true', singleValue: true },
         }],
@@ -150,7 +157,7 @@ const ctx = $('Load Intake Context').first().json;
 const metas = $('Split Files').all().map((i) => i.json);
 const items = $input.all();
 
-const parts = [{ type: 'text', text: 'Transcribí la orden de estudios que figura en los archivos adjuntos (pueden ser varias páginas de la misma orden).' }];
+const parts = [{ type: 'text', text: 'Transcribí la orden de estudios que figura en los archivos adjuntos (pueden ser el frente y el dorso o varias hojas de la misma orden).' }];
 for (let i = 0; i < items.length; i++) {
   const bin = items[i].binary && items[i].binary.data;
   if (!bin) continue;
@@ -200,8 +207,8 @@ const meta = {
   files_sent: req.files_sent,
   latency_ms: Date.now() - req.started_at,
   usage: res.usage || null,
-  prompt_version: 'so-intake-v1',
-  schema_version: 'so-extraction-v1',
+  prompt_version: 'so-intake-v2',
+  schema_version: 'so-extraction-v2',
   extracted_at: new Date().toISOString(),
 };
 let extraction = null, error = null;
@@ -278,6 +285,58 @@ const ctx = $('Load Intake Context').first().json;
 const prep = $('Prepare Lookups').first().json;
 const lk = $input.first().json || {};
 const answers = prep.answers || {};
+const mode = $('When Executed by Another Workflow').first().json.mode || 'extract';
+
+// 'compare': llegaron archivos con la orden ya creada (order_created) o ya agendada (booked). No se
+// revalida ni se toca la orden: se compara la lectura nueva (de todos los archivos) con lo que ya
+// tiene, y queda para auditoría.
+if (mode === 'compare') {
+  const v = ctx.validation || {};
+  const r = compareLateFiles({
+    extraction: prep.extraction,
+    extraction_error: prep.extraction_error,
+    catalog: ctx.catalog,
+    order: {
+      order_number: ctx.order_number || null,
+      booked: ctx.status === 'booked',
+      items: (v.resolved && v.resolved.items) || [],
+      documents: [v.patient && v.patient.document, ctx.extraction && ctx.extraction.patient && ctx.extraction.patient.document],
+    },
+    prior: v.prior || {},
+  });
+  return [{ json: {
+    mode,
+    intake_id: ctx.id,
+    outcome: r.outcome,
+    status: null,
+    handoff_reason: r.handoff_reason,
+    handoff_detail: r.handoff_detail,
+    added: r.added,
+    // Para que el agente pueda decirle al usuario qué queda igual.
+    late_context: {
+      status: ctx.status,
+      order_number: ctx.order_number || null,
+      appointment_start: ctx.appointment_start || null,
+      sede_name: ctx.sede_name || null,
+    },
+    questions: [],
+    warnings: [],
+    patient: v.patient || null,
+    resolved: v.resolved || null,
+    duplicate_of: null,
+    validation: null,
+    extraction_to_save: null,
+    extraction_meta: {},
+    late_check: {
+      checked_at: new Date().toISOString(),
+      outcome: r.outcome,
+      handoff_reason: r.handoff_reason,
+      handoff_detail: r.handoff_detail,
+      extraction: prep.extraction,
+      extraction_meta: prep.extraction_meta || {},
+    },
+  } }];
+}
 
 // Lo ocurrido antes en este intake (se guarda dentro de validation.prior).
 const before = (ctx.validation && ctx.validation.prior) || {};
@@ -307,6 +366,7 @@ const result = validateExtraction({
 
 const STATUS = { ready: 'awaiting_confirmation', needs_input: 'needs_input', handoff: 'handed_off' };
 return [{ json: {
+  mode,
   intake_id: ctx.id,
   outcome: result.outcome,
   status: STATUS[result.outcome],
@@ -327,18 +387,35 @@ link('Lookup Patient Data', 'Validate');
 // ── 8. Guardar y devolver ───────────────────────────────────────────────────
 add('Save Result', 'n8n-nodes-base.postgres', 2.6, {
     operation: 'executeQuery',
-    query: `-- Solo actualiza un intake que sigue en curso: nunca pisa uno ya agendado o derivado.
-UPDATE whatsapp_order_intakes
-   SET status          = $2,
-       handoff_reason  = $3,
-       handoff_detail  = $4,
-       extraction      = COALESCE($5::jsonb, extraction),
-       validation      = $6::jsonb,
-       extraction_meta = extraction_meta || $7::jsonb,
-       patient_id      = COALESCE($8::uuid, patient_id)
- WHERE id = $1::uuid
-   AND status IN ('extracting', 'needs_input', 'awaiting_confirmation')
-RETURNING id::text AS id, status, handoff_reason;`,
+    query: `-- extract / revalidate: solo actualiza un intake que sigue en curso; nunca pisa uno ya agendado o derivado.
+-- compare (archivos que llegan con la orden ya creada o agendada): no toca el estado, la extraccion ni la validacion
+-- de la orden; solo agrega la lectura nueva a extraction_meta.late_files para auditoria.
+WITH v AS (
+  UPDATE whatsapp_order_intakes
+     SET status          = $2,
+         handoff_reason  = $3,
+         handoff_detail  = $4,
+         extraction      = COALESCE($5::jsonb, extraction),
+         validation      = $6::jsonb,
+         extraction_meta = extraction_meta || $7::jsonb,
+         patient_id      = COALESCE($8::uuid, patient_id)
+   WHERE id = $1::uuid
+     AND $9::text <> 'compare'
+     AND status IN ('extracting', 'needs_input', 'awaiting_confirmation')
+  RETURNING id, status, handoff_reason
+),
+c AS (
+  UPDATE whatsapp_order_intakes
+     SET extraction_meta = extraction_meta || jsonb_build_object('late_files',
+           COALESCE(extraction_meta -> 'late_files', '[]'::jsonb) || jsonb_build_array($10::jsonb))
+   WHERE id = $1::uuid
+     AND $9::text = 'compare'
+     AND status IN ('order_created', 'booked')
+  RETURNING id, status, handoff_reason
+)
+SELECT id::text AS id, status, handoff_reason FROM v
+UNION ALL
+SELECT id::text AS id, status, handoff_reason FROM c;`,
     options: {
         queryReplacement: `={{ [
   $json.intake_id,
@@ -346,9 +423,11 @@ RETURNING id::text AS id, status, handoff_reason;`,
   $json.handoff_reason,
   $json.handoff_detail,
   $json.extraction_to_save ? JSON.stringify($json.extraction_to_save) : null,
-  JSON.stringify($json.validation),
+  $json.validation ? JSON.stringify($json.validation) : null,
   JSON.stringify($json.extraction_meta || {}),
-  ($json.patient && $json.patient.patient_id) || null
+  ($json.patient && $json.patient.patient_id) || null,
+  $json.mode || 'extract',
+  $json.late_check ? JSON.stringify($json.late_check) : null
 ] }}`,
     },
 }, [x(11), 300], { credentials: PG, alwaysOutputData: true });
@@ -356,11 +435,15 @@ link('Validate', 'Save Result');
 
 add('Format Result', 'n8n-nodes-base.code', 2, {
     jsCode: `// Lo que recibe quien llamo al subflujo (el agente de ordenes). 'saved' false = el intake
-// ya no estaba en curso (por ejemplo ya se habia derivado): el llamador no debe seguir.
+// ya no estaba en curso (por ejemplo ya se habia derivado): el llamador no debe seguir ni derivar.
+// mode 'compare': outcome es 'unchanged' (la orden ya creada queda igual) o 'handoff'.
 const v = $('Validate').first().json;
 const saved = $input.first().json || {};
 return [{ json: {
   saved: !!saved.id,
+  mode: v.mode,
+  added: v.added || [],
+  late_context: v.late_context || null,
   intake_id: v.intake_id,
   outcome: v.outcome,
   status: v.status,
@@ -384,10 +467,11 @@ nodes.push({
             '',
             '**No editar a mano**: lo genera `scripts/n8n/generate-study-order-intake-workflow.mjs` a partir de `study-order-intake/intake-lib.mjs` (con pruebas).',
             '',
-            '**Entrada:** `intake_id`, `mode` (`extract` | `revalidate`), `answers` (JSON).',
+            '**Entrada:** `intake_id`, `mode` (`extract` | `revalidate` | `compare`), `answers` (JSON).',
             '',
             '**extract:** descarga los originales de Drive → modelo de visión con salida estructurada (ids de servicio = enum del catálogo) → validador determinista → guarda en `whatsapp_order_intakes`.',
             '**revalidate:** no llama al modelo; revalida la extracción guardada con las respuestas del usuario.',
+            '**compare:** la orden ya está creada y llegaron más archivos: los lee todos y los compara con la orden sin modificarla (`unchanged` o derivación); la lectura queda en `extraction_meta.late_files`.',
             '',
             '**El modelo solo transcribe.** Quién es el paciente, si el estudio existe y si hay que derivar lo decide el validador.',
             '',

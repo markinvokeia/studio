@@ -175,7 +175,7 @@ interface UseClinicHistoryReturn {
     fetchDoctors: () => Promise<void>;
     doctors: { id: string; name: string }[];
     isLoadingDoctors: boolean;
-    getSessionAttachment: (sessionId: string, attachmentId: string) => Promise<Blob>;
+    getSessionAttachment: (sessionId: string, attachmentId: string, signal?: AbortSignal) => Promise<Blob>;
 
     // Submitting states
     isSubmittingPersonal: boolean;
@@ -795,8 +795,8 @@ export function useClinicHistory(): UseClinicHistoryReturn {
         }
     }, []);
 
-    const getSessionAttachment = useCallback(async (sessionId: string, attachmentId: string): Promise<Blob> => {
-        const blob = await api.getBlob(API_ROUTES.CLINIC_HISTORY.SESSIONS_ATTACHMENT, { session_id: sessionId, id: attachmentId });
+    const getSessionAttachment = useCallback(async (sessionId: string, attachmentId: string, signal?: AbortSignal): Promise<Blob> => {
+        const blob = await api.getBlob(API_ROUTES.CLINIC_HISTORY.SESSIONS_ATTACHMENT, { session_id: sessionId, id: attachmentId }, undefined, { signal });
         return blob;
     }, []);
 
