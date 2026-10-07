@@ -3523,7 +3523,7 @@ export interface WhatsappIntakeFile {
 /** Motivos por los que el agente deriva una orden a una persona. */
 export type WhatsappHandoffReason =
   | 'service_not_found' | 'unreadable' | 'low_confidence' | 'patient_mismatch'
-  | 'booking_failed' | 'user_request' | 'system_error';
+  | 'booking_failed' | 'user_request' | 'system_error' | 'order_changed';
 
 export interface WhatsappIntakeWarning {
   code: string;

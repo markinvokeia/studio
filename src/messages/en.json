@@ -7318,6 +7318,21 @@
     "edit": "Edit",
     "delete": "Delete"
   },
+  "FileViewer": {
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "reset": "Reset view",
+    "maximize": "Maximize",
+    "restore": "Restore size",
+    "download": "Download",
+    "untitled": "Attachment",
+    "description": "File viewer",
+    "loading": "Loading file…",
+    "loadError": "The file could not be loaded.",
+    "thumbnailError": "Could not load",
+    "noPreview": "This file type cannot be previewed. Download it to open it.",
+    "open": "Open"
+  },
   "Common": {
     "accessDenied": "Access Denied",
     "noPermission": "You do not have permission to access this page.",
@@ -9600,17 +9615,21 @@
     "calendarIdsHelp": "Calendar ids separated by commas where orders may be booked. Empty means any active calendar of the chosen branch.",
     "ttlHours": "Hours before an order is abandoned",
     "ttlHoursHelp": "An order with no activity for this long stops being in progress.",
+    "mediaDebounce": "Wait after a photo or PDF (seconds)",
+    "mediaDebounceHelp": "How long the assistant waits after the last message when a file arrived, so the front and back of the order are read together. Between 30 and 300.",
     "save": "Save order settings",
     "descriptions": {
       "enabled": "Enables study orders received as photo or PDF by WhatsApp.",
       "minConfidence": "Minimum confidence (0 to 1) to accept an order line without asking the patient.",
       "visionModel": "OpenAI model that reads study orders (images and PDFs).",
       "calendarIds": "Calendar ids where the assistant may book study orders. Empty means any active calendar of the chosen branch.",
-      "ttlHours": "Hours of inactivity after which an order in progress is marked as abandoned."
+      "ttlHours": "Hours of inactivity after which an order in progress is marked as abandoned.",
+      "mediaDebounce": "Seconds the assistant waits after the last message when a photo or PDF arrived, to gather the front and back of the order."
     },
     "errors": {
       "confidence": "Enter a number between 0.5 and 1.",
       "ttl": "Enter a whole number of hours between 1 and 168.",
+      "mediaDebounce": "Enter a whole number of seconds between 30 and 300.",
       "model": "A reading model is required to enable orders.",
       "calendars": "Use calendar ids separated by commas, for example 3,7,12."
     },
@@ -9845,8 +9864,7 @@
       "chooseAppointment": "For which appointment?",
       "record": "Record session",
       "recordHint": "It will be recorded under {name}.",
-      "attachments": "{count, plural, =1 {1 attachment} other {# attachments}}",
-      "openAttachment": "Open file"
+      "attachments": "{count, plural, =1 {1 attachment} other {# attachments}}"
     },
     "referredByShort": "referred by {doctor}",
     "whatsapp": {
@@ -9876,8 +9894,6 @@
       "detail": "Detail",
       "originals": "Original files",
       "noFiles": "No files were saved.",
-      "fileLoadError": "Could not load this file.",
-      "openFile": "Open",
       "viewOrder": "View order {number}",
       "resolve": "Mark as resolved",
       "resolvedBy": "Resolved by {name} on {date}",
@@ -9902,7 +9918,8 @@
         "patient_mismatch": "Patient differs from sender",
         "booking_failed": "Could not book",
         "user_request": "Asked for a person",
-        "system_error": "System error"
+        "system_error": "System error",
+        "order_changed": "Another file changes an order already created"
       },
       "original": {
         "receivedVia": "Received via WhatsApp on {date}",

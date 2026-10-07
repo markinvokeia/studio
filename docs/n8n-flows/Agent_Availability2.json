@@ -9,10 +9,10 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        2272,
-        -224
+        5216,
+        -512
       ],
-      "id": "28e20cd6-3db1-4374-9bff-ff3fd1686577",
+      "id": "74641eb6-a7c9-4096-a436-94109542be79",
       "name": "When Executed by Another Workflow"
     },
     {
@@ -23,13 +23,13 @@
           "queryReplacement": "={{ [$('When Executed by Another Workflow').first().json.calendarSourceIds || ''] }}"
         }
       },
-      "id": "6bcbcc27-32ec-4ea5-b71b-583c24cf9ad1",
+      "id": "b3acdfc7-fe8d-458a-bc24-157c60b44f87",
       "name": "Get Active Calendars",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2496,
-        -320
+        5440,
+        -608
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -47,13 +47,13 @@
           "queryReplacement": "={{ [$('When Executed by Another Workflow').first().json.endingDateAndTime, $('When Executed by Another Workflow').first().json.startingDateAndTime, $('When Executed by Another Workflow').first().json.appointmentId || null] }}"
         }
       },
-      "id": "a3becf80-e029-4ea1-97a5-a387b1f21a91",
+      "id": "06c70424-8c19-4e42-bd3a-8224d05e4ac9",
       "name": "Get Appointments In Range",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2496,
-        -128
+        5440,
+        -416
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -91,36 +91,36 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        3136,
-        -224
+        6080,
+        -512
       ],
-      "id": "d69c597e-c673-45b2-a921-f25879b29a07",
+      "id": "a10e5289-2631-49bd-8066-f45c94bf4250",
       "name": "Check Mode1"
     },
     {
       "parameters": {
         "jsCode": "// Availability Check Mode - Initialize variables (DB-backed, no Google Calendar)\nconst startDateTime = new Date($('When Executed by Another Workflow').first().json.startingDateAndTime).toISOString();\nconst endDateTime = new Date($('When Executed by Another Workflow').first().json.endingDateAndTime).toISOString();\nconst durationMinutes = parseInt($('When Executed by Another Workflow').first().json.durationInMinutes) || 60;\nconst existingAppointmentId = $('When Executed by Another Workflow').first().json.appointmentId\n  ? Number($('When Executed by Another Workflow').first().json.appointmentId)\n  : null;\n\nconst calendars = ($input.first().json.calendars || [])\n  .filter(c => c && c.id != null);\n\nconst allAppointments = ($input.first().json.appointments || [])\n  .filter(a => a && a.id != null);\n\n// Each calendar (consultorio) is available if there are no appointments\n// overlapping the requested window for its calendar_source_id.\nconst calendarData = calendars.map(cal => {\n  const calAppointments = allAppointments.filter(a =>\n    a.calendar_source_id != null &&\n    Number(a.calendar_source_id) === Number(cal.id)\n  );\n  return {\n    calendarSourceId: Number(cal.id),\n    googleCalendarId: cal.google_calendar_id,\n    name: cal.name,\n    calAppointments,\n    isAvailable: calAppointments.length === 0\n  };\n});\n\nreturn {\n  json: {\n    mode: 'checkAvailability',\n    startDateTime,\n    endDateTime,\n    durationMinutes,\n    existingAppointmentId,\n    calendars: calendarData,\n    allAppointments\n  }\n};\n"
       },
-      "id": "d101835b-6d30-4162-86ee-77f08fc19530",
+      "id": "80c54442-e614-43e8-babf-da931b29ddb8",
       "name": "Initialize Availability Check1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3376,
-        -240
+        6320,
+        -528
       ]
     },
     {
       "parameters": {
         "jsCode": "const availableCalendars = $input.first().json.calendars.filter(cal => cal.isAvailable === true);\nconst unAvailableCalendars = $input.first().json.calendars.filter(cal => cal.isAvailable === false);\nconst allAppointments = $input.first().json.allAppointments;\n\nreturn {\n  json: {\n    mode: 'checkAvailability',\n    availableCalendars,\n    unAvailableCalendars,\n    allAppointments\n  }\n};\n"
       },
-      "id": "6b6b7b58-0b5c-438e-85db-f0f76463c8c6",
+      "id": "6223f2a8-2e5d-479c-9e7b-dfc3262084db",
       "name": "Filter Available Calendars",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3600,
-        -240
+        6544,
+        -528
       ]
     },
     {
@@ -151,10 +151,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        3824,
-        -240
+        6768,
+        -528
       ],
-      "id": "09181ec9-d002-40b1-a32d-27469aeb1917",
+      "id": "b7a8a7cd-12e3-418d-bc1b-5a5219a37ea9",
       "name": "If Slots Avail"
     },
     {
@@ -168,10 +168,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        4064,
-        -320
+        7008,
+        -608
       ],
-      "id": "62b96de2-b072-4f07-96eb-b55536ae42cc",
+      "id": "d12a08b6-eb33-4723-bbad-5e5fd75b307d",
       "name": "Get_Request_Doctor",
       "alwaysOutputData": true,
       "credentials": {
@@ -192,10 +192,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        4288,
-        -320
+        7232,
+        -608
       ],
-      "id": "31478183-7f7f-41df-8754-38b702096284",
+      "id": "e4c5d8b2-7704-4344-ac39-f90c837765c8",
       "name": "Search Doctors",
       "alwaysOutputData": true,
       "credentials": {
@@ -209,13 +209,13 @@
       "parameters": {
         "jsCode": "const availableCalendars = $('Filter Available Calendars').first().json.availableCalendars || [];\nconst unAvailableCalendars = $('Filter Available Calendars').first().json.unAvailableCalendars || [];\nconst allAppointments = $('Filter Available Calendars').first().json.allAppointments || [];\n\nconst doctors = ($('Search Doctors').all() || [])\n  .map(d => d.json)\n  .filter(d => d && d.id);\n\nconst requestedDoctors = ($('Get_Request_Doctor').all() || [])\n  .map(d => d.json)\n  .filter(d => d && d.id);\n\n// Doctors who are assignee of any appointment overlapping the requested window\nconst busyDoctorIds = new Set();\nallAppointments.forEach(a => {\n  if (a.assignee_id) busyDoctorIds.add(a.assignee_id);\n});\n\nconst availableDoctors = doctors.filter(d => !busyDoctorIds.has(d.id));\n\nconst doctorWasSpecified = requestedDoctors.length > 0;\nconst requestedDoctor = doctorWasSpecified ? requestedDoctors[0] : null;\n\nlet isAvailableSpecifiedDoctor = false;\nlet finalAssignedDoctor = null;\nlet reason = null;\n\nif (doctorWasSpecified) {\n  isAvailableSpecifiedDoctor = availableDoctors.some(a => a.id === requestedDoctor.id);\n  if (isAvailableSpecifiedDoctor) {\n    finalAssignedDoctor = requestedDoctor;\n  }\n} else if (availableDoctors.length > 0) {\n  finalAssignedDoctor = availableDoctors[0];\n  reason = 'no_doctor_specified';\n}\n\nconst assignedCalendar = availableCalendars[0] || null;\n\nreturn {\n  json: {\n    mode: 'checkAvailability',\n    doctors,\n    availableCalendars,\n    unAvailableCalendars,\n    availableDoctors,\n    busyDoctorIds: Array.from(busyDoctorIds),\n    requestedDoctor,\n    doctorWasSpecified,\n    isAvailableSpecifiedDoctor,\n    finalAssignedDoctor,\n    reason,\n    assignedCalendarSourceId: assignedCalendar ? assignedCalendar.calendarSourceId : null,\n    assignedCalendarName: assignedCalendar ? assignedCalendar.name : null,\n    assignedGoogleCalendarId: assignedCalendar ? assignedCalendar.googleCalendarId : null\n  }\n};\n"
       },
-      "id": "6e11235b-bef3-4cd6-a711-02aff6cf9aea",
+      "id": "748ecb68-8cf6-4e51-ac70-07aad84f5eae",
       "name": "Find Available Doctors",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4512,
-        -320
+        7456,
+        -608
       ]
     },
     {
@@ -246,10 +246,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        4736,
-        -320
+        7680,
+        -608
       ],
-      "id": "fcd64e7c-9497-4c24-97a6-ad9d0012ac81",
+      "id": "a8ec7711-d728-4b1a-babe-9d11806c7ddf",
       "name": "Available Doctors"
     },
     {
@@ -280,10 +280,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        4976,
-        -304
+        7920,
+        -592
       ],
-      "id": "812e61da-ca56-4d92-91ce-df3ceb3cd05e",
+      "id": "9e4c19ec-bc24-4230-98d3-ee14e42fa02d",
       "name": "Doctor Was Specified"
     },
     {
@@ -314,10 +314,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        5200,
-        -400
+        8144,
+        -688
       ],
-      "id": "f372ca6e-ec37-4f8e-a2cf-a6e949cf8918",
+      "id": "bcc8a5bf-e0df-4261-a4ad-67d7f672e31f",
       "name": "Is Available"
     },
     {
@@ -373,10 +373,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        5472,
-        -416
+        8416,
+        -704
       ],
-      "id": "11128b54-3ece-4ef1-8727-f01911541b0d",
+      "id": "e8a68130-d92a-4b3f-9e95-6741bbe151e7",
       "name": "Calendar and Specified Doctor Available"
     },
     {
@@ -432,10 +432,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        5200,
-        -208
+        8144,
+        -496
       ],
-      "id": "0c2fd924-d36b-45ec-8645-1011b3a00f50",
+      "id": "f40cdbbc-9f1a-4913-b58a-28966e99b8d5",
       "name": "Calendar and Assigned Available Doctor"
     },
     {
@@ -461,10 +461,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        5488,
-        -208
+        8432,
+        -496
       ],
-      "id": "4d29da4a-0c21-43cd-a956-cde1e2083a20",
+      "id": "f0a28dc6-d388-4697-b8b4-a246e9dbb547",
       "name": "Specified Doctor Unavailable"
     },
     {
@@ -476,10 +476,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        4288,
-        352
+        7232,
+        64
       ],
-      "id": "17997b7b-4ca4-4a59-9d7c-c0ae975fe393",
+      "id": "bc02799a-b139-4dbe-9cff-3fb8cbf1a946",
       "name": "Set_StartingDateAndTime"
     },
     {
@@ -489,10 +489,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4544,
-        192
+        7488,
+        -96
       ],
-      "id": "9c6572e9-5516-44a5-b177-ea0091a0e93b",
+      "id": "3f3b3f9b-6fc3-4e85-be5e-35e0335daa30",
       "name": "Get All Active Calendars"
     },
     {
@@ -503,13 +503,13 @@
           "queryReplacement": "={{ [$('Set_StartingDateAndTime').first().json.scheduleEndingTime, $('Set_StartingDateAndTime').first().json.scheduleStartingTime, $('When Executed by Another Workflow').first().json.appointmentId || null] }}"
         }
       },
-      "id": "dfa9f984-54b9-409c-8b45-cbe082019c83",
+      "id": "1ae1e2e4-aed8-4b48-ac8d-d74eac6d4efe",
       "name": "Get Appointments In Range1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        4544,
-        352
+        7488,
+        64
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -530,10 +530,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        4544,
-        544
+        7488,
+        256
       ],
-      "id": "11d5d9f2-9665-4f87-8815-cb22e0659cfd",
+      "id": "1534ca80-bff7-4f60-accc-1351f7cab683",
       "name": "Select Available Doctors",
       "alwaysOutputData": true,
       "credentials": {
@@ -550,10 +550,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5200,
-        352
+        8144,
+        64
       ],
-      "id": "3f0f03bd-11e1-4b9e-a79e-e8eb171655ee",
+      "id": "42444654-34e9-440a-9337-9ae1957c192d",
       "name": "Get_possible_schedules"
     },
     {
@@ -563,10 +563,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5408,
-        352
+        8352,
+        64
       ],
-      "id": "f6185071-d321-4937-a0b3-a9e29b6093a9",
+      "id": "0092d374-69c7-44eb-9dc5-461db2810559",
       "name": "Send_possible_schedules"
     },
     {
@@ -579,10 +579,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        2192,
-        -496
+        5136,
+        -784
       ],
-      "id": "e276139e-cee6-449b-a94e-ab5ca095742c",
+      "id": "58467f1f-ec35-4132-a45b-6d50fa331088",
       "name": "Sticky Note1"
     },
     {
@@ -594,10 +594,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        4032,
-        -496
+        6976,
+        -784
       ],
-      "id": "dcb8b0c0-68c3-48d3-8c1c-5559d61e6ffd",
+      "id": "e4c8d0d5-c40e-4c39-afaf-7fc2d20a5493",
       "name": "Sticky Note"
     },
     {
@@ -610,10 +610,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        4960,
-        -496
+        7904,
+        -784
       ],
-      "id": "e95721b6-b132-49d0-a13b-e6318d6f4ee6",
+      "id": "2b0e35c5-aada-4d97-bc7a-87b46e0187fb",
       "name": "Sticky Note2"
     },
     {
@@ -626,10 +626,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        4192,
-        48
+        7136,
+        -240
       ],
-      "id": "ded1ddd5-d49d-4f2a-8c13-7cab6c887ed7",
+      "id": "7e94ea61-d700-4591-a5c4-28a2d6b462dc",
       "name": "Sticky Note3"
     },
     {
@@ -642,10 +642,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        4976,
-        336
+        7920,
+        48
       ],
-      "id": "4b47b472-ef7c-4740-b85c-b0302bb8340c",
+      "id": "d1b6944a-fa61-43cf-94ae-cac5ebec72ed",
       "name": "Merge"
     },
     {
@@ -655,10 +655,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4752,
-        192
+        7696,
+        -96
       ],
-      "id": "2328ebfb-c8fa-4ed4-99b9-c20e372ef876",
+      "id": "4f38665c-d5a8-4284-a026-356cb6194cca",
       "name": "Code in JavaScript"
     },
     {
@@ -668,10 +668,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4752,
-        352
+        7696,
+        64
       ],
-      "id": "75507267-8be2-466b-b9b0-d422bf74afd4",
+      "id": "e87f424c-e977-4aa3-9fb7-93f72eca1de3",
       "name": "Code in JavaScript1"
     },
     {
@@ -681,10 +681,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4752,
-        544
+        7696,
+        256
       ],
-      "id": "d144cb1e-76d9-4e33-8927-e471659edd99",
+      "id": "f564dfe4-aef0-4f7c-84c5-a43a183bf2a3",
       "name": "Code in JavaScript2"
     },
     {
@@ -694,10 +694,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2704,
-        -320
+        5648,
+        -608
       ],
-      "id": "bab3ea71-e055-4c55-beb8-95fa20ccaadc",
+      "id": "93b77659-b281-402e-ae52-07f4e312940a",
       "name": "Code in JavaScript3"
     },
     {
@@ -707,10 +707,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2704,
-        -128
+        5648,
+        -416
       ],
-      "id": "6b257403-d0d5-417f-8e3f-4be9a59ec0a5",
+      "id": "5e0f053e-f141-4086-9c5e-107430fa9fd4",
       "name": "Code in JavaScript4"
     },
     {
@@ -722,10 +722,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        2912,
-        -224
+        5856,
+        -512
       ],
-      "id": "31be3e2e-b617-4b4f-9761-2c2e3fac4d9d",
+      "id": "28f8eea8-6c3b-4c56-b5eb-238a89d3e24f",
       "name": "Merge1"
     }
   ],
@@ -1092,7 +1092,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "f5e26964-0d65-4745-87e7-c167008bc3b2",
+  "versionId": "1f294cdc-1ce8-4c8e-b7bc-162aa1a58d0c",
   "meta": {
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
   },

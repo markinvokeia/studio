@@ -12,7 +12,11 @@
  *   agent-tools/order-answer            respuesta del usuario a una pregunta (revalida)
  *   agent-tools/order-list-sedes        sedes entre las que puede elegir
  *   agent-tools/order-list-slots        horarios libres de una sede (duración total)
- *   agent-tools/order-confirm-and-book  alta del paciente + orden + cita (idempotente)
+ *   agent-tools/order-confirm-and-book  alta del paciente + orden + cita (idempotente). Crea, envía
+ *                                       y agenda la orden con SQL directo (el MISMO de los endpoints
+ *                                       /study-orders/*, importado de study-orders-sql.mjs) y como
+ *                                       actor el usuario de servicio "Agente WhatsApp": no llama a
+ *                                       endpoints protegidos por JWT.
  *   agent-tools/order-handoff           deriva a recepción con motivo y fotos
  *
  * El LLM nunca maneja ids: todo se resuelve por el TELÉFONO (que sale del
@@ -31,6 +35,11 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// Mismo SQL que los endpoints /study-orders/*: un cambio ahí llega al agente al regenerar.
+import {
+    BOOKING_TOKEN_SQL, LOG_EVENT_SQL, NOTIFY_RECEPTION_SQL, PUBLIC_BOOK_SQL, SUBMIT_SQL, UPSERT_SQL,
+} from './study-orders-sql.mjs';
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..', '..');
 const OUT = join(ROOT, 'n8n-workflows', 'whatsapp-order-agent-tools.json');
@@ -43,7 +52,13 @@ const SLOTS_LIB = stripLib('slots-lib.mjs');
 
 const PG = { postgres: { id: '6b7Sjdnppbfve8ka', name: 'Postgres account' } };
 const AGENT_KEY = { httpHeaderAuth: { id: 'REPLACE_WITH_AGENT_TOOLS_HEADER_AUTH_ID', name: 'WhatsApp Agent Tools Header Auth' } };
-const SERVICE_JWT = { httpHeaderAuth: { id: 'REPLACE_WITH_AGENT_SERVICE_JWT_ID', name: 'Invoke Agent Service JWT' } };
+/**
+ * Usuario de servicio "Agente WhatsApp" (migración 122, rol agente_ia). Es el actor ($1 de los SQL de
+ * órdenes) de todo lo que el agente hace con la orden: los permisos se siguen resolviendo contra su rol.
+ */
+const AGENT_EMAIL = 'agente-whatsapp@sistema.invokeia.invalid';
+/** Workflow `Events` (push por SSE), el mismo que usan generate-study-order-workflows.mjs y las citas. */
+const EVENTS_WORKFLOW_ID = 'W5SZnwkaTigFrHO6';
 const BASE = `{{ $env.N8N_URL || 'https://n8n-project-n8n.7ig1i3.easypanel.host' }}`;
 const INTAKE_WF = {
     __rl: true, value: 'REPLACE_WITH_STUDY_ORDER_INTAKE_WORKFLOW_ID', mode: 'list',
@@ -79,9 +94,28 @@ const webhook = (name, path) =>
 
 const code = (name, jsCode, col) => add(name, 'n8n-nodes-base.code', 2, { jsCode }, col);
 
-const pg = (name, query, replacement, col) =>
+const pg = (name, query, replacement, col, extra = {}) =>
     add(name, 'n8n-nodes-base.postgres', 2.6, { operation: 'executeQuery', query, options: { queryReplacement: replacement } },
-        col, { credentials: PG, alwaysOutputData: true });
+        col, { credentials: PG, alwaysOutputData: true, ...extra });
+
+/** Un error de SQL sigue al nodo de chequeo (que responde ok:false) en lugar de cortar la ejecución sin responder. */
+const SAFE = { onError: 'continueRegularOutput' };
+
+/** Bitácora y avisos: como en los endpoints, que fallen nunca tumba la operación. */
+const pgSide = (name, query, replacement, col, extra = {}) =>
+    add(name, 'n8n-nodes-base.postgres', 2.6, { operation: 'executeQuery', query, options: { queryReplacement: replacement } },
+        col, { credentials: PG, onError: 'continueRegularOutput', ...extra });
+
+/** Push por SSE de los avisos, igual que "Empujar por SSE" de los endpoints de órdenes. */
+const ssePush = (name, eventType, col) =>
+    add(name, 'n8n-nodes-base.executeWorkflow', 1.2, {
+        workflowId: { __rl: true, value: EVENTS_WORKFLOW_ID, mode: 'list', cachedResultName: 'Events' },
+        mode: 'each',
+        workflowInputs: {
+            mappingMode: 'defineBelow',
+            value: { event_type: eventType, user_ids: '={{ [$json.user_id] }}', channels: '={{ [] }}', payload: '={{ $json }}' },
+        },
+    }, col, { onError: 'continueRegularOutput' });
 
 const gate = (name, col) =>
     add(name, 'n8n-nodes-base.if', 2.2, {
@@ -222,6 +256,11 @@ switch (q.code) {
   case 'missing_patient_name':
     answers.overrides.patient_name = a;
     break;
+  case 'missing_other_side':
+    // Solo el "no" se responde con texto: si la orden tiene otra cara, la respuesta es la foto.
+    if (no) answers.overrides.no_other_side = true;
+    else return [{ json: { __fail: { error_code: 'send_other_side', message: 'Si la orden tiene otra cara u hoja, pedile que mande la foto por este chat. Si dice que no tiene, llamá de nuevo con answer "no".' } } }];
+    break;
   case 'confirm_patient':
     if (!yes) return [{ json: { __fail: { error_code: 'needs_human', message: 'El usuario no confirma sus datos: derivá a recepción con handoff_order.' } } }];
     break;
@@ -245,13 +284,14 @@ code('Answer: Format', `${SUMMARIZE}
 const phone = $('Answer: Parse').first().json.phone;
 const r = $input.first().json || {};
 if (r.outcome === 'handoff') {
-  return [{ json: { outcome: 'handoff', phone, reason_code: r.handoff_reason, detail: r.handoff_detail || '' } }];
+  return [{ json: { outcome: 'handoff', phone, intake_id: $('Answer: Build Answers').first().json.intake_id,
+    reason_code: r.handoff_reason, detail: r.handoff_detail || '' } }];
 }
 const v = { questions: r.questions, resolved: r.resolved, patient: r.patient, warnings: r.warnings, duplicate_of: r.duplicate_of };
 return [{ json: { outcome: r.outcome, phone, summary: summarize(v, r.status, null) } }];`, 7);
 ifExpr('Answer: Handoff?', '={{ $json.outcome === \'handoff\' }}', 8);
 http('Answer: Call Handoff', '/webhook/agent-tools/order-handoff',
-    '={{ JSON.stringify({ phone: $json.phone, reason_code: $json.reason_code, detail: $json.detail }) }}', AGENT_KEY, 9);
+    '={{ JSON.stringify({ phone: $json.phone, intake_id: $json.intake_id, reason_code: $json.reason_code, detail: $json.detail }) }}', AGENT_KEY, 9);
 code('Answer: Handoff Result', `return [{ json: { ok: true, outcome: 'handoff', message: 'La orden pasa a revisión de una persona del equipo. Avisale al usuario y no sigas con la orden.' } }];`, 10);
 respond('Answer: Respond', '={{ JSON.stringify({ ok: true, ...$json.summary, outcome: $json.outcome }) }}', 9);
 respond('Answer: Respond Handoff', RESPOND_JSON, 11);
@@ -432,14 +472,24 @@ const n = parseInt(b.slot_number, 10);
 if (!Number.isFinite(n) || n < 1) return [{ json: { __fail: { error_code: 'bad_slot', message: 'Falta el número del horario elegido (list_order_slots).' } } }];
 return [{ json: { phone, n } }];`, 1);
 gate('Book: Input OK?', 2);
-pg('Book: Load', `${LOAD_INTAKE.replace('-- $1 = teléfono. La orden en curso de ese número (una sola por teléfono).', '-- Estado para reservar (más el nombre y la dirección de la sede elegida).')}`,
-    '={{ [ $json.phone ] }}', 3);
+const BOOK_LOAD = LOAD_INTAKE
+    .replace('-- $1 = teléfono. La orden en curso de ese número (una sola por teléfono).',
+        `-- $1 = teléfono. Estado para reservar y el usuario de servicio "Agente WhatsApp" (migración 122),
+-- que es el actor con el que se crea, envía y agenda la orden.`)
+    .replace('       i.chosen_sede_id, i.booking_attempts,\n',
+        `       i.chosen_sede_id, i.booking_attempts,
+       (SELECT min(u.id::text) FROM users u
+         WHERE u.email = '${AGENT_EMAIL}' AND u.is_active IS NOT FALSE) AS agent_user_id,\n`);
+if (!BOOK_LOAD.includes('agent_user_id')) throw new Error('BOOK_LOAD: no se pudo agregar agent_user_id');
+pg('Book: Load', BOOK_LOAD, '={{ [ $json.phone ] }}', 3);
 code('Book: Check State', `const inp = $('Book: Parse').first().json;
 const row = $input.first().json || {};
 const fail = (error_code, message, bump = false) => [{ json: { __fail: { error_code, message, bump } } }];
 if (!row.id) return fail('no_intake', 'No hay una orden en curso.');
 if (!['awaiting_confirmation', 'order_created'].includes(row.status)) return fail('not_ready', 'La orden todavía tiene preguntas pendientes (get_order_intake).');
 if ((row.booking_attempts || 0) >= 2) return fail('too_many_failures', 'Ya falló dos veces: derivá a una persona con handoff_order (motivo booking_failed).');
+// Sin el usuario de servicio no hay con quién crear la orden. Es configuración, no algo del usuario.
+if (!row.agent_user_id) return fail('agent_user_missing', 'Falta el usuario de servicio "Agente WhatsApp" (migración 122). No es un problema del usuario: derivá a una persona con handoff_order (motivo system_error).');
 const v = row.validation || {};
 if (!v.resolved || !v.patient) return fail('not_ready', 'La orden no está validada.');
 const slot = ((row.slots_offered && row.slots_offered.slots) || []).find((s) => s.n === inp.n);
@@ -456,6 +506,7 @@ function uy(d) {
 const docType = p.document_type === 'passport' ? 'pasaporte_ext' : (uy(doc) ? 'cedula_uy' : 'cedula_ext');
 return [{ json: {
   intake_id: row.id, phone: row.phone, study_order_id: row.study_order_id || '', order_number: row.order_number || null,
+  agent_user_id: row.agent_user_id,
   patient: { ...p, document_type: docType }, resolved: v.resolved, slot, sede: sede || null,
 } }];`, 4);
 gate('Book: State OK?', 5);
@@ -495,36 +546,73 @@ if (!r.patient_id) return [{ json: { __fail: { error_code: 'patient_error', mess
 return [{ json: { ...ctx, patient_id: r.patient_id } }];`, 7);
 gate('Book: Patient OK?', 8);
 ifExpr('Book: Order Exists?', `={{ !!$json.study_order_id }}`, 9);
-code('Book: Build Order Payload', `const c = $input.first().json;
-const r = c.resolved;
-const body = {
-  patient_id: c.patient_id,
-  patient_name: c.patient.name,
-  patient_document: c.patient.document || '',
-  patient_phone: c.phone,
-  regions: r.regions, section_modifiers: r.section_modifiers, texts: r.texts,
-  delivery_methods: r.delivery_methods, clinical_notes: r.clinical_notes || '',
-  preferred_sede_id: c.sede ? String(c.sede.id) : '',
-  items: r.items.map((i) => ({ service_id: String(i.service_id), service_name: i.service_name, section_code: i.section_code,
-    sort_order: i.sort_order, quantity: 1, modifiers: i.modifiers, notes: i.notes || '' })),
+code('Book: Build Order Payload', `// Mismo payload y mismas validaciones que "Validar Datos" de POST /study-orders/upsert: el SQL
+// (UPSERT_SQL) es el mismo, así que tiene que recibir lo mismo.
+const c = $input.first().json;
+const r = c.resolved || {};
+const str = (v) => (v ?? '').toString().trim();
+const fail = (message) => [{ json: { __fail: { error_code: 'order_create_failed', message, bump: true } } }];
+const name = str(c.patient && c.patient.name);
+if (!name) return fail('No se pudo crear la orden: falta el nombre del paciente.');
+const items = Array.isArray(r.items) ? r.items : [];
+if (items.length === 0) return fail('No se pudo crear la orden: no tiene estudios.');
+if (items.some((i) => !i.service_id || !i.section_code)) return fail('No se pudo crear la orden: hay un estudio sin servicio o sección.');
+const payload = {
+  id: '',
+  doctor_id: '',
   // La orden de WhatsApp no se vincula a ningún doctor: el del papel queda como texto.
-  without_doctor: true, source: 'whatsapp',
-  referring_doctor_name: r.referring_doctor_name || '', source_intake_id: c.intake_id,
+  without_doctor: true,
+  source: 'whatsapp',
+  referring_doctor_name: str(r.referring_doctor_name),
+  source_intake_id: str(c.intake_id),
+  patient_id: str(c.patient_id),
+  patient_name: name,
+  patient_document: str(c.patient.document),
+  patient_email: '',
+  patient_phone: str(c.phone),
+  regions: r.regions ?? {},
+  section_modifiers: r.section_modifiers ?? {},
+  texts: r.texts ?? {},
+  delivery_methods: r.delivery_methods ?? [],
+  clinical_notes: (r.clinical_notes ?? '').toString(),
+  preferred_sede_id: c.sede ? str(c.sede.id) : '',
+  items: items.map((i) => ({
+    service_id: str(i.service_id), service_name: str(i.service_name), section_code: str(i.section_code),
+    sort_order: Number(i.sort_order) || 0, quantity: 1, modifiers: i.modifiers ?? {}, notes: str(i.notes),
+  })),
 };
-return [{ json: { ...c, order_body: body } }];`, 10);
-http('Book: Upsert Order', '/webhook/study-orders/upsert', '={{ JSON.stringify($json.order_body) }}', SERVICE_JWT, 11);
+return [{ json: { ...c, order_payload: JSON.stringify(payload) } }];`, 10);
+// $1 = el usuario de servicio: el SQL decide con sus permisos (CREATE_FOR_DOCTOR habilita without_doctor y source).
+pg('Book: Upsert Order', UPSERT_SQL, '={{ [ $json.agent_user_id, $json.order_payload ] }}', 11, SAFE);
 code('Book: Check Upsert', `const c = $('Book: Build Order Payload').first().json;
 const r = $input.first().json || {};
-const id = r.data && r.data.id;
-if (!id) return [{ json: { __fail: { error_code: 'order_create_failed', message: 'No se pudo crear la orden: ' + (r.message || 'error desconocido'), bump: true } } }];
-return [{ json: { ...c, new_order_id: id } }];`, 12);
+// Sin id: error de SQL o el rol agente_ia no alcanza para crear la orden.
+if (!r.id) return [{ json: { __fail: { error_code: 'order_create_failed', message: 'No se pudo crear la orden' + (r.error ? ' (' + String(r.error.message || r.error).slice(0, 200) + ')' : '') + '.', bump: true } } }];
+return [{ json: { ...c, new_order_id: r.id } }];`, 12);
 gate('Book: Upsert OK?', 13);
-http('Book: Submit Order', '/webhook/study-orders/submit', '={{ JSON.stringify({ id: $json.new_order_id }) }}', SERVICE_JWT, 14);
+pg('Book: Submit Order', SUBMIT_SQL, '={{ [ $json.agent_user_id, $json.new_order_id ] }}', 14, SAFE);
 code('Book: Check Submit', `const c = $('Book: Check Upsert').first().json;
 const r = $input.first().json || {};
-if (!(r.data && r.data.id)) return [{ json: { __fail: { error_code: 'order_submit_failed', message: 'No se pudo enviar la orden: ' + (r.message || 'error desconocido'), bump: true } } }];
-return [{ json: { ...c, order_number: r.data.order_number || c.order_number } }];`, 15);
+if (!r.id) return [{ json: { __fail: { error_code: 'order_submit_failed', message: 'No se pudo enviar la orden a la clínica' + (r.error ? ' (' + String(r.error.message || r.error).slice(0, 200) + ')' : '') + '.', bump: true } } }];
+return [{ json: { ...c, order_number: r.order_number || c.order_number } }];`, 15);
 gate('Book: Submit OK?', 16);
+
+// Lo que hacen /upsert y /submit después de responder: bitácora ('created', 'submitted') y aviso a
+// recepción con su push por SSE. Va en una rama aparte, más ARRIBA que la principal: en n8n (orden
+// v1) las ramas corren de arriba hacia abajo, así la bitácora queda en orden (creada, enviada,
+// agendada) y el aviso sale aunque después falle la reserva.
+code('Book: New Order Events', `const c = $('Book: Check Submit').first().json;
+return ['created', 'submitted'].map((event_type) => ({ json: {
+  payload: JSON.stringify({ order_id: c.new_order_id, event_type, actor_id: c.agent_user_id }),
+} }));`, 17);
+pgSide('Book: Log New Order', LOG_EVENT_SQL, '={{ [ $json.payload ] }}', 18);
+pgSide('Book: Notify New Order', NOTIFY_RECEPTION_SQL,
+    `={{ [ $('Book: Check Submit').first().json.new_order_id, '', $('Book: Check Submit').first().json.agent_user_id ] }}`, 18,
+    { executeOnce: true });
+// Sin destinatarios, Postgres igual emite un ítem vacío: sin este filtro el push iría con user_ids [null].
+ifExpr('Book: New Order Recipient?', '={{ !!$json.user_id }}', 19);
+ssePush('Book: Push New Order', 'study_order_submitted', 20);
+
 pg('Book: Save Order', `UPDATE whatsapp_order_intakes
    SET study_order_id = $2::uuid, patient_id = $3::uuid, status = 'order_created', chosen_sede_id = $4::int
  WHERE id = $1::uuid
@@ -540,7 +628,7 @@ if (ctx && ctx.new_order_id) {
 }
 return [{ json: $('Book: Patient Ready').first().json }];`, 18);
 pg('Book: Recheck Slot', `-- Justo antes de reservar: el horario sigue libre y sigue siendo futuro.
--- (public-book también lo valida, pero no elimina la carrera: ver docs, Fase 0.)
+-- (PUBLIC_BOOK_SQL también lo valida, pero no elimina la carrera: ver docs, Fase 0.)
 SELECT NOT EXISTS (
          SELECT 1 FROM appointments a
           WHERE a.calendar_source_id = $1::bigint
@@ -552,35 +640,74 @@ const r = $input.first().json || {};
 if (r.free !== true) return [{ json: { __fail: { error_code: 'slot_taken', message: 'Ese horario se ocupó justo antes de confirmarlo. Llamá a list_order_slots y ofrecele otros (la orden ya está creada, no se duplica).', bump: false } } }];
 return [{ json: c }];`, 20);
 gate('Book: Slot Free?', 21);
-http('Book: Booking Token', '/webhook/study-orders/booking-token',
-    '={{ JSON.stringify({ order_id: $json.study_order_id, days_valid: 2, max_uses: 1 }) }}', SERVICE_JWT, 22);
-code('Book: Check Token', `const c = $('Book: Check Slot').first().json;
+code('Book: Make Token', `// La reserva usa el SQL del link público (PUBLIC_BOOK_SQL): superposición, estudios de la cita y
+// bloqueo del token en una sola sentencia. Para eso se genera un token de UN uso (BOOKING_TOKEN_SQL,
+// como /study-orders/booking-token) y se gasta en el acto. El token en claro no sale de esta ejecución.
+const crypto = require('crypto');
+const c = $input.first().json;
+const clear = crypto.randomBytes(32).toString('base64url');
+const hash = crypto.createHash('sha256').update(clear).digest('hex');
+// Hora de pared de la clínica: expires_at no lleva zona y el SQL la compara contra la hora de Montevideo.
+const expiresAt = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: 'America/Montevideo', year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+}).format(new Date(Date.now() + 2 * 86400000));
+return [{ json: {
+  ...c,
+  token_hash: hash,
+  token_payload: JSON.stringify({ order_id: c.study_order_id, token_hash: hash, expires_at: expiresAt, max_uses: 1 }),
+  book_payload: JSON.stringify({ calendar_source_id: String(c.slot.calendar_source_id), start: c.slot.start, end: c.slot.end, summary: 'Estudios' }),
+} }];`, 22);
+pg('Book: Booking Token', BOOKING_TOKEN_SQL, '={{ [ $json.agent_user_id, $json.token_payload ] }}', 23, SAFE);
+code('Book: Check Token', `const c = $('Book: Make Token').first().json;
 const r = $input.first().json || {};
-const token = r.data && r.data.token;
-if (!token) return [{ json: { __fail: { error_code: 'token_failed', message: 'No se pudo preparar la reserva: ' + (r.message || 'error desconocido'), bump: true } } }];
-return [{ json: { ...c, booking_token: token } }];`, 23);
-gate('Book: Token OK?', 24);
-http('Book: Public Book', '/webhook/study-orders/public-book_noauth',
-    `={{ JSON.stringify({ token: $json.booking_token, calendar_source_id: String($json.slot.calendar_source_id), start: $json.slot.start, end: $json.slot.end, summary: 'Estudios' }) }}`,
-    null, 25, false);
+// Sin fila: la orden no está enviada, no tiene paciente o el rol agente_ia no tiene STUDY_ORDERS_SCHEDULE.
+if (!r.id) return [{ json: { __fail: { error_code: 'token_failed', message: 'No se pudo preparar la reserva' + (r.error ? ' (' + String(r.error.message || r.error).slice(0, 200) + ')' : '') + '.', bump: true } } }];
+return [{ json: c }];`, 24);
+gate('Book: Token OK?', 25);
+pg('Book: Public Book', PUBLIC_BOOK_SQL, '={{ [ $json.token_hash, $json.book_payload ] }}', 26, SAFE);
 code('Book: Check Booking', `const c = $('Book: Check Token').first().json;
 const r = $input.first().json || {};
-const apptId = r.data && r.data.appointment_id;
-if (!apptId) return [{ json: { __fail: { error_code: 'booking_failed', message: 'No se pudo reservar: ' + (r.message || 'el horario ya no está disponible') + '. Probá con otro horario.', bump: true } } }];
-return [{ json: { ...c, appointment_id: apptId, order_number: (r.data && r.data.order_number) || c.order_number } }];`, 26);
-gate('Book: Booked OK?', 27);
+if (!r.appointment_id) return [{ json: { __fail: { error_code: 'booking_failed', message: 'No se pudo reservar: el horario ya no está disponible. Probá con otro horario.', bump: true } } }];
+return [{ json: { ...c, appointment_id: r.appointment_id, order_number: r.order_number || c.order_number } }];`, 27);
+gate('Book: Booked OK?', 28);
+
+// Lo que hace /public-book después de responder: bitácora y aviso a recepción ("el paciente agendó").
+// La bitácora usa 'scheduled' con el usuario de servicio como actor: agendó el agente, no el paciente.
+// No se avisa al derivador: las órdenes de WhatsApp no tienen doctor.
+code('Book: Booking Events', `const c = $('Book: Check Booking').first().json;
+return [{ json: { payload: JSON.stringify({
+  order_id: c.study_order_id, event_type: 'scheduled', actor_id: c.agent_user_id,
+  appointment_id: String(c.appointment_id), metadata: { channel: 'whatsapp' },
+}) } }];`, 29);
+pgSide('Book: Log Booking', LOG_EVENT_SQL, '={{ [ $json.payload ] }}', 30);
+pgSide('Book: Notify Booking', NOTIFY_RECEPTION_SQL,
+    `={{ [ $('Book: Check Booking').first().json.study_order_id, 'patient_booked', '' ] }}`, 30);
+ifExpr('Book: Booking Recipient?', '={{ !!$json.user_id }}', 31);
+ssePush('Book: Push Booking', 'study_order_submitted', 32);
+
 pg('Book: Save Booking', `UPDATE whatsapp_order_intakes
    SET status = 'booked', appointment_id = $2::int, booking_attempts = 0
  WHERE id = $1::uuid
-RETURNING id::text AS id;`, `={{ [ $json.intake_id, $json.appointment_id ] }}`, 28);
+RETURNING id::text AS id;`, `={{ [ $json.intake_id, $json.appointment_id ] }}`, 29);
 code('Book: Format', `${WEEKDAYS}
 const c = $('Book: Check Booking').first().json;
 return [{ json: { ok: true, booked: true, order_number: c.order_number,
   date: c.slot.date, weekday: weekday(c.slot.date), time: c.slot.time, duration_minutes: c.resolved.total_duration_minutes,
   sede: c.sede ? c.sede.name : null, sede_address: c.sede ? c.sede.address : null,
   studies: c.resolved.items.map((i) => i.service_name),
-  hint: 'Confirmale al usuario el número de orden, los estudios, el día, la hora y la sede con su dirección.' } }];`, 29);
-respond('Book: Respond', RESPOND_JSON, 30);
+  hint: 'Confirmale al usuario el número de orden, los estudios, el día, la hora y la sede con su dirección.' } }];`, 30);
+respond('Book: Respond', RESPOND_JSON, 31);
+
+// Ramas de bitácora y avisos: una fila más arriba que el camino principal (corren primero, ver arriba).
+const SIDE = ['Book: New Order Events', 'Book: Log New Order', 'Book: Notify New Order', 'Book: New Order Recipient?', 'Book: Push New Order',
+    'Book: Booking Events', 'Book: Log Booking', 'Book: Notify Booking', 'Book: Booking Recipient?', 'Book: Push Booking'];
+for (const n of nodes) {
+    if (!SIDE.includes(n.name)) continue;
+    n.position[1] = cur.y - 180;
+    // Las dos ramas que salen del mismo nodo: la bitácora arriba de la del aviso.
+    if (n.name.startsWith('Book: Log ')) n.position[1] -= 100;
+}
 
 // Fallas: las que dejan la orden a medias suman un intento (con dos, se deriva).
 ifExpr('Book: Count Attempt?', '={{ !!$json.__fail.bump }}', 6);
@@ -617,22 +744,33 @@ link('Book: Upsert OK?', 'Book: Submit Order', 0);
 link('Book: Upsert OK?', 'Book: Count Attempt?', 1);
 link('Book: Submit Order', 'Book: Check Submit');
 link('Book: Check Submit', 'Book: Submit OK?');
+link('Book: Submit OK?', 'Book: New Order Events', 0); // rama de bitácora y aviso (arriba: corre primero)
 link('Book: Submit OK?', 'Book: Save Order', 0);
 link('Book: Submit OK?', 'Book: Count Attempt?', 1);
+link('Book: New Order Events', 'Book: Log New Order');
+link('Book: New Order Events', 'Book: Notify New Order');
+link('Book: Notify New Order', 'Book: New Order Recipient?');
+link('Book: New Order Recipient?', 'Book: Push New Order', 0);
 link('Book: Save Order', 'Book: Order Ready');
 link('Book: Order Ready', 'Book: Recheck Slot');
 link('Book: Recheck Slot', 'Book: Check Slot');
 link('Book: Check Slot', 'Book: Slot Free?');
-link('Book: Slot Free?', 'Book: Booking Token', 0);
+link('Book: Slot Free?', 'Book: Make Token', 0);
 link('Book: Slot Free?', 'Book: Count Attempt?', 1);
+link('Book: Make Token', 'Book: Booking Token');
 link('Book: Booking Token', 'Book: Check Token');
 link('Book: Check Token', 'Book: Token OK?');
 link('Book: Token OK?', 'Book: Public Book', 0);
 link('Book: Token OK?', 'Book: Count Attempt?', 1);
 link('Book: Public Book', 'Book: Check Booking');
 link('Book: Check Booking', 'Book: Booked OK?');
+link('Book: Booked OK?', 'Book: Booking Events', 0); // rama de bitácora y aviso (arriba: corre primero)
 link('Book: Booked OK?', 'Book: Save Booking', 0);
 link('Book: Booked OK?', 'Book: Count Attempt?', 1);
+link('Book: Booking Events', 'Book: Log Booking');
+link('Book: Booking Events', 'Book: Notify Booking');
+link('Book: Notify Booking', 'Book: Booking Recipient?');
+link('Book: Booking Recipient?', 'Book: Push Booking', 0);
 link('Book: Save Booking', 'Book: Format');
 link('Book: Format', 'Book: Respond');
 link('Book: Count Attempt?', 'Book: Bump Attempts', 0);
@@ -646,31 +784,56 @@ link('Book: Attach Attempts', 'Book: Respond Fail');
 startFlow('6 · agent-tools/order-handoff');
 webhook('Handoff: Webhook', 'agent-tools/order-handoff');
 code('Handoff: Parse', `${PARSE_PHONE}
-const ALLOWED = ['service_not_found', 'unreadable', 'low_confidence', 'patient_mismatch', 'booking_failed', 'user_request', 'system_error'];
+const ALLOWED = ['service_not_found', 'unreadable', 'low_confidence', 'patient_mismatch', 'booking_failed', 'user_request', 'system_error', 'order_changed'];
 const reason = ALLOWED.includes(b.reason_code) ? b.reason_code : 'user_request';
-return [{ json: { phone, reason, detail: String(b.detail || '').trim().slice(0, 300) } }];`, 1);
+// Cuando deriva el validador (extracción o revalidación), 'Save Result' ya dejó el intake en
+// handed_off y el UPDATE de 'Handoff: Mark Intake' no lo encuentra: quien llama manda su id para
+// que el aviso igual lleve el paciente y el original.
+const intakeId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(b.intake_id || '')) ? String(b.intake_id) : '';
+return [{ json: { phone, reason, detail: String(b.detail || '').trim().slice(0, 300), intake_id: intakeId } }];`, 1);
 gate('Handoff: Input OK?', 2);
-pg('Handoff: Mark Intake', `-- $1 teléfono, $2 motivo, $3 detalle. Marca el intake como derivado (si hay uno en curso) y trae
--- el primer original para que recepción lo abra desde el aviso.
+pg('Handoff: Mark Intake', `-- $1 teléfono, $2 motivo, $3 detalle, $4 id de un intake que el validador ya derivó (o vacío).
+-- Marca como derivado el intake en curso (si hay uno) y trae el primer original para que recepción
+-- lo abra desde el aviso. Si no hay uno en curso y vino $4:
+--   - si ese intake está agendado (booked: llegó otro archivo que cambia una orden con cita), también
+--     se marca como derivado, para que recepción lo vea en "Derivadas" (la cita y la orden no se tocan);
+--   - si ya está derivado y sin resolver, solo se usa para leer el paciente y el original.
 WITH upd AS (
   UPDATE whatsapp_order_intakes
      SET status = 'handed_off', handoff_reason = $2, handoff_detail = NULLIF($3, '')
-   WHERE phone = $1 AND status IN ${ACTIVE}
+   WHERE phone = $1
+     AND (status IN ${ACTIVE}
+          OR ($4::text <> '' AND id = NULLIF($4::text, '')::uuid AND status = 'booked'
+              AND NOT EXISTS (SELECT 1 FROM whatsapp_order_intakes x
+                               WHERE x.phone = $1 AND x.status IN ${ACTIVE})))
   RETURNING id, validation
+),
+prev AS (
+  SELECT i.id, i.validation
+    FROM whatsapp_order_intakes i
+   WHERE $4::text <> '' AND i.id = NULLIF($4::text, '')::uuid AND i.phone = $1
+     AND i.status = 'handed_off' AND i.resolved_at IS NULL
+     AND NOT EXISTS (SELECT 1 FROM upd)
+),
+target AS (
+  SELECT id, validation FROM upd
+  UNION ALL
+  SELECT id, validation FROM prev
 )
-SELECT (SELECT id::text FROM upd) AS intake_id,
-       (SELECT validation -> 'patient' ->> 'name' FROM upd) AS patient_name,
-       (SELECT a.web_view_link FROM attachments a, upd
-         WHERE a.source_name = 'whatsapp_order_intake' AND a.source_id = upd.id::text
+SELECT (SELECT id::text FROM target) AS intake_id,
+       (SELECT validation -> 'patient' ->> 'name' FROM target) AS patient_name,
+       (SELECT a.web_view_link FROM attachments a, target
+         WHERE a.source_name = 'whatsapp_order_intake' AND a.source_id = target.id::text
          ORDER BY a.id LIMIT 1) AS first_file,
        (SELECT min(u.id::text) FROM users u
          WHERE u.phone_number = $1 AND COALESCE(u.is_active, true) HAVING count(*) = 1) AS patient_id;`,
-    '={{ [ $json.phone, $json.reason, $json.detail ] }}', 3);
+    '={{ [ $json.phone, $json.reason, $json.detail, $json.intake_id ] }}', 3);
 code('Handoff: Build Request', `const inp = $('Handoff: Parse').first().json;
 const r = $input.first().json || {};
 const LABEL = { service_not_found: 'estudio que no figura en el sistema', unreadable: 'orden ilegible o con datos faltantes',
   low_confidence: 'lectura dudosa', patient_mismatch: 'paciente distinto de quien escribe', booking_failed: 'no se pudo agendar',
-  user_request: 'el usuario pidió hablar con una persona', system_error: 'error del sistema' };
+  user_request: 'el usuario pidió hablar con una persona', system_error: 'error del sistema',
+  order_changed: 'la orden ya creada recibió otro archivo que la cambia' };
 const reason = ('Orden de estudio: ' + (LABEL[inp.reason] || inp.reason) + (inp.detail ? ' — ' + inp.detail : '')
   + (r.first_file ? ' | Original: ' + r.first_file : '')).slice(0, 490);
 return [{ json: { phone: inp.phone, patient_id: r.patient_id || '', patient_name: r.patient_name || '',

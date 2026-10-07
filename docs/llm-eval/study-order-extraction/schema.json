@@ -1,0 +1,451 @@
+{
+  "name": "study_order_extraction",
+  "strict": true,
+  "schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "is_study_order",
+      "document_quality",
+      "doctor",
+      "patient",
+      "order_date",
+      "items",
+      "modifiers",
+      "regions",
+      "texts",
+      "delivery_methods",
+      "unmatched_text_lines",
+      "has_signature",
+      "unreadable_fields"
+    ],
+    "properties": {
+      "is_study_order": {
+        "type": "boolean",
+        "description": "false si la imagen no es una orden de estudios (receta, factura, foto cualquiera...)."
+      },
+      "document_quality": {
+        "type": "string",
+        "enum": [
+          "good",
+          "poor",
+          "unreadable"
+        ]
+      },
+      "doctor": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "license",
+          "confidence"
+        ],
+        "properties": {
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "license": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "description": "Entre 0 y 1: qué tan seguro estás de haber leído bien este dato."
+          }
+        }
+      },
+      "patient": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "document",
+          "document_type",
+          "birth_date",
+          "phone",
+          "confidence"
+        ],
+        "properties": {
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "document": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Cédula o pasaporte tal como está escrito."
+          },
+          "document_type": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "cedula",
+              "passport",
+              "other",
+              null
+            ]
+          },
+          "birth_date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "description": "Entre 0 y 1: qué tan seguro estás de haber leído bien este dato."
+          }
+        }
+      },
+      "order_date": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "description": "Fecha de la orden en formato AAAA-MM-DD."
+      },
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "external_id",
+            "notes",
+            "confidence"
+          ],
+          "properties": {
+            "external_id": {
+              "type": "string",
+              "enum": [
+                "ci-orden:svc:ortodoncia-bimaxilar",
+                "ci-orden:svc:ortodoncia-mandibula",
+                "ci-orden:svc:ortodoncia-maxilar",
+                "ci-orden:svc:bjork",
+                "ci-orden:svc:funcacion-gnathos",
+                "ci-orden:svc:mcnamara",
+                "ci-orden:svc:ricketts",
+                "ci-orden:svc:ricketts-resumido",
+                "ci-orden:svc:roth-jarabak",
+                "ci-orden:svc:steiner",
+                "ci-orden:svc:trevis",
+                "ci-orden:svc:vto",
+                "ci-orden:svc:servicio-escaneo",
+                "ci-orden:svc:guia-fresa",
+                "ci-orden:svc:guia-precision",
+                "ci-orden:svc:servicio-planeamiento",
+                "ci-orden:svc:servicio-tomografia",
+                "ci-orden:svc:tomo-piezas",
+                "ci-orden:svc:hemiarco",
+                "ci-orden:svc:mandibula-completa",
+                "ci-orden:svc:maxilar-completo",
+                "ci-orden:svc:eco-atm",
+                "ci-orden:svc:eco-partes-blandas",
+                "id:1626",
+                "ci-orden:svc:ATM",
+                "ci-orden:svc:mano-puno",
+                "ci-orden:svc:sub-m-vertex",
+                "ci-orden:svc:ft-oclusion",
+                "ci-orden:svc:ft-oclusion-frente",
+                "ci-orden:svc:ft-llave-oclusion",
+                "ci-orden:svc:ft-oclusal-2",
+                "ci-orden:svc:ft-overjet",
+                "ci-orden:svc:ft-tres-cuartos",
+                "ci-orden:svc:contacto-oclusal",
+                "ci-orden:svc:ft-dinamica",
+                "ci-orden:svc:ft-perfil",
+                "ci-orden:svc:ft-rostro-frente",
+                "ci-orden:svc:ft-rostro-sonrisa",
+                "ci-orden:svc:fotografias-todas",
+                "ci-orden:svc:m3dmix-maxilares-implantes",
+                "ci-orden:svc:m3dmix-mandibular",
+                "ci-orden:svc:m3dmix-patologia",
+                "ci-orden:svc:m3dmix-tercer-molar",
+                "ci-orden:svc:diagnosticobolton",
+                "ci-orden:svc:diagnosticodentarias",
+                "ci-orden:svc:diagnosticomoyers",
+                "ci-orden:svc:duplicado-yeso",
+                "ci-orden:svc:modelos-trabajo",
+                "ci-orden:svc:modelo-zocalados",
+                "ci-orden:svc:modelo-articulado",
+                "ci-orden:svc:Ortodoncia",
+                "ci-orden:svc:Ortopedia",
+                "01.9.5",
+                "ci-orden:svc:diseno-sonrisa",
+                "ci-orden:svc:DAM",
+                "ci-orden:svc:endoguide",
+                "ci-orden:svc:escaneo-ortodoncia-placas",
+                "ci-orden:svc:perioguide",
+                "ci-orden:svc:DOE",
+                "ci-orden:svc:placas-blanqueamiento",
+                "ci-orden:svc:cirugia-ortognatica",
+                "ci-orden:svc:solo-escaneo",
+                "ci-orden:svc:opt",
+                "ci-orden:svc:telerradio-frontal",
+                "ci-orden:svc:telerradio-perfil",
+                "ci-orden:svc:bitewing",
+                "ci-orden:svc:conductimetria",
+                "ci-orden:svc:oclusal",
+                "ci-orden:svc:periapical",
+                "ci-orden:svc:periapical-completo"
+              ]
+            },
+            "notes": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Indicación escrita junto a ese estudio, si la hay."
+            },
+            "confidence": {
+              "type": "number",
+              "description": "Entre 0 y 1: qué tan seguro estás de haber leído bien este dato."
+            }
+          }
+        }
+      },
+      "modifiers": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "service_external_id",
+            "section_code",
+            "group_code",
+            "option_code"
+          ],
+          "properties": {
+            "service_external_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "ci-orden:svc:ortodoncia-bimaxilar",
+                "ci-orden:svc:ortodoncia-mandibula",
+                "ci-orden:svc:ortodoncia-maxilar",
+                "ci-orden:svc:bjork",
+                "ci-orden:svc:funcacion-gnathos",
+                "ci-orden:svc:mcnamara",
+                "ci-orden:svc:ricketts",
+                "ci-orden:svc:ricketts-resumido",
+                "ci-orden:svc:roth-jarabak",
+                "ci-orden:svc:steiner",
+                "ci-orden:svc:trevis",
+                "ci-orden:svc:vto",
+                "ci-orden:svc:servicio-escaneo",
+                "ci-orden:svc:guia-fresa",
+                "ci-orden:svc:guia-precision",
+                "ci-orden:svc:servicio-planeamiento",
+                "ci-orden:svc:servicio-tomografia",
+                "ci-orden:svc:tomo-piezas",
+                "ci-orden:svc:hemiarco",
+                "ci-orden:svc:mandibula-completa",
+                "ci-orden:svc:maxilar-completo",
+                "ci-orden:svc:eco-atm",
+                "ci-orden:svc:eco-partes-blandas",
+                "id:1626",
+                "ci-orden:svc:ATM",
+                "ci-orden:svc:mano-puno",
+                "ci-orden:svc:sub-m-vertex",
+                "ci-orden:svc:ft-oclusion",
+                "ci-orden:svc:ft-oclusion-frente",
+                "ci-orden:svc:ft-llave-oclusion",
+                "ci-orden:svc:ft-oclusal-2",
+                "ci-orden:svc:ft-overjet",
+                "ci-orden:svc:ft-tres-cuartos",
+                "ci-orden:svc:contacto-oclusal",
+                "ci-orden:svc:ft-dinamica",
+                "ci-orden:svc:ft-perfil",
+                "ci-orden:svc:ft-rostro-frente",
+                "ci-orden:svc:ft-rostro-sonrisa",
+                "ci-orden:svc:fotografias-todas",
+                "ci-orden:svc:m3dmix-maxilares-implantes",
+                "ci-orden:svc:m3dmix-mandibular",
+                "ci-orden:svc:m3dmix-patologia",
+                "ci-orden:svc:m3dmix-tercer-molar",
+                "ci-orden:svc:diagnosticobolton",
+                "ci-orden:svc:diagnosticodentarias",
+                "ci-orden:svc:diagnosticomoyers",
+                "ci-orden:svc:duplicado-yeso",
+                "ci-orden:svc:modelos-trabajo",
+                "ci-orden:svc:modelo-zocalados",
+                "ci-orden:svc:modelo-articulado",
+                "ci-orden:svc:Ortodoncia",
+                "ci-orden:svc:Ortopedia",
+                "01.9.5",
+                "ci-orden:svc:diseno-sonrisa",
+                "ci-orden:svc:DAM",
+                "ci-orden:svc:endoguide",
+                "ci-orden:svc:escaneo-ortodoncia-placas",
+                "ci-orden:svc:perioguide",
+                "ci-orden:svc:DOE",
+                "ci-orden:svc:placas-blanqueamiento",
+                "ci-orden:svc:cirugia-ortognatica",
+                "ci-orden:svc:solo-escaneo",
+                "ci-orden:svc:opt",
+                "ci-orden:svc:telerradio-frontal",
+                "ci-orden:svc:telerradio-perfil",
+                "ci-orden:svc:bitewing",
+                "ci-orden:svc:conductimetria",
+                "ci-orden:svc:oclusal",
+                "ci-orden:svc:periapical",
+                "ci-orden:svc:periapical-completo",
+                null
+              ]
+            },
+            "section_code": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "group_code": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "option_code": {
+              "type": "string",
+              "enum": [
+                "telerradio-frontal-analisis",
+                "frankfort",
+                "horizontal-verdadero",
+                "labios-reposo",
+                "labios-contacto",
+                "mordida-constructiva",
+                "escaneo-superior",
+                "escaneo-inferior",
+                "escaneo-placa-75",
+                "escaneo-placa-1",
+                "escaneo-placa-15",
+                "escaneo-recto",
+                "escaneo-festoneado",
+                "placas-superior",
+                "placas-inferior",
+                "tomo-sin-separacion",
+                "est-tipo-implante",
+                "est-tipo-endodoncia",
+                "est-tipo-cirugia",
+                "est-tipo-ortodoncia",
+                "est-tipo-periodoncia",
+                "est-tipo-atm"
+              ]
+            }
+          }
+        }
+      },
+      "regions": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "section_code",
+            "teeth"
+          ],
+          "properties": {
+            "section_code": {
+              "type": "string",
+              "enum": [
+                "RX-INTRA",
+                "CONEBEAM"
+              ]
+            },
+            "teeth": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "texts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "code",
+            "value"
+          ],
+          "properties": {
+            "code": {
+              "type": "string",
+              "enum": [
+                "indiacion-opt",
+                "estudio-cefalo-compu-otros",
+                "fotografia-interes",
+                "ortodoncia-marca",
+                "ortodoncia-info-clinica",
+                "tomo-elementos-sueltos",
+                "interes-estudio-tomo",
+                "implante-marca",
+                "implante-ubicacion",
+                "implante-fecha-cirugia",
+                "eco-interes",
+                "solo-escaneo-interes",
+                "color-protector",
+                "aclaracion"
+              ]
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "delivery_methods": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "enum": [
+            "impreso",
+            "imagencloud",
+            "email-medio",
+            "medcloud"
+          ]
+        }
+      },
+      "unmatched_text_lines": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Estudios o servicios pedidos en la orden que NO corresponden a ninguno de la lista (p. ej. escritos a mano)."
+      },
+      "has_signature": {
+        "type": [
+          "boolean",
+          "null"
+        ]
+      },
+      "unreadable_fields": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

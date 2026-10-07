@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 
 import {
     buildExtractionSchema, buildSystemPrompt, isValidCedulaUY, normalizeDocument,
-    similarNames, validateExtraction,
+    similarNames, validateExtraction, compareLateFiles,
 } from './intake-lib.mjs';
 
 // Un recorte del catálogo real (ids y códigos de ci-orden:*).
@@ -44,6 +44,7 @@ const extraction = (over = {}) => ({
     unmatched_text_lines: [],
     has_signature: true,
     unreadable_fields: [],
+    missing_other_side: false,
     ...over,
 });
 
@@ -246,4 +247,108 @@ test('prompt: incluye el catálogo y la defensa contra instrucciones dentro del 
     const p = buildSystemPrompt(catalog, options);
     assert.match(p, /ci-orden:svc:opt \| RX-EXTRA \| Panorámica/);
     assert.match(p, /nunca instrucciones/i);
+});
+
+test('falta la otra cara: se pide antes que nada y sin gastar el reenvío', () => {
+    // Frente sin estudios (están en el dorso): no se pide "reenvío", se pide la otra cara.
+    const r = run({ missing_other_side: true, items: [] });
+    assert.equal(r.outcome, 'needs_input');
+    assert.deepEqual(r.questions.map((q) => q.code), ['missing_other_side']);
+    assert.equal(r.prior.resend_count, 0);
+    assert.deepEqual(r.prior.asked_fields, ['other_side']);
+});
+
+test('falta la otra cara y llega: con las dos caras se valida normal', () => {
+    const r = run({ missing_other_side: false }, { prior: { asked_fields: ['other_side'] } });
+    assert.equal(r.outcome, 'ready');
+    assert.equal(r.warnings.some((w) => w.code === 'possibly_incomplete'), false);
+});
+
+test('falta la otra cara: si ya se pidió y sigue faltando, se sigue con advertencia', () => {
+    const r = run({ missing_other_side: true }, { prior: { asked_fields: ['other_side'] } });
+    assert.equal(r.outcome, 'ready');
+    assert.equal(r.warnings.some((w) => w.code === 'possibly_incomplete'), true);
+});
+
+test('falta la otra cara: si el usuario dice que no hay, no se vuelve a preguntar', () => {
+    const r = run({ missing_other_side: true }, { prior: { asked_fields: ['other_side'], overrides: { no_other_side: true } } });
+    assert.equal(r.outcome, 'ready');
+    assert.equal(r.warnings.some((w) => w.code === 'possibly_incomplete'), false);
+});
+
+test('falta la otra cara: una extracción vieja sin el campo no pregunta', () => {
+    const e = extraction();
+    delete e.missing_other_side;
+    const r = validateExtraction({
+        extraction: e, has_files: true, catalog, options, sender: null, phone: '+59891234567',
+        phone_ambiguous: false, doc_matches: [], open_orders: [], config: { min_confidence: 0.85 }, prior: {},
+    });
+    assert.equal(r.outcome, 'ready');
+});
+
+test('esquema: incluye missing_other_side como booleano obligatorio', () => {
+    const schema = buildExtractionSchema(catalog, options);
+    assert.equal(schema.properties.missing_other_side.type, 'boolean');
+    assert.ok(schema.required.includes('missing_other_side'));
+});
+
+// ---- Archivos que llegan con la orden ya creada ----------------------------
+// La orden creada tiene Panorámica (1566) y Hemiarco (1603), como extraction().
+const order = { order_number: 'OE-2026-000123', items: [{ service_id: 1566 }, { service_id: 1603 }], documents: ['12345672'] };
+const compare = (over = {}, inputOver = {}) =>
+    compareLateFiles({ extraction: extraction(over), catalog, order, prior: {}, ...inputOver });
+
+test('orden ya creada: un archivo que no agrega estudios deja la orden igual', () => {
+    const r = compare();
+    assert.equal(r.outcome, 'unchanged');
+    assert.equal(r.handoff_reason, null);
+});
+
+test('orden ya creada: si a la lectura nueva le falta un estudio, no cuenta (la orden ya lo tiene)', () => {
+    assert.equal(compare({ items: [{ external_id: 'ci-orden:svc:opt', notes: null, confidence: 0.9 }] }).outcome, 'unchanged');
+});
+
+test('orden ya creada: el dorso agrega un estudio → deriva con order_changed y el número de orden', () => {
+    const r = compare({ items: [
+        { external_id: 'ci-orden:svc:opt', notes: null, confidence: 0.9 },
+        { external_id: 'ci-orden:svc:hemiarco', notes: null, confidence: 0.9 },
+        { external_id: 'ci-orden:svc:periapical', notes: null, confidence: 0.6 },
+    ] });
+    assert.equal(r.outcome, 'handoff');
+    assert.equal(r.handoff_reason, 'order_changed');
+    assert.deepEqual(r.added, ['Periapical']);
+    assert.match(r.handoff_detail, /OE-2026-000123/);
+});
+
+test('orden ya creada: un estudio que el usuario ya descartó no cuenta como agregado', () => {
+    const r = compare(
+        { items: [{ external_id: 'ci-orden:svc:periapical', notes: null, confidence: 0.9 }] },
+        { prior: { removed: ['ci-orden:svc:periapical'] } },
+    );
+    assert.equal(r.outcome, 'unchanged');
+});
+
+test('orden ya creada: estudio fuera del catálogo → service_not_found', () => {
+    assert.equal(compare({ unmatched_text_lines: ['Resonancia de ATM'] }).handoff_reason, 'service_not_found');
+});
+
+test('orden ya creada: documento de otro paciente → patient_mismatch; el corregido por chat vale', () => {
+    assert.equal(compare({ patient: { ...extraction().patient, document: '4.567.890-1' } }).handoff_reason, 'patient_mismatch');
+    // La cédula se leyó mal la primera vez y el usuario la corrigió: las dos son conocidas.
+    const r = compare({ patient: { ...extraction().patient, document: '1.234.567-9' } },
+        { order: { ...order, documents: ['12345672', '12345679'] } });
+    assert.equal(r.outcome, 'unchanged');
+});
+
+test('cita ya agendada: el dorso que agrega un estudio deriva y el detalle dice que estaba agendada', () => {
+    const r = compare({ items: [{ external_id: 'ci-orden:svc:periapical', notes: null, confidence: 0.9 }] },
+        { order: { ...order, booked: true } });
+    assert.equal(r.handoff_reason, 'order_changed');
+    assert.match(r.handoff_detail, /OE-2026-000123 ya estaba agendada/);
+    assert.equal(compare({}, { order: { ...order, booked: true } }).outcome, 'unchanged');
+});
+
+test('orden ya creada: ilegible o fallo del modelo → deriva', () => {
+    assert.equal(compare({ document_quality: 'unreadable' }).handoff_reason, 'unreadable');
+    assert.equal(compareLateFiles({ extraction: null, extraction_error: 'timeout', catalog, order }).handoff_reason, 'system_error');
 });

@@ -7318,6 +7318,21 @@
     "edit": "Editar",
     "delete": "Eliminar"
   },
+  "FileViewer": {
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "reset": "Restablecer vista",
+    "maximize": "Maximizar",
+    "restore": "Restaurar tamaño",
+    "download": "Descargar",
+    "untitled": "Adjunto",
+    "description": "Visor de archivos",
+    "loading": "Cargando archivo…",
+    "loadError": "No se pudo cargar el archivo.",
+    "thumbnailError": "No se pudo cargar",
+    "noPreview": "Este tipo de archivo no se puede previsualizar. Descargalo para abrirlo.",
+    "open": "Abrir"
+  },
   "Common": {
     "accessDenied": "Acceso Denegado",
     "noPermission": "No tienes permisos para acceder a esta página.",
@@ -9600,17 +9615,21 @@
     "calendarIdsHelp": "Ids de calendario separados por comas donde se pueden agendar órdenes. Vacío significa cualquier calendario activo de la sede elegida.",
     "ttlHours": "Horas antes de abandonar una orden",
     "ttlHoursHelp": "Una orden sin actividad durante este tiempo deja de estar en curso.",
+    "mediaDebounce": "Espera al recibir una foto o PDF (segundos)",
+    "mediaDebounceHelp": "Cuánto espera el asistente después del último mensaje cuando llegó un archivo, para leer juntos el frente y el dorso de la orden. Entre 30 y 300.",
     "save": "Guardar ajustes de órdenes",
     "descriptions": {
       "enabled": "Habilita las órdenes de estudio recibidas como foto o PDF por WhatsApp.",
       "minConfidence": "Confianza mínima (0 a 1) para aceptar una línea de la orden sin consultar al paciente.",
       "visionModel": "Modelo de OpenAI que lee las órdenes de estudio (imágenes y PDF).",
       "calendarIds": "Ids de calendarios donde el asistente puede agendar órdenes de estudio. Vacío = cualquier calendario activo de la sede elegida.",
-      "ttlHours": "Horas de inactividad tras las cuales una orden en curso se marca como abandonada."
+      "ttlHours": "Horas de inactividad tras las cuales una orden en curso se marca como abandonada.",
+      "mediaDebounce": "Segundos que el asistente espera tras el último mensaje cuando llegó una foto o PDF, para juntar frente y dorso de la orden."
     },
     "errors": {
       "confidence": "Ingrese un número entre 0,5 y 1.",
       "ttl": "Ingrese un número entero de horas entre 1 y 168.",
+      "mediaDebounce": "Ingrese un número entero de segundos entre 30 y 300.",
       "model": "Para activar las órdenes hace falta un modelo de lectura.",
       "calendars": "Use ids de calendario separados por comas, por ejemplo 3,7,12."
     },
@@ -9845,8 +9864,7 @@
       "chooseAppointment": "¿Sobre qué cita?",
       "record": "Registrar sesión",
       "recordHint": "Va a quedar registrada a nombre de {name}.",
-      "attachments": "{count, plural, =1 {1 adjunto} other {# adjuntos}}",
-      "openAttachment": "Abrir archivo"
+      "attachments": "{count, plural, =1 {1 adjunto} other {# adjuntos}}"
     },
     "referredByShort": "derivado por {doctor}",
     "whatsapp": {
@@ -9876,8 +9894,6 @@
       "detail": "Detalle",
       "originals": "Archivos originales",
       "noFiles": "No se guardó ningún archivo.",
-      "fileLoadError": "No se pudo cargar este archivo.",
-      "openFile": "Abrir",
       "viewOrder": "Ver la orden {number}",
       "resolve": "Marcar como resuelta",
       "resolvedBy": "Resuelta por {name} el {date}",
@@ -9902,7 +9918,8 @@
         "patient_mismatch": "Paciente distinto de quien escribe",
         "booking_failed": "No se pudo agendar",
         "user_request": "Pidió hablar con una persona",
-        "system_error": "Error del sistema"
+        "system_error": "Error del sistema",
+        "order_changed": "Llegó otro archivo que cambia una orden ya creada"
       },
       "original": {
         "receivedVia": "Recibida por WhatsApp el {date}",

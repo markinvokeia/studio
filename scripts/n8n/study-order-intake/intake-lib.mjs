@@ -19,8 +19,8 @@
  * ---------------------------------------------------------------------------
  */
 
-export const PROMPT_VERSION = 'so-intake-v1';
-export const SCHEMA_VERSION = 'so-extraction-v1';
+export const PROMPT_VERSION = 'so-intake-v2';
+export const SCHEMA_VERSION = 'so-extraction-v2';
 
 /** Piezas dentarias FDI: permanentes 11-48 y temporales 51-85. */
 const FDI_CODES = new Set([
@@ -152,6 +152,10 @@ export function buildExtractionSchema(catalog, options) {
         },
         has_signature: { type: ['boolean', 'null'] },
         unreadable_fields: { type: 'array', items: { type: 'string' } },
+        missing_other_side: {
+            type: 'boolean',
+            description: 'true si la orden sigue en otra cara (dorso) u hoja que no está entre los archivos.',
+        },
     });
 }
 
@@ -172,6 +176,7 @@ export function buildSystemPrompt(catalog, options) {
     return [
         'Sos un asistente que TRANSCRIBE órdenes de estudios odontológicos (radiología, tomografía, fotografía, modelos, escaneos) de la clínica Clínica Imagen.',
         'La imagen o el PDF es una orden: el formulario impreso con casillas tildadas, o una orden escrita a mano.',
+        'Una orden puede venir en varios archivos (frente y dorso, o varias hojas): tomalos como UN solo documento.',
         '',
         'REGLAS',
         '- Transcribí solamente lo que está escrito o tildado. Nunca completes, deduzcas ni inventes datos que no se ven.',
@@ -183,6 +188,7 @@ export function buildSystemPrompt(catalog, options) {
         '- Los datos del paciente (nombre, cédula o pasaporte) y del doctor copialos como están escritos. Las fechas en formato AAAA-MM-DD.',
         '- Piezas dentarias: números FDI (ej. 16, 36) dentro de la sección que corresponda. Regiones disponibles en: ' + (regionSections || '(ninguna)') + '.',
         '- Los campos que no se lean van en `unreadable_fields`.',
+        '- `missing_other_side` en true SOLO si se nota que falta una cara u hoja de la orden: dice "ver al dorso", "continúa" o similar; una lista o sección se corta en el borde; o lo que llegó es únicamente el dorso (sin encabezado ni datos del paciente). Si están todas las caras o la orden se ve completa, false.',
         '',
         'ESTUDIOS (id | sección | nombre)',
         services,
@@ -205,7 +211,7 @@ export function buildSystemPrompt(catalog, options) {
 /** Motivos de derivación admitidos por whatsapp_order_intakes.handoff_reason. */
 export const HANDOFF_REASONS = [
     'service_not_found', 'unreadable', 'low_confidence', 'patient_mismatch',
-    'booking_failed', 'user_request', 'system_error',
+    'booking_failed', 'user_request', 'system_error', 'order_changed',
 ];
 
 /**
@@ -225,7 +231,7 @@ export const HANDOFF_REASONS = [
  *
  * prior = { resend_count, asked_confirm: [external_id], asked_fields: [string],
  *           confirmed: [external_id], removed: [external_id],
- *           overrides: { patient_name?, patient_document? } }
+ *           overrides: { patient_name?, patient_document?, no_other_side? } }
  *
  * @returns {{outcome:'ready'|'needs_input'|'handoff', handoff_reason:string|null,
  *            handoff_detail:string|null, questions:Array, warnings:Array,
@@ -286,6 +292,21 @@ export function validateExtraction(input) {
             : 'El documento no se puede leer.');
     }
 
+    // ---- Otra cara de la orden ---------------------------------------------
+    // Muchas órdenes llegan en dos fotos (frente y dorso) y la segunda puede venir después del
+    // lote. Si el modelo nota que falta una cara, se pide UNA vez y antes que nada: lo que falte
+    // (estudios, paciente) puede estar ahí. No gasta el reenvío. Si el usuario dice que no hay
+    // otra cara, o ya se pidió y sigue faltando, se sigue con lo que hay y queda la advertencia.
+    if (extraction.missing_other_side === true && !prior.overrides.no_other_side) {
+        if (!prior.asked_fields.includes('other_side')) {
+            prior.asked_fields.push('other_side');
+            out.outcome = 'needs_input';
+            out.questions = [{ code: 'missing_other_side', hint: 'Parece que falta la otra cara (dorso) u otra hoja de la orden.' }];
+            return out;
+        }
+        out.warnings.push({ code: 'possibly_incomplete', detail: 'La orden parece seguir en otra cara u hoja que no llegó.' });
+    }
+
     // ---- Estudios ----------------------------------------------------------
     const byExternalId = new Map(catalog.map((s) => [s.external_id, s]));
     const unmatched = [];
@@ -317,7 +338,9 @@ export function validateExtraction(input) {
     if (unmatched.length > 0) {
         return handoff('service_not_found', `Estudios que no figuran en el catálogo: ${unmatched.join('; ')}`);
     }
-    if (itemMap.size === 0) return resendOrHandoff('La orden no tiene ningún estudio legible.');
+    if (itemMap.size === 0) {
+        return resendOrHandoff('La orden no tiene ningún estudio legible (si tiene dorso u otra hoja, pueden estar ahí).');
+    }
 
     // ---- Paciente ----------------------------------------------------------
     const p = extraction.patient || {};
@@ -502,4 +525,66 @@ export function validateExtraction(input) {
         total_duration_minutes: items.reduce((acc, i) => acc + i.duration_minutes, 0),
     };
     return out;
+}
+
+// ---------------------------------------------------------------------------
+// Archivos que llegan con la orden ya creada
+// ---------------------------------------------------------------------------
+
+/**
+ * La orden ya está creada en Invoke (intake en order_created, falta la cita, o booked, ya con
+ * la cita) y llegó otro archivo, típicamente el dorso. La orden no se modifica sola: se vuelven a leer TODOS los
+ * archivos juntos y se compara con lo que ya tiene la orden. Si lo nuevo no agrega nada, se
+ * sigue con la cita; si agrega estudios, es de otro paciente o no se puede saber, se deriva.
+ * Que a la lectura nueva le falte un estudio no cuenta: la orden ya lo tiene y se asume mala lectura.
+ *
+ * @param {object} input
+ * @param {object|null} input.extraction        Lectura nueva de todos los archivos.
+ * @param {string|null} input.extraction_error  Texto si el modelo falló.
+ * @param {Array}       input.catalog           Catálogo vigente (como en validateExtraction).
+ * @param {object}      input.order             { order_number, booked, items: [{service_id}], documents: [string] }
+ *                                              booked: la orden ya tiene la cita agendada.
+ *                                              documents: documentos ya conocidos (el leído y el corregido por chat).
+ * @param {object}      input.prior             validation.prior del intake (para `removed`).
+ * @returns {{outcome:'unchanged'|'handoff', handoff_reason:string|null, handoff_detail:string|null, added:string[]}}
+ */
+export function compareLateFiles(input) {
+    const { extraction = null, extraction_error = null, catalog = [], order = {}, prior = {} } = input || {};
+    const state = order.booked ? 'ya estaba agendada' : 'ya estaba creada';
+    const ref = order.order_number ? `La orden ${order.order_number} ${state}` : `La orden ${state}`;
+    const handoff = (reason, detail, added = []) => ({
+        outcome: 'handoff', handoff_reason: reason, handoff_detail: `${ref} y llegó otro archivo: ${detail}`.slice(0, 500), added,
+    });
+
+    if (extraction_error) return handoff('system_error', `no se pudo leer (${asText(extraction_error).slice(0, 200)}).`);
+    if (!extraction || typeof extraction !== 'object') return handoff('system_error', 'el modelo no devolvió una lectura.');
+    if (extraction.is_study_order !== true || extraction.document_quality === 'unreadable') {
+        return handoff('unreadable', 'no se puede leer junto con la orden.');
+    }
+
+    const known = new Set((order.documents || []).map(normalizeDocument).filter(Boolean));
+    const doc = normalizeDocument(extraction.patient && extraction.patient.document);
+    if (doc && known.size > 0 && !known.has(doc)) {
+        return handoff('patient_mismatch', `parece ser de otro paciente (documento ${doc}).`);
+    }
+
+    const unmatched = (extraction.unmatched_text_lines || []).map(asText).filter(Boolean);
+    const byExternalId = new Map(catalog.map((s) => [s.external_id, s]));
+    const removed = new Set(prior.removed || []);
+    const inOrder = new Set((order.items || []).map((i) => Number(i.service_id)));
+    const added = [];
+    for (const raw of extraction.items || []) {
+        const ext = asText(raw.external_id);
+        if (removed.has(ext)) continue; // el usuario ya dijo que ese estudio no estaba en la orden
+        const svc = byExternalId.get(ext);
+        if (!svc) { unmatched.push(ext || '(estudio sin identificar)'); continue; }
+        if (!inOrder.has(Number(svc.id)) && !added.includes(svc.name)) added.push(svc.name);
+    }
+    if (unmatched.length > 0) {
+        return handoff('service_not_found', `incluye estudios que no figuran en el sistema: ${unmatched.join('; ')}.`);
+    }
+    if (added.length > 0) {
+        return handoff('order_changed', `agrega estudios que no están en la orden: ${added.join('; ')}.`, added);
+    }
+    return { outcome: 'unchanged', handoff_reason: null, handoff_detail: null, added: [] };
 }
