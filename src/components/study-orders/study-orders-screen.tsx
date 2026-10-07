@@ -18,7 +18,7 @@ import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-lay
 import { StudyOrderColumnsWrapper } from '@/app/[locale]/study-orders/columns';
 import { StudyOrderDetailPanel } from './study-order-detail-panel';
 import { StudyOrderRescheduleDialog } from './study-order-reschedule-dialog';
-import { StudyOrderWizard } from './study-order-wizard';
+import { StudyOrderWizard, type StudyOrderWizardPrefill } from './study-order-wizard';
 import { referralLabel } from './study-order-referral-line';
 import { StudyOrderStatusBadge } from './study-order-status-badge';
 import { WhatsappIntakesPanel } from './whatsapp-intakes-panel';
@@ -30,7 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { formatDisplayDate } from '@/lib/utils';
 import { useStudyOrderScheduling } from '@/stores/study-order-scheduling-store';
-import type { StudyOrder, StudyOrderListItem } from '@/lib/types';
+import type { StudyOrder, StudyOrderListItem, WhatsappOrderIntake } from '@/lib/types';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import {
     acknowledgeStudyOrder,
@@ -283,6 +283,10 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     const [editingNumber, setEditingNumber] = React.useState<string | null>(null);
     const [detailRefreshKey, setDetailRefreshKey] = React.useState(0);
     const [reschedulingOrder, setReschedulingOrder] = React.useState<StudyOrder | null>(null);
+    /** Alta desde una derivación de WhatsApp: el asistente arranca con lo que leyó el agente. */
+    const [wizardPrefill, setWizardPrefill] = React.useState<StudyOrderWizardPrefill | null>(null);
+    /** Recarga la lista de derivaciones: enviar una orden creada desde una la deja resuelta. */
+    const [handoffsReloadKey, setHandoffsReloadKey] = React.useState(0);
 
     const searchTerm = React.useMemo(
         () => (columnFilters.find((f) => f.id === 'patient_name')?.value as string | undefined) ?? '',
@@ -429,10 +433,58 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     }, [searchParams, handleSchedule]);
 
     const handleCreate = React.useCallback(() => {
+        setWizardPrefill(null);
         setEditingId(null);
         setEditingNumber(null);
         setIsFormOpen(true);
     }, []);
+
+    /**
+     * Crear la orden de una derivación: el asistente se abre con lo que leyó el agente y los
+     * originales al lado. Con `replace`, la nueva reemplaza al enviarse la que había creado el agente.
+     */
+    const handleCreateFromHandoff = React.useCallback((intake: WhatsappOrderIntake, { replace }: { replace: boolean }) => {
+        const patient = intake.validated_patient;
+        setWizardPrefill({
+            intakeId: intake.id,
+            phone: intake.phone,
+            // Solo si la validación identificó al paciente; si no, recepción lo elige o lo carga.
+            patientId: patient?.status === 'existing' ? patient.patient_id ?? null : null,
+            patientName: intake.draft?.patient?.name || intake.patient_name,
+            patientDocument: intake.draft?.patient?.document || intake.patient_document,
+            draft: intake.draft ?? null,
+            files: intake.files,
+            replacesOrderNumber: replace ? intake.order_number ?? null : null,
+        });
+        setEditingId(null);
+        setEditingNumber(null);
+        setIsFormOpen(true);
+    }, []);
+
+    const handleContinueDraft = React.useCallback((order: { id: string; order_number: string }) => {
+        setWizardPrefill(null);
+        setEditingId(order.id);
+        setEditingNumber(order.order_number);
+        setIsFormOpen(true);
+    }, []);
+
+    /** Desde una derivación, a su orden en la bandeja (mismo camino que el link de una notificación). */
+    const handleOpenOrder = React.useCallback((orderId: string) => {
+        setView('orders');
+        void getStudyOrder(orderId)
+            .then((order) => {
+                if (!order) return;
+                const row: PendingOrder = { id: order.id, order_number: order.order_number, patient_name: order.patient_name };
+                setSelected(row as unknown as StudyOrderListItem);
+            })
+            .catch((error) => {
+                toast({
+                    variant: 'destructive',
+                    title: t('toast.errorTitle'),
+                    description: error instanceof Error ? error.message : t('toast.genericError'),
+                });
+            });
+    }, [toast, t]);
 
     const handleEdit = React.useCallback((order: StudyOrderListItem) => {
         // Sólo los borradores son editables; sobre una enviada se abre el detalle.
@@ -440,6 +492,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
             setSelected(order);
             return;
         }
+        setWizardPrefill(null);
         setEditingId(order.id);
         setEditingNumber(order.order_number);
         setIsFormOpen(true);
@@ -515,7 +568,13 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
 
             {canViewHandoffs && view === 'whatsapp' ? (
                 <div className="min-h-0 flex-1 overflow-hidden">
-                    <WhatsappIntakesPanel onPendingCountChange={setPendingHandoffs} />
+                    <WhatsappIntakesPanel
+                        onPendingCountChange={setPendingHandoffs}
+                        onCreateOrder={canCreate ? handleCreateFromHandoff : undefined}
+                        onContinueDraft={canUpdate ? handleContinueDraft : undefined}
+                        onOpenOrder={handleOpenOrder}
+                        reloadKey={handoffsReloadKey}
+                    />
                 </div>
             ) : (
             <TwoPanelLayout
@@ -575,6 +634,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                             refreshKey={detailRefreshKey}
                             onClose={handleCloseDetail}
                             onEdit={(order) => {
+                                setWizardPrefill(null);
                                 setEditingId(order.id);
                                 setEditingNumber(order.order_number);
                                 setIsFormOpen(true);
@@ -608,9 +668,12 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                 onOpenChange={setIsFormOpen}
                 orderId={editingId}
                 orderNumber={editingNumber}
+                prefill={wizardPrefill}
                 onSaved={() => {
                     void loadOrders(true);
                     setDetailRefreshKey((k) => k + 1);
+                    // Una orden enviada desde una derivación la resuelve: la lista y el contador cambian.
+                    setHandoffsReloadKey((k) => k + 1);
                 }}
             />
 

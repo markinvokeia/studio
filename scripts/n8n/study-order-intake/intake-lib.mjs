@@ -261,12 +261,23 @@ export function validateExtraction(input) {
         resolved: null, duplicate_of: null, prior,
     };
 
+    // Borrador de la orden: se calcula una vez y lo usan tanto la validación como la derivación.
+    let draftCache;
+    const getDraft = () => {
+        if (draftCache === undefined) {
+            try { draftCache = buildOrderDraft({ extraction, catalog, options, prior }); } catch (e) { draftCache = null; }
+        }
+        return draftCache;
+    };
+
     const handoff = (reason, detail) => {
         out.outcome = 'handoff';
         out.handoff_reason = reason;
         out.handoff_detail = detail;
         out.questions = [];
         out.resolved = null;
+        // Recepción arranca de lo que se alcanzó a leer, no de cero.
+        out.draft = getDraft();
         return out;
     };
 
@@ -308,35 +319,14 @@ export function validateExtraction(input) {
     }
 
     // ---- Estudios ----------------------------------------------------------
+    // El mapeo de la lectura al formulario es el mismo que se guarda como borrador al derivar.
+    const draft = getDraft();
     const byExternalId = new Map(catalog.map((s) => [s.external_id, s]));
-    const unmatched = [];
-    for (const line of extraction.unmatched_text_lines || []) {
-        const t = asText(line);
-        if (t) unmatched.push(t);
-    }
-
-    const itemMap = new Map();
-    for (const raw of extraction.items || []) {
-        const ext = asText(raw.external_id);
-        if (prior.removed.includes(ext)) continue;
-        const svc = byExternalId.get(ext);
-        if (!svc) {
-            unmatched.push(ext || '(estudio sin identificar)');
-            continue;
-        }
-        const conf = Number.isFinite(Number(raw.confidence)) ? Number(raw.confidence) : 0;
-        const prev = itemMap.get(ext);
-        if (prev) {
-            prev.confidence = Math.max(prev.confidence, conf);
-            if (asText(raw.notes)) prev.notes = [prev.notes, asText(raw.notes)].filter(Boolean).join(' · ');
-        } else {
-            itemMap.set(ext, { svc, confidence: conf, notes: asText(raw.notes) });
-        }
-    }
+    const itemMap = new Map(draft.items.map((it) => [it.external_id, it]));
 
     // Regla central: un estudio que no está en el sistema deriva la orden COMPLETA.
-    if (unmatched.length > 0) {
-        return handoff('service_not_found', `Estudios que no figuran en el catálogo: ${unmatched.join('; ')}`);
+    if (draft.unmatched.length > 0) {
+        return handoff('service_not_found', `Estudios que no figuran en el catálogo: ${draft.unmatched.join('; ')}`);
     }
     if (itemMap.size === 0) {
         return resendOrHandoff('La orden no tiene ningún estudio legible (si tiene dorso u otra hoja, pueden estar ahí).');
@@ -344,10 +334,10 @@ export function validateExtraction(input) {
 
     // ---- Paciente ----------------------------------------------------------
     const p = extraction.patient || {};
-    const name = asText(prior.overrides.patient_name) || asText(p.name);
+    const name = draft.patient.name || '';
     const docRaw = asText(prior.overrides.patient_document) || asText(p.document);
-    const doc = normalizeDocument(docRaw);
-    const docType = p.document_type || null;
+    const doc = draft.patient.document || '';
+    const docType = draft.patient.document_type;
     out.patient.name = name || null;
     out.patient.document = doc || null;
     out.patient.document_type = docType;
@@ -433,70 +423,11 @@ export function validateExtraction(input) {
     }
 
     // ---- Datos de la orden (opciones, regiones, textos, entrega) -----------
-    const items = [...itemMap.values()].map((it, idx) => ({
-        external_id: it.svc.external_id,
-        service_id: it.svc.id,
-        service_name: it.svc.name,
-        section_code: it.svc.section_code,
-        sort_order: idx,
-        quantity: 1,
-        modifiers: {},
-        notes: it.notes || null,
-        duration_minutes: Number(it.svc.duration_minutes) || 0,
-        confidence: it.confidence,
-    }));
-    const itemByExt = new Map(items.map((i) => [i.external_id, i]));
-    const leftovers = [];
-    const sectionModifiers = {};
-    const modifierOptions = options.filter((o) => o.option_kind === 'modifier');
-
-    for (const m of extraction.modifiers || []) {
-        const group = asText(m.group_code);
-        const candidates = modifierOptions.filter((o) => o.code === m.option_code && asText(o.group_code) === group);
-        const opt = candidates[0] || modifierOptions.find((o) => o.code === m.option_code);
-        if (!opt) { leftovers.push(`opción "${m.option_code}"`); continue; }
-        const g = asText(opt.group_code);
-        if (opt.service_external_id) {
-            const item = itemByExt.get(opt.service_external_id);
-            if (!item) { out.warnings.push({ code: 'modifier_without_service', detail: opt.code }); continue; }
-            item.modifiers[g] = [...new Set([...(item.modifiers[g] || []), opt.code])];
-        } else if (opt.section_code) {
-            sectionModifiers[opt.section_code] = sectionModifiers[opt.section_code] || {};
-            sectionModifiers[opt.section_code][g] = [...new Set([...(sectionModifiers[opt.section_code][g] || []), opt.code])];
-        }
-    }
-
-    const regionSections = new Set(options.filter((o) => o.option_kind === 'region_group').map((o) => o.section_code));
-    const regions = {};
-    for (const r of extraction.regions || []) {
-        if (!regionSections.has(r.section_code)) { leftovers.push(`región en ${r.section_code}`); continue; }
-        for (const raw of r.teeth || []) {
-            const tooth = normalizeTooth(raw);
-            if (!tooth) { leftovers.push(`pieza "${asText(raw)}"`); continue; }
-            regions[r.section_code] = [...new Set([...(regions[r.section_code] || []), tooth])];
-        }
-    }
-
-    const textCodes = new Set(options.filter((o) => o.option_kind === 'text').map((o) => o.code));
-    const texts = {};
-    for (const t of extraction.texts || []) {
-        const v = asText(t.value).slice(0, 500);
-        if (!textCodes.has(t.code) || !v) { if (v) leftovers.push(`texto "${v.slice(0, 40)}"`); continue; }
-        texts[t.code] = v;
-    }
-
-    const deliveryCodes = new Set(options.filter((o) => o.option_kind === 'delivery').map((o) => o.code));
-    const deliveryMethods = [...new Set((extraction.delivery_methods || []).filter((c) => deliveryCodes.has(c)))];
-
-    // Lo que no se pudo ubicar NO se pierde: queda en las notas para recepción.
-    const doctor = extraction.doctor || {};
-    const referringDoctor = asText(doctor.name) || null;
-    const noteParts = [];
-    if (referringDoctor) noteParts.push(`Doctor según la orden: ${referringDoctor}${asText(doctor.license) ? ` (matrícula ${asText(doctor.license)})` : ''}`);
-    if (asText(extraction.order_date)) noteParts.push(`Fecha de la orden: ${asText(extraction.order_date)}`);
-    if (leftovers.length > 0) {
-        noteParts.push(`No se pudo ubicar en el formulario: ${leftovers.join('; ')}`);
-        out.warnings.push({ code: 'unplaced_details', detail: leftovers.join('; ') });
+    // Ya armados en el borrador; acá solo se agregan sus advertencias.
+    const items = draft.items;
+    out.warnings.push(...draft.warnings);
+    if (draft.leftovers.length > 0) {
+        out.warnings.push({ code: 'unplaced_details', detail: draft.leftovers.join('; ') });
     }
     if ((extraction.unreadable_fields || []).length > 0) {
         out.warnings.push({ code: 'unreadable_fields', detail: extraction.unreadable_fields.join('; ') });
@@ -516,6 +447,138 @@ export function validateExtraction(input) {
 
     out.resolved = {
         items,
+        regions: draft.regions,
+        section_modifiers: draft.section_modifiers,
+        texts: draft.texts,
+        delivery_methods: draft.delivery_methods,
+        referring_doctor_name: draft.referring_doctor_name,
+        clinical_notes: draft.clinical_notes,
+        total_duration_minutes: draft.total_duration_minutes,
+    };
+    return out;
+}
+
+// ---------------------------------------------------------------------------
+// Borrador de la orden a partir de la lectura
+// ---------------------------------------------------------------------------
+
+/**
+ * Traduce la lectura del modelo a la forma de la orden (la que recibe /study-orders/upsert),
+ * con lo que se pueda ubicar. Lo usa el validador para armar la orden y, cuando deriva, se
+ * guarda igual como borrador (`validation.draft`): recepción arranca de ahí en lugar de cargar
+ * todo de nuevo. No decide nada: no deriva ni pregunta.
+ *
+ * @returns {null | {
+ *   items: Array, regions: object, section_modifiers: object, texts: object, delivery_methods: string[],
+ *   referring_doctor_name: string|null, clinical_notes: string|null, total_duration_minutes: number,
+ *   unmatched: string[], leftovers: string[], warnings: Array,
+ *   patient: { name: string|null, document: string|null, document_type: string|null } }}
+ */
+export function buildOrderDraft(input) {
+    const { extraction = null, catalog = [], options = [], prior = {} } = input || {};
+    if (!extraction || typeof extraction !== 'object') return null;
+    const removed = prior.removed || [];
+    const overrides = prior.overrides || {};
+    const warnings = [];
+    const leftovers = [];
+
+    // ---- Estudios ----
+    const byExternalId = new Map(catalog.map((s) => [s.external_id, s]));
+    const unmatched = [];
+    for (const line of extraction.unmatched_text_lines || []) {
+        const t = asText(line);
+        if (t) unmatched.push(t);
+    }
+    const itemMap = new Map();
+    for (const raw of extraction.items || []) {
+        const ext = asText(raw && raw.external_id);
+        if (removed.includes(ext)) continue;
+        const svc = byExternalId.get(ext);
+        if (!svc) {
+            unmatched.push(ext || '(estudio sin identificar)');
+            continue;
+        }
+        const conf = Number.isFinite(Number(raw.confidence)) ? Number(raw.confidence) : 0;
+        const prev = itemMap.get(ext);
+        if (prev) {
+            prev.confidence = Math.max(prev.confidence, conf);
+            if (asText(raw.notes)) prev.notes = [prev.notes, asText(raw.notes)].filter(Boolean).join(' · ');
+        } else {
+            itemMap.set(ext, { svc, confidence: conf, notes: asText(raw.notes) });
+        }
+    }
+    const items = [...itemMap.values()].map((it, idx) => ({
+        external_id: it.svc.external_id,
+        service_id: it.svc.id,
+        service_name: it.svc.name,
+        section_code: it.svc.section_code,
+        sort_order: idx,
+        quantity: 1,
+        modifiers: {},
+        notes: it.notes || null,
+        duration_minutes: Number(it.svc.duration_minutes) || 0,
+        confidence: it.confidence,
+    }));
+
+    // ---- Opciones de estudio y de sección ----
+    const itemByExt = new Map(items.map((i) => [i.external_id, i]));
+    const sectionModifiers = {};
+    const modifierOptions = options.filter((o) => o.option_kind === 'modifier');
+    for (const m of extraction.modifiers || []) {
+        if (!m) continue;
+        const group = asText(m.group_code);
+        const candidates = modifierOptions.filter((o) => o.code === m.option_code && asText(o.group_code) === group);
+        const opt = candidates[0] || modifierOptions.find((o) => o.code === m.option_code);
+        if (!opt) { leftovers.push(`opción "${m.option_code}"`); continue; }
+        const g = asText(opt.group_code);
+        if (opt.service_external_id) {
+            const item = itemByExt.get(opt.service_external_id);
+            if (!item) { warnings.push({ code: 'modifier_without_service', detail: opt.code }); continue; }
+            item.modifiers[g] = [...new Set([...(item.modifiers[g] || []), opt.code])];
+        } else if (opt.section_code) {
+            sectionModifiers[opt.section_code] = sectionModifiers[opt.section_code] || {};
+            sectionModifiers[opt.section_code][g] = [...new Set([...(sectionModifiers[opt.section_code][g] || []), opt.code])];
+        }
+    }
+
+    // ---- Piezas, textos y entrega ----
+    const regionSections = new Set(options.filter((o) => o.option_kind === 'region_group').map((o) => o.section_code));
+    const regions = {};
+    for (const r of extraction.regions || []) {
+        if (!r) continue;
+        if (!regionSections.has(r.section_code)) { leftovers.push(`región en ${r.section_code}`); continue; }
+        for (const raw of r.teeth || []) {
+            const tooth = normalizeTooth(raw);
+            if (!tooth) { leftovers.push(`pieza "${asText(raw)}"`); continue; }
+            regions[r.section_code] = [...new Set([...(regions[r.section_code] || []), tooth])];
+        }
+    }
+    const textCodes = new Set(options.filter((o) => o.option_kind === 'text').map((o) => o.code));
+    const texts = {};
+    for (const t of extraction.texts || []) {
+        if (!t) continue;
+        const v = asText(t.value).slice(0, 500);
+        if (!textCodes.has(t.code) || !v) { if (v) leftovers.push(`texto "${v.slice(0, 40)}"`); continue; }
+        texts[t.code] = v;
+    }
+    const deliveryCodes = new Set(options.filter((o) => o.option_kind === 'delivery').map((o) => o.code));
+    const deliveryMethods = [...new Set((extraction.delivery_methods || []).filter((c) => deliveryCodes.has(c)))];
+
+    // Lo que no se pudo ubicar NO se pierde: queda en las notas para recepción.
+    const doctor = extraction.doctor || {};
+    const referringDoctor = asText(doctor.name) || null;
+    const noteParts = [];
+    if (referringDoctor) noteParts.push(`Doctor según la orden: ${referringDoctor}${asText(doctor.license) ? ` (matrícula ${asText(doctor.license)})` : ''}`);
+    if (asText(extraction.order_date)) noteParts.push(`Fecha de la orden: ${asText(extraction.order_date)}`);
+    if (leftovers.length > 0) noteParts.push(`No se pudo ubicar en el formulario: ${leftovers.join('; ')}`);
+
+    // ---- Paciente (lo corregido por chat gana sobre lo leído) ----
+    const p = extraction.patient || {};
+    const name = asText(overrides.patient_name) || asText(p.name);
+    const doc = normalizeDocument(asText(overrides.patient_document) || asText(p.document));
+
+    return {
+        items,
         regions,
         section_modifiers: sectionModifiers,
         texts,
@@ -523,8 +586,11 @@ export function validateExtraction(input) {
         referring_doctor_name: referringDoctor,
         clinical_notes: noteParts.join('\n') || null,
         total_duration_minutes: items.reduce((acc, i) => acc + i.duration_minutes, 0),
+        unmatched,
+        leftovers,
+        warnings,
+        patient: { name: name || null, document: doc || null, document_type: p.document_type || null },
     };
-    return out;
 }
 
 // ---------------------------------------------------------------------------

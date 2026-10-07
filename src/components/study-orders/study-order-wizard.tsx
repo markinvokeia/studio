@@ -1,13 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { ArrowLeft, ArrowRight, Check, ClipboardList, Loader2, PanelLeft, Send } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ArrowRight, Check, ClipboardList, Images, Loader2, PanelLeft, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DoctorSelector } from '@/components/ui/doctor-selector';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ResizableSheet, SheetDescription, SheetTitle } from '@/components/ui/resizable-sheet';
@@ -16,6 +17,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { UserSelector } from '@/components/ui/user-selector';
 
+import { OrderFilesPanel } from './order-files-panel';
+import type { OrderFile } from './order-file-gallery';
 import { StudyOrderSection } from './study-order-section';
 import {
     StudyOrderSummary, labelForDelivery, labelForModifier,
@@ -23,20 +26,25 @@ import {
 } from './study-order-summary';
 
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import { fetchBookingSedes, type BookingSede } from '@/services/patient-booking';
 import {
     getStudyOrder,
     getStudyOrderFormOptions,
+    getWhatsappIntakeFile,
     submitStudyOrder,
     upsertStudyOrder,
 } from '@/services/study-orders';
+import { STUDY_ORDERS_PERMISSIONS } from '@/constants/permissions';
 import type {
     StudyOrderCatalogService,
+    StudyOrderDraft,
     StudyOrderFormOptions,
     StudyOrderOption,
     StudyOrderSection as Section,
     StudyOrderUpsertPayload,
+    WhatsappIntakeFile,
 } from '@/lib/types';
 
 /**
@@ -50,14 +58,46 @@ import type {
  * último paso deja ver todo lo pedido antes de guardar o enviar.
  */
 
+/**
+ * Orden a crear desde una derivación de WhatsApp: el asistente arranca con lo que leyó el
+ * agente, para que recepción lo revise contra los originales en lugar de cargarlo de cero.
+ */
+export interface StudyOrderWizardPrefill {
+    intakeId: string;
+    phone?: string | null;
+    /** Paciente ya identificado por la validación, si lo hubo. */
+    patientId?: string | null;
+    patientName?: string | null;
+    patientDocument?: string | null;
+    draft?: StudyOrderDraft | null;
+    files: WhatsappIntakeFile[];
+    /** Orden del agente que la nueva reemplaza al enviarse (se anula y sus citas pasan a la nueva). */
+    replacesOrderNumber?: string | null;
+}
+
 export interface StudyOrderWizardProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     /** Sin id = alta. Con id = edición de un borrador. */
     orderId?: string | null;
     orderNumber?: string | null;
+    /** Alta desde una derivación de WhatsApp. Se ignora al editar. */
+    prefill?: StudyOrderWizardPrefill | null;
     onSaved?: () => void;
 }
+
+/** Originales de WhatsApp que se muestran al lado del formulario. */
+interface OriginalsSource {
+    intakeId: string;
+    files: WhatsappIntakeFile[];
+}
+
+/** Archivos de WhatsApp en la forma del panel de originales. */
+const toOrderFiles = (files: WhatsappIntakeFile[]): OrderFile[] =>
+    files.map((f) => ({ id: f.id, name: f.file_name, mimeType: f.mime_type }));
+
+/** El panel de originales arranca abierto donde hay lugar para él al lado del formulario. */
+const isWideScreen = () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
 
 interface SelectionState {
     services: Map<string, StudyOrderCatalogService>;
@@ -87,6 +127,46 @@ function toggleInGroup(
     return { ...current, [outerKey]: { ...groups, [groupCode]: next } };
 }
 
+/**
+ * Estado inicial del formulario a partir de lo que leyó el agente. Los estudios se toman del
+ * catálogo vigente (nombre y sección actuales); si alguno ya no está activo, se conserva tal
+ * como vino para que recepción lo vea y decida.
+ */
+function prefillState(p: StudyOrderWizardPrefill, formOptions: StudyOrderFormOptions) {
+    const draft = p.draft ?? null;
+    const catalog = new Map<string, StudyOrderCatalogService>();
+    for (const section of formOptions.sections) {
+        for (const service of section.services) catalog.set(service.id, service);
+    }
+
+    const services = new Map<string, StudyOrderCatalogService>();
+    const itemModifiers: Record<string, Record<string, string[]>> = {};
+    const itemNotes: Record<string, string> = {};
+    for (const item of draft?.items ?? []) {
+        const id = String(item.service_id);
+        services.set(id, catalog.get(id) ?? { id, name: item.service_name, section_code: item.section_code });
+        if (item.modifiers && Object.keys(item.modifiers).length > 0) itemModifiers[id] = item.modifiers;
+        if (item.notes) itemNotes[id] = item.notes;
+    }
+
+    return {
+        selection: {
+            services, itemModifiers, itemNotes,
+            sectionModifiers: draft?.section_modifiers ?? {},
+            teeth: draft?.regions ?? {},
+        } satisfies SelectionState,
+        texts: draft?.texts ?? {},
+        deliveryMethods: draft?.delivery_methods ?? [],
+        clinicalNotes: draft?.clinical_notes ?? '',
+        patientId: p.patientId ?? '',
+        patientName: p.patientName || draft?.patient?.name || '',
+        patientDocument: p.patientDocument || draft?.patient?.document || '',
+        patientPhone: p.phone ?? '',
+        referringDoctorName: draft?.referring_doctor_name ?? '',
+        unmatched: draft?.unmatched ?? [],
+    };
+}
+
 /** Un paso del asistente: la portada del paciente, cada sección, y el resumen. */
 type Step =
     | { kind: 'patient' }
@@ -98,10 +178,18 @@ export function StudyOrderWizard({
     onOpenChange,
     orderId,
     orderNumber,
+    prefill,
     onSaved,
 }: StudyOrderWizardProps) {
     const t = useTranslations('StudyOrdersPage');
     const { toast } = useToast();
+    const { hasPermission } = usePermissions();
+    // Quien puede crear órdenes para otros (recepción, administración) elige el doctor derivador
+    // o la deja sin doctor. Sin el permiso la orden es siempre de quien la crea (el doctor).
+    const canChooseDoctor = hasPermission(STUDY_ORDERS_PERMISSIONS.CREATE_FOR_DOCTOR);
+    const isCreating = !orderId;
+    // Al editar se ignora la precarga: la orden ya existe y manda lo guardado.
+    const activePrefill = isCreating ? prefill ?? null : null;
 
     const [options, setOptions] = React.useState<StudyOrderFormOptions | null>(null);
     const [sedes, setSedes] = React.useState<BookingSede[]>([]);
@@ -144,7 +232,22 @@ export function StudyOrderWizard({
     const [loadedNumber, setLoadedNumber] = React.useState('');
     const [selection, setSelection] = React.useState<SelectionState>(EMPTY_SELECTION);
 
+    // Doctor derivador (solo al crear y con permiso): uno del sistema o "sin doctor".
+    const [doctorId, setDoctorId] = React.useState('');
+    const [doctorName, setDoctorName] = React.useState('');
+    const [withoutDoctor, setWithoutDoctor] = React.useState(false);
+    /** Doctor tal como figura en el papel: texto de referencia, sin vincular a un usuario. */
+    const [referringDoctorName, setReferringDoctorName] = React.useState('');
+    /** Derivación de WhatsApp de la que sale la orden (al crear) o salió (al editar su borrador). */
+    const [sourceIntakeId, setSourceIntakeId] = React.useState('');
+    const [originals, setOriginals] = React.useState<OriginalsSource | null>(null);
+    const [showOriginals, setShowOriginals] = React.useState(false);
+    /** Estudios que el asistente leyó pero no están en el catálogo: recepción decide qué hacer. */
+    const [unmatched, setUnmatched] = React.useState<string[]>([]);
+
     const scrollRef = React.useRef<HTMLDivElement>(null);
+    /** Bloqueo síncrono del guardado: el estado tarda un render y un doble clic duplicaría la orden. */
+    const savingRef = React.useRef(false);
 
     const resetForm = React.useCallback(() => {
         setAutoFilled({ document: false, phone: false, email: false });
@@ -153,6 +256,8 @@ export function StudyOrderWizard({
         setDeliveryMethods([]); setClinicalNotes(''); setTexts({});
         setSelection({ ...EMPTY_SELECTION, services: new Map() });
         setLoadedNumber(''); setError(null); setStepIndex(0);
+        setDoctorId(''); setDoctorName(''); setWithoutDoctor(false); setReferringDoctorName('');
+        setSourceIntakeId(''); setOriginals(null); setShowOriginals(false); setUnmatched([]);
     }, []);
 
     React.useEffect(() => {
@@ -202,13 +307,46 @@ export function StudyOrderWizard({
                         sectionModifiers: order.section_modifiers ?? {},
                         teeth: order.regions ?? {},
                     });
+                    // Borrador que salió de una derivación de WhatsApp: los originales siguen a mano.
+                    setReferringDoctorName(order.referring_doctor_name ?? '');
+                    setSourceIntakeId(order.source_intake_id ?? '');
+                    if (order.whatsapp && order.whatsapp.files.length > 0) {
+                        setOriginals({ intakeId: order.whatsapp.intake_id, files: order.whatsapp.files });
+                        setShowOriginals(isWideScreen());
+                    }
+                }
+            } else if (activePrefill) {
+                const prefilled = prefillState(activePrefill, formOptions);
+                setSelection(prefilled.selection);
+                setTexts(prefilled.texts);
+                setDeliveryMethods(prefilled.deliveryMethods);
+                setClinicalNotes(prefilled.clinicalNotes);
+                setPatientId(prefilled.patientId);
+                setPatientName(prefilled.patientName);
+                setPatientDocument(prefilled.patientDocument);
+                setPatientPhone(prefilled.patientPhone);
+                // La orden de WhatsApp no se vincula a un doctor del sistema: el del papel queda como texto.
+                setWithoutDoctor(true);
+                setReferringDoctorName(prefilled.referringDoctorName);
+                setSourceIntakeId(activePrefill.intakeId);
+                setUnmatched(prefilled.unmatched);
+                if (activePrefill.files.length > 0) {
+                    setOriginals({ intakeId: activePrefill.intakeId, files: activePrefill.files });
+                    setShowOriginals(isWideScreen());
                 }
             }
             setIsLoading(false);
         })();
 
         return () => { cancelled = true; };
-    }, [open, orderId, resetForm]);
+    }, [open, orderId, activePrefill, resetForm]);
+
+    const originalFiles = React.useMemo(() => toOrderFiles(originals?.files ?? []), [originals]);
+    const originalsIntakeId = originals?.intakeId ?? '';
+    const loadOriginal = React.useCallback(
+        (id: string, signal: AbortSignal) => getWhatsappIntakeFile(originalsIntakeId, id, signal),
+        [originalsIntakeId],
+    );
 
     // ── Índices del catálogo ─────────────────────────────────────────────────
     const modifiersBySection = React.useMemo(() => {
@@ -397,14 +535,30 @@ export function StudyOrderWizard({
             clinical_notes: clinicalNotes.trim(),
             preferred_sede_id: sedeId || null,
             items,
+            // Doctor derivador: solo al crear. Al editar un borrador el backend conserva el suyo.
+            ...(isCreating && canChooseDoctor
+                ? (withoutDoctor ? { without_doctor: true } : { doctor_id: doctorId })
+                : {}),
+            ...(referringDoctorName.trim() ? { referring_doctor_name: referringDoctorName.trim() } : {}),
+            // Orden que sale de una derivación: al enviarla, la derivación queda resuelta (y si el
+            // agente ya había creado una orden, esta la reemplaza).
+            ...(isCreating && sourceIntakeId ? { source: 'whatsapp' as const, source_intake_id: sourceIntakeId } : {}),
         };
     }, [orderId, patientId, patientName, patientDocument, patientEmail, patientPhone,
-        selection, texts, deliveryMethods, clinicalNotes, sedeId]);
+        selection, texts, deliveryMethods, clinicalNotes, sedeId,
+        isCreating, canChooseDoctor, withoutDoctor, doctorId, referringDoctorName, sourceIntakeId]);
 
     const handleSave = React.useCallback(async (submitAfterSave: boolean) => {
+        if (savingRef.current) return;
         setError(null);
         if (!patientName.trim()) {
             setError(t('validation.patientNameRequired'));
+            goTo(0);
+            return;
+        }
+        // Sin esto la orden quedaría a nombre de quien la carga, como si fuera el derivador.
+        if (isCreating && canChooseDoctor && !withoutDoctor && !doctorId) {
+            setError(t('validation.doctorRequired'));
             goTo(0);
             return;
         }
@@ -413,6 +567,7 @@ export function StudyOrderWizard({
             return;
         }
 
+        savingRef.current = true;
         setIsSaving(true);
         try {
             const saved = await upsertStudyOrder(buildPayload());
@@ -420,9 +575,16 @@ export function StudyOrderWizard({
                 // Guardar primero y enviar después: el envío nunca se hace sobre
                 // una versión vieja de lo que el doctor tiene en pantalla.
                 const submitted = await submitStudyOrder(saved.id);
+                const moved = Number(submitted.moved_appointments ?? 0);
+                const extra = [
+                    submitted.resolved_handoff ? t('toast.handoffResolved') : '',
+                    submitted.replaced_order_number
+                        ? t('toast.orderReplaced', { number: submitted.replaced_order_number, count: moved })
+                        : '',
+                ].filter(Boolean).join(' ');
                 toast({
                     title: t('toast.submittedTitle'),
-                    description: t('toast.submittedDescription', { number: submitted.order_number }),
+                    description: [t('toast.submittedDescription', { number: submitted.order_number }), extra].filter(Boolean).join(' '),
                 });
             } else {
                 toast({ title: t('toast.savedTitle') });
@@ -432,13 +594,15 @@ export function StudyOrderWizard({
         } catch (err) {
             setError(err instanceof Error ? err.message : t('toast.genericError'));
         } finally {
+            savingRef.current = false;
             setIsSaving(false);
         }
-    }, [patientName, totalSelected, buildPayload, toast, t, onSaved, onOpenChange, goTo]);
+    }, [patientName, totalSelected, buildPayload, toast, t, onSaved, onOpenChange, goTo,
+        isCreating, canChooseDoctor, withoutDoctor, doctorId]);
 
     const title = orderId
         ? t('form.editTitle', { number: orderNumber || loadedNumber })
-        : t('form.title');
+        : activePrefill ? t('form.titleFromHandoff') : t('form.title');
 
     return (
         <ResizableSheet
@@ -466,6 +630,21 @@ export function StudyOrderWizard({
                                 : t('form.noServicesSelected')}
                         </SheetDescription>
                     </div>
+                    {originals && (
+                        <Button
+                            type="button"
+                            variant={showOriginals ? 'secondary' : 'outline'}
+                            size="sm"
+                            className="shrink-0"
+                            aria-pressed={showOriginals}
+                            onClick={() => setShowOriginals((v) => !v)}
+                        >
+                            <Images className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
+                            <span className="hidden sm:inline">
+                                {showOriginals ? t('wizard.hideOriginals') : t('wizard.showOriginals')}
+                            </span>
+                        </Button>
+                    )}
                 </div>
 
                 {/* Cuerpo: riel de secciones a la izquierda, contenido a la derecha */}
@@ -586,6 +765,74 @@ export function StudyOrderWizard({
                         </div>
                     ) : step.kind === 'patient' ? (
                         <div className="mx-auto max-w-5xl space-y-6">
+                            {activePrefill && (
+                                <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+                                    <p>{t('wizard.fromHandoff')}</p>
+                                    {activePrefill.replacesOrderNumber && (
+                                        <p className="font-medium">
+                                            {t('wizard.replacesOrder', { number: activePrefill.replacesOrderNumber })}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                            {unmatched.length > 0 && (
+                                <div className="flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm" role="status">
+                                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+                                    <div className="min-w-0 space-y-1">
+                                        <p className="font-medium">{t('wizard.unmatchedTitle')}</p>
+                                        <p className="break-words">{unmatched.join(' · ')}</p>
+                                        <p className="text-xs text-muted-foreground">{t('wizard.unmatchedHelp')}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {isCreating && canChooseDoctor && (
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-semibold">{t('form.referringDoctor')}</Label>
+                                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                                        <DoctorSelector
+                                            value={doctorId}
+                                            selectedDoctorName={doctorName}
+                                            disabled={withoutDoctor}
+                                            className="w-full sm:w-80"
+                                            placeholder={t('form.doctorSearch')}
+                                            triggerText={t('form.doctorPick')}
+                                            onValueChange={(id, doctor) => {
+                                                setDoctorId(id);
+                                                setDoctorName(doctor?.name ?? '');
+                                            }}
+                                        />
+                                        <div className="flex items-center gap-2">
+                                            <Checkbox
+                                                id="so-without-doctor"
+                                                checked={withoutDoctor}
+                                                onCheckedChange={(checked) => {
+                                                    setWithoutDoctor(checked === true);
+                                                    if (checked === true) { setDoctorId(''); setDoctorName(''); }
+                                                }}
+                                            />
+                                            <Label htmlFor="so-without-doctor" className="cursor-pointer text-sm font-normal">
+                                                {t('form.withoutDoctor')}
+                                            </Label>
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">{t('form.referringDoctorHelp')}</p>
+                                </div>
+                            )}
+
+                            {(withoutDoctor || referringDoctorName || sourceIntakeId) && (
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="so-referring-name">{t('form.referringDoctorName')}</Label>
+                                    <Input
+                                        id="so-referring-name"
+                                        value={referringDoctorName}
+                                        maxLength={200}
+                                        onChange={(e) => setReferringDoctorName(e.target.value)}
+                                    />
+                                    <p className="text-xs text-muted-foreground">{t('form.referringDoctorNameHelp')}</p>
+                                </div>
+                            )}
+
                             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                                 <div className="space-y-1.5 sm:col-span-2">
                                     <Label>{t('form.patientName')}</Label>
@@ -732,6 +979,21 @@ export function StudyOrderWizard({
                     )}
                 </div>
 
+                {/* Originales de WhatsApp al lado del formulario: en escritorio es una columna;
+                    en pantallas chicas se abre por encima, desde la derecha. */}
+                {originals && showOriginals && (
+                    <aside
+                        aria-label={t('wizard.originals')}
+                        className={cn(
+                            'flex flex-col border-l bg-card',
+                            'absolute inset-y-0 right-0 z-30 w-[88%] max-w-md shadow-xl',
+                            'lg:static lg:z-auto lg:w-[420px] lg:max-w-none lg:shadow-none xl:w-[500px]',
+                        )}
+                    >
+                        <OrderFilesPanel files={originalFiles} loadFile={loadOriginal} className="h-full" />
+                    </aside>
+                )}
+
                 </div>
 
                 {/* Pie de navegación */}
@@ -777,7 +1039,15 @@ export function StudyOrderWizard({
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('submitDialog.title')}</AlertDialogTitle>
-                        <AlertDialogDescription>{t('submitDialog.description')}</AlertDialogDescription>
+                        <AlertDialogDescription>
+                            {t('submitDialog.description')}
+                            {activePrefill?.replacesOrderNumber && (
+                                <>
+                                    {' '}
+                                    {t('submitDialog.replaces', { number: activePrefill.replacesOrderNumber })}
+                                </>
+                            )}
+                        </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>{t('submitDialog.cancel')}</AlertDialogCancel>

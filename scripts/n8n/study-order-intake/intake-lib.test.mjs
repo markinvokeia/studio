@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 
 import {
     buildExtractionSchema, buildSystemPrompt, isValidCedulaUY, normalizeDocument,
-    similarNames, validateExtraction, compareLateFiles,
+    similarNames, validateExtraction, compareLateFiles, buildOrderDraft,
 } from './intake-lib.mjs';
 
 // Un recorte del catálogo real (ids y códigos de ci-orden:*).
@@ -351,4 +351,48 @@ test('cita ya agendada: el dorso que agrega un estudio deriva y el detalle dice 
 test('orden ya creada: ilegible o fallo del modelo → deriva', () => {
     assert.equal(compare({ document_quality: 'unreadable' }).handoff_reason, 'unreadable');
     assert.equal(compareLateFiles({ extraction: null, extraction_error: 'timeout', catalog, order }).handoff_reason, 'system_error');
+});
+
+// ---- Borrador de la orden (lo que recepción recibe al derivar) -------------
+test('derivación: guarda el borrador con lo que sí se pudo ubicar', () => {
+    const r = run({ unmatched_text_lines: ['Resonancia de ATM'] });
+    assert.equal(r.outcome, 'handoff');
+    assert.equal(r.handoff_reason, 'service_not_found');
+    assert.equal(r.resolved, null);
+    assert.deepEqual(r.draft.items.map((i) => i.service_id), [1566, 1603]);
+    assert.deepEqual(r.draft.unmatched, ['Resonancia de ATM']);
+    assert.equal(r.draft.patient.name, 'Juan Gómez');
+    assert.equal(r.draft.patient.document, '12345672');
+    assert.equal(r.draft.referring_doctor_name, 'Dra. Ana Pérez');
+});
+
+test('derivación por paciente distinto: el borrador también llega', () => {
+    const r = run({}, { sender: { id: 'u1', name: 'Otra Persona', phone: '+59891234567', identity_document: '4.567.890-1' } });
+    assert.equal(r.handoff_reason, 'patient_mismatch');
+    assert.equal(r.draft.items.length, 2);
+});
+
+test('fallo del modelo: no hay borrador', () => {
+    const r = validateExtraction({ extraction: null, extraction_error: 'timeout', catalog, options, prior: {} });
+    assert.equal(r.handoff_reason, 'system_error');
+    assert.equal(r.draft, null);
+});
+
+test('borrador: respeta lo descartado y lo corregido por chat', () => {
+    const d = buildOrderDraft({
+        extraction: extraction(), catalog, options,
+        prior: { removed: ['ci-orden:svc:hemiarco'], overrides: { patient_name: 'Juan Pablo Gómez', patient_document: '1.234.567-2' } },
+    });
+    assert.deepEqual(d.items.map((i) => i.service_id), [1566]);
+    assert.equal(d.patient.name, 'Juan Pablo Gómez');
+    assert.equal(d.total_duration_minutes, 10);
+});
+
+test('orden lista: lo resuelto coincide con el borrador', () => {
+    const r = run();
+    const d = buildOrderDraft({ extraction: extraction(), catalog, options, prior: {} });
+    assert.equal(r.outcome, 'ready');
+    assert.deepEqual(r.resolved.items.map((i) => i.service_id), d.items.map((i) => i.service_id));
+    assert.equal(r.resolved.clinical_notes, d.clinical_notes);
+    assert.equal(r.draft, undefined);
 });

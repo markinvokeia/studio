@@ -448,6 +448,13 @@ export const SUBMIT_SQL = `
 -- $1 userId (token)  $2 id
 -- Sella el envío. El WHERE es el candado: una orden que ya salió de borrador,
 -- o que no es del sujeto, no actualiza nada y el flujo responde 409.
+--
+-- Orden creada por recepción desde una DERIVACIÓN de WhatsApp (source_intake_id apunta a un
+-- intake en handed_off sin resolver): enviarla resuelve la derivación y la vincula a esta
+-- orden. Si el intake ya tenía una orden (la que había creado el agente, p. ej. "la orden
+-- cambió" porque llegó el dorso), esta la REEMPLAZA: la anterior se anula y sus citas
+-- vigentes pasan a la nueva, así no se pierde lo agendado. Todo en la misma sentencia.
+-- El agente también envía con source_intake_id, pero su intake nunca está en handed_off.
 WITH ${PERMS_CTE},
 updated AS (
     UPDATE public.study_orders so
@@ -457,11 +464,61 @@ updated AS (
        AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))
        AND EXISTS (SELECT 1 FROM public.study_order_items i
                     WHERE i.study_order_id = so.id AND i.is_cancelled = false)
-    RETURNING so.id, so.order_number, so.doctor_id, so.patient_name, so.submitted_at
+    RETURNING so.id, so.order_number, so.doctor_id, so.patient_name, so.submitted_at, so.source_intake_id
+),
+intake AS (
+    SELECT wi.id, wi.study_order_id AS old_order_id, u.id AS new_order_id, u.order_number
+      FROM updated u
+      JOIN public.whatsapp_order_intakes wi ON wi.id = u.source_intake_id
+     WHERE wi.status = 'handed_off'
+       AND wi.resolved_at IS NULL
+),
+resolved_intake AS (
+    UPDATE public.whatsapp_order_intakes wi
+       SET resolved_at = ${NOW},
+           resolved_by = $1::uuid,
+           study_order_id = i.new_order_id,
+           resolution_note = coalesce(wi.resolution_note, 'Orden ' || i.order_number || ' creada desde la derivación')
+      FROM intake i
+     WHERE wi.id = i.id
+    RETURNING wi.id
+),
+replaced AS (
+    UPDATE public.study_orders so
+       SET status = 'cancelled', cancelled_at = ${NOW},
+           cancellation_reason = 'Reemplazada por la orden ' || i.order_number || ' (derivación de WhatsApp)'
+      FROM intake i
+     WHERE so.id = i.old_order_id
+       AND so.id <> i.new_order_id
+       AND so.status IN ('draft', 'submitted')
+       -- Anular la orden del agente exige el mismo permiso que anularla desde la bandeja.
+       AND coalesce((SELECT can_cancel FROM perms), false)
+    RETURNING so.id, i.new_order_id, i.order_number AS new_order_number
+),
+moved AS (
+    UPDATE public.appointments a
+       SET study_order_id = r.new_order_id, updated_at = ${NOW}
+      FROM replaced r
+     WHERE a.study_order_id = r.id
+       AND a.status NOT IN ('canceled', 'cancelled', 'deleted')
+    RETURNING a.id
+),
+replaced_event AS (
+    -- Bitácora de la orden anulada: queda dicho por cuál se reemplazó y cuántas citas se movieron.
+    INSERT INTO public.study_order_events (study_order_id, event_type, actor_id, actor_kind, metadata)
+    SELECT r.id, 'cancelled', $1::uuid, 'user',
+           jsonb_build_object('reason', 'replaced', 'replaced_by_order_id', r.new_order_id::text,
+                              'replaced_by_order_number', r.new_order_number,
+                              'moved_appointments', (SELECT count(*) FROM moved))
+      FROM replaced r
+    RETURNING id
 )
 SELECT u.id::text, u.order_number, u.doctor_id::text, u.patient_name, u.submitted_at,
        d.name AS doctor_name,
-       (SELECT count(*) FROM public.study_order_items i WHERE i.study_order_id = u.id) AS items_total
+       (SELECT count(*) FROM public.study_order_items i WHERE i.study_order_id = u.id) AS items_total,
+       (SELECT count(*) FROM resolved_intake) > 0 AS resolved_handoff,
+       (SELECT min(o.order_number) FROM public.study_orders o WHERE o.id IN (SELECT id FROM replaced)) AS replaced_order_number,
+       (SELECT count(*) FROM moved) AS moved_appointments
   FROM updated u LEFT JOIN public.users d ON d.id = u.doctor_id;`;
 
 export const DELETE_SQL = `
@@ -1275,6 +1332,20 @@ SELECT (SELECT count(*) FROM base) AS total,
                         coalesce(b.extraction -> 'unmatched_text_lines', '[]'::jsonb) AS unmatched_lines,
                         b.study_order_id::text,
                         (SELECT o.order_number FROM public.study_orders o WHERE o.id = b.study_order_id) AS order_number,
+                        (SELECT o.status FROM public.study_orders o WHERE o.id = b.study_order_id) AS order_status,
+                        -- Borrador para que recepcion cree la orden sin cargar todo de nuevo: el de la
+                        -- ultima lectura con la orden ya creada (incluye el dorso que llego tarde), el
+                        -- que guardo el validador al derivar, o la orden que ya habia armado.
+                        coalesce(b.extraction_meta -> 'late_files' -> -1 -> 'draft',
+                                 b.validation -> 'draft',
+                                 b.validation -> 'resolved') AS draft,
+                        b.validation -> 'patient' AS validated_patient,
+                        b.sender_user_id::text AS sender_user_id,
+                        -- Orden que recepcion empezo desde esta derivacion y todavia no envio.
+                        (SELECT json_build_object('id', o.id::text, 'order_number', o.order_number)
+                           FROM public.study_orders o
+                          WHERE o.source_intake_id = b.id AND o.status = 'draft'
+                          ORDER BY o.created_at DESC LIMIT 1) AS draft_order,
                         coalesce((
                           SELECT json_agg(json_build_object(
                                    'id', at.id::text, 'file_name', at.file_name, 'mime_type', at.mime_type,

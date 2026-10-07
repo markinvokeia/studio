@@ -712,3 +712,23 @@ Un intake `booked` ya no está en curso: antes, un archivo que llegaba después 
 - Quedan llamadas HTTP solo a webhooks propios del agente sin JWT (`agent-tools/order-handoff`, `agent-tools/handoff`) y la descarga de YCloud.
 
 **Verificado:** los Code nodes de la cadena con datos simulados; contra DEV (solo lectura), la consulta de `Book: Load` y que el usuario de servicio tiene los tres permisos. **No probado en n8n**: los `INSERT`/`UPDATE` son los de los endpoints, pero no se ejecutaron desde el agente.
+
+## 19. Recepción crea la orden desde la derivación (2026-10-07)
+
+Antes, "Resolver" solo cerraba la derivación: recepción cargaba la orden de cero con el asistente de órdenes, quedaba a su nombre como doctor derivador, sin vínculo con la derivación, y una orden ya enviada no se podía cambiar.
+
+| Cambio | Dónde |
+| --- | --- |
+| **Borrador al derivar:** el validador guarda en `validation.draft` la orden con lo que sí pudo ubicar (estudios, opciones, piezas, textos, entrega, paciente y doctor del papel), más los estudios que no figuran. La lógica se extrajo a `buildOrderDraft`, la misma que arma la orden cuando todo está bien (5 pruebas nuevas). En modo `compare` (archivos que llegan con la orden ya creada) el borrador incluye todos los archivos | `intake-lib.mjs`, generador del subflujo |
+| `GET /study-orders/whatsapp-intakes` devuelve `draft` (último de `late_files`, `validation.draft` o `validation.resolved`), `validated_patient`, `order_status` de la orden vinculada y `draft_order` (orden empezada desde la derivación, en borrador) | `WHATSAPP_INTAKES_SQL` |
+| **Enviar resuelve:** `SUBMIT_SQL`, si la orden tiene `source_intake_id` de una derivación sin resolver, la resuelve y la vincula (`study_order_id`). Si la derivación ya tenía una orden del agente, la **reemplaza**: la anula (requiere `STUDY_ORDERS_CANCEL`), pasa sus citas vigentes a la nueva y lo registra en la bitácora. Devuelve `resolved_handoff`, `replaced_order_number` y `moved_appointments`. El agente también usa este SQL, pero su intake nunca está derivado al enviar | `SUBMIT_SQL` (endpoint y `WhatsApp - Order Agent`) |
+| Tarjeta de la derivación: **Crear orden**, **Continuar borrador OE-…** o **Reemplazar orden OE-…** (si la del agente sigue vigente), y link **Ver la orden** | `whatsapp-intakes-panel.tsx`, `study-orders-screen.tsx` |
+| Asistente de órdenes **precargado** desde la derivación, con aviso de estudios no ubicados, de la orden que reemplaza (también en la confirmación de envío) y la orden sale como de WhatsApp, sin doctor del sistema y con el doctor del papel | `study-order-wizard.tsx` |
+| **Originales al lado del formulario** (`OrderFilesPanel`: archivo en grande con zoom o PDF, tira de miniaturas). También al continuar un borrador de WhatsApp. La carga se compartió con la galería (`useOrderFiles`) | `order-files-panel.tsx`, `order-file-gallery.tsx` |
+| **Doctor derivador** al crear cualquier orden con `CREATE_FOR_DOCTOR`: elegir uno del sistema o "Sin doctor del sistema" (con el nombre como figura en el papel). Antes quedaba a nombre de quien la cargaba | `study-order-wizard.tsx` |
+
+**Puesta en marcha:** reimportar `study-orders-submit.json` y `study-orders-whatsapp-intakes.json` (regenerados), `WhatsApp - Study Order Intake` y `WhatsApp - Order Agent`; desplegar el frontend. No hay migraciones nuevas.
+
+**Límites:** las derivaciones anteriores a este cambio no tienen borrador (salvo las que ya tenían orden armada): el asistente abre con el paciente y los originales, sin estudios. El doctor derivador se elige solo al crear; al editar un borrador se conserva el que tenía.
+
+**Verificado:** pruebas del validador (55), typecheck y ESLint; la consulta de derivaciones contra DEV; que existan las columnas que escribe `SUBMIT_SQL` (el `UPDATE` no se pudo ejecutar con la conexión de solo lectura); el panel de originales en el navegador con archivos simulados. **No probado** el circuito completo con sesión iniciada.
