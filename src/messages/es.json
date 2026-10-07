@@ -7331,7 +7331,8 @@
     "loadError": "No se pudo cargar el archivo.",
     "thumbnailError": "No se pudo cargar",
     "noPreview": "Este tipo de archivo no se puede previsualizar. Descargalo para abrirlo.",
-    "open": "Abrir"
+    "open": "Abrir",
+    "noFiles": "No hay archivos."
   },
   "Common": {
     "accessDenied": "Acceso Denegado",
@@ -9707,13 +9708,22 @@
       "saveDraft": "Guardar borrador",
       "submit": "Enviar a la clínica",
       "selectedCount": "{count} estudios seleccionados",
-      "textsSection": "Detalles"
+      "textsSection": "Detalles",
+      "titleFromHandoff": "Nueva orden desde WhatsApp",
+      "referringDoctor": "Doctor derivador",
+      "doctorSearch": "Buscar doctor…",
+      "doctorPick": "Elegir doctor",
+      "withoutDoctor": "Sin doctor del sistema",
+      "referringDoctorHelp": "La orden queda a nombre de este doctor: la ve en \"Mis órdenes\" y recibe los avisos. Si quien la firma no usa el sistema, marcá \"Sin doctor del sistema\".",
+      "referringDoctorName": "Doctor según la orden",
+      "referringDoctorNameHelp": "Como figura en el papel. Es solo una referencia: no se vincula a ningún usuario."
     },
     "submitDialog": {
       "title": "¿Enviar la orden a la clínica?",
       "description": "Una vez enviada no vas a poder editarla. La clínica recibe el aviso en el momento.",
       "confirm": "Enviar",
-      "cancel": "Volver"
+      "cancel": "Volver",
+      "replaces": "Además, la orden {number} se va a anular y sus citas pasan a esta."
     },
     "deleteDialog": {
       "title": "¿Eliminar el borrador?",
@@ -9748,12 +9758,15 @@
       "acknowledgedTitle": "Orden tomada",
       "cancelledTitle": "Orden anulada",
       "errorTitle": "No se pudo completar la acción",
-      "genericError": "Ocurrió un error inesperado. Intentá de nuevo."
+      "genericError": "Ocurrió un error inesperado. Intentá de nuevo.",
+      "handoffResolved": "La derivación de WhatsApp quedó resuelta.",
+      "orderReplaced": "La orden {number} quedó anulada{count, plural, =0 {} =1 { y su cita pasó a la nueva} other { y sus # citas pasaron a la nueva}}."
     },
     "validation": {
       "patientNameRequired": "El nombre del paciente es obligatorio",
       "itemsRequired": "Seleccioná al menos un estudio",
-      "reasonRequired": "El motivo es obligatorio"
+      "reasonRequired": "El motivo es obligatorio",
+      "doctorRequired": "Elegí el doctor derivador o marcá \"Sin doctor del sistema\"."
     },
     "noAccess": "No tenés permisos para ver las órdenes de estudio.",
     "wizard": {
@@ -9763,7 +9776,14 @@
       "skipToReview": "Ir al resumen",
       "noCatalog": "El catálogo de estudios todavía no está cargado. Avisá a la clínica para que lo configure.",
       "steps": "Secciones de la orden",
-      "closeSteps": "Cerrar secciones"
+      "closeSteps": "Cerrar secciones",
+      "fromHandoff": "Cargado con lo que leyó el asistente de WhatsApp. Revisalo contra los originales y corregí lo que haga falta antes de enviar.",
+      "replacesOrder": "Esta orden reemplaza a la {number}: al enviarla, la {number} se anula y sus citas pasan a esta.",
+      "unmatchedTitle": "Estudios que el asistente leyó pero no figuran en el sistema",
+      "unmatchedHelp": "No se cargaron. Elegí el estudio equivalente en su sección o consultá con el paciente.",
+      "showOriginals": "Ver originales",
+      "hideOriginals": "Ocultar originales",
+      "originals": "Originales de WhatsApp"
     },
     "itemsCountShort": "{count} estudios",
     "rescheduleDialog": {
@@ -9936,7 +9956,11 @@
         "unplaced_details": "Detalles que no encajaron en el formulario",
         "unreadable_fields": "Campos que no se pudieron leer",
         "modifier_without_service": "Opción sin su estudio"
-      }
+      },
+      "createOrder": "Crear orden",
+      "continueDraft": "Continuar borrador {number}",
+      "replaceOrder": "Reemplazar orden {number}",
+      "orderCancelled": "anulada"
     }
   },
   "StudyOrderBooking": {

@@ -7331,7 +7331,8 @@
     "loadError": "The file could not be loaded.",
     "thumbnailError": "Could not load",
     "noPreview": "This file type cannot be previewed. Download it to open it.",
-    "open": "Open"
+    "open": "Open",
+    "noFiles": "No files."
   },
   "Common": {
     "accessDenied": "Access Denied",
@@ -9707,13 +9708,22 @@
       "saveDraft": "Save draft",
       "submit": "Send to clinic",
       "selectedCount": "{count} studies selected",
-      "textsSection": "Details"
+      "textsSection": "Details",
+      "titleFromHandoff": "New order from WhatsApp",
+      "referringDoctor": "Referring doctor",
+      "doctorSearch": "Search doctor…",
+      "doctorPick": "Choose doctor",
+      "withoutDoctor": "No doctor in the system",
+      "referringDoctorHelp": "The order is assigned to this doctor: they see it in \"My orders\" and receive its notifications. If whoever signed it does not use the system, check \"No doctor in the system\".",
+      "referringDoctorName": "Doctor on the order",
+      "referringDoctorNameHelp": "As written on the paper. Reference only: it is not linked to any user."
     },
     "submitDialog": {
       "title": "Send the order to the clinic?",
       "description": "Once sent you will not be able to edit it. The clinic is notified immediately.",
       "confirm": "Send",
-      "cancel": "Back"
+      "cancel": "Back",
+      "replaces": "Also, order {number} will be cancelled and its appointments move to this one."
     },
     "deleteDialog": {
       "title": "Delete the draft?",
@@ -9748,12 +9758,15 @@
       "acknowledgedTitle": "Order taken",
       "cancelledTitle": "Order cancelled",
       "errorTitle": "The action could not be completed",
-      "genericError": "An unexpected error occurred. Please try again."
+      "genericError": "An unexpected error occurred. Please try again.",
+      "handoffResolved": "The WhatsApp handoff was resolved.",
+      "orderReplaced": "Order {number} was cancelled{count, plural, =0 {} =1 { and its appointment moved to the new one} other { and its # appointments moved to the new one}}."
     },
     "validation": {
       "patientNameRequired": "Patient name is required",
       "itemsRequired": "Select at least one study",
-      "reasonRequired": "A reason is required"
+      "reasonRequired": "A reason is required",
+      "doctorRequired": "Choose the referring doctor or check \"No doctor in the system\"."
     },
     "noAccess": "You do not have permission to view study orders.",
     "wizard": {
@@ -9763,7 +9776,14 @@
       "skipToReview": "Go to summary",
       "noCatalog": "The study catalogue is not loaded yet. Ask the clinic to configure it.",
       "steps": "Order sections",
-      "closeSteps": "Close sections"
+      "closeSteps": "Close sections",
+      "fromHandoff": "Filled in with what the WhatsApp assistant read. Check it against the originals and fix anything needed before submitting.",
+      "replacesOrder": "This order replaces {number}: when you submit it, {number} is cancelled and its appointments move to this one.",
+      "unmatchedTitle": "Studies the assistant read that are not in the system",
+      "unmatchedHelp": "They were not added. Pick the equivalent study in its section or check with the patient.",
+      "showOriginals": "Show originals",
+      "hideOriginals": "Hide originals",
+      "originals": "WhatsApp originals"
     },
     "itemsCountShort": "{count} studies",
     "rescheduleDialog": {
@@ -9936,7 +9956,11 @@
         "unplaced_details": "Details that did not fit the form",
         "unreadable_fields": "Fields that could not be read",
         "modifier_without_service": "Option without its study"
-      }
+      },
+      "createOrder": "Create order",
+      "continueDraft": "Continue draft {number}",
+      "replaceOrder": "Replace order {number}",
+      "orderCancelled": "cancelled"
     }
   },
   "StudyOrderBooking": {

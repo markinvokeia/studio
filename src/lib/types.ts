@@ -3560,7 +3560,41 @@ export interface WhatsappOrderIntake {
   unmatched_lines: string[];
   study_order_id?: string | null;
   order_number?: string | null;
+  /** Estado de la orden vinculada (la del agente, o la que creó recepción al resolver). */
+  order_status?: StudyOrderStatus | null;
+  /** Lo que el asistente alcanzó a armar de la orden: punto de partida para crearla a mano. */
+  draft?: StudyOrderDraft | null;
+  /** Paciente según la validación: trae `patient_id` cuando se lo identificó. */
+  validated_patient?: { name?: string | null; document?: string | null; patient_id?: string | null; status?: string | null } | null;
+  sender_user_id?: string | null;
+  /** Orden empezada desde esta derivación y todavía en borrador. */
+  draft_order?: { id: string; order_number: string } | null;
   files: WhatsappIntakeFile[];
+}
+
+/**
+ * Borrador de una orden armado a partir de la lectura de WhatsApp (validador de n8n,
+ * `buildOrderDraft`). Misma forma que el cuerpo de /study-orders/upsert, más lo que no
+ * se pudo ubicar.
+ */
+export interface StudyOrderDraft {
+  items: Array<{
+    service_id: string | number;
+    service_name: string;
+    section_code: string;
+    sort_order?: number;
+    modifiers?: Record<string, string[]>;
+    notes?: string | null;
+  }>;
+  regions?: Record<string, string[]>;
+  section_modifiers?: Record<string, Record<string, string[]>>;
+  texts?: Record<string, string>;
+  delivery_methods?: string[];
+  referring_doctor_name?: string | null;
+  clinical_notes?: string | null;
+  /** Estudios pedidos que no figuran en el catálogo. */
+  unmatched?: string[];
+  patient?: { name?: string | null; document?: string | null } | null;
 }
 
 export interface StudyOrderEvent {
@@ -3651,10 +3685,30 @@ export interface StudyOrderListItem {
 }
 
 /** Payload de POST /study-orders/upsert. */
+/** Respuesta de POST /study-orders/submit. */
+export interface StudyOrderSubmitResult {
+  id: string;
+  order_number: string;
+  /** La orden salía de una derivación de WhatsApp y enviarla la dejó resuelta. */
+  resolved_handoff?: boolean;
+  /** Orden anterior de esa derivación que esta reemplazó (quedó anulada). */
+  replaced_order_number?: string | null;
+  /** Citas vigentes de la orden reemplazada que pasaron a esta. Postgres lo devuelve como texto. */
+  moved_appointments?: number | string | null;
+}
+
 export interface StudyOrderUpsertPayload {
   id?: string;
   /** Sólo lo acepta el backend con STUDY_ORDERS_CREATE_FOR_DOCTOR; si no, se ignora. */
   doctor_id?: string;
+  /** La orden queda sin doctor derivador. Mismo permiso que `doctor_id`. */
+  without_doctor?: boolean;
+  /** Los tres siguientes los honra el backend sólo con STUDY_ORDERS_CREATE_FOR_DOCTOR. */
+  source?: StudyOrderSource;
+  /** Doctor tal como figura en el papel: texto de referencia, sin vincular a un usuario. */
+  referring_doctor_name?: string;
+  /** Derivación de WhatsApp de la que sale la orden: al enviarla, la derivación queda resuelta. */
+  source_intake_id?: string;
   patient_id?: string | null;
   patient_name: string;
   patient_document?: string;

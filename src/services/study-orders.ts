@@ -6,6 +6,7 @@ import type {
     StudyOrderBookingLink,
     StudyOrderFormOptions,
     StudyOrderListItem,
+    StudyOrderSubmitResult,
     StudyOrderUpsertPayload,
 } from '@/lib/types';
 import { api, REQUEST_TIMEOUT_MS } from './api';
@@ -138,9 +139,9 @@ export async function upsertStudyOrder(payload: StudyOrderUpsertPayload): Promis
 }
 
 /** Envía la orden a la clínica. A partir de acá deja de ser editable. */
-export async function submitStudyOrder(id: string): Promise<StudyOrder> {
+export async function submitStudyOrder(id: string): Promise<StudyOrderSubmitResult> {
     const raw = await api.post(API_ROUTES.STUDY_ORDERS.SUBMIT, { id });
-    return unwrap<StudyOrder>(raw).data;
+    return unwrap<StudyOrderSubmitResult>(raw).data;
 }
 
 export async function cancelStudyOrder(id: string, reason: string): Promise<StudyOrder> {

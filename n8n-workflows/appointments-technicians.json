@@ -108,8 +108,8 @@
       "name": "Consulta",
       "credentials": {
         "postgres": {
-          "id": "POSTGRES_CREDENTIAL_ID",
-          "name": "Postgres"
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
         }
       },
       "onError": "continueErrorOutput",

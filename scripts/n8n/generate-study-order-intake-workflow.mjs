@@ -334,6 +334,9 @@ if (mode === 'compare') {
       handoff_detail: r.handoff_detail,
       extraction: prep.extraction,
       extraction_meta: prep.extraction_meta || {},
+      // Borrador con TODOS los archivos (incluido el nuevo): si se deriva por "la orden cambió",
+      // recepción arma la orden de reemplazo desde acá.
+      draft: buildOrderDraft({ extraction: prep.extraction, catalog: ctx.catalog, options: ctx.options, prior: v.prior || {} }),
     },
   } }];
 }

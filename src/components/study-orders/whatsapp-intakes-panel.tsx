@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { CheckCircle2, ChevronLeft, ChevronRight, Inbox, MessageCircle, RefreshCw } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, ExternalLink, FilePlus2, Inbox, MessageCircle, RefreshCw, Replace } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ import { WhatsappIntakeFiles } from './whatsapp-intake-files';
 import { STUDY_ORDERS_PERMISSIONS } from '@/constants/permissions';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { toast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { getErrorMessage } from '@/lib/error-utils';
 import { cn, formatDateTime } from '@/lib/utils';
 import { isAbortError } from '@/services/api';
@@ -26,13 +27,15 @@ import type { WhatsappHandoffReason, WhatsappOrderIntake } from '@/lib/types';
 /**
  * Órdenes que el agente de WhatsApp derivó a una persona.
  *
- * No tienen orden en Invoke todavía, por eso no salen en la bandeja: recepción
- * las resuelve desde acá. Cada tarjeta trae lo necesario para decidir sin salir
- * de la pantalla: por qué se derivó, lo que el asistente alcanzó a leer y los
- * originales para compararlo con el papel.
+ * Cada tarjeta trae lo necesario para decidir sin salir de la pantalla: por qué
+ * se derivó, lo que el asistente alcanzó a leer y los originales para
+ * compararlo con el papel.
  *
- * "Resolver" solo cierra la derivación: no borra nada. Los originales y la
- * lectura quedan guardados para auditoría.
+ * Desde acá recepción crea la orden con el asistente de órdenes precargado con
+ * esa lectura (o continúa la que dejó en borrador, o reemplaza la que había
+ * creado el agente). Enviar esa orden resuelve la derivación sola. "Marcar como
+ * resuelta" queda para lo que se resuelve sin orden (p. ej. se habló con el
+ * paciente). Nada se borra: los originales y la lectura quedan para auditoría.
  */
 
 const PAGE_SIZE = 10;
@@ -45,6 +48,17 @@ const REASONS: readonly WhatsappHandoffReason[] = [
 export interface WhatsappIntakesPanelProps {
     /** Cantidad de derivaciones pendientes: la pantalla la muestra en la pestaña. */
     onPendingCountChange?: (count: number) => void;
+    /**
+     * Abre el asistente de órdenes precargado con lo que leyó el agente. `replace`: la derivación
+     * ya tenía una orden del agente y la nueva la reemplaza al enviarse.
+     */
+    onCreateOrder?: (intake: WhatsappOrderIntake, options: { replace: boolean }) => void;
+    /** Continúa la orden que se empezó desde esta derivación y quedó en borrador. */
+    onContinueDraft?: (order: { id: string; order_number: string }) => void;
+    /** Lleva a la orden vinculada en la bandeja. */
+    onOpenOrder?: (orderId: string) => void;
+    /** Cambia cuando hay que recargar (p. ej. se envió una orden creada desde una derivación). */
+    reloadKey?: number;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -59,12 +73,50 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 interface IntakeCardProps {
     intake: WhatsappOrderIntake;
     onResolve: (intake: WhatsappOrderIntake) => void;
+    onCreateOrder?: WhatsappIntakesPanelProps['onCreateOrder'];
+    onContinueDraft?: WhatsappIntakesPanelProps['onContinueDraft'];
+    onOpenOrder?: WhatsappIntakesPanelProps['onOpenOrder'];
 }
 
-function IntakeCard({ intake, onResolve }: IntakeCardProps) {
+/** Estados en los que la orden del agente sigue vigente y se puede reemplazar. */
+const REPLACEABLE: readonly string[] = ['draft', 'submitted'];
+
+function IntakeCard({ intake, onResolve, onCreateOrder, onContinueDraft, onOpenOrder }: IntakeCardProps) {
     const t = useTranslations('StudyOrdersPage.whatsapp');
+    const { hasPermission } = usePermissions();
     const isResolved = !!intake.resolved_at;
     const reason = REASONS.includes(intake.handoff_reason) ? intake.handoff_reason : 'system_error';
+
+    // Crear la orden desde la derivación necesita poder crearla sin doctor propio y como de
+    // WhatsApp (CREATE_FOR_DOCTOR); reemplazar la del agente, además, poder anularla.
+    const canCreateOrder = hasPermission(STUDY_ORDERS_PERMISSIONS.CREATE)
+        && hasPermission(STUDY_ORDERS_PERMISSIONS.CREATE_FOR_DOCTOR);
+    const canReplace = canCreateOrder && hasPermission(STUDY_ORDERS_PERMISSIONS.CANCEL);
+    const hasActiveOrder = !!intake.study_order_id && REPLACEABLE.includes(intake.order_status ?? '');
+
+    let orderAction: React.ReactNode = null;
+    if (!isResolved && intake.draft_order && onContinueDraft) {
+        orderAction = canCreateOrder && (
+            <Button size="sm" onClick={() => onContinueDraft(intake.draft_order!)}>
+                <FilePlus2 className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                {t('continueDraft', { number: intake.draft_order.order_number })}
+            </Button>
+        );
+    } else if (!isResolved && hasActiveOrder && onCreateOrder) {
+        orderAction = canReplace && (
+            <Button size="sm" onClick={() => onCreateOrder(intake, { replace: true })}>
+                <Replace className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                {t('replaceOrder', { number: intake.order_number ?? '' })}
+            </Button>
+        );
+    } else if (!isResolved && onCreateOrder) {
+        orderAction = canCreateOrder && (
+            <Button size="sm" onClick={() => onCreateOrder(intake, { replace: false })}>
+                <FilePlus2 className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                {t('createOrder')}
+            </Button>
+        );
+    }
 
     return (
         <Card className={cn(isResolved && 'opacity-75')}>
@@ -123,26 +175,39 @@ function IntakeCard({ intake, onResolve }: IntakeCardProps) {
                 <WhatsappIntakeFiles intakeId={intake.id} files={intake.files} />
 
                 <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
-                    {isResolved ? (
-                        <div className="space-y-0.5 text-xs text-muted-foreground">
+                    <div className="min-w-0 space-y-0.5 text-xs text-muted-foreground">
+                        {isResolved && (
                             <p className="flex items-center gap-1.5">
                                 <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" aria-hidden="true" />
                                 {intake.resolved_by_name
                                     ? t('resolvedBy', { name: intake.resolved_by_name, date: formatDateTime(intake.resolved_at as string) })
                                     : t('resolvedOn', { date: formatDateTime(intake.resolved_at as string) })}
                             </p>
-                            {intake.resolution_note && <p>{t('resolutionNote', { note: intake.resolution_note })}</p>}
-                        </div>
-                    ) : (
-                        <span />
-                    )}
-                    {!isResolved && (
-                        <Can permission={STUDY_ORDERS_PERMISSIONS.ACKNOWLEDGE}>
-                            <Button size="sm" onClick={() => onResolve(intake)}>
-                                <CheckCircle2 className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                                {t('resolve')}
+                        )}
+                        {isResolved && intake.resolution_note && <p>{t('resolutionNote', { note: intake.resolution_note })}</p>}
+                        {intake.study_order_id && intake.order_number && onOpenOrder && (
+                            <Button
+                                variant="link"
+                                size="sm"
+                                className="h-auto p-0 text-xs"
+                                onClick={() => onOpenOrder(intake.study_order_id as string)}
+                            >
+                                <ExternalLink className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                                {t('viewOrder', { number: intake.order_number })}
+                                {intake.order_status === 'cancelled' && ` (${t('orderCancelled')})`}
                             </Button>
-                        </Can>
+                        )}
+                    </div>
+                    {!isResolved && (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Can permission={STUDY_ORDERS_PERMISSIONS.ACKNOWLEDGE}>
+                                <Button size="sm" variant="outline" onClick={() => onResolve(intake)}>
+                                    <CheckCircle2 className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                                    {t('resolve')}
+                                </Button>
+                            </Can>
+                            {orderAction}
+                        </div>
                     )}
                 </div>
             </CardContent>
@@ -150,7 +215,9 @@ function IntakeCard({ intake, onResolve }: IntakeCardProps) {
     );
 }
 
-export function WhatsappIntakesPanel({ onPendingCountChange }: WhatsappIntakesPanelProps) {
+export function WhatsappIntakesPanel({
+    onPendingCountChange, onCreateOrder, onContinueDraft, onOpenOrder, reloadKey: externalReloadKey = 0,
+}: WhatsappIntakesPanelProps) {
     const t = useTranslations('StudyOrdersPage.whatsapp');
 
     const [status, setStatus] = React.useState<WhatsappIntakeStatus>('pending');
@@ -200,7 +267,7 @@ export function WhatsappIntakesPanel({ onPendingCountChange }: WhatsappIntakesPa
         return () => controller.abort();
         // `onPendingCountChange` y `t` son estables para este efecto: no deben relanzar la carga.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [status, page, reloadKey]);
+    }, [status, page, reloadKey, externalReloadKey]);
 
     const resolve = useAsyncAction(
         async () => {
@@ -290,7 +357,14 @@ export function WhatsappIntakesPanel({ onPendingCountChange }: WhatsappIntakesPa
                 ) : (
                     <>
                         {items.map((intake) => (
-                            <IntakeCard key={intake.id} intake={intake} onResolve={setResolving} />
+                            <IntakeCard
+                                key={intake.id}
+                                intake={intake}
+                                onResolve={setResolving}
+                                onCreateOrder={onCreateOrder}
+                                onContinueDraft={onContinueDraft}
+                                onOpenOrder={onOpenOrder}
+                            />
                         ))}
                         {pageCount > 1 && (
                             <div className="flex items-center justify-center gap-2 pt-1">
