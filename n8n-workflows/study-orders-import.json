@@ -1,0 +1,979 @@
+{
+  "name": "Study Orders - Import",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-orders/import",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "so-import-1",
+      "name": "Import: Webhook",
+      "webhookId": "study-orders-import",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Los archivos llegan como binarios del webhook (uno por campo del multipart). Se valida\n// cantidad, tipo y tamaño antes de abrir nada: un archivo que el modelo no puede leer (HEIC,\n// Word...) se rechaza acá con un mensaje claro en lugar de terminar en un borrador vacío.\nconst userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\n\nconst MAX_FILES = 6;\nconst MAX_BYTES = 10485760;\nconst ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];\nconst bin = $input.first().binary || {};\nconst keys = Object.keys(bin).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));\nif (keys.length === 0) return [{ json: { __error: true, __code: 400, __message: 'Subí al menos una foto o PDF de la orden.' } }];\nif (keys.length > MAX_FILES) return [{ json: { __error: true, __code: 400, __message: 'Una orden admite hasta ' + MAX_FILES + ' archivos.' } }];\n\nconst files = [];\nfor (let i = 0; i < keys.length; i++) {\n  const b = bin[keys[i]];\n  const mime = String(b.mimeType || '').toLowerCase().split(';')[0].trim();\n  const name = String(b.fileName || keys[i]);\n  if (!ALLOWED.includes(mime)) {\n    return [{ json: { __error: true, __code: 400, __message: 'Formato no admitido: ' + name + '. Usá JPG, PNG, WEBP o PDF.' } }];\n  }\n  const buf = await this.helpers.getBinaryDataBuffer(0, keys[i]);\n  if (buf.length === 0) return [{ json: { __error: true, __code: 400, __message: 'El archivo ' + name + ' está vacío.' } }];\n  if (buf.length > MAX_BYTES) return [{ json: { __error: true, __code: 400, __message: 'El archivo ' + name + ' supera los 10 MB.' } }];\n  files.push({ key: keys[i], file_name: name, mime, size: buf.length });\n}\nreturn [{ json: { user_id: String(userId), files }, binary: bin }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "so-import-2",
+      "name": "Import: Validate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "so-import-input-ok",
+              "leftValue": "={{ !$json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        0
+      ],
+      "id": "so-import-3",
+      "name": "Import: Input OK?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: $json.__code || 400, message: $json.__message || \"Error\", data: null } }}",
+        "options": {
+          "responseCode": "={{ $json.__code || 400 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        720,
+        220
+      ],
+      "id": "so-import-4",
+      "name": "Import: Respond Error"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 userId (token)\n-- Abre el intake de la importación. Sin permiso no inserta nada y el flujo responde 403.\nWITH \nperms AS (\n    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL')  AS can_view_all,\n           bool_or(p.code = 'STUDY_ORDERS_CREATE_FOR_DOCTOR') AS can_create_for_doctor,\n           bool_or(p.code = 'STUDY_ORDERS_CANCEL')    AS can_cancel,\n           bool_or(p.code = 'STUDY_ORDERS_ACKNOWLEDGE') AS can_acknowledge,\n           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code LIKE 'STUDY_ORDERS_%'\n)\nINSERT INTO public.whatsapp_order_intakes (channel, phone, created_by, status)\nSELECT 'import', NULL, $1::uuid, 'extracting'\n WHERE coalesce((SELECT can_create_for_doctor AND can_view_all FROM perms), false)\nRETURNING id::text;",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        720,
+        0
+      ],
+      "id": "so-import-5",
+      "name": "Import: Create Intake",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "so-import-allowed",
+              "leftValue": "={{ !!$json.id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "so-import-6",
+      "name": "Import: Allowed?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 403, message: \"No tenés permiso para importar órdenes\", data: null } }}",
+        "options": {
+          "responseCode": 403
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1200,
+        220
+      ],
+      "id": "so-import-7",
+      "name": "Import: Respond Forbidden"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Un item por archivo, con el binario en 'data' (lo que espera Attachements CRUD) y un nombre\n// que identifica la importación: el original queda reconocible en Drive.\nconst intakeId = $('Import: Allowed?').first().json.id;\nconst v = $('Import: Validate').first();\nconst EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' };\nreturn v.json.files.map((f, idx) => {\n  const fileName = 'orden-importada-' + intakeId.slice(0, 8) + '-' + (idx + 1) + '.' + (EXT[f.mime] || 'bin');\n  return {\n    json: { intake_id: intakeId, seq: idx, file_name: fileName, original_name: f.file_name, mime: f.mime, size: f.size },\n    binary: { data: { ...v.binary[f.key], fileName, mimeType: f.mime } },\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        0
+      ],
+      "id": "so-import-8",
+      "name": "Import: Split Files"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "TTwyLGp8Gg9qDKdn",
+          "mode": "list",
+          "cachedResultName": "Attachements CRUD"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "UPLOAD",
+            "source_name": "whatsapp_order_intake",
+            "source_id": "={{ $json.intake_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source_name",
+              "displayName": "source_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source_id",
+              "displayName": "source_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1440,
+        0
+      ],
+      "id": "so-import-9",
+      "name": "Import: Store Original",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Referencias de los originales (como las del agente en whatsapp_order_intakes.media). La salida\n// de Attachements CRUD viene en el mismo orden que los archivos.\nconst metas = $('Import: Split Files').all().map((i) => i.json);\nconst res = $input.all();\nconst media = metas.map((m, k) => {\n  const up = (res[k] && res[k].json) || {};\n  const attachmentId = up.success === true && up.data ? (up.data.id ?? null) : null;\n  return {\n    kind: m.mime === 'application/pdf' ? 'document' : 'image', mime: m.mime, size: m.size,\n    file_name: m.file_name, original_name: m.original_name, received_at: new Date().toISOString(),\n    attachment_id: attachmentId, status: attachmentId ? 'stored' : 'upload_failed',\n  };\n});\nreturn [{ json: { intake_id: $('Import: Allowed?').first().json.id, media: JSON.stringify(media),\n                  stored: media.filter((m) => m.attachment_id).length } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        0
+      ],
+      "id": "so-import-10",
+      "name": "Import: Collect Media"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 id del intake  $2 referencias de los originales guardados (JSON array)\nUPDATE public.whatsapp_order_intakes\n   SET media = media || coalesce(NULLIF($2::text, '')::jsonb, '[]'::jsonb)\n WHERE id = $1::uuid\n   AND channel = 'import'\nRETURNING id::text, jsonb_array_length(media) AS files;",
+        "options": {
+          "queryReplacement": "={{ [ $json.intake_id, $json.media ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1920,
+        0
+      ],
+      "id": "so-import-11",
+      "name": "Import: Save Media",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 202, message: \"Leyendo la orden\", data: { intake_id: $('Import: Allowed?').first().json.id, files: $('Import: Collect Media').first().json.stored } } }}",
+        "options": {
+          "responseCode": 202
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2160,
+        0
+      ],
+      "id": "so-import-12",
+      "name": "Import: Respond Accepted"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "4xw9aaT2yX021WW1",
+          "mode": "list",
+          "cachedResultName": "WhatsApp - Study Order Intake"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "intake_id": "={{ $('Import: Allowed?').first().json.id }}",
+            "mode": "import",
+            "answers": ""
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "intake_id",
+              "displayName": "intake_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "mode",
+              "displayName": "mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "answers",
+              "displayName": "answers",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2400,
+        0
+      ],
+      "id": "so-import-13",
+      "name": "Import: Read Order",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// El subflujo devuelve el cuerpo del borrador y los puntos a revisar. Si falló (error de n8n,\n// del modelo o de Drive) el borrador se crea igual, vacío y con el motivo: recepción la carga\n// mirando los originales, que ya están guardados.\nconst r = $input.first().json || {};\nconst intakeId = $('Import: Allowed?').first().json.id;\nconst userId = $('Import: Validate').first().json.user_id;\nconst ok = r.saved === true && r.order_payload && typeof r.order_payload === 'object';\nconst payload = ok ? r.order_payload : {\n  without_doctor: true, source_intake_id: intakeId, referring_doctor_name: '', patient_id: '',\n  patient_name: 'Paciente sin identificar (orden importada)', patient_document: '',\n  regions: {}, section_modifiers: {}, texts: {}, delivery_methods: [], clinical_notes: '', items: [],\n};\nconst review = ok ? (r.review_items || []) : [{\n  code: 'read_failed', field: 'extraction', label: 'No se pudo leer la orden',\n  detail: String(r.error && (r.error.message || r.error) || 'Error al procesar los archivos.').slice(0, 300),\n}];\nreturn [{ json: {\n  user_id: userId, intake_id: intakeId,\n  patient_id: payload.patient_id || '',\n  payload: JSON.stringify(payload), review_items: JSON.stringify(review),\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        0
+      ],
+      "id": "so-import-14",
+      "name": "Import: Build Draft"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 = userId del token.  $2 = el payload entero como JSON.\n--\n-- Sólo DOS parámetros a propósito. La versión anterior usaba quince, y eso es\n-- frágil de dos maneras: cualquier reordenamiento del array en queryReplacement\n-- desalinea todo en silencio, y el placeholder uno es prefijo textual del\n-- quince, así que cualquier capa que los sustituya con una expresión regular\n-- ingenua corrompe el último. Con el payload en un solo JSON el orden deja de\n-- importar y cada campo se lee por su nombre.\n-- Por lo mismo, en este archivo no se escriben placeholders de dos dígitos ni\n-- siquiera dentro de comentarios.\nWITH \nperms AS (\n    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL')  AS can_view_all,\n           bool_or(p.code = 'STUDY_ORDERS_CREATE_FOR_DOCTOR') AS can_create_for_doctor,\n           bool_or(p.code = 'STUDY_ORDERS_CANCEL')    AS can_cancel,\n           bool_or(p.code = 'STUDY_ORDERS_ACKNOWLEDGE') AS can_acknowledge,\n           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code LIKE 'STUDY_ORDERS_%'\n),\np AS (\n    SELECT $2::jsonb AS body\n),\nresolved AS (\n    -- El doctor sólo puede salir del body con CREATE_FOR_DOCTOR; si no, es el\n    -- sujeto del token. Con ese mismo permiso, without_doctor deja la orden SIN\n    -- doctor derivador (el agente de WhatsApp: el doctor es opcional y el del\n    -- papel sólo se guarda como texto). Sin el permiso el indicador se ignora,\n    -- para que nadie pueda esconder quién creó una orden.\n    SELECT CASE\n             WHEN (SELECT can_create_for_doctor FROM perms)\n              AND coalesce((SELECT body ->> 'doctor_id' FROM p), '') <> ''\n             THEN (SELECT body ->> 'doctor_id' FROM p)::uuid\n             WHEN (SELECT can_create_for_doctor FROM perms)\n              AND coalesce((SELECT body ->> 'without_doctor' FROM p), '') IN ('true', 't', '1')\n             THEN NULL::uuid\n             ELSE $1::uuid\n           END AS doctor_id\n),\nvals AS (\n    SELECT NULLIF(body ->> 'id', '')                AS id,\n           NULLIF(body ->> 'patient_id', '')        AS patient_id,\n           body ->> 'patient_name'                  AS patient_name,\n           NULLIF(body ->> 'patient_document', '')  AS patient_document,\n           NULLIF(body ->> 'patient_email', '')     AS patient_email,\n           NULLIF(body ->> 'patient_phone', '')     AS patient_phone,\n           coalesce(body -> 'regions', '{}'::jsonb)           AS regions,\n           coalesce(body -> 'section_modifiers', '{}'::jsonb) AS section_modifiers,\n           coalesce(body -> 'texts', '{}'::jsonb)             AS texts,\n           coalesce(body -> 'delivery_methods', '[]'::jsonb)  AS delivery_methods,\n           NULLIF(body ->> 'clinical_notes', '')    AS clinical_notes,\n           NULLIF(body ->> 'preferred_sede_id', '') AS preferred_sede_id,\n           -- source, referring_doctor_name y source_intake_id los manda sólo el\n           -- agente; sin CREATE_FOR_DOCTOR se ignoran y la orden es del portal.\n           CASE WHEN (SELECT can_create_for_doctor FROM perms)\n                 AND body ->> 'source' = 'whatsapp' THEN 'whatsapp' ELSE 'portal' END AS source,\n           CASE WHEN (SELECT can_create_for_doctor FROM perms)\n                THEN NULLIF(body ->> 'referring_doctor_name', '') END AS referring_doctor_name,\n           CASE WHEN (SELECT can_create_for_doctor FROM perms)\n                THEN NULLIF(body ->> 'source_intake_id', '') END AS source_intake_id,\n           coalesce(body -> 'items', '[]'::jsonb)   AS items\n      FROM p\n),\nupdated AS (\n    UPDATE public.study_orders so\n       SET patient_id        = v.patient_id::uuid,\n           patient_name      = v.patient_name,\n           patient_document  = v.patient_document,\n           patient_email     = v.patient_email,\n           patient_phone     = v.patient_phone,\n           regions           = v.regions,\n           section_modifiers = v.section_modifiers,\n           texts             = v.texts,\n           delivery_methods  = v.delivery_methods,\n           clinical_notes    = v.clinical_notes,\n           preferred_sede_id = v.preferred_sede_id::int,\n           referring_doctor_name = coalesce(v.referring_doctor_name, so.referring_doctor_name)\n      FROM vals v\n     WHERE v.id IS NOT NULL\n       AND so.id = v.id::uuid\n       AND so.status = 'draft'\n       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))\n    RETURNING so.id\n),\ninserted AS (\n    INSERT INTO public.study_orders\n           (doctor_id, patient_id, patient_name, patient_document, patient_email,\n            patient_phone, regions, section_modifiers, texts, delivery_methods,\n            clinical_notes, preferred_sede_id, created_by,\n            source, referring_doctor_name, source_intake_id)\n    SELECT (SELECT doctor_id FROM resolved), v.patient_id::uuid, v.patient_name,\n           v.patient_document, v.patient_email, v.patient_phone, v.regions,\n           v.section_modifiers, v.texts, v.delivery_methods, v.clinical_notes,\n           v.preferred_sede_id::int, $1::uuid,\n           v.source, v.referring_doctor_name, v.source_intake_id::uuid\n      FROM vals v\n     WHERE v.id IS NULL\n    RETURNING id\n),\ntarget AS (\n    SELECT id FROM updated UNION ALL SELECT id FROM inserted\n),\n-- Las líneas se reemplazan enteras: es lo que hace idempotente al upsert y\n-- evita tener que diffear en el cliente.\nwiped AS (\n    DELETE FROM public.study_order_items\n     WHERE study_order_id = (SELECT id FROM target)\n    RETURNING 1\n),\nitems AS (\n    INSERT INTO public.study_order_items\n           (study_order_id, service_id, service_name, section_code, sort_order, quantity, modifiers, notes)\n    SELECT (SELECT id FROM target),\n           (e ->> 'service_id')::int,\n           e ->> 'service_name',\n           e ->> 'section_code',\n           coalesce((e ->> 'sort_order')::smallint, 0),\n           coalesce((e ->> 'quantity')::smallint, 1),\n           coalesce(e -> 'modifiers', '{}'::jsonb),\n           NULLIF(e ->> 'notes', '')\n      FROM vals v, jsonb_array_elements(v.items) AS e\n     WHERE EXISTS (SELECT 1 FROM target)\n       AND (SELECT count(*) FROM wiped) >= 0\n    ON CONFLICT (study_order_id, service_id) DO NOTHING\n    RETURNING 1\n)\nSELECT (SELECT id::text FROM target) AS id,\n       (SELECT count(*) FROM items)  AS items_written;",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id, $json.payload ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2880,
+        0
+      ],
+      "id": "so-import-15",
+      "name": "Import: Create Draft",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "so-import-draft-created",
+              "leftValue": "={{ !!$json.id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3120,
+        0
+      ],
+      "id": "so-import-16",
+      "name": "Import: Draft Created?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 id de la orden  $2 puntos como JSON ([{ code, field, label, value, confidence, detail }])\n-- $3 bloqueantes ('true' / 'false').\nWITH incoming AS (\n    SELECT DISTINCT ON (item ->> 'id') item, ord\n      FROM (\n        SELECT jsonb_build_object(\n                 'id', substr(md5(coalesce(e ->> 'code', '') || '|' || coalesce(e ->> 'field', '')), 1, 12),\n                 'code', left(e ->> 'code', 40),\n                 'field', left(coalesce(e ->> 'field', ''), 160),\n                 'label', coalesce(NULLIF(e ->> 'label', ''), e ->> 'code'),\n                 'value_read', e ->> 'value',\n                 'confidence', CASE WHEN jsonb_typeof(e -> 'confidence') = 'number'\n                                    THEN round((e ->> 'confidence')::numeric, 3) END,\n                 'detail', e ->> 'detail',\n                 -- Sección del formulario donde está el dato: el asistente muestra la advertencia en ese paso.\n                 'section_code', NULLIF(e ->> 'section_code', ''),\n                 -- Dónde está el dato en los originales ({ attachment_id, page, box, zone, quote }): el\n                 -- asistente abre ese archivo y resalta la zona.\n                 'source', CASE WHEN jsonb_typeof(e -> 'source') = 'object' THEN e -> 'source' END,\n                 'blocking', $3::boolean,\n                 'status', 'pending',\n                 'created_at', replace(to_char((now() AT TIME ZONE 'America/Montevideo'), 'YYYY-MM-DD HH24:MI:SS'), ' ', 'T')) AS item,\n               t.ord\n          FROM jsonb_array_elements(coalesce(NULLIF($2::text, '')::jsonb, '[]'::jsonb)) WITH ORDINALITY AS t(e, ord)\n         WHERE coalesce(e ->> 'code', '') <> ''\n      ) x\n     ORDER BY item ->> 'id', ord\n),\nupd AS (\n    -- Se agrega sobre el valor de la fila al momento de actualizarla (no sobre una lectura previa):\n    -- dos altas simultáneas no se pisan.\n    UPDATE public.study_orders so\n       SET review_items = coalesce(so.review_items, '[]'::jsonb) || coalesce((\n             SELECT jsonb_agg(i.item ORDER BY i.ord)\n               FROM incoming i\n              WHERE NOT EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(so.review_items, '[]'::jsonb)) x\n                                 WHERE x ->> 'id' = i.item ->> 'id')), '[]'::jsonb)\n     WHERE so.id = $1::uuid\n    RETURNING so.order_number, jsonb_array_length(so.review_items) AS total\n)\nSELECT order_number, total FROM upd;",
+        "options": {
+          "queryReplacement": "={{ [ $('Import: Create Draft').first().json.id, $('Import: Build Draft').first().json.review_items, 'true' ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3360,
+        -120
+      ],
+      "id": "so-import-17",
+      "name": "Import: Save Review Items",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 payload { order_id, event_type, actor_id, actor_kind, appointment_id, metadata }\n--\n-- Registro de la bitácora. Un solo parámetro: el payload entero como JSON, por\n-- el mismo motivo que el upsert — sin array posicional no hay desalineación\n-- posible.\n--\n-- El actor sale SIEMPRE del token en el nodo que arma el payload, nunca del\n-- cuerpo que manda el cliente. El tipo de evento se valida dos veces: contra la\n-- lista cerrada del nodo y contra el CHECK de la tabla.\n--\n-- Nunca hace fallar la operación que lo provocó: el nodo va colgado después de\n-- responder al webhook y con onError continueRegularOutput. Perder un renglón\n-- del historial es malo; perder la operación es peor.\nINSERT INTO public.study_order_events\n       (study_order_id, event_type, actor_id, actor_kind, appointment_id, metadata)\nSELECT (b.body ->> 'order_id')::uuid,\n       b.body ->> 'event_type',\n       NULLIF(b.body ->> 'actor_id', '')::uuid,\n       coalesce(NULLIF(b.body ->> 'actor_kind', ''), 'user'),\n       NULLIF(b.body ->> 'appointment_id', '')::int,\n       coalesce(b.body -> 'metadata', '{}'::jsonb)\n  FROM (SELECT $1::jsonb AS body) b\n WHERE coalesce(b.body ->> 'order_id', '') <> ''\n   AND coalesce(b.body ->> 'event_type', '') <> ''\n   AND EXISTS (SELECT 1 FROM public.study_orders so\n                WHERE so.id = (b.body ->> 'order_id')::uuid)\nRETURNING id::text;",
+        "options": {
+          "queryReplacement": "={{ JSON.stringify({ order_id: $('Import: Create Draft').first().json.id, event_type: 'created', actor_id: $('Import: Build Draft').first().json.user_id, metadata: { source: 'import', intake_id: $('Import: Build Draft').first().json.intake_id } }) }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3600,
+        -120
+      ],
+      "id": "so-import-18",
+      "name": "Import: Log Created",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 id del intake  $2 id del borrador creado (vacío si no se pudo crear)  $3 id del paciente (o vacío)\n-- Cierra la lectura: order_created con la orden, o failed si no se pudo crear el borrador (los\n-- originales quedan en el intake).\nUPDATE public.whatsapp_order_intakes\n   SET status         = CASE WHEN $2::text <> '' THEN 'order_created' ELSE 'failed' END,\n       study_order_id = NULLIF($2::text, '')::uuid,\n       patient_id     = coalesce(NULLIF($3::text, '')::uuid, patient_id)\n WHERE id = $1::uuid\n   AND channel = 'import'\n   AND status = 'extracting'\nRETURNING id::text, status;",
+        "options": {
+          "queryReplacement": "={{ [ $('Import: Build Draft').first().json.intake_id, $('Import: Create Draft').first().json.id || '', $('Import: Build Draft').first().json.patient_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3840,
+        0
+      ],
+      "id": "so-import-19",
+      "name": "Import: Close Intake",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "study-orders/import/status",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        520
+      ],
+      "id": "so-import-20",
+      "name": "Status: Webhook",
+      "webhookId": "study-orders-import-status",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\nconst intakeId = String(($json.query || {}).intake_id || '').trim();\nif (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(intakeId)) {\n  return [{ json: { __error: true, __code: 400, __message: 'intake_id es requerido' } }];\n}\nreturn [{ json: { user_id: String(userId), intake_id: intakeId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        520
+      ],
+      "id": "so-import-21",
+      "name": "Status: Validate"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "so-import-status-ok",
+              "leftValue": "={{ !$json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        520
+      ],
+      "id": "so-import-22",
+      "name": "Status: Input OK?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: $json.__code || 400, message: $json.__message || \"Error\", data: null } }}",
+        "options": {
+          "responseCode": "={{ $json.__code || 400 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        720,
+        720
+      ],
+      "id": "so-import-23",
+      "name": "Status: Respond Error"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 userId (token)  $2 id del intake\n-- Estado de una importación, para que la pantalla espere la lectura. Solo quien importó o quien ve\n-- todas. Una lectura que lleva más de 10 minutos en curso se da por fallida (el flujo se cortó).\nWITH \nperms AS (\n    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL')  AS can_view_all,\n           bool_or(p.code = 'STUDY_ORDERS_CREATE_FOR_DOCTOR') AS can_create_for_doctor,\n           bool_or(p.code = 'STUDY_ORDERS_CANCEL')    AS can_cancel,\n           bool_or(p.code = 'STUDY_ORDERS_ACKNOWLEDGE') AS can_acknowledge,\n           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code LIKE 'STUDY_ORDERS_%'\n)\nSELECT json_build_object(\n         'intake_id', i.id::text,\n         'status', CASE\n                     WHEN i.status = 'order_created' AND o.id IS NOT NULL THEN 'done'\n                     WHEN i.status = 'extracting' AND i.created_at > now() - interval '10 minutes' THEN 'processing'\n                     ELSE 'failed'\n                   END,\n         'order_id', o.id::text,\n         'order_number', o.order_number,\n         'patient_name', o.patient_name,\n         'items_total', (SELECT count(*) FROM public.study_order_items it\n                          WHERE it.study_order_id = o.id AND it.is_cancelled = false),\n         'review_pending', (SELECT count(*) FROM jsonb_array_elements(coalesce(o.review_items, '[]'::jsonb)) r\n                             WHERE r ->> 'status' = 'pending'),\n         'files', jsonb_array_length(i.media),\n         'created_at', i.created_at) AS data\n  FROM public.whatsapp_order_intakes i\n  LEFT JOIN public.study_orders o ON o.id = i.study_order_id\n WHERE i.id = $2::uuid\n   AND i.channel = 'import'\n   AND (i.created_by = $1::uuid OR coalesce((SELECT can_view_all FROM perms), false));",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id, $json.intake_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        720,
+        520
+      ],
+      "id": "so-import-24",
+      "name": "Status: Load",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "so-import-status-found",
+              "leftValue": "={{ !!$json.data }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        520
+      ],
+      "id": "so-import-25",
+      "name": "Status: Found?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 200, message: \"OK\", data: $json.data } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1200,
+        440
+      ],
+      "id": "so-import-26",
+      "name": "Status: Respond"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 404, message: \"Importación no encontrada\", data: null } }}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1200,
+        620
+      ],
+      "id": "so-import-27",
+      "name": "Status: Respond Not Found"
+    },
+    {
+      "parameters": {
+        "width": 620,
+        "height": 400,
+        "color": 4,
+        "content": "## Study Orders - Import (generado)\n\n**No editar a mano**: `scripts/n8n/generate-study-order-import-workflow.mjs`.\n\n**POST /study-orders/import** (multipart `file0`, `file1`, …; hasta 6 archivos JPG/PNG/WEBP/PDF de 10 MB): abre el intake (`channel = import`), guarda los originales en Drive y responde **202** `{ intake_id }`. Después lee la orden con `WhatsApp - Study Order Intake` (modo `import`), crea el **borrador** (sin doctor, `source_intake_id`) con los puntos a revisar bloqueantes y cierra el intake (`order_created` / `failed`).\n\n**GET /study-orders/import/status?intake_id=** → `{ status: processing | done | failed, order_id, order_number, items_total, review_pending }`.\n\nPermisos: STUDY_ORDERS_CREATE_FOR_DOCTOR + STUDY_ORDERS_VIEW_ALL. Requiere la migración 127."
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -300
+      ],
+      "id": "so-import-note",
+      "name": "Notas"
+    }
+  ],
+  "connections": {
+    "Import: Webhook": {
+      "main": [
+        [
+          {
+            "node": "Import: Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import: Validate": {
+      "main": [
+        [
+          {
+            "node": "Import: Input OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import: Input OK?": {
+      "main": [
+        [
+          {
+            "node": "Import: Create Intake",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Import: Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import: Create Intake": {
+      "main": [
+        [
+          {
+            "node": "Import: Allowed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import: Allowed?": {
+      "main": [
+        [
+          {
+            "node": "Import: Split Files",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Import: Respond Forbidden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import: Split Files": {
+      "main": [
+        [
+          {
+            "node": "Import: Store Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import: Store Original": {
+      "main": [
+        [
+          {
+            "node": "Import: Collect Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import: Collect Media": {
+      "main": [
+        [
+          {
+            "node": "Import: Save Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import: Save Media": {
+      "main": [
+        [
+          {
+            "node": "Import: Respond Accepted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import: Respond Accepted": {
+      "main": [
+        [
+          {
+            "node": "Import: Read Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import: Read Order": {
+      "main": [
+        [
+          {
+            "node": "Import: Build Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import: Build Draft": {
+      "main": [
+        [
+          {
+            "node": "Import: Create Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import: Create Draft": {
+      "main": [
+        [
+          {
+            "node": "Import: Draft Created?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import: Draft Created?": {
+      "main": [
+        [
+          {
+            "node": "Import: Save Review Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Import: Close Intake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import: Save Review Items": {
+      "main": [
+        [
+          {
+            "node": "Import: Log Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import: Log Created": {
+      "main": [
+        [
+          {
+            "node": "Import: Close Intake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status: Webhook": {
+      "main": [
+        [
+          {
+            "node": "Status: Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status: Validate": {
+      "main": [
+        [
+          {
+            "node": "Status: Input OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status: Input OK?": {
+      "main": [
+        [
+          {
+            "node": "Status: Load",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Status: Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status: Load": {
+      "main": [
+        [
+          {
+            "node": "Status: Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status: Found?": {
+      "main": [
+        [
+          {
+            "node": "Status: Respond",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Status: Respond Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

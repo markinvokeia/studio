@@ -45,6 +45,27 @@ perms AS (
        AND p.code LIKE 'STUDY_ORDERS_%'
 )`;
 
+/**
+ * PERMS_CTE más el acceso a la ficha del paciente (PATIENTS_VIEW_DETAIL): con él se ven las órdenes
+ * de un paciente (lista con scope=patient y detalle). Sólo lo usan LIST_SQL y DETAIL_SQL.
+ */
+const PERMS_WITH_PATIENT_CTE = `
+perms AS (
+    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL')  AS can_view_all,
+           bool_or(p.code = 'STUDY_ORDERS_CREATE_FOR_DOCTOR') AS can_create_for_doctor,
+           bool_or(p.code = 'STUDY_ORDERS_CANCEL')    AS can_cancel,
+           bool_or(p.code = 'STUDY_ORDERS_ACKNOWLEDGE') AS can_acknowledge,
+           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule,
+           -- Acceso a la ficha del paciente: alcanza para ver sus órdenes (tab Órdenes de estudio).
+           bool_or(p.code = 'PATIENTS_VIEW_DETAIL') AS can_view_patient
+      FROM public.user_roles ur
+      JOIN public.role_permissions rp ON rp.role_id = ur.role_id
+      JOIN public.permissions p       ON p.id = rp.permission_id
+     WHERE ur.user_id = $1::uuid
+       AND ur.is_active IS NOT FALSE
+       AND (p.code LIKE 'STUDY_ORDERS_%' OR p.code = 'PATIENTS_VIEW_DETAIL')
+)`;
+
 export const OPTIONS_SQL = `
 -- Catálogo del formulario. Las secciones son las categorías sembradas por
 -- scripts/sql/catalogo-clinica-imagen.sql y los servicios, sus 69 hijos.
@@ -98,7 +119,7 @@ export const LIST_SQL = `
 -- $1 = userId del token.  $2 = filtros como JSON.
 -- Dos parámetros por el mismo motivo que el upsert: sin array posicional no hay
 -- desalineación posible ni placeholders de dos dígitos.
-WITH ${PERMS_CTE},
+WITH ${PERMS_WITH_PATIENT_CTE},
 q AS (
     SELECT $2::jsonb AS f
 ),
@@ -109,6 +130,7 @@ args AS (
            NULLIF(f ->> 'sede_id', '')                          AS sede_id,
            coalesce(f ->> 'source', '')                         AS source,
            NULLIF(f ->> 'patient_id', '')                       AS patient_id,
+           NULLIF(f ->> 'doctor_id', '')                        AS doctor_id,
            coalesce((f ->> 'sla_hours')::numeric, 48)           AS sla_hours,
            NULLIF(f ->> 'date_from', '')                        AS date_from,
            NULLIF(f ->> 'date_to', '')                          AS date_to,
@@ -144,6 +166,11 @@ base AS (
        -- no tienen doctor y son trabajo de recepción.
        CASE WHEN a.scope = 'clinic' AND (SELECT can_view_all FROM perms)
             THEN (b.status <> 'draft' OR so.source = 'whatsapp')
+            -- Ficha del paciente: quien puede abrirla ve todas sus órdenes, no sólo las que derivó.
+            -- Los borradores ajenos siguen fuera: todavía no son una orden.
+            WHEN a.scope = 'patient' AND a.patient_id IS NOT NULL
+                 AND ((SELECT can_view_patient FROM perms) OR (SELECT can_view_all FROM perms))
+            THEN (b.status <> 'draft' OR so.source = 'whatsapp' OR b.doctor_id = $1::uuid)
             ELSE b.doctor_id = $1::uuid
        END
        AND (a.board_status = 'all' OR CASE a.board_status
@@ -167,6 +194,8 @@ base AS (
        AND (a.source = '' OR so.source = a.source)
        -- Órdenes de un paciente concreto: lo usa el selector del diálogo de cita.
        AND (a.patient_id IS NULL OR b.patient_id = a.patient_id::uuid)
+       -- Órdenes de un doctor concreto: tab Órdenes de Config > Doctores.
+       AND (a.doctor_id IS NULL OR b.doctor_id = a.doctor_id::uuid)
        AND (a.date_from IS NULL OR b.submitted_at >= a.date_from::timestamp)
        AND (a.date_to   IS NULL OR b.submitted_at <  (a.date_to::timestamp + interval '1 day'))
 )
@@ -194,7 +223,7 @@ SELECT (SELECT count(*) FROM base) AS total,
 
 export const DETAIL_SQL = `
 -- $1 userId (del token)  $2 id de la orden
-WITH ${PERMS_CTE}
+WITH ${PERMS_WITH_PATIENT_CTE}
 SELECT row_to_json(o) AS data
   FROM (
     SELECT so.id::text, so.order_number, so.doctor_id::text, d.name AS doctor_name,
@@ -207,8 +236,11 @@ SELECT row_to_json(o) AS data
            so.source, so.referring_doctor_name, so.source_intake_id::text,
            -- Orden que entro por WhatsApp: los originales (fotos o PDF) y lo que el asistente
            -- leyo de ellos, para poder comprobar que no hubo errores de lectura.
+           -- También las importadas desde Invoke (channel = 'import': sin teléfono, con quién importó).
            (SELECT json_build_object(
                      'intake_id', wi.id::text,
+                     'channel', wi.channel,
+                     'imported_by_name', (SELECT u.name FROM public.users u WHERE u.id = wi.created_by),
                      'phone', wi.phone,
                      'received_at', wi.created_at,
                      'warnings', coalesce(wi.validation -> 'warnings', '[]'::jsonb),
@@ -340,7 +372,10 @@ SELECT row_to_json(o) AS data
       LEFT JOIN public.sedes se ON se.id = so.preferred_sede_id
      WHERE so.id = $2::uuid
        -- Pertenencia explícita: sin VIEW_ALL sólo se abre lo propio.
-       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))
+       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms)
+            -- Quien accede a la ficha del paciente puede abrir sus órdenes (en sólo lectura en
+            -- el front; las mutaciones siguen exigiendo sus propios permisos). Borradores no.
+            OR ((SELECT can_view_patient FROM perms) AND so.patient_id IS NOT NULL AND so.status <> 'draft'))
   ) o;`;
 
 export const UPSERT_SQL = `
@@ -560,7 +595,7 @@ SELECT u.id::text, u.order_number, u.doctor_id::text, u.patient_name, u.submitte
  * leerla, `buildReviewItems` de intake-lib.mjs) en `study_orders.review_items`. Lo usa el agente:
  * al crear el borrador de una derivación (bloqueantes) y al agendar una orden él solo (informativos).
  *
- * Cada punto: { id, code, field, label, value_read, confidence, detail, section_code, blocking, status,
+ * Cada punto: { id, code, field, label, value_read, confidence, detail, section_code, source, blocking, status,
  *               resolution_note, reviewed_by, reviewed_by_name, reviewed_at, created_at }.
  * `id` = los 12 primeros caracteres del md5 de code|field: el mismo punto no se agrega dos veces.
  */
@@ -581,6 +616,9 @@ WITH incoming AS (
                  'detail', e ->> 'detail',
                  -- Sección del formulario donde está el dato: el asistente muestra la advertencia en ese paso.
                  'section_code', NULLIF(e ->> 'section_code', ''),
+                 -- Dónde está el dato en los originales ({ attachment_id, page, box, zone, quote }): el
+                 -- asistente abre ese archivo y resalta la zona.
+                 'source', CASE WHEN jsonb_typeof(e -> 'source') = 'object' THEN e -> 'source' END,
                  'blocking', $3::boolean,
                  'status', 'pending',
                  'created_at', replace(to_char(${NOW}, 'YYYY-MM-DD HH24:MI:SS'), ' ', 'T')) AS item,
@@ -1556,3 +1594,71 @@ UPDATE public.whatsapp_order_intakes i
    AND i.resolved_at IS NULL
    AND coalesce((SELECT can_acknowledge FROM perms), false)
 RETURNING i.id::text, i.resolved_at;`;
+
+// ── Importar una orden desde Invoke (fotos o PDF) ────────────────────────────
+// Recepción sube los originales; los lee el mismo subflujo que los de WhatsApp (modo 'import') y
+// queda una orden en BORRADOR con lo dudoso como puntos a revisar. El intake (channel = 'import')
+// registra la lectura y es el source_id de los originales, igual que en WhatsApp.
+
+/**
+ * Permiso para importar: crear órdenes sin doctor vinculado (CREATE_FOR_DOCTOR, el mismo que usa el
+ * agente) y ver todas (VIEW_ALL: el borrador no tiene doctor y los originales solo los ve la clínica).
+ */
+const CAN_IMPORT = `coalesce((SELECT can_create_for_doctor AND can_view_all FROM perms), false)`;
+
+export const IMPORT_CREATE_INTAKE_SQL = `
+-- $1 userId (token)
+-- Abre el intake de la importación. Sin permiso no inserta nada y el flujo responde 403.
+WITH ${PERMS_CTE}
+INSERT INTO public.whatsapp_order_intakes (channel, phone, created_by, status)
+SELECT 'import', NULL, $1::uuid, 'extracting'
+ WHERE ${CAN_IMPORT}
+RETURNING id::text;`;
+
+export const IMPORT_SAVE_MEDIA_SQL = `
+-- $1 id del intake  $2 referencias de los originales guardados (JSON array)
+UPDATE public.whatsapp_order_intakes
+   SET media = media || coalesce(NULLIF($2::text, '')::jsonb, '[]'::jsonb)
+ WHERE id = $1::uuid
+   AND channel = 'import'
+RETURNING id::text, jsonb_array_length(media) AS files;`;
+
+export const IMPORT_CLOSE_SQL = `
+-- $1 id del intake  $2 id del borrador creado (vacío si no se pudo crear)  $3 id del paciente (o vacío)
+-- Cierra la lectura: order_created con la orden, o failed si no se pudo crear el borrador (los
+-- originales quedan en el intake).
+UPDATE public.whatsapp_order_intakes
+   SET status         = CASE WHEN $2::text <> '' THEN 'order_created' ELSE 'failed' END,
+       study_order_id = NULLIF($2::text, '')::uuid,
+       patient_id     = coalesce(NULLIF($3::text, '')::uuid, patient_id)
+ WHERE id = $1::uuid
+   AND channel = 'import'
+   AND status = 'extracting'
+RETURNING id::text, status;`;
+
+export const IMPORT_STATUS_SQL = `
+-- $1 userId (token)  $2 id del intake
+-- Estado de una importación, para que la pantalla espere la lectura. Solo quien importó o quien ve
+-- todas. Una lectura que lleva más de 10 minutos en curso se da por fallida (el flujo se cortó).
+WITH ${PERMS_CTE}
+SELECT json_build_object(
+         'intake_id', i.id::text,
+         'status', CASE
+                     WHEN i.status = 'order_created' AND o.id IS NOT NULL THEN 'done'
+                     WHEN i.status = 'extracting' AND i.created_at > now() - interval '10 minutes' THEN 'processing'
+                     ELSE 'failed'
+                   END,
+         'order_id', o.id::text,
+         'order_number', o.order_number,
+         'patient_name', o.patient_name,
+         'items_total', (SELECT count(*) FROM public.study_order_items it
+                          WHERE it.study_order_id = o.id AND it.is_cancelled = false),
+         'review_pending', (SELECT count(*) FROM jsonb_array_elements(coalesce(o.review_items, '[]'::jsonb)) r
+                             WHERE r ->> 'status' = 'pending'),
+         'files', jsonb_array_length(i.media),
+         'created_at', i.created_at) AS data
+  FROM public.whatsapp_order_intakes i
+  LEFT JOIN public.study_orders o ON o.id = i.study_order_id
+ WHERE i.id = $2::uuid
+   AND i.channel = 'import'
+   AND (i.created_by = $1::uuid OR coalesce((SELECT can_view_all FROM perms), false));`;

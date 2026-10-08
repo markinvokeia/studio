@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Activity, CalendarClock, CalendarDays, CalendarPlus, FileText, Inbox, Link2, ListChecks, MessageCircle, Pencil, Printer, Send, Stethoscope, Trash2, User, UserRoundX, X, XCircle } from 'lucide-react';
+import { Activity, CalendarClock, CalendarDays, CalendarPlus, FileText, FileUp, Inbox, Link2, ListChecks, MessageCircle, Pencil, Printer, Send, Stethoscope, Trash2, User, UserRoundX, X, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
@@ -130,6 +130,7 @@ export function StudyOrderDetailPanel({
     }, [orderId, refreshKey, reloadKey]);
 
     const hasOriginals = !!order?.whatsapp && hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL);
+    const isImported = order?.whatsapp?.channel === 'import';
     const reviewItems = order?.review_items ?? [];
     const reviewPending = reviewItems.filter((i) => i.status === 'pending').length;
     // Marcar puntos: el mismo alcance que el backend (la orden propia o, con VIEW_ALL, cualquiera).
@@ -162,15 +163,15 @@ export function StudyOrderDetailPanel({
             ...(!readOnly && hasPermission(STUDY_ORDERS_PERMISSIONS.SHARE_LINK)
                 ? [{ id: 'link', icon: Link2, label: t('tabs.link') }]
                 : []),
-            // Solo órdenes que entraron por WhatsApp: los originales y lo que leyó el
-            // asistente. Los archivos se piden con VIEW_ALL, así que sin ese permiso
-            // la pestaña no tendría nada que mostrar.
+            // Solo órdenes que entraron por WhatsApp o que se importaron subiendo sus fotos: los
+            // originales y lo que leyó el asistente. Los archivos se piden con VIEW_ALL, así que
+            // sin ese permiso la pestaña no tendría nada que mostrar.
             ...(hasOriginals
-                ? [{ id: 'original', icon: MessageCircle, label: t('tabs.original') }]
+                ? [{ id: 'original', icon: isImported ? FileUp : MessageCircle, label: t('tabs.original') }]
                 : []),
             { id: 'activity', icon: Activity, label: t('tabs.activity') },
         ],
-        [t, scope, hasPermission, hasOriginals, reviewItems.length, reviewPending, readOnly],
+        [t, scope, hasPermission, hasOriginals, isImported, reviewItems.length, reviewPending, readOnly],
     );
 
     /** Agrupa las líneas por sección, respetando el orden del formulario. */

@@ -1,13 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import { AlertTriangle, Check, CheckCircle2, MessageSquarePlus, Pencil, RotateCcw, X } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, LocateFixed, MessageSquarePlus, Pencil, RotateCcw, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+
+import { hasSource, useReviewLocate } from './review-locate';
 
 import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +28,9 @@ import { updateStudyOrderReviewItems } from '@/services/study-orders';
  * Con dos o más pendientes se pueden seleccionar y marcar juntos (misma resolución y misma nota).
  * La selección es explícita, punto por punto o con "seleccionar pendientes": no hay un "confirmar
  * todo" de un clic, porque la idea es haber mirado cada uno contra el original.
+ *
+ * Si el asistente dijo dónde leyó el dato (`source`), se muestra la parte del formulario y lo que
+ * dice ahí, y con los originales a la vista "Ver en el original" lleva a ese lugar.
  */
 
 export interface StudyOrderReviewListProps {
@@ -48,6 +53,7 @@ export function countPendingBlocking(items: StudyOrderReviewItem[] | null | unde
 const KNOWN_CODES = new Set([
     'handoff_reason', 'low_confidence', 'not_in_catalog', 'unreadable',
     'unplaced', 'possibly_incomplete', 'no_signature', 'old_order',
+    'read_failed', 'invalid_document', 'patient_match', 'duplicate',
 ]);
 
 function confidencePercent(value: StudyOrderReviewItem['confidence']): number | null {
@@ -59,6 +65,7 @@ function confidencePercent(value: StudyOrderReviewItem['confidence']): number | 
 export function StudyOrderReviewList({ orderId, items, canReview, onChanged, variant = 'full', className }: StudyOrderReviewListProps) {
     const t = useTranslations('StudyOrdersPage.review');
     const { toast } = useToast();
+    const locate = useReviewLocate();
     /** Notas en curso, por punto. Se abre el campo solo si la persona quiere dejar una. */
     const [notes, setNotes] = React.useState<Record<string, string>>({});
     const [noteOpen, setNoteOpen] = React.useState<Record<string, boolean>>({});
@@ -255,6 +262,18 @@ export function StudyOrderReviewList({ orderId, items, canReview, onChanged, var
                                                 {t('blocking')}
                                             </Badge>
                                         )}
+                                        {locate && hasSource(item) && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="ml-auto h-6 px-1.5 text-xs text-primary"
+                                                onClick={() => locate(item)}
+                                            >
+                                                <LocateFixed className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                                                {t('locate')}
+                                            </Button>
+                                        )}
                                     </div>
                                     {/* `label` y `detail` los escribe el agente: van tal cual, en el idioma de la orden. */}
                                     <p className="break-words text-muted-foreground">
@@ -264,6 +283,14 @@ export function StudyOrderReviewList({ orderId, items, canReview, onChanged, var
                                         )}
                                     </p>
                                     {item.detail && <p className="break-words text-xs text-muted-foreground">{item.detail}</p>}
+                                    {(item.source?.zone || item.source?.quote) && (
+                                        <p className="break-words text-xs text-muted-foreground">
+                                            {t('sourceWhere')}{' '}
+                                            {item.source?.zone}
+                                            {item.source?.zone && item.source?.quote && ' · '}
+                                            {item.source?.quote && <span className="italic">“{item.source.quote}”</span>}
+                                        </p>
+                                    )}
 
                                     {!isPending && (
                                         <p className="text-xs text-muted-foreground">

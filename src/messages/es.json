@@ -7335,7 +7335,13 @@
     "thumbnailError": "No se pudo cargar",
     "noPreview": "Este tipo de archivo no se puede previsualizar. Descargalo para abrirlo.",
     "open": "Abrir",
-    "noFiles": "No hay archivos."
+    "noFiles": "No hay archivos.",
+    "focus": {
+      "noFile": "No se sabe en qué archivo está: buscalo por la zona y el texto.",
+      "pdfPage": "Página {page} del PDF: buscá el dato en esa página.",
+      "noBox": "Sin ubicación exacta en la imagen: buscalo por la zona y el texto.",
+      "clear": "Dejar de señalar"
+    }
   },
   "Common": {
     "accessDenied": "Acceso Denegado",
@@ -9682,7 +9688,45 @@
     "descriptionMine": "Las órdenes que derivaste a Clínica Imagen y en qué estado está cada una.",
     "descriptionClinic": "Bandeja de órdenes recibidas. Qué entró, qué falta agendar y qué está atrasado.",
     "filterPlaceholder": "Buscar por paciente...",
+    "importDialog": {
+      "title": "Importar orden",
+      "description": "Subí las fotos o el PDF de una orden en papel (frente, dorso u hojas de la misma orden). El asistente la lee y queda en borrador para que la revises y la envíes.",
+      "dropzone": "Arrastrá los archivos o hacé clic para elegirlos",
+      "hint": "JPG, PNG, WEBP o PDF · hasta {max} archivos de 10 MB",
+      "selectedFiles": "Archivos seleccionados",
+      "page": "Hoja {n}",
+      "remove": "Quitar {name}",
+      "submit": "Importar",
+      "cancel": "Cancelar",
+      "close": "Cerrar",
+      "closeWhileReading": "Seguir en segundo plano",
+      "errors": {
+        "format": "{name}: formato no admitido. Usá JPG, PNG, WEBP o PDF.",
+        "size": "{name} supera los 10 MB.",
+        "tooMany": "Una orden admite hasta {max} archivos.",
+        "upload": "No se pudieron subir los archivos."
+      },
+      "reading": {
+        "title": "Leyendo la orden…",
+        "description": "Suele tardar menos de un minuto. Podés cerrar esta ventana: la orden va a aparecer en Borradores cuando termine."
+      },
+      "done": {
+        "title": "Borrador {number} creado",
+        "items": "{count, plural, =0 {Sin estudios leídos} one {1 estudio} other {# estudios}}",
+        "review": "{count, plural, one {1 punto a revisar} other {# puntos a revisar}}",
+        "noReview": "sin puntos a revisar",
+        "open": "Revisar y completar"
+      },
+      "failed": {
+        "description": "No se pudo crear la orden a partir de los archivos. Intentá de nuevo o cargala a mano con \"Nueva orden\"."
+      },
+      "toast": {
+        "continuesTitle": "La lectura sigue en segundo plano",
+        "continuesDescription": "La orden va a aparecer en Borradores cuando termine."
+      }
+    },
     "newOrder": "Nueva orden",
+    "importOrder": "Importar orden",
     "noResults": "No hay órdenes que coincidan con el filtro.",
     "itemsCount": "{scheduled} de {total} agendados",
     "buckets": {
@@ -9936,6 +9980,8 @@
       "noFiles": "No se guardó ningún archivo.",
       "original": {
         "receivedVia": "Recibida por WhatsApp el {date}",
+        "importedAt": "Importada desde Invoke el {date}",
+        "importedBy": "Subida por {name}",
         "from": "Enviada desde {phone}",
         "readByAssistant": "Lo que leyó el asistente",
         "doctorAsWritten": "Doctor en la orden en papel (sin vincular)",
@@ -9971,7 +10017,11 @@
         "unplaced": "No encaja en el formulario",
         "possibly_incomplete": "Puede faltar el dorso",
         "no_signature": "Sin firma",
-        "old_order": "Orden antigua"
+        "old_order": "Orden antigua",
+        "read_failed": "No se pudo leer",
+        "invalid_document": "Documento inválido",
+        "patient_match": "Paciente a confirmar",
+        "duplicate": "Posible orden repetida"
       },
       "status": {
         "pending": "Pendiente",
@@ -10000,7 +10050,10 @@
         "selected": "{count, plural, one {1 seleccionado} other {# seleccionados}}",
         "selectItem": "Seleccionar: {label}",
         "notePlaceholder": "Nota (opcional), igual para todos los seleccionados"
-      }
+      },
+      "locate": "Ver en el original",
+      "locateHint": "Clic para verlo en el original.",
+      "sourceWhere": "En el papel:"
     },
     "origin": {
       "label": "Origen",

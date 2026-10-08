@@ -7335,7 +7335,13 @@
     "thumbnailError": "Could not load",
     "noPreview": "This file type cannot be previewed. Download it to open it.",
     "open": "Open",
-    "noFiles": "No files."
+    "noFiles": "No files.",
+    "focus": {
+      "noFile": "Unknown file: look for it by the area and the text.",
+      "pdfPage": "PDF page {page}: look for it on that page.",
+      "noBox": "No exact position in the image: look for it by the area and the text.",
+      "clear": "Stop highlighting"
+    }
   },
   "Common": {
     "accessDenied": "Access Denied",
@@ -9682,7 +9688,45 @@
     "descriptionMine": "The orders you referred to Clínica Imagen and the status of each one.",
     "descriptionClinic": "Incoming order queue. What arrived, what needs scheduling and what is overdue.",
     "filterPlaceholder": "Search by patient...",
+    "importDialog": {
+      "title": "Import order",
+      "description": "Upload the photos or PDF of a paper order (front, back or pages of the same order). The assistant reads it and saves it as a draft for you to review and submit.",
+      "dropzone": "Drag the files here or click to choose them",
+      "hint": "JPG, PNG, WEBP or PDF · up to {max} files of 10 MB",
+      "selectedFiles": "Selected files",
+      "page": "Page {n}",
+      "remove": "Remove {name}",
+      "submit": "Import",
+      "cancel": "Cancel",
+      "close": "Close",
+      "closeWhileReading": "Continue in background",
+      "errors": {
+        "format": "{name}: unsupported format. Use JPG, PNG, WEBP or PDF.",
+        "size": "{name} is larger than 10 MB.",
+        "tooMany": "An order accepts up to {max} files.",
+        "upload": "The files could not be uploaded."
+      },
+      "reading": {
+        "title": "Reading the order…",
+        "description": "It usually takes less than a minute. You can close this window: the order will show up in Drafts when it finishes."
+      },
+      "done": {
+        "title": "Draft {number} created",
+        "items": "{count, plural, =0 {No studies read} one {1 study} other {# studies}}",
+        "review": "{count, plural, one {1 item to review} other {# items to review}}",
+        "noReview": "nothing to review",
+        "open": "Review and complete"
+      },
+      "failed": {
+        "description": "The order could not be created from the files. Try again or enter it manually with \"New order\"."
+      },
+      "toast": {
+        "continuesTitle": "Reading continues in the background",
+        "continuesDescription": "The order will show up in Drafts when it finishes."
+      }
+    },
     "newOrder": "New order",
+    "importOrder": "Import order",
     "noResults": "No orders match the filter.",
     "itemsCount": "{scheduled} of {total} scheduled",
     "buckets": {
@@ -9936,6 +9980,8 @@
       "noFiles": "No files were saved.",
       "original": {
         "receivedVia": "Received via WhatsApp on {date}",
+        "importedAt": "Imported in Invoke on {date}",
+        "importedBy": "Uploaded by {name}",
         "from": "Sent from {phone}",
         "readByAssistant": "What the assistant read",
         "doctorAsWritten": "Doctor on the paper order (not linked)",
@@ -9971,7 +10017,11 @@
         "unplaced": "Does not fit the form",
         "possibly_incomplete": "Back side may be missing",
         "no_signature": "No signature",
-        "old_order": "Old order"
+        "old_order": "Old order",
+        "read_failed": "Could not be read",
+        "invalid_document": "Invalid document",
+        "patient_match": "Patient to confirm",
+        "duplicate": "Possible duplicate order"
       },
       "status": {
         "pending": "Pending",
@@ -10000,7 +10050,10 @@
         "selected": "{count, plural, one {1 selected} other {# selected}}",
         "selectItem": "Select: {label}",
         "notePlaceholder": "Note (optional), same for all selected items"
-      }
+      },
+      "locate": "View in original",
+      "locateHint": "Click to see it in the original.",
+      "sourceWhere": "On paper:"
     },
     "origin": {
       "label": "Origin",

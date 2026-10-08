@@ -177,7 +177,7 @@ return [{ json: { __data: data } }];`),
 workflows.push({
     file: 'study-orders-list.json',
     name: 'Study Orders - List',
-    sticky: `## GET /study-orders\n\nBandeja de órdenes.\n\n**Query**\n- \`scope\`: \`mine\` | \`clinic\` (default \`mine\`)\n- \`board_status\`: all | new | pending | overdue | scheduled | completed | drafts | review (con puntos sin revisar)\n- \`q\`: busca por paciente, documento o número de orden (prefijo)\n- \`sede_id\`, \`date_from\`, \`date_to\`, \`sla_hours\` (default 48)\n- \`sort\`: \`campo:asc|desc\`, \`page\`, \`limit\`\n\n**SEGURIDAD:** el \`doctor_id\` NO se acepta por query. Con \`scope=mine\` el SQL filtra por \`jwtPayload.userId\`; con \`scope=clinic\` exige STUDY_ORDERS_VIEW_ALL y, si no lo tiene, devuelve igual sólo lo propio.\n\n**Response 200**\n\`\`\`json\n{ "code": 200, "data": [ { "id": "...", "board_status": "partially_scheduled",\n   "items_total": 3, "items_scheduled": 1, "is_overdue": false } ],\n  "meta": { "total": 42, "page": 1, "limit": 25 } }\n\`\`\``,
+    sticky: `## GET /study-orders\n\nBandeja de órdenes.\n\n**Query**\n- \`scope\`: \`mine\` | \`clinic\` | \`patient\` (default \`mine\`). \`patient\` + \`patient_id\`: todas las órdenes del paciente para quien tiene PATIENTS_VIEW_DETAIL (o VIEW_ALL)\n- \`board_status\`: all | new | pending | overdue | scheduled | completed | drafts | review (con puntos sin revisar)\n- \`q\`: busca por paciente, documento o número de orden (prefijo)\n- \`patient_id\`, \`doctor_id\`: acotan a un paciente / doctor (tabs Órdenes de Pacientes y Doctores)\n- \`sede_id\`, \`date_from\`, \`date_to\`, \`sla_hours\` (default 48)\n- \`sort\`: \`campo:asc|desc\`, \`page\`, \`limit\`\n\n**SEGURIDAD:** el \`doctor_id\` NO se acepta por query. Con \`scope=mine\` el SQL filtra por \`jwtPayload.userId\`; con \`scope=clinic\` exige STUDY_ORDERS_VIEW_ALL y, si no lo tiene, devuelve igual sólo lo propio.\n\n**Response 200**\n\`\`\`json\n{ "code": 200, "data": [ { "id": "...", "board_status": "partially_scheduled",\n   "items_total": 3, "items_scheduled": 1, "is_overdue": false } ],\n  "meta": { "total": 42, "page": 1, "limit": 25 } }\n\`\`\``,
     method: 'GET',
     path: 'study-orders',
     id: 'list',
@@ -197,12 +197,17 @@ const sort = SORTS.includes(q.sort) ? q.sort : 'submitted_at:desc';
 
 // Un solo objeto de filtros: el SQL los lee por nombre.
 const filters = {
-  scope: q.scope === 'clinic' ? 'clinic' : 'mine',
+  // 'patient': todas las órdenes de un paciente para quien tiene acceso a su ficha
+  // (PATIENTS_VIEW_DETAIL). Sin patient_id o sin el permiso, el SQL cae a 'mine'.
+  scope: ['clinic', 'patient'].includes(q.scope) ? q.scope : 'mine',
   board_status: q.board_status || 'all',
   search: (q.q || '').trim(),
   sede_id: q.sede_id || '',
   source: ['portal', 'whatsapp'].includes(q.source) ? q.source : '',
   patient_id: q.patient_id || '',
+  // Órdenes de un doctor concreto (tab Órdenes de Config > Doctores). Sólo acota:
+  // sin VIEW_ALL el SQL ya restringe a las propias, así que pedir otro doctor da vacío.
+  doctor_id: q.doctor_id || '',
   sla_hours: Number(q.sla_hours) > 0 ? Number(q.sla_hours) : 48,
   date_from: q.date_from || '',
   date_to: q.date_to || '',

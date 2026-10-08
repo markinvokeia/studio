@@ -13,7 +13,7 @@
  * la incrusta tal cual en los nodos Code: no se edita a mano en n8n.
  *
  * Se invoca con Execute Workflow:
- *   { intake_id, mode: 'extract' | 'revalidate' | 'compare', answers?: '<json>' }
+ *   { intake_id, mode: 'extract' | 'revalidate' | 'compare' | 'import', answers?: '<json>' }
  *
  *   extract     descarga los originales, llama al modelo de visión y valida.
  *   revalidate  NO vuelve a llamar al modelo: revalida la extracción guardada
@@ -23,6 +23,10 @@
  *               archivos: lee todos juntos y los compara con la orden sin tocarla
  *               (compareLateFiles). Devuelve outcome unchanged|handoff; la lectura
  *               nueva queda en extraction_meta.late_files.
+ *   import      la orden la subió recepción desde Invoke (intake con channel = 'import'):
+ *               lee los originales y valida SIN conversación (validateImport). No cambia
+ *               el estado del intake: devuelve el cuerpo del borrador (order_payload) y
+ *               los puntos a revisar, y quien llamó crea la orden.
  *
  * Devuelve { intake_id, outcome: ready|needs_input|handoff, status, ... } y deja
  * el intake actualizado (status, extraction, validation, extraction_meta).
@@ -78,6 +82,7 @@ add('Load Intake Context', 'n8n-nodes-base.postgres', 2.6, {
 SELECT i.id::text AS id,
        i.phone,
        i.status,
+       i.channel,
        i.extraction,
        i.validation,
        i.sender_user_id::text AS sender_user_id,
@@ -127,7 +132,7 @@ add('Needs Extraction?', 'n8n-nodes-base.if', 2.2, {
         options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
         conditions: [{
             id: 'so-intake-needs-extraction',
-            leftValue: `={{ ['extract', 'compare'].includes($('When Executed by Another Workflow').first().json.mode || 'extract') && ($json.files || []).length > 0 }}`,
+            leftValue: `={{ ['extract', 'compare', 'import'].includes($('When Executed by Another Workflow').first().json.mode || 'extract') && ($json.files || []).length > 0 }}`,
             rightValue: true,
             operator: { type: 'boolean', operation: 'true', singleValue: true },
         }],
@@ -161,12 +166,20 @@ const metas = $('Split Files').all().map((i) => i.json);
 const items = $input.all();
 
 const parts = [{ type: 'text', text: 'Transcribí la orden de estudios que figura en los archivos adjuntos (pueden ser el frente y el dorso o varias hojas de la misma orden).' }];
+// Cada archivo va precedido de su id (attachments.id): el modelo lo usa para decir dónde leyó cada
+// dato (v4) y el frontend abre ese mismo original. Solo entran al enum los que se mandaron.
+const sent = [];
 for (let i = 0; i < items.length; i++) {
   const bin = items[i].binary && items[i].binary.data;
   if (!bin) continue;
   const buf = await this.helpers.getBinaryDataBuffer(i, 'data');
   const mime = String((metas[i] && metas[i].mime_type) || bin.mimeType || 'application/octet-stream').split(';')[0];
   const dataUrl = 'data:' + mime + ';base64,' + buf.toString('base64');
+  const attachmentId = String((metas[i] && metas[i].attachment_id) || '');
+  if (attachmentId) {
+    sent.push({ attachment_id: attachmentId });
+    parts.push({ type: 'text', text: 'ARCHIVO ' + attachmentId + (mime === 'application/pdf' ? ' (PDF, varias páginas posibles)' : ' (imagen)') });
+  }
   if (mime === 'application/pdf') {
     parts.push({ type: 'file', file: { filename: (metas[i] && metas[i].file_name) || ('orden-' + i + '.pdf'), file_data: dataUrl } });
   } else {
@@ -182,10 +195,10 @@ const body = {
   ],
   response_format: {
     type: 'json_schema',
-    json_schema: { name: 'study_order_extraction', strict: true, schema: buildExtractionSchema(ctx.catalog, ctx.options) },
+    json_schema: { name: 'study_order_extraction', strict: true, schema: buildExtractionSchema(ctx.catalog, ctx.options, sent) },
   },
 };
-return [{ json: { body, model: ctx.config.vision_model, files_sent: parts.length - 1, started_at: Date.now() } }];`,
+return [{ json: { body, model: ctx.config.vision_model, files_sent: parts.filter((p) => p.type !== 'text').length, files: sent, started_at: Date.now() } }];`,
 }, [x(5), 180]);
 link('Drive Download', 'Build Vision Request');
 
@@ -208,6 +221,7 @@ const res = $input.first().json || {};
 const meta = {
   model: req.model,
   files_sent: req.files_sent,
+  files: req.files,
   latency_ms: Date.now() - req.started_at,
   usage: res.usage || null,
   prompt_version: '${PROMPT_VERSION}',
@@ -355,6 +369,42 @@ if (mode === 'compare') {
   } }];
 }
 
+// 'import': recepción subió la orden desde Invoke. No hay conversación: siempre sale un borrador
+// con todo lo dudoso como puntos a revisar. El estado del intake lo cierra quien llamó, al crear
+// la orden.
+if (mode === 'import') {
+  const result = validateImport({
+    extraction: prep.extraction,
+    extraction_error: prep.extraction_error,
+    has_files: (ctx.files || []).some((f) => f && f.attachment_id),
+    catalog: ctx.catalog,
+    options: ctx.options,
+    doc_matches: lk.doc_matches || [],
+    open_orders: lk.open_orders || [],
+    config: { min_confidence: ctx.config && ctx.config.min_confidence },
+  });
+  return [{ json: {
+    mode,
+    intake_id: ctx.id,
+    outcome: result.outcome,
+    status: ctx.status,
+    handoff_reason: null,
+    handoff_detail: null,
+    questions: [],
+    warnings: result.warnings,
+    patient: result.patient,
+    resolved: null,
+    duplicate_of: result.duplicate_of,
+    review_items: result.review_items,
+    order_payload: buildImportOrderPayload({
+      validation: result, intake_id: ctx.id, fallback_name: 'Paciente sin identificar (orden importada)',
+    }),
+    validation: { ...result, mode, validated_at: new Date().toISOString() },
+    extraction_to_save: prep.fresh ? prep.extraction : null,
+    extraction_meta: prep.extraction_meta || {},
+  } }];
+}
+
 // Lo ocurrido antes en este intake (se guarda dentro de validation.prior).
 const before = (ctx.validation && ctx.validation.prior) || {};
 const prior = {
@@ -407,6 +457,7 @@ add('Save Result', 'n8n-nodes-base.postgres', 2.6, {
     query: `-- extract / revalidate: solo actualiza un intake que sigue en curso; nunca pisa uno ya agendado o derivado.
 -- compare (archivos que llegan con la orden ya creada o agendada): no toca el estado, la extraccion ni la validacion
 -- de la orden; solo agrega la lectura nueva a extraction_meta.late_files para auditoria.
+-- import solo toca intakes importados (y extract/revalidate solo los de WhatsApp): el estado no cambia.
 WITH v AS (
   UPDATE whatsapp_order_intakes
      SET status          = $2,
@@ -418,6 +469,7 @@ WITH v AS (
          patient_id      = COALESCE($8::uuid, patient_id)
    WHERE id = $1::uuid
      AND $9::text <> 'compare'
+     AND ($9::text = 'import') = (channel = 'import')
      AND status IN ('extracting', 'needs_input', 'awaiting_confirmation')
   RETURNING id, status, handoff_reason
 ),
@@ -471,6 +523,9 @@ return [{ json: {
   patient: v.patient,
   resolved: v.resolved,
   duplicate_of: v.duplicate_of,
+  // Solo en 'import': el cuerpo del borrador para /study-orders/upsert y lo que hay que revisar.
+  order_payload: v.order_payload || null,
+  review_items: v.mode === 'import' ? (v.review_items || []) : null,
 } }];`,
 }, [x(12), 300]);
 link('Save Result', 'Format Result');
@@ -478,17 +533,18 @@ link('Save Result', 'Format Result');
 // ── Notas ────────────────────────────────────────────────────────────────────
 nodes.push({
     parameters: {
-        width: 560, height: 340, color: 4,
+        width: 560, height: 380, color: 4,
         content: [
             '## WhatsApp - Study Order Intake (generado)',
             '',
             '**No editar a mano**: lo genera `scripts/n8n/generate-study-order-intake-workflow.mjs` a partir de `study-order-intake/intake-lib.mjs` (con pruebas).',
             '',
-            '**Entrada:** `intake_id`, `mode` (`extract` | `revalidate` | `compare`), `answers` (JSON).',
+            '**Entrada:** `intake_id`, `mode` (`extract` | `revalidate` | `compare` | `import`), `answers` (JSON).',
             '',
             '**extract:** descarga los originales de Drive → modelo de visión con salida estructurada (ids de servicio = enum del catálogo) → validador determinista → guarda en `whatsapp_order_intakes`.',
             '**revalidate:** no llama al modelo; revalida la extracción guardada con las respuestas del usuario.',
             '**compare:** la orden ya está creada y llegaron más archivos: los lee todos y los compara con la orden sin modificarla (`unchanged` o derivación); la lectura queda en `extraction_meta.late_files`.',
+            '**import:** orden subida desde Invoke (`channel = import`): lee y valida sin conversación; devuelve `order_payload` y `review_items` para el borrador (lo crea `Study Orders - Import`).',
             '',
             '**El modelo solo transcribe.** Quién es el paciente, si el estudio existe y si hay que derivar lo decide el validador.',
             '',

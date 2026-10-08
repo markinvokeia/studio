@@ -916,3 +916,88 @@ Para ubicar cada punto, `buildReviewItems` ahora guarda `section_code` (la secci
 **Puesta en marcha:** la misma de §21-22 (los flujos ya regenerados incluyen `section_code`).
 
 **Verificado:** typecheck, ESLint, 71 pruebas (una nueva para `section_code`), `resolveReviewTargets` con un catálogo de ejemplo (incluido un punto viejo sin sección y uno ya revisado, que no se marca), workflows sin conexiones colgadas. **No probado en el navegador:** necesita la migración 126 y una orden derivada real.
+
+## 24. Importar la orden desde Invoke (2026-10-08)
+
+Recepción sube las fotos o el PDF de una orden en papel desde **Órdenes → Importar orden** y la lee el mismo subflujo que las de WhatsApp. El resultado es siempre un **borrador** con lo dudoso como puntos a revisar bloqueantes; quien importó lo abre ("Revisar y completar"), corrige mirando el original y lo envía.
+
+**Un intake por importación.** La lectura se registra en `whatsapp_order_intakes` con `channel = 'import'` (sin teléfono, con `created_by`). Así los originales (`attachments` con `source_name = 'whatsapp_order_intake'`), el visor de archivos, la pestaña Original del detalle y `study_orders.source_intake_id` sirven sin cambios. La orden queda con `source = 'portal'` (no hay un valor de origen nuevo) y la pestaña Original dice "Importada desde Invoke" y quién la subió.
+
+**Subflujo, modo `import`** (`validateImport` en `intake-lib.mjs`): sin conversación. Lo que en WhatsApp sería una pregunta, un reenvío o una derivación pasa a ser un punto a revisar:
+
+| Situación | Punto a revisar (`code`) |
+| --- | --- |
+| Falla el modelo, sin archivos, no es una orden, ilegible | `read_failed` |
+| Falta el nombre, el documento o ningún estudio ubicado | `unreadable` |
+| Cédula con verificador inválido o documento corto | `invalid_document` |
+| El documento figura en más de un paciente | `patient_match` |
+| El paciente ya tiene una orden abierta con los mismos estudios | `duplicate` |
+| Lectura dudosa, fuera del catálogo, no encaja, falta el dorso, sin firma, orden antigua | los mismos que en WhatsApp (`buildReviewItems`) |
+
+El paciente se resuelve **solo por documento**: una coincidencia → se vincula; ninguna → queda para registrar; varias → `patient_match`. Los modos `extract`, `revalidate` y `compare` no cambian: el agente sigue igual. `Save Result` solo toca intakes del canal que corresponde al modo.
+
+**Endpoint** (`Study Orders - Import`, generado por `scripts/n8n/generate-study-order-import-workflow.mjs`):
+
+- `POST /study-orders/import` (multipart `file0`, `file1`, …; hasta 6 archivos JPG/PNG/WEBP/PDF de 10 MB). Abre el intake, guarda los originales con `Attachements CRUD` y responde **202** `{ intake_id }`. Después, sin el navegador esperando: subflujo en modo `import` → borrador con el SQL de `/study-orders/upsert` (sin doctor, `source_intake_id`) → puntos a revisar (`REVIEW_ITEMS_INSERT_SQL`, bloqueantes) → evento `created` → intake en `order_created` (o `failed` si no se pudo crear el borrador). Si el subflujo falla, el borrador se crea igual, vacío y con `read_failed`.
+- `GET /study-orders/import/status?intake_id=` → `{ status: processing | done | failed, order_id, order_number, items_total, review_pending }`. Una lectura con más de 10 minutos en curso se informa como `failed`.
+- Permisos: `STUDY_ORDERS_CREATE_FOR_DOCTOR` + `STUDY_ORDERS_VIEW_ALL` (lo valida el SQL; el botón se muestra con esos dos más `STUDY_ORDERS_CREATE`, solo en la bandeja de la clínica).
+
+**Pantalla:** el diálogo sube los archivos (bloqueado mientras sube), consulta el estado cada 3 s y, al terminar, muestra el número de borrador, los estudios leídos y los puntos a revisar. Se puede cerrar mientras lee: la orden aparece en Borradores.
+
+**Puesta en marcha:**
+
+1. Aplicar la migración **127** (`127_20261008_study-order-import.sql`). **Antes** de reimportar los flujos: el detalle y el subflujo leen `channel`.
+2. Reimportar `WhatsApp - Study Order Intake` (`docs/n8n-flows/`, ya con el modo `import`) y `study-orders-detail.json` (regenerado).
+3. Importar el nuevo `n8n-workflows/study-orders-import.json` y activarlo (usa los ids de `Attachements CRUD` y del subflujo de la instancia).
+4. Desplegar el frontend.
+
+**Verificado:** typecheck, ESLint, 78 pruebas (7 nuevas de `validateImport` y `buildImportOrderPayload`), workflows regenerados. **No probado en n8n ni en el navegador:** necesita la migración 127 y los flujos importados; el login de la preview pide una cuenta real.
+
+## 25. Dónde está cada dato en el original (2026-10-08)
+
+Quien revisa una orden (derivada o importada) tenía la lista de lo dudoso pero tenía que buscar cada dato en la foto. Ahora el asistente dice **dónde** leyó cada dato y el asistente de órdenes lleva ahí.
+
+### 25.1 Por qué así
+
+- **Siempre, no solo con confianza baja.** La confianza que declara el modelo está mal calibrada: un dato mal leído con 0.95 es el más difícil de encontrar. La ubicación cuesta pocos tokens de salida.
+- **Recuadro + zona + cita (no OCR, por ahora).** El modelo da un recuadro aproximado, la parte del formulario y lo que dice ahí. El recuadro de un modelo de visión general es impreciso, así que la pantalla agranda la zona y hace zoom, en vez de marcar un rectángulo exacto; si no hay recuadro, la zona y la cita alcanzan para encontrarlo. Si la medición (25.4) muestra que los recuadros no sirven, el paso siguiente es probar otro modelo (Gemini está entrenado para esto, pero el pedido está armado en el formato de OpenAI) o anclar la cita en un OCR con recuadros por palabra.
+
+### 25.2 Extracción `so-extraction-v4` / `so-intake-v4`
+
+- Cada dato lleva `source` (en listas) o `<campo>_source` (paciente, doctor, fecha): `{ file, page, box: { top, left, bottom, right } | null, zone, quote }`, coordenadas de 0 a 1000. Es **una sola definición** (`$defs.source`) referenciada desde cada dato.
+- `file` es un **enum con los `attachments.id`** de los originales que se mandaron: `Build Vision Request` pone antes de cada archivo el texto `ARCHIVO <id>`. Así la ubicación apunta al mismo original que muestra el frontend, sin tablas de correspondencia. Los ids mandados quedan en `extraction_meta.files`.
+- Piezas dentarias: una ubicación por sección (el odontograma), no por pieza.
+- `unreadable_fields` pasa a `[{ field, source }]`. Las extracciones v2/v3 guardadas se siguen leyendo (strings, sin ubicación).
+- `sourceOf` (intake-lib) normaliza: recuadro fuera de rango se recorta, al revés o incompleto se descarta (se conservan archivo, zona y cita).
+- `collectFieldConfidence` agrega `source` a cada campo (queda en `validation.confidence.fields`) y `buildReviewItems` / `validateImport` lo pasan a los puntos a revisar: lectura dudosa, estudio fuera del catálogo, dato ilegible, opción sin estudio, orden antigua, cédula inválida y paciente duplicado. Los puntos generales (motivo de derivación, falta el dorso, sin firma) no llevan.
+- `REVIEW_ITEMS_INSERT_SQL` guarda `source` en `study_orders.review_items` (jsonb: **no hace falta migración**).
+
+### 25.3 Pantalla
+
+- En el asistente de órdenes, cada punto con ubicación tiene **Ver en el original** (lista del paso y lista final) y la marca ámbar sobre el dato se puede tocar. Abre el panel de originales en ese archivo:
+  - **Imagen:** zoom a la zona (agrandada un 3 % por lado), resto oscurecido. Se puede seguir moviendo y haciendo zoom; tocar de nuevo el punto vuelve a centrarla.
+  - **PDF:** abre en la página (`#page=`); la zona no se marca.
+  - Arriba del visor: qué dato buscar, la zona y la cita. Sin recuadro, o sin archivo, lo dice.
+- La lista de puntos muestra "En el papel: zona · “cita”" aunque los originales estén cerrados.
+- Piezas: `review-locate.tsx` (contexto, sin pasar props por cada sección), `ZoomPanImage` (`highlight`), `OrderFilesPanel` (`focus`).
+
+### 25.4 Medirlo antes de confiar en los recuadros
+
+`eval-extraction.mjs` manda los archivos igual que el subflujo y ahora reporta:
+
+- datos con archivo y con recuadro (cobertura);
+- si el `.expected.json` trae `locations` (`{ "<campo>": { file, page, box } }`), cuántos quedaron **bien ubicados** (el centro del recuadro del modelo cae dentro del esperado);
+- `--overlay revision.html`: las imágenes con los recuadros dibujados, para mirarlo a ojo sin haber marcado nada. **Contiene las imágenes: no compartirlo.**
+
+### 25.5 Puesta en marcha
+
+1. Reimportar `WhatsApp - Study Order Intake` y `WhatsApp - Order Agent` (`docs/n8n-flows/`, nodos sincronizados: `Build Vision Request`, `Parse Extraction`, `Validate`, `Handoff: Save Review Items`, `Book: Save Review Items`) e `n8n-workflows/study-orders-import.json` (regenerado).
+2. Desplegar el frontend. El orden no importa: el frontend sin `source` no muestra el botón, y el viejo ignora el campo.
+3. Correr la medición con muestras reales (`--overlay`) y mirar tokens/latencia: el esquema v4 agrega una ubicación por dato.
+
+### 25.6 Riesgos a probar
+
+- **Orientación EXIF de fotos de celular.** El navegador gira la imagen según el EXIF; no está verificado que el proveedor del modelo lo haga. Si no, los recuadros de una foto girada quedan corridos. Probar con una foto tomada de costado.
+- **Esquema estricto con `$defs` y `anyOf`.** OpenAI los admite en modo estricto, pero no se probó contra el modelo configurado (`whatsapp_orders_vision_model`).
+
+**Verificado:** 74 pruebas de intake-lib (7 nuevas) + 11 de slots, typecheck, ESLint de lo tocado, Code nodes de los tres workflows compilan. **No probado:** la llamada real al modelo con v4, ni la pantalla en el navegador (no hay órdenes con ubicación en DEV hasta importar el flujo, y el login de la preview pide una cuenta real).

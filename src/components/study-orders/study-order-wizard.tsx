@@ -20,6 +20,7 @@ import { UserSelector } from '@/components/ui/user-selector';
 import { OrderFilesPanel } from './order-files-panel';
 import type { OrderFile } from './order-file-gallery';
 import { ReviewFlag } from './review-flag';
+import { ReviewLocateProvider, toOriginalFocus, type OriginalFocus } from './review-locate';
 import { PATIENT_STEP, resolveReviewTargets } from './review-targets';
 import { StudyOrderReviewList, countPendingBlocking } from './study-order-review-list';
 import { StudyOrderSection } from './study-order-section';
@@ -183,6 +184,8 @@ export function StudyOrderWizard({
     const [sourceIntakeId, setSourceIntakeId] = React.useState('');
     const [originals, setOriginals] = React.useState<OriginalsSource | null>(null);
     const [showOriginals, setShowOriginals] = React.useState(false);
+    /** Dato que se está buscando en los originales ("Ver en el original" de un punto a revisar). */
+    const [originalFocus, setOriginalFocus] = React.useState<OriginalFocus | null>(null);
     /**
      * Puntos que el agente de WhatsApp no tuvo claros (borrador creado al derivar). Se marcan desde
      * acá mismo, mirando los originales; los bloqueantes pendientes impiden enviar.
@@ -204,7 +207,7 @@ export function StudyOrderWizard({
         setSelection({ ...EMPTY_SELECTION, services: new Map() });
         setLoadedNumber(''); setError(null); setStepIndex(0);
         setDoctorId(''); setDoctorName(''); setWithoutDoctor(false); setReferringDoctorName('');
-        setSourceIntakeId(''); setOriginals(null); setShowOriginals(false);
+        setSourceIntakeId(''); setOriginals(null); setShowOriginals(false); setOriginalFocus(null);
         setReviewItems([]); setReplacesOrderNumber(null);
     }, []);
 
@@ -287,6 +290,13 @@ export function StudyOrderWizard({
     }, [orderId]);
 
     const originalFiles = React.useMemo(() => toOrderFiles(originals?.files ?? []), [originals]);
+
+    /** Abre los originales en el lugar donde el asistente leyó el dato. Solo si hay originales. */
+    const locateOriginal = React.useCallback((item: StudyOrderReviewItem) => {
+        setOriginalFocus(toOriginalFocus(item, Date.now()));
+        setShowOriginals(true);
+    }, []);
+    const clearOriginalFocus = React.useCallback(() => setOriginalFocus(null), []);
     const originalsIntakeId = originals?.intakeId ?? '';
     const loadOriginal = React.useCallback(
         (id: string, signal: AbortSignal) => getWhatsappIntakeFile(originalsIntakeId, id, signal),
@@ -568,6 +578,7 @@ export function StudyOrderWizard({
         : t('form.title');
 
     return (
+        <ReviewLocateProvider value={originals ? locateOriginal : null}>
         <ResizableSheet
             open={open}
             onOpenChange={onOpenChange}
@@ -993,7 +1004,13 @@ export function StudyOrderWizard({
                             'lg:static lg:z-auto lg:w-[420px] lg:max-w-none lg:shadow-none xl:w-[500px]',
                         )}
                     >
-                        <OrderFilesPanel files={originalFiles} loadFile={loadOriginal} className="h-full" />
+                        <OrderFilesPanel
+                            files={originalFiles}
+                            loadFile={loadOriginal}
+                            focus={originalFocus}
+                            onClearFocus={clearOriginalFocus}
+                            className="h-full"
+                        />
                     </aside>
                 )}
 
@@ -1065,6 +1082,7 @@ export function StudyOrderWizard({
                 </AlertDialogContent>
             </AlertDialog>
         </ResizableSheet>
+        </ReviewLocateProvider>
     );
 }
 
