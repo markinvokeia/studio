@@ -1,0 +1,296 @@
+{
+  "name": "Study Orders - Review Item Update",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## POST /study-orders/review-items/update\n\nMarca un punto a revisar de la orden (lo que el agente de WhatsApp no tuvo claro al leerla).\n\n**Body:** `{ \"order_id\": \"uuid\", \"item_id\": \"a1b2c3d4e5f6\", \"status\": \"confirmed | corrected | dismissed | pending\", \"note\": \"opcional\" }`\n\nMismo alcance que editar la orden (la propia o, con VIEW_ALL, cualquiera); una orden anulada no se toca. Queda en la línea de tiempo (`review_updated`). Devuelve `pending_blocking`: cuántos bloqueantes quedan.\n\n**409** si el punto no existe, no es de esa orden o no hay permiso.",
+        "height": 420,
+        "width": 460,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -180
+      ],
+      "id": "review-update-doc",
+      "name": "Contrato"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-orders/review-items/update",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "review-update-wh",
+      "name": "Webhook",
+      "webhookId": "study-orders-review-update",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\nconst b = $json.body || {};\nconst orderId = (b.order_id || '').toString().trim();\nconst itemId = (b.item_id || '').toString().trim();\nconst status = (b.status || '').toString().trim();\nif (!orderId || !/^[0-9a-f]{12}$/.test(itemId)) return [{ json: { __error: true, __code: 400, __message: 'order_id e item_id son requeridos' } }];\nif (!['pending', 'confirmed', 'corrected', 'dismissed'].includes(status)) {\n  return [{ json: { __error: true, __code: 400, __message: 'status debe ser confirmed, corrected, dismissed o pending' } }];\n}\nconst note = (b.note || '').toString().trim().slice(0, 500);\nreturn [{ json: { user_id: String(userId), payload: JSON.stringify({ order_id: orderId, item_id: itemId, status, note }) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "review-update-val",
+      "name": "Validar Datos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "review-update-cond",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "review-update-if",
+      "name": "¿Hubo error?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 userId (token)  $2 { order_id, item_id, status, note }\n-- Mismo alcance que editar la orden: la propia o, con VIEW_ALL, cualquiera. Una orden anulada no se toca.\nWITH \nperms AS (\n    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL')  AS can_view_all,\n           bool_or(p.code = 'STUDY_ORDERS_CREATE_FOR_DOCTOR') AS can_create_for_doctor,\n           bool_or(p.code = 'STUDY_ORDERS_CANCEL')    AS can_cancel,\n           bool_or(p.code = 'STUDY_ORDERS_ACKNOWLEDGE') AS can_acknowledge,\n           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code LIKE 'STUDY_ORDERS_%'\n),\np AS (\n    SELECT $2::jsonb AS b,\n           ($2::jsonb ->> 'status') = 'pending' AS reopen,\n           (SELECT u.name FROM public.users u WHERE u.id = $1::uuid) AS reviewer_name\n),\nupd AS (\n    -- El arreglo se rearma desde la fila que se está actualizando: si otra persona marcó otro punto\n    -- al mismo tiempo, su cambio no se pierde.\n    UPDATE public.study_orders so\n       SET review_items = (\n             SELECT jsonb_agg(CASE WHEN x ->> 'id' = p.b ->> 'item_id'\n                                   THEN x || jsonb_build_object(\n                                          'status', p.b ->> 'status',\n                                          'resolution_note', NULLIF(trim(coalesce(p.b ->> 'note', '')), ''),\n                                          'reviewed_by', CASE WHEN p.reopen THEN NULL ELSE $1::text END,\n                                          'reviewed_by_name', CASE WHEN p.reopen THEN NULL ELSE p.reviewer_name END,\n                                          'reviewed_at', CASE WHEN p.reopen THEN NULL\n                                                              ELSE replace(to_char((now() AT TIME ZONE 'America/Montevideo'), 'YYYY-MM-DD HH24:MI:SS'), ' ', 'T') END)\n                                   ELSE x END\n                              ORDER BY t.ord)\n               FROM jsonb_array_elements(so.review_items) WITH ORDINALITY AS t(x, ord))\n      FROM p\n     WHERE so.id = (p.b ->> 'order_id')::uuid\n       AND so.status <> 'cancelled'\n       AND (p.b ->> 'status') IN ('pending', 'confirmed', 'corrected', 'dismissed')\n       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))\n       AND EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(so.review_items, '[]'::jsonb)) y\n                    WHERE y ->> 'id' = p.b ->> 'item_id')\n    RETURNING so.id, so.review_items\n),\nitem AS (\n    SELECT u.id AS order_id, x AS it\n      FROM upd u, p, jsonb_array_elements(u.review_items) x\n     WHERE x ->> 'id' = p.b ->> 'item_id'\n),\nev AS (\n    INSERT INTO public.study_order_events (study_order_id, event_type, actor_id, actor_kind, metadata)\n    SELECT i.order_id, 'review_updated', $1::uuid, 'user',\n           jsonb_build_object('item_id', i.it ->> 'id', 'label', i.it ->> 'label', 'value', i.it ->> 'value_read',\n                              'status', i.it ->> 'status', 'note', i.it ->> 'resolution_note')\n      FROM item i\n    RETURNING id\n)\nSELECT i.it ->> 'id' AS id, i.it ->> 'status' AS status, i.it ->> 'resolution_note' AS resolution_note,\n       (SELECT count(*) FROM upd u, jsonb_array_elements(u.review_items) y\n         WHERE coalesce((y ->> 'blocking')::boolean, false) AND y ->> 'status' = 'pending') AS pending_blocking\n  FROM item i;",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id, $json.payload ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        660,
+        120
+      ],
+      "id": "review-update-sql",
+      "name": "Consulta",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma el sobre { code, message, data, meta }. Un resultado vacío en una\n// operación de escritura significa que el WHERE de guarda no dejó pasar:\n// es un 409/404, no un 500.\n//\n// El filtro descarta el item vacio que emite el nodo de Postgres cuando la\n// consulta no devuelve filas (lleva alwaysOutputData para que el flujo llegue a\n// responder). Sin el, ese {} se colaria como si fuera una fila real: un detalle\n// de orden vacio en vez de un 404, o un listado con un elemento fantasma.\nconst rows = $input.all()\n  .map((i) => i.json)\n  .filter((r) => r && typeof r === 'object' && Object.keys(r).length > 0);\n\nif (!rows.length || !rows[0].id) {\n  return [{ json: { __error: true, __code: 409,\n    __message: 'No se pudo marcar el punto: no existe, no es de esta orden o no tenés permiso' } }];\n}\nreturn [{ json: { __data: rows[0], __message: 'Punto actualizado' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        120
+      ],
+      "id": "review-update-fmt",
+      "name": "Formatear Respuesta"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "review-update-cond2",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        120
+      ],
+      "id": "review-update-if2",
+      "name": "¿Error de negocio?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 200, message: $json.__message || \"OK\", data: $json.__data, meta: $json.__meta } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        220
+      ],
+      "id": "review-update-ok",
+      "name": "Responder OK"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: $json.__code || 400, message: $json.__message || \"Error\", data: null } }}",
+        "options": {
+          "responseCode": "={{ $json.__code || 400 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        -60
+      ],
+      "id": "review-update-err",
+      "name": "Responder Error"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos": {
+      "main": [
+        [
+          {
+            "node": "¿Hubo error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hubo error?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "¿Error de negocio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Error de negocio?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    "study-orders",
+    "clinic"
+  ]
+}

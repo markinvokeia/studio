@@ -272,7 +272,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Traduce la respuesta del usuario a lo que entiende el validador. Las preguntas se identifican por\n// su número; el modelo nunca maneja ids de servicio.\nconst inp = $('Answer: Parse').first().json;\nconst row = $input.first().json || {};\nif (!row.id) return [{ json: { __fail: { error_code: 'no_intake', message: 'No hay una orden en curso.' } } }];\nconst q = ((row.validation && row.validation.questions) || [])[inp.n - 1];\nif (!q) return [{ json: { __fail: { error_code: 'bad_question', message: 'Esa pregunta no existe: llamá a get_order_intake.' } } }];\nconst a = inp.answer;\n// Sin \b: en JavaScript la \"í\" de \"sí\" no es carácter de palabra y no marcaría el límite.\nconst yes = /^\\s*(s[ií]|sip|claro|correcto|exacto|as[ií] es|ok|dale|confirmo|esta bien|está bien)(?![a-záéíóúñ])/i.test(a);\nconst no = /^\\s*(no|nop|incorrecto|no es|no est[aá])(?![a-záéíóúñ])/i.test(a);\nconst answers = { confirmed: [], removed: [], overrides: {} };\nswitch (q.code) {\n  case 'confirm_line':\n    if (yes) answers.confirmed.push(q.external_id);\n    else if (no) answers.removed.push(q.external_id);\n    else return [{ json: { __fail: { error_code: 'need_yes_no', message: 'Respondé sí o no: ¿ese estudio está en la orden?' } } }];\n    break;\n  case 'missing_patient_document':\n  case 'invalid_patient_document':\n    answers.overrides.patient_document = a;\n    break;\n  case 'missing_patient_name':\n    answers.overrides.patient_name = a;\n    break;\n  case 'missing_other_side':\n    // Solo el \"no\" se responde con texto: si la orden tiene otra cara, la respuesta es la foto.\n    if (no) answers.overrides.no_other_side = true;\n    else return [{ json: { __fail: { error_code: 'send_other_side', message: 'Si la orden tiene otra cara u hoja, pedile que mande la foto por este chat. Si dice que no tiene, llamá de nuevo con answer \"no\".' } } }];\n    break;\n  case 'confirm_patient':\n    if (!yes) return [{ json: { __fail: { error_code: 'needs_human', message: 'El usuario no confirma sus datos: derivá a recepción con handoff_order.' } } }];\n    break;\n  default:\n    return [{ json: { __fail: { error_code: 'not_answerable', message: 'Esa pregunta se resuelve enviando de nuevo la foto o el PDF de la orden.' } } }];\n}\nreturn [{ json: { intake_id: row.id, phone: inp.phone, answers: JSON.stringify(answers) } }];"
+        "jsCode": "// Traduce la respuesta del usuario a lo que entiende el validador. Las preguntas se identifican por\n// su número; el modelo nunca maneja ids de servicio.\nconst inp = $('Answer: Parse').first().json;\nconst row = $input.first().json || {};\nif (!row.id) return [{ json: { __fail: { error_code: 'no_intake', message: 'No hay una orden en curso.' } } }];\nconst q = ((row.validation && row.validation.questions) || [])[inp.n - 1];\nif (!q) return [{ json: { __fail: { error_code: 'bad_question', message: 'Esa pregunta no existe: llamá a get_order_intake.' } } }];\nconst a = inp.answer;\n// Sin \b: en JavaScript la \"í\" de \"sí\" no es carácter de palabra y no marcaría el límite.\nconst yes = /^\\s*(s[ií]|sip|claro|correcto|exacto|as[ií] es|ok|dale|confirmo|esta bien|está bien)(?![a-záéíóúñ])/i.test(a);\nconst no = /^\\s*(no|nop|incorrecto|no es|no est[aá])(?![a-záéíóúñ])/i.test(a);\n// \"Ya está\", \"esas son\", \"no tengo otra\", \"ya te la mandé\": no tiene nada más para mandar.\nconst noMore = /(^|[^a-záéíóúñ])(no (la |lo |las |los )?(tengo|tiene|hay)|ya est[aá]|es todo|esas? son|son esas?|ya (te )?(la |las |lo |los )?(mand[eé]|envi[eé])|ya tiene todo|est[aá] complet[ao]|complet[ao]|s[oó]lo (esa|esas|eso|una)|una sola|no se puede|no puedo|mejor no)(?![a-záéíóúñ])/i.test(a);\n// \"Ahora te la mando\", \"ahí va\": todavía va a mandar el archivo.\nconst willSend = /((te )?(la|las|lo|los) )?(mando|env[ií]o|paso|saco)(?![a-záéíóúñ])|ah[ií] va|un momento|esper[aá]/i.test(a) && !noMore;\nconst answers = { confirmed: [], removed: [], overrides: {} };\nswitch (q.code) {\n  case 'confirm_line':\n    if (yes) answers.confirmed.push(q.external_id);\n    else if (no) answers.removed.push(q.external_id);\n    else return [{ json: { __fail: { error_code: 'need_yes_no', message: 'Respondé sí o no: ¿ese estudio está en la orden?' } } }];\n    break;\n  case 'missing_patient_document':\n  case 'invalid_patient_document':\n    answers.overrides.patient_document = a;\n    break;\n  case 'missing_patient_name':\n    answers.overrides.patient_name = a;\n    break;\n  case 'missing_other_side':\n    // Si la orden tiene otra cara, la respuesta es la foto. Solo se espera la foto cuando dice que\n    // la va a mandar; cualquier otra respuesta en texto (\"no\", \"ya está\", \"esas son\", algo que no se\n    // entiende) cuenta como que no hay otra cara y se sigue con la advertencia: nunca se repregunta.\n    if ((yes || willSend) && !no && !noMore) {\n      return [{ json: { __fail: { error_code: 'send_other_side', message: 'Pedile que mande la otra cara por este chat como foto o PDF. Si después dice que no tiene, llamá de nuevo con su respuesta.' } } }];\n    }\n    answers.overrides.no_other_side = true;\n    break;\n  case 'resend':\n    // Se le pidió reenviar la orden y contestó con texto. Si dice que la va a mandar, se espera la\n    // foto. Si dice que eso es todo lo que tiene (\"ya está\", \"esas son\", \"no tengo otra\"), no hay\n    // nada más que pedirle: se revalida con no_better_file y el validador deriva a una persona.\n    if ((yes || willSend) && !no && !noMore) {\n      return [{ json: { __fail: { error_code: 'send_file', message: 'Pedile que mande la foto o el PDF por este chat. Si después dice que no tiene otra, llamá de nuevo con su respuesta: no le vuelvas a pedir la foto.' } } }];\n    }\n    answers.overrides.no_better_file = true;\n    break;\n  case 'confirm_patient':\n    if (!yes) return [{ json: { __fail: { error_code: 'needs_human', message: 'El usuario no confirma sus datos: derivá a recepción con handoff_order.' } } }];\n    break;\n  default:\n    return [{ json: { __fail: { error_code: 'not_answerable', message: 'Esa pregunta se resuelve enviando de nuevo la foto o el PDF de la orden.' } } }];\n}\nreturn [{ json: { intake_id: row.id, phone: inp.phone, answers: JSON.stringify(answers) } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1370,7 +1370,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "\n-- $1 userId (token)  $2 id\n-- Sella el envío. El WHERE es el candado: una orden que ya salió de borrador,\n-- o que no es del sujeto, no actualiza nada y el flujo responde 409.\n--\n-- Orden creada por recepción desde una DERIVACIÓN de WhatsApp (source_intake_id apunta a un\n-- intake en handed_off sin resolver): enviarla resuelve la derivación y la vincula a esta\n-- orden. Si el intake ya tenía una orden (la que había creado el agente, p. ej. \"la orden\n-- cambió\" porque llegó el dorso), esta la REEMPLAZA: la anterior se anula y sus citas\n-- vigentes pasan a la nueva, así no se pierde lo agendado. Todo en la misma sentencia.\n-- El agente también envía con source_intake_id, pero su intake nunca está en handed_off.\nWITH \nperms AS (\n    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL')  AS can_view_all,\n           bool_or(p.code = 'STUDY_ORDERS_CREATE_FOR_DOCTOR') AS can_create_for_doctor,\n           bool_or(p.code = 'STUDY_ORDERS_CANCEL')    AS can_cancel,\n           bool_or(p.code = 'STUDY_ORDERS_ACKNOWLEDGE') AS can_acknowledge,\n           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code LIKE 'STUDY_ORDERS_%'\n),\nupdated AS (\n    UPDATE public.study_orders so\n       SET status = 'submitted', submitted_at = (now() AT TIME ZONE 'America/Montevideo')\n     WHERE so.id = $2::uuid\n       AND so.status = 'draft'\n       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))\n       AND EXISTS (SELECT 1 FROM public.study_order_items i\n                    WHERE i.study_order_id = so.id AND i.is_cancelled = false)\n    RETURNING so.id, so.order_number, so.doctor_id, so.patient_name, so.submitted_at, so.source_intake_id\n),\nintake AS (\n    SELECT wi.id, wi.study_order_id AS old_order_id, u.id AS new_order_id, u.order_number\n      FROM updated u\n      JOIN public.whatsapp_order_intakes wi ON wi.id = u.source_intake_id\n     WHERE wi.status = 'handed_off'\n       AND wi.resolved_at IS NULL\n),\nresolved_intake AS (\n    UPDATE public.whatsapp_order_intakes wi\n       SET resolved_at = (now() AT TIME ZONE 'America/Montevideo'),\n           resolved_by = $1::uuid,\n           study_order_id = i.new_order_id,\n           resolution_note = coalesce(wi.resolution_note, 'Orden ' || i.order_number || ' creada desde la derivación')\n      FROM intake i\n     WHERE wi.id = i.id\n    RETURNING wi.id\n),\nreplaced AS (\n    UPDATE public.study_orders so\n       SET status = 'cancelled', cancelled_at = (now() AT TIME ZONE 'America/Montevideo'),\n           cancellation_reason = 'Reemplazada por la orden ' || i.order_number || ' (derivación de WhatsApp)'\n      FROM intake i\n     WHERE so.id = i.old_order_id\n       AND so.id <> i.new_order_id\n       AND so.status IN ('draft', 'submitted')\n       -- Anular la orden del agente exige el mismo permiso que anularla desde la bandeja.\n       AND coalesce((SELECT can_cancel FROM perms), false)\n    RETURNING so.id, i.new_order_id, i.order_number AS new_order_number\n),\nmoved AS (\n    UPDATE public.appointments a\n       SET study_order_id = r.new_order_id, updated_at = (now() AT TIME ZONE 'America/Montevideo')\n      FROM replaced r\n     WHERE a.study_order_id = r.id\n       AND a.status NOT IN ('canceled', 'cancelled', 'deleted')\n    RETURNING a.id\n),\nreplaced_event AS (\n    -- Bitácora de la orden anulada: queda dicho por cuál se reemplazó y cuántas citas se movieron.\n    INSERT INTO public.study_order_events (study_order_id, event_type, actor_id, actor_kind, metadata)\n    SELECT r.id, 'cancelled', $1::uuid, 'user',\n           jsonb_build_object('reason', 'replaced', 'replaced_by_order_id', r.new_order_id::text,\n                              'replaced_by_order_number', r.new_order_number,\n                              'moved_appointments', (SELECT count(*) FROM moved))\n      FROM replaced r\n    RETURNING id\n)\nSELECT u.id::text, u.order_number, u.doctor_id::text, u.patient_name, u.submitted_at,\n       d.name AS doctor_name,\n       (SELECT count(*) FROM public.study_order_items i WHERE i.study_order_id = u.id) AS items_total,\n       (SELECT count(*) FROM resolved_intake) > 0 AS resolved_handoff,\n       (SELECT min(o.order_number) FROM public.study_orders o WHERE o.id IN (SELECT id FROM replaced)) AS replaced_order_number,\n       (SELECT count(*) FROM moved) AS moved_appointments\n  FROM updated u LEFT JOIN public.users d ON d.id = u.doctor_id;",
+        "query": "\n-- $1 userId (token)  $2 id\n-- Sella el envío. El WHERE es el candado: una orden que ya salió de borrador,\n-- o que no es del sujeto, no actualiza nada y el flujo responde 409.\n--\n-- Orden creada por recepción desde una DERIVACIÓN de WhatsApp (source_intake_id apunta a un\n-- intake en handed_off sin resolver): enviarla resuelve la derivación y la vincula a esta\n-- orden. Si el intake ya tenía una orden (la que había creado el agente, p. ej. \"la orden\n-- cambió\" porque llegó el dorso), esta la REEMPLAZA: la anterior se anula y sus citas\n-- vigentes pasan a la nueva, así no se pierde lo agendado. Todo en la misma sentencia.\n-- El agente también envía con source_intake_id, pero su intake nunca está en handed_off.\n--\n-- Puntos a revisar BLOQUEANTES (el borrador que se crea al derivar): mientras quede alguno\n-- pendiente la orden no sale. Siempre devuelve una fila: con id nulo y pending_review > 0, el\n-- flujo responde 409 diciendo cuántos faltan.\nWITH \nperms AS (\n    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL')  AS can_view_all,\n           bool_or(p.code = 'STUDY_ORDERS_CREATE_FOR_DOCTOR') AS can_create_for_doctor,\n           bool_or(p.code = 'STUDY_ORDERS_CANCEL')    AS can_cancel,\n           bool_or(p.code = 'STUDY_ORDERS_ACKNOWLEDGE') AS can_acknowledge,\n           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code LIKE 'STUDY_ORDERS_%'\n),\npending_review AS (\n    SELECT 1 FROM public.study_orders so2, jsonb_array_elements(coalesce(so2.review_items, '[]'::jsonb)) r\n     WHERE so2.id = $2::uuid\n       AND coalesce((r ->> 'blocking')::boolean, false)\n       AND r ->> 'status' = 'pending'\n),\nupdated AS (\n    UPDATE public.study_orders so\n       SET status = 'submitted', submitted_at = (now() AT TIME ZONE 'America/Montevideo')\n     WHERE so.id = $2::uuid\n       AND so.status = 'draft'\n       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))\n       AND EXISTS (SELECT 1 FROM public.study_order_items i\n                    WHERE i.study_order_id = so.id AND i.is_cancelled = false)\n       AND NOT EXISTS (SELECT 1 FROM pending_review)\n    RETURNING so.id, so.order_number, so.doctor_id, so.patient_name, so.submitted_at, so.source_intake_id\n),\nintake AS (\n    SELECT wi.id, wi.study_order_id AS old_order_id, u.id AS new_order_id, u.order_number\n      FROM updated u\n      JOIN public.whatsapp_order_intakes wi ON wi.id = u.source_intake_id\n     WHERE wi.status = 'handed_off'\n       AND wi.resolved_at IS NULL\n),\nresolved_intake AS (\n    UPDATE public.whatsapp_order_intakes wi\n       SET resolved_at = (now() AT TIME ZONE 'America/Montevideo'),\n           resolved_by = $1::uuid,\n           study_order_id = i.new_order_id,\n           resolution_note = coalesce(wi.resolution_note, 'Orden ' || i.order_number || ' creada desde la derivación')\n      FROM intake i\n     WHERE wi.id = i.id\n    RETURNING wi.id\n),\nreplaced AS (\n    UPDATE public.study_orders so\n       SET status = 'cancelled', cancelled_at = (now() AT TIME ZONE 'America/Montevideo'),\n           cancellation_reason = 'Reemplazada por la orden ' || i.order_number || ' (derivación de WhatsApp)'\n      FROM intake i\n     WHERE so.id = i.old_order_id\n       AND so.id <> i.new_order_id\n       AND so.status IN ('draft', 'submitted')\n       -- Anular la orden del agente exige el mismo permiso que anularla desde la bandeja.\n       AND coalesce((SELECT can_cancel FROM perms), false)\n    RETURNING so.id, i.new_order_id, i.order_number AS new_order_number\n),\nmoved AS (\n    UPDATE public.appointments a\n       SET study_order_id = r.new_order_id, updated_at = (now() AT TIME ZONE 'America/Montevideo')\n      FROM replaced r\n     WHERE a.study_order_id = r.id\n       AND a.status NOT IN ('canceled', 'cancelled', 'deleted')\n    RETURNING a.id\n),\nreplaced_event AS (\n    -- Bitácora de la orden anulada: queda dicho por cuál se reemplazó y cuántas citas se movieron.\n    INSERT INTO public.study_order_events (study_order_id, event_type, actor_id, actor_kind, metadata)\n    SELECT r.id, 'cancelled', $1::uuid, 'user',\n           jsonb_build_object('reason', 'replaced', 'replaced_by_order_id', r.new_order_id::text,\n                              'replaced_by_order_number', r.new_order_number,\n                              'moved_appointments', (SELECT count(*) FROM moved))\n      FROM replaced r\n    RETURNING id\n)\nSELECT u.id::text, u.order_number, u.doctor_id::text, u.patient_name, u.submitted_at,\n       d.name AS doctor_name,\n       (SELECT count(*) FROM public.study_order_items i WHERE i.study_order_id = u.id) AS items_total,\n       (SELECT count(*) FROM resolved_intake) > 0 AS resolved_handoff,\n       (SELECT min(o.order_number) FROM public.study_orders o WHERE o.id IN (SELECT id FROM replaced)) AS replaced_order_number,\n       (SELECT count(*) FROM moved) AS moved_appointments,\n       (SELECT count(*) FROM pending_review) AS pending_review\n  FROM (SELECT 1) one\n  LEFT JOIN updated u ON true\n  LEFT JOIN public.users d ON d.id = u.doctor_id;",
         "options": {
           "queryReplacement": "={{ [ $json.agent_user_id, $json.new_order_id ] }}"
         }
@@ -1567,6 +1567,31 @@
     {
       "parameters": {
         "operation": "executeQuery",
+        "query": "\n-- $1 id de la orden  $2 puntos como JSON ([{ code, field, label, value, confidence, detail }])\n-- $3 bloqueantes ('true' / 'false').\nWITH incoming AS (\n    SELECT DISTINCT ON (item ->> 'id') item, ord\n      FROM (\n        SELECT jsonb_build_object(\n                 'id', substr(md5(coalesce(e ->> 'code', '') || '|' || coalesce(e ->> 'field', '')), 1, 12),\n                 'code', left(e ->> 'code', 40),\n                 'field', left(coalesce(e ->> 'field', ''), 160),\n                 'label', coalesce(NULLIF(e ->> 'label', ''), e ->> 'code'),\n                 'value_read', e ->> 'value',\n                 'confidence', CASE WHEN jsonb_typeof(e -> 'confidence') = 'number'\n                                    THEN round((e ->> 'confidence')::numeric, 3) END,\n                 'detail', e ->> 'detail',\n                 -- Sección del formulario donde está el dato: el asistente muestra la advertencia en ese paso.\n                 'section_code', NULLIF(e ->> 'section_code', ''),\n                 'blocking', $3::boolean,\n                 'status', 'pending',\n                 'created_at', replace(to_char((now() AT TIME ZONE 'America/Montevideo'), 'YYYY-MM-DD HH24:MI:SS'), ' ', 'T')) AS item,\n               t.ord\n          FROM jsonb_array_elements(coalesce(NULLIF($2::text, '')::jsonb, '[]'::jsonb)) WITH ORDINALITY AS t(e, ord)\n         WHERE coalesce(e ->> 'code', '') <> ''\n      ) x\n     ORDER BY item ->> 'id', ord\n),\nupd AS (\n    -- Se agrega sobre el valor de la fila al momento de actualizarla (no sobre una lectura previa):\n    -- dos altas simultáneas no se pisan.\n    UPDATE public.study_orders so\n       SET review_items = coalesce(so.review_items, '[]'::jsonb) || coalesce((\n             SELECT jsonb_agg(i.item ORDER BY i.ord)\n               FROM incoming i\n              WHERE NOT EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(so.review_items, '[]'::jsonb)) x\n                                 WHERE x ->> 'id' = i.item ->> 'id')), '[]'::jsonb)\n     WHERE so.id = $1::uuid\n    RETURNING so.order_number, jsonb_array_length(so.review_items) AS total\n)\nSELECT order_number, total FROM upd;",
+        "options": {
+          "queryReplacement": "={{ [ $('Book: Check Submit').first().json.new_order_id, JSON.stringify((($('Book: Load').first().json.validation) || {}).review_items || []), 'false' ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        4660,
+        1680
+      ],
+      "id": "oa-71",
+      "name": "Book: Save Review Items",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
         "query": "UPDATE whatsapp_order_intakes\n   SET study_order_id = $2::uuid, patient_id = $3::uuid, status = 'order_created', chosen_sede_id = $4::int\n WHERE id = $1::uuid\nRETURNING study_order_id::text AS study_order_id,\n          (SELECT order_number FROM study_orders WHERE id = $2::uuid) AS order_number;",
         "options": {
           "queryReplacement": "={{ [ $json.intake_id, $json.new_order_id, $json.patient_id, $json.sede ? $json.sede.id : null ] }}"
@@ -1578,7 +1603,7 @@
         4660,
         1680
       ],
-      "id": "oa-71",
+      "id": "oa-72",
       "name": "Book: Save Order",
       "credentials": {
         "postgres": {
@@ -1598,7 +1623,7 @@
         4920,
         1680
       ],
-      "id": "oa-72",
+      "id": "oa-73",
       "name": "Book: Order Ready"
     },
     {
@@ -1615,7 +1640,7 @@
         5180,
         1680
       ],
-      "id": "oa-73",
+      "id": "oa-74",
       "name": "Book: Recheck Slot",
       "credentials": {
         "postgres": {
@@ -1635,7 +1660,7 @@
         5440,
         1680
       ],
-      "id": "oa-74",
+      "id": "oa-75",
       "name": "Book: Check Slot"
     },
     {
@@ -1669,7 +1694,7 @@
         5700,
         1680
       ],
-      "id": "oa-75",
+      "id": "oa-76",
       "name": "Book: Slot Free?"
     },
     {
@@ -1682,7 +1707,7 @@
         5960,
         1680
       ],
-      "id": "oa-76",
+      "id": "oa-77",
       "name": "Book: Make Token"
     },
     {
@@ -1699,7 +1724,7 @@
         6220,
         1680
       ],
-      "id": "oa-77",
+      "id": "oa-78",
       "name": "Book: Booking Token",
       "credentials": {
         "postgres": {
@@ -1720,7 +1745,7 @@
         6480,
         1680
       ],
-      "id": "oa-78",
+      "id": "oa-79",
       "name": "Book: Check Token"
     },
     {
@@ -1754,7 +1779,7 @@
         6740,
         1680
       ],
-      "id": "oa-79",
+      "id": "oa-80",
       "name": "Book: Token OK?"
     },
     {
@@ -1771,7 +1796,7 @@
         7000,
         1680
       ],
-      "id": "oa-80",
+      "id": "oa-81",
       "name": "Book: Public Book",
       "credentials": {
         "postgres": {
@@ -1792,7 +1817,7 @@
         7260,
         1680
       ],
-      "id": "oa-81",
+      "id": "oa-82",
       "name": "Book: Check Booking"
     },
     {
@@ -1826,7 +1851,7 @@
         7520,
         1680
       ],
-      "id": "oa-82",
+      "id": "oa-83",
       "name": "Book: Booked OK?"
     },
     {
@@ -1839,7 +1864,7 @@
         7780,
         1500
       ],
-      "id": "oa-83",
+      "id": "oa-84",
       "name": "Book: Booking Events"
     },
     {
@@ -1856,7 +1881,7 @@
         8040,
         1400
       ],
-      "id": "oa-84",
+      "id": "oa-85",
       "name": "Book: Log Booking",
       "credentials": {
         "postgres": {
@@ -1880,7 +1905,7 @@
         8040,
         1500
       ],
-      "id": "oa-85",
+      "id": "oa-86",
       "name": "Book: Notify Booking",
       "credentials": {
         "postgres": {
@@ -1921,7 +1946,7 @@
         8300,
         1500
       ],
-      "id": "oa-86",
+      "id": "oa-87",
       "name": "Book: Booking Recipient?"
     },
     {
@@ -1949,7 +1974,7 @@
         8560,
         1500
       ],
-      "id": "oa-87",
+      "id": "oa-88",
       "name": "Book: Push Booking",
       "onError": "continueRegularOutput"
     },
@@ -1967,7 +1992,7 @@
         7780,
         1680
       ],
-      "id": "oa-88",
+      "id": "oa-89",
       "name": "Book: Save Booking",
       "credentials": {
         "postgres": {
@@ -1987,7 +2012,7 @@
         8040,
         1680
       ],
-      "id": "oa-89",
+      "id": "oa-90",
       "name": "Book: Format"
     },
     {
@@ -2004,7 +2029,7 @@
         8300,
         1680
       ],
-      "id": "oa-90",
+      "id": "oa-91",
       "name": "Book: Respond"
     },
     {
@@ -2038,7 +2063,7 @@
         1800,
         1940
       ],
-      "id": "oa-91",
+      "id": "oa-92",
       "name": "Book: Count Attempt?"
     },
     {
@@ -2055,7 +2080,7 @@
         2060,
         1940
       ],
-      "id": "oa-92",
+      "id": "oa-93",
       "name": "Book: Bump Attempts",
       "credentials": {
         "postgres": {
@@ -2075,7 +2100,7 @@
         2320,
         1940
       ],
-      "id": "oa-93",
+      "id": "oa-94",
       "name": "Book: Attach Attempts"
     },
     {
@@ -2092,7 +2117,7 @@
         2580,
         1940
       ],
-      "id": "oa-94",
+      "id": "oa-95",
       "name": "Book: Respond Fail"
     },
     {
@@ -2125,7 +2150,7 @@
         240,
         2100
       ],
-      "id": "oa-96",
+      "id": "oa-97",
       "name": "Handoff: Webhook",
       "credentials": {
         "httpHeaderAuth": {
@@ -2145,7 +2170,7 @@
         500,
         2100
       ],
-      "id": "oa-97",
+      "id": "oa-98",
       "name": "Handoff: Parse"
     },
     {
@@ -2179,13 +2204,13 @@
         760,
         2100
       ],
-      "id": "oa-98",
+      "id": "oa-99",
       "name": "Handoff: Input OK?"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- $1 teléfono, $2 motivo, $3 detalle, $4 id de un intake que el validador ya derivó (o vacío).\n-- Marca como derivado el intake en curso (si hay uno) y trae el primer original para que recepción\n-- lo abra desde el aviso. Si no hay uno en curso y vino $4:\n--   - si ese intake está agendado (booked: llegó otro archivo que cambia una orden con cita), también\n--     se marca como derivado, para que recepción lo vea en \"Derivadas\" (la cita y la orden no se tocan);\n--   - si ya está derivado y sin resolver, solo se usa para leer el paciente y el original.\nWITH upd AS (\n  UPDATE whatsapp_order_intakes\n     SET status = 'handed_off', handoff_reason = $2, handoff_detail = NULLIF($3, '')\n   WHERE phone = $1\n     AND (status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n          OR ($4::text <> '' AND id = NULLIF($4::text, '')::uuid AND status = 'booked'\n              AND NOT EXISTS (SELECT 1 FROM whatsapp_order_intakes x\n                               WHERE x.phone = $1 AND x.status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created'))))\n  RETURNING id, validation\n),\nprev AS (\n  SELECT i.id, i.validation\n    FROM whatsapp_order_intakes i\n   WHERE $4::text <> '' AND i.id = NULLIF($4::text, '')::uuid AND i.phone = $1\n     AND i.status = 'handed_off' AND i.resolved_at IS NULL\n     AND NOT EXISTS (SELECT 1 FROM upd)\n),\ntarget AS (\n  SELECT id, validation FROM upd\n  UNION ALL\n  SELECT id, validation FROM prev\n)\nSELECT (SELECT id::text FROM target) AS intake_id,\n       (SELECT validation -> 'patient' ->> 'name' FROM target) AS patient_name,\n       (SELECT a.web_view_link FROM attachments a, target\n         WHERE a.source_name = 'whatsapp_order_intake' AND a.source_id = target.id::text\n         ORDER BY a.id LIMIT 1) AS first_file,\n       (SELECT min(u.id::text) FROM users u\n         WHERE u.phone_number = $1 AND COALESCE(u.is_active, true) HAVING count(*) = 1) AS patient_id;",
+        "query": "-- $1 teléfono, $2 motivo, $3 detalle, $4 id de un intake que el validador ya derivó (o vacío).\n-- Marca como derivado el intake en curso (si hay uno) y trae el primer original para que recepción\n-- lo abra desde el aviso. Si no hay uno en curso y vino $4:\n--   - si ese intake está agendado (booked: llegó otro archivo que cambia una orden con cita), también\n--     se marca como derivado, para que recepción lo vea en \"Derivadas\" (la cita y la orden no se tocan);\n--   - si ya está derivado y sin resolver, solo se usa para leer el paciente y el original.\nWITH upd AS (\n  UPDATE whatsapp_order_intakes\n     SET status = 'handed_off', handoff_reason = $2, handoff_detail = NULLIF($3, '')\n   WHERE phone = $1\n     AND (status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n          OR ($4::text <> '' AND id = NULLIF($4::text, '')::uuid AND status = 'booked'\n              AND NOT EXISTS (SELECT 1 FROM whatsapp_order_intakes x\n                               WHERE x.phone = $1 AND x.status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created'))))\n  RETURNING id, validation, extraction_meta, study_order_id\n),\nprev AS (\n  SELECT i.id, i.validation, i.extraction_meta, i.study_order_id\n    FROM whatsapp_order_intakes i\n   WHERE $4::text <> '' AND i.id = NULLIF($4::text, '')::uuid AND i.phone = $1\n     AND i.status = 'handed_off' AND i.resolved_at IS NULL\n     AND NOT EXISTS (SELECT 1 FROM upd)\n),\ntarget AS (\n  SELECT id, validation, extraction_meta, study_order_id FROM upd\n  UNION ALL\n  SELECT id, validation, extraction_meta, study_order_id FROM prev\n)\n-- Para el borrador que se crea al derivar: lo que se alcanzó a armar (el de la última lectura con la\n-- orden ya creada, el que guardó el validador o la orden lista), lo que hay que revisar, el paciente\n-- validado, si ya hay un borrador de esta derivación y el usuario de servicio que lo crea.\nSELECT (SELECT id::text FROM target) AS intake_id,\n       (SELECT validation -> 'patient' ->> 'name' FROM target) AS patient_name,\n       (SELECT a.web_view_link FROM attachments a, target\n         WHERE a.source_name = 'whatsapp_order_intake' AND a.source_id = target.id::text\n         ORDER BY a.id LIMIT 1) AS first_file,\n       (SELECT min(u.id::text) FROM users u\n         WHERE u.phone_number = $1 AND COALESCE(u.is_active, true) HAVING count(*) = 1) AS patient_id,\n       (SELECT coalesce(extraction_meta -> 'late_files' -> -1 -> 'draft',\n                        validation -> 'draft', validation -> 'resolved') FROM target) AS draft,\n       (SELECT coalesce(extraction_meta -> 'late_files' -> -1 -> 'review_items',\n                        validation -> 'review_items', '[]'::jsonb) FROM target) AS review_items,\n       (SELECT validation -> 'patient' FROM target) AS validated_patient,\n       (SELECT study_order_id::text FROM target) AS study_order_id,\n       (SELECT o.id::text FROM study_orders o, target\n         WHERE o.source_intake_id = target.id AND o.status = 'draft' LIMIT 1) AS existing_draft_id,\n       (SELECT id::text FROM users WHERE email = 'agente-whatsapp@sistema.invokeia.invalid' LIMIT 1) AS agent_user_id;",
         "options": {
           "queryReplacement": "={{ [ $json.phone, $json.reason, $json.detail, $json.intake_id ] }}"
         }
@@ -2196,7 +2221,7 @@
         1020,
         2100
       ],
-      "id": "oa-99",
+      "id": "oa-100",
       "name": "Handoff: Mark Intake",
       "credentials": {
         "postgres": {
@@ -2208,7 +2233,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const inp = $('Handoff: Parse').first().json;\nconst r = $input.first().json || {};\nconst LABEL = { service_not_found: 'estudio que no figura en el sistema', unreadable: 'orden ilegible o con datos faltantes',\n  low_confidence: 'lectura dudosa', patient_mismatch: 'paciente distinto de quien escribe', booking_failed: 'no se pudo agendar',\n  user_request: 'el usuario pidió hablar con una persona', system_error: 'error del sistema',\n  order_changed: 'la orden ya creada recibió otro archivo que la cambia' };\nconst reason = ('Orden de estudio: ' + (LABEL[inp.reason] || inp.reason) + (inp.detail ? ' — ' + inp.detail : '')\n  + (r.first_file ? ' | Original: ' + r.first_file : '')).slice(0, 490);\nreturn [{ json: { phone: inp.phone, patient_id: r.patient_id || '', patient_name: r.patient_name || '',\n  last_message: inp.detail || LABEL[inp.reason] || '', reason } }];"
+        "jsCode": "// Cuando el agente pide una persona, la orden queda en BORRADOR y de origen WhatsApp (docs §21-22):\n// recepción la encuentra en la bandeja con WhatsApp + Borradores, la corrige y la envía.\n//   create  borrador nuevo con lo que el agente alcanzó a leer (vacío si no leyó nada: quedan los\n//           originales), sin doctor. Sus puntos a revisar frenan el envío.\n//   attach  ya hay un borrador de esta derivación (un aviso anterior): se le agregan los puntos nuevos.\n//   skip    el agente ya había creado y enviado la orden (p. ej. falló la reserva): no se toca, sale\n//           solo el aviso. La orden ya está en la bandeja como pendiente de agendar.\n// Con \"la orden cambió\" la orden del agente se reemplaza: se crea el borrador de reemplazo.\nconst inp = $('Handoff: Parse').first().json;\nconst r = $input.first().json || {};\nconst skip = (why) => [{ json: { mode: 'skip', why } }];\nif (!r.intake_id) return skip('no_intake');\nif (!r.agent_user_id) return skip('agent_user_missing');\nconst LABEL = {\"service_not_found\":\"Hay estudios que no figuran en el sistema\",\"unreadable\":\"La orden no se pudo leer completa\",\"low_confidence\":\"Lectura dudosa que el paciente no pudo aclarar\",\"patient_mismatch\":\"El paciente de la orden no coincide con quien escribe\",\"booking_failed\":\"No se pudo agendar\",\"user_request\":\"El paciente pidió hablar con una persona\",\"system_error\":\"Error del sistema al procesar la orden\",\"order_changed\":\"Llegó otro archivo que cambia la orden ya creada\"};\n// El motivo de la derivación siempre es un punto a revisar: es lo que la persona tiene que resolver.\nconst review = [{ code: 'handoff_reason', field: inp.reason, label: LABEL[inp.reason] || inp.reason, detail: inp.detail || null }]\n  .concat(Array.isArray(r.review_items) ? r.review_items : []);\nif (r.existing_draft_id) {\n  return [{ json: { mode: 'attach', order_id: r.existing_draft_id, blocking: 'true', agent_user_id: r.agent_user_id, review_items: JSON.stringify(review) } }];\n}\nif (r.study_order_id && inp.reason !== 'order_changed') return skip('has_order');\nconst d = (r.draft && typeof r.draft === 'object') ? r.draft : { items: [] };\nconst vp = r.validated_patient || {};\nconst dp = d.patient || {};\nconst name = String(dp.name || vp.name || '').trim();\nconst items = (d.items || []).filter((i) => i && i.service_id).map((i, idx) => ({\n  service_id: String(i.service_id), service_name: i.service_name || '', section_code: i.section_code || '',\n  sort_order: Number.isFinite(Number(i.sort_order)) ? Number(i.sort_order) : idx, quantity: 1,\n  modifiers: i.modifiers || {}, notes: i.notes || '',\n}));\nif (!name) review.push({ code: 'unreadable', field: 'patient.name', label: 'No se pudo leer el nombre del paciente', detail: 'El borrador quedó con un nombre provisorio.' });\nif (items.length === 0) review.push({ code: 'unreadable', field: 'items', label: 'No se pudo ubicar ningún estudio', detail: 'Cargá los estudios mirando el original.' });\nconst payload = {\n  without_doctor: true,\n  source: 'whatsapp',\n  source_intake_id: r.intake_id,\n  referring_doctor_name: d.referring_doctor_name || '',\n  patient_id: vp.status === 'existing' && vp.patient_id ? String(vp.patient_id) : '',\n  patient_name: name || ('Paciente sin identificar (WhatsApp ' + inp.phone + ')'),\n  patient_document: String(dp.document || vp.document || ''),\n  patient_phone: inp.phone,\n  regions: d.regions || {},\n  section_modifiers: d.section_modifiers || {},\n  texts: d.texts || {},\n  delivery_methods: d.delivery_methods || [],\n  clinical_notes: d.clinical_notes || '',\n  items,\n};\nreturn [{ json: { mode: 'create', blocking: 'true', agent_user_id: r.agent_user_id, payload: JSON.stringify(payload), review_items: JSON.stringify(review) } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -2216,7 +2241,244 @@
         1280,
         2100
       ],
-      "id": "oa-100",
+      "id": "oa-101",
+      "name": "Handoff: Build Draft"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Handoff: Create Draft?-c1",
+              "leftValue": "={{ $json.mode === 'create' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        2100
+      ],
+      "id": "oa-102",
+      "name": "Handoff: Create Draft?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 = userId del token.  $2 = el payload entero como JSON.\n--\n-- Sólo DOS parámetros a propósito. La versión anterior usaba quince, y eso es\n-- frágil de dos maneras: cualquier reordenamiento del array en queryReplacement\n-- desalinea todo en silencio, y el placeholder uno es prefijo textual del\n-- quince, así que cualquier capa que los sustituya con una expresión regular\n-- ingenua corrompe el último. Con el payload en un solo JSON el orden deja de\n-- importar y cada campo se lee por su nombre.\n-- Por lo mismo, en este archivo no se escriben placeholders de dos dígitos ni\n-- siquiera dentro de comentarios.\nWITH \nperms AS (\n    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL')  AS can_view_all,\n           bool_or(p.code = 'STUDY_ORDERS_CREATE_FOR_DOCTOR') AS can_create_for_doctor,\n           bool_or(p.code = 'STUDY_ORDERS_CANCEL')    AS can_cancel,\n           bool_or(p.code = 'STUDY_ORDERS_ACKNOWLEDGE') AS can_acknowledge,\n           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code LIKE 'STUDY_ORDERS_%'\n),\np AS (\n    SELECT $2::jsonb AS body\n),\nresolved AS (\n    -- El doctor sólo puede salir del body con CREATE_FOR_DOCTOR; si no, es el\n    -- sujeto del token. Con ese mismo permiso, without_doctor deja la orden SIN\n    -- doctor derivador (el agente de WhatsApp: el doctor es opcional y el del\n    -- papel sólo se guarda como texto). Sin el permiso el indicador se ignora,\n    -- para que nadie pueda esconder quién creó una orden.\n    SELECT CASE\n             WHEN (SELECT can_create_for_doctor FROM perms)\n              AND coalesce((SELECT body ->> 'doctor_id' FROM p), '') <> ''\n             THEN (SELECT body ->> 'doctor_id' FROM p)::uuid\n             WHEN (SELECT can_create_for_doctor FROM perms)\n              AND coalesce((SELECT body ->> 'without_doctor' FROM p), '') IN ('true', 't', '1')\n             THEN NULL::uuid\n             ELSE $1::uuid\n           END AS doctor_id\n),\nvals AS (\n    SELECT NULLIF(body ->> 'id', '')                AS id,\n           NULLIF(body ->> 'patient_id', '')        AS patient_id,\n           body ->> 'patient_name'                  AS patient_name,\n           NULLIF(body ->> 'patient_document', '')  AS patient_document,\n           NULLIF(body ->> 'patient_email', '')     AS patient_email,\n           NULLIF(body ->> 'patient_phone', '')     AS patient_phone,\n           coalesce(body -> 'regions', '{}'::jsonb)           AS regions,\n           coalesce(body -> 'section_modifiers', '{}'::jsonb) AS section_modifiers,\n           coalesce(body -> 'texts', '{}'::jsonb)             AS texts,\n           coalesce(body -> 'delivery_methods', '[]'::jsonb)  AS delivery_methods,\n           NULLIF(body ->> 'clinical_notes', '')    AS clinical_notes,\n           NULLIF(body ->> 'preferred_sede_id', '') AS preferred_sede_id,\n           -- source, referring_doctor_name y source_intake_id los manda sólo el\n           -- agente; sin CREATE_FOR_DOCTOR se ignoran y la orden es del portal.\n           CASE WHEN (SELECT can_create_for_doctor FROM perms)\n                 AND body ->> 'source' = 'whatsapp' THEN 'whatsapp' ELSE 'portal' END AS source,\n           CASE WHEN (SELECT can_create_for_doctor FROM perms)\n                THEN NULLIF(body ->> 'referring_doctor_name', '') END AS referring_doctor_name,\n           CASE WHEN (SELECT can_create_for_doctor FROM perms)\n                THEN NULLIF(body ->> 'source_intake_id', '') END AS source_intake_id,\n           coalesce(body -> 'items', '[]'::jsonb)   AS items\n      FROM p\n),\nupdated AS (\n    UPDATE public.study_orders so\n       SET patient_id        = v.patient_id::uuid,\n           patient_name      = v.patient_name,\n           patient_document  = v.patient_document,\n           patient_email     = v.patient_email,\n           patient_phone     = v.patient_phone,\n           regions           = v.regions,\n           section_modifiers = v.section_modifiers,\n           texts             = v.texts,\n           delivery_methods  = v.delivery_methods,\n           clinical_notes    = v.clinical_notes,\n           preferred_sede_id = v.preferred_sede_id::int,\n           referring_doctor_name = coalesce(v.referring_doctor_name, so.referring_doctor_name)\n      FROM vals v\n     WHERE v.id IS NOT NULL\n       AND so.id = v.id::uuid\n       AND so.status = 'draft'\n       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))\n    RETURNING so.id\n),\ninserted AS (\n    INSERT INTO public.study_orders\n           (doctor_id, patient_id, patient_name, patient_document, patient_email,\n            patient_phone, regions, section_modifiers, texts, delivery_methods,\n            clinical_notes, preferred_sede_id, created_by,\n            source, referring_doctor_name, source_intake_id)\n    SELECT (SELECT doctor_id FROM resolved), v.patient_id::uuid, v.patient_name,\n           v.patient_document, v.patient_email, v.patient_phone, v.regions,\n           v.section_modifiers, v.texts, v.delivery_methods, v.clinical_notes,\n           v.preferred_sede_id::int, $1::uuid,\n           v.source, v.referring_doctor_name, v.source_intake_id::uuid\n      FROM vals v\n     WHERE v.id IS NULL\n    RETURNING id\n),\ntarget AS (\n    SELECT id FROM updated UNION ALL SELECT id FROM inserted\n),\n-- Las líneas se reemplazan enteras: es lo que hace idempotente al upsert y\n-- evita tener que diffear en el cliente.\nwiped AS (\n    DELETE FROM public.study_order_items\n     WHERE study_order_id = (SELECT id FROM target)\n    RETURNING 1\n),\nitems AS (\n    INSERT INTO public.study_order_items\n           (study_order_id, service_id, service_name, section_code, sort_order, quantity, modifiers, notes)\n    SELECT (SELECT id FROM target),\n           (e ->> 'service_id')::int,\n           e ->> 'service_name',\n           e ->> 'section_code',\n           coalesce((e ->> 'sort_order')::smallint, 0),\n           coalesce((e ->> 'quantity')::smallint, 1),\n           coalesce(e -> 'modifiers', '{}'::jsonb),\n           NULLIF(e ->> 'notes', '')\n      FROM vals v, jsonb_array_elements(v.items) AS e\n     WHERE EXISTS (SELECT 1 FROM target)\n       AND (SELECT count(*) FROM wiped) >= 0\n    ON CONFLICT (study_order_id, service_id) DO NOTHING\n    RETURNING 1\n)\nSELECT (SELECT id::text FROM target) AS id,\n       (SELECT count(*) FROM items)  AS items_written;",
+        "options": {
+          "queryReplacement": "={{ [ $json.agent_user_id, $json.payload ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1800,
+        2100
+      ],
+      "id": "oa-103",
+      "name": "Handoff: Upsert Draft",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Handoff: Draft Created?-c1",
+              "leftValue": "={{ !!$json.id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2060,
+        2100
+      ],
+      "id": "oa-104",
+      "name": "Handoff: Draft Created?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Handoff: Attach To Order?-c1",
+              "leftValue": "={{ $json.mode === 'attach' }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1800,
+        2100
+      ],
+      "id": "oa-105",
+      "name": "Handoff: Attach To Order?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Orden a la que van los puntos a revisar: la recién creada o la que ya existía.\nconst b = $('Handoff: Build Draft').first().json;\nconst created = b.mode === 'create';\nreturn [{ json: {\n  order_id: created ? $('Handoff: Upsert Draft').first().json.id : b.order_id,\n  created, blocking: b.blocking, review_items: b.review_items, agent_user_id: b.agent_user_id,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2320,
+        2100
+      ],
+      "id": "oa-106",
+      "name": "Handoff: Target Order"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 id de la orden  $2 puntos como JSON ([{ code, field, label, value, confidence, detail }])\n-- $3 bloqueantes ('true' / 'false').\nWITH incoming AS (\n    SELECT DISTINCT ON (item ->> 'id') item, ord\n      FROM (\n        SELECT jsonb_build_object(\n                 'id', substr(md5(coalesce(e ->> 'code', '') || '|' || coalesce(e ->> 'field', '')), 1, 12),\n                 'code', left(e ->> 'code', 40),\n                 'field', left(coalesce(e ->> 'field', ''), 160),\n                 'label', coalesce(NULLIF(e ->> 'label', ''), e ->> 'code'),\n                 'value_read', e ->> 'value',\n                 'confidence', CASE WHEN jsonb_typeof(e -> 'confidence') = 'number'\n                                    THEN round((e ->> 'confidence')::numeric, 3) END,\n                 'detail', e ->> 'detail',\n                 -- Sección del formulario donde está el dato: el asistente muestra la advertencia en ese paso.\n                 'section_code', NULLIF(e ->> 'section_code', ''),\n                 'blocking', $3::boolean,\n                 'status', 'pending',\n                 'created_at', replace(to_char((now() AT TIME ZONE 'America/Montevideo'), 'YYYY-MM-DD HH24:MI:SS'), ' ', 'T')) AS item,\n               t.ord\n          FROM jsonb_array_elements(coalesce(NULLIF($2::text, '')::jsonb, '[]'::jsonb)) WITH ORDINALITY AS t(e, ord)\n         WHERE coalesce(e ->> 'code', '') <> ''\n      ) x\n     ORDER BY item ->> 'id', ord\n),\nupd AS (\n    -- Se agrega sobre el valor de la fila al momento de actualizarla (no sobre una lectura previa):\n    -- dos altas simultáneas no se pisan.\n    UPDATE public.study_orders so\n       SET review_items = coalesce(so.review_items, '[]'::jsonb) || coalesce((\n             SELECT jsonb_agg(i.item ORDER BY i.ord)\n               FROM incoming i\n              WHERE NOT EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(so.review_items, '[]'::jsonb)) x\n                                 WHERE x ->> 'id' = i.item ->> 'id')), '[]'::jsonb)\n     WHERE so.id = $1::uuid\n    RETURNING so.order_number, jsonb_array_length(so.review_items) AS total\n)\nSELECT order_number, total FROM upd;",
+        "options": {
+          "queryReplacement": "={{ [ $json.order_id, $json.review_items, $json.blocking ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2580,
+        2100
+      ],
+      "id": "oa-107",
+      "name": "Handoff: Save Review Items",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "Handoff: Was Created?-c1",
+              "leftValue": "={{ $('Handoff: Target Order').first().json.created === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2840,
+        2100
+      ],
+      "id": "oa-108",
+      "name": "Handoff: Was Created?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 payload { order_id, event_type, actor_id, actor_kind, appointment_id, metadata }\n--\n-- Registro de la bitácora. Un solo parámetro: el payload entero como JSON, por\n-- el mismo motivo que el upsert — sin array posicional no hay desalineación\n-- posible.\n--\n-- El actor sale SIEMPRE del token en el nodo que arma el payload, nunca del\n-- cuerpo que manda el cliente. El tipo de evento se valida dos veces: contra la\n-- lista cerrada del nodo y contra el CHECK de la tabla.\n--\n-- Nunca hace fallar la operación que lo provocó: el nodo va colgado después de\n-- responder al webhook y con onError continueRegularOutput. Perder un renglón\n-- del historial es malo; perder la operación es peor.\nINSERT INTO public.study_order_events\n       (study_order_id, event_type, actor_id, actor_kind, appointment_id, metadata)\nSELECT (b.body ->> 'order_id')::uuid,\n       b.body ->> 'event_type',\n       NULLIF(b.body ->> 'actor_id', '')::uuid,\n       coalesce(NULLIF(b.body ->> 'actor_kind', ''), 'user'),\n       NULLIF(b.body ->> 'appointment_id', '')::int,\n       coalesce(b.body -> 'metadata', '{}'::jsonb)\n  FROM (SELECT $1::jsonb AS body) b\n WHERE coalesce(b.body ->> 'order_id', '') <> ''\n   AND coalesce(b.body ->> 'event_type', '') <> ''\n   AND EXISTS (SELECT 1 FROM public.study_orders so\n                WHERE so.id = (b.body ->> 'order_id')::uuid)\nRETURNING id::text;",
+        "options": {
+          "queryReplacement": "={{ [ JSON.stringify({ order_id: $('Handoff: Target Order').first().json.order_id, event_type: 'created', actor_id: $('Handoff: Target Order').first().json.agent_user_id }) ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3100,
+        2100
+      ],
+      "id": "oa-109",
+      "name": "Handoff: Log Draft",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const inp = $('Handoff: Parse').first().json;\nconst r = $('Handoff: Mark Intake').first().json || {};\n// Número del borrador de la derivación (el nuevo o uno anterior): el aviso lo nombra\n// para que recepción la abra desde la bandeja.\nlet draftNumber = null;\ntry {\n  if ($('Handoff: Save Review Items').isExecuted) draftNumber = $('Handoff: Save Review Items').first().json.order_number || null;\n} catch (e) { draftNumber = null; }\nconst LABEL = { service_not_found: 'estudio que no figura en el sistema', unreadable: 'orden ilegible o con datos faltantes',\n  low_confidence: 'lectura dudosa', patient_mismatch: 'paciente distinto de quien escribe', booking_failed: 'no se pudo agendar',\n  user_request: 'el usuario pidió hablar con una persona', system_error: 'error del sistema',\n  order_changed: 'la orden ya creada recibió otro archivo que la cambia' };\nconst reason = ('Orden de estudio: ' + (LABEL[inp.reason] || inp.reason) + (inp.detail ? ' — ' + inp.detail : '')\n  + (draftNumber ? ' | Borrador ' + draftNumber + ' para revisar' : '')\n  + (r.first_file ? ' | Original: ' + r.first_file : '')).slice(0, 490);\nreturn [{ json: { phone: inp.phone, patient_id: r.patient_id || '', patient_name: r.patient_name || '',\n  last_message: inp.detail || LABEL[inp.reason] || '', reason, draft_order_number: draftNumber } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        2100
+      ],
+      "id": "oa-110",
       "name": "Handoff: Build Request"
     },
     {
@@ -2227,7 +2489,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json) }}",
+        "jsonBody": "={{ JSON.stringify({ phone: $json.phone, patient_id: $json.patient_id, patient_name: $json.patient_name, last_message: $json.last_message, reason: $json.reason }) }}",
         "options": {
           "timeout": 60000,
           "response": {
@@ -2241,10 +2503,10 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1540,
+        3620,
         2100
       ],
-      "id": "oa-101",
+      "id": "oa-111",
       "name": "Handoff: Call Existing Handoff",
       "credentials": {
         "httpHeaderAuth": {
@@ -2255,15 +2517,15 @@
     },
     {
       "parameters": {
-        "jsCode": "return [{ json: { ok: true, handed_off: true } }];"
+        "jsCode": "return [{ json: { ok: true, handed_off: true, draft_order_number: $('Handoff: Build Request').first().json.draft_order_number || null } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1800,
+        3880,
         2100
       ],
-      "id": "oa-102",
+      "id": "oa-112",
       "name": "Handoff: Format"
     },
     {
@@ -2277,10 +2539,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        2060,
+        4140,
         2100
       ],
-      "id": "oa-103",
+      "id": "oa-113",
       "name": "Handoff: Respond"
     },
     {
@@ -2297,7 +2559,7 @@
         1020,
         2100
       ],
-      "id": "oa-104",
+      "id": "oa-114",
       "name": "Handoff: Respond Fail"
     }
   ],
@@ -2952,6 +3214,11 @@
             "index": 0
           },
           {
+            "node": "Book: Save Review Items",
+            "type": "main",
+            "index": 0
+          },
+          {
             "node": "Book: Save Order",
             "type": "main",
             "index": 0
@@ -3303,6 +3570,133 @@
       ]
     },
     "Handoff: Mark Intake": {
+      "main": [
+        [
+          {
+            "node": "Handoff: Build Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff: Build Draft": {
+      "main": [
+        [
+          {
+            "node": "Handoff: Create Draft?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff: Create Draft?": {
+      "main": [
+        [
+          {
+            "node": "Handoff: Upsert Draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handoff: Attach To Order?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff: Upsert Draft": {
+      "main": [
+        [
+          {
+            "node": "Handoff: Draft Created?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff: Draft Created?": {
+      "main": [
+        [
+          {
+            "node": "Handoff: Target Order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handoff: Build Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff: Attach To Order?": {
+      "main": [
+        [
+          {
+            "node": "Handoff: Target Order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handoff: Build Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff: Target Order": {
+      "main": [
+        [
+          {
+            "node": "Handoff: Save Review Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff: Save Review Items": {
+      "main": [
+        [
+          {
+            "node": "Handoff: Was Created?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff: Was Created?": {
+      "main": [
+        [
+          {
+            "node": "Handoff: Log Draft",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Handoff: Build Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff: Log Draft": {
       "main": [
         [
           {

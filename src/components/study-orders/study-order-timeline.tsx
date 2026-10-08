@@ -3,7 +3,7 @@
 import * as React from 'react';
 import {
     Ban, CalendarClock, CalendarPlus, CalendarX, CheckCircle2, FilePlus2,
-    Inbox, Link2, Pencil, RotateCcw, Send, Stethoscope, UserRound,
+    Inbox, Link2, ListChecks, Pencil, RotateCcw, Send, Stethoscope, UserRound,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -44,6 +44,7 @@ const EVENT_STYLES: Record<StudyOrderEventType, EventStyle> = {
     cancelled:             { icon: Ban,           tone: 'bad' },
     link_created:          { icon: Link2,         tone: 'neutral' },
     patient_booked:        { icon: UserRound,     tone: 'accent' },
+    review_updated:        { icon: ListChecks,    tone: 'neutral' },
 };
 
 const TONE_CLASSES: Record<EventStyle['tone'], string> = {
@@ -138,11 +139,27 @@ function EventDetail({ event }: { event: StudyOrderEvent }) {
     const reason = typeof meta.reason === 'string' ? meta.reason : null;
     const toStart = typeof meta.to_start === 'string' ? meta.to_start : null;
     const procedure = typeof meta.procedimiento_realizado === 'string' ? meta.procedimiento_realizado : null;
+    // Punto a revisar marcado: qué dato, cómo quedó y la nota, si dejó una.
+    const reviewStatus = event.event_type === 'review_updated' && typeof meta.status === 'string' ? meta.status : null;
+    const reviewLabel = reviewStatus
+        ? [meta.label, meta.value].filter((v) => typeof v === 'string' && v).join(': ')
+        : null;
+    const reviewNote = reviewStatus && typeof meta.note === 'string' ? meta.note : null;
 
-    if (!reason && !toStart && !procedure) return null;
+    if (!reason && !toStart && !procedure && !reviewStatus) return null;
 
     return (
         <p className="mt-1 text-xs text-muted-foreground">
+            {reviewStatus && (
+                <span>
+                    {reviewLabel}
+                    {' → '}
+                    {['pending', 'confirmed', 'corrected', 'dismissed'].includes(reviewStatus)
+                        ? t(`reviewStatus.${reviewStatus}` as never)
+                        : reviewStatus}
+                    {reviewNote && <span className="italic"> · {reviewNote}</span>}
+                </span>
+            )}
             {toStart && <span className="italic">{t('movedTo', { date: formatDateTime(toStart) })}</span>}
             {reason && <span className="italic">{reason}</span>}
             {procedure && <span className="italic">{procedure}</span>}

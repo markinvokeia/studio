@@ -10,6 +10,7 @@ import { createSelectColumn } from '@/components/ui/table-select-column';
 
 import { StudyOrderStatusBadge } from '@/components/study-orders/study-order-status-badge';
 import { WhatsappSourceBadge } from '@/components/study-orders/whatsapp-source-badge';
+import { ReviewPendingBadge } from '@/components/study-orders/review-pending-badge';
 
 import { formatDisplayDate } from '@/lib/utils';
 import type { StudyOrderListItem } from '@/lib/types';
@@ -116,6 +117,7 @@ export const StudyOrderColumnsWrapper = ({
                     <div className="flex min-w-0 items-center gap-1.5">
                         <span className="truncate font-mono text-xs tabular-nums">{row.original.order_number}</span>
                         <WhatsappSourceBadge source={row.original.source} />
+                        <ReviewPendingBadge count={row.original.review_pending} />
                     </div>
                     <div className="truncate text-[11px] text-muted-foreground">
                         {row.original.submitted_at ? formatDisplayDate(row.original.submitted_at) : '—'}

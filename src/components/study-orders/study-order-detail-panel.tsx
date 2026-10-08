@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Activity, CalendarClock, CalendarDays, CalendarPlus, FileText, Inbox, Link2, MessageCircle, Pencil, Printer, Send, Stethoscope, Trash2, User, UserRoundX, X, XCircle } from 'lucide-react';
+import { Activity, CalendarClock, CalendarDays, CalendarPlus, FileText, Inbox, Link2, ListChecks, MessageCircle, Pencil, Printer, Send, Stethoscope, Trash2, User, UserRoundX, X, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
@@ -15,6 +15,7 @@ import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab
 import { StudyOrderAppointmentCard } from './study-order-appointment-card';
 import { StudyOrderBookingLinkTab } from './study-order-booking-link-tab';
 import { StudyOrderReferralLine } from './study-order-referral-line';
+import { StudyOrderReviewList, countPendingBlocking } from './study-order-review-list';
 import { StudyOrderSessionTab } from './study-order-session-tab';
 import { StudyOrderStatusBadge } from './study-order-status-badge';
 import {
@@ -58,6 +59,8 @@ export interface StudyOrderDetailPanelProps {
     onPrint?: (order: StudyOrder) => void;
     /** Se incrementa al guardar para forzar la recarga del detalle abierto. */
     refreshKey?: number;
+    /** Se marcó un punto a revisar: la bandeja actualiza su contador de pendientes. */
+    onReviewChanged?: () => void;
 }
 
 /** Reconstruye el estado de bandeja desde el detalle, que no lo trae calculado. */
@@ -85,7 +88,7 @@ function Field({ label, value }: { label: string; value?: React.ReactNode }) {
 }
 
 export function StudyOrderDetailPanel({
-    orderId, scope, onClose, refreshKey = 0,
+    orderId, scope, onClose, refreshKey = 0, onReviewChanged,
     onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint,
 }: StudyOrderDetailPanelProps) {
     const t = useTranslations('StudyOrdersPage');
@@ -104,12 +107,16 @@ export function StudyOrderDetailPanel({
     const [sessionRequest, setSessionRequest] = React.useState(0);
     const [activeTab, setActiveTab] = React.useState('order');
 
+    /** Id de la orden en pantalla: recargar la misma no vuelve a mostrar el esqueleto. */
+    const loadedIdRef = React.useRef<string | null>(null);
+
     React.useEffect(() => {
         let cancelled = false;
-        setIsLoading(true);
+        if (loadedIdRef.current !== orderId) setIsLoading(true);
         void getStudyOrder(orderId).then((result) => {
             if (cancelled) return;
             setOrder(result);
+            loadedIdRef.current = result ? orderId : null;
             setIsLoading(false);
         });
         // Evita que una respuesta lenta de la orden anterior pise a la actual.
@@ -117,10 +124,24 @@ export function StudyOrderDetailPanel({
     }, [orderId, refreshKey, reloadKey]);
 
     const hasOriginals = !!order?.whatsapp && hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL);
+    const reviewItems = order?.review_items ?? [];
+    const reviewPending = reviewItems.filter((i) => i.status === 'pending').length;
+    // Marcar puntos: el mismo alcance que el backend (la orden propia o, con VIEW_ALL, cualquiera).
+    const canReview = !!order && order.status !== 'cancelled'
+        && (scope === 'mine' || hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL));
 
     const tabs = React.useMemo<VerticalTab[]>(
         () => [
             { id: 'order', icon: FileText, label: t('tabs.order') },
+            // Lo que el agente de WhatsApp no tuvo claro: aparece solo si dejó algo, con el
+            // número de pendientes en la etiqueta para que se vea sin abrirla.
+            ...(reviewItems.length > 0
+                ? [{
+                    id: 'review',
+                    icon: ListChecks,
+                    label: reviewPending > 0 ? `${t('tabs.review')} (${reviewPending})` : t('tabs.review'),
+                }]
+                : []),
             ...(scope === 'clinic' && hasPermission(STUDY_ORDERS_PERMISSIONS.SCHEDULE)
                 ? [{ id: 'appointments', icon: CalendarDays, label: t('tabs.appointments') }]
                 : []),
@@ -143,7 +164,7 @@ export function StudyOrderDetailPanel({
                 : []),
             { id: 'activity', icon: Activity, label: t('tabs.activity') },
         ],
-        [t, scope, hasPermission, hasOriginals],
+        [t, scope, hasPermission, hasOriginals, reviewItems.length, reviewPending],
     );
 
     /** Agrupa las líneas por sección, respetando el orden del formulario. */
@@ -187,7 +208,12 @@ export function StudyOrderDetailPanel({
             actions.push({ key: 'edit', label: t('actions.edit'), icon: Pencil, onClick: () => onEdit(order), variant: 'default' });
         }
         if (isDraft && onSubmit && can(STUDY_ORDERS_PERMISSIONS.SUBMIT)) {
-            actions.push({ key: 'submit', label: t('actions.submit'), icon: Send, onClick: () => onSubmit(order), variant: 'default' });
+            // Borrador creado al derivar desde WhatsApp: no sale con puntos bloqueantes sin revisar.
+            const blockingPending = countPendingBlocking(order.review_items);
+            actions.push({
+                key: 'submit', label: t('actions.submit'), icon: Send, onClick: () => onSubmit(order), variant: 'default',
+                disabledReason: blockingPending > 0 ? t('review.submitBlocked', { count: blockingPending }) : undefined,
+            });
         }
 
         // Tomar y agendar son trabajo de la clínica: no aparecen en Mis Órdenes
@@ -370,7 +396,33 @@ export function StudyOrderDetailPanel({
             <VerticalTabStrip tabs={tabs} activeTabId={activeTab} onTabClick={(tab) => setActiveTab(tab.id)} />
 
             <CardContent className="flex-1 space-y-4 overflow-y-auto pt-4">
-                {activeTab === 'order' && <OrderTab order={order} />}
+                {activeTab === 'order' && (
+                    <>
+                        {countPendingBlocking(order.review_items) > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('review')}
+                                className="flex w-full items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-left text-sm transition-colors hover:bg-amber-500/15"
+                            >
+                                <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+                                <span>{t('review.banner', { count: countPendingBlocking(order.review_items) })}</span>
+                            </button>
+                        )}
+                        <OrderTab order={order} />
+                    </>
+                )}
+
+                {activeTab === 'review' && (
+                    <StudyOrderReviewList
+                        orderId={order.id}
+                        items={reviewItems}
+                        canReview={canReview}
+                        onChanged={() => {
+                            setReloadKey((k) => k + 1);
+                            onReviewChanged?.();
+                        }}
+                    />
+                )}
 
                 {activeTab === 'appointments' && (
                     <div className="space-y-3">

@@ -6,22 +6,21 @@ import { ClipboardList, Pencil } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
 
 import { StudyOrderColumnsWrapper } from '@/app/[locale]/study-orders/columns';
 import { StudyOrderDetailPanel } from './study-order-detail-panel';
 import { StudyOrderRescheduleDialog } from './study-order-reschedule-dialog';
-import { StudyOrderWizard, type StudyOrderWizardPrefill } from './study-order-wizard';
+import { ReviewPendingBadge } from './review-pending-badge';
+import { StudyOrderWizard } from './study-order-wizard';
 import { referralLabel } from './study-order-referral-line';
 import { StudyOrderStatusBadge } from './study-order-status-badge';
-import { WhatsappIntakesPanel } from './whatsapp-intakes-panel';
 import { WhatsappSourceBadge } from './whatsapp-source-badge';
 
 import { STUDY_ORDERS_PERMISSIONS } from '@/constants/permissions';
@@ -30,7 +29,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { formatDisplayDate } from '@/lib/utils';
 import { useStudyOrderScheduling } from '@/stores/study-order-scheduling-store';
-import type { StudyOrder, StudyOrderListItem, WhatsappOrderIntake } from '@/lib/types';
+import type { StudyOrder, StudyOrderListItem } from '@/lib/types';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import {
     acknowledgeStudyOrder,
@@ -38,8 +37,8 @@ import {
     deleteStudyOrder,
     getStudyOrder,
     getStudyOrders,
-    getWhatsappIntakes,
     submitStudyOrder,
+    type StudyOrderOrigin,
     type StudyOrderScope,
 } from '@/services/study-orders';
 
@@ -63,6 +62,7 @@ interface PendingOrder {
     id: string;
     order_number: string;
     patient_name: string;
+    source?: StudyOrderListItem['source'];
 }
 
 export interface StudyOrdersScreenProps {
@@ -92,6 +92,8 @@ interface TableWithCardsProps {
     setColumnFilters: React.Dispatch<React.SetStateAction<ColumnFiltersState>>;
     bucket: string;
     onBucketChange: (value: string) => void;
+    /** Filtro de origen (solo en la bandeja de la clínica): se pinta junto al de estado. */
+    originFilter?: React.ReactNode;
     onCreate?: () => void;
     onEditOrder?: (order: StudyOrderListItem) => void;
     onRefresh: () => void;
@@ -108,7 +110,7 @@ function StudyOrdersTableWithCards({
     scope,
     orders, total, columns, selected, rowSelection, setRowSelection, onRowSelect,
     pagination, setPagination, sorting, setSorting, columnFilters, setColumnFilters,
-    bucket, onBucketChange, onCreate, onEditOrder, onRefresh, isRefreshing, isLoading,
+    bucket, onBucketChange, originFilter, onCreate, onEditOrder, onRefresh, isRefreshing, isLoading,
 }: TableWithCardsProps) {
     const t = useTranslations('StudyOrdersPage');
     const tCols = useTranslations('StudyOrdersPage.columns');
@@ -120,7 +122,7 @@ function StudyOrdersTableWithCards({
     // Sin 'all': DataTableToolbar ya agrega su propia opción "Todos" con ese
     // mismo value, y repetirla dejaba dos ítems marcados a la vez.
     const bucketOptions = React.useMemo(
-        () => (['new', 'pending', 'overdue', 'scheduled', 'completed', 'drafts'] as const).map((value) => ({
+        () => (['new', 'pending', 'overdue', 'scheduled', 'completed', 'drafts', 'review'] as const).map((value) => ({
             value,
             label: t(`buckets.${value}`),
         })),
@@ -156,6 +158,7 @@ function StudyOrdersTableWithCards({
             filterOptions={bucketOptions}
             filterValue={bucket}
             onFilterChange={onBucketChange}
+            extraButtons={originFilter}
             columnTranslations={columnTranslations}
             onCreate={onCreate}
             createButtonLabel={t('newOrder')}
@@ -183,6 +186,7 @@ function StudyOrdersTableWithCards({
                     ].filter(Boolean).join(' · ')}
                     badge={
                         <span className="flex items-center gap-1.5">
+                            <ReviewPendingBadge count={order.review_pending} />
                             <WhatsappSourceBadge source={order.source} />
                             <StudyOrderStatusBadge
                                 status={order.board_status}
@@ -237,23 +241,15 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     // todavía no fueron tomadas — ese corte lo aplican la fila y el panel.
     const canCancel = !isClinic || hasPermission(STUDY_ORDERS_PERMISSIONS.CANCEL);
 
-    // Derivaciones del asistente de WhatsApp: solo las ve quien puede ver toda la bandeja.
-    const canViewHandoffs = isClinic && hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL);
-    // `?view=whatsapp` lo usa el aviso de derivación para abrir directo esta pestaña.
-    const [view, setView] = React.useState<'orders' | 'whatsapp'>(
-        searchParams.get('view') === 'whatsapp' ? 'whatsapp' : 'orders',
-    );
-    const [pendingHandoffs, setPendingHandoffs] = React.useState(0);
-
-    React.useEffect(() => {
-        if (!canViewHandoffs) return;
-        let cancelled = false;
-        // Un fallo acá solo deja el contador en 0: la lista real muestra su propio error.
-        void getWhatsappIntakes({ status: 'pending', limit: 1 })
-            .then(({ total: count }) => { if (!cancelled) setPendingHandoffs(count); })
-            .catch(() => undefined);
-        return () => { cancelled = true; };
-    }, [canViewHandoffs]);
+    // Origen: portal o WhatsApp. Se combina con el filtro de estado: las que el agente de WhatsApp
+    // pasó a una persona son las de WhatsApp en borrador. El aviso de derivación abre la bandeja
+    // así (`?source=whatsapp&bucket=drafts`); `?view=whatsapp` es el link de antes.
+    const legacyHandoffLink = searchParams.get('view') === 'whatsapp';
+    const [origin, setOrigin] = React.useState<'all' | StudyOrderOrigin>(() => {
+        const source = searchParams.get('source');
+        if (legacyHandoffLink) return 'whatsapp';
+        return source === 'portal' || source === 'whatsapp' ? source : 'all';
+    });
 
     const [orders, setOrders] = React.useState<StudyOrderListItem[]>([]);
     const [total, setTotal] = React.useState(0);
@@ -261,7 +257,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [selected, setSelected] = React.useState<StudyOrderListItem | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
-    const [bucket, setBucket] = React.useState('all');
+    const [bucket, setBucket] = React.useState(() => (legacyHandoffLink ? 'drafts' : searchParams.get('bucket') || 'all'));
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
     // Por número de orden descendente, que es cronológico: la secuencia
     // OE-AAAA-NNNNNN se emite en orden. La columna `submitted_at` dejó de
@@ -283,10 +279,6 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     const [editingNumber, setEditingNumber] = React.useState<string | null>(null);
     const [detailRefreshKey, setDetailRefreshKey] = React.useState(0);
     const [reschedulingOrder, setReschedulingOrder] = React.useState<StudyOrder | null>(null);
-    /** Alta desde una derivación de WhatsApp: el asistente arranca con lo que leyó el agente. */
-    const [wizardPrefill, setWizardPrefill] = React.useState<StudyOrderWizardPrefill | null>(null);
-    /** Recarga la lista de derivaciones: enviar una orden creada desde una la deja resuelta. */
-    const [handoffsReloadKey, setHandoffsReloadKey] = React.useState(0);
 
     const searchTerm = React.useMemo(
         () => (columnFilters.find((f) => f.id === 'patient_name')?.value as string | undefined) ?? '',
@@ -302,6 +294,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
             const { items, total: count } = await getStudyOrders({
                 scope,
                 boardStatus: bucket === 'all' ? undefined : bucket,
+                source: isClinic && origin !== 'all' ? origin : undefined,
                 search: searchTerm || undefined,
                 slaHours: DEFAULT_SLA_HOURS,
                 sort,
@@ -314,14 +307,14 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
             setIsLoading(false);
             setIsRefreshing(false);
         },
-        [scope, bucket, searchTerm, sorting, pagination.pageIndex, pagination.pageSize],
+        [scope, bucket, origin, isClinic, searchTerm, sorting, pagination.pageIndex, pagination.pageSize],
     );
 
     // Cualquier cambio de filtro vuelve a la primera página, o se pediría una
     // página que ya no existe.
     React.useEffect(() => {
         setPagination((prev) => (prev.pageIndex === 0 ? prev : { ...prev, pageIndex: 0 }));
-    }, [bucket, searchTerm]);
+    }, [bucket, origin, searchTerm]);
 
     // Debounce: la búsqueda por paciente escribe letra a letra.
     React.useEffect(() => {
@@ -433,58 +426,10 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     }, [searchParams, handleSchedule]);
 
     const handleCreate = React.useCallback(() => {
-        setWizardPrefill(null);
         setEditingId(null);
         setEditingNumber(null);
         setIsFormOpen(true);
     }, []);
-
-    /**
-     * Crear la orden de una derivación: el asistente se abre con lo que leyó el agente y los
-     * originales al lado. Con `replace`, la nueva reemplaza al enviarse la que había creado el agente.
-     */
-    const handleCreateFromHandoff = React.useCallback((intake: WhatsappOrderIntake, { replace }: { replace: boolean }) => {
-        const patient = intake.validated_patient;
-        setWizardPrefill({
-            intakeId: intake.id,
-            phone: intake.phone,
-            // Solo si la validación identificó al paciente; si no, recepción lo elige o lo carga.
-            patientId: patient?.status === 'existing' ? patient.patient_id ?? null : null,
-            patientName: intake.draft?.patient?.name || intake.patient_name,
-            patientDocument: intake.draft?.patient?.document || intake.patient_document,
-            draft: intake.draft ?? null,
-            files: intake.files,
-            replacesOrderNumber: replace ? intake.order_number ?? null : null,
-        });
-        setEditingId(null);
-        setEditingNumber(null);
-        setIsFormOpen(true);
-    }, []);
-
-    const handleContinueDraft = React.useCallback((order: { id: string; order_number: string }) => {
-        setWizardPrefill(null);
-        setEditingId(order.id);
-        setEditingNumber(order.order_number);
-        setIsFormOpen(true);
-    }, []);
-
-    /** Desde una derivación, a su orden en la bandeja (mismo camino que el link de una notificación). */
-    const handleOpenOrder = React.useCallback((orderId: string) => {
-        setView('orders');
-        void getStudyOrder(orderId)
-            .then((order) => {
-                if (!order) return;
-                const row: PendingOrder = { id: order.id, order_number: order.order_number, patient_name: order.patient_name };
-                setSelected(row as unknown as StudyOrderListItem);
-            })
-            .catch((error) => {
-                toast({
-                    variant: 'destructive',
-                    title: t('toast.errorTitle'),
-                    description: error instanceof Error ? error.message : t('toast.genericError'),
-                });
-            });
-    }, [toast, t]);
 
     const handleEdit = React.useCallback((order: StudyOrderListItem) => {
         // Sólo los borradores son editables; sobre una enviada se abre el detalle.
@@ -492,7 +437,6 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
             setSelected(order);
             return;
         }
-        setWizardPrefill(null);
         setEditingId(order.id);
         setEditingNumber(order.order_number);
         setIsFormOpen(true);
@@ -542,41 +486,6 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
 
     return (
         <div className="flex flex-1 flex-col overflow-hidden">
-            {canViewHandoffs && (
-                <div className="flex items-center gap-1 px-1 pb-2" role="group" aria-label={t('titleClinic')}>
-                    <Button
-                        type="button" size="sm"
-                        variant={view === 'orders' ? 'secondary' : 'ghost'}
-                        aria-pressed={view === 'orders'}
-                        onClick={() => setView('orders')}
-                    >
-                        {t('whatsapp.viewOrders')}
-                    </Button>
-                    <Button
-                        type="button" size="sm"
-                        variant={view === 'whatsapp' ? 'secondary' : 'ghost'}
-                        aria-pressed={view === 'whatsapp'}
-                        onClick={() => setView('whatsapp')}
-                    >
-                        {t('whatsapp.viewHandoffs')}
-                        {pendingHandoffs > 0 && (
-                            <Badge variant="warning" className="ml-1.5 px-1.5 py-0 text-[10px]">{pendingHandoffs}</Badge>
-                        )}
-                    </Button>
-                </div>
-            )}
-
-            {canViewHandoffs && view === 'whatsapp' ? (
-                <div className="min-h-0 flex-1 overflow-hidden">
-                    <WhatsappIntakesPanel
-                        onPendingCountChange={setPendingHandoffs}
-                        onCreateOrder={canCreate ? handleCreateFromHandoff : undefined}
-                        onContinueDraft={canUpdate ? handleContinueDraft : undefined}
-                        onOpenOrder={handleOpenOrder}
-                        reloadKey={handoffsReloadKey}
-                    />
-                </div>
-            ) : (
             <TwoPanelLayout
                 isRightPanelOpen={!!selected}
                 onBack={handleCloseDetail}
@@ -617,6 +526,18 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                                 setColumnFilters={setColumnFilters}
                                 bucket={bucket}
                                 onBucketChange={setBucket}
+                                originFilter={isClinic ? (
+                                    <Select value={origin} onValueChange={(value) => setOrigin(value as typeof origin)}>
+                                        <SelectTrigger className="h-9 w-[190px]" aria-label={t('origin.label')}>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">{t('origin.all')}</SelectItem>
+                                            <SelectItem value="portal">{t('origin.portal')}</SelectItem>
+                                            <SelectItem value="whatsapp">{t('origin.whatsapp')}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                ) : undefined}
                                 onCreate={canCreate ? handleCreate : undefined}
                                 onEditOrder={canUpdate ? handleEdit : undefined}
                                 onRefresh={() => void loadOrders(true)}
@@ -634,7 +555,6 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                             refreshKey={detailRefreshKey}
                             onClose={handleCloseDetail}
                             onEdit={(order) => {
-                                setWizardPrefill(null);
                                 setEditingId(order.id);
                                 setEditingNumber(order.order_number);
                                 setIsFormOpen(true);
@@ -647,11 +567,11 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                             onSchedule={(order) => void handleSchedule(order.id)}
                             onReschedule={setReschedulingOrder}
                             onPrint={(order) => void handlePrint(order.id)}
+                            onReviewChanged={() => void loadOrders(true)}
                         />
                     )
                 }
             />
-            )}
 
             <StudyOrderRescheduleDialog
                 open={!!reschedulingOrder}
@@ -668,12 +588,9 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                 onOpenChange={setIsFormOpen}
                 orderId={editingId}
                 orderNumber={editingNumber}
-                prefill={wizardPrefill}
                 onSaved={() => {
                     void loadOrders(true);
                     setDetailRefreshKey((k) => k + 1);
-                    // Una orden enviada desde una derivación la resuelve: la lista y el contador cambian.
-                    setHandoffsReloadKey((k) => k + 1);
                 }}
             />
 
@@ -711,6 +628,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                         <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
                         <AlertDialogDescription>
                             {t('deleteDialog.description', { patient: pendingDelete?.patient_name ?? '' })}
+                            {pendingDelete?.source === 'whatsapp' && <> {t('deleteDialog.whatsappHandoff')}</>}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

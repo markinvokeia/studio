@@ -37,7 +37,7 @@ import { fileURLToPath } from 'node:url';
 
 // Mismo SQL que los endpoints /study-orders/*: un cambio ahí llega al agente al regenerar.
 import {
-    BOOKING_TOKEN_SQL, LOG_EVENT_SQL, NOTIFY_RECEPTION_SQL, PUBLIC_BOOK_SQL, SUBMIT_SQL, UPSERT_SQL,
+    BOOKING_TOKEN_SQL, LOG_EVENT_SQL, NOTIFY_RECEPTION_SQL, PUBLIC_BOOK_SQL, REVIEW_ITEMS_INSERT_SQL, SUBMIT_SQL, UPSERT_SQL,
 } from './study-orders-sql.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -242,6 +242,10 @@ const a = inp.answer;
 // Sin \b: en JavaScript la "í" de "sí" no es carácter de palabra y no marcaría el límite.
 const yes = /^\\s*(s[ií]|sip|claro|correcto|exacto|as[ií] es|ok|dale|confirmo|esta bien|está bien)(?![a-záéíóúñ])/i.test(a);
 const no = /^\\s*(no|nop|incorrecto|no es|no est[aá])(?![a-záéíóúñ])/i.test(a);
+// "Ya está", "esas son", "no tengo otra", "ya te la mandé": no tiene nada más para mandar.
+const noMore = /(^|[^a-záéíóúñ])(no (la |lo |las |los )?(tengo|tiene|hay)|ya est[aá]|es todo|esas? son|son esas?|ya (te )?(la |las |lo |los )?(mand[eé]|envi[eé])|ya tiene todo|est[aá] complet[ao]|complet[ao]|s[oó]lo (esa|esas|eso|una)|una sola|no se puede|no puedo|mejor no)(?![a-záéíóúñ])/i.test(a);
+// "Ahora te la mando", "ahí va": todavía va a mandar el archivo.
+const willSend = /((te )?(la|las|lo|los) )?(mando|env[ií]o|paso|saco)(?![a-záéíóúñ])|ah[ií] va|un momento|esper[aá]/i.test(a) && !noMore;
 const answers = { confirmed: [], removed: [], overrides: {} };
 switch (q.code) {
   case 'confirm_line':
@@ -257,9 +261,22 @@ switch (q.code) {
     answers.overrides.patient_name = a;
     break;
   case 'missing_other_side':
-    // Solo el "no" se responde con texto: si la orden tiene otra cara, la respuesta es la foto.
-    if (no) answers.overrides.no_other_side = true;
-    else return [{ json: { __fail: { error_code: 'send_other_side', message: 'Si la orden tiene otra cara u hoja, pedile que mande la foto por este chat. Si dice que no tiene, llamá de nuevo con answer "no".' } } }];
+    // Si la orden tiene otra cara, la respuesta es la foto. Solo se espera la foto cuando dice que
+    // la va a mandar; cualquier otra respuesta en texto ("no", "ya está", "esas son", algo que no se
+    // entiende) cuenta como que no hay otra cara y se sigue con la advertencia: nunca se repregunta.
+    if ((yes || willSend) && !no && !noMore) {
+      return [{ json: { __fail: { error_code: 'send_other_side', message: 'Pedile que mande la otra cara por este chat como foto o PDF. Si después dice que no tiene, llamá de nuevo con su respuesta.' } } }];
+    }
+    answers.overrides.no_other_side = true;
+    break;
+  case 'resend':
+    // Se le pidió reenviar la orden y contestó con texto. Si dice que la va a mandar, se espera la
+    // foto. Si dice que eso es todo lo que tiene ("ya está", "esas son", "no tengo otra"), no hay
+    // nada más que pedirle: se revalida con no_better_file y el validador deriva a una persona.
+    if ((yes || willSend) && !no && !noMore) {
+      return [{ json: { __fail: { error_code: 'send_file', message: 'Pedile que mande la foto o el PDF por este chat. Si después dice que no tiene otra, llamá de nuevo con su respuesta: no le vuelvas a pedir la foto.' } } }];
+    }
+    answers.overrides.no_better_file = true;
     break;
   case 'confirm_patient':
     if (!yes) return [{ json: { __fail: { error_code: 'needs_human', message: 'El usuario no confirma sus datos: derivá a recepción con handoff_order.' } } }];
@@ -612,6 +629,11 @@ pgSide('Book: Notify New Order', NOTIFY_RECEPTION_SQL,
 // Sin destinatarios, Postgres igual emite un ítem vacío: sin este filtro el push iría con user_ids [null].
 ifExpr('Book: New Order Recipient?', '={{ !!$json.user_id }}', 19);
 ssePush('Book: Push New Order', 'study_order_submitted', 20);
+// Lo que el agente no tuvo claro al leer la orden queda registrado en la orden enviada, como lista de
+// verificación para recepción: NO bloqueante (la orden ya salió y la cita sigue su curso).
+pgSide('Book: Save Review Items', REVIEW_ITEMS_INSERT_SQL,
+    `={{ [ $('Book: Check Submit').first().json.new_order_id, JSON.stringify((($('Book: Load').first().json.validation) || {}).review_items || []), 'false' ] }}`, 17,
+    { executeOnce: true });
 
 pg('Book: Save Order', `UPDATE whatsapp_order_intakes
    SET study_order_id = $2::uuid, patient_id = $3::uuid, status = 'order_created', chosen_sede_id = $4::int
@@ -745,6 +767,7 @@ link('Book: Upsert OK?', 'Book: Count Attempt?', 1);
 link('Book: Submit Order', 'Book: Check Submit');
 link('Book: Check Submit', 'Book: Submit OK?');
 link('Book: Submit OK?', 'Book: New Order Events', 0); // rama de bitácora y aviso (arriba: corre primero)
+link('Book: Submit OK?', 'Book: Save Review Items', 0);
 link('Book: Submit OK?', 'Book: Save Order', 0);
 link('Book: Submit OK?', 'Book: Count Attempt?', 1);
 link('Book: New Order Events', 'Book: Log New Order');
@@ -806,47 +829,154 @@ WITH upd AS (
           OR ($4::text <> '' AND id = NULLIF($4::text, '')::uuid AND status = 'booked'
               AND NOT EXISTS (SELECT 1 FROM whatsapp_order_intakes x
                                WHERE x.phone = $1 AND x.status IN ${ACTIVE})))
-  RETURNING id, validation
+  RETURNING id, validation, extraction_meta, study_order_id
 ),
 prev AS (
-  SELECT i.id, i.validation
+  SELECT i.id, i.validation, i.extraction_meta, i.study_order_id
     FROM whatsapp_order_intakes i
    WHERE $4::text <> '' AND i.id = NULLIF($4::text, '')::uuid AND i.phone = $1
      AND i.status = 'handed_off' AND i.resolved_at IS NULL
      AND NOT EXISTS (SELECT 1 FROM upd)
 ),
 target AS (
-  SELECT id, validation FROM upd
+  SELECT id, validation, extraction_meta, study_order_id FROM upd
   UNION ALL
-  SELECT id, validation FROM prev
+  SELECT id, validation, extraction_meta, study_order_id FROM prev
 )
+-- Para el borrador que se crea al derivar: lo que se alcanzó a armar (el de la última lectura con la
+-- orden ya creada, el que guardó el validador o la orden lista), lo que hay que revisar, el paciente
+-- validado, si ya hay un borrador de esta derivación y el usuario de servicio que lo crea.
 SELECT (SELECT id::text FROM target) AS intake_id,
        (SELECT validation -> 'patient' ->> 'name' FROM target) AS patient_name,
        (SELECT a.web_view_link FROM attachments a, target
          WHERE a.source_name = 'whatsapp_order_intake' AND a.source_id = target.id::text
          ORDER BY a.id LIMIT 1) AS first_file,
        (SELECT min(u.id::text) FROM users u
-         WHERE u.phone_number = $1 AND COALESCE(u.is_active, true) HAVING count(*) = 1) AS patient_id;`,
+         WHERE u.phone_number = $1 AND COALESCE(u.is_active, true) HAVING count(*) = 1) AS patient_id,
+       (SELECT coalesce(extraction_meta -> 'late_files' -> -1 -> 'draft',
+                        validation -> 'draft', validation -> 'resolved') FROM target) AS draft,
+       (SELECT coalesce(extraction_meta -> 'late_files' -> -1 -> 'review_items',
+                        validation -> 'review_items', '[]'::jsonb) FROM target) AS review_items,
+       (SELECT validation -> 'patient' FROM target) AS validated_patient,
+       (SELECT study_order_id::text FROM target) AS study_order_id,
+       (SELECT o.id::text FROM study_orders o, target
+         WHERE o.source_intake_id = target.id AND o.status = 'draft' LIMIT 1) AS existing_draft_id,
+       (SELECT id::text FROM users WHERE email = '${AGENT_EMAIL}' LIMIT 1) AS agent_user_id;`,
     '={{ [ $json.phone, $json.reason, $json.detail, $json.intake_id ] }}', 3);
-code('Handoff: Build Request', `const inp = $('Handoff: Parse').first().json;
+code('Handoff: Build Draft', `// Cuando el agente pide una persona, la orden queda en BORRADOR y de origen WhatsApp (docs §21-22):
+// recepción la encuentra en la bandeja con WhatsApp + Borradores, la corrige y la envía.
+//   create  borrador nuevo con lo que el agente alcanzó a leer (vacío si no leyó nada: quedan los
+//           originales), sin doctor. Sus puntos a revisar frenan el envío.
+//   attach  ya hay un borrador de esta derivación (un aviso anterior): se le agregan los puntos nuevos.
+//   skip    el agente ya había creado y enviado la orden (p. ej. falló la reserva): no se toca, sale
+//           solo el aviso. La orden ya está en la bandeja como pendiente de agendar.
+// Con "la orden cambió" la orden del agente se reemplaza: se crea el borrador de reemplazo.
+const inp = $('Handoff: Parse').first().json;
 const r = $input.first().json || {};
+const skip = (why) => [{ json: { mode: 'skip', why } }];
+if (!r.intake_id) return skip('no_intake');
+if (!r.agent_user_id) return skip('agent_user_missing');
+const LABEL = ${JSON.stringify({
+    service_not_found: 'Hay estudios que no figuran en el sistema',
+    unreadable: 'La orden no se pudo leer completa',
+    low_confidence: 'Lectura dudosa que el paciente no pudo aclarar',
+    patient_mismatch: 'El paciente de la orden no coincide con quien escribe',
+    booking_failed: 'No se pudo agendar',
+    user_request: 'El paciente pidió hablar con una persona',
+    system_error: 'Error del sistema al procesar la orden',
+    order_changed: 'Llegó otro archivo que cambia la orden ya creada',
+})};
+// El motivo de la derivación siempre es un punto a revisar: es lo que la persona tiene que resolver.
+const review = [{ code: 'handoff_reason', field: inp.reason, label: LABEL[inp.reason] || inp.reason, detail: inp.detail || null }]
+  .concat(Array.isArray(r.review_items) ? r.review_items : []);
+if (r.existing_draft_id) {
+  return [{ json: { mode: 'attach', order_id: r.existing_draft_id, blocking: 'true', agent_user_id: r.agent_user_id, review_items: JSON.stringify(review) } }];
+}
+if (r.study_order_id && inp.reason !== 'order_changed') return skip('has_order');
+const d = (r.draft && typeof r.draft === 'object') ? r.draft : { items: [] };
+const vp = r.validated_patient || {};
+const dp = d.patient || {};
+const name = String(dp.name || vp.name || '').trim();
+const items = (d.items || []).filter((i) => i && i.service_id).map((i, idx) => ({
+  service_id: String(i.service_id), service_name: i.service_name || '', section_code: i.section_code || '',
+  sort_order: Number.isFinite(Number(i.sort_order)) ? Number(i.sort_order) : idx, quantity: 1,
+  modifiers: i.modifiers || {}, notes: i.notes || '',
+}));
+if (!name) review.push({ code: 'unreadable', field: 'patient.name', label: 'No se pudo leer el nombre del paciente', detail: 'El borrador quedó con un nombre provisorio.' });
+if (items.length === 0) review.push({ code: 'unreadable', field: 'items', label: 'No se pudo ubicar ningún estudio', detail: 'Cargá los estudios mirando el original.' });
+const payload = {
+  without_doctor: true,
+  source: 'whatsapp',
+  source_intake_id: r.intake_id,
+  referring_doctor_name: d.referring_doctor_name || '',
+  patient_id: vp.status === 'existing' && vp.patient_id ? String(vp.patient_id) : '',
+  patient_name: name || ('Paciente sin identificar (WhatsApp ' + inp.phone + ')'),
+  patient_document: String(dp.document || vp.document || ''),
+  patient_phone: inp.phone,
+  regions: d.regions || {},
+  section_modifiers: d.section_modifiers || {},
+  texts: d.texts || {},
+  delivery_methods: d.delivery_methods || [],
+  clinical_notes: d.clinical_notes || '',
+  items,
+};
+return [{ json: { mode: 'create', blocking: 'true', agent_user_id: r.agent_user_id, payload: JSON.stringify(payload), review_items: JSON.stringify(review) } }];`, 4);
+ifExpr('Handoff: Create Draft?', `={{ $json.mode === 'create' }}`, 5);
+// $1 = el usuario de servicio: con CREATE_FOR_DOCTOR el SQL acepta without_doctor, source y source_intake_id.
+pg('Handoff: Upsert Draft', UPSERT_SQL, '={{ [ $json.agent_user_id, $json.payload ] }}', 6, SAFE);
+ifExpr('Handoff: Draft Created?', '={{ !!$json.id }}', 7);
+ifExpr('Handoff: Attach To Order?', `={{ $json.mode === 'attach' }}`, 6);
+code('Handoff: Target Order', `// Orden a la que van los puntos a revisar: la recién creada o la que ya existía.
+const b = $('Handoff: Build Draft').first().json;
+const created = b.mode === 'create';
+return [{ json: {
+  order_id: created ? $('Handoff: Upsert Draft').first().json.id : b.order_id,
+  created, blocking: b.blocking, review_items: b.review_items, agent_user_id: b.agent_user_id,
+} }];`, 8);
+pg('Handoff: Save Review Items', REVIEW_ITEMS_INSERT_SQL,
+    '={{ [ $json.order_id, $json.review_items, $json.blocking ] }}', 9, SAFE);
+ifExpr('Handoff: Was Created?', `={{ $('Handoff: Target Order').first().json.created === true }}`, 10);
+pgSide('Handoff: Log Draft', LOG_EVENT_SQL,
+    `={{ [ JSON.stringify({ order_id: $('Handoff: Target Order').first().json.order_id, event_type: 'created', actor_id: $('Handoff: Target Order').first().json.agent_user_id }) ] }}`, 11, { alwaysOutputData: true });
+code('Handoff: Build Request', `const inp = $('Handoff: Parse').first().json;
+const r = $('Handoff: Mark Intake').first().json || {};
+// Número del borrador de la derivación (el nuevo o uno anterior): el aviso lo nombra
+// para que recepción la abra desde la bandeja.
+let draftNumber = null;
+try {
+  if ($('Handoff: Save Review Items').isExecuted) draftNumber = $('Handoff: Save Review Items').first().json.order_number || null;
+} catch (e) { draftNumber = null; }
 const LABEL = { service_not_found: 'estudio que no figura en el sistema', unreadable: 'orden ilegible o con datos faltantes',
   low_confidence: 'lectura dudosa', patient_mismatch: 'paciente distinto de quien escribe', booking_failed: 'no se pudo agendar',
   user_request: 'el usuario pidió hablar con una persona', system_error: 'error del sistema',
   order_changed: 'la orden ya creada recibió otro archivo que la cambia' };
 const reason = ('Orden de estudio: ' + (LABEL[inp.reason] || inp.reason) + (inp.detail ? ' — ' + inp.detail : '')
+  + (draftNumber ? ' | Borrador ' + draftNumber + ' para revisar' : '')
   + (r.first_file ? ' | Original: ' + r.first_file : '')).slice(0, 490);
 return [{ json: { phone: inp.phone, patient_id: r.patient_id || '', patient_name: r.patient_name || '',
-  last_message: inp.detail || LABEL[inp.reason] || '', reason } }];`, 4);
-http('Handoff: Call Existing Handoff', '/webhook/agent-tools/handoff', '={{ JSON.stringify($json) }}', AGENT_KEY, 5);
-code('Handoff: Format', `return [{ json: { ok: true, handed_off: true } }];`, 6);
-respond('Handoff: Respond', RESPOND_JSON, 7);
+  last_message: inp.detail || LABEL[inp.reason] || '', reason, draft_order_number: draftNumber } }];`, 12);
+http('Handoff: Call Existing Handoff', '/webhook/agent-tools/handoff', '={{ JSON.stringify({ phone: $json.phone, patient_id: $json.patient_id, patient_name: $json.patient_name, last_message: $json.last_message, reason: $json.reason }) }}', AGENT_KEY, 13);
+code('Handoff: Format', `return [{ json: { ok: true, handed_off: true, draft_order_number: $('Handoff: Build Request').first().json.draft_order_number || null } }];`, 14);
+respond('Handoff: Respond', RESPOND_JSON, 15);
 respond('Handoff: Respond Fail', RESPOND_FAIL, 3);
 link('Handoff: Webhook', 'Handoff: Parse');
 link('Handoff: Parse', 'Handoff: Input OK?');
 link('Handoff: Input OK?', 'Handoff: Mark Intake', 0);
 link('Handoff: Input OK?', 'Handoff: Respond Fail', 1);
-link('Handoff: Mark Intake', 'Handoff: Build Request');
+link('Handoff: Mark Intake', 'Handoff: Build Draft');
+link('Handoff: Build Draft', 'Handoff: Create Draft?');
+link('Handoff: Create Draft?', 'Handoff: Upsert Draft', 0);
+link('Handoff: Create Draft?', 'Handoff: Attach To Order?', 1);
+link('Handoff: Upsert Draft', 'Handoff: Draft Created?');
+link('Handoff: Draft Created?', 'Handoff: Target Order', 0);
+link('Handoff: Draft Created?', 'Handoff: Build Request', 1);
+link('Handoff: Attach To Order?', 'Handoff: Target Order', 0);
+link('Handoff: Attach To Order?', 'Handoff: Build Request', 1);
+link('Handoff: Target Order', 'Handoff: Save Review Items');
+link('Handoff: Save Review Items', 'Handoff: Was Created?');
+link('Handoff: Was Created?', 'Handoff: Log Draft', 0);
+link('Handoff: Was Created?', 'Handoff: Build Request', 1);
+link('Handoff: Log Draft', 'Handoff: Build Request');
 link('Handoff: Build Request', 'Handoff: Call Existing Handoff');
 link('Handoff: Call Existing Handoff', 'Handoff: Format');
 link('Handoff: Format', 'Handoff: Respond');

@@ -27,7 +27,7 @@ import {
     BY_APPOINTMENT_SQL, LINK_APPOINTMENT_SQL, LIST_SQL, NOTIFY_DOCTOR_SQL, NOTIFY_RECEPTION_SQL, OPTIONS_SQL,
     APPOINTMENT_TECHNICIANS_SQL, ASSIGN_TECHNICIAN_SQL, BOOKING_TOKEN_SQL, LOG_EVENT_SQL, TECHNICIAN_TASKS_SQL, PUBLIC_BOOK_SQL, PUBLIC_DETAIL_SQL, RECONCILE_SQL,
     RECOMPUTE_SQL, RESCHEDULE_SQL, SUBMIT_SQL, UPSERT_SQL,
-    RESOLVE_INTAKE_SQL, WHATSAPP_INTAKES_SQL,
+    RESOLVE_INTAKE_SQL, REVIEW_ITEM_UPDATE_SQL, WHATSAPP_INTAKES_SQL,
 } from './study-orders-sql.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -177,7 +177,7 @@ return [{ json: { __data: data } }];`),
 workflows.push({
     file: 'study-orders-list.json',
     name: 'Study Orders - List',
-    sticky: `## GET /study-orders\n\nBandeja de órdenes.\n\n**Query**\n- \`scope\`: \`mine\` | \`clinic\` (default \`mine\`)\n- \`board_status\`: all | new | pending | overdue | scheduled | completed | drafts\n- \`q\`: busca por paciente, documento o número de orden (prefijo)\n- \`sede_id\`, \`date_from\`, \`date_to\`, \`sla_hours\` (default 48)\n- \`sort\`: \`campo:asc|desc\`, \`page\`, \`limit\`\n\n**SEGURIDAD:** el \`doctor_id\` NO se acepta por query. Con \`scope=mine\` el SQL filtra por \`jwtPayload.userId\`; con \`scope=clinic\` exige STUDY_ORDERS_VIEW_ALL y, si no lo tiene, devuelve igual sólo lo propio.\n\n**Response 200**\n\`\`\`json\n{ "code": 200, "data": [ { "id": "...", "board_status": "partially_scheduled",\n   "items_total": 3, "items_scheduled": 1, "is_overdue": false } ],\n  "meta": { "total": 42, "page": 1, "limit": 25 } }\n\`\`\``,
+    sticky: `## GET /study-orders\n\nBandeja de órdenes.\n\n**Query**\n- \`scope\`: \`mine\` | \`clinic\` (default \`mine\`)\n- \`board_status\`: all | new | pending | overdue | scheduled | completed | drafts | review (con puntos sin revisar)\n- \`q\`: busca por paciente, documento o número de orden (prefijo)\n- \`sede_id\`, \`date_from\`, \`date_to\`, \`sla_hours\` (default 48)\n- \`sort\`: \`campo:asc|desc\`, \`page\`, \`limit\`\n\n**SEGURIDAD:** el \`doctor_id\` NO se acepta por query. Con \`scope=mine\` el SQL filtra por \`jwtPayload.userId\`; con \`scope=clinic\` exige STUDY_ORDERS_VIEW_ALL y, si no lo tiene, devuelve igual sólo lo propio.\n\n**Response 200**\n\`\`\`json\n{ "code": 200, "data": [ { "id": "...", "board_status": "partially_scheduled",\n   "items_total": 3, "items_scheduled": 1, "is_overdue": false } ],\n  "meta": { "total": 42, "page": 1, "limit": 25 } }\n\`\`\``,
     method: 'GET',
     path: 'study-orders',
     id: 'list',
@@ -201,7 +201,7 @@ const filters = {
   board_status: q.board_status || 'all',
   search: (q.q || '').trim(),
   sede_id: q.sede_id || '',
-  source: q.source === 'whatsapp' ? 'whatsapp' : '',
+  source: ['portal', 'whatsapp'].includes(q.source) ? q.source : '',
   patient_id: q.patient_id || '',
   sla_hours: Number(q.sla_hours) > 0 ? Number(q.sla_hours) : 48,
   date_from: q.date_from || '',
@@ -323,7 +323,7 @@ return [{ json: { __data: { id }, __message: 'Orden guardada' } }];`),
 workflows.push({
     file: 'study-orders-submit.json',
     name: 'Study Orders - Submit',
-    sticky: `## POST /study-orders/submit\n\nEnvía la orden a la clínica. A partir de acá es **inmutable**.\n\n**Body:** \`{ "id": "uuid" }\`\n\n**409** si ya fue enviada, si no le pertenece al sujeto, o si no tiene ninguna línea.\n\n**Fase 2:** enganchar acá el sub-workflow \`Create Bulk Notification\` con \`type: study_order_submitted\` y los canales \`recepcionista\` y \`administrador\`, para que la recepción se entere en el momento.`,
+    sticky: `## POST /study-orders/submit\n\nEnvía la orden a la clínica. A partir de acá es **inmutable**.\n\n**Body:** \`{ "id": "uuid" }\`\n\n**409** si ya fue enviada, si no le pertenece al sujeto, si no tiene ninguna línea o si le quedan puntos a revisar bloqueantes (borrador creado al derivar desde WhatsApp).\n\n**Fase 2:** enganchar acá el sub-workflow \`Create Bulk Notification\` con \`type: study_order_submitted\` y los canales \`recepcionista\` y \`administrador\`, para que la recepción se entere en el momento.`,
     method: 'POST',
     path: 'study-orders/submit',
     id: 'submit',
@@ -343,7 +343,14 @@ return [{ json: { user_id: String(userId), id } }];`.trim(),
         eventType: 'study_order_submitted',
     },
     format: formatCode(`
+const pendingReview = Number(rows[0]?.pending_review || 0);
 if (!rows.length || !rows[0].id) {
+  if (pendingReview > 0) {
+    return [{ json: { __error: true, __code: 409,
+      __message: pendingReview === 1
+        ? 'La orden no se puede enviar: queda 1 punto sin revisar contra el original'
+        : 'La orden no se puede enviar: quedan ' + pendingReview + ' puntos sin revisar contra el original' } }];
+  }
   return [{ json: { __error: true, __code: 409,
     __message: 'La orden no se puede enviar: ya fue enviada, no te pertenece o no tiene estudios' } }];
 }
@@ -1103,6 +1110,37 @@ if (!rows.length || !rows[0].id) {
     __message: 'No se pudo marcar como resuelta: ya estaba resuelta, no está derivada o no tenés permiso' } }];
 }
 return [{ json: { __data: rows[0], __message: 'Derivación resuelta' } }];`),
+});
+
+// ── 22. POST /study-orders/review-items/update ───────────────────────────────
+workflows.push({
+    file: 'study-orders-review-item-update.json',
+    name: 'Study Orders - Review Item Update',
+    sticky: `## POST /study-orders/review-items/update\n\nMarca un punto a revisar de la orden (lo que el agente de WhatsApp no tuvo claro al leerla).\n\n**Body:** \`{ "order_id": "uuid", "item_id": "a1b2c3d4e5f6", "status": "confirmed | corrected | dismissed | pending", "note": "opcional" }\`\n\nMismo alcance que editar la orden (la propia o, con VIEW_ALL, cualquiera); una orden anulada no se toca. Queda en la línea de tiempo (\`review_updated\`). Devuelve \`pending_blocking\`: cuántos bloqueantes quedan.\n\n**409** si el punto no existe, no es de esa orden o no hay permiso.`,
+    method: 'POST',
+    path: 'study-orders/review-items/update',
+    id: 'review-update',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const b = $json.body || {};
+const orderId = (b.order_id || '').toString().trim();
+const itemId = (b.item_id || '').toString().trim();
+const status = (b.status || '').toString().trim();
+if (!orderId || !/^[0-9a-f]{12}$/.test(itemId)) return [{ json: { __error: true, __code: 400, __message: 'order_id e item_id son requeridos' } }];
+if (!['pending', 'confirmed', 'corrected', 'dismissed'].includes(status)) {
+  return [{ json: { __error: true, __code: 400, __message: 'status debe ser confirmed, corrected, dismissed o pending' } }];
+}
+const note = (b.note || '').toString().trim().slice(0, 500);
+return [{ json: { user_id: String(userId), payload: JSON.stringify({ order_id: orderId, item_id: itemId, status, note }) } }];`.trim(),
+    sql: REVIEW_ITEM_UPDATE_SQL,
+    replacement: '={{ [ $json.user_id, $json.payload ] }}',
+    format: formatCode(`
+if (!rows.length || !rows[0].id) {
+  return [{ json: { __error: true, __code: 409,
+    __message: 'No se pudo marcar el punto: no existe, no es de esta orden o no tenés permiso' } }];
+}
+return [{ json: { __data: rows[0], __message: 'Punto actualizado' } }];`),
 });
 
 for (const wf of workflows) {
