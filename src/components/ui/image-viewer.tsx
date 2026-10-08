@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 import { cn } from '@/lib/utils';
+import type { NormalizedBox } from '@/lib/types';
 
 /**
  * Visor de archivos compartido: imágenes con zoom y arrastre, PDF dentro del
@@ -40,9 +41,32 @@ interface ZoomPanImageProps {
   src: string;
   alt?: string;
   className?: string;
+  /**
+   * Zona a señalar (0 a 1000 sobre la imagen): se dibuja encima, se oscurece el resto y se hace
+   * zoom hasta ella. Es aproximada, así que se agranda un poco para no cortar el dato.
+   */
+  highlight?: NormalizedBox | null;
+  /** Cambia cada vez que se pide ir a la zona, aunque sea la misma (vuelve a centrarla). */
+  highlightKey?: string | number;
 }
 
-export function ZoomPanImage({ src, alt = '', className }: ZoomPanImageProps) {
+/** Margen alrededor de la zona señalada (en milésimas): la ubicación del modelo es aproximada. */
+const HIGHLIGHT_PAD = 30;
+const HIGHLIGHT_MIN = 60;
+
+/** La zona con margen y un tamaño mínimo, dentro de la imagen. */
+function padBox(box: NormalizedBox): NormalizedBox {
+  const grow = (a: number, b: number) => {
+    const half = Math.max((b - a) / 2 + HIGHLIGHT_PAD, HIGHLIGHT_MIN / 2);
+    const center = (a + b) / 2;
+    return [Math.max(0, center - half), Math.min(1000, center + half)] as const;
+  };
+  const [top, bottom] = grow(box.top, box.bottom);
+  const [left, right] = grow(box.left, box.right);
+  return { top, left, bottom, right };
+}
+
+export function ZoomPanImage({ src, alt = '', className, highlight = null, highlightKey }: ZoomPanImageProps) {
   const t = useTranslations('FileViewer');
   const [zoom, setZoom] = React.useState(1);
   const [position, setPosition] = React.useState({ x: 0, y: 0 });
@@ -51,6 +75,43 @@ export function ZoomPanImage({ src, alt = '', className }: ZoomPanImageProps) {
   const draggingRef = React.useRef(false);
   const dragStart = React.useRef({ x: 0, y: 0 });
   const areaRef = React.useRef<HTMLDivElement>(null);
+  const imgRef = React.useRef<HTMLImageElement>(null);
+  /** Caja de la imagen sin transformar (dentro del área): el resaltado se dibuja sobre ella. */
+  const [frame, setFrame] = React.useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  const zone = React.useMemo(() => (highlight ? padBox(highlight) : null), [highlight]);
+
+  const measure = React.useCallback(() => {
+    const img = imgRef.current;
+    if (!img || !img.offsetWidth) return;
+    setFrame({ left: img.offsetLeft, top: img.offsetTop, width: img.offsetWidth, height: img.offsetHeight });
+  }, []);
+
+  React.useEffect(() => {
+    const img = imgRef.current;
+    const area = areaRef.current;
+    if (!img || !area || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(img);
+    observer.observe(area);
+    return () => observer.disconnect();
+  }, [measure]);
+
+  // Ir a la zona: zoom para que ocupe más o menos la mitad del área, y centrada.
+  React.useEffect(() => {
+    const area = areaRef.current;
+    if (!zone || !frame || !area) return;
+    const boxW = ((zone.right - zone.left) / 1000) * frame.width;
+    const boxH = ((zone.bottom - zone.top) / 1000) * frame.height;
+    const next = Math.max(1, Math.min(6, (area.clientWidth * 0.55) / boxW, (area.clientHeight * 0.55) / boxH));
+    // El zoom es desde el centro de la imagen: se corre la imagen para que el centro de la zona
+    // quede en el centro del área.
+    const dx = ((zone.left + zone.right) / 2000 - 0.5) * frame.width;
+    const dy = ((zone.top + zone.bottom) / 2000 - 0.5) * frame.height;
+    setZoom(next);
+    setPosition({ x: -dx * next, y: -dy * next });
+    // `frame` no va: ajustar la ventana no tiene que volver a mover lo que la persona movió.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zone, highlightKey, frame !== null]);
 
   // La rueda se registra a mano y no con onWheel: React la agrega como listener
   // pasivo y ahí preventDefault() no hace nada, así que la rueda además movía la página.
@@ -98,7 +159,7 @@ export function ZoomPanImage({ src, alt = '', className }: ZoomPanImageProps) {
       <div
         ref={areaRef}
         className={cn(
-          'flex-1 w-full overflow-hidden flex items-center justify-center bg-black/80 touch-none',
+          'relative flex-1 w-full overflow-hidden flex items-center justify-center bg-black/80 touch-none',
           isDragging ? 'cursor-grabbing' : 'cursor-grab',
         )}
         onPointerDown={handlePointerDown}
@@ -110,6 +171,7 @@ export function ZoomPanImage({ src, alt = '', className }: ZoomPanImageProps) {
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
+          ref={imgRef}
           src={src}
           alt={alt}
           className="max-w-full max-h-full object-contain transform-gpu select-none"
@@ -118,7 +180,33 @@ export function ZoomPanImage({ src, alt = '', className }: ZoomPanImageProps) {
             transition: isDragging ? 'none' : 'transform 0.1s ease-out',
           }}
           draggable={false}
+          onLoad={measure}
         />
+        {/* La zona va en una capa con la misma caja y la misma transformación que la imagen:
+            acompaña el zoom y el arrastre sin cálculos. */}
+        {zone && frame && (
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute transform-gpu"
+            style={{
+              left: frame.left, top: frame.top, width: frame.width, height: frame.height,
+              transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
+              transition: isDragging ? 'none' : 'transform 0.1s ease-out',
+            }}
+          >
+            <div
+              className="absolute rounded-sm border-amber-400"
+              style={{
+                top: `${zone.top / 10}%`,
+                left: `${zone.left / 10}%`,
+                height: `${(zone.bottom - zone.top) / 10}%`,
+                width: `${(zone.right - zone.left) / 10}%`,
+                borderWidth: 2 / zoom,
+                boxShadow: '0 0 0 100vmax rgba(0, 0, 0, 0.45)',
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Controls bar */}

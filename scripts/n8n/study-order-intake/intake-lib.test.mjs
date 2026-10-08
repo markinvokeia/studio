@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import {
     buildExtractionSchema, buildSystemPrompt, isValidCedulaUY, normalizeDocument,
     similarNames, validateExtraction, compareLateFiles, buildOrderDraft, collectFieldConfidence, buildReviewItems,
-    validateImport, buildImportOrderPayload,
+    validateImport, buildImportOrderPayload, sourceOf,
 } from './intake-lib.mjs';
 
 // Un recorte del catálogo real (ids y códigos de ci-orden:*).
@@ -239,8 +239,10 @@ test('esquema de extracción: estricto y con los ids del catálogo', () => {
             for (const [k, v] of Object.entries(node.properties)) check(v, `${path}.${k}`);
         }
         if (node && node.type === 'array' && node.items) check(node.items, `${path}[]`);
+        for (const [i, alt] of ((node && node.anyOf) || []).entries()) check(alt, `${path}|${i}`);
     };
     check(schema);
+    for (const [k, def] of Object.entries(schema.$defs || {})) check(def, `$defs.${k}`);
     assert.deepEqual(schema.properties.items.items.properties.external_id.enum, catalog.map((s) => s.external_id));
 });
 
@@ -688,4 +690,89 @@ test('importación: el cuerpo del borrador lleva el intake, el paciente y los es
     });
     assert.equal(empty.patient_name, 'Sin nombre');
     assert.deepEqual(empty.items, []);
+});
+
+// ---------------------------------------------------------------------------
+// Ubicación de cada dato en los originales (v4)
+// ---------------------------------------------------------------------------
+const at = (file, box = { top: 100, left: 200, bottom: 150, right: 600 }, extra = {}) =>
+    ({ file, page: 1, box, zone: 'Datos del paciente', quote: 'C.I. 1.234.567-2', ...extra });
+
+test('esquema v4: cada dato lleva su ubicación y los archivos son un enum', () => {
+    const schema = buildExtractionSchema(catalog, options, [{ attachment_id: 41 }, { attachment_id: 42 }]);
+    const def = schema.$defs.source.anyOf[0];
+    assert.deepEqual(def.properties.file.enum, ['41', '42']);
+    assert.deepEqual(schema.$defs.source.anyOf[1], { type: 'null' });
+    const ref = { $ref: '#/$defs/source' };
+    assert.deepEqual(schema.properties.patient.properties.document_source, ref);
+    assert.deepEqual(schema.properties.doctor.properties.name_source, ref);
+    assert.deepEqual(schema.properties.order_date_source, ref);
+    for (const list of ['items', 'modifiers', 'regions', 'texts', 'delivery_methods', 'unmatched_text_lines', 'unreadable_fields']) {
+        assert.deepEqual(schema.properties[list].items.properties.source, ref, list);
+    }
+    // Sin archivos conocidos (p. ej. la medición offline) el id es texto libre.
+    assert.equal(buildExtractionSchema(catalog, options).$defs.source.anyOf[0].properties.file.enum, undefined);
+});
+
+test('prompt v4: explica cómo ubicar cada dato', () => {
+    const p = buildSystemPrompt(catalog, options);
+    assert.match(p, /UBICACIÓN DE CADA DATO/);
+    assert.match(p, /0 a 1000/);
+});
+
+test('sourceOf: normaliza, descarta recuadros inválidos y es idempotente', () => {
+    const s = sourceOf(at(41, { top: 120.4, left: -5, bottom: 1200, right: 600 }));
+    assert.deepEqual(s, { attachment_id: '41', page: 1, box: { top: 120, left: 0, bottom: 1000, right: 600 }, zone: 'Datos del paciente', quote: 'C.I. 1.234.567-2' });
+    assert.deepEqual(sourceOf(s), s);
+    // Al revés o incompleto: sin recuadro, pero se conservan archivo, zona y cita.
+    assert.equal(sourceOf(at(41, { top: 500, left: 0, bottom: 400, right: 100 })).box, null);
+    assert.equal(sourceOf(at(41, { top: 1, left: 2, bottom: null, right: 4 })).box, null);
+    assert.equal(sourceOf(at(41, null, { page: 0 })).page, 1);
+    assert.equal(sourceOf(null), null);
+    assert.equal(sourceOf({ file: '', page: 1, box: null, zone: '', quote: '' }), null);
+});
+
+test('confianza por dato: cada campo lleva dónde se leyó', () => {
+    const fields = collectFieldConfidence(extraction({
+        patient: { name: 'Juan Gómez', name_confidence: 0.9, name_source: at(41), document: VALID_CI, document_confidence: 0.6, document_source: at(41), document_type: 'cedula', birth_date: null, phone: null },
+        items: [{ external_id: 'ci-orden:svc:opt', notes: null, confidence: 0.5, source: at(42, null, { zone: 'Extraorales', quote: 'Panorámica' }) }],
+        regions: [{ section_code: 'CONEBEAM', teeth: [{ tooth: '36', confidence: 0.6 }, { tooth: '37', confidence: 0.9 }], source: at(42) }],
+        unmatched_text_lines: [{ text: 'Estudio raro', confidence: 0.8, source: at(42) }],
+    }), catalog, options);
+    const byField = Object.fromEntries(fields.map((f) => [f.field, f.source]));
+    assert.equal(byField['patient.document'].attachment_id, '41');
+    assert.equal(byField['items.ci-orden:svc:opt'].box, null);
+    assert.equal(byField['items.ci-orden:svc:opt'].quote, 'Panorámica');
+    assert.equal(byField['regions.CONEBEAM.36'].attachment_id, '42');
+    assert.equal(byField['regions.CONEBEAM.37'].attachment_id, '42');
+    assert.equal(byField.unmatched_text_lines.attachment_id, '42');
+    assert.equal(byField.is_study_order, null);
+});
+
+test('puntos a revisar: la lectura dudosa, el dato ilegible y el estudio fuera del catálogo llevan su ubicación', () => {
+    const r = run({
+        items: [{ external_id: 'ci-orden:svc:opt', notes: null, confidence: 0.5, source: at(42) }],
+        unmatched_text_lines: [{ text: 'Estudio raro', confidence: 0.8, source: at(41, null, { quote: 'Estudio raro' }) }],
+        unreadable_fields: [{ field: 'teléfono', source: at(41) }],
+    });
+    const bySrc = Object.fromEntries(r.review_items.map((i) => [`${i.code}|${i.field}`, i.source]));
+    assert.equal(bySrc['low_confidence|items.ci-orden:svc:opt'].attachment_id, '42');
+    assert.equal(bySrc['not_in_catalog|unmatched:Estudio raro'].quote, 'Estudio raro');
+    assert.equal(bySrc['unreadable|unreadable:teléfono'].attachment_id, '41');
+    assert.equal(bySrc['handoff_reason|service_not_found'], null);
+});
+
+test('ilegibles: se aceptan los strings de v3 y los objetos de v4', () => {
+    const v3 = run({ unreadable_fields: ['firma'] }, { prior: {} });
+    const v4 = run({ unreadable_fields: [{ field: 'firma', source: at(41) }] });
+    for (const r of [v3, v4]) assert.ok(r.warnings.some((w) => w.code === 'unreadable_fields' && w.detail === 'firma'));
+});
+
+test('importación: la cédula inválida apunta a dónde está escrita', () => {
+    const r = runImport({
+        patient: { name: 'Juan Gómez', name_confidence: 0.95, document: '1.234.567-3', document_confidence: 0.95, document_source: at(41), document_type: 'cedula', birth_date: null, phone: null },
+    });
+    const item = r.review_items.find((i) => i.code === 'invalid_document');
+    assert.equal(item.source.attachment_id, '41');
+    assert.equal(item.source.box.top, 100);
 });

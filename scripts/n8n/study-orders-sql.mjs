@@ -563,7 +563,7 @@ SELECT u.id::text, u.order_number, u.doctor_id::text, u.patient_name, u.submitte
  * leerla, `buildReviewItems` de intake-lib.mjs) en `study_orders.review_items`. Lo usa el agente:
  * al crear el borrador de una derivación (bloqueantes) y al agendar una orden él solo (informativos).
  *
- * Cada punto: { id, code, field, label, value_read, confidence, detail, section_code, blocking, status,
+ * Cada punto: { id, code, field, label, value_read, confidence, detail, section_code, source, blocking, status,
  *               resolution_note, reviewed_by, reviewed_by_name, reviewed_at, created_at }.
  * `id` = los 12 primeros caracteres del md5 de code|field: el mismo punto no se agrega dos veces.
  */
@@ -584,6 +584,9 @@ WITH incoming AS (
                  'detail', e ->> 'detail',
                  -- Sección del formulario donde está el dato: el asistente muestra la advertencia en ese paso.
                  'section_code', NULLIF(e ->> 'section_code', ''),
+                 -- Dónde está el dato en los originales ({ attachment_id, page, box, zone, quote }): el
+                 -- asistente abre ese archivo y resalta la zona.
+                 'source', CASE WHEN jsonb_typeof(e -> 'source') = 'object' THEN e -> 'source' END,
                  'blocking', $3::boolean,
                  'status', 'pending',
                  'created_at', replace(to_char(${NOW}, 'YYYY-MM-DD HH24:MI:SS'), ' ', 'T')) AS item,

@@ -166,12 +166,20 @@ const metas = $('Split Files').all().map((i) => i.json);
 const items = $input.all();
 
 const parts = [{ type: 'text', text: 'Transcribí la orden de estudios que figura en los archivos adjuntos (pueden ser el frente y el dorso o varias hojas de la misma orden).' }];
+// Cada archivo va precedido de su id (attachments.id): el modelo lo usa para decir dónde leyó cada
+// dato (v4) y el frontend abre ese mismo original. Solo entran al enum los que se mandaron.
+const sent = [];
 for (let i = 0; i < items.length; i++) {
   const bin = items[i].binary && items[i].binary.data;
   if (!bin) continue;
   const buf = await this.helpers.getBinaryDataBuffer(i, 'data');
   const mime = String((metas[i] && metas[i].mime_type) || bin.mimeType || 'application/octet-stream').split(';')[0];
   const dataUrl = 'data:' + mime + ';base64,' + buf.toString('base64');
+  const attachmentId = String((metas[i] && metas[i].attachment_id) || '');
+  if (attachmentId) {
+    sent.push({ attachment_id: attachmentId });
+    parts.push({ type: 'text', text: 'ARCHIVO ' + attachmentId + (mime === 'application/pdf' ? ' (PDF, varias páginas posibles)' : ' (imagen)') });
+  }
   if (mime === 'application/pdf') {
     parts.push({ type: 'file', file: { filename: (metas[i] && metas[i].file_name) || ('orden-' + i + '.pdf'), file_data: dataUrl } });
   } else {
@@ -187,10 +195,10 @@ const body = {
   ],
   response_format: {
     type: 'json_schema',
-    json_schema: { name: 'study_order_extraction', strict: true, schema: buildExtractionSchema(ctx.catalog, ctx.options) },
+    json_schema: { name: 'study_order_extraction', strict: true, schema: buildExtractionSchema(ctx.catalog, ctx.options, sent) },
   },
 };
-return [{ json: { body, model: ctx.config.vision_model, files_sent: parts.length - 1, started_at: Date.now() } }];`,
+return [{ json: { body, model: ctx.config.vision_model, files_sent: parts.filter((p) => p.type !== 'text').length, files: sent, started_at: Date.now() } }];`,
 }, [x(5), 180]);
 link('Drive Download', 'Build Vision Request');
 
@@ -213,6 +221,7 @@ const res = $input.first().json || {};
 const meta = {
   model: req.model,
   files_sent: req.files_sent,
+  files: req.files,
   latency_ms: Date.now() - req.started_at,
   usage: res.usage || null,
   prompt_version: '${PROMPT_VERSION}',

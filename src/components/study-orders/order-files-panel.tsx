@@ -1,13 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { AlertCircle, Download, FileText, Loader2 } from 'lucide-react';
+import { AlertCircle, Download, FileText, Loader2, LocateFixed, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { ZoomPanImage, getFileViewerKind } from '@/components/ui/image-viewer';
 
 import { Thumbnail, useOrderFiles, type OrderFile, type OrderFileLoader } from './order-file-gallery';
+import type { OriginalFocus } from './review-locate';
 
 import { isAbortError } from '@/services/api';
 import { cn } from '@/lib/utils';
@@ -17,15 +18,20 @@ import { cn } from '@/lib/utils';
  * archivo elegido en grande (con zoom y arrastre, o el PDF adentro) y una tira
  * de miniaturas para cambiar de archivo. Es lo que permite pasar la orden del
  * papel al sistema sin abrir y cerrar un visor por cada dato.
+ *
+ * Con `focus` (un punto a revisar que dice dónde se leyó el dato) abre ese archivo, va a esa página
+ * del PDF o hace zoom a esa zona de la imagen, y arriba recuerda qué dato buscar y qué dice ahí.
  */
 
 export interface OrderFilesPanelProps {
     files: OrderFile[];
     loadFile: OrderFileLoader;
+    focus?: OriginalFocus | null;
+    onClearFocus?: () => void;
     className?: string;
 }
 
-export function OrderFilesPanel({ files, loadFile, className }: OrderFilesPanelProps) {
+export function OrderFilesPanel({ files, loadFile, focus = null, onClearFocus, className }: OrderFilesPanelProps) {
     const t = useTranslations('FileViewer');
     const tCommon = useTranslations('Common');
     const { urls, failed, load } = useOrderFiles(files, loadFile);
@@ -33,6 +39,13 @@ export function OrderFilesPanel({ files, loadFile, className }: OrderFilesPanelP
     const [selectedId, setSelectedId] = React.useState<string | null>(files[0]?.id ?? null);
     const [status, setStatus] = React.useState<'idle' | 'loading' | 'error'>('idle');
     const [retryKey, setRetryKey] = React.useState(0);
+
+    // Ir al archivo del dato. Por `key`: tocar de nuevo el mismo punto vuelve a llevar ahí aunque
+    // la persona haya cambiado de archivo.
+    const focusFileId = focus?.fileId && files.some((f) => f.id === focus.fileId) ? focus.fileId : null;
+    React.useEffect(() => {
+        if (focusFileId) { setSelectedId(focusFileId); setRetryKey(0); }
+    }, [focusFileId, focus?.key]);
 
     const selected = files.find((f) => f.id === selectedId) ?? files[0] ?? null;
     const url = selected ? urls[selected.id] : undefined;
@@ -59,13 +72,25 @@ export function OrderFilesPanel({ files, loadFile, className }: OrderFilesPanelP
     }
 
     const kind = getFileViewerKind(selected.name, selected.mimeType);
+    const focusHere = !!focus && focusFileId === selected.id;
+    // El visor de PDF del navegador abre en la página pedida con `#page=`; la zona no se puede marcar.
+    const pdfUrl = url && focusHere && focus.page > 1 ? `${url}#page=${focus.page}` : url;
 
     let body: React.ReactNode;
     if (url) {
         body = kind === 'image'
-            ? <ZoomPanImage key={url} src={url} alt={selected.name} className="h-full" />
+            ? (
+                <ZoomPanImage
+                    key={url}
+                    src={url}
+                    alt={selected.name}
+                    className="h-full"
+                    highlight={focusHere ? focus.box : null}
+                    highlightKey={focus?.key}
+                />
+            )
             : kind === 'pdf'
-                ? <iframe src={url} title={selected.name} className="h-full w-full border-0 bg-white" />
+                ? <iframe key={pdfUrl ?? undefined} src={pdfUrl ?? undefined} title={selected.name} className="h-full w-full border-0 bg-white" />
                 : (
                     <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
                         <FileText className="h-10 w-10 text-muted-foreground" aria-hidden="true" />
@@ -102,6 +127,45 @@ export function OrderFilesPanel({ files, loadFile, className }: OrderFilesPanelP
                     </Button>
                 )}
             </div>
+
+            {focus && (
+                <div className="flex items-start gap-2 border-b border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs" role="status">
+                    <LocateFixed className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden="true" />
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                        <p className="break-words font-medium">{focus.label}</p>
+                        {(focus.zone || focus.quote) && (
+                            <p className="break-words text-muted-foreground">
+                                {focus.zone}
+                                {focus.zone && focus.quote && ' · '}
+                                {focus.quote && <span className="italic">“{focus.quote}”</span>}
+                            </p>
+                        )}
+                        {/* Sin recuadro (o en un PDF) solo se sabe el archivo y la página. */}
+                        {(!focusFileId || (focusHere && (!focus.box || kind !== 'image'))) && (
+                            <p className="text-muted-foreground">
+                                {!focusFileId
+                                    ? t('focus.noFile')
+                                    : kind === 'pdf'
+                                        ? t('focus.pdfPage', { page: focus.page })
+                                        : t('focus.noBox')}
+                            </p>
+                        )}
+                    </div>
+                    {onClearFocus && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 shrink-0"
+                            onClick={onClearFocus}
+                            aria-label={t('focus.clear')}
+                            title={t('focus.clear')}
+                        >
+                            <X className="h-3.5 w-3.5" aria-hidden="true" />
+                        </Button>
+                    )}
+                </div>
+            )}
 
             <div className="min-h-0 flex-1">{body}</div>
 
