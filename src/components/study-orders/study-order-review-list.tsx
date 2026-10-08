@@ -6,13 +6,14 @@ import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 
-import { useKeyedAsyncAction } from '@/hooks/use-async-action';
+import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatDateTime } from '@/lib/utils';
-import type { StudyOrderReviewItem, StudyOrderReviewStatus } from '@/lib/types';
-import { updateStudyOrderReviewItem } from '@/services/study-orders';
+import type { StudyOrderReviewItem, StudyOrderReviewStatus, StudyOrderReviewUpdateResult } from '@/lib/types';
+import { updateStudyOrderReviewItems } from '@/services/study-orders';
 
 /**
  * Puntos a revisar de una orden: lo que el agente de WhatsApp no tuvo claro al leerla (lectura
@@ -21,6 +22,10 @@ import { updateStudyOrderReviewItem } from '@/services/study-orders';
  *
  * En el borrador creado al derivar los puntos son bloqueantes: la orden no se envía con alguno
  * pendiente. En una orden que el agente agendó solo son una lista de verificación.
+ *
+ * Con dos o más pendientes se pueden seleccionar y marcar juntos (misma resolución y misma nota).
+ * La selección es explícita, punto por punto o con "seleccionar pendientes": no hay un "confirmar
+ * todo" de un clic, porque la idea es haber mirado cada uno contra el original.
  */
 
 export interface StudyOrderReviewListProps {
@@ -57,30 +62,74 @@ export function StudyOrderReviewList({ orderId, items, canReview, onChanged, var
     /** Notas en curso, por punto. Se abre el campo solo si la persona quiere dejar una. */
     const [notes, setNotes] = React.useState<Record<string, string>>({});
     const [noteOpen, setNoteOpen] = React.useState<Record<string, boolean>>({});
+    /** Puntos elegidos para marcar en lote. Solo cuentan los que siguen pendientes. */
+    const [selected, setSelected] = React.useState<ReadonlySet<string>>(() => new Set());
+    const [bulkNote, setBulkNote] = React.useState('');
+    const [bulkNoteOpen, setBulkNoteOpen] = React.useState(false);
+
+    const pendingIds = React.useMemo(() => items.filter((i) => i.status === 'pending').map((i) => i.id), [items]);
+    const selectedIds = React.useMemo(() => pendingIds.filter((id) => selected.has(id)), [pendingIds, selected]);
+
+    const afterUpdate = async (result: StudyOrderReviewUpdateResult, requested: number) => {
+        const skipped = requested - result.updated;
+        const description = [
+            skipped > 0 ? t('toast.skipped', { count: skipped }) : null,
+            result.pending_blocking > 0 ? t('toast.pendingBlocking', { count: result.pending_blocking }) : null,
+        ].filter(Boolean).join(' ');
+        toast({
+            title: requested > 1 ? t('toast.bulkUpdated', { count: result.updated }) : t('toast.updated'),
+            description: description || undefined,
+        });
+        const done = new Set(result.item_ids);
+        const keep = <T,>(prev: Record<string, T>) =>
+            Object.fromEntries(Object.entries(prev).filter(([id]) => !done.has(id))) as Record<string, T>;
+        setNotes(keep);
+        setNoteOpen(keep);
+        setSelected((prev) => new Set([...prev].filter((id) => !done.has(id))));
+        await onChanged?.();
+    };
 
     const mark = useKeyedAsyncAction(
         (item: StudyOrderReviewItem, status: StudyOrderReviewStatus) =>
-            updateStudyOrderReviewItem({ orderId, itemId: item.id, status, note: status === 'pending' ? '' : notes[item.id] }),
+            updateStudyOrderReviewItems({ orderId, itemIds: [item.id], status, note: status === 'pending' ? '' : notes[item.id] }),
         {
-            onSuccess: async (result) => {
-                toast({
-                    title: t('toast.updated'),
-                    description: result.pending_blocking > 0
-                        ? t('toast.pendingBlocking', { count: result.pending_blocking })
-                        : undefined,
-                });
-                setNotes((prev) => ({ ...prev, [result.id]: '' }));
-                setNoteOpen((prev) => ({ ...prev, [result.id]: false }));
-                await onChanged?.();
+            onSuccess: (result) => afterUpdate(result, 1),
+            errorTitle: t('toast.error'),
+        },
+    );
+
+    const bulk = useAsyncAction(
+        async (ids: string[], status: Exclude<StudyOrderReviewStatus, 'pending'>) => ({
+            result: await updateStudyOrderReviewItems({ orderId, itemIds: ids, status, note: bulkNote }),
+            requested: ids.length,
+        }),
+        {
+            onSuccess: async ({ result, requested }) => {
+                setBulkNote('');
+                setBulkNoteOpen(false);
+                await afterUpdate(result, requested);
             },
             errorTitle: t('toast.error'),
         },
     );
 
+    const toggleSelected = (id: string, checked: boolean) => {
+        setSelected((prev) => {
+            const next = new Set(prev);
+            if (checked) next.add(id);
+            else next.delete(id);
+            return next;
+        });
+    };
+
     if (items.length === 0) return null;
 
     const pending = items.filter((i) => i.status === 'pending');
     const pendingBlocking = countPendingBlocking(items);
+    /** Con un solo pendiente el lote no aporta nada: quedan los botones de siempre. */
+    const selectable = canReview && pending.length >= 2;
+    const allSelected = selectedIds.length === pending.length;
+    const anyBusy = bulk.isPending || mark.hasPending;
 
     return (
         <section className={cn('space-y-3', className)} aria-label={t('title')}>
@@ -100,10 +149,68 @@ export function StudyOrderReviewList({ orderId, items, canReview, onChanged, var
             </p>
             </>)}
 
+            {selectable && (
+                <div className="space-y-2 rounded-lg border bg-muted/40 px-3 py-2">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                        <label className="flex cursor-pointer items-center gap-2 text-sm">
+                            <Checkbox
+                                checked={allSelected ? true : selectedIds.length > 0 ? 'indeterminate' : false}
+                                onCheckedChange={(checked) => setSelected(checked === true ? new Set(pendingIds) : new Set())}
+                                disabled={anyBusy}
+                            />
+                            {selectedIds.length > 0
+                                ? t('bulk.selected', { count: selectedIds.length })
+                                : t('bulk.selectPending', { count: pending.length })}
+                        </label>
+                        {selectedIds.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5 sm:ml-auto">
+                                <Button size="sm" variant="outline" className="h-7 px-2 text-xs"
+                                    loading={bulk.isPending} disabled={anyBusy}
+                                    onClick={() => void bulk.run(selectedIds, 'confirmed')}>
+                                    <Check className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                                    {t('actions.confirm')}
+                                </Button>
+                                <Button size="sm" variant="outline" className="h-7 px-2 text-xs"
+                                    disabled={anyBusy}
+                                    onClick={() => void bulk.run(selectedIds, 'corrected')}>
+                                    <Pencil className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                                    {t('actions.corrected')}
+                                </Button>
+                                <Button size="sm" variant="ghost" className="h-7 px-2 text-xs"
+                                    disabled={anyBusy}
+                                    onClick={() => void bulk.run(selectedIds, 'dismissed')}>
+                                    <X className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                                    {t('actions.dismiss')}
+                                </Button>
+                                {!bulkNoteOpen && (
+                                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground"
+                                        disabled={anyBusy}
+                                        onClick={() => setBulkNoteOpen(true)}>
+                                        <MessageSquarePlus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                                        {t('actions.addNote')}
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    {selectedIds.length > 0 && bulkNoteOpen && (
+                        <Input
+                            value={bulkNote}
+                            onChange={(e) => setBulkNote(e.target.value)}
+                            placeholder={t('bulk.notePlaceholder')}
+                            maxLength={500}
+                            disabled={anyBusy}
+                            className="h-8 text-sm"
+                            aria-label={t('bulk.notePlaceholder')}
+                        />
+                    )}
+                </div>
+            )}
+
             <ul className="space-y-2">
                 {items.map((item) => {
                     const isPending = item.status === 'pending';
-                    const busy = mark.isPending(item.id);
+                    const busy = mark.isPending(item.id) || bulk.isPending;
                     const confidence = confidencePercent(item.confidence);
                     const codeLabel = KNOWN_CODES.has(item.code) ? t(`code.${item.code}` as never) : item.code;
                     return (
@@ -113,9 +220,23 @@ export function StudyOrderReviewList({ orderId, items, canReview, onChanged, var
                                 'rounded-lg border p-3 text-sm',
                                 isPending && item.blocking && 'border-amber-500/50 bg-amber-500/5',
                                 !isPending && 'bg-muted/30',
+                                selectable && isPending && selected.has(item.id) && 'ring-1 ring-primary/40',
                             )}
                         >
                             <div className="flex items-start gap-2">
+                                {selectable && (
+                                    isPending ? (
+                                        <Checkbox
+                                            className="mt-0.5"
+                                            checked={selected.has(item.id)}
+                                            onCheckedChange={(checked) => toggleSelected(item.id, checked === true)}
+                                            disabled={busy}
+                                            aria-label={t('bulk.selectItem', { label: item.label })}
+                                        />
+                                    ) : (
+                                        <span className="w-4 shrink-0" aria-hidden="true" />
+                                    )
+                                )}
                                 {isPending ? (
                                     <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
                                 ) : (

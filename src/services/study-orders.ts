@@ -6,6 +6,7 @@ import type {
     StudyOrderFormOptions,
     StudyOrderListItem,
     StudyOrderReviewStatus,
+    StudyOrderReviewUpdateResult,
     StudyOrderSubmitResult,
     StudyOrderUpsertPayload,
 } from '@/lib/types';
@@ -167,24 +168,37 @@ export async function getWhatsappIntakeFile(intakeId: string, fileId: string, si
 }
 
 /**
- * Marca un punto a revisar de la orden. Devuelve cuántos bloqueantes quedan pendientes: con 0, el
- * borrador de una derivación ya se puede enviar.
+ * Marca uno o varios puntos a revisar de la orden con el mismo estado (y la misma nota), en una sola
+ * operación. Solo cambian los que siguen en el estado de partida (pendientes al resolver, resueltos
+ * al reabrir): `item_ids` trae los que efectivamente cambiaron. Devuelve cuántos bloqueantes quedan
+ * pendientes: con 0, el borrador de una derivación ya se puede enviar.
  */
-export async function updateStudyOrderReviewItem(params: {
+export async function updateStudyOrderReviewItems(params: {
     orderId: string;
-    itemId: string;
+    itemIds: string[];
     status: StudyOrderReviewStatus;
     note?: string;
-}): Promise<{ id: string; status: StudyOrderReviewStatus; pending_blocking: number }> {
+}): Promise<StudyOrderReviewUpdateResult> {
     const raw = await api.post(
         API_ROUTES.STUDY_ORDERS.REVIEW_ITEM_UPDATE,
-        { order_id: params.orderId, item_id: params.itemId, status: params.status, note: params.note?.trim() || undefined },
+        { order_id: params.orderId, item_ids: params.itemIds, status: params.status, note: params.note?.trim() || undefined },
         undefined,
         undefined,
         { timeoutMs: REQUEST_TIMEOUT_MS.mutation },
     );
-    const { data } = unwrap<{ id: string; status: StudyOrderReviewStatus; pending_blocking: number | string }>(raw);
-    return { ...data, pending_blocking: Number(data.pending_blocking ?? 0) };
+    const { data } = unwrap<{
+        order_id: string;
+        status: StudyOrderReviewStatus;
+        item_ids: string[] | null;
+        updated: number | string;
+        pending_blocking: number | string;
+    }>(raw);
+    return {
+        ...data,
+        item_ids: data.item_ids ?? [],
+        updated: Number(data.updated ?? 0),
+        pending_blocking: Number(data.pending_blocking ?? 0),
+    };
 }
 
 /** Sólo borradores. */

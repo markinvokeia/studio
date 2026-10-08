@@ -605,12 +605,16 @@ upd AS (
 SELECT order_number, total FROM upd;`;
 
 /**
- * Recepción marca un punto a revisar: confirmado (la lectura estaba bien), corregido (lo arregló
- * en la orden), descartado (no aplica) o de vuelta a pendiente. Queda en el punto (quién y cuándo)
- * y en la línea de tiempo.
+ * Recepción marca uno o varios puntos a revisar de una orden: confirmado (la lectura estaba bien),
+ * corregido (lo arregló en la orden), descartado (no aplica) o de vuelta a pendiente. Queda en cada
+ * punto (quién y cuándo) y en la línea de tiempo, un evento por punto.
+ *
+ * Solo cambian los puntos que siguen en el estado de partida (pendientes al resolver, resueltos al
+ * reabrir): un lote no pisa lo que otra persona resolvió mientras tanto. Todo o nada, en una sola
+ * sentencia.
  */
 export const REVIEW_ITEM_UPDATE_SQL = `
--- $1 userId (token)  $2 { order_id, item_id, status, note }
+-- $1 userId (token)  $2 { order_id, item_ids: [...], status, note }
 -- Mismo alcance que editar la orden: la propia o, con VIEW_ALL, cualquiera. Una orden anulada no se toca.
 WITH ${PERMS_CTE},
 p AS (
@@ -618,12 +622,27 @@ p AS (
            ($2::jsonb ->> 'status') = 'pending' AS reopen,
            (SELECT u.name FROM public.users u WHERE u.id = $1::uuid) AS reviewer_name
 ),
+cur AS (
+    -- La fila se bloquea antes de decidir qué puntos cambian: así se lee la versión vigente aunque
+    -- otra persona acabe de marcar algo en la misma orden.
+    SELECT so.id, coalesce(so.review_items, '[]'::jsonb) AS review_items
+      FROM public.study_orders so, p
+     WHERE so.id = (p.b ->> 'order_id')::uuid
+       AND so.status <> 'cancelled'
+       AND (p.b ->> 'status') IN ('pending', 'confirmed', 'corrected', 'dismissed')
+       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))
+       FOR UPDATE OF so
+),
+target AS (
+    SELECT x ->> 'id' AS id
+      FROM cur c, p, jsonb_array_elements(c.review_items) x
+     WHERE x ->> 'id' IN (SELECT jsonb_array_elements_text(coalesce(p.b -> 'item_ids', '[]'::jsonb)))
+       AND CASE WHEN p.reopen THEN x ->> 'status' <> 'pending' ELSE x ->> 'status' = 'pending' END
+),
 upd AS (
-    -- El arreglo se rearma desde la fila que se está actualizando: si otra persona marcó otro punto
-    -- al mismo tiempo, su cambio no se pierde.
     UPDATE public.study_orders so
        SET review_items = (
-             SELECT jsonb_agg(CASE WHEN x ->> 'id' = p.b ->> 'item_id'
+             SELECT jsonb_agg(CASE WHEN x ->> 'id' IN (SELECT id FROM target)
                                    THEN x || jsonb_build_object(
                                           'status', p.b ->> 'status',
                                           'resolution_note', NULLIF(trim(coalesce(p.b ->> 'note', '')), ''),
@@ -633,33 +652,33 @@ upd AS (
                                                               ELSE replace(to_char(${NOW}, 'YYYY-MM-DD HH24:MI:SS'), ' ', 'T') END)
                                    ELSE x END
                               ORDER BY t.ord)
-               FROM jsonb_array_elements(so.review_items) WITH ORDINALITY AS t(x, ord))
-      FROM p
-     WHERE so.id = (p.b ->> 'order_id')::uuid
-       AND so.status <> 'cancelled'
-       AND (p.b ->> 'status') IN ('pending', 'confirmed', 'corrected', 'dismissed')
-       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))
-       AND EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(so.review_items, '[]'::jsonb)) y
-                    WHERE y ->> 'id' = p.b ->> 'item_id')
+               FROM jsonb_array_elements(c.review_items) WITH ORDINALITY AS t(x, ord))
+      FROM cur c, p
+     WHERE so.id = c.id
+       AND EXISTS (SELECT 1 FROM target)
     RETURNING so.id, so.review_items
 ),
-item AS (
+items AS (
     SELECT u.id AS order_id, x AS it
-      FROM upd u, p, jsonb_array_elements(u.review_items) x
-     WHERE x ->> 'id' = p.b ->> 'item_id'
+      FROM upd u, jsonb_array_elements(u.review_items) x
+     WHERE x ->> 'id' IN (SELECT id FROM target)
 ),
 ev AS (
     INSERT INTO public.study_order_events (study_order_id, event_type, actor_id, actor_kind, metadata)
     SELECT i.order_id, 'review_updated', $1::uuid, 'user',
            jsonb_build_object('item_id', i.it ->> 'id', 'label', i.it ->> 'label', 'value', i.it ->> 'value_read',
                               'status', i.it ->> 'status', 'note', i.it ->> 'resolution_note')
-      FROM item i
+      FROM items i
     RETURNING id
 )
-SELECT i.it ->> 'id' AS id, i.it ->> 'status' AS status, i.it ->> 'resolution_note' AS resolution_note,
-       (SELECT count(*) FROM upd u, jsonb_array_elements(u.review_items) y
+SELECT u.id AS order_id,
+       p.b ->> 'status' AS status,
+       (SELECT jsonb_agg(i.it ->> 'id') FROM items i) AS item_ids,
+       (SELECT count(*) FROM items) AS updated,
+       (SELECT count(*) FROM jsonb_array_elements(u.review_items) y
          WHERE coalesce((y ->> 'blocking')::boolean, false) AND y ->> 'status' = 'pending') AS pending_blocking
-  FROM item i;`;
+  FROM upd u, p;`;
+
 
 export const DELETE_SQL = `
 -- $1 userId (token)  $2 id. Sólo borradores propios; las líneas caen por CASCADE.

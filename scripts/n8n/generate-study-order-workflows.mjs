@@ -1116,7 +1116,15 @@ return [{ json: { __data: rows[0], __message: 'Derivación resuelta' } }];`),
 workflows.push({
     file: 'study-orders-review-item-update.json',
     name: 'Study Orders - Review Item Update',
-    sticky: `## POST /study-orders/review-items/update\n\nMarca un punto a revisar de la orden (lo que el agente de WhatsApp no tuvo claro al leerla).\n\n**Body:** \`{ "order_id": "uuid", "item_id": "a1b2c3d4e5f6", "status": "confirmed | corrected | dismissed | pending", "note": "opcional" }\`\n\nMismo alcance que editar la orden (la propia o, con VIEW_ALL, cualquiera); una orden anulada no se toca. Queda en la línea de tiempo (\`review_updated\`). Devuelve \`pending_blocking\`: cuántos bloqueantes quedan.\n\n**409** si el punto no existe, no es de esa orden o no hay permiso.`,
+    sticky: `## POST /study-orders/review-items/update
+
+Marca uno o varios puntos a revisar de la orden (lo que el agente de WhatsApp no tuvo claro al leerla).
+
+**Body:** \`{ "order_id": "uuid", "item_ids": ["a1b2c3d4e5f6", ...], "status": "confirmed | corrected | dismissed | pending", "note": "opcional" }\`. Sigue aceptando \`item_id\` (un solo punto).
+
+Mismo alcance que editar la orden (la propia o, con VIEW_ALL, cualquiera); una orden anulada no se toca. Solo cambian los puntos que siguen en el estado de partida (pendientes al resolver, resueltos al reabrir): un lote no pisa lo que otra persona resolvió. Todo en una sentencia. Un evento \`review_updated\` por punto. Devuelve \`item_ids\` / \`updated\` (los que cambiaron) y \`pending_blocking\`: cuántos bloqueantes quedan.
+
+**409** si ningún punto cambió: no existen, ya estaban en ese estado, no es de esa orden o no hay permiso.`,
     method: 'POST',
     path: 'study-orders/review-items/update',
     id: 'review-update',
@@ -1125,22 +1133,26 @@ const userId = $json.jwtPayload?.userId;
 if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
 const b = $json.body || {};
 const orderId = (b.order_id || '').toString().trim();
-const itemId = (b.item_id || '').toString().trim();
+// \`item_ids\` (lote) o \`item_id\` (un punto, como antes).
+const rawIds = Array.isArray(b.item_ids) ? b.item_ids : (b.item_id ? [b.item_id] : []);
+const itemIds = [...new Set(rawIds.map((id) => (id || '').toString().trim()))];
 const status = (b.status || '').toString().trim();
-if (!orderId || !/^[0-9a-f]{12}$/.test(itemId)) return [{ json: { __error: true, __code: 400, __message: 'order_id e item_id son requeridos' } }];
+if (!orderId || itemIds.length === 0 || itemIds.length > 200 || !itemIds.every((id) => /^[0-9a-f]{12}$/.test(id))) {
+  return [{ json: { __error: true, __code: 400, __message: 'order_id e item_ids son requeridos' } }];
+}
 if (!['pending', 'confirmed', 'corrected', 'dismissed'].includes(status)) {
   return [{ json: { __error: true, __code: 400, __message: 'status debe ser confirmed, corrected, dismissed o pending' } }];
 }
 const note = (b.note || '').toString().trim().slice(0, 500);
-return [{ json: { user_id: String(userId), payload: JSON.stringify({ order_id: orderId, item_id: itemId, status, note }) } }];`.trim(),
+return [{ json: { user_id: String(userId), payload: JSON.stringify({ order_id: orderId, item_ids: itemIds, status, note }) } }];`.trim(),
     sql: REVIEW_ITEM_UPDATE_SQL,
     replacement: '={{ [ $json.user_id, $json.payload ] }}',
     format: formatCode(`
-if (!rows.length || !rows[0].id) {
+if (!rows.length || !rows[0].order_id) {
   return [{ json: { __error: true, __code: 409,
-    __message: 'No se pudo marcar el punto: no existe, no es de esta orden o no tenés permiso' } }];
+    __message: 'No se pudo marcar: los puntos ya estaban revisados, no son de esta orden o no tenés permiso' } }];
 }
-return [{ json: { __data: rows[0], __message: 'Punto actualizado' } }];`),
+return [{ json: { __data: rows[0], __message: Number(rows[0].updated) === 1 ? 'Punto actualizado' : 'Puntos actualizados' } }];`),
 });
 
 for (const wf of workflows) {
