@@ -3568,6 +3568,15 @@ export interface StudyOrderReviewItem {
   created_at: string;
 }
 
+/** Resultado de marcar puntos a revisar: los que cambiaron y cuántos bloqueantes quedan. */
+export interface StudyOrderReviewUpdateResult {
+  order_id: string;
+  status: StudyOrderReviewStatus;
+  item_ids: string[];
+  updated: number;
+  pending_blocking: number;
+}
+
 export interface StudyOrderEvent {
   id: string;
   event_type: StudyOrderEventType;

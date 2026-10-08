@@ -9954,10 +9954,18 @@
       "toast": {
         "updated": "Item updated",
         "pendingBlocking": "{count, plural, one {1 item left before you can submit.} other {# items left before you can submit.}}",
-        "error": "Could not update the item"
+        "error": "Could not update the item",
+        "bulkUpdated": "{count, plural, one {1 item updated} other {# items updated}}",
+        "skipped": "{count, plural, one {1 had already been reviewed by someone else.} other {# had already been reviewed by someone else.}}"
       },
       "flag": "The assistant was not sure about this",
-      "stepTitle": "{count, plural, one {1 item to review in this step} other {# items to review in this step}}"
+      "stepTitle": "{count, plural, one {1 item to review in this step} other {# items to review in this step}}",
+      "bulk": {
+        "selectPending": "{count, plural, other {Select the # pending items}}",
+        "selected": "{count, plural, one {1 selected} other {# selected}}",
+        "selectItem": "Select: {label}",
+        "notePlaceholder": "Note (optional), same for all selected items"
+      }
     },
     "origin": {
       "label": "Origin",

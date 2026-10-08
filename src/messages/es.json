@@ -9954,10 +9954,18 @@
       "toast": {
         "updated": "Punto actualizado",
         "pendingBlocking": "{count, plural, one {Queda 1 punto antes de poder enviar.} other {Quedan # puntos antes de poder enviar.}}",
-        "error": "No se pudo actualizar el punto"
+        "error": "No se pudo actualizar el punto",
+        "bulkUpdated": "{count, plural, one {1 punto actualizado} other {# puntos actualizados}}",
+        "skipped": "{count, plural, one {1 ya lo había revisado otra persona.} other {# ya los había revisado otra persona.}}"
       },
       "flag": "El asistente no tuvo claro este dato",
-      "stepTitle": "{count, plural, one {1 punto a revisar en este paso} other {# puntos a revisar en este paso}}"
+      "stepTitle": "{count, plural, one {1 punto a revisar en este paso} other {# puntos a revisar en este paso}}",
+      "bulk": {
+        "selectPending": "{count, plural, other {Seleccionar los # pendientes}}",
+        "selected": "{count, plural, one {1 seleccionado} other {# seleccionados}}",
+        "selectItem": "Seleccionar: {label}",
+        "notePlaceholder": "Nota (opcional), igual para todos los seleccionados"
+      }
     },
     "origin": {
       "label": "Origen",
