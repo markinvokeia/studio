@@ -2,10 +2,11 @@
 
 import * as React from 'react';
 import type { ColumnFiltersState, PaginationState, RowSelectionState, SortingState } from '@tanstack/react-table';
-import { ClipboardList, Pencil } from 'lucide-react';
+import { ClipboardList, FileUp, Pencil } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
+import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataCard } from '@/components/ui/data-card';
@@ -16,6 +17,7 @@ import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-lay
 
 import { StudyOrderColumnsWrapper } from '@/app/[locale]/study-orders/columns';
 import { StudyOrderDetailPanel } from './study-order-detail-panel';
+import { StudyOrderImportDialog } from './study-order-import-dialog';
 import { StudyOrderRescheduleDialog } from './study-order-reschedule-dialog';
 import { ReviewPendingBadge } from './review-pending-badge';
 import { StudyOrderWizard } from './study-order-wizard';
@@ -219,7 +221,7 @@ function StudyOrdersTableWithCards({
 export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     const t = useTranslations('StudyOrdersPage');
     const { toast } = useToast();
-    const { hasPermission } = usePermissions();
+    const { hasPermission, hasAllPermissions } = usePermissions();
     const router = useRouter();
     const locale = useLocale();
     const searchParams = useSearchParams();
@@ -240,6 +242,14 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     // Mis Órdenes las órdenes son propias y el derivador puede anular las que
     // todavía no fueron tomadas — ese corte lo aplican la fila y el panel.
     const canCancel = !isClinic || hasPermission(STUDY_ORDERS_PERMISSIONS.CANCEL);
+    // Importar una orden en papel (fotos o PDF): espeja el backend. Crea el borrador sin doctor
+    // vinculado (CREATE_FOR_DOCTOR) y solo la clínica ve esos borradores y sus originales (VIEW_ALL).
+    const canImport = isClinic && hasAllPermissions([
+        STUDY_ORDERS_PERMISSIONS.CREATE,
+        STUDY_ORDERS_PERMISSIONS.CREATE_FOR_DOCTOR,
+        STUDY_ORDERS_PERMISSIONS.VIEW_ALL,
+    ]);
+    const [isImportOpen, setIsImportOpen] = React.useState(false);
 
     // Origen: portal o WhatsApp. Se combina con el filtro de estado: las que el agente de WhatsApp
     // pasó a una persona son las de WhatsApp en borrador. El aviso de derivación abre la bandeja
@@ -527,16 +537,24 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                                 bucket={bucket}
                                 onBucketChange={setBucket}
                                 originFilter={isClinic ? (
-                                    <Select value={origin} onValueChange={(value) => setOrigin(value as typeof origin)}>
-                                        <SelectTrigger className="h-9 w-[190px]" aria-label={t('origin.label')}>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">{t('origin.all')}</SelectItem>
-                                            <SelectItem value="portal">{t('origin.portal')}</SelectItem>
-                                            <SelectItem value="whatsapp">{t('origin.whatsapp')}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <>
+                                        <Select value={origin} onValueChange={(value) => setOrigin(value as typeof origin)}>
+                                            <SelectTrigger className="h-9 w-[190px]" aria-label={t('origin.label')}>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">{t('origin.all')}</SelectItem>
+                                                <SelectItem value="portal">{t('origin.portal')}</SelectItem>
+                                                <SelectItem value="whatsapp">{t('origin.whatsapp')}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        {canImport && (
+                                            <Button variant="outline" size="sm" className="h-9" onClick={() => setIsImportOpen(true)}>
+                                                <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />
+                                                {t('importOrder')}
+                                            </Button>
+                                        )}
+                                    </>
                                 ) : undefined}
                                 onCreate={canCreate ? handleCreate : undefined}
                                 onEditOrder={canUpdate ? handleEdit : undefined}
@@ -593,6 +611,24 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                     setDetailRefreshKey((k) => k + 1);
                 }}
             />
+
+            {canImport && (
+                <StudyOrderImportDialog
+                    open={isImportOpen}
+                    onOpenChange={setIsImportOpen}
+                    onImported={(order) => {
+                        void loadOrders(true);
+                        // Se abre el borrador para completarlo: es lo siguiente que hay que hacer.
+                        setEditingId(order.id);
+                        setEditingNumber(order.order_number);
+                        setIsFormOpen(true);
+                    }}
+                    onClosedWhileReading={() => {
+                        toast({ title: t('importDialog.toast.continuesTitle'), description: t('importDialog.toast.continuesDescription') });
+                        void loadOrders(true);
+                    }}
+                />
+            )}
 
             <AlertDialog open={!!pendingSubmit} onOpenChange={(open) => !open && setPendingSubmit(null)}>
                 <AlertDialogContent>

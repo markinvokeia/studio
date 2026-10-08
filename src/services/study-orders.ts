@@ -5,6 +5,7 @@ import type {
     StudyOrder,
     StudyOrderBookingLink,
     StudyOrderFormOptions,
+    StudyOrderImportStatus,
     StudyOrderListItem,
     StudyOrderReviewStatus,
     StudyOrderReviewUpdateResult,
@@ -171,6 +172,35 @@ export async function cancelStudyOrder(id: string, reason: string): Promise<Stud
 export async function acknowledgeStudyOrder(id: string): Promise<StudyOrder> {
     const raw = await api.post(API_ROUTES.STUDY_ORDERS.ACKNOWLEDGE, { id });
     return unwrap<StudyOrder>(raw).data;
+}
+
+/** Límites de una importación (los mismos que valida el backend). */
+export const STUDY_ORDER_IMPORT_LIMITS = {
+    maxFiles: 6,
+    maxBytes: 10 * 1024 * 1024,
+    mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
+} as const;
+
+/**
+ * Sube las fotos o el PDF de UNA orden (frente, dorso, hojas). El backend guarda los originales y
+ * responde enseguida con el intake: la lectura sigue en segundo plano y se consulta con
+ * `getStudyOrderImportStatus` hasta que el borrador está creado.
+ */
+export async function importStudyOrder(files: File[]): Promise<{ intake_id: string; files: number }> {
+    const form = new FormData();
+    files.forEach((file, idx) => form.append(`file${idx}`, file, file.name));
+    const raw = await api.post(API_ROUTES.STUDY_ORDERS.IMPORT, form, undefined, undefined, {
+        timeoutMs: REQUEST_TIMEOUT_MS.longRunning,
+    });
+    return unwrap<{ intake_id: string; files: number }>(raw).data;
+}
+
+/** Estado de la lectura de una orden importada: processing → done (con la orden) o failed. */
+export async function getStudyOrderImportStatus(intakeId: string, signal?: AbortSignal): Promise<StudyOrderImportStatus> {
+    const raw = await api.get(API_ROUTES.STUDY_ORDERS.IMPORT_STATUS, { intake_id: intakeId }, undefined, {
+        signal, timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+    });
+    return unwrap<StudyOrderImportStatus>(raw).data;
 }
 
 /** Original (foto o PDF) de una orden de WhatsApp, como blob. El navegador nunca habla con Drive. */

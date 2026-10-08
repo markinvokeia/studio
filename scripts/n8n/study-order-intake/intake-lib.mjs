@@ -3,7 +3,8 @@
  * ---------------------------------------------------------------------------
  * Lógica pura del subflujo "WhatsApp - Study Order Intake" (docs/whatsapp-
  * ordenes-estudio-plan.md, Fase 3): esquema de extracción, prompt y VALIDADOR
- * DETERMINISTA.
+ * DETERMINISTA. El mismo subflujo lee las órdenes que recepción importa desde
+ * Invoke (validateImport: sin conversación, siempre en borrador).
  *
  * Por qué vive en un archivo aparte y no directo en el nodo Code de n8n:
  * el validador decide cuándo se deriva a un humano, es decir, es la parte que
@@ -720,6 +721,176 @@ export function validateExtraction(input) {
         }
     }
     return out;
+}
+
+// ---------------------------------------------------------------------------
+// Importación desde Invoke (sin conversación)
+// ---------------------------------------------------------------------------
+
+/**
+ * Recepción sube las fotos o el PDF de una orden desde Invoke. No hay a quién preguntarle ni
+ * remitente con quien comparar el paciente: la orden SIEMPRE queda en borrador y todo lo que en
+ * WhatsApp sería una pregunta, un reenvío o una derivación pasa a ser un punto a revisar. Quien
+ * importó la corrige mirando el original y la envía.
+ *
+ * El mapeo de la lectura al formulario y los puntos a revisar son los mismos que en WhatsApp
+ * (buildOrderDraft, buildReviewItems); lo único propio es cómo se resuelve el paciente: solo por
+ * documento.
+ *
+ * @param {object} input
+ * @param {object|null} input.extraction        Salida del modelo o null.
+ * @param {string|null} input.extraction_error  Texto si el modelo falló.
+ * @param {boolean}     input.has_files         Hay al menos un original guardado.
+ * @param {Array}       input.catalog
+ * @param {Array}       input.options
+ * @param {Array}       input.doc_matches       Usuarios cuyo documento coincide con el de la orden.
+ * @param {Array}       input.open_orders       Órdenes abiertas de esos usuarios [{id, order_number, service_ids}].
+ * @param {object}      input.config            { min_confidence, max_order_age_days? }
+ * @returns {{ outcome: 'draft', draft: object|null, patient: object, review_items: Array,
+ *             warnings: Array, duplicate_of: object|null,
+ *             confidence: {min_confidence:number, fields:Array, low:string[]}|null }}
+ */
+export function validateImport(input) {
+    const {
+        extraction = null, extraction_error = null, has_files = true,
+        catalog = [], options = [], doc_matches = [], open_orders = [], config = {},
+    } = input || {};
+    const minConf = Number.isFinite(Number(config.min_confidence)) ? Number(config.min_confidence) : 0.85;
+    const out = {
+        outcome: 'draft', draft: null,
+        patient: { status: 'unresolved', patient_id: null, name: null, document: null, document_type: null },
+        review_items: [], warnings: [], duplicate_of: null, confidence: null,
+    };
+    // Lo que no depende de la lectura campo a campo (archivo ilegible, paciente, duplicado) va
+    // primero: es lo que hay que resolver antes de mirar el detalle.
+    const extra = [];
+    const flag = (code, field, label, more = {}) => extra.push({
+        code, field, label,
+        value: more.value === undefined || more.value === null ? null : String(more.value).slice(0, 300),
+        confidence: null, detail: more.detail ? String(more.detail).slice(0, 500) : null, section_code: null,
+    });
+
+    if (!has_files) {
+        flag('read_failed', 'files', 'No llegó ningún archivo utilizable', { detail: 'Cargá la orden a mano.' });
+        out.review_items = extra;
+        return out;
+    }
+    if (extraction_error || !extraction || typeof extraction !== 'object') {
+        flag('read_failed', 'extraction', 'No se pudo leer la orden', {
+            detail: asText(extraction_error).slice(0, 300) || 'El modelo no devolvió una lectura. Cargá la orden mirando el original.',
+        });
+        out.review_items = extra;
+        return out;
+    }
+
+    const fields = collectFieldConfidence(extraction, catalog, options);
+    out.confidence = {
+        min_confidence: minConf, fields,
+        low: fields.filter((f) => f.confidence !== null && f.confidence < minConf).map((f) => f.field),
+    };
+    const draft = buildOrderDraft({ extraction, catalog, options, prior: {}, min_confidence: minConf });
+    out.draft = draft;
+    out.warnings.push(...draft.warnings);
+
+    if (extraction.is_study_order !== true) {
+        flag('read_failed', 'is_study_order', 'El archivo no parece una orden de estudios', { detail: 'Verificá que subiste el archivo correcto.' });
+    } else if (extraction.document_quality === 'unreadable') {
+        flag('read_failed', 'document_quality', 'La orden no se puede leer bien', { detail: 'Completá lo que falte mirando el original.' });
+    }
+    if (draft.items.length === 0) {
+        flag('unreadable', 'items', 'No se pudo ubicar ningún estudio', { detail: 'Cargá los estudios mirando el original.' });
+    }
+
+    // ---- Paciente: solo por documento ---------------------------------------
+    const name = draft.patient.name || '';
+    const doc = draft.patient.document || '';
+    const docType = draft.patient.document_type;
+    const docRaw = asText(extraction.patient && extraction.patient.document);
+    out.patient.name = name || null;
+    out.patient.document = doc || null;
+    out.patient.document_type = docType;
+
+    if (!name) flag('unreadable', 'patient.name', 'No se pudo leer el nombre del paciente');
+    let docOk = false;
+    if (!doc) {
+        flag('unreadable', 'patient.document', 'No se pudo leer el documento del paciente');
+    } else if (docType !== 'passport' && /^\d{7,8}$/.test(doc) && !isValidCedulaUY(doc)) {
+        flag('invalid_document', 'patient.document', 'La cédula no es válida (dígito verificador)', { value: docRaw });
+    } else if (doc.length < 5) {
+        flag('invalid_document', 'patient.document', 'El documento es demasiado corto', { value: docRaw });
+    } else {
+        docOk = true;
+    }
+
+    if (docOk) {
+        const matches = (doc_matches || []).filter((u) => normalizeDocument(u.identity_document) === doc);
+        if (matches.length === 1) {
+            out.patient = { ...out.patient, status: 'existing', patient_id: matches[0].id };
+        } else if (matches.length > 1) {
+            flag('patient_match', 'patient.document', 'El documento figura en más de un paciente', {
+                value: docRaw, detail: 'Elegí el paciente correcto.',
+            });
+        } else {
+            out.patient = { ...out.patient, status: 'register' };
+        }
+    }
+
+    // ---- Advertencias de la orden (las mismas que en WhatsApp) ---------------
+    if (config.max_order_age_days && asText(extraction.order_date)) {
+        const age = (Date.now() - Date.parse(extraction.order_date)) / 86400000;
+        if (Number.isFinite(age) && age > Number(config.max_order_age_days)) {
+            out.warnings.push({ code: 'old_order', detail: `La orden tiene ${Math.round(age)} días.` });
+        }
+    }
+    if (out.patient.patient_id && draft.items.length > 0) {
+        const ids = draft.items.map((i) => Number(i.service_id)).sort((a, b) => a - b).join(',');
+        const dup = (open_orders || []).find((o) => (o.service_ids || []).map(Number).sort((a, b) => a - b).join(',') === ids);
+        if (dup) {
+            out.duplicate_of = { id: dup.id, order_number: dup.order_number };
+            flag('duplicate', 'duplicate_of', 'El paciente ya tiene una orden abierta con los mismos estudios', { value: dup.order_number });
+        }
+    }
+
+    // Lo que el modelo leyó con dudas, estudios fuera del catálogo, lo que no encaja, ilegibles,
+    // falta el dorso, sin firma, orden antigua: exactamente lo mismo que en WhatsApp.
+    const read = buildReviewItems({ extraction, draft, fields, min_confidence: minConf, warnings: out.warnings, prior: {} });
+    // Un mismo dato no se marca dos veces: si el documento ya es inválido o falta, sobra "lectura dudosa".
+    const flagged = new Set(extra.map((e) => e.field));
+    out.review_items = [...extra, ...read.filter((r) => !(r.code === 'low_confidence' && flagged.has(r.field)))];
+    return out;
+}
+
+/**
+ * Cuerpo de /study-orders/upsert para el borrador de una importación. Sin doctor vinculado (el del
+ * papel queda como texto) y con el intake de origen, para que la orden muestre los originales.
+ *
+ * @param {object} input
+ * @param {object} input.validation  Resultado de validateImport.
+ * @param {string} input.intake_id
+ * @param {string} input.fallback_name  Nombre provisorio si no se pudo leer el del paciente.
+ */
+export function buildImportOrderPayload(input) {
+    const { validation = {}, intake_id = '', fallback_name = 'Paciente sin identificar' } = input || {};
+    const d = validation.draft || {};
+    const p = validation.patient || {};
+    const items = (d.items || []).filter((i) => i && i.service_id).map((i, idx) => ({
+        service_id: String(i.service_id), service_name: i.service_name || '', section_code: i.section_code || '',
+        sort_order: idx, quantity: 1, modifiers: i.modifiers || {}, notes: i.notes || '',
+    }));
+    return {
+        without_doctor: true,
+        source_intake_id: intake_id,
+        referring_doctor_name: d.referring_doctor_name || '',
+        patient_id: p.status === 'existing' && p.patient_id ? String(p.patient_id) : '',
+        patient_name: asText(p.name) || fallback_name,
+        patient_document: asText(p.document),
+        regions: d.regions || {},
+        section_modifiers: d.section_modifiers || {},
+        texts: d.texts || {},
+        delivery_methods: d.delivery_methods || [],
+        clinical_notes: d.clinical_notes || '',
+        items,
+    };
 }
 
 // ---------------------------------------------------------------------------
