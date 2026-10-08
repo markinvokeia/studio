@@ -3567,6 +3567,30 @@ export interface StudyOrderImportStatus {
 
 export type StudyOrderReviewStatus = 'pending' | 'confirmed' | 'corrected' | 'dismissed';
 
+/** Recuadro sobre una imagen o página, de 0 a 1000 en cada eje (0,0 arriba a la izquierda). */
+export interface NormalizedBox {
+  top: number;
+  left: number;
+  bottom: number;
+  right: number;
+}
+
+/**
+ * Dónde leyó el asistente un dato en los originales de la orden (lecturas desde so-extraction-v4).
+ * `box` es aproximado y puede faltar; `zone` y `quote` ayudan a encontrarlo igual.
+ */
+export interface StudyOrderReviewSource {
+  /** Id del original (attachments.id), el mismo de `WhatsappIntakeFile.id`. */
+  attachment_id?: string | null;
+  /** Página dentro del archivo, desde 1. */
+  page?: number | null;
+  box?: NormalizedBox | null;
+  /** Parte del formulario donde está ("Datos del paciente", "Intraorales"...). */
+  zone?: string | null;
+  /** Lo que dice ahí, tal cual. */
+  quote?: string | null;
+}
+
 /**
  * Algo que el agente no tuvo claro al leer la orden y que una persona revisa contra el original.
  * `blocking`: borrador creado al derivar, no se puede enviar con alguno pendiente.
@@ -3583,6 +3607,8 @@ export interface StudyOrderReviewItem {
   detail?: string | null;
   /** Sección del formulario donde está el dato (estudios, opciones, piezas, textos). Nulo en el resto. */
   section_code?: string | null;
+  /** Dónde está el dato en los originales. Nulo en puntos generales y en lecturas anteriores a v4. */
+  source?: StudyOrderReviewSource | null;
   blocking: boolean;
   status: StudyOrderReviewStatus;
   resolution_note?: string | null;

@@ -7332,7 +7332,13 @@
     "thumbnailError": "No se pudo cargar",
     "noPreview": "Este tipo de archivo no se puede previsualizar. Descargalo para abrirlo.",
     "open": "Abrir",
-    "noFiles": "No hay archivos."
+    "noFiles": "No hay archivos.",
+    "focus": {
+      "noFile": "No se sabe en qué archivo está: buscalo por la zona y el texto.",
+      "pdfPage": "Página {page} del PDF: buscá el dato en esa página.",
+      "noBox": "Sin ubicación exacta en la imagen: buscalo por la zona y el texto.",
+      "clear": "Dejar de señalar"
+    }
   },
   "Common": {
     "accessDenied": "Acceso Denegado",
@@ -10009,7 +10015,10 @@
         "selected": "{count, plural, one {1 seleccionado} other {# seleccionados}}",
         "selectItem": "Seleccionar: {label}",
         "notePlaceholder": "Nota (opcional), igual para todos los seleccionados"
-      }
+      },
+      "locate": "Ver en el original",
+      "locateHint": "Clic para verlo en el original.",
+      "sourceWhere": "En el papel:"
     },
     "origin": {
       "label": "Origen",

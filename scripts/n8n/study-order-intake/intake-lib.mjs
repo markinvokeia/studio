@@ -20,8 +20,8 @@
  * ---------------------------------------------------------------------------
  */
 
-export const PROMPT_VERSION = 'so-intake-v3';
-export const SCHEMA_VERSION = 'so-extraction-v3';
+export const PROMPT_VERSION = 'so-intake-v4';
+export const SCHEMA_VERSION = 'so-extraction-v4';
 
 /** Piezas dentarias FDI: permanentes 11-48 y temporales 51-85. */
 const FDI_CODES = new Set([
@@ -83,17 +83,57 @@ const confOf = (v) => {
     return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : null;
 };
 
-// Desde v3 las listas traen objetos con su confianza; las extracciones guardadas con v2 traen
-// strings. Estos lectores aceptan las dos formas (una revalidación usa la extracción guardada).
+/** Coordenada del recuadro (0 a 1000) o null si no es un número. */
+const coordOf = (v) => {
+    if (v === null || v === undefined || v === '') return null;
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.min(1000, Math.max(0, Math.round(n))) : null;
+};
+
+/**
+ * Dónde está el dato en los originales (v4): `{ attachment_id, page, box, zone, quote }` o null.
+ * `attachment_id` = el original (attachments.id); `page` desde 1 (siempre 1 en una imagen);
+ * `box` = `{ top, left, bottom, right }` de 0 a 1000 sobre la imagen o la página, o null si el
+ * modelo no lo dio o es inválido (vacío o al revés); `zone` = parte del formulario donde está;
+ * `quote` = lo que dice ahí, tal cual. Las extracciones anteriores a v4 no la traen.
+ */
+export function sourceOf(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    // `file` es como lo devuelve el modelo; `attachment_id`, una ubicación ya normalizada.
+    const attachmentId = asText(raw.file !== undefined ? raw.file : raw.attachment_id);
+    const pageN = Number(raw.page);
+    const page = Number.isInteger(pageN) && pageN >= 1 ? pageN : 1;
+    let box = null;
+    if (raw.box && typeof raw.box === 'object') {
+        const b = { top: coordOf(raw.box.top), left: coordOf(raw.box.left), bottom: coordOf(raw.box.bottom), right: coordOf(raw.box.right) };
+        if (Object.values(b).every((v) => v !== null) && b.bottom > b.top && b.right > b.left) box = b;
+    }
+    const zone = asText(raw.zone).slice(0, 120) || null;
+    const quote = asText(raw.quote).slice(0, 200) || null;
+    if (!attachmentId && !box && !zone && !quote) return null;
+    return { attachment_id: attachmentId || null, page, box, zone, quote };
+}
+
+// Desde v3 las listas traen objetos con su confianza (y desde v4, con su ubicación); las extracciones
+// guardadas con v2 traen strings. Estos lectores aceptan todas las formas (una revalidación usa la
+// extracción guardada).
 const unmatchedEntries = (ex) => (ex.unmatched_text_lines || [])
-    .map((l) => (l && typeof l === 'object' ? { text: asText(l.text), confidence: confOf(l.confidence) } : { text: asText(l), confidence: null }))
+    .map((l) => (l && typeof l === 'object'
+        ? { text: asText(l.text), confidence: confOf(l.confidence), source: sourceOf(l.source) }
+        : { text: asText(l), confidence: null, source: null }))
     .filter((l) => l.text);
 const deliveryEntries = (ex) => (ex.delivery_methods || [])
-    .map((d) => (d && typeof d === 'object' ? { code: asText(d.code), confidence: confOf(d.confidence) } : { code: asText(d), confidence: null }))
+    .map((d) => (d && typeof d === 'object'
+        ? { code: asText(d.code), confidence: confOf(d.confidence), source: sourceOf(d.source) }
+        : { code: asText(d), confidence: null, source: null }))
     .filter((d) => d.code);
 const toothEntries = (region) => ((region && region.teeth) || [])
     .map((t) => (t && typeof t === 'object' ? { raw: asText(t.tooth), confidence: confOf(t.confidence) } : { raw: asText(t), confidence: null }))
     .filter((t) => t.raw);
+/** Datos ilegibles: strings hasta v3, `{ field, source }` desde v4. */
+const unreadableEntries = (ex) => (ex.unreadable_fields || [])
+    .map((u) => (u && typeof u === 'object' ? { text: asText(u.field), source: sourceOf(u.source) } : { text: asText(u), source: null }))
+    .filter((u) => u.text);
 
 // ---------------------------------------------------------------------------
 // Esquema de extracción (salida estructurada, modo estricto)
@@ -106,8 +146,12 @@ const nullable = (type, extra = {}) => ({ type: [type, 'null'], ...extra });
  * Los ids de servicio son un ENUM del catálogo vigente: el modelo no puede
  * inventar un servicio, y lo que no figura en el catálogo tiene que ir a
  * `unmatched_text_lines` (que el validador convierte en derivación).
+ *
+ * Desde v4 cada dato lleva también DÓNDE se leyó (`source` / `<campo>_source`, ver `sourceOf`):
+ * quien revisa la orden va directo a ese lugar del original. `files` son los originales que se le
+ * mandan al modelo (`[{ attachment_id }]`); sus ids son un enum, igual que los del catálogo.
  */
-export function buildExtractionSchema(catalog, options) {
+export function buildExtractionSchema(catalog, options, files = []) {
     const serviceIds = catalog.map((s) => s.external_id);
     const opts = options || [];
     const modifierCodes = [...new Set(opts.filter((o) => o.option_kind === 'modifier').map((o) => o.code))];
@@ -126,7 +170,30 @@ export function buildExtractionSchema(catalog, options) {
         properties,
     });
 
-    return obj({
+    // Ubicación del dato (v4). Una sola definición referenciada desde cada dato: el esquema no crece
+    // con una copia por campo. null solo si el dato no figura en la orden.
+    const fileIds = [...new Set((files || []).map((f) => asText(f && f.attachment_id)).filter(Boolean))];
+    const coord = { type: 'integer', description: 'De 0 a 1000, relativo al ancho o alto de la imagen o página.' };
+    const sourceDef = {
+        anyOf: [
+            obj({
+                file: fileIds.length > 0
+                    ? { type: 'string', enum: fileIds, description: 'Id del archivo donde está el dato.' }
+                    : { type: 'string', description: 'Id del archivo donde está el dato.' },
+                page: { type: 'integer', description: 'Página del archivo, desde 1 (en una imagen, 1).' },
+                box: {
+                    anyOf: [obj({ top: coord, left: coord, bottom: coord, right: coord }), { type: 'null' }],
+                    description: 'Recuadro que rodea el dato (con su casilla o rótulo). null si no podés ubicarlo con precisión.',
+                },
+                zone: { type: 'string', description: 'Parte del formulario donde está: título de la sección impresa o posición ("encabezado", "abajo a la derecha").' },
+                quote: { type: 'string', description: 'Lo que dice ahí, tal cual (en una casilla: el rótulo impreso de la casilla tildada).' },
+            }),
+            { type: 'null' },
+        ],
+    };
+    const source = { $ref: '#/$defs/source' };
+
+    const schema = obj({
         is_study_order: { type: 'boolean', description: 'false si la imagen no es una orden de estudios (receta, factura, foto cualquiera...).' },
         is_study_order_confidence: confidenceOf('que el documento es (o no es) una orden de estudios'),
         document_quality: { type: 'string', enum: ['good', 'poor', 'unreadable'] },
@@ -135,6 +202,8 @@ export function buildExtractionSchema(catalog, options) {
             name_confidence: confidence,
             license: nullable('string'),
             license_confidence: confidence,
+            name_source: source,
+            license_source: source,
         }),
         patient: obj({
             name: nullable('string'),
@@ -146,15 +215,21 @@ export function buildExtractionSchema(catalog, options) {
             birth_date_confidence: confidence,
             phone: nullable('string'),
             phone_confidence: confidence,
+            name_source: source,
+            document_source: source,
+            birth_date_source: source,
+            phone_source: source,
         }),
         order_date: nullable('string', { description: 'Fecha de la orden en formato AAAA-MM-DD.' }),
         order_date_confidence: confidence,
+        order_date_source: source,
         items: {
             type: 'array',
             items: obj({
                 external_id: { type: 'string', enum: serviceIds },
                 notes: nullable('string', { description: 'Indicación escrita junto a ese estudio, si la hay.' }),
                 confidence,
+                source,
             }),
         },
         modifiers: {
@@ -165,6 +240,7 @@ export function buildExtractionSchema(catalog, options) {
                 group_code: nullable('string'),
                 option_code: { type: 'string', enum: modifierCodes },
                 confidence,
+                source,
             }),
         },
         regions: {
@@ -172,30 +248,35 @@ export function buildExtractionSchema(catalog, options) {
             items: obj({
                 section_code: { type: 'string', enum: regionSections },
                 teeth: { type: 'array', items: obj({ tooth: { type: 'string' }, confidence }) },
+                // Una ubicación por odontograma, no por pieza: las piezas están juntas y así no se
+                // multiplica la salida.
+                source,
             }),
         },
         texts: {
             type: 'array',
-            items: obj({ code: { type: 'string', enum: textCodes }, value: { type: 'string' }, confidence }),
+            items: obj({ code: { type: 'string', enum: textCodes }, value: { type: 'string' }, confidence, source }),
         },
-        delivery_methods: { type: 'array', items: obj({ code: { type: 'string', enum: deliveryCodes }, confidence }) },
+        delivery_methods: { type: 'array', items: obj({ code: { type: 'string', enum: deliveryCodes }, confidence, source }) },
         unmatched_text_lines: {
             type: 'array',
-            items: obj({ text: { type: 'string' }, confidence }),
+            items: obj({ text: { type: 'string' }, confidence, source }),
             description: 'Estudios o servicios pedidos en la orden que NO corresponden a ninguno de la lista (p. ej. escritos a mano).',
         },
         has_signature: { type: ['boolean', 'null'] },
         has_signature_confidence: confidenceOf('que la orden tiene (o no tiene) firma'),
-        unreadable_fields: { type: 'array', items: { type: 'string' } },
+        unreadable_fields: { type: 'array', items: obj({ field: { type: 'string', description: 'Qué dato no se lee.' }, source }) },
         missing_other_side: {
             type: 'boolean',
             description: 'true si la orden sigue en otra cara (dorso) u hoja que no está entre los archivos.',
         },
         missing_other_side_confidence: confidenceOf('que falta (o no falta) otra cara u hoja'),
     });
+    schema.$defs = { source: sourceDef };
+    return schema;
 }
 
-/** Prompt del sistema: el catálogo real más las reglas de transcripción. */
+/** Prompt del sistema: el catálogo real más las reglas de transcripción y de ubicación. */
 export function buildSystemPrompt(catalog, options) {
     const services = catalog.map((s) => `- ${s.external_id} | ${s.section_code} | ${s.name}`).join('\n');
     const modifiers = (options || [])
@@ -224,8 +305,16 @@ export function buildSystemPrompt(catalog, options) {
         '- Si la imagen no es una orden de estudios, poné `is_study_order` en false y dejá las listas vacías.',
         '- Los datos del paciente (nombre, cédula o pasaporte) y del doctor copialos como están escritos. Las fechas en formato AAAA-MM-DD.',
         '- Piezas dentarias: números FDI (ej. 16, 36) dentro de la sección que corresponda, cada una con su confianza. Regiones disponibles en: ' + (regionSections || '(ninguna)') + '.',
-        '- Los campos que no se lean van en `unreadable_fields`.',
+        '- Los campos que no se lean van en `unreadable_fields`, cada uno con su ubicación.',
         '- `missing_other_side` en true SOLO si se nota que falta una cara u hoja de la orden: dice "ver al dorso", "continúa" o similar; una lista o sección se corta en el borde; o lo que llegó es únicamente el dorso (sin encabezado ni datos del paciente). Si están todas las caras o la orden se ve completa, false.',
+        '',
+        'UBICACIÓN DE CADA DATO',
+        '- Antes de cada archivo viene su id ("ARCHIVO <id>"). CADA dato que transcribís lleva dónde lo leíste: `source` en los elementos de las listas y `<campo>_source` en los demás. Una persona va a revisar la orden mirando el original y necesita encontrar el dato enseguida.',
+        '- `file`: el id del archivo. `page`: la página dentro de ese archivo (en una imagen, 1).',
+        '- `box`: recuadro que rodea el dato con su rótulo o casilla, en coordenadas de 0 a 1000 relativas a la imagen o página tal como la ves (0,0 arriba a la izquierda; `top`/`bottom` en vertical, `left`/`right` en horizontal). Si no podés ubicarlo con precisión, null; no lo inventes.',
+        '- `zone`: la parte del formulario donde está (título de la sección impresa, "encabezado", "datos del paciente", "abajo a la derecha"...). Siempre, aunque `box` sea null.',
+        '- `quote`: lo que dice ahí, tal cual está escrito (en una casilla, el rótulo impreso de la casilla tildada).',
+        '- Si el dato no figura en la orden (lo dejás en null), su ubicación también es null. En las piezas dentarias va una sola ubicación por sección: el odontograma o donde estén escritas.',
         '',
         'ESTUDIOS (id | sección | nombre)',
         services,
@@ -254,27 +343,30 @@ export function buildSystemPrompt(catalog, options) {
  * `section_code`: sección del formulario donde está el dato (estudios, opciones, piezas, textos), para
  * que quien revisa la orden vea la advertencia en ese paso; null en los datos del paciente y generales.
  *
- * @returns {Array<{ field: string, label: string, value: any, confidence: number|null, section_code: string|null }>}
+ * `source`: dónde se leyó el dato en los originales (v4, ver `sourceOf`); null en extracciones
+ * anteriores y en los juicios sobre el documento (es una orden, firma, falta otra cara).
+ *
+ * @returns {Array<{ field: string, label: string, value: any, confidence: number|null, section_code: string|null, source: object|null }>}
  */
 export function collectFieldConfidence(extraction, catalog = [], options = []) {
     if (!extraction || typeof extraction !== 'object') return [];
     const out = [];
-    const push = (field, label, value, confidence, sectionCode = null) => {
+    const push = (field, label, value, confidence, sectionCode = null, source = null) => {
         if (value === null || value === undefined || value === '') return;
-        out.push({ field, label, value, confidence: confOf(confidence), section_code: asText(sectionCode) || null });
+        out.push({ field, label, value, confidence: confOf(confidence), section_code: asText(sectionCode) || null, source: sourceOf(source) });
     };
     const p = extraction.patient || {};
     const d = extraction.doctor || {};
     const pick = (own, legacy) => (confOf(own) !== null ? own : legacy);
 
     push('is_study_order', 'Es una orden de estudios', extraction.is_study_order, extraction.is_study_order_confidence);
-    push('patient.name', 'Nombre del paciente', asText(p.name), pick(p.name_confidence, p.confidence));
-    push('patient.document', 'Documento del paciente', asText(p.document), pick(p.document_confidence, p.confidence));
-    push('patient.birth_date', 'Fecha de nacimiento', asText(p.birth_date), pick(p.birth_date_confidence, p.confidence));
-    push('patient.phone', 'Teléfono del paciente', asText(p.phone), pick(p.phone_confidence, p.confidence));
-    push('doctor.name', 'Doctor', asText(d.name), pick(d.name_confidence, d.confidence));
-    push('doctor.license', 'Matrícula del doctor', asText(d.license), pick(d.license_confidence, d.confidence));
-    push('order_date', 'Fecha de la orden', asText(extraction.order_date), extraction.order_date_confidence);
+    push('patient.name', 'Nombre del paciente', asText(p.name), pick(p.name_confidence, p.confidence), null, p.name_source);
+    push('patient.document', 'Documento del paciente', asText(p.document), pick(p.document_confidence, p.confidence), null, p.document_source);
+    push('patient.birth_date', 'Fecha de nacimiento', asText(p.birth_date), pick(p.birth_date_confidence, p.confidence), null, p.birth_date_source);
+    push('patient.phone', 'Teléfono del paciente', asText(p.phone), pick(p.phone_confidence, p.confidence), null, p.phone_source);
+    push('doctor.name', 'Doctor', asText(d.name), pick(d.name_confidence, d.confidence), null, d.name_source);
+    push('doctor.license', 'Matrícula del doctor', asText(d.license), pick(d.license_confidence, d.confidence), null, d.license_source);
+    push('order_date', 'Fecha de la orden', asText(extraction.order_date), extraction.order_date_confidence, null, extraction.order_date_source);
     if (extraction.has_signature !== null && extraction.has_signature !== undefined) {
         push('has_signature', 'Firma', extraction.has_signature, extraction.has_signature_confidence);
     }
@@ -284,7 +376,7 @@ export function collectFieldConfidence(extraction, catalog = [], options = []) {
     for (const it of extraction.items || []) {
         if (!it) continue;
         const ext = asText(it.external_id);
-        push(`items.${ext}`, `Estudio: ${(byExt.get(ext) || {}).name || ext}`, ext, it.confidence, (byExt.get(ext) || {}).section_code);
+        push(`items.${ext}`, `Estudio: ${(byExt.get(ext) || {}).name || ext}`, ext, it.confidence, (byExt.get(ext) || {}).section_code, it.source);
     }
     const optLabel = new Map((options || []).map((o) => [`${o.option_kind}:${o.code}`, o.label]));
     // Sección de una opción: la suya o, si es de un estudio, la de ese estudio.
@@ -297,20 +389,20 @@ export function collectFieldConfidence(extraction, catalog = [], options = []) {
     for (const m of extraction.modifiers || []) {
         if (!m) continue;
         push(`modifiers.${asText(m.option_code)}`, `Opción: ${optLabel.get(`modifier:${m.option_code}`) || m.option_code}`, asText(m.option_code), m.confidence,
-            asText(m.section_code) || optSection('modifier', m.option_code, asText(m.service_external_id)));
+            asText(m.section_code) || optSection('modifier', m.option_code, asText(m.service_external_id)), m.source);
     }
     for (const r of extraction.regions || []) {
-        for (const t of toothEntries(r)) push(`regions.${asText(r.section_code)}.${t.raw}`, `Pieza ${t.raw} (${asText(r.section_code)})`, t.raw, t.confidence, r.section_code);
+        for (const t of toothEntries(r)) push(`regions.${asText(r.section_code)}.${t.raw}`, `Pieza ${t.raw} (${asText(r.section_code)})`, t.raw, t.confidence, r.section_code, r.source);
     }
     for (const t of extraction.texts || []) {
         if (!t) continue;
         push(`texts.${asText(t.code)}`, `Texto: ${optLabel.get(`text:${t.code}`) || t.code}`, asText(t.value).slice(0, 120), t.confidence,
-            optSection('text', t.code, null));
+            optSection('text', t.code, null), t.source);
     }
     for (const dm of deliveryEntries(extraction)) {
-        push(`delivery_methods.${dm.code}`, `Entrega: ${optLabel.get(`delivery:${dm.code}`) || dm.code}`, dm.code, dm.confidence);
+        push(`delivery_methods.${dm.code}`, `Entrega: ${optLabel.get(`delivery:${dm.code}`) || dm.code}`, dm.code, dm.confidence, null, dm.source);
     }
-    for (const u of unmatchedEntries(extraction)) push('unmatched_text_lines', `Estudio fuera del catálogo: ${u.text}`, u.text, u.confidence);
+    for (const u of unmatchedEntries(extraction)) push('unmatched_text_lines', `Estudio fuera del catálogo: ${u.text}`, u.text, u.confidence, null, u.source);
     return out;
 }
 
@@ -341,7 +433,11 @@ const HANDOFF_LABELS = {
  * claro al leer la orden. Se guardan en `study_orders.review_items` cuando se crea la orden
  * (bloqueantes en el borrador de una derivación; solo informativos si el agente la agendó).
  *
- * @returns {Array<{ code: string, field: string, label: string, value: any, confidence: number|null, detail: string|null, section_code: string|null }>}
+ * `source`: dónde está el dato en los originales (v4), para que quien revisa vaya directo ahí;
+ * null si el punto no es un dato puntual (motivo de derivación, falta el dorso, sin firma) o la
+ * extracción es anterior a v4.
+ *
+ * @returns {Array<{ code: string, field: string, label: string, value: any, confidence: number|null, detail: string|null, section_code: string|null, source: object|null }>}
  *   code: handoff_reason | low_confidence | not_in_catalog | unplaced | unreadable |
  *         possibly_incomplete | no_signature | old_order
  */
@@ -367,8 +463,10 @@ export function buildReviewItems(input) {
             confidence: extra.confidence === undefined ? null : extra.confidence,
             detail: extra.detail ? String(extra.detail).slice(0, 500) : null,
             section_code: extra.section_code || null,
+            source: sourceOf(extra.source),
         });
     };
+    const sourceOfField = (field) => (fields.find((f) => f.field === field) || {}).source || null;
 
     if (handoff_reason) add('handoff_reason', handoff_reason, HANDOFF_LABELS[handoff_reason] || handoff_reason, { detail: handoff_detail });
 
@@ -380,20 +478,26 @@ export function buildReviewItems(input) {
         if (f.field === 'patient.document' && asText(overrides.patient_document)) continue;
         const byChat = f.field.startsWith('items.') && confirmed.has(f.field.slice('items.'.length));
         add('low_confidence', f.field, f.label, {
-            value: f.value, confidence: f.confidence, section_code: f.section_code,
+            value: f.value, confidence: f.confidence, section_code: f.section_code, source: f.source,
             detail: byChat ? 'El paciente confirmó por chat que está en la orden.' : null,
         });
     }
 
-    for (const u of (draft && draft.unmatched) || []) add('not_in_catalog', `unmatched:${u}`, 'Estudio que no figura en el catálogo', { value: u });
+    const unmatchedSource = new Map(extraction && typeof extraction === 'object'
+        ? unmatchedEntries(extraction).map((u) => [u.text, u.source]) : []);
+    for (const u of (draft && draft.unmatched) || []) {
+        add('not_in_catalog', `unmatched:${u}`, 'Estudio que no figura en el catálogo', { value: u, source: unmatchedSource.get(asText(u)) });
+    }
     for (const l of (draft && draft.leftovers) || []) add('unplaced', `unplaced:${l}`, 'No se pudo ubicar en el formulario', { value: l });
     for (const w of warnings || []) {
-        if (w && w.code === 'modifier_without_service') add('unplaced', `modifier:${w.detail}`, 'Opción de un estudio que no está en la orden', { value: w.detail });
-        if (w && w.code === 'old_order') add('old_order', 'order_date', 'Orden antigua', { detail: w.detail });
+        if (w && w.code === 'modifier_without_service') {
+            add('unplaced', `modifier:${w.detail}`, 'Opción de un estudio que no está en la orden', { value: w.detail, source: sourceOfField(`modifiers.${w.detail}`) });
+        }
+        if (w && w.code === 'old_order') add('old_order', 'order_date', 'Orden antigua', { detail: w.detail, source: sourceOfField('order_date') });
     }
     if (extraction && typeof extraction === 'object') {
-        for (const u of extraction.unreadable_fields || []) {
-            if (asText(u)) add('unreadable', `unreadable:${asText(u)}`, 'Dato ilegible en la orden', { value: asText(u) });
+        for (const u of unreadableEntries(extraction)) {
+            add('unreadable', `unreadable:${u.text}`, 'Dato ilegible en la orden', { value: u.text, source: u.source });
         }
         if (extraction.missing_other_side === true && !overrides.no_other_side) {
             add('possibly_incomplete', 'missing_other_side', 'Puede faltar otra cara u hoja de la orden');
@@ -669,8 +773,9 @@ function validateCore(input) {
             fields: lowDetails.map((f) => f.field),
         });
     }
-    if ((extraction.unreadable_fields || []).length > 0) {
-        out.warnings.push({ code: 'unreadable_fields', detail: extraction.unreadable_fields.join('; ') });
+    const unreadable = unreadableEntries(extraction);
+    if (unreadable.length > 0) {
+        out.warnings.push({ code: 'unreadable_fields', detail: unreadable.map((u) => u.text).join('; ') });
     }
     if (extraction.has_signature !== true) out.warnings.push({ code: 'no_signature', detail: 'La orden no tiene firma visible.' });
     if (config.max_order_age_days && asText(extraction.order_date)) {
@@ -768,6 +873,7 @@ export function validateImport(input) {
         code, field, label,
         value: more.value === undefined || more.value === null ? null : String(more.value).slice(0, 300),
         confidence: null, detail: more.detail ? String(more.detail).slice(0, 500) : null, section_code: null,
+        source: sourceOf(more.source),
     });
 
     if (!has_files) {
@@ -806,6 +912,7 @@ export function validateImport(input) {
     const doc = draft.patient.document || '';
     const docType = draft.patient.document_type;
     const docRaw = asText(extraction.patient && extraction.patient.document);
+    const docSource = extraction.patient && extraction.patient.document_source;
     out.patient.name = name || null;
     out.patient.document = doc || null;
     out.patient.document_type = docType;
@@ -815,9 +922,9 @@ export function validateImport(input) {
     if (!doc) {
         flag('unreadable', 'patient.document', 'No se pudo leer el documento del paciente');
     } else if (docType !== 'passport' && /^\d{7,8}$/.test(doc) && !isValidCedulaUY(doc)) {
-        flag('invalid_document', 'patient.document', 'La cédula no es válida (dígito verificador)', { value: docRaw });
+        flag('invalid_document', 'patient.document', 'La cédula no es válida (dígito verificador)', { value: docRaw, source: docSource });
     } else if (doc.length < 5) {
-        flag('invalid_document', 'patient.document', 'El documento es demasiado corto', { value: docRaw });
+        flag('invalid_document', 'patient.document', 'El documento es demasiado corto', { value: docRaw, source: docSource });
     } else {
         docOk = true;
     }
@@ -828,7 +935,7 @@ export function validateImport(input) {
             out.patient = { ...out.patient, status: 'existing', patient_id: matches[0].id };
         } else if (matches.length > 1) {
             flag('patient_match', 'patient.document', 'El documento figura en más de un paciente', {
-                value: docRaw, detail: 'Elegí el paciente correcto.',
+                value: docRaw, detail: 'Elegí el paciente correcto.', source: docSource,
             });
         } else {
             out.patient = { ...out.patient, status: 'register' };

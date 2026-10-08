@@ -7332,7 +7332,13 @@
     "thumbnailError": "Could not load",
     "noPreview": "This file type cannot be previewed. Download it to open it.",
     "open": "Open",
-    "noFiles": "No files."
+    "noFiles": "No files.",
+    "focus": {
+      "noFile": "Unknown file: look for it by the area and the text.",
+      "pdfPage": "PDF page {page}: look for it on that page.",
+      "noBox": "No exact position in the image: look for it by the area and the text.",
+      "clear": "Stop highlighting"
+    }
   },
   "Common": {
     "accessDenied": "Access Denied",
@@ -10009,7 +10015,10 @@
         "selected": "{count, plural, one {1 selected} other {# selected}}",
         "selectItem": "Select: {label}",
         "notePlaceholder": "Note (optional), same for all selected items"
-      }
+      },
+      "locate": "View in original",
+      "locateHint": "Click to see it in the original.",
+      "sourceWhere": "On paper:"
     },
     "origin": {
       "label": "Origin",
