@@ -1,0 +1,296 @@
+{
+  "name": "Study Orders - Patient Portal",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## GET /study-orders/patient\n\nÓrdenes de estudio del paciente logueado (tab **Mis órdenes** de `/my-profile`).\n\n**Query:** ninguno.\n\n**SEGURIDAD:** el paciente es siempre `jwtPayload.userId` — no se acepta `patient_id` por query, así que no hace falta el guard `assert_self_or_staff`. Un usuario de staff que llame acá ve sólo las órdenes donde él es el paciente.\n\nSin borradores. Sin `clinical_notes`, eventos, `review_items` ni datos de WhatsApp.\n\n**Response 200**\n```json\n{ \"code\": 200, \"data\": [ { \"id\": \"...\", \"order_number\": \"OE-000123\",\n   \"board_status\": \"partially_scheduled\", \"doctor_name\": \"...\",\n   \"items\": [ { \"service_name\": \"...\", \"is_scheduled\": true, \"is_completed\": false } ],\n   \"appointments\": [ { \"start_datetime\": \"...\", \"status\": \"confirmed\", \"sede_name\": \"...\" } ] } ],\n  \"meta\": { \"total\": 1 } }\n```",
+        "height": 420,
+        "width": 460,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -180
+      ],
+      "id": "pso-doc",
+      "name": "Contrato"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "study-orders/patient",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "pso-wh",
+      "name": "Webhook",
+      "webhookId": "study-orders-patient",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\n// No se lee nada del query: el paciente es siempre el sujeto del token.\nreturn [{ json: { user_id: String(userId) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "pso-val",
+      "name": "Validar Datos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "pso-cond",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "pso-if",
+      "name": "¿Hubo error?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 = userId del token. Es el ÚNICO filtro: el paciente nunca elige de quién son las órdenes.\n-- Sólo campos aptos para el paciente: nada de notas clínicas, bitácora, revisión del\n-- agente ni datos de WhatsApp — eso es trabajo interno de la clínica.\nSELECT coalesce((\n  SELECT json_agg(row_to_json(o))\n    FROM (\n      SELECT b.id::text, b.order_number, b.status, b.board_status,\n             b.items_total, b.items_scheduled, b.items_completed,\n             -- Quién la derivó: el doctor del sistema o, si entró por WhatsApp, el nombre que traía la orden.\n             coalesce(d.name, so.referring_doctor_name) AS doctor_name,\n             se.name AS preferred_sede_name,\n             b.submitted_at, b.completed_at, so.cancelled_at, b.created_at,\n             coalesce((\n               SELECT json_agg(json_build_object(\n                        'id', i.id::text, 'service_name', i.service_name, 'quantity', i.quantity,\n                        'is_scheduled', EXISTS (\n                            SELECT 1 FROM public.appointments a\n                              JOIN public.appointment_service_catalog x ON x.appointment_id = a.id\n                             WHERE a.study_order_id = so.id AND x.service_id = i.service_id\n                               AND a.status NOT IN ('cancelled', 'deleted', 'no_show')),\n                        'is_completed', EXISTS (\n                            SELECT 1 FROM public.appointments a\n                              JOIN public.appointment_service_catalog x ON x.appointment_id = a.id\n                             WHERE a.study_order_id = so.id AND x.service_id = i.service_id\n                               AND a.status = 'completed'))\n                      ORDER BY i.sort_order, i.service_name)\n                 FROM public.study_order_items i\n                WHERE i.study_order_id = so.id AND i.is_cancelled = false\n             ), '[]'::json) AS items,\n             coalesce((\n               SELECT json_agg(json_build_object(\n                        'id', a.id::text, 'start_datetime', a.start_datetime,\n                        'end_datetime', a.end_datetime, 'status', a.status,\n                        'sede_name', s2.name, 'calendar_name', cs.name)\n                      ORDER BY a.start_datetime)\n                 FROM public.appointments a\n                 LEFT JOIN public.calendar_sources cs ON cs.id = a.calendar_source_id\n                 LEFT JOIN public.sedes s2 ON s2.id = cs.sede_id\n                WHERE a.study_order_id = so.id AND a.status <> 'deleted'\n             ), '[]'::json) AS appointments\n        FROM public.v_study_orders_board b\n        JOIN public.study_orders so ON so.id = b.id\n        LEFT JOIN public.users d  ON d.id  = b.doctor_id\n        LEFT JOIN public.sedes se ON se.id = b.preferred_sede_id\n       WHERE b.patient_id = $1::uuid\n         -- Los borradores todavía no existen para el paciente: el doctor no los envió.\n         AND b.status <> 'draft'\n       ORDER BY coalesce(b.submitted_at, b.created_at) DESC\n       LIMIT 100\n    ) o\n), '[]'::json) AS items;",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        660,
+        120
+      ],
+      "id": "pso-sql",
+      "name": "Consulta",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Descarta el item vacío que emite Postgres sin filas (alwaysOutputData).\nconst rows = $input.all()\n  .map((i) => i.json)\n  .filter((r) => r && typeof r === 'object' && Object.keys(r).length > 0);\nconst items = rows[0]?.items ?? [];\nreturn [{ json: { __data: items, __meta: { total: items.length } } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        120
+      ],
+      "id": "pso-fmt",
+      "name": "Formatear Respuesta"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "pso-cond2",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        120
+      ],
+      "id": "pso-if2",
+      "name": "¿Error de negocio?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 200, message: $json.__message || \"OK\", data: $json.__data, meta: $json.__meta } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        220
+      ],
+      "id": "pso-ok",
+      "name": "Responder OK"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: $json.__code || 400, message: $json.__message || \"Error\", data: null } }}",
+        "options": {
+          "responseCode": "={{ $json.__code || 400 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        -60
+      ],
+      "id": "pso-err",
+      "name": "Responder Error"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos": {
+      "main": [
+        [
+          {
+            "node": "¿Hubo error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hubo error?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "¿Error de negocio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Error de negocio?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    "study-orders",
+    "clinic"
+  ]
+}

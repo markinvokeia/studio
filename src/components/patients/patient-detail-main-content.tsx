@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { CreditCard, Stethoscope, Users } from 'lucide-react'
+import { ClipboardList, CreditCard, Stethoscope, Users } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip'
@@ -9,7 +9,7 @@ import type { VerticalTab } from '@/components/ui/vertical-tab-strip'
 import { PatientSubTabNav } from '@/components/patients/patient-subtab-nav'
 import { cn } from '@/lib/utils'
 
-export type PatientMacroTab = 'info' | 'clinical' | 'financial'
+export type PatientMacroTab = 'info' | 'clinical' | 'financial' | 'study-orders'
 export type InfoSubTab = 'details' | 'notes' | 'preferences'
 export type ClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'medical-instructions' | 'documents'
 
@@ -27,6 +27,8 @@ interface PatientDetailMainContentProps {
   showInfo: boolean
   showClinical: boolean
   showFinancial: boolean
+  /** Órdenes de estudio del paciente: requiere STUDY_ORDERS_VIEW_MINE o VIEW_ALL. */
+  showStudyOrders?: boolean
   infoContent: React.ReactNode
   notesContent: React.ReactNode
   preferencesContent: React.ReactNode
@@ -36,6 +38,7 @@ interface PatientDetailMainContentProps {
   medicalInstructionsContent: React.ReactNode
   documentsContent?: React.ReactNode
   ledgerContent: React.ReactNode
+  studyOrdersContent?: React.ReactNode
 }
 
 export function PatientDetailMainContent({
@@ -51,6 +54,7 @@ export function PatientDetailMainContent({
   showInfo,
   showClinical,
   showFinancial,
+  showStudyOrders = false,
   infoContent,
   notesContent,
   preferencesContent,
@@ -60,6 +64,7 @@ export function PatientDetailMainContent({
   medicalInstructionsContent,
   documentsContent,
   ledgerContent,
+  studyOrdersContent,
 }: PatientDetailMainContentProps) {
   const t = useTranslations('UsersPage')
 
@@ -67,7 +72,8 @@ export function PatientDetailMainContent({
     ...(showInfo ? [{ id: 'info', icon: Users, label: t('tabs.info') }] : []),
     ...(showClinical ? [{ id: 'clinical', icon: Stethoscope, label: t('tabs.clinical'), shortLabel: 'Clínica' }] : []),
     ...(showFinancial ? [{ id: 'financial', icon: CreditCard, label: t('tabs.financial'), shortLabel: 'Finanzas' }] : []),
-  ], [showInfo, showClinical, showFinancial, t])
+    ...(showStudyOrders ? [{ id: 'study-orders', icon: ClipboardList, label: t('tabs.studyOrders'), shortLabel: t('tabs.studyOrdersShort') }] : []),
+  ], [showInfo, showClinical, showFinancial, showStudyOrders, t])
 
   const infoTabs = React.useMemo(() => [
     { id: 'details', label: t('tabs.details') },
@@ -130,6 +136,8 @@ export function PatientDetailMainContent({
         )}
 
         {activeTab === 'financial' && showFinancial && ledgerContent}
+
+        {activeTab === 'study-orders' && showStudyOrders && studyOrdersContent}
       </div>
     </div>
   )

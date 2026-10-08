@@ -1,5 +1,6 @@
 import { API_ROUTES } from '@/constants/routes';
 import type {
+    PatientStudyOrder,
     PublicStudyOrder,
     StudyOrder,
     StudyOrderBookingLink,
@@ -63,8 +64,12 @@ export interface GetStudyOrdersParams {
      * `mine` filtra por el doctor del token — el `doctor_id` nunca viaja en el
      * query. `clinic` requiere STUDY_ORDERS_VIEW_ALL: sin ese permiso el
      * backend devuelve igual sólo las propias.
+     *
+     * `patient` (con `patientId`) es el tab Órdenes de la ficha del paciente:
+     * quien tiene PATIENTS_VIEW_DETAIL ve todas las órdenes de ese paciente, no
+     * sólo las que derivó. Sin el permiso, el backend cae a `mine`.
      */
-    scope: StudyOrderScope;
+    scope: StudyOrderScope | 'patient';
     boardStatus?: string;
     /** Origen: portal o whatsapp. Sin valor, todas. */
     source?: StudyOrderOrigin;
@@ -72,6 +77,11 @@ export interface GetStudyOrdersParams {
     sedeId?: string;
     /** Órdenes de un paciente concreto. Lo usa el selector del diálogo de cita. */
     patientId?: string;
+    /**
+     * Órdenes de un doctor concreto (tab Órdenes de Config > Doctores). Sólo acota:
+     * sin STUDY_ORDERS_VIEW_ALL el backend ya devuelve sólo las propias.
+     */
+    doctorId?: string;
     dateFrom?: string;
     dateTo?: string;
     /** Horas desde el envío sin agendar a partir de las cuales cuenta como atrasada. */
@@ -94,6 +104,7 @@ export async function getStudyOrders(params: GetStudyOrdersParams): Promise<Stud
     if (params.search) query.q = params.search;
     if (params.sedeId) query.sede_id = params.sedeId;
     if (params.patientId) query.patient_id = params.patientId;
+    if (params.doctorId) query.doctor_id = params.doctorId;
     if (params.dateFrom) query.date_from = params.dateFrom;
     if (params.dateTo) query.date_to = params.dateTo;
     if (params.slaHours !== undefined) query.sla_hours = String(params.slaHours);
@@ -323,6 +334,20 @@ export async function notifyStudyOrderAppointmentDropped(appointmentId: string):
     } catch (error) {
         console.warn('[study-orders] No se pudo avisar a la orden de la cita cancelada', { appointmentId, error });
     }
+}
+
+/**
+ * Las órdenes del paciente logueado, para "Mis órdenes" del portal.
+ *
+ * No recibe el id del paciente a propósito: el workflow lo saca del token, así
+ * que no hay forma de pedir las de otro. A diferencia de los listados del staff
+ * acá sí se propaga el error: el tab distingue "no tenés órdenes" de "no se
+ * pudieron cargar".
+ */
+export async function getPatientStudyOrders(): Promise<PatientStudyOrder[]> {
+    const raw = await api.get(API_ROUTES.STUDY_ORDERS.PATIENT);
+    const { data } = unwrap<PatientStudyOrder[]>(raw);
+    return Array.isArray(data) ? data : [];
 }
 
 /** Lo mínimo para mostrar la orden de una cita ya existente. */
