@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { FinanceSortOrderToggle } from '@/components/users/finance-sort-order-toggle';
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -24,6 +25,7 @@ import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permission
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useFinanceTableSorting } from '@/hooks/use-finance-sort-order';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -595,6 +597,8 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const { open: openBillingWizard } = useBillingWizard();
   const { printQuote, printPayment } = usePrintDocument();
   const isSales = mode === 'sales';
+  // Patient finance only: default date order from the shared preference (providers keep the backend order).
+  const { sortOrder, setSortOrder, sorting, setSorting, startAtEnd } = useFinanceTableSorting('createdAt', isSales);
   const isViewportNarrow = useViewportNarrow();
   const [viewMode, setViewMode] = useTableViewMode('quotes-list', 'table');
   const showListToggle = !isViewportNarrow;
@@ -1452,6 +1456,10 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
           <DataTable
             columns={columns}
             data={userQuotes}
+            sorting={sorting}
+            onSortingChange={setSorting}
+            startAtEnd={startAtEnd}
+            primaryActions={isSales ? <FinanceSortOrderToggle value={sortOrder} onChange={setSortOrder} /> : undefined}
             filterColumnId="doc_no"
             filterPlaceholder={t('UserQuotes.filterPlaceholder')}
             onRowSelectionChange={handleRowSelectionChange}

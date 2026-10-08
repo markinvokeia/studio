@@ -1,4 +1,9 @@
 {
+  "FinanceSortOrder": {
+    "label": "Order",
+    "newestFirst": "Most recent at the top",
+    "newestLast": "Most recent at the end"
+  },
   "PatientLedger": {
     "newQuote": "New Quote",
     "newTreatment": "New Treatment",

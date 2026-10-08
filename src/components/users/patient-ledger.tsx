@@ -36,11 +36,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DateRangePresets } from '@/components/reports/date-range-presets';
 import { QuoteBillingDialog } from '@/components/sales/quotes/quote-billing-dialog';
+import { FinanceSortOrderToggle } from '@/components/users/finance-sort-order-toggle';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
+import { useFinanceSortOrder } from '@/hooks/use-finance-sort-order';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
@@ -1681,6 +1683,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
   const { hasPermission } = usePermissions();
   const { printQuote, printInvoice, printPayment, printCreditNote } = usePrintDocument();
+  const [sortOrder, setSortOrder] = useFinanceSortOrder();
   const canInvoiceQuote = hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) || hasPermission(SALES_PERMISSIONS.ORDERS_INVOICE_FROM_ORDER);
   const canConfirmQuote = hasPermission(SALES_PERMISSIONS.QUOTES_CONFIRM);
   const canCreatePaymentPerm = hasPermission(SALES_PERMISSIONS.PAYMENTS_CREATE);
@@ -2347,6 +2350,13 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     // term never hides it, so "before this period" context stays visible either way.
     return rowsInRange.filter((row) => row.kind === 'balance' || row.label.toLowerCase().includes(term) || (row.docNo || '').toLowerCase().includes(term));
   }, [rowsInRange, search]);
+  // Rows stay chronological for the running balance, totals and the printed snapshot; only
+  // the on-screen list flips for "newest first" (the opening-balance row then sits last,
+  // still next to the oldest movement it precedes).
+  const displayRows = React.useMemo(
+    () => (sortOrder === 'newest-first' ? [...filteredRows].reverse() : filteredRows),
+    [filteredRows, sortOrder],
+  );
 
   // Column totals for the footer, scoped to the active period. A presupuesto with no
   // invoice behind it isn't a debt yet, so its Debe is shown in the row but excluded from
@@ -2400,20 +2410,21 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   React.useEffect(() => { if (searchOpen) searchInputRef.current?.focus(); }, [searchOpen]);
 
-  // Land on the most recent activity: scroll the row list to its end once, the first time
-  // this patient's ledger finishes loading — mirrors how a bank statement opens on the
-  // latest movement instead of the oldest. Only fires once per `userId` so it doesn't fight
-  // the user's own scroll position on later refreshes/filter changes.
+  // Land on the most recent activity: once this patient's ledger first finishes loading (or
+  // the display order changes), scroll to the end for "newest last" — mirrors how a bank
+  // statement opens on the latest movement — or to the top for "newest first". Only fires
+  // once per `userId`/order so it doesn't fight the user's own scroll position on later
+  // refreshes/filter changes.
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   const hasScrolledToEndRef = React.useRef(false);
-  React.useEffect(() => { hasScrolledToEndRef.current = false; }, [userId]);
+  React.useEffect(() => { hasScrolledToEndRef.current = false; }, [userId, sortOrder]);
   React.useEffect(() => {
-    if (isLoading || hasScrolledToEndRef.current || filteredRows.length === 0) return;
+    if (isLoading || hasScrolledToEndRef.current || displayRows.length === 0) return;
     hasScrolledToEndRef.current = true;
     const el = scrollContainerRef.current;
     if (!el) return;
-    requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
-  }, [isLoading, filteredRows]);
+    requestAnimationFrame(() => { el.scrollTop = sortOrder === 'newest-first' ? 0 : el.scrollHeight; });
+  }, [isLoading, displayRows, sortOrder]);
 
   const toolbar = (
     <div className="flex flex-wrap items-center gap-2">
@@ -2454,6 +2465,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
           {currencies.map((c) => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}
         </SelectContent>
       </Select>
+      <FinanceSortOrderToggle value={sortOrder} onChange={setSortOrder} compact />
       {!hideToolbarActions && (
         <div className="ml-auto flex items-center gap-1">
           {onPrintSummary && (
@@ -2506,11 +2518,11 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
                 <div className="w-24 shrink-0 text-right">{t('columns.balance')}</div>
               </div>
 
-              {filteredRows.length === 0 ? (
+              {displayRows.length === 0 ? (
                 <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">{t('empty')}</div>
               ) : (
                 <div className="space-y-2 py-1">
-                  {filteredRows.map((row) => {
+                  {displayRows.map((row) => {
                     const isBalanceRow = row.kind === 'balance';
                     const selected = !isBalanceRow && selectedRowId === row.id;
 

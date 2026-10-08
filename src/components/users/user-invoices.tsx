@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { FinanceSortOrderToggle } from '@/components/users/finance-sort-order-toggle';
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -25,6 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useFinanceTableSorting } from '@/hooks/use-finance-sort-order';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { DiscountControl, DocumentTotals } from '@/components/ui/discount-control';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
@@ -444,6 +446,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const detailItemsListView = !isViewportNarrow && detailItemsViewMode === 'list';
   const detailPaymentsListView = !isViewportNarrow && detailPaymentsViewMode === 'list';
   const isSales = mode === 'sales';
+  // Patient finance only: default date order from the shared preference (providers keep the backend order).
+  const { sortOrder, setSortOrder, sorting, setSorting, startAtEnd } = useFinanceTableSorting('createdAt', isSales);
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
@@ -1135,6 +1139,10 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
           <DataTable
             columns={columns}
             data={invoices}
+            sorting={sorting}
+            onSortingChange={setSorting}
+            startAtEnd={startAtEnd}
+            primaryActions={isSales ? <FinanceSortOrderToggle value={sortOrder} onChange={setSortOrder} /> : undefined}
             filterColumnId="doc_no"
             filterPlaceholder={t('InvoicesPage.filterPlaceholder')}
             onRowSelectionChange={handleRowSelectionChange}

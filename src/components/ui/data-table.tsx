@@ -109,6 +109,13 @@ interface DataTableProps<TData, TValue> {
    * button calls `onRefresh`.
    */
   loadError?: string | null;
+  /**
+   * Open on the last page, scrolled to the bottom, so the final row is in view — for lists
+   * sorted oldest-first where the most recent entry is what the user wants to see. Applied
+   * on mount, when it turns on, and after each data load (a refresh would otherwise reset
+   * to page 1). Ignored with server-side pagination.
+   */
+  startAtEnd?: boolean;
 }
 
 function LoadErrorMessage({ message, onRetry, isRetrying, compact }: { message: string; onRetry?: () => void; isRetrying?: boolean; compact?: boolean }) {
@@ -183,6 +190,7 @@ export function DataTable<TData, TValue>({
   initialPageSize,
   footerRow,
   loadError,
+  startAtEnd = false,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
   // Resolve the page size once at mount: an explicit prop wins; otherwise
@@ -299,6 +307,33 @@ export function DataTable<TData, TValue>({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [printMode, data.length]);
 
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  // Turning it off (e.g. the order flipped to newest-first) returns to the top of page 1.
+  const prevStartAtEndRef = React.useRef(startAtEnd);
+  React.useEffect(() => {
+    const wasOn = prevStartAtEndRef.current;
+    prevStartAtEndRef.current = startAtEnd;
+    if (!wasOn || startAtEnd || isControlledPagination) return;
+    table.setPageIndex(0);
+    if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startAtEnd]);
+  React.useEffect(() => {
+    if (!startAtEnd || isLoading || isControlledPagination || data.length === 0) return;
+    // Next frame: TanStack resets the page index after a data/sorting change, and the
+    // rows must be rendered before the container's scrollHeight is meaningful.
+    let innerFrame = 0;
+    const frame = requestAnimationFrame(() => {
+      table.setPageIndex(Math.max(0, table.getPageCount() - 1));
+      innerFrame = requestAnimationFrame(() => {
+        const el = scrollContainerRef.current;
+        if (el) el.scrollTop = el.scrollHeight;
+      });
+    });
+    return () => { cancelAnimationFrame(frame); cancelAnimationFrame(innerFrame); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startAtEnd, isLoading, data]);
+
   // Use a ref so the callback never appears in deps — prevents firing on every render.
   const onRowSelectionChangeRef = React.useRef(onRowSelectionChange);
   React.useLayoutEffect(() => { onRowSelectionChangeRef.current = onRowSelectionChange; });
@@ -364,7 +399,7 @@ export function DataTable<TData, TValue>({
         </div>
       )}
       {showCardList ? (
-        <div data-testid="card-list" className={cn("flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1", cardListClassName)}>
+        <div ref={scrollContainerRef} data-testid="card-list" className={cn("flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1", cardListClassName)}>
           {isLoading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="h-16 w-full rounded-md" />
@@ -395,7 +430,7 @@ export function DataTable<TData, TValue>({
         </div>
       ) : null}
       {!showCardList ? (
-      <div className="rounded-md border overflow-auto print:overflow-visible flex-1 min-h-0 print:h-auto relative print:max-h-none">
+      <div ref={scrollContainerRef} className="rounded-md border overflow-auto print:overflow-visible flex-1 min-h-0 print:h-auto relative print:max-h-none">
         <table className={cn("w-full caption-bottom text-[length:var(--tbl-font)]")}>
           <TableHeader className="sticky print:static top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
             {table.getHeaderGroups().map((headerGroup) => (

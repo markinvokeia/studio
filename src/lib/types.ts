@@ -2032,6 +2032,9 @@ export type DoctorAlertStyle = 'modal' | 'toast';
 /** `unified` = single account ledger (Debe/Haber/Saldo). `tabs` = separate Quotes/Invoices/Payments tabs. */
 export type PatientFinanceView = 'unified' | 'tabs';
 
+/** Display order of the patient finance lists: most recent document at the top, or at the end (opened scrolled to it). */
+export type FinanceSortOrder = 'newest-first' | 'newest-last';
+
 /**
  * Where toasts appear on screen. Small screens always show them at the top
  * (safe-area aware), so this preference only takes effect from `sm:` upwards.
