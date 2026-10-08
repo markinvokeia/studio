@@ -61,6 +61,12 @@ export interface StudyOrderDetailPanelProps {
     refreshKey?: number;
     /** Se marcó un punto a revisar: la bandeja actualiza su contador de pendientes. */
     onReviewChanged?: () => void;
+    /**
+     * Consulta desde la ficha de un paciente o doctor: sin marcar puntos a
+     * revisar, sin registrar sesiones y sin el link de agendamiento. Las
+     * acciones de cabecera ya quedan fuera al no pasar sus callbacks.
+     */
+    readOnly?: boolean;
 }
 
 /** Reconstruye el estado de bandeja desde el detalle, que no lo trae calculado. */
@@ -88,7 +94,7 @@ function Field({ label, value }: { label: string; value?: React.ReactNode }) {
 }
 
 export function StudyOrderDetailPanel({
-    orderId, scope, onClose, refreshKey = 0, onReviewChanged,
+    orderId, scope, onClose, refreshKey = 0, onReviewChanged, readOnly = false,
     onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint,
 }: StudyOrderDetailPanelProps) {
     const t = useTranslations('StudyOrdersPage');
@@ -127,7 +133,7 @@ export function StudyOrderDetailPanel({
     const reviewItems = order?.review_items ?? [];
     const reviewPending = reviewItems.filter((i) => i.status === 'pending').length;
     // Marcar puntos: el mismo alcance que el backend (la orden propia o, con VIEW_ALL, cualquiera).
-    const canReview = !!order && order.status !== 'cancelled'
+    const canReview = !readOnly && !!order && order.status !== 'cancelled'
         && (scope === 'mine' || hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL));
 
     const tabs = React.useMemo<VerticalTab[]>(
@@ -153,7 +159,7 @@ export function StudyOrderDetailPanel({
             ...(scope === 'clinic'
                 ? [{ id: 'patient', icon: User, label: t('tabs.patient') }]
                 : []),
-            ...(hasPermission(STUDY_ORDERS_PERMISSIONS.SHARE_LINK)
+            ...(!readOnly && hasPermission(STUDY_ORDERS_PERMISSIONS.SHARE_LINK)
                 ? [{ id: 'link', icon: Link2, label: t('tabs.link') }]
                 : []),
             // Solo órdenes que entraron por WhatsApp: los originales y lo que leyó el
@@ -164,7 +170,7 @@ export function StudyOrderDetailPanel({
                 : []),
             { id: 'activity', icon: Activity, label: t('tabs.activity') },
         ],
-        [t, scope, hasPermission, hasOriginals, reviewItems.length, reviewPending],
+        [t, scope, hasPermission, hasOriginals, reviewItems.length, reviewPending, readOnly],
     );
 
     /** Agrupa las líneas por sección, respetando el orden del formulario. */
@@ -305,8 +311,10 @@ export function StudyOrderDetailPanel({
             }
         }
 
-        return actions;
-    }, [order, scope, hasPermission, t, onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint]);
+        // En consulta sólo queda imprimir: el link y registrar sesión no dependen de
+        // un callback, así que hay que sacarlos acá.
+        return readOnly ? actions.filter((action) => action.key === 'print') : actions;
+    }, [order, scope, hasPermission, t, onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint, readOnly]);
 
     if (isLoading) {
         return (
@@ -440,6 +448,7 @@ export function StudyOrderDetailPanel({
                 {activeTab === 'sessions' && (
                     <StudyOrderSessionTab
                         order={order}
+                        readOnly={readOnly}
                         openRequest={sessionRequest}
                         // Recargar la orden tras guardar: la sesión recién creada
                         // llega con el detalle, no se puede pintar desde el form.

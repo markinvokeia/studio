@@ -81,6 +81,7 @@ import type { VisibleLedger } from '@/components/users/patient-ledger';
 import { UserTreatmentPlans, type TreatmentContactContext } from '@/components/users/user-treatment-plans';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { UserOrders } from '@/components/users/user-orders';
+import { RelatedStudyOrders } from '@/components/study-orders/related-study-orders';
 import { BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SALES_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
@@ -503,6 +504,9 @@ export default function UsersPage() {
     MEDICAL_HISTORY_PERMISSIONS.VIEW,
   ]);
   const canViewFinancialTab = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
+  // Órdenes de estudio: las ve todo el que accede a la ficha del paciente, sin
+  // importar si tiene permisos de órdenes (el backend lo resuelve con scope=patient).
+  const canViewStudyOrdersTab = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL);
 
   // Clinical content is read-only unless the role can actually write it. The
   // clinical viewers don't check permissions themselves — they take `readOnly`.
@@ -1467,6 +1471,8 @@ export default function UsersPage() {
                         showInfo={canViewInfoTab}
                         showClinical={canViewClinicalTab}
                         showFinancial={canViewFinancialTab}
+                        showStudyOrders={canViewStudyOrdersTab}
+                        studyOrdersContent={<RelatedStudyOrders patientId={selectedUser.id} />}
                         activeInfoSubTab={activeInfoSubTab}
                         onInfoSubTabChange={setActiveInfoSubTab}
                         infoContent={

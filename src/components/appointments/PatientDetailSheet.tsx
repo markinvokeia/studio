@@ -13,6 +13,7 @@ import { PatientInfoTab } from '@/components/patients/patient-info-tab';
 import { PatientQuickActions } from '@/components/patients/patient-quick-actions';
 
 import { InlineAppointmentDraftHost } from '@/components/appointments/inline-appointment-draft-host';
+import { RelatedStudyOrders } from '@/components/study-orders/related-study-orders';
 import { usePermissions } from '@/hooks/usePermissions';
 import { CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
@@ -158,6 +159,9 @@ export function PatientDetailSheet({
 
   const showInfoTab = !isDoctorMode && canViewInfoTab;
   const showFinancialTab = !isDoctorMode && canViewFinancialTab;
+  // Órdenes de estudio: mismo criterio que la ficha de Pacientes — acceso al paciente.
+  // También en modo doctor: es donde el médico consulta qué estudios tiene su paciente.
+  const showStudyOrdersTab = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL);
   // In doctor mode the workspace owns write access (it gates by appointment
   // date), so the permission check only applies to the default/quick-view mode.
   const isReadOnly = readOnly || (!isDoctorMode && !canWriteClinical);
@@ -483,6 +487,7 @@ export function PatientDetailSheet({
           activeClinicalSubTab={activeClinicalSubTab}
           onClinicalSubTabChange={setActiveClinicalSubTab}
           showFinancial={showFinancialTab}
+          studyOrdersContent={showStudyOrdersTab ? <RelatedStudyOrders patientId={userId} /> : undefined}
           infoContent={showInfoTab ? (
             <PatientInfoTab
               userId={userId}

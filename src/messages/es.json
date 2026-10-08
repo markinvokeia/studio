@@ -1969,7 +1969,9 @@
       "anamnesis": "Anamnesis",
       "summary": "Resumen",
       "history": "Línea de tiempo",
-      "medicalInstructions": "Indicaciones Médicas"
+      "medicalInstructions": "Indicaciones Médicas",
+      "studyOrders": "Órdenes de estudio",
+      "studyOrdersShort": "Órdenes"
     },
     "createDialog": {
       "title": "Crear Nuevo Paciente",
@@ -4387,7 +4389,8 @@
       "exceptions": "Excepciones",
       "calendars": "Calendarios con acceso",
       "preferences": "Preferencias",
-      "signature": "Firma"
+      "signature": "Firma",
+      "studyOrders": "Órdenes de estudio"
     },
     "calendarAccess": {
       "title": "Calendarios con acceso",
@@ -8964,7 +8967,9 @@
       "infoSubtitle": "Tus datos personales y de contacto",
       "appointmentsSubtitle": "Próximas citas y solicitud de nuevas",
       "clinicalSubtitle": "Historia clínica, tratamientos y documentos",
-      "financialSubtitle": "Tu estado de cuenta"
+      "financialSubtitle": "Tu estado de cuenta",
+      "orders": "Mis Órdenes",
+      "ordersSubtitle": "Estudios indicados y su avance"
     },
     "subTabs": {
       "history": "Historia clínica",
@@ -9094,6 +9099,36 @@
       "mailSubject": "Consulta desde el portal — {sede}",
       "collapse": "Ocultar",
       "expand": "Ver datos de contacto"
+    },
+    "orders": {
+      "count": "{count, plural, =0 {No tenés órdenes} one {# orden} other {# órdenes}}",
+      "empty": "Todavía no tenés órdenes de estudio.",
+      "loadError": "No pudimos cargar tus órdenes.",
+      "retry": "Reintentar",
+      "orderNumber": "Orden {number}",
+      "issuedOn": "Emitida el {date}",
+      "doctor": "Indicada por",
+      "sede": "Sede sugerida",
+      "progress": "{completed} de {total} estudios realizados",
+      "pendingCount": "{count} sin agendar",
+      "studies": "Estudios",
+      "appointments": "Citas",
+      "pendingHint": "Para agendar los estudios pendientes, comunicate con la clínica o usá el link que te enviaron.",
+      "itemState": {
+        "completed": "Realizado",
+        "scheduled": "Agendado",
+        "pending": "Sin agendar"
+      },
+      "status": {
+        "draft": "Borrador",
+        "new": "Recibida",
+        "unscheduled": "Pendiente de agendar",
+        "partially_scheduled": "Agendada en parte",
+        "scheduled": "Agendada",
+        "in_progress": "En curso",
+        "completed": "Completada",
+        "cancelled": "Cancelada"
+      }
     }
   },
   "Discounts": {
@@ -9972,6 +10007,19 @@
       "all": "Todos los orígenes",
       "portal": "Portal",
       "whatsapp": "WhatsApp"
+    },
+    "related": {
+      "count": "{count, plural, =0 {Sin órdenes} one {# orden} other {# órdenes}}",
+      "countPartial": "Últimas {shown} de {total} órdenes",
+      "refresh": "Actualizar",
+      "emptyPatient": "Este paciente no tiene órdenes de estudio.",
+      "emptyDoctor": "Este doctor no derivó órdenes de estudio.",
+      "submittedOn": "Enviada el {date}",
+      "createdOn": "Creada el {date}",
+      "forPatient": "para {patient}",
+      "openInbox": "Ver todas en la bandeja de órdenes",
+      "back": "Volver a las órdenes",
+      "manageInInbox": "Gestionar en la bandeja"
     }
   },
   "StudyOrderBooking": {

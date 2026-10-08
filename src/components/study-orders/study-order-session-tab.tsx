@@ -45,6 +45,8 @@ export interface StudyOrderSessionTabProps {
      * usuario tenga que buscar el botón. Cero = nadie lo pidió.
      */
     openRequest?: number;
+    /** Sólo mostrar las sesiones, sin el botón de registrar. */
+    readOnly?: boolean;
 }
 
 /** Sólo tiene sentido registrar sobre una cita que ocurrió o está ocurriendo. */
@@ -52,7 +54,7 @@ function isRecordable(appointment: StudyOrderAppointment): boolean {
     return !['cancelled', 'deleted', 'no_show'].includes(appointment.status);
 }
 
-export function StudyOrderSessionTab({ order, onSaved, openRequest = 0 }: StudyOrderSessionTabProps) {
+export function StudyOrderSessionTab({ order, onSaved, openRequest = 0, readOnly = false }: StudyOrderSessionTabProps) {
     const t = useTranslations('StudyOrdersPage');
     const { user } = useAuth();
     const { hasPermission } = usePermissions();
@@ -86,7 +88,7 @@ export function StudyOrderSessionTab({ order, onSaved, openRequest = 0 }: StudyO
     const withSession = appointments.filter((appointment) => appointment.session);
     const pending = appointments.filter((appointment) => !appointment.session && isRecordable(appointment));
 
-    const canCreate = hasPermission(TIMELINE_PERMISSIONS.CREATE) && !!order.patient_id;
+    const canCreate = !readOnly && hasPermission(TIMELINE_PERMISSIONS.CREATE) && !!order.patient_id;
 
     const [target, setTarget] = React.useState<string>('');
     const [isOpen, setIsOpen] = React.useState(false);

@@ -1,14 +1,14 @@
 'use client'
 
 import * as React from 'react'
-import { CreditCard, Stethoscope, Users } from 'lucide-react'
+import { ClipboardList, CreditCard, Stethoscope, Users } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 
 import { PatientSubTabNav } from '@/components/patients/patient-subtab-nav'
 import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip'
 import type { VerticalTab } from '@/components/ui/vertical-tab-strip'
 
-export type PatientSheetMacroTab = 'info' | 'clinical' | 'financial'
+export type PatientSheetMacroTab = 'info' | 'clinical' | 'financial' | 'study-orders'
 export type PatientSheetClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'medical-instructions' | 'documents'
 
 interface PatientDetailSheetMainContentProps {
@@ -26,6 +26,8 @@ interface PatientDetailSheetMainContentProps {
   medicalInstructionsContent: React.ReactNode
   documentsContent: React.ReactNode
   ledgerContent: React.ReactNode
+  /** Órdenes de estudio del paciente. Presente = se muestra el tab (lo decide el caller por permiso). */
+  studyOrdersContent?: React.ReactNode
 }
 
 export function PatientDetailSheetMainContent({
@@ -41,6 +43,7 @@ export function PatientDetailSheetMainContent({
   medicalInstructionsContent,
   documentsContent,
   ledgerContent,
+  studyOrdersContent,
 }: PatientDetailSheetMainContentProps) {
   const t = useTranslations('UsersPage')
 
@@ -50,8 +53,9 @@ export function PatientDetailSheetMainContent({
       ...infoTab,
       { id: 'clinical', icon: Stethoscope, label: t('tabs.clinical') },
       ...(showFinancial ? [{ id: 'financial', icon: CreditCard, label: t('tabs.financial') }] : []),
+      ...(studyOrdersContent ? [{ id: 'study-orders', icon: ClipboardList, label: t('tabs.studyOrders'), shortLabel: t('tabs.studyOrdersShort') }] : []),
     ]
-  }, [showFinancial, infoContent, t])
+  }, [showFinancial, infoContent, studyOrdersContent, t])
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden min-h-0">
@@ -85,6 +89,8 @@ export function PatientDetailSheetMainContent({
         )}
 
         {activeTab === 'financial' && showFinancial && ledgerContent}
+
+        {activeTab === 'study-orders' && studyOrdersContent}
       </div>
     </div>
   )

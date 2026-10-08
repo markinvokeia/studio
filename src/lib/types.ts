@@ -3742,3 +3742,41 @@ export interface PublicStudyOrder {
   preferred_sede_name?: string | null;
   pending_services: Array<{ id: string; name: string; duration_minutes?: number | null }>;
 }
+
+/**
+ * Orden de estudio tal como la ve el paciente en "Mis órdenes" del portal.
+ *
+ * Sin notas clínicas, bitácora ni puntos de revisión: es trabajo interno de la
+ * clínica. Alcanza para saber qué le indicaron, qué falta agendar y cuándo va.
+ */
+export interface PatientStudyOrder {
+  id: string;
+  order_number: string;
+  status: StudyOrderStatus;
+  board_status: StudyOrderBoardStatus;
+  items_total: number;
+  items_scheduled: number;
+  items_completed: number;
+  /** Quién la derivó: doctor del sistema o el nombre que traía la orden de WhatsApp. */
+  doctor_name?: string | null;
+  preferred_sede_name?: string | null;
+  submitted_at?: string | null;
+  completed_at?: string | null;
+  cancelled_at?: string | null;
+  created_at: string;
+  items: Array<{
+    id: string;
+    service_name: string;
+    quantity?: number | null;
+    is_scheduled: boolean;
+    is_completed: boolean;
+  }>;
+  appointments: Array<{
+    id: string;
+    start_datetime: string;
+    end_datetime?: string | null;
+    status: string;
+    sede_name?: string | null;
+    calendar_name?: string | null;
+  }>;
+}

@@ -33,8 +33,10 @@ import { DoctorAvailabilityExceptions } from '@/components/users/doctor-availabi
 import { UserServices } from '@/components/users/user-services';
 import { UserPreferencesTab } from '@/components/users/user-preferences-tab';
 import { SignatureUploader } from '@/components/users/signature-uploader';
-import { SYSTEM_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
+import { SYSTEM_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, STUDY_ORDERS_PERMISSIONS } from '@/constants/permissions';
 import { DoctorCalendarsTab } from '@/components/calendar/doctor-calendars-tab';
+import { RelatedStudyOrders } from '@/components/study-orders/related-study-orders';
+import { useAuth } from '@/context/AuthContext';
 import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
@@ -49,7 +51,7 @@ import { useLicenseStore } from '@/stores/license-store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Calendar as CalendarIcon, CalendarClock, CalendarX, Check, ChevronsUpDown, ClipboardList, KeyRound, PenLine, Settings2, Stethoscope, UserSquare, X } from 'lucide-react';
+import { AlertTriangle, Calendar as CalendarIcon, CalendarClock, CalendarX, Check, ChevronsUpDown, ClipboardList, FileText, KeyRound, PenLine, Settings2, Stethoscope, UserSquare, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
@@ -294,6 +296,13 @@ export default function DoctorsPage() {
   const canSetInitialPassword = hasPermission(SYSTEM_PERMISSIONS.USERS_SET_INITIAL_PASSWORD);
   const hasPasswordPermission = useCheckFirstPassword(selectedUser, canSetInitialPassword);
   const canUpdateDoctor = hasPermission(BUSINESS_CONFIG_PERMISSIONS.DOCTORS_UPDATE);
+  const { user: currentUser } = useAuth();
+  // Con VIEW_ALL se ven las órdenes de cualquier doctor; con VIEW_MINE sólo las
+  // propias, así que el tab aparece únicamente en la ficha de uno mismo.
+  const canViewDoctorStudyOrders = !!selectedUser && (
+    hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL) ||
+    (hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_MINE) && String(currentUser?.id) === String(selectedUser.id))
+  );
 
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
@@ -681,6 +690,7 @@ export default function DoctorsPage() {
                     { id: 'availability', icon: CalendarClock, label: t('DoctorsPage.tabs.availability') },
                     { id: 'exceptions', icon: CalendarX, label: t('DoctorsPage.tabs.exceptions') },
                     { id: 'signature', icon: PenLine, label: t('DoctorsPage.tabs.signature') },
+                    ...(canViewDoctorStudyOrders ? [{ id: 'study-orders', icon: FileText, label: t('DoctorsPage.tabs.studyOrders') }] : []),
                     ...(canUpdateDoctor ? [{ id: 'preferences', icon: Settings2, label: t('DoctorsPage.tabs.preferences') }] : []),
                   ] satisfies VerticalTab[]}
                   activeTabId={activeTab}
@@ -803,6 +813,9 @@ export default function DoctorsPage() {
                       userId={selectedUser.id}
                       canManage={hasPermission(SYSTEM_PERMISSIONS.USERS_MANAGE_SIGNATURE)}
                     />
+                  )}
+                  {activeTab === 'study-orders' && canViewDoctorStudyOrders && (
+                    <RelatedStudyOrders doctorId={selectedUser.id} />
                   )}
                   {activeTab === 'preferences' && canUpdateDoctor && (
                     <UserPreferencesTab user={selectedUser} showAlertStyle sedes={sedes} />

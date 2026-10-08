@@ -1,12 +1,13 @@
 'use client';
 
-import { ArrowLeft, CalendarDays, CalendarPlus, CreditCard, Stethoscope, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarDays, CalendarPlus, ClipboardList, CreditCard, Stethoscope, UserRound } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 
 import { MyAppointmentsTab } from '@/components/patient-portal/my-appointments-tab';
+import { MyStudyOrdersTab } from '@/components/patient-portal/my-study-orders-tab';
 import { PatientAssistant } from '@/components/patient-portal/patient-assistant';
 import { PatientBookingPanel } from '@/components/patient-portal/patient-booking-panel';
 import { PatientAccountStatement } from '@/components/patient-portal/patient-account-statement';
@@ -19,11 +20,12 @@ import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/compone
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
 
 import { usePatientPortal } from '@/hooks/usePatientPortal';
-import type { Appointment, User } from '@/lib/types';
+import type { Appointment, PatientStudyOrder, User } from '@/lib/types';
 import { fetchUpcomingPatientAppointments } from '@/services/appointments';
 import { fetchPatientPortalConfig } from '@/services/patient-portal-config';
+import { getPatientStudyOrders } from '@/services/study-orders';
 
-type MacroTab = 'info' | 'appointments' | 'clinical' | 'financial';
+type MacroTab = 'info' | 'appointments' | 'orders' | 'clinical' | 'financial';
 type ClinicalSubTab = 'anamnesis' | 'history' | 'treatment-plans' | 'instructions' | 'documents';
 
 export default function MyProfilePage() {
@@ -82,6 +84,45 @@ export default function MyProfilePage() {
     };
   }, []);
 
+  /**
+   * Órdenes de estudio del paciente. Se piden acá y no en el tab porque deciden
+   * si el tab existe: una clínica que no trabaja con órdenes (o un paciente que
+   * nunca tuvo una) no ve una sección vacía de más.
+   */
+  const [studyOrders, setStudyOrders] = React.useState<PatientStudyOrder[]>([]);
+  const [studyOrdersLoading, setStudyOrdersLoading] = React.useState(true);
+  const [studyOrdersError, setStudyOrdersError] = React.useState(false);
+  const studyOrdersRequestRef = React.useRef(0);
+
+  const loadStudyOrders = React.useCallback(async () => {
+    // Sólo la última respuesta cuenta: un reintento no puede pisarse con una vieja.
+    const requestId = ++studyOrdersRequestRef.current;
+    setStudyOrdersLoading(true);
+    setStudyOrdersError(false);
+    try {
+      const orders = await getPatientStudyOrders();
+      if (requestId === studyOrdersRequestRef.current) setStudyOrders(orders);
+    } catch (error) {
+      console.error('Failed to load patient study orders:', error);
+      if (requestId === studyOrdersRequestRef.current) setStudyOrdersError(true);
+    } finally {
+      if (requestId === studyOrdersRequestRef.current) setStudyOrdersLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!patientId) return;
+    loadStudyOrders();
+    const requestRef = studyOrdersRequestRef;
+    return () => {
+      // Invalida la respuesta en vuelo si el componente se desmonta.
+      requestRef.current++;
+    };
+  }, [patientId, loadStudyOrders]);
+
+  /** Con error se muestra igual: el paciente tiene que poder reintentar. */
+  const showOrdersTab = studyOrders.length > 0 || studyOrdersError;
+
   React.useEffect(() => {
     if (!patientId) return;
     let cancelled = false;
@@ -123,6 +164,9 @@ export default function MyProfilePage() {
   const navItems: PortalNavItem[] = [
     { id: 'info', icon: UserRound, label: t('tabs.info'), subtitle: t('tabs.infoSubtitle') },
     { id: 'appointments', icon: CalendarDays, label: t('tabs.appointments'), subtitle: t('tabs.appointmentsSubtitle') },
+    ...(showOrdersTab
+      ? [{ id: 'orders', icon: ClipboardList, label: t('tabs.orders'), subtitle: t('tabs.ordersSubtitle') }]
+      : []),
     { id: 'clinical', icon: Stethoscope, label: t('tabs.clinical'), subtitle: t('tabs.clinicalSubtitle') },
     { id: 'financial', icon: CreditCard, label: t('tabs.financial'), subtitle: t('tabs.financialSubtitle') },
   ];
@@ -242,6 +286,19 @@ export default function MyProfilePage() {
               </div>
             </div>
           ))}
+
+        {activeTab === 'orders' && (
+          <div className="min-h-0 flex-1 overflow-y-auto p-3">
+            <div className="mx-auto max-w-2xl">
+              <MyStudyOrdersTab
+                orders={studyOrders}
+                isLoading={studyOrdersLoading}
+                hasError={studyOrdersError}
+                onRetry={loadStudyOrders}
+              />
+            </div>
+          </div>
+        )}
 
         {activeTab === 'clinical' && (
           <div className="min-h-0 flex-1 overflow-y-auto p-3">

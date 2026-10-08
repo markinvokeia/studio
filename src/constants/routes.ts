@@ -578,6 +578,8 @@ export const API_ROUTES = {
         LINK_APPOINTMENT: '/study-orders/link-appointment',
         BY_APPOINTMENT:   '/study-orders/by-appointment',
         BOOKING_TOKEN: '/study-orders/booking-token',
+        /** Portal del paciente: sus órdenes. El paciente sale del token, no del query. */
+        PATIENT:       '/study-orders/patient',
         /** Marca un punto a revisar (lo que el agente de WhatsApp no tuvo claro). */
         REVIEW_ITEM_UPDATE: '/study-orders/review-items/update',
         /** Original (foto o PDF) recibido por WhatsApp: GET ?intake_id=&id= devuelve el archivo. */

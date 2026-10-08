@@ -1969,7 +1969,9 @@
       "anamnesis": "Anamnesis",
       "summary": "Summary",
       "history": "Timeline",
-      "medicalInstructions": "Medical Instructions"
+      "medicalInstructions": "Medical Instructions",
+      "studyOrders": "Study orders",
+      "studyOrdersShort": "Orders"
     },
     "createDialog": {
       "title": "Create New Patient",
@@ -4387,7 +4389,8 @@
       "exceptions": "Exceptions",
       "calendars": "Calendars with access",
       "preferences": "Preferences",
-      "signature": "Signature"
+      "signature": "Signature",
+      "studyOrders": "Study orders"
     },
     "calendarAccess": {
       "title": "Calendars with access",
@@ -8964,7 +8967,9 @@
       "infoSubtitle": "Your personal and contact details",
       "appointmentsSubtitle": "Upcoming appointments and new requests",
       "clinicalSubtitle": "Clinical history, treatments and documents",
-      "financialSubtitle": "Your account statement"
+      "financialSubtitle": "Your account statement",
+      "orders": "My Orders",
+      "ordersSubtitle": "Prescribed studies and their progress"
     },
     "subTabs": {
       "history": "Clinical history",
@@ -9094,6 +9099,36 @@
       "mailSubject": "Enquiry from the portal — {sede}",
       "collapse": "Hide",
       "expand": "View contact details"
+    },
+    "orders": {
+      "count": "{count, plural, =0 {You have no orders} one {# order} other {# orders}}",
+      "empty": "You don't have any study orders yet.",
+      "loadError": "We couldn't load your orders.",
+      "retry": "Retry",
+      "orderNumber": "Order {number}",
+      "issuedOn": "Issued on {date}",
+      "doctor": "Prescribed by",
+      "sede": "Suggested location",
+      "progress": "{completed} of {total} studies done",
+      "pendingCount": "{count} not scheduled",
+      "studies": "Studies",
+      "appointments": "Appointments",
+      "pendingHint": "To schedule the pending studies, contact the clinic or use the link you were sent.",
+      "itemState": {
+        "completed": "Done",
+        "scheduled": "Scheduled",
+        "pending": "Not scheduled"
+      },
+      "status": {
+        "draft": "Draft",
+        "new": "Received",
+        "unscheduled": "Awaiting scheduling",
+        "partially_scheduled": "Partially scheduled",
+        "scheduled": "Scheduled",
+        "in_progress": "In progress",
+        "completed": "Completed",
+        "cancelled": "Cancelled"
+      }
     }
   },
   "Discounts": {
@@ -9972,6 +10007,19 @@
       "all": "All origins",
       "portal": "Portal",
       "whatsapp": "WhatsApp"
+    },
+    "related": {
+      "count": "{count, plural, =0 {No orders} one {# order} other {# orders}}",
+      "countPartial": "Latest {shown} of {total} orders",
+      "refresh": "Refresh",
+      "emptyPatient": "This patient has no study orders.",
+      "emptyDoctor": "This doctor has not referred any study orders.",
+      "submittedOn": "Sent on {date}",
+      "createdOn": "Created on {date}",
+      "forPatient": "for {patient}",
+      "openInbox": "View all in the orders inbox",
+      "back": "Back to orders",
+      "manageInInbox": "Manage in inbox"
     }
   },
   "StudyOrderBooking": {

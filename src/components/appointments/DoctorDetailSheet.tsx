@@ -7,7 +7,11 @@ import { UserServices } from '@/components/users/user-services';
 import { UserMessages } from '@/components/users/user-messages';
 import { UserLogs } from '@/components/users/user-logs';
 import { DoctorAppointments } from '@/components/appointments/DoctorAppointments';
-import { Mail, Phone, UserSquare, CalendarDays, Wrench, MessageSquare, History } from 'lucide-react';
+import { RelatedStudyOrders } from '@/components/study-orders/related-study-orders';
+import { STUDY_ORDERS_PERMISSIONS } from '@/constants/permissions';
+import { useAuth } from '@/context/AuthContext';
+import { usePermissions } from '@/hooks/usePermissions';
+import { Mail, Phone, UserSquare, CalendarDays, Wrench, MessageSquare, History, FileText } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -33,10 +37,17 @@ export function DoctorDetailSheet({
   const tUsers = useTranslations('UsersPage');
   const tAppts = useTranslations('AppointmentsPage');
   const [activeTab, setActiveTab] = React.useState('appointments');
+  const { user } = useAuth();
+  const { hasPermission } = usePermissions();
+  // Mismo criterio que Config > Doctores: con VIEW_ALL las de cualquier doctor;
+  // con VIEW_MINE sólo en la ficha propia (en la de otro saldría vacío).
+  const canViewStudyOrders = hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL)
+    || (hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_MINE) && String(user?.id) === String(doctorId));
 
   const tabs: VerticalTab[] = [
     { id: 'appointments', icon: CalendarDays, label: tAppts('title') },
     { id: 'services', icon: Wrench, label: tUsers('tabs.services') },
+    ...(canViewStudyOrders ? [{ id: 'study-orders', icon: FileText, label: tUsers('tabs.studyOrders') }] : []),
     { id: 'messages', icon: MessageSquare, label: tUsers('tabs.messages') },
     { id: 'logs', icon: History, label: tUsers('tabs.logs') },
   ];
@@ -91,6 +102,11 @@ export function DoctorDetailSheet({
           <div className="flex-1 overflow-hidden min-h-0 flex flex-col p-3">
             {activeTab === 'appointments' && <DoctorAppointments doctorId={doctorId} />}
             {activeTab === 'services' && <UserServices userId={doctorId} isSalesUser={true} />}
+            {activeTab === 'study-orders' && canViewStudyOrders && (
+              <div className="min-h-0 flex-1 overflow-y-auto">
+                <RelatedStudyOrders doctorId={doctorId} />
+              </div>
+            )}
             {activeTab === 'messages' && <UserMessages userId={doctorId} />}
             {activeTab === 'logs' && <UserLogs userId={doctorId} />}
           </div>
