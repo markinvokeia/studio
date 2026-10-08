@@ -916,3 +916,39 @@ Para ubicar cada punto, `buildReviewItems` ahora guarda `section_code` (la secci
 **Puesta en marcha:** la misma de §21-22 (los flujos ya regenerados incluyen `section_code`).
 
 **Verificado:** typecheck, ESLint, 71 pruebas (una nueva para `section_code`), `resolveReviewTargets` con un catálogo de ejemplo (incluido un punto viejo sin sección y uno ya revisado, que no se marca), workflows sin conexiones colgadas. **No probado en el navegador:** necesita la migración 126 y una orden derivada real.
+
+## 24. Importar la orden desde Invoke (2026-10-08)
+
+Recepción sube las fotos o el PDF de una orden en papel desde **Órdenes → Importar orden** y la lee el mismo subflujo que las de WhatsApp. El resultado es siempre un **borrador** con lo dudoso como puntos a revisar bloqueantes; quien importó lo abre ("Revisar y completar"), corrige mirando el original y lo envía.
+
+**Un intake por importación.** La lectura se registra en `whatsapp_order_intakes` con `channel = 'import'` (sin teléfono, con `created_by`). Así los originales (`attachments` con `source_name = 'whatsapp_order_intake'`), el visor de archivos, la pestaña Original del detalle y `study_orders.source_intake_id` sirven sin cambios. La orden queda con `source = 'portal'` (no hay un valor de origen nuevo) y la pestaña Original dice "Importada desde Invoke" y quién la subió.
+
+**Subflujo, modo `import`** (`validateImport` en `intake-lib.mjs`): sin conversación. Lo que en WhatsApp sería una pregunta, un reenvío o una derivación pasa a ser un punto a revisar:
+
+| Situación | Punto a revisar (`code`) |
+| --- | --- |
+| Falla el modelo, sin archivos, no es una orden, ilegible | `read_failed` |
+| Falta el nombre, el documento o ningún estudio ubicado | `unreadable` |
+| Cédula con verificador inválido o documento corto | `invalid_document` |
+| El documento figura en más de un paciente | `patient_match` |
+| El paciente ya tiene una orden abierta con los mismos estudios | `duplicate` |
+| Lectura dudosa, fuera del catálogo, no encaja, falta el dorso, sin firma, orden antigua | los mismos que en WhatsApp (`buildReviewItems`) |
+
+El paciente se resuelve **solo por documento**: una coincidencia → se vincula; ninguna → queda para registrar; varias → `patient_match`. Los modos `extract`, `revalidate` y `compare` no cambian: el agente sigue igual. `Save Result` solo toca intakes del canal que corresponde al modo.
+
+**Endpoint** (`Study Orders - Import`, generado por `scripts/n8n/generate-study-order-import-workflow.mjs`):
+
+- `POST /study-orders/import` (multipart `file0`, `file1`, …; hasta 6 archivos JPG/PNG/WEBP/PDF de 10 MB). Abre el intake, guarda los originales con `Attachements CRUD` y responde **202** `{ intake_id }`. Después, sin el navegador esperando: subflujo en modo `import` → borrador con el SQL de `/study-orders/upsert` (sin doctor, `source_intake_id`) → puntos a revisar (`REVIEW_ITEMS_INSERT_SQL`, bloqueantes) → evento `created` → intake en `order_created` (o `failed` si no se pudo crear el borrador). Si el subflujo falla, el borrador se crea igual, vacío y con `read_failed`.
+- `GET /study-orders/import/status?intake_id=` → `{ status: processing | done | failed, order_id, order_number, items_total, review_pending }`. Una lectura con más de 10 minutos en curso se informa como `failed`.
+- Permisos: `STUDY_ORDERS_CREATE_FOR_DOCTOR` + `STUDY_ORDERS_VIEW_ALL` (lo valida el SQL; el botón se muestra con esos dos más `STUDY_ORDERS_CREATE`, solo en la bandeja de la clínica).
+
+**Pantalla:** el diálogo sube los archivos (bloqueado mientras sube), consulta el estado cada 3 s y, al terminar, muestra el número de borrador, los estudios leídos y los puntos a revisar. Se puede cerrar mientras lee: la orden aparece en Borradores.
+
+**Puesta en marcha:**
+
+1. Aplicar la migración **127** (`127_20261008_study-order-import.sql`). **Antes** de reimportar los flujos: el detalle y el subflujo leen `channel`.
+2. Reimportar `WhatsApp - Study Order Intake` (`docs/n8n-flows/`, ya con el modo `import`) y `study-orders-detail.json` (regenerado).
+3. Importar el nuevo `n8n-workflows/study-orders-import.json` y activarlo (usa los ids de `Attachements CRUD` y del subflujo de la instancia).
+4. Desplegar el frontend.
+
+**Verificado:** typecheck, ESLint, 78 pruebas (7 nuevas de `validateImport` y `buildImportOrderPayload`), workflows regenerados. **No probado en n8n ni en el navegador:** necesita la migración 127 y los flujos importados; el login de la preview pide una cuenta real.

@@ -3528,6 +3528,10 @@ export interface WhatsappIntakeWarning {
 /** Lo que recepción necesita para auditar una orden que llegó por WhatsApp. */
 export interface StudyOrderWhatsappInfo {
   intake_id: string;
+  /** `import`: la orden la subió recepción desde Invoke (sin teléfono). */
+  channel?: StudyOrderIntakeChannel;
+  /** Quién importó la orden (solo `channel = import`). */
+  imported_by_name?: string | null;
   phone?: string | null;
   received_at: string;
   warnings: WhatsappIntakeWarning[];
@@ -3537,10 +3541,29 @@ export interface StudyOrderWhatsappInfo {
   files: WhatsappIntakeFile[];
 }
 
-/** Tipo de punto a revisar que dejó el agente de WhatsApp al leer la orden. */
+/** Tipo de punto a revisar que dejó el asistente al leer la orden (WhatsApp o importada). */
 export type StudyOrderReviewCode =
   | 'handoff_reason' | 'low_confidence' | 'not_in_catalog' | 'unreadable'
-  | 'unplaced' | 'possibly_incomplete' | 'no_signature' | 'old_order';
+  | 'unplaced' | 'possibly_incomplete' | 'no_signature' | 'old_order'
+  | 'read_failed' | 'invalid_document' | 'patient_match' | 'duplicate';
+
+/** De dónde llegaron los originales de la orden. */
+export type StudyOrderIntakeChannel = 'whatsapp' | 'import';
+
+/** Estado de una orden importada desde Invoke mientras el asistente la lee. */
+export type StudyOrderImportState = 'processing' | 'done' | 'failed';
+
+export interface StudyOrderImportStatus {
+  intake_id: string;
+  status: StudyOrderImportState;
+  order_id?: string | null;
+  order_number?: string | null;
+  patient_name?: string | null;
+  items_total?: number | null;
+  review_pending?: number | null;
+  files?: number | null;
+  created_at?: string | null;
+}
 
 export type StudyOrderReviewStatus = 'pending' | 'confirmed' | 'corrected' | 'dismissed';
 

@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import {
     buildExtractionSchema, buildSystemPrompt, isValidCedulaUY, normalizeDocument,
     similarNames, validateExtraction, compareLateFiles, buildOrderDraft, collectFieldConfidence, buildReviewItems,
+    validateImport, buildImportOrderPayload,
 } from './intake-lib.mjs';
 
 // Un recorte del catálogo real (ids y códigos de ci-orden:*).
@@ -595,4 +596,96 @@ test('puntos a revisar: cada uno dice en qué sección del formulario está', ()
     assert.equal(bySection['regions.CONEBEAM.36'], 'CONEBEAM');
     assert.equal(bySection['texts.aclaracion'], null); // texto general: va con los datos del paciente
     assert.equal(bySection['patient.document'], null);
+});
+
+// ---------------------------------------------------------------------------
+// Importación desde Invoke: sin conversación, siempre en borrador
+// ---------------------------------------------------------------------------
+const runImport = (over = {}, inputOver = {}) =>
+    validateImport({
+        extraction: extraction(over), has_files: true, catalog, options,
+        doc_matches: [], open_orders: [], config: { min_confidence: 0.85 },
+        ...inputOver,
+    });
+const reviewKeys = (r) => r.review_items.map((i) => `${i.code}|${i.field}`);
+
+test('importación: orden limpia → borrador sin puntos a revisar y paciente a registrar', () => {
+    const r = runImport();
+    assert.equal(r.outcome, 'draft');
+    assert.deepEqual(r.review_items, []);
+    assert.equal(r.patient.status, 'register');
+    assert.equal(r.patient.document, '12345672');
+    assert.deepEqual(r.draft.items.map((i) => i.service_id), [1566, 1603]);
+});
+
+test('importación: nunca pregunta ni deriva; lo dudoso queda como punto a revisar', () => {
+    const r = runImport({
+        items: [{ external_id: 'ci-orden:svc:opt', notes: null, confidence: 0.4 }],
+        missing_other_side: true,
+        unmatched_text_lines: [{ text: 'Cefalometría de Ricketts', confidence: 0.9 }],
+    });
+    assert.equal(r.outcome, 'draft');
+    assert.equal(r.questions, undefined);
+    assert.ok(reviewKeys(r).includes('low_confidence|items.ci-orden:svc:opt'));
+    assert.ok(reviewKeys(r).includes('possibly_incomplete|missing_other_side'));
+    assert.ok(reviewKeys(r).includes('not_in_catalog|unmatched:Cefalometría de Ricketts'));
+    // Lo que sí se pudo ubicar está en el borrador.
+    assert.deepEqual(r.draft.items.map((i) => i.service_id), [1566]);
+});
+
+test('importación: el paciente se busca solo por documento', () => {
+    const one = runImport({}, { doc_matches: [{ id: 'u1', identity_document: '1234567-2' }] });
+    assert.equal(one.patient.status, 'existing');
+    assert.equal(one.patient.patient_id, 'u1');
+
+    const many = runImport({}, { doc_matches: [
+        { id: 'u1', identity_document: '1234567-2' }, { id: 'u2', identity_document: '1.234.567-2' },
+    ] });
+    assert.equal(many.patient.patient_id, null);
+    assert.ok(reviewKeys(many).includes('patient_match|patient.document'));
+});
+
+test('importación: falta el nombre o la cédula es inválida → punto a revisar, sin duplicar la lectura dudosa', () => {
+    const r = runImport({ patient: { name: null, document: '1.234.567-3', document_type: 'cedula', document_confidence: 0.5, name_confidence: 0.9 } });
+    assert.ok(reviewKeys(r).includes('unreadable|patient.name'));
+    assert.ok(reviewKeys(r).includes('invalid_document|patient.document'));
+    assert.ok(!reviewKeys(r).includes('low_confidence|patient.document'));
+    assert.equal(r.patient.status, 'unresolved');
+});
+
+test('importación: fallo del modelo o archivo que no es una orden → borrador con el motivo', () => {
+    const failed = runImport({}, { extraction: null, extraction_error: 'timeout' });
+    assert.equal(failed.outcome, 'draft');
+    assert.equal(failed.draft, null);
+    assert.deepEqual(reviewKeys(failed), ['read_failed|extraction']);
+
+    const notOrder = runImport({ is_study_order: false, items: [] });
+    assert.ok(reviewKeys(notOrder).includes('read_failed|is_study_order'));
+    assert.ok(reviewKeys(notOrder).includes('unreadable|items'));
+});
+
+test('importación: orden abierta con los mismos estudios se marca como posible duplicado', () => {
+    const r = runImport({}, {
+        doc_matches: [{ id: 'u1', identity_document: '12345672' }],
+        open_orders: [{ id: 'o1', order_number: 'OE-2026-000010', service_ids: [1603, 1566] }],
+    });
+    assert.deepEqual(r.duplicate_of, { id: 'o1', order_number: 'OE-2026-000010' });
+    assert.ok(reviewKeys(r).includes('duplicate|duplicate_of'));
+});
+
+test('importación: el cuerpo del borrador lleva el intake, el paciente y los estudios', () => {
+    const v = runImport({}, { doc_matches: [{ id: 'u1', identity_document: '12345672' }] });
+    const p = buildImportOrderPayload({ validation: v, intake_id: 'i-1', fallback_name: 'Sin nombre' });
+    assert.equal(p.without_doctor, true);
+    assert.equal(p.source_intake_id, 'i-1');
+    assert.equal(p.patient_id, 'u1');
+    assert.equal(p.patient_name, 'Juan Gómez');
+    assert.equal(p.referring_doctor_name, 'Dra. Ana Pérez');
+    assert.deepEqual(p.items.map((i) => i.service_id), ['1566', '1603']);
+
+    const empty = buildImportOrderPayload({
+        validation: runImport({}, { extraction: null, extraction_error: 'x' }), intake_id: 'i-2', fallback_name: 'Sin nombre',
+    });
+    assert.equal(empty.patient_name, 'Sin nombre');
+    assert.deepEqual(empty.items, []);
 });

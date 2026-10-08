@@ -207,8 +207,11 @@ SELECT row_to_json(o) AS data
            so.source, so.referring_doctor_name, so.source_intake_id::text,
            -- Orden que entro por WhatsApp: los originales (fotos o PDF) y lo que el asistente
            -- leyo de ellos, para poder comprobar que no hubo errores de lectura.
+           -- También las importadas desde Invoke (channel = 'import': sin teléfono, con quién importó).
            (SELECT json_build_object(
                      'intake_id', wi.id::text,
+                     'channel', wi.channel,
+                     'imported_by_name', (SELECT u.name FROM public.users u WHERE u.id = wi.created_by),
                      'phone', wi.phone,
                      'received_at', wi.created_at,
                      'warnings', coalesce(wi.validation -> 'warnings', '[]'::jsonb),
@@ -1556,3 +1559,71 @@ UPDATE public.whatsapp_order_intakes i
    AND i.resolved_at IS NULL
    AND coalesce((SELECT can_acknowledge FROM perms), false)
 RETURNING i.id::text, i.resolved_at;`;
+
+// ── Importar una orden desde Invoke (fotos o PDF) ────────────────────────────
+// Recepción sube los originales; los lee el mismo subflujo que los de WhatsApp (modo 'import') y
+// queda una orden en BORRADOR con lo dudoso como puntos a revisar. El intake (channel = 'import')
+// registra la lectura y es el source_id de los originales, igual que en WhatsApp.
+
+/**
+ * Permiso para importar: crear órdenes sin doctor vinculado (CREATE_FOR_DOCTOR, el mismo que usa el
+ * agente) y ver todas (VIEW_ALL: el borrador no tiene doctor y los originales solo los ve la clínica).
+ */
+const CAN_IMPORT = `coalesce((SELECT can_create_for_doctor AND can_view_all FROM perms), false)`;
+
+export const IMPORT_CREATE_INTAKE_SQL = `
+-- $1 userId (token)
+-- Abre el intake de la importación. Sin permiso no inserta nada y el flujo responde 403.
+WITH ${PERMS_CTE}
+INSERT INTO public.whatsapp_order_intakes (channel, phone, created_by, status)
+SELECT 'import', NULL, $1::uuid, 'extracting'
+ WHERE ${CAN_IMPORT}
+RETURNING id::text;`;
+
+export const IMPORT_SAVE_MEDIA_SQL = `
+-- $1 id del intake  $2 referencias de los originales guardados (JSON array)
+UPDATE public.whatsapp_order_intakes
+   SET media = media || coalesce(NULLIF($2::text, '')::jsonb, '[]'::jsonb)
+ WHERE id = $1::uuid
+   AND channel = 'import'
+RETURNING id::text, jsonb_array_length(media) AS files;`;
+
+export const IMPORT_CLOSE_SQL = `
+-- $1 id del intake  $2 id del borrador creado (vacío si no se pudo crear)  $3 id del paciente (o vacío)
+-- Cierra la lectura: order_created con la orden, o failed si no se pudo crear el borrador (los
+-- originales quedan en el intake).
+UPDATE public.whatsapp_order_intakes
+   SET status         = CASE WHEN $2::text <> '' THEN 'order_created' ELSE 'failed' END,
+       study_order_id = NULLIF($2::text, '')::uuid,
+       patient_id     = coalesce(NULLIF($3::text, '')::uuid, patient_id)
+ WHERE id = $1::uuid
+   AND channel = 'import'
+   AND status = 'extracting'
+RETURNING id::text, status;`;
+
+export const IMPORT_STATUS_SQL = `
+-- $1 userId (token)  $2 id del intake
+-- Estado de una importación, para que la pantalla espere la lectura. Solo quien importó o quien ve
+-- todas. Una lectura que lleva más de 10 minutos en curso se da por fallida (el flujo se cortó).
+WITH ${PERMS_CTE}
+SELECT json_build_object(
+         'intake_id', i.id::text,
+         'status', CASE
+                     WHEN i.status = 'order_created' AND o.id IS NOT NULL THEN 'done'
+                     WHEN i.status = 'extracting' AND i.created_at > now() - interval '10 minutes' THEN 'processing'
+                     ELSE 'failed'
+                   END,
+         'order_id', o.id::text,
+         'order_number', o.order_number,
+         'patient_name', o.patient_name,
+         'items_total', (SELECT count(*) FROM public.study_order_items it
+                          WHERE it.study_order_id = o.id AND it.is_cancelled = false),
+         'review_pending', (SELECT count(*) FROM jsonb_array_elements(coalesce(o.review_items, '[]'::jsonb)) r
+                             WHERE r ->> 'status' = 'pending'),
+         'files', jsonb_array_length(i.media),
+         'created_at', i.created_at) AS data
+  FROM public.whatsapp_order_intakes i
+  LEFT JOIN public.study_orders o ON o.id = i.study_order_id
+ WHERE i.id = $2::uuid
+   AND i.channel = 'import'
+   AND (i.created_by = $1::uuid OR coalesce((SELECT can_view_all FROM perms), false));`;

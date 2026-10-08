@@ -48,6 +48,7 @@ export function countPendingBlocking(items: StudyOrderReviewItem[] | null | unde
 const KNOWN_CODES = new Set([
     'handoff_reason', 'low_confidence', 'not_in_catalog', 'unreadable',
     'unplaced', 'possibly_incomplete', 'no_signature', 'old_order',
+    'read_failed', 'invalid_document', 'patient_match', 'duplicate',
 ]);
 
 function confidencePercent(value: StudyOrderReviewItem['confidence']): number | null {

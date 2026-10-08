@@ -582,6 +582,10 @@ export const API_ROUTES = {
         REVIEW_ITEM_UPDATE: '/study-orders/review-items/update',
         /** Original (foto o PDF) recibido por WhatsApp: GET ?intake_id=&id= devuelve el archivo. */
         WHATSAPP_INTAKE_FILE:    '/study-orders/whatsapp-intakes/file',
+        /** Importar una orden subiendo sus fotos o PDF (multipart). Responde 202 con el intake. */
+        IMPORT:        '/study-orders/import',
+        /** GET ?intake_id= : estado de la lectura de una orden importada. */
+        IMPORT_STATUS: '/study-orders/import/status',
         /** Públicos: el paciente llega con el token del link, sin sesión. */
         PUBLIC_DETAIL: '/study-orders/public_noauth',
         PUBLIC_BOOK:   '/study-orders/public-book_noauth',

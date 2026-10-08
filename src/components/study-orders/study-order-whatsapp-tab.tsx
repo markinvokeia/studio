@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AlertTriangle, CheckCircle2, MessageCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, FileUp, MessageCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { StudyOrderReviewList } from './study-order-review-list';
@@ -11,9 +11,9 @@ import { formatDateTime } from '@/lib/utils';
 import type { StudyOrder } from '@/lib/types';
 
 /**
- * Pestaña "Original" de una orden que entró por WhatsApp: los archivos que
- * mandó el usuario junto a lo que el asistente leyó de ellos, para poder
- * comprobar que no hubo errores de lectura (el motivo por el que se guardan).
+ * Pestaña "Original" de una orden que entró por WhatsApp o que recepción importó
+ * subiendo sus fotos: los archivos junto a lo que el asistente leyó de ellos, para
+ * poder comprobar que no hubo errores de lectura (el motivo por el que se guardan).
  *
  * El resumen de la orden (estudios, paciente, opciones) ya está en la pestaña
  * Orden; acá va solo lo que no cabe ahí: el origen, el doctor tal como figura en
@@ -36,6 +36,7 @@ export function StudyOrderWhatsappTab({ order }: StudyOrderWhatsappTabProps) {
 
     if (!info) return null;
 
+    const isImport = info.channel === 'import';
     const model = typeof info.extraction_meta?.model === 'string' ? info.extraction_meta.model : null;
     const reviewItems = order.review_items ?? [];
     // Sin registro (orden anterior a los puntos a revisar): las advertencias de la validación.
@@ -44,9 +45,18 @@ export function StudyOrderWhatsappTab({ order }: StudyOrderWhatsappTabProps) {
     return (
         <div className="space-y-5">
             <div className="flex items-start gap-2 text-sm">
-                <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
+                {isImport
+                    ? <FileUp className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                    : <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />}
                 <div className="min-w-0 space-y-0.5">
-                    <p>{t('original.receivedVia', { date: formatDateTime(info.received_at) })}</p>
+                    <p>
+                        {isImport
+                            ? t('original.importedAt', { date: formatDateTime(info.received_at) })
+                            : t('original.receivedVia', { date: formatDateTime(info.received_at) })}
+                    </p>
+                    {isImport && info.imported_by_name && (
+                        <p className="text-muted-foreground">{t('original.importedBy', { name: info.imported_by_name })}</p>
+                    )}
                     {info.phone && <p className="text-muted-foreground">{t('original.from', { phone: info.phone })}</p>}
                     {model && <p className="text-xs text-muted-foreground">{t('original.model', { model })}</p>}
                 </div>
