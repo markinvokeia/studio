@@ -9657,7 +9657,8 @@
       "overdue": "Atrasadas",
       "scheduled": "Agendadas",
       "completed": "Completadas",
-      "drafts": "Borradores"
+      "drafts": "Borradores",
+      "review": "Por revisar"
     },
     "columns": {
       "orderNumber": "Nº",
@@ -9688,7 +9689,8 @@
       "link": "Link",
       "activity": "Actividad",
       "sessions": "Sesión",
-      "original": "Original"
+      "original": "Original",
+      "review": "Revisión"
     },
     "form": {
       "title": "Nueva orden de estudio",
@@ -9709,7 +9711,6 @@
       "submit": "Enviar a la clínica",
       "selectedCount": "{count} estudios seleccionados",
       "textsSection": "Detalles",
-      "titleFromHandoff": "Nueva orden desde WhatsApp",
       "referringDoctor": "Doctor derivador",
       "doctorSearch": "Buscar doctor…",
       "doctorPick": "Elegir doctor",
@@ -9729,7 +9730,8 @@
       "title": "¿Eliminar el borrador?",
       "description": "Se elimina la orden de {patient} y todo lo que cargaste. No se puede deshacer.",
       "confirm": "Eliminar",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "whatsappHandoff": "Viene de una derivación de WhatsApp: al eliminarla, la derivación queda resuelta como descartada."
     },
     "cancelDialog": {
       "title": "¿Anular la orden?",
@@ -9779,8 +9781,6 @@
       "closeSteps": "Cerrar secciones",
       "fromHandoff": "Cargado con lo que leyó el asistente de WhatsApp. Revisalo contra los originales y corregí lo que haga falta antes de enviar.",
       "replacesOrder": "Esta orden reemplaza a la {number}: al enviarla, la {number} se anula y sus citas pasan a esta.",
-      "unmatchedTitle": "Estudios que el asistente leyó pero no figuran en el sistema",
-      "unmatchedHelp": "No se cargaron. Elegí el estudio equivalente en su sección o consultá con el paciente.",
       "showOriginals": "Ver originales",
       "hideOriginals": "Ocultar originales",
       "originals": "Originales de WhatsApp"
@@ -9844,7 +9844,14 @@
         "reopened": "La orden volvió a abrirse",
         "cancelled": "Se anuló la orden",
         "link_created": "Se generó el link para el paciente",
-        "patient_booked": "El paciente reservó su horario"
+        "patient_booked": "El paciente reservó su horario",
+        "review_updated": "Punto revisado"
+      },
+      "reviewStatus": {
+        "pending": "vuelve a pendiente",
+        "confirmed": "confirmado",
+        "corrected": "corregido",
+        "dismissed": "descartado"
       }
     },
     "appointmentCard": {
@@ -9889,58 +9896,9 @@
     "referredByShort": "derivado por {doctor}",
     "whatsapp": {
       "badge": "WhatsApp",
-      "viewOrders": "Órdenes",
-      "viewHandoffs": "Derivadas de WhatsApp",
-      "handoffsTitle": "Órdenes derivadas desde WhatsApp",
-      "handoffsDescription": "El asistente no pudo terminar estas órdenes por su cuenta. Revisá el original y creá la orden a mano o contactá al paciente.",
-      "statusPending": "Pendientes",
-      "statusResolved": "Resueltas",
-      "statusAll": "Todas",
-      "empty": "No hay derivaciones pendientes.",
-      "emptyResolved": "No hay derivaciones resueltas.",
-      "loadError": "No se pudieron cargar las derivaciones.",
-      "retry": "Reintentar",
-      "refresh": "Actualizar",
-      "receivedAt": "Recibida el {date}",
-      "phone": "Teléfono",
-      "patient": "Paciente",
-      "document": "Documento",
-      "sender": "Escribió",
-      "doctorAsWritten": "Doctor en la orden",
       "doctorNotLinked": "solo como figura en el papel, sin vincular a un usuario",
-      "studiesRead": "Estudios leídos",
-      "noStudies": "No se pudo leer ningún estudio.",
-      "unmatched": "No figuran en el sistema",
-      "detail": "Detalle",
       "originals": "Archivos originales",
       "noFiles": "No se guardó ningún archivo.",
-      "viewOrder": "Ver la orden {number}",
-      "resolve": "Marcar como resuelta",
-      "resolvedBy": "Resuelta por {name} el {date}",
-      "resolvedOn": "Resuelta el {date}",
-      "resolutionNote": "Nota: {note}",
-      "resolveDialog": {
-        "title": "Marcar la derivación como resuelta",
-        "description": "{patient}: esto solo cierra la derivación. Los archivos originales y lo que leyó el asistente quedan registrados.",
-        "noteLabel": "Nota (opcional)",
-        "notePlaceholder": "Ej. orden creada, paciente contactado por teléfono",
-        "cancel": "Cancelar",
-        "confirm": "Marcar como resuelta"
-      },
-      "toast": {
-        "resolvedTitle": "Derivación resuelta",
-        "errorTitle": "No se pudo resolver la derivación"
-      },
-      "reason": {
-        "service_not_found": "Estudio que no figura en el sistema",
-        "unreadable": "Orden ilegible o incompleta",
-        "low_confidence": "Lectura dudosa",
-        "patient_mismatch": "Paciente distinto de quien escribe",
-        "booking_failed": "No se pudo agendar",
-        "user_request": "Pidió hablar con una persona",
-        "system_error": "Error del sistema",
-        "order_changed": "Llegó otro archivo que cambia una orden ya creada"
-      },
       "original": {
         "receivedVia": "Recibida por WhatsApp el {date}",
         "from": "Enviada desde {phone}",
@@ -9956,11 +9914,56 @@
         "unplaced_details": "Detalles que no encajaron en el formulario",
         "unreadable_fields": "Campos que no se pudieron leer",
         "modifier_without_service": "Opción sin su estudio"
+      }
+    },
+    "review": {
+      "title": "Puntos a revisar",
+      "help": "Lo que el asistente de WhatsApp no tuvo claro al leer la orden. Revisalo contra el original.",
+      "blockingHelp": "{count, plural, one {Queda 1 punto por revisar contra el original antes de enviar la orden.} other {Quedan # puntos por revisar contra el original antes de enviar la orden.}}",
+      "pendingCount": "{count, plural, one {1 pendiente} other {# pendientes}}",
+      "allReviewed": "Todo revisado",
+      "blocking": "Frena el envío",
+      "confidence": "Confianza {value} %",
+      "notePlaceholder": "Nota (opcional): qué se corrigió o por qué se descarta",
+      "banner": "{count, plural, one {El asistente dejó 1 punto sin aclarar: revisalo antes de enviar.} other {El asistente dejó # puntos sin aclarar: revisalos antes de enviar.}}",
+      "wizardBanner": "{count, plural, one {Hay 1 punto que el asistente no tuvo claro. Revisalo en el último paso, mirando el original.} other {Hay # puntos que el asistente no tuvo claros. Revisalos en el último paso, mirando el original.}}",
+      "submitBlocked": "{count, plural, one {Revisá el punto pendiente antes de enviar.} other {Revisá los # puntos pendientes antes de enviar.}}",
+      "code": {
+        "handoff_reason": "Motivo de la derivación",
+        "low_confidence": "Lectura dudosa",
+        "not_in_catalog": "Estudio fuera del catálogo",
+        "unreadable": "Dato ilegible",
+        "unplaced": "No encaja en el formulario",
+        "possibly_incomplete": "Puede faltar el dorso",
+        "no_signature": "Sin firma",
+        "old_order": "Orden antigua"
       },
-      "createOrder": "Crear orden",
-      "continueDraft": "Continuar borrador {number}",
-      "replaceOrder": "Reemplazar orden {number}",
-      "orderCancelled": "anulada"
+      "status": {
+        "pending": "Pendiente",
+        "confirmed": "Confirmado",
+        "corrected": "Corregido",
+        "dismissed": "Descartado"
+      },
+      "actions": {
+        "confirm": "Está bien",
+        "corrected": "Corregido",
+        "dismiss": "Descartar",
+        "addNote": "Nota",
+        "reopen": "Volver a pendiente"
+      },
+      "toast": {
+        "updated": "Punto actualizado",
+        "pendingBlocking": "{count, plural, one {Queda 1 punto antes de poder enviar.} other {Quedan # puntos antes de poder enviar.}}",
+        "error": "No se pudo actualizar el punto"
+      },
+      "flag": "El asistente no tuvo claro este dato",
+      "stepTitle": "{count, plural, one {1 punto a revisar en este paso} other {# puntos a revisar en este paso}}"
+    },
+    "origin": {
+      "label": "Origen",
+      "all": "Todos los orígenes",
+      "portal": "Portal",
+      "whatsapp": "WhatsApp"
     }
   },
   "StudyOrderBooking": {

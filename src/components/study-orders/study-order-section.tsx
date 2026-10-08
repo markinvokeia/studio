@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
+import { ReviewFlag } from './review-flag';
+import { optionTargetKey, type ReviewTargets } from './review-targets';
 import { ToothGridPicker } from './tooth-grid-picker';
 
 import { cn } from '@/lib/utils';
@@ -65,6 +67,11 @@ export interface StudyOrderSectionProps {
     /** Oculta la cabecera colapsable: dentro del asistente cada sección ocupa
      *  su propio paso y el título ya está en la barra de pasos. */
     hideHeader?: boolean;
+    /**
+     * Puntos que el agente de WhatsApp no tuvo claros: se marcan sobre el estudio, la opción, el
+     * campo o el odontograma donde están, para revisarlos ahí mismo contra el original.
+     */
+    reviewTargets?: ReviewTargets | null;
 }
 
 /** Agrupa por `group_code`; las opciones sueltas caen en el grupo `''`. */
@@ -100,6 +107,7 @@ export function StudyOrderSection({
     disabled = false,
     defaultOpen = false,
     hideHeader = false,
+    reviewTargets = null,
 }: StudyOrderSectionProps) {
     const selected = React.useMemo(() => new Set(selectedServiceIds), [selectedServiceIds]);
     const selectedCount = React.useMemo(
@@ -150,7 +158,10 @@ export function StudyOrderSection({
                 <div className={cn('space-y-6', hideHeader ? '' : 'border-t px-4 py-4')}>
                     {regionGroup && (
                         <div className="space-y-2">
-                            <Label className="text-sm font-medium">{regionGroup.label}</Label>
+                            <Label className="flex items-center gap-1.5 text-sm font-medium">
+                                {regionGroup.label}
+                                <ReviewFlag items={reviewTargets?.teeth.get(section.code)} />
+                            </Label>
                             <ToothGridPicker
                                 value={teeth}
                                 onChange={onTeethChange}
@@ -164,6 +175,7 @@ export function StudyOrderSection({
                         {section.services.map((service) => {
                             const isChecked = selected.has(service.id);
                             const mods = modifiersByService.get(service.id) ?? [];
+                            const flagged = reviewTargets?.services.get(service.id);
                             return (
                                 <div
                                     key={service.id}
@@ -171,6 +183,7 @@ export function StudyOrderSection({
                                         'rounded-lg border p-4 transition-colors',
                                         isChecked ? 'border-primary/40 bg-primary/5' : 'border-transparent',
                                         mods.length > 0 && isChecked && 'sm:col-span-2 xl:col-span-3',
+                                        flagged && 'border-amber-500/60 ring-1 ring-amber-500/30',
                                     )}
                                 >
                                     <div className="flex items-start gap-3">
@@ -182,12 +195,15 @@ export function StudyOrderSection({
                                             className="mt-0.5"
                                         />
                                         <div className="min-w-0 flex-1">
-                                            <Label
-                                                htmlFor={`svc-${service.id}`}
-                                                className="cursor-pointer text-[15px] font-medium leading-snug"
-                                            >
-                                                {service.name}
-                                            </Label>
+                                            <div className="flex items-start gap-1.5">
+                                                <Label
+                                                    htmlFor={`svc-${service.id}`}
+                                                    className="cursor-pointer text-[15px] font-medium leading-snug"
+                                                >
+                                                    {service.name}
+                                                </Label>
+                                                <ReviewFlag items={flagged} className="mt-0.5" />
+                                            </div>
                                             {service.duration_minutes ? (
                                                 <p className="mt-1 text-sm text-muted-foreground">
                                                     {service.duration_minutes} min
@@ -216,6 +232,7 @@ export function StudyOrderSection({
                                                             >
                                                                 {option.label}
                                                             </Label>
+                                                            <ReviewFlag items={reviewTargets?.options.get(optionTargetKey(section.code, option.code))} />
                                                         </div>
                                                     ))}
                                                 </div>
@@ -243,8 +260,9 @@ export function StudyOrderSection({
                         <div className="grid gap-3 border-t pt-3 sm:grid-cols-2 xl:grid-cols-3">
                             {textOptions.map((option) => (
                                 <div key={option.id} className="space-y-1.5">
-                                    <Label htmlFor={`text-${option.code}`} className="text-sm font-medium">
+                                    <Label htmlFor={`text-${option.code}`} className="flex items-center gap-1.5 text-sm font-medium">
                                         {option.label}
+                                        <ReviewFlag items={reviewTargets?.texts.get(option.code)} />
                                     </Label>
                                     {option.input_type === 'textarea' ? (
                                         <Textarea
@@ -287,6 +305,7 @@ export function StudyOrderSection({
                                             >
                                                 {option.label}
                                             </Label>
+                                            <ReviewFlag items={reviewTargets?.options.get(optionTargetKey(section.code, option.code))} />
                                         </div>
                                     ))}
                                 </div>

@@ -3,6 +3,7 @@
 > Estado: **Fases 0 a 5 escritas en el repo (nada ejecutado en n8n ni probado en navegador); falta medir la extracción con órdenes reales (compuerta) y la Fase 6 (QA y despliegue)** · Rama: `orden-servicio` · Fecha: 2026-09-30
 > **Actualización 2026-10-05 — Separación de workflows:** el agente de órdenes ya no vive dentro de `Whats App`. Quedó en el workflow **`WhatsApp - Order Agent`** (`docs/n8n-flows/WhatsApp - Order Agent.json`), que el router del workflow normal invoca con **Execute Workflow**; los 6 webhooks `agent-tools/order-*` quedaron embebidos ahí. Ver §15.
 > **Actualización 2026-10-06 — Agente único (diseño, sin implementar):** se reemplaza el router de dos agentes por **un solo agente** (`Whatsapp Agent1`) que suma la capacidad de órdenes cuando el flag está encendido. `WhatsApp - Order Agent` deja de tener LLM: queda la ingesta de archivos y los webhooks `order-*`. Ver **§17**, que reemplaza a §4.1 y a la parte de router de §15.
+> **Actualización 2026-10-08 — No insistir y confianza por dato:** ante un pedido que el usuario no puede cumplir, el agente deriva en lugar de repetirlo, y cada dato extraído lleva su confianza. Ver **§20**.
 > Documento de partida: artefacto "Órdenes de Estudio por WhatsApp" (Parte A funcional, Parte B diseño técnico).
 > Este documento recoge las decisiones tomadas tras revisar el código real de `docs/n8n-flows/Whats App.json` y `scripts/n8n/`.
 
@@ -116,7 +117,7 @@ Reglas fijas en código, no criterio del LLM:
 | Código | Situación | Acción |
 | --- | --- | --- |
 | `service_not_found` | Algún estudio no mapea a un servicio activo del catálogo | Derivar la orden **completa**. Nunca se agenda parcial. |
-| `unreadable` | No es una orden, está ilegible o faltan nombre o CI del paciente | Pedir reenvío una vez; si persiste, derivar. |
+| `unreadable` | No es una orden, está ilegible o faltan nombre o CI del paciente | Pedir reenvío una vez; si persiste o el usuario dice que no tiene otra, derivar (§20). |
 | `low_confidence` | Línea con confianza baja que sigue dudosa tras repreguntar | Derivar. |
 | `patient_mismatch` | El paciente de la orden no es el remitente (D3) | Derivar. |
 | `booking_failed` | Dos fallos de reserva seguidos o error del sistema | Derivar. |
@@ -732,3 +733,186 @@ Antes, "Resolver" solo cerraba la derivación: recepción cargaba la orden de ce
 **Límites:** las derivaciones anteriores a este cambio no tienen borrador (salvo las que ya tenían orden armada): el asistente abre con el paciente y los originales, sin estudios. El doctor derivador se elige solo al crear; al editar un borrador se conserva el que tenía.
 
 **Verificado:** pruebas del validador (55), typecheck y ESLint; la consulta de derivaciones contra DEV; que existan las columnas que escribe `SUBMIT_SQL` (el `UPDATE` no se pudo ejecutar con la conexión de solo lectura); el panel de originales en el navegador con archivos simulados. **No probado** el circuito completo con sesión iniciada.
+
+## 20. No insistir y confianza por dato (2026-10-08)
+
+### 20.1 El caso que lo motivó
+
+Intake del 2026-10-07 (teléfono terminado en 9653): la lectura salió con calidad `good` pero **sin ningún estudio** (`items` vacío, nada en `unmatched_text_lines`). El validador pidió reenvío (`resend`). El usuario contestó dos veces en texto ("ya está completo todo", "ya tiene todo") y el agente le volvió a pedir la foto las dos veces; recién con un tercer archivo el validador derivó (`unreadable`).
+
+La causa no era el validador sino el circuito de respuesta: `order-answer` no aceptaba respuestas a `resend` (`not_answerable`) y a `missing_other_side` solo le servía un "no" literal. El prompt le decía al agente que pidiera la foto y no había ninguna salida para "esa es la que tengo", así que repetía el pedido indefinidamente.
+
+### 20.2 Qué cambió
+
+| Cambio | Dónde |
+| --- | --- |
+| `order-answer` acepta respuestas en texto a `resend`: si dice que la va a mandar ("ahora te la mando", "sí") pide el archivo una vez; cualquier otra respuesta ("ya está", "esas son", "no tengo otra", "ya te la mandé") revalida con `overrides.no_better_file` y el validador **deriva** (`unreadable`, con el detalle "el usuario dice que no tiene otra foto mejor ni otra hoja") | `generate-order-agent-tools-workflow.mjs` → `Answer: Build Answers`; `intake-lib.mjs` (`resendOrHandoff`) |
+| `missing_other_side`: solo se espera la foto si dice que la tiene o la va a mandar; "no", "ya está", "esas son" o algo que no se entiende cuentan como "no hay otra cara" y se sigue con la advertencia `possibly_incomplete`. Nunca se repregunta | ídem |
+| **Contador de insistencia** (red de seguridad, determinista): cada mensaje de texto con el intake en `needs_input` suma `validation.stalled_turns` (`Track Stalled Turn`). Una respuesta aceptada o un archivo nuevo reescriben `validation` y lo vuelven a 0. Si pasa de `whatsapp_orders_max_reasks` (2 por defecto), `Too Many Reasks?` deriva **sin pasar por el agente** (`order-handoff`: pausa + aviso a recepción) y responde un texto fijo. Motivo `low_confidence` si lo pendiente era confirmar un estudio o al paciente; si no, `unreadable` | `WhatsApp - Order Agent.json` (rama sin archivos de `Has Media?`) |
+| Prompt del `Order Agent`: el reenvío y el dorso se piden **una sola vez**; si contesta con texto, se registra con `answer_order_question`. Regla nueva: nunca repetir un pedido ya contestado; si no corresponde a ninguna pregunta, `handoff_order` | `WhatsApp - Order Agent.json` (`Order Agent`, `answer_order_question`) |
+
+Con la configuración por defecto: el usuario contesta y no se resuelve → el agente repregunta (1) → insiste → repregunta (2) → insiste otra vez → deriva. Con los cambios de `order-answer`, el caso del 07/10 se deriva ya en la primera respuesta ("ya está completo todo").
+
+`whatsapp_orders_max_reasks` no necesita migración: si la clave no existe vale 2 (un valor que no sea un entero también cuenta como 2).
+
+### 20.3 Confianza por dato (`so-intake-v3` / `so-extraction-v3`)
+
+Antes había una confianza por estudio y **una sola** para todo el bloque del paciente y otra para el doctor. Ahora cada dato que se transcribe trae la suya:
+
+| Dato | Campo |
+| --- | --- |
+| Es una orden, firma, falta otra cara | `is_study_order_confidence`, `has_signature_confidence`, `missing_other_side_confidence` |
+| Paciente | `name_confidence`, `document_confidence`, `birth_date_confidence`, `phone_confidence` |
+| Doctor | `name_confidence`, `license_confidence` |
+| Fecha de la orden | `order_date_confidence` |
+| Estudios, opciones, textos | `confidence` en cada elemento de `items`, `modifiers`, `texts` |
+| Piezas dentarias | `regions[].teeth` pasa a `[{ tooth, confidence }]` |
+| Entrega | `delivery_methods` pasa a `[{ code, confidence }]` |
+| Estudios fuera del catálogo | `unmatched_text_lines` pasa a `[{ text, confidence }]` |
+
+Cómo se usa:
+
+- **`validation.confidence`** = `{ min_confidence, fields: [{ field, label, value, confidence }], low: [field] }`, también cuando se deriva. Es la auditoría de qué se leyó y con qué seguridad.
+- **Paciente:** se confirma solo el dato dudoso (`confirm_patient` dice "documento" o "nombre"), y no se confirma lo que el usuario ya escribió por chat.
+- **Detalles** (opciones, piezas, textos, entrega, doctor, fecha, nacimiento, teléfono) con confianza baja **no frenan** la orden ni se le preguntan al usuario: advertencia `low_confidence_fields` y una línea en `clinical_notes` ("Lectura dudosa, verificar con el original: …"), que también va al borrador de una derivación.
+- **Compatibilidad:** las extracciones v2 guardadas (una revalidación no vuelve a llamar al modelo) se siguen leyendo: listas con strings, confianza del bloque del paciente o null. `WHATSAPP_INTAKES_SQL` convierte `unmatched_text_lines` de objetos a texto para la vista "Derivadas" (el frontend no cambia).
+
+### 20.4 Puesta en marcha
+
+1. Reimportar `WhatsApp - Study Order Intake` y `WhatsApp - Order Agent` (los JSON de `docs/n8n-flows/`, ya con los ids reales) y `n8n-workflows/study-orders-whatsapp-intakes.json` (regenerado; reemplazar sus placeholders como siempre).
+2. Opcional: `INSERT INTO system_configurations (key, value) VALUES ('whatsapp_orders_max_reasks', '2')` para dejar la clave visible.
+3. Probar en modo test: foto que no se lee + "ya está" (debe derivar en ese mensaje); "ahora te la mando" (debe esperar la foto); tres mensajes de texto sin avance (debe derivar con el texto fijo); una orden con un dato dudoso (debe aparecer en `validation.confidence.low` y en las notas).
+
+**Verificado:** 53 pruebas del validador (9 nuevas), la traducción de respuestas de `Answer: Build Answers` con las frases del caso real, el nodo `Validate` completo con datos simulados (v3 y el caso "reenvío → ya está → derivación"), que los tres workflows no tienen conexiones colgadas y que todos los Code nodes compilan; la consulta del contador y la de `unmatched_lines`, en su forma de lectura, contra DEV. **No probado en n8n**: el `UPDATE` del contador, el modelo de visión con el esquema v3 (más campos obligatorios: conviene mirar tokens y latencia) y la conversación real.
+
+### 20.5 Lo que queda abierto
+
+- **La lectura del 07/10 no encontró ningún estudio en una foto de calidad `good`.** Esto no lo arregla este cambio (solo hace que se derive enseguida). Hay que mirar ese original contra el catálogo: o el modelo no reconoce ese formulario, o los estudios no están en las categorías `ci-orden:cat:*`. Es justo lo que mide la compuerta de §14.
+
+## 21. Borrador automático al derivar y puntos a revisar (2026-10-08)
+
+### 21.1 Antes y ahora
+
+**Antes:** al derivar, la orden no existía. Lo leído quedaba como JSON en el intake (`validation.draft`) y recién cuando recepción tocaba **Crear orden** en "Derivadas" se creaba un borrador. Lo que el agente no tuvo claro quedaba disperso (motivo, advertencias, notas clínicas, `validation.confidence`) y nadie lo marcaba como revisado.
+
+**Ahora:** `order-handoff` crea la orden **en borrador** en el momento de derivar, con lo que se leyó (sin doctor, `source = whatsapp`, vinculada al intake). Cada punto dudoso queda registrado en `study_orders.review_items` y la orden **no se puede enviar** hasta que alguien los revise contra el original. Enviar el borrador resuelve la derivación (y, si el intake ya tenía una orden del agente, la reemplaza), igual que antes.
+
+### 21.2 Puntos a revisar
+
+`buildReviewItems` (en `intake-lib.mjs`, con pruebas) arma la lista a partir de la lectura y la validación:
+
+| Código | Qué es |
+| --- | --- |
+| `handoff_reason` | El motivo de la derivación (siempre, en el borrador de una derivación) |
+| `low_confidence` | Un dato de la orden leído con confianza menor al umbral (paciente, estudios, opciones, piezas, textos, entrega, doctor, fecha). Si el paciente confirmó un estudio por chat, queda dicho en el detalle |
+| `not_in_catalog` | Estudio pedido que no figura en el catálogo |
+| `unplaced` | Detalle que no encaja en el formulario (opción, pieza, texto) |
+| `unreadable` | Campo que el modelo marcó ilegible; también "sin nombre" y "sin estudios" cuando el borrador quedó así |
+| `possibly_incomplete` | Puede faltar el dorso u otra hoja |
+| `no_signature`, `old_order` | Sin firma visible; orden antigua |
+
+No se registra lo que el paciente descartó ni lo que escribió él mismo por chat. Se guarda en la validación del intake (`validation.review_items`, también en `needs_input` y en `late_files` del modo `compare`) y se copia a la tabla al crear la orden:
+
+- **Borrador de una derivación:** `blocking = true`. `SUBMIT_SQL` no envía la orden con alguno pendiente y el endpoint responde 409 "quedan N puntos sin revisar".
+- **Orden que el agente agendó solo** (`Book: Save Review Items`): `blocking = false`, una lista de verificación que no frena nada.
+
+Cada punto se marca **Está bien** (`confirmed`), **Corregido**, **Descartar** (con nota opcional) o se vuelve a pendiente: `POST /study-orders/review-items/update`, con el mismo alcance que editar la orden. Queda quién y cuándo, y un evento `review_updated` en la línea de tiempo.
+
+### 21.3 Cuándo se crea el borrador
+
+> Actualizado por §22: **toda** derivación queda en una orden.
+
+`order-handoff` (`Handoff: Build Draft`), con el usuario de servicio "Agente WhatsApp", decide:
+
+| Caso | Qué hace |
+| --- | --- |
+| Primera derivación del intake | Crea el borrador con lo leído. Si no se leyó nada (falla del modelo), lo crea vacío: quedan los originales y un punto "no se pudo ubicar ningún estudio" |
+| Ya hay un borrador de esa derivación | Le agrega los puntos nuevos (bloqueantes) |
+| El intake ya tiene una orden del agente (por ejemplo, falló la reserva) | No la toca: sale solo el aviso. La orden ya está en la bandeja como pendiente de agendar |
+| `order_changed` | Crea el borrador de reemplazo |
+
+Si no se pudo leer el nombre, el borrador queda como "Paciente sin identificar (WhatsApp +598…)", con un punto a revisar. Una derivación con el intake en `needs_input` (el paciente pide una persona, o el contador de insistencia de §20) también tiene borrador: el validador ahora guarda `draft` y `review_items` cuando quedan preguntas. Si la creación falla (por ejemplo, sin la migración 126), el aviso sale igual, sin orden. El aviso a recepción nombra la orden ("Orden OE-… para revisar").
+
+### 21.4 Frontend
+
+| Pieza | Dónde |
+| --- | --- |
+| Lista de puntos con acciones (`useKeyedAsyncAction`, por punto) | `study-order-review-list.tsx` |
+| Pestaña **Revisión** (con el número de pendientes), aviso en la pestaña Orden y **Enviar** gris con el motivo mientras haya bloqueantes | `study-order-detail-panel.tsx` |
+| En el asistente, al editar el borrador: aviso en el primer paso, la lista en el último (al lado de los originales) y Enviar deshabilitado; la confirmación avisa si reemplaza una orden del agente | `study-order-wizard.tsx` |
+| Bandeja de la clínica: ve los borradores de WhatsApp (los demás borradores siguen siendo solo de su doctor), filtro de estado **Por revisar**, filtro de **origen** (Portal / WhatsApp) e insignia con los pendientes | `LIST_SQL`, `study-orders-screen.tsx`, `columns.tsx`, `review-pending-badge.tsx` |
+| Evento `review_updated` en la línea de tiempo | `study-order-timeline.tsx` |
+
+Los textos de cada punto (`label`, `detail`) los escribe el agente en español; los títulos por código están traducidos.
+
+### 21.5 Puesta en marcha (en este orden)
+
+1. Migración **126** (columna `study_orders.review_items` y el evento `review_updated`). Va antes que todo: `SUBMIT_SQL`, la bandeja y el detalle la leen.
+2. Reimportar, regenerados: `study-orders-submit.json`, `study-orders-detail.json`, `study-orders-list.json`, `study-orders-whatsapp-intakes.json` y el nuevo **`study-orders-review-item-update.json`**.
+3. Reimportar `WhatsApp - Study Order Intake` y `WhatsApp - Order Agent` (de `docs/n8n-flows/`).
+4. Desplegar el frontend.
+
+### 21.6 Verificado y pendiente
+
+**Verificado:** 59 pruebas del validador (6 nuevas de puntos a revisar), `Handoff: Build Draft` con datos simulados (los casos en que crea y en que no), el modo `compare` con su lista, el 409 del envío y la validación del endpoint nuevo; las consultas de detalle y bandeja contra DEV en modo lectura (con la tabla nueva simulada, porque la 126 no está aplicada); typecheck y ESLint. **No probado:** los `INSERT`/`UPDATE` (la conexión es de solo lectura), el circuito en n8n y la UI con datos reales en el navegador (hace falta la migración y los flujos desplegados).
+
+**A tener en cuenta:** el exportado de `Handoff: Call Existing Handoff` no usa autenticación y pide la respuesta completa como texto, a diferencia del generador. Se respetó lo exportado y solo se cambió el cuerpo (ya no reenvía el número del borrador).
+
+## 22. Una sola bandeja, sin "Derivadas" aparte (2026-10-08)
+
+**Modelo:**
+
+| Lo que pasa en WhatsApp | Orden |
+| --- | --- |
+| El agente lee todo bien | Orden normal de WhatsApp, enviada y con la cita (como siempre) |
+| El agente pide una persona | Orden de WhatsApp **en borrador**, con lo que se leyó y sus puntos a revisar |
+
+No hay entidad nueva: es la misma tabla `study_orders` (`source = whatsapp`, `status = draft`, `source_intake_id`), y los puntos a revisar van en su columna `review_items` (jsonb, migración 126). `whatsapp_order_intakes` (de las fases anteriores) sigue guardando la conversación con el agente: originales, lectura y motivo.
+
+**Bandeja:** ya no hay selector **Órdenes / Derivadas de WhatsApp** ni panel aparte. Hay un filtro de **origen** (Todos / Portal / WhatsApp) que se combina con el de estado:
+
+- **WhatsApp + Borradores** = lo que el agente pasó a una persona.
+- **WhatsApp + Por revisar** = órdenes de WhatsApp con puntos sin revisar (bloqueantes o no).
+
+El aviso de derivación abre la bandeja así (`/study-orders?source=whatsapp&bucket=drafts`; el link viejo `?view=whatsapp` también).
+
+**Derivación cuando la orden ya existe** (el agente la creó y la envió, y después falló la reserva o el paciente pidió una persona): no se crea nada ni se toca la orden; sale solo el aviso. La orden ya está en la bandeja como pendiente de agendar. Si llega otro archivo que cambia la orden (`order_changed`), sí se crea un borrador de reemplazo.
+
+**La derivación** (`whatsapp_order_intakes`) queda resuelta al enviar el borrador (`SUBMIT_SQL`) o al eliminarlo (`DELETE_SQL`, como "descartado sin enviar"; el diálogo de eliminar lo avisa). Es un dato interno: la pantalla no lo muestra.
+
+### Cambios
+
+| Pieza | Dónde |
+| --- | --- |
+| Puntos a revisar en `study_orders.review_items` (alta sin duplicar por `id` = md5 de code y field; marcado que guarda quién y cuándo, y un evento `review_updated`) | migración 126, `REVIEW_ITEMS_INSERT_SQL`, `REVIEW_ITEM_UPDATE_SQL`, `SUBMIT_SQL`, `DETAIL_SQL`, `LIST_SQL` |
+| `order-handoff`: borrador nuevo (aunque esté vacío), puntos a un borrador anterior, o solo el aviso si la orden del agente ya existe | `Handoff: Build Draft` |
+| Filtro de origen (Portal / WhatsApp) en la bandeja | `study-orders-screen.tsx`, `LIST_SQL` |
+| **Eliminado:** el panel `whatsapp-intakes-panel.tsx`, la precarga del asistente desde el panel, `getWhatsappIntakes` / `resolveWhatsappIntake` con sus rutas y tipos, y los textos que solo usaba el panel. Los estudios fuera del catálogo se ven como puntos a revisar | frontend |
+
+Los endpoints `GET /study-orders/whatsapp-intakes` y `POST /study-orders/whatsapp-intakes/resolve` quedan en n8n sin uso desde el frontend (se pueden desactivar). `GET /study-orders/whatsapp-intakes/file` (los originales) sigue en uso.
+
+### Puesta en marcha
+
+La de §21.5, sumando `study-orders-delete.json` a los endpoints a reimportar. **Derivaciones pendientes de antes de este cambio:** no tienen orden y no aparecen en la bandeja; hay que resolverlas desde el panel viejo antes de desplegar (en DEV, al 2026-10-08, no había ninguna).
+
+**Verificado:** typecheck, ESLint, 70 pruebas, que los workflows no tengan conexiones colgadas y que su código compile; `Handoff: Build Draft` en sus casos con datos simulados; contra DEV en modo lectura, la lógica de alta y marcado sobre el JSON (no duplica, ignora entradas vacías, guarda quién y cuándo, cuenta los pendientes bloqueantes). **No probado:** los `UPDATE`/`DELETE` reales (DEV es de solo lectura) y la pantalla en el navegador (hace falta la migración 126 y los flujos desplegados).
+
+## 23. Advertencias visibles donde está el dato (2026-10-08)
+
+**Pestaña Original:** decía "sin advertencias" en órdenes derivadas que sí las tenían. Cuando el validador deriva, corta antes de calcular `validation.warnings`, así que esa lista quedaba vacía; lo que sí queda registrado son los puntos a revisar de la orden. Ahora la pestaña muestra esos puntos (`review_items`) con su estado y quién los revisó, en modo lectura. Las órdenes sin puntos registrados (anteriores a §21) siguen mostrando `validation.warnings`, y "sin advertencias" aparece solo si no hay ni una cosa ni la otra.
+
+**Asistente, al editar la orden:** cada punto pendiente aparece en el paso donde está el dato, no solo en la lista general:
+
+| Dónde | Qué se ve |
+| --- | --- |
+| Barra de pasos | Contador ámbar de puntos pendientes en cada paso (en el último, el total) |
+| Arriba de cada paso | Los puntos de ese paso, con las acciones para marcarlos ahí mismo |
+| Sobre el elemento | Marca ámbar con el detalle al pasar el mouse (qué leyó y con qué confianza): el estudio (además con borde ámbar), la opción, el campo de texto, el odontograma de la sección; en el paso del paciente, nombre, documento, teléfono, doctor del papel y medios de entrega |
+
+Lo que no tiene un lugar propio en el formulario (motivo de la derivación, estudio fuera del catálogo, dato ilegible, falta el dorso, sin firma, fecha, textos generales) va en el paso del paciente.
+
+Para ubicar cada punto, `buildReviewItems` ahora guarda `section_code` (la sección del estudio, la opción, la pieza o el texto) y `REVIEW_ITEMS_INSERT_SQL` lo persiste. Los puntos guardados antes se ubican por el campo (`regions.<sección>`, el código de la opción) o, para un estudio, por su nombre en el catálogo (`review-targets.ts`).
+
+**Puesta en marcha:** la misma de §21-22 (los flujos ya regenerados incluyen `section_code`).
+
+**Verificado:** typecheck, ESLint, 71 pruebas (una nueva para `section_code`), `resolveReviewTargets` con un catálogo de ejemplo (incluido un punto viejo sin sección y uno ya revisado, que no se marca), workflows sin conexiones colgadas. **No probado en el navegador:** necesita la migración 126 y una orden derivada real.

@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 
 import {
     buildExtractionSchema, buildSystemPrompt, isValidCedulaUY, normalizeDocument,
-    similarNames, validateExtraction, compareLateFiles, buildOrderDraft,
+    similarNames, validateExtraction, compareLateFiles, buildOrderDraft, collectFieldConfidence, buildReviewItems,
 } from './intake-lib.mjs';
 
 // Un recorte del catálogo real (ids y códigos de ci-orden:*).
@@ -395,4 +395,204 @@ test('orden lista: lo resuelto coincide con el borrador', () => {
     assert.deepEqual(r.resolved.items.map((i) => i.service_id), d.items.map((i) => i.service_id));
     assert.equal(r.resolved.clinical_notes, d.clinical_notes);
     assert.equal(r.draft, undefined);
+});
+
+// ---- Confianza por dato (so-extraction-v3) ---------------------------------
+// Lectura v3: cada dato con su confianza y las listas como objetos.
+const extractionV3 = (over = {}) => {
+    const base = extraction({
+        is_study_order_confidence: 0.99,
+        doctor: { name: 'Dra. Ana Pérez', name_confidence: 0.9, license: '12345', license_confidence: 0.9 },
+        patient: {
+            name: 'Juan Gómez', name_confidence: 0.97, document: VALID_CI, document_confidence: 0.96,
+            document_type: 'cedula', birth_date: null, birth_date_confidence: 1, phone: null, phone_confidence: 1,
+        },
+        order_date_confidence: 0.95,
+        has_signature_confidence: 0.9,
+        missing_other_side_confidence: 0.95,
+    });
+    return { ...base, ...over };
+};
+const runV3 = (over = {}, inputOver = {}) => run({}, { extraction: extractionV3(over), ...inputOver });
+
+test('esquema v3: cada dato lleva su confianza', () => {
+    const s = buildExtractionSchema(catalog, options).properties;
+    for (const k of ['name_confidence', 'document_confidence', 'birth_date_confidence', 'phone_confidence']) {
+        assert.equal(s.patient.properties[k].type, 'number', `patient.${k}`);
+    }
+    for (const k of ['name_confidence', 'license_confidence']) assert.equal(s.doctor.properties[k].type, 'number', `doctor.${k}`);
+    for (const k of ['is_study_order_confidence', 'order_date_confidence', 'has_signature_confidence', 'missing_other_side_confidence']) {
+        assert.equal(s[k].type, 'number', k);
+    }
+    assert.equal(s.modifiers.items.properties.confidence.type, 'number');
+    assert.equal(s.texts.items.properties.confidence.type, 'number');
+    assert.equal(s.delivery_methods.items.properties.confidence.type, 'number');
+    assert.equal(s.unmatched_text_lines.items.properties.confidence.type, 'number');
+    assert.equal(s.regions.items.properties.teeth.items.properties.confidence.type, 'number');
+    assert.match(buildSystemPrompt(catalog, options), /_confidence/);
+});
+
+test('v3: la validación guarda la confianza de cada dato, también al derivar', () => {
+    const r = runV3();
+    assert.equal(r.outcome, 'ready');
+    const byField = Object.fromEntries(r.confidence.fields.map((f) => [f.field, f.confidence]));
+    assert.equal(byField['patient.document'], 0.96);
+    assert.equal(byField['doctor.license'], 0.9);
+    assert.equal(byField['items.ci-orden:svc:opt'], 0.97);
+    assert.equal(byField['patient.birth_date'], undefined); // null en la orden: no es un dato leído
+    assert.deepEqual(r.confidence.low, []);
+
+    const h = runV3({ unmatched_text_lines: [{ text: 'Cefalometría de Ricketts', confidence: 0.7 }] });
+    assert.equal(h.handoff_reason, 'service_not_found');
+    assert.match(h.handoff_detail, /Cefalometría de Ricketts/);
+    assert.ok(h.confidence.low.includes('unmatched_text_lines'));
+});
+
+test('v3: documento dudoso con nombre claro → se confirma solo el documento', () => {
+    const r = runV3({ patient: { ...extractionV3().patient, document_confidence: 0.6 } });
+    assert.equal(r.outcome, 'needs_input');
+    assert.deepEqual(r.questions.map((q) => q.code), ['confirm_patient']);
+    assert.match(r.questions[0].hint, /documento/);
+    assert.doesNotMatch(r.questions[0].hint, /nombre/);
+});
+
+test('v3: un documento corregido por chat no se vuelve a confirmar aunque la lectura fuera dudosa', () => {
+    const r = runV3({ patient: { ...extractionV3().patient, document_confidence: 0.4 } },
+        { prior: { overrides: { patient_document: VALID_CI } } });
+    assert.equal(r.outcome, 'ready');
+});
+
+test('v2: sin confianza por campo se usa la del bloque del paciente', () => {
+    const r = run({ patient: { name: 'Juan Gómez', document: VALID_CI, document_type: 'cedula', birth_date: null, phone: null, confidence: 0.5 } });
+    assert.deepEqual(r.questions.map((q) => q.code), ['confirm_patient']);
+    assert.match(r.questions[0].hint, /nombre .* y documento/);
+});
+
+test('v3: detalles dudosos no frenan la orden, pero quedan en advertencias y en las notas', () => {
+    const r = runV3({
+        items: [
+            { external_id: 'ci-orden:svc:telerradio-perfil', notes: null, confidence: 0.95 },
+            { external_id: 'ci-orden:svc:hemiarco', notes: null, confidence: 0.95 },
+        ],
+        modifiers: [{ service_external_id: 'ci-orden:svc:telerradio-perfil', section_code: 'RX-EXTRA', group_code: 'tecnica', option_code: 'frankfort', confidence: 0.5 }],
+        regions: [{ section_code: 'CONEBEAM', teeth: [{ tooth: '36', confidence: 0.95 }, { tooth: '3.7', confidence: 0.4 }] }],
+        texts: [{ code: 'aclaracion', value: 'Evaluar reabsorción', confidence: 0.9 }],
+        delivery_methods: [{ code: 'imagencloud', confidence: 0.99 }],
+    });
+    assert.equal(r.outcome, 'ready');
+    assert.deepEqual(r.resolved.regions, { CONEBEAM: ['36', '37'] });
+    assert.deepEqual(r.resolved.delivery_methods, ['imagencloud']);
+    const w = r.warnings.find((x) => x.code === 'low_confidence_fields');
+    assert.ok(w);
+    assert.deepEqual(w.fields.sort(), ['modifiers.frankfort', 'regions.CONEBEAM.3.7']);
+    assert.match(r.resolved.clinical_notes, /Lectura dudosa, verificar con el original: .*Plano de Frankfort/);
+});
+
+test('collectFieldConfidence acepta listas v2 (strings) sin confianza', () => {
+    const f = collectFieldConfidence(extraction({ delivery_methods: ['imagencloud'], unmatched_text_lines: ['Algo'] }), catalog, options);
+    assert.equal(f.find((x) => x.field === 'delivery_methods.imagencloud').confidence, null);
+    assert.equal(f.find((x) => x.field === 'unmatched_text_lines').value, 'Algo');
+});
+
+test('reenvío: si el usuario dice que no tiene otra foto, se deriva sin volver a pedirla', () => {
+    const first = run({ items: [] });
+    assert.deepEqual(first.questions.map((q) => q.code), ['resend']);
+    const r = run({ items: [] }, { prior: { ...first.prior, overrides: { no_better_file: true } } });
+    assert.equal(r.outcome, 'handoff');
+    assert.equal(r.handoff_reason, 'unreadable');
+    assert.match(r.handoff_detail, /no tiene otra foto/);
+});
+
+test('orden ya creada: estudios fuera del catálogo en formato v3 se leen como texto', () => {
+    const r = compare({ unmatched_text_lines: [{ text: 'Modelos de estudio', confidence: 0.9 }] });
+    assert.equal(r.handoff_reason, 'service_not_found');
+    assert.match(r.handoff_detail, /Modelos de estudio/);
+});
+
+// ---- Puntos a revisar ------------------------------------------------------
+const codes = (r) => r.review_items.map((i) => `${i.code}:${i.field}`).sort();
+
+test('derivación: el motivo y todo lo dudoso quedan como puntos a revisar', () => {
+    const r = runV3({
+        patient: { ...extractionV3().patient, document_confidence: 0.6 },
+        unmatched_text_lines: [{ text: 'Cefalometría de Ricketts', confidence: 0.9 }],
+        regions: [{ section_code: 'CONEBEAM', teeth: [{ tooth: '99', confidence: 0.9 }] }],
+        unreadable_fields: ['fecha de nacimiento'],
+        has_signature: false,
+    });
+    assert.equal(r.handoff_reason, 'service_not_found');
+    assert.deepEqual(codes(r), [
+        'handoff_reason:service_not_found',
+        'low_confidence:patient.document',
+        'no_signature:has_signature',
+        'not_in_catalog:unmatched:Cefalometría de Ricketts',
+        'unplaced:unplaced:pieza "99"',
+        'unreadable:unreadable:fecha de nacimiento',
+    ]);
+    const doc = r.review_items.find((i) => i.field === 'patient.document');
+    assert.equal(doc.confidence, 0.6);
+    assert.equal(doc.value, VALID_CI);
+});
+
+test('orden lista: los detalles dudosos se registran; lo confirmado por chat lo aclara', () => {
+    const r = runV3({
+        items: [
+            { external_id: 'ci-orden:svc:opt', notes: null, confidence: 0.6 },
+            { external_id: 'ci-orden:svc:telerradio-perfil', notes: null, confidence: 0.95 },
+        ],
+        modifiers: [{ service_external_id: 'ci-orden:svc:telerradio-perfil', section_code: 'RX-EXTRA', group_code: 'tecnica', option_code: 'frankfort', confidence: 0.5 }],
+    }, { prior: { asked_confirm: ['ci-orden:svc:opt'], confirmed: ['ci-orden:svc:opt'] } });
+    assert.equal(r.outcome, 'ready');
+    assert.deepEqual(codes(r), ['low_confidence:items.ci-orden:svc:opt', 'low_confidence:modifiers.frankfort']);
+    assert.match(r.review_items.find((i) => i.field === 'items.ci-orden:svc:opt').detail, /confirmó por chat/);
+});
+
+test('puntos a revisar: lo descartado o escrito por el paciente no se registra; una orden limpia no tiene ninguno', () => {
+    assert.deepEqual(runV3().review_items, []);
+    const r = runV3({
+        items: [
+            { external_id: 'ci-orden:svc:opt', notes: null, confidence: 0.97 },
+            { external_id: 'ci-orden:svc:hemiarco', notes: null, confidence: 0.4 },
+        ],
+        patient: { ...extractionV3().patient, name_confidence: 0.3 },
+    }, { prior: { removed: ['ci-orden:svc:hemiarco'], overrides: { patient_name: 'Juan Gómez' } } });
+    assert.equal(r.outcome, 'ready');
+    assert.deepEqual(r.review_items, []);
+});
+
+test('fallo del modelo: solo el motivo de la derivación', () => {
+    const r = validateExtraction({ extraction: null, extraction_error: 'HTTP 500', has_files: true, catalog, options, prior: {} });
+    assert.deepEqual(r.review_items.map((i) => i.code), ['handoff_reason']);
+});
+
+test('buildReviewItems: falta el dorso solo si el paciente no dijo que no hay', () => {
+    const e = extraction({ missing_other_side: true });
+    assert.ok(buildReviewItems({ extraction: e }).some((i) => i.code === 'possibly_incomplete'));
+    assert.equal(buildReviewItems({ extraction: e, prior: { overrides: { no_other_side: true } } }).length, 0);
+});
+
+test('con preguntas pendientes también se guardan el borrador y lo dudoso (por si termina derivada)', () => {
+    const r = runV3({ patient: { ...extractionV3().patient, document_confidence: 0.6 } });
+    assert.equal(r.outcome, 'needs_input');
+    assert.deepEqual(r.draft.items.map((i) => i.service_id), [1566, 1603]);
+    assert.deepEqual(r.review_items.map((i) => i.field), ['patient.document']);
+});
+
+test('puntos a revisar: cada uno dice en qué sección del formulario está', () => {
+    const r = runV3({
+        items: [
+            { external_id: 'ci-orden:svc:telerradio-perfil', notes: null, confidence: 0.5 },
+            { external_id: 'ci-orden:svc:hemiarco', notes: null, confidence: 0.95 },
+        ],
+        modifiers: [{ service_external_id: 'ci-orden:svc:telerradio-perfil', section_code: null, group_code: 'tecnica', option_code: 'frankfort', confidence: 0.4 }],
+        regions: [{ section_code: 'CONEBEAM', teeth: [{ tooth: '36', confidence: 0.3 }] }],
+        texts: [{ code: 'aclaracion', value: 'algo', confidence: 0.2 }],
+        patient: { ...extractionV3().patient, document_confidence: 0.5 },
+    }, { prior: { asked_confirm: ['ci-orden:svc:telerradio-perfil'], confirmed: ['ci-orden:svc:telerradio-perfil'], asked_fields: ['confirm_patient'] } });
+    const bySection = Object.fromEntries(r.review_items.map((i) => [i.field, i.section_code]));
+    assert.equal(bySection['items.ci-orden:svc:telerradio-perfil'], 'RX-EXTRA');
+    assert.equal(bySection['modifiers.frankfort'], 'RX-EXTRA');
+    assert.equal(bySection['regions.CONEBEAM.36'], 'CONEBEAM');
+    assert.equal(bySection['texts.aclaracion'], null); // texto general: va con los datos del paciente
+    assert.equal(bySection['patient.document'], null);
 });

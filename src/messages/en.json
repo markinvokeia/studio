@@ -9657,7 +9657,8 @@
       "overdue": "Overdue",
       "scheduled": "Scheduled",
       "completed": "Completed",
-      "drafts": "Drafts"
+      "drafts": "Drafts",
+      "review": "To review"
     },
     "columns": {
       "orderNumber": "No.",
@@ -9688,7 +9689,8 @@
       "link": "Link",
       "activity": "Activity",
       "sessions": "Session",
-      "original": "Original"
+      "original": "Original",
+      "review": "Review"
     },
     "form": {
       "title": "New study order",
@@ -9709,7 +9711,6 @@
       "submit": "Send to clinic",
       "selectedCount": "{count} studies selected",
       "textsSection": "Details",
-      "titleFromHandoff": "New order from WhatsApp",
       "referringDoctor": "Referring doctor",
       "doctorSearch": "Search doctor…",
       "doctorPick": "Choose doctor",
@@ -9729,7 +9730,8 @@
       "title": "Delete the draft?",
       "description": "The order for {patient} and everything you entered will be deleted. This cannot be undone.",
       "confirm": "Delete",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "whatsappHandoff": "It comes from a WhatsApp handoff: deleting it marks the handoff as resolved (discarded)."
     },
     "cancelDialog": {
       "title": "Cancel the order?",
@@ -9779,8 +9781,6 @@
       "closeSteps": "Close sections",
       "fromHandoff": "Filled in with what the WhatsApp assistant read. Check it against the originals and fix anything needed before submitting.",
       "replacesOrder": "This order replaces {number}: when you submit it, {number} is cancelled and its appointments move to this one.",
-      "unmatchedTitle": "Studies the assistant read that are not in the system",
-      "unmatchedHelp": "They were not added. Pick the equivalent study in its section or check with the patient.",
       "showOriginals": "Show originals",
       "hideOriginals": "Hide originals",
       "originals": "WhatsApp originals"
@@ -9844,7 +9844,14 @@
         "reopened": "Order reopened",
         "cancelled": "Order voided",
         "link_created": "Patient link generated",
-        "patient_booked": "Patient booked their slot"
+        "patient_booked": "Patient booked their slot",
+        "review_updated": "Item reviewed"
+      },
+      "reviewStatus": {
+        "pending": "back to pending",
+        "confirmed": "confirmed",
+        "corrected": "corrected",
+        "dismissed": "dismissed"
       }
     },
     "appointmentCard": {
@@ -9889,58 +9896,9 @@
     "referredByShort": "referred by {doctor}",
     "whatsapp": {
       "badge": "WhatsApp",
-      "viewOrders": "Orders",
-      "viewHandoffs": "WhatsApp referrals",
-      "handoffsTitle": "Orders referred from WhatsApp",
-      "handoffsDescription": "The assistant could not finish these orders on its own. Check the original and create the order by hand or contact the patient.",
-      "statusPending": "Pending",
-      "statusResolved": "Resolved",
-      "statusAll": "All",
-      "empty": "There are no pending referrals.",
-      "emptyResolved": "There are no resolved referrals.",
-      "loadError": "Could not load the referrals.",
-      "retry": "Retry",
-      "refresh": "Refresh",
-      "receivedAt": "Received {date}",
-      "phone": "Phone",
-      "patient": "Patient",
-      "document": "ID",
-      "sender": "Wrote",
-      "doctorAsWritten": "Doctor on the order",
       "doctorNotLinked": "only as written, not linked to a user",
-      "studiesRead": "Studies read",
-      "noStudies": "No studies could be read.",
-      "unmatched": "Not in the system",
-      "detail": "Detail",
       "originals": "Original files",
       "noFiles": "No files were saved.",
-      "viewOrder": "View order {number}",
-      "resolve": "Mark as resolved",
-      "resolvedBy": "Resolved by {name} on {date}",
-      "resolvedOn": "Resolved on {date}",
-      "resolutionNote": "Note: {note}",
-      "resolveDialog": {
-        "title": "Mark referral as resolved",
-        "description": "{patient}: this only closes the referral. The original files and what the assistant read stay on record.",
-        "noteLabel": "Note (optional)",
-        "notePlaceholder": "E.g. order created, patient called back",
-        "cancel": "Cancel",
-        "confirm": "Mark as resolved"
-      },
-      "toast": {
-        "resolvedTitle": "Referral resolved",
-        "errorTitle": "Could not resolve the referral"
-      },
-      "reason": {
-        "service_not_found": "Study not in the system",
-        "unreadable": "Unreadable or incomplete order",
-        "low_confidence": "Doubtful reading",
-        "patient_mismatch": "Patient differs from sender",
-        "booking_failed": "Could not book",
-        "user_request": "Asked for a person",
-        "system_error": "System error",
-        "order_changed": "Another file changes an order already created"
-      },
       "original": {
         "receivedVia": "Received via WhatsApp on {date}",
         "from": "Sent from {phone}",
@@ -9956,11 +9914,56 @@
         "unplaced_details": "Details that did not fit the form",
         "unreadable_fields": "Fields that could not be read",
         "modifier_without_service": "Option without its study"
+      }
+    },
+    "review": {
+      "title": "Items to review",
+      "help": "What the WhatsApp assistant was not sure about when reading the order. Check it against the original.",
+      "blockingHelp": "{count, plural, one {1 item must be checked against the original before submitting the order.} other {# items must be checked against the original before submitting the order.}}",
+      "pendingCount": "{count, plural, one {1 pending} other {# pending}}",
+      "allReviewed": "All reviewed",
+      "blocking": "Blocks submission",
+      "confidence": "Confidence {value}%",
+      "notePlaceholder": "Note (optional): what was corrected or why it is dismissed",
+      "banner": "{count, plural, one {The assistant left 1 unclear item: review it before submitting.} other {The assistant left # unclear items: review them before submitting.}}",
+      "wizardBanner": "{count, plural, one {There is 1 item the assistant was not sure about. Review it in the last step, looking at the original.} other {There are # items the assistant was not sure about. Review them in the last step, looking at the original.}}",
+      "submitBlocked": "{count, plural, one {Review the pending item before submitting.} other {Review the # pending items before submitting.}}",
+      "code": {
+        "handoff_reason": "Handoff reason",
+        "low_confidence": "Uncertain reading",
+        "not_in_catalog": "Study not in the catalog",
+        "unreadable": "Unreadable data",
+        "unplaced": "Does not fit the form",
+        "possibly_incomplete": "Back side may be missing",
+        "no_signature": "No signature",
+        "old_order": "Old order"
       },
-      "createOrder": "Create order",
-      "continueDraft": "Continue draft {number}",
-      "replaceOrder": "Replace order {number}",
-      "orderCancelled": "cancelled"
+      "status": {
+        "pending": "Pending",
+        "confirmed": "Confirmed",
+        "corrected": "Corrected",
+        "dismissed": "Dismissed"
+      },
+      "actions": {
+        "confirm": "Looks right",
+        "corrected": "Corrected",
+        "dismiss": "Dismiss",
+        "addNote": "Note",
+        "reopen": "Back to pending"
+      },
+      "toast": {
+        "updated": "Item updated",
+        "pendingBlocking": "{count, plural, one {1 item left before you can submit.} other {# items left before you can submit.}}",
+        "error": "Could not update the item"
+      },
+      "flag": "The assistant was not sure about this",
+      "stepTitle": "{count, plural, one {1 item to review in this step} other {# items to review in this step}}"
+    },
+    "origin": {
+      "label": "Origin",
+      "all": "All origins",
+      "portal": "Portal",
+      "whatsapp": "WhatsApp"
     }
   },
   "StudyOrderBooking": {

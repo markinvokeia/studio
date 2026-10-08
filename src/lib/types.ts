@@ -3505,7 +3505,7 @@ export type StudyOrderEventType =
   | 'created' | 'updated' | 'submitted' | 'acknowledged'
   | 'scheduled' | 'rescheduled' | 'appointment_updated' | 'appointment_cancelled'
   | 'session_saved' | 'completed' | 'reopened' | 'cancelled'
-  | 'link_created' | 'patient_booked';
+  | 'link_created' | 'patient_booked' | 'review_updated';
 
 /** Por dónde entró la orden: la creó un usuario en el portal o el agente de WhatsApp a partir de una foto o PDF. */
 export type StudyOrderSource = 'portal' | 'whatsapp';
@@ -3520,11 +3520,6 @@ export interface WhatsappIntakeFile {
   created_at?: string | null;
 }
 
-/** Motivos por los que el agente deriva una orden a una persona. */
-export type WhatsappHandoffReason =
-  | 'service_not_found' | 'unreadable' | 'low_confidence' | 'patient_mismatch'
-  | 'booking_failed' | 'user_request' | 'system_error' | 'order_changed';
-
 export interface WhatsappIntakeWarning {
   code: string;
   detail?: string | null;
@@ -3537,64 +3532,40 @@ export interface StudyOrderWhatsappInfo {
   received_at: string;
   warnings: WhatsappIntakeWarning[];
   extraction_meta?: Record<string, unknown> | null;
+  /** Borrador de una derivación: al enviarlo reemplaza a esta orden del agente (la anula y le pasa sus citas). */
+  replaces_order_number?: string | null;
   files: WhatsappIntakeFile[];
 }
 
-/** Una orden de WhatsApp derivada a una persona. No tiene orden en Invoke hasta que recepción la crea. */
-export interface WhatsappOrderIntake {
-  id: string;
-  phone: string;
-  handoff_reason: WhatsappHandoffReason;
-  handoff_detail?: string | null;
-  created_at: string;
-  resolved_at?: string | null;
-  resolved_by_name?: string | null;
-  resolution_note?: string | null;
-  patient_name?: string | null;
-  patient_document?: string | null;
-  /** Nombre del doctor tal como figura en el papel. Sólo referencia: no está vinculado a ningún usuario. */
-  doctor_as_written?: string | null;
-  sender_name?: string | null;
-  studies: string[];
-  /** Estudios que figuran en la orden pero no en el sistema. */
-  unmatched_lines: string[];
-  study_order_id?: string | null;
-  order_number?: string | null;
-  /** Estado de la orden vinculada (la del agente, o la que creó recepción al resolver). */
-  order_status?: StudyOrderStatus | null;
-  /** Lo que el asistente alcanzó a armar de la orden: punto de partida para crearla a mano. */
-  draft?: StudyOrderDraft | null;
-  /** Paciente según la validación: trae `patient_id` cuando se lo identificó. */
-  validated_patient?: { name?: string | null; document?: string | null; patient_id?: string | null; status?: string | null } | null;
-  sender_user_id?: string | null;
-  /** Orden empezada desde esta derivación y todavía en borrador. */
-  draft_order?: { id: string; order_number: string } | null;
-  files: WhatsappIntakeFile[];
-}
+/** Tipo de punto a revisar que dejó el agente de WhatsApp al leer la orden. */
+export type StudyOrderReviewCode =
+  | 'handoff_reason' | 'low_confidence' | 'not_in_catalog' | 'unreadable'
+  | 'unplaced' | 'possibly_incomplete' | 'no_signature' | 'old_order';
+
+export type StudyOrderReviewStatus = 'pending' | 'confirmed' | 'corrected' | 'dismissed';
 
 /**
- * Borrador de una orden armado a partir de la lectura de WhatsApp (validador de n8n,
- * `buildOrderDraft`). Misma forma que el cuerpo de /study-orders/upsert, más lo que no
- * se pudo ubicar.
+ * Algo que el agente no tuvo claro al leer la orden y que una persona revisa contra el original.
+ * `blocking`: borrador creado al derivar, no se puede enviar con alguno pendiente.
  */
-export interface StudyOrderDraft {
-  items: Array<{
-    service_id: string | number;
-    service_name: string;
-    section_code: string;
-    sort_order?: number;
-    modifiers?: Record<string, string[]>;
-    notes?: string | null;
-  }>;
-  regions?: Record<string, string[]>;
-  section_modifiers?: Record<string, Record<string, string[]>>;
-  texts?: Record<string, string>;
-  delivery_methods?: string[];
-  referring_doctor_name?: string | null;
-  clinical_notes?: string | null;
-  /** Estudios pedidos que no figuran en el catálogo. */
-  unmatched?: string[];
-  patient?: { name?: string | null; document?: string | null } | null;
+export interface StudyOrderReviewItem {
+  id: string;
+  code: StudyOrderReviewCode | string;
+  field: string;
+  /** Qué dato es, tal como lo describe el agente (en español). */
+  label: string;
+  value_read?: string | null;
+  /** Entre 0 y 1. Postgres la devuelve como número o texto. */
+  confidence?: number | string | null;
+  detail?: string | null;
+  /** Sección del formulario donde está el dato (estudios, opciones, piezas, textos). Nulo en el resto. */
+  section_code?: string | null;
+  blocking: boolean;
+  status: StudyOrderReviewStatus;
+  resolution_note?: string | null;
+  reviewed_by_name?: string | null;
+  reviewed_at?: string | null;
+  created_at: string;
 }
 
 export interface StudyOrderEvent {
@@ -3652,6 +3623,8 @@ export interface StudyOrder {
   patient?: StudyOrderPatient | null;
   /** Línea de tiempo, del evento más viejo al más nuevo. */
   events?: StudyOrderEvent[];
+  /** Lo que el agente de WhatsApp no tuvo claro al leer la orden, con su revisión. */
+  review_items?: StudyOrderReviewItem[];
 }
 
 /** Fila de la bandeja. Los contadores y `board_status` vienen de la vista. */
@@ -3682,6 +3655,8 @@ export interface StudyOrderListItem {
   acknowledged_at?: string | null;
   completed_at?: string | null;
   created_at: string;
+  /** Puntos que dejó el agente de WhatsApp sin revisar todavía. Postgres lo devuelve como texto. */
+  review_pending?: number | string | null;
 }
 
 /** Payload de POST /study-orders/upsert. */

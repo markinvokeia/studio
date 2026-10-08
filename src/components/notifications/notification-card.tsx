@@ -867,7 +867,7 @@ function WhatsappHandoffCard({ notification }: { notification: WhatsappHandoffRe
 
   const handleViewOrders = () => {
     closePanel();
-    router.push(`/${locale}/study-orders?view=whatsapp`);
+    router.push(`/${locale}/study-orders?source=whatsapp&bucket=drafts`);
   };
 
   return (

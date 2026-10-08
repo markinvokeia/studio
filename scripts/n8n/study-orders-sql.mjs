@@ -128,7 +128,10 @@ base AS (
                 AND b.hours_since_submitted > a.sla_hours)) AS is_overdue,
            (SELECT string_agg(i.service_name, ', ' ORDER BY i.sort_order, i.service_name)
               FROM public.study_order_items i
-             WHERE i.study_order_id = b.id AND i.is_cancelled = false) AS items_summary
+             WHERE i.study_order_id = b.id AND i.is_cancelled = false) AS items_summary,
+           -- Puntos que el agente de WhatsApp no tuvo claros y nadie revisó todavía.
+           (SELECT count(*) FROM jsonb_array_elements(coalesce(so.review_items, '[]'::jsonb)) r
+             WHERE r ->> 'status' = 'pending') AS review_pending
       FROM public.v_study_orders_board b
       CROSS JOIN args a
       LEFT JOIN public.users d  ON d.id  = b.doctor_id
@@ -137,8 +140,10 @@ base AS (
      WHERE
        -- Autorización: sólo con VIEW_ALL se ve la bandeja completa. Pedir
        -- scope=clinic sin el permiso devuelve igual las órdenes propias.
+       -- Los borradores son de su doctor, salvo los que crea el agente de WhatsApp al derivar:
+       -- no tienen doctor y son trabajo de recepción.
        CASE WHEN a.scope = 'clinic' AND (SELECT can_view_all FROM perms)
-            THEN b.status <> 'draft'
+            THEN (b.status <> 'draft' OR so.source = 'whatsapp')
             ELSE b.doctor_id = $1::uuid
        END
        AND (a.board_status = 'all' OR CASE a.board_status
@@ -150,12 +155,15 @@ base AS (
              WHEN 'scheduled' THEN b.board_status IN ('scheduled', 'partially_scheduled')
              WHEN 'completed' THEN b.board_status = 'completed'
              WHEN 'drafts'    THEN b.status = 'draft'
+             WHEN 'review'    THEN EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(so.review_items, '[]'::jsonb)) r
+                                            WHERE r ->> 'status' = 'pending')
              ELSE true END)
        AND (a.search = '' OR lower(b.patient_name) LIKE lower(a.search) || '%'
                           OR b.patient_document LIKE a.search || '%'
                           OR lower(b.order_number) LIKE lower(a.search) || '%')
        AND (a.sede_id IS NULL OR b.preferred_sede_id = a.sede_id::int)
        -- so.source y no b.source: b es la vista del tablero, que no tiene esa columna.
+       -- Las derivadas de WhatsApp son las de origen whatsapp en borrador: se combinan los dos filtros.
        AND (a.source = '' OR so.source = a.source)
        -- Órdenes de un paciente concreto: lo usa el selector del diálogo de cita.
        AND (a.patient_id IS NULL OR b.patient_id = a.patient_id::uuid)
@@ -171,7 +179,8 @@ SELECT (SELECT count(*) FROM base) AS total,
                         b.items_summary, b.is_overdue, b.hours_since_submitted,
                         b.source, b.referring_doctor_name,
                         b.preferred_sede_id::text, b.preferred_sede_name,
-                        b.submitted_at, b.acknowledged_at, b.completed_at, b.created_at
+                        b.submitted_at, b.acknowledged_at, b.completed_at, b.created_at,
+                        b.review_pending
                    FROM base b CROSS JOIN args a
                   ORDER BY
                     CASE WHEN a.sort = 'submitted_at:asc'   THEN b.submitted_at END ASC,
@@ -204,6 +213,14 @@ SELECT row_to_json(o) AS data
                      'received_at', wi.created_at,
                      'warnings', coalesce(wi.validation -> 'warnings', '[]'::jsonb),
                      'extraction_meta', wi.extraction_meta,
+                     -- Borrador de una derivación cuyo intake ya tenía una orden del agente: al
+                     -- enviarlo, la reemplaza (SUBMIT_SQL). Se avisa antes de confirmar.
+                     'replaces_order_number', (
+                         SELECT o2.order_number FROM public.study_orders o2
+                          WHERE o2.id = wi.study_order_id AND o2.id <> so.id
+                            AND o2.status IN ('draft', 'submitted')
+                            AND so.status = 'draft'
+                            AND wi.status = 'handed_off' AND wi.resolved_at IS NULL),
                      'files', coalesce((
                          SELECT json_agg(json_build_object(
                                   'id', at.id::text, 'file_name', at.file_name, 'mime_type', at.mime_type,
@@ -234,6 +251,9 @@ SELECT row_to_json(o) AS data
                     ) ORDER BY i.sort_order, i.service_name)
                FROM public.study_order_items i WHERE i.study_order_id = so.id
            ), '[]'::json) AS items,
+           -- Lo que el agente de WhatsApp no tuvo claro al leer la orden, con su revisión
+           -- (study_orders.review_items, migración 126).
+           coalesce(so.review_items, '[]'::jsonb) AS review_items,
            -- La cita completa, no un resumen: la pestaña Citas muestra lo mismo
            -- que el panel del calendario, para no obligar a saltar de pantalla.
            coalesce((
@@ -455,7 +475,17 @@ export const SUBMIT_SQL = `
 -- cambió" porque llegó el dorso), esta la REEMPLAZA: la anterior se anula y sus citas
 -- vigentes pasan a la nueva, así no se pierde lo agendado. Todo en la misma sentencia.
 -- El agente también envía con source_intake_id, pero su intake nunca está en handed_off.
+--
+-- Puntos a revisar BLOQUEANTES (el borrador que se crea al derivar): mientras quede alguno
+-- pendiente la orden no sale. Siempre devuelve una fila: con id nulo y pending_review > 0, el
+-- flujo responde 409 diciendo cuántos faltan.
 WITH ${PERMS_CTE},
+pending_review AS (
+    SELECT 1 FROM public.study_orders so2, jsonb_array_elements(coalesce(so2.review_items, '[]'::jsonb)) r
+     WHERE so2.id = $2::uuid
+       AND coalesce((r ->> 'blocking')::boolean, false)
+       AND r ->> 'status' = 'pending'
+),
 updated AS (
     UPDATE public.study_orders so
        SET status = 'submitted', submitted_at = ${NOW}
@@ -464,6 +494,7 @@ updated AS (
        AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))
        AND EXISTS (SELECT 1 FROM public.study_order_items i
                     WHERE i.study_order_id = so.id AND i.is_cancelled = false)
+       AND NOT EXISTS (SELECT 1 FROM pending_review)
     RETURNING so.id, so.order_number, so.doctor_id, so.patient_name, so.submitted_at, so.source_intake_id
 ),
 intake AS (
@@ -518,17 +549,143 @@ SELECT u.id::text, u.order_number, u.doctor_id::text, u.patient_name, u.submitte
        (SELECT count(*) FROM public.study_order_items i WHERE i.study_order_id = u.id) AS items_total,
        (SELECT count(*) FROM resolved_intake) > 0 AS resolved_handoff,
        (SELECT min(o.order_number) FROM public.study_orders o WHERE o.id IN (SELECT id FROM replaced)) AS replaced_order_number,
-       (SELECT count(*) FROM moved) AS moved_appointments
-  FROM updated u LEFT JOIN public.users d ON d.id = u.doctor_id;`;
+       (SELECT count(*) FROM moved) AS moved_appointments,
+       (SELECT count(*) FROM pending_review) AS pending_review
+  FROM (SELECT 1) one
+  LEFT JOIN updated u ON true
+  LEFT JOIN public.users d ON d.id = u.doctor_id;`;
+
+/**
+ * Registra los puntos a revisar de una orden (lo que el agente de WhatsApp no tuvo claro al
+ * leerla, `buildReviewItems` de intake-lib.mjs) en `study_orders.review_items`. Lo usa el agente:
+ * al crear el borrador de una derivación (bloqueantes) y al agendar una orden él solo (informativos).
+ *
+ * Cada punto: { id, code, field, label, value_read, confidence, detail, section_code, blocking, status,
+ *               resolution_note, reviewed_by, reviewed_by_name, reviewed_at, created_at }.
+ * `id` = los 12 primeros caracteres del md5 de code|field: el mismo punto no se agrega dos veces.
+ */
+export const REVIEW_ITEMS_INSERT_SQL = `
+-- $1 id de la orden  $2 puntos como JSON ([{ code, field, label, value, confidence, detail }])
+-- $3 bloqueantes ('true' / 'false').
+WITH incoming AS (
+    SELECT DISTINCT ON (item ->> 'id') item, ord
+      FROM (
+        SELECT jsonb_build_object(
+                 'id', substr(md5(coalesce(e ->> 'code', '') || '|' || coalesce(e ->> 'field', '')), 1, 12),
+                 'code', left(e ->> 'code', 40),
+                 'field', left(coalesce(e ->> 'field', ''), 160),
+                 'label', coalesce(NULLIF(e ->> 'label', ''), e ->> 'code'),
+                 'value_read', e ->> 'value',
+                 'confidence', CASE WHEN jsonb_typeof(e -> 'confidence') = 'number'
+                                    THEN round((e ->> 'confidence')::numeric, 3) END,
+                 'detail', e ->> 'detail',
+                 -- Sección del formulario donde está el dato: el asistente muestra la advertencia en ese paso.
+                 'section_code', NULLIF(e ->> 'section_code', ''),
+                 'blocking', $3::boolean,
+                 'status', 'pending',
+                 'created_at', replace(to_char(${NOW}, 'YYYY-MM-DD HH24:MI:SS'), ' ', 'T')) AS item,
+               t.ord
+          FROM jsonb_array_elements(coalesce(NULLIF($2::text, '')::jsonb, '[]'::jsonb)) WITH ORDINALITY AS t(e, ord)
+         WHERE coalesce(e ->> 'code', '') <> ''
+      ) x
+     ORDER BY item ->> 'id', ord
+),
+upd AS (
+    -- Se agrega sobre el valor de la fila al momento de actualizarla (no sobre una lectura previa):
+    -- dos altas simultáneas no se pisan.
+    UPDATE public.study_orders so
+       SET review_items = coalesce(so.review_items, '[]'::jsonb) || coalesce((
+             SELECT jsonb_agg(i.item ORDER BY i.ord)
+               FROM incoming i
+              WHERE NOT EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(so.review_items, '[]'::jsonb)) x
+                                 WHERE x ->> 'id' = i.item ->> 'id')), '[]'::jsonb)
+     WHERE so.id = $1::uuid
+    RETURNING so.order_number, jsonb_array_length(so.review_items) AS total
+)
+SELECT order_number, total FROM upd;`;
+
+/**
+ * Recepción marca un punto a revisar: confirmado (la lectura estaba bien), corregido (lo arregló
+ * en la orden), descartado (no aplica) o de vuelta a pendiente. Queda en el punto (quién y cuándo)
+ * y en la línea de tiempo.
+ */
+export const REVIEW_ITEM_UPDATE_SQL = `
+-- $1 userId (token)  $2 { order_id, item_id, status, note }
+-- Mismo alcance que editar la orden: la propia o, con VIEW_ALL, cualquiera. Una orden anulada no se toca.
+WITH ${PERMS_CTE},
+p AS (
+    SELECT $2::jsonb AS b,
+           ($2::jsonb ->> 'status') = 'pending' AS reopen,
+           (SELECT u.name FROM public.users u WHERE u.id = $1::uuid) AS reviewer_name
+),
+upd AS (
+    -- El arreglo se rearma desde la fila que se está actualizando: si otra persona marcó otro punto
+    -- al mismo tiempo, su cambio no se pierde.
+    UPDATE public.study_orders so
+       SET review_items = (
+             SELECT jsonb_agg(CASE WHEN x ->> 'id' = p.b ->> 'item_id'
+                                   THEN x || jsonb_build_object(
+                                          'status', p.b ->> 'status',
+                                          'resolution_note', NULLIF(trim(coalesce(p.b ->> 'note', '')), ''),
+                                          'reviewed_by', CASE WHEN p.reopen THEN NULL ELSE $1::text END,
+                                          'reviewed_by_name', CASE WHEN p.reopen THEN NULL ELSE p.reviewer_name END,
+                                          'reviewed_at', CASE WHEN p.reopen THEN NULL
+                                                              ELSE replace(to_char(${NOW}, 'YYYY-MM-DD HH24:MI:SS'), ' ', 'T') END)
+                                   ELSE x END
+                              ORDER BY t.ord)
+               FROM jsonb_array_elements(so.review_items) WITH ORDINALITY AS t(x, ord))
+      FROM p
+     WHERE so.id = (p.b ->> 'order_id')::uuid
+       AND so.status <> 'cancelled'
+       AND (p.b ->> 'status') IN ('pending', 'confirmed', 'corrected', 'dismissed')
+       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))
+       AND EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(so.review_items, '[]'::jsonb)) y
+                    WHERE y ->> 'id' = p.b ->> 'item_id')
+    RETURNING so.id, so.review_items
+),
+item AS (
+    SELECT u.id AS order_id, x AS it
+      FROM upd u, p, jsonb_array_elements(u.review_items) x
+     WHERE x ->> 'id' = p.b ->> 'item_id'
+),
+ev AS (
+    INSERT INTO public.study_order_events (study_order_id, event_type, actor_id, actor_kind, metadata)
+    SELECT i.order_id, 'review_updated', $1::uuid, 'user',
+           jsonb_build_object('item_id', i.it ->> 'id', 'label', i.it ->> 'label', 'value', i.it ->> 'value_read',
+                              'status', i.it ->> 'status', 'note', i.it ->> 'resolution_note')
+      FROM item i
+    RETURNING id
+)
+SELECT i.it ->> 'id' AS id, i.it ->> 'status' AS status, i.it ->> 'resolution_note' AS resolution_note,
+       (SELECT count(*) FROM upd u, jsonb_array_elements(u.review_items) y
+         WHERE coalesce((y ->> 'blocking')::boolean, false) AND y ->> 'status' = 'pending') AS pending_blocking
+  FROM item i;`;
 
 export const DELETE_SQL = `
 -- $1 userId (token)  $2 id. Sólo borradores propios; las líneas caen por CASCADE.
-WITH ${PERMS_CTE}
-DELETE FROM public.study_orders so
- WHERE so.id = $2::uuid
-   AND so.status = 'draft'
-   AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))
-RETURNING so.id::text;`;
+-- Borrador creado al derivar desde WhatsApp: borrarlo deja la derivación resuelta como descartada
+-- (los originales y la lectura quedan en el intake, para auditoría).
+WITH ${PERMS_CTE},
+del AS (
+    DELETE FROM public.study_orders so
+     WHERE so.id = $2::uuid
+       AND so.status = 'draft'
+       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))
+    RETURNING so.id, so.order_number, so.source_intake_id
+),
+resolved_intake AS (
+    UPDATE public.whatsapp_order_intakes wi
+       SET resolved_at = ${NOW},
+           resolved_by = $1::uuid,
+           resolution_note = coalesce(wi.resolution_note, 'Borrador ' || d.order_number || ' descartado sin enviar')
+      FROM del d
+     WHERE wi.id = d.source_intake_id
+       AND wi.status = 'handed_off'
+       AND wi.resolved_at IS NULL
+    RETURNING wi.id
+)
+SELECT d.id::text, (SELECT count(*) FROM resolved_intake) > 0 AS resolved_handoff
+  FROM del d;`;
 
 export const ACKNOWLEDGE_SQL = `
 -- $1 userId (token)  $2 id. Saca la orden del bucket "nuevas".
@@ -1329,7 +1486,11 @@ SELECT (SELECT count(*) FROM base) AS total,
                             LEFT JOIN public.service_catalog s
                               ON coalesce(s.external_id, 'id:' || s.id) = e ->> 'external_id'
                         ), '[]'::json) AS studies,
-                        coalesce(b.extraction -> 'unmatched_text_lines', '[]'::jsonb) AS unmatched_lines,
+                        -- Desde so-extraction-v3 cada linea es { text, confidence }; antes, un string.
+                        coalesce((
+                          SELECT jsonb_agg(CASE jsonb_typeof(l) WHEN 'object' THEN l -> 'text' ELSE l END)
+                            FROM jsonb_array_elements(coalesce(b.extraction -> 'unmatched_text_lines', '[]'::jsonb)) l
+                        ), '[]'::jsonb) AS unmatched_lines,
                         b.study_order_id::text,
                         (SELECT o.order_number FROM public.study_orders o WHERE o.id = b.study_order_id) AS order_number,
                         (SELECT o.status FROM public.study_orders o WHERE o.id = b.study_order_id) AS order_status,

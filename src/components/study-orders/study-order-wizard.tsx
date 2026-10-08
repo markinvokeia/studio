@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AlertTriangle, ArrowLeft, ArrowRight, Check, ClipboardList, Images, Loader2, PanelLeft, Send } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ClipboardList, Images, ListChecks, Loader2, PanelLeft, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -19,6 +19,9 @@ import { UserSelector } from '@/components/ui/user-selector';
 
 import { OrderFilesPanel } from './order-files-panel';
 import type { OrderFile } from './order-file-gallery';
+import { ReviewFlag } from './review-flag';
+import { PATIENT_STEP, resolveReviewTargets } from './review-targets';
+import { StudyOrderReviewList, countPendingBlocking } from './study-order-review-list';
 import { StudyOrderSection } from './study-order-section';
 import {
     StudyOrderSummary, labelForDelivery, labelForModifier,
@@ -39,9 +42,9 @@ import {
 import { STUDY_ORDERS_PERMISSIONS } from '@/constants/permissions';
 import type {
     StudyOrderCatalogService,
-    StudyOrderDraft,
     StudyOrderFormOptions,
     StudyOrderOption,
+    StudyOrderReviewItem,
     StudyOrderSection as Section,
     StudyOrderUpsertPayload,
     WhatsappIntakeFile,
@@ -58,31 +61,12 @@ import type {
  * último paso deja ver todo lo pedido antes de guardar o enviar.
  */
 
-/**
- * Orden a crear desde una derivación de WhatsApp: el asistente arranca con lo que leyó el
- * agente, para que recepción lo revise contra los originales en lugar de cargarlo de cero.
- */
-export interface StudyOrderWizardPrefill {
-    intakeId: string;
-    phone?: string | null;
-    /** Paciente ya identificado por la validación, si lo hubo. */
-    patientId?: string | null;
-    patientName?: string | null;
-    patientDocument?: string | null;
-    draft?: StudyOrderDraft | null;
-    files: WhatsappIntakeFile[];
-    /** Orden del agente que la nueva reemplaza al enviarse (se anula y sus citas pasan a la nueva). */
-    replacesOrderNumber?: string | null;
-}
-
 export interface StudyOrderWizardProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     /** Sin id = alta. Con id = edición de un borrador. */
     orderId?: string | null;
     orderNumber?: string | null;
-    /** Alta desde una derivación de WhatsApp. Se ignora al editar. */
-    prefill?: StudyOrderWizardPrefill | null;
     onSaved?: () => void;
 }
 
@@ -127,46 +111,6 @@ function toggleInGroup(
     return { ...current, [outerKey]: { ...groups, [groupCode]: next } };
 }
 
-/**
- * Estado inicial del formulario a partir de lo que leyó el agente. Los estudios se toman del
- * catálogo vigente (nombre y sección actuales); si alguno ya no está activo, se conserva tal
- * como vino para que recepción lo vea y decida.
- */
-function prefillState(p: StudyOrderWizardPrefill, formOptions: StudyOrderFormOptions) {
-    const draft = p.draft ?? null;
-    const catalog = new Map<string, StudyOrderCatalogService>();
-    for (const section of formOptions.sections) {
-        for (const service of section.services) catalog.set(service.id, service);
-    }
-
-    const services = new Map<string, StudyOrderCatalogService>();
-    const itemModifiers: Record<string, Record<string, string[]>> = {};
-    const itemNotes: Record<string, string> = {};
-    for (const item of draft?.items ?? []) {
-        const id = String(item.service_id);
-        services.set(id, catalog.get(id) ?? { id, name: item.service_name, section_code: item.section_code });
-        if (item.modifiers && Object.keys(item.modifiers).length > 0) itemModifiers[id] = item.modifiers;
-        if (item.notes) itemNotes[id] = item.notes;
-    }
-
-    return {
-        selection: {
-            services, itemModifiers, itemNotes,
-            sectionModifiers: draft?.section_modifiers ?? {},
-            teeth: draft?.regions ?? {},
-        } satisfies SelectionState,
-        texts: draft?.texts ?? {},
-        deliveryMethods: draft?.delivery_methods ?? [],
-        clinicalNotes: draft?.clinical_notes ?? '',
-        patientId: p.patientId ?? '',
-        patientName: p.patientName || draft?.patient?.name || '',
-        patientDocument: p.patientDocument || draft?.patient?.document || '',
-        patientPhone: p.phone ?? '',
-        referringDoctorName: draft?.referring_doctor_name ?? '',
-        unmatched: draft?.unmatched ?? [],
-    };
-}
-
 /** Un paso del asistente: la portada del paciente, cada sección, y el resumen. */
 type Step =
     | { kind: 'patient' }
@@ -178,7 +122,6 @@ export function StudyOrderWizard({
     onOpenChange,
     orderId,
     orderNumber,
-    prefill,
     onSaved,
 }: StudyOrderWizardProps) {
     const t = useTranslations('StudyOrdersPage');
@@ -188,8 +131,6 @@ export function StudyOrderWizard({
     // o la deja sin doctor. Sin el permiso la orden es siempre de quien la crea (el doctor).
     const canChooseDoctor = hasPermission(STUDY_ORDERS_PERMISSIONS.CREATE_FOR_DOCTOR);
     const isCreating = !orderId;
-    // Al editar se ignora la precarga: la orden ya existe y manda lo guardado.
-    const activePrefill = isCreating ? prefill ?? null : null;
 
     const [options, setOptions] = React.useState<StudyOrderFormOptions | null>(null);
     const [sedes, setSedes] = React.useState<BookingSede[]>([]);
@@ -242,8 +183,14 @@ export function StudyOrderWizard({
     const [sourceIntakeId, setSourceIntakeId] = React.useState('');
     const [originals, setOriginals] = React.useState<OriginalsSource | null>(null);
     const [showOriginals, setShowOriginals] = React.useState(false);
-    /** Estudios que el asistente leyó pero no están en el catálogo: recepción decide qué hacer. */
-    const [unmatched, setUnmatched] = React.useState<string[]>([]);
+    /**
+     * Puntos que el agente de WhatsApp no tuvo claros (borrador creado al derivar). Se marcan desde
+     * acá mismo, mirando los originales; los bloqueantes pendientes impiden enviar.
+     */
+    const [reviewItems, setReviewItems] = React.useState<StudyOrderReviewItem[]>([]);
+    /** Orden del agente que este borrador reemplaza al enviarse (derivación por "la orden cambió"). */
+    const [replacesOrderNumber, setReplacesOrderNumber] = React.useState<string | null>(null);
+    const blockingPending = countPendingBlocking(reviewItems);
 
     const scrollRef = React.useRef<HTMLDivElement>(null);
     /** Bloqueo síncrono del guardado: el estado tarda un render y un doble clic duplicaría la orden. */
@@ -257,7 +204,8 @@ export function StudyOrderWizard({
         setSelection({ ...EMPTY_SELECTION, services: new Map() });
         setLoadedNumber(''); setError(null); setStepIndex(0);
         setDoctorId(''); setDoctorName(''); setWithoutDoctor(false); setReferringDoctorName('');
-        setSourceIntakeId(''); setOriginals(null); setShowOriginals(false); setUnmatched([]);
+        setSourceIntakeId(''); setOriginals(null); setShowOriginals(false);
+        setReviewItems([]); setReplacesOrderNumber(null);
     }, []);
 
     React.useEffect(() => {
@@ -310,36 +258,33 @@ export function StudyOrderWizard({
                     // Borrador que salió de una derivación de WhatsApp: los originales siguen a mano.
                     setReferringDoctorName(order.referring_doctor_name ?? '');
                     setSourceIntakeId(order.source_intake_id ?? '');
+                    setReviewItems(order.review_items ?? []);
+                    setReplacesOrderNumber(order.whatsapp?.replaces_order_number ?? null);
                     if (order.whatsapp && order.whatsapp.files.length > 0) {
                         setOriginals({ intakeId: order.whatsapp.intake_id, files: order.whatsapp.files });
                         setShowOriginals(isWideScreen());
                     }
-                }
-            } else if (activePrefill) {
-                const prefilled = prefillState(activePrefill, formOptions);
-                setSelection(prefilled.selection);
-                setTexts(prefilled.texts);
-                setDeliveryMethods(prefilled.deliveryMethods);
-                setClinicalNotes(prefilled.clinicalNotes);
-                setPatientId(prefilled.patientId);
-                setPatientName(prefilled.patientName);
-                setPatientDocument(prefilled.patientDocument);
-                setPatientPhone(prefilled.patientPhone);
-                // La orden de WhatsApp no se vincula a un doctor del sistema: el del papel queda como texto.
-                setWithoutDoctor(true);
-                setReferringDoctorName(prefilled.referringDoctorName);
-                setSourceIntakeId(activePrefill.intakeId);
-                setUnmatched(prefilled.unmatched);
-                if (activePrefill.files.length > 0) {
-                    setOriginals({ intakeId: activePrefill.intakeId, files: activePrefill.files });
-                    setShowOriginals(isWideScreen());
                 }
             }
             setIsLoading(false);
         })();
 
         return () => { cancelled = true; };
-    }, [open, orderId, activePrefill, resetForm]);
+    }, [open, orderId, resetForm]);
+
+    /** Cada punto pendiente, en su paso y sobre el elemento donde está el dato. */
+    const reviewTargets = React.useMemo(() => resolveReviewTargets(reviewItems, options), [reviewItems, options]);
+    const pendingReviewTotal = React.useMemo(
+        () => reviewItems.filter((i) => i.status === 'pending').length,
+        [reviewItems],
+    );
+
+    /** Tras marcar un punto se relee solo la revisión: lo que se editó en el formulario no se pisa. */
+    const reloadReviewItems = React.useCallback(async () => {
+        if (!orderId) return;
+        const fresh = await getStudyOrder(orderId);
+        if (fresh) setReviewItems(fresh.review_items ?? []);
+    }, [orderId]);
 
     const originalFiles = React.useMemo(() => toOrderFiles(originals?.files ?? []), [originals]);
     const originalsIntakeId = originals?.intakeId ?? '';
@@ -540,13 +485,10 @@ export function StudyOrderWizard({
                 ? (withoutDoctor ? { without_doctor: true } : { doctor_id: doctorId })
                 : {}),
             ...(referringDoctorName.trim() ? { referring_doctor_name: referringDoctorName.trim() } : {}),
-            // Orden que sale de una derivación: al enviarla, la derivación queda resuelta (y si el
-            // agente ya había creado una orden, esta la reemplaza).
-            ...(isCreating && sourceIntakeId ? { source: 'whatsapp' as const, source_intake_id: sourceIntakeId } : {}),
         };
     }, [orderId, patientId, patientName, patientDocument, patientEmail, patientPhone,
         selection, texts, deliveryMethods, clinicalNotes, sedeId,
-        isCreating, canChooseDoctor, withoutDoctor, doctorId, referringDoctorName, sourceIntakeId]);
+        isCreating, canChooseDoctor, withoutDoctor, doctorId, referringDoctorName]);
 
     const handleSave = React.useCallback(async (submitAfterSave: boolean) => {
         if (savingRef.current) return;
@@ -600,9 +542,30 @@ export function StudyOrderWizard({
     }, [patientName, totalSelected, buildPayload, toast, t, onSaved, onOpenChange, goTo,
         isCreating, canChooseDoctor, withoutDoctor, doctorId]);
 
+    /** Puntos pendientes de un paso, arriba de su contenido, para marcarlos ahí mismo. */
+    const renderStepReview = (stepKey: string) => {
+        const stepItems = reviewTargets.byStep.get(stepKey) ?? [];
+        if (!orderId || stepItems.length === 0) return null;
+        return (
+            <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+                <p className="flex items-center gap-1.5 text-sm font-medium">
+                    <ListChecks className="h-4 w-4 text-amber-600" aria-hidden="true" />
+                    {t('review.stepTitle', { count: stepItems.length })}
+                </p>
+                <StudyOrderReviewList
+                    orderId={orderId}
+                    items={stepItems}
+                    canReview
+                    variant="plain"
+                    onChanged={reloadReviewItems}
+                />
+            </div>
+        );
+    };
+
     const title = orderId
         ? t('form.editTitle', { number: orderNumber || loadedNumber })
-        : activePrefill ? t('form.titleFromHandoff') : t('form.title');
+        : t('form.title');
 
     return (
         <ResizableSheet
@@ -698,6 +661,9 @@ export function StudyOrderWizard({
                                 const count = s.kind === 'section'
                                     ? (selectedIdsBySection.get(s.section.code) ?? []).length
                                     : 0;
+                                const reviewCount = s.kind === 'review'
+                                    ? pendingReviewTotal
+                                    : (reviewTargets.byStep.get(s.kind === 'patient' ? PATIENT_STEP : s.section.code) ?? []).length;
                                 const state = stepState(s);
                                 const isCurrent = index === stepIndex;
                                 return (
@@ -738,6 +704,16 @@ export function StudyOrderWizard({
                                         >
                                             {label}
                                         </span>
+                                        {reviewCount > 0 && (
+                                            <span
+                                                className="mt-0.5 flex h-4 flex-none items-center gap-0.5 rounded-full bg-amber-500/15 px-1 text-[10px] font-medium tabular-nums text-amber-700 dark:text-amber-400"
+                                                title={t('review.pendingCount', { count: reviewCount })}
+                                            >
+                                                <ListChecks className="h-3 w-3" aria-hidden="true" />
+                                                {reviewCount}
+                                                <span className="sr-only">{t('review.pendingCount', { count: reviewCount })}</span>
+                                            </span>
+                                        )}
                                         {count > 0 && (
                                             <span className="mt-0.5 grid h-4 min-w-4 flex-none place-items-center rounded-full bg-emerald-500/15 px-1 text-[10px] font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
                                                 {count}
@@ -765,26 +741,27 @@ export function StudyOrderWizard({
                         </div>
                     ) : step.kind === 'patient' ? (
                         <div className="mx-auto max-w-5xl space-y-6">
-                            {activePrefill && (
+                            {sourceIntakeId && (
                                 <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
                                     <p>{t('wizard.fromHandoff')}</p>
-                                    {activePrefill.replacesOrderNumber && (
+                                    {replacesOrderNumber && (
                                         <p className="font-medium">
-                                            {t('wizard.replacesOrder', { number: activePrefill.replacesOrderNumber })}
+                                            {t('wizard.replacesOrder', { number: replacesOrderNumber })}
                                         </p>
                                     )}
                                 </div>
                             )}
-                            {unmatched.length > 0 && (
-                                <div className="flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm" role="status">
-                                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
-                                    <div className="min-w-0 space-y-1">
-                                        <p className="font-medium">{t('wizard.unmatchedTitle')}</p>
-                                        <p className="break-words">{unmatched.join(' · ')}</p>
-                                        <p className="text-xs text-muted-foreground">{t('wizard.unmatchedHelp')}</p>
-                                    </div>
-                                </div>
+                            {blockingPending > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => goTo(steps.length - 1)}
+                                    className="flex w-full items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-left text-sm transition-colors hover:bg-amber-500/15"
+                                >
+                                    <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+                                    <span>{t('review.wizardBanner', { count: blockingPending })}</span>
+                                </button>
                             )}
+                            {renderStepReview(PATIENT_STEP)}
 
                             {isCreating && canChooseDoctor && (
                                 <div className="space-y-2">
@@ -822,7 +799,10 @@ export function StudyOrderWizard({
 
                             {(withoutDoctor || referringDoctorName || sourceIntakeId) && (
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="so-referring-name">{t('form.referringDoctorName')}</Label>
+                                    <Label htmlFor="so-referring-name" className="flex items-center gap-1.5">
+                                        {t('form.referringDoctorName')}
+                                        <ReviewFlag items={reviewTargets.patientFields.get('doctor')} />
+                                    </Label>
                                     <Input
                                         id="so-referring-name"
                                         value={referringDoctorName}
@@ -835,7 +815,10 @@ export function StudyOrderWizard({
 
                             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                                 <div className="space-y-1.5 sm:col-span-2">
-                                    <Label>{t('form.patientName')}</Label>
+                                    <Label className="flex items-center gap-1.5">
+                                        {t('form.patientName')}
+                                        <ReviewFlag items={reviewTargets.patientFields.get('name')} />
+                                    </Label>
                                     <UserSelector
                                         filterType="PACIENTE"
                                         value={patientId}
@@ -874,11 +857,17 @@ export function StudyOrderWizard({
                                     />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="so-doc">{t('form.patientDocument')}</Label>
+                                    <Label htmlFor="so-doc" className="flex items-center gap-1.5">
+                                        {t('form.patientDocument')}
+                                        <ReviewFlag items={reviewTargets.patientFields.get('document')} />
+                                    </Label>
                                     <Input id="so-doc" value={patientDocument} onChange={(e) => { setPatientDocument(e.target.value); markManual('document'); }} />
                                 </div>
                                 <div className="space-y-1.5">
-                                    <Label htmlFor="so-phone">{t('form.patientPhone')}</Label>
+                                    <Label htmlFor="so-phone" className="flex items-center gap-1.5">
+                                        {t('form.patientPhone')}
+                                        <ReviewFlag items={reviewTargets.patientFields.get('phone')} />
+                                    </Label>
                                     <Input id="so-phone" value={patientPhone} onChange={(e) => { setPatientPhone(e.target.value); markManual('phone'); }} />
                                 </div>
                                 <div className="space-y-1.5">
@@ -902,7 +891,10 @@ export function StudyOrderWizard({
 
                             {(options?.delivery.length ?? 0) > 0 && (
                                 <div className="space-y-2">
-                                    <Label className="text-sm font-semibold">{t('form.deliverySection')}</Label>
+                                    <Label className="flex items-center gap-1.5 text-sm font-semibold">
+                                        {t('form.deliverySection')}
+                                        <ReviewFlag items={reviewTargets.patientFields.get('delivery')} />
+                                    </Label>
                                     <div className="flex flex-wrap gap-x-5 gap-y-2">
                                         {options?.delivery.map((option) => (
                                             <div key={option.id} className="flex items-center gap-2">
@@ -935,7 +927,8 @@ export function StudyOrderWizard({
                             </div>
                         </div>
                     ) : step.kind === 'section' ? (
-                        <div className="w-full">
+                        <div className="w-full space-y-4">
+                            {renderStepReview(step.section.code)}
                             <StudyOrderSection
                                 section={step.section}
                                 serviceModifiers={modifiersBySection.get(step.section.code)?.service ?? []}
@@ -957,10 +950,20 @@ export function StudyOrderWizard({
                                 onItemNoteChange={handleItemNoteChange}
                                 defaultOpen
                                 hideHeader
+                                reviewTargets={reviewTargets}
                             />
                         </div>
                     ) : (
-                        <div className="mx-auto max-w-5xl">
+                        <div className="mx-auto max-w-5xl space-y-6">
+                            {orderId && reviewItems.length > 0 && (
+                                <StudyOrderReviewList
+                                    orderId={orderId}
+                                    items={reviewItems}
+                                    canReview
+                                    onChanged={reloadReviewItems}
+                                    className="rounded-lg border p-4"
+                                />
+                            )}
                             <StudyOrderSummary
                                 patientName={patientName}
                                 patientDocument={patientDocument}
@@ -1014,7 +1017,11 @@ export function StudyOrderWizard({
                                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     {t('form.saveDraft')}
                                 </Button>
-                                <Button onClick={() => setConfirmSubmit(true)} disabled={isSaving || totalSelected === 0}>
+                                <Button
+                                    onClick={() => setConfirmSubmit(true)}
+                                    disabled={isSaving || totalSelected === 0 || blockingPending > 0}
+                                    title={blockingPending > 0 ? t('review.submitBlocked', { count: blockingPending }) : undefined}
+                                >
                                     <Send className="mr-2 h-4 w-4" />
                                     {t('form.submit')}
                                 </Button>
@@ -1041,10 +1048,10 @@ export function StudyOrderWizard({
                         <AlertDialogTitle>{t('submitDialog.title')}</AlertDialogTitle>
                         <AlertDialogDescription>
                             {t('submitDialog.description')}
-                            {activePrefill?.replacesOrderNumber && (
+                            {replacesOrderNumber && (
                                 <>
                                     {' '}
-                                    {t('submitDialog.replaces', { number: activePrefill.replacesOrderNumber })}
+                                    {t('submitDialog.replaces', { number: replacesOrderNumber })}
                                 </>
                             )}
                         </AlertDialogDescription>

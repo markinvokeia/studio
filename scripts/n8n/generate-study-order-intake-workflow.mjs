@@ -32,6 +32,9 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// Las versiones que quedan en extraction_meta salen de la misma lib que arma el prompt y el esquema.
+import { PROMPT_VERSION, SCHEMA_VERSION } from './study-order-intake/intake-lib.mjs';
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..', '..');
 const OUT = join(ROOT, 'n8n-workflows', 'whatsapp-study-order-intake.json');
@@ -207,8 +210,8 @@ const meta = {
   files_sent: req.files_sent,
   latency_ms: Date.now() - req.started_at,
   usage: res.usage || null,
-  prompt_version: 'so-intake-v2',
-  schema_version: 'so-extraction-v2',
+  prompt_version: '${PROMPT_VERSION}',
+  schema_version: '${SCHEMA_VERSION}',
   extracted_at: new Date().toISOString(),
 };
 let extraction = null, error = null;
@@ -292,6 +295,10 @@ const mode = $('When Executed by Another Workflow').first().json.mode || 'extrac
 // tiene, y queda para auditoría.
 if (mode === 'compare') {
   const v = ctx.validation || {};
+  const minConf = Number((ctx.config && ctx.config.min_confidence) || 0.85);
+  // Borrador con TODOS los archivos (incluido el nuevo): si se deriva por "la orden cambió",
+  // recepción arma la orden de reemplazo desde acá.
+  const lateDraft = buildOrderDraft({ extraction: prep.extraction, catalog: ctx.catalog, options: ctx.options, prior: v.prior || {}, min_confidence: minConf });
   const r = compareLateFiles({
     extraction: prep.extraction,
     extraction_error: prep.extraction_error,
@@ -334,9 +341,16 @@ if (mode === 'compare') {
       handoff_detail: r.handoff_detail,
       extraction: prep.extraction,
       extraction_meta: prep.extraction_meta || {},
-      // Borrador con TODOS los archivos (incluido el nuevo): si se deriva por "la orden cambió",
-      // recepción arma la orden de reemplazo desde acá.
-      draft: buildOrderDraft({ extraction: prep.extraction, catalog: ctx.catalog, options: ctx.options, prior: v.prior || {} }),
+      draft: lateDraft,
+      // Lo que hay que revisar en esa orden de reemplazo (solo si se deriva).
+      review_items: r.outcome === 'handoff'
+        ? buildReviewItems({
+            extraction: prep.extraction, draft: lateDraft,
+            fields: collectFieldConfidence(prep.extraction, ctx.catalog, ctx.options),
+            min_confidence: minConf, handoff_reason: r.handoff_reason, handoff_detail: r.handoff_detail,
+            prior: v.prior || {},
+          })
+        : [],
     },
   } }];
 }

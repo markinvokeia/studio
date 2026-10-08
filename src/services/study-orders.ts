@@ -1,11 +1,11 @@
 import { API_ROUTES } from '@/constants/routes';
 import type {
     PublicStudyOrder,
-    WhatsappOrderIntake,
     StudyOrder,
     StudyOrderBookingLink,
     StudyOrderFormOptions,
     StudyOrderListItem,
+    StudyOrderReviewStatus,
     StudyOrderSubmitResult,
     StudyOrderUpsertPayload,
 } from '@/lib/types';
@@ -54,6 +54,9 @@ function unwrap<T>(raw: unknown): { data: T; total: number } {
 
 export type StudyOrderScope = 'mine' | 'clinic';
 
+/** Filtro de origen de la bandeja. Las derivadas de WhatsApp son las de WhatsApp en borrador. */
+export type StudyOrderOrigin = 'portal' | 'whatsapp';
+
 export interface GetStudyOrdersParams {
     /**
      * `mine` filtra por el doctor del token — el `doctor_id` nunca viaja en el
@@ -62,6 +65,8 @@ export interface GetStudyOrdersParams {
      */
     scope: StudyOrderScope;
     boardStatus?: string;
+    /** Origen: portal o whatsapp. Sin valor, todas. */
+    source?: StudyOrderOrigin;
     search?: string;
     sedeId?: string;
     /** Órdenes de un paciente concreto. Lo usa el selector del diálogo de cita. */
@@ -84,6 +89,7 @@ export async function getStudyOrders(params: GetStudyOrdersParams): Promise<Stud
     const query: Record<string, string> = { scope: params.scope };
 
     if (params.boardStatus) query.board_status = params.boardStatus;
+    if (params.source) query.source = params.source;
     if (params.search) query.q = params.search;
     if (params.sedeId) query.sede_id = params.sedeId;
     if (params.patientId) query.patient_id = params.patientId;
@@ -155,44 +161,30 @@ export async function acknowledgeStudyOrder(id: string): Promise<StudyOrder> {
     return unwrap<StudyOrder>(raw).data;
 }
 
-export type WhatsappIntakeStatus = 'pending' | 'resolved' | 'all';
-
-/**
- * Órdenes que el agente de WhatsApp derivó a una persona. Sin orden en Invoke
- * todavía, por eso van aparte de la bandeja. Requiere STUDY_ORDERS_VIEW_ALL.
- *
- * A diferencia de `getStudyOrders`, el error se propaga: una lista vacía por
- * fallo haría creer que no hay derivaciones pendientes.
- */
-export async function getWhatsappIntakes(params: {
-    status?: WhatsappIntakeStatus;
-    page?: number;
-    limit?: number;
-    signal?: AbortSignal;
-} = {}): Promise<{ items: WhatsappOrderIntake[]; total: number }> {
-    const query: Record<string, string> = { status: params.status ?? 'pending' };
-    if (params.page) query.page = String(params.page);
-    if (params.limit) query.limit = String(params.limit);
-    const raw = await api.get(API_ROUTES.STUDY_ORDERS.WHATSAPP_INTAKES, query, undefined, { signal: params.signal });
-    const { data, total } = unwrap<WhatsappOrderIntake[]>(raw);
-    return { items: Array.isArray(data) ? data : [], total };
+/** Original (foto o PDF) de una orden de WhatsApp, como blob. El navegador nunca habla con Drive. */
+export async function getWhatsappIntakeFile(intakeId: string, fileId: string, signal?: AbortSignal): Promise<Blob> {
+    return api.getBlob(API_ROUTES.STUDY_ORDERS.WHATSAPP_INTAKE_FILE, { intake_id: intakeId, id: fileId }, undefined, { signal });
 }
 
-/** Recepción ya se ocupó de la derivación. No toca los originales ni lo que leyó el asistente. */
-export async function resolveWhatsappIntake(id: string, note?: string): Promise<void> {
+/**
+ * Marca un punto a revisar de la orden. Devuelve cuántos bloqueantes quedan pendientes: con 0, el
+ * borrador de una derivación ya se puede enviar.
+ */
+export async function updateStudyOrderReviewItem(params: {
+    orderId: string;
+    itemId: string;
+    status: StudyOrderReviewStatus;
+    note?: string;
+}): Promise<{ id: string; status: StudyOrderReviewStatus; pending_blocking: number }> {
     const raw = await api.post(
-        API_ROUTES.STUDY_ORDERS.WHATSAPP_INTAKE_RESOLVE,
-        { id, note: note?.trim() || undefined },
+        API_ROUTES.STUDY_ORDERS.REVIEW_ITEM_UPDATE,
+        { order_id: params.orderId, item_id: params.itemId, status: params.status, note: params.note?.trim() || undefined },
         undefined,
         undefined,
         { timeoutMs: REQUEST_TIMEOUT_MS.mutation },
     );
-    unwrap<unknown>(raw);
-}
-
-/** Original (foto o PDF) de una orden de WhatsApp, como blob. El navegador nunca habla con Drive. */
-export async function getWhatsappIntakeFile(intakeId: string, fileId: string, signal?: AbortSignal): Promise<Blob> {
-    return api.getBlob(API_ROUTES.STUDY_ORDERS.WHATSAPP_INTAKE_FILE, { intake_id: intakeId, id: fileId }, undefined, { signal });
+    const { data } = unwrap<{ id: string; status: StudyOrderReviewStatus; pending_blocking: number | string }>(raw);
+    return { ...data, pending_blocking: Number(data.pending_blocking ?? 0) };
 }
 
 /** Sólo borradores. */
