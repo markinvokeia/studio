@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 
+import type { ReviewItemActions } from './use-review-item-actions';
+
 import type { NormalizedBox, StudyOrderReviewItem } from '@/lib/types';
 
 /**
@@ -13,6 +15,8 @@ import type { NormalizedBox, StudyOrderReviewItem } from '@/lib/types';
 
 /** Lo que el panel de originales tiene que mostrar al ir a un dato. */
 export interface OriginalFocus {
+    /** El punto a revisar: la tarjeta sobre el original lo busca entre los puntos actuales. */
+    itemId: string;
     /** Original donde está (attachments.id). Nulo si el asistente solo dio la zona o la cita. */
     fileId: string | null;
     page: number;
@@ -36,6 +40,16 @@ export function useReviewLocate(): LocateFn | null {
     return React.useContext(ReviewLocateContext);
 }
 
+const ReviewActionsContext = React.createContext<ReviewItemActions | null>(null);
+
+/** Acciones compartidas entre la lista de puntos y la tarjeta sobre el original (misma orden). */
+export const ReviewActionsProvider = ReviewActionsContext.Provider;
+
+/** Las acciones compartidas, o null si nadie las provee (cada lista usa las suyas). */
+export function useReviewActions(): ReviewItemActions | null {
+    return React.useContext(ReviewActionsContext);
+}
+
 /** El punto trae algo con qué encontrar el dato en el original. */
 export function hasSource(item: StudyOrderReviewItem): boolean {
     const s = item.source;
@@ -46,6 +60,7 @@ export function toOriginalFocus(item: StudyOrderReviewItem, key: number): Origin
     const s = item.source ?? {};
     const page = Number(s.page);
     return {
+        itemId: item.id,
         fileId: s.attachment_id ? String(s.attachment_id) : null,
         page: Number.isInteger(page) && page >= 1 ? page : 1,
         box: s.box ?? null,

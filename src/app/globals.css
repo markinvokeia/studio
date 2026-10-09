@@ -357,6 +357,28 @@ textarea::placeholder {
   }
 }
 
+/* La X va al final de la botonera; en una cabecera angosta (celular) la botonera
+   baja a su propia fila, alineada a la izquierda, y la X sube junto al número
+   para no quedar sola en una tercera fila. */
+.study-order-header-close-title {
+  display: none;
+}
+
+@container study-order-header (max-width: 480px) {
+  .study-order-header-close-title {
+    display: inline-flex;
+  }
+
+  .study-order-header-close-actions {
+    display: none;
+  }
+
+  .study-order-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
 /* ── Responsive patient ledger (container query) ─────────────────────────
    The ledger panel (patient-finance-section.tsx / PatientLedgerSheet) can be
    narrow even on a wide viewport — a fixed sidebar + a moderately-sized

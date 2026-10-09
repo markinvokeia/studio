@@ -572,6 +572,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                             scope={scope}
                             refreshKey={detailRefreshKey}
                             onClose={handleCloseDetail}
+                            closeOnDesktopOnly
                             onEdit={(order) => {
                                 setEditingId(order.id);
                                 setEditingNumber(order.order_number);

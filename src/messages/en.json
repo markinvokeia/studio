@@ -9787,6 +9787,8 @@
       "regionsLabel": "Teeth",
       "noServicesSelected": "Select at least one study.",
       "saveDraft": "Save draft",
+      "saveDraftShort": "Save",
+      "submitShort": "Send",
       "submit": "Send to clinic",
       "selectedCount": "{count} studies selected",
       "textsSection": "Details",
@@ -10053,7 +10055,19 @@
       },
       "locate": "View in original",
       "locateHint": "Click to see it in the original.",
-      "sourceWhere": "On paper:"
+      "sourceWhere": "On paper:",
+      "focus": {
+        "read": "The assistant read",
+        "noteHint": "It is saved with the action you choose.",
+        "prev": "Previous item",
+        "next": "Next item",
+        "position": "{index}/{total}",
+        "removeTooth": "Remove tooth {tooth}",
+        "addTooth": "Add teeth (e.g. 16 26)",
+        "invalidTooth": "Use FDI tooth numbers: 11–48 or 51–85.",
+        "requestService": "Request {name}",
+        "serviceNote": "Indication (optional)"
+      }
     },
     "origin": {
       "label": "Origin",

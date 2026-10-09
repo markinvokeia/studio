@@ -1,17 +1,19 @@
 'use client';
 
 import * as React from 'react';
-import { AlertCircle, Download, FileText, Loader2, LocateFixed, X } from 'lucide-react';
+import { AlertCircle, Download, FileText, Loader2, LocateFixed } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { ZoomPanImage, getFileViewerKind } from '@/components/ui/image-viewer';
 
 import { Thumbnail, useOrderFiles, type OrderFile, type OrderFileLoader } from './order-file-gallery';
+import { ReviewFocusCard, type ReviewFocusCardProps, type ReviewFocusNavigation } from './review-focus-card';
 import type { OriginalFocus } from './review-locate';
 
 import { isAbortError } from '@/services/api';
 import { cn } from '@/lib/utils';
+import type { StudyOrderReviewItem } from '@/lib/types';
 
 /**
  * Los originales de la orden, a la vista mientras se carga el formulario: el
@@ -20,18 +22,27 @@ import { cn } from '@/lib/utils';
  * papel al sistema sin abrir y cerrar un visor por cada dato.
  *
  * Con `focus` (un punto a revisar que dice dónde se leyó el dato) abre ese archivo, va a esa página
- * del PDF o hace zoom a esa zona de la imagen, y arriba recuerda qué dato buscar y qué dice ahí.
+ * del PDF o hace zoom a esa zona de la imagen. Sobre el recuadro (o arriba, si no hay recuadro)
+ * muestra qué leyó el asistente, con qué confianza y las acciones para marcar el punto.
  */
 
 export interface OrderFilesPanelProps {
     files: OrderFile[];
     loadFile: OrderFileLoader;
     focus?: OriginalFocus | null;
+    /** El punto del foco con su estado actual (null si ya no está). */
+    focusItem?: StudyOrderReviewItem | null;
     onClearFocus?: () => void;
+    /** Después de marcar el punto desde la tarjeta del foco. */
+    onFocusResolved?: (item: StudyOrderReviewItem) => void;
+    /** Ir al punto anterior o al siguiente desde la tarjeta del foco. */
+    focusNavigation?: ReviewFocusNavigation | null;
+    /** El campo del formulario del punto, para corregirlo desde la tarjeta del foco. */
+    renderFocusEditor?: ReviewFocusCardProps['renderEditor'];
     className?: string;
 }
 
-export function OrderFilesPanel({ files, loadFile, focus = null, onClearFocus, className }: OrderFilesPanelProps) {
+export function OrderFilesPanel({ files, loadFile, focus = null, focusItem = null, onClearFocus, onFocusResolved, focusNavigation = null, renderFocusEditor, className }: OrderFilesPanelProps) {
     const t = useTranslations('FileViewer');
     const tCommon = useTranslations('Common');
     const { urls, failed, load } = useOrderFiles(files, loadFile);
@@ -75,6 +86,22 @@ export function OrderFilesPanel({ files, loadFile, focus = null, onClearFocus, c
     const focusHere = !!focus && focusFileId === selected.id;
     // El visor de PDF del navegador abre en la página pedida con `#page=`; la zona no se puede marcar.
     const pdfUrl = url && focusHere && focus.page > 1 ? `${url}#page=${focus.page}` : url;
+    // Con recuadro en una imagen la tarjeta va sobre el recuadro; si no, en la franja de arriba.
+    const floating = focusHere && kind === 'image' && !!focus.box && !!url;
+    const focusCard = (variant: 'floating' | 'inline', hint?: React.ReactNode) => focus && (
+        <ReviewFocusCard
+            key={focus.itemId}
+            focus={focus}
+            item={focusItem}
+            variant={variant}
+            onClose={onClearFocus}
+            onResolved={onFocusResolved}
+            hint={hint}
+            navigation={focusNavigation}
+            renderEditor={renderFocusEditor}
+            className={variant === 'inline' ? 'min-w-0 flex-1' : undefined}
+        />
+    );
 
     let body: React.ReactNode;
     if (url) {
@@ -87,6 +114,7 @@ export function OrderFilesPanel({ files, loadFile, focus = null, onClearFocus, c
                     className="h-full"
                     highlight={focusHere ? focus.box : null}
                     highlightKey={focus?.key}
+                    highlightContent={floating ? focusCard('floating') : null}
                 />
             )
             : kind === 'pdf'
@@ -128,42 +156,15 @@ export function OrderFilesPanel({ files, loadFile, focus = null, onClearFocus, c
                 )}
             </div>
 
-            {focus && (
-                <div className="flex items-start gap-2 border-b border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs" role="status">
+            {focus && !floating && (
+                <div className="flex items-start gap-2 border-b border-amber-500/40 bg-amber-500/10 px-3 py-2">
                     <LocateFixed className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden="true" />
-                    <div className="min-w-0 flex-1 space-y-0.5">
-                        <p className="break-words font-medium">{focus.label}</p>
-                        {(focus.zone || focus.quote) && (
-                            <p className="break-words text-muted-foreground">
-                                {focus.zone}
-                                {focus.zone && focus.quote && ' · '}
-                                {focus.quote && <span className="italic">“{focus.quote}”</span>}
-                            </p>
-                        )}
-                        {/* Sin recuadro (o en un PDF) solo se sabe el archivo y la página. */}
-                        {(!focusFileId || (focusHere && (!focus.box || kind !== 'image'))) && (
-                            <p className="text-muted-foreground">
-                                {!focusFileId
-                                    ? t('focus.noFile')
-                                    : kind === 'pdf'
-                                        ? t('focus.pdfPage', { page: focus.page })
-                                        : t('focus.noBox')}
-                            </p>
-                        )}
-                    </div>
-                    {onClearFocus && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 shrink-0"
-                            onClick={onClearFocus}
-                            aria-label={t('focus.clear')}
-                            title={t('focus.clear')}
-                        >
-                            <X className="h-3.5 w-3.5" aria-hidden="true" />
-                        </Button>
-                    )}
+                    {/* Sin recuadro (o en un PDF) solo se sabe el archivo y la página. */}
+                    {focusCard('inline', !focusFileId
+                        ? t('focus.noFile')
+                        : focusHere && kind === 'pdf'
+                            ? t('focus.pdfPage', { page: focus.page })
+                            : focusHere && !focus.box ? t('focus.noBox') : null)}
                 </div>
             )}
 

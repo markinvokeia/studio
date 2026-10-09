@@ -9787,6 +9787,8 @@
       "regionsLabel": "Piezas",
       "noServicesSelected": "Seleccioná al menos un estudio.",
       "saveDraft": "Guardar borrador",
+      "saveDraftShort": "Guardar",
+      "submitShort": "Enviar",
       "submit": "Enviar a la clínica",
       "selectedCount": "{count} estudios seleccionados",
       "textsSection": "Detalles",
@@ -10053,7 +10055,19 @@
       },
       "locate": "Ver en el original",
       "locateHint": "Clic para verlo en el original.",
-      "sourceWhere": "En el papel:"
+      "sourceWhere": "En el papel:",
+      "focus": {
+        "read": "El asistente leyó",
+        "noteHint": "Se guarda con la acción que elijas.",
+        "prev": "Punto anterior",
+        "next": "Punto siguiente",
+        "position": "{index}/{total}",
+        "removeTooth": "Quitar la pieza {tooth}",
+        "addTooth": "Agregar piezas (ej.: 16 26)",
+        "invalidTooth": "Usá la numeración FDI: 11–48 o 51–85.",
+        "requestService": "Pedir {name}",
+        "serviceNote": "Indicación (opcional)"
+      }
     },
     "origin": {
       "label": "Origen",
