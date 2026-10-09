@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import {
     buildExtractionSchema, buildSystemPrompt, isValidCedulaUY, normalizeDocument,
     similarNames, validateExtraction, compareLateFiles, buildOrderDraft, collectFieldConfidence, buildReviewItems,
-    validateImport, buildImportOrderPayload, sourceOf,
+    validateImport, buildImportOrderPayload, sourceOf, normalizePhone,
 } from './intake-lib.mjs';
 
 // Un recorte del catálogo real (ids y códigos de ci-orden:*).
@@ -108,18 +108,15 @@ test('un id que no existe en el catálogo también deriva', () => {
     assert.equal(r.handoff_reason, 'service_not_found');
 });
 
-test('línea de baja confianza: se pregunta una vez y, si sigue dudosa, se deriva', () => {
+test('estudio dudoso: no se pregunta ni se agenda, pasa a una persona con lo leído', () => {
     const low = { items: [{ external_id: 'ci-orden:svc:opt', notes: null, confidence: 0.97 }, { external_id: 'ci-orden:svc:hemiarco', notes: null, confidence: 0.5 }] };
-    const first = run(low);
-    assert.equal(first.outcome, 'needs_input');
-    assert.deepEqual(first.questions.map((q) => q.code), ['confirm_line']);
-
-    const second = run(low, { prior: first.prior });
-    assert.equal(second.outcome, 'handoff');
-    assert.equal(second.handoff_reason, 'low_confidence');
-
-    const confirmed = run(low, { prior: { ...first.prior, confirmed: ['ci-orden:svc:hemiarco'] } });
-    assert.equal(confirmed.outcome, 'ready');
+    const r = run(low);
+    assert.equal(r.outcome, 'handoff');
+    assert.equal(r.handoff_reason, 'low_confidence');
+    assert.equal(r.questions.length, 0);
+    assert.match(r.handoff_detail, /servicio, la duración o el precio/);
+    assert.equal(r.draft.items.length, 2, 'el borrador lleva todo lo leído');
+    assert.ok(r.review_items.some((i) => i.code === 'low_confidence' && i.field === 'items.ci-orden:svc:hemiarco'));
 });
 
 test('una línea que el usuario descarta sale de la orden', () => {
@@ -193,11 +190,11 @@ test('remitente sin registrar confirma: sigue al registro', () => {
 });
 
 test('remitente sin registrar: sin respuesta la pregunta sigue pendiente, junto con las demás y primero', () => {
-    const low = { items: [{ external_id: 'ci-orden:svc:opt', notes: null, confidence: 0.97 }, { external_id: 'ci-orden:svc:hemiarco', notes: null, confidence: 0.5 }] };
-    const first = runRaw(low);
-    assert.deepEqual(first.questions.map((q) => q.code), ['confirm_sender_is_patient', 'confirm_line']);
-    // Contestó solo la línea: no deriva por la pregunta sin contestar, la vuelve a hacer.
-    const second = runRaw(low, { prior: { ...first.prior, confirmed: ['ci-orden:svc:hemiarco'] } });
+    const doubtfulPatient = { patient: { name: 'Juan Gómez', document: VALID_CI, document_type: 'cedula', confidence: 0.5 } };
+    const first = runRaw(doubtfulPatient);
+    assert.deepEqual(first.questions.map((q) => q.code), ['confirm_sender_is_patient', 'confirm_patient']);
+    // Contestó solo la otra: no deriva por la pregunta sin contestar, la vuelve a hacer.
+    const second = runRaw(doubtfulPatient, { prior: first.prior });
     assert.equal(second.outcome, 'needs_input');
     assert.deepEqual(second.questions.map((q) => q.code), ['confirm_sender_is_patient']);
 });
@@ -212,6 +209,139 @@ test('remitente registrado: no se pregunta (se compara con sus datos)', () => {
     const r = runRaw({}, { sender: { id: 'u1', name: 'Juan Gómez', phone: '+59891234567', identity_document: VALID_CI } });
     assert.equal(r.outcome, 'ready');
     assert.equal(r.questions.length, 0);
+});
+
+// ---- Modo doctor (§27) -------------------------------------------------------
+const DOCTOR = { id: 'doc1', name: 'Dra. Ana Pérez', phone: '+59899000111', identity_document: '4.567.890-5' };
+const runDoctor = (over = {}, inputOver = {}) =>
+    runRaw(over, { sender: DOCTOR, sender_kind: 'doctor', phone: '+59899000111', ...inputOver });
+
+test('doctor: la orden de otro paciente no deriva (el caso del 09/10)', () => {
+    const r = runDoctor({}, { doc_matches: [{ id: 'u9', name: 'Juan Gómez', phone: '+59891234567', identity_document: '12345672' }] });
+    assert.equal(r.outcome, 'ready');
+    assert.equal(r.patient.status, 'existing');
+    assert.equal(r.patient.patient_id, 'u9');
+    assert.equal(r.patient.attach_phone, false, 'al paciente nunca se le asocia el teléfono del doctor');
+});
+
+test('doctor: paciente existente sin teléfono tampoco recibe el del doctor', () => {
+    const r = runDoctor({}, { doc_matches: [{ id: 'u9', name: 'Juan Gómez', phone: null, identity_document: '12345672' }] });
+    assert.equal(r.outcome, 'ready');
+    assert.equal(r.patient.attach_phone, false);
+});
+
+test('doctor: no se le hace la pregunta "¿la orden es para vos?"', () => {
+    const r = runDoctor({ patient: { name: 'Juan Gómez', document: VALID_CI, document_type: 'cedula', phone: '099 123 456', confidence: 0.95 } });
+    assert.ok(!r.questions.some((q) => q.code === 'confirm_sender_is_patient'));
+});
+
+test('doctor: paciente nuevo con teléfono legible en la orden → se registra con ese teléfono', () => {
+    const r = runDoctor({ patient: { name: 'Juan Gómez', document: VALID_CI, document_type: 'cedula', phone: '099 123 456', confidence: 0.95 } });
+    assert.equal(r.outcome, 'ready');
+    assert.equal(r.patient.status, 'register');
+    assert.equal(r.patient.phone, '+59899123456');
+});
+
+test('doctor: paciente nuevo sin teléfono → se lo pide al doctor; con la respuesta, sigue', () => {
+    const first = runDoctor();
+    assert.equal(first.outcome, 'needs_input');
+    assert.deepEqual(first.questions.map((q) => q.code), ['missing_patient_phone']);
+    const r = runDoctor({}, { prior: { ...first.prior, overrides: { patient_phone: '098765432' } } });
+    assert.equal(r.outcome, 'ready');
+    assert.equal(r.patient.phone, '+59898765432');
+});
+
+test('doctor: teléfono de la orden leído con poca confianza → se pregunta en lugar de usarlo', () => {
+    const r = runDoctor({ patient: { name: 'Juan Gómez', document: VALID_CI, document_type: 'cedula', phone: '099 123 456', name_confidence: 0.95, document_confidence: 0.95, phone_confidence: 0.4 } });
+    assert.deepEqual(r.questions.map((q) => q.code), ['missing_patient_phone']);
+});
+
+test('doctor: "no lo tengo" (teléfono) → deriva por datos obligatorios, no registra sin teléfono', () => {
+    const r = runDoctor({}, { prior: { asked_fields: ['patient_phone'], overrides: { no_patient_phone: true } } });
+    assert.equal(r.outcome, 'handoff');
+    assert.equal(r.handoff_reason, 'missing_patient_data');
+    assert.ok(r.draft, 'recepción arranca de lo leído');
+});
+
+test('doctor: sin respuesta al teléfono la pregunta sigue pendiente (no deriva ni registra)', () => {
+    const first = runDoctor();
+    const again = runDoctor({}, { prior: first.prior });
+    assert.equal(again.outcome, 'needs_input');
+    assert.deepEqual(again.questions.map((q) => q.code), ['missing_patient_phone']);
+});
+
+test('doctor: paciente sin documento en el padrón → se encuentra por su teléfono y se le guarda la cédula', () => {
+    const r = runDoctor({}, {
+        prior: { overrides: { patient_phone: '+59898765432' } },
+        phone_matches: [{ id: 'u7', name: 'GOMEZ, Juan', phone: '+59898765432', identity_document: null }],
+    });
+    assert.equal(r.outcome, 'ready');
+    assert.equal(r.patient.status, 'existing');
+    assert.equal(r.patient.patient_id, 'u7');
+    assert.equal(r.patient.set_document, true);
+});
+
+test('doctor: el teléfono del paciente es de alguien con otro nombre → deriva', () => {
+    const r = runDoctor({}, {
+        prior: { overrides: { patient_phone: '+59898765432' } },
+        phone_matches: [{ id: 'u7', name: 'María López', phone: '+59898765432', identity_document: null }],
+    });
+    assert.equal(r.handoff_reason, 'patient_mismatch');
+});
+
+test('doctor: el teléfono del paciente es de alguien con otra cédula → deriva', () => {
+    const r = runDoctor({}, {
+        prior: { overrides: { patient_phone: '+59898765432' } },
+        phone_matches: [{ id: 'u7', name: 'Juan Gómez', phone: '+59898765432', identity_document: '4.567.890-5' }],
+    });
+    assert.equal(r.handoff_reason, 'patient_mismatch');
+});
+
+test('doctor: el teléfono del paciente figura en dos usuarios → deriva', () => {
+    const r = runDoctor({}, {
+        prior: { overrides: { patient_phone: '+59898765432' } },
+        phone_matches: [
+            { id: 'u7', name: 'Juan Gómez', phone: '+59898765432', identity_document: null },
+            { id: 'u8', name: 'Ana Gómez', phone: '+59898765432', identity_document: null },
+        ],
+    });
+    assert.equal(r.handoff_reason, 'patient_mismatch');
+});
+
+test('doctor: falta la cédula y dice que no la tiene → deriva por datos obligatorios', () => {
+    const noDoc = { patient: { name: 'Juan Gómez', document: null, document_type: null, confidence: 0.95 } };
+    const first = runDoctor(noDoc);
+    assert.deepEqual(first.questions.map((q) => q.code), ['missing_patient_document']);
+    const r = runDoctor(noDoc, { prior: { ...first.prior, overrides: { no_patient_document: true } } });
+    assert.equal(r.handoff_reason, 'missing_patient_data');
+});
+
+test('paciente: si dice que no tiene la cédula, la orden se deriva como ilegible', () => {
+    const noDoc = { patient: { name: 'Juan Gómez', document: null, document_type: null, confidence: 0.95 } };
+    const r = runRaw(noDoc, { prior: { overrides: { no_patient_document: true } } });
+    assert.equal(r.handoff_reason, 'unreadable');
+});
+
+test('doctor: la cédula figura en más de un paciente → deriva', () => {
+    const r = runDoctor({}, { doc_matches: [
+        { id: 'u8', name: 'Juan Gómez', phone: null, identity_document: '12345672' },
+        { id: 'u9', name: 'Juan Gómez', phone: null, identity_document: '12345672' },
+    ] });
+    assert.equal(r.handoff_reason, 'patient_mismatch');
+});
+
+test('doctor sin usuario identificado: se comporta como remitente desconocido', () => {
+    const r = runRaw({}, { sender: null, sender_kind: 'doctor' });
+    assert.equal(r.questions[0]?.code, 'confirm_sender_is_patient');
+});
+
+test('normalizePhone', () => {
+    assert.equal(normalizePhone('099 123 456'), '+59899123456');
+    assert.equal(normalizePhone('99123456'), '+59899123456');
+    assert.equal(normalizePhone('+598 99 123 456'), '+59899123456');
+    assert.equal(normalizePhone('2600 1234'), '+59826001234');
+    assert.equal(normalizePhone('123'), null);
+    assert.equal(normalizePhone(null), null);
 });
 
 test('teléfono asociado a más de un usuario → deriva', () => {
@@ -259,7 +389,7 @@ test('fallo del modelo → derivación por error del sistema', () => {
     assert.equal(r.handoff_reason, 'system_error');
 });
 
-test('opciones y regiones: se ubican; lo que no encaja queda en las notas, no se pierde', () => {
+test('opciones y regiones: se ubican; lo que no encaja deriva, con todo en el borrador', () => {
     const r = run({
         items: [
             { external_id: 'ci-orden:svc:telerradio-perfil', notes: 'con análisis', confidence: 0.95 },
@@ -273,16 +403,30 @@ test('opciones y regiones: se ubican; lo que no encaja queda en las notas, no se
         texts: [{ code: 'aclaracion', value: 'Evaluar reabsorción' }],
         delivery_methods: ['imagencloud', 'paloma'],
     });
-    assert.equal(r.outcome, 'ready');
-    const perfil = r.resolved.items.find((i) => i.external_id === 'ci-orden:svc:telerradio-perfil');
+    // La pieza "99" y la entrega "paloma" no encajan: cambian la orden, no se agenda.
+    assert.equal(r.outcome, 'handoff');
+    assert.equal(r.handoff_reason, 'low_confidence');
+    assert.match(r.handoff_detail, /No encaja en el formulario/);
+    const perfil = r.draft.items.find((i) => i.external_id === 'ci-orden:svc:telerradio-perfil');
     assert.deepEqual(perfil.modifiers, { tecnica: ['frankfort'] });
     assert.equal(perfil.notes, 'con análisis');
-    assert.deepEqual(r.resolved.section_modifiers, { CONEBEAM: { indicacion_clinica: ['est-tipo-implante'] } });
+    assert.deepEqual(r.draft.section_modifiers, { CONEBEAM: { indicacion_clinica: ['est-tipo-implante'] } });
+    assert.deepEqual(r.draft.regions, { CONEBEAM: ['36', '37'] });
+    assert.deepEqual(r.draft.texts, { aclaracion: 'Evaluar reabsorción' });
+    assert.deepEqual(r.draft.delivery_methods, ['imagencloud']);
+    assert.match(r.draft.clinical_notes, /pieza "99"/);
+    assert.ok(r.review_items.some((i) => i.code === 'unplaced'));
+});
+
+test('opciones y regiones que encajan: la orden queda lista', () => {
+    const r = run({
+        items: [{ external_id: 'ci-orden:svc:telerradio-perfil', notes: null, confidence: 0.95 }, { external_id: 'ci-orden:svc:hemiarco', notes: null, confidence: 0.95 }],
+        modifiers: [{ service_external_id: 'ci-orden:svc:telerradio-perfil', section_code: 'RX-EXTRA', group_code: 'tecnica', option_code: 'frankfort' }],
+        regions: [{ section_code: 'CONEBEAM', teeth: ['3.6', '37'] }],
+        delivery_methods: ['imagencloud'],
+    });
+    assert.equal(r.outcome, 'ready');
     assert.deepEqual(r.resolved.regions, { CONEBEAM: ['36', '37'] });
-    assert.deepEqual(r.resolved.texts, { aclaracion: 'Evaluar reabsorción' });
-    assert.deepEqual(r.resolved.delivery_methods, ['imagencloud']);
-    assert.match(r.resolved.clinical_notes, /pieza "99"/);
-    assert.ok(r.warnings.some((w) => w.code === 'unplaced_details'));
 });
 
 test('sin firma: es una advertencia, no una derivación', () => {
@@ -333,10 +477,11 @@ test('falta la otra cara y llega: con las dos caras se valida normal', () => {
     assert.equal(r.warnings.some((w) => w.code === 'possibly_incomplete'), false);
 });
 
-test('falta la otra cara: si ya se pidió y sigue faltando, se sigue con advertencia', () => {
+test('falta la otra cara: si ya se pidió y sigue faltando, pasa a una persona (pueden faltar estudios)', () => {
     const r = run({ missing_other_side: true }, { prior: { asked_fields: ['other_side'] } });
-    assert.equal(r.outcome, 'ready');
-    assert.equal(r.warnings.some((w) => w.code === 'possibly_incomplete'), true);
+    assert.equal(r.outcome, 'handoff');
+    assert.equal(r.handoff_reason, 'low_confidence');
+    assert.ok(r.review_items.some((i) => i.code === 'possibly_incomplete'));
 });
 
 test('falta la otra cara: si el usuario dice que no hay, no se vuelve a preguntar', () => {
@@ -538,24 +683,20 @@ test('v2: sin confianza por campo se usa la del bloque del paciente', () => {
     assert.match(r.questions[0].hint, /nombre .* y documento/);
 });
 
-test('v3: detalles dudosos no frenan la orden, pero quedan en advertencias y en las notas', () => {
-    const r = runV3({
-        items: [
-            { external_id: 'ci-orden:svc:telerradio-perfil', notes: null, confidence: 0.95 },
-            { external_id: 'ci-orden:svc:hemiarco', notes: null, confidence: 0.95 },
-        ],
+test('v3: una opción o una pieza dudosa deriva; lo que no cambia la orden (doctor, fecha) no', () => {
+    const doubtful = runV3({
+        items: [{ external_id: 'ci-orden:svc:telerradio-perfil', notes: null, confidence: 0.95 }, { external_id: 'ci-orden:svc:hemiarco', notes: null, confidence: 0.95 }],
         modifiers: [{ service_external_id: 'ci-orden:svc:telerradio-perfil', section_code: 'RX-EXTRA', group_code: 'tecnica', option_code: 'frankfort', confidence: 0.5 }],
         regions: [{ section_code: 'CONEBEAM', teeth: [{ tooth: '36', confidence: 0.95 }, { tooth: '3.7', confidence: 0.4 }] }],
-        texts: [{ code: 'aclaracion', value: 'Evaluar reabsorción', confidence: 0.9 }],
-        delivery_methods: [{ code: 'imagencloud', confidence: 0.99 }],
     });
+    assert.equal(doubtful.handoff_reason, 'low_confidence');
+    assert.match(doubtful.handoff_detail, /Plano de Frankfort/);
+
+    const r = runV3({ doctor: { name: 'Dra. Ana Pérez', name_confidence: 0.4, license: '12345', license_confidence: 0.9 }, order_date_confidence: 0.3 });
     assert.equal(r.outcome, 'ready');
-    assert.deepEqual(r.resolved.regions, { CONEBEAM: ['36', '37'] });
-    assert.deepEqual(r.resolved.delivery_methods, ['imagencloud']);
     const w = r.warnings.find((x) => x.code === 'low_confidence_fields');
-    assert.ok(w);
-    assert.deepEqual(w.fields.sort(), ['modifiers.frankfort', 'regions.CONEBEAM.3.7']);
-    assert.match(r.resolved.clinical_notes, /Lectura dudosa, verificar con el original: .*Plano de Frankfort/);
+    assert.deepEqual(w.fields.sort(), ['doctor.name', 'order_date']);
+    assert.match(r.resolved.clinical_notes, /Lectura dudosa, verificar con el original: .*Doctor/);
 });
 
 test('collectFieldConfidence acepta listas v2 (strings) sin confianza', () => {
@@ -604,17 +745,10 @@ test('derivación: el motivo y todo lo dudoso quedan como puntos a revisar', () 
     assert.equal(doc.value, VALID_CI);
 });
 
-test('orden lista: los detalles dudosos se registran; lo confirmado por chat lo aclara', () => {
-    const r = runV3({
-        items: [
-            { external_id: 'ci-orden:svc:opt', notes: null, confidence: 0.6 },
-            { external_id: 'ci-orden:svc:telerradio-perfil', notes: null, confidence: 0.95 },
-        ],
-        modifiers: [{ service_external_id: 'ci-orden:svc:telerradio-perfil', section_code: 'RX-EXTRA', group_code: 'tecnica', option_code: 'frankfort', confidence: 0.5 }],
-    }, { prior: { asked_confirm: ['ci-orden:svc:opt'], confirmed: ['ci-orden:svc:opt'] } });
+test('orden lista: lo dudoso que no cambia la orden queda como punto a revisar no bloqueante', () => {
+    const r = runV3({ doctor: { name: 'Dra. Ana Pérez', name_confidence: 0.4, license: '12345', license_confidence: 0.9 } });
     assert.equal(r.outcome, 'ready');
-    assert.deepEqual(codes(r), ['low_confidence:items.ci-orden:svc:opt', 'low_confidence:modifiers.frankfort']);
-    assert.match(r.review_items.find((i) => i.field === 'items.ci-orden:svc:opt').detail, /confirmó por chat/);
+    assert.deepEqual(codes(r), ['low_confidence:doctor.name']);
 });
 
 test('puntos a revisar: lo descartado o escrito por el paciente no se registra; una orden limpia no tiene ninguno', () => {

@@ -1044,10 +1044,10 @@ Reimportar `WhatsApp - Study Order Intake` y `WhatsApp - Order Agent` (de `docs/
 
 | # | Tema | Decisión |
 | --- | --- | --- |
-| DD1 | Quién es doctor | El teléfono identifica a **un** usuario activo con `STUDY_ORDERS_CREATE` (permiso, no nombre de rol). Flag nuevo `whatsapp_orders_doctor_enabled` (nace apagado). El teléfono lo carga la clínica en Config → Doctores (en DEV solo 14 de 73 lo tienen); sin teléfono, el doctor cae en la pregunta de §26 y se deriva. |
+| DD1 | Quién es doctor | El teléfono identifica a **un** usuario activo con **rol de doctor** (`medico` / `odontologo`, el mismo criterio que Config → Doctores y `get_users_filtered`) **y** `STUDY_ORDERS_CREATE`, con el flag `whatsapp_orders_doctor_enabled` encendido (nace apagado). Solo el permiso no alcanza: administradores y recepcionistas también tienen `STUDY_ORDERS_CREATE` y quedarían como derivadores. Se calcula al abrir el intake y se guarda en `sender_kind`. El teléfono lo carga la clínica en Config → Doctores (en DEV solo 14 de 73 lo tienen); sin teléfono, el doctor cae en la pregunta de §26 y se deriva. |
 | DD2 | Derivador | La orden sale con `doctor_id` = el doctor que escribe (`CREATE_FOR_DOCTOR` del agente), `source = whatsapp`. El doctor la ve en "Mis Órdenes" y recibe los avisos de siempre. |
 | DD3 | Paciente | Por cédula: una coincidencia → se vincula **sin tocar su teléfono**; ninguna → se registra con nombre, cédula y el teléfono del paciente; varias → deriva. Nunca se usa el teléfono del doctor. |
-| DD4 | Teléfono del paciente nuevo | De la orden (`patient.phone`) o se le pide al doctor **una vez**; si no lo tiene, se registra sin teléfono (los recordatorios no le llegarán; queda un punto a revisar). |
+| DD4 | Datos obligatorios del paciente | **Revisado 2026-10-09:** para buscar o registrar al paciente hacen falta nombre, cédula y teléfono. El teléfono sale de la orden (si se leyó con confianza) o se le pide al doctor; si no tiene la cédula o el teléfono, **no se registra a nadie**: se deriva con el motivo nuevo `missing_patient_data` (borrador a nombre del doctor). |
 | DD5 | Cómo se agenda | Con la orden lista, el agente pregunta: **¿agendo yo un horario o te paso el link para que elija el paciente?** Horario → `list_order_sedes` / `list_order_slots` / `confirm_order_and_book` como hoy. Link → la orden se crea y envía, y la respuesta lleva el link `/orden/<token>` agregado como **texto fijo fuera del LLM** (§7). |
 | DD6 | Varias órdenes | **Una a la vez.** Con una orden en curso, otra orden (otra cédula) no se suma: el agente pide terminar la actual. Un lote con varios pacientes → pedir mandarlas de a una (campo nuevo `multiple_patients` en la extracción). Tras una orden agendada o con link, un archivo nuevo del doctor abre un intake nuevo (no el modo `compare` de §18.2). |
 | DD7 | Aviso al paciente | Primer corte: lo avisa el doctor; los recordatorios salen por las alertas existentes al teléfono del paciente. Plantilla de WhatsApp "te agendaron un estudio" queda para después. |
@@ -1067,8 +1067,104 @@ Reimportar `WhatsApp - Study Order Intake` y `WhatsApp - Order Agent` (de `docs/
 | Bitácora | Actor = Agente WhatsApp; metadata con el doctor que la pidió. |
 | QA | Casos nuevos: doctor con paciente existente / nuevo / cédula duplicada; dos órdenes en un lote; orden nueva tras agendar; doctor sin teléfono cargado (debe preguntar §26 y derivar); link vs horario. |
 
-### 27.3 Riesgos
+### 27.3 Avance
+
+**Paso 1 — identificar al doctor (hecho, sin probar en n8n):**
+
+| Cambio | Dónde |
+| --- | --- |
+| Columna `whatsapp_order_intakes.sender_kind` (`patient` / `doctor`, con CHECK: un doctor siempre tiene `sender_user_id`) y clave `whatsapp_orders_doctor_enabled` = `false` | `database/scripts/128_20261009_whatsapp-order-doctor-sender.sql` |
+| `Get Or Create Intake` calcula y guarda `sender_kind` (DD1, lectura tolerante del flag como §17.9) y lo devuelve; con `doctor` no reabre un intake `booked` ni compara contra él (DD6) | `WhatsApp - Order Agent.json` |
+| `Load Intake Context` lee `sender_kind` y el nodo `Validate` se lo pasa al validador (todavía no lo usa: paso 2) | generador del subflujo, `WhatsApp - Study Order Intake.json` |
+
+Con el flag apagado (o encendido sin los pasos siguientes) nada cambia: el doctor identificado por teléfono sigue derivándose por `patient_mismatch`. **Aplicar la 128 antes de reimportar** los dos workflows: leen y escriben la columna nueva. El interruptor en Sistema → Agente de WhatsApp se agrega al final, cuando el modo doctor funcione.
+
+**Verificado contra DEV (solo lectura):** el cálculo de `sender_kind` con el flag forzado: un médico → `doctor`; un administrador y un recepcionista sin rol de doctor → `patient`; usuarios con rol de doctor además de administrador/recepcionista → `doctor`; un paciente → `patient`. El `INSERT` no se ejecutó.
+
+**Paso 2 — validador en modo doctor, y la reserva/derivación a nombre del doctor (hecho, sin probar en n8n):**
+
+Motivo: el 09/10 un doctor (usuario con roles `medico`, `administrador`, `recepcionista` y `paciente`) mandó la orden de un paciente y el validador derivó con "La cédula de la orden no coincide con la de quien escribe": comparaba al paciente con el doctor.
+
+| Cambio | Dónde |
+| --- | --- |
+| `validateCore` con `sender_kind = 'doctor'` (y usuario identificado): el paciente sale **solo** de la cédula de la orden. Una coincidencia → `existing` sin asociarle teléfono; ninguna → `register` con `patient.phone` (de la orden si se leyó con confianza ≥ umbral, o del chat); varias → deriva. No hace la pregunta de §26. Un "doctor" sin usuario se trata como remitente desconocido | `intake-lib.mjs` (+ `normalizePhone`: sin código de país asume Uruguay) |
+| Pregunta `missing_patient_phone` (paciente nuevo sin teléfono legible), pendiente hasta que conteste. (Lo que pasa con "no lo tengo" cambió en el paso 2b.) | `intake-lib.mjs`, `order-answer` (`Answer: Build Answers`) |
+| `confirm_order_and_book`: con `sender_kind = doctor` la orden sale con `doctor_id` = el doctor (ya no `without_doctor`) y el paciente se registra con **su** teléfono (vacío → sin teléfono), nunca el del doctor | `Book: Check State`, `Book: Ensure Patient`, `Book: Build Order Payload` |
+| Derivación de un doctor: el borrador queda a su nombre, con el teléfono del paciente (no el del doctor), y el aviso a recepción nombra al paciente validado, no al doctor | `Handoff: Mark Intake`, `Handoff: Build Draft` |
+| `get_order_intake` / `order-answer` devuelven `sent_by_doctor`; el prompt del `Order Agent` le habla al doctor, nombra al paciente en tercera persona, pide el celular del paciente y aclara que el aviso al paciente lo da el doctor | generador de tools, `WhatsApp - Order Agent.json` |
+
+**Para probarlo:** migración 128 → reimportar `WhatsApp - Study Order Intake` y `WhatsApp - Order Agent` → encender `whatsapp_orders_doctor_enabled` (todavía sin interruptor en la pantalla). Un intake abierto antes de encenderlo sigue como `patient` (el tipo se fija al abrirlo): hay que terminarlo o dejar que venza.
+
+**Verificado:** 102 pruebas (10 nuevas del modo doctor y `normalizePhone`); `Answer: Build Answers` con respuestas reales al teléfono; `Book: Check State` → `Book: Build Order Payload` y `Handoff: Build Draft` simulados para doctor y paciente (doctor: `doctor_id` del doctor y teléfono del paciente; paciente: sin cambios); Code nodes compilan, sin conexiones colgadas; typecheck y ESLint de lo tocado.
+
+**Paso 2b — cómo se encuentra al paciente (2026-10-09):**
+
+El padrón casi no tiene documentos (en DEV, 14 996 de 15 010 pacientes sin documento) y los teléfonos están escritos de muchas formas (`098-530863`, `59895751736`, `099 123 456`), mientras WhatsApp llega como `+59898530863`: buscar solo por cédula duplicaba pacientes y comparar el teléfono tal cual no encontraba a 32 de los 74 usuarios con teléfono válido.
+
+| Quién escribe | Cómo se encuentra al paciente |
+| --- | --- |
+| **Paciente** | Por **su teléfono de WhatsApp** (normalizado). Si lo encuentra, se compara con la orden por cédula o nombre como antes. Si no, la pregunta de §26 y se registra con ese teléfono |
+| **Doctor** | 1) por cédula; 2) si no figura, por el **teléfono del paciente** (obligatorio: de la orden o del doctor): si ese teléfono es de alguien con el mismo nombre y sin documento, es él y se le guarda la cédula; con otra cédula, otro nombre o varios usuarios, deriva; 3) si no figura por ninguno, se registra con nombre, cédula y teléfono. Sin cédula o sin teléfono → deriva `missing_patient_data` |
+
+| Cambio | Dónde |
+| --- | --- |
+| Función `normalize_phone_uy(text)` (IMMUTABLE, con índice `idx_users_phone_normalized`) y motivo `missing_patient_data` en el CHECK de `handoff_reason` | migración 128 |
+| `Get Or Create Intake` (remitente), `Load Intake Context` (`phone_ambiguous`) y `Handoff: Mark Intake` comparan teléfonos normalizados | `WhatsApp - Order Agent.json`, generadores |
+| `Lookup Patient Data` devuelve también `phone_matches` (solo modo doctor: los teléfonos del paciente normalizados); las órdenes abiertas cubren a los dos grupos | generador del subflujo |
+| Validador: rama del doctor con búsqueda por teléfono y datos obligatorios; "no tengo la cédula" (`no_patient_document`) ya no se toma como documento; se quitó el registro sin teléfono (`patient_without_phone` / `missing_phone`, que no llegó a publicarse) | `intake-lib.mjs`, `Answer: Build Answers` |
+| `order-handoff`, contador de insistencia y prompt: motivo `missing_patient_data`; el agente pide cédula y celular como obligatorios | `WhatsApp - Order Agent.json` |
+| **Agente general** (`Resolve Patient Identity`): reconoce al paciente por su teléfono normalizado. Escrito en línea (no usa la función) para que el agente general no dependa de la 128 (§17.2). Mide ~20 ms sobre 15 000 usuarios | `Whats App.json` |
+| `Book: Submit Order` en `docs/` estaba atrasado respecto del generador (sin el bloqueo por puntos a revisar de §21): sincronizado. También el parámetro de `Book: Ensure Patient`, que en el paso 2 no se había copiado | `WhatsApp - Order Agent.json` |
+
+**Verificado:** 109 pruebas; respuestas de `order-answer` ("no la tengo", "no sé", números); contra DEV en lectura: la normalización con los formatos reales, `Lookup Patient Data` por teléfono y `Resolve Patient Identity` completa. Los workflows de `docs/` coinciden con los generados. **No probado en n8n.**
+
+**Puesta en marcha:** migración 128 → reimportar `WhatsApp - Study Order Intake`, `WhatsApp - Order Agent` y `Whats App`.
+
+**Falta:** separar órdenes (varios pacientes en un lote, otra orden con una en curso: DD6), el camino del link (DD5), el interruptor en la pantalla y la batería de pruebas.
+
+### 27.4 Riesgos
 
 - **Mezcla de órdenes** en un lote o en ventanas cortas: lo principal a probar.
 - `assignee_id` de la cita = derivador (igual que el portal): puede bloquear horarios del doctor en `Agent_Availability2`.
 - El agente general (`Whatsapp Agent1`) sigue tratando al doctor como paciente para cuenta y citas: fuera de alcance.
+
+## 28. Con datos dudosos no se agenda (2026-10-09)
+
+**Antes:** un estudio leído con poca seguridad se le preguntaba al usuario ("¿el estudio X está en la orden?") y, si decía que sí, se agendaba; opciones, piezas, textos o entregas dudosas, detalles que no encajaban en el formulario, datos ilegibles o una cara faltante no frenaban la orden: se agendaba y quedaban como puntos a revisar **no bloqueantes** (§20.3).
+
+**Ahora (decisión del usuario):** cualquier duda sobre lo que define la orden puede cambiar el servicio, la duración o el precio, así que la orden **no se agenda**: pasa a una persona como borrador con sus puntos a revisar **bloqueantes** (§21), sin preguntarle nada al usuario sobre eso (un "sí" del paciente no aclara una lectura dudosa).
+
+| Deriva (`low_confidence`, "Datos dudosos que pueden cambiar el servicio, la duración o el precio: …") | No frena (punto a revisar no bloqueante) |
+| --- | --- |
+| Estudio, opción, pieza, texto o medio de entrega leído con confianza menor al umbral | Doctor del papel, matrícula, fecha de la orden, fecha de nacimiento, teléfono leído (en modo doctor el teléfono se pregunta igual) |
+| Detalle que no encaja en el formulario; opción sin su estudio | Sin firma, orden antigua (D7) |
+| Dato marcado ilegible | |
+| Falta otra cara u hoja (se pregunta una vez; si sigue faltando, deriva) | |
+
+- La verificación va **antes** de las preguntas sobre el paciente: si la orden se deriva, no se le piden datos.
+- Siguen preguntándose solo las cosas que el usuario sí sabe: la otra cara, el reenvío, el nombre o la cédula faltantes, confirmar su nombre o cédula leídos con duda, "¿la orden es para vos?" (§26) y, en modo doctor, el teléfono del paciente.
+- `confirm_line` ya no se genera; `order-answer` lo sigue entendiendo para intakes abiertos antes del cambio (al revalidarse, derivan). Con esto desaparece el error de derivar al contestar la primera de varias líneas dudosas.
+- Texto del motivo `low_confidence`: "Datos de la orden leídos con poca seguridad".
+
+**Verificado:** 110 pruebas (reescritas las que esperaban preguntar o agendar con dudas), workflows regenerados y sincronizados, Code nodes compilan. **No probado en n8n.**
+
+**Puesta en marcha:** reimportar `WhatsApp - Study Order Intake` y `WhatsApp - Order Agent` (junto con lo de §27).
+
+## 29. Reintento de reserva sin borradores repetidos (2026-10-09)
+
+**El problema:** `confirm_order_and_book` guardaba la orden en el intake recién **después de enviarla** (`Book: Save Order`). Si la orden se creaba (`UPSERT_SQL`) pero fallaba el envío (`SUBMIT_SQL`), quedaba un borrador que el intake no conocía: el siguiente intento creaba otro, y si a la segunda falla se derivaba, `order-handoff` creaba un tercero.
+
+**Ahora:**
+
+| Pieza | Cambio |
+| --- | --- |
+| `Book: Save Draft Id` (nuevo, entre `Book: Upsert OK?` y `Book: Submit Order`) | Guarda `study_order_id` y `patient_id` en el intake apenas existe la orden, sin cambiar su estado |
+| `Book: Load` / `Book: Check State` | Traen el estado de la orden vinculada (`order_status`) |
+| `Book: Order Exists?` | Solo saltea crear y enviar si la orden **ya salió de borrador**; un borrador de un intento anterior sigue por el camino de crear |
+| `Book: Build Order Payload` | Con un borrador previo manda su `id`: `UPSERT_SQL` lo **actualiza** (permitido al agente: borrador + `VIEW_ALL`) y se vuelve a enviar |
+| `Book: New Order Events` | El evento `created` se registra solo la primera vez |
+| Derivación tras dos fallas | `Handoff: Mark Intake` encuentra ese borrador (`source_intake_id` del intake, estado `draft`) y `order-handoff` le **agrega** los puntos a revisar en lugar de crear otro |
+
+**Verificado:** Code nodes compilan, sin conexiones colgadas; simulación de `Book: Check State` → `Book: Order Exists?` → `Book: Build Order Payload` / `Book: New Order Events` en tres casos (primer intento; reintento con borrador; reintento con la orden ya enviada). **No probado en n8n.**
+
+**Puesta en marcha:** reimportar `WhatsApp - Order Agent` (el nodo nuevo usa la credencial de Postgres de la instancia, ya puesta en el JSON de `docs/`).
