@@ -536,7 +536,11 @@ export const HANDOFF_REASONS = [
  *
  * prior = { resend_count, asked_confirm: [external_id], asked_fields: [string],
  *           confirmed: [external_id], removed: [external_id],
- *           overrides: { patient_name?, patient_document?, no_other_side?, no_better_file? } }
+ *           overrides: { patient_name?, patient_document?, no_other_side?, no_better_file?,
+ *                        sender_patient_document?, sender_not_patient? } }
+ *
+ * sender_patient_document / sender_not_patient: respuesta de quien escribe sin estar registrado a
+ * "¿la orden es para vos?" (sí → el documento de la orden que confirmó; no → true, se deriva).
  *
  * no_better_file: al pedirle el reenvío, el usuario contestó que no tiene otra foto mejor ni
  * otra hoja ("ya está", "esas son"). No hay nada más que pedirle: se deriva.
@@ -723,6 +727,18 @@ function validateCore(input) {
         out.patient = { ...out.patient, status: 'register', patient_id: null };
     }
 
+    // Quien escribe no está registrado: puede ser el paciente o alguien que manda la orden de otro
+    // (un doctor, un familiar). Antes de registrar al paciente con este teléfono, o de asociárselo,
+    // se le pregunta. Si dice que es de otra persona se deriva (D3). La respuesta vale para ESTE
+    // documento: si otro archivo cambia el paciente, se vuelve a preguntar.
+    let askSender = false;
+    if (!sender && (out.patient.status === 'register' || out.patient.attach_phone)) {
+        if (prior.overrides.sender_not_patient === true) {
+            return handoff('patient_mismatch', 'Quien escribe no está registrado con este teléfono y dice que la orden es de otra persona.');
+        }
+        askSender = prior.overrides.sender_patient_document !== doc;
+    }
+
     // ---- Confianza por línea ----------------------------------------------
     const lowLines = [];
     for (const [ext, it] of itemMap) {
@@ -749,6 +765,15 @@ function validateCore(input) {
     if (doubtfulPatient.length > 0 && !prior.asked_fields.includes('confirm_patient')) {
         out.questions.push({ code: 'confirm_patient', field: 'confirm_patient', hint: `Confirmar ${doubtfulPatient.join(' y ')}.` });
         prior.asked_fields.push('confirm_patient');
+    }
+    // Primero: si la orden es de otra persona, lo demás no hace falta. Mientras no conteste se
+    // vuelve a incluir (no se deriva por no contestarla: la insistencia la corta el contador del agente).
+    if (askSender) {
+        out.questions.unshift({
+            code: 'confirm_sender_is_patient', field: 'sender_is_patient', document: doc,
+            hint: `¿La orden es para quien escribe (${name})? Si es para otra persona (un familiar o un paciente), que lo diga.`,
+        });
+        if (!prior.asked_fields.includes('sender_is_patient')) prior.asked_fields.push('sender_is_patient');
     }
     if (out.questions.length > 0) {
         out.outcome = 'needs_input';

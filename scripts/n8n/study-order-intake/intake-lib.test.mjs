@@ -49,13 +49,27 @@ const extraction = (over = {}) => ({
     ...over,
 });
 
-const run = (over = {}, inputOver = {}) =>
+const runRaw = (over = {}, inputOver = {}) =>
     validateExtraction({
         extraction: extraction(over), has_files: true, catalog, options,
         sender: null, phone: '+59891234567', phone_ambiguous: false,
         doc_matches: [], open_orders: [], config: { min_confidence: 0.85 }, prior: {},
         ...inputOver,
     });
+
+/**
+ * Como runRaw, pero quien escribe sin estar registrado ya contestó que la orden es suya (lo que
+ * hace la mayoría de las pruebas, que miran otra cosa). La pregunta tiene sus pruebas con runRaw.
+ */
+const run = (over = {}, inputOver = {}) => {
+    const priorIn = inputOver.prior || {};
+    const doc = runRaw(over, inputOver).questions.find((q) => q.code === 'confirm_sender_is_patient')?.document;
+    if (doc === undefined || priorIn.overrides?.sender_patient_document !== undefined) return runRaw(over, inputOver);
+    return runRaw(over, {
+        ...inputOver,
+        prior: { ...priorIn, overrides: { ...(priorIn.overrides || {}), sender_patient_document: doc } },
+    });
+};
 
 // ---------------------------------------------------------------------------
 test('cédula uruguaya: verificador', () => {
@@ -146,6 +160,58 @@ test('paciente: la cédula existe con el teléfono de quien escribe → es él',
 test('paciente registrado sin teléfono y remitente desconocido: se asocia el teléfono', () => {
     const r = run({}, { doc_matches: [{ id: 'u9', name: 'Juan Gómez', phone: null, identity_document: '12345672' }] });
     assert.equal(r.patient.attach_phone, true);
+});
+
+test('remitente sin registrar: antes de registrar al paciente pregunta si la orden es suya', () => {
+    const r = runRaw();
+    assert.equal(r.outcome, 'needs_input');
+    assert.deepEqual(r.questions.map((q) => q.code), ['confirm_sender_is_patient']);
+    assert.equal(r.questions[0].document, '12345672');
+    assert.match(r.questions[0].hint, /Juan Gómez/);
+    assert.equal(r.resolved, null);
+});
+
+test('remitente sin registrar y paciente registrado sin teléfono: también pregunta antes de asociárselo', () => {
+    const r = runRaw({}, { doc_matches: [{ id: 'u9', name: 'Juan Gómez', phone: null, identity_document: '12345672' }] });
+    assert.equal(r.outcome, 'needs_input');
+    assert.equal(r.questions[0].code, 'confirm_sender_is_patient');
+});
+
+test('remitente sin registrar dice que la orden es de otra persona → deriva', () => {
+    const first = runRaw();
+    const r = runRaw({}, { prior: { ...first.prior, overrides: { sender_not_patient: true } } });
+    assert.equal(r.outcome, 'handoff');
+    assert.equal(r.handoff_reason, 'patient_mismatch');
+    assert.ok(r.draft, 'recepción arranca de lo leído');
+});
+
+test('remitente sin registrar confirma: sigue al registro', () => {
+    const first = runRaw();
+    const r = runRaw({}, { prior: { ...first.prior, overrides: { sender_patient_document: '12345672' } } });
+    assert.equal(r.outcome, 'ready');
+    assert.equal(r.patient.status, 'register');
+});
+
+test('remitente sin registrar: sin respuesta la pregunta sigue pendiente, junto con las demás y primero', () => {
+    const low = { items: [{ external_id: 'ci-orden:svc:opt', notes: null, confidence: 0.97 }, { external_id: 'ci-orden:svc:hemiarco', notes: null, confidence: 0.5 }] };
+    const first = runRaw(low);
+    assert.deepEqual(first.questions.map((q) => q.code), ['confirm_sender_is_patient', 'confirm_line']);
+    // Contestó solo la línea: no deriva por la pregunta sin contestar, la vuelve a hacer.
+    const second = runRaw(low, { prior: { ...first.prior, confirmed: ['ci-orden:svc:hemiarco'] } });
+    assert.equal(second.outcome, 'needs_input');
+    assert.deepEqual(second.questions.map((q) => q.code), ['confirm_sender_is_patient']);
+});
+
+test('remitente sin registrar: el "sí" vale para ese documento; si cambia el paciente, vuelve a preguntar', () => {
+    const r = runRaw({ patient: { name: 'Ana Ruiz', document: '4.567.890-5', document_type: 'cedula', confidence: 0.95 } },
+        { prior: { overrides: { sender_patient_document: '12345672' } } });
+    assert.equal(r.questions[0]?.code, 'confirm_sender_is_patient');
+});
+
+test('remitente registrado: no se pregunta (se compara con sus datos)', () => {
+    const r = runRaw({}, { sender: { id: 'u1', name: 'Juan Gómez', phone: '+59891234567', identity_document: VALID_CI } });
+    assert.equal(r.outcome, 'ready');
+    assert.equal(r.questions.length, 0);
 });
 
 test('teléfono asociado a más de un usuario → deriva', () => {
@@ -283,7 +349,8 @@ test('falta la otra cara: una extracción vieja sin el campo no pregunta', () =>
     const e = extraction();
     delete e.missing_other_side;
     const r = validateExtraction({
-        extraction: e, has_files: true, catalog, options, sender: null, phone: '+59891234567',
+        extraction: e, has_files: true, catalog, options,
+        sender: { id: 'u1', name: 'Juan Gómez', phone: '+59891234567', identity_document: VALID_CI }, phone: '+59891234567',
         phone_ambiguous: false, doc_matches: [], open_orders: [], config: { min_confidence: 0.85 }, prior: {},
     });
     assert.equal(r.outcome, 'ready');

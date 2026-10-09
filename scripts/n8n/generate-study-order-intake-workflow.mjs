@@ -45,6 +45,7 @@ const OUT = join(ROOT, 'n8n-workflows', 'whatsapp-study-order-intake.json');
 
 // Sin imports ni `export`: el código se pega dentro de un nodo Code.
 const LIB = readFileSync(join(HERE, 'study-order-intake', 'intake-lib.mjs'), 'utf8')
+    .replace(/\r\n/g, '\n') // checkout con CRLF (autocrlf): la cabecera no se recortaría
     .replace(/^export\s+/gm, '')
     .replace(/^\/\*\*[\s\S]*?\*\/\n/, ''); // la cabecera del archivo no hace falta en n8n
 
