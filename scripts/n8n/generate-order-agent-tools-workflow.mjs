@@ -46,6 +46,7 @@ const OUT = join(ROOT, 'n8n-workflows', 'whatsapp-order-agent-tools.json');
 
 const stripLib = (file) =>
     readFileSync(join(HERE, 'study-order-intake', file), 'utf8')
+        .replace(/\r\n/g, '\n') // checkout con CRLF (autocrlf): la cabecera no se recortaría
         .replace(/^export\s+/gm, '')
         .replace(/^\/\*\*[\s\S]*?\*\/\n/, '');
 const SLOTS_LIB = stripLib('slots-lib.mjs');
@@ -277,6 +278,22 @@ switch (q.code) {
       return [{ json: { __fail: { error_code: 'send_file', message: 'Pedile que mande la foto o el PDF por este chat. Si después dice que no tiene otra, llamá de nuevo con su respuesta: no le vuelvas a pedir la foto.' } } }];
     }
     answers.overrides.no_better_file = true;
+    break;
+  case 'confirm_sender_is_patient':
+    // Quien escribe no está registrado: ¿la orden es suya o de otra persona (un familiar, un paciente
+    // de un doctor)? "Sí" vale para el documento de esa orden; "no" (o "es de mi hijo", "es para un
+    // paciente") deriva. Si no se entiende, se repregunta.
+    const self = /(^|[^a-záéíóúñ])(es m[ií]a|soy yo|soy (el|la) paciente|para m[ií])(?![a-záéíóúñ])/i.test(a);
+    const other = /(^|[^a-záéíóúñ])(no es m[ií]a|no soy yo|otra persona|otro paciente|un paciente|una paciente|mi paciente|hij[oa]s?|madre|padre|mam[aá]|pap[aá]|espos[oa]|herman[oa]|famil[a-z]*|abuel[oa]|niet[oa]|sobrin[oa]|pareja|novi[oa]|amig[oa])(?![a-záéíóúñ])/i.test(a);
+    if (self && !no && !other) {
+      answers.overrides.sender_patient_document = q.document;
+    } else if (no || other) {
+      answers.overrides.sender_not_patient = true;
+    } else if (yes) {
+      answers.overrides.sender_patient_document = q.document;
+    } else {
+      return [{ json: { __fail: { error_code: 'need_yes_no', message: 'Preguntale de nuevo si la orden es para él o ella, o para otra persona.' } } }];
+    }
     break;
   case 'confirm_patient':
     if (!yes) return [{ json: { __fail: { error_code: 'needs_human', message: 'El usuario no confirma sus datos: derivá a recepción con handoff_order.' } } }];

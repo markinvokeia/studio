@@ -1001,3 +1001,74 @@ Quien revisa una orden (derivada o importada) tenía la lista de lo dudoso pero 
 - **Esquema estricto con `$defs` y `anyOf`.** OpenAI los admite en modo estricto, pero no se probó contra el modelo configurado (`whatsapp_orders_vision_model`).
 
 **Verificado:** 74 pruebas de intake-lib (7 nuevas) + 11 de slots, typecheck, ESLint de lo tocado, Code nodes de los tres workflows compilan. **No probado:** la llamada real al modelo con v4, ni la pantalla en el navegador (no hay órdenes con ubicación en DEV hasta importar el flujo, y el login de la preview pide una cuenta real).
+
+## 26. Remitente sin registrar: "¿la orden es para vos?" (2026-10-09)
+
+### 26.1 El hueco
+
+D3 dice que si el paciente de la orden no es quien escribe se deriva. El validador lo cumplía solo cuando el teléfono **identifica a un usuario**. Con un teléfono desconocido no había con qué comparar y:
+
+| Paciente de la orden | Antes |
+| --- | --- |
+| No registrado | Se lo registraba **con el teléfono de quien escribe** y se agendaba |
+| Registrado sin teléfono | Se le **asociaba el teléfono de quien escribe** y se agendaba |
+| Registrado con otro teléfono | Derivaba (correcto) |
+
+Un doctor que manda la orden de un paciente suyo, o un padre la de su hijo, terminaba con su teléfono en la ficha del paciente: recordatorios y avisos al teléfono equivocado, y la próxima vez el agente general lo identificaba como ese paciente. En DEV solo 14 de 73 usuarios con rol `medico` tienen teléfono, así que el caso "teléfono desconocido" es el habitual para un doctor.
+
+### 26.2 Qué cambió
+
+| Cambio | Dónde |
+| --- | --- |
+| Si quien escribe no está identificado y el paciente se va a registrar o se le va a asociar el teléfono, el validador agrega la pregunta `confirm_sender_is_patient` (primera de la lista, junto con las demás). Lleva el `document` de la orden | `intake-lib.mjs` (`validateCore`) |
+| Respuesta "sí" → `overrides.sender_patient_document` = ese documento: vale solo para él; si otro archivo cambia el paciente, se vuelve a preguntar. Respuesta "no" o que nombra a otra persona (hijo, mamá, paciente, familiar…) → `overrides.sender_not_patient` → deriva `patient_mismatch` con el borrador de lo leído | `intake-lib.mjs`, `order-answer` (`Answer: Build Answers`) |
+| Sin respuesta no deriva (la pregunta sigue pendiente): si contesta otra pregunta primero, no se corta la orden. La insistencia la corta el contador de §20, que con esta pregunta pendiente deriva como `patient_mismatch` | `intake-lib.mjs`, `Call Order Handoff (Stalled)` |
+| Prompt del `Order Agent`: cómo hacer la pregunta y que no registre ni agende antes de la respuesta | `WhatsApp - Order Agent.json` |
+| Los generadores normalizan CRLF → LF al leer las librerías (con `core.autocrlf` la cabecera no se recortaba y el JSON de referencia quedaba distinto del de `docs/`) | `generate-study-order-intake-workflow.mjs`, `generate-order-agent-tools-workflow.mjs` |
+
+Con remitente registrado no cambia nada (se compara con su cédula o nombre, como antes). El modo `import` no usa remitente.
+
+### 26.3 Puesta en marcha
+
+Reimportar `WhatsApp - Study Order Intake` y `WhatsApp - Order Agent` (de `docs/n8n-flows/`). Sin migraciones ni cambios de frontend. Los intakes que ya estén en `awaiting_confirmation` no se revalidan solos: siguen como antes.
+
+**Verificado:** 92 pruebas (8 nuevas del remitente), la traducción de respuestas de `Answer: Build Answers` con frases reales ("sí", "es de mi hijo", "es para un paciente mío", "es para mi estudio de mañana"), Code nodes compilan y sin conexiones colgadas. **No probado en n8n** ni en una conversación real.
+
+**Sigue fuera de alcance:** que un doctor agende por WhatsApp a un paciente (derivador = doctor, teléfono del paciente desde la orden, a quién se confirma). Hoy eso se deriva; el camino soportado para el doctor es crear la orden en Invoke y mandar el link `/orden/<token>`.
+
+## 27. El doctor agenda la orden de un paciente por WhatsApp (diseño, 2026-10-09)
+
+> Estado: **diseño acordado, sin implementar.** Levanta "doctor como remitente" de la lista "fuera del primer corte" (§8) y deja de aplicar D3 cuando quien escribe es un doctor.
+
+### 27.1 Decisiones
+
+| # | Tema | Decisión |
+| --- | --- | --- |
+| DD1 | Quién es doctor | El teléfono identifica a **un** usuario activo con `STUDY_ORDERS_CREATE` (permiso, no nombre de rol). Flag nuevo `whatsapp_orders_doctor_enabled` (nace apagado). El teléfono lo carga la clínica en Config → Doctores (en DEV solo 14 de 73 lo tienen); sin teléfono, el doctor cae en la pregunta de §26 y se deriva. |
+| DD2 | Derivador | La orden sale con `doctor_id` = el doctor que escribe (`CREATE_FOR_DOCTOR` del agente), `source = whatsapp`. El doctor la ve en "Mis Órdenes" y recibe los avisos de siempre. |
+| DD3 | Paciente | Por cédula: una coincidencia → se vincula **sin tocar su teléfono**; ninguna → se registra con nombre, cédula y el teléfono del paciente; varias → deriva. Nunca se usa el teléfono del doctor. |
+| DD4 | Teléfono del paciente nuevo | De la orden (`patient.phone`) o se le pide al doctor **una vez**; si no lo tiene, se registra sin teléfono (los recordatorios no le llegarán; queda un punto a revisar). |
+| DD5 | Cómo se agenda | Con la orden lista, el agente pregunta: **¿agendo yo un horario o te paso el link para que elija el paciente?** Horario → `list_order_sedes` / `list_order_slots` / `confirm_order_and_book` como hoy. Link → la orden se crea y envía, y la respuesta lleva el link `/orden/<token>` agregado como **texto fijo fuera del LLM** (§7). |
+| DD6 | Varias órdenes | **Una a la vez.** Con una orden en curso, otra orden (otra cédula) no se suma: el agente pide terminar la actual. Un lote con varios pacientes → pedir mandarlas de a una (campo nuevo `multiple_patients` en la extracción). Tras una orden agendada o con link, un archivo nuevo del doctor abre un intake nuevo (no el modo `compare` de §18.2). |
+| DD7 | Aviso al paciente | Primer corte: lo avisa el doctor; los recordatorios salen por las alertas existentes al teléfono del paciente. Plantilla de WhatsApp "te agendaron un estudio" queda para después. |
+| DD8 | Privacidad | El agente no le muestra al doctor datos del paciente que no estén en la orden (teléfono o email guardados); solo puede decir que ya está registrado. |
+
+### 27.2 Cambios previstos
+
+| Pieza | Cambio |
+| --- | --- |
+| `Get Or Create Intake` | Calcula `sender_kind` (`doctor` / `patient`) y lo guarda en el intake; con `doctor` no reabre un intake `booked` (DD6). |
+| Migración | Columna `whatsapp_order_intakes.sender_kind` y clave `whatsapp_orders_doctor_enabled` (o solo la clave, si alcanza con calcularlo al vuelo). |
+| `intake-lib.mjs` | `validateCore` con `sender_kind = 'doctor'`: rama de paciente de DD3/DD4 (pregunta `missing_patient_phone`), sin la pregunta de §26; `multiple_patients` → pedir de a una. Esquema `so-extraction-v5` con `multiple_patients`. Tests. |
+| `order-answer` | Respuestas a `missing_patient_phone` (número o "no lo tengo") y a la elección "agendar / link". |
+| `confirm_order_and_book` | `doctor_id` del remitente en lugar de `without_doctor`; teléfono del paciente desde la validación. |
+| Herramienta nueva `send_order_link` | Crea y envía la orden, genera el token (como `Book: Make Token`) y deja el link para que `Whats App` lo agregue a la respuesta sin que el modelo lo vea. |
+| Prompt `Order Agent` | Sección para el doctor: le habla al doctor, nombra al paciente en tercera persona, pregunta "agendo o link", una orden a la vez. |
+| Bitácora | Actor = Agente WhatsApp; metadata con el doctor que la pidió. |
+| QA | Casos nuevos: doctor con paciente existente / nuevo / cédula duplicada; dos órdenes en un lote; orden nueva tras agendar; doctor sin teléfono cargado (debe preguntar §26 y derivar); link vs horario. |
+
+### 27.3 Riesgos
+
+- **Mezcla de órdenes** en un lote o en ventanas cortas: lo principal a probar.
+- `assignee_id` de la cita = derivador (igual que el portal): puede bloquear horarios del doctor en `Agent_Availability2`.
+- El agente general (`Whatsapp Agent1`) sigue tratando al doctor como paciente para cuenta y citas: fuera de alcance.
