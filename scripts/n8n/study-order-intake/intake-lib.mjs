@@ -70,6 +70,17 @@ export function similarNames(a, b) {
 
 const phoneDigits = (p) => asText(p).replace(/\D/g, '');
 
+/**
+ * Teléfono escrito de cualquier forma → '+<dígitos>' como lo guarda el agente, o null si no parece uno.
+ * Sin código de país se asume Uruguay: '099 123 456' / '99123456' → '+59899123456'.
+ */
+export function normalizePhone(raw) {
+    let d = phoneDigits(raw);
+    if (/^0\d{8}$/.test(d)) d = '598' + d.slice(1);
+    else if (/^[2-9]\d{7}$/.test(d)) d = '598' + d;
+    return d.length >= 10 && d.length <= 15 ? '+' + d : null;
+}
+
 /** Pieza dentaria escrita de cualquier forma ("1.6", "16", "FDI 16") → "16" o null. */
 function normalizeTooth(raw) {
     const digits = asText(raw).replace(/\D/g, '');
@@ -413,6 +424,9 @@ export function collectFieldConfidence(extraction, catalog = [], options = []) {
 const isDetailField = (field) =>
     /^(doctor\.|order_date$|patient\.(birth_date|phone)$|modifiers\.|regions\.|texts\.|delivery_methods\.)/.test(field);
 
+/** Datos que definen qué se hace (servicio, duración, precio): leídos con duda, la orden no se agenda sola. */
+const isOrderContentField = (field) => /^(items.|modifiers.|regions.|texts.|delivery_methods.)/.test(field);
+
 /** Datos de la orden (no juicios sobre el documento) cuya lectura dudosa se registra para revisar. */
 const isOrderDataField = (field) => /^(patient\.|items\.)/.test(field) || isDetailField(field);
 
@@ -420,8 +434,9 @@ const isOrderDataField = (field) => /^(patient\.|items\.)/.test(field) || isDeta
 const HANDOFF_LABELS = {
     service_not_found: 'Hay estudios que no figuran en el sistema',
     unreadable: 'La orden no se pudo leer completa',
-    low_confidence: 'Lectura dudosa que el paciente no pudo aclarar',
+    low_confidence: 'Datos de la orden leídos con poca seguridad',
     patient_mismatch: 'El paciente de la orden no coincide con quien escribe',
+    missing_patient_data: 'Faltan datos obligatorios del paciente para registrarlo',
     booking_failed: 'No se pudo agendar',
     user_request: 'El paciente pidió hablar con una persona',
     system_error: 'Error del sistema al procesar la orden',
@@ -516,7 +531,7 @@ export function buildReviewItems(input) {
 /** Motivos de derivación admitidos por whatsapp_order_intakes.handoff_reason. */
 export const HANDOFF_REASONS = [
     'service_not_found', 'unreadable', 'low_confidence', 'patient_mismatch',
-    'booking_failed', 'user_request', 'system_error', 'order_changed',
+    'booking_failed', 'user_request', 'system_error', 'order_changed', 'missing_patient_data',
 ];
 
 /**
@@ -527,9 +542,11 @@ export const HANDOFF_REASONS = [
  * @param {Array}       input.catalog        [{id, external_id, name, section_code, duration_minutes}]
  * @param {Array}       input.options        study_order_options activos (+ service_external_id).
  * @param {object|null} input.sender         Usuario identificado por el teléfono (o null).
+ * @param {string}      input.sender_kind    'patient' (lo de siempre) o 'doctor': manda la orden de un paciente (§27).
  * @param {string}      input.phone          Teléfono del remitente.
  * @param {boolean}     input.phone_ambiguous  El teléfono coincide con más de un usuario.
  * @param {Array}       input.doc_matches    Usuarios cuyo documento coincide con el de la orden.
+ * @param {Array}       input.phone_matches  Modo doctor: usuarios activos con el teléfono del paciente (normalizado).
  * @param {Array}       input.open_orders    Órdenes abiertas del paciente [{id, order_number, service_ids}].
  * @param {object}      input.config         { min_confidence, max_order_age_days? }
  * @param {object}      input.prior          Lo ya ocurrido en este intake (ver abajo).
@@ -537,10 +554,15 @@ export const HANDOFF_REASONS = [
  * prior = { resend_count, asked_confirm: [external_id], asked_fields: [string],
  *           confirmed: [external_id], removed: [external_id],
  *           overrides: { patient_name?, patient_document?, no_other_side?, no_better_file?,
- *                        sender_patient_document?, sender_not_patient? } }
+ *                        sender_patient_document?, sender_not_patient?, patient_phone?, no_patient_phone?,
+ *                        no_patient_document? } }
  *
  * sender_patient_document / sender_not_patient: respuesta de quien escribe sin estar registrado a
  * "¿la orden es para vos?" (sí → el documento de la orden que confirmó; no → true, se deriva).
+ *
+ * patient_phone / no_patient_phone: modo doctor, paciente que no figura por documento y sin teléfono
+ * legible en la orden: el que dio el doctor, o que no lo tiene (se deriva: es obligatorio).
+ * no_patient_document: quien escribe dice que no tiene la cédula del paciente (se deriva).
  *
  * no_better_file: al pedirle el reenvío, el usuario contestó que no tiene otra foto mejor ni
  * otra hoja ("ya está", "esas son"). No hay nada más que pedirle: se deriva.
@@ -553,8 +575,8 @@ export const HANDOFF_REASONS = [
 function validateCore(input) {
     const {
         extraction = null, extraction_error = null, has_files = true,
-        catalog = [], options = [], sender = null, phone = '', phone_ambiguous = false,
-        doc_matches = [], open_orders = [], config = {}, prior: priorIn = {},
+        catalog = [], options = [], sender = null, sender_kind = 'patient', phone = '', phone_ambiguous = false,
+        doc_matches = [], phone_matches = [], open_orders = [], config = {}, prior: priorIn = {},
     } = input || {};
 
     const minConf = Number.isFinite(Number(config.min_confidence)) ? Number(config.min_confidence) : 0.85;
@@ -650,7 +672,6 @@ function validateCore(input) {
     // ---- Estudios ----------------------------------------------------------
     // El mapeo de la lectura al formulario es el mismo que se guarda como borrador al derivar.
     const draft = getDraft();
-    const byExternalId = new Map(catalog.map((s) => [s.external_id, s]));
     const itemMap = new Map(draft.items.map((it) => [it.external_id, it]));
 
     // Regla central: un estudio que no está en el sistema deriva la orden COMPLETA.
@@ -659,6 +680,34 @@ function validateCore(input) {
     }
     if (itemMap.size === 0) {
         return resendOrHandoff('La orden no tiene ningún estudio legible (si tiene dorso u otra hoja, pueden estar ahí).');
+    }
+
+    // ---- Datos dudosos: no se agenda -----------------------------------------
+    // Un estudio, una opción, una pieza, un texto o una entrega leídos con poca seguridad, algo que no
+    // encajó en el formulario, un dato ilegible o una cara que puede faltar cambian el servicio, la
+    // duración o el precio. No se le pregunta al usuario (no sabría contestarlo bien, y un "sí" no lo
+    // aclara): la orden pasa a una persona, que la revisa contra el original. Va antes de las preguntas
+    // del paciente: si se deriva, no tiene sentido pedirle datos.
+    out.warnings.push(...draft.warnings);
+    if (draft.leftovers.length > 0) {
+        out.warnings.push({ code: 'unplaced_details', detail: draft.leftovers.join('; ') });
+    }
+    const unreadable = unreadableEntries(extraction);
+    if (unreadable.length > 0) {
+        out.warnings.push({ code: 'unreadable_fields', detail: unreadable.map((u) => u.text).join('; ') });
+    }
+    const doubts = [
+        // Un estudio que el usuario ya descartó (intakes anteriores a este cambio) no está en la orden.
+        ...fields.filter((f) => isLow(f) && isOrderContentField(f.field)
+            && !(f.field.startsWith('items.') && prior.removed.includes(f.field.slice('items.'.length))))
+            .map((f) => `${f.label}: ${f.value}`),
+        ...draft.leftovers.map((l) => `No encaja en el formulario: ${l}`),
+        ...draft.warnings.filter((w) => w && w.code === 'modifier_without_service').map((w) => `Opción sin su estudio: ${w.detail}`),
+        ...unreadable.map((u) => `Ilegible: ${u.text}`),
+        ...out.warnings.filter((w) => w.code === 'possibly_incomplete').map(() => 'Puede faltar otra cara u hoja de la orden'),
+    ];
+    if (doubts.length > 0) {
+        return handoff('low_confidence', `Datos dudosos que pueden cambiar el servicio, la duración o el precio: ${doubts.join('; ')}`.slice(0, 500));
     }
 
     // ---- Paciente ----------------------------------------------------------
@@ -685,10 +734,16 @@ function validateCore(input) {
     } else if (doc.length < 5) {
         missing.push(['patient_document', 'invalid_patient_document', `El documento "${docRaw}" es demasiado corto.`]);
     }
+    // Un doctor que no tiene el nombre o el documento del paciente no puede registrarlo: son datos
+    // obligatorios (§27). Para un paciente sigue siendo una orden ilegible.
+    const missingReason = sender_kind === 'doctor' && sender ? 'missing_patient_data' : 'unreadable';
     for (const [field, code, hint] of missing) {
-        // Ya se le preguntó este dato y sigue faltando o mal → no se insiste.
+        // Dijo que no lo tiene, o ya se le preguntó y sigue faltando o mal → no se insiste.
+        if (field === 'patient_document' && prior.overrides.no_patient_document === true) {
+            return handoff(missingReason, `${hint} Quien escribe dice que no la tiene.`);
+        }
         if (prior.asked_fields.includes(field)) {
-            return handoff('unreadable', `${hint} (ya se le consultó al usuario).`);
+            return handoff(missingReason, `${hint} (ya se le consultó al usuario).`);
         }
         ask(field, code, hint);
     }
@@ -699,61 +754,89 @@ function validateCore(input) {
 
     // Quién es el paciente respecto de quien escribe.
     const docMatches = doc_matches.filter((u) => normalizeDocument(u.identity_document) === doc);
-    const senderPhone = phoneDigits(phone);
     if (docMatches.length > 1) {
         return handoff('patient_mismatch', `La cédula ${doc} figura en más de un usuario.`);
     }
-    if (docMatches.length === 1) {
-        const u = docMatches[0];
-        const samePerson = (sender && sender.id === u.id) || (senderPhone && phoneDigits(u.phone) === senderPhone);
-        if (samePerson) {
-            out.patient = { ...out.patient, status: 'existing', patient_id: u.id };
-        } else if (!sender && !asText(u.phone)) {
-            // Paciente ya registrado sin teléfono: se le asocia el de quien escribe.
-            out.patient = { ...out.patient, status: 'existing', patient_id: u.id, attach_phone: true };
-        } else {
-            return handoff('patient_mismatch', 'La orden es de un paciente que no coincide con quien escribe.');
-        }
-    } else if (sender) {
-        const senderDoc = normalizeDocument(sender.identity_document);
-        if (senderDoc && senderDoc !== doc) {
-            return handoff('patient_mismatch', 'La cédula de la orden no coincide con la de quien escribe.');
-        }
-        if (!senderDoc && !similarNames(sender.name, name)) {
-            return handoff('patient_mismatch', 'El nombre de la orden no coincide con el de quien escribe.');
-        }
-        out.patient = { ...out.patient, status: 'existing', patient_id: sender.id, set_document: !senderDoc };
-    } else {
-        out.patient = { ...out.patient, status: 'register', patient_id: null };
-    }
-
-    // Quien escribe no está registrado: puede ser el paciente o alguien que manda la orden de otro
-    // (un doctor, un familiar). Antes de registrar al paciente con este teléfono, o de asociárselo,
-    // se le pregunta. Si dice que es de otra persona se deriva (D3). La respuesta vale para ESTE
-    // documento: si otro archivo cambia el paciente, se vuelve a preguntar.
     let askSender = false;
-    if (!sender && (out.patient.status === 'register' || out.patient.attach_phone)) {
-        if (prior.overrides.sender_not_patient === true) {
-            return handoff('patient_mismatch', 'Quien escribe no está registrado con este teléfono y dice que la orden es de otra persona.');
+    let askPatientPhone = false;
+    if (sender_kind === 'doctor' && sender) {
+        // Un doctor manda la orden de un paciente suyo (plan §27): que no sea él es lo esperado. El
+        // paciente sale de los datos de la orden y NUNCA recibe el teléfono del doctor:
+        //   1. por documento;
+        //   2. si no figura (el padrón tiene muchos pacientes sin documento), por SU teléfono, que es
+        //      obligatorio: de la orden si se leyó con seguridad, o el que dé el doctor;
+        //   3. si no figura por ninguno, se registra con nombre, documento y teléfono.
+        // Sin teléfono no se registra a nadie: se deriva (missing_patient_data).
+        if (docMatches.length === 1) {
+            out.patient = { ...out.patient, status: 'existing', patient_id: docMatches[0].id };
+        } else {
+            const phoneConf = confOf(p.phone_confidence ?? p.confidence);
+            const fromOrder = phoneConf === null || phoneConf >= minConf ? normalizePhone(p.phone) : null;
+            const patientPhone = normalizePhone(prior.overrides.patient_phone) || fromOrder;
+            if (!patientPhone) {
+                if (prior.overrides.no_patient_phone === true) {
+                    return handoff('missing_patient_data', 'El paciente no figura por su documento y el doctor no tiene su teléfono: faltan datos obligatorios para registrarlo.');
+                }
+                askPatientPhone = true;
+            } else {
+                const byPhone = phone_matches.filter((u) => normalizePhone(u.phone) === patientPhone);
+                if (byPhone.length > 1) {
+                    return handoff('patient_mismatch', `El teléfono ${patientPhone} del paciente figura en más de un usuario.`);
+                }
+                if (byPhone.length === 1) {
+                    const u = byPhone[0];
+                    const uDoc = normalizeDocument(u.identity_document);
+                    if (uDoc && uDoc !== doc) {
+                        return handoff('patient_mismatch', `El teléfono ${patientPhone} del paciente está registrado con otro documento.`);
+                    }
+                    if (!uDoc && !similarNames(u.name, name)) {
+                        return handoff('patient_mismatch', `El teléfono ${patientPhone} del paciente está registrado con otro nombre.`);
+                    }
+                    // Es él, registrado sin documento: se le guarda el de la orden.
+                    out.patient = { ...out.patient, status: 'existing', patient_id: u.id, set_document: !uDoc };
+                } else {
+                    out.patient = { ...out.patient, status: 'register', patient_id: null, phone: patientPhone };
+                }
+            }
         }
-        askSender = prior.overrides.sender_patient_document !== doc;
+    } else {
+        const senderPhone = phoneDigits(phone);
+        if (docMatches.length === 1) {
+            const u = docMatches[0];
+            const samePerson = (sender && sender.id === u.id) || (senderPhone && phoneDigits(u.phone) === senderPhone);
+            if (samePerson) {
+                out.patient = { ...out.patient, status: 'existing', patient_id: u.id };
+            } else if (!sender && !asText(u.phone)) {
+                // Paciente ya registrado sin teléfono: se le asocia el de quien escribe.
+                out.patient = { ...out.patient, status: 'existing', patient_id: u.id, attach_phone: true };
+            } else {
+                return handoff('patient_mismatch', 'La orden es de un paciente que no coincide con quien escribe.');
+            }
+        } else if (sender) {
+            const senderDoc = normalizeDocument(sender.identity_document);
+            if (senderDoc && senderDoc !== doc) {
+                return handoff('patient_mismatch', 'La cédula de la orden no coincide con la de quien escribe.');
+            }
+            if (!senderDoc && !similarNames(sender.name, name)) {
+                return handoff('patient_mismatch', 'El nombre de la orden no coincide con el de quien escribe.');
+            }
+            out.patient = { ...out.patient, status: 'existing', patient_id: sender.id, set_document: !senderDoc };
+        } else {
+            out.patient = { ...out.patient, status: 'register', patient_id: null };
+        }
+
+        // Quien escribe no está registrado: puede ser el paciente o alguien que manda la orden de otro
+        // (un doctor, un familiar). Antes de registrar al paciente con este teléfono, o de asociárselo,
+        // se le pregunta. Si dice que es de otra persona se deriva (D3). La respuesta vale para ESTE
+        // documento: si otro archivo cambia el paciente, se vuelve a preguntar.
+        if (!sender && (out.patient.status === 'register' || out.patient.attach_phone)) {
+            if (prior.overrides.sender_not_patient === true) {
+                return handoff('patient_mismatch', 'Quien escribe no está registrado con este teléfono y dice que la orden es de otra persona.');
+            }
+            askSender = prior.overrides.sender_patient_document !== doc;
+        }
     }
 
-    // ---- Confianza por línea ----------------------------------------------
-    const lowLines = [];
-    for (const [ext, it] of itemMap) {
-        if (it.confidence >= minConf || prior.confirmed.includes(ext)) continue;
-        lowLines.push(ext);
-    }
-    const stillDoubtful = lowLines.filter((ext) => prior.asked_confirm.includes(ext));
-    if (stillDoubtful.length > 0) {
-        return handoff('low_confidence',
-            `Estudios que siguen dudosos tras consultar al usuario: ${stillDoubtful.map((e) => byExternalId.get(e).name).join('; ')}`);
-    }
-    for (const ext of lowLines) {
-        out.questions.push({ code: 'confirm_line', external_id: ext, hint: `¿El estudio "${byExternalId.get(ext).name}" está en la orden?` });
-        prior.asked_confirm.push(ext);
-    }
     // Nombre y documento, cada uno con su confianza (v3) o la del bloque (v2). Lo que el usuario ya
     // escribió por chat no se vuelve a confirmar.
     const nameConf = asText(prior.overrides.patient_name) ? null : confOf(p.name_confidence ?? p.confidence);
@@ -775,21 +858,22 @@ function validateCore(input) {
         });
         if (!prior.asked_fields.includes('sender_is_patient')) prior.asked_fields.push('sender_is_patient');
     }
+    // El doctor no siempre tiene el teléfono del paciente en la orden: se le pide y, mientras no
+    // conteste, la pregunta sigue (como la de §26). "No lo tengo" deriva (missing_patient_data).
+    if (askPatientPhone) {
+        out.questions.push({ code: 'missing_patient_phone', field: 'patient_phone', hint: `Falta el teléfono de ${name}: es obligatorio para buscarlo o registrarlo como paciente (y para sus avisos y recordatorios).` });
+        if (!prior.asked_fields.includes('patient_phone')) prior.asked_fields.push('patient_phone');
+    }
     if (out.questions.length > 0) {
         out.outcome = 'needs_input';
         return out;
     }
 
-    // ---- Datos de la orden (opciones, regiones, textos, entrega) -----------
-    // Ya armados en el borrador; acá solo se agregan sus advertencias.
+    // ---- Lo que no cambia la orden -------------------------------------------
+    // Lo que sí la cambia ya derivó arriba. Quedan datos que no tocan servicio, duración ni precio
+    // (doctor del papel, fecha, nacimiento, teléfono leído): no frenan la orden, pero recepción los ve
+    // y quedan en las notas para verificar contra el original.
     const items = draft.items;
-    out.warnings.push(...draft.warnings);
-    if (draft.leftovers.length > 0) {
-        out.warnings.push({ code: 'unplaced_details', detail: draft.leftovers.join('; ') });
-    }
-    // Detalles leídos con poca confianza (opciones, piezas, textos, doctor, fecha...): no frenan la
-    // orden ni se le preguntan al usuario (no sabría contestarlas), pero recepción los ve y quedan
-    // en las notas de la orden para verificar contra el original.
     const lowDetails = fields.filter((f) => isLow(f) && isDetailField(f.field));
     if (lowDetails.length > 0) {
         out.warnings.push({
@@ -797,10 +881,6 @@ function validateCore(input) {
             detail: lowDetails.map((f) => `${f.label}: ${f.value}`).join('; ').slice(0, 500),
             fields: lowDetails.map((f) => f.field),
         });
-    }
-    const unreadable = unreadableEntries(extraction);
-    if (unreadable.length > 0) {
-        out.warnings.push({ code: 'unreadable_fields', detail: unreadable.map((u) => u.text).join('; ') });
     }
     if (extraction.has_signature !== true) out.warnings.push({ code: 'no_signature', detail: 'La orden no tiene firma visible.' });
     if (config.max_order_age_days && asText(extraction.order_date)) {

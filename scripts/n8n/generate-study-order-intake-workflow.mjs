@@ -87,6 +87,7 @@ SELECT i.id::text AS id,
        i.extraction,
        i.validation,
        i.sender_user_id::text AS sender_user_id,
+       i.sender_kind,
        (SELECT o.order_number FROM study_orders o WHERE o.id = i.study_order_id) AS order_number,
        (SELECT to_char(a.start_datetime, 'YYYY-MM-DD HH24:MI') FROM appointments a WHERE a.id = i.appointment_id) AS appointment_start,
        (SELECT s.name FROM sedes s WHERE s.id = i.chosen_sede_id) AS sede_name,
@@ -94,7 +95,7 @@ SELECT i.id::text AS id,
            SELECT us.id::text AS id, us.name, us.phone_number AS phone, us.identity_document
              FROM users us WHERE us.id = i.sender_user_id) u) AS sender,
        (SELECT count(*) > 1 FROM users us
-         WHERE us.phone_number = i.phone AND COALESCE(us.is_active, true)) AS phone_ambiguous,
+         WHERE normalize_phone_uy(us.phone_number) = normalize_phone_uy(i.phone) AND COALESCE(us.is_active, true)) AS phone_ambiguous,
        (SELECT coalesce(json_agg(json_build_object(
                    'attachment_id', a.id, 'drive_file_id', a.drive_file_id,
                    'file_name', a.file_name, 'mime_type', a.mime_type) ORDER BY a.id), '[]'::json)
@@ -262,7 +263,18 @@ try { answers = inp.answers ? JSON.parse(inp.answers) : {}; } catch (e) { answer
 const ex = $input.first().json.extraction;
 const raw = String((answers.overrides && answers.overrides.patient_document) || (ex && ex.patient && ex.patient.document) || '');
 const doc = raw.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toUpperCase().replace(/[^0-9A-Z]/g, '');
-return [{ json: { doc, extraction: ex, extraction_error: $input.first().json.extraction_error, extraction_meta: $input.first().json.extraction_meta, fresh: $input.first().json.fresh, answers } }];`;
+// Modo doctor (§27): el paciente también se busca por SU teléfono (el que dio el doctor o el de la
+// orden), para no duplicar a alguien registrado sin documento. Mismo criterio que normalizePhone.
+const normPhone = (v) => {
+  let d = String(v || '').replace(/\\D/g, '');
+  if (/^0\\d{8}$/.test(d)) d = '598' + d.slice(1);
+  else if (/^[2-9]\\d{7}$/.test(d)) d = '598' + d;
+  return d.length >= 10 && d.length <= 15 ? '+' + d : null;
+};
+const phones = ctx.sender_kind === 'doctor'
+  ? [...new Set([answers.overrides && answers.overrides.patient_phone, ex && ex.patient && ex.patient.phone].map(normPhone).filter(Boolean))]
+  : [];
+return [{ json: { doc, phones: phones.join(','), extraction: ex, extraction_error: $input.first().json.extraction_error, extraction_meta: $input.first().json.extraction_meta, fresh: $input.first().json.fresh, answers } }];`;
 add('Prepare Lookups', 'n8n-nodes-base.code', 2, { jsCode: PREPARE }, [x(8), 300]);
 link('Parse Extraction', 'Prepare Lookups');
 link('Reuse Saved Extraction', 'Prepare Lookups');
@@ -270,17 +282,28 @@ link('Reuse Saved Extraction', 'Prepare Lookups');
 add('Lookup Patient Data', 'n8n-nodes-base.postgres', 2.6, {
     operation: 'executeQuery',
     query: `-- $1 = documento normalizado (vacio si no se pudo leer).
--- Devuelve SOLO los usuarios con ese documento y las ordenes abiertas (ultimos 30 dias)
--- de esos usuarios, para detectar una orden repetida. Nada mas del padron.
+-- $2 = telefonos del paciente normalizados, separados por coma (solo modo doctor; vacio si no).
+-- Devuelve SOLO los usuarios con ese documento, los usuarios activos con ese telefono y las ordenes
+-- abiertas (ultimos 30 dias) de todos ellos, para detectar una orden repetida. Nada mas del padron.
 WITH matches AS (
   SELECT u.id, u.name, u.phone_number, u.identity_document
     FROM users u
    WHERE $1 <> ''
      AND regexp_replace(upper(coalesce(u.identity_document, '')), '[^0-9A-Z]', '', 'g') = $1
+),
+phone_matches AS (
+  SELECT u.id, u.name, normalize_phone_uy(u.phone_number) AS phone, u.identity_document
+    FROM users u
+   WHERE $2 <> ''
+     AND COALESCE(u.is_active, true)
+     AND normalize_phone_uy(u.phone_number) = ANY (string_to_array($2, ','))
 )
 SELECT (SELECT coalesce(json_agg(json_build_object(
                 'id', m.id::text, 'name', m.name, 'phone', m.phone_number,
                 'identity_document', m.identity_document)), '[]'::json) FROM matches m) AS doc_matches,
+       (SELECT coalesce(json_agg(json_build_object(
+                'id', m.id::text, 'name', m.name, 'phone', m.phone,
+                'identity_document', m.identity_document)), '[]'::json) FROM phone_matches m) AS phone_matches,
        (SELECT coalesce(json_agg(json_build_object(
                 'id', o.id::text, 'order_number', o.order_number,
                 'service_ids', (SELECT coalesce(json_agg(i.service_id), '[]'::json)
@@ -289,8 +312,8 @@ SELECT (SELECT coalesce(json_agg(json_build_object(
           FROM study_orders o
          WHERE o.status = 'submitted'
            AND o.created_at > now() - interval '30 days'
-           AND o.patient_id IN (SELECT id FROM matches)) AS open_orders;`,
-    options: { queryReplacement: '={{ [ $json.doc ] }}' },
+           AND o.patient_id IN (SELECT id FROM matches UNION SELECT id FROM phone_matches)) AS open_orders;`,
+    options: { queryReplacement: `={{ [ $json.doc, $json.phones || '' ] }}` },
 }, [x(9), 300], { credentials: PG, alwaysOutputData: true });
 link('Prepare Lookups', 'Lookup Patient Data');
 
@@ -424,9 +447,11 @@ const result = validateExtraction({
   catalog: ctx.catalog,
   options: ctx.options,
   sender: ctx.sender || null,
+  sender_kind: ctx.sender_kind === 'doctor' ? 'doctor' : 'patient',
   phone: ctx.phone,
   phone_ambiguous: ctx.phone_ambiguous === true,
   doc_matches: lk.doc_matches || [],
+  phone_matches: lk.phone_matches || [],
   open_orders: lk.open_orders || [],
   config: { min_confidence: ctx.config && ctx.config.min_confidence },
   prior,

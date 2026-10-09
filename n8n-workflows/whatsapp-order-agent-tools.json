@@ -91,7 +91,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- $1 = teléfono. La orden en curso de ese número (una sola por teléfono).\nSELECT i.id::text AS id, i.phone, i.status, i.validation, i.slots_offered,\n       i.study_order_id::text AS study_order_id, i.patient_id::text AS patient_id,\n       i.chosen_sede_id, i.booking_attempts,\n       (SELECT o.order_number FROM study_orders o WHERE o.id = i.study_order_id) AS order_number\n  FROM whatsapp_order_intakes i\n WHERE i.phone = $1\n   AND i.status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n   AND i.expires_at > now()\n ORDER BY i.created_at DESC\n LIMIT 1;",
+        "query": "-- $1 = teléfono. La orden en curso de ese número (una sola por teléfono).\nSELECT i.id::text AS id, i.phone, i.status, i.validation, i.slots_offered,\n       i.study_order_id::text AS study_order_id, i.patient_id::text AS patient_id,\n       i.chosen_sede_id, i.booking_attempts,\n       i.sender_kind, i.sender_user_id::text AS sender_user_id,\n       (SELECT o.order_number FROM study_orders o WHERE o.id = i.study_order_id) AS order_number,\n       (SELECT o.status FROM study_orders o WHERE o.id = i.study_order_id) AS order_status\n  FROM whatsapp_order_intakes i\n WHERE i.phone = $1\n   AND i.status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n   AND i.expires_at > now()\n ORDER BY i.created_at DESC\n LIMIT 1;",
         "options": {
           "queryReplacement": "={{ [ $json.phone ] }}"
         }
@@ -114,7 +114,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function summarize(v, status, orderNumber) {\n  v = v || {};\n  const r = v.resolved || null;\n  const questions = (v.questions || []).map((q, i) => ({ number: i + 1, code: q.code, text: q.hint }));\n  const NEXT = { extracting: 'wait', needs_input: 'answer_questions', awaiting_confirmation: 'ask_sede_date_time', order_created: 'book_slot' };\n  return {\n    has_intake: true,\n    status,\n    next_step: questions.length ? 'answer_questions' : (NEXT[status] || 'none'),\n    order_number: orderNumber || null,\n    patient: v.patient ? { name: v.patient.name, document: v.patient.document, will_be_registered: v.patient.status === 'register' } : null,\n    studies: r ? r.items.map((i) => ({ name: i.service_name, duration_minutes: i.duration_minutes })) : [],\n    total_duration_minutes: r ? r.total_duration_minutes : null,\n    referring_doctor_as_written: r ? r.referring_doctor_name : null,\n    questions,\n    already_has_open_order: v.duplicate_of ? v.duplicate_of.order_number : null,\n    warnings: (v.warnings || []).map((w) => w.code),\n  };\n}\nconst row = $input.first().json || {};\nif (!row.id) return [{ json: { has_intake: false, message: 'No hay una orden de estudio en curso para este número.' } }];\nreturn [{ json: summarize(row.validation, row.status, row.order_number) }];"
+        "jsCode": "function summarize(v, status, orderNumber, senderKind) {\n  v = v || {};\n  const r = v.resolved || null;\n  const questions = (v.questions || []).map((q, i) => ({ number: i + 1, code: q.code, text: q.hint }));\n  const NEXT = { extracting: 'wait', needs_input: 'answer_questions', awaiting_confirmation: 'ask_sede_date_time', order_created: 'book_slot' };\n  return {\n    has_intake: true,\n    status,\n    // §27: un doctor manda la orden de un paciente suyo. Se le habla al doctor; el paciente es un tercero.\n    sent_by_doctor: senderKind === 'doctor',\n    next_step: questions.length ? 'answer_questions' : (NEXT[status] || 'none'),\n    order_number: orderNumber || null,\n    patient: v.patient ? { name: v.patient.name, document: v.patient.document, will_be_registered: v.patient.status === 'register' } : null,\n    studies: r ? r.items.map((i) => ({ name: i.service_name, duration_minutes: i.duration_minutes })) : [],\n    total_duration_minutes: r ? r.total_duration_minutes : null,\n    referring_doctor_as_written: r ? r.referring_doctor_name : null,\n    questions,\n    already_has_open_order: v.duplicate_of ? v.duplicate_of.order_number : null,\n    warnings: (v.warnings || []).map((w) => w.code),\n  };\n}\nconst row = $input.first().json || {};\nif (!row.id) return [{ json: { has_intake: false, message: 'No hay una orden de estudio en curso para este número.' } }];\nreturn [{ json: summarize(row.validation, row.status, row.order_number, row.sender_kind) }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -249,7 +249,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- $1 = teléfono. La orden en curso de ese número (una sola por teléfono).\nSELECT i.id::text AS id, i.phone, i.status, i.validation, i.slots_offered,\n       i.study_order_id::text AS study_order_id, i.patient_id::text AS patient_id,\n       i.chosen_sede_id, i.booking_attempts,\n       (SELECT o.order_number FROM study_orders o WHERE o.id = i.study_order_id) AS order_number\n  FROM whatsapp_order_intakes i\n WHERE i.phone = $1\n   AND i.status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n   AND i.expires_at > now()\n ORDER BY i.created_at DESC\n LIMIT 1;",
+        "query": "-- $1 = teléfono. La orden en curso de ese número (una sola por teléfono).\nSELECT i.id::text AS id, i.phone, i.status, i.validation, i.slots_offered,\n       i.study_order_id::text AS study_order_id, i.patient_id::text AS patient_id,\n       i.chosen_sede_id, i.booking_attempts,\n       i.sender_kind, i.sender_user_id::text AS sender_user_id,\n       (SELECT o.order_number FROM study_orders o WHERE o.id = i.study_order_id) AS order_number,\n       (SELECT o.status FROM study_orders o WHERE o.id = i.study_order_id) AS order_status\n  FROM whatsapp_order_intakes i\n WHERE i.phone = $1\n   AND i.status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n   AND i.expires_at > now()\n ORDER BY i.created_at DESC\n LIMIT 1;",
         "options": {
           "queryReplacement": "={{ [ $json.phone ] }}"
         }
@@ -272,7 +272,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Traduce la respuesta del usuario a lo que entiende el validador. Las preguntas se identifican por\n// su número; el modelo nunca maneja ids de servicio.\nconst inp = $('Answer: Parse').first().json;\nconst row = $input.first().json || {};\nif (!row.id) return [{ json: { __fail: { error_code: 'no_intake', message: 'No hay una orden en curso.' } } }];\nconst q = ((row.validation && row.validation.questions) || [])[inp.n - 1];\nif (!q) return [{ json: { __fail: { error_code: 'bad_question', message: 'Esa pregunta no existe: llamá a get_order_intake.' } } }];\nconst a = inp.answer;\n// Sin \b: en JavaScript la \"í\" de \"sí\" no es carácter de palabra y no marcaría el límite.\nconst yes = /^\\s*(s[ií]|sip|claro|correcto|exacto|as[ií] es|ok|dale|confirmo|esta bien|está bien)(?![a-záéíóúñ])/i.test(a);\nconst no = /^\\s*(no|nop|incorrecto|no es|no est[aá])(?![a-záéíóúñ])/i.test(a);\n// \"Ya está\", \"esas son\", \"no tengo otra\", \"ya te la mandé\": no tiene nada más para mandar.\nconst noMore = /(^|[^a-záéíóúñ])(no (la |lo |las |los )?(tengo|tiene|hay)|ya est[aá]|es todo|esas? son|son esas?|ya (te )?(la |las |lo |los )?(mand[eé]|envi[eé])|ya tiene todo|est[aá] complet[ao]|complet[ao]|s[oó]lo (esa|esas|eso|una)|una sola|no se puede|no puedo|mejor no)(?![a-záéíóúñ])/i.test(a);\n// \"Ahora te la mando\", \"ahí va\": todavía va a mandar el archivo.\nconst willSend = /((te )?(la|las|lo|los) )?(mando|env[ií]o|paso|saco)(?![a-záéíóúñ])|ah[ií] va|un momento|esper[aá]/i.test(a) && !noMore;\nconst answers = { confirmed: [], removed: [], overrides: {} };\nswitch (q.code) {\n  case 'confirm_line':\n    if (yes) answers.confirmed.push(q.external_id);\n    else if (no) answers.removed.push(q.external_id);\n    else return [{ json: { __fail: { error_code: 'need_yes_no', message: 'Respondé sí o no: ¿ese estudio está en la orden?' } } }];\n    break;\n  case 'missing_patient_document':\n  case 'invalid_patient_document':\n    answers.overrides.patient_document = a;\n    break;\n  case 'missing_patient_name':\n    answers.overrides.patient_name = a;\n    break;\n  case 'missing_other_side':\n    // Si la orden tiene otra cara, la respuesta es la foto. Solo se espera la foto cuando dice que\n    // la va a mandar; cualquier otra respuesta en texto (\"no\", \"ya está\", \"esas son\", algo que no se\n    // entiende) cuenta como que no hay otra cara y se sigue con la advertencia: nunca se repregunta.\n    if ((yes || willSend) && !no && !noMore) {\n      return [{ json: { __fail: { error_code: 'send_other_side', message: 'Pedile que mande la otra cara por este chat como foto o PDF. Si después dice que no tiene, llamá de nuevo con su respuesta.' } } }];\n    }\n    answers.overrides.no_other_side = true;\n    break;\n  case 'resend':\n    // Se le pidió reenviar la orden y contestó con texto. Si dice que la va a mandar, se espera la\n    // foto. Si dice que eso es todo lo que tiene (\"ya está\", \"esas son\", \"no tengo otra\"), no hay\n    // nada más que pedirle: se revalida con no_better_file y el validador deriva a una persona.\n    if ((yes || willSend) && !no && !noMore) {\n      return [{ json: { __fail: { error_code: 'send_file', message: 'Pedile que mande la foto o el PDF por este chat. Si después dice que no tiene otra, llamá de nuevo con su respuesta: no le vuelvas a pedir la foto.' } } }];\n    }\n    answers.overrides.no_better_file = true;\n    break;\n  case 'confirm_sender_is_patient':\n    // Quien escribe no está registrado: ¿la orden es suya o de otra persona (un familiar, un paciente\n    // de un doctor)? \"Sí\" vale para el documento de esa orden; \"no\" (o \"es de mi hijo\", \"es para un\n    // paciente\") deriva. Si no se entiende, se repregunta.\n    const self = /(^|[^a-záéíóúñ])(es m[ií]a|soy yo|soy (el|la) paciente|para m[ií])(?![a-záéíóúñ])/i.test(a);\n    const other = /(^|[^a-záéíóúñ])(no es m[ií]a|no soy yo|otra persona|otro paciente|un paciente|una paciente|mi paciente|hij[oa]s?|madre|padre|mam[aá]|pap[aá]|espos[oa]|herman[oa]|famil[a-z]*|abuel[oa]|niet[oa]|sobrin[oa]|pareja|novi[oa]|amig[oa])(?![a-záéíóúñ])/i.test(a);\n    if (self && !no && !other) {\n      answers.overrides.sender_patient_document = q.document;\n    } else if (no || other) {\n      answers.overrides.sender_not_patient = true;\n    } else if (yes) {\n      answers.overrides.sender_patient_document = q.document;\n    } else {\n      return [{ json: { __fail: { error_code: 'need_yes_no', message: 'Preguntale de nuevo si la orden es para él o ella, o para otra persona.' } } }];\n    }\n    break;\n  case 'confirm_patient':\n    if (!yes) return [{ json: { __fail: { error_code: 'needs_human', message: 'El usuario no confirma sus datos: derivá a recepción con handoff_order.' } } }];\n    break;\n  default:\n    return [{ json: { __fail: { error_code: 'not_answerable', message: 'Esa pregunta se resuelve enviando de nuevo la foto o el PDF de la orden.' } } }];\n}\nreturn [{ json: { intake_id: row.id, phone: inp.phone, answers: JSON.stringify(answers) } }];"
+        "jsCode": "// Traduce la respuesta del usuario a lo que entiende el validador. Las preguntas se identifican por\n// su número; el modelo nunca maneja ids de servicio.\nconst inp = $('Answer: Parse').first().json;\nconst row = $input.first().json || {};\nif (!row.id) return [{ json: { __fail: { error_code: 'no_intake', message: 'No hay una orden en curso.' } } }];\nconst q = ((row.validation && row.validation.questions) || [])[inp.n - 1];\nif (!q) return [{ json: { __fail: { error_code: 'bad_question', message: 'Esa pregunta no existe: llamá a get_order_intake.' } } }];\nconst a = inp.answer;\n// Sin \b: en JavaScript la \"í\" de \"sí\" no es carácter de palabra y no marcaría el límite.\nconst yes = /^\\s*(s[ií]|sip|claro|correcto|exacto|as[ií] es|ok|dale|confirmo|esta bien|está bien)(?![a-záéíóúñ])/i.test(a);\nconst no = /^\\s*(no|nop|incorrecto|no es|no est[aá])(?![a-záéíóúñ])/i.test(a);\n// \"Ya está\", \"esas son\", \"no tengo otra\", \"ya te la mandé\": no tiene nada más para mandar.\nconst noMore = /(^|[^a-záéíóúñ])(no (la |lo |las |los )?(tengo|tiene|hay)|ya est[aá]|es todo|esas? son|son esas?|ya (te )?(la |las |lo |los )?(mand[eé]|envi[eé])|ya tiene todo|est[aá] complet[ao]|complet[ao]|s[oó]lo (esa|esas|eso|una)|una sola|no se puede|no puedo|mejor no)(?![a-záéíóúñ])/i.test(a);\n// \"Ahora te la mando\", \"ahí va\": todavía va a mandar el archivo.\nconst willSend = /((te )?(la|las|lo|los) )?(mando|env[ií]o|paso|saco)(?![a-záéíóúñ])|ah[ií] va|un momento|esper[aá]/i.test(a) && !noMore;\nconst answers = { confirmed: [], removed: [], overrides: {} };\nswitch (q.code) {\n  case 'confirm_line':\n    if (yes) answers.confirmed.push(q.external_id);\n    else if (no) answers.removed.push(q.external_id);\n    else return [{ json: { __fail: { error_code: 'need_yes_no', message: 'Respondé sí o no: ¿ese estudio está en la orden?' } } }];\n    break;\n  case 'missing_patient_document':\n  case 'invalid_patient_document':\n    // \"No la tengo\" / \"no sé\" (sin números) no es un documento: el validador deriva en lugar de\n    // tomar el texto como cédula.\n    if (!/d/.test(a) && (no || noMore || /no (la |lo )?s[eé]|no tengo|no la tiene/i.test(a))) answers.overrides.no_patient_document = true;\n    else answers.overrides.patient_document = a;\n    break;\n  case 'missing_patient_name':\n    answers.overrides.patient_name = a;\n    break;\n  case 'missing_other_side':\n    // Si la orden tiene otra cara, la respuesta es la foto. Solo se espera la foto cuando dice que\n    // la va a mandar; cualquier otra respuesta en texto (\"no\", \"ya está\", \"esas son\", algo que no se\n    // entiende) cuenta como que no hay otra cara y se sigue con la advertencia: nunca se repregunta.\n    if ((yes || willSend) && !no && !noMore) {\n      return [{ json: { __fail: { error_code: 'send_other_side', message: 'Pedile que mande la otra cara por este chat como foto o PDF. Si después dice que no tiene, llamá de nuevo con su respuesta.' } } }];\n    }\n    answers.overrides.no_other_side = true;\n    break;\n  case 'resend':\n    // Se le pidió reenviar la orden y contestó con texto. Si dice que la va a mandar, se espera la\n    // foto. Si dice que eso es todo lo que tiene (\"ya está\", \"esas son\", \"no tengo otra\"), no hay\n    // nada más que pedirle: se revalida con no_better_file y el validador deriva a una persona.\n    if ((yes || willSend) && !no && !noMore) {\n      return [{ json: { __fail: { error_code: 'send_file', message: 'Pedile que mande la foto o el PDF por este chat. Si después dice que no tiene otra, llamá de nuevo con su respuesta: no le vuelvas a pedir la foto.' } } }];\n    }\n    answers.overrides.no_better_file = true;\n    break;\n  case 'confirm_sender_is_patient':\n    // Quien escribe no está registrado: ¿la orden es suya o de otra persona (un familiar, un paciente\n    // de un doctor)? \"Sí\" vale para el documento de esa orden; \"no\" (o \"es de mi hijo\", \"es para un\n    // paciente\") deriva. Si no se entiende, se repregunta.\n    const self = /(^|[^a-záéíóúñ])(es m[ií]a|soy yo|soy (el|la) paciente|para m[ií])(?![a-záéíóúñ])/i.test(a);\n    const other = /(^|[^a-záéíóúñ])(no es m[ií]a|no soy yo|otra persona|otro paciente|un paciente|una paciente|mi paciente|hij[oa]s?|madre|padre|mam[aá]|pap[aá]|espos[oa]|herman[oa]|famil[a-z]*|abuel[oa]|niet[oa]|sobrin[oa]|pareja|novi[oa]|amig[oa])(?![a-záéíóúñ])/i.test(a);\n    if (self && !no && !other) {\n      answers.overrides.sender_patient_document = q.document;\n    } else if (no || other) {\n      answers.overrides.sender_not_patient = true;\n    } else if (yes) {\n      answers.overrides.sender_patient_document = q.document;\n    } else {\n      return [{ json: { __fail: { error_code: 'need_yes_no', message: 'Preguntale de nuevo si la orden es para él o ella, o para otra persona.' } } }];\n    }\n    break;\n  case 'missing_patient_phone': {\n    // Modo doctor (§27): el teléfono del paciente (obligatorio para buscarlo o registrarlo). Mismo\n    // criterio que normalizePhone del validador.\n    let d = a.replace(/\\D/g, '');\n    if (/^0\\d{8}$/.test(d)) d = '598' + d.slice(1);\n    else if (/^[2-9]\\d{7}$/.test(d)) d = '598' + d;\n    if (d.length >= 10 && d.length <= 15) answers.overrides.patient_phone = '+' + d;\n    // Sin teléfono no se registra al paciente: el validador deriva (missing_patient_data).\n    else if (no || noMore || /no (lo |la )?s[eé]|no tengo|ninguno|sin tel[eé]fono/i.test(a)) answers.overrides.no_patient_phone = true;\n    else return [{ json: { __fail: { error_code: 'bad_phone_answer', message: 'Eso no parece un teléfono. Pedile el número del paciente (ej. 099 123 456) o que diga si no lo tiene.' } } }];\n    break;\n  }\n  case 'confirm_patient':\n    if (!yes) return [{ json: { __fail: { error_code: 'needs_human', message: 'El usuario no confirma sus datos: derivá a recepción con handoff_order.' } } }];\n    break;\n  default:\n    return [{ json: { __fail: { error_code: 'not_answerable', message: 'Esa pregunta se resuelve enviando de nuevo la foto o el PDF de la orden.' } } }];\n}\nreturn [{ json: { intake_id: row.id, phone: inp.phone, answers: JSON.stringify(answers) } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -381,7 +381,7 @@
     },
     {
       "parameters": {
-        "jsCode": "function summarize(v, status, orderNumber) {\n  v = v || {};\n  const r = v.resolved || null;\n  const questions = (v.questions || []).map((q, i) => ({ number: i + 1, code: q.code, text: q.hint }));\n  const NEXT = { extracting: 'wait', needs_input: 'answer_questions', awaiting_confirmation: 'ask_sede_date_time', order_created: 'book_slot' };\n  return {\n    has_intake: true,\n    status,\n    next_step: questions.length ? 'answer_questions' : (NEXT[status] || 'none'),\n    order_number: orderNumber || null,\n    patient: v.patient ? { name: v.patient.name, document: v.patient.document, will_be_registered: v.patient.status === 'register' } : null,\n    studies: r ? r.items.map((i) => ({ name: i.service_name, duration_minutes: i.duration_minutes })) : [],\n    total_duration_minutes: r ? r.total_duration_minutes : null,\n    referring_doctor_as_written: r ? r.referring_doctor_name : null,\n    questions,\n    already_has_open_order: v.duplicate_of ? v.duplicate_of.order_number : null,\n    warnings: (v.warnings || []).map((w) => w.code),\n  };\n}\nconst phone = $('Answer: Parse').first().json.phone;\nconst r = $input.first().json || {};\nif (r.outcome === 'handoff') {\n  return [{ json: { outcome: 'handoff', phone, intake_id: $('Answer: Build Answers').first().json.intake_id,\n    reason_code: r.handoff_reason, detail: r.handoff_detail || '' } }];\n}\nconst v = { questions: r.questions, resolved: r.resolved, patient: r.patient, warnings: r.warnings, duplicate_of: r.duplicate_of };\nreturn [{ json: { outcome: r.outcome, phone, summary: summarize(v, r.status, null) } }];"
+        "jsCode": "function summarize(v, status, orderNumber, senderKind) {\n  v = v || {};\n  const r = v.resolved || null;\n  const questions = (v.questions || []).map((q, i) => ({ number: i + 1, code: q.code, text: q.hint }));\n  const NEXT = { extracting: 'wait', needs_input: 'answer_questions', awaiting_confirmation: 'ask_sede_date_time', order_created: 'book_slot' };\n  return {\n    has_intake: true,\n    status,\n    // §27: un doctor manda la orden de un paciente suyo. Se le habla al doctor; el paciente es un tercero.\n    sent_by_doctor: senderKind === 'doctor',\n    next_step: questions.length ? 'answer_questions' : (NEXT[status] || 'none'),\n    order_number: orderNumber || null,\n    patient: v.patient ? { name: v.patient.name, document: v.patient.document, will_be_registered: v.patient.status === 'register' } : null,\n    studies: r ? r.items.map((i) => ({ name: i.service_name, duration_minutes: i.duration_minutes })) : [],\n    total_duration_minutes: r ? r.total_duration_minutes : null,\n    referring_doctor_as_written: r ? r.referring_doctor_name : null,\n    questions,\n    already_has_open_order: v.duplicate_of ? v.duplicate_of.order_number : null,\n    warnings: (v.warnings || []).map((w) => w.code),\n  };\n}\nconst phone = $('Answer: Parse').first().json.phone;\nconst r = $input.first().json || {};\nif (r.outcome === 'handoff') {\n  return [{ json: { outcome: 'handoff', phone, intake_id: $('Answer: Build Answers').first().json.intake_id,\n    reason_code: r.handoff_reason, detail: r.handoff_detail || '' } }];\n}\nconst v = { questions: r.questions, resolved: r.resolved, patient: r.patient, warnings: r.warnings, duplicate_of: r.duplicate_of };\nreturn [{ json: { outcome: r.outcome, phone, summary: summarize(v, r.status, null, ($('Answer: Load').first().json || {}).sender_kind) } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -843,7 +843,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- $1 = teléfono. La orden en curso de ese número (una sola por teléfono).\nSELECT i.id::text AS id, i.phone, i.status, i.validation, i.slots_offered,\n       i.study_order_id::text AS study_order_id, i.patient_id::text AS patient_id,\n       i.chosen_sede_id, i.booking_attempts,\n       (SELECT o.order_number FROM study_orders o WHERE o.id = i.study_order_id) AS order_number\n  FROM whatsapp_order_intakes i\n WHERE i.phone = $1\n   AND i.status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n   AND i.expires_at > now()\n ORDER BY i.created_at DESC\n LIMIT 1;",
+        "query": "-- $1 = teléfono. La orden en curso de ese número (una sola por teléfono).\nSELECT i.id::text AS id, i.phone, i.status, i.validation, i.slots_offered,\n       i.study_order_id::text AS study_order_id, i.patient_id::text AS patient_id,\n       i.chosen_sede_id, i.booking_attempts,\n       i.sender_kind, i.sender_user_id::text AS sender_user_id,\n       (SELECT o.order_number FROM study_orders o WHERE o.id = i.study_order_id) AS order_number,\n       (SELECT o.status FROM study_orders o WHERE o.id = i.study_order_id) AS order_status\n  FROM whatsapp_order_intakes i\n WHERE i.phone = $1\n   AND i.status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n   AND i.expires_at > now()\n ORDER BY i.created_at DESC\n LIMIT 1;",
         "options": {
           "queryReplacement": "={{ [ $json.phone ] }}"
         }
@@ -1109,7 +1109,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- $1 = teléfono. Estado para reservar y el usuario de servicio \"Agente WhatsApp\" (migración 122),\n-- que es el actor con el que se crea, envía y agenda la orden.\nSELECT i.id::text AS id, i.phone, i.status, i.validation, i.slots_offered,\n       i.study_order_id::text AS study_order_id, i.patient_id::text AS patient_id,\n       i.chosen_sede_id, i.booking_attempts,\n       (SELECT min(u.id::text) FROM users u\n         WHERE u.email = 'agente-whatsapp@sistema.invokeia.invalid' AND u.is_active IS NOT FALSE) AS agent_user_id,\n       (SELECT o.order_number FROM study_orders o WHERE o.id = i.study_order_id) AS order_number\n  FROM whatsapp_order_intakes i\n WHERE i.phone = $1\n   AND i.status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n   AND i.expires_at > now()\n ORDER BY i.created_at DESC\n LIMIT 1;",
+        "query": "-- $1 = teléfono. Estado para reservar y el usuario de servicio \"Agente WhatsApp\" (migración 122),\n-- que es el actor con el que se crea, envía y agenda la orden.\nSELECT i.id::text AS id, i.phone, i.status, i.validation, i.slots_offered,\n       i.study_order_id::text AS study_order_id, i.patient_id::text AS patient_id,\n       i.chosen_sede_id, i.booking_attempts,\n       (SELECT min(u.id::text) FROM users u\n         WHERE u.email = 'agente-whatsapp@sistema.invokeia.invalid' AND u.is_active IS NOT FALSE) AS agent_user_id,\n       i.sender_kind, i.sender_user_id::text AS sender_user_id,\n       (SELECT o.order_number FROM study_orders o WHERE o.id = i.study_order_id) AS order_number,\n       (SELECT o.status FROM study_orders o WHERE o.id = i.study_order_id) AS order_status\n  FROM whatsapp_order_intakes i\n WHERE i.phone = $1\n   AND i.status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n   AND i.expires_at > now()\n ORDER BY i.created_at DESC\n LIMIT 1;",
         "options": {
           "queryReplacement": "={{ [ $json.phone ] }}"
         }
@@ -1132,7 +1132,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const inp = $('Book: Parse').first().json;\nconst row = $input.first().json || {};\nconst fail = (error_code, message, bump = false) => [{ json: { __fail: { error_code, message, bump } } }];\nif (!row.id) return fail('no_intake', 'No hay una orden en curso.');\nif (!['awaiting_confirmation', 'order_created'].includes(row.status)) return fail('not_ready', 'La orden todavía tiene preguntas pendientes (get_order_intake).');\nif ((row.booking_attempts || 0) >= 2) return fail('too_many_failures', 'Ya falló dos veces: derivá a una persona con handoff_order (motivo booking_failed).');\n// Sin el usuario de servicio no hay con quién crear la orden. Es configuración, no algo del usuario.\nif (!row.agent_user_id) return fail('agent_user_missing', 'Falta el usuario de servicio \"Agente WhatsApp\" (migración 122). No es un problema del usuario: derivá a una persona con handoff_order (motivo system_error).');\nconst v = row.validation || {};\nif (!v.resolved || !v.patient) return fail('not_ready', 'La orden no está validada.');\nconst slot = ((row.slots_offered && row.slots_offered.slots) || []).find((s) => s.n === inp.n);\nif (!slot) return fail('bad_slot', 'Ese horario no está en la lista ofrecida: llamá a list_order_slots de nuevo.');\nconst sede = ((row.slots_offered && row.slots_offered.sedes) || []).find((s) => s.id === row.slots_offered.chosen_sede_id);\nconst p = v.patient;\n// Tipo de documento: cédula uruguaya si el dígito verificador cierra; pasaporte; si no, cédula extranjera.\nconst doc = String(p.document || '');\nfunction uy(d) {\n  if (!/^\\d{7,8}$/.test(d)) return false;\n  const body = d.slice(0, -1).padStart(7, '0'); const w = [2, 9, 8, 7, 6, 3, 4];\n  return (10 - (body.split('').reduce((a, c, i) => a + Number(c) * w[i], 0) % 10)) % 10 === Number(d.slice(-1));\n}\nconst docType = p.document_type === 'passport' ? 'pasaporte_ext' : (uy(doc) ? 'cedula_uy' : 'cedula_ext');\nreturn [{ json: {\n  intake_id: row.id, phone: row.phone, study_order_id: row.study_order_id || '', order_number: row.order_number || null,\n  agent_user_id: row.agent_user_id,\n  patient: { ...p, document_type: docType }, resolved: v.resolved, slot, sede: sede || null,\n} }];"
+        "jsCode": "const inp = $('Book: Parse').first().json;\nconst row = $input.first().json || {};\nconst fail = (error_code, message, bump = false) => [{ json: { __fail: { error_code, message, bump } } }];\nif (!row.id) return fail('no_intake', 'No hay una orden en curso.');\nif (!['awaiting_confirmation', 'order_created'].includes(row.status)) return fail('not_ready', 'La orden todavía tiene preguntas pendientes (get_order_intake).');\nif ((row.booking_attempts || 0) >= 2) return fail('too_many_failures', 'Ya falló dos veces: derivá a una persona con handoff_order (motivo booking_failed).');\n// Sin el usuario de servicio no hay con quién crear la orden. Es configuración, no algo del usuario.\nif (!row.agent_user_id) return fail('agent_user_missing', 'Falta el usuario de servicio \"Agente WhatsApp\" (migración 122). No es un problema del usuario: derivá a una persona con handoff_order (motivo system_error).');\nconst v = row.validation || {};\nif (!v.resolved || !v.patient) return fail('not_ready', 'La orden no está validada.');\nconst slot = ((row.slots_offered && row.slots_offered.slots) || []).find((s) => s.n === inp.n);\nif (!slot) return fail('bad_slot', 'Ese horario no está en la lista ofrecida: llamá a list_order_slots de nuevo.');\nconst sede = ((row.slots_offered && row.slots_offered.sedes) || []).find((s) => s.id === row.slots_offered.chosen_sede_id);\nconst p = v.patient;\n// Tipo de documento: cédula uruguaya si el dígito verificador cierra; pasaporte; si no, cédula extranjera.\nconst doc = String(p.document || '');\nfunction uy(d) {\n  if (!/^\\d{7,8}$/.test(d)) return false;\n  const body = d.slice(0, -1).padStart(7, '0'); const w = [2, 9, 8, 7, 6, 3, 4];\n  return (10 - (body.split('').reduce((a, c, i) => a + Number(c) * w[i], 0) % 10)) % 10 === Number(d.slice(-1));\n}\nconst docType = p.document_type === 'passport' ? 'pasaporte_ext' : (uy(doc) ? 'cedula_uy' : 'cedula_ext');\n// Un doctor manda la orden de un paciente (§27): él es el derivador y el teléfono del paciente es el\n// que validó el validador (de la orden o del chat), nunca el del doctor. Si no, quien escribe es el paciente.\nconst byDoctor = row.sender_kind === 'doctor' && !!row.sender_user_id;\nreturn [{ json: {\n  intake_id: row.id, phone: row.phone, study_order_id: row.study_order_id || '', order_number: row.order_number || null,\n  order_status: row.order_status || '',\n  agent_user_id: row.agent_user_id,\n  doctor_id: byDoctor ? row.sender_user_id : '',\n  patient_phone: byDoctor ? (p.phone || '') : row.phone,\n  patient: { ...p, document_type: docType }, resolved: v.resolved, slot, sede: sede || null,\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1180,9 +1180,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Idempotente: si el paciente ya existe no inserta; si hay que asociarle el teléfono o la cédula, se hace\n-- sólo donde estaban vacíos. $1 tipo, $2 id, $3 nombre, $4 teléfono, $5 cédula, $6 tipo de documento,\n-- $7 asociar teléfono, $8 guardar cédula.\nWITH input AS (\n  SELECT $1::text AS kind, NULLIF($2, '')::uuid AS pid, $3::text AS name, $4::text AS phone,\n         NULLIF($5, '') AS doc, $6::text AS doc_type, $7::boolean AS attach_phone, $8::boolean AS set_doc\n),\nins AS (\n  INSERT INTO users (name, phone_number, identity_document, identity_document_type, is_active)\n  SELECT name, phone, doc, doc_type, true FROM input WHERE kind = 'register' AND pid IS NULL\n  RETURNING id\n),\nrole AS (\n  INSERT INTO user_roles (user_id, role_id)\n  SELECT ins.id, r.id FROM ins, roles r WHERE r.name = 'paciente'\n  ON CONFLICT (user_id, role_id) DO NOTHING\n  RETURNING user_id\n),\nupd AS (\n  UPDATE users u\n     SET phone_number = COALESCE(NULLIF(u.phone_number, ''), i.phone),\n         identity_document = CASE WHEN i.set_doc THEN COALESCE(NULLIF(u.identity_document, ''), i.doc) ELSE u.identity_document END\n    FROM input i\n   WHERE u.id = i.pid AND (i.attach_phone OR i.set_doc)\n  RETURNING u.id\n)\nSELECT COALESCE((SELECT pid FROM input), (SELECT id FROM ins))::text AS patient_id,\n       (SELECT count(*) FROM role) AS role_rows,\n       (SELECT count(*) FROM upd) AS updated;",
+        "query": "-- Idempotente: si el paciente ya existe no inserta; si hay que asociarle el teléfono o la cédula, se hace\n-- sólo donde estaban vacíos. $1 tipo, $2 id, $3 nombre, $4 teléfono, $5 cédula, $6 tipo de documento,\n-- $7 asociar teléfono, $8 guardar cédula.\nWITH input AS (\n  SELECT $1::text AS kind, NULLIF($2, '')::uuid AS pid, $3::text AS name, $4::text AS phone,\n         NULLIF($5, '') AS doc, $6::text AS doc_type, $7::boolean AS attach_phone, $8::boolean AS set_doc\n),\nins AS (\n  INSERT INTO users (name, phone_number, identity_document, identity_document_type, is_active)\n  SELECT name, NULLIF(phone, ''), doc, doc_type, true FROM input WHERE kind = 'register' AND pid IS NULL\n  RETURNING id\n),\nrole AS (\n  INSERT INTO user_roles (user_id, role_id)\n  SELECT ins.id, r.id FROM ins, roles r WHERE r.name = 'paciente'\n  ON CONFLICT (user_id, role_id) DO NOTHING\n  RETURNING user_id\n),\nupd AS (\n  UPDATE users u\n     SET phone_number = COALESCE(NULLIF(u.phone_number, ''), NULLIF(i.phone, '')),\n         identity_document = CASE WHEN i.set_doc THEN COALESCE(NULLIF(u.identity_document, ''), i.doc) ELSE u.identity_document END\n    FROM input i\n   WHERE u.id = i.pid AND (i.attach_phone OR i.set_doc)\n  RETURNING u.id\n)\nSELECT COALESCE((SELECT pid FROM input), (SELECT id FROM ins))::text AS patient_id,\n       (SELECT count(*) FROM role) AS role_rows,\n       (SELECT count(*) FROM upd) AS updated;",
         "options": {
-          "queryReplacement": "={{ [ $json.patient.status, $json.patient.patient_id || '', $json.patient.name, $json.phone, $json.patient.document || '', $json.patient.document_type, !!$json.patient.attach_phone, !!$json.patient.set_document ] }}"
+          "queryReplacement": "={{ [ $json.patient.status, $json.patient.patient_id || '', $json.patient.name, $json.patient_phone, $json.patient.document || '', $json.patient.document_type, !!$json.patient.attach_phone, !!$json.patient.set_document ] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -1260,7 +1260,7 @@
           "conditions": [
             {
               "id": "Book: Order Exists?-c1",
-              "leftValue": "={{ !!$json.study_order_id }}",
+              "leftValue": "={{ !!$json.study_order_id && $json.order_status !== 'draft' }}",
               "rightValue": true,
               "operator": {
                 "type": "boolean",
@@ -1284,7 +1284,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Mismo payload y mismas validaciones que \"Validar Datos\" de POST /study-orders/upsert: el SQL\n// (UPSERT_SQL) es el mismo, así que tiene que recibir lo mismo.\nconst c = $input.first().json;\nconst r = c.resolved || {};\nconst str = (v) => (v ?? '').toString().trim();\nconst fail = (message) => [{ json: { __fail: { error_code: 'order_create_failed', message, bump: true } } }];\nconst name = str(c.patient && c.patient.name);\nif (!name) return fail('No se pudo crear la orden: falta el nombre del paciente.');\nconst items = Array.isArray(r.items) ? r.items : [];\nif (items.length === 0) return fail('No se pudo crear la orden: no tiene estudios.');\nif (items.some((i) => !i.service_id || !i.section_code)) return fail('No se pudo crear la orden: hay un estudio sin servicio o sección.');\nconst payload = {\n  id: '',\n  doctor_id: '',\n  // La orden de WhatsApp no se vincula a ningún doctor: el del papel queda como texto.\n  without_doctor: true,\n  source: 'whatsapp',\n  referring_doctor_name: str(r.referring_doctor_name),\n  source_intake_id: str(c.intake_id),\n  patient_id: str(c.patient_id),\n  patient_name: name,\n  patient_document: str(c.patient.document),\n  patient_email: '',\n  patient_phone: str(c.phone),\n  regions: r.regions ?? {},\n  section_modifiers: r.section_modifiers ?? {},\n  texts: r.texts ?? {},\n  delivery_methods: r.delivery_methods ?? [],\n  clinical_notes: (r.clinical_notes ?? '').toString(),\n  preferred_sede_id: c.sede ? str(c.sede.id) : '',\n  items: items.map((i) => ({\n    service_id: str(i.service_id), service_name: str(i.service_name), section_code: str(i.section_code),\n    sort_order: Number(i.sort_order) || 0, quantity: 1, modifiers: i.modifiers ?? {}, notes: str(i.notes),\n  })),\n};\nreturn [{ json: { ...c, order_payload: JSON.stringify(payload) } }];"
+        "jsCode": "// Mismo payload y mismas validaciones que \"Validar Datos\" de POST /study-orders/upsert: el SQL\n// (UPSERT_SQL) es el mismo, así que tiene que recibir lo mismo.\nconst c = $input.first().json;\nconst r = c.resolved || {};\nconst str = (v) => (v ?? '').toString().trim();\nconst fail = (message) => [{ json: { __fail: { error_code: 'order_create_failed', message, bump: true } } }];\nconst name = str(c.patient && c.patient.name);\nif (!name) return fail('No se pudo crear la orden: falta el nombre del paciente.');\nconst items = Array.isArray(r.items) ? r.items : [];\nif (items.length === 0) return fail('No se pudo crear la orden: no tiene estudios.');\nif (items.some((i) => !i.service_id || !i.section_code)) return fail('No se pudo crear la orden: hay un estudio sin servicio o sección.');\nconst payload = {\n  // El borrador de un intento anterior (falló el envío) se reutiliza: UPSERT_SQL lo actualiza.\n  id: c.order_status === 'draft' ? str(c.study_order_id) : '',\n  // La orden que manda un paciente no se vincula a ningún doctor (el del papel queda como texto); la\n  // que manda un doctor queda a su nombre, como si la hubiera cargado en el portal (§27).\n  doctor_id: str(c.doctor_id),\n  without_doctor: !str(c.doctor_id),\n  source: 'whatsapp',\n  referring_doctor_name: str(r.referring_doctor_name),\n  source_intake_id: str(c.intake_id),\n  patient_id: str(c.patient_id),\n  patient_name: name,\n  patient_document: str(c.patient.document),\n  patient_email: '',\n  patient_phone: str(c.patient_phone),\n  regions: r.regions ?? {},\n  section_modifiers: r.section_modifiers ?? {},\n  texts: r.texts ?? {},\n  delivery_methods: r.delivery_methods ?? [],\n  clinical_notes: (r.clinical_notes ?? '').toString(),\n  preferred_sede_id: c.sede ? str(c.sede.id) : '',\n  items: items.map((i) => ({\n    service_id: str(i.service_id), service_name: str(i.service_name), section_code: str(i.section_code),\n    sort_order: Number(i.sort_order) || 0, quantity: 1, modifiers: i.modifiers ?? {}, notes: str(i.notes),\n  })),\n};\nreturn [{ json: { ...c, order_payload: JSON.stringify(payload) } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1370,9 +1370,34 @@
     {
       "parameters": {
         "operation": "executeQuery",
+        "query": "UPDATE whatsapp_order_intakes\n   SET study_order_id = $2::uuid, patient_id = $3::uuid\n WHERE id = $1::uuid\nRETURNING id::text AS id;",
+        "options": {
+          "queryReplacement": "={{ [ $json.intake_id, $json.new_order_id, $json.patient_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3750,
+        1680
+      ],
+      "id": "oa-63",
+      "name": "Book: Save Draft Id",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
         "query": "\n-- $1 userId (token)  $2 id\n-- Sella el envío. El WHERE es el candado: una orden que ya salió de borrador,\n-- o que no es del sujeto, no actualiza nada y el flujo responde 409.\n--\n-- Orden creada por recepción desde una DERIVACIÓN de WhatsApp (source_intake_id apunta a un\n-- intake en handed_off sin resolver): enviarla resuelve la derivación y la vincula a esta\n-- orden. Si el intake ya tenía una orden (la que había creado el agente, p. ej. \"la orden\n-- cambió\" porque llegó el dorso), esta la REEMPLAZA: la anterior se anula y sus citas\n-- vigentes pasan a la nueva, así no se pierde lo agendado. Todo en la misma sentencia.\n-- El agente también envía con source_intake_id, pero su intake nunca está en handed_off.\n--\n-- Puntos a revisar BLOQUEANTES (el borrador que se crea al derivar): mientras quede alguno\n-- pendiente la orden no sale. Siempre devuelve una fila: con id nulo y pending_review > 0, el\n-- flujo responde 409 diciendo cuántos faltan.\nWITH \nperms AS (\n    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL')  AS can_view_all,\n           bool_or(p.code = 'STUDY_ORDERS_CREATE_FOR_DOCTOR') AS can_create_for_doctor,\n           bool_or(p.code = 'STUDY_ORDERS_CANCEL')    AS can_cancel,\n           bool_or(p.code = 'STUDY_ORDERS_ACKNOWLEDGE') AS can_acknowledge,\n           bool_or(p.code = 'STUDY_ORDERS_SCHEDULE') AS can_schedule\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code LIKE 'STUDY_ORDERS_%'\n),\npending_review AS (\n    SELECT 1 FROM public.study_orders so2, jsonb_array_elements(coalesce(so2.review_items, '[]'::jsonb)) r\n     WHERE so2.id = $2::uuid\n       AND coalesce((r ->> 'blocking')::boolean, false)\n       AND r ->> 'status' = 'pending'\n),\nupdated AS (\n    UPDATE public.study_orders so\n       SET status = 'submitted', submitted_at = (now() AT TIME ZONE 'America/Montevideo')\n     WHERE so.id = $2::uuid\n       AND so.status = 'draft'\n       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))\n       AND EXISTS (SELECT 1 FROM public.study_order_items i\n                    WHERE i.study_order_id = so.id AND i.is_cancelled = false)\n       AND NOT EXISTS (SELECT 1 FROM pending_review)\n    RETURNING so.id, so.order_number, so.doctor_id, so.patient_name, so.submitted_at, so.source_intake_id\n),\nintake AS (\n    SELECT wi.id, wi.study_order_id AS old_order_id, u.id AS new_order_id, u.order_number\n      FROM updated u\n      JOIN public.whatsapp_order_intakes wi ON wi.id = u.source_intake_id\n     WHERE wi.status = 'handed_off'\n       AND wi.resolved_at IS NULL\n),\nresolved_intake AS (\n    UPDATE public.whatsapp_order_intakes wi\n       SET resolved_at = (now() AT TIME ZONE 'America/Montevideo'),\n           resolved_by = $1::uuid,\n           study_order_id = i.new_order_id,\n           resolution_note = coalesce(wi.resolution_note, 'Orden ' || i.order_number || ' creada desde la derivación')\n      FROM intake i\n     WHERE wi.id = i.id\n    RETURNING wi.id\n),\nreplaced AS (\n    UPDATE public.study_orders so\n       SET status = 'cancelled', cancelled_at = (now() AT TIME ZONE 'America/Montevideo'),\n           cancellation_reason = 'Reemplazada por la orden ' || i.order_number || ' (derivación de WhatsApp)'\n      FROM intake i\n     WHERE so.id = i.old_order_id\n       AND so.id <> i.new_order_id\n       AND so.status IN ('draft', 'submitted')\n       -- Anular la orden del agente exige el mismo permiso que anularla desde la bandeja.\n       AND coalesce((SELECT can_cancel FROM perms), false)\n    RETURNING so.id, i.new_order_id, i.order_number AS new_order_number\n),\nmoved AS (\n    UPDATE public.appointments a\n       SET study_order_id = r.new_order_id, updated_at = (now() AT TIME ZONE 'America/Montevideo')\n      FROM replaced r\n     WHERE a.study_order_id = r.id\n       AND a.status NOT IN ('canceled', 'cancelled', 'deleted')\n    RETURNING a.id\n),\nreplaced_event AS (\n    -- Bitácora de la orden anulada: queda dicho por cuál se reemplazó y cuántas citas se movieron.\n    INSERT INTO public.study_order_events (study_order_id, event_type, actor_id, actor_kind, metadata)\n    SELECT r.id, 'cancelled', $1::uuid, 'user',\n           jsonb_build_object('reason', 'replaced', 'replaced_by_order_id', r.new_order_id::text,\n                              'replaced_by_order_number', r.new_order_number,\n                              'moved_appointments', (SELECT count(*) FROM moved))\n      FROM replaced r\n    RETURNING id\n)\nSELECT u.id::text, u.order_number, u.doctor_id::text, u.patient_name, u.submitted_at,\n       d.name AS doctor_name,\n       (SELECT count(*) FROM public.study_order_items i WHERE i.study_order_id = u.id) AS items_total,\n       (SELECT count(*) FROM resolved_intake) > 0 AS resolved_handoff,\n       (SELECT min(o.order_number) FROM public.study_orders o WHERE o.id IN (SELECT id FROM replaced)) AS replaced_order_number,\n       (SELECT count(*) FROM moved) AS moved_appointments,\n       (SELECT count(*) FROM pending_review) AS pending_review\n  FROM (SELECT 1) one\n  LEFT JOIN updated u ON true\n  LEFT JOIN public.users d ON d.id = u.doctor_id;",
         "options": {
-          "queryReplacement": "={{ [ $json.agent_user_id, $json.new_order_id ] }}"
+          "queryReplacement": "={{ [ $('Book: Check Upsert').first().json.agent_user_id, $('Book: Check Upsert').first().json.new_order_id ] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -1381,7 +1406,7 @@
         3880,
         1680
       ],
-      "id": "oa-63",
+      "id": "oa-64",
       "name": "Book: Submit Order",
       "credentials": {
         "postgres": {
@@ -1402,7 +1427,7 @@
         4140,
         1680
       ],
-      "id": "oa-64",
+      "id": "oa-65",
       "name": "Book: Check Submit"
     },
     {
@@ -1436,12 +1461,12 @@
         4400,
         1680
       ],
-      "id": "oa-65",
+      "id": "oa-66",
       "name": "Book: Submit OK?"
     },
     {
       "parameters": {
-        "jsCode": "const c = $('Book: Check Submit').first().json;\nreturn ['created', 'submitted'].map((event_type) => ({ json: {\n  payload: JSON.stringify({ order_id: c.new_order_id, event_type, actor_id: c.agent_user_id }),\n} }));"
+        "jsCode": "const c = $('Book: Check Submit').first().json;\n// Un borrador reenviado (falló el envío en un intento anterior) ya tiene su 'created'.\nreturn (c.order_status === 'draft' ? ['submitted'] : ['created', 'submitted']).map((event_type) => ({ json: {\n  payload: JSON.stringify({ order_id: c.new_order_id, event_type, actor_id: c.agent_user_id }),\n} }));"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1449,7 +1474,7 @@
         4660,
         1500
       ],
-      "id": "oa-66",
+      "id": "oa-67",
       "name": "Book: New Order Events"
     },
     {
@@ -1466,7 +1491,7 @@
         4920,
         1400
       ],
-      "id": "oa-67",
+      "id": "oa-68",
       "name": "Book: Log New Order",
       "credentials": {
         "postgres": {
@@ -1490,7 +1515,7 @@
         4920,
         1500
       ],
-      "id": "oa-68",
+      "id": "oa-69",
       "name": "Book: Notify New Order",
       "credentials": {
         "postgres": {
@@ -1532,7 +1557,7 @@
         5180,
         1500
       ],
-      "id": "oa-69",
+      "id": "oa-70",
       "name": "Book: New Order Recipient?"
     },
     {
@@ -1560,7 +1585,7 @@
         5440,
         1500
       ],
-      "id": "oa-70",
+      "id": "oa-71",
       "name": "Book: Push New Order",
       "onError": "continueRegularOutput"
     },
@@ -1578,7 +1603,7 @@
         4660,
         1680
       ],
-      "id": "oa-71",
+      "id": "oa-72",
       "name": "Book: Save Review Items",
       "credentials": {
         "postgres": {
@@ -1603,7 +1628,7 @@
         4660,
         1680
       ],
-      "id": "oa-72",
+      "id": "oa-73",
       "name": "Book: Save Order",
       "credentials": {
         "postgres": {
@@ -1623,7 +1648,7 @@
         4920,
         1680
       ],
-      "id": "oa-73",
+      "id": "oa-74",
       "name": "Book: Order Ready"
     },
     {
@@ -1640,7 +1665,7 @@
         5180,
         1680
       ],
-      "id": "oa-74",
+      "id": "oa-75",
       "name": "Book: Recheck Slot",
       "credentials": {
         "postgres": {
@@ -1660,7 +1685,7 @@
         5440,
         1680
       ],
-      "id": "oa-75",
+      "id": "oa-76",
       "name": "Book: Check Slot"
     },
     {
@@ -1694,7 +1719,7 @@
         5700,
         1680
       ],
-      "id": "oa-76",
+      "id": "oa-77",
       "name": "Book: Slot Free?"
     },
     {
@@ -1707,7 +1732,7 @@
         5960,
         1680
       ],
-      "id": "oa-77",
+      "id": "oa-78",
       "name": "Book: Make Token"
     },
     {
@@ -1724,7 +1749,7 @@
         6220,
         1680
       ],
-      "id": "oa-78",
+      "id": "oa-79",
       "name": "Book: Booking Token",
       "credentials": {
         "postgres": {
@@ -1745,7 +1770,7 @@
         6480,
         1680
       ],
-      "id": "oa-79",
+      "id": "oa-80",
       "name": "Book: Check Token"
     },
     {
@@ -1779,7 +1804,7 @@
         6740,
         1680
       ],
-      "id": "oa-80",
+      "id": "oa-81",
       "name": "Book: Token OK?"
     },
     {
@@ -1796,7 +1821,7 @@
         7000,
         1680
       ],
-      "id": "oa-81",
+      "id": "oa-82",
       "name": "Book: Public Book",
       "credentials": {
         "postgres": {
@@ -1817,7 +1842,7 @@
         7260,
         1680
       ],
-      "id": "oa-82",
+      "id": "oa-83",
       "name": "Book: Check Booking"
     },
     {
@@ -1851,7 +1876,7 @@
         7520,
         1680
       ],
-      "id": "oa-83",
+      "id": "oa-84",
       "name": "Book: Booked OK?"
     },
     {
@@ -1864,7 +1889,7 @@
         7780,
         1500
       ],
-      "id": "oa-84",
+      "id": "oa-85",
       "name": "Book: Booking Events"
     },
     {
@@ -1881,7 +1906,7 @@
         8040,
         1400
       ],
-      "id": "oa-85",
+      "id": "oa-86",
       "name": "Book: Log Booking",
       "credentials": {
         "postgres": {
@@ -1905,7 +1930,7 @@
         8040,
         1500
       ],
-      "id": "oa-86",
+      "id": "oa-87",
       "name": "Book: Notify Booking",
       "credentials": {
         "postgres": {
@@ -1946,7 +1971,7 @@
         8300,
         1500
       ],
-      "id": "oa-87",
+      "id": "oa-88",
       "name": "Book: Booking Recipient?"
     },
     {
@@ -1974,7 +1999,7 @@
         8560,
         1500
       ],
-      "id": "oa-88",
+      "id": "oa-89",
       "name": "Book: Push Booking",
       "onError": "continueRegularOutput"
     },
@@ -1992,7 +2017,7 @@
         7780,
         1680
       ],
-      "id": "oa-89",
+      "id": "oa-90",
       "name": "Book: Save Booking",
       "credentials": {
         "postgres": {
@@ -2012,7 +2037,7 @@
         8040,
         1680
       ],
-      "id": "oa-90",
+      "id": "oa-91",
       "name": "Book: Format"
     },
     {
@@ -2029,7 +2054,7 @@
         8300,
         1680
       ],
-      "id": "oa-91",
+      "id": "oa-92",
       "name": "Book: Respond"
     },
     {
@@ -2063,7 +2088,7 @@
         1800,
         1940
       ],
-      "id": "oa-92",
+      "id": "oa-93",
       "name": "Book: Count Attempt?"
     },
     {
@@ -2080,7 +2105,7 @@
         2060,
         1940
       ],
-      "id": "oa-93",
+      "id": "oa-94",
       "name": "Book: Bump Attempts",
       "credentials": {
         "postgres": {
@@ -2100,7 +2125,7 @@
         2320,
         1940
       ],
-      "id": "oa-94",
+      "id": "oa-95",
       "name": "Book: Attach Attempts"
     },
     {
@@ -2117,7 +2142,7 @@
         2580,
         1940
       ],
-      "id": "oa-95",
+      "id": "oa-96",
       "name": "Book: Respond Fail"
     },
     {
@@ -2150,7 +2175,7 @@
         240,
         2100
       ],
-      "id": "oa-97",
+      "id": "oa-98",
       "name": "Handoff: Webhook",
       "credentials": {
         "httpHeaderAuth": {
@@ -2162,7 +2187,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const b = $json.body || {};\nconst phone = '+' + String(b.phone || '').replace(/\\D/g, '');\nif (phone.length < 9) return [{ json: { __fail: { error_code: 'bad_phone', message: 'Falta el teléfono.' } } }];\nconst ALLOWED = ['service_not_found', 'unreadable', 'low_confidence', 'patient_mismatch', 'booking_failed', 'user_request', 'system_error', 'order_changed'];\nconst reason = ALLOWED.includes(b.reason_code) ? b.reason_code : 'user_request';\n// Cuando deriva el validador (extracción o revalidación), 'Save Result' ya dejó el intake en\n// handed_off y el UPDATE de 'Handoff: Mark Intake' no lo encuentra: quien llama manda su id para\n// que el aviso igual lleve el paciente y el original.\nconst intakeId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(b.intake_id || '')) ? String(b.intake_id) : '';\nreturn [{ json: { phone, reason, detail: String(b.detail || '').trim().slice(0, 300), intake_id: intakeId } }];"
+        "jsCode": "const b = $json.body || {};\nconst phone = '+' + String(b.phone || '').replace(/\\D/g, '');\nif (phone.length < 9) return [{ json: { __fail: { error_code: 'bad_phone', message: 'Falta el teléfono.' } } }];\nconst ALLOWED = ['service_not_found', 'unreadable', 'low_confidence', 'patient_mismatch', 'booking_failed', 'user_request', 'system_error', 'order_changed', 'missing_patient_data'];\nconst reason = ALLOWED.includes(b.reason_code) ? b.reason_code : 'user_request';\n// Cuando deriva el validador (extracción o revalidación), 'Save Result' ya dejó el intake en\n// handed_off y el UPDATE de 'Handoff: Mark Intake' no lo encuentra: quien llama manda su id para\n// que el aviso igual lleve el paciente y el original.\nconst intakeId = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(b.intake_id || '')) ? String(b.intake_id) : '';\nreturn [{ json: { phone, reason, detail: String(b.detail || '').trim().slice(0, 300), intake_id: intakeId } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -2170,7 +2195,7 @@
         500,
         2100
       ],
-      "id": "oa-98",
+      "id": "oa-99",
       "name": "Handoff: Parse"
     },
     {
@@ -2204,13 +2229,13 @@
         760,
         2100
       ],
-      "id": "oa-99",
+      "id": "oa-100",
       "name": "Handoff: Input OK?"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- $1 teléfono, $2 motivo, $3 detalle, $4 id de un intake que el validador ya derivó (o vacío).\n-- Marca como derivado el intake en curso (si hay uno) y trae el primer original para que recepción\n-- lo abra desde el aviso. Si no hay uno en curso y vino $4:\n--   - si ese intake está agendado (booked: llegó otro archivo que cambia una orden con cita), también\n--     se marca como derivado, para que recepción lo vea en \"Derivadas\" (la cita y la orden no se tocan);\n--   - si ya está derivado y sin resolver, solo se usa para leer el paciente y el original.\nWITH upd AS (\n  UPDATE whatsapp_order_intakes\n     SET status = 'handed_off', handoff_reason = $2, handoff_detail = NULLIF($3, '')\n   WHERE phone = $1\n     AND (status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n          OR ($4::text <> '' AND id = NULLIF($4::text, '')::uuid AND status = 'booked'\n              AND NOT EXISTS (SELECT 1 FROM whatsapp_order_intakes x\n                               WHERE x.phone = $1 AND x.status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created'))))\n  RETURNING id, validation, extraction_meta, study_order_id\n),\nprev AS (\n  SELECT i.id, i.validation, i.extraction_meta, i.study_order_id\n    FROM whatsapp_order_intakes i\n   WHERE $4::text <> '' AND i.id = NULLIF($4::text, '')::uuid AND i.phone = $1\n     AND i.status = 'handed_off' AND i.resolved_at IS NULL\n     AND NOT EXISTS (SELECT 1 FROM upd)\n),\ntarget AS (\n  SELECT id, validation, extraction_meta, study_order_id FROM upd\n  UNION ALL\n  SELECT id, validation, extraction_meta, study_order_id FROM prev\n)\n-- Para el borrador que se crea al derivar: lo que se alcanzó a armar (el de la última lectura con la\n-- orden ya creada, el que guardó el validador o la orden lista), lo que hay que revisar, el paciente\n-- validado, si ya hay un borrador de esta derivación y el usuario de servicio que lo crea.\nSELECT (SELECT id::text FROM target) AS intake_id,\n       (SELECT validation -> 'patient' ->> 'name' FROM target) AS patient_name,\n       (SELECT a.web_view_link FROM attachments a, target\n         WHERE a.source_name = 'whatsapp_order_intake' AND a.source_id = target.id::text\n         ORDER BY a.id LIMIT 1) AS first_file,\n       (SELECT min(u.id::text) FROM users u\n         WHERE u.phone_number = $1 AND COALESCE(u.is_active, true) HAVING count(*) = 1) AS patient_id,\n       (SELECT coalesce(extraction_meta -> 'late_files' -> -1 -> 'draft',\n                        validation -> 'draft', validation -> 'resolved') FROM target) AS draft,\n       (SELECT coalesce(extraction_meta -> 'late_files' -> -1 -> 'review_items',\n                        validation -> 'review_items', '[]'::jsonb) FROM target) AS review_items,\n       (SELECT validation -> 'patient' FROM target) AS validated_patient,\n       (SELECT study_order_id::text FROM target) AS study_order_id,\n       (SELECT o.id::text FROM study_orders o, target\n         WHERE o.source_intake_id = target.id AND o.status = 'draft' LIMIT 1) AS existing_draft_id,\n       (SELECT id::text FROM users WHERE email = 'agente-whatsapp@sistema.invokeia.invalid' LIMIT 1) AS agent_user_id;",
+        "query": "-- $1 teléfono, $2 motivo, $3 detalle, $4 id de un intake que el validador ya derivó (o vacío).\n-- Marca como derivado el intake en curso (si hay uno) y trae el primer original para que recepción\n-- lo abra desde el aviso. Si no hay uno en curso y vino $4:\n--   - si ese intake está agendado (booked: llegó otro archivo que cambia una orden con cita), también\n--     se marca como derivado, para que recepción lo vea en \"Derivadas\" (la cita y la orden no se tocan);\n--   - si ya está derivado y sin resolver, solo se usa para leer el paciente y el original.\nWITH upd AS (\n  UPDATE whatsapp_order_intakes\n     SET status = 'handed_off', handoff_reason = $2, handoff_detail = NULLIF($3, '')\n   WHERE phone = $1\n     AND (status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created')\n          OR ($4::text <> '' AND id = NULLIF($4::text, '')::uuid AND status = 'booked'\n              AND NOT EXISTS (SELECT 1 FROM whatsapp_order_intakes x\n                               WHERE x.phone = $1 AND x.status IN ('extracting', 'needs_input', 'awaiting_confirmation', 'order_created'))))\n  RETURNING id, validation, extraction_meta, study_order_id, sender_kind, sender_user_id\n),\nprev AS (\n  SELECT i.id, i.validation, i.extraction_meta, i.study_order_id, i.sender_kind, i.sender_user_id\n    FROM whatsapp_order_intakes i\n   WHERE $4::text <> '' AND i.id = NULLIF($4::text, '')::uuid AND i.phone = $1\n     AND i.status = 'handed_off' AND i.resolved_at IS NULL\n     AND NOT EXISTS (SELECT 1 FROM upd)\n),\ntarget AS (\n  SELECT id, validation, extraction_meta, study_order_id, sender_kind, sender_user_id FROM upd\n  UNION ALL\n  SELECT id, validation, extraction_meta, study_order_id, sender_kind, sender_user_id FROM prev\n)\n-- Para el borrador que se crea al derivar: lo que se alcanzó a armar (el de la última lectura con la\n-- orden ya creada, el que guardó el validador o la orden lista), lo que hay que revisar, el paciente\n-- validado, si ya hay un borrador de esta derivación y el usuario de servicio que lo crea.\nSELECT (SELECT id::text FROM target) AS intake_id,\n       (SELECT validation -> 'patient' ->> 'name' FROM target) AS patient_name,\n       (SELECT a.web_view_link FROM attachments a, target\n         WHERE a.source_name = 'whatsapp_order_intake' AND a.source_id = target.id::text\n         ORDER BY a.id LIMIT 1) AS first_file,\n       -- El paciente del aviso: quien escribe, salvo que sea un doctor con la orden de otro (§27): entonces\n       -- el que resolvió el validador (si ya existía) o ninguno.\n       CASE WHEN (SELECT sender_kind FROM target) = 'doctor'\n            THEN (SELECT CASE WHEN validation -> 'patient' ->> 'status' = 'existing'\n                              THEN validation -> 'patient' ->> 'patient_id' END FROM target)\n            ELSE (SELECT min(u.id::text) FROM users u\n                   WHERE normalize_phone_uy(u.phone_number) = normalize_phone_uy($1) AND COALESCE(u.is_active, true) HAVING count(*) = 1)\n       END AS patient_id,\n       (SELECT sender_kind FROM target) AS sender_kind,\n       (SELECT sender_user_id::text FROM target) AS sender_user_id,\n       (SELECT coalesce(extraction_meta -> 'late_files' -> -1 -> 'draft',\n                        validation -> 'draft', validation -> 'resolved') FROM target) AS draft,\n       (SELECT coalesce(extraction_meta -> 'late_files' -> -1 -> 'review_items',\n                        validation -> 'review_items', '[]'::jsonb) FROM target) AS review_items,\n       (SELECT validation -> 'patient' FROM target) AS validated_patient,\n       (SELECT study_order_id::text FROM target) AS study_order_id,\n       (SELECT o.id::text FROM study_orders o, target\n         WHERE o.source_intake_id = target.id AND o.status = 'draft' LIMIT 1) AS existing_draft_id,\n       (SELECT id::text FROM users WHERE email = 'agente-whatsapp@sistema.invokeia.invalid' LIMIT 1) AS agent_user_id;",
         "options": {
           "queryReplacement": "={{ [ $json.phone, $json.reason, $json.detail, $json.intake_id ] }}"
         }
@@ -2221,7 +2246,7 @@
         1020,
         2100
       ],
-      "id": "oa-100",
+      "id": "oa-101",
       "name": "Handoff: Mark Intake",
       "credentials": {
         "postgres": {
@@ -2233,7 +2258,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Cuando el agente pide una persona, la orden queda en BORRADOR y de origen WhatsApp (docs §21-22):\n// recepción la encuentra en la bandeja con WhatsApp + Borradores, la corrige y la envía.\n//   create  borrador nuevo con lo que el agente alcanzó a leer (vacío si no leyó nada: quedan los\n//           originales), sin doctor. Sus puntos a revisar frenan el envío.\n//   attach  ya hay un borrador de esta derivación (un aviso anterior): se le agregan los puntos nuevos.\n//   skip    el agente ya había creado y enviado la orden (p. ej. falló la reserva): no se toca, sale\n//           solo el aviso. La orden ya está en la bandeja como pendiente de agendar.\n// Con \"la orden cambió\" la orden del agente se reemplaza: se crea el borrador de reemplazo.\nconst inp = $('Handoff: Parse').first().json;\nconst r = $input.first().json || {};\nconst skip = (why) => [{ json: { mode: 'skip', why } }];\nif (!r.intake_id) return skip('no_intake');\nif (!r.agent_user_id) return skip('agent_user_missing');\nconst LABEL = {\"service_not_found\":\"Hay estudios que no figuran en el sistema\",\"unreadable\":\"La orden no se pudo leer completa\",\"low_confidence\":\"Lectura dudosa que el paciente no pudo aclarar\",\"patient_mismatch\":\"El paciente de la orden no coincide con quien escribe\",\"booking_failed\":\"No se pudo agendar\",\"user_request\":\"El paciente pidió hablar con una persona\",\"system_error\":\"Error del sistema al procesar la orden\",\"order_changed\":\"Llegó otro archivo que cambia la orden ya creada\"};\n// El motivo de la derivación siempre es un punto a revisar: es lo que la persona tiene que resolver.\nconst review = [{ code: 'handoff_reason', field: inp.reason, label: LABEL[inp.reason] || inp.reason, detail: inp.detail || null }]\n  .concat(Array.isArray(r.review_items) ? r.review_items : []);\nif (r.existing_draft_id) {\n  return [{ json: { mode: 'attach', order_id: r.existing_draft_id, blocking: 'true', agent_user_id: r.agent_user_id, review_items: JSON.stringify(review) } }];\n}\nif (r.study_order_id && inp.reason !== 'order_changed') return skip('has_order');\nconst d = (r.draft && typeof r.draft === 'object') ? r.draft : { items: [] };\nconst vp = r.validated_patient || {};\nconst dp = d.patient || {};\nconst name = String(dp.name || vp.name || '').trim();\nconst items = (d.items || []).filter((i) => i && i.service_id).map((i, idx) => ({\n  service_id: String(i.service_id), service_name: i.service_name || '', section_code: i.section_code || '',\n  sort_order: Number.isFinite(Number(i.sort_order)) ? Number(i.sort_order) : idx, quantity: 1,\n  modifiers: i.modifiers || {}, notes: i.notes || '',\n}));\nif (!name) review.push({ code: 'unreadable', field: 'patient.name', label: 'No se pudo leer el nombre del paciente', detail: 'El borrador quedó con un nombre provisorio.' });\nif (items.length === 0) review.push({ code: 'unreadable', field: 'items', label: 'No se pudo ubicar ningún estudio', detail: 'Cargá los estudios mirando el original.' });\nconst payload = {\n  without_doctor: true,\n  source: 'whatsapp',\n  source_intake_id: r.intake_id,\n  referring_doctor_name: d.referring_doctor_name || '',\n  patient_id: vp.status === 'existing' && vp.patient_id ? String(vp.patient_id) : '',\n  patient_name: name || ('Paciente sin identificar (WhatsApp ' + inp.phone + ')'),\n  patient_document: String(dp.document || vp.document || ''),\n  patient_phone: inp.phone,\n  regions: d.regions || {},\n  section_modifiers: d.section_modifiers || {},\n  texts: d.texts || {},\n  delivery_methods: d.delivery_methods || [],\n  clinical_notes: d.clinical_notes || '',\n  items,\n};\nreturn [{ json: { mode: 'create', blocking: 'true', agent_user_id: r.agent_user_id, payload: JSON.stringify(payload), review_items: JSON.stringify(review) } }];"
+        "jsCode": "// Cuando el agente pide una persona, la orden queda en BORRADOR y de origen WhatsApp (docs §21-22):\n// recepción la encuentra en la bandeja con WhatsApp + Borradores, la corrige y la envía.\n//   create  borrador nuevo con lo que el agente alcanzó a leer (vacío si no leyó nada: quedan los\n//           originales), sin doctor. Sus puntos a revisar frenan el envío.\n//   attach  ya hay un borrador de esta derivación (un aviso anterior): se le agregan los puntos nuevos.\n//   skip    el agente ya había creado y enviado la orden (p. ej. falló la reserva): no se toca, sale\n//           solo el aviso. La orden ya está en la bandeja como pendiente de agendar.\n// Con \"la orden cambió\" la orden del agente se reemplaza: se crea el borrador de reemplazo.\nconst inp = $('Handoff: Parse').first().json;\nconst r = $input.first().json || {};\nconst skip = (why) => [{ json: { mode: 'skip', why } }];\nif (!r.intake_id) return skip('no_intake');\nif (!r.agent_user_id) return skip('agent_user_missing');\nconst LABEL = {\"service_not_found\":\"Hay estudios que no figuran en el sistema\",\"unreadable\":\"La orden no se pudo leer completa\",\"low_confidence\":\"Datos de la orden leídos con poca seguridad\",\"patient_mismatch\":\"El paciente de la orden no coincide con quien escribe\",\"booking_failed\":\"No se pudo agendar\",\"user_request\":\"El paciente pidió hablar con una persona\",\"system_error\":\"Error del sistema al procesar la orden\",\"order_changed\":\"Llegó otro archivo que cambia la orden ya creada\",\"missing_patient_data\":\"Faltan datos obligatorios del paciente para registrarlo\"};\n// El motivo de la derivación siempre es un punto a revisar: es lo que la persona tiene que resolver.\nconst review = [{ code: 'handoff_reason', field: inp.reason, label: LABEL[inp.reason] || inp.reason, detail: inp.detail || null }]\n  .concat(Array.isArray(r.review_items) ? r.review_items : []);\nif (r.existing_draft_id) {\n  return [{ json: { mode: 'attach', order_id: r.existing_draft_id, blocking: 'true', agent_user_id: r.agent_user_id, review_items: JSON.stringify(review) } }];\n}\nif (r.study_order_id && inp.reason !== 'order_changed') return skip('has_order');\nconst d = (r.draft && typeof r.draft === 'object') ? r.draft : { items: [] };\nconst vp = r.validated_patient || {};\nconst dp = d.patient || {};\nconst name = String(dp.name || vp.name || '').trim();\nconst items = (d.items || []).filter((i) => i && i.service_id).map((i, idx) => ({\n  service_id: String(i.service_id), service_name: i.service_name || '', section_code: i.section_code || '',\n  sort_order: Number.isFinite(Number(i.sort_order)) ? Number(i.sort_order) : idx, quantity: 1,\n  modifiers: i.modifiers || {}, notes: i.notes || '',\n}));\nif (!name) review.push({ code: 'unreadable', field: 'patient.name', label: 'No se pudo leer el nombre del paciente', detail: 'El borrador quedó con un nombre provisorio.' });\nif (items.length === 0) review.push({ code: 'unreadable', field: 'items', label: 'No se pudo ubicar ningún estudio', detail: 'Cargá los estudios mirando el original.' });\n// La derivación de un doctor queda a su nombre y sin su teléfono como el del paciente (§27).\nconst byDoctor = r.sender_kind === 'doctor' && !!r.sender_user_id;\nconst payload = {\n  doctor_id: byDoctor ? r.sender_user_id : '',\n  without_doctor: !byDoctor,\n  source: 'whatsapp',\n  source_intake_id: r.intake_id,\n  referring_doctor_name: d.referring_doctor_name || '',\n  patient_id: vp.status === 'existing' && vp.patient_id ? String(vp.patient_id) : '',\n  patient_name: name || ('Paciente sin identificar (WhatsApp ' + inp.phone + ')'),\n  patient_document: String(dp.document || vp.document || ''),\n  patient_phone: byDoctor ? String(vp.phone || '') : inp.phone,\n  regions: d.regions || {},\n  section_modifiers: d.section_modifiers || {},\n  texts: d.texts || {},\n  delivery_methods: d.delivery_methods || [],\n  clinical_notes: d.clinical_notes || '',\n  items,\n};\nreturn [{ json: { mode: 'create', blocking: 'true', agent_user_id: r.agent_user_id, payload: JSON.stringify(payload), review_items: JSON.stringify(review) } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -2241,7 +2266,7 @@
         1280,
         2100
       ],
-      "id": "oa-101",
+      "id": "oa-102",
       "name": "Handoff: Build Draft"
     },
     {
@@ -2275,7 +2300,7 @@
         1540,
         2100
       ],
-      "id": "oa-102",
+      "id": "oa-103",
       "name": "Handoff: Create Draft?"
     },
     {
@@ -2292,7 +2317,7 @@
         1800,
         2100
       ],
-      "id": "oa-103",
+      "id": "oa-104",
       "name": "Handoff: Upsert Draft",
       "credentials": {
         "postgres": {
@@ -2334,7 +2359,7 @@
         2060,
         2100
       ],
-      "id": "oa-104",
+      "id": "oa-105",
       "name": "Handoff: Draft Created?"
     },
     {
@@ -2368,7 +2393,7 @@
         1800,
         2100
       ],
-      "id": "oa-105",
+      "id": "oa-106",
       "name": "Handoff: Attach To Order?"
     },
     {
@@ -2381,7 +2406,7 @@
         2320,
         2100
       ],
-      "id": "oa-106",
+      "id": "oa-107",
       "name": "Handoff: Target Order"
     },
     {
@@ -2398,7 +2423,7 @@
         2580,
         2100
       ],
-      "id": "oa-107",
+      "id": "oa-108",
       "name": "Handoff: Save Review Items",
       "credentials": {
         "postgres": {
@@ -2440,7 +2465,7 @@
         2840,
         2100
       ],
-      "id": "oa-108",
+      "id": "oa-109",
       "name": "Handoff: Was Created?"
     },
     {
@@ -2457,7 +2482,7 @@
         3100,
         2100
       ],
-      "id": "oa-109",
+      "id": "oa-110",
       "name": "Handoff: Log Draft",
       "credentials": {
         "postgres": {
@@ -2470,7 +2495,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const inp = $('Handoff: Parse').first().json;\nconst r = $('Handoff: Mark Intake').first().json || {};\n// Número del borrador de la derivación (el nuevo o uno anterior): el aviso lo nombra\n// para que recepción la abra desde la bandeja.\nlet draftNumber = null;\ntry {\n  if ($('Handoff: Save Review Items').isExecuted) draftNumber = $('Handoff: Save Review Items').first().json.order_number || null;\n} catch (e) { draftNumber = null; }\nconst LABEL = { service_not_found: 'estudio que no figura en el sistema', unreadable: 'orden ilegible o con datos faltantes',\n  low_confidence: 'lectura dudosa', patient_mismatch: 'paciente distinto de quien escribe', booking_failed: 'no se pudo agendar',\n  user_request: 'el usuario pidió hablar con una persona', system_error: 'error del sistema',\n  order_changed: 'la orden ya creada recibió otro archivo que la cambia' };\nconst reason = ('Orden de estudio: ' + (LABEL[inp.reason] || inp.reason) + (inp.detail ? ' — ' + inp.detail : '')\n  + (draftNumber ? ' | Borrador ' + draftNumber + ' para revisar' : '')\n  + (r.first_file ? ' | Original: ' + r.first_file : '')).slice(0, 490);\nreturn [{ json: { phone: inp.phone, patient_id: r.patient_id || '', patient_name: r.patient_name || '',\n  last_message: inp.detail || LABEL[inp.reason] || '', reason, draft_order_number: draftNumber } }];"
+        "jsCode": "const inp = $('Handoff: Parse').first().json;\nconst r = $('Handoff: Mark Intake').first().json || {};\n// Número del borrador de la derivación (el nuevo o uno anterior): el aviso lo nombra\n// para que recepción la abra desde la bandeja.\nlet draftNumber = null;\ntry {\n  if ($('Handoff: Save Review Items').isExecuted) draftNumber = $('Handoff: Save Review Items').first().json.order_number || null;\n} catch (e) { draftNumber = null; }\nconst LABEL = { service_not_found: 'estudio que no figura en el sistema', unreadable: 'orden ilegible o con datos faltantes',\n  low_confidence: 'lectura dudosa', patient_mismatch: 'paciente distinto de quien escribe', booking_failed: 'no se pudo agendar',\n  user_request: 'el usuario pidió hablar con una persona', system_error: 'error del sistema',\n  order_changed: 'la orden ya creada recibió otro archivo que la cambia',\n  missing_patient_data: 'faltan datos obligatorios del paciente para registrarlo' };\nconst reason = ('Orden de estudio: ' + (LABEL[inp.reason] || inp.reason) + (inp.detail ? ' — ' + inp.detail : '')\n  + (draftNumber ? ' | Borrador ' + draftNumber + ' para revisar' : '')\n  + (r.first_file ? ' | Original: ' + r.first_file : '')).slice(0, 490);\nreturn [{ json: { phone: inp.phone, patient_id: r.patient_id || '', patient_name: r.patient_name || '',\n  last_message: inp.detail || LABEL[inp.reason] || '', reason, draft_order_number: draftNumber } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -2478,7 +2503,7 @@
         3360,
         2100
       ],
-      "id": "oa-110",
+      "id": "oa-111",
       "name": "Handoff: Build Request"
     },
     {
@@ -2506,7 +2531,7 @@
         3620,
         2100
       ],
-      "id": "oa-111",
+      "id": "oa-112",
       "name": "Handoff: Call Existing Handoff",
       "credentials": {
         "httpHeaderAuth": {
@@ -2525,7 +2550,7 @@
         3880,
         2100
       ],
-      "id": "oa-112",
+      "id": "oa-113",
       "name": "Handoff: Format"
     },
     {
@@ -2542,7 +2567,7 @@
         4140,
         2100
       ],
-      "id": "oa-113",
+      "id": "oa-114",
       "name": "Handoff: Respond"
     },
     {
@@ -2559,7 +2584,7 @@
         1020,
         2100
       ],
-      "id": "oa-114",
+      "id": "oa-115",
       "name": "Handoff: Respond Fail"
     }
   ],
@@ -3169,7 +3194,7 @@
       "main": [
         [
           {
-            "node": "Book: Submit Order",
+            "node": "Book: Save Draft Id",
             "type": "main",
             "index": 0
           }
@@ -3177,6 +3202,17 @@
         [
           {
             "node": "Book: Count Attempt?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Book: Save Draft Id": {
+      "main": [
+        [
+          {
+            "node": "Book: Submit Order",
             "type": "main",
             "index": 0
           }
