@@ -48,7 +48,18 @@ interface ZoomPanImageProps {
   highlight?: NormalizedBox | null;
   /** Cambia cada vez que se pide ir a la zona, aunque sea la misma (vuelve a centrarla). */
   highlightKey?: string | number;
+  /**
+   * Algo para mostrar pegado a la zona (arriba, o abajo si arriba no entra), a tamaño normal
+   * aunque la imagen tenga zoom. Se puede tocar sin arrastrar la imagen.
+   */
+  highlightContent?: React.ReactNode;
 }
+
+/** Ancho de lo que va pegado a la zona, y lo que se deja libre alrededor dentro del área. */
+const HIGHLIGHT_CONTENT_WIDTH = 256;
+const HIGHLIGHT_CONTENT_GAP = 8;
+/** Alto supuesto hasta medirlo (el contenido puede crecer: un campo para corregir, una nota). */
+const HIGHLIGHT_CONTENT_DEFAULT_HEIGHT = 130;
 
 /** Margen alrededor de la zona señalada (en milésimas): la ubicación del modelo es aproximada. */
 const HIGHLIGHT_PAD = 30;
@@ -66,7 +77,7 @@ function padBox(box: NormalizedBox): NormalizedBox {
   return { top, left, bottom, right };
 }
 
-export function ZoomPanImage({ src, alt = '', className, highlight = null, highlightKey }: ZoomPanImageProps) {
+export function ZoomPanImage({ src, alt = '', className, highlight = null, highlightKey, highlightContent }: ZoomPanImageProps) {
   const t = useTranslations('FileViewer');
   const [zoom, setZoom] = React.useState(1);
   const [position, setPosition] = React.useState({ x: 0, y: 0 });
@@ -74,14 +85,34 @@ export function ZoomPanImage({ src, alt = '', className, highlight = null, highl
   // El arrastre en curso vive en refs: un pointermove que llega antes del re-render no se pierde.
   const draggingRef = React.useRef(false);
   const dragStart = React.useRef({ x: 0, y: 0 });
+  /** Dedos apoyados (celular/tablet): con dos se hace zoom pellizcando en vez de arrastrar. */
+  const pointers = React.useRef(new Map<number, { x: number; y: number }>());
+  const pinchStart = React.useRef<{ distance: number; zoom: number } | null>(null);
   const areaRef = React.useRef<HTMLDivElement>(null);
   const imgRef = React.useRef<HTMLImageElement>(null);
   /** Caja de la imagen sin transformar (dentro del área): el resaltado se dibuja sobre ella. */
   const [frame, setFrame] = React.useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  /** Tamaño del área visible: para que lo pegado a la zona no se salga. */
+  const [areaSize, setAreaSize] = React.useState<{ width: number; height: number } | null>(null);
+  /** Lo pegado a la zona: se mide para decidir si entra arriba o va abajo. */
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
+  const [contentHeight, setContentHeight] = React.useState(HIGHLIGHT_CONTENT_DEFAULT_HEIGHT);
+  const contentObserver = React.useRef<ResizeObserver | null>(null);
+  const setContentNode = React.useCallback((node: HTMLDivElement | null) => {
+    contentObserver.current?.disconnect();
+    contentObserver.current = null;
+    contentRef.current = node;
+    if (!node || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => setContentHeight(node.offsetHeight));
+    observer.observe(node);
+    contentObserver.current = observer;
+  }, []);
   const zone = React.useMemo(() => (highlight ? padBox(highlight) : null), [highlight]);
 
   const measure = React.useCallback(() => {
     const img = imgRef.current;
+    const area = areaRef.current;
+    if (area) setAreaSize({ width: area.clientWidth, height: area.clientHeight });
     if (!img || !img.offsetWidth) return;
     setFrame({ left: img.offsetLeft, top: img.offsetTop, width: img.offsetWidth, height: img.offsetHeight });
   }, []);
@@ -119,6 +150,8 @@ export function ZoomPanImage({ src, alt = '', className, highlight = null, highl
     const area = areaRef.current;
     if (!area) return;
     const onWheel = (e: WheelEvent) => {
+      // Sobre lo pegado a la zona la rueda lo desplaza a él (si es alto), no hace zoom.
+      if (contentRef.current?.contains(e.target as Node)) return;
       e.preventDefault();
       const factor = e.deltaY < 0 ? 1.1 : 0.9;
       setZoom((prev) => clampZoom(prev * factor));
@@ -128,23 +161,44 @@ export function ZoomPanImage({ src, alt = '', className, highlight = null, highl
   }, []);
 
   // Eventos de puntero (mouse, lápiz o dedo): el arrastre también funciona en tablets.
+  const pinchDistance = () => {
+    const [a, b] = Array.from(pointers.current.values());
+    return Math.hypot(a.x - b.x, a.y - b.y) || 1;
+  };
+
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     e.preventDefault();
     // Con la captura el arrastre sigue aunque el puntero salga del área. Si no se puede
     // capturar, el arrastre funciona igual mientras el puntero esté adentro.
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* sin captura */ }
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.current.size === 2) {
+      // Segundo dedo: deja de arrastrar y empieza el pellizco.
+      draggingRef.current = false;
+      pinchStart.current = { distance: pinchDistance(), zoom };
+      return;
+    }
     draggingRef.current = true;
     setIsDragging(true);
     dragStart.current = { x: e.clientX - position.x, y: e.clientY - position.y };
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (pointers.current.has(e.pointerId)) pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinchStart.current && pointers.current.size === 2) {
+      setZoom(clampZoom(pinchStart.current.zoom * (pinchDistance() / pinchStart.current.distance)));
+      return;
+    }
     if (!draggingRef.current) return;
     setPosition({ x: e.clientX - dragStart.current.x, y: e.clientY - dragStart.current.y });
   };
 
-  const stopDragging = () => {
+  const stopDragging = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Al soltar un dedo del pellizco no se sigue arrastrando con el otro (evita un salto):
+    // el pellizco termina recién cuando no queda ninguno.
+    pointers.current.delete(e.pointerId);
+    if (pointers.current.size === 0) pinchStart.current = null;
     draggingRef.current = false;
     setIsDragging(false);
   };
@@ -152,6 +206,33 @@ export function ZoomPanImage({ src, alt = '', className, highlight = null, highl
   const zoomIn = () => setZoom((prev) => clampZoom(prev + ZOOM_STEP));
   const zoomOut = () => setZoom((prev) => clampZoom(prev - ZOOM_STEP));
   const reset = () => { setZoom(1); setPosition({ x: 0, y: 0 }); };
+
+  // Dónde queda la zona en pantalla. La imagen escala desde su centro y después se corre.
+  let contentStyle: React.CSSProperties | null = null;
+  if (zone && frame && areaSize && highlightContent) {
+    const toX = (v: number) => frame.left + frame.width / 2 + position.x + (v / 1000 - 0.5) * frame.width * zoom;
+    const toY = (v: number) => frame.top + frame.height / 2 + position.y + (v / 1000 - 0.5) * frame.height * zoom;
+    const width = Math.min(HIGHLIGHT_CONTENT_WIDTH, areaSize.width - HIGHLIGHT_CONTENT_GAP * 2);
+    const left = Math.max(HIGHLIGHT_CONTENT_GAP, Math.min(toX(zone.left), areaSize.width - width - HIGHLIGHT_CONTENT_GAP));
+    const top = toY(zone.top);
+    const bottom = toY(zone.bottom);
+    const gap = HIGHLIGHT_CONTENT_GAP;
+    // Arriba si entra, o si arriba hay más lugar que abajo. Si no entra en ningún lado se pega al
+    // borde (y puede tapar parte de la zona) antes que salirse del área.
+    const roomAbove = top - gap * 2;
+    const roomBelow = areaSize.height - bottom - gap * 2;
+    const above = roomAbove >= contentHeight || roomAbove >= roomBelow;
+    contentStyle = {
+      left,
+      width,
+      top: above
+        ? Math.max(gap, top - gap - contentHeight)
+        : Math.min(bottom + gap, Math.max(gap, areaSize.height - gap - contentHeight)),
+      maxHeight: areaSize.height - gap * 2,
+      overflowY: 'auto',
+      transition: isDragging ? 'none' : 'left 0.1s ease-out, top 0.1s ease-out',
+    };
+  }
 
   return (
     <div className={cn('flex flex-col h-full w-full min-h-0', className)}>
@@ -205,6 +286,18 @@ export function ZoomPanImage({ src, alt = '', className, highlight = null, highl
                 boxShadow: '0 0 0 100vmax rgba(0, 0, 0, 0.45)',
               }}
             />
+          </div>
+        )}
+        {contentStyle && (
+          // Fuera de la capa con zoom (así no se agranda) y sin iniciar el arrastre de la imagen.
+          <div
+            ref={setContentNode}
+            className="absolute z-10 cursor-auto"
+            style={contentStyle}
+            onPointerDown={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
+          >
+            {highlightContent}
           </div>
         )}
       </div>

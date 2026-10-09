@@ -9,12 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 
-import { hasSource, useReviewLocate } from './review-locate';
+import { hasSource, useReviewActions, useReviewLocate } from './review-locate';
+import { useReviewItemActions, useReviewUpdateToast } from './use-review-item-actions';
 
-import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
-import { useToast } from '@/hooks/use-toast';
+import { useAsyncAction } from '@/hooks/use-async-action';
 import { cn, formatDateTime } from '@/lib/utils';
-import type { StudyOrderReviewItem, StudyOrderReviewStatus, StudyOrderReviewUpdateResult } from '@/lib/types';
+import type { StudyOrderReviewItem, StudyOrderReviewStatus } from '@/lib/types';
 import { updateStudyOrderReviewItems } from '@/services/study-orders';
 
 /**
@@ -50,13 +50,13 @@ export function countPendingBlocking(items: StudyOrderReviewItem[] | null | unde
     return (items ?? []).filter((i) => i.blocking && i.status === 'pending').length;
 }
 
-const KNOWN_CODES = new Set([
+export const KNOWN_REVIEW_CODES = new Set([
     'handoff_reason', 'low_confidence', 'not_in_catalog', 'unreadable',
     'unplaced', 'possibly_incomplete', 'no_signature', 'old_order',
     'read_failed', 'invalid_document', 'patient_match', 'duplicate',
 ]);
 
-function confidencePercent(value: StudyOrderReviewItem['confidence']): number | null {
+export function confidencePercent(value: StudyOrderReviewItem['confidence']): number | null {
     if (value === null || value === undefined || value === '') return null;
     const n = Number(value);
     return Number.isFinite(n) ? Math.round(n * 100) : null;
@@ -64,8 +64,11 @@ function confidencePercent(value: StudyOrderReviewItem['confidence']): number | 
 
 export function StudyOrderReviewList({ orderId, items, canReview, onChanged, variant = 'full', className }: StudyOrderReviewListProps) {
     const t = useTranslations('StudyOrdersPage.review');
-    const { toast } = useToast();
+    const notifyUpdated = useReviewUpdateToast();
     const locate = useReviewLocate();
+    // Con el asistente de órdenes las acciones se comparten con la tarjeta sobre el original.
+    const ownActions = useReviewItemActions(orderId, onChanged);
+    const actions = useReviewActions() ?? ownActions;
     /** Notas en curso, por punto. Se abre el campo solo si la persona quiere dejar una. */
     const [notes, setNotes] = React.useState<Record<string, string>>({});
     const [noteOpen, setNoteOpen] = React.useState<Record<string, boolean>>({});
@@ -77,33 +80,20 @@ export function StudyOrderReviewList({ orderId, items, canReview, onChanged, var
     const pendingIds = React.useMemo(() => items.filter((i) => i.status === 'pending').map((i) => i.id), [items]);
     const selectedIds = React.useMemo(() => pendingIds.filter((id) => selected.has(id)), [pendingIds, selected]);
 
-    const afterUpdate = async (result: StudyOrderReviewUpdateResult, requested: number) => {
-        const skipped = requested - result.updated;
-        const description = [
-            skipped > 0 ? t('toast.skipped', { count: skipped }) : null,
-            result.pending_blocking > 0 ? t('toast.pendingBlocking', { count: result.pending_blocking }) : null,
-        ].filter(Boolean).join(' ');
-        toast({
-            title: requested > 1 ? t('toast.bulkUpdated', { count: result.updated }) : t('toast.updated'),
-            description: description || undefined,
-        });
-        const done = new Set(result.item_ids);
+    /** Lo ya marcado deja de estar seleccionado y pierde la nota en curso. */
+    const forget = (itemIds: string[]) => {
+        const done = new Set(itemIds);
         const keep = <T,>(prev: Record<string, T>) =>
             Object.fromEntries(Object.entries(prev).filter(([id]) => !done.has(id))) as Record<string, T>;
         setNotes(keep);
         setNoteOpen(keep);
         setSelected((prev) => new Set([...prev].filter((id) => !done.has(id))));
-        await onChanged?.();
     };
 
-    const mark = useKeyedAsyncAction(
-        (item: StudyOrderReviewItem, status: StudyOrderReviewStatus) =>
-            updateStudyOrderReviewItems({ orderId, itemIds: [item.id], status, note: status === 'pending' ? '' : notes[item.id] }),
-        {
-            onSuccess: (result) => afterUpdate(result, 1),
-            errorTitle: t('toast.error'),
-        },
-    );
+    const mark = async (item: StudyOrderReviewItem, status: StudyOrderReviewStatus) => {
+        const result = await actions.mark(item, status, notes[item.id]);
+        if (result) forget(result.item_ids);
+    };
 
     const bulk = useAsyncAction(
         async (ids: string[], status: Exclude<StudyOrderReviewStatus, 'pending'>) => ({
@@ -114,7 +104,9 @@ export function StudyOrderReviewList({ orderId, items, canReview, onChanged, var
             onSuccess: async ({ result, requested }) => {
                 setBulkNote('');
                 setBulkNoteOpen(false);
-                await afterUpdate(result, requested);
+                notifyUpdated(result, requested);
+                forget(result.item_ids);
+                await onChanged?.();
             },
             errorTitle: t('toast.error'),
         },
@@ -136,7 +128,7 @@ export function StudyOrderReviewList({ orderId, items, canReview, onChanged, var
     /** Con un solo pendiente el lote no aporta nada: quedan los botones de siempre. */
     const selectable = canReview && pending.length >= 2;
     const allSelected = selectedIds.length === pending.length;
-    const anyBusy = bulk.isPending || mark.hasPending;
+    const anyBusy = bulk.isPending || actions.hasPending;
 
     return (
         <section className={cn('space-y-3', className)} aria-label={t('title')}>
@@ -217,9 +209,9 @@ export function StudyOrderReviewList({ orderId, items, canReview, onChanged, var
             <ul className="space-y-2">
                 {items.map((item) => {
                     const isPending = item.status === 'pending';
-                    const busy = mark.isPending(item.id) || bulk.isPending;
+                    const busy = actions.isPending(item.id) || bulk.isPending;
                     const confidence = confidencePercent(item.confidence);
-                    const codeLabel = KNOWN_CODES.has(item.code) ? t(`code.${item.code}` as never) : item.code;
+                    const codeLabel = KNOWN_REVIEW_CODES.has(item.code) ? t(`code.${item.code}` as never) : item.code;
                     return (
                         <li
                             key={item.id}
@@ -319,19 +311,19 @@ export function StudyOrderReviewList({ orderId, items, canReview, onChanged, var
                                                 <>
                                                     <Button size="sm" variant="outline" className="h-7 px-2 text-xs"
                                                         loading={busy} disabled={busy}
-                                                        onClick={() => void mark.run(item.id, item, 'confirmed')}>
+                                                        onClick={() => void mark(item, 'confirmed')}>
                                                         <Check className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
                                                         {t('actions.confirm')}
                                                     </Button>
                                                     <Button size="sm" variant="outline" className="h-7 px-2 text-xs"
                                                         disabled={busy}
-                                                        onClick={() => void mark.run(item.id, item, 'corrected')}>
+                                                        onClick={() => void mark(item, 'corrected')}>
                                                         <Pencil className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
                                                         {t('actions.corrected')}
                                                     </Button>
                                                     <Button size="sm" variant="ghost" className="h-7 px-2 text-xs"
                                                         disabled={busy}
-                                                        onClick={() => void mark.run(item.id, item, 'dismissed')}>
+                                                        onClick={() => void mark(item, 'dismissed')}>
                                                         <X className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
                                                         {t('actions.dismiss')}
                                                     </Button>
@@ -347,7 +339,7 @@ export function StudyOrderReviewList({ orderId, items, canReview, onChanged, var
                                             ) : (
                                                 <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground"
                                                     loading={busy} disabled={busy}
-                                                    onClick={() => void mark.run(item.id, item, 'pending')}>
+                                                    onClick={() => void mark(item, 'pending')}>
                                                     <RotateCcw className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
                                                     {t('actions.reopen')}
                                                 </Button>

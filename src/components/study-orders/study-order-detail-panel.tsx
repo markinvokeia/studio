@@ -67,6 +67,11 @@ export interface StudyOrderDetailPanelProps {
      * acciones de cabecera ya quedan fuera al no pasar sus callbacks.
      */
     readOnly?: boolean;
+    /**
+     * Quien lo muestra ya tiene su propio "Atrás" en pantallas chicas (la bandeja, por debajo de
+     * lg): ahí la X sobra y solo se muestra en escritorio.
+     */
+    closeOnDesktopOnly?: boolean;
 }
 
 /** Reconstruye el estado de bandeja desde el detalle, que no lo trae calculado. */
@@ -95,7 +100,7 @@ function Field({ label, value }: { label: string; value?: React.ReactNode }) {
 
 export function StudyOrderDetailPanel({
     orderId, scope, onClose, refreshKey = 0, onReviewChanged, readOnly = false,
-    onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint,
+    onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint, closeOnDesktopOnly = false,
 }: StudyOrderDetailPanelProps) {
     const t = useTranslations('StudyOrdersPage');
     const { hasPermission } = usePermissions();
@@ -317,6 +322,23 @@ export function StudyOrderDetailPanel({
         return readOnly ? actions.filter((action) => action.key === 'print') : actions;
     }, [order, scope, hasPermission, t, onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint, readOnly]);
 
+    /** Una para cada lugar: junto al número en una cabecera angosta, o al final de la botonera. */
+    const closeButton = (placement: 'title' | 'actions') => (
+        <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            aria-label={t('submitDialog.cancel')}
+            className={cn(
+                placement === 'title' ? 'study-order-header-close-title -mr-2 -mt-1 shrink-0' : 'study-order-header-close-actions',
+                // Con `!`: las clases de la cabecera en globals.css le ganarían a la utilidad.
+                closeOnDesktopOnly && 'max-lg:!hidden',
+            )}
+        >
+            <X className="h-4 w-4" />
+        </Button>
+    );
+
     if (isLoading) {
         return (
             <Card className="flex h-full flex-col border-0 shadow-none lg:border lg:shadow-sm">
@@ -361,8 +383,9 @@ export function StudyOrderDetailPanel({
                         <WhatsappSourceBadge source={order.source} />
                     </div>
                 </div>
+                {closeButton('title')}
                 {/* En mobile la botonera cae debajo del número; en escritorio va a la derecha. */}
-                <div className="flex flex-wrap items-center justify-end gap-1.5">
+                <div className="study-order-header-actions flex flex-wrap items-center justify-end gap-1.5">
                     {headerActions.map(({ key, label, icon: Icon, onClick, variant, disabledReason, collapsible }) => {
                         const button = (
                             <Button
@@ -396,9 +419,7 @@ export function StudyOrderDetailPanel({
                             </TooltipProvider>
                         );
                     })}
-                    <Button variant="ghost" size="icon" onClick={onClose} aria-label={t('submitDialog.cancel')}>
-                        <X className="h-4 w-4" />
-                    </Button>
+                    {closeButton('actions')}
                 </div>
             </CardHeader>
 

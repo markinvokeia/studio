@@ -20,9 +20,11 @@ import { UserSelector } from '@/components/ui/user-selector';
 import { OrderFilesPanel } from './order-files-panel';
 import type { OrderFile } from './order-file-gallery';
 import { ReviewFlag } from './review-flag';
-import { ReviewLocateProvider, toOriginalFocus, type OriginalFocus } from './review-locate';
-import { PATIENT_STEP, resolveReviewTargets } from './review-targets';
+import { ReviewActionsProvider, ReviewLocateProvider, hasSource, toOriginalFocus, type OriginalFocus } from './review-locate';
+import { ReviewFieldEditor, type ReviewFieldEditorProps } from './review-field-editor';
+import { PATIENT_STEP, resolveReviewTarget, resolveReviewTargets } from './review-targets';
 import { StudyOrderReviewList, countPendingBlocking } from './study-order-review-list';
+import { useReviewItemActions } from './use-review-item-actions';
 import { StudyOrderSection } from './study-order-section';
 import {
     StudyOrderSummary, labelForDelivery, labelForModifier,
@@ -48,6 +50,7 @@ import type {
     StudyOrderReviewItem,
     StudyOrderSection as Section,
     StudyOrderUpsertPayload,
+    User,
     WhatsappIntakeFile,
 } from '@/lib/types';
 
@@ -297,6 +300,42 @@ export function StudyOrderWizard({
         setShowOriginals(true);
     }, []);
     const clearOriginalFocus = React.useCallback(() => setOriginalFocus(null), []);
+    /** Una sola instancia: la lista y la tarjeta sobre el original ven el mismo punto guardándose. */
+    const reviewActions = useReviewItemActions(orderId ?? '', reloadReviewItems);
+    /** El punto del foco con su estado actual (se relee después de marcarlo). */
+    const focusItem = React.useMemo(
+        () => (originalFocus ? reviewItems.find((i) => i.id === originalFocus.itemId) ?? null : null),
+        [originalFocus, reviewItems],
+    );
+    /**
+     * Anterior / siguiente desde la tarjeta: entre los puntos que dicen dónde están, en el orden de
+     * la lista, pendientes o ya revisados (se puede volver a mirar uno ya marcado).
+     */
+    const focusNavigation = React.useMemo(() => {
+        if (!originalFocus) return null;
+        const locatable = reviewItems.filter(hasSource);
+        const index = locatable.findIndex((i) => i.id === originalFocus.itemId);
+        if (index < 0) return null;
+        const prev = locatable[index - 1];
+        const next = locatable[index + 1];
+        return {
+            index,
+            total: locatable.length,
+            onPrev: prev ? () => locateOriginal(prev) : undefined,
+            onNext: next ? () => locateOriginal(next) : undefined,
+        };
+    }, [originalFocus, reviewItems, locateOriginal]);
+    /**
+     * Marcado un punto desde la tarjeta, sigue con el próximo pendiente que diga dónde está (en el
+     * orden de la lista, volviendo al principio). Sin más, deja de señalar.
+     */
+    const focusNextPending = React.useCallback((done: StudyOrderReviewItem) => {
+        const start = reviewItems.findIndex((i) => i.id === done.id);
+        const ordered = [...reviewItems.slice(start + 1), ...reviewItems.slice(0, Math.max(start, 0))];
+        const next = ordered.find((i) => i.id !== done.id && i.status === 'pending' && hasSource(i));
+        if (next) locateOriginal(next);
+        else setOriginalFocus(null);
+    }, [reviewItems, locateOriginal]);
     const originalsIntakeId = originals?.intakeId ?? '';
     const loadOriginal = React.useCallback(
         (id: string, signal: AbortSignal) => getWhatsappIntakeFile(originalsIntakeId, id, signal),
@@ -573,12 +612,154 @@ export function StudyOrderWizard({
         );
     };
 
+    /**
+     * Con los originales abiertos en una tablet no entran el riel, el formulario y los originales
+     * lado a lado: el riel pasa a ser cajón (como en el celular) hasta lg.
+     */
+    const railIsDrawerUpToLg = !!originals && showOriginals;
+
+    /** Elegir el paciente: desde el formulario o desde la tarjeta sobre el original. */
+    const handlePatientChange = (id: string, user?: User) => {
+        setPatientId(id);
+        if (!user) return;
+        setPatientName(user.name);
+
+        // Cada campo se resuelve igual: si lo había puesto el paciente anterior, se reemplaza por
+        // el del nuevo —vacío incluido, para no arrastrar un dato ajeno—; si lo escribió el
+        // derivador, se respeta.
+        //
+        // Se decide todo primero y recién después se aplica: poner los setters dentro del updater
+        // de `setAutoFilled` los ejecutaría dos veces en modo estricto.
+        const resolve = (wasAuto: boolean, current: string, incoming: string) =>
+            (!wasAuto && current.trim())
+                ? { value: current, auto: false }
+                : { value: incoming, auto: !!incoming };
+
+        const doc = resolve(autoFilled.document, patientDocument, user.identity_document || '');
+        const tel = resolve(autoFilled.phone, patientPhone, user.phone_number || '');
+        const mail = resolve(autoFilled.email, patientEmail, user.email || '');
+
+        setPatientDocument(doc.value);
+        setPatientPhone(tel.value);
+        setPatientEmail(mail.value);
+        setAutoFilled({ document: doc.auto, phone: tel.auto, email: mail.auto });
+    };
+
+    /**
+     * El campo del punto que se está mirando en el original, para corregirlo desde la tarjeta
+     * (sobre todo en el celular, donde el formulario queda tapado). Usa el mismo estado y los
+     * mismos handlers que el formulario. Null si el punto no corresponde a un campo.
+     */
+    const editorPropsFor = (item: StudyOrderReviewItem, markEdited: () => void): ReviewFieldEditorProps | null => {
+        const { target } = resolveReviewTarget(item, options);
+        if (!target) return null;
+        const edited = <A extends unknown[]>(fn: (...args: A) => void) => (...args: A) => { fn(...args); markEdited(); };
+
+        switch (target.kind) {
+            case 'patient':
+                switch (target.field) {
+                    case 'document':
+                        return {
+                            kind: 'text', label: t('form.patientDocument'), value: patientDocument,
+                            onChange: edited((v: string) => { setPatientDocument(v); markManual('document'); }),
+                        };
+                    case 'phone':
+                        return {
+                            kind: 'text', label: t('form.patientPhone'), value: patientPhone,
+                            onChange: edited((v: string) => { setPatientPhone(v); markManual('phone'); }),
+                        };
+                    case 'doctor':
+                        return { kind: 'text', label: t('form.referringDoctorName'), value: referringDoctorName, onChange: edited(setReferringDoctorName) };
+                    case 'delivery':
+                        return {
+                            kind: 'toggles',
+                            label: t('form.deliverySection'),
+                            options: (options?.delivery ?? []).map((o) => ({ code: o.code, label: o.label, checked: deliveryMethods.includes(o.code) })),
+                            onToggle: edited((code: string) => setDeliveryMethods((prev) => prev.includes(code)
+                                ? prev.filter((c) => c !== code)
+                                : [...prev, code])),
+                        };
+                    case 'name':
+                        return {
+                            kind: 'custom',
+                            label: t('form.patientName'),
+                            children: (
+                                <UserSelector
+                                    filterType="PACIENTE"
+                                    value={patientId}
+                                    selectedUserName={patientName}
+                                    showIdentityDocument
+                                    placeholder={t('filterPlaceholder')}
+                                    triggerText={t('form.patientName')}
+                                    className="h-8 w-full text-sm"
+                                    onValueChange={edited(handlePatientChange)}
+                                />
+                            ),
+                        };
+                }
+                return null;
+            case 'text': {
+                const option = target.option;
+                return {
+                    kind: 'text',
+                    label: option?.label ?? item.label,
+                    value: texts[target.code] ?? '',
+                    multiline: option?.input_type === 'textarea',
+                    type: option?.input_type === 'date' ? 'date' : 'text',
+                    onChange: edited((v: string) => handleTextChange(target.code, v)),
+                };
+            }
+            case 'service': {
+                const { service } = target;
+                return {
+                    kind: 'service',
+                    name: service.name,
+                    checked: selection.services.has(service.id),
+                    onToggle: edited(() => handleToggleService(service)),
+                    note: selection.itemNotes[service.id] ?? '',
+                    onNoteChange: edited((note: string) => handleItemNoteChange(service.id, note)),
+                };
+            }
+            case 'option': {
+                // Se muestra el grupo entero: la duda suele ser cuál de las opciones estaba marcada.
+                const option = target.option;
+                if (!option) return null;
+                const groupCode = option.group_code ?? '';
+                const group = (options?.modifiers ?? []).filter((o) => (o.group_code ?? '') === groupCode
+                    && (option.service_id ? o.service_id === option.service_id : !o.service_id && o.section_code === target.section));
+                const checkedCodes = option.service_id
+                    ? selection.itemModifiers[option.service_id]?.[groupCode] ?? []
+                    : selection.sectionModifiers[target.section]?.[groupCode] ?? [];
+                return {
+                    kind: 'toggles',
+                    label: option.label,
+                    options: group.map((o) => ({ code: o.code, label: o.label, checked: checkedCodes.includes(o.code) })),
+                    onToggle: edited((code: string) => option.service_id
+                        ? handleToggleItemModifier(option.service_id, groupCode, code)
+                        : handleToggleSectionModifier(target.section, groupCode, code)),
+                };
+            }
+            case 'teeth':
+                return {
+                    kind: 'teeth',
+                    label: regionGroupBySection.get(target.section)?.label ?? item.label,
+                    value: selection.teeth[target.section] ?? [],
+                    onChange: edited((teeth: string[]) => handleTeethChange(target.section, teeth)),
+                };
+        }
+    };
+    const renderFocusEditor = (item: StudyOrderReviewItem, markEdited: () => void) => {
+        const props = editorPropsFor(item, markEdited);
+        return props ? <ReviewFieldEditor {...props} /> : null;
+    };
+
     const title = orderId
         ? t('form.editTitle', { number: orderNumber || loadedNumber })
         : t('form.title');
 
     return (
         <ReviewLocateProvider value={originals ? locateOriginal : null}>
+        <ReviewActionsProvider value={orderId ? reviewActions : null}>
         <ResizableSheet
             open={open}
             onOpenChange={onOpenChange}
@@ -590,8 +771,9 @@ export function StudyOrderWizard({
         >
             <div className="flex h-full flex-col overflow-hidden bg-card">
                 {/* Cabecera */}
-                <div className="flex flex-none items-center gap-3 border-b px-5 py-4 pr-28">
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
+                {/* A la derecha quedan la X de la hoja y, desde md, el botón de pantalla completa. */}
+                <div className="flex flex-none items-center gap-3 border-b px-4 py-3 pr-14 sm:px-5 sm:py-4 md:pr-28">
+                    <span className="hidden h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary sm:grid">
                         <ClipboardList className="h-5 w-5" />
                     </span>
                     <div className="min-w-0 flex-1">
@@ -631,7 +813,10 @@ export function StudyOrderWizard({
                                 type="button"
                                 aria-label={t('wizard.closeSteps')}
                                 onClick={() => setIsRailOpen(false)}
-                                className="absolute inset-0 z-20 bg-background/70 backdrop-blur-[1px] sm:hidden"
+                                className={cn(
+                                    'absolute inset-0 z-20 bg-background/70 backdrop-blur-[1px]',
+                                    railIsDrawerUpToLg ? 'lg:hidden' : 'sm:hidden',
+                                )}
                             />
                         )}
                         {/* Botón flotante del cajón. Vive acá y no en el pie para
@@ -644,7 +829,10 @@ export function StudyOrderWizard({
                                 size="icon"
                                 onClick={() => setIsRailOpen(true)}
                                 aria-label={t('wizard.steps')}
-                                className="absolute bottom-4 left-4 z-20 h-12 w-12 rounded-full shadow-lg sm:hidden"
+                                className={cn(
+                                    'absolute bottom-4 left-4 z-20 h-12 w-12 rounded-full shadow-lg',
+                                    railIsDrawerUpToLg ? 'lg:hidden' : 'sm:hidden',
+                                )}
                             >
                                 <PanelLeft className="h-5 w-5" />
                             </Button>
@@ -661,7 +849,9 @@ export function StudyOrderWizard({
                                 // Mobile: cajón que entra desde la izquierda por encima
                                 // del contenido. Escritorio: columna fija de siempre.
                                 'absolute inset-y-0 left-0 z-30 shadow-xl transition-transform duration-200',
-                                'sm:static sm:z-auto sm:translate-x-0 sm:shadow-none',
+                                railIsDrawerUpToLg
+                                    ? 'lg:static lg:z-auto lg:translate-x-0 lg:shadow-none'
+                                    : 'sm:static sm:z-auto sm:translate-x-0 sm:shadow-none',
                                 isRailOpen ? 'translate-x-0' : '-translate-x-full',
                             )}
                         >
@@ -737,7 +927,16 @@ export function StudyOrderWizard({
                         </>
                     )}
 
-                <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+                {/* Abajo deja lugar para el botón flotante del riel mientras se muestra. */}
+                <div
+                    ref={scrollRef}
+                    className={cn(
+                        'min-h-0 flex-1 overflow-y-auto px-4 pt-4 sm:px-5 sm:pt-5',
+                        steps.length > 2
+                            ? (railIsDrawerUpToLg ? 'pb-20 lg:pb-5' : 'pb-20 sm:pb-5')
+                            : 'pb-4 sm:pb-5',
+                    )}
+                >
                     {isLoading ? (
                         <div className="mx-auto max-w-5xl space-y-3">
                             <Skeleton className="h-10 w-full" />
@@ -837,34 +1036,7 @@ export function StudyOrderWizard({
                                         showIdentityDocument
                                         placeholder={t('filterPlaceholder')}
                                         triggerText={t('form.patientName')}
-                                        onValueChange={(id, user) => {
-                                            setPatientId(id);
-                                            if (!user) return;
-                                            setPatientName(user.name);
-
-                                            // Cada campo se resuelve igual: si lo había puesto
-                                            // el paciente anterior, se reemplaza por el del
-                                            // nuevo —vacío incluido, para no arrastrar un dato
-                                            // ajeno—; si lo escribió el derivador, se respeta.
-                                            //
-                                            // Se decide todo primero y recién después se
-                                            // aplica: poner los setters dentro del updater de
-                                            // `setAutoFilled` los ejecutaría dos veces en modo
-                                            // estricto.
-                                            const resolve = (wasAuto: boolean, current: string, incoming: string) =>
-                                                (!wasAuto && current.trim())
-                                                    ? { value: current, auto: false }
-                                                    : { value: incoming, auto: !!incoming };
-
-                                            const doc = resolve(autoFilled.document, patientDocument, user.identity_document || '');
-                                            const tel = resolve(autoFilled.phone, patientPhone, user.phone_number || '');
-                                            const mail = resolve(autoFilled.email, patientEmail, user.email || '');
-
-                                            setPatientDocument(doc.value);
-                                            setPatientPhone(tel.value);
-                                            setPatientEmail(mail.value);
-                                            setAutoFilled({ document: doc.auto, phone: tel.auto, email: mail.auto });
-                                        }}
+                                        onValueChange={handlePatientChange}
                                     />
                                 </div>
                                 <div className="space-y-1.5">
@@ -972,7 +1144,7 @@ export function StudyOrderWizard({
                                     items={reviewItems}
                                     canReview
                                     onChanged={reloadReviewItems}
-                                    className="rounded-lg border p-4"
+                                    className="rounded-lg border p-3 sm:p-4"
                                 />
                             )}
                             <StudyOrderSummary
@@ -993,22 +1165,27 @@ export function StudyOrderWizard({
                     )}
                 </div>
 
-                {/* Originales de WhatsApp al lado del formulario: en escritorio es una columna;
-                    en pantallas chicas se abre por encima, desde la derecha. */}
+                {/* Originales de WhatsApp al lado del formulario: en tablet y escritorio es una
+                    columna; en el celular ocupan todo el cuerpo (se cierran con el botón de arriba). */}
                 {originals && showOriginals && (
                     <aside
                         aria-label={t('wizard.originals')}
                         className={cn(
-                            'flex flex-col border-l bg-card',
-                            'absolute inset-y-0 right-0 z-30 w-[88%] max-w-md shadow-xl',
-                            'lg:static lg:z-auto lg:w-[420px] lg:max-w-none lg:shadow-none xl:w-[500px]',
+                            'flex flex-col bg-card',
+                            'absolute inset-0 z-30',
+                            'md:static md:z-auto md:w-1/2 md:shrink-0 md:border-l',
+                            'lg:w-[420px] xl:w-[500px]',
                         )}
                     >
                         <OrderFilesPanel
                             files={originalFiles}
                             loadFile={loadOriginal}
                             focus={originalFocus}
+                            focusItem={focusItem}
                             onClearFocus={clearOriginalFocus}
+                            onFocusResolved={focusNextPending}
+                            focusNavigation={focusNavigation}
+                            renderFocusEditor={renderFocusEditor}
                             className="h-full"
                         />
                     </aside>
@@ -1017,10 +1194,17 @@ export function StudyOrderWizard({
                 </div>
 
                 {/* Pie de navegación */}
-                <div className="flex flex-none items-center justify-between gap-2 border-t px-5 py-3">
-                    <Button variant="ghost" onClick={() => goTo(stepIndex - 1)} disabled={isFirst || isSaving}>
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        {t('wizard.back')}
+                {/* En el celular las acciones secundarias quedan solo con ícono y los textos se acortan. */}
+                <div className="flex flex-none items-center justify-between gap-2 border-t px-3 py-3 sm:px-5">
+                    <Button
+                        variant="ghost"
+                        className="shrink-0 px-3 sm:px-4"
+                        onClick={() => goTo(stepIndex - 1)}
+                        disabled={isFirst || isSaving}
+                        title={t('wizard.back')}
+                    >
+                        <ArrowLeft className="h-4 w-4 sm:mr-2" aria-hidden="true" />
+                        <span className="sr-only sm:not-sr-only">{t('wizard.back')}</span>
                     </Button>
 
                     <span className="hidden text-xs text-muted-foreground tabular-nums sm:inline">
@@ -1032,7 +1216,8 @@ export function StudyOrderWizard({
                             <>
                                 <Button variant="outline" onClick={() => void handleSave(false)} disabled={isSaving}>
                                     {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {t('form.saveDraft')}
+                                    <span className="sm:hidden">{t('form.saveDraftShort')}</span>
+                                    <span className="hidden sm:inline">{t('form.saveDraft')}</span>
                                 </Button>
                                 <Button
                                     onClick={() => setConfirmSubmit(true)}
@@ -1040,14 +1225,21 @@ export function StudyOrderWizard({
                                     title={blockingPending > 0 ? t('review.submitBlocked', { count: blockingPending }) : undefined}
                                 >
                                     <Send className="mr-2 h-4 w-4" />
-                                    {t('form.submit')}
+                                    <span className="sm:hidden">{t('form.submitShort')}</span>
+                                    <span className="hidden sm:inline">{t('form.submit')}</span>
                                 </Button>
                             </>
                         ) : (
                             <>
-                                <Button variant="ghost" onClick={() => goTo(steps.length - 1)} disabled={isSaving}>
-                                    <Check className="mr-2 h-4 w-4" />
-                                    {t('wizard.skipToReview')}
+                                <Button
+                                    variant="ghost"
+                                    className="px-3 sm:px-4"
+                                    onClick={() => goTo(steps.length - 1)}
+                                    disabled={isSaving}
+                                    title={t('wizard.skipToReview')}
+                                >
+                                    <Check className="h-4 w-4 sm:mr-2" aria-hidden="true" />
+                                    <span className="sr-only sm:not-sr-only">{t('wizard.skipToReview')}</span>
                                 </Button>
                                 <Button onClick={() => goTo(stepIndex + 1)} disabled={isSaving}>
                                     {t('wizard.next')}
@@ -1082,6 +1274,7 @@ export function StudyOrderWizard({
                 </AlertDialogContent>
             </AlertDialog>
         </ResizableSheet>
+        </ReviewActionsProvider>
         </ReviewLocateProvider>
     );
 }
