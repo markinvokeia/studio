@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 
 import { OrderFileGallery, type OrderFile } from './order-file-gallery';
 
-import { useClinicHistory } from '@/hooks/useClinicHistory';
+import { peekSessionAttachmentUrl, useClinicHistory } from '@/hooks/useClinicHistory';
 import type { AttachedFile } from '@/lib/types';
 
 /**
@@ -38,10 +38,10 @@ export function StudyOrderSessionAttachments({ sessionId, attachments }: StudyOr
         }),
         [attachments],
     );
-    const loadFile = React.useCallback(
+    const loadFile = React.useMemo(() => Object.assign(
         (id: string, signal: AbortSignal) => getSessionAttachment(sessionId, id, signal),
-        [sessionId, getSessionAttachment],
-    );
+        { peekUrl: (id: string) => peekSessionAttachmentUrl(sessionId, id) },
+    ), [sessionId, getSessionAttachment]);
 
     if (attachments.length === 0) return null;
 

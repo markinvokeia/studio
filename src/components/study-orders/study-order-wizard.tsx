@@ -39,9 +39,9 @@ import { fetchBookingSedes, type BookingSede } from '@/services/patient-booking'
 import {
     getStudyOrder,
     getStudyOrderFormOptions,
-    getWhatsappIntakeFile,
     submitStudyOrder,
     upsertStudyOrder,
+    whatsappIntakeFileLoader,
 } from '@/services/study-orders';
 import { STUDY_ORDERS_PERMISSIONS } from '@/constants/permissions';
 import type {
@@ -304,10 +304,7 @@ export function StudyOrderWizard({
     /** Originales a pantalla entera: el riel de secciones también se aparta. */
     const [originalsMaximized, setOriginalsMaximized] = React.useState(false);
     const originalsIntakeId = originals?.intakeId ?? '';
-    const loadOriginal = React.useCallback(
-        (id: string, signal: AbortSignal) => getWhatsappIntakeFile(originalsIntakeId, id, signal),
-        [originalsIntakeId],
-    );
+    const loadOriginal = React.useMemo(() => whatsappIntakeFileLoader(originalsIntakeId), [originalsIntakeId]);
 
     // ── Índices del catálogo ─────────────────────────────────────────────────
     const modifiersBySection = React.useMemo(() => {

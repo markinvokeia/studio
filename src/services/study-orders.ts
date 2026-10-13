@@ -13,6 +13,7 @@ import type {
     StudyOrderUpsertPayload,
 } from '@/lib/types';
 import { api, REQUEST_TIMEOUT_MS } from './api';
+import { cachedBlob, peekBlobUrl } from '@/lib/blob-cache';
 
 /**
  * Capa de API de las órdenes de estudio.
@@ -205,7 +206,25 @@ export async function getStudyOrderImportStatus(intakeId: string, signal?: Abort
 
 /** Original (foto o PDF) de una orden de WhatsApp, como blob. El navegador nunca habla con Drive. */
 export async function getWhatsappIntakeFile(intakeId: string, fileId: string, signal?: AbortSignal): Promise<Blob> {
-    return api.getBlob(API_ROUTES.STUDY_ORDERS.WHATSAPP_INTAKE_FILE, { intake_id: intakeId, id: fileId }, undefined, { signal });
+    // Los originales no cambian: una vez bajados se sirven de la caché.
+    return cachedBlob(
+        whatsappIntakeFileKey(intakeId, fileId),
+        (fetchSignal) => api.getBlob(API_ROUTES.STUDY_ORDERS.WHATSAPP_INTAKE_FILE, { intake_id: intakeId, id: fileId }, undefined, { signal: fetchSignal }),
+        signal,
+    );
+}
+
+const whatsappIntakeFileKey = (intakeId: string, fileId: string) => `whatsapp-intake:${intakeId}:${fileId}`;
+
+/**
+ * Cargador de los originales de una derivación para la galería o el panel de originales: baja
+ * cada archivo una sola vez y deja ver al instante los que ya se bajaron (`peekUrl`).
+ */
+export function whatsappIntakeFileLoader(intakeId: string) {
+    return Object.assign(
+        (fileId: string, signal: AbortSignal) => getWhatsappIntakeFile(intakeId, fileId, signal),
+        { peekUrl: (fileId: string) => peekBlobUrl(whatsappIntakeFileKey(intakeId, fileId)) },
+    );
 }
 
 /**

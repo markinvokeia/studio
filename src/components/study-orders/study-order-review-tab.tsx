@@ -14,7 +14,7 @@ import { StudyOrderReviewList } from './study-order-review-list';
 import { useReviewItemActions } from './use-review-item-actions';
 
 import type { StudyOrder } from '@/lib/types';
-import { getWhatsappIntakeFile } from '@/services/study-orders';
+import { whatsappIntakeFileLoader } from '@/services/study-orders';
 
 /**
  * Pestaña "Revisión" del detalle: los puntos a revisar con los originales de la orden al lado,
@@ -53,10 +53,7 @@ export function StudyOrderReviewTab({ order, canReview, canSeeOriginals, onChang
     /** Una sola instancia: la lista y la tarjeta sobre el original ven el mismo punto guardándose. */
     const actions = useReviewItemActions(order.id, onChanged);
 
-    const loadFile = React.useCallback(
-        (id: string, signal: AbortSignal) => getWhatsappIntakeFile(intakeId, id, signal),
-        [intakeId],
-    );
+    const loadFile = React.useMemo(() => whatsappIntakeFileLoader(intakeId), [intakeId]);
 
     /** Mostrar u ocultar: con los originales a la vista va en la cabecera del visor; si no, junto al título. */
     const toggleOriginals = (
