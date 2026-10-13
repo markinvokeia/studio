@@ -39,12 +39,14 @@ export interface OrderFilesPanelProps {
     focusNavigation?: ReviewFocusNavigation | null;
     /** El campo del formulario del punto, para corregirlo desde la tarjeta del foco. */
     renderFocusEditor?: ReviewFocusCardProps['renderEditor'];
-    /** Botones extra en la cabecera del visor (p. ej. pantalla entera). */
+    /** Botones de la cabecera del visor antes de "Descargar" (p. ej. ocultar los originales). */
+    headerStartActions?: React.ReactNode;
+    /** Botones extra en la cabecera del visor, después de "Descargar" (p. ej. pantalla entera). */
     headerActions?: React.ReactNode;
     className?: string;
 }
 
-export function OrderFilesPanel({ files, loadFile, focus = null, focusItem = null, onClearFocus, onFocusResolved, focusNavigation = null, renderFocusEditor, headerActions, className }: OrderFilesPanelProps) {
+export function OrderFilesPanel({ files, loadFile, focus = null, focusItem = null, onClearFocus, onFocusResolved, focusNavigation = null, renderFocusEditor, headerStartActions, headerActions, className }: OrderFilesPanelProps) {
     const t = useTranslations('FileViewer');
     const tCommon = useTranslations('Common');
     const { urls, failed, load } = useOrderFiles(files, loadFile);
@@ -148,6 +150,7 @@ export function OrderFilesPanel({ files, loadFile, focus = null, focusItem = nul
         <div className={cn('flex min-h-0 flex-col', className)}>
             <div className="flex items-center gap-2 border-b px-3 py-2">
                 <p className="min-w-0 flex-1 truncate text-xs font-medium" title={selected.name}>{selected.name}</p>
+                {headerStartActions}
                 {url && (
                     <Button asChild variant="outline" size="sm" className="h-7 shrink-0 text-xs">
                         <a href={url} download={selected.name} target="_blank" rel="noopener noreferrer">

@@ -11,6 +11,7 @@ import {
 import { Table } from '@tanstack/react-table';
 
 import { Button } from '@/components/ui/button';
+import { useDataTableToolbarCompact } from '@/components/ui/data-table-toolbar-context';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 
@@ -25,6 +26,8 @@ export function DataTablePagination<TData>({
 }: DataTablePaginationProps<TData>) {
   const t = useTranslations('DataTablePagination');
   const [editing, setEditing] = React.useState(false);
+  /** In a compact toolbar first/last are dropped: previous/next and the range are enough. */
+  const compact = useDataTableToolbarCompact();
 
   const { pageIndex, pageSize } = table.getState().pagination;
   // Use the rows actually rendered on this page — always correct for `to` in both
@@ -55,7 +58,7 @@ export function DataTablePagination<TData>({
     <div className="flex items-center gap-0.5 text-xs text-muted-foreground">
       <Button
         variant="ghost"
-        className="h-7 w-7 p-0"
+        className={cn('h-7 w-7 p-0', compact && 'hidden')}
         onClick={() => table.setPageIndex(0)}
         disabled={!table.getCanPreviousPage()}
       >
@@ -125,7 +128,7 @@ export function DataTablePagination<TData>({
       </Button>
       <Button
         variant="ghost"
-        className="h-7 w-7 p-0"
+        className={cn('h-7 w-7 p-0', compact && 'hidden')}
         onClick={() => table.setPageIndex(table.getPageCount() - 1)}
         disabled={!table.getCanNextPage()}
       >

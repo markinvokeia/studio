@@ -58,8 +58,29 @@ export function StudyOrderReviewTab({ order, canReview, canSeeOriginals, onChang
         [intakeId],
     );
 
+    /** Mostrar u ocultar: con los originales a la vista va en la cabecera del visor; si no, junto al título. */
+    const toggleOriginals = (
+        <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="h-7 shrink-0 text-xs"
+            aria-pressed={showOriginals}
+            onClick={() => setShowOriginals((v) => !v)}
+        >
+            <Images className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+            {showOriginals ? t('wizard.hideOriginals') : t('wizard.showOriginals')}
+        </Button>
+    );
+
     const list = (
-        <StudyOrderReviewList orderId={order.id} items={items} canReview={canReview} onChanged={onChanged} />
+        <StudyOrderReviewList
+            orderId={order.id}
+            items={items}
+            canReview={canReview}
+            onChanged={onChanged}
+            headerActions={hasOriginals && !showOriginals ? toggleOriginals : null}
+        />
     );
 
     if (!hasOriginals) {
@@ -69,39 +90,26 @@ export function StudyOrderReviewTab({ order, canReview, canSeeOriginals, onChang
     return (
         <ReviewLocateProvider value={locate}>
             <ReviewActionsProvider value={canReview ? actions : null}>
-                <div className="flex min-h-0 flex-1 flex-col">
-                    <div className="flex flex-none items-center justify-end border-b px-4 py-2">
-                        <Button
-                            type="button"
-                            variant={showOriginals ? 'secondary' : 'outline'}
-                            size="sm"
-                            aria-pressed={showOriginals}
-                            onClick={() => setShowOriginals((v) => !v)}
-                        >
-                            <Images className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                            {showOriginals ? t('wizard.hideOriginals') : t('wizard.showOriginals')}
-                        </Button>
-                    </div>
-                    <OriginalsSplit
-                        label={t('wizard.originals')}
-                        storageKey="study-order-review-originals"
-                        originals={showOriginals ? (maximizeButton) => (
-                            <OrderFilesPanel
-                                files={files}
-                                loadFile={loadFile}
-                                focus={focus}
-                                focusItem={focusItem}
-                                onClearFocus={clear}
-                                onFocusResolved={focusNextPending}
-                                focusNavigation={navigation}
-                                headerActions={maximizeButton}
-                                className="h-full"
-                            />
-                        ) : null}
-                    >
-                        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-4">{list}</div>
-                    </OriginalsSplit>
-                </div>
+                <OriginalsSplit
+                    label={t('wizard.originals')}
+                    storageKey="study-order-review-originals"
+                    originals={showOriginals ? (maximizeButton) => (
+                        <OrderFilesPanel
+                            files={files}
+                            loadFile={loadFile}
+                            focus={focus}
+                            focusItem={focusItem}
+                            onClearFocus={clear}
+                            onFocusResolved={focusNextPending}
+                            focusNavigation={navigation}
+                            headerStartActions={toggleOriginals}
+                            headerActions={maximizeButton}
+                            className="h-full"
+                        />
+                    ) : null}
+                >
+                    <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6 pt-4">{list}</div>
+                </OriginalsSplit>
             </ReviewActionsProvider>
         </ReviewLocateProvider>
     );
