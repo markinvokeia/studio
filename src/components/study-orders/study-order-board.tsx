@@ -48,6 +48,21 @@ const COLUMN_ACCENT: Record<StudyOrderBoardStatus, string> = {
     cancelled:           'bg-destructive',
 };
 
+/**
+ * Relleno del contador de cada columna: el mismo color del estado, en un tono claro para que la
+ * cantidad (en negro) se lea siempre, también en modo oscuro.
+ */
+const COLUMN_COUNT_FILL: Record<StudyOrderBoardStatus, string> = {
+    draft:               'bg-slate-200',
+    new:                 'bg-sky-200',
+    unscheduled:         'bg-amber-200',
+    partially_scheduled: 'bg-orange-200',
+    scheduled:           'bg-violet-200',
+    in_progress:         'bg-blue-200',
+    completed:           'bg-emerald-200',
+    cancelled:           'bg-red-200',
+};
+
 /** Acción que dispara soltar una tarjeta en otra columna. */
 export type BoardMove = 'submit' | 'acknowledge' | 'schedule' | 'cancel';
 
@@ -380,7 +395,9 @@ function BoardColumn({ status, label, total, isLoading, collapsed, onToggleColla
                     <ChevronRight className="h-4 w-4" aria-hidden="true" />
                 </Button>
                 <span className={cn('h-2 w-2 rounded-full', COLUMN_ACCENT[status])} aria-hidden="true" />
-                <span className="text-xs font-medium tabular-nums">{isLoading ? '…' : total}</span>
+                <span className={cn('min-w-6 rounded-full px-1.5 py-0.5 text-center text-xs font-semibold tabular-nums text-gray-950', COLUMN_COUNT_FILL[status])}>
+                    {isLoading ? '…' : total}
+                </span>
                 <span className="text-xs font-medium text-muted-foreground [writing-mode:vertical-rl]">{label}</span>
             </div>
         );
@@ -401,7 +418,7 @@ function BoardColumn({ status, label, total, isLoading, collapsed, onToggleColla
             <div className={cn('h-1 w-full', COLUMN_ACCENT[status])} aria-hidden="true" />
             <header className="flex items-center gap-2 px-3 py-2">
                 <h3 className="min-w-0 flex-1 truncate text-sm font-semibold">{label}</h3>
-                <span className="rounded-full bg-background px-2 py-0.5 text-xs font-medium tabular-nums text-muted-foreground ring-1 ring-border">
+                <span className={cn('min-w-6 rounded-full px-2 py-0.5 text-center text-xs font-semibold tabular-nums text-gray-950', COLUMN_COUNT_FILL[status])}>
                     {isLoading ? '…' : total}
                 </span>
                 <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground" onClick={onToggleCollapsed}

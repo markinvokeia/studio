@@ -100,6 +100,8 @@ interface TableWithCardsProps {
     onBucketChange: (value: string) => void;
     /** Filtro de origen (solo en la bandeja de la clínica): se pinta junto al de estado. */
     originFilter?: React.ReactNode;
+    /** Acciones junto a "Nueva orden" (importar). */
+    createActions?: React.ReactNode;
     onCreate?: () => void;
     onEditOrder?: (order: StudyOrderListItem) => void;
     /** Asignar quién la revisa (con permiso). */
@@ -154,17 +156,20 @@ function OriginFilter({ value, onChange }: { value: OriginFilterValue; onChange:
 }
 
 /** "Importar orden": en una barra angosta, solo el ícono. */
+/** Mismo color que "Nueva orden" pero más claro: es la otra forma de dar de alta una orden. */
+const IMPORT_BUTTON_CLASSES = 'border border-primary/30 bg-primary/15 text-primary shadow-none hover:bg-primary/25 hover:text-primary';
+
 function ImportOrderButton({ onClick }: { onClick: () => void }) {
     const t = useTranslations('StudyOrdersPage');
     const compact = useDataTableToolbarCompact();
     return compact ? (
-        <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={onClick}
+        <Button size="icon" className={cn('h-9 w-9 shrink-0', IMPORT_BUTTON_CLASSES)} onClick={onClick}
             aria-label={t('importOrder')} title={t('importOrder')}>
             <FileUp className="h-4 w-4" aria-hidden="true" />
         </Button>
     ) : (
-        <Button variant="outline" size="sm" className="h-9" onClick={onClick}>
-            <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />
+        <Button className={cn('h-9 shrink-0 gap-1.5 px-3', IMPORT_BUTTON_CLASSES)} onClick={onClick}>
+            <FileUp className="h-4 w-4" aria-hidden="true" />
             {t('importOrder')}
         </Button>
     );
@@ -263,7 +268,9 @@ interface BoardToolbarProps {
     onRefresh: () => void;
     isRefreshing: boolean;
     onCreate?: () => void;
-    /** Filtros y acciones de la página (origen, responsable, importar). */
+    /** Acciones junto a "Nueva orden" (importar). */
+    createActions?: React.ReactNode;
+    /** Filtros de la página (origen, responsable). */
     extra?: React.ReactNode;
 }
 
@@ -271,7 +278,7 @@ interface BoardToolbarProps {
  * Barra del tablero: búsqueda, filtros, tarjetas por columna y actualizar. Como la de la lista,
  * mide su propio ancho: si no entra pasa a la línea siguiente y, muy angosta, queda solo con íconos.
  */
-function BoardToolbar({ search, onSearchChange, perColumn, onPerColumnChange, onRefresh, isRefreshing, onCreate, extra }: BoardToolbarProps) {
+function BoardToolbar({ search, onSearchChange, perColumn, onPerColumnChange, onRefresh, isRefreshing, onCreate, createActions, extra }: BoardToolbarProps) {
     const t = useTranslations('StudyOrdersPage');
     const tToolbar = useTranslations('DataTableToolbar');
     const rootRef = React.useRef<HTMLDivElement>(null);
@@ -304,6 +311,7 @@ function BoardToolbar({ search, onSearchChange, perColumn, onPerColumnChange, on
                             {!compact && <span>{t('newOrder')}</span>}
                         </Button>
                     )}
+                    {createActions}
                 </div>
                 <div className="flex max-w-full flex-wrap items-center gap-2">
                     {extra}
@@ -338,7 +346,7 @@ function StudyOrdersTableWithCards({
     scope,
     orders, total, columns, selected, rowSelection, setRowSelection, onRowSelect,
     pagination, setPagination, sorting, setSorting, columnFilters, setColumnFilters,
-    bucket, onBucketChange, originFilter, onCreate, onEditOrder, onAssignOrder, onRefresh, isRefreshing, isLoading,
+    bucket, onBucketChange, originFilter, createActions, onCreate, onEditOrder, onAssignOrder, onRefresh, isRefreshing, isLoading,
 }: TableWithCardsProps) {
     const t = useTranslations('StudyOrdersPage');
     const tCols = useTranslations('StudyOrdersPage.columns');
@@ -387,6 +395,7 @@ function StudyOrdersTableWithCards({
             filterValue={bucket}
             onFilterChange={onBucketChange}
             extraButtons={originFilter}
+            primaryActions={createActions}
             columnTranslations={columnTranslations}
             onCreate={onCreate}
             createButtonLabel={t('newOrder')}
@@ -874,11 +883,11 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                                         onRefresh={() => setBoardReloadKey((k) => k + 1)}
                                         isRefreshing={isBoardLoading}
                                         onCreate={canCreate ? handleCreate : undefined}
+                                        createActions={canImport ? <ImportOrderButton onClick={() => setIsImportOpen(true)} /> : undefined}
                                         extra={isClinic ? (
                                             <>
                                                 <OriginFilter value={origin} onChange={setOrigin} />
                                                 {canSeeAll && <AssignedFilter value={assigned} onChange={setAssigned} />}
-                                                {canImport && <ImportOrderButton onClick={() => setIsImportOpen(true)} />}
                                             </>
                                         ) : undefined}
                                     />
@@ -919,9 +928,9 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                                     <>
                                         <OriginFilter value={origin} onChange={setOrigin} />
                                         {canSeeAll && <AssignedFilter value={assigned} onChange={setAssigned} />}
-                                        {canImport && <ImportOrderButton onClick={() => setIsImportOpen(true)} />}
                                     </>
                                 ) : undefined}
+                                createActions={canImport ? <ImportOrderButton onClick={() => setIsImportOpen(true)} /> : undefined}
                                 onCreate={canCreate ? handleCreate : undefined}
                                 onEditOrder={canUpdate ? handleEdit : undefined}
                                 onAssignOrder={canAssign ? setAssigningOrder : undefined}
