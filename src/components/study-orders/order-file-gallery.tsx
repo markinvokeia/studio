@@ -17,8 +17,9 @@ import { isAbortError } from '@/services/api';
  * clic. Se abren en el visor compartido (`FileViewerDialog`): zoom, arrastre y
  * PDF dentro del visor, igual que en la historia clínica del paciente.
  *
- * Todos los object URL que se crean se liberan al desmontar: son imágenes
- * médicas y retenerlas por cada orden que se abre ocuparía memoria para nada.
+ * Con un cargador con caché (`@/lib/blob-cache`) cada archivo se baja una sola
+ * vez y su object URL es de la caché: al volver a mostrarlo aparece al instante.
+ * Los object URL que se crean acá (cargadores sin caché) se liberan al desmontar.
  */
 
 export interface OrderFile {
@@ -27,8 +28,14 @@ export interface OrderFile {
     mimeType?: string | null;
 }
 
-/** Descarga un archivo. Tiene que ser estable (useCallback): las miniaturas se recargan si cambia. */
-export type OrderFileLoader = (id: string, signal: AbortSignal) => Promise<Blob>;
+/**
+ * Descarga un archivo. Tiene que ser estable (useCallback/useMemo): las miniaturas se recargan si
+ * cambia. Con `peekUrl` (cargadores con caché), los archivos ya bajados se muestran desde el
+ * primer render con el object URL de la caché, que no se libera al desmontar.
+ */
+export type OrderFileLoader = ((id: string, signal: AbortSignal) => Promise<Blob>) & {
+    peekUrl?: (id: string) => string | undefined;
+};
 
 /**
  * Carga de los archivos de una orden: miniaturas de las imágenes de a una, carga a pedido del
@@ -36,10 +43,21 @@ export type OrderFileLoader = (id: string, signal: AbortSignal) => Promise<Blob>
  * de originales del asistente de órdenes.
  */
 export function useOrderFiles(files: OrderFile[], loadFile: OrderFileLoader) {
-    const [urls, setUrls] = React.useState<Record<string, string>>({});
-    const [failed, setFailed] = React.useState<Set<string>>(new Set());
-    /** Todos los object URL creados, de miniaturas y de archivos abiertos: se liberan al desmontar. */
+    /**
+     * Object URL creados acá (cargadores sin caché): se liberan al desmontar. Los de la caché no:
+     * son de ella y siguen sirviendo al volver a montar el visor.
+     */
     const createdRef = React.useRef<Set<string>>(new Set());
+    // Lo que ya está en la caché se pinta de entrada, sin pasar por "cargando".
+    const [urls, setUrls] = React.useState<Record<string, string>>(() => {
+        const initial: Record<string, string> = {};
+        for (const file of files) {
+            const url = loadFile.peekUrl?.(file.id);
+            if (url) initial[file.id] = url;
+        }
+        return initial;
+    });
+    const [failed, setFailed] = React.useState<Set<string>>(new Set());
     // Para leer lo ya cargado desde callbacks y efectos sin recrearlos en cada carga.
     const urlsRef = React.useRef(urls);
     React.useEffect(() => { urlsRef.current = urls; }, [urls]);
@@ -48,8 +66,12 @@ export function useOrderFiles(files: OrderFile[], loadFile: OrderFileLoader) {
     const others = React.useMemo(() => files.filter((f) => getFileViewerKind(f.name, f.mimeType) !== 'image'), [files]);
 
     const remember = React.useCallback((id: string, blob: Blob) => {
-        const url = URL.createObjectURL(blob);
-        createdRef.current.add(url);
+        // Recién bajado queda en la caché: se usa su URL. Sin caché, uno propio.
+        let url = loadFile.peekUrl?.(id);
+        if (!url) {
+            url = URL.createObjectURL(blob);
+            createdRef.current.add(url);
+        }
         urlsRef.current = { ...urlsRef.current, [id]: url };
         setUrls((prev) => ({ ...prev, [id]: url }));
         setFailed((prev) => {
@@ -59,7 +81,7 @@ export function useOrderFiles(files: OrderFile[], loadFile: OrderFileLoader) {
             return next;
         });
         return url;
-    }, []);
+    }, [loadFile]);
 
     // Miniaturas: de a una, canceladas si cambian los archivos o se desmonta.
     React.useEffect(() => {
@@ -92,6 +114,7 @@ export function useOrderFiles(files: OrderFile[], loadFile: OrderFileLoader) {
     const load = React.useCallback(async (file: OrderFile, signal: AbortSignal): Promise<string> => {
         const existing = urlsRef.current[file.id];
         if (existing) return existing;
+        // La caché responde sin red; si no está, se baja (y queda en la caché para la próxima).
         const blob = await loadFile(file.id, signal);
         if (signal.aborted) throw new DOMException('aborted', 'AbortError');
         return remember(file.id, blob);

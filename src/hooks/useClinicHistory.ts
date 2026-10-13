@@ -1,9 +1,17 @@
 'use client';
 
 import { API_ROUTES } from '@/constants/routes';
+import { cachedBlob, peekBlobUrl } from '@/lib/blob-cache';
 import { Ailment, Medication, PatientSession } from '@/lib/types';
 import api, { REQUEST_TIMEOUT_MS } from '@/services/api';
 import { useCallback, useState } from 'react';
+
+const sessionAttachmentKey = (sessionId: string, attachmentId: string) => `session-attachment:${sessionId}:${attachmentId}`;
+
+/** Object URL de un adjunto de sesión ya bajado (caché), sin pedirlo. */
+export function peekSessionAttachmentUrl(sessionId: string, attachmentId: string): string | undefined {
+    return peekBlobUrl(sessionAttachmentKey(sessionId, attachmentId));
+}
 
 export interface ClinicDocument {
     id: string;
@@ -796,8 +804,12 @@ export function useClinicHistory(): UseClinicHistoryReturn {
     }, []);
 
     const getSessionAttachment = useCallback(async (sessionId: string, attachmentId: string, signal?: AbortSignal): Promise<Blob> => {
-        const blob = await api.getBlob(API_ROUTES.CLINIC_HISTORY.SESSIONS_ATTACHMENT, { session_id: sessionId, id: attachmentId }, undefined, { signal });
-        return blob;
+        // Los adjuntos no cambian: una vez bajados se sirven de la caché.
+        return cachedBlob(
+            sessionAttachmentKey(sessionId, attachmentId),
+            (fetchSignal) => api.getBlob(API_ROUTES.CLINIC_HISTORY.SESSIONS_ATTACHMENT, { session_id: sessionId, id: attachmentId }, undefined, { signal: fetchSignal }),
+            signal,
+        );
     }, []);
 
     const buildSessionFormData = (sessionData: any, scalarOverrides: Record<string, string>, files?: File[]) => {

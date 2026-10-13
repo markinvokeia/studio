@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 
 import { OrderFileGallery } from './order-file-gallery';
 
-import { getWhatsappIntakeFile } from '@/services/study-orders';
+import { whatsappIntakeFileLoader } from '@/services/study-orders';
 import type { WhatsappIntakeFile } from '@/lib/types';
 
 /**
@@ -30,10 +30,7 @@ export function WhatsappIntakeFiles({ intakeId, files }: WhatsappIntakeFilesProp
         () => files.map((f) => ({ id: f.id, name: f.file_name, mimeType: f.mime_type })),
         [files],
     );
-    const loadFile = React.useCallback(
-        (id: string, signal: AbortSignal) => getWhatsappIntakeFile(intakeId, id, signal),
-        [intakeId],
-    );
+    const loadFile = React.useMemo(() => whatsappIntakeFileLoader(intakeId), [intakeId]);
 
     if (files.length === 0) {
         return <p className="text-xs text-muted-foreground">{t('noFiles')}</p>;
