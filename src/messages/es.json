@@ -637,7 +637,9 @@
     "studyOrderChange_scheduled": "Ya tiene cita agendada.",
     "studyOrderChange_rescheduled": "Se movió la fecha de la cita.",
     "studyOrderSubmittedTitle": "Nueva orden de estudio",
-    "studyOrderStatusTitle": "Tu orden cambió de estado"
+    "studyOrderStatusTitle": "Tu orden cambió de estado",
+    "studyOrderAssignedTitle": "Te asignaron la revisión de una orden",
+    "studyOrderAssignedBy": "{name} te asignó la revisión de esta orden."
   },
   "Header": {
     "toggleLanguage": "Cambiar idioma",
@@ -10281,7 +10283,10 @@
       "print": "Imprimir",
       "cancelBlocked": "La clínica ya tomó esta orden y no se puede anular desde acá. Llamá a la clínica para darla de baja.",
       "reschedule": "Reagendar",
-      "menu": "Acciones"
+      "menu": "Acciones",
+      "assign": "Asignar",
+      "reassign": "Reasignar",
+      "reviewedBy": "Revisada por: {name}"
     },
     "detail": {
       "expand": "Pantalla entera",
@@ -10381,14 +10386,18 @@
         "cancelled": "Se anuló la orden",
         "link_created": "Se generó el link para el paciente",
         "patient_booked": "El paciente reservó su horario",
-        "review_updated": "Punto revisado"
+        "review_updated": "Punto revisado",
+        "assigned": "Se asignó la orden",
+        "unassigned": "La orden quedó sin asignar"
       },
       "reviewStatus": {
         "pending": "vuelve a pendiente",
         "confirmed": "confirmado",
         "corrected": "corregido",
         "dismissed": "descartado"
-      }
+      },
+      "assignedTo": "Revisa: {name}",
+      "previouslyAssigned": "antes: {name}"
     },
     "appointmentCard": {
       "none": "Esta orden todavía no tiene citas.",
@@ -10542,6 +10551,87 @@
       "openInbox": "Ver todas en la bandeja de órdenes",
       "back": "Volver a las órdenes",
       "manageInInbox": "Gestionar en la bandeja"
+    },
+    "view": {
+      "label": "Vista de la bandeja",
+      "list": "Lista",
+      "board": "Dashboard de Estados"
+    },
+    "assignedFilter": {
+      "label": "Revisada por",
+      "all": "Todos",
+      "me": "Asignadas a mí",
+      "none": "Sin asignar"
+    },
+    "board": {
+      "label": "Órdenes por estado",
+      "loadError": "No se pudo cargar el tablero.",
+      "retry": "Reintentar",
+      "emptyColumn": "Sin órdenes en este estado",
+      "loadMore": "Cargar más ({shown} de {total})",
+      "perColumn": "Órdenes por columna",
+      "perColumnOption": "{count} por columna",
+      "summary": "Ver resumen",
+      "openDetail": "Ver detalle",
+      "assign": "Asignar",
+      "unassigned": "Sin asignar",
+      "assignedTo": "Revisada por {name}",
+      "progress": "{scheduled}/{total} agendados",
+      "progressLong": "{scheduled} de {total} agendados · {completed} atendidos",
+      "expandColumn": "Desplegar {status}",
+      "collapseColumn": "Plegar {status}",
+      "notAllowedHere": "No se puede mover acá",
+      "fields": {
+        "document": "Documento",
+        "phone": "Teléfono",
+        "doctor": "Derivador",
+        "studies": "Estudios",
+        "progress": "Avance",
+        "sede": "Sede",
+        "submitted": "Enviada",
+        "assigned": "Revisada por",
+        "review": "Revisión"
+      },
+      "blocked": {
+        "title": "{order} no puede pasar a «{status}».",
+        "appointments": "Ese estado depende de las citas: la orden pasa sola cuando se atienden.",
+        "backwards": "Una orden no vuelve a un estado anterior.",
+        "permission": "No tenés permiso para esa acción, o la orden no la admite en su estado actual.",
+        "dismiss": "Entendido"
+      },
+      "a11y": {
+        "card": "orden arrastrable",
+        "instructions": "Para mover una orden, presioná la barra espaciadora, movela con las flechas hasta otra columna y presioná la barra espaciadora para soltarla. Escape cancela. Enter abre la orden.",
+        "start": "Moviendo la orden {order}.",
+        "over": "Sobre la columna {status}.",
+        "outside": "Fuera de las columnas.",
+        "drop": "Soltada en {status}.",
+        "cancel": "Movimiento cancelado."
+      },
+      "reviewedByLabel": "Revisada por:",
+      "reassign": "Reasignar",
+      "reassignHint": "Revisada por {name}. Tocá para reasignar."
+    },
+    "assign": {
+      "action": "Asignar revisión…",
+      "reassign": "Reasignar revisión…",
+      "title": "Asignar la revisión de {number}",
+      "description": "Elegí quién del staff (recepción, gerencia o administración) revisa la orden. Le llega un aviso.",
+      "loadError": "No se pudo cargar la lista de usuarios.",
+      "retry": "Reintentar",
+      "assignToMe": "Asignármela",
+      "search": "Buscar por nombre o email…",
+      "empty": "Nadie coincide con la búsqueda.",
+      "nobody": "Sin asignar",
+      "me": "vos",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "assignedAt": "Asignada el {date}",
+      "toast": {
+        "assigned": "Orden asignada a {name}",
+        "unassigned": "La orden quedó sin asignar",
+        "error": "No se pudo asignar la orden"
+      }
     }
   },
   "StudyOrderBooking": {

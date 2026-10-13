@@ -20,6 +20,7 @@ import {
   Pencil,
   Stethoscope,
   UserCog,
+  UserPlus,
   Users,
   X,
   Zap,
@@ -55,6 +56,7 @@ import type {
   UnifiedNotification,
   WhatsappHandoffRequestedNotification,
   StudyOrderStatusChangedNotification,
+  StudyOrderAssignedNotification,
   StudyOrderSubmittedNotification,
 } from '@/lib/types';
 
@@ -1121,6 +1123,60 @@ function StudyOrderStatusCard({ notification }: { notification: StudyOrderStatus
   );
 }
 
+/** Le asignaron una orden: quién se la asignó y un acceso directo para abrirla. */
+function StudyOrderAssignedCard({ notification }: { notification: StudyOrderAssignedNotification }) {
+  const { dismissNotification, closePanel } = useNotifications();
+  const t = useTranslations('Notifications');
+  const tStatus = useTranslations('StudyOrdersPage.status');
+  const locale = useLocale();
+  const router = useRouter();
+
+  const handleView = () => {
+    closePanel();
+    router.push(`/${locale}/study-orders?orderId=${notification.orderId}`);
+  };
+
+  return (
+    <CardWrapper onDismiss={() => dismissNotification(notification.id)} accent="border-l-[3px] border-l-primary">
+      <div className="flex items-start gap-3 pr-6">
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
+          <UserPlus className="h-3.5 w-3.5 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-mono text-xs font-semibold text-foreground truncate">
+              {notification.orderNumber}
+            </span>
+            <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">{tStatus(notification.boardStatus)}</Badge>
+            <RelativeTime iso={notification.createdAt} />
+          </div>
+          <p className="mt-0.5 text-[11px] text-muted-foreground truncate">
+            {notification.patientName}
+          </p>
+          <p className="mt-2 text-[11px] text-foreground">
+            {notification.assignedByName
+              ? t('studyOrderAssignedBy', { name: notification.assignedByName })
+              : t('studyOrderAssignedTitle')}
+          </p>
+          {notification.itemsSummary && (
+            <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">{notification.itemsSummary}</p>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 h-7 w-full justify-start gap-2 text-[11px]"
+            onClick={handleView}
+          >
+            <ExternalLink className="h-3.5 w-3.5 text-primary" />
+            {t('studyOrderActionView')}
+          </Button>
+        </div>
+      </div>
+    </CardWrapper>
+  );
+}
+
 export function NotificationCard({ notification }: { notification: UnifiedNotification }) {
   switch (notification.type) {
     case 'new_appointment':
@@ -1143,5 +1199,7 @@ export function NotificationCard({ notification }: { notification: UnifiedNotifi
       return <StudyOrderSubmittedCard notification={notification} />;
     case 'study_order_status_changed':
       return <StudyOrderStatusCard notification={notification} />;
+    case 'study_order_assigned':
+      return <StudyOrderAssignedCard notification={notification} />;
   }
 }

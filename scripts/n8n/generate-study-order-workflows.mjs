@@ -23,7 +23,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
-    ACKNOWLEDGE_SQL, CANCEL_SQL, DELETE_SQL, DETAIL_SQL,
+    ACKNOWLEDGE_SQL, ASSIGN_SQL, ASSIGNEES_SQL, BOARD_COLUMNS, BOARD_SQL, CANCEL_SQL, DELETE_SQL, DETAIL_SQL, NOTIFY_ASSIGNEE_SQL,
     BY_APPOINTMENT_SQL, LINK_APPOINTMENT_SQL, LIST_SQL, NOTIFY_DOCTOR_SQL, NOTIFY_RECEPTION_SQL, OPTIONS_SQL,
     APPOINTMENT_TECHNICIANS_SQL, ASSIGN_TECHNICIAN_SQL, BOOKING_TOKEN_SQL, LOG_EVENT_SQL, TECHNICIAN_TASKS_SQL, PUBLIC_BOOK_SQL, PUBLIC_DETAIL_SQL, RECONCILE_SQL,
     RECOMPUTE_SQL, RESCHEDULE_SQL, SUBMIT_SQL, UPSERT_SQL,
@@ -177,7 +177,7 @@ return [{ json: { __data: data } }];`),
 workflows.push({
     file: 'study-orders-list.json',
     name: 'Study Orders - List',
-    sticky: `## GET /study-orders\n\nBandeja de órdenes.\n\n**Query**\n- \`scope\`: \`mine\` | \`clinic\` (default \`mine\`)\n- \`board_status\`: all | new | pending | overdue | scheduled | completed | drafts | review (con puntos sin revisar)\n- \`q\`: busca por paciente, documento o número de orden (prefijo)\n- \`sede_id\`, \`date_from\`, \`date_to\`, \`sla_hours\` (default 48)\n- \`sort\`: \`campo:asc|desc\`, \`page\`, \`limit\`\n\n**SEGURIDAD:** el \`doctor_id\` NO se acepta por query. Con \`scope=mine\` el SQL filtra por \`jwtPayload.userId\`; con \`scope=clinic\` exige STUDY_ORDERS_VIEW_ALL y, si no lo tiene, devuelve igual sólo lo propio.\n\n**Response 200**\n\`\`\`json\n{ "code": 200, "data": [ { "id": "...", "board_status": "partially_scheduled",\n   "items_total": 3, "items_scheduled": 1, "is_overdue": false } ],\n  "meta": { "total": 42, "page": 1, "limit": 25 } }\n\`\`\``,
+    sticky: `## GET /study-orders\n\nBandeja de órdenes.\n\n**Query**\n- \`scope\`: \`mine\` | \`clinic\` | \`patient\` (default \`mine\`). \`patient\` + \`patient_id\`: todas las órdenes del paciente para quien tiene PATIENTS_VIEW_DETAIL (o VIEW_ALL)\n- \`board_status\`: all | new | pending | overdue | scheduled | completed | drafts | review (con puntos sin revisar)\n- \`q\`: busca por paciente, documento o número de orden (prefijo)\n- \`patient_id\`, \`doctor_id\`: acotan a un paciente / doctor (tabs Órdenes de Pacientes y Doctores)\n- \`assigned\`: \`me\` (asignadas a mí) | \`none\` (sin asignar) | id de un usuario\n- \`sede_id\`, \`date_from\`, \`date_to\`, \`sla_hours\` (default 48)\n- \`sort\`: \`campo:asc|desc\`, \`page\`, \`limit\`\n\n**SEGURIDAD:** el \`doctor_id\` NO se acepta por query. Con \`scope=mine\` el SQL filtra por \`jwtPayload.userId\`; con \`scope=clinic\` exige STUDY_ORDERS_VIEW_ALL y, si no lo tiene, devuelve igual sólo lo propio.\n\n**Response 200**\n\`\`\`json\n{ "code": 200, "data": [ { "id": "...", "board_status": "partially_scheduled",\n   "items_total": 3, "items_scheduled": 1, "is_overdue": false } ],\n  "meta": { "total": 42, "page": 1, "limit": 25 } }\n\`\`\``,
     method: 'GET',
     path: 'study-orders',
     id: 'list',
@@ -203,6 +203,11 @@ const filters = {
   sede_id: q.sede_id || '',
   source: ['portal', 'whatsapp'].includes(q.source) ? q.source : '',
   patient_id: q.patient_id || '',
+  // Órdenes de un doctor concreto (tab Órdenes de Config > Doctores). Sólo acota:
+  // sin VIEW_ALL el SQL ya restringe a las propias, así que pedir otro doctor da vacío.
+  doctor_id: q.doctor_id || '',
+  // Responsable: 'me' (asignadas a quien consulta), 'none' (sin asignar) o el id de un usuario.
+  assigned: ['me', 'none'].includes(q.assigned) || /^[0-9a-f-]{36}$/i.test(q.assigned || '') ? q.assigned : '',
   sla_hours: Number(q.sla_hours) > 0 ? Number(q.sla_hours) : 48,
   date_from: q.date_from || '',
   date_to: q.date_to || '',
@@ -220,6 +225,53 @@ const input = $('Validar Datos').first().json;
 return [{ json: {
   __data: row.items ?? [],
   __meta: { total: Number(row.total ?? 0), page: input.page, limit: input.limit },
+} }];`),
+});
+
+// ── 2b. GET /study-orders/board ──────────────────────────────────────────────
+workflows.push({
+    file: 'study-orders-board.json',
+    name: 'Study Orders - Board',
+    sticky: `## GET /study-orders/board\n\nTablero de la bandeja (vista **Estados**): una columna por estado de la orden, en el orden en que avanza.\n\nColumnas: ${BOARD_COLUMNS.map((c) => `\`${c}\``).join(' · ')}. Es el \`board_status\` DERIVADO de \`v_study_orders_board\` (las citas mandan), igual que en la lista.\n\n**Query**\n- \`scope\`, \`q\`, \`source\`, \`sede_id\`, \`patient_id\`, \`doctor_id\`, \`assigned\`, \`date_from\`, \`date_to\`, \`sla_hours\`: igual que GET /study-orders\n- \`limit\`: tarjetas por columna (default 25, máx. 200)\n- \`column\` + \`offset\`: "cargar más" de una sola columna\n\nMismo alcance y permisos que la lista (comparten la CTE \`base\`): \`scope=clinic\` exige STUDY_ORDERS_VIEW_ALL.\n\n**Response 200**\n\`\`\`json\n{ "code": 200, "data": [ { "status": "new", "total": 12, "items": [ { "id": "...", "board_status": "new", "assigned_to_name": "Ana" } ] } ],\n  "meta": { "limit": 25, "column": null, "offset": 0 } }\n\`\`\``,
+    method: 'GET',
+    path: 'study-orders/board',
+    id: 'board',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+
+const q = $json.query || {};
+const COLUMNS = ${JSON.stringify(BOARD_COLUMNS)};
+// Cuántas tarjetas por columna. "Cargar más" pide una sola columna con \`column\` y \`offset\`.
+const limit = Math.min(200, Math.max(1, parseInt(q.limit, 10) || 25));
+const column = COLUMNS.includes(q.column) ? q.column : '';
+const offset = column ? Math.max(0, parseInt(q.offset, 10) || 0) : 0;
+
+const filters = {
+  scope: ['clinic', 'patient'].includes(q.scope) ? q.scope : 'mine',
+  search: (q.q || '').trim(),
+  sede_id: q.sede_id || '',
+  source: ['portal', 'whatsapp'].includes(q.source) ? q.source : '',
+  patient_id: q.patient_id || '',
+  doctor_id: q.doctor_id || '',
+  // Responsable: 'me' (asignadas a quien consulta), 'none' (sin asignar) o el id de un usuario.
+  assigned: ['me', 'none'].includes(q.assigned) || /^[0-9a-f-]{36}$/i.test(q.assigned || '') ? q.assigned : '',
+  sla_hours: Number(q.sla_hours) > 0 ? Number(q.sla_hours) : 48,
+  date_from: q.date_from || '',
+  date_to: q.date_to || '',
+  column,
+  limit,
+  offset,
+};
+
+return [{ json: { user_id: String(userId), filters: JSON.stringify(filters), limit, column, offset } }];`.trim(),
+    sql: BOARD_SQL,
+    replacement: '={{ [ $json.user_id, $json.filters ] }}',
+    format: formatCode(`
+const input = $('Validar Datos').first().json;
+return [{ json: {
+  __data: rows[0]?.columns ?? [],
+  __meta: { limit: input.limit, column: input.column || null, offset: input.offset },
 } }];`),
 });
 
@@ -409,6 +461,68 @@ if (!rows.length) {
     __message: 'La orden ya fue tomada, no está enviada, o no tenés permiso' } }];
 }
 return [{ json: { __data: rows[0], __message: 'Orden tomada' } }];`),
+});
+
+// ── 7b. POST /study-orders/assign ────────────────────────────────────────────
+workflows.push({
+    file: 'study-orders-assign.json',
+    name: 'Study Orders - Assign',
+    sticky: `## POST /study-orders/assign\n\nAsigna quién de la clínica revisa la orden ("Revisada por"), o la deja sin asignar.\n\n**Body:** \`{ "id": "uuid", "user_id": "uuid" | null }\` · \`null\` = sin asignar.\n\nRequiere STUDY_ORDERS_ASSIGN y STUDY_ORDERS_VIEW_ALL. Solo se puede asignar a usuarios de staff activos (rol recepcionista, gerente o administrador; mismo criterio que get_users_filtered(p_only_staff)). Solo órdenes que ve la clínica (enviadas, o borradores del agente de WhatsApp).\n\nRegistra el evento \`assigned\` / \`unassigned\` y avisa al nuevo responsable (notificación \`study_order_assigned\`), salvo que se la haya asignado él mismo o no haya cambiado.`,
+    method: 'POST',
+    path: 'study-orders/assign',
+    id: 'assign',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const body = $json.body || {};
+const id = (body.id || '').toString().trim();
+if (!id) return [{ json: { __error: true, __code: 400, __message: 'id es requerido' } }];
+// null / '' = dejar sin asignar.
+const assignee = (body.user_id || '').toString().trim();
+if (assignee && !/^[0-9a-f-]{36}$/i.test(assignee)) {
+  return [{ json: { __error: true, __code: 400, __message: 'user_id inválido' } }];
+}
+return [{ json: { user_id: String(userId), id, assignee } }];`.trim(),
+    // Volver a asignar al mismo no deja renglón: event_type vacío y LOG_EVENT_SQL no inserta.
+    event: { replacement: `={{ JSON.stringify({ order_id: $('Validar Datos').first().json.id, event_type: $('Formatear Respuesta').first().json.__changed ? ($('Formatear Respuesta').first().json.__data.assigned_to ? 'assigned' : 'unassigned') : '', actor_id: $('Validar Datos').first().json.user_id, metadata: { assignee_id: $('Formatear Respuesta').first().json.__data.assigned_to, assignee_name: $('Formatear Respuesta').first().json.__data.assigned_to_name, previous_assignee_id: $('Formatear Respuesta').first().json.__data.previous_assigned_to, previous_assignee_name: $('Formatear Respuesta').first().json.__data.previous_assigned_to_name } }) }}` },
+    sql: ASSIGN_SQL,
+    replacement: '={{ [ $json.user_id, $json.id, $json.assignee ] }}',
+    notify: {
+        sql: NOTIFY_ASSIGNEE_SQL,
+        replacement: `={{ [ $('Validar Datos').first().json.id, $('Validar Datos').first().json.user_id, String($('Formatear Respuesta').first().json.__changed) ] }}`,
+        eventType: 'study_order_assigned',
+    },
+    format: formatCode(`
+if (!rows.length) {
+  return [{ json: { __error: true, __code: 409,
+    __message: 'No se pudo asignar: la orden no está en la bandeja, el usuario no es staff o no tenés permiso' } }];
+}
+const row = rows[0];
+// Volver a asignar al mismo no es un cambio: no deja evento ni avisa.
+const changed = (row.previous_assigned_to || '') !== (row.assigned_to || '');
+return [{ json: {
+  __data: row,
+  __changed: changed,
+  __message: row.assigned_to ? 'Orden asignada' : 'Orden sin asignar',
+} }];`),
+});
+
+// ── 7c. GET /study-orders/assignees ──────────────────────────────────────────
+workflows.push({
+    file: 'study-orders-assignees.json',
+    name: 'Study Orders - Assignees',
+    sticky: `## GET /study-orders/assignees\n\nUsuarios a los que se puede asignar la revisión de una orden: staff activo (rol recepcionista, gerente o administrador; mismo criterio que get_users_filtered(p_only_staff)).\n\nRequiere STUDY_ORDERS_VIEW_ALL (sin el permiso devuelve una lista vacía).\n\n**Response 200**\n\`\`\`json\n{ "code": 200, "data": [ { "id": "uuid", "name": "Ana Pérez", "email": "ana@..." } ] }\n\`\`\``,
+    method: 'GET',
+    path: 'study-orders/assignees',
+    id: 'assignees',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+return [{ json: { user_id: String(userId) } }];`.trim(),
+    sql: ASSIGNEES_SQL,
+    replacement: '={{ [ $json.user_id ] }}',
+    format: formatCode(`
+return [{ json: { __data: rows[0]?.items ?? [] } }];`),
 });
 
 // ── 8. POST /study-orders/cancel ─────────────────────────────────────────────

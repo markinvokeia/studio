@@ -3,7 +3,7 @@
 import * as React from 'react';
 import {
     Ban, CalendarClock, CalendarPlus, CalendarX, CheckCircle2, FilePlus2,
-    Inbox, Link2, ListChecks, Pencil, RotateCcw, Send, Stethoscope, UserRound,
+    Inbox, Link2, ListChecks, Pencil, RotateCcw, Send, Stethoscope, UserMinus, UserPlus, UserRound,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -45,6 +45,8 @@ const EVENT_STYLES: Record<StudyOrderEventType, EventStyle> = {
     link_created:          { icon: Link2,         tone: 'neutral' },
     patient_booked:        { icon: UserRound,     tone: 'accent' },
     review_updated:        { icon: ListChecks,    tone: 'neutral' },
+    assigned:              { icon: UserPlus,      tone: 'accent' },
+    unassigned:            { icon: UserMinus,     tone: 'neutral' },
 };
 
 const TONE_CLASSES: Record<EventStyle['tone'], string> = {
@@ -145,8 +147,12 @@ function EventDetail({ event }: { event: StudyOrderEvent }) {
         ? [meta.label, meta.value].filter((v) => typeof v === 'string' && v).join(': ')
         : null;
     const reviewNote = reviewStatus && typeof meta.note === 'string' ? meta.note : null;
+    // Asignación: a quién (y a quién se le sacó, si tenía otro responsable).
+    const assignee = event.event_type === 'assigned' && typeof meta.assignee_name === 'string' ? meta.assignee_name : null;
+    const previousAssignee = (event.event_type === 'assigned' || event.event_type === 'unassigned')
+        && typeof meta.previous_assignee_name === 'string' ? meta.previous_assignee_name : null;
 
-    if (!reason && !toStart && !procedure && !reviewStatus) return null;
+    if (!reason && !toStart && !procedure && !reviewStatus && !assignee && !previousAssignee) return null;
 
     return (
         <p className="mt-1 text-xs text-muted-foreground">
@@ -160,6 +166,9 @@ function EventDetail({ event }: { event: StudyOrderEvent }) {
                     {reviewNote && <span className="italic"> · {reviewNote}</span>}
                 </span>
             )}
+            {assignee && <span>{t('assignedTo', { name: assignee })}</span>}
+            {assignee && previousAssignee && ' · '}
+            {previousAssignee && <span className="italic">{t('previouslyAssigned', { name: previousAssignee })}</span>}
             {toStart && <span className="italic">{t('movedTo', { date: formatDateTime(toStart) })}</span>}
             {reason && <span className="italic">{reason}</span>}
             {procedure && <span className="italic">{procedure}</span>}

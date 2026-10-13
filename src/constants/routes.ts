@@ -559,11 +559,17 @@ export const API_ROUTES = {
      */
     STUDY_ORDERS: {
         LIST:          '/study-orders',
+        /** Tablero por estados: GET con los filtros de la lista + `limit` por columna (`column`/`offset` = cargar más). */
+        BOARD:         '/study-orders/board',
         DETAIL:        '/study-orders/detail',
         UPSERT:        '/study-orders/upsert',
         SUBMIT:        '/study-orders/submit',
         CANCEL:        '/study-orders/cancel',
         ACKNOWLEDGE:   '/study-orders/acknowledge',
+        /** Asigna (o deja sin asignar) el responsable de la orden en la clínica. */
+        ASSIGN:        '/study-orders/assign',
+        /** Usuarios a los que se puede asignar una orden (con STUDY_ORDERS_VIEW_ALL). */
+        ASSIGNEES:     '/study-orders/assignees',
         DELETE:        '/study-orders/delete',
         OPTIONS:       '/study-orders/options',
         LINK_PATIENT:  '/study-orders/link-patient',

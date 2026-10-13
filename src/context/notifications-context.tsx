@@ -28,6 +28,7 @@ import type {
   WhatsappHandoffRequestedNotification,
   StudyOrderBoardStatus,
   StudyOrderStatusChangedNotification,
+  StudyOrderAssignedNotification,
   StudyOrderSubmittedNotification,
 } from '@/lib/types';
 import { normalizeTratamiento } from '@/lib/utils';
@@ -91,7 +92,8 @@ interface BackendNotification {
     | 'appointment_updated'
     | 'whatsapp_handoff_requested'
     | 'study_order_submitted'
-    | 'study_order_status_changed';
+    | 'study_order_status_changed'
+    | 'study_order_assigned';
   reminder_id?: string | null;
   status: 'pending' | 'read' | 'dismissed';
   appointment_id?: string | null;
@@ -230,6 +232,19 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
         change: String(m.change ?? ''),
         cancellationReason: m.cancellation_reason ?? null,
       } satisfies StudyOrderStatusChangedNotification;
+
+    case 'study_order_assigned':
+      return {
+        ...base,
+        type: 'study_order_assigned',
+        orderId: String(m.order_id ?? ''),
+        orderNumber: String(m.order_number ?? ''),
+        patientName: String(m.patient_name ?? ''),
+        itemsSummary: String(m.items_summary ?? ''),
+        boardStatus: (m.board_status ?? 'new') as StudyOrderBoardStatus,
+        assignedByName: String(m.assigned_by_name ?? ''),
+        source: m.source ?? null,
+      } satisfies StudyOrderAssignedNotification;
 
     case 'new_appointment':
       return {

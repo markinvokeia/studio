@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { CalendarPlus, Inbox, Pencil, Send, Trash2, XCircle } from 'lucide-react';
+import { CalendarPlus, Inbox, Pencil, Send, Trash2, UserPlus, UserRound, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -11,6 +11,7 @@ import { createSelectColumn } from '@/components/ui/table-select-column';
 import { StudyOrderStatusBadge } from '@/components/study-orders/study-order-status-badge';
 import { WhatsappSourceBadge } from '@/components/study-orders/whatsapp-source-badge';
 import { ReviewPendingBadge } from '@/components/study-orders/review-pending-badge';
+import { isStudyOrderAssignable } from '@/components/study-orders/study-order-assign-dialog';
 
 import { formatDisplayDate } from '@/lib/utils';
 import type { StudyOrderListItem } from '@/lib/types';
@@ -33,6 +34,8 @@ export interface StudyOrderColumnsProps {
     onAcknowledge?: (order: StudyOrderListItem) => void;
     onSchedule?: (order: StudyOrderListItem) => void;
     onCancel?: (order: StudyOrderListItem) => void;
+    /** Asignar quién la revisa. El padre ya resolvió el permiso; sin él no se ofrece. */
+    onAssign?: (order: StudyOrderListItem) => void;
 }
 
 interface RowActionProps {
@@ -88,8 +91,9 @@ const WIDTHS = {
     patient: 140,
     referrer: 120,
     status: 120,
-    // Tres acciones simultáneas como máximo, de 46px cada una, más los huecos.
-    actions: 145,
+    // Cuatro acciones simultáneas como máximo (Tomar, Agendar, Asignar, Anular), de 46px cada una,
+    // más los huecos.
+    actions: 192,
 } as const;
 
 export const StudyOrderColumnsWrapper = ({
@@ -100,6 +104,7 @@ export const StudyOrderColumnsWrapper = ({
     onAcknowledge,
     onSchedule,
     onCancel,
+    onAssign,
 }: StudyOrderColumnsProps): ColumnDef<StudyOrderListItem>[] => {
     const t = useTranslations('StudyOrdersPage.columns');
     const tActions = useTranslations('StudyOrdersPage.actions');
@@ -195,12 +200,24 @@ export const StudyOrderColumnsWrapper = ({
             enableSorting: false,
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('status')} />,
             cell: ({ row }) => (
-                <StudyOrderStatusBadge
-                    status={row.original.board_status}
-                    isOverdue={row.original.is_overdue}
-                    itemsScheduled={row.original.items_scheduled}
-                    itemsTotal={row.original.items_total}
-                />
+                <div className="min-w-0 space-y-1">
+                    <StudyOrderStatusBadge
+                        status={row.original.board_status}
+                        isOverdue={row.original.is_overdue}
+                        itemsScheduled={row.original.items_scheduled}
+                        itemsTotal={row.original.items_total}
+                    />
+                    {/* Quién la revisa, debajo del estado: no justifica una columna propia. */}
+                    {scope === 'clinic' && row.original.assigned_to_name && (
+                        <div
+                            className="flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground"
+                            title={tActions('reviewedBy', { name: row.original.assigned_to_name })}
+                        >
+                            <UserRound className="h-3 w-3 shrink-0" aria-hidden="true" />
+                            <span className="truncate">{tActions('reviewedBy', { name: row.original.assigned_to_name })}</span>
+                        </div>
+                    )}
+                </div>
             ),
         },
         {
@@ -231,6 +248,13 @@ export const StudyOrderColumnsWrapper = ({
                             desde el calendario: acá deja de ofrecerse. */}
                         {isClinic && isSubmitted && order.board_status !== 'scheduled' && onSchedule && (
                             <RowAction label={tActions('schedule')} icon={CalendarPlus} onClick={() => onSchedule(order)} />
+                        )}
+                        {isClinic && onAssign && isStudyOrderAssignable(order) && (
+                            <RowAction
+                                label={order.assigned_to ? tActions('reassign') : tActions('assign')}
+                                icon={UserPlus}
+                                onClick={() => onAssign(order)}
+                            />
                         )}
                         {isDraft && onDelete && (
                             <RowAction label={tActions('delete')} icon={Trash2} onClick={() => onDelete(order)} destructive />

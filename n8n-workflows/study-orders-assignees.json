@@ -1,0 +1,296 @@
+{
+  "name": "Study Orders - Assignees",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## GET /study-orders/assignees\n\nUsuarios a los que se puede asignar la revisión de una orden: staff activo (rol recepcionista, gerente o administrador; mismo criterio que get_users_filtered(p_only_staff)).\n\nRequiere STUDY_ORDERS_VIEW_ALL (sin el permiso devuelve una lista vacía).\n\n**Response 200**\n```json\n{ \"code\": 200, \"data\": [ { \"id\": \"uuid\", \"name\": \"Ana Pérez\", \"email\": \"ana@...\" } ] }\n```",
+        "height": 420,
+        "width": 460,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -180
+      ],
+      "id": "assignees-doc",
+      "name": "Contrato"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "study-orders/assignees",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "assignees-wh",
+      "name": "Webhook",
+      "webhookId": "study-orders-assignees",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\nreturn [{ json: { user_id: String(userId) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "assignees-val",
+      "name": "Validar Datos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "assignees-cond",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "assignees-if",
+      "name": "¿Hubo error?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 = userId del token. Quien no ve la bandeja completa no necesita la lista.\nWITH me AS (\n    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL') AS can_view_all\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code = 'STUDY_ORDERS_VIEW_ALL'\n)\nSELECT coalesce(json_agg(json_build_object('id', u.id::text, 'name', u.name, 'email', u.email)\n                         ORDER BY u.name), '[]'::json) AS items\n  FROM public.users u\n WHERE coalesce((SELECT can_view_all FROM me), false)\n   AND \n       u.is_active IS NOT FALSE\n   AND EXISTS (SELECT 1\n                 FROM public.user_roles ur\n                 JOIN public.roles r ON r.id = ur.role_id\n                WHERE ur.user_id = u.id\n                  AND ur.is_active IS NOT FALSE\n                  AND lower(trim(r.name)) IN ('recepcionista', 'gerente', 'administrador'));",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        660,
+        120
+      ],
+      "id": "assignees-sql",
+      "name": "Consulta",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma el sobre { code, message, data, meta }. Un resultado vacío en una\n// operación de escritura significa que el WHERE de guarda no dejó pasar:\n// es un 409/404, no un 500.\n//\n// El filtro descarta el item vacio que emite el nodo de Postgres cuando la\n// consulta no devuelve filas (lleva alwaysOutputData para que el flujo llegue a\n// responder). Sin el, ese {} se colaria como si fuera una fila real: un detalle\n// de orden vacio en vez de un 404, o un listado con un elemento fantasma.\nconst rows = $input.all()\n  .map((i) => i.json)\n  .filter((r) => r && typeof r === 'object' && Object.keys(r).length > 0);\n\nreturn [{ json: { __data: rows[0]?.items ?? [] } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        120
+      ],
+      "id": "assignees-fmt",
+      "name": "Formatear Respuesta"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "assignees-cond2",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        120
+      ],
+      "id": "assignees-if2",
+      "name": "¿Error de negocio?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 200, message: $json.__message || \"OK\", data: $json.__data, meta: $json.__meta } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        220
+      ],
+      "id": "assignees-ok",
+      "name": "Responder OK"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: $json.__code || 400, message: $json.__message || \"Error\", data: null } }}",
+        "options": {
+          "responseCode": "={{ $json.__code || 400 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        -60
+      ],
+      "id": "assignees-err",
+      "name": "Responder Error"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos": {
+      "main": [
+        [
+          {
+            "node": "¿Hubo error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hubo error?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "¿Error de negocio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Error de negocio?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    "study-orders",
+    "clinic"
+  ]
+}

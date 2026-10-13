@@ -779,6 +779,8 @@ export const STUDY_ORDERS_PERMISSIONS = {
   SCHEDULE:          'STUDY_ORDERS_SCHEDULE',
   SHARE_LINK:        'STUDY_ORDERS_SHARE_LINK',
   SEARCH_PATIENT:    'STUDY_ORDERS_SEARCH_PATIENT',
+  /** Asignar el responsable de una orden (vista Estados y detalle). */
+  ASSIGN:            'STUDY_ORDERS_ASSIGN',
 } as const;
 
 export type StudyOrdersPermission =

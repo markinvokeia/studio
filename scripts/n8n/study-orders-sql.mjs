@@ -94,34 +94,50 @@ SELECT json_build_object(
           FROM public.study_order_options WHERE option_kind = 'delivery' AND is_active) o)
 ) AS data;`;
 
-export const LIST_SQL = `
--- $1 = userId del token.  $2 = filtros como JSON.
--- Dos parámetros por el mismo motivo que el upsert: sin array posicional no hay
--- desalineación posible ni placeholders de dos dígitos.
-WITH ${PERMS_CTE},
-q AS (
-    SELECT $2::jsonb AS f
-),
-args AS (
-    SELECT coalesce(NULLIF(f ->> 'scope', ''), 'mine')          AS scope,
-           coalesce(NULLIF(f ->> 'board_status', ''), 'all')    AS board_status,
+/**
+ * Argumentos comunes de la bandeja (lista y tablero), leídos del JSON de filtros `$2`.
+ * `assigned`: '' (todos), 'me' (asignadas a quien consulta), 'none' (sin asignar) o un id.
+ */
+const INBOX_ARGS = `
            coalesce(f ->> 'search', '')                         AS search,
            NULLIF(f ->> 'sede_id', '')                          AS sede_id,
            coalesce(f ->> 'source', '')                         AS source,
            NULLIF(f ->> 'patient_id', '')                       AS patient_id,
+           coalesce(f ->> 'assigned', '')                       AS assigned,
            coalesce((f ->> 'sla_hours')::numeric, 48)           AS sla_hours,
            NULLIF(f ->> 'date_from', '')                        AS date_from,
-           NULLIF(f ->> 'date_to', '')                          AS date_to,
-           coalesce(NULLIF(f ->> 'sort', ''), 'submitted_at:desc') AS sort,
-           coalesce((f ->> 'limit')::int, 25)                   AS lim,
-           coalesce((f ->> 'offset')::int, 0)                   AS off
-      FROM q
-),
+           NULLIF(f ->> 'date_to', '')                          AS date_to,`;
+
+/** Filtro por bucket de la lista (`board_status` del query). El tablero no lo usa: muestra todos. */
+const BUCKET_FILTER = `
+       AND (a.board_status = 'all' OR CASE a.board_status
+             WHEN 'new'       THEN b.board_status = 'new'
+             WHEN 'pending'   THEN b.board_status IN ('new', 'unscheduled', 'partially_scheduled')
+             WHEN 'overdue'   THEN (b.has_past_due_appointment
+                                    OR (b.board_status IN ('new', 'unscheduled', 'partially_scheduled')
+                                        AND b.hours_since_submitted > a.sla_hours))
+             WHEN 'scheduled' THEN b.board_status IN ('scheduled', 'partially_scheduled')
+             WHEN 'completed' THEN b.board_status = 'completed'
+             WHEN 'drafts'    THEN b.status = 'draft'
+             WHEN 'review'    THEN EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(so.review_items, '[]'::jsonb)) r
+                                            WHERE r ->> 'status' = 'pending')
+             ELSE true END)`;
+
+/**
+ * CTE `base` de la bandeja: las órdenes que ve el sujeto (alcance y permisos) con los filtros
+ * aplicados. La comparten la lista y el tablero, para que las dos vistas no puedan diferir en qué
+ * órdenes muestran.
+ */
+const inboxBaseCte = ({ withBucket }) => `
 base AS (
     SELECT b.*,
            d.name  AS doctor_name,
            so.source,
            so.referring_doctor_name,
+           -- Responsable en la clínica (migración 129).
+           so.assigned_to,
+           asg.name AS assigned_to_name,
+           so.assigned_at,
            se.name AS preferred_sede_name,
            (b.has_past_due_appointment
             OR (b.board_status IN ('new', 'unscheduled', 'partially_scheduled')
@@ -137,6 +153,7 @@ base AS (
       LEFT JOIN public.users d  ON d.id  = b.doctor_id
       LEFT JOIN public.study_orders so ON so.id = b.id
       LEFT JOIN public.sedes se ON se.id = b.preferred_sede_id
+      LEFT JOIN public.users asg ON asg.id = so.assigned_to
      WHERE
        -- Autorización: sólo con VIEW_ALL se ve la bandeja completa. Pedir
        -- scope=clinic sin el permiso devuelve igual las órdenes propias.
@@ -145,19 +162,7 @@ base AS (
        CASE WHEN a.scope = 'clinic' AND (SELECT can_view_all FROM perms)
             THEN (b.status <> 'draft' OR so.source = 'whatsapp')
             ELSE b.doctor_id = $1::uuid
-       END
-       AND (a.board_status = 'all' OR CASE a.board_status
-             WHEN 'new'       THEN b.board_status = 'new'
-             WHEN 'pending'   THEN b.board_status IN ('new', 'unscheduled', 'partially_scheduled')
-             WHEN 'overdue'   THEN (b.has_past_due_appointment
-                                    OR (b.board_status IN ('new', 'unscheduled', 'partially_scheduled')
-                                        AND b.hours_since_submitted > a.sla_hours))
-             WHEN 'scheduled' THEN b.board_status IN ('scheduled', 'partially_scheduled')
-             WHEN 'completed' THEN b.board_status = 'completed'
-             WHEN 'drafts'    THEN b.status = 'draft'
-             WHEN 'review'    THEN EXISTS (SELECT 1 FROM jsonb_array_elements(coalesce(so.review_items, '[]'::jsonb)) r
-                                            WHERE r ->> 'status' = 'pending')
-             ELSE true END)
+       END${withBucket ? BUCKET_FILTER : ''}
        AND (a.search = '' OR lower(b.patient_name) LIKE lower(a.search) || '%'
                           OR b.patient_document LIKE a.search || '%'
                           OR lower(b.order_number) LIKE lower(a.search) || '%')
@@ -167,20 +172,48 @@ base AS (
        AND (a.source = '' OR so.source = a.source)
        -- Órdenes de un paciente concreto: lo usa el selector del diálogo de cita.
        AND (a.patient_id IS NULL OR b.patient_id = a.patient_id::uuid)
+       -- Responsable: asignadas a quien consulta, sin asignar o a un usuario concreto.
+       AND CASE a.assigned
+             WHEN ''     THEN true
+             WHEN 'me'   THEN so.assigned_to = $1::uuid
+             WHEN 'none' THEN so.assigned_to IS NULL
+             ELSE so.assigned_to::text = a.assigned
+           END
        AND (a.date_from IS NULL OR b.submitted_at >= a.date_from::timestamp)
        AND (a.date_to   IS NULL OR b.submitted_at <  (a.date_to::timestamp + interval '1 day'))
-)
+)`;
+
+/** Columnas de cada orden de la bandeja (fila de la lista o tarjeta del tablero). */
+const inboxRowColumns = (t) => `${t}.id::text, ${t}.order_number, ${t}.doctor_id::text, ${t}.doctor_name,
+                        ${t}.patient_id::text, ${t}.patient_name, ${t}.patient_document, ${t}.patient_phone,
+                        ${t}.status, ${t}.board_status, ${t}.items_total, ${t}.items_scheduled, ${t}.items_completed,
+                        ${t}.items_summary, ${t}.is_overdue, ${t}.hours_since_submitted,
+                        ${t}.source, ${t}.referring_doctor_name,
+                        ${t}.preferred_sede_id::text, ${t}.preferred_sede_name,
+                        ${t}.submitted_at, ${t}.acknowledged_at, ${t}.completed_at, ${t}.created_at,
+                        ${t}.review_pending,
+                        ${t}.assigned_to::text, ${t}.assigned_to_name, ${t}.assigned_at`;
+
+export const LIST_SQL = `
+-- $1 = userId del token.  $2 = filtros como JSON.
+-- Dos parámetros por el mismo motivo que el upsert: sin array posicional no hay
+-- desalineación posible ni placeholders de dos dígitos.
+WITH ${PERMS_WITH_PATIENT_CTE},
+q AS (
+    SELECT $2::jsonb AS f
+),
+args AS (
+    SELECT coalesce(NULLIF(f ->> 'scope', ''), 'mine')          AS scope,
+           coalesce(NULLIF(f ->> 'board_status', ''), 'all')    AS board_status,${INBOX_ARGS}
+           coalesce(NULLIF(f ->> 'sort', ''), 'submitted_at:desc') AS sort,
+           coalesce((f ->> 'limit')::int, 25)                   AS lim,
+           coalesce((f ->> 'offset')::int, 0)                   AS off
+      FROM q
+),${inboxBaseCte({ withBucket: true })}
 SELECT (SELECT count(*) FROM base) AS total,
        coalesce((
          SELECT json_agg(row_to_json(x))
-           FROM (SELECT b.id::text, b.order_number, b.doctor_id::text, b.doctor_name,
-                        b.patient_id::text, b.patient_name, b.patient_document, b.patient_phone,
-                        b.status, b.board_status, b.items_total, b.items_scheduled, b.items_completed,
-                        b.items_summary, b.is_overdue, b.hours_since_submitted,
-                        b.source, b.referring_doctor_name,
-                        b.preferred_sede_id::text, b.preferred_sede_name,
-                        b.submitted_at, b.acknowledged_at, b.completed_at, b.created_at,
-                        b.review_pending
+           FROM (SELECT ${inboxRowColumns('b')}
                    FROM base b CROSS JOIN args a
                   ORDER BY
                     CASE WHEN a.sort = 'submitted_at:asc'   THEN b.submitted_at END ASC,
@@ -191,6 +224,57 @@ SELECT (SELECT count(*) FROM base) AS total,
                     b.submitted_at DESC NULLS LAST, b.created_at DESC
                   LIMIT (SELECT lim FROM args) OFFSET (SELECT off FROM args)) x
        ), '[]'::json) AS items;`;
+
+/**
+ * Columnas del tablero (vista Estados), en el orden en que avanza una orden. Es el `board_status`
+ * DERIVADO de v_study_orders_board (las citas mandan), no study_orders.status.
+ */
+export const BOARD_COLUMNS = ['draft', 'new', 'unscheduled', 'partially_scheduled', 'scheduled',
+                              'in_progress', 'completed', 'cancelled'];
+
+export const BOARD_SQL = `
+-- $1 = userId del token.  $2 = filtros como JSON.
+-- Mismo alcance, permisos y filtros que GET /study-orders (comparten la CTE base); en vez de
+-- paginar, agrupa por board_status: el total de cada columna y sus primeras \`limit\` tarjetas.
+-- Con \`column\` devuelve solo esa columna desde \`offset\` ("cargar más").
+WITH ${PERMS_WITH_PATIENT_CTE},
+q AS (
+    SELECT $2::jsonb AS f
+),
+args AS (
+    SELECT coalesce(NULLIF(f ->> 'scope', ''), 'mine')          AS scope,
+           coalesce(f ->> 'column', '')                         AS col,${INBOX_ARGS}
+           coalesce((f ->> 'limit')::int, 25)                   AS lim,
+           coalesce((f ->> 'offset')::int, 0)                   AS off
+      FROM q
+),${inboxBaseCte({ withBucket: false })},
+ranked AS (
+    SELECT b.*,
+           -- Dentro de cada columna: primero las atrasadas, después las más recientes.
+           row_number() OVER (PARTITION BY b.board_status
+                              ORDER BY b.is_overdue DESC,
+                                       coalesce(b.submitted_at, b.created_at) DESC,
+                                       b.order_number DESC) AS rn
+      FROM base b
+)
+SELECT coalesce(json_agg(json_build_object(
+           'status', c.status,
+           'total',  c.total,
+           'items',  c.items) ORDER BY c.ord), '[]'::json) AS columns
+  FROM (
+    SELECT s.status, s.ord,
+           (SELECT count(*) FROM base b WHERE b.board_status = s.status) AS total,
+           coalesce((
+             SELECT json_agg(row_to_json(x) ORDER BY x.rn)
+               FROM (SELECT r.rn, ${inboxRowColumns('r')}
+                       FROM ranked r
+                      WHERE r.board_status = s.status
+                        AND r.rn >  (SELECT off FROM args)
+                        AND r.rn <= (SELECT off FROM args) + (SELECT lim FROM args)) x
+           ), '[]'::json) AS items
+      FROM unnest(ARRAY[${BOARD_COLUMNS.map((c) => `'${c}'`).join(', ')}]) WITH ORDINALITY AS s(status, ord)
+     WHERE (SELECT col FROM args) = '' OR s.status = (SELECT col FROM args)
+  ) c;`;
 
 export const DETAIL_SQL = `
 -- $1 userId (del token)  $2 id de la orden
@@ -205,6 +289,11 @@ SELECT row_to_json(o) AS data
            so.submitted_at, so.acknowledged_at, so.completed_at, so.cancelled_at,
            so.cancellation_reason, so.created_at, so.updated_at,
            so.source, so.referring_doctor_name, so.source_intake_id::text,
+           -- Responsable en la clínica (migración 129).
+           so.assigned_to::text,
+           (SELECT u.name FROM public.users u WHERE u.id = so.assigned_to) AS assigned_to_name,
+           so.assigned_at,
+           (SELECT u.name FROM public.users u WHERE u.id = so.assigned_by) AS assigned_by_name,
            -- Orden que entro por WhatsApp: los originales (fotos o PDF) y lo que el asistente
            -- leyo de ellos, para poder comprobar que no hubo errores de lectura.
            -- También las importadas desde Invoke (channel = 'import': sin teléfono, con quién importó).
@@ -722,6 +811,126 @@ UPDATE public.study_orders so
    AND so.acknowledged_at IS NULL
    AND (SELECT can_acknowledge FROM perms)
 RETURNING so.id::text, so.acknowledged_at;`;
+
+/**
+ * Usuario de staff de la clínica: activo y con rol recepcionista, gerente o administrador. Es el
+ * mismo criterio que get_users_filtered(p_only_staff) (migraciones 032 y 121). Son quienes
+ * revisan las órdenes, así que son a quienes se les puede asignar una. `u` = alias de users.
+ */
+const IS_STAFF_USER = `
+       u.is_active IS NOT FALSE
+   AND EXISTS (SELECT 1
+                 FROM public.user_roles ur
+                 JOIN public.roles r ON r.id = ur.role_id
+                WHERE ur.user_id = u.id
+                  AND ur.is_active IS NOT FALSE
+                  AND lower(trim(r.name)) IN ('recepcionista', 'gerente', 'administrador'))`;
+
+/**
+ * Asignar quién revisa la orden en la clínica (o dejarla sin asignar). $3 = '' → sin asignar.
+ * Solo a usuarios de staff (IS_STAFF_USER).
+ * Devuelve el responsable anterior para la bitácora y para no avisar si no cambió.
+ */
+export const ASSIGN_SQL = `
+-- $1 userId (token)  $2 id de la orden  $3 responsable nuevo ('' = sin asignar)
+WITH
+perms AS (
+    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL') AS can_view_all,
+           bool_or(p.code = 'STUDY_ORDERS_ASSIGN')   AS can_assign
+      FROM public.user_roles ur
+      JOIN public.role_permissions rp ON rp.role_id = ur.role_id
+      JOIN public.permissions p       ON p.id = rp.permission_id
+     WHERE ur.user_id = $1::uuid
+       AND ur.is_active IS NOT FALSE
+       AND p.code LIKE 'STUDY_ORDERS_%'
+),
+-- Solo a usuarios de staff (recepcionista, gerente, administrador).
+assignee AS (
+    SELECT u.id, u.name
+      FROM public.users u
+     WHERE u.id = NULLIF($3::text, '')::uuid
+       AND ${IS_STAFF_USER}
+),
+-- Lo que había antes (el UPDATE ve la foto previa): para el evento y para saber si cambió.
+prev AS (
+    SELECT so.assigned_to, pu.name
+      FROM public.study_orders so
+      LEFT JOIN public.users pu ON pu.id = so.assigned_to
+     WHERE so.id = $2::uuid
+)
+UPDATE public.study_orders so
+   SET assigned_to = (SELECT id FROM assignee),
+       assigned_at = CASE WHEN NULLIF($3::text, '') IS NULL THEN NULL ELSE ${NOW} END,
+       assigned_by = CASE WHEN NULLIF($3::text, '') IS NULL THEN NULL ELSE $1::uuid END
+ WHERE so.id = $2::uuid
+   AND (SELECT can_assign FROM perms)
+   AND (SELECT can_view_all FROM perms)
+   -- Lo que ve la clínica: enviadas, o borradores que creó el agente de WhatsApp.
+   AND (so.status <> 'draft' OR so.source = 'whatsapp')
+   -- Un id que no es un responsable válido no deja sin asignar en silencio: falla.
+   AND (NULLIF($3::text, '') IS NULL OR EXISTS (SELECT 1 FROM assignee))
+RETURNING so.id::text,
+          so.order_number,
+          so.assigned_to::text,
+          (SELECT name FROM assignee)             AS assigned_to_name,
+          so.assigned_at,
+          (SELECT assigned_to::text FROM prev)    AS previous_assigned_to,
+          (SELECT name FROM prev)                 AS previous_assigned_to_name;`;
+
+/**
+ * Aviso al nuevo responsable. No se avisa a quien se la asignó a sí mismo, ni si no cambió.
+ * $1 = id de la orden.  $2 = quién asignó.  $3 = si cambió el responsable ('true'/'false').
+ *
+ * RETURNING *: lo que devuelve este nodo es EXACTAMENTE lo que viaja por SSE al navegador, que lo
+ * normaliza igual que las notificaciones que trae por REST (necesita la fila entera).
+ */
+export const NOTIFY_ASSIGNEE_SQL = `
+INSERT INTO public.notifications
+       (user_id, type, status, priority, patient_id, metadata, created_at)
+SELECT so.assigned_to,
+       'study_order_assigned',
+       'pending',
+       'MEDIUM',
+       so.patient_id,
+       jsonb_build_object(
+           'order_id',      so.id::text,
+           'order_number',  so.order_number,
+           'source',        so.source,
+           'patient_id',    so.patient_id::text,
+           'patient_name',  so.patient_name,
+           'items_summary', (SELECT string_agg(i.service_name, ', ' ORDER BY i.sort_order, i.service_name)
+                               FROM public.study_order_items i
+                              WHERE i.study_order_id = so.id AND i.is_cancelled = false),
+           'board_status',  b.board_status,
+           'assigned_by_id',   $2::text,
+           'assigned_by_name', (SELECT u.name FROM public.users u WHERE u.id = $2::uuid)
+       ),
+       ${NOW}
+  FROM public.study_orders so
+  LEFT JOIN public.v_study_orders_board b ON b.id = so.id
+ WHERE so.id = $1::uuid
+   AND so.assigned_to IS NOT NULL
+   AND so.assigned_to IS DISTINCT FROM $2::uuid
+   AND $3::boolean
+RETURNING *;`;
+
+/** A quién se puede asignar la revisión de una orden: usuarios de staff (IS_STAFF_USER). */
+export const ASSIGNEES_SQL = `
+-- $1 = userId del token. Quien no ve la bandeja completa no necesita la lista.
+WITH me AS (
+    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL') AS can_view_all
+      FROM public.user_roles ur
+      JOIN public.role_permissions rp ON rp.role_id = ur.role_id
+      JOIN public.permissions p       ON p.id = rp.permission_id
+     WHERE ur.user_id = $1::uuid
+       AND ur.is_active IS NOT FALSE
+       AND p.code = 'STUDY_ORDERS_VIEW_ALL'
+)
+SELECT coalesce(json_agg(json_build_object('id', u.id::text, 'name', u.name, 'email', u.email)
+                         ORDER BY u.name), '[]'::json) AS items
+  FROM public.users u
+ WHERE coalesce((SELECT can_view_all FROM me), false)
+   AND ${IS_STAFF_USER};`;
 
 export const CANCEL_SQL = `
 -- $1 userId (token)  $2 id  $3 motivo
