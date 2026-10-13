@@ -10280,7 +10280,13 @@
       "shareLink": "Link paciente",
       "print": "Imprimir",
       "cancelBlocked": "La clínica ya tomó esta orden y no se puede anular desde acá. Llamá a la clínica para darla de baja.",
-      "reschedule": "Reagendar"
+      "reschedule": "Reagendar",
+      "menu": "Acciones"
+    },
+    "detail": {
+      "expand": "Pantalla entera",
+      "restore": "Restaurar tamaño",
+      "close": "Cerrar"
     },
     "toast": {
       "savedTitle": "Orden guardada",

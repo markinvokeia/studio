@@ -10280,7 +10280,13 @@
       "shareLink": "Patient link",
       "print": "Print",
       "cancelBlocked": "The clinic has already picked up this order and it can no longer be cancelled here. Call the clinic to cancel it.",
-      "reschedule": "Reschedule"
+      "reschedule": "Reschedule",
+      "menu": "Actions"
+    },
+    "detail": {
+      "expand": "Full screen",
+      "restore": "Restore size",
+      "close": "Close"
     },
     "toast": {
       "savedTitle": "Order saved",

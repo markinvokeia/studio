@@ -18,6 +18,7 @@ import { Filter, PlusCircle, RefreshCw, Search, SlidersHorizontal, X } from 'luc
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './tooltip';
+import { DataTableToolbarCompactProvider, useCompactWidth } from './data-table-toolbar-context';
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -63,10 +64,16 @@ export function DataTableToolbar<TData>({
   viewControls,
 }: DataTableToolbarProps<TData>) {
   const t = useTranslations('DataTableToolbar');
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  /** Too narrow for labels (mobile or a compressed panel): every control goes icon-only. */
+  const compact = useCompactWidth(rootRef);
+  const createIconOnly = createButtonIconOnly || compact;
+  const filterActive = !!filterValue && filterValue !== 'all';
   return (
-    <div className="flex flex-col gap-2">
-      {/* Row 1: when narrow, the secondary group (filter/refresh/columns + endSlot) wraps below,
-          keeping search + create on the first line. */}
+    <DataTableToolbarCompactProvider value={compact}>
+    <div ref={rootRef} className="flex flex-col gap-2">
+      {/* When it doesn't fit, the secondary group (filter/extra/pagination/refresh/columns) wraps
+          below, keeping search + create on the first line; inside, it wraps again as needed. */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Primary group: search + create — grows; the search keeps a usable min width */}
         <div className="flex items-center gap-2 flex-1">
@@ -120,16 +127,16 @@ export function DataTableToolbar<TData>({
                       size="icon"
                       className={cn(
                         "h-9 w-9 shrink-0",
-                        !createButtonIconOnly && "sm:w-auto sm:px-3 sm:gap-1.5"
+                        !createIconOnly && "w-auto px-3 gap-1.5"
                       )}
                       onClick={onCreate}
                       aria-label={createButtonLabel || t('create')}
                     >
                       <PlusCircle className="h-4 w-4" />
-                      {createButtonIconOnly ? (
+                      {createIconOnly ? (
                         <span className="sr-only">{createButtonLabel || t('create')}</span>
                       ) : (
-                        <span className="hidden sm:inline">{createButtonLabel || t('create')}</span>
+                        <span>{createButtonLabel || t('create')}</span>
                       )}
                     </Button>
                   </TooltipTrigger>
@@ -143,18 +150,33 @@ export function DataTableToolbar<TData>({
           {/* Primary action buttons — stay on the first line next to search */}
           {primaryActions && <div className="shrink-0 flex items-center gap-2">{primaryActions}</div>}
         </div>
-        {/* Secondary group: filter + endSlot + extra + refresh + columns — wraps below when narrow */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Filter select — hidden on mobile */}
+        {/* Secondary group: filter + extra + endSlot + refresh + columns — wraps below when it
+            doesn't fit next to the search, and wraps internally if the row is still too narrow. */}
+        <div className="flex max-w-full flex-wrap items-center gap-2">
+          {/* Filter select — icon-only when compact (a dot marks an active filter) */}
           {filterOptions && onFilterChange && (
-            <div className="hidden sm:flex">
+            <div className="flex">
               <Select value={filterValue || 'all'} onValueChange={onFilterChange}>
-                <SelectTrigger className="h-9 w-[150px]">
-                  <div className="flex items-center">
-                    <Filter className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder={t('filter')} />
-                  </div>
-                </SelectTrigger>
+                {compact ? (
+                  <SelectTrigger
+                    className="relative h-9 w-9 justify-center px-0 [&>svg:last-child]:hidden"
+                    aria-label={t('filter')}
+                    title={t('filter')}
+                  >
+                    <Filter className="h-4 w-4" />
+                    <span className="sr-only"><SelectValue placeholder={t('filter')} /></span>
+                    {filterActive && (
+                      <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
+                    )}
+                  </SelectTrigger>
+                ) : (
+                  <SelectTrigger className="h-9 w-[150px]">
+                    <div className="flex items-center">
+                      <Filter className="mr-2 h-4 w-4" />
+                      <SelectValue placeholder={t('filter')} />
+                    </div>
+                  </SelectTrigger>
+                )}
                 <SelectContent>
                   <SelectItem value="all">{t('all')}</SelectItem>
                   {filterOptions.map((option) => (
@@ -166,8 +188,8 @@ export function DataTableToolbar<TData>({
               </Select>
             </div>
           )}
-          {/* Action buttons — desktop only (inline); before pagination */}
-          {extraButtons && <div className="hidden sm:flex items-center gap-2">{extraButtons}</div>}
+          {/* Page action buttons — before pagination; they can read the compact mode from context */}
+          {extraButtons && <div className="flex flex-wrap items-center gap-2">{extraButtons}</div>}
           {/* Pagination — after the action buttons, before the control buttons */}
           {endSlot}
           {onRefresh && (
@@ -220,12 +242,7 @@ export function DataTableToolbar<TData>({
           </DropdownMenu>
         </div>
       </div>
-      {/* Row 2 — mobile only: extra action buttons */}
-      {extraButtons && (
-        <div className="flex sm:hidden items-center gap-2 overflow-x-auto">
-          {extraButtons}
-        </div>
-      )}
     </div>
+    </DataTableToolbarCompactProvider>
   );
 }

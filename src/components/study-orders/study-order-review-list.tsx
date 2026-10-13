@@ -43,6 +43,8 @@ export interface StudyOrderReviewListProps {
     onChanged?: () => void | Promise<void>;
     /** `plain`: sin título ni ayuda, para cuando quien la usa pone su propio encabezado. */
     variant?: 'full' | 'plain';
+    /** Botones a la derecha del título (solo en `full`). */
+    headerActions?: React.ReactNode;
     className?: string;
 }
 
@@ -63,7 +65,7 @@ export function confidencePercent(value: StudyOrderReviewItem['confidence']): nu
     return Number.isFinite(n) ? Math.round(n * 100) : null;
 }
 
-export function StudyOrderReviewList({ orderId, items, canReview, onChanged, variant = 'full', className }: StudyOrderReviewListProps) {
+export function StudyOrderReviewList({ orderId, items, canReview, onChanged, variant = 'full', headerActions, className }: StudyOrderReviewListProps) {
     const t = useTranslations('StudyOrdersPage.review');
     const notifyUpdated = useReviewUpdateToast();
     const locate = useReviewLocate();
@@ -146,6 +148,7 @@ export function StudyOrderReviewList({ orderId, items, canReview, onChanged, var
                 ) : (
                     <Badge variant="success" className="px-1.5 py-0 text-[10px]">{t('allReviewed')}</Badge>
                 )}
+                {headerActions && <div className="ml-auto flex items-center gap-1.5">{headerActions}</div>}
             </div>
             <p className="text-xs text-muted-foreground">
                 {pendingBlocking > 0 ? t('blockingHelp', { count: pendingBlocking }) : t('help')}

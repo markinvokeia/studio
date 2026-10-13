@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import type { ColumnFiltersState, PaginationState, RowSelectionState, SortingState } from '@tanstack/react-table';
-import { ClipboardList, FileUp, Pencil } from 'lucide-react';
+import { ClipboardList, FileUp, Globe, Inbox, MessageCircle, Pencil } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
+import { useDataTableToolbarCompact } from '@/components/ui/data-table-toolbar-context';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
@@ -101,6 +102,67 @@ interface TableWithCardsProps {
     onRefresh: () => void;
     isRefreshing: boolean;
     isLoading: boolean;
+}
+
+type OriginFilterValue = 'all' | StudyOrderOrigin;
+
+const ORIGIN_ICONS: Record<OriginFilterValue, React.ComponentType<{ className?: string }>> = {
+    all: Inbox,
+    portal: Globe,
+    whatsapp: MessageCircle,
+};
+
+/**
+ * Filtro por origen de la bandeja. En una barra angosta (celular o con el detalle abierto) queda
+ * solo el ícono del origen elegido; el nombre sigue en el desplegable.
+ */
+function OriginFilter({ value, onChange }: { value: OriginFilterValue; onChange: (value: OriginFilterValue) => void }) {
+    const t = useTranslations('StudyOrdersPage');
+    const compact = useDataTableToolbarCompact();
+    const Icon = ORIGIN_ICONS[value];
+    return (
+        <Select value={value} onValueChange={(next) => onChange(next as OriginFilterValue)}>
+            {compact ? (
+                <SelectTrigger
+                    className="relative h-9 w-9 justify-center px-0 [&>svg:last-child]:hidden"
+                    aria-label={t('origin.label')}
+                    title={t('origin.label')}
+                >
+                    <Icon className="h-4 w-4" />
+                    <span className="sr-only"><SelectValue /></span>
+                    {value !== 'all' && (
+                        <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
+                    )}
+                </SelectTrigger>
+            ) : (
+                <SelectTrigger className="h-9 w-[190px]" aria-label={t('origin.label')}>
+                    <SelectValue />
+                </SelectTrigger>
+            )}
+            <SelectContent>
+                <SelectItem value="all">{t('origin.all')}</SelectItem>
+                <SelectItem value="portal">{t('origin.portal')}</SelectItem>
+                <SelectItem value="whatsapp">{t('origin.whatsapp')}</SelectItem>
+            </SelectContent>
+        </Select>
+    );
+}
+
+/** "Importar orden": en una barra angosta, solo el ícono. */
+function ImportOrderButton({ onClick }: { onClick: () => void }) {
+    const t = useTranslations('StudyOrdersPage');
+    const compact = useDataTableToolbarCompact();
+    return compact ? (
+        <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={onClick}
+            aria-label={t('importOrder')} title={t('importOrder')}>
+            <FileUp className="h-4 w-4" aria-hidden="true" />
+        </Button>
+    ) : (
+        <Button variant="outline" size="sm" className="h-9" onClick={onClick}>
+            <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />
+            {t('importOrder')}
+        </Button>
+    );
 }
 
 /**
@@ -452,9 +514,13 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
         setIsFormOpen(true);
     }, []);
 
+    /** Detalle a pantalla entera (la lista queda oculta). Cerrarlo vuelve a las dos columnas. */
+    const [isDetailExpanded, setIsDetailExpanded] = React.useState(false);
+
     const handleCloseDetail = React.useCallback(() => {
         setSelected(null);
         setRowSelection({});
+        setIsDetailExpanded(false);
     }, []);
 
     /** Envuelve una mutación con toasts y recarga silenciosa. */
@@ -498,6 +564,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
         <div className="flex flex-1 flex-col overflow-hidden">
             <TwoPanelLayout
                 isRightPanelOpen={!!selected}
+                forceRightOnly={isDetailExpanded}
                 onBack={handleCloseDetail}
                 storageKey={`study-orders-${scope}`}
                 // Con el detalle abierto la lista pasa a modo tarjetas y necesita
@@ -538,22 +605,8 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                                 onBucketChange={setBucket}
                                 originFilter={isClinic ? (
                                     <>
-                                        <Select value={origin} onValueChange={(value) => setOrigin(value as typeof origin)}>
-                                            <SelectTrigger className="h-9 w-[190px]" aria-label={t('origin.label')}>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="all">{t('origin.all')}</SelectItem>
-                                                <SelectItem value="portal">{t('origin.portal')}</SelectItem>
-                                                <SelectItem value="whatsapp">{t('origin.whatsapp')}</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        {canImport && (
-                                            <Button variant="outline" size="sm" className="h-9" onClick={() => setIsImportOpen(true)}>
-                                                <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />
-                                                {t('importOrder')}
-                                            </Button>
-                                        )}
+                                        <OriginFilter value={origin} onChange={setOrigin} />
+                                        {canImport && <ImportOrderButton onClick={() => setIsImportOpen(true)} />}
                                     </>
                                 ) : undefined}
                                 onCreate={canCreate ? handleCreate : undefined}
@@ -573,6 +626,8 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                             refreshKey={detailRefreshKey}
                             onClose={handleCloseDetail}
                             closeOnDesktopOnly
+                            isExpanded={isDetailExpanded}
+                            onToggleExpand={() => setIsDetailExpanded((v) => !v)}
                             onEdit={(order) => {
                                 setEditingId(order.id);
                                 setEditingNumber(order.order_number);

@@ -93,15 +93,10 @@ export function TwoPanelLayout({
         return () => mq.removeEventListener('change', update);
     }, []);
 
-    if (forceRightOnly && isRightPanelOpen) {
-        return (
-            <NarrowModeContext.Provider value={{ isNarrow: false }}>
-                <div className={cn("flex-1 w-full overflow-hidden min-h-0", className)}>
-                    {rightPanel}
-                </div>
-            </NarrowModeContext.Provider>
-        );
-    }
+    // Expanded right panel: the left panel and separator are hidden with CSS instead of rendering
+    // a different tree, so the right panel stays mounted (no refetch, its tabs/scroll survive).
+    // Panels use flex-basis 0, so the right one alone takes the whole row.
+    const isRightOnly = forceRightOnly && isRightPanelOpen;
 
     // ── Desktop: resizable panels (drag the separator to resize) ────────────
     if (isDesktop) {
@@ -110,7 +105,11 @@ export function TwoPanelLayout({
                 <div className={cn("flex-1 w-full overflow-hidden flex flex-col min-h-0", className)}>
                     <Group
                         orientation="horizontal"
-                        className="flex-1"
+                        className={cn(
+                            "flex-1",
+                            // `!`: the panel sets `display: flex` inline.
+                            isRightOnly && "[&>#left-panel-v4]:!hidden [&>[data-separator]]:!hidden"
+                        )}
                         defaultLayout={defaultLayout}
                         onLayoutChanged={onLayoutChanged}
                     >

@@ -337,60 +337,6 @@ div[role="combobox"][aria-invalid="true"] {
   }
 }
 
-/* ── Cabecera del detalle de orden (container query) ─────────────────────
-   El panel de detalle se angosta cuando la lista queda al lado, y eso no lo
-   sabe ningún breakpoint de viewport: la ventana puede ser ancha y el panel
-   estrecho igual. Se mide la cabecera misma.
-
-   Se mide la CABECERA y no la botonera: un contenedor flex se dimensiona por su
-   contenido, así que consultarlo a él sería circular — nunca bajaría del ancho
-   de sus propios botones.
-
-   Al cruzar el umbral, Imprimir y Anular se quedan con el icono. Alcanza para
-   que el número de la orden no tenga que bajar de fila, que es lo que se quiere
-   evitar. */
-.study-order-header {
-  container-type: inline-size;
-  container-name: study-order-header;
-}
-
-.action-btn-icon {
-  margin-right: 0.5rem;
-}
-
-@container study-order-header (max-width: 640px) {
-  .action-btn-label {
-    display: none;
-  }
-
-  /* Sin texto al lado, el margen derecho del icono descentra el botón. */
-  .action-btn-icon {
-    margin-right: 0;
-  }
-}
-
-/* La X va al final de la botonera; en una cabecera angosta (celular) la botonera
-   baja a su propia fila, alineada a la izquierda, y la X sube junto al número
-   para no quedar sola en una tercera fila. */
-.study-order-header-close-title {
-  display: none;
-}
-
-@container study-order-header (max-width: 480px) {
-  .study-order-header-close-title {
-    display: inline-flex;
-  }
-
-  .study-order-header-close-actions {
-    display: none;
-  }
-
-  .study-order-header-actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
-}
-
 /* ── Responsive patient ledger (container query) ─────────────────────────
    The ledger panel (patient-finance-section.tsx / PatientLedgerSheet) can be
    narrow even on a wide viewport — a fixed sidebar + a moderately-sized

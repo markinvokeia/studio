@@ -1,14 +1,14 @@
 'use client';
 
 import * as React from 'react';
-import { Activity, CalendarClock, CalendarDays, CalendarPlus, FileText, FileUp, Inbox, Link2, ListChecks, MessageCircle, Pencil, Printer, Send, Stethoscope, Trash2, User, UserRoundX, X, XCircle } from 'lucide-react';
+import { Activity, CalendarClock, CalendarDays, CalendarPlus, ChevronDown, FileText, FileUp, Inbox, Link2, ListChecks, Maximize2, MessageCircle, Minimize2, Pencil, Printer, Send, Stethoscope, Trash2, User, UserRoundX, X, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 
@@ -73,6 +73,10 @@ export interface StudyOrderDetailPanelProps {
      * lg): ahí la X sobra y solo se muestra en escritorio.
      */
     closeOnDesktopOnly?: boolean;
+    /** El detalle ocupa toda la pantalla (la lista queda oculta). */
+    isExpanded?: boolean;
+    /** Pasar a pantalla entera o volver. Sin él no se ofrece el botón. */
+    onToggleExpand?: () => void;
 }
 
 /** Reconstruye el estado de bandeja desde el detalle, que no lo trae calculado. */
@@ -102,6 +106,7 @@ function Field({ label, value }: { label: string; value?: React.ReactNode }) {
 export function StudyOrderDetailPanel({
     orderId, scope, onClose, refreshKey = 0, onReviewChanged, readOnly = false,
     onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint, closeOnDesktopOnly = false,
+    isExpanded = false, onToggleExpand,
 }: StudyOrderDetailPanelProps) {
     const t = useTranslations('StudyOrdersPage');
     const { hasPermission } = usePermissions();
@@ -206,15 +211,8 @@ export function StudyOrderDetailPanel({
         const actions: Array<{
             key: string; label: string; icon: React.ElementType;
             onClick: () => void; variant: 'default' | 'destructive';
-            /** Motivo por el que no se puede usar. Presente = botón gris con tooltip. */
+            /** Motivo por el que no se puede usar. Presente = ítem gris con el motivo debajo. */
             disabledReason?: string;
-            /**
-             * Con la cabecera angosta, este botón se queda sólo con el icono.
-             * Se marcan Imprimir y Anular porque la impresora y la cruz se leen
-             * sin texto; "Agendar" o "Enviar link" no, y ésos conservan su
-             * etiqueta aunque haya que bajarlos de fila.
-             */
-            collapsible?: boolean;
         }> = [];
 
         if (isDraft && onEdit && can(STUDY_ORDERS_PERMISSIONS.UPDATE)) {
@@ -291,7 +289,7 @@ export function StudyOrderDetailPanel({
         // No se ofrece en borrador — lo que no se envió todavía puede cambiar, y
         // un papel con una orden que después se editó es peor que ningún papel.
         if (!isDraft && onPrint) {
-            actions.push({ key: 'print', label: t('actions.print'), icon: Printer, onClick: () => onPrint(order), variant: 'default', collapsible: true });
+            actions.push({ key: 'print', label: t('actions.print'), icon: Printer, onClick: () => onPrint(order), variant: 'default' });
         }
 
         if (isDraft && onDelete && can(STUDY_ORDERS_PERMISSIONS.DELETE)) {
@@ -312,7 +310,6 @@ export function StudyOrderDetailPanel({
                     icon: XCircle,
                     onClick: () => onCancel(order),
                     variant: 'destructive',
-                    collapsible: true,
                     disabledReason: blocked ? t('actions.cancelBlocked') : undefined,
                 });
             }
@@ -322,23 +319,6 @@ export function StudyOrderDetailPanel({
         // un callback, así que hay que sacarlos acá.
         return readOnly ? actions.filter((action) => action.key === 'print') : actions;
     }, [order, scope, hasPermission, t, onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint, readOnly]);
-
-    /** Una para cada lugar: junto al número en una cabecera angosta, o al final de la botonera. */
-    const closeButton = (placement: 'title' | 'actions') => (
-        <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            aria-label={t('submitDialog.cancel')}
-            className={cn(
-                placement === 'title' ? 'study-order-header-close-title -mr-2 -mt-1 shrink-0' : 'study-order-header-close-actions',
-                // Con `!`: las clases de la cabecera en globals.css le ganarían a la utilidad.
-                closeOnDesktopOnly && 'max-lg:!hidden',
-            )}
-        >
-            <X className="h-4 w-4" />
-        </Button>
-    );
 
     if (isLoading) {
         return (
@@ -363,9 +343,7 @@ export function StudyOrderDetailPanel({
 
     return (
         <Card className="flex h-full flex-col border-0 shadow-none lg:border lg:shadow-sm">
-            {/* `flex-wrap`: cuando la botonera ya no entra al lado, baja a una
-                segunda fila entera en vez de comprimir el número de la orden. */}
-            <CardHeader className="study-order-header flex flex-wrap items-start justify-between gap-3 space-y-0 pb-3">
+            <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-3">
                 <div className="min-w-0 flex-1 space-y-1">
                     <CardTitle className="font-mono text-base tabular-nums">{order.order_number}</CardTitle>
                     {/* El estado va pegado al paciente y no al número: la pregunta
@@ -384,43 +362,76 @@ export function StudyOrderDetailPanel({
                         <WhatsappSourceBadge source={order.source} />
                     </div>
                 </div>
-                {closeButton('title')}
-                {/* En mobile la botonera cae debajo del número; en escritorio va a la derecha. */}
-                <div className="study-order-header-actions flex flex-wrap items-center justify-end gap-1.5">
-                    {headerActions.map(({ key, label, icon: Icon, onClick, variant, disabledReason, collapsible }) => {
-                        const button = (
-                            <Button
-                                key={key}
-                                variant={variant}
-                                size="sm"
-                                onClick={onClick}
-                                disabled={!!disabledReason}
-                                // Al quedarse sin texto el botón pierde su nombre.
-                                // `aria-label` lo sostiene siempre; el `title`
-                                // nativo sólo cuando no hay tooltip de Radix
-                                // encima, para que no se pisen dos globos.
-                                title={collapsible && !disabledReason ? label : undefined}
-                                aria-label={collapsible ? label : undefined}
-                            >
-                                <Icon className={cn('h-4 w-4', collapsible ? 'action-btn-icon' : 'mr-2')} />
-                                {collapsible ? <span className="action-btn-label">{label}</span> : label}
-                            </Button>
-                        );
-                        if (!disabledReason) return button;
-                        return (
-                            <TooltipProvider key={key} delayDuration={200}>
-                                <Tooltip>
-                                    {/* Un botón deshabilitado no emite eventos de puntero:
-                                        el envoltorio es lo que hace que el tooltip aparezca. */}
-                                    <TooltipTrigger asChild>
-                                        <span className="inline-flex cursor-not-allowed">{button}</span>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="max-w-xs">{disabledReason}</TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        );
-                    })}
-                    {closeButton('actions')}
+                {/* Siempre arriba a la derecha: las acciones van en un desplegable para dejarle el
+                    ancho a las pestañas; después, pantalla entera y cerrar. */}
+                <div className="flex shrink-0 items-center gap-1">
+                    {headerActions.length > 0 && (
+                        // No modal: varias acciones abren un diálogo de confirmación y, con el menú
+                        // modal, Radix puede dejar la página sin poder hacer clic al cerrarlo.
+                        <DropdownMenu modal={false}>
+                            <DropdownMenuTrigger asChild>
+                                <Button size="sm" className="h-8 gap-1.5 px-3">
+                                    {t('actions.menu')}
+                                    <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-64">
+                                {headerActions.map(({ key, label, icon: Icon, onClick, variant, disabledReason }, index) => (
+                                    <React.Fragment key={key}>
+                                        {/* Lo destructivo queda abajo, separado del resto. */}
+                                        {variant === 'destructive' && index > 0 && headerActions[index - 1].variant !== 'destructive' && (
+                                            <DropdownMenuSeparator />
+                                        )}
+                                        <DropdownMenuItem
+                                            onSelect={onClick}
+                                            disabled={!!disabledReason}
+                                            className={cn(
+                                                'items-start gap-2',
+                                                variant === 'destructive' && 'text-destructive focus:bg-destructive/10 focus:text-destructive',
+                                            )}
+                                        >
+                                            <Icon className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                                            <span className="min-w-0">
+                                                <span className="block">{label}</span>
+                                                {/* Deshabilitada: el motivo a la vista (un tooltip no sale en un ítem gris). */}
+                                                {disabledReason && (
+                                                    <span className="block text-xs text-muted-foreground">{disabledReason}</span>
+                                                )}
+                                            </span>
+                                        </DropdownMenuItem>
+                                    </React.Fragment>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    )}
+                    {onToggleExpand && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            // En pantallas chicas el panel ya ocupa todo.
+                            className="hidden h-8 w-8 text-muted-foreground hover:text-foreground lg:inline-flex"
+                            onClick={onToggleExpand}
+                            aria-label={isExpanded ? t('detail.restore') : t('detail.expand')}
+                            title={isExpanded ? t('detail.restore') : t('detail.expand')}
+                        >
+                            {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                        </Button>
+                    )}
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onClose}
+                        aria-label={t('detail.close')}
+                        title={t('detail.close')}
+                        className={cn(
+                            'h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive',
+                            // Quien tiene su propio "Atrás" no la necesita en pantallas chicas; a pantalla
+                            // entera sí, porque ahí no hay "Atrás".
+                            closeOnDesktopOnly && !isExpanded && 'max-lg:hidden',
+                        )}
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
                 </div>
             </CardHeader>
 
