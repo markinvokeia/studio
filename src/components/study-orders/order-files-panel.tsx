@@ -39,10 +39,12 @@ export interface OrderFilesPanelProps {
     focusNavigation?: ReviewFocusNavigation | null;
     /** El campo del formulario del punto, para corregirlo desde la tarjeta del foco. */
     renderFocusEditor?: ReviewFocusCardProps['renderEditor'];
+    /** Botones extra en la cabecera del visor (p. ej. pantalla entera). */
+    headerActions?: React.ReactNode;
     className?: string;
 }
 
-export function OrderFilesPanel({ files, loadFile, focus = null, focusItem = null, onClearFocus, onFocusResolved, focusNavigation = null, renderFocusEditor, className }: OrderFilesPanelProps) {
+export function OrderFilesPanel({ files, loadFile, focus = null, focusItem = null, onClearFocus, onFocusResolved, focusNavigation = null, renderFocusEditor, headerActions, className }: OrderFilesPanelProps) {
     const t = useTranslations('FileViewer');
     const tCommon = useTranslations('Common');
     const { urls, failed, load } = useOrderFiles(files, loadFile);
@@ -154,6 +156,7 @@ export function OrderFilesPanel({ files, loadFile, focus = null, focusItem = nul
                         </a>
                     </Button>
                 )}
+                {headerActions}
             </div>
 
             {focus && !floating && (

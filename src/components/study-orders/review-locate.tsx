@@ -70,3 +70,58 @@ export function toOriginalFocus(item: StudyOrderReviewItem, key: number): Origin
         key,
     };
 }
+
+/**
+ * El foco sobre los originales de quien los muestra (el asistente de órdenes o la pestaña
+ * Revisión): qué punto se está señalando, ir al anterior o al siguiente y, al marcarlo, seguir con
+ * el próximo pendiente. `onLocate` corre cada vez que se pide ir a un dato (p. ej. para abrir el
+ * panel de originales si estaba cerrado); tiene que ser estable.
+ */
+export function useOriginalFocus(items: StudyOrderReviewItem[], onLocate?: () => void) {
+    const [focus, setFocus] = React.useState<OriginalFocus | null>(null);
+
+    const locate = React.useCallback((item: StudyOrderReviewItem) => {
+        setFocus(toOriginalFocus(item, Date.now()));
+        onLocate?.();
+    }, [onLocate]);
+    const clear = React.useCallback(() => setFocus(null), []);
+
+    /** El punto del foco con su estado actual (se relee después de marcarlo). */
+    const focusItem = React.useMemo(
+        () => (focus ? items.find((i) => i.id === focus.itemId) ?? null : null),
+        [focus, items],
+    );
+
+    /**
+     * Anterior / siguiente desde la tarjeta: entre los puntos que dicen dónde están, en el orden de
+     * la lista, pendientes o ya revisados (se puede volver a mirar uno ya marcado).
+     */
+    const navigation = React.useMemo(() => {
+        if (!focus) return null;
+        const locatable = items.filter(hasSource);
+        const index = locatable.findIndex((i) => i.id === focus.itemId);
+        if (index < 0) return null;
+        const prev = locatable[index - 1];
+        const next = locatable[index + 1];
+        return {
+            index,
+            total: locatable.length,
+            onPrev: prev ? () => locate(prev) : undefined,
+            onNext: next ? () => locate(next) : undefined,
+        };
+    }, [focus, items, locate]);
+
+    /**
+     * Marcado un punto desde la tarjeta, sigue con el próximo pendiente que diga dónde está (en el
+     * orden de la lista, volviendo al principio). Sin más, deja de señalar.
+     */
+    const focusNextPending = React.useCallback((done: StudyOrderReviewItem) => {
+        const start = items.findIndex((i) => i.id === done.id);
+        const ordered = [...items.slice(start + 1), ...items.slice(0, Math.max(start, 0))];
+        const next = ordered.find((i) => i.id !== done.id && i.status === 'pending' && hasSource(i));
+        if (next) locate(next);
+        else setFocus(null);
+    }, [items, locate]);
+
+    return { focus, focusItem, locate, clear, navigation, focusNextPending };
+}

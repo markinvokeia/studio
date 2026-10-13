@@ -30,7 +30,8 @@ import { updateStudyOrderReviewItems } from '@/services/study-orders';
  * todo" de un clic, porque la idea es haber mirado cada uno contra el original.
  *
  * Si el asistente dijo dónde leyó el dato (`source`), se muestra la parte del formulario y lo que
- * dice ahí, y con los originales a la vista "Ver en el original" lleva a ese lugar.
+ * dice ahí, y con los originales a la vista "Ver en el original" lleva a ese lugar (también al
+ * elegir el punto para marcarlo en lote).
  */
 
 export interface StudyOrderReviewListProps {
@@ -112,7 +113,10 @@ export function StudyOrderReviewList({ orderId, items, canReview, onChanged, var
         },
     );
 
-    const toggleSelected = (id: string, checked: boolean) => {
+    /** Elegir un punto también lo señala en el original, como "Ver en el original". */
+    const toggleSelected = (item: StudyOrderReviewItem, checked: boolean) => {
+        const id = item.id;
+        if (checked && locate && hasSource(item)) locate(item);
         setSelected((prev) => {
             const next = new Set(prev);
             if (checked) next.add(id);
@@ -228,7 +232,7 @@ export function StudyOrderReviewList({ orderId, items, canReview, onChanged, var
                                         <Checkbox
                                             className="mt-0.5"
                                             checked={selected.has(item.id)}
-                                            onCheckedChange={(checked) => toggleSelected(item.id, checked === true)}
+                                            onCheckedChange={(checked) => toggleSelected(item, checked === true)}
                                             disabled={busy}
                                             aria-label={t('bulk.selectItem', { label: item.label })}
                                         />

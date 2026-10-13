@@ -7336,6 +7336,7 @@
     "noPreview": "This file type cannot be previewed. Download it to open it.",
     "open": "Open",
     "noFiles": "No files.",
+    "resizeOriginals": "Drag to resize the originals",
     "focus": {
       "noFile": "Unknown file: look for it by the area and the text.",
       "pdfPage": "PDF page {page}: look for it on that page.",
