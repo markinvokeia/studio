@@ -995,6 +995,24 @@ export type StudyOrderStatusChangedNotification = {
   cancellationReason?: string | null;
 };
 
+/**
+ * Le asignaron una orden de estudio para que la revise y la lleve adelante. Le llega solo a quien
+ * se la asignaron (y no si se la asignó a sí mismo).
+ */
+export type StudyOrderAssignedNotification = {
+  id: string;
+  type: 'study_order_assigned';
+  createdAt: string;
+  seen?: boolean;
+  orderId: string;
+  orderNumber: string;
+  patientName: string;
+  itemsSummary: string;
+  boardStatus: StudyOrderBoardStatus;
+  assignedByName: string;
+  source?: string | null;
+};
+
 export type UnifiedNotification =
   | AppointmentStatusChangeNotification
   | SessionCompletedNotification
@@ -1005,7 +1023,8 @@ export type UnifiedNotification =
   | AppointmentUpdatedNotification
   | WhatsappHandoffRequestedNotification
   | StudyOrderSubmittedNotification
-  | StudyOrderStatusChangedNotification;
+  | StudyOrderStatusChangedNotification
+  | StudyOrderAssignedNotification;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -3505,7 +3524,8 @@ export type StudyOrderEventType =
   | 'created' | 'updated' | 'submitted' | 'acknowledged'
   | 'scheduled' | 'rescheduled' | 'appointment_updated' | 'appointment_cancelled'
   | 'session_saved' | 'completed' | 'reopened' | 'cancelled'
-  | 'link_created' | 'patient_booked' | 'review_updated';
+  | 'link_created' | 'patient_booked' | 'review_updated'
+  | 'assigned' | 'unassigned';
 
 /** Por dónde entró la orden: la creó un usuario en el portal o el agente de WhatsApp a partir de una foto o PDF. */
 export type StudyOrderSource = 'portal' | 'whatsapp';
@@ -3683,6 +3703,11 @@ export interface StudyOrder {
   events?: StudyOrderEvent[];
   /** Lo que el agente de WhatsApp no tuvo claro al leer la orden, con su revisión. */
   review_items?: StudyOrderReviewItem[];
+  /** Responsable en la clínica (para revisarla y llevarla adelante). Nulo = sin asignar. */
+  assigned_to?: string | null;
+  assigned_to_name?: string | null;
+  assigned_at?: string | null;
+  assigned_by_name?: string | null;
 }
 
 /** Fila de la bandeja. Los contadores y `board_status` vienen de la vista. */
@@ -3715,6 +3740,36 @@ export interface StudyOrderListItem {
   created_at: string;
   /** Puntos que dejó el agente de WhatsApp sin revisar todavía. Postgres lo devuelve como texto. */
   review_pending?: number | string | null;
+  /** Responsable en la clínica. Nulo = sin asignar. */
+  assigned_to?: string | null;
+  assigned_to_name?: string | null;
+  assigned_at?: string | null;
+}
+
+/** Columna del tablero por estados (GET /study-orders/board). Postgres manda `total` como texto. */
+export interface StudyOrderBoardColumn {
+  status: StudyOrderBoardStatus;
+  total: number | string;
+  items: StudyOrderListItem[];
+}
+
+/** Filtro por responsable: asignadas a mí, sin asignar, o todas. */
+export type StudyOrderAssignedFilter = 'all' | 'me' | 'none';
+
+/** Usuario al que se puede asignar una orden (GET /study-orders/assignees). */
+export interface StudyOrderAssignee {
+  id: string;
+  name: string;
+  email?: string | null;
+}
+
+/** Respuesta de POST /study-orders/assign. */
+export interface StudyOrderAssignResult {
+  id: string;
+  order_number: string;
+  assigned_to: string | null;
+  assigned_to_name: string | null;
+  assigned_at: string | null;
 }
 
 /** Payload de POST /study-orders/upsert. */

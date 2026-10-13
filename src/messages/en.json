@@ -629,7 +629,9 @@
     "studyOrderChange_scheduled": "It now has an appointment scheduled.",
     "studyOrderChange_rescheduled": "The appointment date was moved.",
     "studyOrderSubmittedTitle": "New study order",
-    "studyOrderStatusTitle": "Your order changed status"
+    "studyOrderStatusTitle": "Your order changed status",
+    "studyOrderAssignedTitle": "A study order review was assigned to you",
+    "studyOrderAssignedBy": "{name} assigned you the review of this order."
   },
   "Header": {
     "toggleLanguage": "Toggle language",
@@ -9833,7 +9835,10 @@
       "print": "Print",
       "cancelBlocked": "The clinic has already picked up this order and it can no longer be cancelled here. Call the clinic to cancel it.",
       "reschedule": "Reschedule",
-      "menu": "Actions"
+      "menu": "Actions",
+      "assign": "Assign",
+      "reassign": "Reassign",
+      "reviewedBy": "Reviewed by: {name}"
     },
     "detail": {
       "expand": "Full screen",
@@ -9933,14 +9938,18 @@
         "cancelled": "Order voided",
         "link_created": "Patient link generated",
         "patient_booked": "Patient booked their slot",
-        "review_updated": "Item reviewed"
+        "review_updated": "Item reviewed",
+        "assigned": "The order was assigned",
+        "unassigned": "The order was unassigned"
       },
       "reviewStatus": {
         "pending": "back to pending",
         "confirmed": "confirmed",
         "corrected": "corrected",
         "dismissed": "dismissed"
-      }
+      },
+      "assignedTo": "Reviewer: {name}",
+      "previouslyAssigned": "previously: {name}"
     },
     "appointmentCard": {
       "none": "This order has no appointments yet.",
@@ -10094,6 +10103,87 @@
       "openInbox": "View all in the orders inbox",
       "back": "Back to orders",
       "manageInInbox": "Manage in inbox"
+    },
+    "view": {
+      "label": "Inbox view",
+      "list": "List",
+      "board": "Status dashboard"
+    },
+    "assignedFilter": {
+      "label": "Reviewed by",
+      "all": "All",
+      "me": "Assigned to me",
+      "none": "Unassigned"
+    },
+    "board": {
+      "label": "Orders by status",
+      "loadError": "The board could not be loaded.",
+      "retry": "Retry",
+      "emptyColumn": "No orders in this status",
+      "loadMore": "Load more ({shown} of {total})",
+      "perColumn": "Orders per column",
+      "perColumnOption": "{count} per column",
+      "summary": "View summary",
+      "openDetail": "View details",
+      "assign": "Assign",
+      "unassigned": "Unassigned",
+      "assignedTo": "Reviewed by {name}",
+      "progress": "{scheduled}/{total} scheduled",
+      "progressLong": "{scheduled} of {total} scheduled · {completed} attended",
+      "expandColumn": "Expand {status}",
+      "collapseColumn": "Collapse {status}",
+      "notAllowedHere": "Can't be moved here",
+      "fields": {
+        "document": "ID",
+        "phone": "Phone",
+        "doctor": "Referrer",
+        "studies": "Studies",
+        "progress": "Progress",
+        "sede": "Location",
+        "submitted": "Submitted",
+        "assigned": "Reviewed by",
+        "review": "Review"
+      },
+      "blocked": {
+        "title": "{order} can't move to “{status}”.",
+        "appointments": "That status depends on the appointments: the order moves there on its own once they are attended.",
+        "backwards": "An order doesn't go back to a previous status.",
+        "permission": "You don't have permission for that action, or the order doesn't allow it in its current status.",
+        "dismiss": "Got it"
+      },
+      "a11y": {
+        "card": "draggable order",
+        "instructions": "To move an order, press space, use the arrow keys to move it to another column and press space to drop it. Escape cancels. Enter opens the order.",
+        "start": "Moving order {order}.",
+        "over": "Over the {status} column.",
+        "outside": "Outside the columns.",
+        "drop": "Dropped on {status}.",
+        "cancel": "Move cancelled."
+      },
+      "reviewedByLabel": "Reviewed by:",
+      "reassign": "Reassign",
+      "reassignHint": "Reviewed by {name}. Click to reassign."
+    },
+    "assign": {
+      "action": "Assign review…",
+      "reassign": "Reassign review…",
+      "title": "Assign the review of {number}",
+      "description": "Choose who on the staff (front desk, management or administration) reviews the order. They get notified.",
+      "loadError": "The user list could not be loaded.",
+      "retry": "Retry",
+      "assignToMe": "Assign to me",
+      "search": "Search by name or email…",
+      "empty": "No one matches the search.",
+      "nobody": "Unassigned",
+      "me": "you",
+      "cancel": "Cancel",
+      "save": "Save",
+      "assignedAt": "Assigned on {date}",
+      "toast": {
+        "assigned": "Order assigned to {name}",
+        "unassigned": "The order is now unassigned",
+        "error": "The order could not be assigned"
+      }
     }
   },
   "StudyOrderBooking": {

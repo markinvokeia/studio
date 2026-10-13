@@ -3,6 +3,11 @@ import type {
     PatientStudyOrder,
     PublicStudyOrder,
     StudyOrder,
+    StudyOrderAssignedFilter,
+    StudyOrderAssignee,
+    StudyOrderAssignResult,
+    StudyOrderBoardColumn,
+    StudyOrderBoardStatus,
     StudyOrderBookingLink,
     StudyOrderFormOptions,
     StudyOrderImportStatus,
@@ -88,6 +93,8 @@ export interface GetStudyOrdersParams {
     dateTo?: string;
     /** Horas desde el envío sin agendar a partir de las cuales cuenta como atrasada. */
     slaHours?: number;
+    /** Responsable: asignadas a mí o sin asignar. Sin valor (o 'all'), todas. */
+    assigned?: StudyOrderAssignedFilter;
     sort?: string;
     page?: number;
     limit?: number;
@@ -110,6 +117,7 @@ export async function getStudyOrders(params: GetStudyOrdersParams): Promise<Stud
     if (params.dateFrom) query.date_from = params.dateFrom;
     if (params.dateTo) query.date_to = params.dateTo;
     if (params.slaHours !== undefined) query.sla_hours = String(params.slaHours);
+    if (params.assigned && params.assigned !== 'all') query.assigned = params.assigned;
     if (params.sort) query.sort = params.sort;
     if (params.page) query.page = String(params.page);
     if (params.limit) query.limit = String(params.limit);
@@ -173,6 +181,51 @@ export async function cancelStudyOrder(id: string, reason: string): Promise<Stud
 export async function acknowledgeStudyOrder(id: string): Promise<StudyOrder> {
     const raw = await api.post(API_ROUTES.STUDY_ORDERS.ACKNOWLEDGE, { id });
     return unwrap<StudyOrder>(raw).data;
+}
+
+export interface GetStudyOrderBoardParams {
+    scope: StudyOrderScope;
+    source?: StudyOrderOrigin;
+    search?: string;
+    assigned?: StudyOrderAssignedFilter;
+    /** Tarjetas por columna. */
+    limit: number;
+    /** "Cargar más": solo esa columna, desde `offset`. */
+    column?: StudyOrderBoardStatus;
+    offset?: number;
+    signal?: AbortSignal;
+}
+
+/**
+ * Tablero por estados: una columna por estado (en el orden en que avanza la orden) con su total
+ * y las primeras `limit` tarjetas. A diferencia de la lista, un error se propaga: el tablero
+ * muestra el error con "Reintentar" en vez de quedar vacío como si no hubiera órdenes.
+ */
+export async function getStudyOrderBoard(params: GetStudyOrderBoardParams): Promise<StudyOrderBoardColumn[]> {
+    const query: Record<string, string> = { scope: params.scope, limit: String(params.limit) };
+    if (params.source) query.source = params.source;
+    if (params.search) query.q = params.search;
+    if (params.assigned && params.assigned !== 'all') query.assigned = params.assigned;
+    if (params.column) {
+        query.column = params.column;
+        query.offset = String(params.offset ?? 0);
+    }
+    const raw = await api.get(API_ROUTES.STUDY_ORDERS.BOARD, query, undefined, { signal: params.signal });
+    const { data } = unwrap<StudyOrderBoardColumn[]>(raw);
+    return Array.isArray(data) ? data : [];
+}
+
+/** Asigna la orden a un responsable de la clínica; `null` la deja sin asignar. */
+export async function assignStudyOrder(id: string, userId: string | null): Promise<StudyOrderAssignResult> {
+    const raw = await api.post(API_ROUTES.STUDY_ORDERS.ASSIGN, { id, user_id: userId });
+    return unwrap<StudyOrderAssignResult>(raw).data;
+}
+
+/** A quién se puede asignar una orden: usuarios activos que ven la bandeja completa. */
+export async function getStudyOrderAssignees(signal?: AbortSignal): Promise<StudyOrderAssignee[]> {
+    const raw = await api.get(API_ROUTES.STUDY_ORDERS.ASSIGNEES, undefined, undefined, { signal });
+    const { data } = unwrap<StudyOrderAssignee[]>(raw);
+    return Array.isArray(data) ? data : [];
 }
 
 /** Límites de una importación (los mismos que valida el backend). */

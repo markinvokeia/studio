@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Activity, CalendarClock, CalendarDays, CalendarPlus, ChevronDown, FileText, FileUp, Inbox, Link2, ListChecks, Maximize2, MessageCircle, Minimize2, Pencil, Printer, Send, Stethoscope, Trash2, User, UserRoundX, X, XCircle } from 'lucide-react';
+import { Activity, CalendarClock, CalendarDays, CalendarPlus, ChevronDown, FileText, FileUp, Inbox, Link2, ListChecks, Maximize2, MessageCircle, Minimize2, Pencil, Printer, Send, Stethoscope, Trash2, User, UserPlus, UserRound, UserRoundX, X, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
 
 import { StudyOrderAppointmentCard } from './study-order-appointment-card';
+import { isStudyOrderAssignable } from './study-order-assign-dialog';
 import { StudyOrderBookingLinkTab } from './study-order-booking-link-tab';
 import { StudyOrderReferralLine } from './study-order-referral-line';
 import { countPendingBlocking } from './study-order-review-list';
@@ -29,7 +30,7 @@ import { WhatsappSourceBadge } from './whatsapp-source-badge';
 
 import { STUDY_ORDERS_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
-import { cn, formatDisplayDate } from '@/lib/utils';
+import { cn, formatDateTime, formatDisplayDate } from '@/lib/utils';
 import type { StudyOrder, StudyOrderBoardStatus, StudyOrderFormOptions } from '@/lib/types';
 import { getStudyOrder, getStudyOrderFormOptions } from '@/services/study-orders';
 
@@ -58,6 +59,8 @@ export interface StudyOrderDetailPanelProps {
     onCancel?: (order: StudyOrder) => void;
     /** Imprime la orden. Disponible en cualquier estado salvo borrador. */
     onPrint?: (order: StudyOrder) => void;
+    /** Asignar el responsable (quien tenga STUDY_ORDERS_ASSIGN; el padre ya lo resolvió). */
+    onAssign?: (order: StudyOrder) => void;
     /** Se incrementa al guardar para forzar la recarga del detalle abierto. */
     refreshKey?: number;
     /** Se marcó un punto a revisar: la bandeja actualiza su contador de pendientes. */
@@ -105,7 +108,7 @@ function Field({ label, value }: { label: string; value?: React.ReactNode }) {
 
 export function StudyOrderDetailPanel({
     orderId, scope, onClose, refreshKey = 0, onReviewChanged, readOnly = false,
-    onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint, closeOnDesktopOnly = false,
+    onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint, onAssign, closeOnDesktopOnly = false,
     isExpanded = false, onToggleExpand,
 }: StudyOrderDetailPanelProps) {
     const t = useTranslations('StudyOrdersPage');
@@ -288,6 +291,17 @@ export function StudyOrderDetailPanel({
         // Imprimir: cualquiera que pueda ver la orden puede llevársela en papel.
         // No se ofrece en borrador — lo que no se envió todavía puede cambiar, y
         // un papel con una orden que después se editó es peor que ningún papel.
+        // Asignar quién la revisa: lo que ve la clínica (enviadas, o borradores del agente de WhatsApp) y no anulado.
+        if (onAssign && isClinic && isStudyOrderAssignable(order)) {
+            actions.push({
+                key: 'assign',
+                label: order.assigned_to ? t('assign.reassign') : t('assign.action'),
+                icon: UserPlus,
+                onClick: () => onAssign(order),
+                variant: 'default',
+            });
+        }
+
         if (!isDraft && onPrint) {
             actions.push({ key: 'print', label: t('actions.print'), icon: Printer, onClick: () => onPrint(order), variant: 'default' });
         }
@@ -318,7 +332,7 @@ export function StudyOrderDetailPanel({
         // En consulta sólo queda imprimir: el link y registrar sesión no dependen de
         // un callback, así que hay que sacarlos acá.
         return readOnly ? actions.filter((action) => action.key === 'print') : actions;
-    }, [order, scope, hasPermission, t, onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint, readOnly]);
+    }, [order, scope, hasPermission, t, onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint, onAssign, readOnly]);
 
     if (isLoading) {
         return (
@@ -360,6 +374,16 @@ export function StudyOrderDetailPanel({
                         </p>
                         <StudyOrderStatusBadge status={deriveBoardStatus(order)} />
                         <WhatsappSourceBadge source={order.source} />
+                        {/* Quién la revisa: solo en la bandeja de la clínica, que es donde se asigna. */}
+                        {scope === 'clinic' && order.assigned_to_name && (
+                            <span
+                                className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                                title={order.assigned_at ? t('assign.assignedAt', { date: formatDateTime(order.assigned_at) }) : undefined}
+                            >
+                                <UserRound className="h-3 w-3" aria-hidden="true" />
+                                {t('actions.reviewedBy', { name: order.assigned_to_name })}
+                            </span>
+                        )}
                     </div>
                 </div>
                 {/* Siempre arriba a la derecha: las acciones van en un desplegable para dejarle el

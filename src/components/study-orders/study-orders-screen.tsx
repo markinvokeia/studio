@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import type { ColumnFiltersState, PaginationState, RowSelectionState, SortingState } from '@tanstack/react-table';
-import { ClipboardList, FileUp, Globe, Inbox, MessageCircle, Pencil } from 'lucide-react';
+import { ClipboardList, FileUp, Globe, Inbox, LayoutList, MessageCircle, Pencil, PlusCircle, RefreshCw, Search, SquareKanban, UserCheck, UserPlus, UserRound, UserX, Users, X } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
@@ -11,12 +11,15 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
-import { useDataTableToolbarCompact } from '@/components/ui/data-table-toolbar-context';
+import { DataTableToolbarCompactProvider, useCompactWidth, useDataTableToolbarCompact } from '@/components/ui/data-table-toolbar-context';
+import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
 
 import { StudyOrderColumnsWrapper } from '@/app/[locale]/study-orders/columns';
+import { StudyOrderAssignDialog, isStudyOrderAssignable } from './study-order-assign-dialog';
+import { StudyOrderBoard, type BoardCapabilities, type BoardMove } from './study-order-board';
 import { StudyOrderDetailPanel } from './study-order-detail-panel';
 import { StudyOrderImportDialog } from './study-order-import-dialog';
 import { StudyOrderRescheduleDialog } from './study-order-reschedule-dialog';
@@ -30,9 +33,9 @@ import { STUDY_ORDERS_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
-import { formatDisplayDate } from '@/lib/utils';
+import { cn, formatDisplayDate } from '@/lib/utils';
 import { useStudyOrderScheduling } from '@/stores/study-order-scheduling-store';
-import type { StudyOrder, StudyOrderListItem } from '@/lib/types';
+import type { StudyOrder, StudyOrderAssignedFilter, StudyOrderListItem } from '@/lib/types';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import {
     acknowledgeStudyOrder,
@@ -99,6 +102,8 @@ interface TableWithCardsProps {
     originFilter?: React.ReactNode;
     onCreate?: () => void;
     onEditOrder?: (order: StudyOrderListItem) => void;
+    /** Asignar quién la revisa (con permiso). */
+    onAssignOrder?: (order: StudyOrderListItem) => void;
     onRefresh: () => void;
     isRefreshing: boolean;
     isLoading: boolean;
@@ -165,6 +170,165 @@ function ImportOrderButton({ onClick }: { onClick: () => void }) {
     );
 }
 
+const ASSIGNED_ICONS: Record<StudyOrderAssignedFilter, React.ComponentType<{ className?: string }>> = {
+    all: Users,
+    me: UserCheck,
+    none: UserX,
+};
+
+/** Filtro por responsable: todas, asignadas a mí o sin asignar. En una barra angosta, solo el ícono. */
+function AssignedFilter({ value, onChange }: { value: StudyOrderAssignedFilter; onChange: (value: StudyOrderAssignedFilter) => void }) {
+    const t = useTranslations('StudyOrdersPage');
+    const compact = useDataTableToolbarCompact();
+    const Icon = ASSIGNED_ICONS[value];
+    return (
+        <Select value={value} onValueChange={(next) => onChange(next as StudyOrderAssignedFilter)}>
+            {compact ? (
+                <SelectTrigger
+                    className="relative h-9 w-9 justify-center px-0 [&>svg:last-child]:hidden"
+                    aria-label={t('assignedFilter.label')}
+                    title={t('assignedFilter.label')}
+                >
+                    <Icon className="h-4 w-4" />
+                    <span className="sr-only"><SelectValue /></span>
+                    {value !== 'all' && (
+                        <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
+                    )}
+                </SelectTrigger>
+            ) : (
+                <SelectTrigger className="h-9 w-[170px]" aria-label={t('assignedFilter.label')}>
+                    {/* div y no span: el trigger recorta sus span hijos a una línea y rompería la fila. */}
+                    <div className="flex min-w-0 items-center gap-2">
+                        <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        <SelectValue />
+                    </div>
+                </SelectTrigger>
+            )}
+            <SelectContent>
+                <SelectItem value="all">{t('assignedFilter.all')}</SelectItem>
+                <SelectItem value="me">{t('assignedFilter.me')}</SelectItem>
+                <SelectItem value="none">{t('assignedFilter.none')}</SelectItem>
+            </SelectContent>
+        </Select>
+    );
+}
+
+export type StudyOrdersViewMode = 'list' | 'board';
+
+/** Lista o Estados (tablero). */
+function ViewModeSwitch({ value, onChange }: { value: StudyOrdersViewMode; onChange: (mode: StudyOrdersViewMode) => void }) {
+    const t = useTranslations('StudyOrdersPage.view');
+    const options: { mode: StudyOrdersViewMode; icon: React.ComponentType<{ className?: string }>; label: string }[] = [
+        { mode: 'list', icon: LayoutList, label: t('list') },
+        { mode: 'board', icon: SquareKanban, label: t('board') },
+    ];
+    return (
+        // Resaltado con el color de la marca: es lo que cambia toda la pantalla, tiene que verse.
+        <div
+            className="inline-flex h-10 shrink-0 items-center gap-1 rounded-lg border border-primary/30 bg-primary/5 p-1 shadow-sm"
+            role="group"
+            aria-label={t('label')}
+        >
+            {options.map(({ mode, icon: Icon, label }) => (
+                <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={value === mode}
+                    title={label}
+                    onClick={() => onChange(mode)}
+                    className={cn(
+                        'inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-sm font-medium transition-colors',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        value === mode
+                            ? 'bg-primary text-primary-foreground shadow'
+                            : 'text-primary/80 hover:bg-primary/10 hover:text-primary',
+                    )}
+                >
+                    <Icon className="h-4 w-4" aria-hidden="true" />
+                    <span className="hidden sm:inline">{label}</span>
+                </button>
+            ))}
+        </div>
+    );
+}
+
+/** Tarjetas por columna que se pueden elegir en el tablero. */
+const BOARD_PAGE_SIZES = [10, 25, 50, 100] as const;
+
+interface BoardToolbarProps {
+    search: string;
+    onSearchChange: (value: string) => void;
+    perColumn: number;
+    onPerColumnChange: (value: number) => void;
+    onRefresh: () => void;
+    isRefreshing: boolean;
+    onCreate?: () => void;
+    /** Filtros y acciones de la página (origen, responsable, importar). */
+    extra?: React.ReactNode;
+}
+
+/**
+ * Barra del tablero: búsqueda, filtros, tarjetas por columna y actualizar. Como la de la lista,
+ * mide su propio ancho: si no entra pasa a la línea siguiente y, muy angosta, queda solo con íconos.
+ */
+function BoardToolbar({ search, onSearchChange, perColumn, onPerColumnChange, onRefresh, isRefreshing, onCreate, extra }: BoardToolbarProps) {
+    const t = useTranslations('StudyOrdersPage');
+    const tToolbar = useTranslations('DataTableToolbar');
+    const rootRef = React.useRef<HTMLDivElement>(null);
+    const compact = useCompactWidth(rootRef);
+    return (
+        <DataTableToolbarCompactProvider value={compact}>
+            <div ref={rootRef} className="flex flex-wrap items-center gap-2">
+                <div className="flex min-w-[12rem] flex-1 items-center gap-2">
+                    <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                        <Input
+                            value={search}
+                            onChange={(e) => onSearchChange(e.target.value)}
+                            placeholder={t('filterPlaceholder')}
+                            className="h-9 w-full pl-9 pr-9"
+                            aria-label={t('filterPlaceholder')}
+                        />
+                        {search && (
+                            <Button variant="ghost" onClick={() => onSearchChange('')}
+                                className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2 p-0 text-muted-foreground hover:bg-transparent hover:text-foreground">
+                                <X className="h-4 w-4" />
+                                <span className="sr-only">{tToolbar('clear')}</span>
+                            </Button>
+                        )}
+                    </div>
+                    {onCreate && (
+                        <Button className={cn('h-9 shrink-0', compact ? 'w-9 px-0' : 'gap-1.5 px-3')} onClick={onCreate}
+                            aria-label={t('newOrder')} title={t('newOrder')}>
+                            <PlusCircle className="h-4 w-4" aria-hidden="true" />
+                            {!compact && <span>{t('newOrder')}</span>}
+                        </Button>
+                    )}
+                </div>
+                <div className="flex max-w-full flex-wrap items-center gap-2">
+                    {extra}
+                    <Select value={String(perColumn)} onValueChange={(v) => onPerColumnChange(Number(v))}>
+                        <SelectTrigger className={cn('h-9', compact ? 'w-[72px]' : 'w-[150px]')} aria-label={t('board.perColumn')} title={t('board.perColumn')}>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {BOARD_PAGE_SIZES.map((size) => (
+                                <SelectItem key={size} value={String(size)}>
+                                    {compact ? size : t('board.perColumnOption', { count: size })}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Button variant="outline" size="icon" className="h-9 w-9 shrink-0" onClick={onRefresh} disabled={isRefreshing}
+                        aria-label={tToolbar('refresh')} title={tToolbar('refresh')}>
+                        <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
+                    </Button>
+                </div>
+            </div>
+        </DataTableToolbarCompactProvider>
+    );
+}
+
 /**
  * Subcomponente obligatorio: `useNarrowMode()` sólo devuelve algo distinto de
  * `false` dentro del subárbol de `leftPanel`, así que la decisión de mostrar
@@ -174,7 +338,7 @@ function StudyOrdersTableWithCards({
     scope,
     orders, total, columns, selected, rowSelection, setRowSelection, onRowSelect,
     pagination, setPagination, sorting, setSorting, columnFilters, setColumnFilters,
-    bucket, onBucketChange, originFilter, onCreate, onEditOrder, onRefresh, isRefreshing, isLoading,
+    bucket, onBucketChange, originFilter, onCreate, onEditOrder, onAssignOrder, onRefresh, isRefreshing, isLoading,
 }: TableWithCardsProps) {
     const t = useTranslations('StudyOrdersPage');
     const tCols = useTranslations('StudyOrdersPage.columns');
@@ -263,15 +427,37 @@ function StudyOrdersTableWithCards({
                     showArrow
                     onClick={() => onRowSelect([order])}
                     actions={
-                        order.status === 'draft' && onEditOrder ? (
-                            <button
-                                type="button"
-                                onClick={(e) => { e.stopPropagation(); onEditOrder(order); }}
-                                className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent"
-                            >
-                                <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
-                                {tActions('edit')}
-                            </button>
+                        (order.status === 'draft' && onEditOrder) || (scope === 'clinic' && (order.assigned_to_name || onAssignOrder)) ? (
+                            <>
+                                {order.status === 'draft' && onEditOrder && (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); onEditOrder(order); }}
+                                        className="flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent"
+                                    >
+                                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                                        {tActions('edit')}
+                                    </button>
+                                )}
+                                {/* Quién la revisa; con permiso, tocarlo abre la asignación. */}
+                                {scope === 'clinic' && (onAssignOrder && isStudyOrderAssignable(order) ? (
+                                    <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); onAssignOrder(order); }}
+                                        className="flex min-w-0 items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent"
+                                    >
+                                        <UserPlus className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                                        <span className="truncate">
+                                            {order.assigned_to_name ? tActions('reviewedBy', { name: order.assigned_to_name }) : tActions('assign')}
+                                        </span>
+                                    </button>
+                                ) : order.assigned_to_name && (
+                                    <span className="flex min-w-0 items-center gap-1 px-2 py-1 text-xs text-muted-foreground">
+                                        <UserRound className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                                        <span className="truncate">{tActions('reviewedBy', { name: order.assigned_to_name })}</span>
+                                    </span>
+                                ))}
+                            </>
                         ) : undefined
                     }
                 />
@@ -312,6 +498,50 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
         STUDY_ORDERS_PERMISSIONS.VIEW_ALL,
     ]);
     const [isImportOpen, setIsImportOpen] = React.useState(false);
+    // Asignar el responsable y filtrar por él: solo en la bandeja de la clínica, con la bandeja completa.
+    const canSeeAll = isClinic && hasPermission(STUDY_ORDERS_PERMISSIONS.VIEW_ALL);
+    const canAssign = canSeeAll && hasPermission(STUDY_ORDERS_PERMISSIONS.ASSIGN);
+    const [assigned, setAssigned] = React.useState<StudyOrderAssignedFilter>(() => {
+        const value = searchParams.get('assigned');
+        return value === 'me' || value === 'none' ? value : 'all';
+    });
+    const [assigningOrder, setAssigningOrder] = React.useState<{ id: string; order_number: string; assigned_to?: string | null } | null>(null);
+
+    // Vista: lista o Estados (tablero). Se recuerda por bandeja.
+    const viewStorageKey = `study-orders-view:${scope}`;
+    const [viewMode, setViewModeState] = React.useState<StudyOrdersViewMode>('list');
+    React.useEffect(() => {
+        try {
+            const stored = localStorage.getItem(viewStorageKey);
+            if (stored === 'list' || stored === 'board') setViewModeState(stored);
+        } catch { /* sin storage: lista */ }
+    }, [viewStorageKey]);
+    const setViewMode = React.useCallback((mode: StudyOrdersViewMode) => {
+        setViewModeState(mode);
+        try { localStorage.setItem(viewStorageKey, mode); } catch { /* sin storage */ }
+    }, [viewStorageKey]);
+    const isBoard = viewMode === 'board';
+
+    // Tablero: tarjetas por columna (se recuerda), búsqueda propia y recarga después de cada acción.
+    const [perColumn, setPerColumnState] = React.useState(25);
+    React.useEffect(() => {
+        try {
+            const stored = Number(localStorage.getItem('study-orders-board-per-column'));
+            if ([10, 25, 50, 100].includes(stored)) setPerColumnState(stored);
+        } catch { /* sin storage */ }
+    }, []);
+    const setPerColumn = React.useCallback((value: number) => {
+        setPerColumnState(value);
+        try { localStorage.setItem('study-orders-board-per-column', String(value)); } catch { /* sin storage */ }
+    }, []);
+    const [boardSearchInput, setBoardSearchInput] = React.useState('');
+    const [boardSearch, setBoardSearch] = React.useState('');
+    React.useEffect(() => {
+        const timer = setTimeout(() => setBoardSearch(boardSearchInput.trim()), 400);
+        return () => clearTimeout(timer);
+    }, [boardSearchInput]);
+    const [boardReloadKey, setBoardReloadKey] = React.useState(0);
+    const [isBoardLoading, setIsBoardLoading] = React.useState(false);
 
     // Origen: portal o WhatsApp. Se combina con el filtro de estado: las que el agente de WhatsApp
     // pasó a una persona son las de WhatsApp en borrador. El aviso de derivación abre la bandeja
@@ -368,6 +598,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                 boardStatus: bucket === 'all' ? undefined : bucket,
                 source: isClinic && origin !== 'all' ? origin : undefined,
                 search: searchTerm || undefined,
+                assigned: canSeeAll ? assigned : undefined,
                 slaHours: DEFAULT_SLA_HOURS,
                 sort,
                 page: pagination.pageIndex + 1,
@@ -379,20 +610,22 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
             setIsLoading(false);
             setIsRefreshing(false);
         },
-        [scope, bucket, origin, isClinic, searchTerm, sorting, pagination.pageIndex, pagination.pageSize],
+        [scope, bucket, origin, isClinic, canSeeAll, assigned, searchTerm, sorting, pagination.pageIndex, pagination.pageSize],
     );
 
     // Cualquier cambio de filtro vuelve a la primera página, o se pediría una
     // página que ya no existe.
     React.useEffect(() => {
         setPagination((prev) => (prev.pageIndex === 0 ? prev : { ...prev, pageIndex: 0 }));
-    }, [bucket, origin, searchTerm]);
+    }, [bucket, origin, assigned, searchTerm]);
 
-    // Debounce: la búsqueda por paciente escribe letra a letra.
+    // Debounce: la búsqueda por paciente escribe letra a letra. En la vista Estados la lista no
+    // se pide: el tablero trae lo suyo.
     React.useEffect(() => {
+        if (isBoard) return;
         const timer = setTimeout(() => { void loadOrders(); }, 400);
         return () => clearTimeout(timer);
-    }, [loadOrders]);
+    }, [loadOrders, isBoard]);
 
     const handleRowSelect = React.useCallback((rows: StudyOrderListItem[]) => {
         setSelected(rows[0] ?? null);
@@ -530,7 +763,8 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
             try {
                 await action();
                 toast({ title: successTitle, description: successDescription });
-                await loadOrders(true);
+                if (isBoard) setBoardReloadKey((k) => k + 1);
+                else await loadOrders(true);
                 // El panel de detalle no se entera solo: su orderId no cambió.
                 setDetailRefreshKey((k) => k + 1);
             } catch (error) {
@@ -543,8 +777,46 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                 setIsMutating(false);
             }
         },
-        [toast, loadOrders, t],
+        [toast, loadOrders, isBoard, t],
     );
+
+    /** Recarga lo que esté a la vista: la lista o el tablero. */
+    const reloadView = React.useCallback(() => {
+        if (isBoard) setBoardReloadKey((k) => k + 1);
+        else void loadOrders(true);
+    }, [isBoard, loadOrders]);
+
+    /** Además, el detalle abierto (su orderId no cambió, no se entera solo). */
+    const reloadAll = React.useCallback(() => {
+        reloadView();
+        setDetailRefreshKey((k) => k + 1);
+    }, [reloadView]);
+
+    /** Abrir una orden desde el tablero: el detalle a pantalla completa. */
+    const openFromBoard = React.useCallback((order: StudyOrderListItem) => {
+        setSelected(order);
+        setIsDetailExpanded(true);
+    }, []);
+
+    /** Soltar una tarjeta en otra columna: la acción real que lleva a ese estado. */
+    const handleBoardMove = React.useCallback((order: StudyOrderListItem, move: BoardMove) => {
+        switch (move) {
+            case 'submit': setPendingSubmit(order); break;
+            case 'acknowledge':
+                void runMutation(() => acknowledgeStudyOrder(order.id), t('toast.acknowledgedTitle'));
+                break;
+            case 'schedule': void handleSchedule(order.id); break;
+            case 'cancel': setPendingCancel(order); break;
+        }
+    }, [runMutation, handleSchedule, t]);
+
+    const boardCapabilities = React.useMemo<BoardCapabilities>(() => ({
+        submit: canSubmit,
+        acknowledge: canAcknowledge,
+        schedule: canSchedule,
+        cancel: canCancel,
+        isClinic,
+    }), [canSubmit, canAcknowledge, canSchedule, canCancel, isClinic]);
 
     const columns = StudyOrderColumnsWrapper({
         scope,
@@ -556,6 +828,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
             : undefined,
         onSchedule: canSchedule ? (order) => void handleSchedule(order.id) : undefined,
         onCancel: canCancel ? setPendingCancel : undefined,
+        onAssign: canAssign ? setAssigningOrder : undefined,
     });
 
     const isMine = !isClinic;
@@ -574,18 +847,57 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                 minLeftSize={18}
                 leftPanel={
                     <Card className="flex h-full flex-col border-0 shadow-none lg:border lg:shadow-sm">
-                        <CardHeader className="flex flex-row items-center gap-3 space-y-0">
-                            <div className="header-icon-circle">
-                                <ClipboardList className="h-5 w-5" aria-hidden="true" />
+                        {/* flex-wrap: con poco ancho el selector de vista baja a una segunda fila en
+                            vez de apretar el título. */}
+                        <CardHeader className="flex flex-row flex-wrap items-center gap-3 space-y-0">
+                            <div className="flex min-w-[16rem] flex-1 items-center gap-3">
+                                <div className="header-icon-circle shrink-0">
+                                    <ClipboardList className="h-5 w-5" aria-hidden="true" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                    <CardTitle>{isMine ? t('titleMine') : t('titleClinic')}</CardTitle>
+                                    <CardDescription>
+                                        {isMine ? t('descriptionMine') : t('descriptionClinic')}
+                                    </CardDescription>
+                                </div>
                             </div>
-                            <div className="min-w-0">
-                                <CardTitle>{isMine ? t('titleMine') : t('titleClinic')}</CardTitle>
-                                <CardDescription>
-                                    {isMine ? t('descriptionMine') : t('descriptionClinic')}
-                                </CardDescription>
-                            </div>
+                            <ViewModeSwitch value={viewMode} onChange={setViewMode} />
                         </CardHeader>
                         <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card p-4 sm:p-6">
+                            {isBoard ? (
+                                <div className="flex min-h-0 flex-1 flex-col gap-3">
+                                    <BoardToolbar
+                                        search={boardSearchInput}
+                                        onSearchChange={setBoardSearchInput}
+                                        perColumn={perColumn}
+                                        onPerColumnChange={setPerColumn}
+                                        onRefresh={() => setBoardReloadKey((k) => k + 1)}
+                                        isRefreshing={isBoardLoading}
+                                        onCreate={canCreate ? handleCreate : undefined}
+                                        extra={isClinic ? (
+                                            <>
+                                                <OriginFilter value={origin} onChange={setOrigin} />
+                                                {canSeeAll && <AssignedFilter value={assigned} onChange={setAssigned} />}
+                                                {canImport && <ImportOrderButton onClick={() => setIsImportOpen(true)} />}
+                                            </>
+                                        ) : undefined}
+                                    />
+                                    <StudyOrderBoard
+                                        scope={scope}
+                                        source={isClinic && origin !== 'all' ? origin : undefined}
+                                        search={boardSearch}
+                                        assigned={canSeeAll ? assigned : 'all'}
+                                        perColumn={perColumn}
+                                        reloadKey={boardReloadKey}
+                                        capabilities={boardCapabilities}
+                                        selectedId={selected?.id}
+                                        onOpen={openFromBoard}
+                                        onMove={handleBoardMove}
+                                        onAssign={canAssign ? setAssigningOrder : undefined}
+                                        onLoadingChange={setIsBoardLoading}
+                                    />
+                                </div>
+                            ) : (
                             <StudyOrdersTableWithCards
                                 scope={scope}
                                 orders={orders}
@@ -606,15 +918,18 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                                 originFilter={isClinic ? (
                                     <>
                                         <OriginFilter value={origin} onChange={setOrigin} />
+                                        {canSeeAll && <AssignedFilter value={assigned} onChange={setAssigned} />}
                                         {canImport && <ImportOrderButton onClick={() => setIsImportOpen(true)} />}
                                     </>
                                 ) : undefined}
                                 onCreate={canCreate ? handleCreate : undefined}
                                 onEditOrder={canUpdate ? handleEdit : undefined}
+                                onAssignOrder={canAssign ? setAssigningOrder : undefined}
                                 onRefresh={() => void loadOrders(true)}
                                 isRefreshing={isRefreshing}
                                 isLoading={isLoading}
                             />
+                            )}
                         </CardContent>
                     </Card>
                 }
@@ -641,20 +956,26 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                             onSchedule={(order) => void handleSchedule(order.id)}
                             onReschedule={setReschedulingOrder}
                             onPrint={(order) => void handlePrint(order.id)}
-                            onReviewChanged={() => void loadOrders(true)}
+                            onAssign={canAssign ? setAssigningOrder : undefined}
+                            onReviewChanged={reloadView}
                         />
                     )
                 }
             />
 
+            {canAssign && (
+                <StudyOrderAssignDialog
+                    order={assigningOrder}
+                    onOpenChange={(open) => { if (!open) setAssigningOrder(null); }}
+                    onAssigned={reloadAll}
+                />
+            )}
+
             <StudyOrderRescheduleDialog
                 open={!!reschedulingOrder}
                 onOpenChange={(o) => { if (!o) setReschedulingOrder(null); }}
                 order={reschedulingOrder}
-                onDone={() => {
-                    void loadOrders(true);
-                    setDetailRefreshKey((k) => k + 1);
-                }}
+                onDone={reloadAll}
             />
 
             <StudyOrderWizard
@@ -662,10 +983,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                 onOpenChange={setIsFormOpen}
                 orderId={editingId}
                 orderNumber={editingNumber}
-                onSaved={() => {
-                    void loadOrders(true);
-                    setDetailRefreshKey((k) => k + 1);
-                }}
+                onSaved={reloadAll}
             />
 
             {canImport && (
@@ -673,7 +991,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                     open={isImportOpen}
                     onOpenChange={setIsImportOpen}
                     onImported={(order) => {
-                        void loadOrders(true);
+                        reloadView();
                         // Se abre el borrador para completarlo: es lo siguiente que hay que hacer.
                         setEditingId(order.id);
                         setEditingNumber(order.order_number);
@@ -681,7 +999,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                     }}
                     onClosedWhileReading={() => {
                         toast({ title: t('importDialog.toast.continuesTitle'), description: t('importDialog.toast.continuesDescription') });
-                        void loadOrders(true);
+                        reloadView();
                     }}
                 />
             )}

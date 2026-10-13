@@ -1,0 +1,400 @@
+{
+  "name": "Study Orders - Assign",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## POST /study-orders/assign\n\nAsigna quién de la clínica revisa la orden (\"Revisada por\"), o la deja sin asignar.\n\n**Body:** `{ \"id\": \"uuid\", \"user_id\": \"uuid\" | null }` · `null` = sin asignar.\n\nRequiere STUDY_ORDERS_ASSIGN y STUDY_ORDERS_VIEW_ALL. Solo se puede asignar a usuarios de staff activos (rol recepcionista, gerente o administrador; mismo criterio que get_users_filtered(p_only_staff)). Solo órdenes que ve la clínica (enviadas, o borradores del agente de WhatsApp).\n\nRegistra el evento `assigned` / `unassigned` y avisa al nuevo responsable (notificación `study_order_assigned`), salvo que se la haya asignado él mismo o no haya cambiado.",
+        "height": 420,
+        "width": 460,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        -180
+      ],
+      "id": "assign-doc",
+      "name": "Contrato"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-orders/assign",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "assign-wh",
+      "name": "Webhook",
+      "webhookId": "study-orders-assign",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\nconst body = $json.body || {};\nconst id = (body.id || '').toString().trim();\nif (!id) return [{ json: { __error: true, __code: 400, __message: 'id es requerido' } }];\n// null / '' = dejar sin asignar.\nconst assignee = (body.user_id || '').toString().trim();\nif (assignee && !/^[0-9a-f-]{36}$/i.test(assignee)) {\n  return [{ json: { __error: true, __code: 400, __message: 'user_id inválido' } }];\n}\nreturn [{ json: { user_id: String(userId), id, assignee } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "assign-val",
+      "name": "Validar Datos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "assign-cond",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "assign-if",
+      "name": "¿Hubo error?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 userId (token)  $2 id de la orden  $3 responsable nuevo ('' = sin asignar)\nWITH\nperms AS (\n    SELECT bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL') AS can_view_all,\n           bool_or(p.code = 'STUDY_ORDERS_ASSIGN')   AS can_assign\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code LIKE 'STUDY_ORDERS_%'\n),\n-- Solo a usuarios de staff (recepcionista, gerente, administrador).\nassignee AS (\n    SELECT u.id, u.name\n      FROM public.users u\n     WHERE u.id = NULLIF($3::text, '')::uuid\n       AND \n       u.is_active IS NOT FALSE\n   AND EXISTS (SELECT 1\n                 FROM public.user_roles ur\n                 JOIN public.roles r ON r.id = ur.role_id\n                WHERE ur.user_id = u.id\n                  AND ur.is_active IS NOT FALSE\n                  AND lower(trim(r.name)) IN ('recepcionista', 'gerente', 'administrador'))\n),\n-- Lo que había antes (el UPDATE ve la foto previa): para el evento y para saber si cambió.\nprev AS (\n    SELECT so.assigned_to, pu.name\n      FROM public.study_orders so\n      LEFT JOIN public.users pu ON pu.id = so.assigned_to\n     WHERE so.id = $2::uuid\n)\nUPDATE public.study_orders so\n   SET assigned_to = (SELECT id FROM assignee),\n       assigned_at = CASE WHEN NULLIF($3::text, '') IS NULL THEN NULL ELSE (now() AT TIME ZONE 'America/Montevideo') END,\n       assigned_by = CASE WHEN NULLIF($3::text, '') IS NULL THEN NULL ELSE $1::uuid END\n WHERE so.id = $2::uuid\n   AND (SELECT can_assign FROM perms)\n   AND (SELECT can_view_all FROM perms)\n   -- Lo que ve la clínica: enviadas, o borradores que creó el agente de WhatsApp.\n   AND (so.status <> 'draft' OR so.source = 'whatsapp')\n   -- Un id que no es un responsable válido no deja sin asignar en silencio: falla.\n   AND (NULLIF($3::text, '') IS NULL OR EXISTS (SELECT 1 FROM assignee))\nRETURNING so.id::text,\n          so.order_number,\n          so.assigned_to::text,\n          (SELECT name FROM assignee)             AS assigned_to_name,\n          so.assigned_at,\n          (SELECT assigned_to::text FROM prev)    AS previous_assigned_to,\n          (SELECT name FROM prev)                 AS previous_assigned_to_name;",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id, $json.id, $json.assignee ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        660,
+        120
+      ],
+      "id": "assign-sql",
+      "name": "Consulta",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma el sobre { code, message, data, meta }. Un resultado vacío en una\n// operación de escritura significa que el WHERE de guarda no dejó pasar:\n// es un 409/404, no un 500.\n//\n// El filtro descarta el item vacio que emite el nodo de Postgres cuando la\n// consulta no devuelve filas (lleva alwaysOutputData para que el flujo llegue a\n// responder). Sin el, ese {} se colaria como si fuera una fila real: un detalle\n// de orden vacio en vez de un 404, o un listado con un elemento fantasma.\nconst rows = $input.all()\n  .map((i) => i.json)\n  .filter((r) => r && typeof r === 'object' && Object.keys(r).length > 0);\n\nif (!rows.length) {\n  return [{ json: { __error: true, __code: 409,\n    __message: 'No se pudo asignar: la orden no está en la bandeja, el usuario no es staff o no tenés permiso' } }];\n}\nconst row = rows[0];\n// Volver a asignar al mismo no es un cambio: no deja evento ni avisa.\nconst changed = (row.previous_assigned_to || '') !== (row.assigned_to || '');\nreturn [{ json: {\n  __data: row,\n  __changed: changed,\n  __message: row.assigned_to ? 'Orden asignada' : 'Orden sin asignar',\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        120
+      ],
+      "id": "assign-fmt",
+      "name": "Formatear Respuesta"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "assign-cond2",
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        120
+      ],
+      "id": "assign-if2",
+      "name": "¿Error de negocio?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 200, message: $json.__message || \"OK\", data: $json.__data, meta: $json.__meta } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        220
+      ],
+      "id": "assign-ok",
+      "name": "Responder OK"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: $json.__code || 400, message: $json.__message || \"Error\", data: null } }}",
+        "options": {
+          "responseCode": "={{ $json.__code || 400 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1320,
+        -60
+      ],
+      "id": "assign-err",
+      "name": "Responder Error"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 payload { order_id, event_type, actor_id, actor_kind, appointment_id, metadata }\n--\n-- Registro de la bitácora. Un solo parámetro: el payload entero como JSON, por\n-- el mismo motivo que el upsert — sin array posicional no hay desalineación\n-- posible.\n--\n-- El actor sale SIEMPRE del token en el nodo que arma el payload, nunca del\n-- cuerpo que manda el cliente. El tipo de evento se valida dos veces: contra la\n-- lista cerrada del nodo y contra el CHECK de la tabla.\n--\n-- Nunca hace fallar la operación que lo provocó: el nodo va colgado después de\n-- responder al webhook y con onError continueRegularOutput. Perder un renglón\n-- del historial es malo; perder la operación es peor.\nINSERT INTO public.study_order_events\n       (study_order_id, event_type, actor_id, actor_kind, appointment_id, metadata)\nSELECT (b.body ->> 'order_id')::uuid,\n       b.body ->> 'event_type',\n       NULLIF(b.body ->> 'actor_id', '')::uuid,\n       coalesce(NULLIF(b.body ->> 'actor_kind', ''), 'user'),\n       NULLIF(b.body ->> 'appointment_id', '')::int,\n       coalesce(b.body -> 'metadata', '{}'::jsonb)\n  FROM (SELECT $1::jsonb AS body) b\n WHERE coalesce(b.body ->> 'order_id', '') <> ''\n   AND coalesce(b.body ->> 'event_type', '') <> ''\n   AND EXISTS (SELECT 1 FROM public.study_orders so\n                WHERE so.id = (b.body ->> 'order_id')::uuid)\nRETURNING id::text;",
+        "options": {
+          "queryReplacement": "={{ JSON.stringify({ order_id: $('Validar Datos').first().json.id, event_type: $('Formatear Respuesta').first().json.__changed ? ($('Formatear Respuesta').first().json.__data.assigned_to ? 'assigned' : 'unassigned') : '', actor_id: $('Validar Datos').first().json.user_id, metadata: { assignee_id: $('Formatear Respuesta').first().json.__data.assigned_to, assignee_name: $('Formatear Respuesta').first().json.__data.assigned_to_name, previous_assignee_id: $('Formatear Respuesta').first().json.__data.previous_assigned_to, previous_assignee_name: $('Formatear Respuesta').first().json.__data.previous_assigned_to_name } }) }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1540,
+        400
+      ],
+      "id": "assign-event",
+      "name": "Registrar evento",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\nINSERT INTO public.notifications\n       (user_id, type, status, priority, patient_id, metadata, created_at)\nSELECT so.assigned_to,\n       'study_order_assigned',\n       'pending',\n       'MEDIUM',\n       so.patient_id,\n       jsonb_build_object(\n           'order_id',      so.id::text,\n           'order_number',  so.order_number,\n           'source',        so.source,\n           'patient_id',    so.patient_id::text,\n           'patient_name',  so.patient_name,\n           'items_summary', (SELECT string_agg(i.service_name, ', ' ORDER BY i.sort_order, i.service_name)\n                               FROM public.study_order_items i\n                              WHERE i.study_order_id = so.id AND i.is_cancelled = false),\n           'board_status',  b.board_status,\n           'assigned_by_id',   $2::text,\n           'assigned_by_name', (SELECT u.name FROM public.users u WHERE u.id = $2::uuid)\n       ),\n       (now() AT TIME ZONE 'America/Montevideo')\n  FROM public.study_orders so\n  LEFT JOIN public.v_study_orders_board b ON b.id = so.id\n WHERE so.id = $1::uuid\n   AND so.assigned_to IS NOT NULL\n   AND so.assigned_to IS DISTINCT FROM $2::uuid\n   AND $3::boolean\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ [ $('Validar Datos').first().json.id, $('Validar Datos').first().json.user_id, String($('Formatear Respuesta').first().json.__changed) ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1540,
+        220
+      ],
+      "id": "assign-notify-0",
+      "name": "Notificar",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultName": "Events"
+        },
+        "mode": "each",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "study_order_assigned",
+            "user_ids": "={{ [$json.user_id] }}",
+            "channels": "={{ [] }}",
+            "payload": "={{ $json }}"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1760,
+        220
+      ],
+      "id": "assign-push-0",
+      "name": "Empujar por SSE",
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos": {
+      "main": [
+        [
+          {
+            "node": "¿Hubo error?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hubo error?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulta": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "¿Error de negocio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder OK": {
+      "main": [
+        [
+          {
+            "node": "Registrar evento",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notificar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificar": {
+      "main": [
+        [
+          {
+            "node": "Empujar por SSE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Error de negocio?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    "study-orders",
+    "clinic"
+  ]
+}
