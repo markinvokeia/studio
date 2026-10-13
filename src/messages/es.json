@@ -7279,6 +7279,7 @@
     "noPreview": "Este tipo de archivo no se puede previsualizar. Descargalo para abrirlo.",
     "open": "Abrir",
     "noFiles": "No hay archivos.",
+    "resizeOriginals": "Arrastrá para cambiar el ancho de los originales",
     "focus": {
       "noFile": "No se sabe en qué archivo está: buscalo por la zona y el texto.",
       "pdfPage": "Página {page} del PDF: buscá el dato en esa página.",

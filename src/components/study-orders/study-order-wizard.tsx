@@ -20,7 +20,8 @@ import { UserSelector } from '@/components/ui/user-selector';
 import { OrderFilesPanel } from './order-files-panel';
 import type { OrderFile } from './order-file-gallery';
 import { ReviewFlag } from './review-flag';
-import { ReviewActionsProvider, ReviewLocateProvider, hasSource, toOriginalFocus, type OriginalFocus } from './review-locate';
+import { OriginalsSplit } from './originals-split';
+import { ReviewActionsProvider, ReviewLocateProvider, useOriginalFocus } from './review-locate';
 import { ReviewFieldEditor, type ReviewFieldEditorProps } from './review-field-editor';
 import { PATIENT_STEP, resolveReviewTarget, resolveReviewTargets } from './review-targets';
 import { StudyOrderReviewList, countPendingBlocking } from './study-order-review-list';
@@ -187,8 +188,6 @@ export function StudyOrderWizard({
     const [sourceIntakeId, setSourceIntakeId] = React.useState('');
     const [originals, setOriginals] = React.useState<OriginalsSource | null>(null);
     const [showOriginals, setShowOriginals] = React.useState(false);
-    /** Dato que se está buscando en los originales ("Ver en el original" de un punto a revisar). */
-    const [originalFocus, setOriginalFocus] = React.useState<OriginalFocus | null>(null);
     /**
      * Puntos que el agente de WhatsApp no tuvo claros (borrador creado al derivar). Se marcan desde
      * acá mismo, mirando los originales; los bloqueantes pendientes impiden enviar.
@@ -197,6 +196,12 @@ export function StudyOrderWizard({
     /** Orden del agente que este borrador reemplaza al enviarse (derivación por "la orden cambió"). */
     const [replacesOrderNumber, setReplacesOrderNumber] = React.useState<string | null>(null);
     const blockingPending = countPendingBlocking(reviewItems);
+    /** Abre los originales en el lugar donde el asistente leyó el dato. Solo si hay originales. */
+    const openOriginals = React.useCallback(() => setShowOriginals(true), []);
+    const {
+        focus: originalFocus, focusItem, locate: locateOriginal, clear: clearOriginalFocus,
+        navigation: focusNavigation, focusNextPending,
+    } = useOriginalFocus(reviewItems, openOriginals);
 
     const scrollRef = React.useRef<HTMLDivElement>(null);
     /** Bloqueo síncrono del guardado: el estado tarda un render y un doble clic duplicaría la orden. */
@@ -210,9 +215,9 @@ export function StudyOrderWizard({
         setSelection({ ...EMPTY_SELECTION, services: new Map() });
         setLoadedNumber(''); setError(null); setStepIndex(0);
         setDoctorId(''); setDoctorName(''); setWithoutDoctor(false); setReferringDoctorName('');
-        setSourceIntakeId(''); setOriginals(null); setShowOriginals(false); setOriginalFocus(null);
+        setSourceIntakeId(''); setOriginals(null); setShowOriginals(false); clearOriginalFocus();
         setReviewItems([]); setReplacesOrderNumber(null);
-    }, []);
+    }, [clearOriginalFocus]);
 
     React.useEffect(() => {
         if (!open) return;
@@ -294,48 +299,10 @@ export function StudyOrderWizard({
 
     const originalFiles = React.useMemo(() => toOrderFiles(originals?.files ?? []), [originals]);
 
-    /** Abre los originales en el lugar donde el asistente leyó el dato. Solo si hay originales. */
-    const locateOriginal = React.useCallback((item: StudyOrderReviewItem) => {
-        setOriginalFocus(toOriginalFocus(item, Date.now()));
-        setShowOriginals(true);
-    }, []);
-    const clearOriginalFocus = React.useCallback(() => setOriginalFocus(null), []);
     /** Una sola instancia: la lista y la tarjeta sobre el original ven el mismo punto guardándose. */
     const reviewActions = useReviewItemActions(orderId ?? '', reloadReviewItems);
-    /** El punto del foco con su estado actual (se relee después de marcarlo). */
-    const focusItem = React.useMemo(
-        () => (originalFocus ? reviewItems.find((i) => i.id === originalFocus.itemId) ?? null : null),
-        [originalFocus, reviewItems],
-    );
-    /**
-     * Anterior / siguiente desde la tarjeta: entre los puntos que dicen dónde están, en el orden de
-     * la lista, pendientes o ya revisados (se puede volver a mirar uno ya marcado).
-     */
-    const focusNavigation = React.useMemo(() => {
-        if (!originalFocus) return null;
-        const locatable = reviewItems.filter(hasSource);
-        const index = locatable.findIndex((i) => i.id === originalFocus.itemId);
-        if (index < 0) return null;
-        const prev = locatable[index - 1];
-        const next = locatable[index + 1];
-        return {
-            index,
-            total: locatable.length,
-            onPrev: prev ? () => locateOriginal(prev) : undefined,
-            onNext: next ? () => locateOriginal(next) : undefined,
-        };
-    }, [originalFocus, reviewItems, locateOriginal]);
-    /**
-     * Marcado un punto desde la tarjeta, sigue con el próximo pendiente que diga dónde está (en el
-     * orden de la lista, volviendo al principio). Sin más, deja de señalar.
-     */
-    const focusNextPending = React.useCallback((done: StudyOrderReviewItem) => {
-        const start = reviewItems.findIndex((i) => i.id === done.id);
-        const ordered = [...reviewItems.slice(start + 1), ...reviewItems.slice(0, Math.max(start, 0))];
-        const next = ordered.find((i) => i.id !== done.id && i.status === 'pending' && hasSource(i));
-        if (next) locateOriginal(next);
-        else setOriginalFocus(null);
-    }, [reviewItems, locateOriginal]);
+    /** Originales a pantalla entera: el riel de secciones también se aparta. */
+    const [originalsMaximized, setOriginalsMaximized] = React.useState(false);
     const originalsIntakeId = originals?.intakeId ?? '';
     const loadOriginal = React.useCallback(
         (id: string, signal: AbortSignal) => getWhatsappIntakeFile(originalsIntakeId, id, signal),
@@ -805,7 +772,7 @@ export function StudyOrderWizard({
 
                 {/* Cuerpo: riel de secciones a la izquierda, contenido a la derecha */}
                 <div className="relative flex min-h-0 flex-1 overflow-hidden">
-                    {!isLoading && steps.length > 2 && (
+                    {!isLoading && steps.length > 2 && !originalsMaximized && (
                         <>
                         {/* Fondo que cierra el cajón al tocar fuera. Sólo en mobile. */}
                         {isRailOpen && (
@@ -927,6 +894,27 @@ export function StudyOrderWizard({
                         </>
                     )}
 
+                {/* Originales de WhatsApp al lado del formulario, con el ancho ajustable; donde no
+                    entran las dos columnas los tapan (se cierran con el botón de arriba). */}
+                <OriginalsSplit
+                    label={t('wizard.originals')}
+                    storageKey="study-order-wizard-originals"
+                    onMaximizedChange={setOriginalsMaximized}
+                    originals={originals && showOriginals ? (maximizeButton) => (
+                        <OrderFilesPanel
+                            files={originalFiles}
+                            loadFile={loadOriginal}
+                            focus={originalFocus}
+                            focusItem={focusItem}
+                            onClearFocus={clearOriginalFocus}
+                            onFocusResolved={focusNextPending}
+                            focusNavigation={focusNavigation}
+                            renderFocusEditor={renderFocusEditor}
+                            headerActions={maximizeButton}
+                            className="h-full"
+                        />
+                    ) : null}
+                >
                 {/* Abajo deja lugar para el botón flotante del riel mientras se muestra. */}
                 <div
                     ref={scrollRef}
@@ -1165,31 +1153,7 @@ export function StudyOrderWizard({
                     )}
                 </div>
 
-                {/* Originales de WhatsApp al lado del formulario: en tablet y escritorio es una
-                    columna; en el celular ocupan todo el cuerpo (se cierran con el botón de arriba). */}
-                {originals && showOriginals && (
-                    <aside
-                        aria-label={t('wizard.originals')}
-                        className={cn(
-                            'flex flex-col bg-card',
-                            'absolute inset-0 z-30',
-                            'md:static md:z-auto md:w-1/2 md:shrink-0 md:border-l',
-                            'lg:w-[420px] xl:w-[500px]',
-                        )}
-                    >
-                        <OrderFilesPanel
-                            files={originalFiles}
-                            loadFile={loadOriginal}
-                            focus={originalFocus}
-                            focusItem={focusItem}
-                            onClearFocus={clearOriginalFocus}
-                            onFocusResolved={focusNextPending}
-                            focusNavigation={focusNavigation}
-                            renderFocusEditor={renderFocusEditor}
-                            className="h-full"
-                        />
-                    </aside>
-                )}
+                </OriginalsSplit>
 
                 </div>
 

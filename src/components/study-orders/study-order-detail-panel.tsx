@@ -15,7 +15,8 @@ import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab
 import { StudyOrderAppointmentCard } from './study-order-appointment-card';
 import { StudyOrderBookingLinkTab } from './study-order-booking-link-tab';
 import { StudyOrderReferralLine } from './study-order-referral-line';
-import { StudyOrderReviewList, countPendingBlocking } from './study-order-review-list';
+import { countPendingBlocking } from './study-order-review-list';
+import { StudyOrderReviewTab } from './study-order-review-tab';
 import { StudyOrderSessionTab } from './study-order-session-tab';
 import { StudyOrderStatusBadge } from './study-order-status-badge';
 import {
@@ -425,69 +426,72 @@ export function StudyOrderDetailPanel({
 
             <VerticalTabStrip tabs={tabs} activeTabId={activeTab} onTabClick={(tab) => setActiveTab(tab.id)} />
 
-            <CardContent className="flex-1 space-y-4 overflow-y-auto pt-4">
-                {activeTab === 'order' && (
-                    <>
-                        {countPendingBlocking(order.review_items) > 0 && (
-                            <button
-                                type="button"
-                                onClick={() => setActiveTab('review')}
-                                className="flex w-full items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-left text-sm transition-colors hover:bg-amber-500/15"
-                            >
-                                <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
-                                <span>{t('review.banner', { count: countPendingBlocking(order.review_items) })}</span>
-                            </button>
-                        )}
-                        <OrderTab order={order} />
-                    </>
-                )}
+            {/* Revisión ocupa todo el cuerpo: lleva los originales al lado, con su propio scroll. */}
+            {activeTab === 'review' && (
+                <StudyOrderReviewTab
+                    order={order}
+                    canReview={canReview}
+                    canSeeOriginals={hasOriginals}
+                    onChanged={() => {
+                        setReloadKey((k) => k + 1);
+                        onReviewChanged?.();
+                    }}
+                />
+            )}
 
-                {activeTab === 'review' && (
-                    <StudyOrderReviewList
-                        orderId={order.id}
-                        items={reviewItems}
-                        canReview={canReview}
-                        onChanged={() => {
-                            setReloadKey((k) => k + 1);
-                            onReviewChanged?.();
-                        }}
-                    />
-                )}
+            {activeTab !== 'review' && (
+                <CardContent className="flex-1 space-y-4 overflow-y-auto pt-4">
+                    {activeTab === 'order' && (
+                        <>
+                            {countPendingBlocking(order.review_items) > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setActiveTab('review')}
+                                    className="flex w-full items-start gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-left text-sm transition-colors hover:bg-amber-500/15"
+                                >
+                                    <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" aria-hidden="true" />
+                                    <span>{t('review.banner', { count: countPendingBlocking(order.review_items) })}</span>
+                                </button>
+                            )}
+                            <OrderTab order={order} />
+                        </>
+                    )}
 
-                {activeTab === 'appointments' && (
-                    <div className="space-y-3">
-                        {(order.appointments ?? []).map((appointment) => (
-                            <StudyOrderAppointmentCard key={appointment.id} appointment={appointment} />
-                        ))}
-                        {(order.appointments ?? []).length === 0 && (
-                            <p className="py-6 text-center text-sm text-muted-foreground">
-                                {t('appointmentCard.none')}
-                            </p>
-                        )}
-                    </div>
-                )}
+                    {activeTab === 'appointments' && (
+                        <div className="space-y-3">
+                            {(order.appointments ?? []).map((appointment) => (
+                                <StudyOrderAppointmentCard key={appointment.id} appointment={appointment} />
+                            ))}
+                            {(order.appointments ?? []).length === 0 && (
+                                <p className="py-6 text-center text-sm text-muted-foreground">
+                                    {t('appointmentCard.none')}
+                                </p>
+                            )}
+                        </div>
+                    )}
 
-                {activeTab === 'sessions' && (
-                    <StudyOrderSessionTab
-                        order={order}
-                        readOnly={readOnly}
-                        openRequest={sessionRequest}
-                        // Recargar la orden tras guardar: la sesión recién creada
-                        // llega con el detalle, no se puede pintar desde el form.
-                        onSaved={() => setReloadKey((k) => k + 1)}
-                    />
-                )}
+                    {activeTab === 'sessions' && (
+                        <StudyOrderSessionTab
+                            order={order}
+                            readOnly={readOnly}
+                            openRequest={sessionRequest}
+                            // Recargar la orden tras guardar: la sesión recién creada
+                            // llega con el detalle, no se puede pintar desde el form.
+                            onSaved={() => setReloadKey((k) => k + 1)}
+                        />
+                    )}
 
-                {activeTab === 'patient' && <PatientTab order={order} />}
+                    {activeTab === 'patient' && <PatientTab order={order} />}
 
-                {activeTab === 'link' && (
-                    <StudyOrderBookingLinkTab order={order} />
-                )}
+                    {activeTab === 'link' && (
+                        <StudyOrderBookingLinkTab order={order} />
+                    )}
 
-                {activeTab === 'original' && hasOriginals && <StudyOrderWhatsappTab order={order} />}
+                    {activeTab === 'original' && hasOriginals && <StudyOrderWhatsappTab order={order} />}
 
-                {activeTab === 'activity' && <StudyOrderTimeline events={order.events ?? []} />}
-            </CardContent>
+                    {activeTab === 'activity' && <StudyOrderTimeline events={order.events ?? []} />}
+                </CardContent>
+            )}
         </Card>
     );
 }
