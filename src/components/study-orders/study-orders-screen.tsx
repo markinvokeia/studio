@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
 
 import { StudyOrderColumnsWrapper } from '@/app/[locale]/study-orders/columns';
+import { BoardDetailDrawer } from './board-detail-drawer';
 import { StudyOrderAssignDialog, isStudyOrderAssignable } from './study-order-assign-dialog';
 import { StudyOrderBoard, type BoardCapabilities, type BoardMove } from './study-order-board';
 import { StudyOrderDetailPanel } from './study-order-detail-panel';
@@ -802,10 +803,19 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
     }, [reloadView]);
 
     /** Abrir una orden desde el tablero: el detalle a pantalla completa. */
+    /**
+     * Abrir una orden desde el tablero: el detalle entra desde la derecha y el tablero sigue a la
+     * vista detrás (pantalla entera queda a mano en el panel).
+     */
     const openFromBoard = React.useCallback((order: StudyOrderListItem) => {
         setSelected(order);
-        setIsDetailExpanded(true);
     }, []);
+
+    /** Cambiar de vista cierra el detalle abierto: cada vista lo muestra a su manera. */
+    const changeViewMode = React.useCallback((mode: StudyOrdersViewMode) => {
+        if (mode !== viewMode) handleCloseDetail();
+        setViewMode(mode);
+    }, [viewMode, handleCloseDetail, setViewMode]);
 
     /** Soltar una tarjeta en otra columna: la acción real que lleva a ese estado. */
     const handleBoardMove = React.useCallback((order: StudyOrderListItem, move: BoardMove) => {
@@ -842,11 +852,43 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
 
     const isMine = !isClinic;
 
+    // El detalle de la orden elegida: en la lista va en el panel derecho de las dos columnas; en el
+    // tablero, en un panel que entra sobre el tablero (BoardDetailDrawer).
+    const detailPanel = selected ? (
+        <StudyOrderDetailPanel
+            orderId={selected.id}
+            scope={scope}
+            refreshKey={detailRefreshKey}
+            onClose={handleCloseDetail}
+            // En el tablero el panel no tiene el "Atrás" de las dos columnas: la X siempre.
+            closeOnDesktopOnly={!isBoard}
+            isExpanded={isDetailExpanded}
+            onToggleExpand={() => setIsDetailExpanded((v) => !v)}
+            backLabel={isBoard ? t('board.backToBoard') : t('detail.backToList')}
+            frameless={isBoard}
+            onEdit={(order) => {
+                setEditingId(order.id);
+                setEditingNumber(order.order_number);
+                setIsFormOpen(true);
+            }}
+            onSubmit={setPendingSubmit}
+            onDelete={setPendingDelete}
+            onCancel={setPendingCancel}
+            onAcknowledge={(order) =>
+                void runMutation(() => acknowledgeStudyOrder(order.id), t('toast.acknowledgedTitle'))}
+            onSchedule={(order) => void handleSchedule(order.id)}
+            onReschedule={setReschedulingOrder}
+            onPrint={(order) => void handlePrint(order.id)}
+            onAssign={canAssign ? setAssigningOrder : undefined}
+            onReviewChanged={reloadView}
+        />
+    ) : null;
+
     return (
         <div className="flex flex-1 flex-col overflow-hidden">
             <TwoPanelLayout
-                isRightPanelOpen={!!selected}
-                forceRightOnly={isDetailExpanded}
+                isRightPanelOpen={!!selected && !isBoard}
+                forceRightOnly={isDetailExpanded && !isBoard}
                 onBack={handleCloseDetail}
                 storageKey={`study-orders-${scope}`}
                 // Con el detalle abierto la lista pasa a modo tarjetas y necesita
@@ -855,7 +897,8 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                 rightPanelDefaultSize={70}
                 minLeftSize={18}
                 leftPanel={
-                    <Card className="flex h-full flex-col border-0 shadow-none lg:border lg:shadow-sm">
+                    // relative: el detalle del tablero se posiciona sobre esta tarjeta.
+                    <Card className="relative flex h-full flex-col border-0 shadow-none lg:border lg:shadow-sm">
                         {/* flex-wrap: con poco ancho el selector de vista baja a una segunda fila en
                             vez de apretar el título. */}
                         <CardHeader className="flex flex-row flex-wrap items-center gap-3 space-y-0">
@@ -870,7 +913,7 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                                     </CardDescription>
                                 </div>
                             </div>
-                            <ViewModeSwitch value={viewMode} onChange={setViewMode} />
+                            <ViewModeSwitch value={viewMode} onChange={changeViewMode} />
                         </CardHeader>
                         <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card p-4 sm:p-6">
                             {isBoard ? (
@@ -940,36 +983,14 @@ export function StudyOrdersScreen({ scope }: StudyOrdersScreenProps) {
                             />
                             )}
                         </CardContent>
+                        {isBoard && (
+                            <BoardDetailDrawer open={!!selected} expanded={isDetailExpanded} label={t('board.detailLabel')}>
+                                {detailPanel}
+                            </BoardDetailDrawer>
+                        )}
                     </Card>
                 }
-                rightPanel={
-                    selected && (
-                        <StudyOrderDetailPanel
-                            orderId={selected.id}
-                            scope={scope}
-                            refreshKey={detailRefreshKey}
-                            onClose={handleCloseDetail}
-                            closeOnDesktopOnly
-                            isExpanded={isDetailExpanded}
-                            onToggleExpand={() => setIsDetailExpanded((v) => !v)}
-                            onEdit={(order) => {
-                                setEditingId(order.id);
-                                setEditingNumber(order.order_number);
-                                setIsFormOpen(true);
-                            }}
-                            onSubmit={setPendingSubmit}
-                            onDelete={setPendingDelete}
-                            onCancel={setPendingCancel}
-                            onAcknowledge={(order) =>
-                                void runMutation(() => acknowledgeStudyOrder(order.id), t('toast.acknowledgedTitle'))}
-                            onSchedule={(order) => void handleSchedule(order.id)}
-                            onReschedule={setReschedulingOrder}
-                            onPrint={(order) => void handlePrint(order.id)}
-                            onAssign={canAssign ? setAssigningOrder : undefined}
-                            onReviewChanged={reloadView}
-                        />
-                    )
-                }
+                rightPanel={!isBoard && detailPanel}
             />
 
             {canAssign && (

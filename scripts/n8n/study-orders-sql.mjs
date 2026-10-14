@@ -156,6 +156,8 @@ base AS (
            d.name  AS doctor_name,
            so.source,
            so.referring_doctor_name,
+           -- Lectura de originales de la que salió (WhatsApp o importada); nulo si se cargó a mano.
+           so.source_intake_id,
            -- Responsable en la clínica (migración 129).
            so.assigned_to,
            asg.name AS assigned_to_name,
@@ -179,15 +181,18 @@ base AS (
      WHERE
        -- Autorización: sólo con VIEW_ALL se ve la bandeja completa. Pedir
        -- scope=clinic sin el permiso devuelve igual las órdenes propias.
-       -- Los borradores son de su doctor, salvo los que crea el agente de WhatsApp al derivar:
-       -- no tienen doctor y son trabajo de recepción.
+       -- Los borradores son de su doctor, salvo los que salen de leer los originales: los que
+       -- crea el agente de WhatsApp al derivar y los que recepción importa subiendo fotos o PDF
+       -- (source_intake_id). No tienen doctor y son trabajo de recepción. Las importadas quedan
+       -- con source = 'portal': mirar solo source las dejaba invisibles mientras eran borrador.
        CASE WHEN a.scope = 'clinic' AND (SELECT can_view_all FROM perms)
-            THEN (b.status <> 'draft' OR so.source = 'whatsapp')
+            THEN (b.status <> 'draft' OR so.source = 'whatsapp' OR so.source_intake_id IS NOT NULL)
             -- Ficha del paciente: quien puede abrirla ve todas sus órdenes, no sólo las que derivó.
             -- Los borradores ajenos siguen fuera: todavía no son una orden.
             WHEN a.scope = 'patient' AND a.patient_id IS NOT NULL
                  AND ((SELECT can_view_patient FROM perms) OR (SELECT can_view_all FROM perms))
-            THEN (b.status <> 'draft' OR so.source = 'whatsapp' OR b.doctor_id = $1::uuid)
+            THEN (b.status <> 'draft' OR so.source = 'whatsapp' OR so.source_intake_id IS NOT NULL
+                  OR b.doctor_id = $1::uuid)
             ELSE b.doctor_id = $1::uuid
        END${withBucket ? BUCKET_FILTER : ''}
        AND (a.search = '' OR lower(b.patient_name) LIKE lower(a.search) || '%'
@@ -217,7 +222,7 @@ const inboxRowColumns = (t) => `${t}.id::text, ${t}.order_number, ${t}.doctor_id
                         ${t}.patient_id::text, ${t}.patient_name, ${t}.patient_document, ${t}.patient_phone,
                         ${t}.status, ${t}.board_status, ${t}.items_total, ${t}.items_scheduled, ${t}.items_completed,
                         ${t}.items_summary, ${t}.is_overdue, ${t}.hours_since_submitted,
-                        ${t}.source, ${t}.referring_doctor_name,
+                        ${t}.source, ${t}.referring_doctor_name, ${t}.source_intake_id::text,
                         ${t}.preferred_sede_id::text, ${t}.preferred_sede_name,
                         ${t}.submitted_at, ${t}.acknowledged_at, ${t}.completed_at, ${t}.created_at,
                         ${t}.review_pending,
@@ -351,7 +356,13 @@ SELECT row_to_json(o) AS data
                           WHERE at.source_name = 'whatsapp_order_intake' AND at.source_id = wi.id::text
                      ), '[]'::json))
               FROM public.whatsapp_order_intakes wi
-             WHERE wi.id = so.source_intake_id) AS whatsapp,
+             -- La lectura de la que salió la orden: por source_intake_id o, si la orden no lo
+             -- tiene (órdenes viejas o vinculadas solo desde el intake), por el intake que apunta
+             -- a ella. Sin esto el tab Original desaparecía en esas órdenes, sin importar su estado.
+             WHERE wi.id = coalesce(so.source_intake_id,
+                                    (SELECT wi2.id FROM public.whatsapp_order_intakes wi2
+                                      WHERE wi2.study_order_id = so.id
+                                      ORDER BY wi2.created_at DESC LIMIT 1))) AS whatsapp,
            coalesce((
              SELECT json_agg(json_build_object(
                       'id', i.id::text, 'study_order_id', i.study_order_id::text,
@@ -897,8 +908,9 @@ UPDATE public.study_orders so
  WHERE so.id = $2::uuid
    AND (SELECT can_assign FROM perms)
    AND (SELECT can_view_all FROM perms)
-   -- Lo que ve la clínica: enviadas, o borradores que creó el agente de WhatsApp.
-   AND (so.status <> 'draft' OR so.source = 'whatsapp')
+   -- Lo que ve la clínica: enviadas, o borradores que salieron de leer los originales (WhatsApp o
+   -- importados). Misma regla que la bandeja (inboxBaseCte).
+   AND (so.status <> 'draft' OR so.source = 'whatsapp' OR so.source_intake_id IS NOT NULL)
    -- Un id que no es un responsable válido no deja sin asignar en silencio: falla.
    AND (NULLIF($3::text, '') IS NULL OR EXISTS (SELECT 1 FROM assignee))
 RETURNING so.id::text,

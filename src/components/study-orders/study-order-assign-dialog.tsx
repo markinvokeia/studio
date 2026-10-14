@@ -31,11 +31,13 @@ export interface StudyOrderAssignDialogProps {
 }
 
 /**
- * Se puede asignar quién la revisa: lo que ve la clínica (enviadas, o borradores que creó el agente
- * de WhatsApp) y que no esté anulado. Misma regla que /study-orders/assign.
+ * Se puede asignar quién la revisa: lo que ve la clínica (enviadas, o borradores que salieron de
+ * leer los originales: del agente de WhatsApp o importados) y que no esté anulado. Misma regla que
+ * /study-orders/assign y que la bandeja.
  */
-export function isStudyOrderAssignable(order: { status: string; source?: string | null }): boolean {
-    return order.status !== 'cancelled' && (order.status !== 'draft' || order.source === 'whatsapp');
+export function isStudyOrderAssignable(order: { status: string; source?: string | null; source_intake_id?: string | null }): boolean {
+    if (order.status === 'cancelled') return false;
+    return order.status !== 'draft' || order.source === 'whatsapp' || !!order.source_intake_id;
 }
 
 /** Iniciales para el avatar: "Ana Pérez" → "AP". */

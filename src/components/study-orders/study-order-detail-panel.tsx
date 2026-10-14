@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Activity, CalendarClock, CalendarDays, CalendarPlus, ChevronDown, FileText, FileUp, Inbox, Link2, ListChecks, Maximize2, MessageCircle, Minimize2, Pencil, Printer, Send, Stethoscope, Trash2, User, UserPlus, UserRound, UserRoundX, X, XCircle } from 'lucide-react';
+import { Activity, ArrowLeft, CalendarClock, CalendarDays, CalendarPlus, ChevronDown, FileText, FileUp, Inbox, Link2, ListChecks, Maximize2, MessageCircle, Pencil, Printer, Send, Stethoscope, Trash2, User, UserPlus, UserRound, UserRoundX, X, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
@@ -76,10 +76,17 @@ export interface StudyOrderDetailPanelProps {
      * lg): ahí la X sobra y solo se muestra en escritorio.
      */
     closeOnDesktopOnly?: boolean;
+    /**
+     * Sin marco propio (ni borde ni esquinas redondeadas): para cuando lo contiene otro panel que
+     * ya pone el borde, como el detalle sobre el Dashboard de Estados.
+     */
+    frameless?: boolean;
     /** El detalle ocupa toda la pantalla (la lista queda oculta). */
     isExpanded?: boolean;
     /** Pasar a pantalla entera o volver. Sin él no se ofrece el botón. */
     onToggleExpand?: () => void;
+    /** Texto del botón "Volver" a pantalla entera ("Volver al tablero", "Volver a la lista"). */
+    backLabel?: string;
 }
 
 /** Reconstruye el estado de bandeja desde el detalle, que no lo trae calculado. */
@@ -109,8 +116,10 @@ function Field({ label, value }: { label: string; value?: React.ReactNode }) {
 export function StudyOrderDetailPanel({
     orderId, scope, onClose, refreshKey = 0, onReviewChanged, readOnly = false,
     onEdit, onSubmit, onDelete, onAcknowledge, onSchedule, onReschedule, onCancel, onPrint, onAssign, closeOnDesktopOnly = false,
-    isExpanded = false, onToggleExpand,
+    isExpanded = false, onToggleExpand, backLabel, frameless = false,
 }: StudyOrderDetailPanelProps) {
+    /** Marco de la tarjeta: el de siempre, o ninguno si la contiene otro panel. */
+    const frame = frameless ? 'rounded-none border-0 shadow-none' : 'border-0 shadow-none lg:border lg:shadow-sm';
     const t = useTranslations('StudyOrdersPage');
     const { hasPermission } = usePermissions();
 
@@ -336,7 +345,7 @@ export function StudyOrderDetailPanel({
 
     if (isLoading) {
         return (
-            <Card className="flex h-full flex-col border-0 shadow-none lg:border lg:shadow-sm">
+            <Card className={cn('flex h-full flex-col', frame)}>
                 <CardHeader><Skeleton className="h-6 w-48" /></CardHeader>
                 <CardContent className="space-y-3">
                     <Skeleton className="h-4 w-full" />
@@ -349,16 +358,28 @@ export function StudyOrderDetailPanel({
 
     if (!order) {
         return (
-            <Card className="flex h-full flex-col items-center justify-center border-0 shadow-none lg:border lg:shadow-sm">
+            <Card className={cn('flex h-full flex-col items-center justify-center', frame)}>
                 <p className="text-sm text-muted-foreground">{t('noResults')}</p>
             </Card>
         );
     }
 
     return (
-        <Card className="flex h-full flex-col border-0 shadow-none lg:border lg:shadow-sm">
+        <Card className={cn('flex h-full flex-col', frame)}>
             <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0 pb-3">
                 <div className="min-w-0 flex-1 space-y-1">
+                    {/* A pantalla entera, la salida tiene que verse: un botón con texto y no solo un ícono. */}
+                    {isExpanded && onToggleExpand && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="mb-2 h-8 gap-1.5 border-primary/40 bg-primary/5 px-3 text-primary hover:bg-primary/10 hover:text-primary"
+                            onClick={onToggleExpand}
+                        >
+                            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                            {backLabel ?? t('detail.back')}
+                        </Button>
+                    )}
                     <CardTitle className="font-mono text-base tabular-nums">{order.order_number}</CardTitle>
                     {/* El estado va pegado al paciente y no al número: la pregunta
                         que trae a alguien acá es "¿en qué anda lo de fulano?", no
@@ -428,17 +449,18 @@ export function StudyOrderDetailPanel({
                             </DropdownMenuContent>
                         </DropdownMenu>
                     )}
-                    {onToggleExpand && (
+                    {/* Expandido, la salida es el "Volver" de arriba a la izquierda. */}
+                    {onToggleExpand && !isExpanded && (
                         <Button
                             variant="ghost"
                             size="icon"
                             // En pantallas chicas el panel ya ocupa todo.
                             className="hidden h-8 w-8 text-muted-foreground hover:text-foreground lg:inline-flex"
                             onClick={onToggleExpand}
-                            aria-label={isExpanded ? t('detail.restore') : t('detail.expand')}
-                            title={isExpanded ? t('detail.restore') : t('detail.expand')}
+                            aria-label={t('detail.expand')}
+                            title={t('detail.expand')}
                         >
-                            {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                            <Maximize2 className="h-4 w-4" />
                         </Button>
                     )}
                     <Button

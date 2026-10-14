@@ -9843,7 +9843,9 @@
     "detail": {
       "expand": "Full screen",
       "restore": "Restore size",
-      "close": "Close"
+      "close": "Close",
+      "back": "Back",
+      "backToList": "Back to the list"
     },
     "toast": {
       "savedTitle": "Order saved",
@@ -10162,7 +10164,10 @@
       },
       "reviewedByLabel": "Reviewed by:",
       "reassign": "Reassign",
-      "reassignHint": "Reviewed by {name}. Click to reassign."
+      "reassignHint": "Reviewed by {name}. Click to reassign.",
+      "backToBoard": "Back to the board",
+      "resizeDetail": "Drag to resize the details panel",
+      "detailLabel": "Order details"
     },
     "assign": {
       "action": "Assign review…",
