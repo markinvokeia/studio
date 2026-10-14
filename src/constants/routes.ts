@@ -582,6 +582,14 @@ export const API_ROUTES = {
         PATIENT:       '/study-orders/patient',
         /** Marca un punto a revisar (lo que el agente de WhatsApp no tuvo claro). */
         REVIEW_ITEM_UPDATE: '/study-orders/review-items/update',
+        /** Chatter de la orden (GET ?id=): seguidores, mensajes y bitácora. */
+        CHATTER:       '/study-orders/chatter',
+        /** Escribe en el chatter: { order_id, kind: 'message' | 'note', body }. */
+        MESSAGE_POST:  '/study-orders/messages/post',
+        /** Seguir / dejar de seguir, sumar / quitar seguidores: { order_id, action, user_id? }. */
+        FOLLOWERS:     '/study-orders/followers',
+        /** GET ?id= : a quién se puede sumar como seguidor. */
+        FOLLOWER_CANDIDATES: '/study-orders/followers/candidates',
         /** Original (foto o PDF) recibido por WhatsApp: GET ?intake_id=&id= devuelve el archivo. */
         WHATSAPP_INTAKE_FILE:    '/study-orders/whatsapp-intakes/file',
         /** Importar una orden subiendo sus fotos o PDF (multipart). Responde 202 con el intake. */

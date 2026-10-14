@@ -9,7 +9,13 @@ import type {
     StudyOrderBoardColumn,
     StudyOrderBoardStatus,
     StudyOrderBookingLink,
+    StudyOrderChatter,
+    StudyOrderFollower,
+    StudyOrderFollowerAction,
+    StudyOrderFollowersResult,
     StudyOrderFormOptions,
+    StudyOrderMessage,
+    StudyOrderMessageKind,
     StudyOrderImportStatus,
     StudyOrderListItem,
     StudyOrderReviewStatus,
@@ -225,6 +231,58 @@ export async function assignStudyOrder(id: string, userId: string | null): Promi
 export async function getStudyOrderAssignees(signal?: AbortSignal): Promise<StudyOrderAssignee[]> {
     const raw = await api.get(API_ROUTES.STUDY_ORDERS.ASSIGNEES, undefined, undefined, { signal });
     const { data } = unwrap<StudyOrderAssignee[]>(raw);
+    return Array.isArray(data) ? data : [];
+}
+
+/** Chatter de la orden: seguidores, mensajes (las notas, solo para la clínica) y bitácora. */
+export async function getStudyOrderChatter(orderId: string, signal?: AbortSignal): Promise<StudyOrderChatter> {
+    const raw = await api.get(API_ROUTES.STUDY_ORDERS.CHATTER, { id: orderId }, undefined, { signal });
+    const { data } = unwrap<StudyOrderChatter>(raw);
+    return {
+        ...data,
+        followers: data.followers ?? [],
+        messages: data.messages ?? [],
+        events: data.events ?? [],
+    };
+}
+
+/** Envía un mensaje (avisa a los seguidores) o registra una nota interna. Quien escribe pasa a seguir la orden. */
+export async function postStudyOrderMessage(params: {
+    orderId: string;
+    kind: StudyOrderMessageKind;
+    body: string;
+}): Promise<StudyOrderMessage> {
+    const raw = await api.post(
+        API_ROUTES.STUDY_ORDERS.MESSAGE_POST,
+        { order_id: params.orderId, kind: params.kind, body: params.body.trim() },
+        undefined,
+        undefined,
+        { timeoutMs: REQUEST_TIMEOUT_MS.mutation },
+    );
+    return unwrap<StudyOrderMessage>(raw).data;
+}
+
+/** Seguir / dejar de seguir (uno mismo) o sumar / quitar a otro (`userId`, solo la clínica). */
+export async function updateStudyOrderFollowers(params: {
+    orderId: string;
+    action: StudyOrderFollowerAction;
+    userId?: string;
+}): Promise<StudyOrderFollowersResult> {
+    const raw = await api.post(
+        API_ROUTES.STUDY_ORDERS.FOLLOWERS,
+        { order_id: params.orderId, action: params.action, user_id: params.userId },
+        undefined,
+        undefined,
+        { timeoutMs: REQUEST_TIMEOUT_MS.mutation },
+    );
+    const { data } = unwrap<StudyOrderFollowersResult>(raw);
+    return { followers: data.followers ?? [], is_following: data.is_following === true };
+}
+
+/** A quién se puede sumar como seguidor de la orden (los que todavía no la siguen). */
+export async function getStudyOrderFollowerCandidates(orderId: string, signal?: AbortSignal): Promise<StudyOrderFollower[]> {
+    const raw = await api.get(API_ROUTES.STUDY_ORDERS.FOLLOWER_CANDIDATES, { id: orderId }, undefined, { signal });
+    const { data } = unwrap<StudyOrderFollower[]>(raw);
     return Array.isArray(data) ? data : [];
 }
 

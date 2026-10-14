@@ -781,6 +781,8 @@ export const STUDY_ORDERS_PERMISSIONS = {
   SEARCH_PATIENT:    'STUDY_ORDERS_SEARCH_PATIENT',
   /** Asignar el responsable de una orden (vista Estados y detalle). */
   ASSIGN:            'STUDY_ORDERS_ASSIGN',
+  /** Escribir mensajes y notas en el chatter de la orden y manejar sus seguidores. */
+  MESSAGE:           'STUDY_ORDERS_MESSAGE',
 } as const;
 
 export type StudyOrdersPermission =

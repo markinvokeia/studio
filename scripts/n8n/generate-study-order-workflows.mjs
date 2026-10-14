@@ -28,6 +28,7 @@ import {
     APPOINTMENT_TECHNICIANS_SQL, ASSIGN_TECHNICIAN_SQL, BOOKING_TOKEN_SQL, LOG_EVENT_SQL, TECHNICIAN_TASKS_SQL, PUBLIC_BOOK_SQL, PUBLIC_DETAIL_SQL, RECONCILE_SQL,
     RECOMPUTE_SQL, RESCHEDULE_SQL, SUBMIT_SQL, UPSERT_SQL,
     RESOLVE_INTAKE_SQL, REVIEW_ITEM_UPDATE_SQL, WHATSAPP_INTAKES_SQL,
+    CHATTER_SQL, FOLLOWER_CANDIDATES_SQL, FOLLOWERS_SQL, MESSAGE_POST_SQL, NOTIFY_FOLLOWERS_SQL,
 } from './study-orders-sql.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -359,7 +360,8 @@ const payload = {
 };
 
 return [{ json: { user_id: String(userId), payload: JSON.stringify(payload) } }];`.trim(),
-    event: { replacement: `={{ JSON.stringify({ order_id: $('Formatear Respuesta').first().json.__data?.id || '', event_type: JSON.parse($('Validar Datos').first().json.payload).id ? 'updated' : 'created', actor_id: $('Validar Datos').first().json.user_id }) }}` },
+    // `changes`: los campos que cambiaron al editar ("anterior → nuevo"), para el chatter.
+    event: { replacement: `={{ JSON.stringify({ order_id: $('Formatear Respuesta').first().json.__data?.id || '', event_type: JSON.parse($('Validar Datos').first().json.payload).id ? 'updated' : 'created', actor_id: $('Validar Datos').first().json.user_id, metadata: { changes: $('Formatear Respuesta').first().json.__changes || [] } }) }}` },
     sql: UPSERT_SQL,
     replacement: '={{ [ $json.user_id, $json.payload ] }}',
     format: formatCode(`
@@ -368,7 +370,8 @@ if (!id) {
   return [{ json: { __error: true, __code: 409,
     __message: 'La orden no se puede modificar: ya fue enviada o no te pertenece' } }];
 }
-return [{ json: { __data: { id }, __message: 'Orden guardada' } }];`),
+// Va aparte de __data: es para la bitácora, el cliente no lo necesita.
+return [{ json: { __data: { id }, __changes: Array.isArray(rows[0].changes) ? rows[0].changes : [], __message: 'Orden guardada' } }];`),
 });
 
 // ── 5. POST /study-orders/submit ─────────────────────────────────────────────
@@ -1267,6 +1270,165 @@ if (!rows.length || !rows[0].order_id) {
     __message: 'No se pudo marcar: los puntos ya estaban revisados, no son de esta orden o no tenés permiso' } }];
 }
 return [{ json: { __data: rows[0], __message: Number(rows[0].updated) === 1 ? 'Punto actualizado' : 'Puntos actualizados' } }];`),
+});
+
+// ── Chatter: mensajes, notas y seguidores (migración 131) ─────────────────────
+const UUID_RE = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
+
+workflows.push({
+    file: 'study-orders-chatter.json',
+    name: 'Study Orders - Chatter',
+    sticky: `## GET /study-orders/chatter?id=<uuid>
+
+Panel lateral de la orden (al estilo del chatter de Odoo): seguidores, mensajes y la bitácora de eventos, del más nuevo al más viejo.
+
+**Response 200**
+\`\`\`json
+{ "code": 200, "data": {
+  "order_id": "uuid", "is_following": true,
+  "can_post_message": true, "can_post_note": true, "can_manage_followers": true,
+  "followers": [{ "id": "uuid", "name": "Ana Pérez", "email": "..." }],
+  "messages": [{ "id": "uuid", "kind": "message|note", "body": "...", "author_id": "uuid", "author_name": "...", "created_at": "..." }],
+  "events": [{ "id": "uuid", "event_type": "updated", "actor_name": "...", "metadata": { "changes": [] }, "created_at": "..." }]
+} }
+\`\`\`
+
+Misma regla de acceso que el detalle (**404** sin acceso). Las **notas** son internas: solo llegan con STUDY_ORDERS_VIEW_ALL. Escribir pide STUDY_ORDERS_MESSAGE.`,
+    method: 'GET',
+    path: 'study-orders/chatter',
+    id: 'chatter',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const id = ($json.query?.id || '').toString().trim();
+if (!${UUID_RE}.test(id)) return [{ json: { __error: true, __code: 400, __message: 'El parámetro id es requerido' } }];
+return [{ json: { user_id: String(userId), id } }];`.trim(),
+    sql: CHATTER_SQL,
+    replacement: '={{ [ $json.user_id, $json.id ] }}',
+    format: formatCode(`
+if (!rows.length || !rows[0].data) {
+  return [{ json: { __error: true, __code: 404, __message: 'Orden no encontrada' } }];
+}
+return [{ json: { __data: rows[0].data } }];`),
+});
+
+workflows.push({
+    file: 'study-orders-message-post.json',
+    name: 'Study Orders - Message Post',
+    sticky: `## POST /study-orders/messages/post
+
+Escribe en el chatter de la orden.
+
+**Body:** \`{ "order_id": "uuid", "kind": "message" | "note", "body": "texto (1-5000)" }\`
+
+- **message** ("Enviar mensaje"): lo ven todos los que pueden abrir la orden y avisa a cada seguidor menos al autor (notificación \`study_order_message\`, por SSE).
+- **note** ("Registrar nota"): interna de la clínica, requiere STUDY_ORDERS_VIEW_ALL y no avisa a nadie.
+
+Requiere STUDY_ORDERS_MESSAGE y ser el doctor de la orden o tener VIEW_ALL. Quien escribe pasa a seguir la orden.
+
+**409** sin permiso o sin acceso a la orden.`,
+    method: 'POST',
+    path: 'study-orders/messages/post',
+    id: 'msg-post',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const b = $json.body || {};
+const orderId = (b.order_id || '').toString().trim();
+if (!${UUID_RE}.test(orderId)) return [{ json: { __error: true, __code: 400, __message: 'order_id es requerido' } }];
+const kind = (b.kind || '').toString().trim();
+if (!['message', 'note'].includes(kind)) {
+  return [{ json: { __error: true, __code: 400, __message: 'kind debe ser message o note' } }];
+}
+const body = (b.body ?? '').toString().trim();
+if (!body) return [{ json: { __error: true, __code: 400, __message: 'El mensaje está vacío' } }];
+if (body.length > 5000) return [{ json: { __error: true, __code: 400, __message: 'El mensaje no puede superar los 5000 caracteres' } }];
+return [{ json: { user_id: String(userId), payload: JSON.stringify({ order_id: orderId, kind, body }) } }];`.trim(),
+    sql: MESSAGE_POST_SQL,
+    replacement: '={{ [ $json.user_id, $json.payload ] }}',
+    notify: {
+        sql: NOTIFY_FOLLOWERS_SQL,
+        to: 'seguidores',
+        replacement: `={{ [ $('Formatear Respuesta').first().json.__data.id ] }}`,
+        eventType: 'study_order_message',
+    },
+    format: formatCode(`
+if (!rows.length || !rows[0].id) {
+  return [{ json: { __error: true, __code: 409,
+    __message: 'No se pudo publicar: no tenés acceso a la orden o permiso para escribir' } }];
+}
+const row = rows[0];
+return [{ json: { __data: row, __message: row.kind === 'note' ? 'Nota registrada' : 'Mensaje enviado' } }];`),
+});
+
+workflows.push({
+    file: 'study-orders-followers.json',
+    name: 'Study Orders - Followers',
+    sticky: `## POST /study-orders/followers
+
+Seguidores de la orden.
+
+**Body:** \`{ "order_id": "uuid", "action": "follow" | "unfollow" | "add" | "remove", "user_id": "uuid (add/remove)" }\`
+
+- **follow / unfollow**: uno mismo. Requiere STUDY_ORDERS_MESSAGE y acceso a la orden.
+- **add / remove**: a otro. Además requiere STUDY_ORDERS_VIEW_ALL. Solo se puede sumar a quien puede abrir la orden (staff con VIEW_ALL o su doctor).
+
+**Response 200:** \`{ "followers": [...], "is_following": true }\` · **409** sin permiso.`,
+    method: 'POST',
+    path: 'study-orders/followers',
+    id: 'followers',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const b = $json.body || {};
+const orderId = (b.order_id || '').toString().trim();
+if (!${UUID_RE}.test(orderId)) return [{ json: { __error: true, __code: 400, __message: 'order_id es requerido' } }];
+const action = (b.action || '').toString().trim();
+if (!['follow', 'unfollow', 'add', 'remove'].includes(action)) {
+  return [{ json: { __error: true, __code: 400, __message: 'action debe ser follow, unfollow, add o remove' } }];
+}
+const target = (b.user_id || '').toString().trim();
+if ((action === 'add' || action === 'remove') && !${UUID_RE}.test(target)) {
+  return [{ json: { __error: true, __code: 400, __message: 'user_id es requerido' } }];
+}
+return [{ json: { user_id: String(userId), payload: JSON.stringify({ order_id: orderId, action, user_id: target }) } }];`.trim(),
+    sql: FOLLOWERS_SQL,
+    replacement: '={{ [ $json.user_id, $json.payload ] }}',
+    format: formatCode(`
+if (!rows.length || !rows[0].order_id) {
+  return [{ json: { __error: true, __code: 409,
+    __message: 'No se pudieron cambiar los seguidores: sin permiso, sin acceso a la orden o usuario no válido' } }];
+}
+const MESSAGES = { follow: 'Ahora seguís la orden', unfollow: 'Dejaste de seguir la orden', add: 'Seguidor agregado', remove: 'Seguidor quitado' };
+return [{ json: { __data: { followers: rows[0].followers ?? [], is_following: rows[0].is_following === true }, __message: MESSAGES[rows[0].action] || 'OK' } }];`),
+});
+
+workflows.push({
+    file: 'study-orders-follower-candidates.json',
+    name: 'Study Orders - Follower Candidates',
+    sticky: `## GET /study-orders/followers/candidates?id=<uuid>
+
+A quién se puede sumar como seguidor de la orden: staff activo con STUDY_ORDERS_VIEW_ALL y el doctor de la orden, menos los que ya la siguen y el agente de WhatsApp.
+
+Requiere STUDY_ORDERS_VIEW_ALL y STUDY_ORDERS_MESSAGE (sin ellos devuelve una lista vacía).
+
+**Response 200**
+\`\`\`json
+{ "code": 200, "data": [ { "id": "uuid", "name": "Ana Pérez", "email": "ana@..." } ] }
+\`\`\``,
+    method: 'GET',
+    path: 'study-orders/followers/candidates',
+    id: 'follower-cands',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const id = ($json.query?.id || '').toString().trim();
+if (!${UUID_RE}.test(id)) return [{ json: { __error: true, __code: 400, __message: 'El parámetro id es requerido' } }];
+return [{ json: { user_id: String(userId), id } }];`.trim(),
+    sql: FOLLOWER_CANDIDATES_SQL,
+    replacement: '={{ [ $json.user_id, $json.id ] }}',
+    format: formatCode(`
+return [{ json: { __data: rows[0]?.items ?? [] } }];`),
 });
 
 for (const wf of workflows) {

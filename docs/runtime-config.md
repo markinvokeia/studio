@@ -59,6 +59,7 @@ getMasterSec()       // Gate de administración de licencias
 | `NEXT_PUBLIC_CLIENT_ID` | `getClientId()` | Identificador de cliente para SSE |
 | `NEXT_PUBLIC_EVENT_PUSHER_KEY` | `getEventPusherKey()` | API key para el stream de eventos SSE |
 | `NEXT_PUBLIC_EVENT_PUSHER_URL` | `getEventPusherUrl()` | Origen del servidor de eventos SSE. Vacío = ruta relativa `/events/stream` contra el mismo origen (reverse proxy). Si se define, solo el origen, sin `/events/stream`. Cross-origin requiere CORS en el event-pusher: `Access-Control-Allow-Origin`, `Access-Control-Allow-Headers: X-Api-Key`, `Access-Control-Allow-Methods: GET` |
+| `NEXT_PUBLIC_STUDY_ORDER_CHATTER` | `getStudyOrderChatterMode()` | Chatter de órdenes de estudio: `live` (endpoints de n8n), `mock` (demo con datos de prueba en el navegador, por defecto) u `off` (oculto). Ver `docs/ordenes-estudio-chatter.md` |
 
 ## Cómo añadir una nueva variable de entorno
 

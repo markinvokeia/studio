@@ -8,7 +8,7 @@ import {
 import { useTranslations } from 'next-intl';
 
 import { cn, formatDateTime } from '@/lib/utils';
-import type { StudyOrderEvent, StudyOrderEventType } from '@/lib/types';
+import type { StudyOrderEvent, StudyOrderEventType, StudyOrderFieldChange } from '@/lib/types';
 
 /**
  * Línea de tiempo de la orden: qué pasó, quién lo hizo y cuándo.
@@ -23,13 +23,14 @@ import type { StudyOrderEvent, StudyOrderEventType } from '@/lib/types';
  * el front se entere.
  */
 
-interface EventStyle {
+export interface EventStyle {
     icon: React.ElementType;
     /** Color del punto en la línea. Los hitos malos van en rojo, los buenos en verde. */
     tone: 'neutral' | 'good' | 'bad' | 'accent';
 }
 
-const EVENT_STYLES: Record<StudyOrderEventType, EventStyle> = {
+/** Compartido con el chatter (study-order-chatter.tsx), que pinta los mismos eventos. */
+export const EVENT_STYLES: Record<StudyOrderEventType, EventStyle> = {
     created:               { icon: FilePlus2,     tone: 'neutral' },
     updated:               { icon: Pencil,        tone: 'neutral' },
     submitted:             { icon: Send,          tone: 'accent' },
@@ -49,7 +50,7 @@ const EVENT_STYLES: Record<StudyOrderEventType, EventStyle> = {
     unassigned:            { icon: UserMinus,     tone: 'neutral' },
 };
 
-const TONE_CLASSES: Record<EventStyle['tone'], string> = {
+export const TONE_CLASSES: Record<EventStyle['tone'], string> = {
     neutral: 'bg-muted text-muted-foreground ring-border',
     accent:  'bg-primary/10 text-primary ring-primary/20',
     good:    'bg-emerald-500/10 text-emerald-600 ring-emerald-500/20 dark:text-emerald-400',
@@ -122,7 +123,7 @@ export function StudyOrderTimeline({ events }: StudyOrderTimelineProps) {
 }
 
 /** Quién lo hizo. Sin persona detrás, se dice qué fue en vez de dejarlo vacío. */
-function ActorLabel({ event }: { event: StudyOrderEvent }) {
+export function ActorLabel({ event }: { event: StudyOrderEvent }) {
     const t = useTranslations('StudyOrdersPage.timeline');
     if (event.actor_name) return <span className="font-medium text-foreground">{event.actor_name}</span>;
     if (event.actor_kind === 'patient') return <>{t('actorPatient')}</>;
@@ -134,7 +135,7 @@ function ActorLabel({ event }: { event: StudyOrderEvent }) {
  * este archivo sabe leer: el resto se ignora en silencio, que es preferible a
  * volcar un JSON crudo en la cara del usuario.
  */
-function EventDetail({ event }: { event: StudyOrderEvent }) {
+export function EventDetail({ event }: { event: StudyOrderEvent }) {
     const t = useTranslations('StudyOrdersPage.timeline');
     const meta = event.metadata ?? {};
 
@@ -152,27 +153,85 @@ function EventDetail({ event }: { event: StudyOrderEvent }) {
     const previousAssignee = (event.event_type === 'assigned' || event.event_type === 'unassigned')
         && typeof meta.previous_assignee_name === 'string' ? meta.previous_assignee_name : null;
 
-    if (!reason && !toStart && !procedure && !reviewStatus && !assignee && !previousAssignee) return null;
+    // Edición de la orden: qué campos cambiaron, "anterior → nuevo" (como el tracking de Odoo).
+    const changes = event.event_type === 'updated' ? readFieldChanges(meta.changes) : [];
+
+    const hasSummary = !!(reason || toStart || procedure || reviewStatus || assignee || previousAssignee);
+    if (!hasSummary && changes.length === 0) return null;
 
     return (
-        <p className="mt-1 text-xs text-muted-foreground">
-            {reviewStatus && (
-                <span>
-                    {reviewLabel}
-                    {' → '}
-                    {['pending', 'confirmed', 'corrected', 'dismissed'].includes(reviewStatus)
-                        ? t(`reviewStatus.${reviewStatus}` as never)
-                        : reviewStatus}
-                    {reviewNote && <span className="italic"> · {reviewNote}</span>}
-                </span>
+        <>
+            {changes.length > 0 && <FieldChanges changes={changes} />}
+            {hasSummary && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                    {reviewStatus && (
+                        <span>
+                            {reviewLabel}
+                            {' → '}
+                            {['pending', 'confirmed', 'corrected', 'dismissed'].includes(reviewStatus)
+                                ? t(`reviewStatus.${reviewStatus}` as never)
+                                : reviewStatus}
+                            {reviewNote && <span className="italic"> · {reviewNote}</span>}
+                        </span>
+                    )}
+                    {assignee && <span>{t('assignedTo', { name: assignee })}</span>}
+                    {assignee && previousAssignee && ' · '}
+                    {previousAssignee && <span className="italic">{t('previouslyAssigned', { name: previousAssignee })}</span>}
+                    {toStart && <span className="italic">{t('movedTo', { date: formatDateTime(toStart) })}</span>}
+                    {reason && <span className="italic">{reason}</span>}
+                    {procedure && <span className="italic">{procedure}</span>}
+                </p>
             )}
-            {assignee && <span>{t('assignedTo', { name: assignee })}</span>}
-            {assignee && previousAssignee && ' · '}
-            {previousAssignee && <span className="italic">{t('previouslyAssigned', { name: previousAssignee })}</span>}
-            {toStart && <span className="italic">{t('movedTo', { date: formatDateTime(toStart) })}</span>}
-            {reason && <span className="italic">{reason}</span>}
-            {procedure && <span className="italic">{procedure}</span>}
-        </p>
+        </>
+    );
+}
+
+/** Campos que registra el upsert (study-orders-sql.mjs, CTE `tracked`). Uno desconocido se muestra con su código. */
+const TRACKED_FIELDS = [
+    'patient_name', 'patient_document', 'patient_phone', 'patient_email', 'preferred_sede',
+    'referring_doctor_name', 'delivery_methods', 'clinical_notes', 'services_added', 'services_removed',
+] as const;
+
+/** La metadata viene de la base: se valida la forma antes de pintarla. */
+function readFieldChanges(raw: unknown): StudyOrderFieldChange[] {
+    if (!Array.isArray(raw)) return [];
+    return raw.flatMap((c) => {
+        if (!c || typeof c !== 'object' || typeof (c as { field?: unknown }).field !== 'string') return [];
+        const { field, old: before, new: after } = c as { field: string; old?: unknown; new?: unknown };
+        return [{
+            field,
+            old: typeof before === 'string' ? before : null,
+            new: typeof after === 'string' ? after : null,
+        }];
+    });
+}
+
+function FieldChanges({ changes }: { changes: StudyOrderFieldChange[] }) {
+    const t = useTranslations('StudyOrdersPage.timeline');
+    const label = (field: string) => (TRACKED_FIELDS as readonly string[]).includes(field)
+        ? t(`fields.${field}` as never)
+        : field;
+
+    return (
+        <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+            {changes.map((change) => (
+                <li key={change.field} className="break-words">
+                    <span>{label(change.field)}: </span>
+                    {/* Estudios agregados o quitados: una lista, no un valor que se reemplaza. */}
+                    {change.field === 'services_added' || change.field === 'services_removed' ? (
+                        <span className="text-foreground">{change.new ?? change.old}</span>
+                    ) : (
+                        <>
+                            <span className={cn(!change.old && 'italic')}>{change.old || t('emptyValue')}</span>
+                            <span aria-hidden="true"> → </span>
+                            <span className={cn('font-medium text-foreground', !change.new && 'italic')}>
+                                {change.new || t('emptyValue')}
+                            </span>
+                        </>
+                    )}
+                </li>
+            ))}
+        </ul>
     );
 }
 

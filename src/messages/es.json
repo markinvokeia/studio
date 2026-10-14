@@ -639,7 +639,9 @@
     "studyOrderSubmittedTitle": "Nueva orden de estudio",
     "studyOrderStatusTitle": "Tu orden cambió de estado",
     "studyOrderAssignedTitle": "Te asignaron la revisión de una orden",
-    "studyOrderAssignedBy": "{name} te asignó la revisión de esta orden."
+    "studyOrderAssignedBy": "{name} te asignó la revisión de esta orden.",
+    "studyOrderMessageTitle": "Nuevo mensaje en {number}",
+    "studyOrderMessageFrom": "{name} escribió:"
   },
   "Header": {
     "toggleLanguage": "Cambiar idioma",
@@ -10399,7 +10401,20 @@
         "dismissed": "descartado"
       },
       "assignedTo": "Revisa: {name}",
-      "previouslyAssigned": "antes: {name}"
+      "previouslyAssigned": "antes: {name}",
+      "fields": {
+        "patient_name": "Paciente",
+        "patient_document": "Documento",
+        "patient_phone": "Teléfono",
+        "patient_email": "Email",
+        "preferred_sede": "Sede preferida",
+        "referring_doctor_name": "Doctor (según la orden)",
+        "delivery_methods": "Entrega",
+        "clinical_notes": "Notas clínicas",
+        "services_added": "Estudios agregados",
+        "services_removed": "Estudios quitados"
+      },
+      "emptyValue": "vacío"
     },
     "appointmentCard": {
       "none": "Esta orden todavía no tiene citas.",
@@ -10636,6 +10651,56 @@
         "assigned": "Orden asignada a {name}",
         "unassigned": "La orden quedó sin asignar",
         "error": "No se pudo asignar la orden"
+      }
+    },
+    "chatter": {
+      "title": "Chatter",
+      "show": "Mostrar mensajes y actividad",
+      "hide": "Ocultar mensajes y actividad",
+      "sendMessage": "Enviar mensaje",
+      "logNote": "Registrar nota",
+      "sendMessageSubmit": "Enviar",
+      "logNoteSubmit": "Registrar",
+      "discard": "Descartar",
+      "messagePlaceholder": "Escribí un mensaje para los seguidores de la orden…",
+      "notePlaceholder": "Registrá una nota interna…",
+      "messageHint": "Se avisará a {count, plural, one {# seguidor} other {# seguidores}}.",
+      "messageHintNobody": "Nadie más sigue esta orden: el mensaje queda en el historial sin avisar a nadie.",
+      "noteHint": "Nota interna: solo la ve la clínica y no avisa a nadie.",
+      "shortcut": "Ctrl + Enter para enviar",
+      "follow": "Seguir",
+      "following": "Siguiendo",
+      "unfollow": "Dejar de seguir",
+      "followHint": "Seguir la orden: vas a recibir un aviso por cada mensaje nuevo",
+      "unfollowHint": "Dejar de seguir la orden: no vas a recibir más avisos de sus mensajes",
+      "refresh": "Actualizar",
+      "close": "Cerrar",
+      "retry": "Reintentar",
+      "loadError": "No se pudo cargar el chatter de la orden.",
+      "empty": "Todavía no hay mensajes ni actividad en esta orden.",
+      "today": "Hoy",
+      "unknownAuthor": "Usuario eliminado",
+      "noteBadge": "Nota",
+      "postError": "No se pudo publicar",
+      "followersError": "No se pudieron cambiar los seguidores",
+      "followers": {
+        "title": "Seguidores",
+        "count": "{count, plural, =0 {Sin seguidores} one {# seguidor} other {# seguidores}}",
+        "empty": "Nadie sigue esta orden todavía.",
+        "add": "Agregar seguidores",
+        "remove": "Quitar a {name}",
+        "searchPlaceholder": "Buscar usuario…",
+        "noCandidates": "No hay más usuarios para agregar.",
+        "back": "Volver",
+        "loadError": "No se pudo cargar la lista de usuarios."
+      },
+      "demo": {
+        "banner": "Modo demo: los mensajes, notas y seguidores son de prueba y se guardan solo en este navegador. La actividad de la orden es la real.",
+        "reset": "Reiniciar",
+        "resetHint": "Borrar los mensajes y seguidores de prueba de esta orden y volver a empezar",
+        "seedDoctorMessage": "Hola, ¿me avisan cuando tengan fecha para el estudio? El paciente prefiere los horarios de la tarde. Gracias.",
+        "seedClinicNote": "Llamamos al paciente: confirma que puede venir de tarde. Revisar disponibilidad del tomógrafo antes de agendar.",
+        "clinicAuthor": "Recepción"
       }
     }
   },
