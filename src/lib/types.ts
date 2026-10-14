@@ -1013,6 +1013,22 @@ export type StudyOrderAssignedNotification = {
   source?: string | null;
 };
 
+/** Mensaje nuevo en el chatter de una orden que el usuario sigue. */
+export type StudyOrderMessageNotification = {
+  id: string;
+  type: 'study_order_message';
+  createdAt: string;
+  seen?: boolean;
+  orderId: string;
+  orderNumber: string;
+  patientName: string;
+  authorName: string;
+  excerpt: string;
+  /** Qué bandeja abrir: la de la clínica o "Mis órdenes". */
+  scope: 'clinic' | 'mine';
+  source?: string | null;
+};
+
 export type UnifiedNotification =
   | AppointmentStatusChangeNotification
   | SessionCompletedNotification
@@ -1024,7 +1040,8 @@ export type UnifiedNotification =
   | WhatsappHandoffRequestedNotification
   | StudyOrderSubmittedNotification
   | StudyOrderStatusChangedNotification
-  | StudyOrderAssignedNotification;
+  | StudyOrderAssignedNotification
+  | StudyOrderMessageNotification;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -3770,6 +3787,54 @@ export interface StudyOrderAssignResult {
   assigned_to: string | null;
   assigned_to_name: string | null;
   assigned_at: string | null;
+}
+
+/**
+ * Tipo de entrada del chatter de la orden. `message` lo ven todos los que pueden abrir la orden y
+ * avisa a los seguidores; `note` es interna de la clínica (STUDY_ORDERS_VIEW_ALL) y no avisa.
+ */
+export type StudyOrderMessageKind = 'message' | 'note';
+
+export interface StudyOrderMessage {
+  id: string;
+  kind: StudyOrderMessageKind;
+  body: string;
+  author_id: string | null;
+  author_name: string | null;
+  created_at: string;
+}
+
+export interface StudyOrderFollower {
+  id: string;
+  name: string;
+  email?: string | null;
+}
+
+/** GET /study-orders/chatter: el panel lateral de la orden, del más nuevo al más viejo. */
+export interface StudyOrderChatter {
+  order_id: string;
+  is_following: boolean;
+  can_post_message: boolean;
+  can_post_note: boolean;
+  can_manage_followers: boolean;
+  followers: StudyOrderFollower[];
+  messages: StudyOrderMessage[];
+  events: StudyOrderEvent[];
+}
+
+/** follow/unfollow = uno mismo; add/remove = a otro (solo la clínica). */
+export type StudyOrderFollowerAction = 'follow' | 'unfollow' | 'add' | 'remove';
+
+export interface StudyOrderFollowersResult {
+  followers: StudyOrderFollower[];
+  is_following: boolean;
+}
+
+/** Campo que cambió al editar la orden, en la metadata del evento `updated`. */
+export interface StudyOrderFieldChange {
+  field: string;
+  old: string | null;
+  new: string | null;
 }
 
 /** Payload de POST /study-orders/upsert. */

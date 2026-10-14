@@ -522,6 +522,18 @@ vals AS (
            coalesce(body -> 'items', '[]'::jsonb)   AS items
       FROM p
 ),
+-- Foto previa de lo que se registra en el historial del chatter ("Teléfono: 099… → 098…"). El
+-- CTE ve la fila como estaba antes de la sentencia, igual que \`prev\` en ASSIGN_SQL.
+before AS (
+    SELECT so.patient_name, so.patient_document, so.patient_phone, so.patient_email,
+           so.preferred_sede_id, so.clinical_notes, so.referring_doctor_name, so.delivery_methods,
+           coalesce((SELECT array_agg(i.service_name::text ORDER BY i.service_name)
+                       FROM public.study_order_items i
+                      WHERE i.study_order_id = so.id), ARRAY[]::text[]) AS services
+      FROM public.study_orders so, vals v
+     WHERE v.id IS NOT NULL
+       AND so.id = v.id::uuid
+),
 updated AS (
     UPDATE public.study_orders so
        SET patient_id        = v.patient_id::uuid,
@@ -535,7 +547,8 @@ updated AS (
            delivery_methods  = v.delivery_methods,
            clinical_notes    = v.clinical_notes,
            preferred_sede_id = v.preferred_sede_id::int,
-           referring_doctor_name = coalesce(v.referring_doctor_name, so.referring_doctor_name)
+           referring_doctor_name = coalesce(v.referring_doctor_name, so.referring_doctor_name),
+           updated_by        = $1::uuid
       FROM vals v
      WHERE v.id IS NOT NULL
        AND so.id = v.id::uuid
@@ -584,9 +597,54 @@ items AS (
        AND (SELECT count(*) FROM wiped) >= 0
     ON CONFLICT (study_order_id, service_id) DO NOTHING
     RETURNING 1
+),
+-- Campos que cambiaron al editar (solo en una edición: al crear no hay "antes"). Viaja en la
+-- metadata del evento \`updated\` y el chatter lo muestra como "anterior → nuevo". Lo que no
+-- se puede contar en una línea (piezas, modificadores, textos de sección) queda fuera: el evento
+-- igual dice que la orden se editó.
+tracked AS (
+    SELECT c.ord, c.field, c.old_value, c.new_value
+      FROM before b, vals v,
+           LATERAL (VALUES
+               (1, 'patient_name',          b.patient_name::text,          v.patient_name::text),
+               (2, 'patient_document',      b.patient_document::text,      v.patient_document::text),
+               (3, 'patient_phone',         b.patient_phone::text,         v.patient_phone::text),
+               (4, 'patient_email',         b.patient_email::text,         v.patient_email::text),
+               (5, 'preferred_sede',
+                   (SELECT se.name::text FROM public.sedes se WHERE se.id = b.preferred_sede_id),
+                   (SELECT se.name::text FROM public.sedes se WHERE se.id = v.preferred_sede_id::int)),
+               (6, 'referring_doctor_name', b.referring_doctor_name::text,
+                   coalesce(v.referring_doctor_name, b.referring_doctor_name)::text),
+               -- Por etiqueta y ordenadas: marcar las mismas en otro orden no es un cambio.
+               (7, 'delivery_methods',
+                   (SELECT string_agg(coalesce(o.label, d.code), ', ' ORDER BY d.code)
+                      FROM jsonb_array_elements_text(coalesce(b.delivery_methods, '[]'::jsonb)) AS d(code)
+                      LEFT JOIN public.study_order_options o ON o.option_kind = 'delivery' AND o.code = d.code),
+                   (SELECT string_agg(coalesce(o.label, d.code), ', ' ORDER BY d.code)
+                      FROM jsonb_array_elements_text(v.delivery_methods) AS d(code)
+                      LEFT JOIN public.study_order_options o ON o.option_kind = 'delivery' AND o.code = d.code)),
+               (8, 'clinical_notes',        b.clinical_notes,              v.clinical_notes),
+               (9, 'services_added', NULL::text,
+                   (SELECT string_agg(n.name, ', ' ORDER BY n.name)
+                      FROM (SELECT DISTINCT e ->> 'service_name' AS name
+                              FROM jsonb_array_elements(v.items) AS e) n
+                     WHERE n.name IS NOT NULL AND NOT (n.name = ANY (b.services)))),
+               (10, 'services_removed',
+                   (SELECT string_agg(o.name, ', ' ORDER BY o.name)
+                      FROM unnest(b.services) AS o(name)
+                     WHERE NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v.items) AS e
+                                        WHERE e ->> 'service_name' = o.name)),
+                   NULL::text)
+           ) AS c(ord, field, old_value, new_value)
+     WHERE c.old_value IS DISTINCT FROM c.new_value
+       AND EXISTS (SELECT 1 FROM updated)
 )
 SELECT (SELECT id::text FROM target) AS id,
-       (SELECT count(*) FROM items)  AS items_written;`;
+       (SELECT count(*) FROM items)  AS items_written,
+       coalesce((SELECT jsonb_agg(jsonb_build_object('field', t.field,
+                                                     'old', left(t.old_value, 300),
+                                                     'new', left(t.new_value, 300)) ORDER BY t.ord)
+                   FROM tracked t), '[]'::jsonb) AS changes;`;
 
 export const SUBMIT_SQL = `
 -- $1 userId (token)  $2 id
@@ -1871,3 +1929,293 @@ SELECT json_build_object(
  WHERE i.id = $2::uuid
    AND i.channel = 'import'
    AND (i.created_by = $1::uuid OR coalesce((SELECT can_view_all FROM perms), false));`;
+
+// ── Chatter (migración 131) ──────────────────────────────────────────────────
+
+/**
+ * Permisos del chatter del sujeto del token. Leer el hilo sigue la misma regla que el detalle
+ * (DETAIL_SQL); escribir y manejar seguidores pide además STUDY_ORDERS_MESSAGE.
+ */
+const CHATTER_PERMS_CTE = `
+perms AS (
+    SELECT coalesce(bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL'), false) AS can_view_all,
+           coalesce(bool_or(p.code = 'STUDY_ORDERS_MESSAGE'), false)  AS can_message,
+           coalesce(bool_or(p.code = 'PATIENTS_VIEW_DETAIL'), false)  AS can_view_patient
+      FROM public.user_roles ur
+      JOIN public.role_permissions rp ON rp.role_id = ur.role_id
+      JOIN public.permissions p       ON p.id = rp.permission_id
+     WHERE ur.user_id = $1::uuid
+       AND ur.is_active IS NOT FALSE
+       AND p.code IN ('STUDY_ORDERS_VIEW_ALL', 'STUDY_ORDERS_MESSAGE', 'PATIENTS_VIEW_DETAIL')
+)`;
+
+/**
+ * Quién puede seguir una orden: quien la puede abrir. Staff de la bandeja (STUDY_ORDERS_VIEW_ALL)
+ * o el doctor derivador de esa orden; activos y sin el agente de WhatsApp. `doctorExpr` = el
+ * doctor de la orden. Devuelve un CTE `cand(user_id)`.
+ */
+const followerCandidatesCte = (doctorExpr) => `
+cand AS (
+    SELECT DISTINCT c.user_id
+      FROM (
+            SELECT ur.user_id
+              FROM public.user_roles ur
+              JOIN public.role_permissions rp ON rp.role_id = ur.role_id
+              JOIN public.permissions pp      ON pp.id = rp.permission_id
+             WHERE pp.code = 'STUDY_ORDERS_VIEW_ALL'
+               AND ur.is_active IS NOT FALSE
+            UNION
+            SELECT ${doctorExpr}
+           ) c(user_id)
+      JOIN public.users u ON u.id = c.user_id
+     WHERE c.user_id IS NOT NULL
+       AND u.is_active IS NOT FALSE
+       AND NOT EXISTS (SELECT 1
+                         FROM public.user_roles ur2
+                         JOIN public.roles r ON r.id = ur2.role_id
+                        WHERE ur2.user_id = c.user_id
+                          AND lower(trim(r.name)) = 'agente_ia')
+)`;
+
+/** Seguidores de la orden `orderExpr`, en la forma que espera el front. */
+const followersJson = (orderExpr) => `
+coalesce((SELECT json_agg(json_build_object('id', u.id::text, 'name', u.name, 'email', u.email) ORDER BY u.name)
+            FROM public.study_order_followers f
+            JOIN public.users u ON u.id = f.user_id
+           WHERE f.study_order_id = ${orderExpr}), '[]'::json)`;
+
+/**
+ * El chatter de una orden: seguidores, mensajes (las notas solo con VIEW_ALL) y la bitácora, más
+ * lo que el usuario puede hacer. Del más nuevo al más viejo, como lo pinta el panel.
+ * Misma regla de acceso que DETAIL_SQL: sin acceso, cero filas (404).
+ */
+export const CHATTER_SQL = `
+-- $1 userId (token)  $2 id de la orden
+WITH ${CHATTER_PERMS_CTE},
+ord AS (
+    SELECT so.id, so.doctor_id
+      FROM public.study_orders so
+     WHERE so.id = $2::uuid
+       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms)
+            OR ((SELECT can_view_patient FROM perms) AND so.patient_id IS NOT NULL AND so.status <> 'draft'))
+),
+-- Escribir: el doctor de la orden o la clínica, con el permiso. Quien entra solo por la ficha
+-- del paciente lee el hilo pero no participa.
+me AS (
+    SELECT coalesce((SELECT can_message FROM perms)
+                    AND ((SELECT doctor_id FROM ord) = $1::uuid OR (SELECT can_view_all FROM perms)), false) AS can_write
+)
+SELECT json_build_object(
+         'order_id',             o.id::text,
+         'is_following',         EXISTS (SELECT 1 FROM public.study_order_followers f
+                                          WHERE f.study_order_id = o.id AND f.user_id = $1::uuid),
+         'can_post_message',     (SELECT can_write FROM me),
+         -- La nota es interna de la clínica: ni la ve ni la escribe el derivador.
+         'can_post_note',        (SELECT can_write FROM me) AND (SELECT can_view_all FROM perms),
+         'can_manage_followers', (SELECT can_write FROM me) AND (SELECT can_view_all FROM perms),
+         'followers',            ${followersJson('o.id')},
+         'messages', coalesce((
+             SELECT json_agg(json_build_object(
+                      'id', m.id::text, 'kind', m.kind, 'body', m.body,
+                      'author_id', m.author_id::text, 'author_name', au.name,
+                      'created_at', m.created_at)
+                    ORDER BY m.created_at DESC, m.id)
+               FROM (SELECT * FROM public.study_order_messages sm
+                      WHERE sm.study_order_id = o.id
+                        AND (sm.kind = 'message' OR (SELECT can_view_all FROM perms))
+                      ORDER BY sm.created_at DESC
+                      LIMIT 500) m
+               LEFT JOIN public.users au ON au.id = m.author_id
+         ), '[]'::json),
+         'events', coalesce((
+             SELECT json_agg(json_build_object(
+                      'id', ev.id::text, 'event_type', ev.event_type,
+                      'actor_id', ev.actor_id::text, 'actor_kind', ev.actor_kind,
+                      'actor_name', au.name,
+                      'appointment_id', ev.appointment_id::text,
+                      'metadata', ev.metadata, 'created_at', ev.created_at)
+                    ORDER BY ev.created_at DESC, ev.id)
+               FROM public.study_order_events ev
+               LEFT JOIN public.users au ON au.id = ev.actor_id
+              WHERE ev.study_order_id = o.id
+         ), '[]'::json)
+       ) AS data
+  FROM ord o;`;
+
+/**
+ * Publica un mensaje o una nota. Quien escribe pasa a seguir la orden (como en Odoo).
+ * $2 = { order_id, kind, body }, un solo JSON: el texto es libre y así no hay array posicional
+ * que lo pueda partir.
+ */
+export const MESSAGE_POST_SQL = `
+-- $1 userId (token)  $2 payload { order_id, kind, body }
+WITH ${CHATTER_PERMS_CTE},
+p AS (
+    SELECT ($2::jsonb ->> 'order_id')::uuid AS order_id,
+           $2::jsonb ->> 'kind'             AS kind,
+           $2::jsonb ->> 'body'             AS body
+),
+ok AS (
+    SELECT p.*
+      FROM p
+     WHERE (SELECT can_message FROM perms)
+       AND p.kind IN ('message', 'note')
+       -- La nota es interna de la clínica.
+       AND (p.kind = 'message' OR (SELECT can_view_all FROM perms))
+       AND EXISTS (SELECT 1 FROM public.study_orders so
+                    WHERE so.id = p.order_id
+                      AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms)))
+),
+ins AS (
+    INSERT INTO public.study_order_messages (study_order_id, author_id, kind, body, created_at)
+    SELECT order_id, $1::uuid, kind, btrim(body), ${NOW}
+      FROM ok
+    RETURNING id, study_order_id, author_id, kind, body, created_at
+),
+fol AS (
+    INSERT INTO public.study_order_followers (study_order_id, user_id, added_by, created_at)
+    SELECT study_order_id, author_id, author_id, ${NOW}
+      FROM ins
+    ON CONFLICT (study_order_id, user_id) DO NOTHING
+    RETURNING user_id
+)
+SELECT i.id::text,
+       i.study_order_id::text AS order_id,
+       i.kind,
+       i.body,
+       i.author_id::text,
+       (SELECT u.name FROM public.users u WHERE u.id = $1::uuid) AS author_name,
+       i.created_at,
+       EXISTS (SELECT 1 FROM fol) AS started_following
+  FROM ins i;`;
+
+/**
+ * Aviso a los seguidores de un mensaje nuevo. Las notas no avisan (como en Odoo) y quien
+ * escribió no se avisa a sí mismo. `scope` le dice al front qué bandeja abrir: la de la clínica
+ * o "Mis órdenes".
+ *
+ * RETURNING *: lo que devuelve este nodo es EXACTAMENTE lo que viaja por SSE al navegador (ver
+ * NOTIFY_RECEPTION_SQL).
+ */
+export const NOTIFY_FOLLOWERS_SQL = `
+-- $1 = id del mensaje
+INSERT INTO public.notifications
+       (user_id, type, status, priority, patient_id, metadata, created_at)
+SELECT f.user_id,
+       'study_order_message',
+       'pending',
+       'MEDIUM',
+       so.patient_id,
+       jsonb_build_object(
+           'order_id',     so.id::text,
+           'order_number', so.order_number,
+           'source',       so.source,
+           'patient_id',   so.patient_id::text,
+           'patient_name', so.patient_name,
+           'message_id',   m.id::text,
+           'author_id',    m.author_id::text,
+           'author_name',  au.name,
+           'excerpt',      left(regexp_replace(m.body, '[[:space:]]+', ' ', 'g'), 200),
+           'scope',        CASE WHEN EXISTS (
+                                    SELECT 1
+                                      FROM public.user_roles ur
+                                      JOIN public.role_permissions rp ON rp.role_id = ur.role_id
+                                      JOIN public.permissions pp      ON pp.id = rp.permission_id
+                                     WHERE ur.user_id = f.user_id
+                                       AND ur.is_active IS NOT FALSE
+                                       AND pp.code = 'STUDY_ORDERS_VIEW_ALL')
+                                THEN 'clinic' ELSE 'mine' END
+       ),
+       ${NOW}
+  FROM public.study_order_messages m
+  JOIN public.study_orders so          ON so.id = m.study_order_id
+  JOIN public.study_order_followers f  ON f.study_order_id = m.study_order_id
+  JOIN public.users u                  ON u.id = f.user_id
+  LEFT JOIN public.users au            ON au.id = m.author_id
+ WHERE m.id = $1::uuid
+   AND m.kind = 'message'
+   AND f.user_id IS DISTINCT FROM m.author_id
+   AND u.is_active IS NOT FALSE
+RETURNING *;`;
+
+/**
+ * Seguir / dejar de seguir (uno mismo) y sumar / quitar a otro (solo la clínica, con VIEW_ALL).
+ * A otro solo se lo puede sumar si puede abrir la orden (cand). Devuelve la lista resultante:
+ * los CTE no ven lo que escriben los demás, así que se arma a mano (actuales − borrados + nuevos).
+ */
+export const FOLLOWERS_SQL = `
+-- $1 userId (token)  $2 payload { order_id, action: follow|unfollow|add|remove, user_id }
+WITH ${CHATTER_PERMS_CTE},
+args AS (
+    SELECT ($2::jsonb ->> 'order_id')::uuid AS order_id,
+           $2::jsonb ->> 'action'           AS action,
+           CASE WHEN $2::jsonb ->> 'action' IN ('follow', 'unfollow') THEN $1::uuid
+                ELSE NULLIF($2::jsonb ->> 'user_id', '')::uuid END AS target
+),
+ord AS (
+    SELECT so.id, so.doctor_id
+      FROM public.study_orders so, args a
+     WHERE so.id = a.order_id
+       AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms))
+),
+${followerCandidatesCte('(SELECT doctor_id FROM ord)')},
+allowed AS (
+    SELECT a.*
+      FROM args a
+     WHERE EXISTS (SELECT 1 FROM ord)
+       AND (SELECT can_message FROM perms)
+       AND a.target IS NOT NULL
+       AND a.action IN ('follow', 'unfollow', 'add', 'remove')
+       AND (a.action IN ('follow', 'unfollow') OR (SELECT can_view_all FROM perms))
+       AND (a.action <> 'add' OR a.target IN (SELECT user_id FROM cand))
+),
+ins AS (
+    INSERT INTO public.study_order_followers (study_order_id, user_id, added_by, created_at)
+    SELECT order_id, target, $1::uuid, ${NOW}
+      FROM allowed
+     WHERE action IN ('follow', 'add')
+    ON CONFLICT (study_order_id, user_id) DO NOTHING
+    RETURNING user_id
+),
+del AS (
+    DELETE FROM public.study_order_followers f
+     USING allowed a
+     WHERE a.action IN ('unfollow', 'remove')
+       AND f.study_order_id = a.order_id
+       AND f.user_id = a.target
+    RETURNING f.user_id
+),
+cur AS (
+    SELECT f.user_id
+      FROM public.study_order_followers f, allowed a
+     WHERE f.study_order_id = a.order_id
+       AND NOT EXISTS (SELECT 1 FROM del WHERE del.user_id = f.user_id)
+    UNION
+    SELECT user_id FROM ins
+)
+SELECT (SELECT order_id::text FROM allowed) AS order_id,
+       (SELECT action FROM allowed)         AS action,
+       coalesce((SELECT json_agg(json_build_object('id', u.id::text, 'name', u.name, 'email', u.email) ORDER BY u.name)
+                   FROM cur JOIN public.users u ON u.id = cur.user_id), '[]'::json) AS followers,
+       EXISTS (SELECT 1 FROM cur WHERE cur.user_id = $1::uuid) AS is_following
+ WHERE EXISTS (SELECT 1 FROM allowed);`;
+
+/** A quién se puede sumar como seguidor de la orden (los que todavía no la siguen). Solo la clínica. */
+export const FOLLOWER_CANDIDATES_SQL = `
+-- $1 userId (token)  $2 id de la orden
+WITH ${CHATTER_PERMS_CTE},
+ord AS (
+    SELECT so.id, so.doctor_id
+      FROM public.study_orders so
+     WHERE so.id = $2::uuid
+       AND (SELECT can_view_all FROM perms)
+       AND (SELECT can_message FROM perms)
+),
+${followerCandidatesCte('(SELECT doctor_id FROM ord)')}
+SELECT coalesce(json_agg(json_build_object('id', u.id::text, 'name', u.name, 'email', u.email) ORDER BY u.name),
+                '[]'::json) AS items
+  FROM cand c
+  JOIN public.users u ON u.id = c.user_id
+ WHERE EXISTS (SELECT 1 FROM ord)
+   AND NOT EXISTS (SELECT 1 FROM public.study_order_followers f
+                    WHERE f.study_order_id = $2::uuid AND f.user_id = c.user_id);`;

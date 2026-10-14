@@ -29,6 +29,7 @@ import type {
   StudyOrderBoardStatus,
   StudyOrderStatusChangedNotification,
   StudyOrderAssignedNotification,
+  StudyOrderMessageNotification,
   StudyOrderSubmittedNotification,
 } from '@/lib/types';
 import { normalizeTratamiento } from '@/lib/utils';
@@ -93,7 +94,8 @@ interface BackendNotification {
     | 'whatsapp_handoff_requested'
     | 'study_order_submitted'
     | 'study_order_status_changed'
-    | 'study_order_assigned';
+    | 'study_order_assigned'
+    | 'study_order_message';
   reminder_id?: string | null;
   status: 'pending' | 'read' | 'dismissed';
   appointment_id?: string | null;
@@ -245,6 +247,19 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
         assignedByName: String(m.assigned_by_name ?? ''),
         source: m.source ?? null,
       } satisfies StudyOrderAssignedNotification;
+
+    case 'study_order_message':
+      return {
+        ...base,
+        type: 'study_order_message',
+        orderId: String(m.order_id ?? ''),
+        orderNumber: String(m.order_number ?? ''),
+        patientName: String(m.patient_name ?? ''),
+        authorName: String(m.author_name ?? ''),
+        excerpt: String(m.excerpt ?? ''),
+        scope: m.scope === 'mine' ? 'mine' : 'clinic',
+        source: m.source ?? null,
+      } satisfies StudyOrderMessageNotification;
 
     case 'new_appointment':
       return {
@@ -532,6 +547,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     const reassigns = novel.filter((n): n is AppointmentReassignedNotification => n.type === 'appointment_reassigned');
     const edits = novel.filter((n): n is AppointmentUpdatedNotification => n.type === 'appointment_updated');
     const handoffs = novel.filter((n): n is WhatsappHandoffRequestedNotification => n.type === 'whatsapp_handoff_requested');
+    const orderMessages = novel.filter((n): n is StudyOrderMessageNotification => n.type === 'study_order_message');
 
     if (alertStyleRef.current === 'toast') {
       newAppts.forEach((n) => {
@@ -585,6 +601,12 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         toast({
           title: tN('handoffRequestedTitle'),
           description: n.patientName || n.phone || tN('unknownPatient'),
+        });
+      });
+      orderMessages.forEach((n) => {
+        toast({
+          title: tN('studyOrderMessageTitle', { number: n.orderNumber }),
+          description: n.authorName ? `${n.authorName}: ${n.excerpt}` : n.excerpt,
         });
       });
       const novelIds = new Set(novel.map((n) => n.id));

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ArrowLeft, ArrowRight, Check, ClipboardList, Images, ListChecks, Loader2, PanelLeft, Send } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ClipboardList, Images, ListChecks, Loader2, MessagesSquare, PanelLeft, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -24,6 +24,7 @@ import { OriginalsSplit } from './originals-split';
 import { ReviewActionsProvider, ReviewLocateProvider, useOriginalFocus } from './review-locate';
 import { ReviewFieldEditor, type ReviewFieldEditorProps } from './review-field-editor';
 import { PATIENT_STEP, resolveReviewTarget, resolveReviewTargets } from './review-targets';
+import { StudyOrderChatter } from './study-order-chatter';
 import { StudyOrderReviewList, countPendingBlocking } from './study-order-review-list';
 import { useReviewItemActions } from './use-review-item-actions';
 import { StudyOrderSection } from './study-order-section';
@@ -32,6 +33,7 @@ import {
     type StudyOrderSummarySection,
 } from './study-order-summary';
 
+import { useStudyOrderChatterMode } from '@/hooks/use-study-order-chatter-source';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
@@ -87,6 +89,23 @@ const toOrderFiles = (files: WhatsappIntakeFile[]): OrderFile[] =>
 
 /** El panel de originales arranca abierto donde hay lugar para él al lado del formulario. */
 const isWideScreen = () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches;
+
+/**
+ * Chatter abierto o cerrado, recordado por navegador. Sin preferencia guardada arranca abierto
+ * donde entra al lado del formulario (xl); más angosto tapa el formulario, así que arranca cerrado.
+ */
+const CHATTER_PREF_KEY = 'study-order-wizard-chatter';
+const readChatterPref = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    try {
+        const saved = window.localStorage.getItem(CHATTER_PREF_KEY);
+        if (saved === '1' || saved === '0') return saved === '1' && window.matchMedia('(min-width: 1280px)').matches;
+    } catch { /* almacenamiento bloqueado: se usa el valor por defecto */ }
+    return window.matchMedia('(min-width: 1280px)').matches;
+};
+const saveChatterPref = (open: boolean) => {
+    try { window.localStorage.setItem(CHATTER_PREF_KEY, open ? '1' : '0'); } catch { /* sin almacenamiento: no se recuerda */ }
+};
 
 interface SelectionState {
     services: Map<string, StudyOrderCatalogService>;
@@ -188,6 +207,15 @@ export function StudyOrderWizard({
     const [sourceIntakeId, setSourceIntakeId] = React.useState('');
     const [originals, setOriginals] = React.useState<OriginalsSource | null>(null);
     const [showOriginals, setShowOriginals] = React.useState(false);
+    /** Chatter de la orden (mensajes, notas y bitácora): solo al editar, una orden que ya existe. */
+    const [showChatter, setShowChatter] = React.useState(false);
+    const [chatterKey, setChatterKey] = React.useState(0);
+    /** NEXT_PUBLIC_STUDY_ORDER_CHATTER=off: sin botón ni panel. */
+    const chatterEnabled = useStudyOrderChatterMode() !== 'off';
+    const toggleChatter = React.useCallback((open: boolean) => {
+        setShowChatter(open);
+        saveChatterPref(open);
+    }, []);
     /**
      * Puntos que el agente de WhatsApp no tuvo claros (borrador creado al derivar). Se marcan desde
      * acá mismo, mirando los originales; los bloqueantes pendientes impiden enviar.
@@ -224,6 +252,7 @@ export function StudyOrderWizard({
         let cancelled = false;
         setIsLoading(true);
         resetForm();
+        setShowChatter(!!orderId && readChatterPref());
 
         void (async () => {
             const [formOptions, sedeList] = await Promise.all([
@@ -295,6 +324,8 @@ export function StudyOrderWizard({
         if (!orderId) return;
         const fresh = await getStudyOrder(orderId);
         if (fresh) setReviewItems(fresh.review_items ?? []);
+        // Marcar un punto deja un evento en la bitácora: el chatter lo muestra.
+        setChatterKey((k) => k + 1);
     }, [orderId]);
 
     const originalFiles = React.useMemo(() => toOrderFiles(originals?.files ?? []), [originals]);
@@ -750,6 +781,20 @@ export function StudyOrderWizard({
                                 : t('form.noServicesSelected')}
                         </SheetDescription>
                     </div>
+                    {orderId && chatterEnabled && (
+                        <Button
+                            type="button"
+                            variant={showChatter ? 'secondary' : 'outline'}
+                            size="sm"
+                            className="shrink-0"
+                            aria-pressed={showChatter}
+                            onClick={() => toggleChatter(!showChatter)}
+                            title={showChatter ? t('chatter.hide') : t('chatter.show')}
+                        >
+                            <MessagesSquare className="h-4 w-4 sm:mr-1.5" aria-hidden="true" />
+                            <span className="hidden sm:inline">{t('chatter.title')}</span>
+                        </Button>
+                    )}
                     {originals && (
                         <Button
                             type="button"
@@ -1151,6 +1196,22 @@ export function StudyOrderWizard({
                 </div>
 
                 </OriginalsSplit>
+
+                {/* Chatter: columna a la derecha desde xl; más angosto, cajón sobre el formulario. */}
+                {orderId && chatterEnabled && showChatter && (
+                    <aside
+                        className={cn(
+                            'absolute inset-y-0 right-0 z-30 w-full border-l bg-card shadow-xl sm:max-w-sm',
+                            'xl:static xl:z-auto xl:w-[380px] xl:max-w-none xl:flex-none xl:shadow-none',
+                        )}
+                    >
+                        <StudyOrderChatter
+                            orderId={orderId}
+                            refreshKey={chatterKey}
+                            onClose={() => toggleChatter(false)}
+                        />
+                    </aside>
+                )}
 
                 </div>
 
