@@ -1024,6 +1024,8 @@ export type StudyOrderMessageNotification = {
   patientName: string;
   authorName: string;
   excerpt: string;
+  /** Adjuntos del mensaje: si no tiene texto, la notificación dice "N adjuntos". */
+  attachmentCount: number;
   /** Qué bandeja abrir: la de la clínica o "Mis órdenes". */
   scope: 'clinic' | 'mine';
   source?: string | null;
@@ -3795,13 +3797,27 @@ export interface StudyOrderAssignResult {
  */
 export type StudyOrderMessageKind = 'message' | 'note';
 
+/** Foto o PDF adjunto a un mensaje del chatter (public.attachments, source_name = 'study_order_message'). */
+export interface StudyOrderMessageAttachment {
+  id: string;
+  file_name: string;
+  mime_type: string | null;
+}
+
 export interface StudyOrderMessage {
   id: string;
   kind: StudyOrderMessageKind;
+  /** Puede venir vacío si el mensaje solo trae adjuntos. */
   body: string;
   author_id: string | null;
   author_name: string | null;
   created_at: string;
+  attachments?: StudyOrderMessageAttachment[];
+}
+
+/** Respuesta de publicar: el mensaje y cuántos archivos no se pudieron guardar (el mensaje queda igual). */
+export interface StudyOrderMessagePostResult extends StudyOrderMessage {
+  failed_attachments?: number;
 }
 
 export interface StudyOrderFollower {

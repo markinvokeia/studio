@@ -1930,7 +1930,7 @@ SELECT json_build_object(
    AND i.channel = 'import'
    AND (i.created_by = $1::uuid OR coalesce((SELECT can_view_all FROM perms), false));`;
 
-// ── Chatter (migración 131) ──────────────────────────────────────────────────
+// ── Chatter (migración 132) ──────────────────────────────────────────────────
 
 /**
  * Permisos del chatter del sujeto del token. Leer el hilo sigue la misma regla que el detalle
@@ -1985,6 +1985,17 @@ coalesce((SELECT json_agg(json_build_object('id', u.id::text, 'name', u.name, 'e
            WHERE f.study_order_id = ${orderExpr}), '[]'::json)`;
 
 /**
+ * Adjuntos de un mensaje del chatter (`messageExpr` = su id), en la forma que espera el front. Viven
+ * en public.attachments, como los originales de WhatsApp: el archivo se baja aparte, con
+ * /study-orders/messages/file, que vuelve a validar el acceso.
+ */
+const messageAttachmentsJson = (messageExpr) => `
+coalesce((SELECT json_agg(json_build_object('id', at.id::text, 'file_name', at.file_name, 'mime_type', at.mime_type) ORDER BY at.id)
+            FROM public.attachments at
+           WHERE at.source_name = 'study_order_message'
+             AND at.source_id = ${messageExpr}::text), '[]'::json)`;
+
+/**
  * El chatter de una orden: seguidores, mensajes (las notas solo con VIEW_ALL) y la bitácora, más
  * lo que el usuario puede hacer. Del más nuevo al más viejo, como lo pinta el panel.
  * Misma regla de acceso que DETAIL_SQL: sin acceso, cero filas (404).
@@ -2018,7 +2029,8 @@ SELECT json_build_object(
              SELECT json_agg(json_build_object(
                       'id', m.id::text, 'kind', m.kind, 'body', m.body,
                       'author_id', m.author_id::text, 'author_name', au.name,
-                      'created_at', m.created_at)
+                      'created_at', m.created_at,
+                      'attachments', ${messageAttachmentsJson('m.id')})
                     ORDER BY m.created_at DESC, m.id)
                FROM (SELECT * FROM public.study_order_messages sm
                       WHERE sm.study_order_id = o.id
@@ -2044,22 +2056,27 @@ SELECT json_build_object(
 
 /**
  * Publica un mensaje o una nota. Quien escribe pasa a seguir la orden (como en Odoo).
- * $2 = { order_id, kind, body }, un solo JSON: el texto es libre y así no hay array posicional
- * que lo pueda partir.
+ * $2 = { order_id, kind, body, attachment_count }, un solo JSON: el texto es libre y así no hay
+ * array posicional que lo pueda partir. El texto puede venir vacío si el mensaje trae archivos
+ * (`attachment_count` > 0): se suben después, con el id que devuelve esta consulta, y
+ * MESSAGE_RESULT_SQL borra el mensaje si al final no quedó ni texto ni archivos.
  */
 export const MESSAGE_POST_SQL = `
--- $1 userId (token)  $2 payload { order_id, kind, body }
+-- $1 userId (token)  $2 payload { order_id, kind, body, attachment_count }
 WITH ${CHATTER_PERMS_CTE},
 p AS (
     SELECT ($2::jsonb ->> 'order_id')::uuid AS order_id,
            $2::jsonb ->> 'kind'             AS kind,
-           $2::jsonb ->> 'body'             AS body
+           coalesce($2::jsonb ->> 'body', '') AS body,
+           coalesce(($2::jsonb ->> 'attachment_count')::int, 0) AS attachment_count
 ),
 ok AS (
     SELECT p.*
       FROM p
      WHERE (SELECT can_message FROM perms)
        AND p.kind IN ('message', 'note')
+       AND (btrim(p.body) <> '' OR p.attachment_count > 0)
+       AND length(btrim(p.body)) <= 5000
        -- La nota es interna de la clínica.
        AND (p.kind = 'message' OR (SELECT can_view_all FROM perms))
        AND EXISTS (SELECT 1 FROM public.study_orders so
@@ -2091,7 +2108,10 @@ SELECT i.id::text,
 
 /**
  * Aviso a los seguidores de un mensaje nuevo. Las notas no avisan (como en Odoo) y quien
- * escribió no se avisa a sí mismo. `scope` le dice al front qué bandeja abrir: la de la clínica
+ * escribió no se avisa a sí mismo. Solo se avisa a quien HOY puede abrir la orden (su doctor o
+ * la clínica): un seguidor que perdió el acceso (p. ej. el doctor anterior, si se cambió) sigue
+ * en la lista pero no recibe el extracto. `attachment_count` deja que el front diga "2 adjuntos"
+ * cuando el mensaje no tiene texto. `scope` le dice al front qué bandeja abrir: la de la clínica
  * o "Mis órdenes".
  *
  * RETURNING *: lo que devuelve este nodo es EXACTAMENTE lo que viaja por SSE al navegador (ver
@@ -2115,16 +2135,11 @@ SELECT f.user_id,
            'message_id',   m.id::text,
            'author_id',    m.author_id::text,
            'author_name',  au.name,
-           'excerpt',      left(regexp_replace(m.body, '[[:space:]]+', ' ', 'g'), 200),
-           'scope',        CASE WHEN EXISTS (
-                                    SELECT 1
-                                      FROM public.user_roles ur
-                                      JOIN public.role_permissions rp ON rp.role_id = ur.role_id
-                                      JOIN public.permissions pp      ON pp.id = rp.permission_id
-                                     WHERE ur.user_id = f.user_id
-                                       AND ur.is_active IS NOT FALSE
-                                       AND pp.code = 'STUDY_ORDERS_VIEW_ALL')
-                                THEN 'clinic' ELSE 'mine' END
+           'excerpt',      left(btrim(regexp_replace(m.body, '[[:space:]]+', ' ', 'g')), 200),
+           'attachment_count', (SELECT count(*) FROM public.attachments at
+                                 WHERE at.source_name = 'study_order_message'
+                                   AND at.source_id = m.id::text),
+           'scope',        CASE WHEN va.can_view_all THEN 'clinic' ELSE 'mine' END
        ),
        ${NOW}
   FROM public.study_order_messages m
@@ -2132,11 +2147,74 @@ SELECT f.user_id,
   JOIN public.study_order_followers f  ON f.study_order_id = m.study_order_id
   JOIN public.users u                  ON u.id = f.user_id
   LEFT JOIN public.users au            ON au.id = m.author_id
+  CROSS JOIN LATERAL (
+       SELECT EXISTS (SELECT 1
+                        FROM public.user_roles ur
+                        JOIN public.role_permissions rp ON rp.role_id = ur.role_id
+                        JOIN public.permissions pp      ON pp.id = rp.permission_id
+                       WHERE ur.user_id = f.user_id
+                         AND ur.is_active IS NOT FALSE
+                         AND pp.code = 'STUDY_ORDERS_VIEW_ALL') AS can_view_all
+  ) va
  WHERE m.id = $1::uuid
    AND m.kind = 'message'
    AND f.user_id IS DISTINCT FROM m.author_id
    AND u.is_active IS NOT FALSE
+   -- Misma regla que escribir en la orden: su doctor o la clínica.
+   AND (f.user_id = so.doctor_id OR va.can_view_all)
 RETURNING *;`;
+
+/**
+ * Cierre de /study-orders/messages/post, después de subir los archivos: el mensaje con sus
+ * adjuntos tal como quedaron y cuántos no se pudieron guardar. Si el mensaje no tenía texto y no
+ * se guardó ningún archivo, se borra (`deleted`): un mensaje vacío no sirve para nada.
+ */
+export const MESSAGE_RESULT_SQL = `
+-- $1 id del mensaje  $2 cuántos archivos se mandaron
+WITH att AS (
+    SELECT count(*) AS stored
+      FROM public.attachments at
+     WHERE at.source_name = 'study_order_message'
+       AND at.source_id = $1::text
+),
+del AS (
+    DELETE FROM public.study_order_messages m
+     WHERE m.id = $1::uuid
+       AND btrim(m.body) = ''
+       AND (SELECT stored FROM att) = 0
+    RETURNING m.id
+)
+SELECT m.id::text,
+       m.study_order_id::text AS order_id,
+       m.kind,
+       m.body,
+       m.author_id::text,
+       au.name AS author_name,
+       m.created_at,
+       ${messageAttachmentsJson('m.id')} AS attachments,
+       greatest(coalesce($2::int, 0) - (SELECT stored FROM att), 0) AS failed_attachments,
+       EXISTS (SELECT 1 FROM del) AS deleted
+  FROM public.study_order_messages m
+  LEFT JOIN public.users au ON au.id = m.author_id
+ WHERE m.id = $1::uuid;`;
+
+/**
+ * Un adjunto del chatter, para bajarlo. Exige todo a la vez: que el archivo sea de ese mensaje,
+ * que el usuario pueda leer el hilo de la orden (la regla de CHATTER_SQL) y, si es una nota,
+ * STUDY_ORDERS_VIEW_ALL. Con el id de un adjunto de otro módulo no se baja nada.
+ */
+export const MESSAGE_FILE_SQL = `
+-- $1 userId (token)  $2 id del mensaje  $3 id del adjunto
+WITH ${CHATTER_PERMS_CTE}
+SELECT a.drive_file_id, a.file_name, a.mime_type
+  FROM public.attachments a
+  JOIN public.study_order_messages m ON m.id = $2::uuid AND a.source_id = m.id::text
+  JOIN public.study_orders so        ON so.id = m.study_order_id
+ WHERE a.id = $3::int
+   AND a.source_name = 'study_order_message'
+   AND (m.kind = 'message' OR (SELECT can_view_all FROM perms))
+   AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms)
+        OR ((SELECT can_view_patient FROM perms) AND so.patient_id IS NOT NULL AND so.status <> 'draft'));`;
 
 /**
  * Seguir / dejar de seguir (uno mismo) y sumar / quitar a otro (solo la clínica, con VIEW_ALL).

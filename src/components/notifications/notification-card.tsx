@@ -1214,8 +1214,12 @@ function StudyOrderMessageCard({ notification }: { notification: StudyOrderMessa
               ? t('studyOrderMessageFrom', { name: notification.authorName })
               : t('studyOrderMessageTitle', { number: notification.orderNumber })}
           </p>
-          {notification.excerpt && (
+          {notification.excerpt ? (
             <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-[11px] text-muted-foreground">{notification.excerpt}</p>
+          ) : notification.attachmentCount > 0 && (
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {t('studyOrderMessageAttachments', { count: notification.attachmentCount })}
+            </p>
           )}
 
           <Button

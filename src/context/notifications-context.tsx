@@ -257,6 +257,7 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
         patientName: String(m.patient_name ?? ''),
         authorName: String(m.author_name ?? ''),
         excerpt: String(m.excerpt ?? ''),
+        attachmentCount: Number(m.attachment_count) || 0,
         scope: m.scope === 'mine' ? 'mine' : 'clinic',
         source: m.source ?? null,
       } satisfies StudyOrderMessageNotification;
@@ -606,7 +607,11 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       orderMessages.forEach((n) => {
         toast({
           title: tN('studyOrderMessageTitle', { number: n.orderNumber }),
-          description: n.authorName ? `${n.authorName}: ${n.excerpt}` : n.excerpt,
+          description: (() => {
+            // Un mensaje con solo archivos no tiene extracto: se dice cuántos trae.
+            const preview = n.excerpt || (n.attachmentCount > 0 ? tN('studyOrderMessageAttachments', { count: n.attachmentCount }) : '');
+            return n.authorName ? `${n.authorName}: ${preview}` : preview;
+          })(),
         });
       });
       const novelIds = new Set(novel.map((n) => n.id));

@@ -6,7 +6,9 @@ import type {
     StudyOrderFollowerAction,
     StudyOrderFollowersResult,
     StudyOrderMessage,
+    StudyOrderMessageAttachment,
     StudyOrderMessageKind,
+    StudyOrderMessagePostResult,
 } from '@/lib/types';
 
 import { getStudyOrder, getStudyOrderAssignees } from './study-orders';
@@ -15,7 +17,7 @@ import { getStudyOrder, getStudyOrderAssignees } from './study-orders';
  * Demo del chatter sin backend (NEXT_PUBLIC_STUDY_ORDER_CHATTER=mock).
  *
  * Imita a los endpoints del chatter (study-orders/chatter, messages/post, followers y
- * followers/candidates) sin tocar la base: no hace falta el script 131 ni los workflows nuevos.
+ * followers/candidates) sin tocar la base: no hace falta el script 132 ni los workflows nuevos.
  *
  *   · La bitácora, el doctor, el responsable y los candidatos a seguidor son REALES: salen del
  *     detalle de la orden y de /study-orders/assignees, que ya están desplegados.
@@ -23,6 +25,8 @@ import { getStudyOrder, getStudyOrderAssignees } from './study-orders';
  *     Sobreviven a recargar la página y a cambiar de usuario (para mostrar la conversación entre
  *     el doctor y la clínica), pero no los ve nadie más ni llegan a la base.
  *   · No hay notificaciones: el aviso a los seguidores necesita el backend.
+ *   · Los adjuntos quedan solo en la memoria de esta pestaña (no entran en localStorage): al
+ *     recargar, el mensaje dice que tenía archivos pero ya no se pueden abrir.
  *
  * Las reglas de quién puede hacer qué son las mismas que el SQL (study-orders-sql.mjs), con los
  * permisos de la sesión en vez de STUDY_ORDERS_MESSAGE, que todavía no existe en la base.
@@ -115,6 +119,22 @@ const throwIfAborted = (signal?: AbortSignal) => {
 };
 
 const now = () => toLocalISOString(new Date());
+
+/** Contenido de los adjuntos de la demo, por id de adjunto. Solo en memoria: pesan demasiado para localStorage. */
+const mockFiles = new Map<string, Blob>();
+
+/** Cargador de los adjuntos de la demo para `OrderFileGallery`: falla si el archivo ya no está en memoria. */
+export function chatterMockFileLoader() {
+    return Object.assign(
+        async (fileId: string, signal: AbortSignal) => {
+            throwIfAborted(signal);
+            const blob = mockFiles.get(fileId);
+            if (!blob) throw new Error('');
+            return blob;
+        },
+        { peekUrl: () => undefined },
+    );
+}
 
 const newId = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
@@ -210,15 +230,20 @@ export async function getStudyOrderChatterMock(
 }
 
 export async function postStudyOrderMessageMock(
-    params: { orderId: string; kind: StudyOrderMessageKind; body: string },
+    params: { orderId: string; kind: StudyOrderMessageKind; body: string; files?: File[] },
     viewer: ChatterMockViewer,
     seed: ChatterMockSeed,
-): Promise<StudyOrderMessage> {
+): Promise<StudyOrderMessagePostResult> {
     const [{ order, store }] = await Promise.all([ensureStore(params.orderId, seed), wait()]);
     if (!canWrite(viewer, order) || (params.kind === 'note' && !viewer.canViewAll)) {
         throw new Error('');
     }
 
+    const attachments: StudyOrderMessageAttachment[] = (params.files ?? []).map((file) => {
+        const id = newId();
+        mockFiles.set(id, file);
+        return { id, file_name: file.name, mime_type: file.type || null };
+    });
     const message: StudyOrderMessage = {
         id: newId(),
         kind: params.kind,
@@ -226,6 +251,7 @@ export async function postStudyOrderMessageMock(
         author_id: viewer.id,
         author_name: viewer.name,
         created_at: now(),
+        attachments,
     };
     // Re-leer: otra pestaña pudo escribir mientras tanto.
     const fresh = load(params.orderId) ?? store;
@@ -233,7 +259,7 @@ export async function postStudyOrderMessageMock(
         ? fresh.followers
         : [...fresh.followers, { id: viewer.id, name: viewer.name, email: viewer.email ?? null }];
     save(params.orderId, { ...fresh, followers, messages: [...fresh.messages, message] });
-    return message;
+    return { ...message, failed_attachments: 0 };
 }
 
 export async function updateStudyOrderFollowersMock(

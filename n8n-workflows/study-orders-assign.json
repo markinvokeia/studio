@@ -246,6 +246,40 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "assign-has-recipient-0-cond",
+              "leftValue": "={{ !!$json.user_id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1760,
+        220
+      ],
+      "id": "assign-has-recipient-0",
+      "name": "¿Hay a quién avisar?"
+    },
+    {
+      "parameters": {
         "workflowId": {
           "__rl": true,
           "value": "W5SZnwkaTigFrHO6",
@@ -266,7 +300,7 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        1760,
+        1980,
         220
       ],
       "id": "assign-push-0",
@@ -364,11 +398,23 @@
       "main": [
         [
           {
-            "node": "Empujar por SSE",
+            "node": "¿Hay a quién avisar?",
             "type": "main",
             "index": 0
           }
         ]
+      ]
+    },
+    "¿Hay a quién avisar?": {
+      "main": [
+        [
+          {
+            "node": "Empujar por SSE",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     },
     "¿Error de negocio?": {

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AlertCircle, Bell, BellOff, Check, FlaskConical, Lock, MessageSquare, RefreshCw, StickyNote, UserPlus, Users, X } from 'lucide-react';
+import { AlertCircle, Bell, BellOff, Check, FileText, FlaskConical, Lock, MessageSquare, Paperclip, RefreshCw, StickyNote, UserPlus, Users, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -10,15 +10,18 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 
+import { OrderFileGallery } from './order-file-gallery';
 import { ActorLabel, EVENT_STYLES, EventDetail, TONE_CLASSES } from './study-order-timeline';
 
 import { useEventStreamSubscription } from '@/context/event-stream-context';
 import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useStudyOrderChatterSource, type StudyOrderChatterSource } from '@/hooks/use-study-order-chatter-source';
+import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/error-utils';
 import { cn, formatDate, formatDateTime, formatDisplayDate, toLocalISOString } from '@/lib/utils';
 import { isAbortError } from '@/services/api';
 import { isChatterMockStorageKey, resetChatterMock } from '@/services/study-order-chatter-mock';
+import { STUDY_ORDER_MESSAGE_LIMITS } from '@/services/study-orders';
 import type {
     StudyOrderChatter as ChatterData,
     StudyOrderEvent,
@@ -26,6 +29,7 @@ import type {
     StudyOrderFollowerAction,
     StudyOrderMessage,
     StudyOrderMessageKind,
+    StudyOrderMessagePostResult,
 } from '@/lib/types';
 
 /**
@@ -35,6 +39,9 @@ import type {
  *
  *   · Mensaje: lo ven todos los que pueden abrir la orden y avisa a los seguidores.
  *   · Nota: interna de la clínica (STUDY_ORDERS_VIEW_ALL), sin aviso.
+ *
+ * Mensajes y notas pueden llevar fotos o PDF (clip, arrastrar o pegar): se ven con la misma
+ * galería que los originales de la orden. Hace falta texto o al menos un archivo.
  *
  * Quien escribe pasa a seguir la orden. Lo que puede hacer cada uno lo dice el backend
  * (`can_post_*`), que es quien lo hace cumplir; acá además se exige STUDY_ORDERS_MESSAGE.
@@ -66,7 +73,19 @@ type FeedEntry =
     | { kind: 'message'; id: string; createdAt: string; message: StudyOrderMessage }
     | { kind: 'event'; id: string; createdAt: string; event: StudyOrderEvent };
 
-const MAX_BODY = 5000;
+const MAX_BODY = STUDY_ORDER_MESSAGE_LIMITS.maxBody;
+const ACCEPT = STUDY_ORDER_MESSAGE_LIMITS.mimeTypes.join(',');
+
+/** Archivo elegido para el mensaje, todavía sin subir. */
+interface PendingFile {
+    id: string;
+    file: File;
+}
+
+function formatSize(bytes: number): string {
+    if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 /** Iniciales para el avatar: dos palabras, mayúsculas. */
 const initials = (name: string | null | undefined) =>
@@ -91,7 +110,18 @@ export function StudyOrderChatter({
 
     const [composer, setComposer] = React.useState<StudyOrderMessageKind | null>(null);
     const [body, setBody] = React.useState('');
+    const [files, setFiles] = React.useState<PendingFile[]>([]);
+    const [fileError, setFileError] = React.useState<string | null>(null);
+    const [isDragging, setIsDragging] = React.useState(false);
     const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+    const { toast } = useToast();
+
+    const clearDraft = React.useCallback(() => {
+        setBody('');
+        setFiles([]);
+        setFileError(null);
+    }, []);
 
     /** Orden en pantalla: recargar la misma no vuelve al esqueleto ni borra lo que se ve. */
     const loadedIdRef = React.useRef<string | null>(null);
@@ -101,7 +131,7 @@ export function StudyOrderChatter({
         if (loadedIdRef.current !== orderId) {
             setData(null);
             setComposer(null);
-            setBody('');
+            clearDraft();
         }
         setIsRefreshing(true);
         setLoadError(null);
@@ -118,7 +148,7 @@ export function StudyOrderChatter({
             });
         // Una respuesta lenta de la orden anterior no pisa a la actual.
         return () => controller.abort();
-    }, [orderId, refreshKey, reloadKey, source]);
+    }, [orderId, refreshKey, reloadKey, source, clearDraft]);
 
     const reload = React.useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -135,7 +165,7 @@ export function StudyOrderChatter({
     const resetDemo = () => {
         resetChatterMock(orderId);
         setComposer(null);
-        setBody('');
+        clearDraft();
         reload();
     };
 
@@ -154,11 +184,21 @@ export function StudyOrderChatter({
 
     // ── Publicar ─────────────────────────────────────────────────────────────
     const post = useAsyncAction(
-        (kind: StudyOrderMessageKind, text: string) => source.postMessage({ orderId, kind, body: text }),
+        (kind: StudyOrderMessageKind, text: string, attached: File[]) =>
+            source.postMessage({ orderId, kind, body: text, files: attached }),
         {
-            onSuccess: async () => {
-                setBody('');
+            onSuccess: async (result: StudyOrderMessagePostResult) => {
+                clearDraft();
                 setComposer(null);
+                // El mensaje quedó, pero sin alguno de los archivos: que se sepa cuál falta volver a subir.
+                const failed = result.failed_attachments ?? 0;
+                if (failed > 0) {
+                    toast({
+                        variant: 'destructive',
+                        title: t('attachments.partialTitle'),
+                        description: t('attachments.partialDescription', { count: failed }),
+                    });
+                }
                 // Sigue "enviando" hasta que el mensaje está en el hilo.
                 const fresh = await source.getChatter(orderId).catch(() => null);
                 if (fresh) setData(fresh);
@@ -177,10 +217,40 @@ export function StudyOrderChatter({
         if (composer) textareaRef.current?.focus();
     }, [composer]);
 
+    // ── Adjuntos del redactor ────────────────────────────────────────────────
+    /** Suma archivos (clip, arrastrar o pegar) respetando tipo, tamaño y cantidad. */
+    const addFiles = React.useCallback((incoming: FileList | File[]) => {
+        setFileError(null);
+        const accepted: PendingFile[] = [];
+        for (const file of Array.from(incoming)) {
+            if (!(STUDY_ORDER_MESSAGE_LIMITS.mimeTypes as readonly string[]).includes(file.type)) {
+                setFileError(t('attachments.errorFormat', { name: file.name }));
+                continue;
+            }
+            if (file.size === 0 || file.size > STUDY_ORDER_MESSAGE_LIMITS.maxBytes) {
+                setFileError(t('attachments.errorSize', { name: file.name }));
+                continue;
+            }
+            accepted.push({ id: `${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`, file });
+        }
+        const room = Math.max(0, STUDY_ORDER_MESSAGE_LIMITS.maxFiles - files.length);
+        if (accepted.length > room) {
+            setFileError(t('attachments.errorTooMany', { max: STUDY_ORDER_MESSAGE_LIMITS.maxFiles }));
+        }
+        const kept = accepted.slice(0, room);
+        if (kept.length > 0) setFiles((prev) => [...prev, ...kept]);
+    }, [t, files.length]);
+
+    const removeFile = (id: string) => {
+        setFiles((prev) => prev.filter((f) => f.id !== id));
+        setFileError(null);
+    };
+
     const trimmed = body.trim();
+    const canSubmit = (!!trimmed || files.length > 0) && trimmed.length <= MAX_BODY;
     const submit = () => {
-        if (!composer || !trimmed || trimmed.length > MAX_BODY) return;
-        void post.run(composer, trimmed);
+        if (!composer || !canSubmit) return;
+        void post.run(composer, trimmed, files.map((f) => f.file));
     };
 
     // ── Seguidores ───────────────────────────────────────────────────────────
@@ -361,9 +431,24 @@ export function StudyOrderChatter({
                 <div className={cn('flex-none', isPanel ? 'border-b px-3 py-3' : 'pb-4')}>
                     <div
                         className={cn(
-                            'rounded-lg border p-2',
+                            'rounded-lg border p-2 transition-colors',
                             composer === 'note' ? 'border-amber-500/40 bg-amber-500/5' : 'bg-background',
+                            isDragging && 'border-primary bg-primary/5',
                         )}
+                        onDragOver={(e) => {
+                            if (post.isPending || !e.dataTransfer.types.includes('Files')) return;
+                            e.preventDefault();
+                            setIsDragging(true);
+                        }}
+                        onDragLeave={(e) => {
+                            if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setIsDragging(false);
+                        }}
+                        onDrop={(e) => {
+                            if (post.isPending || e.dataTransfer.files.length === 0) return;
+                            e.preventDefault();
+                            setIsDragging(false);
+                            addFiles(e.dataTransfer.files);
+                        }}
                     >
                         <Textarea
                             ref={textareaRef}
@@ -376,6 +461,13 @@ export function StudyOrderChatter({
                                     submit();
                                 }
                             }}
+                            onPaste={(e) => {
+                                // Una captura pegada se adjunta; el texto pegado sigue yendo al cuadro.
+                                const pasted = Array.from(e.clipboardData.files);
+                                if (pasted.length === 0) return;
+                                e.preventDefault();
+                                addFiles(pasted);
+                            }}
                             rows={3}
                             maxLength={MAX_BODY}
                             disabled={post.isPending}
@@ -383,6 +475,35 @@ export function StudyOrderChatter({
                             aria-label={composer === 'note' ? t('logNote') : t('sendMessage')}
                             className="min-h-[72px] resize-y border-0 bg-transparent p-1 shadow-none focus-visible:ring-0"
                         />
+                        {files.length > 0 && (
+                            <ul className="flex flex-wrap gap-1.5 px-1 pb-2" aria-label={t('attachments.selected')}>
+                                {files.map((f) => (
+                                    <li
+                                        key={f.id}
+                                        className="flex max-w-full items-center gap-1.5 rounded-md border bg-muted/60 py-0.5 pl-2 pr-0.5 text-xs"
+                                    >
+                                        <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                        <span className="min-w-0 max-w-[12rem] truncate" title={f.file.name}>{f.file.name}</span>
+                                        <span className="shrink-0 text-[10px] text-muted-foreground">{formatSize(f.file.size)}</span>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-5 w-5 shrink-0 text-muted-foreground hover:text-destructive"
+                                            disabled={post.isPending}
+                                            onClick={() => removeFile(f.id)}
+                                            aria-label={t('attachments.remove', { name: f.file.name })}
+                                            title={t('attachments.remove', { name: f.file.name })}
+                                        >
+                                            <X className="h-3 w-3" />
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                        {fileError && (
+                            <p className="px-1 pb-1 text-[11px] text-destructive" role="alert">{fileError}</p>
+                        )}
                         <p className="px-1 pb-1 text-[11px] text-muted-foreground">
                             {composer === 'note'
                                 ? t('noteHint')
@@ -396,7 +517,7 @@ export function StudyOrderChatter({
                                 size="sm"
                                 className="h-8"
                                 loading={post.isPending}
-                                disabled={!trimmed}
+                                disabled={!canSubmit}
                                 onClick={submit}
                             >
                                 {composer === 'note' ? t('logNoteSubmit') : t('sendMessageSubmit')}
@@ -407,10 +528,34 @@ export function StudyOrderChatter({
                                 variant="ghost"
                                 className="h-8"
                                 disabled={post.isPending}
-                                onClick={() => { setComposer(null); setBody(''); }}
+                                onClick={() => { setComposer(null); clearDraft(); }}
                             >
                                 {t('discard')}
                             </Button>
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                                disabled={post.isPending || files.length >= STUDY_ORDER_MESSAGE_LIMITS.maxFiles}
+                                onClick={() => fileInputRef.current?.click()}
+                                aria-label={t('attachments.add')}
+                                title={t('attachments.addHint', { max: STUDY_ORDER_MESSAGE_LIMITS.maxFiles })}
+                            >
+                                <Paperclip className="h-4 w-4" aria-hidden="true" />
+                            </Button>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept={ACCEPT}
+                                multiple
+                                className="hidden"
+                                onChange={(e) => {
+                                    if (e.target.files) addFiles(e.target.files);
+                                    // Permite volver a elegir el mismo archivo después de quitarlo.
+                                    e.target.value = '';
+                                }}
+                            />
                             <span className="ml-auto hidden text-[11px] text-muted-foreground sm:inline">{t('shortcut')}</span>
                         </div>
                     </div>
@@ -459,7 +604,7 @@ export function StudyOrderChatter({
                             {group.entries.map((entry) => (
                                 <li key={entry.id}>
                                     {entry.kind === 'message'
-                                        ? <MessageEntry message={entry.message} />
+                                        ? <MessageEntry message={entry.message} attachmentLoader={source.attachmentLoader} />
                                         : <EventEntry event={entry.event} />}
                                 </li>
                             ))}
@@ -471,10 +616,14 @@ export function StudyOrderChatter({
     );
 }
 
-/** Mensaje o nota: avatar, autor, hora y el texto tal cual se escribió. */
-function MessageEntry({ message }: { message: StudyOrderMessage }) {
+/** Mensaje o nota: avatar, autor, hora, el texto tal cual se escribió y sus adjuntos. */
+function MessageEntry({ message, attachmentLoader }: {
+    message: StudyOrderMessage;
+    attachmentLoader: StudyOrderChatterSource['attachmentLoader'];
+}) {
     const t = useTranslations('StudyOrdersPage.chatter');
     const isNote = message.kind === 'note';
+    const attachments = message.attachments ?? [];
 
     return (
         <article className="flex gap-2.5">
@@ -497,16 +646,42 @@ function MessageEntry({ message }: { message: StudyOrderMessage }) {
                         </span>
                     )}
                 </p>
-                <div
-                    className={cn(
-                        'mt-1 whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-sm',
-                        isNote ? 'border border-amber-500/30 bg-amber-500/5' : 'bg-muted/60',
-                    )}
-                >
-                    {message.body}
-                </div>
+                {message.body && (
+                    <div
+                        className={cn(
+                            'mt-1 whitespace-pre-wrap break-words rounded-lg px-3 py-2 text-sm',
+                            isNote ? 'border border-amber-500/30 bg-amber-500/5' : 'bg-muted/60',
+                        )}
+                    >
+                        {message.body}
+                    </div>
+                )}
+                {attachments.length > 0 && (
+                    <MessageAttachments messageId={message.id} attachments={attachments} loader={attachmentLoader} />
+                )}
             </div>
         </article>
+    );
+}
+
+/** Fotos y PDF del mensaje, en la galería de la orden: miniaturas y visor con zoom. */
+function MessageAttachments({ messageId, attachments, loader }: {
+    messageId: string;
+    attachments: NonNullable<StudyOrderMessage['attachments']>;
+    loader: StudyOrderChatterSource['attachmentLoader'];
+}) {
+    const t = useTranslations('StudyOrdersPage.chatter.attachments');
+    // La galería pide un cargador estable: uno por mensaje.
+    const loadFile = React.useMemo(() => loader(messageId), [loader, messageId]);
+    const files = React.useMemo(
+        () => attachments.map((a) => ({ id: a.id, name: a.file_name, mimeType: a.mime_type })),
+        [attachments],
+    );
+
+    return (
+        <div className="mt-1.5">
+            <OrderFileGallery files={files} loadFile={loadFile} label={t('count', { count: attachments.length })} />
+        </div>
     );
 }
 

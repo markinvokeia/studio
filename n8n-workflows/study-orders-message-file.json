@@ -1,0 +1,316 @@
+{
+  "name": "Study Orders - Message File",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## GET /study-orders/messages/file (generado)\n\nUn adjunto del chatter (foto o PDF), bajado de Drive. El navegador nunca habla con Drive.\n\n**Query:** `message_id` (uuid), `id` (attachments.id).\n\nEl SQL exige todo a la vez: que el archivo sea de ese mensaje, que el usuario pueda leer el hilo de la orden (misma regla que el detalle) y, si el mensaje es una nota, STUDY_ORDERS_VIEW_ALL. **404** si falta cualquiera.\n\nNo editar a mano: `scripts/n8n/generate-study-order-message-workflows.mjs`.",
+        "height": 300,
+        "width": 520,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        -260
+      ],
+      "id": "msg-file-1",
+      "name": "Contrato"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "study-orders/messages/file",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "msg-file-2",
+      "name": "Webhook",
+      "webhookId": "study-orders-msg-file",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\nconst q = $json.query || {};\nconst messageId = (q.message_id || '').toString().trim();\nconst fileId = parseInt(q.id, 10);\nif (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(messageId) || !Number.isFinite(fileId)) {\n  return [{ json: { __error: true, __code: 400, __message: 'message_id e id son requeridos' } }];\n}\nreturn [{ json: { user_id: String(userId), message_id: messageId, file_id: fileId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "msg-file-3",
+      "name": "Validar Datos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "msg-file-4-cond",
+              "leftValue": "={{ !$json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        0
+      ],
+      "id": "msg-file-4",
+      "name": "¿Datos OK?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: $json.__code || 400, message: $json.__message || \"Error\", data: null } }}",
+        "options": {
+          "responseCode": "={{ $json.__code || 400 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        720,
+        220
+      ],
+      "id": "msg-file-5",
+      "name": "Responder Error"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 userId (token)  $2 id del mensaje  $3 id del adjunto\nWITH \nperms AS (\n    SELECT coalesce(bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL'), false) AS can_view_all,\n           coalesce(bool_or(p.code = 'STUDY_ORDERS_MESSAGE'), false)  AS can_message,\n           coalesce(bool_or(p.code = 'PATIENTS_VIEW_DETAIL'), false)  AS can_view_patient\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code IN ('STUDY_ORDERS_VIEW_ALL', 'STUDY_ORDERS_MESSAGE', 'PATIENTS_VIEW_DETAIL')\n)\nSELECT a.drive_file_id, a.file_name, a.mime_type\n  FROM public.attachments a\n  JOIN public.study_order_messages m ON m.id = $2::uuid AND a.source_id = m.id::text\n  JOIN public.study_orders so        ON so.id = m.study_order_id\n WHERE a.id = $3::int\n   AND a.source_name = 'study_order_message'\n   AND (m.kind = 'message' OR (SELECT can_view_all FROM perms))\n   AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms)\n        OR ((SELECT can_view_patient FROM perms) AND so.patient_id IS NOT NULL AND so.status <> 'draft'));",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id, $json.message_id, $json.file_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        720,
+        0
+      ],
+      "id": "msg-file-6",
+      "name": "Buscar Archivo",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "msg-file-7-cond",
+              "leftValue": "={{ !!$json.drive_file_id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "msg-file-7",
+      "name": "¿Encontrado?"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.drive_file_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1200,
+        -80
+      ],
+      "id": "msg-file-8",
+      "name": "Descargar de Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "k3vQaAkau21se8nC",
+          "name": "Google Drive account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1440,
+        -80
+      ],
+      "id": "msg-file-9",
+      "name": "Responder Archivo"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 404, message: \"Archivo no encontrado o sin permiso\", data: null } }}",
+        "options": {
+          "responseCode": 404
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1200,
+        120
+      ],
+      "id": "msg-file-10",
+      "name": "Responder 404"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos": {
+      "main": [
+        [
+          {
+            "node": "¿Datos OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Datos OK?": {
+      "main": [
+        [
+          {
+            "node": "Buscar Archivo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Archivo": {
+      "main": [
+        [
+          {
+            "node": "¿Encontrado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Encontrado?": {
+      "main": [
+        [
+          {
+            "node": "Descargar de Drive",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder 404",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar de Drive": {
+      "main": [
+        [
+          {
+            "node": "Responder Archivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    "study-orders",
+    "clinic"
+  ]
+}

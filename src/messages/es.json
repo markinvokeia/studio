@@ -633,7 +633,8 @@
     "studyOrderAssignedTitle": "Te asignaron la revisión de una orden",
     "studyOrderAssignedBy": "{name} te asignó la revisión de esta orden.",
     "studyOrderMessageTitle": "Nuevo mensaje en {number}",
-    "studyOrderMessageFrom": "{name} escribió:"
+    "studyOrderMessageFrom": "{name} escribió:",
+    "studyOrderMessageAttachments": "{count, plural, one {# adjunto} other {# adjuntos}}"
   },
   "Header": {
     "toggleLanguage": "Cambiar idioma",
@@ -10215,6 +10216,18 @@
       "messageHintNobody": "Nadie más sigue esta orden: el mensaje queda en el historial sin avisar a nadie.",
       "noteHint": "Nota interna: solo la ve la clínica y no avisa a nadie.",
       "shortcut": "Ctrl + Enter para enviar",
+      "attachments": {
+        "add": "Adjuntar archivos",
+        "addHint": "Adjuntá fotos o PDF (hasta {max}, de 10 MB cada uno). También podés arrastrarlos acá o pegar una captura.",
+        "selected": "Archivos para enviar",
+        "remove": "Quitar {name}",
+        "count": "{count, plural, one {# adjunto} other {# adjuntos}}",
+        "errorFormat": "Formato no admitido: {name}. Usá JPG, PNG, WEBP o PDF.",
+        "errorSize": "{name} está vacío o supera los 10 MB.",
+        "errorTooMany": "Un mensaje admite hasta {max} archivos.",
+        "partialTitle": "Algunos archivos no se adjuntaron",
+        "partialDescription": "{count, plural, one {# archivo no se pudo guardar} other {# archivos no se pudieron guardar}}. El mensaje se publicó: mandalos de nuevo en otro mensaje."
+      },
       "follow": "Seguir",
       "following": "Siguiendo",
       "unfollow": "Dejar de seguir",
