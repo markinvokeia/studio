@@ -10291,7 +10291,9 @@
     "detail": {
       "expand": "Pantalla entera",
       "restore": "Restaurar tamaño",
-      "close": "Cerrar"
+      "close": "Cerrar",
+      "back": "Volver",
+      "backToList": "Volver a la lista"
     },
     "toast": {
       "savedTitle": "Orden guardada",
@@ -10610,7 +10612,10 @@
       },
       "reviewedByLabel": "Revisada por:",
       "reassign": "Reasignar",
-      "reassignHint": "Revisada por {name}. Tocá para reasignar."
+      "reassignHint": "Revisada por {name}. Tocá para reasignar.",
+      "backToBoard": "Volver al tablero",
+      "resizeDetail": "Arrastrá para cambiar el ancho del detalle",
+      "detailLabel": "Detalle de la orden"
     },
     "assign": {
       "action": "Asignar revisión…",

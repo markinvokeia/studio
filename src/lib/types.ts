@@ -3787,6 +3787,8 @@ export interface StudyOrderListItem {
   doctor_name?: string | null;
   source?: StudyOrderSource;
   referring_doctor_name?: string | null;
+  /** Lectura de originales de la que salió (WhatsApp o importada); nulo si se cargó a mano. */
+  source_intake_id?: string | null;
   patient_id?: string | null;
   patient_name: string;
   patient_document?: string | null;
