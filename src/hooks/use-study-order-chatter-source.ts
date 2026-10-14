@@ -6,7 +6,9 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getStudyOrderChatterMode, type StudyOrderChatterMode } from '@/lib/runtime-config';
+import type { OrderFileLoader } from '@/components/study-orders/order-file-gallery';
 import {
+    chatterMockFileLoader,
     getStudyOrderChatterMock,
     getStudyOrderFollowerCandidatesMock,
     postStudyOrderMessageMock,
@@ -18,6 +20,7 @@ import {
     getStudyOrderChatter,
     getStudyOrderFollowerCandidates,
     postStudyOrderMessage,
+    studyOrderMessageFileLoader,
     updateStudyOrderFollowers,
 } from '@/services/study-orders';
 import { STUDY_ORDERS_PERMISSIONS } from '@/constants/permissions';
@@ -26,8 +29,8 @@ import type {
     StudyOrderFollower,
     StudyOrderFollowerAction,
     StudyOrderFollowersResult,
-    StudyOrderMessage,
     StudyOrderMessageKind,
+    StudyOrderMessagePostResult,
 } from '@/lib/types';
 
 /** Lo que el chatter le pide al backend, venga de n8n (`live`) o de la demo en el navegador (`mock`). */
@@ -36,7 +39,14 @@ export interface StudyOrderChatterSource {
     /** Permiso de escribir. En la demo no existe todavía STUDY_ORDERS_MESSAGE: alcanza con ver órdenes. */
     canMessage: boolean;
     getChatter: (orderId: string, signal?: AbortSignal) => Promise<StudyOrderChatter>;
-    postMessage: (params: { orderId: string; kind: StudyOrderMessageKind; body: string }) => Promise<StudyOrderMessage>;
+    postMessage: (params: {
+        orderId: string;
+        kind: StudyOrderMessageKind;
+        body: string;
+        files?: File[];
+    }) => Promise<StudyOrderMessagePostResult>;
+    /** Cargador de los adjuntos de un mensaje, para `OrderFileGallery`. */
+    attachmentLoader: (messageId: string) => OrderFileLoader;
     updateFollowers: (params: {
         orderId: string;
         action: StudyOrderFollowerAction;
@@ -53,7 +63,11 @@ const LIVE: Omit<StudyOrderChatterSource, 'mode' | 'canMessage'> = {
     postMessage: postStudyOrderMessage,
     updateFollowers: ({ orderId, action, target }) => updateStudyOrderFollowers({ orderId, action, userId: target?.id }),
     getCandidates: getStudyOrderFollowerCandidates,
+    attachmentLoader: studyOrderMessageFileLoader,
 };
+
+/** Un solo cargador para toda la demo: los archivos están en memoria, por id de adjunto. */
+const MOCK_FILE_LOADER = chatterMockFileLoader();
 
 export function useStudyOrderChatterSource(): StudyOrderChatterSource {
     const mode = useStudyOrderChatterMode();
@@ -88,6 +102,7 @@ export function useStudyOrderChatterSource(): StudyOrderChatterSource {
             postMessage: (params) => postStudyOrderMessageMock(params, viewer, seed),
             updateFollowers: (params) => updateStudyOrderFollowersMock(params, viewer, seed),
             getCandidates: (orderId, signal) => getStudyOrderFollowerCandidatesMock(orderId, seed, signal),
+            attachmentLoader: () => MOCK_FILE_LOADER,
         };
     }, [mode, canMessage, canViewAll, user?.id, user?.name, user?.email, seedMessage, seedNote, clinicAuthor]);
 }

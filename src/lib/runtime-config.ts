@@ -69,7 +69,7 @@ export function getEventPusherUrl(): string {
 
 /**
  * Chatter de las órdenes de estudio (mensajes, notas y seguidores):
- *   - `live`: contra los endpoints de n8n (requiere el script 131 y los workflows del chatter).
+ *   - `live`: contra los endpoints de n8n (requiere el script 132 y los workflows del chatter).
  *   - `mock`: demo con datos de prueba guardados en el navegador; la bitácora es la real.
  *   - `off`: sin chatter, la pestaña Actividad muestra la línea de tiempo de siempre.
  * Sin valor (o con uno desconocido) es `mock`, hasta que el backend esté desplegado.

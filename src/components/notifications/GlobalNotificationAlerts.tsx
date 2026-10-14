@@ -433,8 +433,10 @@ function StudyOrderMessageBody({ item }: { item: StudyOrderMessageNotification }
         {item.authorName && (
           <p className="text-sm font-medium text-foreground">{t('studyOrderMessageFrom', { name: item.authorName })}</p>
         )}
-        {item.excerpt && (
+        {item.excerpt ? (
           <p className="line-clamp-4 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{item.excerpt}</p>
+        ) : item.attachmentCount > 0 && (
+          <p className="text-sm text-muted-foreground">{t('studyOrderMessageAttachments', { count: item.attachmentCount })}</p>
         )}
       </div>
     </div>

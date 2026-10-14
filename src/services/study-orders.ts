@@ -14,8 +14,8 @@ import type {
     StudyOrderFollowerAction,
     StudyOrderFollowersResult,
     StudyOrderFormOptions,
-    StudyOrderMessage,
     StudyOrderMessageKind,
+    StudyOrderMessagePostResult,
     StudyOrderImportStatus,
     StudyOrderListItem,
     StudyOrderReviewStatus,
@@ -246,20 +246,59 @@ export async function getStudyOrderChatter(orderId: string, signal?: AbortSignal
     };
 }
 
-/** Envía un mensaje (avisa a los seguidores) o registra una nota interna. Quien escribe pasa a seguir la orden. */
+/** Adjuntos de un mensaje del chatter. Los mismos límites que valida el flujo de n8n. */
+export const STUDY_ORDER_MESSAGE_LIMITS = {
+    maxFiles: 5,
+    maxBytes: 10 * 1024 * 1024,
+    maxBody: 5000,
+    mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
+} as const;
+
+/**
+ * Envía un mensaje (avisa a los seguidores) o registra una nota interna, con o sin archivos. Quien
+ * escribe pasa a seguir la orden. Si algún archivo no se pudo guardar el mensaje queda igual y
+ * `failed_attachments` dice cuántos.
+ */
 export async function postStudyOrderMessage(params: {
     orderId: string;
     kind: StudyOrderMessageKind;
     body: string;
-}): Promise<StudyOrderMessage> {
-    const raw = await api.post(
-        API_ROUTES.STUDY_ORDERS.MESSAGE_POST,
-        { order_id: params.orderId, kind: params.kind, body: params.body.trim() },
-        undefined,
-        undefined,
-        { timeoutMs: REQUEST_TIMEOUT_MS.mutation },
+    files?: File[];
+}): Promise<StudyOrderMessagePostResult> {
+    // Siempre multipart: el flujo lee los campos de texto igual, haya archivos o no.
+    const form = new FormData();
+    form.append('order_id', params.orderId);
+    form.append('kind', params.kind);
+    form.append('body', params.body.trim());
+    const files = params.files ?? [];
+    files.forEach((file, idx) => form.append(`file${idx}`, file, file.name));
+
+    const raw = await api.post(API_ROUTES.STUDY_ORDERS.MESSAGE_POST, form, undefined, undefined, {
+        // Subir fotos a Drive tarda más que guardar un texto.
+        timeoutMs: files.length > 0 ? REQUEST_TIMEOUT_MS.longRunning : REQUEST_TIMEOUT_MS.mutation,
+    });
+    const data = unwrap<StudyOrderMessagePostResult>(raw).data;
+    return { ...data, attachments: data.attachments ?? [], failed_attachments: Number(data.failed_attachments) || 0 };
+}
+
+/** Adjunto de un mensaje del chatter, como blob. El navegador nunca habla con Drive. */
+export async function getStudyOrderMessageFile(messageId: string, fileId: string, signal?: AbortSignal): Promise<Blob> {
+    // Los adjuntos no cambian: una vez bajados se sirven de la caché.
+    return cachedBlob(
+        studyOrderMessageFileKey(messageId, fileId),
+        (fetchSignal) => api.getBlob(API_ROUTES.STUDY_ORDERS.MESSAGE_FILE, { message_id: messageId, id: fileId }, undefined, { signal: fetchSignal }),
+        signal,
     );
-    return unwrap<StudyOrderMessage>(raw).data;
+}
+
+const studyOrderMessageFileKey = (messageId: string, fileId: string) => `study-order-message:${messageId}:${fileId}`;
+
+/** Cargador de los adjuntos de un mensaje para `OrderFileGallery` (con caché y `peekUrl`). */
+export function studyOrderMessageFileLoader(messageId: string) {
+    return Object.assign(
+        (fileId: string, signal: AbortSignal) => getStudyOrderMessageFile(messageId, fileId, signal),
+        { peekUrl: (fileId: string) => peekBlobUrl(studyOrderMessageFileKey(messageId, fileId)) },
+    );
 }
 
 /** Seguir / dejar de seguir (uno mismo) o sumar / quitar a otro (`userId`, solo la clínica). */

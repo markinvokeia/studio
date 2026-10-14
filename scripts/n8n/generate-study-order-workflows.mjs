@@ -28,7 +28,7 @@ import {
     APPOINTMENT_TECHNICIANS_SQL, ASSIGN_TECHNICIAN_SQL, BOOKING_TOKEN_SQL, LOG_EVENT_SQL, TECHNICIAN_TASKS_SQL, PUBLIC_BOOK_SQL, PUBLIC_DETAIL_SQL, RECONCILE_SQL,
     RECOMPUTE_SQL, RESCHEDULE_SQL, SUBMIT_SQL, UPSERT_SQL,
     RESOLVE_INTAKE_SQL, REVIEW_ITEM_UPDATE_SQL, WHATSAPP_INTAKES_SQL,
-    CHATTER_SQL, FOLLOWER_CANDIDATES_SQL, FOLLOWERS_SQL, MESSAGE_POST_SQL, NOTIFY_FOLLOWERS_SQL,
+    CHATTER_SQL, FOLLOWER_CANDIDATES_SQL, FOLLOWERS_SQL,
 } from './study-orders-sql.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -1028,12 +1028,48 @@ function eventNodes(id, list) {
 /** `event` admite uno o varios renglones de bitácora por operación. */
 const eventList = (wf) => (wf.event ? (Array.isArray(wf.event) ? wf.event : [wf.event]) : []);
 
+/**
+ * IF entre "Notificar" y "Empujar por SSE". Cuando el INSERT de la notificación
+ * no devuelve filas (una nota, o nadie más a quien avisar), el nodo de Postgres
+ * igual emite un ítem `{ success: true }`; sin este filtro, Events recibe
+ * `user_ids: [undefined]` y responde 422. Pasa solo lo que trae `user_id`.
+ */
+const hasRecipientNode = (id, name, position) => ({
+    parameters: {
+        conditions: {
+            options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+            conditions: [{
+                id: `${id}-cond`,
+                leftValue: '={{ !!$json.user_id }}',
+                rightValue: true,
+                operator: { type: 'boolean', operation: 'true', singleValue: true },
+            }],
+            combinator: 'and',
+        },
+        options: {},
+    },
+    type: 'n8n-nodes-base.if',
+    typeVersion: 2.2,
+    position,
+    id,
+    name,
+});
+
+/** Nombres de los nodos de una rama de aviso: únicos si hay más de una. */
+const notifyNames = (list, n) => {
+    const many = list.length > 1;
+    return {
+        notify: many ? `Notificar ${n.to}` : 'Notificar',
+        guard: many ? `¿Hay a quién avisar? ${n.to}` : '¿Hay a quién avisar?',
+        push: many ? `Empujar por SSE ${n.to}` : 'Empujar por SSE',
+    };
+};
+
 function notifyNodes(id, list) {
     return list.flatMap((n, i) => {
         // Nombres únicos y descriptivos: en el editor de n8n se ve a quién le
         // avisa cada rama sin tener que abrir el nodo.
-        const notifyName = list.length > 1 ? `Notificar ${n.to}` : 'Notificar';
-        const pushName = list.length > 1 ? `Empujar por SSE ${n.to}` : 'Empujar por SSE';
+        const { notify: notifyName, guard: guardName, push: pushName } = notifyNames(list, n);
         const y = 220 + i * 180;
         return [
             {
@@ -1050,6 +1086,7 @@ function notifyNodes(id, list) {
                 // Que falle el aviso no puede tumbar la operación, que ya respondió OK.
                 onError: 'continueRegularOutput',
             },
+            hasRecipientNode(`${id}-has-recipient-${i}`, guardName, [1760, y]),
             {
                 parameters: {
                     workflowId: { __rl: true, value: EVENTS_WORKFLOW_ID, mode: 'list', cachedResultName: 'Events' },
@@ -1066,7 +1103,7 @@ function notifyNodes(id, list) {
                 },
                 type: 'n8n-nodes-base.executeWorkflow',
                 typeVersion: 1.2,
-                position: [1760, y],
+                position: [1980, y],
                 id: `${id}-push-${i}`,
                 name: pushName,
                 onError: 'continueRegularOutput',
@@ -1138,6 +1175,7 @@ function reconcileWorkflow() {
                 credentials: PG_CREDENTIAL,
                 onError: 'continueRegularOutput',
             },
+            hasRecipientNode('recon-has-recipient', '¿Hay a quién avisar?', [720, 0]),
             {
                 parameters: {
                     workflowId: { __rl: true, value: EVENTS_WORKFLOW_ID, mode: 'list', cachedResultName: 'Events' },
@@ -1154,7 +1192,7 @@ function reconcileWorkflow() {
                 },
                 type: 'n8n-nodes-base.executeWorkflow',
                 typeVersion: 1.2,
-                position: [720, 0],
+                position: [960, 0],
                 id: 'recon-push',
                 name: 'Empujar por SSE',
                 onError: 'continueRegularOutput',
@@ -1166,7 +1204,8 @@ function reconcileWorkflow() {
                 { node: 'Registrar evento', type: 'main', index: 0 },
                 { node: 'Notificar', type: 'main', index: 0 },
             ]] },
-            Notificar:      { main: [[{ node: 'Empujar por SSE', type: 'main', index: 0 }]] },
+            Notificar:      { main: [[{ node: '¿Hay a quién avisar?', type: 'main', index: 0 }]] },
+            '¿Hay a quién avisar?': { main: [[{ node: 'Empujar por SSE', type: 'main', index: 0 }], []] },
         },
         settings: { executionOrder: 'v1' },
         tags: ['study-orders', 'clinic'],
@@ -1272,7 +1311,7 @@ if (!rows.length || !rows[0].order_id) {
 return [{ json: { __data: rows[0], __message: Number(rows[0].updated) === 1 ? 'Punto actualizado' : 'Puntos actualizados' } }];`),
 });
 
-// ── Chatter: mensajes, notas y seguidores (migración 131) ─────────────────────
+// ── Chatter: mensajes, notas y seguidores (migración 132) ─────────────────────
 const UUID_RE = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
 
 workflows.push({
@@ -1312,54 +1351,8 @@ if (!rows.length || !rows[0].data) {
 return [{ json: { __data: rows[0].data } }];`),
 });
 
-workflows.push({
-    file: 'study-orders-message-post.json',
-    name: 'Study Orders - Message Post',
-    sticky: `## POST /study-orders/messages/post
-
-Escribe en el chatter de la orden.
-
-**Body:** \`{ "order_id": "uuid", "kind": "message" | "note", "body": "texto (1-5000)" }\`
-
-- **message** ("Enviar mensaje"): lo ven todos los que pueden abrir la orden y avisa a cada seguidor menos al autor (notificación \`study_order_message\`, por SSE).
-- **note** ("Registrar nota"): interna de la clínica, requiere STUDY_ORDERS_VIEW_ALL y no avisa a nadie.
-
-Requiere STUDY_ORDERS_MESSAGE y ser el doctor de la orden o tener VIEW_ALL. Quien escribe pasa a seguir la orden.
-
-**409** sin permiso o sin acceso a la orden.`,
-    method: 'POST',
-    path: 'study-orders/messages/post',
-    id: 'msg-post',
-    validate: `
-const userId = $json.jwtPayload?.userId;
-if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
-const b = $json.body || {};
-const orderId = (b.order_id || '').toString().trim();
-if (!${UUID_RE}.test(orderId)) return [{ json: { __error: true, __code: 400, __message: 'order_id es requerido' } }];
-const kind = (b.kind || '').toString().trim();
-if (!['message', 'note'].includes(kind)) {
-  return [{ json: { __error: true, __code: 400, __message: 'kind debe ser message o note' } }];
-}
-const body = (b.body ?? '').toString().trim();
-if (!body) return [{ json: { __error: true, __code: 400, __message: 'El mensaje está vacío' } }];
-if (body.length > 5000) return [{ json: { __error: true, __code: 400, __message: 'El mensaje no puede superar los 5000 caracteres' } }];
-return [{ json: { user_id: String(userId), payload: JSON.stringify({ order_id: orderId, kind, body }) } }];`.trim(),
-    sql: MESSAGE_POST_SQL,
-    replacement: '={{ [ $json.user_id, $json.payload ] }}',
-    notify: {
-        sql: NOTIFY_FOLLOWERS_SQL,
-        to: 'seguidores',
-        replacement: `={{ [ $('Formatear Respuesta').first().json.__data.id ] }}`,
-        eventType: 'study_order_message',
-    },
-    format: formatCode(`
-if (!rows.length || !rows[0].id) {
-  return [{ json: { __error: true, __code: 409,
-    __message: 'No se pudo publicar: no tenés acceso a la orden o permiso para escribir' } }];
-}
-const row = rows[0];
-return [{ json: { __data: row, __message: row.kind === 'note' ? 'Nota registrada' : 'Mensaje enviado' } }];`),
-});
+// POST /study-orders/messages/post (con adjuntos) y GET /study-orders/messages/file no entran en
+// este molde: suben y bajan archivos. Los genera generate-study-order-message-workflows.mjs.
 
 workflows.push({
     file: 'study-orders-followers.json',
@@ -1510,16 +1503,17 @@ for (const wf of workflows) {
                     main: [[
                         ...eventList(wf).map((e) => ({ node: e.name ?? 'Registrar evento', type: 'main', index: 0 })),
                         ...notifyList(wf).map((n) => ({
-                            node: notifyList(wf).length > 1 ? `Notificar ${n.to}` : 'Notificar',
+                            node: notifyNames(notifyList(wf), n).notify,
                             type: 'main', index: 0,
                         })),
                     ]],
                 },
-                ...Object.fromEntries(notifyList(wf).map((n) => {
-                    const many = notifyList(wf).length > 1;
+                // Notificar → ¿Hay a quién avisar? → (sí) Empujar por SSE.
+                ...Object.fromEntries(notifyList(wf).flatMap((n) => {
+                    const names = notifyNames(notifyList(wf), n);
                     return [
-                        many ? `Notificar ${n.to}` : 'Notificar',
-                        { main: [[{ node: many ? `Empujar por SSE ${n.to}` : 'Empujar por SSE', type: 'main', index: 0 }]] },
+                        [names.notify, { main: [[{ node: names.guard, type: 'main', index: 0 }]] }],
+                        [names.guard, { main: [[{ node: names.push, type: 'main', index: 0 }], []] }],
                     ];
                 })),
             }

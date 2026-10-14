@@ -584,8 +584,10 @@ export const API_ROUTES = {
         REVIEW_ITEM_UPDATE: '/study-orders/review-items/update',
         /** Chatter de la orden (GET ?id=): seguidores, mensajes y bitácora. */
         CHATTER:       '/study-orders/chatter',
-        /** Escribe en el chatter: { order_id, kind: 'message' | 'note', body }. */
+        /** Escribe en el chatter (multipart): order_id, kind ('message' | 'note'), body y file0..fileN. */
         MESSAGE_POST:  '/study-orders/messages/post',
+        /** Adjunto de un mensaje del chatter: GET ?message_id=&id= devuelve el archivo. */
+        MESSAGE_FILE:  '/study-orders/messages/file',
         /** Seguir / dejar de seguir, sumar / quitar seguidores: { order_id, action, user_id? }. */
         FOLLOWERS:     '/study-orders/followers',
         /** GET ?id= : a quién se puede sumar como seguidor. */

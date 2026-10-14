@@ -23,11 +23,20 @@
 --   4. Tipo de notificación study_order_message.
 --   5. Backfill de seguidores de las órdenes que ya existen.
 --
+--   Adjuntos (fotos y PDF): no llevan tabla propia. Van a public.attachments, como los originales
+--   de WhatsApp y los de las sesiones clínicas: source_name = 'study_order_message' y
+--   source_id = study_order_messages.id (el índice idx_attachments_source ya cubre la búsqueda).
+--   Los sube /study-orders/messages/post con el subflujo Attachements CRUD (Drive) y los sirve
+--   /study-orders/messages/file, que vuelve a validar el acceso a la orden. Por eso un mensaje
+--   puede no tener texto: alcanza con que traiga archivos (lo valida el endpoint).
+--
 --   El registro de cambios de campos ("Teléfono: 099… → 098…") no necesita DDL: viaja en la
 --   metadata del evento `updated` que ya escribe /study-orders/upsert.
 --
 -- Requiere la 071 (study_orders), la 075 (study_order_events) y la 129 (assigned_to).
 -- Idempotente.
+--
+-- Número: la 131 ya la usa 131_20261014_study-order-intake-link-backfill.sql.
 -- =============================================================================
 
 BEGIN;
@@ -67,7 +76,9 @@ CREATE TABLE IF NOT EXISTS public.study_order_messages (
     created_at     timestamp without time zone NOT NULL DEFAULT (now() AT TIME ZONE 'America/Montevideo'),
 
     CONSTRAINT study_order_messages_kind_check CHECK (kind IN ('message', 'note')),
-    CONSTRAINT study_order_messages_body_check CHECK (length(btrim(body)) BETWEEN 1 AND 5000)
+    -- Puede quedar vacío si el mensaje lleva adjuntos: "texto o archivos" lo exige el endpoint,
+    -- porque los adjuntos viven en otra tabla y se suben después de crear el mensaje.
+    CONSTRAINT study_order_messages_body_check CHECK (length(body) <= 5000)
 );
 
 -- El hilo de una orden, del más nuevo al más viejo.
@@ -76,6 +87,8 @@ CREATE INDEX IF NOT EXISTS idx_study_order_messages_order
 
 COMMENT ON TABLE public.study_order_messages IS
     'Hilo del chatter de la orden de estudio. message = visible para todos los que ven la orden y avisa a los seguidores; note = interna de la clínica (STUDY_ORDERS_VIEW_ALL), sin aviso.';
+COMMENT ON COLUMN public.study_order_messages.body IS
+    'Texto del mensaje (hasta 5000). Vacío solo si trae adjuntos: public.attachments con source_name = ''study_order_message'' y source_id = id.';
 COMMENT ON COLUMN public.study_order_messages.created_at IS
     'Hora de Montevideo, como el resto de las tablas de órdenes.';
 
@@ -178,7 +191,7 @@ BEGIN
      LIMIT 1;
 
     IF con_name IS NULL THEN
-        RAISE NOTICE '[131] notifications no tiene CHECK sobre type: no hace falta ampliarlo.';
+        RAISE NOTICE '[132] notifications no tiene CHECK sobre type: no hace falta ampliarlo.';
         RETURN;
     END IF;
 
@@ -194,7 +207,7 @@ BEGIN
      WHERE NOT (n = ANY (coalesce(valores, ARRAY[]::text[])));
 
     IF faltan IS NULL THEN
-        RAISE NOTICE '[131] % ya admite study_order_message.', con_name;
+        RAISE NOTICE '[132] % ya admite study_order_message.', con_name;
         RETURN;
     END IF;
 
@@ -211,9 +224,9 @@ END $$;
 -- -----------------------------------------------------------------------------
 INSERT INTO public.db_migrations (script_name, version_tag, notes)
 VALUES (
-    '131_20261014_study-order-chatter.sql',
+    '132_20261014_study-order-chatter.sql',
     'v2',
-    'Órdenes de estudio — chatter: study_order_messages, study_order_followers (+ trigger y backfill), permiso STUDY_ORDERS_MESSAGE y notificación study_order_message'
+    'Órdenes de estudio — chatter: study_order_messages (adjuntos en attachments), study_order_followers (+ trigger y backfill), permiso STUDY_ORDERS_MESSAGE y notificación study_order_message'
 )
 ON CONFLICT (script_name) DO UPDATE
     SET applied_at  = NOW(),
@@ -233,6 +246,8 @@ COMMIT;
 -- Rollback manual (borra los mensajes escritos)
 -- =============================================================================
 -- BEGIN;
+-- -- Los archivos quedan en Drive: borrarlos antes con Attachements CRUD si hace falta.
+-- DELETE FROM public.attachments WHERE source_name = 'study_order_message';
 -- DELETE FROM public.notifications WHERE type = 'study_order_message';
 -- -- (el CHECK de notifications puede quedar con el valor de más: no molesta)
 -- DELETE FROM role_permissions WHERE permission_id = (SELECT id FROM permissions WHERE code = 'STUDY_ORDERS_MESSAGE');
@@ -241,5 +256,5 @@ COMMIT;
 -- DROP FUNCTION IF EXISTS public.study_order_auto_follow();
 -- DROP TABLE IF EXISTS public.study_order_messages;
 -- DROP TABLE IF EXISTS public.study_order_followers;
--- DELETE FROM public.db_migrations WHERE script_name = '131_20261014_study-order-chatter.sql';
+-- DELETE FROM public.db_migrations WHERE script_name = '132_20261014_study-order-chatter.sql';
 -- COMMIT;

@@ -641,7 +641,8 @@
     "studyOrderAssignedTitle": "A study order review was assigned to you",
     "studyOrderAssignedBy": "{name} assigned you the review of this order.",
     "studyOrderMessageTitle": "New message on {number}",
-    "studyOrderMessageFrom": "{name} wrote:"
+    "studyOrderMessageFrom": "{name} wrote:",
+    "studyOrderMessageAttachments": "{count, plural, one {# attachment} other {# attachments}}"
   },
   "Header": {
     "toggleLanguage": "Toggle language",
@@ -10668,6 +10669,18 @@
       "messageHintNobody": "Nobody else follows this order: the message stays in the history without notifying anyone.",
       "noteHint": "Internal note: only the clinic can see it and nobody is notified.",
       "shortcut": "Ctrl + Enter to send",
+      "attachments": {
+        "add": "Attach files",
+        "addHint": "Attach photos or PDF (up to {max}, 10 MB each). You can also drag them here or paste a screenshot.",
+        "selected": "Files to send",
+        "remove": "Remove {name}",
+        "count": "{count, plural, one {# attachment} other {# attachments}}",
+        "errorFormat": "Unsupported format: {name}. Use JPG, PNG, WEBP or PDF.",
+        "errorSize": "{name} is empty or larger than 10 MB.",
+        "errorTooMany": "A message can carry up to {max} files.",
+        "partialTitle": "Some files were not attached",
+        "partialDescription": "{count, plural, one {# file could not be saved} other {# files could not be saved}}. The message was posted; send them again in a new message."
+      },
       "follow": "Follow",
       "following": "Following",
       "unfollow": "Unfollow",
