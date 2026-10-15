@@ -5,6 +5,8 @@
 -- body_html guarda SOLO el contenido. La cabecera, el pie y el fondo los agrega
 -- el nodo "Build Email" del flujo n8n "Alert Email Auto-Send" al enviar.
 -- Variables disponibles y diseño: docs/alert-email-auto-send.md
+-- La 7 usa {{confirm_url}} / {{cancel_url}} (botones Confirmar / Cancelar):
+-- requiere database/scripts/134 y el flujo "Appointment Email Action (noauth)".
 --
 -- Actualiza filas existentes (no crea). Revisar y confirmar antes de ejecutar.
 
@@ -16,8 +18,9 @@ SET subject = $tpl$Recordatorio de cita — {{clinic_name}}$tpl$,
 <h1 style="margin:0 0 16px;font-size:22px;line-height:1.3;font-weight:700;color:#0c0520;">Te esperamos</h1>
 <p style="margin:0 0 16px;font-size:14px;line-height:1.6;color:#0c0520;">Hola <strong>{{recipient_name}}</strong>, te recordamos la próxima cita{{for_patient}}:</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate;margin:0 0 24px;background:#faf8fd;border:1px solid #e4e0eb;border-left:3px solid #4b1d95;border-radius:12px;"><tr><td width="50%" style="padding:14px 18px;vertical-align:top;border-bottom:1px solid #efedf3;"><div style="font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#6d6d78;margin:0 0 3px;">Fecha</div><div style="font-size:14px;font-weight:600;color:#0c0520;">{{appointment_date}}</div></td><td width="50%" style="padding:14px 18px;vertical-align:top;border-bottom:1px solid #efedf3;"><div style="font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#6d6d78;margin:0 0 3px;">Hora</div><div style="font-size:14px;font-weight:600;color:#0c0520;">{{appointment_time}}</div></td></tr><tr><td colspan="2" style="padding:14px 18px;vertical-align:top;border-bottom:1px solid #efedf3;"><div style="font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#6d6d78;margin:0 0 3px;">Profesional</div><div style="font-size:14px;font-weight:600;color:#0c0520;">{{doctor_name}}</div></td></tr><tr><td colspan="2" style="padding:14px 18px;vertical-align:top;"><div style="font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#6d6d78;margin:0 0 3px;">Lugar</div><div style="font-size:14px;font-weight:600;color:#0c0520;">{{location}}</div></td></tr></table>
-<p style="margin:0 0 24px;"><a href="{{clinic_phone_link}}" style="display:inline-block;background:#4b1d95;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 22px;border-radius:10px;">Llamar a la clínica</a></p>
-<p style="margin:0;font-size:12px;line-height:1.6;color:#6d6d78;">Si no podés asistir, avisanos con anticipación respondiendo este email.</p>$tpl$,
+<p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:#0c0520;">¿Vas a poder venir? Confirmá tu asistencia o avisanos si no podés, así liberamos el horario.</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;margin:0 0 20px;"><tr><td style="padding:0 8px 8px 0;"><a href="{{confirm_url}}" style="display:inline-block;background:#4b1d95;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 22px;border-radius:10px;">Confirmar asistencia</a></td><td style="padding:0 0 8px 0;"><a href="{{cancel_url}}" style="display:inline-block;background:#ffffff;color:#4b1d95;font-size:14px;font-weight:600;text-decoration:none;padding:11px 21px;border:1px solid #d9d0ea;border-radius:10px;">Cancelar cita</a></td></tr></table>
+<p style="margin:0;font-size:12px;line-height:1.6;color:#6d6d78;">Si necesitás cambiar el día u horario, respondé este email y lo coordinamos.</p>$tpl$,
     body_text = NULL,
     updated_at = now()
 WHERE id = 7 AND code = 'APPT_REMINDER_24H';

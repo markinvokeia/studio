@@ -66,3 +66,39 @@ UPDATE public.alert_rules SET auto_send_email = true, updated_at = now() WHERE i
 3. Importar `Alert Scheduler.json` y en `Send Alert Email` elegir el flujo *Alert Email Auto-Send* (el JSON trae el placeholder `REPLACE_WITH_ALERT_EMAIL_AUTO_SEND_ID`).
 4. Ejecutar el SQL 1–3, probar con `POST /system/alert-scheduler` (MANUAL) y revisar `alert_actions` (`SEND_EMAIL`).
 5. Quitar el modo prueba (`alert_email_test_mode_enabled = 'false'`) y ejecutar el SQL 4.
+
+## Botones Confirmar / Cancelar (recordatorio de cita)
+
+La plantilla 7 lleva dos botones que cambian el estado de la cita sin que el paciente inicie sesión.
+
+**Por qué no es un GET directo.** Outlook Safe Links, Proofpoint, Mimecast y varios antivirus abren con GET los enlaces de los correos para revisarlos. Si ese GET confirmara o cancelara, habría citas canceladas sin que nadie haga clic. Por eso:
+
+1. El botón abre `{WEBHOOK_URL}/webhook/appointments/email-action_noauth?t=<token>&a=confirm|cancel`.
+2. Ese **GET no toca la base**: devuelve una página que, al cargarse, hace el **POST** por JavaScript y muestra el resultado. Para el paciente es un solo clic. Sin JavaScript, la página muestra un botón (formulario POST).
+3. El **POST** valida el token y cambia el estado.
+
+**Token.** 32 bytes aleatorios (base64url), uno por email y válido para las dos acciones. En `appointment_action_tokens` se guarda solo su sha256, junto con el vencimiento, la última acción usada y la IP / user-agent de quien la usó. Vence al inicio de la cita menos `appointment_email_actions_cutoff_hours` (`system_configurations`, default `0`).
+
+**Reglas** (`Apply Email Action`, una sola sentencia que bloquea el token y la cita):
+
+| Acción | Desde | Resultado |
+|---|---|---|
+| confirm | pending / scheduled | `confirmed` |
+| cancel | pending / scheduled / confirmed | `cancelled`, motivo `in_time` |
+| la misma acción otra vez | — | "ya estaba…", sin cambios |
+| cualquier otro estado (cancelada, atendida, ausente…) | — | "no se puede desde el email" |
+| token vencido / inexistente | — | "este enlace venció" / "enlace no válido" |
+
+Cada cambio queda en `appointment_status_log` (`changed_by` = paciente, nota con la IP) y como `NOTE` en `alert_actions` de la alerta. Después se emite `calendar_changed` (la agenda se actualiza en vivo) y, si fue una cancelación, una notificación HIGH al profesional. Igual que `appointments/update_status`, **no sincroniza con Google Calendar**.
+
+Una cita ya confirmada recibe solo el botón "Cancelar". Si la cita ya está fuera de plazo, o n8n no tiene `WEBHOOK_URL`, los botones se quitan del email. Si el token no se puede guardar, el email no se envía y queda un `SEND_EMAIL`/`FAILED`.
+
+**Riesgo residual.** Un escáner que ejecute JavaScript (algunos sandboxes lo hacen) podría disparar el POST. Cada uso guarda IP y user-agent en `appointment_action_tokens` para poder detectarlo. Si aparece, la salida es que "Cancelar" pida un segundo clic en la página (`Render Landing`).
+
+### Despliegue
+
+1. Ejecutar `database/scripts/134_20261015_appointment-email-actions.sql`.
+2. Importar `docs/n8n-flows/Appointment Email Action (noauth).json` y **activarlo** (es público, sin JWT).
+3. Reimportar `docs/n8n-flows/Alert Email Auto-Send.json` (nodos nuevos `Store Action Token`, `Check Action Token`, `Token OK?`; volver a elegir la credencial Gmail).
+4. Reejecutar `docs/sql/alert-email-templates.sql` (la plantilla 7 cambia el botón "Llamar" por Confirmar / Cancelar).
+5. Probar con el modo prueba de email activo: abrir los dos enlaces y revisar `appointment_status_log`, `appointment_action_tokens` y la agenda.

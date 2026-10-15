@@ -1,0 +1,721 @@
+{
+  "name": "Appointment Email Action (noauth)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Appointment Email Action (noauth)\n\nBotones **Confirmar / Cancelar** del email de recordatorio de cita (regla 6, plantilla 7, flujo *Alert Email Auto-Send*).\n\n**Enlace**: `{WEBHOOK_URL}/webhook/appointments/email-action_noauth?t=<token>&a=confirm|cancel`. El token (32 bytes base64url) lo genera *Alert Email Auto-Send*; en `appointment_action_tokens` solo está su sha256.\n\n**GET** → no toca la base. Devuelve una página que hace el POST sola con JavaScript (un clic para el paciente). Los escáneres de correo (Outlook Safe Links, Proofpoint, antivirus) abren los enlaces con GET: si el GET cambiara el estado, cancelarían citas sin que el paciente haga nada. Sin JavaScript la página muestra un botón (formulario POST).\n\n**POST** `{ token, action }` (JSON desde la página, o form-urlencoded) → `Apply Email Action`: una sola sentencia que bloquea token y cita, valida vencimiento y estado, actualiza `appointments`, escribe `appointment_status_log` (changed_by = paciente, nota con la IP), marca el token (última acción, IP, user-agent) y deja una NOTE en `alert_actions`.\n- confirm: pending/scheduled → confirmed. cancel: pending/scheduled/confirmed → cancelled (`in_time`).\n- Repetir la acción = \"ya estaba…\", sin cambios. Vencido (`expires_at` = inicio − `appointment_email_actions_cutoff_hours`) = \"este enlace venció\".\n- Respuesta: JSON `{ outcome, title, card_html }` para fetch; página completa para el formulario.\n\n**Después de responder** (solo si cambió el estado): `calendar_changed` por SSE (la agenda se actualiza en vivo) y, si fue cancelación, notificación HIGH al profesional + push.\n\n**Limitación**: igual que `appointments/update_status`, no sincroniza con Google Calendar.\n\n**Import**: es público (sin JWT, sufijo `_noauth`). Los dos webhooks comparten path con distinto método.",
+        "height": 760,
+        "width": 620,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -700,
+        -420
+      ],
+      "id": "59856147-4991-437e-a6f1-0f184aea78ab",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "path": "appointments/email-action_noauth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        -200
+      ],
+      "id": "48aa4474-01f7-4a9d-a8c0-60fa27b95fc2",
+      "name": "GET email-action",
+      "webhookId": "3a1eccab-ba43-4650-bebc-21fe60631a14"
+    },
+    {
+      "parameters": {
+        "jsCode": "// GET del botón del email. NO toca la base: los escáneres de correo\n// (Outlook Safe Links, Proofpoint, antivirus) abren los enlaces con GET para\n// revisarlos, y si este GET confirmara o cancelara, cancelarían citas solos.\n// Devuelve una página que hace el POST por JavaScript al cargarse: para el\n// paciente es un solo clic. Sin JavaScript, la página muestra el botón.\nconst q = $input.first().json.query || {};\nconst token = String(q.t || '').trim();\nconst action = String(q.a || '').trim().toLowerCase();\nconst LABEL = { confirm: 'Confirmar mi cita', cancel: 'Cancelar mi cita' };\n\nconst esc = (s) => String(s ?? '')\n  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')\n  .replace(/\"/g, '&quot;').replace(/'/g, '&#39;');\n\n// Mismos colores que los emails: fondo lila gris, tarjeta blanca, acento violeta.\nconst page = (title, cardHtml, script) => `<!doctype html>\n<html lang=\"es\"><head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<meta name=\"robots\" content=\"noindex,nofollow\">\n<title>${esc(title)}</title>\n<style>\n  *{box-sizing:border-box}\n  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:#f2f0f5;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;color:#0c0520}\n  .card{width:100%;max-width:460px;background:#fff;border:1px solid #e4e0eb;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(30,27,75,.08)}\n  .bar{height:4px;background:#7a3fd9}\n  .body{padding:28px 24px;text-align:center}\n  .icon{width:56px;height:56px;margin:0 auto 16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700}\n  .ok{background:#e7f6ec;color:#1f7a3d}.warn{background:#fdf1e3;color:#a35a00}.bad{background:#fbe9ec;color:#b42339}.info{background:#f0eafb;color:#4b1d95}\n  .eyebrow{margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#4b1d95}\n  h1{margin:0 0 10px;font-size:22px;line-height:1.3}\n  p{margin:0 0 16px;font-size:14px;line-height:1.6;color:#3b3654}\n  .details{margin:20px 0;text-align:left;background:#faf8fd;border:1px solid #e4e0eb;border-left:3px solid #4b1d95;border-radius:12px}\n  .row{padding:10px 16px;border-bottom:1px solid #efedf3}.row:last-child{border-bottom:0}\n  .lbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6d6d78}\n  .val{font-size:14px;font-weight:600;margin-top:2px}\n  .btn{display:inline-block;border:0;cursor:pointer;background:#4b1d95;color:#fff;font-family:inherit;font-size:14px;font-weight:600;line-height:1;text-decoration:none;padding:13px 22px;border-radius:10px}\n  .btn.secondary{background:#fff;color:#4b1d95;border:1px solid #d9d0ea}\n  .muted{font-size:12px;color:#6d6d78;margin:16px 0 0}\n  .spinner{width:36px;height:36px;margin:8px auto 18px;border:3px solid #e4e0eb;border-top-color:#4b1d95;border-radius:50%;animation:spin .8s linear infinite}\n  @keyframes spin{to{transform:rotate(360deg)}}\n</style>\n</head><body>\n<main class=\"card\" aria-live=\"polite\"><div class=\"bar\"></div><div class=\"body\" id=\"card\">${cardHtml}</div></main>\n${script || ''}\n</body></html>`;\n\n// Formulario que hace el POST sin JavaScript (noscript y \"Reintentar\").\nconst postForm = (token, action, label, secondary) => `<form method=\"post\" action=\"\" style=\"margin:0\">\n<input type=\"hidden\" name=\"token\" value=\"${esc(token)}\"><input type=\"hidden\" name=\"action\" value=\"${esc(action)}\">\n<button type=\"submit\" class=\"btn${secondary ? ' secondary' : ''}\">${esc(label)}</button></form>`;\n\nif (!/^[A-Za-z0-9_-]{20,128}$/.test(token) || !LABEL[action]) {\n  const card = `<div class=\"icon bad\">!</div><h1>Enlace no válido</h1>\n<p>El enlace está incompleto. Abrilo de nuevo desde el botón del email o comunicate con la clínica.</p>`;\n  return [{ json: { html: page('Enlace no válido', card, '') } }];\n}\n\nconst verb = action === 'confirm' ? 'Confirmando' : 'Cancelando';\nconst card = `<div class=\"spinner\" role=\"status\" aria-label=\"${verb}\"></div>\n<h1>${verb} tu cita…</h1>\n<p>Esto tarda unos segundos.</p>\n<noscript><p>Tu navegador no ejecuta JavaScript. Tocá el botón para continuar.</p>${postForm(token, action, LABEL[action], action === 'cancel')}</noscript>`;\n\n// token y action ya pasaron por la regex/lista de arriba: no traen comillas ni <.\nconst script = `<script>\n(function () {\n  var card = document.getElementById('card');\n  var payload = { token: ${JSON.stringify(token)}, action: ${JSON.stringify(action)} };\n  var ctrl = window.AbortController ? new AbortController() : null;\n  var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 20000);\n  function failed() {\n    clearTimeout(timer);\n    card.innerHTML = '<div class=\"icon bad\">!</div><h1>No pudimos procesar tu respuesta</h1>'\n      + '<p>Revisá tu conexión e intentá de nuevo.</p>'\n      + ${JSON.stringify(postForm(token, action, 'Reintentar', false))};\n  }\n  fetch(window.location.pathname, {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },\n    body: JSON.stringify(payload),\n    credentials: 'omit',\n    signal: ctrl ? ctrl.signal : undefined\n  }).then(function (r) { return r.json(); }).then(function (d) {\n    clearTimeout(timer);\n    if (!d || !d.card_html) return failed();\n    card.innerHTML = d.card_html;\n    if (d.title) document.title = d.title;\n  }).catch(failed);\n})();\n</script>`;\n\nreturn [{ json: { html: page('Tu cita', card, script) } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        -200
+      ],
+      "id": "4efca8b0-d73f-4d5e-a1e5-4c2005703ced",
+      "name": "Render Landing"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              },
+              {
+                "name": "Referrer-Policy",
+                "value": "no-referrer"
+              },
+              {
+                "name": "X-Robots-Tag",
+                "value": "noindex, nofollow"
+              },
+              {
+                "name": "X-Frame-Options",
+                "value": "DENY"
+              },
+              {
+                "name": "Content-Security-Policy",
+                "value": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; img-src data:; base-uri 'none'; frame-ancestors 'none'"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        440,
+        -200
+      ],
+      "id": "f04d4f62-77b4-4f31-bff0-aa47132981a9",
+      "name": "Respond Landing"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "appointments/email-action_noauth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        200
+      ],
+      "id": "55e5851d-184f-48b4-96de-6ec3d6973b31",
+      "name": "POST email-action",
+      "webhookId": "dc7bb6ca-2434-48b7-8dfc-0151082b9eb9"
+    },
+    {
+      "parameters": {
+        "jsCode": "// POST de la página (fetch JSON) o del formulario sin JavaScript\n// (x-www-form-urlencoded). El token en claro solo vive en esta ejecución:\n// a la base se le pregunta por su sha256.\nconst crypto = require('crypto');\nconst req = $input.first().json;\nconst b = req.body || {};\nconst h = req.headers || {};\n\nconst token = String(b.token || '').trim();\nconst action = String(b.action || '').trim().toLowerCase();\nconst contentType = String(h['content-type'] || '').toLowerCase();\n// fetch manda JSON y espera JSON; el formulario espera una página.\nconst wantsHtml = !contentType.includes('application/json');\n\nconst ip = String(h['x-forwarded-for'] || h['x-real-ip'] || '').split(',')[0].trim().slice(0, 100);\nconst ua = String(h['user-agent'] || '').slice(0, 500);\n\nconst valid = /^[A-Za-z0-9_-]{20,128}$/.test(token) && ['confirm', 'cancel'].includes(action);\n\nreturn [{ json: {\n  token,\n  action: valid ? action : '',\n  // Hash vacío = la consulta responde 'invalid' sin buscar nada.\n  token_hash: valid ? crypto.createHash('sha256').update(token).digest('hex') : '',\n  ip,\n  ua,\n  wants_html: wantsHtml,\n} }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        200
+      ],
+      "id": "73689475-add2-4096-84ac-f013ecc65751",
+      "name": "Parse Request"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- $1 sha256 del token  $2 acción (confirm | cancel)  $3 IP  $4 user-agent\n--\n-- Valida el token y cambia el estado en una sola sentencia. Bloquea la fila\n-- del token y la de la cita: dos clics seguidos (o el formulario y el fetch a\n-- la vez) no pueden aplicar el cambio dos veces.\n--\n-- Reglas:\n--   confirm: pending | scheduled -> confirmed\n--   cancel:  pending | scheduled | confirmed -> cancelled (motivo in_time)\n--   misma acción sobre una cita ya en ese estado -> 'already' (sin cambios)\n--   token vencido (expires_at, hora de pared de la clínica) -> 'expired'\n--   cualquier otro estado (cancelada, atendida, ausente…) -> 'not_allowed'\n--\n-- Siempre devuelve una fila (aunque el token no exista) con los datos de la\n-- clínica, para que la página pueda ofrecer el teléfono.\nWITH req AS (\n    SELECT NULLIF($1::text, '') AS token_hash,\n           NULLIF($2::text, '') AS action,\n           NULLIF($3::text, '') AS ip,\n           NULLIF($4::text, '') AS ua,\n           (now() AT TIME ZONE 'America/Montevideo') AS now_local\n),\ntok AS (\n    SELECT t.id AS token_id, t.appointment_id, t.alert_instance_id, t.expires_at, t.revoked_at,\n           a.status AS current_status, a.patient_id\n      FROM public.appointment_action_tokens t\n      JOIN public.appointments a ON a.id = t.appointment_id\n      JOIN req ON req.token_hash = t.token_hash\n       FOR UPDATE OF t, a\n),\nd AS (\n    SELECT req.action, tok.*,\n           CASE\n             WHEN tok.token_id IS NULL OR req.action IS NULL OR tok.revoked_at IS NOT NULL THEN 'invalid'\n             WHEN tok.expires_at <= req.now_local THEN 'expired'\n             WHEN req.action = 'confirm' AND tok.current_status = 'confirmed' THEN 'already'\n             WHEN req.action = 'cancel'  AND tok.current_status = 'cancelled' THEN 'already'\n             WHEN req.action = 'confirm' AND tok.current_status IN ('pending', 'scheduled') THEN 'apply'\n             WHEN req.action = 'cancel'  AND tok.current_status IN ('pending', 'scheduled', 'confirmed') THEN 'apply'\n             ELSE 'not_allowed'\n           END AS outcome,\n           CASE WHEN req.action = 'confirm' THEN 'confirmed' ELSE 'cancelled' END AS to_status\n      FROM req\n      LEFT JOIN tok ON true\n),\nupd AS (\n    UPDATE public.appointments a\n       SET status              = d.to_status,\n           cancellation_reason = CASE WHEN d.to_status = 'cancelled' THEN 'in_time' END,\n           cancellation_note   = CASE WHEN d.to_status = 'cancelled' THEN 'Cancelada por el paciente desde el email de recordatorio' END,\n           updated_by          = d.patient_id,\n           updated_at          = now()\n      FROM d\n     WHERE d.outcome = 'apply'\n       AND a.id = d.appointment_id\n       AND a.status = d.current_status\n    RETURNING a.id\n),\nlog AS (\n    INSERT INTO public.appointment_status_log\n           (appointment_id, from_status, to_status, cancellation_reason, cancellation_note, changed_by, note)\n    SELECT d.appointment_id::text, d.current_status, d.to_status,\n           CASE WHEN d.to_status = 'cancelled' THEN 'in_time' END,\n           CASE WHEN d.to_status = 'cancelled' THEN 'Cancelada por el paciente desde el email de recordatorio' END,\n           d.patient_id::text,\n           'Paciente desde el email de recordatorio' || COALESCE(' · IP ' || req.ip, '')\n      FROM d\n      JOIN upd ON upd.id = d.appointment_id\n     CROSS JOIN req\n    RETURNING id\n),\ntok_upd AS (\n    UPDATE public.appointment_action_tokens t\n       SET use_count       = t.use_count + 1,\n           last_action     = d.action,\n           last_used_at    = now(),\n           last_ip         = req.ip,\n           last_user_agent = req.ua\n      FROM d, req\n     WHERE t.id = d.token_id\n       AND d.outcome IN ('apply', 'already')\n    RETURNING t.id\n),\nact AS (\n    -- Queda en el historial de la alerta. 'NOTE' porque alert_actions no tiene\n    -- (por CHECK) un tipo propio para respuestas del paciente.\n    INSERT INTO public.alert_actions\n           (alert_instance_id, action_type, action_data, result_status, result_message, performed_by, performed_at)\n    SELECT d.alert_instance_id, 'NOTE',\n           jsonb_build_object('source', 'email_link', 'action', d.action, 'appointment_id', d.appointment_id,\n                              'from_status', d.current_status, 'to_status', d.to_status, 'ip', req.ip),\n           'SUCCESS',\n           CASE WHEN d.action = 'confirm' THEN 'El paciente confirmó la cita desde el email'\n                ELSE 'El paciente canceló la cita desde el email' END,\n           NULL, now()\n      FROM d\n      JOIN upd ON upd.id = d.appointment_id\n     CROSS JOIN req\n     WHERE d.alert_instance_id IS NOT NULL\n    RETURNING id\n)\nSELECT\n    -- 'apply' sin fila actualizada = otro cambio de estado se metió en el medio.\n    CASE WHEN d.outcome = 'apply' AND NOT EXISTS (SELECT 1 FROM upd) THEN 'retry' ELSE d.outcome END AS outcome,\n    EXISTS (SELECT 1 FROM upd) AS applied,\n    d.action,\n    d.to_status,\n    d.current_status AS previous_status,\n    d.appointment_id,\n    CASE WHEN d.outcome <> 'invalid' THEN to_char(a.start_datetime, 'YYYY-MM-DD') END AS date_iso,\n    CASE WHEN d.outcome <> 'invalid' THEN to_char(a.start_datetime, 'HH24:MI') END AS time,\n    CASE WHEN d.outcome <> 'invalid' THEN doc.name END AS doctor_name,\n    CASE WHEN d.outcome <> 'invalid' THEN s.name END AS sede_name,\n    CASE WHEN d.outcome <> 'invalid' THEN s.address END AS sede_address,\n    c.name AS clinic_name,\n    c.phone AS clinic_phone,\n    c.email AS clinic_email\n  FROM d\n  LEFT JOIN public.appointments a ON a.id = d.appointment_id\n  LEFT JOIN public.users doc ON doc.id = a.assignee_id\n  LEFT JOIN public.calendar_sources cs ON cs.id = a.calendar_source_id\n  LEFT JOIN public.sedes s ON s.id = cs.sede_id\n  LEFT JOIN LATERAL (SELECT name, phone, email FROM public.clinic ORDER BY id LIMIT 1) c ON true;",
+        "options": {
+          "queryReplacement": "={{ [ $json.token_hash, $json.action, $json.ip, $json.ua ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        440,
+        200
+      ],
+      "id": "24952722-c7a7-455f-a85a-c1e7abe3e3e0",
+      "name": "Apply Email Action",
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma lo que ve el paciente. Para fetch: JSON { outcome, title, card_html }.\n// Para el formulario sin JavaScript: la página entera.\nconst parsed = $('Parse Request').first().json;\nconst rows = $input.all().map((i) => i.json).filter((r) => r && r.outcome);\nconst r = rows[0] || { outcome: 'error' };\n\nconst esc = (s) => String(s ?? '')\n  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')\n  .replace(/\"/g, '&quot;').replace(/'/g, '&#39;');\n\n// Mismos colores que los emails: fondo lila gris, tarjeta blanca, acento violeta.\nconst page = (title, cardHtml, script) => `<!doctype html>\n<html lang=\"es\"><head>\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n<meta name=\"robots\" content=\"noindex,nofollow\">\n<title>${esc(title)}</title>\n<style>\n  *{box-sizing:border-box}\n  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:#f2f0f5;font-family:'Plus Jakarta Sans',Arial,Helvetica,sans-serif;color:#0c0520}\n  .card{width:100%;max-width:460px;background:#fff;border:1px solid #e4e0eb;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(30,27,75,.08)}\n  .bar{height:4px;background:#7a3fd9}\n  .body{padding:28px 24px;text-align:center}\n  .icon{width:56px;height:56px;margin:0 auto 16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700}\n  .ok{background:#e7f6ec;color:#1f7a3d}.warn{background:#fdf1e3;color:#a35a00}.bad{background:#fbe9ec;color:#b42339}.info{background:#f0eafb;color:#4b1d95}\n  .eyebrow{margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#4b1d95}\n  h1{margin:0 0 10px;font-size:22px;line-height:1.3}\n  p{margin:0 0 16px;font-size:14px;line-height:1.6;color:#3b3654}\n  .details{margin:20px 0;text-align:left;background:#faf8fd;border:1px solid #e4e0eb;border-left:3px solid #4b1d95;border-radius:12px}\n  .row{padding:10px 16px;border-bottom:1px solid #efedf3}.row:last-child{border-bottom:0}\n  .lbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6d6d78}\n  .val{font-size:14px;font-weight:600;margin-top:2px}\n  .btn{display:inline-block;border:0;cursor:pointer;background:#4b1d95;color:#fff;font-family:inherit;font-size:14px;font-weight:600;line-height:1;text-decoration:none;padding:13px 22px;border-radius:10px}\n  .btn.secondary{background:#fff;color:#4b1d95;border:1px solid #d9d0ea}\n  .muted{font-size:12px;color:#6d6d78;margin:16px 0 0}\n  .spinner{width:36px;height:36px;margin:8px auto 18px;border:3px solid #e4e0eb;border-top-color:#4b1d95;border-radius:50%;animation:spin .8s linear infinite}\n  @keyframes spin{to{transform:rotate(360deg)}}\n</style>\n</head><body>\n<main class=\"card\" aria-live=\"polite\"><div class=\"bar\"></div><div class=\"body\" id=\"card\">${cardHtml}</div></main>\n${script || ''}\n</body></html>`;\n\n// Formulario que hace el POST sin JavaScript (noscript y \"Reintentar\").\nconst postForm = (token, action, label, secondary) => `<form method=\"post\" action=\"\" style=\"margin:0\">\n<input type=\"hidden\" name=\"token\" value=\"${esc(token)}\"><input type=\"hidden\" name=\"action\" value=\"${esc(action)}\">\n<button type=\"submit\" class=\"btn${secondary ? ' secondary' : ''}\">${esc(label)}</button></form>`;\n\nconst longDate = (iso) => {\n  if (!iso) return '';\n  const d = new Date(`${iso}T12:00:00Z`);\n  if (isNaN(d.getTime())) return iso;\n  const s = d.toLocaleDateString('es-UY', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });\n  return s.charAt(0).toUpperCase() + s.slice(1);\n};\n\nconst row = (label, value) => value\n  ? `<div class=\"row\"><div class=\"lbl\">${esc(label)}</div><div class=\"val\">${esc(value)}</div></div>`\n  : '';\nconst details = r.date_iso\n  ? `<div class=\"details\">${row('Fecha', longDate(r.date_iso))}${row('Hora', r.time)}${row('Profesional', r.doctor_name)}${row('Lugar', [r.sede_name, r.sede_address].filter(Boolean).join(' — '))}</div>`\n  : '';\n\nconst phone = String(r.clinic_phone || '').replace(/[^\\d+]/g, '');\nconst contact = phone\n  ? `<a class=\"btn secondary\" href=\"tel:${esc(phone)}\">Llamar a la clínica</a>`\n  : (r.clinic_email ? `<a class=\"btn secondary\" href=\"mailto:${esc(r.clinic_email)}\">Escribir a la clínica</a>` : '');\nconst clinicLine = r.clinic_name ? `<p class=\"muted\">${esc(r.clinic_name)}</p>` : '';\n\nconst isConfirm = (r.action || parsed.action) === 'confirm';\nconst verbInf = isConfirm ? 'confirmar' : 'cancelar';\n\nlet icon = 'info', mark = 'i', eyebrow = '', title = '', text = '', extra = '';\nswitch (r.outcome) {\n  case 'apply':\n    if (isConfirm) {\n      icon = 'ok'; mark = '✓'; eyebrow = 'Cita confirmada';\n      title = '¡Gracias! Te esperamos';\n      text = 'Tu cita quedó confirmada.';\n    } else {\n      icon = 'warn'; mark = '✕'; eyebrow = 'Cita cancelada';\n      title = 'Cancelamos tu cita';\n      text = 'Gracias por avisar: el horario queda libre para otra persona. Si querés agendar una nueva cita, comunicate con la clínica.';\n      extra = contact;\n    }\n    break;\n  case 'already':\n    icon = isConfirm ? 'ok' : 'info'; mark = isConfirm ? '✓' : 'i';\n    title = isConfirm ? 'Tu cita ya estaba confirmada' : 'Tu cita ya estaba cancelada';\n    text = isConfirm ? 'No hace falta hacer nada más. Te esperamos.' : 'Si querés agendar una nueva cita, comunicate con la clínica.';\n    if (!isConfirm) extra = contact;\n    break;\n  case 'expired':\n    icon = 'warn'; mark = '!';\n    title = 'Este enlace venció';\n    text = `Ya no se puede ${verbInf} la cita desde el email. Si necesitás hacer un cambio, comunicate con la clínica.`;\n    extra = contact;\n    break;\n  case 'not_allowed':\n    icon = 'warn'; mark = '!';\n    if (isConfirm && r.previous_status === 'cancelled') {\n      title = 'Esta cita está cancelada';\n      text = 'No se puede confirmar desde el email. Si querés agendar una nueva cita, comunicate con la clínica.';\n    } else {\n      title = `Esta cita ya no se puede ${verbInf} desde el email`;\n      text = 'Si necesitás hacer un cambio, comunicate con la clínica.';\n    }\n    extra = contact;\n    break;\n  case 'invalid':\n    icon = 'bad'; mark = '!';\n    title = 'Enlace no válido';\n    text = 'El enlace no es válido o ya no está disponible. Si necesitás hacer un cambio, comunicate con la clínica.';\n    extra = contact;\n    break;\n  default: // 'retry' o error de la base\n    icon = 'bad'; mark = '!';\n    title = 'No pudimos procesar tu respuesta';\n    text = 'Intentá de nuevo en unos minutos o comunicate con la clínica.';\n    extra = parsed.action ? postForm(parsed.token, parsed.action, 'Reintentar', false) : contact;\n}\n\nconst showDetails = ['apply', 'already', 'expired', 'not_allowed'].includes(r.outcome);\nconst cardHtml = `<div class=\"icon ${icon}\">${mark}</div>\n${eyebrow ? `<p class=\"eyebrow\">${esc(eyebrow)}</p>` : ''}<h1>${esc(title)}</h1>\n<p>${esc(text)}</p>\n${showDetails ? details : ''}${extra}${clinicLine}`;\n\nreturn [{ json: {\n  wants_html: parsed.wants_html === true,\n  outcome: r.outcome,\n  applied: r.applied === true,\n  action: r.action || parsed.action,\n  appointment_id: r.appointment_id || null,\n  previous_status: r.previous_status || null,\n  title,\n  card_html: cardHtml,\n  html: page(title, cardHtml, ''),\n} }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        200
+      ],
+      "id": "bd169a6d-eaac-4f7c-a29a-eb057974d60d",
+      "name": "Build Result"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9b0575bf-3404-4f10-81fd-a20955b27f3a",
+              "leftValue": "={{ $json.wants_html }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        100
+      ],
+      "id": "7974f4ba-a960-4836-b79a-14c3dd5dbe98",
+      "name": "Wants HTML?"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              },
+              {
+                "name": "Referrer-Policy",
+                "value": "no-referrer"
+              },
+              {
+                "name": "X-Robots-Tag",
+                "value": "noindex, nofollow"
+              },
+              {
+                "name": "X-Frame-Options",
+                "value": "DENY"
+              },
+              {
+                "name": "Content-Security-Policy",
+                "value": "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; img-src data:; base-uri 'none'; frame-ancestors 'none'"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        0
+      ],
+      "id": "11ed783b-0a4c-4602-a7fe-2cb722b32864",
+      "name": "Respond Page"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ outcome: $json.outcome, title: $json.title, card_html: $json.card_html }) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Cache-Control",
+                "value": "no-store"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        200
+      ],
+      "id": "927eea87-329a-411a-9b88-321519495172",
+      "name": "Respond JSON"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "9f17ec38-4fd0-4986-aeae-15fbabe15922",
+              "leftValue": "={{ $json.applied }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        420
+      ],
+      "id": "22bcc2c6-626d-46a0-ae50-63be576c963b",
+      "name": "Status Changed?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  p.*,\n  d.name AS doctor_name,\n  pa.name AS patient_name,\n  COALESCE(jsonb_agg(jsonb_build_object('id', sc.id, 'name', sc.name, 'price', sc.price)) FILTER (WHERE sc.id IS NOT NULL), '[]'::jsonb) AS services\nFROM public.appointments p\nLEFT JOIN public.users d ON p.assignee_id = d.id\nLEFT JOIN public.users pa ON p.patient_id = pa.id\nLEFT JOIN public.appointment_service_catalog ascat ON ascat.appointment_id = p.id\nLEFT JOIN public.service_catalog sc ON ascat.service_id = sc.id\nWHERE p.id = $1::int\nGROUP BY p.id, d.name, pa.name",
+        "options": {
+          "queryReplacement": "={{ $('Build Result').first().json.appointment_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1100,
+        420
+      ],
+      "id": "57204dc2-f8af-4d03-9383-3501a57d367b",
+      "name": "Get appointment data",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
+          "cachedResultName": "Events"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "calendar_changed",
+            "user_ids": "={{ [] }}",
+            "channels": "={{ $json.calendar_source_id ? [\"appointments\", \"calendar:\" + $json.calendar_source_id] : [\"appointments\"] }}",
+            "payload": "={{ Object.assign({}, $json, { action: \"status_change\", event_type: \"calendar_changed\", appointment_id: $json.id, start: $json.start_datetime, end: $json.end_datetime }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_ids",
+              "displayName": "user_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "channels",
+              "displayName": "channels",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1320,
+        320
+      ],
+      "id": "e46e4e6c-af78-4a54-ba47-4096db2de8b7",
+      "name": "Push calendar_changed (status)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1d1b7281-2351-497e-9afa-8791e75bc891",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "cancelled",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        520
+      ],
+      "id": "f268110b-2ea8-4655-81e6-bcbbdb0bd686",
+      "name": "Cancelled?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Aviso al profesional de la cita: una cancelación del paciente libera un\n-- horario que la clínica puede reasignar. Sin el filtro \"solo citas de hoy\"\n-- del flujo de estados: el email llega el día anterior.\n-- RETURNING *: la fila entera es lo que viaja por SSE y normaliza el frontend.\nINSERT INTO public.notifications (\n  user_id, type, status, priority, appointment_id, session_id, patient_id, metadata, created_at, read_at\n)\nSELECT NULLIF($1::text, '')::uuid, 'appointment_status_change', 'pending', 'HIGH', $2::int, NULL,\n       NULLIF($3::text, '')::uuid, $4::jsonb, now(), NULL\nWHERE NULLIF($1::text, '') IS NOT NULL\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ [ $json.assignee_id || '', $json.id, $json.patient_id || '', JSON.stringify(Object.assign({}, $json, { previous_status: $('Build Result').first().json.previous_status, changed_via: 'email' })) ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1540,
+        520
+      ],
+      "id": "656cb082-b40e-4afa-830a-b9b1731647f7",
+      "name": "Insert Cancel Notification",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "99e67adf-f524-4698-a2b2-f7384e465ef9",
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1760,
+        520
+      ],
+      "id": "d0e1e4e4-9128-401b-9817-06592a22f782",
+      "name": "IF: ¿Notificación creada?"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
+          "cachedResultName": "Events"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "appointment_status_change",
+            "user_ids": "={{ [$json.user_id] }}",
+            "channels": "={{ [] }}",
+            "payload": "={{ $json }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_ids",
+              "displayName": "user_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "channels",
+              "displayName": "channels",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1980,
+        520
+      ],
+      "id": "0a3a87a1-37de-4894-a1b9-2d9d46611889",
+      "name": "Push event"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "GET email-action": {
+      "main": [
+        [
+          {
+            "node": "Render Landing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render Landing": {
+      "main": [
+        [
+          {
+            "node": "Respond Landing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST email-action": {
+      "main": [
+        [
+          {
+            "node": "Parse Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Request": {
+      "main": [
+        [
+          {
+            "node": "Apply Email Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apply Email Action": {
+      "main": [
+        [
+          {
+            "node": "Build Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Result": {
+      "main": [
+        [
+          {
+            "node": "Wants HTML?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Status Changed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wants HTML?": {
+      "main": [
+        [
+          {
+            "node": "Respond Page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status Changed?": {
+      "main": [
+        [
+          {
+            "node": "Get appointment data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Get appointment data": {
+      "main": [
+        [
+          {
+            "node": "Push calendar_changed (status)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Cancelled?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancelled?": {
+      "main": [
+        [
+          {
+            "node": "Insert Cancel Notification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Insert Cancel Notification": {
+      "main": [
+        [
+          {
+            "node": "IF: ¿Notificación creada?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: ¿Notificación creada?": {
+      "main": [
+        [
+          {
+            "node": "Push event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
