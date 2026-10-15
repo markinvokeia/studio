@@ -595,6 +595,18 @@ export type SystemConfiguration = {
   is_public?: boolean;
 };
 
+/** `system_configurations.google_calendar_sync_mode`: dirección de la sincronización con Google Calendar. */
+export type GoogleCalendarSyncMode = 'none' | 'from_google' | 'to_google' | 'both';
+
+/**
+ * Ajustes de automatización que se editan en Preferencias de Clínica pero viven
+ * en `system_configurations` (los leen los flujos de n8n).
+ */
+export interface ClinicAutomationSettings {
+  alert_email_auto_send_enabled: boolean;
+  google_calendar_sync_mode: GoogleCalendarSyncMode;
+}
+
 export type AuditLog = {
   id: string;
   changed_at: string;

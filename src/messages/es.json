@@ -9125,6 +9125,50 @@
         "cancel": "Cancelar",
         "confirm": "Entiendo, activar"
       }
+    },
+    "automation": {
+      "loadError": "No se pudieron leer los ajustes de automatización (emails de alertas y Google Calendar).",
+      "partialSaveError": "Las preferencias se guardaron, pero no los ajustes de automatización. Revísalos y vuelve a guardar."
+    },
+    "alertEmail": {
+      "sectionTitle": "Emails automáticos de alertas",
+      "enabled": {
+        "label": "Enviar emails de alertas automáticamente",
+        "help": "Interruptor general. Apagado, el planificador no envía ningún email por su cuenta aunque una regla lo tenga marcado; las alertas se siguen generando."
+      },
+      "notice": {
+        "on": "Se envían emails solo en las reglas que tienen marcado \"Enviar correo automáticamente\" (Sistema → Reglas de alertas).",
+        "off": "No se envía ningún email automático. Las alertas quedan pendientes para gestionarlas a mano."
+      },
+      "confirm": {
+        "title": "¿Activar los emails automáticos?",
+        "description": "Desde la próxima ejecución del planificador se enviarán emails a los pacientes en las reglas que tengan el envío automático marcado. El cambio se aplica al guardar.",
+        "cancel": "Cancelar",
+        "confirm": "Activar"
+      }
+    },
+    "googleCalendar": {
+      "sectionTitle": "Sincronización con Google Calendar",
+      "help": "Aplica a todos los calendarios que tengan cargado un ID de Google Calendar (Configuración → Calendarios).",
+      "notice": "Desde Google solo se traen eventos nuevos y cancelaciones: los cambios de horario o de título hechos en Google no se reflejan en la app.",
+      "modes": {
+        "none": {
+          "title": "No sincronizar",
+          "description": "Las citas viven solo en la app."
+        },
+        "from_google": {
+          "title": "Desde Google Calendar",
+          "description": "Los eventos nuevos y las cancelaciones de Google se traen a la app."
+        },
+        "to_google": {
+          "title": "Hacia Google Calendar",
+          "description": "Las citas creadas, editadas o canceladas en la app se reflejan en Google."
+        },
+        "both": {
+          "title": "Desde y hacia Google Calendar",
+          "description": "Combina las dos direcciones."
+        }
+      }
     }
   },
   "DuplicateContact": {

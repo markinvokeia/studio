@@ -9125,6 +9125,50 @@
         "cancel": "Cancel",
         "confirm": "I understand, turn on"
       }
+    },
+    "automation": {
+      "loadError": "Could not read the automation settings (alert emails and Google Calendar).",
+      "partialSaveError": "The preferences were saved, but the automation settings were not. Check them and save again."
+    },
+    "alertEmail": {
+      "sectionTitle": "Automatic alert emails",
+      "enabled": {
+        "label": "Send alert emails automatically",
+        "help": "Master switch. When off, the scheduler sends no email on its own even if a rule has it checked; alerts are still generated."
+      },
+      "notice": {
+        "on": "Emails are sent only for rules that have \"Send email automatically\" checked (System → Alert rules).",
+        "off": "No automatic email is sent. Alerts stay pending to be handled manually."
+      },
+      "confirm": {
+        "title": "Enable automatic emails?",
+        "description": "From the next scheduler run, patients will be emailed for the rules that have automatic sending checked. The change applies when you save.",
+        "cancel": "Cancel",
+        "confirm": "Enable"
+      }
+    },
+    "googleCalendar": {
+      "sectionTitle": "Google Calendar sync",
+      "help": "Applies to every calendar that has a Google Calendar ID set (Settings → Calendars).",
+      "notice": "From Google only new events and cancellations are imported: time or title changes made in Google are not reflected in the app.",
+      "modes": {
+        "none": {
+          "title": "Don't sync",
+          "description": "Appointments live only in the app."
+        },
+        "from_google": {
+          "title": "From Google Calendar",
+          "description": "New events and cancellations from Google are brought into the app."
+        },
+        "to_google": {
+          "title": "To Google Calendar",
+          "description": "Appointments created, edited or cancelled in the app are reflected in Google."
+        },
+        "both": {
+          "title": "From and to Google Calendar",
+          "description": "Combines both directions."
+        }
+      }
     }
   },
   "DuplicateContact": {

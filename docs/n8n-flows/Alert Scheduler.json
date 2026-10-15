@@ -17,16 +17,16 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        -3760,
-        272
+        -5104,
+        96
       ],
-      "id": "605e332a-39a7-4273-9bbd-dfb4381ff934",
+      "id": "89e3d403-f61b-4865-9fc7-071a8924371f",
       "name": "When Executed by Another Workflow"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT ar.*\nFROM public.alert_rules ar\nWHERE ar.is_active = true\n  AND (\n    (\n      ar.next_execution_at IS NULL\n      OR CAST(ar.next_execution_at AS DATE) <= CAST($1 AS DATE)\n    )\n    OR (\n      $2 ILIKE 'MANUAL'\n    )\n  );",
+        "query": "SELECT ar.*,\n       -- Interruptor general (script 133): sin él en 'true' no sale ningún email\n       -- automático aunque la regla tenga auto_send_email.\n       COALESCE((SELECT LOWER(sc.value) FROM public.system_configurations sc\n                 WHERE sc.key = 'alert_email_auto_send_enabled' LIMIT 1), 'false') = 'true'\n         AS email_auto_send_globally_enabled\nFROM public.alert_rules ar\nWHERE ar.is_active = true\n  AND (\n    (\n      ar.next_execution_at IS NULL\n      OR CAST(ar.next_execution_at AS DATE) <= CAST($1 AS DATE)\n    )\n    OR (\n      $2 ILIKE 'MANUAL'\n    )\n  );",
         "options": {
           "queryReplacement": "={{ [$('When Executed by Another Workflow').item.json.target_date, $('When Executed by Another Workflow').item.json.triggered_by] }}"
         }
@@ -34,10 +34,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3328,
-        272
+        -4672,
+        96
       ],
-      "id": "aa24504d-6cae-436f-945e-3ac7993c764c",
+      "id": "80701656-53b1-468f-a471-3847c2103146",
       "name": "Select alert rules",
       "alwaysOutputData": true,
       "credentials": {
@@ -75,10 +75,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -2448,
-        448
+        -3792,
+        272
       ],
-      "id": "c5695761-c23d-42da-9e11-b89bf7cb6366",
+      "id": "64224add-b2a3-45d2-a21b-cac045f63a94",
       "name": "Has results?"
     },
     {
@@ -92,10 +92,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2224,
-        320
+        -3568,
+        144
       ],
-      "id": "0e49c551-1147-44ea-8e64-536f7592e360",
+      "id": "98856c35-4f76-43d7-9b5d-f98b4f78d979",
       "name": "Create alert instance",
       "alwaysOutputData": true,
       "credentials": {
@@ -115,10 +115,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2688,
-        560
+        -4032,
+        384
       ],
-      "id": "913e4821-639a-4ea3-b920-c5a198f24dac",
+      "id": "58363269-5143-4435-87bd-2a6b84bb5749",
       "name": "Execute dynamic query",
       "alwaysOutputData": true,
       "credentials": {
@@ -309,10 +309,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -3536,
-        272
+        -4880,
+        96
       ],
-      "id": "d17abc52-6772-47bd-82d3-7cbf994a8744",
+      "id": "fd66a065-fc79-4c97-a4a9-7a3db5d084e8",
       "name": "Register schedule run",
       "credentials": {
         "postgres": {
@@ -512,10 +512,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -2448,
-        144
+        -3792,
+        -32
       ],
-      "id": "4e39a2e7-507a-416e-9d85-124e6c647d7a",
+      "id": "931c9214-cddd-4835-a97e-0a8b29e57a9c",
       "name": "Update schedule run",
       "credentials": {
         "postgres": {
@@ -531,10 +531,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -2688,
-        144
+        -4032,
+        -32
       ],
-      "id": "42075017-b988-42e9-8fae-51d0d5bc4e44",
+      "id": "e6538cc8-64a8-456f-91d8-b79c9b6e8bfe",
       "name": "Calculate metrics"
     },
     {
@@ -544,10 +544,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -3120,
-        272
+        -4464,
+        96
       ],
-      "id": "66f28fa8-1e70-4f37-bff7-f987497b7b32",
+      "id": "6b0c4656-73f4-4f46-bfab-681aa760109a",
       "name": "Build dynamic query"
     },
     {
@@ -557,10 +557,10 @@
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        -2912,
-        272
+        -4256,
+        96
       ],
-      "id": "941218e0-999e-489b-8e29-f4ba47bf7d7c",
+      "id": "968a5ab2-dae4-4995-9728-38696b80d7ce",
       "name": "Loop Over Results"
     },
     {
@@ -570,10 +570,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -336,
-        224
+        -1936,
+        48
       ],
-      "id": "9ada25d1-7d27-4185-8c96-b17009cd191a",
+      "id": "4a9508e3-f3e8-4c55-b55b-fe9a2c670a8c",
       "name": "Success"
     },
     {
@@ -583,10 +583,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1984,
-        560
+        -3328,
+        384
       ],
-      "id": "7121290d-e3de-4ad3-b1c6-fcdfeb526e98",
+      "id": "55023619-85f3-49e7-8349-de8dbe0ffb89",
       "name": "Failed"
     },
     {
@@ -600,10 +600,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -560,
-        224
+        -2160,
+        48
       ],
-      "id": "7155a7f7-c238-4448-b62a-9fcd408cf706",
+      "id": "64a2748d-a54e-4e2a-b62a-08be979b78e1",
       "name": "Update rule next execution",
       "executeOnce": true,
       "credentials": {
@@ -661,10 +661,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -1984,
-        224
+        -3328,
+        48
       ],
-      "id": "6d6d13f6-8de3-4fc7-9e56-41ebb6b916ca",
+      "id": "ac1d86eb-5ab9-46a1-a3d8-24bfcf505904",
       "name": "Should Auto-Send WhatsApp?"
     },
     {
@@ -762,10 +762,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        -1728,
-        128
+        -3072,
+        -48
       ],
-      "id": "a8adac63-0844-48b1-99bb-e2d12c39906a",
+      "id": "6af429f8-5ee1-4ef9-9fac-c5f4562e3d98",
       "name": "Send Alert WhatsApp",
       "onError": "continueRegularOutput"
     },
@@ -776,10 +776,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -1504,
-        224
+        -2848,
+        48
       ],
-      "id": "c0b606bb-2ae6-41be-b2cd-baf084f76ca2",
+      "id": "3f6b7aef-dd16-4011-89e4-0c9cde2d325f",
       "name": "Restore Alert Instances"
     },
     {
@@ -792,6 +792,16 @@
             "version": 2
           },
           "conditions": [
+            {
+              "leftValue": "={{ $('Loop Over Results').first().json.email_auto_send_globally_enabled === true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "id": "53fc7a29-9953-4d4d-a8f4-c2017dcca497"
+            },
             {
               "leftValue": "={{ $('Loop Over Results').first().json.auto_send_email === true }}",
               "rightValue": true,
@@ -830,19 +840,19 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -1280,
-        224
+        -2624,
+        48
       ],
-      "id": "fd706a37-723a-412d-b863-a8547652272b",
+      "id": "0c32979d-46a0-4e73-be5a-4ea31538636e",
       "name": "Should Auto-Send Email?"
     },
     {
       "parameters": {
         "workflowId": {
           "__rl": true,
-          "value": "REPLACE_WITH_ALERT_EMAIL_AUTO_SEND_ID",
+          "value": "nR7gZAElUVF9m5Cs",
           "mode": "list",
-          "cachedResultUrl": "/workflow/REPLACE_WITH_ALERT_EMAIL_AUTO_SEND_ID",
+          "cachedResultUrl": "/workflow/nR7gZAElUVF9m5Cs",
           "cachedResultName": "Alert Email Auto-Send"
         },
         "workflowInputs": {
@@ -931,10 +941,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        -1056,
-        128
+        -2400,
+        -48
       ],
-      "id": "6ed4ab4d-ad1a-4e86-9132-cf5c4dd821f5",
+      "id": "e8b1e2c3-590e-4f98-8ed0-2d417a29b3a0",
       "name": "Send Alert Email",
       "onError": "continueRegularOutput"
     }
@@ -1185,7 +1195,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "6319b94f-4f47-4158-ac50-f1c77f5c4e81",
+  "versionId": "9457bb18-8672-4d82-9350-b1705487348d",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
