@@ -1,0 +1,444 @@
+{
+  "name": "Alert Email Auto-Send",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Alert Email Auto-Send\n\nSub-workflow invocado por **Alert Scheduler** (`Send Alert Email`) cuando una `alert_rules` con `auto_send_email = true` y `email_template_id` genera una `alert_instances` nueva. Es el equivalente por email de **Alert WhatsApp Auto-Send** y sigue su mismo contrato.\n\n**Destinatario**: email del paciente; si es dependiente sin email válido, el de su responsable (`responsible_contact_id`). Se descartan emails vacíos, mal formados o con `email_bounced = true`. Solo usuarios activos con rol `paciente` (la regla de cumpleaños recorre toda la tabla `users`).\n\n**Preferencias**: se respeta `global_notification_settings` (canal `email` + categoría de la regla; sin fila = deshabilitado). La preferencia del paciente (`user_communication_preferences`) se **ignora** por defecto: si la tenía apagada el email sale igual y queda `user_pref_overridden: true` en `alert_actions.action_data`. Una regla puede volver a respetarla con `condition_config.respect_user_preferences = true`.\n\n**Validación en el momento del envío**: cita en `scheduled/confirmed/pending` y del paciente; factura cobrable con `effective_residual > 0` (`v_alert_invoices`).\n\n**Plantilla**: `communication_templates` (type EMAIL). Variables `{{token}}`: patient_name, recipient_name, for_patient, to_patient, clinic_name, clinic_address, clinic_phone, clinic_email, clinic_phone_link, clinic_contact, clinic_logo, appointment_date, appointment_time, doctor_name, location, invoice_doc_no, invoice_amount, invoice_due_date, invoice_currency (alias doc_no, currency). Un token desconocido aborta el envío. Si la plantilla no trae layout propio (texto plano o HTML simple) se envuelve en el layout de la clínica; las que ya lo traen (contenedor max-width, como las por defecto del frontend) se envían tal cual.\n\n**Modo prueba**: `system_configurations` `alert_email_test_mode_enabled = 'true'` → solo envía a `alert_email_test_whitelist` (emails separados por coma).\n\n**Resultado**: envío OK → `alert_actions` SEND_EMAIL/SUCCESS y la alerta pasa a COMPLETED (solo si sigue PENDING). Cualquier fallo → `alert_actions` SEND_EMAIL/FAILED con el motivo, la alerta queda como está y devuelve `{ success: false }` sin cortar el loop del scheduler.\n\n**Import checklist**: 1) elegir la credencial Gmail de la clínica en `Send Email (Gmail)`; 2) copiar el workflowId de este flujo al nodo `Send Alert Email` de Alert Scheduler.",
+        "height": 760,
+        "width": 620
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        -880
+      ],
+      "id": "d353ffc2-6423-40b4-9fcd-0bca93737948",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "alert_instance_id"
+            },
+            {
+              "name": "rule_id"
+            },
+            {
+              "name": "patient_id"
+            },
+            {
+              "name": "reference_table"
+            },
+            {
+              "name": "reference_id"
+            },
+            {
+              "name": "email_template_id"
+            },
+            {
+              "name": "performed_by"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "75c861b4-d91c-426b-8f28-114818e51509",
+      "name": "When Called by Alert Scheduler"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH ai AS (\n  SELECT ai.id, ai.status, ai.reference_table, ai.reference_id, ai.patient_id,\n         ac.notification_category_slug AS category_slug,\n         COALESCE(ar.condition_config->>'respect_user_preferences', 'false') = 'true' AS respect_user_preferences\n  FROM public.alert_instances ai\n  JOIN public.alert_rules ar ON ar.id = ai.rule_id\n  LEFT JOIN public.alert_categories ac ON ac.id = ar.category_id\n  WHERE ai.id = $1::int\n)\nSELECT\n  ai.id AS alert_instance_id,\n  ai.status AS alert_status,\n  ai.reference_table,\n  ai.reference_id,\n  ai.category_slug,\n  ai.respect_user_preferences,\n  EXISTS (\n    SELECT 1 FROM public.alert_actions aa\n    WHERE aa.alert_instance_id = ai.id\n      AND aa.action_type = 'SEND_EMAIL'\n      AND aa.result_status = 'SUCCESS'\n  ) AS already_sent,\n  COALESCE((\n    SELECT g.is_enabled FROM public.global_notification_settings g\n    WHERE g.channel_slug = 'email' AND g.category_slug = ai.category_slug\n    LIMIT 1\n  ), false) AS channel_enabled,\n  (\n    SELECT to_jsonb(x) FROM (\n      SELECT ct.id, ct.code, ct.subject, ct.body_html, ct.body_text\n      FROM public.communication_templates ct\n      WHERE ct.id = NULLIF($2::text, '')::int\n        AND ct.type = 'EMAIL'\n        AND ct.is_active = true\n    ) x\n  ) AS template,\n  (\n    SELECT to_jsonb(x) FROM (\n      SELECT\n        u.id::text AS id,\n        u.name,\n        NULLIF(btrim(u.email), '') AS email,\n        COALESCE(u.email_bounced, false) AS email_bounced,\n        COALESCE(u.is_active, true) AS is_active,\n        COALESCE(u.is_dependant, false) AS is_dependant,\n        EXISTS (\n          SELECT 1 FROM public.user_roles ur\n          JOIN public.roles r ON r.id = ur.role_id\n          WHERE ur.user_id = u.id AND r.name = 'paciente' AND COALESCE(ur.is_active, true)\n        ) AS is_patient,\n        (\n          SELECT p.is_enabled FROM public.user_communication_preferences p\n          WHERE p.user_id = u.id AND p.channel_slug = 'email' AND p.category_slug = ai.category_slug\n          LIMIT 1\n        ) AS pref_enabled,\n        resp.id::text AS responsible_id,\n        resp.name AS responsible_name,\n        NULLIF(btrim(resp.email), '') AS responsible_email,\n        COALESCE(resp.email_bounced, false) AS responsible_email_bounced,\n        (\n          SELECT p.is_enabled FROM public.user_communication_preferences p\n          WHERE p.user_id = resp.id AND p.channel_slug = 'email' AND p.category_slug = ai.category_slug\n          LIMIT 1\n        ) AS responsible_pref_enabled\n      FROM public.users u\n      LEFT JOIN public.users resp ON resp.id = u.responsible_contact_id\n      WHERE u.id = ai.patient_id\n    ) x\n  ) AS patient,\n  (\n    SELECT to_jsonb(x) FROM (\n      SELECT c.name, c.address, c.phone, c.email\n      FROM public.clinic c\n      ORDER BY c.id\n      LIMIT 1\n    ) x\n  ) AS clinic,\n  CASE WHEN ai.reference_table = 'appointments' THEN (\n    SELECT to_jsonb(x) FROM (\n      SELECT\n        a.id,\n        a.status,\n        to_char(a.start_datetime, 'YYYY-MM-DD') AS date_iso,\n        to_char(a.start_datetime, 'HH24:MI') AS time,\n        d.name AS doctor_name,\n        s.name AS sede_name,\n        s.address AS sede_address\n      FROM public.appointments a\n      LEFT JOIN public.users d ON d.id = a.assignee_id\n      LEFT JOIN public.calendar_sources cs ON cs.id = a.calendar_source_id\n      LEFT JOIN public.sedes s ON s.id = cs.sede_id\n      WHERE a.id::text = ai.reference_id\n        AND a.patient_id = ai.patient_id\n    ) x\n  ) END AS appointment,\n  CASE WHEN ai.reference_table = 'invoices' THEN (\n    SELECT to_jsonb(x) FROM (\n      SELECT\n        v.id,\n        v.doc_no,\n        v.currency,\n        v.effective_residual,\n        v.is_collectible,\n        to_char(v.due_date, 'YYYY-MM-DD') AS due_date_iso\n      FROM public.v_alert_invoices v\n      WHERE v.id::text = ai.reference_id\n        AND v.user_id = ai.patient_id\n    ) x\n  ) END AS invoice,\n  COALESCE((SELECT sc.value FROM public.system_configurations sc WHERE sc.key = 'alert_email_test_mode_enabled' LIMIT 1), 'false') AS test_mode_enabled,\n  COALESCE((SELECT sc.value FROM public.system_configurations sc WHERE sc.key = 'alert_email_test_whitelist' LIMIT 1), '') AS test_whitelist\nFROM ai;",
+        "options": {
+          "queryReplacement": "={{ [ $json.alert_instance_id, String($json.email_template_id ?? '') ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        220,
+        0
+      ],
+      "id": "4ef44c61-4552-445c-adae-096027abc576",
+      "name": "Load Email Context",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Arma el email de una alerta: valida destinatario/entidad, resuelve variables\n// y renderiza la plantilla. Nunca lanza error: devuelve { ok: false, reason }\n// para que el flujo registre un alert_actions FAILED y siga con la siguiente.\nconst ctx = $input.first().json || {};\nconst trigger = $('When Called by Alert Scheduler').first().json;\n\nconst fail = (reason) => [{\n  json: { ok: false, reason, alert_instance_id: trigger.alert_instance_id ?? null },\n}];\n\nif (!ctx.alert_instance_id) {\n  return fail(`Alerta no encontrada (alert_instance_id=${trigger.alert_instance_id ?? 'null'})`);\n}\n// Una alerta recibe un solo email automático, aunque el sub-flujo se vuelva a\n// ejecutar (re-ejecución manual en n8n, scheduler disparado dos veces).\nif (ctx.already_sent) {\n  return fail('Esta alerta ya tiene un email enviado; no se reenvía');\n}\nif (['IGNORED', 'SUPPRESSED', 'SNOOZED'].includes(ctx.alert_status)) {\n  return fail(`La alerta está en estado ${ctx.alert_status}; no se envía email`);\n}\n\nconst tpl = ctx.template;\nif (!tpl) {\n  return fail(`No hay communication_templates EMAIL activo para email_template_id=${trigger.email_template_id ?? 'null'}`);\n}\n\nconst patient = ctx.patient;\nif (!patient) {\n  return fail(`Paciente no encontrado para patient_id=${trigger.patient_id ?? 'null'}`);\n}\nif (!patient.is_active || !patient.is_patient) {\n  return fail(`${patient.name || patient.id} no es un paciente activo; no se envía email`);\n}\n\n// --- Destinatario: email del paciente o, si es dependiente, el del responsable.\nconst EMAIL_RE = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\nconst emailProblem = (email, bounced) => {\n  if (!email) return 'vacío';\n  if (!EMAIL_RE.test(email)) return `inválido (${email})`;\n  if (bounced) return `rebotado (${email})`;\n  return null;\n};\n\nlet to = null;\nlet recipientName = patient.name || '';\nlet toResponsible = false;\nlet recipientPref = null;\n\nconst patientProblem = emailProblem(patient.email, patient.email_bounced);\nif (!patientProblem) {\n  to = patient.email;\n  recipientPref = patient.pref_enabled;\n} else if (patient.is_dependant && !emailProblem(patient.responsible_email, patient.responsible_email_bounced)) {\n  to = patient.responsible_email;\n  recipientName = patient.responsible_name || recipientName;\n  toResponsible = true;\n  recipientPref = patient.responsible_pref_enabled;\n}\n\nif (!to) {\n  const responsiblePart = patient.is_dependant\n    ? `; responsable: ${patient.responsible_name ? emailProblem(patient.responsible_email, patient.responsible_email_bounced) : 'sin responsable'}`\n    : '';\n  return fail(`Paciente sin email válido: ${patientProblem}${responsiblePart} (patient_id=${patient.id})`);\n}\n\n// --- Preferencias. La configuración global de la clínica (canal email por\n// categoría) siempre se respeta. La preferencia del paciente se ignora por\n// defecto en el auto-envío; una regla puede volver a respetarla con\n// condition_config.respect_user_preferences = true.\nif (!ctx.channel_enabled) {\n  return fail(`El canal email está deshabilitado para la categoría \"${ctx.category_slug ?? 'sin categoría'}\"`);\n}\nconst userPrefOverridden = recipientPref === false;\nif (userPrefOverridden && ctx.respect_user_preferences) {\n  return fail(`${recipientName} desactivó los emails de \"${ctx.category_slug}\"`);\n}\n\n// --- Modo prueba (system_configurations): solo se envía a la lista blanca.\nif (String(ctx.test_mode_enabled).toLowerCase() === 'true') {\n  const whitelist = String(ctx.test_whitelist || '')\n    .split(',')\n    .map((e) => e.trim().toLowerCase())\n    .filter(Boolean);\n  if (!whitelist.includes(String(to).toLowerCase())) {\n    return fail(`Modo prueba de email activo: ${to} no está en alert_email_test_whitelist`);\n  }\n}\n\n// --- Formatos (Uruguay). Las fechas llegan como YYYY-MM-DD de pared, sin zona.\nconst longDate = (iso) => {\n  if (!iso) return '';\n  const d = new Date(`${iso}T12:00:00Z`);\n  if (isNaN(d.getTime())) return iso;\n  return d.toLocaleDateString('es-UY', {\n    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',\n  });\n};\nconst CURRENCY_SYMBOL = { UYU: '$', USD: 'US$', EUR: '€', ARS: 'AR$', BRL: 'R$' };\nconst money = (amount, currency) => {\n  const n = Number(amount);\n  const num = isNaN(n)\n    ? String(amount ?? '')\n    : n.toLocaleString('es-UY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });\n  const symbol = CURRENCY_SYMBOL[currency] || currency || '';\n  return `${symbol} ${num}`.trim();\n};\n\n// --- Variables (mismo vocabulario que las plantillas de email del frontend).\nconst clinic = ctx.clinic || {};\nlet logoUrl = '';\ntry {\n  const base = String($env.WEBHOOK_URL || '').replace(/\\/+$/, '');\n  if (base) logoUrl = `${base}/webhook/clinic/logo`;\n} catch (e) {\n  logoUrl = '';\n}\n\nconst vars = {\n  patient_name: patient.name || '',\n  recipient_name: recipientName,\n  // Vacios si el email va al propio paciente; con el nombre si va al responsable:\n  // \"la proxima cita{{for_patient}}\" / \"feliz cumpleaños{{to_patient}}\".\n  for_patient: toResponsible ? ` de ${patient.name}` : '',\n  to_patient: toResponsible ? ` a ${patient.name}` : '',\n  clinic_name: clinic.name || '',\n  clinic_address: clinic.address || '',\n  clinic_phone: clinic.phone || '',\n  clinic_email: clinic.email || '',\n  clinic_logo: logoUrl,\n  // Para botones \"Llamar a la clínica\": vacío si no hay teléfono (el botón se quita).\n  clinic_phone_link: String(clinic.phone || '').replace(/[^\\d+]/g, '')\n    ? `tel:${String(clinic.phone).replace(/[^\\d+]/g, '')}`\n    : '',\n  clinic_contact: [clinic.phone, clinic.email].filter(Boolean).join(' · '),\n};\n\nconst ACTIVE_APPOINTMENT_STATUSES = ['scheduled', 'confirmed', 'pending'];\n\nswitch (ctx.reference_table) {\n  case 'appointments': {\n    const appt = ctx.appointment;\n    if (!appt) {\n      return fail(`Cita no encontrada o no asociada al paciente para reference_id=${ctx.reference_id}`);\n    }\n    if (!ACTIVE_APPOINTMENT_STATUSES.includes(appt.status)) {\n      return fail(`La cita ${appt.id} está en estado \"${appt.status}\"; no se envía recordatorio`);\n    }\n    vars.appointment_date = longDate(appt.date_iso);\n    vars.appointment_time = appt.time || '';\n    vars.doctor_name = appt.doctor_name || 'Profesional a confirmar';\n    vars.location = [appt.sede_name, appt.sede_address].filter(Boolean).join(' — ') || clinic.address || '';\n    break;\n  }\n  case 'invoices': {\n    const inv = ctx.invoice;\n    if (!inv) {\n      return fail(`Factura no encontrada o no asociada al paciente para reference_id=${ctx.reference_id}`);\n    }\n    if (!inv.is_collectible || !(Number(inv.effective_residual) > 0)) {\n      return fail(`La factura ${inv.doc_no || inv.id} ya no tiene saldo pendiente`);\n    }\n    vars.invoice_doc_no = inv.doc_no || String(inv.id);\n    vars.invoice_amount = money(inv.effective_residual, inv.currency);\n    vars.invoice_due_date = longDate(inv.due_date_iso);\n    vars.invoice_currency = inv.currency || '';\n    // Alias usados por las plantillas de factura del frontend.\n    vars.doc_no = vars.invoice_doc_no;\n    vars.currency = vars.invoice_currency;\n    break;\n  }\n  case 'users':\n    break;\n  default:\n    return fail(`reference_table no soportada para email automático: ${ctx.reference_table}`);\n}\n\n// --- Render: {{token}} simple. Un token desconocido aborta el envío para no\n// mandarle \"{{algo}}\" literal al paciente.\nconst escapeHtml = (s) => String(s ?? '')\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;')\n  .replace(/\"/g, '&quot;');\nconst unknown = new Set();\nconst render = (text, asHtml) => String(text || '').replace(\n  /\\{\\{\\s*([a-zA-Z0-9_.]+)\\s*\\}\\}/g,\n  (match, key) => {\n    if (!(key in vars)) {\n      unknown.add(key);\n      return match;\n    }\n    return asHtml ? escapeHtml(vars[key]) : String(vars[key]);\n  },\n);\n\nconst subject = render(tpl.subject, false).trim();\nconst rawBody = tpl.body_html || tpl.body_text || '';\nconst isHtml = /<[a-z][\\s\\S]*>/i.test(rawBody);\n// Las plantillas por defecto del frontend ya traen el layout completo\n// (contenedor de 600px con cabecera y pie); esas se envian tal cual.\nconst hasLayout = /<html|max-width\\s*:/i.test(rawBody);\n\n// Layout con los colores del sistema: cabecera índigo (--nav-bg #1e1b4b) con\n// línea de acento violeta (--brand-mid), contenido en blanco con borde\n// --border y pie en gris lila. Tablas + estilos inline para clientes de correo.\nconst FONT = \"'Plus Jakarta Sans',Arial,Helvetica,sans-serif\";\nconst logoCell = vars.clinic_logo\n  ? `<td style=\"width:1%;padding-right:14px;vertical-align:middle;\"><img src=\"{{clinic_logo}}\" alt=\"\" height=\"40\" style=\"display:block;height:40px;width:auto;max-width:110px;border-radius:8px;background:#ffffff;\" /></td>`\n  : '';\nconst shell = (inner) => `<div style=\"margin:0;padding:24px 12px;background:#f2f0f5;font-family:${FONT};\">\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"max-width:600px;margin:0 auto;border-collapse:separate;background:#ffffff;border:1px solid #e4e0eb;border-radius:16px;overflow:hidden;\">\n  <tr><td style=\"background:#1e1b4b;padding:20px 28px;\">\n    <table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"border-collapse:collapse;\"><tr>\n      ${logoCell}\n      <td style=\"vertical-align:middle;\">\n        <div style=\"font-size:16px;font-weight:700;line-height:1.3;color:#ffffff;\">{{clinic_name}}</div>\n        <div style=\"font-size:12px;line-height:1.4;color:#c7c3e6;\">{{clinic_address}}</div>\n      </td>\n    </tr></table>\n  </td></tr>\n  <tr><td style=\"height:3px;line-height:3px;font-size:0;background:#7a3fd9;\">&nbsp;</td></tr>\n  <tr><td style=\"padding:28px;font-family:${FONT};font-size:14px;line-height:1.6;color:#0c0520;\">${inner}</td></tr>\n  <tr><td style=\"padding:16px 28px;background:#faf9fc;border-top:1px solid #efedf3;text-align:center;font-family:${FONT};font-size:11px;line-height:1.6;color:#6d6d78;\">\n    <div style=\"font-weight:600;color:#3b3654;\">{{clinic_name}}</div>\n    <div>{{clinic_contact}}</div>\n    <div style=\"margin-top:6px;color:#9a97a8;\">Mensaje automático. Podés responder este email para comunicarte con la clínica.</div>\n  </td></tr>\n</table>\n</div>`;\n\n// Texto plano: se escapa y se respetan los saltos de linea. HTML sin layout:\n// se usa el contenido tal cual. En ambos casos se envuelve en el layout.\nlet html;\nif (hasLayout) {\n  html = render(rawBody, true);\n} else {\n  const inner = isHtml ? render(rawBody, true) : render(rawBody, true).replace(/\\r?\\n/g, '<br>');\n  html = render(shell(inner), true);\n}\n\nif (unknown.size > 0) {\n  return fail(`La plantilla ${tpl.code} usa variables desconocidas: ${[...unknown].join(', ')}. Disponibles: ${Object.keys(vars).join(', ')}`);\n}\nif (!subject) {\n  return fail(`La plantilla ${tpl.code} no tiene asunto`);\n}\n\n// Sin logo resuelto, se quita la imagen para que no aparezca rota; sin\n// telefono/email, se quitan los botones que apuntarian a un enlace vacio.\nhtml = html\n  .replace(/<img\\b[^>]*\\bsrc=([\"'])\\s*\\1[^>]*>/gi, '')\n  .replace(/<a\\b[^>]*\\bhref=([\"'])\\s*\\1[^>]*>[\\s\\S]*?<\\/a>/gi, '')\n  .replace(/<p\\b[^>]*>\\s*<\\/p>/gi, '');\n\nreturn [{\n  json: {\n    ok: true,\n    alert_instance_id: ctx.alert_instance_id,\n    to,\n    to_responsible: toResponsible,\n    user_pref_overridden: userPrefOverridden,\n    recipient_name: recipientName,\n    subject,\n    html,\n    template_code: tpl.code,\n    sender_name: clinic.name || '',\n    reply_to: clinic.email || '',\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "4b539621-6a00-4297-9f77-e447dececa5f",
+      "name": "Build Email"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "aem-ready-c1",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        0
+      ],
+      "id": "967dfd82-0928-4569-a467-bc4813371328",
+      "name": "Ready To Send?"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "={{ $json.sender_name }}",
+          "replyTo": "={{ $json.reply_to }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        -100
+      ],
+      "id": "e596e5e0-512f-4f8e-ad65-6e47352a99a6",
+      "name": "Send Email (Gmail)",
+      "webhookId": "ab2a0e00-5373-40ba-97c9-599168af0d32",
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_WITH_CLIENT_GMAIL_CREDENTIAL",
+          "name": "Gmail clínica (alertas)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const built = $('Build Email').first().json;\nconst res = $input.first().json || {};\n\nif (res.id && !res.error) {\n  return [{ json: { ...built, ok: true, gmail_message_id: res.id, gmail_thread_id: res.threadId || null } }];\n}\n\nconst err = res.error?.message || (typeof res.error === 'string' ? res.error : null) || res.message || JSON.stringify(res);\nreturn [{ json: { ok: false, reason: `Gmail rechazó el envío a ${built.to}: ${err}` } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        -100
+      ],
+      "id": "a6e14028-f76e-4c10-9a3b-f69f6772b477",
+      "name": "Check Gmail Response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "aem-sent-c1",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        -100
+      ],
+      "id": "9e5f76f4-4cf2-469d-8051-eba917bb10f1",
+      "name": "Sent?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.alert_actions\n  (alert_instance_id, action_type, action_data, result_status, result_message, performed_by, performed_at)\nVALUES (\n  $1::int, 'SEND_EMAIL', $2::jsonb, 'SUCCESS', $3,\n  NULLIF($4::text, '')::uuid,\n  now()\n)\nRETURNING alert_instance_id;",
+        "options": {
+          "queryReplacement": "={{ [ $('When Called by Alert Scheduler').first().json.alert_instance_id, JSON.stringify({ to: $json.to, to_responsible: $json.to_responsible, recipient_name: $json.recipient_name, subject: $json.subject, template: $json.template_code, gmail_message_id: $json.gmail_message_id || null, user_pref_overridden: $json.user_pref_overridden === true }), 'Email enviado automáticamente a ' + $json.to + ($json.to_responsible ? ' (responsable)' : '') + ($json.user_pref_overridden ? ' — se ignoró la preferencia del paciente' : ''), ($('When Called by Alert Scheduler').first().json.performed_by || '') ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1540,
+        -200
+      ],
+      "id": "9231f925-5529-48bd-9a77-31cd360a3014",
+      "name": "Record Sent Action",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.alert_instances\nSET status = 'COMPLETED',\n    completed_at = now(),\n    completed_by = NULLIF($2::text, '')::uuid,\n    updated_at = now()\nWHERE id = $1::int\n  AND status = 'PENDING'\nRETURNING id;",
+        "options": {
+          "queryReplacement": "={{ [ $('When Called by Alert Scheduler').first().json.alert_instance_id, ($('When Called by Alert Scheduler').first().json.performed_by || '') ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1760,
+        -200
+      ],
+      "id": "b4e1288a-3f21-41f7-80a4-e2552ada0609",
+      "name": "Mark Alert Completed",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const sent = $('Check Gmail Response').first().json;\nconst t = $('When Called by Alert Scheduler').first().json;\nreturn [{ json: { success: true, channel: 'email', alert_instance_id: t.alert_instance_id || null, to: sent.to, gmail_message_id: sent.gmail_message_id || null } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        -200
+      ],
+      "id": "4d112818-7987-48ee-b1a8-e0352d43caee",
+      "name": "Result: Sent"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.alert_actions\n  (alert_instance_id, action_type, action_data, result_status, result_message, performed_by, performed_at)\nVALUES (\n  $1::int, 'SEND_EMAIL', '{}'::jsonb, 'FAILED', $2,\n  NULLIF($3::text, '')::uuid,\n  now()\n)\nRETURNING alert_instance_id, result_message;",
+        "options": {
+          "queryReplacement": "={{ [ $('When Called by Alert Scheduler').first().json.alert_instance_id, ($json.reason || 'Fallo en el auto-envío de email'), ($('When Called by Alert Scheduler').first().json.performed_by || '') ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1540,
+        160
+      ],
+      "id": "58d1db78-7993-472e-a3a5-0c0ef7dc69f3",
+      "name": "Record Failed Action",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const t = $('When Called by Alert Scheduler').first().json;\nconst src = $input.first() ? $input.first().json : {};\nreturn [{ json: { success: false, channel: 'email', alert_instance_id: t.alert_instance_id || null, reason: src.result_message || 'Fallo en el auto-envío de email' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        160
+      ],
+      "id": "0daee51d-cb60-4538-b39d-2080ce6d154b",
+      "name": "Result: Failed"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Called by Alert Scheduler": {
+      "main": [
+        [
+          {
+            "node": "Load Email Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Email Context": {
+      "main": [
+        [
+          {
+            "node": "Build Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Email": {
+      "main": [
+        [
+          {
+            "node": "Ready To Send?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ready To Send?": {
+      "main": [
+        [
+          {
+            "node": "Send Email (Gmail)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Record Failed Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email (Gmail)": {
+      "main": [
+        [
+          {
+            "node": "Check Gmail Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Check Gmail Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Gmail Response": {
+      "main": [
+        [
+          {
+            "node": "Sent?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sent?": {
+      "main": [
+        [
+          {
+            "node": "Record Sent Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Record Failed Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Sent Action": {
+      "main": [
+        [
+          {
+            "node": "Mark Alert Completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Alert Completed": {
+      "main": [
+        [
+          {
+            "node": "Result: Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Failed Action": {
+      "main": [
+        [
+          {
+            "node": "Result: Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": []
+}

@@ -1,0 +1,267 @@
+{
+  "name": "Build Email",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.clinic LIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -96,
+        32
+      ],
+      "id": "2ebce2cf-01e9-4381-9d65-87aea1e1ead9",
+      "name": "Get Clinic Data",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * Renderiza un template con datos dinámicos.\n * @param {string} template - La cadena del template.\n * @param {Object} data - El objeto de contexto con los datos.\n * @param {Object} options - Opciones adicionales (customHelpers, strictMode, preserveWhitespace).\n * @returns {string} - El HTML o texto renderizado.\n */\nfunction renderTemplate(template, data = {}, options = {}) {\n    const {\n        customHelpers = {},\n        strictMode = false,\n        preserveWhitespace = false\n    } = options;\n\n    // --- 1. Definición de Helpers y Utilidades ---\n    const defaultHelpers = {\n        // Helper de debugging\n        debug: (...args) => {\n            console.log('DEBUG:', args);\n            return args[0];\n        },\n\n        // Helpers de formato\n        uppercase: (str) => String(str).toUpperCase(),\n        lowercase: (str) => String(str).toLowerCase(),\n        capitalize: (str) => {\n            const s = String(str);\n            return s.charAt(0).toUpperCase() + s.slice(1);\n        },\n        date: (date, format) => {\n            const d = new Date(date);\n            if (isNaN(d.getTime())) return String(date);\n            if (format === 'short') return d.toLocaleDateString('es-ES');\n            if (format === 'long') return d.toLocaleDateString('es-ES', {\n                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'\n            });\n            return d.toLocaleDateString('es-ES');\n        },\n\n        // Helpers Numéricos\n        toFixed: (num, digits) => {\n            const n = Number(num);\n            return isNaN(n) ? num : n.toFixed(digits || 2);\n        },\n        currency: (num, currencyCode = 'EUR', locale = 'es-ES') => {\n            const n = Number(num);\n            if (isNaN(n)) return num;\n            return new Intl.NumberFormat(locale, {\n                style: 'currency',\n                currency: currencyCode\n            }).format(n);\n        },\n        number: (num, decimals = 2, locale = 'es-ES') => {\n            const n = Number(num);\n            if (isNaN(n)) return num;\n            return new Intl.NumberFormat(locale, {\n                minimumFractionDigits: decimals,\n                maximumFractionDigits: decimals\n            }).format(n);\n        },\n        percent: (num, decimals = 0, locale = 'es-ES') => {\n            const n = Number(num);\n            if (isNaN(n)) return num;\n            return new Intl.NumberFormat(locale, {\n                style: 'percent',\n                minimumFractionDigits: decimals,\n                maximumFractionDigits: decimals\n            }).format(n / 100);\n        },\n        abs: (num) => Math.abs(Number(num)),\n        round: (num) => Math.round(Number(num)),\n        ceil: (num) => Math.ceil(Number(num)),\n        floor: (num) => Math.floor(Number(num)),\n        padStart: (val, length, char) => String(val).padStart(length, char || '0'),\n\n        // Helpers de comparación\n        eq: (a, b) => {\n            // Normalizar valores para comparación\n            const normA = typeof a === 'string' ? a.replace(/&quot;|&#34;|&#034;/g, '\"').replace(/&#39;|&#039;/g, \"'\") : a;\n            const normB = typeof b === 'string' ? b.replace(/&quot;|&#34;|&#034;/g, '\"').replace(/&#39;|&#039;/g, \"'\") : b;\n            return normA === normB;\n        },\n        ne: (a, b) => {\n            // Normalizar valores para comparación\n            const normA = typeof a === 'string' ? a.replace(/&quot;|&#34;|&#034;/g, '\"').replace(/&#39;|&#039;/g, \"'\") : a;\n            const normB = typeof b === 'string' ? b.replace(/&quot;|&#34;|&#034;/g, '\"').replace(/&#39;|&#039;/g, \"'\") : b;\n            return normA !== normB;\n        },\n        gt: (a, b) => Number(a) > Number(b),\n        gte: (a, b) => Number(a) >= Number(b),\n        lt: (a, b) => Number(a) < Number(b),\n        lte: (a, b) => Number(a) <= Number(b),\n\n        // Helpers lógicos\n        and: (...args) => args.every(Boolean),\n        or: (...args) => args.some(Boolean),\n        not: (a) => !a,\n\n        // Helpers de utilidad\n        join: (arr, separator = ', ') => {\n            if (!Array.isArray(arr)) return String(arr);\n            return arr.join(separator);\n        },\n        getInitialBalanceForRange: (movements, reportStartDate) => {\n            if (!Array.isArray(movements) || movements.length === 0) return 0;\n            if (!reportStartDate) return movements[0]?.running_balance - movements[0]?.amount || 0;\n\n            const startDate = new Date(reportStartDate);\n            const firstMovementInRange = movements.find(m => new Date(m.created_at) >= startDate);\n\n            if (!firstMovementInRange) return 0;\n            return firstMovementInRange.running_balance - firstMovementInRange.amount;\n        },\n        length: (arr) => Array.isArray(arr) ? arr.length : 0,\n        default: (value, defaultValue) => value ?? defaultValue,\n        json: (obj) => JSON.stringify(obj, null, 2),\n        trim: (str) => String(str).trim(),\n        contains: (str, search) => String(str).includes(search),\n        last: (arr) => Array.isArray(arr) && arr.length > 0 ? arr[arr.length - 1] : null,\n        first: (arr) => Array.isArray(arr) && arr.length > 0 ? arr[0] : null,\n        lastProp: (pathWithProp, context) => {\n            if (!pathWithProp || !context) return null;\n            const parts = pathWithProp.split('.');\n            let current = context;\n            for (let i = 0; i < parts.length; i++) {\n                const part = parts[i];\n                if (current == null) return null;\n                if (part === 'length') {\n                    current = Array.isArray(current) ? current.length : null;\n                } else if (Array.isArray(current) && /^\\d+$/.test(part)) {\n                    current = current[parseInt(part, 10)];\n                } else {\n                    current = current[part];\n                }\n            }\n            if (Array.isArray(current) && current.length > 0) {\n                return current[current.length - 1];\n            }\n            return current;\n        },\n        getLastBalance: (currencyKey, context) => {\n            if (!context || !context.history_by_currency) return null;\n            const arr = context.history_by_currency[currencyKey];\n            if (!Array.isArray(arr) || arr.length === 0) return null;\n            const lastItem = arr[arr.length - 1];\n            return lastItem && lastItem.running_balance != null ? lastItem.running_balance : null;\n        },\n        lastUsdBalance: (usdArray) => {\n            if (!Array.isArray(usdArray) || usdArray.length === 0) return null;\n            return usdArray[usdArray.length - 1]?.running_balance ?? null;\n        },\n        lastUyuBalance: (uyuArray) => {\n            if (!Array.isArray(uyuArray) || uyuArray.length === 0) return null;\n            return uyuArray[uyuArray.length - 1]?.running_balance ?? null;\n        },\n        isUsdBalancePositive: (usdArray) => {\n            if (!Array.isArray(usdArray) || usdArray.length === 0) return false;\n            const balance = usdArray[usdArray.length - 1]?.running_balance ?? 0;\n            return balance >= 0;\n        },\n        isUyuBalancePositive: (uyuArray) => {\n            if (!Array.isArray(uyuArray) || uyuArray.length === 0) return false;\n            const balance = uyuArray[uyuArray.length - 1]?.running_balance ?? 0;\n            return balance >= 0;\n        },\n        formatUsdBalance: (usdObj) => {\n            if (!usdObj || !Array.isArray(usdObj.movements) || usdObj.movements.length === 0) return '';\n            const movements = usdObj.movements;\n            const balance = movements[movements.length - 1]?.running_balance ?? 0;\n            const formatted = new Intl.NumberFormat('es-ES', {\n                minimumFractionDigits: 2,\n                maximumFractionDigits: 2\n            }).format(Math.abs(balance));\n            const color = balance >= 0 ? '#059669' : '#dc2626';\n            return `<p style=\"font-size:13px;line-height:24px;font-weight:700;color:${color};margin:0;margin-top:0;margin-bottom:0;margin-left:0;margin-right:0\">${formatted}</p>`;\n        },\n        formatUyuBalance: (uyuObj) => {\n            if (!uyuObj || !Array.isArray(uyuObj.movements) || uyuObj.movements.length === 0) return '';\n            const movements = uyuObj.movements;\n            const balance = movements[movements.length - 1]?.running_balance ?? 0;\n            const formatted = new Intl.NumberFormat('es-ES', {\n                minimumFractionDigits: 2,\n                maximumFractionDigits: 2\n            }).format(Math.abs(balance));\n            const color = balance >= 0 ? '#059669' : '#dc2626';\n            return `<p style=\"font-size:13px;line-height:24px;font-weight:700;color:${color};margin:0;margin-top:0;margin-bottom:0;margin-left:0;margin-right:0\">${formatted}</p>`;\n        },\n        formatDateRange: (startDate, endDate) => {\n            const formatDate = (d) => {\n                if (!d) return '';\n                const date = new Date(d);\n                if (isNaN(date.getTime())) return d;\n                return date.toLocaleDateString('es-ES');\n            };\n\n            let text = 'Período: ';\n\n            if (startDate && endDate) {\n                text += `${formatDate(startDate)} al ${formatDate(endDate)}`;\n            } else if (startDate) {\n                text += `Desde ${formatDate(startDate)}`;\n            } else if (endDate) {\n                text += `Hasta ${formatDate(endDate)}`;\n            } else {\n                text += 'Histórico';\n            }\n\n            return `<p style=\"font-size:13px;line-height:24px;color:#4a5568;margin:0 0 8px;margin-top:0;margin-right:0;margin-bottom:8px;margin-left:0\">${text}</p>`;\n        },\n\n        // Helpers matemáticos\n        add: (a, b) => Number(a) + Number(b),\n        subtract: (a, b) => Number(a) - Number(b),\n        multiply: (a, b) => Number(a) * Number(b),\n        divide: (a, b) => Number(a) / Number(b),\n        mod: (a, b) => Number(a) % Number(b),\n    };\n\n    const helpers = { ...defaultHelpers, ...customHelpers };\n\n    const escapeMap = {\n        '&': '&amp;',\n        '<': '&lt;',\n        '>': '&gt;',\n        '\"': '&quot;',\n        \"'\": '&#039;'\n    };\n\n    // --- 2. Funciones Internas de Procesamiento ---\n    const escapeHtml = (text) => {\n        return String(text).replace(/[&<>\"']/g, m => escapeMap[m]);\n    };\n\n    const getValue = (path, context) => {\n        if (path === 'this' || path === '.') {\n            return (context && context._this_ !== undefined) ? context._this_ : context;\n        }\n\n        if (context == null) return undefined;\n\n        let lookupPath = path;\n        if (lookupPath.startsWith('this.')) {\n            lookupPath = lookupPath.slice(5);\n        }\n\n        // Manejo especial para variables especiales de loop (@key, @index, etc.)\n        if (lookupPath.startsWith('@')) {\n            return context[lookupPath];\n        }\n\n        const keys = lookupPath.split('.');\n        let current = context;\n\n        for (const key of keys) {\n            if (current == null) return undefined;\n            // Soporte para índices de array\n            if (/^\\d+$/.test(key)) {\n                current = current[parseInt(key, 10)];\n            } else {\n                if (current[key] === undefined && current._this_ !== undefined) {\n                    current = current._this_;\n                }\n                current = current[key];\n            }\n        }\n        return current;\n    };\n\n    const parseArguments = (argsStr, context) => {\n        const args = [];\n        // Normalizar las comillas HTML escapadas antes de parsear\n        const normalizedStr = argsStr\n            .replace(/&quot;/g, '\"')\n            .replace(/&#39;/g, \"'\")\n            .replace(/&#034;/g, '\"')\n            .replace(/&#039;/g, \"'\");\n\n        const argRegex = /\"([^\"]*)\"|'([^']*)'|true|false|null|undefined|(-?\\d+\\.?\\d*)|([a-zA-Z_@][\\w.@]*)/g;\n        let match;\n\n        while ((match = argRegex.exec(normalizedStr)) !== null) {\n            if (match[1] !== undefined) args.push(match[1]); // Comillas dobles\n            else if (match[2] !== undefined) args.push(match[2]); // Comillas simples\n            else if (match[0] === 'true') args.push(true);\n            else if (match[0] === 'false') args.push(false);\n            else if (match[0] === 'null') args.push(null);\n            else if (match[0] === 'undefined') args.push(undefined);\n            else if (match[3] !== undefined) args.push(parseFloat(match[3]));\n            else if (match[4] !== undefined) args.push(getValue(match[4], context));\n        }\n        return args;\n    };\n\n    const evaluateHelper = (expression, context) => {\n        // Normalizar comillas HTML escapadas\n        const normalizedExpr = expression\n            .replace(/&quot;/g, '\"')\n            .replace(/&#39;/g, \"'\")\n            .replace(/&#034;/g, '\"')\n            .replace(/&#039;/g, \"'\");\n\n        const helperMatch = normalizedExpr.match(/^\\((\\w+)\\s*(.*?)\\)$/);\n\n        if (helperMatch) {\n            const [, helperName, argsStr] = helperMatch;\n            const helper = helpers[helperName];\n\n            if (!helper) {\n                if (strictMode) throw new Error(`Helper \"${helperName}\" no encontrado`);\n                console.warn(`Helper \"${helperName}\" no encontrado`);\n                return false;\n            }\n\n            const args = parseArguments(argsStr, context);\n            const result = helper(...args);\n\n            return result;\n        }\n\n        return getValue(normalizedExpr, context);\n    };\n\n    const isTruthy = (value) => {\n        if (value == null) return false;\n        if (typeof value === 'boolean') return value;\n        if (typeof value === 'number') return value !== 0;\n        if (typeof value === 'string') return value.length > 0;\n        if (Array.isArray(value)) return value.length > 0;\n        if (typeof value === 'object') return Object.keys(value).length > 0;\n        return Boolean(value);\n    };\n\n    // --- 3. Lógica Principal de Parseo ---\n    const processContent = (content, context) => {\n        let result = content;\n\n        // Función auxiliar para encontrar el endif correspondiente (maneja anidamiento)\n        const findMatchingEndif = (str, startIdx) => {\n            let depth = 1;\n            let i = startIdx;\n            let result = -1;\n            while (i < str.length && depth > 0) {\n                const remaining = str.slice(i);\n                // Match various forms of {{#if ...}}\n                if (remaining.startsWith('{{#if ') || remaining.startsWith('{{#if') || remaining.startsWith('{{#elseif') || remaining.startsWith('{{#unless') || remaining.startsWith('{{#each')) {\n                    depth++;\n                    i += 4;\n                } else if (remaining.startsWith('{{/if}}') || remaining.startsWith('{{/unless}}') || remaining.startsWith('{{/each}}')) {\n                    depth--;\n                    if (depth === 0) {\n                        result = i;\n                        break;\n                    }\n                    i += 7;\n                } else {\n                    i++;\n                }\n            }\n            return result;\n        };\n\n        // Función para encontrar el {{#if más externo y su {{/if}} correspondiente\n        const findOutermostIf = (str) => {\n            // Encontrar el {{#if más externo (a nivel 0 de anidamiento)\n            let depth = 0;\n            let outermostIfStart = -1;\n            let outermostCondition = '';\n\n            // Escaneo simple para encontrar el {{#if que no está dentro de otro\n            const regex = /\\{\\{#if\\s+(.+?)\\}\\}/g;\n            let match;\n\n            while ((match = regex.exec(str)) !== null) {\n                const potentialStart = match.index;\n\n                // Contar cuántos {{#if hay antes de esta posición\n                const beforeStr = str.substring(0, potentialStart);\n                const openCount = (beforeStr.match(/\\{\\{#if\\s+/g) || []).length;\n                const closeCount = (beforeStr.match(/\\{\\{\\/if\\}\\}/g) || []).length;\n\n                // Si está balanceado (mismos if que endif), es un if de nivel superior\n                if (openCount === closeCount) {\n                    // Verificar si hay algún {{#if que venga después que esté más hacia afuera\n                    // El primero que encontremos que cumpla esta condición es el más externo\n                    const remaining = str.substring(potentialStart);\n                    const remainingIfs = (remaining.match(/\\{\\{#if\\s+/g) || []).length;\n\n                    if (outermostIfStart === -1 || remainingIfs === 0) {\n                        outermostIfStart = potentialStart;\n                        outermostCondition = match[1];\n                    }\n                }\n            }\n\n            if (outermostIfStart < 0) return null;\n\n            // Ahora encontrar el {{/if}} correspondiente\n            const bodyStart = outermostIfStart + str.substring(outermostIfStart).match(/^\\{\\{#if\\s+.+?\\}\\}/)[0].length;\n            const bodyEnd = findMatchingEndif(str, bodyStart);\n\n            if (bodyEnd < 0) return null;\n\n            return { ifStart: outermostIfStart, condition: outermostCondition, bodyStart, bodyEnd };\n        };\n\n        // Función para procesar un bloque if individual\n        const processIfBlock = (str, ifStart, condition, bodyStart, bodyEnd) => {\n            const body = str.substring(bodyStart, bodyEnd);\n            const endifEnd = bodyEnd + 7;\n\n            // Buscar else/elseif en el body (solo los que están al mismo nivel, no anidados)\n            const elseifRegex = /\\{\\{elseif\\s+(.+?)\\}\\}/g;\n            const elseRegex = /\\{\\{else\\}\\}/g;\n\n            // Encontrar la posición del else/elseif más externos\n            const elseMatch = elseRegex.exec(body);\n            const elseifMatches = [];\n            let elseifMatch;\n            while ((elseifMatch = elseifRegex.exec(body)) !== null) {\n                elseifMatches.push(elseifMatch);\n            }\n\n            // Ordenar y encontrar el primer else/elseif al nivel exterior\n            const markers = [];\n            if (elseMatch) markers.push({ type: 'else', index: elseMatch.index });\n            for (const m of elseifMatches) {\n                markers.push({ type: 'elseif', index: m.index, condition: m[1].trim() });\n            }\n            markers.sort((a, b) => a.index - b.index);\n\n            // Evaluar las secciones\n            let rendered = '';\n            let foundTruthy = false;\n\n            // Sección if (solo contenido hasta el primer else/elseif)\n            const ifContent = markers.length > 0 ? body.substring(0, markers[0].index) : body;\n            const ifValue = evaluateHelper(condition.trim(), context);\n            if (isTruthy(ifValue)) {\n                rendered = processContent(ifContent, context);\n                foundTruthy = true;\n            }\n\n            // Secciones elseif/else\n            if (!foundTruthy) {\n                for (let i = 0; i < markers.length; i++) {\n                    const marker = markers[i];\n                    const nextMarker = markers[i + 1];\n                    const startIdx = body.indexOf('}}', marker.index) + 2;\n                    const endIdx = nextMarker ? nextMarker.index : body.length;\n                    const sectionContent = body.substring(startIdx, endIdx);\n\n                    if (marker.type === 'else') {\n                        rendered = processContent(sectionContent, context);\n                        break;\n                    } else if (marker.type === 'elseif') {\n                        const elseifValue = evaluateHelper(marker.condition, context);\n                        if (isTruthy(elseifValue)) {\n                            rendered = processContent(sectionContent, context);\n                            break;\n                        }\n                    }\n                }\n            }\n\n            return { start: ifStart, end: endifEnd, rendered };\n        };\n\n        // 3.1 Condicionales - procesar de afuera hacia adentro\n        let maxIterations = 100;\n        let iterations = 0;\n\n        while (iterations < maxIterations) {\n            iterations++;\n            const outermostIf = findOutermostIf(result);\n            if (!outermostIf) break;\n\n            const processed = processIfBlock(result, outermostIf.ifStart, outermostIf.condition, outermostIf.bodyStart, outermostIf.bodyEnd);\n            result = result.substring(0, processed.start) + processed.rendered + result.substring(processed.end);\n        }\n\n        // 3.2 Unless\n        result = result.replace(\n            /\\{\\{#unless\\s+(.+?)\\}\\}([\\s\\S]*?)\\{\\{\\/unless\\}\\}/g,\n            (match, condition, innerContent) => {\n                const value = evaluateHelper(condition.trim(), context);\n                return !isTruthy(value) ? processContent(innerContent, context) : '';\n            }\n        );\n\n        // 3.3 Helpers standalone (operaciones matemáticas, etc.)\n        result = result.replace(\n            /\\{\\{\\((\\w+)(?:\\s+(.+?))?\\)\\|(\\w+)(?:\\s+([^}]+))?\\}\\}/g,\n            (match, helperName, helperArgs, pipeHelperName, pipeHelperArgs) => {\n                const helper = helpers[helperName];\n                const pipeHelper = helpers[pipeHelperName];\n\n                if (!helper) {\n                    if (strictMode) throw new Error(`Helper \"${helperName}\" no encontrado`);\n                    console.warn(`Helper \"${helperName}\" no encontrado`);\n                    return '';\n                }\n\n                const args = helperArgs\n                    ? parseArguments(helperArgs, context)\n                    : [];\n                const firstResult = helper(...args);\n\n                if (!pipeHelper) {\n                    return firstResult !== undefined ? escapeHtml(firstResult) : '';\n                }\n\n                const pipeArgs = pipeHelperArgs\n                    ? [firstResult, ...parseArguments(pipeHelperArgs, context)]\n                    : [firstResult];\n                const finalResult = pipeHelper(...pipeArgs);\n                return finalResult !== undefined ? escapeHtml(finalResult) : '';\n            }\n        );\n\n        // 3.3b Helpers standalone without pipe\n        result = result.replace(\n            /\\{\\{\\((\\w+)(?:\\s+(.+?))?\\)\\}\\}/g,\n            (match, helperName, helperArgs) => {\n                const helper = helpers[helperName];\n\n                if (!helper) {\n                    if (strictMode) throw new Error(`Helper \"${helperName}\" no encontrado`);\n                    console.warn(`Helper \"${helperName}\" no encontrado`);\n                    return '';\n                }\n\n                const args = helperArgs\n                    ? parseArguments(helperArgs, context)\n                    : [];\n                const res = helper(...args);\n                return res !== undefined ? escapeHtml(res) : '';\n            }\n        );\n\n        // 3.4 Variables con helpers (soporta encadenamiento: {{var|h1|h2 args}})\n        result = result.replace(\n            /\\{\\{([\\w.@]+|this\\.[\\w.]+)((?:\\|\\w+(?:\\s+[^|{}]+)?)+)\\}\\}/g,\n            (match, path, pipesStr) => {\n                let value = getValue(path, context);\n\n                const segments = pipesStr.slice(1).split('|');\n                for (const segment of segments) {\n                    const trimmed = segment.trim();\n                    const spaceIdx = trimmed.indexOf(' ');\n                    const helperName = spaceIdx === -1 ? trimmed : trimmed.slice(0, spaceIdx);\n                    const helperArgs = spaceIdx === -1 ? '' : trimmed.slice(spaceIdx + 1);\n\n                    const helper = helpers[helperName];\n                    if (!helper) {\n                        if (strictMode) throw new Error(`Helper \"${helperName}\" no encontrado`);\n                        console.warn(`Helper \"${helperName}\" no encontrado`);\n                        continue;\n                    }\n\n                    const args = helperArgs\n                        ? [value, ...parseArguments(helperArgs, context)]\n                        : [value];\n                    value = helper(...args);\n                }\n\n                return value !== undefined ? escapeHtml(value) : '';\n            }\n        );\n\n        // 3.5 Variables sin escapar {{{ }}} (simple paths)\n        result = result.replace(/\\{\\{\\{([\\w.@]+|this\\.[\\w.]+)\\}\\}\\}/g, (match, path) => {\n            const value = getValue(path, context);\n            return value !== undefined ? String(value) : '';\n        });\n\n        // 3.5b Helpers sin escapar {{{helperName args}}}\n        result = result.replace(/\\{\\{\\{(\\w+)\\s+([\\s\\S]*?)\\}\\}\\}/g, (match, helperName, helperArgs) => {\n            const helper = helpers[helperName];\n            if (!helper) {\n                if (strictMode) throw new Error(`Helper \"${helperName}\" no encontrado`);\n                console.warn(`Helper \"${helperName}\" no encontrado`);\n                return '';\n            }\n            // Clean up helperArgs - normalize whitespace first\n            const cleanArgs = helperArgs.replace(/\\\\s+/g, ' ').trim();\n            const args = cleanArgs\n                ? parseArguments(cleanArgs, context)\n                : [];\n            const res = helper(...args);\n            return res !== undefined ? String(res) : '';\n        });\n\n        // 3.6 Variables escapadas {{ }}\n        result = result.replace(/\\{\\{(?!#|\\/|elseif|else(?!\\w)|\\()([\\w.@]+|this\\.[\\w.]+)\\}\\}/g, (match, path) => {\n            const value = getValue(path, context);\n            return value !== undefined ? escapeHtml(value) : '';\n        });\n\n        return result;\n    };\n\n    const processLoops = (tmpl, dataCtx) => {\n        return tmpl.replace(\n            /\\{\\{#each ([\\w.]+)(?:\\s+as\\s+\\|(\\w+)(?:\\s*,\\s*(\\w+))?\\|)?\\}\\}([\\s\\S]*?)\\{\\{\\/each\\}\\}/g,\n            (match, key, itemAlias, indexAlias, content) => {\n                const collection = getValue(key, dataCtx);\n\n                let items = [];\n\n                if (Array.isArray(collection)) {\n                    if (collection.length === 0) return '';\n                    items = collection.map((item, index) => ({\n                        _this_: item,\n                        '@index': index,\n                        '@first': index === 0,\n                        '@last': index === collection.length - 1,\n                        '@odd': index % 2 === 1,\n                        '@even': index % 2 === 0,\n                        '@length': collection.length\n                    }));\n                } else if (typeof collection === 'object' && collection !== null) {\n                    const keys = Object.keys(collection);\n                    if (keys.length === 0) return '';\n                    items = keys.map((key, index) => ({\n                        _this_: collection[key],\n                        '@key': key,\n                        '@index': index,\n                        '@first': index === 0,\n                        '@last': index === keys.length - 1,\n                        '@odd': index % 2 === 1,\n                        '@even': index % 2 === 0,\n                        '@length': keys.length\n                    }));\n                } else {\n                    return '';\n                }\n\n                return items.map((loopContext) => {\n                    const isObject = typeof loopContext._this_ === 'object' && loopContext._this_ !== null;\n\n                    if (isObject) {\n                        Object.assign(loopContext, loopContext._this_);\n                    }\n\n                    return processContent(content, loopContext);\n                }).join('');\n            }\n        );\n    };\n\n    const cleanWhitespace = (tmpl) => {\n        return tmpl\n            .replace(/\\s*(\\{\\{#(?:if|unless|each)[^}]*\\}\\})\\s*/g, '$1')\n            .replace(/\\s*(\\{\\{\\/(?:if|unless|each)\\}\\})\\s*/g, '$1')\n            .replace(/\\s*(\\{\\{(?:else|elseif)[^}]*\\}\\})\\s*/g, '$1');\n    };\n\n    // --- 4. Ejecución ---\n    let processedTemplate = preserveWhitespace ? template : cleanWhitespace(template);\n    processedTemplate = processLoops(processedTemplate, data);\n    return processContent(processedTemplate, data);\n}\n\n// Combinar datos por defecto con datos proporcionados\nconst data = {\n  ...$(\"Get Clinic Data\").first().json,\n  ...$(\"When Executed by Another Workflow\").first().json.data,\n\n  // Placeholder data\n  logo: `${$execution.resumeUrl?.split('/webhook-waiting')[0]}/webhook/clinic/logo`,\n};\n\n// Renderizar la plantilla\nconst buffer = Buffer.from(\n  $input.first().json.content,\n  $input.first().json.encoding,\n);\nconst template = buffer.toString(\"utf8\");\nconst html = renderTemplate(template, data);\n\nreturn {\n  html: html,\n  subject: $(\"When Executed by Another Workflow\").first().json.subject,\n  emails: $(\"When Executed by Another Workflow\").first().json.emails,\n  cc: $(\"When Executed by Another Workflow\").first().json.cc,\n  bcc: $(\"When Executed by Another Workflow\").first().json.bcc\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        -80
+      ],
+      "id": "96da2baa-d99b-4138-861a-cc001582b49b",
+      "name": "Build Email"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "repo-owner",
+              "name": "repo.owner",
+              "value": "raidel-spec",
+              "type": "string"
+            },
+            {
+              "id": "repo-name",
+              "name": "repo.name",
+              "value": "invokeia-email-template",
+              "type": "string"
+            },
+            {
+              "id": "mapping-file",
+              "name": "templates_path",
+              "value": "out/",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "065327e8-1dee-4938-88ce-41145558770f",
+      "name": "Set Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -304,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $('Set Variables').item.json.repo.owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('Set Variables').item.json.repo.name }}"
+        },
+        "filePath": "={{ $('Set Variables').item.json.templates_path }}{{ $('When Executed by Another Workflow').item.json.template }}.html",
+        "asBinaryProperty": false,
+        "additionalParameters": {}
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        112,
+        32
+      ],
+      "id": "d86d79bb-1926-49cf-8c2e-504ee06e2144",
+      "name": "Find template",
+      "webhookId": "01eef28f-b649-4189-b95c-94e839a67917",
+      "credentials": {
+        "githubApi": {
+          "id": "4IQk0ToaHQQapGDt",
+          "name": "GitHub account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d21dbba7-187f-4e82-bb95-1ed467ea891f",
+              "name": "success",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "5e17f61e-644d-410e-8c36-51ffe7d99a73",
+              "name": "error",
+              "value": "={{ $json.error }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        320,
+        128
+      ],
+      "id": "af39ca48-f385-4576-960f-e30ae73b8206",
+      "name": "Error Response"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d21dbba7-187f-4e82-bb95-1ed467ea891f",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "87dfa858-5a6b-421f-8566-0c6d48967add",
+              "name": "html",
+              "value": "={{ $json.html }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        528,
+        -80
+      ],
+      "id": "6a532076-fbc2-4e20-961c-608e8247ae8b",
+      "name": "Sucess Response"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "template"
+            },
+            {
+              "name": "data",
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -512,
+        32
+      ],
+      "id": "76d1cc75-8e3a-4bfe-9ad1-43594f6b0ebf",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get Clinic Data": {
+      "main": [
+        [
+          {
+            "node": "Find template",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Email": {
+      "main": [
+        [
+          {
+            "node": "Sucess Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Variables": {
+      "main": [
+        [
+          {
+            "node": "Get Clinic Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find template": {
+      "main": [
+        [
+          {
+            "node": "Build Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Set Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "920fe042-18c4-4e0e-8dd6-091ec0f7cddc",
+  "meta": {
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "XLuZ2nk6mOfWmw9B",
+  "tags": []
+}

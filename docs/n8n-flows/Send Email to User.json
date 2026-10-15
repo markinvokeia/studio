@@ -1,0 +1,435 @@
+{
+  "name": "Send Email to User",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "subject"
+            },
+            {
+              "name": "template"
+            },
+            {
+              "name": "data",
+              "type": "object"
+            },
+            {
+              "name": "attachement"
+            },
+            {
+              "name": "channel"
+            },
+            {
+              "name": "category"
+            },
+            {
+              "name": "user_id"
+            },
+            {
+              "name": "cc",
+              "type": "array"
+            },
+            {
+              "name": "bcc",
+              "type": "array"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -224,
+        0
+      ],
+      "id": "45c6eac8-156f-4039-9fe0-a4d7ad24ba44",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n    (COALESCE(gns.is_enabled, false) AND COALESCE(ucp.is_enabled, true)) AS can_send_notification\nFROM public.global_notification_settings gns\nLEFT JOIN public.user_communication_preferences ucp \n    ON gns.channel_slug = ucp.channel_slug \n    AND gns.category_slug = ucp.category_slug\n    AND ucp.user_id = $1\nWHERE \n    gns.channel_slug = $2\n    AND gns.category_slug = $3",
+        "options": {
+          "queryReplacement": "={{ [$json.user_id, $json.channel, $json.category] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -16,
+        0
+      ],
+      "id": "65eb2366-5b7f-4f29-99d7-446db4f4533e",
+      "name": "Check preferences",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "66d55d55-2a15-4ed9-a5cc-0ff505ef1ec4",
+              "leftValue": "={{ $json.can_send_notification }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "ea8f21ac-fc1c-4b37-8eaa-511cc7e2fc6a",
+              "leftValue": "={{ $json.can_send_notification }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        192,
+        0
+      ],
+      "id": "edf6bb63-deb1-4aa7-8d81-d2fae48a41cd",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D9eorK93mFaLkKnM",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/D9eorK93mFaLkKnM",
+          "cachedResultName": "Send Email"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "emails": "={{ [$json.email] }}",
+            "subject": "={{ $('When Executed by Another Workflow').item.json.subject }}",
+            "template": "={{ $('When Executed by Another Workflow').item.json.template }}",
+            "data": "={{ $('When Executed by Another Workflow').item.json.data }}",
+            "attachement": "={{ $('When Executed by Another Workflow').item.json.attachement }}",
+            "cc": "={{ $('When Executed by Another Workflow').item.json.cc }}",
+            "bcc": "={{ $('When Executed by Another Workflow').item.json.bcc }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "emails",
+              "displayName": "emails",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            },
+            {
+              "id": "subject",
+              "displayName": "subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "template",
+              "displayName": "template",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "data",
+              "displayName": "data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            },
+            {
+              "id": "cc",
+              "displayName": "cc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            },
+            {
+              "id": "bcc",
+              "displayName": "bcc",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            },
+            {
+              "id": "attachement",
+              "displayName": "attachement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": true,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        816,
+        -192
+      ],
+      "id": "b081058d-da2f-4e3b-9b0c-90858261b85e",
+      "name": "Call 'Send Email'"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT email FROM public.users WHERE id = $1 LIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $('When Executed by Another Workflow').item.json.user_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        400,
+        -96
+      ],
+      "id": "012229df-f684-4b76-9d39-be9cd5ca6d05",
+      "name": "Get user email",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4464cece-cbad-4242-acd5-40acedda63c3",
+              "name": "success",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "5ebe5078-42bc-4079-9c60-61cd434db2a8",
+              "name": "message",
+              "value": "No tiene las preferencias activas",
+              "type": "string"
+            },
+            {
+              "id": "0f99f8ce-a8be-452f-b02a-fce7bbc632db",
+              "name": "has_preferences",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        816,
+        80
+      ],
+      "id": "a109a98e-92b7-4678-89a7-7058db6d6821",
+      "name": "Not success"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "38e7192a-737e-49df-b947-34a98802d2c6",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "35254643-0d0c-473d-88a7-47e5186cb98d",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        608,
+        -96
+      ],
+      "id": "ae2c6a7c-da1d-4e47-bc84-e0d1e6df35cf",
+      "name": "If1"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "user_id": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+          "subject": "Test email template",
+          "template": "password-reset-email",
+          "data": {},
+          "attachement": "",
+          "channel": "email",
+          "category": "billing",
+          "cc": [],
+          "bcc": []
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Check preferences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check preferences": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get user email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Not success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get user email": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Send Email'": {
+      "main": [
+        []
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Call 'Send Email'",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Not success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "58477306-6e98-4800-9b07-a1ea40e1447d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "iuqte7TCM_EiFbvt1bBZA",
+  "tags": []
+}
