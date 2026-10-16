@@ -20,6 +20,7 @@ import {
   Pencil,
   Stethoscope,
   UserCog,
+  MessagesSquare,
   UserPlus,
   Users,
   X,
@@ -57,6 +58,7 @@ import type {
   WhatsappHandoffRequestedNotification,
   StudyOrderStatusChangedNotification,
   StudyOrderAssignedNotification,
+  StudyOrderMessageNotification,
   StudyOrderSubmittedNotification,
 } from '@/lib/types';
 
@@ -1177,6 +1179,64 @@ function StudyOrderAssignedCard({ notification }: { notification: StudyOrderAssi
   );
 }
 
+/** Mensaje nuevo en el chatter de una orden que se sigue: quién escribió, un extracto y el acceso a la orden. */
+function StudyOrderMessageCard({ notification }: { notification: StudyOrderMessageNotification }) {
+  const { dismissNotification, closePanel } = useNotifications();
+  const t = useTranslations('Notifications');
+  const locale = useLocale();
+  const router = useRouter();
+
+  const handleView = () => {
+    closePanel();
+    // Cada uno abre la orden desde su bandeja: la clínica o "Mis órdenes" (lo resuelve el backend).
+    const path = notification.scope === 'mine' ? 'study-orders/mine' : 'study-orders';
+    router.push(`/${locale}/${path}?orderId=${notification.orderId}`);
+  };
+
+  return (
+    <CardWrapper onDismiss={() => dismissNotification(notification.id)} accent="border-l-[3px] border-l-primary">
+      <div className="flex items-start gap-3 pr-6">
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10">
+          <MessagesSquare className="h-3.5 w-3.5 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-mono text-xs font-semibold text-foreground truncate">
+              {notification.orderNumber}
+            </span>
+            <RelativeTime iso={notification.createdAt} />
+          </div>
+          <p className="mt-0.5 text-[11px] text-muted-foreground truncate">
+            {notification.patientName}
+          </p>
+          <p className="mt-2 text-[11px] text-foreground">
+            {notification.authorName
+              ? t('studyOrderMessageFrom', { name: notification.authorName })
+              : t('studyOrderMessageTitle', { number: notification.orderNumber })}
+          </p>
+          {notification.excerpt ? (
+            <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-[11px] text-muted-foreground">{notification.excerpt}</p>
+          ) : notification.attachmentCount > 0 && (
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {t('studyOrderMessageAttachments', { count: notification.attachmentCount })}
+            </p>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 h-7 w-full justify-start gap-2 text-[11px]"
+            onClick={handleView}
+          >
+            <ExternalLink className="h-3.5 w-3.5 text-primary" />
+            {t('studyOrderActionView')}
+          </Button>
+        </div>
+      </div>
+    </CardWrapper>
+  );
+}
+
 export function NotificationCard({ notification }: { notification: UnifiedNotification }) {
   switch (notification.type) {
     case 'new_appointment':
@@ -1201,5 +1261,7 @@ export function NotificationCard({ notification }: { notification: UnifiedNotifi
       return <StudyOrderStatusCard notification={notification} />;
     case 'study_order_assigned':
       return <StudyOrderAssignedCard notification={notification} />;
+    case 'study_order_message':
+      return <StudyOrderMessageCard notification={notification} />;
   }
 }

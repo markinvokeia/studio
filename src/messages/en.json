@@ -631,7 +631,10 @@
     "studyOrderSubmittedTitle": "New study order",
     "studyOrderStatusTitle": "Your order changed status",
     "studyOrderAssignedTitle": "A study order review was assigned to you",
-    "studyOrderAssignedBy": "{name} assigned you the review of this order."
+    "studyOrderAssignedBy": "{name} assigned you the review of this order.",
+    "studyOrderMessageTitle": "New message on {number}",
+    "studyOrderMessageFrom": "{name} wrote:",
+    "studyOrderMessageAttachments": "{count, plural, one {# attachment} other {# attachments}}"
   },
   "Header": {
     "toggleLanguage": "Toggle language",
@@ -9951,7 +9954,20 @@
         "dismissed": "dismissed"
       },
       "assignedTo": "Reviewer: {name}",
-      "previouslyAssigned": "previously: {name}"
+      "previouslyAssigned": "previously: {name}",
+      "fields": {
+        "patient_name": "Patient",
+        "patient_document": "Document",
+        "patient_phone": "Phone",
+        "patient_email": "Email",
+        "preferred_sede": "Preferred location",
+        "referring_doctor_name": "Doctor (per the order)",
+        "delivery_methods": "Delivery",
+        "clinical_notes": "Clinical notes",
+        "services_added": "Studies added",
+        "services_removed": "Studies removed"
+      },
+      "emptyValue": "empty"
     },
     "appointmentCard": {
       "none": "This order has no appointments yet.",
@@ -10188,6 +10204,68 @@
         "assigned": "Order assigned to {name}",
         "unassigned": "The order is now unassigned",
         "error": "The order could not be assigned"
+      }
+    },
+    "chatter": {
+      "title": "Chatter",
+      "show": "Show messages and activity",
+      "hide": "Hide messages and activity",
+      "sendMessage": "Send message",
+      "logNote": "Log note",
+      "sendMessageSubmit": "Send",
+      "logNoteSubmit": "Log",
+      "discard": "Discard",
+      "messagePlaceholder": "Write a message to the order's followers…",
+      "notePlaceholder": "Log an internal note…",
+      "messageHint": "{count, plural, one {# follower} other {# followers}} will be notified.",
+      "messageHintNobody": "Nobody else follows this order: the message stays in the history without notifying anyone.",
+      "noteHint": "Internal note: only the clinic can see it and nobody is notified.",
+      "shortcut": "Ctrl + Enter to send",
+      "attachments": {
+        "add": "Attach files",
+        "addHint": "Attach photos or PDF (up to {max}, 10 MB each). You can also drag them here or paste a screenshot.",
+        "selected": "Files to send",
+        "remove": "Remove {name}",
+        "count": "{count, plural, one {# attachment} other {# attachments}}",
+        "errorFormat": "Unsupported format: {name}. Use JPG, PNG, WEBP or PDF.",
+        "errorSize": "{name} is empty or larger than 10 MB.",
+        "errorTooMany": "A message can carry up to {max} files.",
+        "partialTitle": "Some files were not attached",
+        "partialDescription": "{count, plural, one {# file could not be saved} other {# files could not be saved}}. The message was posted; send them again in a new message."
+      },
+      "follow": "Follow",
+      "following": "Following",
+      "unfollow": "Unfollow",
+      "followHint": "Follow the order: you'll be notified of every new message",
+      "unfollowHint": "Unfollow the order: you won't be notified of its messages anymore",
+      "refresh": "Refresh",
+      "close": "Close",
+      "retry": "Retry",
+      "loadError": "Couldn't load the order's chatter.",
+      "empty": "There are no messages or activity on this order yet.",
+      "today": "Today",
+      "unknownAuthor": "Deleted user",
+      "noteBadge": "Note",
+      "postError": "Couldn't post",
+      "followersError": "Couldn't update the followers",
+      "followers": {
+        "title": "Followers",
+        "count": "{count, plural, =0 {No followers} one {# follower} other {# followers}}",
+        "empty": "Nobody follows this order yet.",
+        "add": "Add followers",
+        "remove": "Remove {name}",
+        "searchPlaceholder": "Search user…",
+        "noCandidates": "No more users to add.",
+        "back": "Back",
+        "loadError": "Couldn't load the user list."
+      },
+      "demo": {
+        "banner": "Demo mode: messages, notes and followers are sample data saved only in this browser. The order activity is real.",
+        "reset": "Reset",
+        "resetHint": "Clear this order's sample messages and followers and start over",
+        "seedDoctorMessage": "Hi, could you let me know once the study is scheduled? The patient prefers afternoon slots. Thanks.",
+        "seedClinicNote": "Called the patient: they confirm afternoons work. Check CBCT availability before scheduling.",
+        "clinicAuthor": "Front desk"
       }
     }
   },

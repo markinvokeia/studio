@@ -15,6 +15,7 @@ import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab
 import { StudyOrderAppointmentCard } from './study-order-appointment-card';
 import { isStudyOrderAssignable } from './study-order-assign-dialog';
 import { StudyOrderBookingLinkTab } from './study-order-booking-link-tab';
+import { StudyOrderChatter } from './study-order-chatter';
 import { StudyOrderReferralLine } from './study-order-referral-line';
 import { countPendingBlocking } from './study-order-review-list';
 import { StudyOrderReviewTab } from './study-order-review-tab';
@@ -29,6 +30,7 @@ import { StudyOrderWhatsappTab } from './study-order-whatsapp-tab';
 import { WhatsappSourceBadge } from './whatsapp-source-badge';
 
 import { STUDY_ORDERS_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { useStudyOrderChatterMode } from '@/hooks/use-study-order-chatter-source';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn, formatDateTime, formatDisplayDate } from '@/lib/utils';
 import type { StudyOrder, StudyOrderBoardStatus, StudyOrderFormOptions } from '@/lib/types';
@@ -122,6 +124,7 @@ export function StudyOrderDetailPanel({
     const frame = frameless ? 'rounded-none border-0 shadow-none' : 'border-0 shadow-none lg:border lg:shadow-sm';
     const t = useTranslations('StudyOrdersPage');
     const { hasPermission } = usePermissions();
+    const chatterMode = useStudyOrderChatterMode();
 
     const [order, setOrder] = React.useState<StudyOrder | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
@@ -546,7 +549,17 @@ export function StudyOrderDetailPanel({
 
                     {activeTab === 'original' && hasOriginals && <StudyOrderWhatsappTab order={order} />}
 
-                    {activeTab === 'activity' && <StudyOrderTimeline events={order.events ?? []} />}
+                    {/* Chatter: mensajes, notas internas y la bitácora de la orden, en un solo hilo.
+                        Apagado (NEXT_PUBLIC_STUDY_ORDER_CHATTER=off), la línea de tiempo de siempre. */}
+                    {activeTab === 'activity' && chatterMode === 'off' && <StudyOrderTimeline events={order.events ?? []} />}
+                    {activeTab === 'activity' && chatterMode !== 'off' && (
+                        <StudyOrderChatter
+                            orderId={order.id}
+                            variant="embedded"
+                            readOnly={readOnly}
+                            refreshKey={refreshKey + reloadKey}
+                        />
+                    )}
                 </CardContent>
             )}
         </Card>

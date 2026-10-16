@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, Clock, Headset, Pencil, UserCog, UserPlus } from 'lucide-react';
+import { ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, ClipboardList, Clock, Headset, MessagesSquare, Pencil, UserCog, UserPlus } from 'lucide-react';
 import { format, isValid, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 
@@ -25,6 +25,7 @@ import type {
   WhatsappHandoffRequestedNotification,
   StudyOrderStatusChangedNotification,
   StudyOrderAssignedNotification,
+  StudyOrderMessageNotification,
   StudyOrderSubmittedNotification,
 } from '@/lib/types';
 
@@ -415,6 +416,33 @@ function StudyOrderAssignedBody({ item }: { item: StudyOrderAssignedNotification
   );
 }
 
+function StudyOrderMessageBody({ item }: { item: StudyOrderMessageNotification }) {
+  const t = useTranslations('Notifications');
+
+  return (
+    <div className="flex flex-col items-center gap-5 px-2 py-4">
+      <div
+        className="grid h-16 w-16 place-items-center rounded-full text-white shadow-lg"
+        style={{ backgroundColor: '#6366f1', animation: 'global-alert-sway 1.4s ease-in-out infinite' }}
+      >
+        <MessagesSquare className="h-8 w-8" />
+      </div>
+      <div className="space-y-1 text-center">
+        <h2 className="font-mono text-xl font-bold leading-tight text-foreground">{item.orderNumber}</h2>
+        <p className="text-sm text-muted-foreground">{item.patientName}</p>
+        {item.authorName && (
+          <p className="text-sm font-medium text-foreground">{t('studyOrderMessageFrom', { name: item.authorName })}</p>
+        )}
+        {item.excerpt ? (
+          <p className="line-clamp-4 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{item.excerpt}</p>
+        ) : item.attachmentCount > 0 && (
+          <p className="text-sm text-muted-foreground">{t('studyOrderMessageAttachments', { count: item.attachmentCount })}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function NotificationBody({ item }: { item: UnifiedNotification }) {
   if (item.type === 'new_appointment') return <NewAppointmentBody item={item} />;
   if (item.type === 'appointment_status_change') return <StatusChangeBody item={item} />;
@@ -426,6 +454,7 @@ function NotificationBody({ item }: { item: UnifiedNotification }) {
   if (item.type === 'study_order_submitted') return <StudyOrderSubmittedBody item={item} />;
   if (item.type === 'study_order_status_changed') return <StudyOrderStatusBody item={item} />;
   if (item.type === 'study_order_assigned') return <StudyOrderAssignedBody item={item} />;
+  if (item.type === 'study_order_message') return <StudyOrderMessageBody item={item} />;
   // El recordatorio es el último caso real de la unión, no un comodín: si llega
   // un tipo que este archivo no conoce, `reminder` viene undefined y revienta.
   if (item.type === 'reminder') return <ReminderBody item={item} />;
@@ -465,6 +494,7 @@ export function GlobalNotificationAlerts({ items, onDismissAll }: GlobalNotifica
     if (current.type === 'study_order_submitted') return tN('studyOrderSubmittedTitle');
     if (current.type === 'study_order_status_changed') return tN('studyOrderStatusTitle');
     if (current.type === 'study_order_assigned') return tN('studyOrderAssignedTitle');
+    if (current.type === 'study_order_message') return tN('studyOrderMessageTitle', { number: current.orderNumber });
     return tN('reminderDueTitle');
   }
 

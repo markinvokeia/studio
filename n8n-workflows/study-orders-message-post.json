@@ -1,0 +1,702 @@
+{
+  "name": "Study Orders - Message Post",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## POST /study-orders/messages/post (generado)\n\nEscribe en el chatter de la orden. **multipart/form-data** (también acepta JSON sin archivos).\n\n**Campos:** `order_id`, `kind` (`message` | `note`), `body` (0-5000), `file0`, `file1`, … (hasta 5: JPG, PNG, WEBP o PDF de 10 MB como máximo). Hace falta texto o al menos un archivo.\n\n- **message**: lo ven todos los que pueden abrir la orden y avisa a cada seguidor con acceso, menos al autor (`study_order_message`, por SSE).\n- **note**: interna de la clínica, requiere STUDY_ORDERS_VIEW_ALL y no avisa a nadie.\n\nRequiere STUDY_ORDERS_MESSAGE y ser el doctor de la orden o tener VIEW_ALL. Quien escribe pasa a seguir la orden.\n\nLos archivos van a Drive con **Attachements CRUD** (`source_name = 'study_order_message'`, `source_id` = id del mensaje). Si alguno falla, el mensaje queda y `data.failed_attachments` dice cuántos; si no tenía texto y no se guardó ninguno, se borra y responde **502**.\n\n**409** sin permiso o sin acceso a la orden.\n\nNo editar a mano: `scripts/n8n/generate-study-order-message-workflows.mjs`.",
+        "height": 520,
+        "width": 520,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -600,
+        -260
+      ],
+      "id": "msg-post-1",
+      "name": "Contrato"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "study-orders/messages/post",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "msg-post-2",
+      "name": "Webhook",
+      "webhookId": "study-orders-msg-post",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Los campos de texto llegan en body (multipart o JSON) y los archivos como binarios, uno por\n// campo. Todo se valida antes de tocar la base: un archivo que no se puede mostrar se rechaza acá.\nconst userId = $json.jwtPayload?.userId;\nif (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];\n\nconst b = $json.body || {};\nconst orderId = (b.order_id || '').toString().trim();\nif (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderId)) return [{ json: { __error: true, __code: 400, __message: 'order_id es requerido' } }];\nconst kind = (b.kind || '').toString().trim();\nif (!['message', 'note'].includes(kind)) {\n  return [{ json: { __error: true, __code: 400, __message: 'kind debe ser message o note' } }];\n}\nconst text = (b.body ?? '').toString().trim();\nif (text.length > 5000) return [{ json: { __error: true, __code: 400, __message: 'El mensaje no puede superar los 5000 caracteres' } }];\n\nconst MAX_FILES = 5;\nconst MAX_BYTES = 10485760;\nconst ALLOWED = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];\nconst bin = $input.first().binary || {};\nconst keys = Object.keys(bin).sort((a, c) => a.localeCompare(c, undefined, { numeric: true }));\nif (keys.length > MAX_FILES) return [{ json: { __error: true, __code: 400, __message: 'Un mensaje admite hasta ' + MAX_FILES + ' archivos.' } }];\n\nconst files = [];\nfor (const key of keys) {\n  const f = bin[key];\n  const mime = String(f.mimeType || '').toLowerCase().split(';')[0].trim();\n  const name = String(f.fileName || key);\n  if (!ALLOWED.includes(mime)) {\n    return [{ json: { __error: true, __code: 400, __message: 'Formato no admitido: ' + name + '. Usá JPG, PNG, WEBP o PDF.' } }];\n  }\n  const buf = await this.helpers.getBinaryDataBuffer(0, key);\n  if (buf.length === 0) return [{ json: { __error: true, __code: 400, __message: 'El archivo ' + name + ' está vacío.' } }];\n  if (buf.length > MAX_BYTES) return [{ json: { __error: true, __code: 400, __message: 'El archivo ' + name + ' supera los 10 MB.' } }];\n  files.push({ key, file_name: name, mime, size: buf.length });\n}\nif (!text && files.length === 0) return [{ json: { __error: true, __code: 400, __message: 'El mensaje está vacío' } }];\n\nreturn [{\n  json: {\n    user_id: String(userId),\n    payload: JSON.stringify({ order_id: orderId, kind, body: text, attachment_count: files.length }),\n    files,\n  },\n  binary: bin,\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "id": "msg-post-3",
+      "name": "Validar Datos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "msg-post-4-cond",
+              "leftValue": "={{ !$json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        0
+      ],
+      "id": "msg-post-4",
+      "name": "¿Datos OK?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: $json.__code || 400, message: $json.__message || \"Error\", data: null } }}",
+        "options": {
+          "responseCode": "={{ $json.__code || 400 }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        720,
+        260
+      ],
+      "id": "msg-post-5",
+      "name": "Responder Error"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 userId (token)  $2 payload { order_id, kind, body, attachment_count }\nWITH \nperms AS (\n    SELECT coalesce(bool_or(p.code = 'STUDY_ORDERS_VIEW_ALL'), false) AS can_view_all,\n           coalesce(bool_or(p.code = 'STUDY_ORDERS_MESSAGE'), false)  AS can_message,\n           coalesce(bool_or(p.code = 'PATIENTS_VIEW_DETAIL'), false)  AS can_view_patient\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p       ON p.id = rp.permission_id\n     WHERE ur.user_id = $1::uuid\n       AND ur.is_active IS NOT FALSE\n       AND p.code IN ('STUDY_ORDERS_VIEW_ALL', 'STUDY_ORDERS_MESSAGE', 'PATIENTS_VIEW_DETAIL')\n),\np AS (\n    SELECT ($2::jsonb ->> 'order_id')::uuid AS order_id,\n           $2::jsonb ->> 'kind'             AS kind,\n           coalesce($2::jsonb ->> 'body', '') AS body,\n           coalesce(($2::jsonb ->> 'attachment_count')::int, 0) AS attachment_count\n),\nok AS (\n    SELECT p.*\n      FROM p\n     WHERE (SELECT can_message FROM perms)\n       AND p.kind IN ('message', 'note')\n       AND (btrim(p.body) <> '' OR p.attachment_count > 0)\n       AND length(btrim(p.body)) <= 5000\n       -- La nota es interna de la clínica.\n       AND (p.kind = 'message' OR (SELECT can_view_all FROM perms))\n       AND EXISTS (SELECT 1 FROM public.study_orders so\n                    WHERE so.id = p.order_id\n                      AND (so.doctor_id = $1::uuid OR (SELECT can_view_all FROM perms)))\n),\nins AS (\n    INSERT INTO public.study_order_messages (study_order_id, author_id, kind, body, created_at)\n    SELECT order_id, $1::uuid, kind, btrim(body), (now() AT TIME ZONE 'America/Montevideo')\n      FROM ok\n    RETURNING id, study_order_id, author_id, kind, body, created_at\n),\nfol AS (\n    INSERT INTO public.study_order_followers (study_order_id, user_id, added_by, created_at)\n    SELECT study_order_id, author_id, author_id, (now() AT TIME ZONE 'America/Montevideo')\n      FROM ins\n    ON CONFLICT (study_order_id, user_id) DO NOTHING\n    RETURNING user_id\n)\nSELECT i.id::text,\n       i.study_order_id::text AS order_id,\n       i.kind,\n       i.body,\n       i.author_id::text,\n       (SELECT u.name FROM public.users u WHERE u.id = $1::uuid) AS author_name,\n       i.created_at,\n       EXISTS (SELECT 1 FROM fol) AS started_following\n  FROM ins i;",
+        "options": {
+          "queryReplacement": "={{ [ $json.user_id, $json.payload ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        720,
+        0
+      ],
+      "id": "msg-post-6",
+      "name": "Publicar",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "msg-post-7-cond",
+              "leftValue": "={{ !!$json.id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        960,
+        0
+      ],
+      "id": "msg-post-7",
+      "name": "¿Publicado?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 409, message: \"No se pudo publicar: no tenés acceso a la orden o permiso para escribir\", data: null } }}",
+        "options": {
+          "responseCode": 409
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1200,
+        260
+      ],
+      "id": "msg-post-8",
+      "name": "Responder Sin Permiso"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "msg-post-9-cond",
+              "leftValue": "={{ $('Validar Datos').first().json.files.length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        0
+      ],
+      "id": "msg-post-9",
+      "name": "¿Trae archivos?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Un item por archivo, con el binario en 'data' (lo que espera Attachements CRUD). Se conserva\n// el nombre original: es el que ve quien abre el adjunto en el chatter.\nconst messageId = $('Publicar').first().json.id;\nconst v = $('Validar Datos').first();\nreturn v.json.files.map((f) => {\n  const fileName = f.file_name.replace(/[\\\\/:*?\"<>|]+/g, '_').slice(0, 180) || 'adjunto';\n  return {\n    json: { message_id: messageId, file_name: fileName, mime: f.mime, size: f.size },\n    binary: { data: { ...v.binary[f.key], fileName, mimeType: f.mime } },\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        -140
+      ],
+      "id": "msg-post-10",
+      "name": "Separar Archivos"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "TTwyLGp8Gg9qDKdn",
+          "mode": "list",
+          "cachedResultName": "Attachements CRUD"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "action": "UPLOAD",
+            "source_name": "study_order_message",
+            "source_id": "={{ $json.message_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "action",
+              "displayName": "action",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source_name",
+              "displayName": "source_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "source_id",
+              "displayName": "source_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1680,
+        -140
+      ],
+      "id": "msg-post-11",
+      "name": "Guardar Adjunto",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { message_id: $('Publicar').first().json.id } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        -140
+      ],
+      "id": "msg-post-12",
+      "name": "Juntar"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 id del mensaje  $2 cuántos archivos se mandaron\nWITH att AS (\n    SELECT count(*) AS stored\n      FROM public.attachments at\n     WHERE at.source_name = 'study_order_message'\n       AND at.source_id = $1::text\n),\ndel AS (\n    DELETE FROM public.study_order_messages m\n     WHERE m.id = $1::uuid\n       AND btrim(m.body) = ''\n       AND (SELECT stored FROM att) = 0\n    RETURNING m.id\n)\nSELECT m.id::text,\n       m.study_order_id::text AS order_id,\n       m.kind,\n       m.body,\n       m.author_id::text,\n       au.name AS author_name,\n       m.created_at,\n       \ncoalesce((SELECT json_agg(json_build_object('id', at.id::text, 'file_name', at.file_name, 'mime_type', at.mime_type) ORDER BY at.id)\n            FROM public.attachments at\n           WHERE at.source_name = 'study_order_message'\n             AND at.source_id = m.id::text), '[]'::json) AS attachments,\n       greatest(coalesce($2::int, 0) - (SELECT stored FROM att), 0) AS failed_attachments,\n       EXISTS (SELECT 1 FROM del) AS deleted\n  FROM public.study_order_messages m\n  LEFT JOIN public.users au ON au.id = m.author_id\n WHERE m.id = $1::uuid;",
+        "options": {
+          "queryReplacement": "={{ [ $('Publicar').first().json.id, $('Validar Datos').first().json.files.length ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2160,
+        0
+      ],
+      "id": "msg-post-13",
+      "name": "Resultado",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const row = $input.all().map((i) => i.json).find((r) => r && r.id) || null;\nif (!row) {\n  return [{ json: { __error: true, __code: 500, __message: 'No se pudo leer el mensaje publicado' } }];\n}\nif (row.deleted === true) {\n  return [{ json: { __error: true, __code: 502, __message: 'No se pudieron guardar los archivos. Probá de nuevo.' } }];\n}\nconst failed = Number(row.failed_attachments) || 0;\nconst { deleted, ...message } = row;\nconst done = row.kind === 'note' ? 'Nota registrada' : 'Mensaje enviado';\nreturn [{ json: {\n  __data: { ...message, attachments: Array.isArray(row.attachments) ? row.attachments : [], failed_attachments: failed },\n  __message: failed > 0 ? done + ', pero ' + failed + (failed === 1 ? ' archivo no se pudo guardar' : ' archivos no se pudieron guardar') : done,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        0
+      ],
+      "id": "msg-post-14",
+      "name": "Formatear Respuesta"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "msg-post-15-cond",
+              "leftValue": "={{ !!$json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2640,
+        0
+      ],
+      "id": "msg-post-15",
+      "name": "¿Error de negocio?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { code: 200, message: $json.__message || \"OK\", data: $json.__data, meta: $json.__meta } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2880,
+        120
+      ],
+      "id": "msg-post-16",
+      "name": "Responder OK"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "\n-- $1 = id del mensaje\nINSERT INTO public.notifications\n       (user_id, type, status, priority, patient_id, metadata, created_at)\nSELECT f.user_id,\n       'study_order_message',\n       'pending',\n       'MEDIUM',\n       so.patient_id,\n       jsonb_build_object(\n           'order_id',     so.id::text,\n           'order_number', so.order_number,\n           'source',       so.source,\n           'patient_id',   so.patient_id::text,\n           'patient_name', so.patient_name,\n           'message_id',   m.id::text,\n           'author_id',    m.author_id::text,\n           'author_name',  au.name,\n           'excerpt',      left(btrim(regexp_replace(m.body, '[[:space:]]+', ' ', 'g')), 200),\n           'attachment_count', (SELECT count(*) FROM public.attachments at\n                                 WHERE at.source_name = 'study_order_message'\n                                   AND at.source_id = m.id::text),\n           'scope',        CASE WHEN va.can_view_all THEN 'clinic' ELSE 'mine' END\n       ),\n       (now() AT TIME ZONE 'America/Montevideo')\n  FROM public.study_order_messages m\n  JOIN public.study_orders so          ON so.id = m.study_order_id\n  JOIN public.study_order_followers f  ON f.study_order_id = m.study_order_id\n  JOIN public.users u                  ON u.id = f.user_id\n  LEFT JOIN public.users au            ON au.id = m.author_id\n  CROSS JOIN LATERAL (\n       SELECT EXISTS (SELECT 1\n                        FROM public.user_roles ur\n                        JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n                        JOIN public.permissions pp      ON pp.id = rp.permission_id\n                       WHERE ur.user_id = f.user_id\n                         AND ur.is_active IS NOT FALSE\n                         AND pp.code = 'STUDY_ORDERS_VIEW_ALL') AS can_view_all\n  ) va\n WHERE m.id = $1::uuid\n   AND m.kind = 'message'\n   AND f.user_id IS DISTINCT FROM m.author_id\n   AND u.is_active IS NOT FALSE\n   -- Misma regla que escribir en la orden: su doctor o la clínica.\n   AND (f.user_id = so.doctor_id OR va.can_view_all)\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ [ $('Publicar').first().json.id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3120,
+        120
+      ],
+      "id": "msg-post-17",
+      "name": "Notificar",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "msg-post-18-cond",
+              "leftValue": "={{ !!$json.user_id }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3360,
+        120
+      ],
+      "id": "msg-post-18",
+      "name": "¿Hay a quién avisar?"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultName": "Events"
+        },
+        "mode": "each",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "study_order_message",
+            "user_ids": "={{ [$json.user_id] }}",
+            "channels": "={{ [] }}",
+            "payload": "={{ $json }}"
+          }
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        3600,
+        120
+      ],
+      "id": "msg-post-19",
+      "name": "Empujar por SSE",
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos": {
+      "main": [
+        [
+          {
+            "node": "¿Datos OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Datos OK?": {
+      "main": [
+        [
+          {
+            "node": "Publicar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publicar": {
+      "main": [
+        [
+          {
+            "node": "¿Publicado?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Publicado?": {
+      "main": [
+        [
+          {
+            "node": "¿Trae archivos?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Sin Permiso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Trae archivos?": {
+      "main": [
+        [
+          {
+            "node": "Separar Archivos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar Archivos": {
+      "main": [
+        [
+          {
+            "node": "Guardar Adjunto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Adjunto": {
+      "main": [
+        [
+          {
+            "node": "Juntar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Juntar": {
+      "main": [
+        [
+          {
+            "node": "Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resultado": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "¿Error de negocio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Error de negocio?": {
+      "main": [
+        [
+          {
+            "node": "Responder Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Responder OK": {
+      "main": [
+        [
+          {
+            "node": "Notificar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notificar": {
+      "main": [
+        [
+          {
+            "node": "¿Hay a quién avisar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay a quién avisar?": {
+      "main": [
+        [
+          {
+            "node": "Empujar por SSE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    "study-orders",
+    "clinic"
+  ]
+}

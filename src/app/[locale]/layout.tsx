@@ -44,6 +44,7 @@ export default async function LocaleLayout({
     clientId: process.env.NEXT_PUBLIC_CLIENT_ID ?? '',
     eventPusherKey: process.env.NEXT_PUBLIC_EVENT_PUSHER_KEY ?? '',
     eventPusherUrl: process.env.NEXT_PUBLIC_EVENT_PUSHER_URL ?? '',
+    studyOrderChatter: process.env.NEXT_PUBLIC_STUDY_ORDER_CHATTER ?? '',
   };
 
   return (

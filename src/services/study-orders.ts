@@ -9,7 +9,13 @@ import type {
     StudyOrderBoardColumn,
     StudyOrderBoardStatus,
     StudyOrderBookingLink,
+    StudyOrderChatter,
+    StudyOrderFollower,
+    StudyOrderFollowerAction,
+    StudyOrderFollowersResult,
     StudyOrderFormOptions,
+    StudyOrderMessageKind,
+    StudyOrderMessagePostResult,
     StudyOrderImportStatus,
     StudyOrderListItem,
     StudyOrderReviewStatus,
@@ -225,6 +231,97 @@ export async function assignStudyOrder(id: string, userId: string | null): Promi
 export async function getStudyOrderAssignees(signal?: AbortSignal): Promise<StudyOrderAssignee[]> {
     const raw = await api.get(API_ROUTES.STUDY_ORDERS.ASSIGNEES, undefined, undefined, { signal });
     const { data } = unwrap<StudyOrderAssignee[]>(raw);
+    return Array.isArray(data) ? data : [];
+}
+
+/** Chatter de la orden: seguidores, mensajes (las notas, solo para la clínica) y bitácora. */
+export async function getStudyOrderChatter(orderId: string, signal?: AbortSignal): Promise<StudyOrderChatter> {
+    const raw = await api.get(API_ROUTES.STUDY_ORDERS.CHATTER, { id: orderId }, undefined, { signal });
+    const { data } = unwrap<StudyOrderChatter>(raw);
+    return {
+        ...data,
+        followers: data.followers ?? [],
+        messages: data.messages ?? [],
+        events: data.events ?? [],
+    };
+}
+
+/** Adjuntos de un mensaje del chatter. Los mismos límites que valida el flujo de n8n. */
+export const STUDY_ORDER_MESSAGE_LIMITS = {
+    maxFiles: 5,
+    maxBytes: 10 * 1024 * 1024,
+    maxBody: 5000,
+    mimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'],
+} as const;
+
+/**
+ * Envía un mensaje (avisa a los seguidores) o registra una nota interna, con o sin archivos. Quien
+ * escribe pasa a seguir la orden. Si algún archivo no se pudo guardar el mensaje queda igual y
+ * `failed_attachments` dice cuántos.
+ */
+export async function postStudyOrderMessage(params: {
+    orderId: string;
+    kind: StudyOrderMessageKind;
+    body: string;
+    files?: File[];
+}): Promise<StudyOrderMessagePostResult> {
+    // Siempre multipart: el flujo lee los campos de texto igual, haya archivos o no.
+    const form = new FormData();
+    form.append('order_id', params.orderId);
+    form.append('kind', params.kind);
+    form.append('body', params.body.trim());
+    const files = params.files ?? [];
+    files.forEach((file, idx) => form.append(`file${idx}`, file, file.name));
+
+    const raw = await api.post(API_ROUTES.STUDY_ORDERS.MESSAGE_POST, form, undefined, undefined, {
+        // Subir fotos a Drive tarda más que guardar un texto.
+        timeoutMs: files.length > 0 ? REQUEST_TIMEOUT_MS.longRunning : REQUEST_TIMEOUT_MS.mutation,
+    });
+    const data = unwrap<StudyOrderMessagePostResult>(raw).data;
+    return { ...data, attachments: data.attachments ?? [], failed_attachments: Number(data.failed_attachments) || 0 };
+}
+
+/** Adjunto de un mensaje del chatter, como blob. El navegador nunca habla con Drive. */
+export async function getStudyOrderMessageFile(messageId: string, fileId: string, signal?: AbortSignal): Promise<Blob> {
+    // Los adjuntos no cambian: una vez bajados se sirven de la caché.
+    return cachedBlob(
+        studyOrderMessageFileKey(messageId, fileId),
+        (fetchSignal) => api.getBlob(API_ROUTES.STUDY_ORDERS.MESSAGE_FILE, { message_id: messageId, id: fileId }, undefined, { signal: fetchSignal }),
+        signal,
+    );
+}
+
+const studyOrderMessageFileKey = (messageId: string, fileId: string) => `study-order-message:${messageId}:${fileId}`;
+
+/** Cargador de los adjuntos de un mensaje para `OrderFileGallery` (con caché y `peekUrl`). */
+export function studyOrderMessageFileLoader(messageId: string) {
+    return Object.assign(
+        (fileId: string, signal: AbortSignal) => getStudyOrderMessageFile(messageId, fileId, signal),
+        { peekUrl: (fileId: string) => peekBlobUrl(studyOrderMessageFileKey(messageId, fileId)) },
+    );
+}
+
+/** Seguir / dejar de seguir (uno mismo) o sumar / quitar a otro (`userId`, solo la clínica). */
+export async function updateStudyOrderFollowers(params: {
+    orderId: string;
+    action: StudyOrderFollowerAction;
+    userId?: string;
+}): Promise<StudyOrderFollowersResult> {
+    const raw = await api.post(
+        API_ROUTES.STUDY_ORDERS.FOLLOWERS,
+        { order_id: params.orderId, action: params.action, user_id: params.userId },
+        undefined,
+        undefined,
+        { timeoutMs: REQUEST_TIMEOUT_MS.mutation },
+    );
+    const { data } = unwrap<StudyOrderFollowersResult>(raw);
+    return { followers: data.followers ?? [], is_following: data.is_following === true };
+}
+
+/** A quién se puede sumar como seguidor de la orden (los que todavía no la siguen). */
+export async function getStudyOrderFollowerCandidates(orderId: string, signal?: AbortSignal): Promise<StudyOrderFollower[]> {
+    const raw = await api.get(API_ROUTES.STUDY_ORDERS.FOLLOWER_CANDIDATES, { id: orderId }, undefined, { signal });
+    const { data } = unwrap<StudyOrderFollower[]>(raw);
     return Array.isArray(data) ? data : [];
 }
 

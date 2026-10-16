@@ -28,6 +28,7 @@ import {
     APPOINTMENT_TECHNICIANS_SQL, ASSIGN_TECHNICIAN_SQL, BOOKING_TOKEN_SQL, LOG_EVENT_SQL, TECHNICIAN_TASKS_SQL, PUBLIC_BOOK_SQL, PUBLIC_DETAIL_SQL, RECONCILE_SQL,
     RECOMPUTE_SQL, RESCHEDULE_SQL, SUBMIT_SQL, UPSERT_SQL,
     RESOLVE_INTAKE_SQL, REVIEW_ITEM_UPDATE_SQL, WHATSAPP_INTAKES_SQL,
+    CHATTER_SQL, FOLLOWER_CANDIDATES_SQL, FOLLOWERS_SQL,
 } from './study-orders-sql.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -361,7 +362,8 @@ const payload = {
 };
 
 return [{ json: { user_id: String(userId), payload: JSON.stringify(payload) } }];`.trim(),
-    event: { replacement: `={{ JSON.stringify({ order_id: $('Formatear Respuesta').first().json.__data?.id || '', event_type: JSON.parse($('Validar Datos').first().json.payload).id ? 'updated' : 'created', actor_id: $('Validar Datos').first().json.user_id }) }}` },
+    // `changes`: los campos que cambiaron al editar ("anterior → nuevo"), para el chatter.
+    event: { replacement: `={{ JSON.stringify({ order_id: $('Formatear Respuesta').first().json.__data?.id || '', event_type: JSON.parse($('Validar Datos').first().json.payload).id ? 'updated' : 'created', actor_id: $('Validar Datos').first().json.user_id, metadata: { changes: $('Formatear Respuesta').first().json.__changes || [] } }) }}` },
     sql: UPSERT_SQL,
     replacement: '={{ [ $json.user_id, $json.payload ] }}',
     format: formatCode(`
@@ -370,7 +372,8 @@ if (!id) {
   return [{ json: { __error: true, __code: 409,
     __message: 'La orden no se puede modificar: ya fue enviada o no te pertenece' } }];
 }
-return [{ json: { __data: { id }, __message: 'Orden guardada' } }];`),
+// Va aparte de __data: es para la bitácora, el cliente no lo necesita.
+return [{ json: { __data: { id }, __changes: Array.isArray(rows[0].changes) ? rows[0].changes : [], __message: 'Orden guardada' } }];`),
 });
 
 // ── 5. POST /study-orders/submit ─────────────────────────────────────────────
@@ -1027,12 +1030,48 @@ function eventNodes(id, list) {
 /** `event` admite uno o varios renglones de bitácora por operación. */
 const eventList = (wf) => (wf.event ? (Array.isArray(wf.event) ? wf.event : [wf.event]) : []);
 
+/**
+ * IF entre "Notificar" y "Empujar por SSE". Cuando el INSERT de la notificación
+ * no devuelve filas (una nota, o nadie más a quien avisar), el nodo de Postgres
+ * igual emite un ítem `{ success: true }`; sin este filtro, Events recibe
+ * `user_ids: [undefined]` y responde 422. Pasa solo lo que trae `user_id`.
+ */
+const hasRecipientNode = (id, name, position) => ({
+    parameters: {
+        conditions: {
+            options: { caseSensitive: true, leftValue: '', typeValidation: 'strict', version: 2 },
+            conditions: [{
+                id: `${id}-cond`,
+                leftValue: '={{ !!$json.user_id }}',
+                rightValue: true,
+                operator: { type: 'boolean', operation: 'true', singleValue: true },
+            }],
+            combinator: 'and',
+        },
+        options: {},
+    },
+    type: 'n8n-nodes-base.if',
+    typeVersion: 2.2,
+    position,
+    id,
+    name,
+});
+
+/** Nombres de los nodos de una rama de aviso: únicos si hay más de una. */
+const notifyNames = (list, n) => {
+    const many = list.length > 1;
+    return {
+        notify: many ? `Notificar ${n.to}` : 'Notificar',
+        guard: many ? `¿Hay a quién avisar? ${n.to}` : '¿Hay a quién avisar?',
+        push: many ? `Empujar por SSE ${n.to}` : 'Empujar por SSE',
+    };
+};
+
 function notifyNodes(id, list) {
     return list.flatMap((n, i) => {
         // Nombres únicos y descriptivos: en el editor de n8n se ve a quién le
         // avisa cada rama sin tener que abrir el nodo.
-        const notifyName = list.length > 1 ? `Notificar ${n.to}` : 'Notificar';
-        const pushName = list.length > 1 ? `Empujar por SSE ${n.to}` : 'Empujar por SSE';
+        const { notify: notifyName, guard: guardName, push: pushName } = notifyNames(list, n);
         const y = 220 + i * 180;
         return [
             {
@@ -1049,6 +1088,7 @@ function notifyNodes(id, list) {
                 // Que falle el aviso no puede tumbar la operación, que ya respondió OK.
                 onError: 'continueRegularOutput',
             },
+            hasRecipientNode(`${id}-has-recipient-${i}`, guardName, [1760, y]),
             {
                 parameters: {
                     workflowId: { __rl: true, value: EVENTS_WORKFLOW_ID, mode: 'list', cachedResultName: 'Events' },
@@ -1065,7 +1105,7 @@ function notifyNodes(id, list) {
                 },
                 type: 'n8n-nodes-base.executeWorkflow',
                 typeVersion: 1.2,
-                position: [1760, y],
+                position: [1980, y],
                 id: `${id}-push-${i}`,
                 name: pushName,
                 onError: 'continueRegularOutput',
@@ -1137,6 +1177,7 @@ function reconcileWorkflow() {
                 credentials: PG_CREDENTIAL,
                 onError: 'continueRegularOutput',
             },
+            hasRecipientNode('recon-has-recipient', '¿Hay a quién avisar?', [720, 0]),
             {
                 parameters: {
                     workflowId: { __rl: true, value: EVENTS_WORKFLOW_ID, mode: 'list', cachedResultName: 'Events' },
@@ -1153,7 +1194,7 @@ function reconcileWorkflow() {
                 },
                 type: 'n8n-nodes-base.executeWorkflow',
                 typeVersion: 1.2,
-                position: [720, 0],
+                position: [960, 0],
                 id: 'recon-push',
                 name: 'Empujar por SSE',
                 onError: 'continueRegularOutput',
@@ -1165,7 +1206,8 @@ function reconcileWorkflow() {
                 { node: 'Registrar evento', type: 'main', index: 0 },
                 { node: 'Notificar', type: 'main', index: 0 },
             ]] },
-            Notificar:      { main: [[{ node: 'Empujar por SSE', type: 'main', index: 0 }]] },
+            Notificar:      { main: [[{ node: '¿Hay a quién avisar?', type: 'main', index: 0 }]] },
+            '¿Hay a quién avisar?': { main: [[{ node: 'Empujar por SSE', type: 'main', index: 0 }], []] },
         },
         settings: { executionOrder: 'v1' },
         tags: ['study-orders', 'clinic'],
@@ -1271,6 +1313,119 @@ if (!rows.length || !rows[0].order_id) {
 return [{ json: { __data: rows[0], __message: Number(rows[0].updated) === 1 ? 'Punto actualizado' : 'Puntos actualizados' } }];`),
 });
 
+// ── Chatter: mensajes, notas y seguidores (migración 132) ─────────────────────
+const UUID_RE = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i';
+
+workflows.push({
+    file: 'study-orders-chatter.json',
+    name: 'Study Orders - Chatter',
+    sticky: `## GET /study-orders/chatter?id=<uuid>
+
+Panel lateral de la orden (al estilo del chatter de Odoo): seguidores, mensajes y la bitácora de eventos, del más nuevo al más viejo.
+
+**Response 200**
+\`\`\`json
+{ "code": 200, "data": {
+  "order_id": "uuid", "is_following": true,
+  "can_post_message": true, "can_post_note": true, "can_manage_followers": true,
+  "followers": [{ "id": "uuid", "name": "Ana Pérez", "email": "..." }],
+  "messages": [{ "id": "uuid", "kind": "message|note", "body": "...", "author_id": "uuid", "author_name": "...", "created_at": "..." }],
+  "events": [{ "id": "uuid", "event_type": "updated", "actor_name": "...", "metadata": { "changes": [] }, "created_at": "..." }]
+} }
+\`\`\`
+
+Misma regla de acceso que el detalle (**404** sin acceso). Las **notas** son internas: solo llegan con STUDY_ORDERS_VIEW_ALL. Escribir pide STUDY_ORDERS_MESSAGE.`,
+    method: 'GET',
+    path: 'study-orders/chatter',
+    id: 'chatter',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const id = ($json.query?.id || '').toString().trim();
+if (!${UUID_RE}.test(id)) return [{ json: { __error: true, __code: 400, __message: 'El parámetro id es requerido' } }];
+return [{ json: { user_id: String(userId), id } }];`.trim(),
+    sql: CHATTER_SQL,
+    replacement: '={{ [ $json.user_id, $json.id ] }}',
+    format: formatCode(`
+if (!rows.length || !rows[0].data) {
+  return [{ json: { __error: true, __code: 404, __message: 'Orden no encontrada' } }];
+}
+return [{ json: { __data: rows[0].data } }];`),
+});
+
+// POST /study-orders/messages/post (con adjuntos) y GET /study-orders/messages/file no entran en
+// este molde: suben y bajan archivos. Los genera generate-study-order-message-workflows.mjs.
+
+workflows.push({
+    file: 'study-orders-followers.json',
+    name: 'Study Orders - Followers',
+    sticky: `## POST /study-orders/followers
+
+Seguidores de la orden.
+
+**Body:** \`{ "order_id": "uuid", "action": "follow" | "unfollow" | "add" | "remove", "user_id": "uuid (add/remove)" }\`
+
+- **follow / unfollow**: uno mismo. Requiere STUDY_ORDERS_MESSAGE y acceso a la orden.
+- **add / remove**: a otro. Además requiere STUDY_ORDERS_VIEW_ALL. Solo se puede sumar a quien puede abrir la orden (staff con VIEW_ALL o su doctor).
+
+**Response 200:** \`{ "followers": [...], "is_following": true }\` · **409** sin permiso.`,
+    method: 'POST',
+    path: 'study-orders/followers',
+    id: 'followers',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const b = $json.body || {};
+const orderId = (b.order_id || '').toString().trim();
+if (!${UUID_RE}.test(orderId)) return [{ json: { __error: true, __code: 400, __message: 'order_id es requerido' } }];
+const action = (b.action || '').toString().trim();
+if (!['follow', 'unfollow', 'add', 'remove'].includes(action)) {
+  return [{ json: { __error: true, __code: 400, __message: 'action debe ser follow, unfollow, add o remove' } }];
+}
+const target = (b.user_id || '').toString().trim();
+if ((action === 'add' || action === 'remove') && !${UUID_RE}.test(target)) {
+  return [{ json: { __error: true, __code: 400, __message: 'user_id es requerido' } }];
+}
+return [{ json: { user_id: String(userId), payload: JSON.stringify({ order_id: orderId, action, user_id: target }) } }];`.trim(),
+    sql: FOLLOWERS_SQL,
+    replacement: '={{ [ $json.user_id, $json.payload ] }}',
+    format: formatCode(`
+if (!rows.length || !rows[0].order_id) {
+  return [{ json: { __error: true, __code: 409,
+    __message: 'No se pudieron cambiar los seguidores: sin permiso, sin acceso a la orden o usuario no válido' } }];
+}
+const MESSAGES = { follow: 'Ahora seguís la orden', unfollow: 'Dejaste de seguir la orden', add: 'Seguidor agregado', remove: 'Seguidor quitado' };
+return [{ json: { __data: { followers: rows[0].followers ?? [], is_following: rows[0].is_following === true }, __message: MESSAGES[rows[0].action] || 'OK' } }];`),
+});
+
+workflows.push({
+    file: 'study-orders-follower-candidates.json',
+    name: 'Study Orders - Follower Candidates',
+    sticky: `## GET /study-orders/followers/candidates?id=<uuid>
+
+A quién se puede sumar como seguidor de la orden: staff activo con STUDY_ORDERS_VIEW_ALL y el doctor de la orden, menos los que ya la siguen y el agente de WhatsApp.
+
+Requiere STUDY_ORDERS_VIEW_ALL y STUDY_ORDERS_MESSAGE (sin ellos devuelve una lista vacía).
+
+**Response 200**
+\`\`\`json
+{ "code": 200, "data": [ { "id": "uuid", "name": "Ana Pérez", "email": "ana@..." } ] }
+\`\`\``,
+    method: 'GET',
+    path: 'study-orders/followers/candidates',
+    id: 'follower-cands',
+    validate: `
+const userId = $json.jwtPayload?.userId;
+if (!userId) return [{ json: { __error: true, __code: 401, __message: 'Token sin userId' } }];
+const id = ($json.query?.id || '').toString().trim();
+if (!${UUID_RE}.test(id)) return [{ json: { __error: true, __code: 400, __message: 'El parámetro id es requerido' } }];
+return [{ json: { user_id: String(userId), id } }];`.trim(),
+    sql: FOLLOWER_CANDIDATES_SQL,
+    replacement: '={{ [ $json.user_id, $json.id ] }}',
+    format: formatCode(`
+return [{ json: { __data: rows[0]?.items ?? [] } }];`),
+});
+
 for (const wf of workflows) {
     const nodes = [
         stickyNode(`${wf.id}-doc`, wf.sticky, [-560, -180]),
@@ -1350,16 +1505,17 @@ for (const wf of workflows) {
                     main: [[
                         ...eventList(wf).map((e) => ({ node: e.name ?? 'Registrar evento', type: 'main', index: 0 })),
                         ...notifyList(wf).map((n) => ({
-                            node: notifyList(wf).length > 1 ? `Notificar ${n.to}` : 'Notificar',
+                            node: notifyNames(notifyList(wf), n).notify,
                             type: 'main', index: 0,
                         })),
                     ]],
                 },
-                ...Object.fromEntries(notifyList(wf).map((n) => {
-                    const many = notifyList(wf).length > 1;
+                // Notificar → ¿Hay a quién avisar? → (sí) Empujar por SSE.
+                ...Object.fromEntries(notifyList(wf).flatMap((n) => {
+                    const names = notifyNames(notifyList(wf), n);
                     return [
-                        many ? `Notificar ${n.to}` : 'Notificar',
-                        { main: [[{ node: many ? `Empujar por SSE ${n.to}` : 'Empujar por SSE', type: 'main', index: 0 }]] },
+                        [names.notify, { main: [[{ node: names.guard, type: 'main', index: 0 }]] }],
+                        [names.guard, { main: [[{ node: names.push, type: 'main', index: 0 }], []] }],
                     ];
                 })),
             }

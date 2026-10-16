@@ -5,6 +5,7 @@ export interface RuntimeConfig {
   clientId: string;
   eventPusherKey: string;
   eventPusherUrl: string;
+  studyOrderChatter: string;
 }
 
 declare global {
@@ -27,6 +28,7 @@ function getRuntimeConfig(): Partial<RuntimeConfig> {
     clientId: process.env.NEXT_PUBLIC_CLIENT_ID,
     eventPusherKey: process.env.NEXT_PUBLIC_EVENT_PUSHER_KEY,
     eventPusherUrl: process.env.NEXT_PUBLIC_EVENT_PUSHER_URL,
+    studyOrderChatter: process.env.NEXT_PUBLIC_STUDY_ORDER_CHATTER,
   };
 }
 
@@ -64,3 +66,17 @@ export function getEventPusherUrl(): string {
   return getRuntimeConfig().eventPusherUrl || process.env.NEXT_PUBLIC_EVENT_PUSHER_URL || '';
 }
 
+
+/**
+ * Chatter de las órdenes de estudio (mensajes, notas y seguidores):
+ *   - `live`: contra los endpoints de n8n (requiere el script 132 y los workflows del chatter).
+ *   - `mock`: demo con datos de prueba guardados en el navegador; la bitácora es la real.
+ *   - `off`: sin chatter, la pestaña Actividad muestra la línea de tiempo de siempre.
+ * Sin valor (o con uno desconocido) es `mock`, hasta que el backend esté desplegado.
+ */
+export type StudyOrderChatterMode = 'live' | 'mock' | 'off';
+
+export function getStudyOrderChatterMode(): StudyOrderChatterMode {
+  const value = (getRuntimeConfig().studyOrderChatter || process.env.NEXT_PUBLIC_STUDY_ORDER_CHATTER || '').trim().toLowerCase();
+  return value === 'live' || value === 'off' ? value : 'mock';
+}
