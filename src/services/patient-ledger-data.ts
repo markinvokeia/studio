@@ -10,6 +10,7 @@ function normalizeQuote(raw: any, userId: string): Quote {
     id: String(raw.id),
     doc_no: raw.doc_no || undefined,
     user_id: raw.user_id || userId,
+    user_name: raw.user_name || '',
     doctor_id: raw.doctor_id != null ? String(raw.doctor_id) : undefined,
     doctor_name: raw.doctor_name || undefined,
     sede_id: raw.sede_id != null ? String(raw.sede_id) : undefined,

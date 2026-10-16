@@ -8622,7 +8622,9 @@
       "unpaid": "No Pagado",
       "paid": "Pagado",
       "partial": "Parcial",
-      "partially_paid": "Pago Parcial"
+      "partially_paid": "Pago Parcial",
+      "not_paid": "No Pagado",
+      "not_invoiced": "No Pagado"
     },
     "transactionType": {
       "direct_payment": "Pago Directo",

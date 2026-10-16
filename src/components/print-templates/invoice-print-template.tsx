@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { translateStatus } from '@/components/print-templates/translate-status';
 import { buildDocumentDiscountView, readDiscountAmount } from '@/lib/discounts';
 import { formatDisplayDate } from '@/lib/utils';
 import { computeInvoiceTotals } from '@/components/print-templates/invoice-totals';
@@ -57,13 +58,13 @@ export function InvoicePrintTemplate({ data }: InvoicePrintTemplateProps) {
         <div>
           <span className="text-gray-500">{t('status')}: </span>
           <span className="font-medium">
-            {t(`invoiceStatus.${invoice.status}` as any) || invoice.status}
+            {translateStatus(t, 'invoiceStatus', invoice.status)}
           </span>
         </div>
         <div>
           <span className="text-gray-500">{t('paymentStatus')}: </span>
           <span className="font-medium">
-            {t(`paymentStatusLabels.${paymentStatus}` as any) || paymentStatus}
+            {translateStatus(t, 'paymentStatusLabels', paymentStatus)}
           </span>
         </div>
         <div>

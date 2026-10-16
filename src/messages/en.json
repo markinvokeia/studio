@@ -8622,7 +8622,9 @@
       "unpaid": "Unpaid",
       "paid": "Paid",
       "partial": "Partial",
-      "partially_paid": "Partially Paid"
+      "partially_paid": "Partially Paid",
+      "not_paid": "Unpaid",
+      "not_invoiced": "Unpaid"
     },
     "transactionType": {
       "direct_payment": "Direct Payment",

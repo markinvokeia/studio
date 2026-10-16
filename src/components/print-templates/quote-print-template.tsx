@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { translateStatus } from '@/components/print-templates/translate-status';
 import { buildDocumentDiscountView, readDiscountAmount } from '@/lib/discounts';
 import { formatDisplayDate } from '@/lib/utils';
 import type { QuotePrintData } from '@/stores/print-document-store';
@@ -51,13 +52,13 @@ export function QuotePrintTemplate({ data }: QuotePrintTemplateProps) {
         <div>
           <span className="text-gray-500">{t('status')}: </span>
           <span className="font-medium">
-            {t(`quoteStatus.${quote.status}` as any) || quote.status}
+            {translateStatus(t, 'quoteStatus', quote.status)}
           </span>
         </div>
         <div>
           <span className="text-gray-500">{t('paymentStatus')}: </span>
           <span className="font-medium">
-            {t(`paymentStatusLabels.${quote.payment_status}` as any) || quote.payment_status}
+            {translateStatus(t, 'paymentStatusLabels', quote.payment_status)}
           </span>
         </div>
         <div>
@@ -178,12 +179,12 @@ export function QuotePrintTemplate({ data }: QuotePrintTemplateProps) {
                 <div className="flex gap-6 text-xs text-gray-500 mb-2">
                   <span>
                     {t('status')}: <span className="text-gray-800 font-medium">
-                      {t(`invoiceStatus.${invoice.status}` as any) || invoice.status}
+                      {translateStatus(t, 'invoiceStatus', invoice.status)}
                     </span>
                   </span>
                   <span>
                     {t('paymentStatus')}: <span className="text-gray-800 font-medium">
-                      {t(`paymentStatusLabels.${invoice.payment_status}` as any) || invoice.payment_status}
+                      {translateStatus(t, 'paymentStatusLabels', invoice.payment_status)}
                     </span>
                   </span>
                 </div>

@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { formatDisplayDate } from '@/lib/utils';
 import { computeInvoiceTotals } from '@/components/print-templates/invoice-totals';
+import { translateStatus, type PrintTranslator } from '@/components/print-templates/translate-status';
 import {
   buildDocumentDiscountView,
   readDiscountAmount,
@@ -340,14 +341,7 @@ function buildClinicValues(clinic: ClinicInfo | null): Record<string, string> {
   };
 }
 
-type Translator = ReturnType<typeof useTranslations>;
-
-/** Translates a status code (e.g. "booked", "unpaid") to its label, falling back to the raw value. */
-function translateStatus(t: Translator, namespace: string, value: string | undefined | null): string {
-  if (!value) return '';
-  const key = `${namespace}.${value}`;
-  return t.has(key) ? t(key) : value;
-}
+type Translator = PrintTranslator;
 
 function substituteVariables(html: string, data: PrintData, type: PrintDocumentType, clinic: ClinicInfo | null, t: Translator): string {
   const values: Record<string, string> = {
