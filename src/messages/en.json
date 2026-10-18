@@ -1979,7 +1979,9 @@
         "cedula_uy": "Uruguayan National ID",
         "cedula_ext": "Foreign National ID",
         "pasaporte_uy": "Uruguayan Passport",
-        "pasaporte_ext": "Foreign Passport"
+        "pasaporte_ext": "Foreign Passport",
+        "dni": "Spanish National ID (DNI)",
+        "nie": "Spanish Foreigner ID (NIE)"
       },
       "isActive": "Is Active",
       "cancel": "Cancel",

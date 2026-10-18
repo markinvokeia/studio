@@ -59,7 +59,12 @@ src/
 
 ### Internationalization
 
-All routes are under `[locale]/` (Spanish `es` / English `en`). Use `useTranslations()` from next-intl. **Every new user-facing string must have entries added to both `src/messages/en.json` and `src/messages/es.json`.**
+All routes are under `[locale]/` — locales are defined in `src/i18n.ts` (`en` English, `es` Spanish LatAm/Uruguay, `es-ES` Castilian Spanish/Spain). Use `useTranslations()` from next-intl.
+
+**Whenever you add or change translations, update every existing translation file — never just one or two.** That means all files in `src/messages/*.json` (currently `en.json`, `es.json` and `es-ES.json`), with the same key path and the same ICU placeholders (`{name}`, `{count, plural, ...}`) in each. If a client override under `src/messages/overrides/<client>/` already overrides the changed key, update it in all of that client's locale files too. Before finishing, verify that all base locale files have exactly the same set of keys.
+
+- `es.json` uses the Rioplatense/LatAm register already present in the file.
+- `es-ES.json` uses Castilian Spanish with **tú** (no voseo, no usted): `Introduce`, `Selecciona`, `Inténtalo de nuevo`, `¿Seguro que quieres…?`, `Se ha producido un error`, `añadir`, `importe`, `reservar`.
 
 **Per-client overrides:** a client can override specific translation keys via `src/messages/overrides/<NEXT_PUBLIC_CLIENT_ID>/<locale>.json` (partial file — only the changed keys; everything else falls back to the base). `src/i18n.ts` deep-merges the base with the client's override. See [`docs/i18n-overrides.md`](docs/i18n-overrides.md).
 

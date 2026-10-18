@@ -1979,7 +1979,9 @@
         "cedula_uy": "Cédula Uruguaya",
         "cedula_ext": "Cédula Extranjera",
         "pasaporte_uy": "Pasaporte Uruguayo",
-        "pasaporte_ext": "Pasaporte Extranjero"
+        "pasaporte_ext": "Pasaporte Extranjero",
+        "dni": "DNI (España)",
+        "nie": "NIE (España)"
       },
       "isActive": "Está Activo",
       "cancel": "Cancelar",

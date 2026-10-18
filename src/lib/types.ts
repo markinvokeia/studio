@@ -2,7 +2,7 @@
 
 export type UserDetailMode = 'sales' | 'purchases';
 
-export type IdentityDocumentType = 'cedula_uy' | 'cedula_ext' | 'pasaporte_uy' | 'pasaporte_ext';
+export type IdentityDocumentType = 'cedula_uy' | 'cedula_ext' | 'pasaporte_uy' | 'pasaporte_ext' | 'dni' | 'nie';
 
 export type User = {
   id: string;

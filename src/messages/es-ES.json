@@ -268,7 +268,7 @@
     "collect": "Cobrar",
     "collectSave": "Guardar",
     "cancel": "Cancelar",
-    "selectInvoicesToCollect": "Seleccione las facturas a cobrar",
+    "selectInvoicesToCollect": "Selecciona las facturas a cobrar",
     "pending": "Pendiente",
     "amountToCollect": "Monto",
     "paymentMethod": "Método de pago",
@@ -277,7 +277,7 @@
     "defaultMethod": "Método por defecto",
     "defaultMethodNamed": "Método por defecto ({name})",
     "overpayError": "El monto no puede superar lo pendiente.",
-    "noSelection": "Seleccione al menos una factura.",
+    "noSelection": "Selecciona al menos una factura.",
     "saving": "Guardando {current}/{total}…",
     "collectSuccess": "Cobro registrado",
     "collectPartialError": "No se pudieron cobrar algunas facturas: {failed}",
@@ -298,7 +298,7 @@
     "totalToPay": "Monto total a pagar",
     "collectSelection": "Cobrar selección",
     "confirmCollectTitle": "Confirmar cobro",
-    "confirmCollectBody": "Se realizarán {count} pagos por un total de {total} para las {count} facturas seleccionadas. ¿Desea confirmar?",
+    "confirmCollectBody": "Se realizarán {count} pagos por un total de {total} para las {count} facturas seleccionadas. ¿Quieres confirmar?",
     "confirm": "Confirmar"
   },
   "QuickPatientSearch": {
@@ -546,7 +546,7 @@
       "cancel": "Cancelar",
       "save": "Guardar",
       "confirmTitle": "Confirmar Pre-pago",
-      "confirmDescription": "¿Está seguro de que desea registrar este pre-pago?",
+      "confirmDescription": "¿Seguro que quieres registrar este prepago?",
       "confirm": "Confirmar",
       "selectMethod": "Seleccionar método",
       "searching": "Buscando...",
@@ -619,7 +619,7 @@
     "settings": "Configuración",
     "support": "Soporte",
     "logout": "Cerrar Sesión",
-    "commandPlaceholder": "Escriba un comando...",
+    "commandPlaceholder": "Escribe un comando...",
     "changePassword": "Cambiar Contraseña",
     "communicationPreferences": "Notificaciones",
     "preferences": "Preferencias",
@@ -643,7 +643,7 @@
     "densityCompact": "Compacta",
     "logoutConfirmation": {
       "title": "Sesión de Caja Activa",
-      "description": "Tiene una sesión de caja abierta. Por favor, ciérrela antes de cerrar sesión.",
+      "description": "Tienes una sesión de caja abierta. Ciérrala antes de cerrar sesión.",
       "goToCashier": "Ir a Cerrar Sesión",
       "logoutAnyway": "Cerrar de Todos Modos",
       "cancel": "Cancelar"
@@ -665,8 +665,8 @@
     },
     "errors": {
       "title": "Error",
-      "noToken": "Token de autenticación no encontrado. Por favor, inicie sesión de nuevo.",
-      "generic": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
+      "noToken": "No se ha encontrado el token de autenticación. Vuelve a iniciar sesión.",
+      "generic": "Se ha producido un error inesperado. Inténtalo de nuevo.",
       "incorrectOldPassword": "La contraseña actual no es correcta."
     },
     "success": {
@@ -684,13 +684,13 @@
       "tooltip": "Ver sesión activa"
     },
     "title": "Sin Sesión de Caja Activa",
-    "description": "No tiene una sesión de caja activa. Por favor, abra una para comenzar a registrar transacciones.",
+    "description": "No tienes una sesión de caja activa. Abre una para empezar a registrar transacciones.",
     "button": "Abrir Sesión de Caja",
-    "tooltip": "Sin sesión activa. Haga clic para abrir una."
+    "tooltip": "Sin sesión activa. Haz clic para abrir una."
   },
   "WorkingSedeSelector": {
     "title": "Sede de Trabajo",
-    "selectPrompt": "Seleccione en qué sede está trabajando",
+    "selectPrompt": "Selecciona en qué sede estás trabajando",
     "noSedes": "No hay sedes disponibles"
   },
   "SedeSelectionModal": {
@@ -1071,7 +1071,7 @@
     "filterByService": "Filtrar por servicio...",
     "createDialog": {
       "title": "Crear Nueva Cita",
-      "description": "Complete los detalles a continuación para crear una nueva cita.",
+      "description": "Completa los detalles a continuación para crear una nueva cita.",
       "userName": "Nombre de paciente",
       "serviceName": "Servicios",
       "date": "Fecha",
@@ -1099,7 +1099,7 @@
       "durationMinutes": "Duración (minutos)",
       "durationMinutesPlaceholder": "Ej: 20",
       "descriptionLabel": "Descripción",
-      "cancelAppointmentDescription": "Está seguro que desea cancelar la cita?",
+      "cancelAppointmentDescription": "¿Seguro que quieres cancelar la cita?",
       "close": "Cerrar",
       "cancelAppointmentTitle": "Cancelar Cita",
       "servicesSelected": "Servicios Seleccionados",
@@ -1113,7 +1113,7 @@
       "noQuote": "Sin presupuesto",
       "loadingQuotes": "Cargando presupuestos...",
       "loadingServices": "Cargando servicios...",
-      "selectUserFirst": "Seleccione un paciente primero",
+      "selectUserFirst": "Selecciona primero un paciente",
       "notes": "Notas",
       "workflowServiceTitle": "Servicio con Flujo",
       "workflowServiceDescription": "Agendar esta cita creará un plan de tratamiento con {steps} pasos.",
@@ -1152,6 +1152,12 @@
     "noSuggestions": "Sin sugerencias",
     "search": "Buscar",
     "selectedServices": "Servicios Seleccionados",
+    "loadErrors": {
+      "title": "No se pudo cargar la agenda",
+      "description": "Ha habido un problema al cargar consultorios, servicios o doctores. Revisa la conexión e inténtalo de nuevo.",
+      "fetchError": "No se pudieron actualizar las citas. Se muestran los últimos datos cargados.",
+      "retry": "Reintentar"
+    },
     "toasts": {
       "appointmentCancelled": "Cita cancelada",
       "appointmentCancelledDesc": "La cita ha sido cancelada.",
@@ -1166,7 +1172,7 @@
       "errorUpdatingColorDesc": "Hubo un error al actualizar el color.",
       "failedCancel": "Error al cancelar",
       "failedDelete": "Error al eliminar",
-      "fillRequired": "Por favor complete los campos obligatorios",
+      "fillRequired": "Completa los campos obligatorios",
       "patientRequired": "Debe asignar un paciente antes de guardar la cita",
       "missingInfoTitle": "Información Faltante",
       "slotNoLongerAvailable": "El horario ya no está disponible",
@@ -1182,6 +1188,9 @@
       "sessionUpdated": "Sesión clínica actualizada",
       "errorCreatingSession": "Error al guardar sesión",
       "errorCreatingSessionDesc": "Ocurrió un error al guardar la sesión clínica.",
+      "sessionFailedAppointmentCreated": "Cita creada, pero la sesión no se pudo guardar",
+      "sessionFailedAppointmentCreatedDesc": "La cita se ha guardado. Completa la sesión clínica desde el historial del paciente.",
+      "createdWithoutSessionId": "La cita se ha creado, pero no se pudo obtener su ID. Crea la sesión manualmente desde el historial del paciente.",
       "patientIdRequired": "Se requiere el ID del paciente",
       "errorLoadingQuoteItems": "Error al cargar tratamientos",
       "errorLoadingQuoteItemsDesc": "No se pudieron cargar los tratamientos del presupuesto.",
@@ -1669,7 +1678,7 @@
     "filterPlaceholder": "Filtrar por nombre...",
     "createDialog": {
       "title": "Crear Nuevo Padecimiento",
-      "description": "Complete los detalles a continuación para agregar un nuevo padecimiento.",
+      "description": "Completa los detalles a continuación para añadir un nuevo padecimiento.",
       "editTitle": "Editar Padecimiento",
       "editDescription": "Actualice los detalles de este padecimiento.",
       "name": "Nombre",
@@ -1677,7 +1686,7 @@
       "category": "Categoría",
       "categoryPlaceholder": "ej., Cardiovascular",
       "alertLevel": "Nivel de Alerta",
-      "alertLevelPlaceholder": "Seleccione un nivel",
+      "alertLevelPlaceholder": "Selecciona un nivel",
       "level1": "1 (Normal)",
       "level2": "2 (Advertencia)",
       "level3": "3 (Crítico)",
@@ -1686,7 +1695,7 @@
       "editSave": "Guardar Cambios"
     },
     "deleteDialog": {
-      "title": "¿Está seguro?",
+      "title": "¿Estás seguro?",
       "description": "Esto eliminará permanentemente el padecimiento \"{name}\". Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
@@ -1722,7 +1731,7 @@
     "filterPlaceholder": "Filtrar por nombre genérico...",
     "createDialog": {
       "title": "Crear Nuevo Medicamento",
-      "description": "Complete los detalles a continuación para agregar un nuevo medicamento.",
+      "description": "Completa los detalles a continuación para añadir un nuevo medicamento.",
       "editTitle": "Editar Medicamento",
       "editDescription": "Actualice los detalles de este medicamento.",
       "genericName": "Nombre Genérico",
@@ -1734,7 +1743,7 @@
       "editSave": "Guardar Cambios"
     },
     "deleteDialog": {
-      "title": "¿Está seguro?",
+      "title": "¿Estás seguro?",
       "description": "Esto eliminará permanentemente el medicamento \"{name}\". Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
@@ -1767,7 +1776,7 @@
     "filterPlaceholder": "Filtrar por nombre...",
     "createDialog": {
       "title": "Crear Nueva Condición Dental",
-      "description": "Complete los detalles a continuación para agregar una nueva condición dental.",
+      "description": "Completa los detalles a continuación para añadir una nueva condición dental.",
       "editTitle": "Editar Condición Dental",
       "editDescription": "Actualice los detalles de esta condición dental.",
       "name": "Nombre",
@@ -1780,7 +1789,7 @@
       "editSave": "Guardar Cambios"
     },
     "deleteDialog": {
-      "title": "¿Está seguro?",
+      "title": "¿Estás seguro?",
       "description": "Esto eliminará permanentemente la condición \"{name}\". Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
@@ -1816,7 +1825,7 @@
     "filterPlaceholder": "Filtrar por nombre...",
     "createDialog": {
       "title": "Crear Nueva Superficie Dental",
-      "description": "Complete los detalles a continuación para agregar una nueva superficie dental.",
+      "description": "Completa los detalles a continuación para añadir una nueva superficie dental.",
       "editTitle": "Editar Superficie Dental",
       "editDescription": "Actualice los detalles de esta superficie dental.",
       "name": "Nombre",
@@ -1828,7 +1837,7 @@
       "editSave": "Guardar Cambios"
     },
     "deleteDialog": {
-      "title": "¿Está seguro?",
+      "title": "¿Estás seguro?",
       "description": "Esta acción no se puede deshacer. Esto eliminará permanentemente la superficie \"{name}\".",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
@@ -1875,7 +1884,7 @@
     },
     "financialSummaryDialog": {
       "title": "Imprimir Resumen Financiero",
-      "description": "Seleccione el rango de fechas para el reporte financiero. Ambos campos son opcionales.",
+      "description": "Selecciona el rango de fechas para el informe financiero. Ambos campos son opcionales.",
       "from": "Desde",
       "to": "Hasta",
       "selectDate": "Seleccionar fecha",
@@ -1931,8 +1940,8 @@
     },
     "createDialog": {
       "title": "Crear Nuevo Paciente",
-      "description": "Complete los detalles a continuación para agregar un nuevo usuario.",
-      "createDescription": "Complete los detalles a continuación para agregar un nuevo paciente.",
+      "description": "Completa los detalles a continuación para añadir un nuevo usuario.",
+      "createDescription": "Completa los detalles a continuación para añadir un nuevo paciente.",
       "editTitle": "Editar Paciente",
       "editDescription": "Actualice los detalles de este paciente.",
       "createSuccessTitle": "Paciente Creado",
@@ -1953,7 +1962,7 @@
       "searchGuardianHint": "Escribe para buscar el tutor.",
       "createGuardian": "Crear tutor {name}",
       "createGuardianTitle": "Crear Tutor",
-      "createGuardianDescription": "Complete los datos del tutor. Al guardarlo queda asignado como contacto responsable.",
+      "createGuardianDescription": "Completa los datos del tutor. Al guardarlo queda asignado como contacto responsable.",
       "clearResponsibleContact": "Limpiar",
       "doctor": "Doctor por defecto",
       "searchDoctor": "Buscar doctor...",
@@ -1970,7 +1979,9 @@
         "cedula_uy": "Cédula Uruguaya",
         "cedula_ext": "Cédula Extranjera",
         "pasaporte_uy": "Pasaporte Uruguayo",
-        "pasaporte_ext": "Pasaporte Extranjero"
+        "pasaporte_ext": "Pasaporte Extranjero",
+        "dni": "DNI",
+        "nie": "NIE"
       },
       "isActive": "Está Activo",
       "cancel": "Cancelar",
@@ -1987,8 +1998,8 @@
         "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
         "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
         "responsibleContactRequired": "El paciente es dependiente: debe seleccionar el contacto responsable.",
-        "genericError": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
-        "serverError": "Error del servidor, por favor inténtelo más tarde.",
+        "genericError": "Se ha producido un error inesperado. Inténtalo de nuevo.",
+        "serverError": "Error del servidor. Inténtalo más tarde.",
         "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
         "fields": {
           "email": "Correo Electrónico",
@@ -2013,7 +2024,7 @@
         "saveSuccess": "Notas Guardadas",
         "saveSuccessDescription": "Las notas del paciente han sido actualizadas exitosamente",
         "saveError": "Error al Guardar",
-        "saveErrorDescription": "No se pudieron guardar las notas. Por favor, inténtelo de nuevo"
+        "saveErrorDescription": "No se pudieron guardar las notas. Inténtalo de nuevo."
       },
       "mutualSociety": "Sociedad Mutual",
       "selectMutualSociety": "Seleccionar sociedad mutual",
@@ -2076,7 +2087,7 @@
       "saveSuccess": "Notas Guardadas",
       "saveSuccessDescription": "Las notas del paciente han sido actualizadas exitosamente",
       "saveError": "Error al Guardar",
-      "saveErrorDescription": "No se pudieron guardar las notas. Por favor, inténtelo de nuevo"
+      "saveErrorDescription": "No se pudieron guardar las notas. Inténtalo de nuevo."
     }
   },
   "UserColumns": {
@@ -2124,14 +2135,14 @@
     "filterPlaceholder": "Filtrar por rol...",
     "dialog": {
       "title": "Agregar Roles al Usuario",
-      "description": "Seleccione los roles para asignar a este usuario.",
+      "description": "Selecciona los roles que quieres asignar a este usuario.",
       "availableRoles": "Roles Disponibles",
       "activeLabel": "Activo",
       "cancel": "Cancelar",
       "assign": "Aceptar"
     },
     "deleteDialog": {
-      "title": "¿Está seguro?",
+      "title": "¿Estás seguro?",
       "description": "Esta acción eliminará el rol \"{roleName}\" del usuario. Esto no se puede deshacer.",
       "cancel": "Cancelar",
       "continue": "Continuar"
@@ -2151,7 +2162,7 @@
     "addServices": "Marcar/Desmarcar Servicios",
     "dialog": {
       "title": "Agregar Servicios al Doctor",
-      "description": "Seleccione los servicios para asignar a este usuario.",
+      "description": "Selecciona los servicios que quieres asignar a este usuario.",
       "availableServices": "Servicios Disponibles",
       "cancel": "Cancelar",
       "assign": "Aceptar",
@@ -2196,7 +2207,7 @@
     },
     "items": {
       "title": "Servicios a facturar",
-      "description": "Selecciona el servicio y, si desea los pasos del flujo (opcional).",
+      "description": "Selecciona el servicio y, si quieres, los pasos del flujo (opcional).",
       "add": "Agregar línea",
       "lineLabel": "Línea {number}",
       "service": "Servicio",
@@ -2319,8 +2330,8 @@
         "complete": "Completar Ítem"
       },
       "description": {
-        "schedule": "Seleccione una fecha para programar este ítem.",
-        "complete": "Seleccione una fecha para completar este ítem."
+        "schedule": "Selecciona una fecha para programar este ítem.",
+        "complete": "Selecciona una fecha para completar este ítem."
       },
       "cancel": "Cancelar",
       "save": "Guardar"
@@ -2385,7 +2396,7 @@
     },
     "sendEmailDialog": {
       "title": "Enviar Presupuesto por Correo",
-      "description": "Ingrese los correos de los destinatarios para el presupuesto #{id}.",
+      "description": "Introduce los correos de los destinatarios del presupuesto #{id}.",
       "recipients": "Destinatarios",
       "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
       "helperText": "Separe múltiples correos con comas.",
@@ -2394,13 +2405,13 @@
       "send": "Enviar correo",
       "success": "Presupuesto enviado exitosamente",
       "error": "Error al enviar presupuesto",
-      "errorNoEmail": "Por favor ingrese al menos un correo destinatario.",
+      "errorNoEmail": "Introduce al menos un correo de destinatario.",
       "errorInvalidEmails": "Direcciones de correo inválidas: {emails}"
     },
     "confirmDialog": {
       "title": "Confirmar Presupuesto",
       "titleReject": "Rechazar Presupuesto",
-      "description": "¿Está seguro de {action} el presupuesto #{id}?",
+      "description": "¿Seguro que quieres {action} el presupuesto #{id}?",
       "notesLabel": "Notas (opcional)",
       "notesPlaceholder": "Agregar notas adicionales...",
       "confirm": "Confirmar",
@@ -2468,17 +2479,17 @@
         "nextSessionBadge": "Próxima sesión"
       },
       "notes": "Notas",
-      "notesPlaceholder": "Agregue notas adicionales aquí...",
+      "notesPlaceholder": "Añade notas adicionales aquí...",
       "patientConfirmed": "Confirmado por el paciente",
       "patientConfirmedNote": "Al seleccionar esta opción se creará el presupuesto confirmado. Desmarcar para crear en estado Borrador y confirmar o rechazar luego."
     },
     "quickQuote": {
       "title": "Crear Presupuesto Rápido",
       "description": "Crear un nuevo presupuesto para {userName}",
-      "selectUserFirst": "Seleccione un paciente primero",
+      "selectUserFirst": "Selecciona primero un paciente",
       "selectService": "Seleccionar servicio...",
-      "noItems": "No hay ítems. Agregue uno con el botón superior.",
-      "notesPlaceholder": "Agregue notas u observaciones...",
+      "noItems": "No hay ítems. Añade uno con el botón superior.",
+      "notesPlaceholder": "Añade notas u observaciones...",
       "create": "Crear Presupuesto"
     },
     "success": {
@@ -2509,14 +2520,14 @@
     "print": "Imprimir",
     "confirm": "Confirmar",
     "generatingPdf": "Generando PDF",
-    "pleaseWait": "Por favor espere mientras preparamos su PDF para el presupuesto #{id}.",
+    "pleaseWait": "Espera mientras preparamos el PDF del presupuesto #{id}.",
     "downloadStarted": "Descarga Iniciada",
     "pdfDownloading": "Su PDF para el presupuesto #{id} se está descargando.",
     "printError": "Error de Impresión",
     "couldNotPrint": "No se pudo imprimir el presupuesto.",
     "emailError": "Error de Correo Electrónico",
     "invalidEmail": "Dirección de Correo Inválida",
-    "atLeastOneEmail": "Por favor ingrese al menos un correo electrónico destinatario.",
+    "atLeastOneEmail": "Introduce al menos un correo electrónico de destinatario.",
     "invalidEmails": "Los siguientes correos electrónicos son inválidos: {emails}",
     "emailSent": "Correo Enviado",
     "emailSentSuccess": "El presupuesto ha sido enviado exitosamente a {emails}.",
@@ -2609,13 +2620,13 @@
     },
     "deleteQuoteDialog": {
       "title": "Eliminar Presupuesto",
-      "description": "¿Está seguro de que desea eliminar el presupuesto #{id}?",
+      "description": "¿Seguro que quieres eliminar el presupuesto #{id}?",
       "cancel": "Cancelar",
       "confirm": "Confirmar"
     },
     "deleteItemDialog": {
       "title": "Eliminar artículo",
-      "description": "¿Está seguro de que desea eliminar este artículo?",
+      "description": "¿Seguro que quieres eliminar este artículo?",
       "cancel": "Cancelar",
       "confirm": "Confirmar"
     },
@@ -2742,9 +2753,9 @@
       "description": "Agregar un pago para la factura #{invoiceId}",
       "amount": "Monto",
       "method": "Método",
-      "selectMethod": "Seleccione un método de pago",
+      "selectMethod": "Selecciona un método de pago",
       "status": "Estado",
-      "selectStatus": "Seleccione un estado de pago",
+      "selectStatus": "Selecciona un estado de pago",
       "date": "Fecha de Pago",
       "createdAt": "Fecha de Pago",
       "pickDate": "Seleccionar una fecha",
@@ -2771,7 +2782,7 @@
       "selectCurrency": "Seleccionar Moneda",
       "paymentRef": "Ref Pago",
       "notes": "Notas",
-      "notesPlaceholder": "Agregue notas adicionales aquí...",
+      "notesPlaceholder": "Añade notas adicionales aquí...",
       "isHistorical": "Histórico",
       "isHistoricalWarning": "Este pago no se incluirá en el cierre de caja",
       "isHistoricalDescription": "Se registrará como un pago del pasado y no afectará los cálculos de caja.",
@@ -2808,7 +2819,7 @@
       "methodRequired": "El método de pago es obligatorio.",
       "dateRequired": "La fecha de pago es obligatoria.",
       "userRequired": "Un usuario es obligatorio",
-      "noPaymentAmount": "Por favor ingrese un monto o seleccione créditos para pagar.",
+      "noPaymentAmount": "Introduce un importe o selecciona créditos para pagar.",
       "overpayment": "El pago total excede el monto restante de la factura.",
       "serviceRequired": "Un servicio es obligatorio",
       "quantityMin": "La cantidad debe ser al menos 1",
@@ -2817,7 +2828,7 @@
     "toast": {
       "error": "Error",
       "success": "Éxito",
-      "sessionCheckError": "No se pudo verificar la sesión de caja activa. Por favor, inténtelo de nuevo.",
+      "sessionCheckError": "No se pudo verificar la sesión de caja activa. Inténtalo de nuevo.",
       "downloadStarted": "Descarga Iniciada",
       "downloadSuccess": "La factura #{id} se ha descargado correctamente."
     },
@@ -2867,11 +2878,11 @@
     },
     "sendEmailDialog": {
       "title": "Enviar Factura por Correo",
-      "description": "Ingrese los correos de los destinatarios para la factura #{id}.",
+      "description": "Introduce los correos de los destinatarios de la factura #{id}.",
       "recipients": "Destinatarios",
       "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
       "helperText": "Separe múltiples correos con comas.",
-      "errorNoEmail": "Por favor, ingrese al menos un correo electrónico.",
+      "errorNoEmail": "Introduce al menos un correo electrónico.",
       "send": "Enviar Correo",
       "sending": "Enviando...",
       "cancel": "Cancelar",
@@ -2881,8 +2892,8 @@
     },
     "importDialog": {
       "title": "Importar Factura",
-      "description": "Suba un archivo PDF o imagen para crear automáticamente una factura.",
-      "clickToUpload": "Haga clic para subir",
+      "description": "Sube un archivo PDF o una imagen para crear automáticamente una factura.",
+      "clickToUpload": "Haz clic para subir",
       "dragAndDrop": "o arrastre y suelte",
       "fileTypes": "PDF, PNG, JPG o GIF (MÁX. 10MB)",
       "processing": "Procesando...",
@@ -2943,7 +2954,7 @@
       },
       "validation": {
         "errorTitle": "Error de Envío",
-        "checkFields": "Por favor, revise los campos marcados en rojo.",
+        "checkFields": "Revisa los campos marcados en rojo.",
         "userRequired": "Un usuario o proveedor es obligatorio.",
         "dateRequired": "La fecha es obligatoria.",
         "totalNonNegative": "El total debe ser un número no negativo.",
@@ -2987,33 +2998,45 @@
       "searching": "Buscando...",
       "noUserFound": "No se encontraron usuarios.",
       "notes": "Notas",
-      "notesPlaceholder": "Agregue notas adicionales aquí..."
+      "notesPlaceholder": "Añade notas adicionales aquí..."
     },
     "actions": {
       "openMenu": "Abrir menú",
       "title": "Acciones",
       "edit": "Editar",
       "print": "Imprimir",
-      "sendEmail": "Enviar Correo"
+      "sendEmail": "Enviar Correo",
+      "confirm": "Confirmar",
+      "confirmSuccess": "Factura confirmada",
+      "confirmError": "Error al confirmar la factura",
+      "printError": "Error al descargar la factura",
+      "emailSuccess": "Factura enviada por correo",
+      "emailError": "Error al enviar la factura",
+      "paymentSuccess": "Pago registrado correctamente",
+      "paymentError": "Error al registrar el pago",
+      "registerPayment": "Registrar pago",
+      "paymentDialogDescription": "Introduce los detalles del pago de la factura {docNo}",
+      "cancel": "Cancelar",
+      "register": "Registrar"
     },
     "confirmation": {
       "confirm": "Confirmar",
       "cancel": "Cancelar",
       "title": "Confirmar",
-      "message": "¿Está seguro de que desea realizar esta acción?"
+      "message": "¿Seguro que quieres realizar esta acción?"
     },
     "detailsFor": "Detalles",
     "close": "Cerrar detalles",
     "confirmInvoice": "Confirmar Factura",
     "deleteItemDialog": {
-      "title": "¿Está seguro?",
+      "title": "¿Estás seguro?",
       "description": "Esto eliminará permanentemente el artículo de la factura. Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
     "confirmInvoiceDialog": {
       "title": "Confirmar Factura",
-      "description": "¿Está seguro de que desea confirmar la factura #{id}? Esta acción no se puede deshacer.",
+      "description": "¿Seguro que quieres confirmar la factura #{id}? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Confirmar"
     },
@@ -3038,7 +3061,7 @@
       },
       "form": {
         "service": "Servicio",
-        "selectService": "Seleccione un servicio",
+        "selectService": "Selecciona un servicio",
         "quantity": "Cantidad",
         "unitPrice": "Precio Unitario",
         "notInList": "No está en la lista"
@@ -3050,6 +3073,17 @@
     },
     "notes": {
       "noNotes": "No hay notas."
+    },
+    "fields": {
+      "amount": "Importe",
+      "paymentMethod": "Método de pago",
+      "reference": "Referencia",
+      "referencePlaceholder": "Número de referencia"
+    },
+    "paymentMethods": {
+      "cash": "Efectivo",
+      "card": "Tarjeta",
+      "transfer": "Transferencia"
     }
   },
   "CashierPage": {
@@ -3074,7 +3108,7 @@
       "prefillZero": "Rellenar con 0",
       "prefillLast": "Rellenar con último cierre",
       "cashCountTitle": "Conteo de Efectivo ({currency})",
-      "cashCountDescription": "Ingrese el conteo físico de efectivo para cada denominación.",
+      "cashCountDescription": "Introduce el recuento físico de efectivo para cada denominación.",
       "steps": {
         "config": "Configuración",
         "bankDeposit": "Depósito Bancario",
@@ -3159,7 +3193,7 @@
       "systemTotal": "Total Sistema",
       "declared": "Declarado",
       "notes": "Notas",
-      "notesPlaceholder": "Ingrese notas aquí...",
+      "notesPlaceholder": "Introduce notas aquí...",
       "closeSessionButton": "Cerrar Sesión",
       "difference": "Diferencia",
       "toast": {
@@ -3313,7 +3347,7 @@
       "tags": "Etiquetas",
       "paymentMethod": "Método de Pago",
       "selectMethod": "Seleccionar método",
-      "areYouSure": "¿Está seguro?",
+      "areYouSure": "¿Estás seguro?",
       "deleteConfirmation": "Esto eliminará permanentemente la transacción N°{number}.",
       "deleteAction": "Eliminar",
       "beneficiaryPlaceholder": "Beneficiario"
@@ -3377,7 +3411,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Caja Registradora",
-      "description": "¿Está seguro de que desea eliminar esta caja registradora?",
+      "description": "¿Seguro que quieres eliminar esta caja registradora?",
       "cancel": "Cancelar",
       "confirm": "Confirmar"
     },
@@ -3503,7 +3537,7 @@
       "cancel": "Cancelar",
       "client": "Cliente",
       "confirm": "Confirmar",
-      "confirmDescription": "¿Está seguro de que desea proceder?",
+      "confirmDescription": "¿Seguro que quieres continuar?",
       "confirmTitle": "Confirmar Acción",
       "currency": "Moneda",
       "noClient": "Ningún cliente seleccionado",
@@ -3522,7 +3556,7 @@
         "successTitle": "Éxito"
       },
       "notes": "Notas",
-      "notesPlaceholder": "Agregue notas adicionales aquí...",
+      "notesPlaceholder": "Añade notas adicionales aquí...",
       "isHistorical": "Histórico",
       "isHistoricalDescription": "Marque esta opción si el pago fue realizado en una fecha anterior a hoy",
       "isHistoricalWarning": "Pago histórico registrado"
@@ -3541,7 +3575,7 @@
       "fromCredit": "desde crédito",
       "prepaidRemainder": "Sobrante (se registra como prepago)",
       "notes": "Notas",
-      "notesPlaceholder": "Agregue notas adicionales aquí...",
+      "notesPlaceholder": "Añade notas adicionales aquí...",
       "isHistorical": "Histórico",
       "isHistoricalDescription": "Marque esta opción si el pago fue realizado en una fecha anterior a hoy",
       "isHistoricalWarning": "Pago histórico registrado",
@@ -3579,11 +3613,11 @@
     },
     "sendEmailDialog": {
       "title": "Enviar Recibo de Pago por Correo",
-      "description": "Ingrese los correos de los destinatarios para el pago #{id}.",
+      "description": "Introduce los correos de los destinatarios del pago #{id}.",
       "recipients": "Destinatarios",
       "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
       "helperText": "Separe múltiples correos con comas.",
-      "errorNoEmail": "Ingrese al menos un correo de destinatario.",
+      "errorNoEmail": "Introduce al menos un correo de destinatario.",
       "errorInvalidEmails": "Correos inválidos: {emails}",
       "send": "Enviar Correo",
       "sending": "Enviando...",
@@ -3698,14 +3732,18 @@
       "color": "Color",
       "activeLabel": "Activo",
       "activeDescription": "Servicio activado",
-      "colorLabel": "Color"
+      "colorLabel": "Color",
+      "bookableOnline": {
+        "label": "Reservable online por el paciente",
+        "help": "Aparece en el portal del paciente para que lo reserve por su cuenta. Déjalo desactivado para lo que tiene que pasar por la clínica."
+      }
     },
     "serviceType": {
       "label": "Servicio con Flujo",
       "description": "Este servicio comprende múltiples citas secuenciales (plan de tratamiento)",
       "stepsTitle": "Pasos del Tratamiento",
       "addStep": "Agregar Paso",
-      "noSteps": "Sin pasos aún. Agregue el primer paso.",
+      "noSteps": "Aún no hay pasos. Añade el primero.",
       "stepLabel": "Paso",
       "stepName": "Nombre del Paso",
       "stepNamePlaceholder": "ej. Extracción dental",
@@ -3734,7 +3772,7 @@
     "deleteDialog": {
       "cancel": "Cancelar",
       "confirm": "Confirmar",
-      "description": "¿Está seguro de que desea eliminar este servicio?",
+      "description": "¿Seguro que quieres eliminar este servicio?",
       "title": "Eliminar Servicio"
     },
     "toast": {
@@ -3745,7 +3783,11 @@
       "editSuccessTitle": "Servicio Actualizado",
       "errorTitle": "Error",
       "genericError": "Ocurrió un error inesperado.",
-      "successDescription": "Operación completada exitosamente."
+      "successDescription": "Operación completada exitosamente.",
+      "imagePendingTitle": "El servicio se ha creado, pero la imagen no",
+      "imagePendingDescription": "Abre el servicio en el listado y sube la imagen desde ahí.",
+      "bookableOnlineFailedTitle": "No se pudo cambiar la reserva online",
+      "bookableOnlineFailedDescription": "El servicio se ha guardado, pero la opción de que el paciente lo reserve se ha quedado como estaba. Vuelve a intentarlo."
     },
     "validation": {
       "categoryRequired": "La categoría es obligatoria.",
@@ -3774,7 +3816,9 @@
     "inactive": "Inactivo",
     "actions": "Acciones",
     "edit": "Editar",
-    "delete": "Eliminar"
+    "delete": "Eliminar",
+    "bookableOnline": "Online",
+    "bookableOnlineYes": "Reservable"
   },
   "ProvidersPage": {
     "title": "Proveedores",
@@ -3841,7 +3885,7 @@
         },
         "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
         "errorTitle": "Error Actualizando Detalles",
-        "serverError": "Error del servidor, por favor inténtelo más tarde.",
+        "serverError": "Error del servidor. Inténtalo más tarde.",
         "genericError": "Ocurrió un error inesperado. Inténtalo de nuevo.",
         "identityRequired": "El documento de identidad es obligatorio"
       },
@@ -3886,7 +3930,7 @@
       "saveSuccess": "Notas guardadas",
       "saveSuccessDescription": "Las notas del proveedor han sido actualizadas.",
       "saveError": "Error al guardar",
-      "saveErrorDescription": "No se pudieron guardar las notas. Intente de nuevo."
+      "saveErrorDescription": "No se pudieron guardar las notas. Inténtalo de nuevo."
     },
     "setInitialPassword": "Restablecer Contraseña",
     "close": "Cerrar detalles",
@@ -3916,16 +3960,16 @@
     "signIn": "Entrar",
     "forgotPassword": "¿Olvidó su contraseña?",
     "recoverPasswordTitle": "Recuperar Contraseña",
-    "recoverPasswordDescription": "Ingrese su correo para recuperar su contraseña",
+    "recoverPasswordDescription": "Introduce tu correo para recuperar la contraseña",
     "recoverPasswordButton": "Recuperar Contraseña",
     "recoverSuccessTitle": "Correo enviado",
     "recoverSuccessDescription": "Te hemos enviado un enlace a tu correo electrónico para restablecer tu contraseña.",
     "backToLogin": "Volver al inicio de sesión",
     "errors": {
       "title": "Error",
-      "invalidCredentials": "Las credenciales que ingresaste son incorrectas. Por favor, verifica tu email y contraseña e intenta nuevamente.",
-      "emailNotFound": "El correo electrónico ingresado no existe en nuestro sistema. Por favor, verifica el email e intenta nuevamente.",
-      "unexpected": "Ocurrió un error inesperado. Por favor, intenta de nuevo más tarde."
+      "invalidCredentials": "Las credenciales que has introducido son incorrectas. Comprueba tu correo y contraseña e inténtalo de nuevo.",
+      "emailNotFound": "El correo electrónico introducido no existe en nuestro sistema. Compruébalo e inténtalo de nuevo.",
+      "unexpected": "Se ha producido un error inesperado. Inténtalo de nuevo más tarde."
     },
     "patientPortalLink": "¿Eres paciente? Accede a tu portal"
   },
@@ -4048,7 +4092,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Horario",
-      "description": "¿Está seguro de que desea eliminar este horario? Esta acción no se puede deshacer.",
+      "description": "¿Seguro que quieres eliminar el horario {schedule}? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -4100,7 +4144,7 @@
       "monthly": "Mensual",
       "dayOfWeek": "Día de la Semana",
       "dayOfMonth": "Día del Mes",
-      "selectDay": "Seleccione día",
+      "selectDay": "Selecciona el día",
       "biweeklyReferenceDate": "Fecha de Referencia",
       "biweeklyReferenceDateHelp": "Fecha ancla usada para calcular en qué semanas cae el patrón quincenal.",
       "endDate": "Fecha de Fin",
@@ -4113,7 +4157,7 @@
       "sedeHelp": "Deja \"Todas las sedes\" para aplicar la excepción a toda la clínica.",
       "timesHelp": "Deja ambas horas vacías para cerrar todo el día; indica un rango para cerrar solo esas horas.",
       "notes": "Notas",
-      "notesPlaceholder": "Ingrese notas aquí...",
+      "notesPlaceholder": "Introduce notas aquí...",
       "save": "Guardar",
       "cancel": "Cancelar",
       "editTitle": "Editar horario de excepción",
@@ -4138,7 +4182,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Horario de Excepción",
-      "description": "¿Está seguro de que desea eliminar este horario de excepción? Esta acción no se puede deshacer.",
+      "description": "¿Seguro que quieres eliminar el horario de excepción del {date}? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -4149,7 +4193,7 @@
       "deleteSuccessTitle": "Horario de Excepción Eliminado",
       "deleteSuccessDescription": "El horario de excepción ha sido eliminado exitosamente.",
       "errorTitle": "Error",
-      "deleteErrorDescription": "No se pudo eliminar el horario de excepción. Por favor, inténtelo de nuevo.",
+      "deleteErrorDescription": "No se pudo eliminar el horario de excepción. Inténtalo de nuevo.",
       "genericError": "Ocurrió un error inesperado."
     }
   },
@@ -4199,7 +4243,7 @@
       "genericError": "Ocurrió un error inesperado."
     },
     "deleteDialog": {
-      "title": "¿Está seguro?",
+      "title": "¿Estás seguro?",
       "description": "Esto eliminará permanentemente el calendario \"{name}\". Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "delete": "Eliminar"
@@ -4324,7 +4368,8 @@
       "count": "{count} con acceso",
       "save": "Guardar accesos",
       "saved": "Accesos actualizados",
-      "saveError": "No se pudieron guardar los accesos"
+      "saveError": "No se pudieron guardar los accesos",
+      "partialSaveError": "Se aplicaron {done} de {total} cambios antes del error. Se muestra el estado guardado actualmente; revísalo y vuelve a intentarlo."
     }
   },
   "UserLogsPage": {
@@ -4344,10 +4389,10 @@
       "weekly": "Semanal",
       "monthly": "Mensual",
       "biweekly": "Quincenal",
-      "selectRecurrence": "Seleccione recurrencia",
+      "selectRecurrence": "Selecciona la recurrencia",
       "searchDoctor": "Buscar doctor",
       "noDoctorFound": "No se encontró el doctor",
-      "selectDay": "Seleccione día",
+      "selectDay": "Selecciona el día",
       "save": "Guardar",
       "edit": "Editar",
       "createTitle": "Crear Disponibilidad",
@@ -4398,7 +4443,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Disponibilidad",
-      "description": "¿Está seguro que desea eliminar esta disponibilidad? Esta acción no se puede deshacer.",
+      "description": "¿Seguro que quieres eliminar la disponibilidad de {doctor} ({schedule})? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -4464,7 +4509,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Excepción",
-      "description": "¿Está seguro de que desea eliminar esta excepción? Esta acción no se puede deshacer.",
+      "description": "¿Seguro que quieres eliminar la excepción de {doctor} del {date}? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -4524,13 +4569,13 @@
       "editTitle": "Editar Categoría",
       "editDescription": "Editar la categoría de producto para la clínica",
       "name": "Nombre",
-      "namePlaceholder": "Ingrese nombre de la categoría",
+      "namePlaceholder": "Introduce el nombre de la categoría",
       "code": "Código",
-      "codePlaceholder": "Ingrese código de la categoría",
+      "codePlaceholder": "Introduce el código de la categoría",
       "description": "Descripción",
-      "descriptionPlaceholder": "Ingrese descripción de la categoría",
+      "descriptionPlaceholder": "Introduce la descripción de la categoría",
       "type": "Tipo",
-      "selectType": "Seleccione un tipo",
+      "selectType": "Selecciona un tipo",
       "expense": "Gasto",
       "income": "Ingreso",
       "isActive": "¿Está Activa?",
@@ -4554,7 +4599,7 @@
       "codeRequired": "El código es obligatorio"
     },
     "deleteDialog": {
-      "title": "¿Está seguro?",
+      "title": "¿Estás seguro?",
       "description": "Esta acción no se puede deshacer. Esto eliminará permanentemente la categoría \"{name}\".",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
@@ -4618,8 +4663,8 @@
         "identityInvalid": "El documento de identidad debe ser un número.",
         "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
         "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
-        "genericError": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
-        "serverError": "Error del servidor, por favor inténtelo más tarde.",
+        "genericError": "Se ha producido un error inesperado. Inténtalo de nuevo.",
+        "serverError": "Error del servidor. Inténtalo más tarde.",
         "errorTitle": "Error al crear el usuario",
         "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
         "fields": {
@@ -4632,7 +4677,7 @@
         }
       },
       "editSave": "Guardar",
-      "serverError": "Error del servidor, por favor inténtelo más tarde.",
+      "serverError": "Error del servidor. Inténtalo más tarde.",
       "errorTitle": "Error",
       "createSuccessTitle": "Usuario creado",
       "createSuccessDescription": "El usuario se ha creado exitosamente",
@@ -4642,7 +4687,8 @@
     "setInitialPassword": "Restablecer Contraseña",
     "initialPasswordSentTitle": "Correo enviado",
     "initialPasswordSentDescription": "Se ha enviado un correo con el enlace para restablecer la contraseña.",
-    "initialPasswordError": "Ocurrió un error inesperado. Intente de nuevo.",
+    "initialPasswordError": "Se ha producido un error inesperado. Inténtalo de nuevo.",
+    "initialPasswordPartialError": "El usuario se ha creado, pero no se pudo enviar el correo para establecer la contraseña. Puedes reenviarlo desde el panel de detalles con \"Restablecer Contraseña\".",
     "toggleStatus": {
       "successTitle": "Éxito",
       "activatedDescription": "El usuario {name} ha sido activado.",
@@ -4783,7 +4829,7 @@
       "toast": {
         "success": "Éxito",
         "saveSuccess": "Permisos guardados exitosamente.",
-        "saveError": "Error al guardar los permisos. Por favor, inténtelo de nuevo."
+        "saveError": "Error al guardar los permisos. Inténtalo de nuevo."
       }
     },
     "all": "Todos",
@@ -4845,7 +4891,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Permiso",
-      "description": "¿Está seguro de que desea eliminar este permiso? Esta acción no se puede deshacer.",
+      "description": "¿Seguro que quieres eliminar este permiso? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -4903,10 +4949,10 @@
       "editTitle": "Editar Configuración",
       "editDescription": "Editar la configuración para la clínica",
       "save": "Guardar Cambios",
-      "selectDataType": "Seleccione un tipo de dato"
+      "selectDataType": "Selecciona un tipo de dato"
     },
     "deleteDialog": {
-      "title": "¿Está seguro?",
+      "title": "¿Estás seguro?",
       "description": "Esto eliminará permanentemente la clave de configuración \"{key}\". Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
@@ -4925,7 +4971,8 @@
       "keyRequired": "La clave es obligatoria.",
       "valueRequired": "El valor es obligatorio.",
       "dataTypeRequired": "El tipo de dato es obligatorio."
-    }
+    },
+    "noAccess": "No tienes acceso para ver esta sección."
   },
   "AuditLog": {
     "title": "Registro de Auditoría",
@@ -4957,7 +5004,8 @@
       "INSERT": "Creación",
       "UPDATE": "Actualización",
       "DELETE": "Eliminación"
-    }
+    },
+    "noAccess": "No tienes acceso para ver esta sección."
   },
   "AccessLogPage": {
     "title": "Registro de Acceso",
@@ -4977,7 +5025,8 @@
       "openMenu": "Abrir Menú",
       "yes": "Sí",
       "no": "No"
-    }
+    },
+    "noAccess": "No tienes acceso para ver esta sección."
   },
   "ErrorLogPage": {
     "title": "Registro de Errores",
@@ -4993,7 +5042,8 @@
       "viewDetails": "Ver detalles",
       "id": "ID",
       "openMenu": "Abrir Menú"
-    }
+    },
+    "noAccess": "No tienes acceso para ver esta sección."
   },
   "ClinicHistoryPrint": {
     "title": "Historia Clínica",
@@ -5078,7 +5128,7 @@
       "save": "Guardar",
       "edit": "Editar",
       "delete": "Eliminar",
-      "confirmDelete": "¿Está seguro de que desea eliminar este elemento? Esta acción no se puede deshacer."
+      "confirmDelete": "¿Seguro que quieres eliminar este elemento? Esta acción no se puede deshacer."
     },
     "documents": {
       "upload": "Subir Documento",
@@ -5099,7 +5149,7 @@
       "sessionBadge": "Sesión · {date}"
     },
     "selectPatientTitle": "Seleccionar un Paciente",
-    "selectPatientDescription": "Por favor seleccione un paciente para ver su historial médico",
+    "selectPatientDescription": "Selecciona un paciente para ver su historial médico",
     "noPatientsFound": "No se encontraron pacientes",
     "title": "Historia Clínica",
     "discharge": {
@@ -5152,19 +5202,19 @@
       "tooth": "Diente",
       "saving": "Guardando",
       "nextSessionPlan": "Plan para la Próxima Sesión",
-      "nextSessionPlanPlaceholder": "Ingrese el plan para la siguiente cita...",
+      "nextSessionPlanPlaceholder": "Introduce el plan para la siguiente cita...",
       "nextSessionDate": "Fecha Próxima Cita",
-      "nextSessionDatePlaceholder": "Seleccione fecha...",
+      "nextSessionDatePlaceholder": "Selecciona la fecha...",
       "attachments": "Adjuntos",
       "addTreatment": "Agregar Tratamiento",
-      "procedurePlaceholder": "Ingrese el procedimiento realizado...",
-      "diagnosisPlaceholder": "Ingrese el diagnóstico...",
-      "notesPlaceholder": "Ingrese notas adicionales...",
+      "procedurePlaceholder": "Introduce el procedimiento realizado...",
+      "diagnosisPlaceholder": "Introduce el diagnóstico...",
+      "notesPlaceholder": "Introduce notas adicionales...",
       "dragDropFiles": "Arrastre y suelte archivos aquí",
       "browseFiles": "o busque archivos",
       "existingAttachments": "Adjuntos existentes",
       "newAttachments": "Nuevos adjuntos",
-      "deleteConfirm": "¿Está seguro de que desea eliminar esta sesión? Esta acción no se puede deshacer.",
+      "deleteConfirm": "¿Seguro que quieres eliminar esta sesión? Esta acción no se puede deshacer.",
       "quote": "Presupuesto",
       "newQuote": "Nuevo",
       "selectQuote": "Seleccionar presupuesto",
@@ -5185,7 +5235,7 @@
     "timeline": {
       "deleteDialog": {
         "title": "Eliminar Sesión",
-        "description": "¿Está seguro de que desea eliminar esta sesión?",
+        "description": "¿Seguro que quieres eliminar esta sesión?",
         "cancel": "Cancelar",
         "confirm": "Confirmar"
       },
@@ -5314,7 +5364,7 @@
         "ailment": "Padecimiento",
         "selectAilment": "Seleccionar Padecimiento",
         "comments": "Comentarios",
-        "commentsPlaceholder": "Ingrese comentarios aquí...",
+        "commentsPlaceholder": "Introduce comentarios aquí...",
         "cancel": "Cancelar",
         "save": "Guardar",
         "family": {
@@ -5338,7 +5388,7 @@
           "son": "Hijo",
           "daughter": "Hija",
           "spouse": "Cónyuge",
-          "commentsPlaceholder": "Ingrese comentarios aquí..."
+          "commentsPlaceholder": "Introduce comentarios aquí..."
         },
         "medication": {
           "addTitle": "Agregar Medicamento",
@@ -5354,7 +5404,7 @@
           "reason": "Razón (Opcional)",
           "searchMedication": "Buscar Medicamento",
           "noMedicationFound": "No se encontró el medicamento",
-          "typeToSearch": "Escriba para buscar medicamentos",
+          "typeToSearch": "Escribe para buscar medicamentos",
           "dosePlaceholder": "Ej. 500mg",
           "frequencyPlaceholder": "Ej. Cada 8 horas",
           "reasonPlaceholder": "Razon de la medicación",
@@ -5392,7 +5442,7 @@
       },
       "deleteDialog": {
         "title": "Eliminar",
-        "description": "¿Está seguro de que desea eliminar este elemento?",
+        "description": "¿Seguro que quieres eliminar este elemento?",
         "cancel": "Cancelar",
         "confirm": "Eliminar"
       },
@@ -5416,7 +5466,7 @@
       "refresh": "Guardar",
       "common": {
         "delete": "Eliminar",
-        "confirmDelete": "¿Está seguro de que desea eliminar este elemento? Esta acción no se puede deshacer."
+        "confirmDelete": "¿Seguro que quieres eliminar este elemento? Esta acción no se puede deshacer."
       }
     },
     "habits": {
@@ -5690,6 +5740,8 @@
       "hint": "Busca por título de la cita o por nombre, teléfono, email o documento del paciente. Incluye todas las fechas.",
       "minChars": "Escribe al menos {count} caracteres.",
       "empty": "Ninguna cita coincide con la búsqueda.",
+      "error": "No se pudo completar la búsqueda.",
+      "retry": "Reintentar",
       "untitled": "Cita sin título",
       "clear": "Limpiar",
       "close": "Cerrar",
@@ -5860,7 +5912,7 @@
     },
     "dialog": {
       "createTitle": "Crear Categoría de Alerta",
-      "createDescription": "Ingrese los datos para crear una nueva categoría de alerta.",
+      "createDescription": "Introduce los datos para crear una nueva categoría de alerta.",
       "editTitle": "Editar Categoría de Alerta",
       "editDescription": "Modifique los datos de la categoría de alerta.",
       "name": "Nombre",
@@ -5873,7 +5925,7 @@
       "internalCategoryPlaceholder": "Seleccionar categoría interna",
       "noInternalCategory": "Sin categoría interna",
       "icon": "Icono",
-      "iconPlaceholder": "Ingrese nombre de icono de Lucide (ej., DollarSign)",
+      "iconPlaceholder": "Introduce el nombre de un icono de Lucide (p. ej., DollarSign)",
       "color": "Color",
       "sortOrder": "Orden de Clasificación",
       "isActive": "Está Activa",
@@ -5887,7 +5939,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Categoría",
-      "description": "¿Está seguro de que desea eliminar la categoría \"{name}\"?",
+      "description": "¿Seguro que quieres eliminar la categoría \"{name}\"?",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -6031,26 +6083,26 @@
       "days": "Días",
       "week": "Semana",
       "reason": "Razón",
-      "placeholder": "Ingrese razón...",
+      "placeholder": "Introduce el motivo...",
       "submit": "Pausar"
     },
     "ignoreAlert": {
       "title": "Ignorar Alerta",
       "reason": "Razón",
-      "placeholder": "Ingrese razón...",
+      "placeholder": "Introduce el motivo...",
       "submit": "Ignorar"
     },
     "registerCall": {
       "title": "Registrar Llamada",
       "date": "Fecha y Hora",
       "notes": "Notas",
-      "notesPlaceholder": "Ingrese notas sobre la llamada...",
+      "notesPlaceholder": "Introduce notas sobre la llamada...",
       "submit": "Registrar"
     },
     "addNote": {
       "title": "Agregar Nota",
       "note": "Nota",
-      "notePlaceholder": "Escriba la nota...",
+      "notePlaceholder": "Escribe la nota...",
       "submit": "Agregar"
     },
     "bulkActions": {
@@ -6070,38 +6122,38 @@
       "alertsMarkedIgnored": "{count} alerta(s) marcada(s) como ignorada(s).",
       "alertsSnoozed": "{count} alerta(s) pausada(s).",
       "markCompletedFailed": "Error al marcar alertas como completadas",
-      "markCompletedFailedDescription": "Ocurrió un error al marcar las alertas como completadas. Por favor, inténtelo de nuevo.",
+      "markCompletedFailedDescription": "Se ha producido un error al marcar las alertas como completadas. Inténtalo de nuevo.",
       "markIgnoredFailed": "Error al marcar alertas como ignoradas",
-      "markIgnoredFailedDescription": "Ocurrió un error al marcar las alertas como ignoradas. Por favor, inténtelo de nuevo.",
+      "markIgnoredFailedDescription": "Se ha producido un error al marcar las alertas como ignoradas. Inténtalo de nuevo.",
       "snoozeFailed": "Error al pausar alertas",
       "snoozeFailedDescription": "No se pudieron pausar las alertas.",
       "emailSent": "Correo Enviado",
       "emailSentDescription": "Correo enviado a {count} alerta(s).",
       "emailSendFailed": "Error al enviar correo",
-      "emailSendFailedDescription": "Ocurrió un error al enviar el correo. Por favor, inténtelo de nuevo.",
+      "emailSendFailedDescription": "Se ha producido un error al enviar el correo. Inténtalo de nuevo.",
       "smsSent": "SMS Enviado",
       "smsSentDescription": "SMS enviado a {count} alerta(s).",
       "smsSendFailed": "Error al enviar SMS",
-      "smsSendFailedDescription": "Ocurrió un error al enviar el SMS. Por favor, inténtelo de nuevo.",
+      "smsSendFailedDescription": "Se ha producido un error al enviar el SMS. Inténtalo de nuevo.",
       "whatsappSent": "WhatsApp Enviado",
       "whatsappSentDescription": "Mensaje de WhatsApp enviado a {count} alerta(s).",
       "whatsappBulkResultDescription": "{sent} enviado(s), {skipped} omitido(s), {failed} fallido(s).",
       "whatsappSendFailed": "Error al enviar WhatsApp",
-      "whatsappSendFailedDescription": "Ocurrió un error al enviar el mensaje de WhatsApp. Por favor, inténtelo de nuevo.",
+      "whatsappSendFailedDescription": "Se ha producido un error al enviar el mensaje de WhatsApp. Inténtalo de nuevo.",
       "callRegistered": "Llamada Registrada",
       "callRegisteredDescription": "Llamada registrada para {count} alerta(s).",
       "callRegisterFailed": "Error al registrar llamada",
-      "callRegisterFailedDescription": "Ocurrió un error al registrar la llamada. Por favor, inténtelo de nuevo.",
+      "callRegisterFailedDescription": "Se ha producido un error al registrar la llamada. Inténtalo de nuevo.",
       "noteAdded": "Nota Agregada",
       "noteAddedDescription": "Nota agregada a {count} alerta(s).",
       "addNoteFailed": "Error al agregar nota",
-      "addNoteFailedDescription": "Ocurrió un error al agregar la nota. Por favor, inténtelo de nuevo."
+      "addNoteFailedDescription": "Se ha producido un error al añadir la nota. Inténtalo de nuevo."
     },
     "noAlerts": "No hay alertas disponibles."
   },
   "AlertRulesPage": {
     "title": "Reglas de Alerta",
-    "description": "Configure las reglas que generan alertas automáticamente.",
+    "description": "Configura las reglas que generan alertas automáticamente.",
     "filterPlaceholder": "Filtrar por nombre de regla...",
     "columns": {
       "name": "Nombre",
@@ -6124,10 +6176,10 @@
       "name": "Nombre",
       "code": "Código",
       "category": "Categoría",
-      "selectCategory": "Seleccione una categoría",
+      "selectCategory": "Selecciona una categoría",
       "description": "Descripción",
       "priority": "Prioridad",
-      "selectPriority": "Seleccione una prioridad",
+      "selectPriority": "Selecciona una prioridad",
       "sourceTable": "Tabla de Origen",
       "queryTemplate": "Plantilla de Consulta",
       "daysBefore": "Días Antes del Evento",
@@ -6175,7 +6227,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Regla",
-      "description": "¿Está seguro de que desea eliminar la regla \"{name}\"?",
+      "description": "¿Seguro que quieres eliminar la regla \"{name}\"?",
       "cancel": "Cancelar",
       "confirm": "Eliminar",
       "deleting": "Eliminando"
@@ -6207,7 +6259,7 @@
       "high": "Alta",
       "critical": "Crítica"
     },
-    "noAccess": "No tiene acceso para ver esta sección."
+    "noAccess": "No tienes acceso para ver esta sección."
   },
   "CommunicationTemplatesPage": {
     "title": "Plantillas de Comunicación",
@@ -6235,9 +6287,9 @@
       "name": "Nombre",
       "code": "Código",
       "type": "Tipo",
-      "selectType": "Seleccione un tipo",
+      "selectType": "Selecciona un tipo",
       "category": "Categoría",
-      "selectCategory": "Seleccione una categoría",
+      "selectCategory": "Selecciona una categoría",
       "subject": "Asunto",
       "body": "Contenido del Cuerpo",
       "isActive": "Está Activa",
@@ -6249,7 +6301,7 @@
       },
       "variables": {
         "title": "Variables",
-        "description": "Haga clic en una variable para insertarla en su plantilla.",
+        "description": "Haz clic en una variable para insertarla en la plantilla.",
         "patient": "Paciente",
         "clinic": "Clínica",
         "data": "Datos de la tabla",
@@ -6309,7 +6361,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Plantilla",
-      "description": "¿Está seguro de que desea eliminar la plantilla \"{name}\"?",
+      "description": "¿Seguro que quieres eliminar la plantilla \"{name}\"?",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -6329,14 +6381,15 @@
         "code": "Código",
         "name": "Nombre"
       },
-      "badRequest": "Error de validación. Por favor verifique los datos ingresados."
-    }
+      "badRequest": "Error de validación. Comprueba los datos introducidos."
+    },
+    "noAccess": "No tienes acceso para ver esta sección."
   },
   "MedicalInstructionTemplatesPage": {
     "title": "Plantillas de Indicaciones Médicas",
     "description": "Gestionar plantillas reutilizables de indicaciones médicas para pacientes.",
     "filterPlaceholder": "Filtrar por nombre de plantilla...",
-    "noAccess": "No tiene acceso para ver esta sección.",
+    "noAccess": "No tienes acceso para ver esta sección.",
     "columns": {
       "name": "Nombre",
       "description": "Descripción",
@@ -6380,7 +6433,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Plantilla",
-      "description": "¿Está seguro de que desea eliminar la plantilla \"{name}\"?",
+      "description": "¿Seguro que quieres eliminar la plantilla \"{name}\"?",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -6396,11 +6449,11 @@
     "tooth": "Pieza dental",
     "toothPlaceholder": "Opcional",
     "doctor": "Doctor",
-    "selectDoctor": "Seleccione un doctor",
+    "selectDoctor": "Selecciona un doctor",
     "searchDoctor": "Buscar doctor...",
     "noDoctor": "No se encontraron doctores.",
     "template": "Plantilla",
-    "selectTemplate": "Seleccione una plantilla",
+    "selectTemplate": "Selecciona una plantilla",
     "content": "Contenido",
     "refreshVariables": "Actualizar variables",
     "preview": "Vista previa",
@@ -6437,7 +6490,7 @@
     "delete": "Eliminar",
     "deleteDialog": {
       "title": "Eliminar Indicación Médica",
-      "description": "¿Está seguro de que desea eliminar esta indicación médica?",
+      "description": "¿Seguro que quieres eliminar esta indicación médica?",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -6500,15 +6553,16 @@
       "errorDetails": "Detalles de Error",
       "noErrors": "No hay detalles de error disponibles",
       "status": "Estado"
-    }
+    },
+    "noAccess": "No tienes acceso para ver esta sección."
   },
   "AlertsConfigPage": {
     "title": "Configuración del Sistema de Alertas",
-    "description": "Configure los ajustes globales para el sistema de alertas y comunicaciones.",
+    "description": "Configura los ajustes globales del sistema de alertas y comunicaciones.",
     "saveChanges": "Guardar Cambios",
     "scheduler": {
       "title": "Programador de Alertas",
-      "description": "Configure cuándo el sistema busca y genera nuevas alertas.",
+      "description": "Configura cuándo el sistema busca y genera nuevas alertas.",
       "enable": "Habilitar Trabajo Nocturno",
       "enableDescription": "Se ejecuta diariamente para generar alertas basadas en reglas activas.",
       "executionTime": "Hora de Ejecución",
@@ -6517,11 +6571,16 @@
       "runNowSuccessTitle": "Programador Ejecutado",
       "runNowSuccessDescription": "El programador de alertas se ha ejecutado correctamente.",
       "runNowErrorTitle": "Error al Ejecutar",
-      "runNowErrorDescription": "Ocurrió un error al ejecutar el programador. Por favor, inténtelo nuevamente."
+      "runNowErrorDescription": "Se ha producido un error al ejecutar el programador. Inténtalo de nuevo.",
+      "runNowConfirm": {
+        "title": "¿Ejecutar el programador ahora?",
+        "description": "Se evaluarán todas las reglas activas y se generarán alertas; las que tengan acciones automáticas enviarán correos o mensajes a los pacientes. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar"
+      }
     },
     "email": {
       "title": "Configuración de Correo Electrónico",
-      "description": "Configure el proveedor SMTP para enviar correos.",
+      "description": "Configura el proveedor SMTP para enviar correos.",
       "provider": "Proveedor",
       "server": "Servidor SMTP",
       "port": "Puerto",
@@ -6533,7 +6592,7 @@
     },
     "sms": {
       "title": "Configuración de SMS",
-      "description": "Configure el proveedor para enviar mensajes SMS.",
+      "description": "Configura el proveedor para enviar mensajes SMS.",
       "enable": "Habilitar Notificaciones SMS",
       "provider": "Proveedor",
       "apiKey": "Clave API / SID de Cuenta",
@@ -6543,7 +6602,7 @@
     },
     "retention": {
       "title": "Retención de Datos",
-      "description": "Configure cuánto tiempo conservar los datos históricos.",
+      "description": "Configura cuánto tiempo se conservan los datos históricos.",
       "alerts": "Alertas Completadas/Ignoradas",
       "communicationLogs": "Registros de Comunicación",
       "executionLogs": "Registros de Ejecución",
@@ -6553,12 +6612,13 @@
       "saveSuccessTitle": "Ajustes Guardados",
       "saveSuccessDescription": "Sus cambios de configuración se han guardado.",
       "saveErrorTitle": "Error al Guardar",
-      "saveErrorDescription": "Ocurrió un error al guardar los cambios. Por favor, inténtelo nuevamente."
-    }
+      "saveErrorDescription": "Se ha producido un error al guardar los cambios. Inténtalo de nuevo."
+    },
+    "loadError": "No se pudo cargar la configuración de alertas"
   },
   "WhatsAppAgentConfigPage": {
     "title": "Agente de WhatsApp",
-    "description": "Configure el agente conversacional de WhatsApp y su horario de atención.",
+    "description": "Configura el agente conversacional de WhatsApp y su horario de atención.",
     "saveChanges": "Guardar Cambios",
     "agent": {
       "title": "Agente",
@@ -6601,13 +6661,14 @@
       "successTitle": "Guardado",
       "loadError": "No se pudo cargar la configuración del agente.",
       "saveSuccess": "La configuración del agente de WhatsApp se guardó correctamente.",
-      "saveError": "No se pudo guardar la configuración. Intente nuevamente.",
-      "validationError": "Revise los rangos horarios: la hora de inicio debe ser menor que la de fin."
+      "saveError": "No se pudo guardar la configuración. Inténtalo de nuevo.",
+      "validationError": "Revisa los rangos horarios: la hora de inicio debe ser anterior a la de fin.",
+      "partialSaveError": "Se ha guardado la activación del agente, pero no el horario de atención. Revisa los cambios y vuelve a guardar."
     }
   },
   "SequencesPage": {
     "title": "Secuencias",
-    "description": "Configure secuencias de numeración de documentos para facturas, presupuestos, órdenes y pagos.",
+    "description": "Configura las secuencias de numeración de documentos para facturas, presupuestos, órdenes y pagos.",
     "filterPlaceholder": "Filtrar secuencias...",
     "columns": {
       "name": "Nombre",
@@ -6623,20 +6684,20 @@
     "createDialog": {
       "title": "Crear Secuencia",
       "editTitle": "Editar Secuencia",
-      "description": "Configure una nueva secuencia de numeración de documentos.",
+      "description": "Configura una nueva secuencia de numeración de documentos.",
       "editDescription": "Actualice la secuencia de numeración de documentos.",
       "name": "Nombre de Secuencia",
-      "namePlaceholder": "Ingrese nombre de secuencia",
+      "namePlaceholder": "Introduce el nombre de la secuencia",
       "documentType": "Tipo de Documento",
-      "selectDocumentType": "Seleccione tipo de documento",
+      "selectDocumentType": "Selecciona el tipo de documento",
       "pattern": "Patrón",
       "patternPlaceholder": "ej: FAC-'{'YYYY'}'-'{'MM'}'-'{'COUNTER:4'}'",
       "currentCounter": "Contador Actual",
       "resetPeriod": "Período de Reinicio",
-      "selectResetPeriod": "Seleccione período de reinicio",
+      "selectResetPeriod": "Selecciona el período de reinicio",
       "isActive": "Activo",
       "variables": "Variables Disponibles",
-      "variableDescription": "Haga clic en cualquier variable para agregarla al patrón",
+      "variableDescription": "Haz clic en cualquier variable para añadirla al patrón",
       "preview": "Vista Previa",
       "previewExample": "Ejemplo: ",
       "cancel": "Cancelar",
@@ -6645,7 +6706,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Secuencia",
-      "description": "¿Está seguro de que desea eliminar esta secuencia? Esta acción no se puede deshacer.",
+      "description": "¿Seguro que quieres eliminar la secuencia \"{name}\"? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -6717,10 +6778,10 @@
       "deleteSuccessTitle": "Secuencia Eliminada",
       "deleteSuccessDescription": "La secuencia ha sido eliminada exitosamente.",
       "errorTitle": "Error",
-      "createErrorDescription": "No se pudo crear la secuencia. Por favor, inténtelo nuevamente.",
-      "editErrorDescription": "No se pudo actualizar la secuencia. Por favor, inténtelo nuevamente.",
-      "deleteErrorDescription": "No se pudo eliminar la secuencia. Por favor, inténtelo nuevamente.",
-      "genericError": "Ocurrió un error inesperado. Por favor, inténtelo nuevamente."
+      "createErrorDescription": "No se pudo crear la secuencia. Inténtalo de nuevo.",
+      "editErrorDescription": "No se pudo actualizar la secuencia. Inténtalo de nuevo.",
+      "deleteErrorDescription": "No se pudo eliminar la secuencia. Inténtalo de nuevo.",
+      "genericError": "Se ha producido un error inesperado. Inténtalo de nuevo."
     }
   },
   "RoleColumns": {
@@ -6743,16 +6804,16 @@
   },
   "ResetPasswordPage": {
     "title": "Restablecer contraseña",
-    "description": "Por favor, ingresa tu nueva contraseña a continuación.",
+    "description": "Introduce tu nueva contraseña a continuación.",
     "newPassword": "Nueva contraseña",
     "confirmPassword": "Confirmar nueva contraseña",
     "submitButton": "Actualizar contraseña",
     "errors": {
       "title": "Error",
-      "tokenMissing": "Falta el código de seguridad. Por favor, usa el enlace enviado a tu correo.",
-      "generic": "Algo salió mal. Por favor, inténtalo de nuevo.",
+      "tokenMissing": "Falta el código de seguridad. Usa el enlace que te hemos enviado por correo.",
+      "generic": "Algo ha salido mal. Inténtalo de nuevo.",
       "invalidPassword": "La contraseña no cumple con los requisitos mínimos de seguridad.",
-      "invalidToken": "El enlace ha expirado o no es válido. Por favor, solicita uno nuevo.",
+      "invalidToken": "El enlace ha caducado o no es válido. Solicita uno nuevo.",
       "serverError": "Error de conexión con el servidor. Inténtalo más tarde."
     },
     "success": {
@@ -6774,11 +6835,11 @@
     "submitButton": "Establecer contraseña",
     "errors": {
       "title": "Error",
-      "tokenMissing": "Falta el código de seguridad. Por favor, usa el enlace enviado a tu correo.",
-      "generic": "Algo salió mal. Por favor, inténtalo de nuevo.",
+      "tokenMissing": "Falta el código de seguridad. Usa el enlace que te hemos enviado por correo.",
+      "generic": "Algo ha salido mal. Inténtalo de nuevo.",
       "invalidPassword": "La contraseña no cumple con los requisitos mínimos de seguridad.",
-      "invalidToken": "El enlace ha expirado o no es válido. Por favor, solicita uno nuevo.",
-      "alreadySet": "Tu primera contraseña ya fue establecida. Por favor, inicia sesión.",
+      "invalidToken": "El enlace ha caducado o no es válido. Solicita uno nuevo.",
+      "alreadySet": "Tu primera contraseña ya se ha establecido. Inicia sesión.",
       "serverError": "Error de conexión con el servidor. Inténtalo más tarde."
     },
     "success": {
@@ -6794,10 +6855,10 @@
   },
   "cashSession": {
     "errors": {
-      "userNotAuthenticated": "Usuario no autenticado. Por favor, inicie sesión.",
-      "noActiveSession": "No tiene una sesión de caja abierta. Por favor, abra una sesión de caja antes de continuar.",
-      "sessionCheckFailed": "No se pudo verificar el estado de la sesión de caja. Inténtelo nuevamente.",
-      "sessionValidationError": "Error al validar la sesión de caja. Contacte al administrador.",
+      "userNotAuthenticated": "Usuario no autenticado. Inicia sesión.",
+      "noActiveSession": "No tienes una sesión de caja abierta. Abre una sesión de caja antes de continuar.",
+      "sessionCheckFailed": "No se pudo verificar el estado de la sesión de caja. Inténtalo de nuevo.",
+      "sessionValidationError": "Error al validar la sesión de caja. Contacta con el administrador.",
       "cashSessionRequired": "Sesión de Caja Requerida"
     }
   },
@@ -6902,12 +6963,12 @@
     "filterPlaceholder": "Filtrar por nombre...",
     "createDialog": {
       "title": "Crear Sociedad Mutual",
-      "description": "Complete los detalles a continuación para agregar una nueva sociedad mutual.",
+      "description": "Completa los detalles a continuación para añadir una nueva sociedad mutual.",
       "editTitle": "Editar Sociedad Mutual",
       "editDescription": "Actualice los detalles de esta sociedad mutual.",
       "name": "Nombre",
       "namePlaceholder": "ej., Blue Cross",
-      "descriptionPlaceholder": "Ingrese una descripción opcional",
+      "descriptionPlaceholder": "Introduce una descripción opcional",
       "code": "Código",
       "codePlaceholder": "ej., BC001",
       "isActive": "Activo",
@@ -6916,7 +6977,7 @@
       "editSave": "Guardar Cambios"
     },
     "deleteDialog": {
-      "title": "¿Está seguro?",
+      "title": "¿Estás seguro?",
       "description": "Esto eliminará permanentemente la sociedad mutual \"{name}\". Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
@@ -6947,18 +7008,18 @@
       "editDescription": "Actualice los detalles de este grupo de pacientes.",
       "name": "Nombre",
       "namePlaceholder": "ej., Ortodoncia",
-      "descriptionPlaceholder": "Ingrese una descripción opcional",
+      "descriptionPlaceholder": "Introduce una descripción opcional",
       "isActive": "Activo",
       "isDoctor": "Este grupo representa a un doctor",
       "doctor": "Doctor",
-      "doctorPlaceholder": "Seleccione un doctor",
+      "doctorPlaceholder": "Selecciona un doctor",
       "cancel": "Cancelar",
       "revert": "Descartar cambios",
       "save": "Crear Grupo",
       "editSave": "Guardar Cambios"
     },
     "deleteDialog": {
-      "title": "¿Está seguro?",
+      "title": "¿Estás seguro?",
       "description": "Esto eliminará permanentemente el grupo de pacientes \"{name}\". Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
@@ -6984,7 +7045,7 @@
     },
     "patients": {
       "title": "Pacientes del grupo",
-      "description": "Agregue o quite pacientes de este grupo.",
+      "description": "Añade o quita pacientes de este grupo.",
       "filterPlaceholder": "Buscar en el grupo...",
       "addButton": "Agregar pacientes",
       "addConfirm": "Agregar",
@@ -7049,7 +7110,7 @@
       "editDescription": "Actualice los detalles de este grupo de proveedores.",
       "name": "Nombre",
       "namePlaceholder": "ej., Insumos dentales",
-      "descriptionPlaceholder": "Ingrese una descripción opcional",
+      "descriptionPlaceholder": "Introduce una descripción opcional",
       "isActive": "Activo",
       "cancel": "Cancelar",
       "revert": "Descartar cambios",
@@ -7057,7 +7118,7 @@
       "editSave": "Guardar Cambios"
     },
     "deleteDialog": {
-      "title": "¿Está seguro?",
+      "title": "¿Estás seguro?",
       "description": "Esto eliminará permanentemente el grupo de proveedores \"{name}\". Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
@@ -7081,7 +7142,7 @@
     },
     "providers": {
       "title": "Proveedores del grupo",
-      "description": "Agregue o quite proveedores de este grupo.",
+      "description": "Añade o quita proveedores de este grupo.",
       "filterPlaceholder": "Buscar en el grupo...",
       "addButton": "Agregar proveedores",
       "addConfirm": "Agregar",
@@ -7191,6 +7252,15 @@
         "alert": "Alerta",
         "treatment": "Tratamiento",
         "cash": "Caja"
+      },
+      "loadError": "No se pudieron cargar las plantillas",
+      "resetError": "No se pudo restaurar la plantilla",
+      "unsavedChanges": "Cambios sin guardar",
+      "textMode": "Texto",
+      "resetConfirm": {
+        "title": "¿Restaurar la plantilla predeterminada?",
+        "description": "Se eliminará la versión personalizada de \"{name}\" (incluidos los cambios sin guardar) y se volverá a usar la predeterminada. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar"
       }
     }
   },
@@ -7299,7 +7369,8 @@
       "error": "Error",
       "importValid": "Importar solo los válidos",
       "fixCsv": "Corregir CSV y volver a subir",
-      "noErrors": "¡Todos los registros son válidos!"
+      "noErrors": "¡Todos los registros son válidos!",
+      "importing": "Importando..."
     },
     "result": {
       "inserted": "Insertados",
@@ -7314,6 +7385,13 @@
       "back": "Anterior",
       "next": "Siguiente",
       "import": "Importar",
+      "cancel": "Cancelar"
+    },
+    "importError": "No se pudo completar la importación",
+    "importTimeout": "El servidor ha tardado demasiado en responder y es posible que la importación se haya procesado. No vuelvas a importar el archivo: revisa los registros antes de intentarlo de nuevo.",
+    "confirm": {
+      "title": "¿Importar {count} registros?",
+      "description": "Se crearán o actualizarán {count} registros de {type} a partir de «{file}». La importación no se puede deshacer desde el sistema.",
       "cancel": "Cancelar"
     }
   },
@@ -7393,15 +7471,15 @@
     "selectDoctor": "Seleccionar un doctor",
     "doctorRequired": "El doctor es obligatorio.",
     "procedure": "Procedimiento",
-    "procedurePlaceholder": "Ingrese el procedimiento realizado...",
+    "procedurePlaceholder": "Introduce el procedimiento realizado...",
     "diagnosis": "Diagnóstico",
-    "diagnosisPlaceholder": "Ingrese el diagnóstico...",
+    "diagnosisPlaceholder": "Introduce el diagnóstico...",
     "notes": "Notas Clínicas",
-    "notesPlaceholder": "Ingrese notas clínicas adicionales...",
+    "notesPlaceholder": "Introduce notas clínicas adicionales...",
     "nextSessionPlan": "Plan para la Próxima Sesión",
-    "nextSessionPlanPlaceholder": "Ingrese el plan para la siguiente cita...",
+    "nextSessionPlanPlaceholder": "Introduce el plan para la siguiente cita...",
     "nextSessionDate": "Fecha Próxima Cita",
-    "nextSessionDatePlaceholder": "Seleccione fecha...",
+    "nextSessionDatePlaceholder": "Selecciona la fecha...",
     "nextAppointmentDate": "Fecha Próxima Cita",
     "selectNextAppointmentDate": "Seleccionar fecha",
     "cancel": "Cancelar",
@@ -7859,7 +7937,7 @@
       "datePlaceholder": "Selecciona una fecha",
       "description": "Título",
       "descriptionPlaceholder": "Ej. Endodoncia pieza 16",
-      "descriptionRequired": "Por favor ingresa un título para la sesión",
+      "descriptionRequired": "Introduce un título para la sesión",
       "notes": "Procedimientos",
       "notesPlaceholder": "Procedimientos realizados, observaciones, medicación recetada...",
       "files": "Archivos adjuntos",
@@ -7873,7 +7951,7 @@
       "stateSummary": "Dientes y condiciones",
       "doctor": "Doctor",
       "doctorPlaceholder": "Seleccionar doctor",
-      "doctorRequired": "Por favor selecciona un doctor",
+      "doctorRequired": "Selecciona un doctor",
       "nextSessionPlan": "Plan para la próxima sesión",
       "nextSessionPlanPlaceholder": "Ingresa el plan para la siguiente cita...",
       "nextSessionDate": "Fecha próxima cita",
@@ -8546,7 +8624,9 @@
       "unpaid": "No Pagado",
       "paid": "Pagado",
       "partial": "Parcial",
-      "partially_paid": "Pago Parcial"
+      "partially_paid": "Pago Parcial",
+      "not_paid": "No Pagado",
+      "not_invoiced": "No Pagado"
     },
     "transactionType": {
       "direct_payment": "Pago Directo",
@@ -8580,16 +8660,16 @@
   "License": {
     "expired": {
       "title": "Licencia Expirada",
-      "description": "La licencia de InvokeIA ha expirado. Por favor contáctenos para renovarla.",
+      "description": "La licencia de InvokeIA ha caducado. Contacta con nosotros para renovarla.",
       "contact": "Contacto:",
       "banner": "⚠ LICENCIA EXPIRADA — El acceso de los usuarios está bloqueado. Renovar:"
     },
     "expiringSoon": {
-      "message": "Su licencia vence en {days} día(s). Por favor contacte a"
+      "message": "Tu licencia vence en {days} día(s). Contacta con"
     },
     "masterKey": {
       "prompt": "Ingresar Clave Maestra",
-      "promptDescription": "Ingrese la clave maestra para acceder a la gestión de licencias.",
+      "promptDescription": "Introduce la clave maestra para acceder a la gestión de licencias.",
       "placeholder": "Clave maestra...",
       "invalid": "Clave maestra inválida. No se pudo descifrar la licencia actual.",
       "submit": "Verificar"
@@ -8614,7 +8694,16 @@
       "aiAccess": "Acceso IA",
       "notes": "Notas",
       "generate": "Generar Licencia",
-      "generating": "Generando..."
+      "generating": "Generando...",
+      "generateSuccess": "Licencia generada y activada",
+      "generateError": "No se pudo generar la licencia",
+      "subscriptionPartialError": "La licencia se ha guardado y ya está activa, pero no se pudo registrar la suscripción. No generes otra: registra la suscripción manualmente o contacta con soporte.",
+      "loadError": "No se pudo cargar la licencia actual",
+      "generateConfirm": {
+        "title": "¿Generar y activar una nueva licencia?",
+        "description": "La nueva licencia ({type}, {start} → {end}) sustituirá a la actual de inmediato y sus límites se aplicarán a todos los usuarios. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar"
+      }
     },
     "enforcement": {
       "limitReachedTitle": "Límite de licencia alcanzado",
@@ -8921,14 +9010,30 @@
       "steps": {
         "sede": "Sede",
         "slot": "Horario",
-        "confirm": "Confirmar"
+        "confirm": "Confirmar",
+        "services": "Servicios"
       },
       "summary": {
         "title": "Resumen de tu cita",
         "when": "Cuándo",
         "who": "Te va a atender",
-        "where": "Dónde"
-      }
+        "where": "Dónde",
+        "services": "Qué te vamos a hacer",
+        "duration": "Cuánto dura",
+        "total": "Total estimado"
+      },
+      "pickServices": "¿Qué necesitas?",
+      "servicesHint": "Marca todo lo que quieras resolver en esta visita. Puedes elegir más de uno, y así reservamos el tiempo necesario.",
+      "selectedServices": "{count, plural, one {# servicio elegido} other {# servicios elegidos}}",
+      "selectionSummary": "{minutes} min · {total}",
+      "removeService": "Quitar {name}",
+      "continue": "Continuar",
+      "continueWithoutServices": "Si no eliges nada, la clínica define el motivo de la cita.",
+      "defaultServiceNotice": "Si no eliges nada, la cita se reservará como {name}.",
+      "noBookableServices": "Todavía no hay servicios disponibles para reservar online. Continúa y la clínica definirá el motivo de la cita.",
+      "servicesLoadError": "No pudimos cargar los servicios.",
+      "minutesShort": "{minutes} min",
+      "rescheduleNoServices": "Si no marcas ninguno, la cita se cambiará sin servicios asociados."
     },
     "info": {
       "emailLocked": "El correo no se puede cambiar: es a donde te llega tu código de acceso. Si necesitas actualizarlo, avísale a la clínica."
@@ -9020,15 +9125,59 @@
         "description": "Cuando dos fichas comparten teléfono, el sistema no puede distinguirlas si la persona se identifica solo con el número:",
         "whatsapp": "WhatsApp: el asistente atenderá a la ficha activa más antigua con ese teléfono, aunque quien escriba sea otra persona.",
         "portal": "Portal del paciente: quien inicie sesión con ese teléfono entrará a la ficha activa más antigua.",
-        "footer": "El correo, el documento de identidad y los usuarios del sistema siguen siendo únicos. Puede desactivarla cuando quiera; las fichas que ya comparten teléfono se conservan.",
+        "footer": "El correo, el documento de identidad y los usuarios del sistema siguen siendo únicos. Puedes desactivarla cuando quieras; las fichas que ya comparten teléfono se conservan.",
         "cancel": "Cancelar",
         "confirm": "Entiendo, activar"
+      }
+    },
+    "automation": {
+      "loadError": "No se pudieron leer los ajustes de automatización (correos de alertas y Google Calendar).",
+      "partialSaveError": "Las preferencias se han guardado, pero no los ajustes de automatización. Revísalos y vuelve a guardar."
+    },
+    "alertEmail": {
+      "sectionTitle": "Correos automáticos de alertas",
+      "enabled": {
+        "label": "Enviar correos de alertas automáticamente",
+        "help": "Interruptor general. Si está desactivado, el planificador no envía ningún correo por su cuenta aunque una regla lo tenga marcado; las alertas se siguen generando."
+      },
+      "notice": {
+        "on": "Solo se envían correos en las reglas que tienen marcado \"Enviar correo automáticamente\" (Sistema → Reglas de alertas).",
+        "off": "No se envía ningún correo automático. Las alertas quedan pendientes para gestionarlas a mano."
+      },
+      "confirm": {
+        "title": "¿Activar los correos automáticos?",
+        "description": "A partir de la próxima ejecución del planificador se enviarán correos a los pacientes en las reglas que tengan el envío automático marcado. El cambio se aplica al guardar.",
+        "cancel": "Cancelar",
+        "confirm": "Activar"
+      }
+    },
+    "googleCalendar": {
+      "sectionTitle": "Sincronización con Google Calendar",
+      "help": "Se aplica a todos los calendarios que tengan configurado un ID de Google Calendar (Configuración → Calendarios).",
+      "notice": "Desde Google solo se importan eventos nuevos y cancelaciones: los cambios de horario o de título hechos en Google no se reflejan en la aplicación.",
+      "modes": {
+        "none": {
+          "title": "No sincronizar",
+          "description": "Las citas solo existen en la aplicación."
+        },
+        "from_google": {
+          "title": "Desde Google Calendar",
+          "description": "Los eventos nuevos y las cancelaciones de Google se importan a la aplicación."
+        },
+        "to_google": {
+          "title": "Hacia Google Calendar",
+          "description": "Las citas creadas, editadas o canceladas en la aplicación se reflejan en Google."
+        },
+        "both": {
+          "title": "Desde y hacia Google Calendar",
+          "description": "Combina las dos direcciones."
+        }
       }
     }
   },
   "DuplicateContact": {
     "title": "Este teléfono ya está registrado",
-    "description": "Otro paciente ya usa este número de teléfono. Verifique que no sea la misma persona antes de guardar.",
+    "description": "Otro paciente ya usa este número de teléfono. Comprueba que no sea la misma persona antes de guardar.",
     "fields": {
       "phone": "Teléfono",
       "email": "Correo",
@@ -9042,7 +9191,7 @@
     "cancel": "Revisar datos",
     "confirm": "Guardar de todos modos",
     "conflictTitle": "No se puede guardar",
-    "conflictDescription": "Estos datos ya existen y no pueden repetirse. Revise si la persona ya está registrada.",
+    "conflictDescription": "Estos datos ya existen y no pueden repetirse. Revisa si la persona ya está registrada.",
     "conflictNoOwner": "{field} ya está registrado.",
     "understood": "Entendido"
   },
@@ -9056,6 +9205,48 @@
     "readOnlyNotice": "Solo lectura: no tienes permiso para modificar los colores de calendario.",
     "restoreDefaults": "Restaurar por defecto",
     "unsavedChangesConfirm": "Tienes cambios sin guardar en esta vista. ¿Descartarlos y cambiar de calendario?",
+    "colorSource": {
+      "title": "Origen del color",
+      "description": "Elige qué niveles se tienen en cuenta al colorear una cita. La cadena va de lo más específico a lo más general: color de la cita > servicio > doctor > calendario. Desactiva un nivel para saltarlo.",
+      "save": "Guardar origen del color",
+      "saved": "Origen del color guardado",
+      "saveError": "No pudimos guardar el origen del color",
+      "revert": "Usar General",
+      "revertSuccess": "El calendario vuelve a usar el origen de color general",
+      "revertError": "No pudimos revertir el origen del color",
+      "alwaysActive": "Siempre activo",
+      "levels": {
+        "appointment": {
+          "label": "Etiqueta de color de la cita",
+          "help": "El color que un usuario elige en la propia cita. Siempre prevalece."
+        },
+        "service": {
+          "label": "Color del servicio",
+          "help": "Usar el color del servicio de la cita."
+        },
+        "doctor": {
+          "label": "Color del doctor",
+          "help": "Usar el color del doctor asignado."
+        },
+        "calendar": {
+          "label": "Color del calendario",
+          "help": "Usar el color del calendario (consultorio) al que pertenece la cita."
+        }
+      },
+      "highlight": {
+        "label": "Resaltar la vista con el color del calendario",
+        "help": "Cuando hay un único calendario en pantalla, su color se refleja en la vista del calendario para distinguir de un vistazo entre sedes (un calendario por sede). \"Franja superior\" y \"Marco y etiqueta\" solo marcan los bordes; \"Toda la vista\" tiñe casi todo (marco, panel de agendas, encabezado y cuadrícula) y deja solo la barra de navegación con el tema normal. Usa el color definido en Configuración → Calendarios.",
+        "options": {
+          "off": "Desactivado",
+          "subtle": "Franja superior",
+          "strong": "Marco y etiqueta",
+          "full": "Toda la vista"
+        }
+      },
+      "allOffWarning": "Con todos los niveles desactivados, las citas sin etiqueta de color propia se quedan sin color y usan el aspecto por defecto.",
+      "customizedHint": "Este calendario tiene su propio origen de color, que sustituye al General.",
+      "inheritedHint": "Este calendario hereda el origen de color General. Al guardar se crea su propia configuración."
+    },
     "table": {
       "status": "Estado",
       "scope": "Alcance",
@@ -9075,7 +9266,12 @@
       "revertStatusError": "No se pudo revertir ese estado",
       "revertAll": "Revertir todo a General",
       "revertAllSuccess": "El calendario vuelve a usar la matriz general",
-      "revertAllError": "No se pudo revertir la configuración de ese calendario"
+      "revertAllError": "No se pudo revertir la configuración de ese calendario",
+      "revertAllConfirm": {
+        "title": "¿Volver a la matriz general?",
+        "description": "Se borrarán todas las personalizaciones de \"{name}\" y volverá a usar la matriz general. Esta acción no se puede deshacer.",
+        "confirm": "Revertir todo"
+      }
     },
     "calendarMode": {
       "always": {
@@ -9123,7 +9319,7 @@
       },
       "onlineBooking": {
         "label": "Agenda y acceso al perfil del paciente",
-        "help": "Deja que el paciente agende la cita, elija día y horario entre los huecos libres de la agenda, y acceda a su perfil. Si está apagado, sólo puede consultar su información: las citas las sigue agendando la clínica."
+        "help": "Permite que el paciente reserve la cita, elija día y horario entre los huecos libres de la agenda, y acceda a su perfil. Si está desactivado, solo puede consultar su información: las citas las sigue programando la clínica."
       },
       "appointmentsOnly": {
         "label": "El portal es sólo para reservar citas",
@@ -9142,6 +9338,21 @@
         "help": "Reemplaza el texto que acompaña al título en la portada del portal. Si lo dejas vacío se usa el texto por defecto del sistema.",
         "placeholder": "Reserva y gestiona tus citas cuando quieras…",
         "hint": "Déjalo vacío para usar el texto por defecto."
+      },
+      "serviceSelection": {
+        "label": "Habilitar selección de servicios",
+        "help": "El paciente elige qué se va a hacer, en un paso previo a la fecha y hora, entre los servicios que marcaste como reservables online en Ventas → Servicios. Si está desactivado, todas las reservas se crean con el servicio por defecto y el paciente no elige nada."
+      },
+      "defaultService": {
+        "label": "Servicio por defecto de la reserva",
+        "help": "Con qué servicio se crea la cita cuando el paciente no elige ninguno. Sirve para que todas las reservas del portal entren como, por ejemplo, Consulta general, y recepción las revise después.",
+        "placeholder": "Elige un servicio",
+        "none": "Sin servicio por defecto",
+        "hint": "Se usa cuando la selección de servicios está desactivada, y también cuando está activada pero el paciente no marca nada."
+      },
+      "showPricing": {
+        "label": "Mostrar duración y precios",
+        "help": "El paciente ve el precio de cada servicio y el total de tiempo y dinero de lo que ha elegido. Si está desactivado solo ve los nombres: la duración se sigue usando para reservar el hueco correcto en la agenda, pero no se le muestra, y los precios tampoco salen del sistema."
       }
     },
     "qr": {
@@ -9200,7 +9411,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar firma",
-      "description": "¿Está seguro de que desea eliminar la firma? Las recetas ya emitidas conservan la firma con la que se imprimieron.",
+      "description": "¿Seguro que quieres eliminar la firma? Las recetas ya emitidas conservan la firma con la que se imprimieron.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -9217,7 +9428,7 @@
     "delete": "Eliminar",
     "deleteDialog": {
       "title": "Eliminar Receta Médica",
-      "description": "¿Está seguro de que desea eliminar esta receta? También se quitarán de la anamnesis los medicamentos que haya registrado.",
+      "description": "¿Seguro que quieres eliminar esta receta? También se quitarán de la anamnesis los medicamentos que se hayan registrado con ella.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -9231,11 +9442,11 @@
     "editTitle": "Editar Receta Médica",
     "date": "Fecha",
     "doctor": "Doctor",
-    "selectDoctor": "Seleccione un doctor",
+    "selectDoctor": "Selecciona un doctor",
     "searchDoctor": "Buscar doctor...",
     "noDoctor": "No se encontraron doctores.",
     "template": "Plantilla",
-    "selectTemplate": "Seleccione una plantilla",
+    "selectTemplate": "Selecciona una plantilla",
     "diagnosis": "Diagnóstico",
     "diagnosisPlaceholder": "Motivo de la prescripción",
     "notes": "Notas",
@@ -9293,14 +9504,14 @@
     },
     "paneForm": "Datos",
     "panePreview": "Vista previa",
-    "previewEmpty": "Elija una plantilla para ver cómo quedará la receta impresa.",
+    "previewEmpty": "Elige una plantilla para ver cómo quedará la receta impresa.",
     "showEditor": "Editar contenido de la receta",
     "hideEditor": "Ocultar el editor",
     "signature": {
       "missing": "Este doctor todavía no tiene firma. La receta se imprimirá sin firmar.",
       "define": "Definir firma",
       "dialogTitle": "Definir firma del doctor",
-      "dialogDescription": "Suba una imagen o dibuje la firma. Queda guardada en el perfil del doctor y se usa en esta receta."
+      "dialogDescription": "Sube una imagen o dibuja la firma. Queda guardada en el perfil del doctor y se usa en esta receta."
     }
   },
   "PrescriptionPrint": {
@@ -9329,7 +9540,7 @@
     "title": "Plantillas de Receta",
     "description": "Definir la estructura de las recetas médicas: membrete, medicamentos y firma.",
     "filterPlaceholder": "Filtrar por nombre de plantilla...",
-    "noAccess": "No tiene acceso para ver esta sección.",
+    "noAccess": "No tienes acceso para ver esta sección.",
     "columns": {
       "name": "Nombre",
       "description": "Descripción",
@@ -9372,7 +9583,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Plantilla",
-      "description": "¿Está seguro de que desea eliminar la plantilla \"{name}\"?",
+      "description": "¿Seguro que quieres eliminar la plantilla \"{name}\"?",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -9389,5 +9600,31 @@
     "clear": "Borrar todo",
     "cancel": "Cancelar",
     "use": "Usar esta firma"
+  },
+  "ServiceImageUploader": {
+    "label": "Imagen del servicio",
+    "description": "Se muestra en las tarjetas del portal del paciente, al elegir qué reservar. La vista previa tiene el mismo ancho que tendrá allí.",
+    "alt": "Imagen del servicio",
+    "empty": "Sin imagen",
+    "hint": "Tamaño ideal {width} × {height} px. PNG, JPG o WEBP, hasta {maxMb} MB (para fotos conviene JPG o WEBP: en PNG pesan demasiado).",
+    "pendingCreate": "Se subirá cuando guardes el servicio.",
+    "save": "Guardar imagen",
+    "cancel": "Descartar",
+    "delete": "Quitar",
+    "errors": {
+      "tooLarge": "La imagen supera {maxMb} MB. Redúcela e inténtalo de nuevo.",
+      "generic": "No se pudo guardar la imagen."
+    },
+    "toast": {
+      "saved": "Imagen guardada",
+      "deleted": "Imagen eliminada"
+    },
+    "deleteDialog": {
+      "title": "¿Quitar la imagen?",
+      "description": "El servicio aparecerá sin imagen en el portal del paciente. Puedes subir otra cuando quieras.",
+      "cancel": "Cancelar",
+      "confirm": "Quitar"
+    },
+    "ratioHint": "Se muestra completa y a todo el ancho, sin recortes: el alto depende de la proporción de tu imagen. Si usas la misma proporción en todos los servicios, las tarjetas quedan alineadas."
   }
 }

@@ -3,8 +3,8 @@ import type { IdentityDocumentType } from '@/lib/types';
 /**
  * Validación del documento de identidad del paciente. El usuario elige el
  * tipo explícitamente (no se intenta adivinar el formato a partir del valor):
- * solo la cédula uruguaya tiene un algoritmo de verificación real y público;
- * el resto se valida solo por forma.
+ * la cédula uruguaya y el DNI/NIE españoles tienen un algoritmo de
+ * verificación real y público; el resto se valida solo por forma.
  */
 
 export const IDENTITY_DOCUMENT_TYPES: IdentityDocumentType[] = [
@@ -12,6 +12,8 @@ export const IDENTITY_DOCUMENT_TYPES: IdentityDocumentType[] = [
   'cedula_ext',
   'pasaporte_uy',
   'pasaporte_ext',
+  'dni',
+  'nie',
 ];
 
 /**
@@ -41,6 +43,35 @@ export function isValidPasaporteUy(value: string): boolean {
   return /^[A-Za-z]\d{5,7}$/.test(value.trim());
 }
 
+/**
+ * Letra de control del DNI/NIE español: resto de dividir el número entre 23,
+ * indexado en esta tabla oficial. Caso de prueba: 12345678 -> Z (12345678Z).
+ */
+const DNI_CONTROL_LETTERS = 'TRWAGMYFPDXBNJZSQVHLCKE';
+
+function normalizeSpanishDocument(value: string): string {
+  return value.replace(/[\s.-]/g, '').toUpperCase();
+}
+
+/** DNI español: 8 dígitos + letra de control (se aceptan espacios, puntos y guiones). */
+export function isValidDni(value: string): boolean {
+  const match = /^(\d{8})([A-Z])$/.exec(normalizeSpanishDocument(value));
+  if (!match) return false;
+  return DNI_CONTROL_LETTERS[Number(match[1]) % 23] === match[2];
+}
+
+/**
+ * NIE español: X/Y/Z + 7 dígitos + letra de control. La letra inicial se
+ * sustituye por 0/1/2 y se aplica el mismo cálculo que al DNI.
+ * Caso de prueba: X1234567L.
+ */
+export function isValidNie(value: string): boolean {
+  const match = /^([XYZ])(\d{7})([A-Z])$/.exec(normalizeSpanishDocument(value));
+  if (!match) return false;
+  const number = Number('XYZ'.indexOf(match[1]) + match[2]);
+  return DNI_CONTROL_LETTERS[number % 23] === match[3];
+}
+
 /** Cédula/pasaporte extranjero: genérico, sin formato de país conocido. */
 export function isValidGenericForeignDocument(value: string): boolean {
   return /^[A-Za-z0-9]{5,20}$/.test(value.trim());
@@ -52,6 +83,10 @@ export function isValidIdentityDocument(value: string, type: IdentityDocumentTyp
       return isValidCedulaUy(value);
     case 'pasaporte_uy':
       return isValidPasaporteUy(value);
+    case 'dni':
+      return isValidDni(value);
+    case 'nie':
+      return isValidNie(value);
     case 'cedula_ext':
     case 'pasaporte_ext':
       return isValidGenericForeignDocument(value);
