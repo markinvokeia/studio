@@ -117,7 +117,8 @@
       "deletePayment": "Delete payment",
       "deleteCreditNote": "Delete credit note",
       "deleteInvoice": "Delete treatment",
-      "print": "Print"
+      "print": "Print",
+      "sendEmail": "Send"
     },
     "statusControl": {
       "presupuesto": "Quoted",
@@ -206,7 +207,8 @@
       "paymentUpdateError": "Could not update the payment",
       "creditNoteUpdated": "Credit note updated",
       "creditNoteUpdateError": "Could not update the credit note",
-      "printError": "Could not print the document"
+      "printError": "Could not print the document",
+      "emailNotFound": "Couldn't find the document to send"
     }
   },
   "QuickTreatmentDialog": {
@@ -2394,20 +2396,6 @@
       "invoiceSuccessDesc": "The invoice for order #{orderId} has been created successfully.",
       "invoiceError": "Error creating invoice"
     },
-    "sendEmailDialog": {
-      "title": "Send Quote by Email",
-      "description": "Enter the recipient emails for quote #{id}.",
-      "recipients": "Recipients",
-      "placeholder": "email1@example.com, email2@example.com",
-      "helperText": "Separate multiple emails with commas.",
-      "sending": "Sending...",
-      "cancel": "Cancel",
-      "send": "Send Email",
-      "success": "Quote sent successfully",
-      "error": "Failed to send quote",
-      "errorNoEmail": "Please enter at least one recipient email.",
-      "errorInvalidEmails": "Invalid email addresses: {emails}"
-    },
     "confirmDialog": {
       "title": "Confirm Quote",
       "titleReject": "Reject Quote",
@@ -2525,12 +2513,6 @@
     "pdfDownloading": "Your PDF for quote #{id} is downloading.",
     "printError": "Print Error",
     "couldNotPrint": "Could not print quote.",
-    "emailError": "Email Error",
-    "invalidEmail": "Invalid Email Address",
-    "atLeastOneEmail": "Please enter at least one recipient email.",
-    "invalidEmails": "The following emails are invalid: {emails}",
-    "emailSent": "Email Sent",
-    "emailSentSuccess": "The quote has been successfully sent to {emails}.",
     "unexpectedError": "An unexpected error occurred.",
     "reject": "Reject",
     "edit": "Edit",
@@ -2876,20 +2858,6 @@
         "invoice": "Invoice"
       }
     },
-    "sendEmailDialog": {
-      "title": "Send Invoice by Email",
-      "description": "Enter the recipient emails for invoice #{id}.",
-      "recipients": "Recipients",
-      "placeholder": "email1@example.com, email2@example.com",
-      "helperText": "Separate multiple emails with commas.",
-      "errorNoEmail": "Please enter at least one recipient email.",
-      "send": "Send Email",
-      "sending": "Sending...",
-      "cancel": "Cancel",
-      "success": "Invoice sent successfully",
-      "error": "Failed to send invoice",
-      "errorInvalidEmails": "Invalid email addresses: {emails}"
-    },
     "importDialog": {
       "title": "Import Invoice",
       "description": "Upload a PDF or image file to automatically create an invoice.",
@@ -3010,8 +2978,6 @@
       "confirmSuccess": "Invoice confirmed",
       "confirmError": "Error confirming invoice",
       "printError": "Error downloading invoice",
-      "emailSuccess": "Invoice sent by email",
-      "emailError": "Error sending invoice",
       "paymentSuccess": "Payment registered successfully",
       "paymentError": "Error registering payment",
       "registerPayment": "Register Payment",
@@ -3610,20 +3576,6 @@
     },
     "notes": {
       "noNotes": "No notes available."
-    },
-    "sendEmailDialog": {
-      "title": "Send Payment Receipt by Email",
-      "description": "Enter the recipient emails for payment #{id}.",
-      "recipients": "Recipients",
-      "placeholder": "email1@example.com, email2@example.com",
-      "helperText": "Separate multiple emails with commas.",
-      "errorNoEmail": "Please enter at least one recipient email.",
-      "errorInvalidEmails": "Invalid email addresses: {emails}",
-      "send": "Send Email",
-      "sending": "Sending...",
-      "cancel": "Cancel",
-      "success": "Payment sent successfully",
-      "error": "Failed to send payment"
     },
     "editDialog": {
       "title": "Edit payment",
@@ -9626,5 +9578,40 @@
       "confirm": "Remove"
     },
     "ratioHint": "It's shown in full at the card's full width, never cropped: the height follows your image's aspect ratio. Using the same ratio across services keeps the cards aligned."
+  },
+  "SendDocumentEmailDialog": {
+    "title": {
+      "quote": "Email quote",
+      "invoice": "Email invoice",
+      "credit_note": "Email credit note",
+      "payment": "Email payment receipt",
+      "prepayment": "Email prepayment receipt"
+    },
+    "description": {
+      "quote": "The whole quote {docNo} will be sent.",
+      "invoice": "The whole invoice {docNo} will be sent.",
+      "credit_note": "Credit note {docNo} will be sent.",
+      "payment": "The receipt for payment {docNo} will be sent.",
+      "prepayment": "The receipt for prepayment {docNo} will be sent."
+    },
+    "descriptionNoNumber": "The whole document will be sent.",
+    "recipients": "Recipients",
+    "placeholder": "email1@example.com, email2@example.com",
+    "helperText": "Separate multiple emails with commas.",
+    "cancel": "Cancel",
+    "send": "Send email",
+    "success": {
+      "quote": "Quote sent",
+      "invoice": "Invoice sent",
+      "credit_note": "Credit note sent",
+      "payment": "Payment receipt sent",
+      "prepayment": "Prepayment receipt sent"
+    },
+    "error": "Couldn't send the email",
+    "errorNoEmail": "Enter at least one recipient email.",
+    "errorInvalidEmails": "Invalid emails: {emails}",
+    "errorPdf": "Couldn't generate the document PDF",
+    "sending": "Sending…",
+    "generatingPdf": "Generating PDF…"
   }
 }

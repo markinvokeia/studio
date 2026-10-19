@@ -7,7 +7,13 @@ import { API_ROUTES } from '@/constants/routes';
 import { fetchQuoteInvoicesForFinancials } from '@/services/quote-financials';
 import {
   usePrintDocumentStore,
+  type CreditNotePrintData,
+  type InvoicePrintData,
+  type PaymentPrintData,
+  type PrepaymentPrintData,
+  type PrintData,
   type PrintInvoiceRow,
+  type QuotePrintData,
 } from '@/stores/print-document-store';
 import type { Quote, Invoice, Payment, CreditNote, QuoteItem, InvoiceItem, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails } from '@/lib/types';
 import { fetchClinicInfo } from '@/hooks/useClinicInfo';
@@ -15,6 +21,7 @@ import { fetchPatientLedgerData } from '@/services/patient-ledger-data';
 import { fetchClinicHistoryPrintData } from '@/services/clinic-history-print-data';
 import { buildPatientLedger, type LedgerRow } from '@/lib/patient-ledger';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { elementToPdfBase64 } from '@/lib/document-pdf';
 
 // ── Data mappers (match patterns in user-quotes.tsx / user-invoices.tsx) ───────
 
@@ -125,6 +132,81 @@ async function fetchInvoicePayments(invoiceId: string, isSales: boolean): Promis
   }
 }
 
+// ── Document data loaders (shared by printing and PDF rendering) ───────────────
+
+/** A sales/purchase document that can be printed or rendered to PDF. */
+export type DocumentPdfRequest =
+  | { type: 'quote'; quote: Quote; isSales: boolean }
+  | { type: 'invoice'; invoice: Invoice; isSales: boolean }
+  | { type: 'credit_note'; creditNote: CreditNote; isSales: boolean }
+  | { type: 'payment'; payment: Payment; isSales: boolean }
+  | { type: 'prepayment'; prepayment: Payment; isSales: boolean };
+
+async function loadQuotePrintData(quote: Quote, isSales: boolean): Promise<QuotePrintData> {
+  const [items, invoices] = await Promise.all([
+    fetchQuoteItems(quote.id, isSales),
+    fetchQuoteInvoicesForFinancials(quote.id, isSales),
+  ]);
+
+  const invoiceRows: PrintInvoiceRow[] = await Promise.all(
+    invoices.map(async (invoice) => {
+      const [invoiceItems, payments] = await Promise.all([
+        fetchInvoiceItems(invoice.id, isSales),
+        fetchInvoicePayments(invoice.id, isSales),
+      ]);
+      return { ...invoice, items: invoiceItems, payments };
+    })
+  );
+
+  return { quote, items, invoices: invoiceRows, isSales };
+}
+
+async function loadInvoicePrintData(invoice: Invoice, isSales: boolean): Promise<InvoicePrintData> {
+  const [items, payments] = await Promise.all([
+    fetchInvoiceItems(invoice.id, isSales),
+    fetchInvoicePayments(invoice.id, isSales),
+  ]);
+  return { invoice, items, payments, creditNotes: [], isSales };
+}
+
+async function loadCreditNotePrintData(creditNote: CreditNote, isSales: boolean): Promise<CreditNotePrintData> {
+  const items = await fetchInvoiceItems(creditNote.id, isSales);
+  return { creditNote, items, isSales };
+}
+
+function loadDocumentPrintData(request: DocumentPdfRequest): Promise<PrintData> {
+  switch (request.type) {
+    case 'quote':
+      return loadQuotePrintData(request.quote, request.isSales);
+    case 'invoice':
+      return loadInvoicePrintData(request.invoice, request.isSales);
+    case 'credit_note':
+      return loadCreditNotePrintData(request.creditNote, request.isSales);
+    case 'payment':
+      return Promise.resolve<PaymentPrintData>({ payment: request.payment, isSales: request.isSales });
+    case 'prepayment':
+      return Promise.resolve<PrepaymentPrintData>({ prepayment: request.prepayment, isSales: request.isSales });
+  }
+}
+
+// One request per session, shared by every hook instance (the store keeps the result).
+let customTemplatesRequest: Promise<void> | null = null;
+
+function ensureCustomTemplatesLoaded(): Promise<void> {
+  const { customTemplatesLoaded, setCustomTemplates } = usePrintDocumentStore.getState();
+  if (customTemplatesLoaded) return Promise.resolve();
+  customTemplatesRequest ??= api.get(API_ROUTES.PRINT_TEMPLATES)
+    .then((data: unknown) => {
+      const raw = Array.isArray(data) ? data : [];
+      setCustomTemplates(raw as DocPrintTemplate[]);
+    })
+    .catch(() => {
+      // Silently fall back to React templates if the endpoint isn't available yet.
+      setCustomTemplates([]);
+    });
+  return customTemplatesRequest;
+}
+
 // ── Print trigger ──────────────────────────────────────────────────────────────
 
 function waitForFrame(): Promise<void> {
@@ -165,54 +247,25 @@ function triggerPrint(deactivate: () => void): void {
 // ── Public hook ────────────────────────────────────────────────────────────────
 
 export function usePrintDocument() {
-  const { activate, deactivate, customTemplatesLoaded, setCustomTemplates } = usePrintDocumentStore();
+  const { activate, deactivate, customTemplatesLoaded } = usePrintDocumentStore();
 
   // Preload clinic info so PrintReportHeader has data ready when print fires.
   useEffect(() => { fetchClinicInfo(); }, []);
 
   // Load custom templates once per session (store persists across hook instances).
   useEffect(() => {
-    if (customTemplatesLoaded) return;
-    api.get(API_ROUTES.PRINT_TEMPLATES)
-      .then((data: unknown) => {
-        const raw = Array.isArray(data) ? data : [];
-        setCustomTemplates(raw as DocPrintTemplate[]);
-      })
-      .catch(() => {
-        // Silently fall back to React templates if the endpoint isn't available yet.
-        setCustomTemplates([]);
-      });
-  }, [customTemplatesLoaded, setCustomTemplates]);
+    if (!customTemplatesLoaded) void ensureCustomTemplatesLoaded();
+  }, [customTemplatesLoaded]);
 
   async function printQuote(quote: Quote, isSales: boolean): Promise<void> {
-    const [items, invoices] = await Promise.all([
-      fetchQuoteItems(quote.id, isSales),
-      fetchQuoteInvoicesForFinancials(quote.id, isSales),
-    ]);
-
-    const invoiceRows: PrintInvoiceRow[] = await Promise.all(
-      invoices.map(async (invoice) => {
-        const [invoiceItems, payments] = await Promise.all([
-          fetchInvoiceItems(invoice.id, isSales),
-          fetchInvoicePayments(invoice.id, isSales),
-        ]);
-        return { ...invoice, items: invoiceItems, payments };
-      })
-    );
-
-    activate('quote', { quote, items, invoices: invoiceRows, isSales });
+    activate('quote', await loadQuotePrintData(quote, isSales));
     await waitForFrame();
     await waitForImages();
     triggerPrint(deactivate);
   }
 
   async function printInvoice(invoice: Invoice, isSales: boolean): Promise<void> {
-    const [items, payments] = await Promise.all([
-      fetchInvoiceItems(invoice.id, isSales),
-      fetchInvoicePayments(invoice.id, isSales),
-    ]);
-
-    activate('invoice', { invoice, items, payments, creditNotes: [], isSales });
+    activate('invoice', await loadInvoicePrintData(invoice, isSales));
     await waitForFrame();
     await waitForImages();
     triggerPrint(deactivate);
@@ -226,8 +279,7 @@ export function usePrintDocument() {
   }
 
   async function printCreditNote(creditNote: CreditNote, isSales: boolean): Promise<void> {
-    const items = await fetchInvoiceItems(creditNote.id, isSales);
-    activate('credit_note', { creditNote, items, isSales });
+    activate('credit_note', await loadCreditNotePrintData(creditNote, isSales));
     await waitForFrame();
     await waitForImages();
     triggerPrint(deactivate);
@@ -355,6 +407,30 @@ export function usePrintDocument() {
     triggerPrint(deactivate);
   }
 
-  return { printQuote, printInvoice, printPayment, printCreditNote, printPrepayment, printFinancialSummary, printLedger, printClinicHistory, printCajaApertura, printCajaCierre, printCajaSesion };
+  /**
+   * Renders a document to an A4 PDF (base64) with the same template and data printing
+   * uses (the clinic's custom DB template when it has one), to attach it to an email.
+   * Shares the print container with printing, so it refuses to run while one is open.
+   */
+  async function renderDocumentPdf(request: DocumentPdfRequest): Promise<string> {
+    if (usePrintDocumentStore.getState().isActive) throw new Error('print_busy');
+    const [data] = await Promise.all([
+      loadDocumentPrintData(request),
+      ensureCustomTemplatesLoaded(),
+      fetchClinicInfo(),
+    ]);
+    activate(request.type, data, 'capture');
+    try {
+      await waitForFrame();
+      await waitForImages();
+      const container = document.querySelector<HTMLElement>('[data-print-container]');
+      if (!container) throw new Error('print_container_missing');
+      return await elementToPdfBase64(container);
+    } finally {
+      deactivate();
+    }
+  }
+
+  return { renderDocumentPdf, printQuote, printInvoice, printPayment, printCreditNote, printPrepayment, printFinancialSummary, printLedger, printClinicHistory, printCajaApertura, printCajaCierre, printCajaSesion };
 
 }

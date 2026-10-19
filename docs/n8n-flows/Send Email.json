@@ -29,6 +29,12 @@
             },
             {
               "name": "attachement"
+            },
+            {
+              "name": "attachment_name"
+            },
+            {
+              "name": "attachment_mime_type"
             }
           ]
         }
@@ -242,7 +248,10 @@
       "parameters": {
         "operation": "toBinary",
         "sourceProperty": "base64",
-        "options": {}
+        "options": {
+          "fileName": "={{ $('When Executed by Another Workflow').item.json.attachment_name || 'documento.pdf' }}",
+          "mimeType": "={{ $('When Executed by Another Workflow').item.json.attachment_mime_type || 'application/pdf' }}"
+        }
       },
       "type": "n8n-nodes-base.convertToFile",
       "typeVersion": 1.1,

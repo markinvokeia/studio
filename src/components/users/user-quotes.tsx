@@ -13,7 +13,6 @@ import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogDescriptio
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
@@ -40,8 +39,7 @@ import {
 import type { DiscountMode } from '@/lib/types';
 import { DiscountControl, DocumentTotals } from '@/components/ui/discount-control';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
-import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
-import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
 import { Quote, QuoteItem, QuoteClinicSession, Service, UserDetailMode, Order, OrderItem, Invoice } from '@/lib/types';
 import { fetchQuoteInvoicesForFinancials } from '@/services/quote-financials';
 import { OrderItemsTable } from '@/components/tables/order-items-table';
@@ -655,13 +653,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
   const [actionNotes, setActionNotes] = React.useState('');
   const [isSubmittingAction, setIsSubmittingAction] = React.useState(false);
 
-  // Email dialog states
-  const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
-  const [selectedQuoteForEmail, setSelectedQuoteForEmail] = React.useState<Quote | null>(null);
-  const [emailRecipients, setEmailRecipients] = React.useState('');
-  const [isSendingEmail, setIsSendingEmail] = React.useState(false);
-  const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
-  const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
+  const [emailTarget, setEmailTarget] = React.useState<EmailDocumentTarget | null>(null);
 
   // Clinic Sessions state
   const [clinicSessions, setClinicSessions] = React.useState<QuoteClinicSession[]>([]);
@@ -908,83 +900,13 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
     printQuote(selectedQuote, isSales);
   };
 
-  const handleSend = async () => {
-    if (!selectedQuote || !canSendQuote) return;
-    try {
-      await api.post(API_ROUTES.PURCHASES.QUOTES_SEND, { quote_id: selectedQuote.id, is_sales: isSales });
-      toast({ title: tQuotes('sendEmailDialog.success') });
-      await loadQuotes(true);
-    } catch {
-      toast({ title: t('UserQuotes.toasts.errorSending'), variant: 'destructive' });
-    }
-  };
-
   const handleSendEmailClick = (quote: Quote) => {
-    setSelectedQuoteForEmail(quote);
-    setEmailRecipients(quote.userEmail || '');
-    setIsSendEmailDialogOpen(true);
-  };
-
-  const sendEmail = async (emails: string[]) => {
-    if (!selectedQuoteForEmail) return;
-
-    setIsSendingEmail(true);
-    try {
-      await api.post(
-        API_ROUTES.PURCHASES.QUOTES_SEND,
-        {
-          quote_id: selectedQuoteForEmail.id,
-          is_sales: isSales,
-          emails,
-        }
-      );
-      toast({ title: tQuotes('sendEmailDialog.success') });
-      setIsSendEmailDialogOpen(false);
-      setSelectedQuoteForEmail(null);
-      setEmailRecipients('');
-    } catch {
-      toast({ title: tQuotes('sendEmailDialog.error'), variant: 'destructive' });
-    } finally {
-      setIsSendingEmail(false);
-    }
-  };
-
-  const handleConfirmSendEmail = async () => {
-    if (!selectedQuoteForEmail) return;
-
-    const emails = emailRecipients
-      .split(',')
-      .map(e => e.trim())
-      .filter(e => e);
-
-    if (emails.length === 0) {
-      toast({ title: tQuotes('sendEmailDialog.errorNoEmail'), variant: 'destructive' });
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const invalidEmails = emails.filter(e => !emailRegex.test(e));
-    if (invalidEmails.length > 0) {
-      toast({ title: tQuotes('sendEmailDialog.errorInvalidEmails', { emails: invalidEmails.join(', ') }), variant: 'destructive' });
-      return;
-    }
-
-    // Check communication preferences
-    const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
-    const disabled = getDisabledEmails(preferences);
-
-    if (disabled.length > 0) {
-      setDisabledEmails(disabled);
-      setIsWarningDialogOpen(true);
-      return;
-    }
-
-    await sendEmail(emails);
-  };
-
-  const handleWarningConfirm = async () => {
-    setIsWarningDialogOpen(false);
-    await sendEmail(emailRecipients.split(',').map(e => e.trim()).filter(e => e));
+    setEmailTarget({
+      request: { type: 'quote', quote, isSales },
+      id: quote.id,
+      docNo: quote.doc_no,
+      defaultEmails: quote.userEmail || '',
+    });
   };
 
   const handleConfirmAction = async () => {
@@ -2335,45 +2257,8 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
         </DialogContent>
       </Dialog>
 
-      {/* ── Email Dialog ── */}
-      <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{tQuotes('sendEmailDialog.title')}</DialogTitle>
-            <DialogDescription>
-              {tQuotes('sendEmailDialog.description', { id: selectedQuoteForEmail?.id || '' })}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 px-6">
-            <Label htmlFor="email-recipients">{tQuotes('sendEmailDialog.recipients')}</Label>
-            <Input
-              id="email-recipients"
-              value={emailRecipients}
-              onChange={(e) => setEmailRecipients(e.target.value)}
-              placeholder={tQuotes('sendEmailDialog.placeholder')}
-            />
-            <p className="text-sm text-muted-foreground mt-1">
-              {tQuotes('sendEmailDialog.helperText')}
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)}>
-              {tQuotes('sendEmailDialog.cancel')}
-            </Button>
-            <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
-              {isSendingEmail ? tQuotes('sendEmailDialog.sending') : tQuotes('sendEmailDialog.send')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SendDocumentEmailDialog document={emailTarget} onClose={() => setEmailTarget(null)} />
 
-      {/* ── Warning Dialog ── */}
-      <CommunicationWarningDialog
-        open={isWarningDialogOpen}
-        onOpenChange={setIsWarningDialogOpen}
-        disabledItems={disabledEmails}
-        onConfirm={handleWarningConfirm}
-      />
     </>
   );
 }

@@ -10,7 +10,7 @@ import { PaymentsTable } from '@/components/tables/payments-table';
 import { QuoteItemsTable } from '@/components/tables/quote-items-table';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
 import { QuoteBillingDialog } from '@/components/sales/quotes/quote-billing-dialog';
-import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
 import { Badge } from '@/components/ui/badge';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
@@ -59,7 +59,6 @@ import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
 import { useDebounce } from '@/hooks/use-debounce';
-import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import {
     buildDiscountedDocument,
@@ -742,12 +741,7 @@ export default function QuotesPage() {
     const [selectedQuoteUser, setSelectedQuoteUser] = React.useState<User | null>(null);
 
     const [isRefreshing, setIsRefreshing] = React.useState(false);
-    const [isSendingEmail, setIsSendingEmail] = React.useState(false);
-    const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
-    const [selectedQuoteForEmail, setSelectedQuoteForEmail] = React.useState<Quote | null>(null);
-    const [emailRecipients, setEmailRecipients] = React.useState('');
-    const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
-    const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
+    const [emailTarget, setEmailTarget] = React.useState<EmailDocumentTarget | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [activeTab, setActiveTab] = React.useState('items');
     const [isRightExpanded, setIsRightExpanded] = React.useState(false);
@@ -1448,87 +1442,13 @@ export default function QuotesPage() {
     }, [printQuote]);
 
     const handleSendEmailClick = React.useCallback((quote: Quote) => {
-        setSelectedQuoteForEmail(quote);
-        setEmailRecipients(quote.userEmail || '');
-        setIsSendEmailDialogOpen(true);
+        setEmailTarget({
+            request: { type: 'quote', quote, isSales: true },
+            id: quote.id,
+            docNo: quote.doc_no,
+            defaultEmails: quote.userEmail || '',
+        });
     }, []);
-
-    const sendQuoteEmail = React.useCallback(async (emails: string[]) => {
-        if (!selectedQuoteForEmail) return;
-
-        setIsSendingEmail(true);
-        try {
-            await api.post(API_ROUTES.PURCHASES.QUOTES_SEND, {
-                quote_id: selectedQuoteForEmail.id,
-                is_sales: true,
-                emails,
-            });
-
-            toast({
-                title: t('emailSent'),
-                description: t('emailSentSuccess', { emails: emails.join(', ') }),
-            });
-
-            setIsSendEmailDialogOpen(false);
-            setSelectedQuoteForEmail(null);
-            setEmailRecipients('');
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: t('emailError'),
-                description: error instanceof Error ? error.message : t('unexpectedError'),
-            });
-        } finally {
-            setIsSendingEmail(false);
-        }
-    }, [selectedQuoteForEmail, t, toast]);
-
-    const handleConfirmSendEmail = React.useCallback(async () => {
-        if (!selectedQuoteForEmail) return;
-
-        const emails = emailRecipients
-            .split(',')
-            .map((email) => email.trim())
-            .filter((email) => email);
-
-        if (emails.length === 0) {
-            toast({ variant: 'destructive', title: t('emailError'), description: t('atLeastOneEmail') });
-            return;
-        }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const invalidEmails = emails.filter((email) => !emailRegex.test(email));
-
-        if (invalidEmails.length > 0) {
-            toast({
-                variant: 'destructive',
-                title: t('invalidEmail'),
-                description: t('invalidEmails', { emails: invalidEmails.join(', ') }),
-            });
-            return;
-        }
-
-        const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
-        const disabled = getDisabledEmails(preferences);
-
-        if (disabled.length > 0) {
-            setDisabledEmails(disabled);
-            setIsWarningDialogOpen(true);
-            return;
-        }
-
-        await sendQuoteEmail(emails);
-    }, [emailRecipients, selectedQuoteForEmail, sendQuoteEmail, t, toast]);
-
-    const handleWarningConfirm = React.useCallback(async () => {
-        const emails = emailRecipients
-            .split(',')
-            .map((email) => email.trim())
-            .filter((email) => email);
-
-        setIsWarningDialogOpen(false);
-        await sendQuoteEmail(emails);
-    }, [emailRecipients, sendQuoteEmail]);
 
     const handleOpenBillingDialog = React.useCallback(async () => {
         if (!selectedQuote) return;
@@ -1608,8 +1528,6 @@ export default function QuotesPage() {
                             title={t('title')}
                             description={t('description')}
                             className="h-full"
-                            isSendingEmail={isSendingEmail}
-                            setIsSendingEmail={setIsSendingEmail}
                             isSales={true}
                             canEditQuote={canUpdateQuote}
                             canDeleteQuote={canDeleteQuote}
@@ -2780,45 +2698,7 @@ export default function QuotesPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-            <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{t('sendEmailDialog.title')}</DialogTitle>
-                        <DialogDescription>{t('sendEmailDialog.description', { id: selectedQuoteForEmail?.doc_no || selectedQuoteForEmail?.id })}</DialogDescription>
-                    </DialogHeader>
-                    <div className="px-6 py-4">
-                        <label htmlFor="quote-email-recipients" className="text-sm font-medium">{t('sendEmailDialog.recipients')}</label>
-                        <Input
-                            id="quote-email-recipients"
-                            value={emailRecipients}
-                            onChange={(e) => setEmailRecipients(e.target.value)}
-                            placeholder={t('sendEmailDialog.placeholder')}
-                        />
-                        <p className="mt-1 text-sm text-muted-foreground">{t('sendEmailDialog.helperText')}</p>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>
-                            {t('quoteDialog.cancel')}
-                        </Button>
-                        <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
-                            {isSendingEmail ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    {t('sendEmailDialog.sending')}
-                                </>
-                            ) : (
-                                t('sendEmail')
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-            <CommunicationWarningDialog
-                open={isWarningDialogOpen}
-                onOpenChange={setIsWarningDialogOpen}
-                disabledItems={disabledEmails}
-                onConfirm={handleWarningConfirm}
-            />
+            <SendDocumentEmailDialog document={emailTarget} onClose={() => setEmailTarget(null)} />
             <QuoteBillingDialog
                 open={isQuoteBillingDialogOpen}
                 onOpenChange={setIsQuoteBillingDialogOpen}

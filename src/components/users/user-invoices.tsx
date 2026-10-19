@@ -15,7 +15,6 @@ import { Input } from '@/components/ui/input';
 import { Calendar } from '@/components/ui/calendar';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
@@ -42,14 +41,13 @@ import {
 } from '@/lib/discounts';
 import type { DiscountMode } from '@/lib/types';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
-import { Invoice, InvoiceItem, Service, UserDetailMode } from '@/lib/types';
+import { CreditNote, Invoice, InvoiceItem, Service, UserDetailMode } from '@/lib/types';
 import { cn, formatDate, formatDisplayDate, getDocumentFileName, toLocalISOString } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { api } from '@/services/api';
 import { getPurchaseServices, getSalesServices } from '@/services/services';
-import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
-import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
 import { InvoicePaymentDialog } from '@/components/invoices/invoice-payment-dialog';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
@@ -496,13 +494,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const [isSubmittingInvoice, setIsSubmittingInvoice] = React.useState(false);
   const [isCreditNoteOpen, setIsCreditNoteOpen] = React.useState(false);
   const [isSubmittingCreditNote, setIsSubmittingCreditNote] = React.useState(false);
-  // Email dialog states
-  const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
-  const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = React.useState<Invoice | null>(null);
-  const [emailRecipients, setEmailRecipients] = React.useState('');
-  const [isSendingEmail, setIsSendingEmail] = React.useState(false);
-  const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
-  const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
+  const [emailTarget, setEmailTarget] = React.useState<EmailDocumentTarget | null>(null);
 
   const columns = React.useMemo(() => getColumns(t, tStatus), [t, tStatus]);
   const isDraft = selectedInvoice?.status?.toLowerCase() === 'draft';
@@ -515,6 +507,8 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   const canDeleteItem = hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_DELETE_ITEM : PURCHASES_PERMISSIONS.INVOICES_DELETE_ITEM);
   const canCreatePayment = hasPermission(isSales ? SALES_PERMISSIONS.PAYMENTS_CREATE : PURCHASES_PERMISSIONS.PAYMENTS_CREATE);
   const canCreateInvoice = hasPermission(isSales ? SALES_PERMISSIONS.INVOICES_CREATE : PURCHASES_PERMISSIONS.INVOICES_CREATE);
+  // Purchases has no send permission of its own; same rule as UserQuotes' canSendQuote.
+  const canSendInvoice = isSales ? hasPermission(SALES_PERMISSIONS.INVOICES_SEND_EMAIL) : true;
   const canEditItems = isDraft && (canAddItem || canUpdateItem || canDeleteItem);
 
   const invoicePaymentColumns = React.useMemo<ColumnDef<any>[]>(() => [
@@ -627,67 +621,14 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   };
 
   const handleSendEmailClick = (invoice: Invoice) => {
-    setSelectedInvoiceForEmail(invoice);
-    setEmailRecipients(invoice.userEmail || '');
-    setIsSendEmailDialogOpen(true);
-  };
-
-  const handleConfirmSendEmail = async () => {
-    if (!selectedInvoiceForEmail) return;
-
-    const emails = emailRecipients
-      .split(',')
-      .map(e => e.trim())
-      .filter(e => e);
-
-    if (emails.length === 0) {
-      toast({ title: tInvoices('sendEmailDialog.errorNoEmail'), variant: 'destructive' });
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const invalidEmails = emails.filter(e => !emailRegex.test(e));
-    if (invalidEmails.length > 0) {
-      toast({ title: tInvoices('sendEmailDialog.errorInvalidEmails', { emails: invalidEmails.join(', ') }), variant: 'destructive' });
-      return;
-    }
-
-    // Verificar preferencias de comunicación
-    const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
-    const disabled = getDisabledEmails(preferences);
-
-    if (disabled.length > 0) {
-      setDisabledEmails(disabled);
-      setIsWarningDialogOpen(true);
-      return;
-    }
-
-    await sendEmail(emails);
-  };
-
-  const sendEmail = async (emails: string[]) => {
-    if (!selectedInvoiceForEmail) return;
-
-    setIsSendingEmail(true);
-    try {
-      await api.post(
-        isSales ? API_ROUTES.SALES.API_INVOICE_SEND : API_ROUTES.PURCHASES.API_INVOICE_SEND,
-        { invoiceId: selectedInvoiceForEmail.id, emails }
-      );
-      toast({ title: tInvoices('sendEmailDialog.success') });
-      setIsSendEmailDialogOpen(false);
-      setSelectedInvoiceForEmail(null);
-      setEmailRecipients('');
-    } catch {
-      toast({ title: tInvoices('sendEmailDialog.error'), variant: 'destructive' });
-    } finally {
-      setIsSendingEmail(false);
-    }
-  };
-
-  const handleWarningConfirm = async () => {
-    setIsWarningDialogOpen(false);
-    await sendEmail(emailRecipients.split(',').map(e => e.trim()).filter(e => e));
+    setEmailTarget({
+      request: invoice.type === 'credit_note'
+        ? { type: 'credit_note', creditNote: invoice as CreditNote, isSales }
+        : { type: 'invoice', invoice, isSales },
+      id: invoice.id,
+      docNo: invoice.doc_no,
+      defaultEmails: invoice.userEmail || '',
+    });
   };
 
   const handleConfirm = async () => {
@@ -1089,10 +1030,12 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
               <Printer className="h-4 w-4 mr-2" />
               Imprimir
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleSendEmailClick(selectedInvoice)}>
-              <Send className="h-4 w-4 mr-2" />
-              Enviar
-            </DropdownMenuItem>
+            {canSendInvoice && (
+              <DropdownMenuItem onClick={() => handleSendEmailClick(selectedInvoice)}>
+                <Send className="h-4 w-4 mr-2" />
+                Enviar
+              </DropdownMenuItem>
+            )}
             {isDraft && canUpdateInvoice && (
               <>
                 <DropdownMenuSeparator />
@@ -1334,10 +1277,12 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
                 <Printer className="h-3.5 w-3.5" />
                 Imprimir
               </Button>
-              <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedInvoice)}>
-                <Send className="h-3.5 w-3.5" />
-                Enviar
-              </Button>
+              {canSendInvoice && (
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedInvoice)}>
+                  <Send className="h-3.5 w-3.5" />
+                  Enviar
+                </Button>
+              )}
               {isDraft && (
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => setIsEditInvoiceOpen(true)}>
                   <Pencil className="h-3.5 w-3.5" />
@@ -2081,45 +2026,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
         </DialogContent>
       </Dialog>
 
-      {/* ── Email Dialog ── */}
-      <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
-        <DialogContent confirmOnClose isDirty={emailRecipients.trim() !== ''}>
-          <DialogHeader>
-            <DialogTitle>{tInvoices('sendEmailDialog.title')}</DialogTitle>
-            <DialogDescription>
-              {tInvoices('sendEmailDialog.description', { id: selectedInvoiceForEmail?.id || '' })}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 px-6">
-            <Label htmlFor="email-recipients">{tInvoices('sendEmailDialog.recipients')}</Label>
-            <Input
-              id="email-recipients"
-              value={emailRecipients}
-              onChange={(e) => setEmailRecipients(e.target.value)}
-              placeholder={tInvoices('sendEmailDialog.placeholder')}
-            />
-            <p className="text-sm text-muted-foreground mt-1">
-              {tInvoices('sendEmailDialog.helperText')}
-            </p>
-          </div>
-          <DialogFooter>
-            <DialogCancelButton>
-              {tInvoices('sendEmailDialog.cancel')}
-            </DialogCancelButton>
-            <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
-              {isSendingEmail ? tInvoices('sendEmailDialog.sending') : tInvoices('sendEmailDialog.send')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Warning Dialog ── */}
-      <CommunicationWarningDialog
-        open={isWarningDialogOpen}
-        onOpenChange={setIsWarningDialogOpen}
-        disabledItems={disabledEmails}
-        onConfirm={handleWarningConfirm}
-      />
+      <SendDocumentEmailDialog document={emailTarget} onClose={() => setEmailTarget(null)} />
 
       {/* ── Credit note payment dialog ── */}
       <InvoicePaymentDialog

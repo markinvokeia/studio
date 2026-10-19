@@ -117,7 +117,8 @@
       "deletePayment": "Eliminar pago",
       "deleteCreditNote": "Eliminar nota de crédito",
       "deleteInvoice": "Eliminar tratamiento",
-      "print": "Imprimir"
+      "print": "Imprimir",
+      "sendEmail": "Enviar"
     },
     "statusControl": {
       "presupuesto": "Presupuesto",
@@ -206,7 +207,8 @@
       "paymentUpdateError": "No se pudo actualizar el pago",
       "creditNoteUpdated": "Nota de crédito actualizada",
       "creditNoteUpdateError": "No se pudo actualizar la nota de crédito",
-      "printError": "No se pudo imprimir el documento"
+      "printError": "No se pudo imprimir el documento",
+      "emailNotFound": "No se encontró el documento para enviar"
     }
   },
   "QuickTreatmentDialog": {
@@ -2394,20 +2396,6 @@
       "invoiceSuccessDesc": "La factura para la orden #{orderId} ha sido creada exitosamente.",
       "invoiceError": "Error al crear la factura"
     },
-    "sendEmailDialog": {
-      "title": "Enviar Presupuesto por Correo",
-      "description": "Ingrese los correos de los destinatarios para el presupuesto #{id}.",
-      "recipients": "Destinatarios",
-      "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
-      "helperText": "Separe múltiples correos con comas.",
-      "sending": "Enviando...",
-      "cancel": "Cancelar",
-      "send": "Enviar correo",
-      "success": "Presupuesto enviado exitosamente",
-      "error": "Error al enviar presupuesto",
-      "errorNoEmail": "Por favor ingrese al menos un correo destinatario.",
-      "errorInvalidEmails": "Direcciones de correo inválidas: {emails}"
-    },
     "confirmDialog": {
       "title": "Confirmar Presupuesto",
       "titleReject": "Rechazar Presupuesto",
@@ -2525,12 +2513,6 @@
     "pdfDownloading": "Su PDF para el presupuesto #{id} se está descargando.",
     "printError": "Error de Impresión",
     "couldNotPrint": "No se pudo imprimir el presupuesto.",
-    "emailError": "Error de Correo Electrónico",
-    "invalidEmail": "Dirección de Correo Inválida",
-    "atLeastOneEmail": "Por favor ingrese al menos un correo electrónico destinatario.",
-    "invalidEmails": "Los siguientes correos electrónicos son inválidos: {emails}",
-    "emailSent": "Correo Enviado",
-    "emailSentSuccess": "El presupuesto ha sido enviado exitosamente a {emails}.",
     "unexpectedError": "Ocurrió un error inesperado.",
     "reject": "Rechazar",
     "edit": "Editar",
@@ -2876,20 +2858,6 @@
         "invoice": "Factura"
       }
     },
-    "sendEmailDialog": {
-      "title": "Enviar Factura por Correo",
-      "description": "Ingrese los correos de los destinatarios para la factura #{id}.",
-      "recipients": "Destinatarios",
-      "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
-      "helperText": "Separe múltiples correos con comas.",
-      "errorNoEmail": "Por favor, ingrese al menos un correo electrónico.",
-      "send": "Enviar Correo",
-      "sending": "Enviando...",
-      "cancel": "Cancelar",
-      "success": "Factura enviada exitosamente",
-      "error": "Error al enviar la factura",
-      "errorInvalidEmails": "Correos inválidos: {emails}"
-    },
     "importDialog": {
       "title": "Importar Factura",
       "description": "Suba un archivo PDF o imagen para crear automáticamente una factura.",
@@ -3010,8 +2978,6 @@
       "confirmSuccess": "Factura confirmada",
       "confirmError": "Error al confirmar la factura",
       "printError": "Error al descargar la factura",
-      "emailSuccess": "Factura enviada por email",
-      "emailError": "Error al enviar la factura",
       "paymentSuccess": "Pago registrado correctamente",
       "paymentError": "Error al registrar el pago",
       "registerPayment": "Registrar pago",
@@ -3610,20 +3576,6 @@
     },
     "notes": {
       "noNotes": "No hay notas disponibles."
-    },
-    "sendEmailDialog": {
-      "title": "Enviar Recibo de Pago por Correo",
-      "description": "Ingrese los correos de los destinatarios para el pago #{id}.",
-      "recipients": "Destinatarios",
-      "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
-      "helperText": "Separe múltiples correos con comas.",
-      "errorNoEmail": "Ingrese al menos un correo de destinatario.",
-      "errorInvalidEmails": "Correos inválidos: {emails}",
-      "send": "Enviar Correo",
-      "sending": "Enviando...",
-      "cancel": "Cancelar",
-      "success": "Pago enviado exitosamente",
-      "error": "Error al enviar el pago"
     },
     "editDialog": {
       "title": "Editar pago",
@@ -9626,5 +9578,40 @@
       "confirm": "Quitar"
     },
     "ratioHint": "Se muestra completa y a todo el ancho, sin recortarse: el alto sale de la proporción de tu imagen. Si usás la misma proporción en todos los servicios, las tarjetas quedan alineadas."
+  },
+  "SendDocumentEmailDialog": {
+    "title": {
+      "quote": "Enviar presupuesto por correo",
+      "invoice": "Enviar factura por correo",
+      "credit_note": "Enviar nota de crédito por correo",
+      "payment": "Enviar recibo de pago por correo",
+      "prepayment": "Enviar recibo de anticipo por correo"
+    },
+    "description": {
+      "quote": "Se enviará el presupuesto {docNo} completo.",
+      "invoice": "Se enviará la factura {docNo} completa.",
+      "credit_note": "Se enviará la nota de crédito {docNo}.",
+      "payment": "Se enviará el recibo del pago {docNo}.",
+      "prepayment": "Se enviará el recibo del anticipo {docNo}."
+    },
+    "descriptionNoNumber": "Se enviará el documento completo.",
+    "recipients": "Destinatarios",
+    "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
+    "helperText": "Separe múltiples correos con comas.",
+    "cancel": "Cancelar",
+    "send": "Enviar correo",
+    "success": {
+      "quote": "Presupuesto enviado",
+      "invoice": "Factura enviada",
+      "credit_note": "Nota de crédito enviada",
+      "payment": "Recibo de pago enviado",
+      "prepayment": "Recibo de anticipo enviado"
+    },
+    "error": "No se pudo enviar el correo",
+    "errorNoEmail": "Ingrese al menos un correo destinatario.",
+    "errorInvalidEmails": "Correos inválidos: {emails}",
+    "errorPdf": "No se pudo generar el PDF del documento",
+    "sending": "Enviando…",
+    "generatingPdf": "Generando PDF…"
   }
 }

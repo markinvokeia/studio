@@ -125,11 +125,6 @@ export async function rejectQuote(quoteId: string): Promise<Quote> {
     return api.post(API_ROUTES.SALES.QUOTE_REJECT_URL(quoteId), {}) as Promise<Quote>;
 }
 
-// Enviar presupuesto por email
-export async function sendQuoteEmail(quoteId: string): Promise<void> {
-    return api.post(API_ROUTES.SALES.QUOTE_SEND_URL(quoteId), {}) as Promise<void>;
-}
-
 // Obtener URL de impresión
 export function getQuotePrintUrl(quoteId: string): string {
     return API_ROUTES.SALES.QUOTE_PRINT_URL(quoteId);

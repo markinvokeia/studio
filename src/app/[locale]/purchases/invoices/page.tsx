@@ -1,7 +1,7 @@
 
 'use client';
 
-import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
 import { InvoicePaymentDialog } from '@/components/invoices/invoice-payment-dialog';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { AllocationsTable } from '@/components/tables/allocations-table';
@@ -17,7 +17,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { ResizableSheet, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/resizable-sheet';
 import { Separator } from '@/components/ui/separator';
 import { ServiceSelector } from '@/components/ui/service-selector';
@@ -27,7 +26,6 @@ import { GridExportDialog, type GridExportFormat } from '@/components/ui/grid-ex
 import { downloadCSV, downloadExcel, type ExportColumn } from '@/lib/export-utils';
 import { format } from 'date-fns';
 import { API_ROUTES } from '@/constants/routes';
-import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -227,12 +225,7 @@ function InvoicesPageContent() {
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedPayment, setSelectedPayment] = React.useState<Payment | null>(null);
     const [paymentRowSelection, setPaymentRowSelection] = React.useState<RowSelectionState>({});
-    const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
-    const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = React.useState<Invoice | null>(null);
-    const [emailRecipients, setEmailRecipients] = React.useState('');
-    const [isSendingEmail, setIsSendingEmail] = React.useState(false);
-    const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
-    const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
+    const [emailTarget, setEmailTarget] = React.useState<EmailDocumentTarget | null>(null);
     const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
     const [importFile, setImportFile] = React.useState<File | null>(null);
     const [isProcessingImport, setIsProcessingImport] = React.useState(false);
@@ -456,74 +449,14 @@ function InvoicesPageContent() {
     };
 
     const handleSendEmailClick = (invoice: Invoice) => {
-        setSelectedInvoiceForEmail(invoice);
-        setEmailRecipients(invoice.userEmail || '');
-        setIsSendEmailDialogOpen(true);
-    };
-
-    const handleConfirmSendEmail = async () => {
-        if (!selectedInvoiceForEmail) return;
-
-        const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
-        if (emails.length === 0) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please enter at least one recipient email.' });
-            return;
-        }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const invalidEmails = emails.filter(email => !emailRegex.test(email));
-
-        if (invalidEmails.length > 0) {
-            toast({
-                variant: 'destructive',
-                title: 'Invalid Email Address',
-                description: `The following emails are invalid: ${invalidEmails.join(', ')}`,
-            });
-            return;
-        }
-
-        const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
-        const disabled = getDisabledEmails(preferences);
-
-        if (disabled.length > 0) {
-            setDisabledEmails(disabled);
-            setIsWarningDialogOpen(true);
-            return;
-        }
-
-        await sendEmail(emails);
-    };
-
-    const sendEmail = async (emails: string[]) => {
-        if (!selectedInvoiceForEmail) return;
-
-        setIsSendingEmail(true);
-        try {
-            await api.post(API_ROUTES.PURCHASES.API_INVOICE_SEND, { invoiceId: selectedInvoiceForEmail.id, emails });
-
-            toast({
-                title: 'Email Sent',
-                description: `The invoice has been successfully sent to ${emails.join(', ')}.`,
-            });
-
-            setIsSendEmailDialogOpen(false);
-
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: error instanceof Error ? error.message : 'An unexpected error occurred.',
-            });
-        } finally {
-            setIsSendingEmail(false);
-        }
-    };
-
-    const handleWarningConfirm = async () => {
-        if (!selectedInvoiceForEmail) return;
-        const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
-        await sendEmail(emails);
-        setIsWarningDialogOpen(false);
+        setEmailTarget({
+            request: invoice.type === 'credit_note'
+                ? { type: 'credit_note', creditNote: invoice as CreditNote, isSales: false }
+                : { type: 'invoice', invoice, isSales: false },
+            id: invoice.id,
+            docNo: invoice.doc_no,
+            defaultEmails: invoice.userEmail || '',
+        });
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -950,51 +883,7 @@ function InvoicesPageContent() {
                 />
             </div>
 
-            <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <div className="flex items-start gap-3">
-                            <div className="header-icon-circle mt-0.5">
-                                <Send className="h-5 w-5" />
-                            </div>
-                            <div className="flex flex-col text-left">
-                                <DialogTitle>{t('sendEmailDialog.title')}</DialogTitle>
-                                <DialogDescription>{t('sendEmailDialog.description', { id: selectedInvoiceForEmail?.id })}</DialogDescription>
-                            </div>
-                        </div>
-                    </DialogHeader>
-                    <div className="py-4 px-6">
-                        <Label htmlFor="email-recipients">{t('sendEmailDialog.recipients')}</Label>
-                        <Input
-                            id="email-recipients"
-                            value={emailRecipients}
-                            onChange={(e) => setEmailRecipients(e.target.value)}
-                            placeholder={t('sendEmailDialog.placeholder')}
-                        />
-                        <p className="text-sm text-muted-foreground mt-1">{t('sendEmailDialog.helperText')}</p>
-                    </div>
-                    <DialogFooter>
-                        <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
-                            {isSendingEmail ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    {t('sendEmailDialog.sending')}
-                                </>
-                            ) : (
-                                t('sendEmailDialog.send')
-                            )}
-                        </Button>
-                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>{t('createDialog.cancel')}</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <CommunicationWarningDialog
-                open={isWarningDialogOpen}
-                onOpenChange={setIsWarningDialogOpen}
-                disabledItems={disabledEmails}
-                onConfirm={handleWarningConfirm}
-            />
+            <SendDocumentEmailDialog document={emailTarget} onClose={() => setEmailTarget(null)} />
 
             <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
                 <DialogContent>

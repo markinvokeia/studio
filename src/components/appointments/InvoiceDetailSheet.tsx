@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { InvoiceItemsTable } from '@/components/tables/invoice-items-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
+import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
 import { Can } from '@/components/auth/Can';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
@@ -25,7 +26,7 @@ import { mapLineDiscountFields } from '@/lib/discounts';
 import { Invoice, InvoiceItem, Payment, PaymentMethod } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
-import { confirmInvoice, sendInvoiceEmail } from '@/services/invoices';
+import { confirmInvoice } from '@/services/invoices';
 import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { SHEET_TAB_CLASS, hasValidPayments } from '@/components/appointments/sheet-utils';
@@ -176,6 +177,7 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
   const [activeTab, setActiveTab] = React.useState('items');
   const [isLoading, setIsLoading] = React.useState(true);
   const [actionLoading, setActionLoading] = React.useState<string | null>(null);
+  const [emailTarget, setEmailTarget] = React.useState<EmailDocumentTarget | null>(null);
   const [isPrinting, setIsPrinting] = React.useState(false);
   const [refreshKey, setRefreshKey] = React.useState(0);
 
@@ -347,17 +349,14 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
     printInvoice(invoice, true);
   }, [invoice, printInvoice]);
 
-  const handleSendEmail = React.useCallback(async () => {
-    setActionLoading('email');
-    try {
-      await sendInvoiceEmail(currentInvoiceData.id);
-      toast({ title: t('actions.emailSuccess') || 'Factura enviada por email' });
-    } catch {
-      toast({ variant: 'destructive', title: t('actions.emailError') || 'Error al enviar' });
-    } finally {
-      setActionLoading(null);
-    }
-  }, [currentInvoiceData?.id, toast, t]);
+  const handleSendEmail = React.useCallback(() => {
+    setEmailTarget({
+      request: { type: 'invoice', invoice: currentInvoiceData, isSales: true },
+      id: currentInvoiceData.id,
+      docNo: currentInvoiceData.doc_no,
+      defaultEmails: currentInvoiceData.userEmail || '',
+    });
+  }, [currentInvoiceData]);
 
   const docLabel = currentInvoiceData.doc_no || currentInvoiceData.invoice_ref || currentInvoiceData.id;
   const totalFormatted = new Intl.NumberFormat('es-UY', {
@@ -454,9 +453,8 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
                 variant="outline"
                 size="sm"
                 onClick={handleSendEmail}
-                disabled={actionLoading === 'email'}
               >
-                {actionLoading === 'email' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                <Mail className="mr-2 h-4 w-4" />
                 {t('actions.sendEmail') || 'Enviar Email'}
               </Button>
             </Can>
@@ -747,6 +745,8 @@ export function InvoiceDetailSheet({ open, onOpenChange, invoice, onDataChange }
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SendDocumentEmailDialog document={emailTarget} onClose={() => setEmailTarget(null)} />
     </ResizableSheet>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,23 +11,10 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import {
-  Dialog,
-  DialogCancelButton,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { API_ROUTES } from '@/constants/routes';
 import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
-import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { DataCard } from '@/components/ui/data-card';
@@ -39,9 +26,8 @@ import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Quote } from '@/lib/types';
 import { cn, formatDisplayDate, getDocumentFileName } from '@/lib/utils';
 import { getDefaultPageSize } from '@/lib/pagination';
-import { api } from '@/services/api';
 import { ColumnDef, ColumnFiltersState, flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, PaginationState, RowSelectionState, SortingState, useReactTable } from '@tanstack/react-table';
-import { CheckCircle, Download, Loader2, MoreHorizontal, Pencil, Printer, Send, Trash2, XCircle } from 'lucide-react';
+import { CheckCircle, Download, MoreHorizontal, Pencil, Printer, Send, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DocumentTextIcon } from '../icons/document-text-icon';
@@ -398,8 +384,6 @@ interface RecentQuotesTableProps {
   title?: string;
   description?: string;
   standalone?: boolean;
-  isSendingEmail?: boolean;
-  setIsSendingEmail?: (sending: boolean) => void;
   isSales?: boolean;
   canEditQuote?: boolean;
   canDeleteQuote?: boolean;
@@ -445,8 +429,6 @@ export function RecentQuotesTable({
   title,
   description,
   standalone = false,
-  isSendingEmail = false,
-  setIsSendingEmail,
   isSales = false,
   canEditQuote = false,
   canDeleteQuote = false,
@@ -474,11 +456,7 @@ export function RecentQuotesTable({
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const { printQuote } = usePrintDocument();
-  const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
-  const [selectedQuoteForEmail, setSelectedQuoteForEmail] = React.useState<Quote | null>(null);
-  const [emailRecipients, setEmailRecipients] = React.useState('');
-  const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
-  const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
+  const [emailTarget, setEmailTarget] = React.useState<EmailDocumentTarget | null>(null);
 
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -488,84 +466,12 @@ export function RecentQuotesTable({
   }, [printQuote, isSales]);
 
   const handleSendEmailClick = (quote: Quote) => {
-    setSelectedQuoteForEmail(quote);
-    setEmailRecipients(quote.userEmail || '');
-    setIsSendEmailDialogOpen(true);
-  };
-
-  const handleConfirmSendEmail = async () => {
-    if (!selectedQuoteForEmail) return;
-
-    const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
-    if (emails.length === 0) {
-      toast({ variant: 'destructive', title: t('QuotesPage.emailError'), description: t('QuotesPage.atLeastOneEmail') });
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const invalidEmails = emails.filter(email => !emailRegex.test(email));
-
-    if (invalidEmails.length > 0) {
-      toast({
-        variant: 'destructive',
-        title: t('QuotesPage.invalidEmail'),
-        description: t('QuotesPage.invalidEmails', { emails: invalidEmails.join(', ') }),
-      });
-      return;
-    }
-
-    const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
-    const disabled = getDisabledEmails(preferences);
-
-    if (disabled.length > 0) {
-      setDisabledEmails(disabled);
-      setIsWarningDialogOpen(true);
-      return;
-    }
-
-    await sendEmail(emails);
-  };
-
-  const sendEmail = async (emails: string[]) => {
-    if (!selectedQuoteForEmail) return;
-
-    const handleSetSending = (sending: boolean) => {
-      if (setIsSendingEmail) {
-        setIsSendingEmail(sending);
-      }
-    };
-
-    handleSetSending(true);
-    try {
-      await api.post(API_ROUTES.PURCHASES.QUOTES_SEND, {
-        quote_id: selectedQuoteForEmail.id,
-        is_sales: isSales,
-        emails,
-      });
-
-      toast({
-        title: t('QuotesPage.emailSent'),
-        description: t('QuotesPage.emailSentSuccess', { emails: emails.join(', ') }),
-      });
-
-      setIsSendEmailDialogOpen(false);
-
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('QuotesPage.emailError'),
-        description: error instanceof Error ? error.message : t('QuotesPage.unexpectedError'),
-      });
-    } finally {
-      handleSetSending(false);
-    }
-  };
-
-  const handleWarningConfirm = async () => {
-    if (!selectedQuoteForEmail) return;
-    const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
-    await sendEmail(emails);
-    setIsWarningDialogOpen(false);
+    setEmailTarget({
+      request: { type: 'quote', quote, isSales },
+      id: quote.id,
+      docNo: quote.doc_no,
+      defaultEmails: quote.userEmail || '',
+    });
   };
 
   const actionPermissions = React.useMemo<QuoteActionPermissions>(() => ({
@@ -860,44 +766,8 @@ export function RecentQuotesTable({
         </CardContent>
       </Card>
 
-      <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
-        <DialogContent confirmOnClose isDirty={emailRecipients.trim() !== ''}>
-          <DialogHeader>
-            <DialogTitle>{t('QuotesPage.sendEmailDialog.title')}</DialogTitle>
-            <DialogDescription>{t('QuotesPage.sendEmailDialog.description', { id: selectedQuoteForEmail?.doc_no || selectedQuoteForEmail?.id })}</DialogDescription>
-          </DialogHeader>
-          <div className="py-4 px-6">
-            <Label htmlFor="email-recipients">{t('QuotesPage.sendEmailDialog.recipients')}</Label>
-            <Input
-              id="email-recipients"
-              value={emailRecipients}
-              onChange={(e) => setEmailRecipients(e.target.value)}
-              placeholder={t('QuotesPage.sendEmailDialog.placeholder')}
-            />
-            <p className="text-sm text-muted-foreground mt-1">{t('QuotesPage.sendEmailDialog.helperText')}</p>
-          </div>
-          <DialogFooter>
-            <DialogCancelButton variant="outline" disabled={isSendingEmail}>{t('QuotesPage.quoteDialog.cancel')}</DialogCancelButton>
-            <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
-              {isSendingEmail ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('QuotesPage.sendEmailDialog.sending')}
-                </>
-              ) : (
-                t('QuotesPage.sendEmail')
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <SendDocumentEmailDialog document={emailTarget} onClose={() => setEmailTarget(null)} />
 
-      <CommunicationWarningDialog
-        open={isWarningDialogOpen}
-        onOpenChange={setIsWarningDialogOpen}
-        disabledItems={disabledEmails}
-        onConfirm={handleWarningConfirm}
-      />
     </>
   );
 }

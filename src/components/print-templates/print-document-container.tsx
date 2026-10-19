@@ -40,17 +40,19 @@ import { CustomTemplateRenderer } from './custom-template-renderer';
  *   PrintReportHeader.
  */
 export function PrintDocumentContainer() {
-  const { isActive, type, data, customTemplates } = usePrintDocumentStore();
+  const { isActive, mode, type, data, customTemplates } = usePrintDocumentStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
   // When printing, add a class to <html> so CSS can hide the rest of the app.
+  // Not in 'capture' mode: html2pdf renders a clone of the container inside its own
+  // overlay, which these rules (applied to the clone too) would hide.
   useEffect(() => {
-    if (!isActive) return;
+    if (!isActive || mode !== 'print') return;
     document.documentElement.classList.add('printing-multipage');
     return () => document.documentElement.classList.remove('printing-multipage');
-  }, [isActive]);
+  }, [isActive, mode]);
 
   if (!isActive || !data || !type || !mounted) return null;
 
@@ -60,7 +62,8 @@ export function PrintDocumentContainer() {
   // and let only this document flow — otherwise the app layout behind it, though
   // hidden, still occupies its full height and prints as many blank pages.
   return createPortal(
-    <div data-print-container className="hidden print:block w-full bg-white p-8">
+    // Capture mode drops the padding: html2pdf applies the page margins itself.
+    <div data-print-container className={mode === 'capture' ? 'hidden print:block w-full bg-white' : 'hidden print:block w-full bg-white p-8'}>
       {customHtml ? (
         <CustomTemplateRenderer html={customHtml} data={data} type={type} />
       ) : (

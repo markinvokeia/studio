@@ -5,7 +5,7 @@ import { useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { addMonths, endOfMonth, format, parseISO, startOfMonth } from 'date-fns';
-import { Banknote, Calendar, CalendarClock, Check, ChevronDown, CreditCard, FileMinus, FileText, Hash, History, Link2, ListChecks, Loader2, MapPin, Pencil, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Stethoscope, StickyNote, Trash2, UserRound, X } from 'lucide-react';
+import { Banknote, Calendar, CalendarClock, Check, ChevronDown, CreditCard, FileMinus, FileText, Hash, History, Link2, ListChecks, Loader2, MapPin, Pencil, Plus, Printer, Receipt, RefreshCw, ScrollText, Search, Send, Stethoscope, StickyNote, Trash2, UserRound, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { AppliedDiscountNote, DiscountControl } from '@/components/ui/discount-control';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
@@ -36,6 +36,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DateRangePresets } from '@/components/reports/date-range-presets';
 import { QuoteBillingDialog } from '@/components/sales/quotes/quote-billing-dialog';
+import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
 import { FinanceSortOrderToggle } from '@/components/users/finance-sort-order-toggle';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
@@ -1696,6 +1697,8 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const canDeleteCreditNote = hasPermission(SALES_PERMISSIONS.INVOICES_DELETE);
   const canEditQuote = hasPermission(SALES_PERMISSIONS.QUOTES_UPDATE);
   const canEditInvoice = hasPermission(SALES_PERMISSIONS.INVOICES_UPDATE);
+  const canSendQuoteEmail = hasPermission(SALES_PERMISSIONS.QUOTES_SEND_EMAIL);
+  const canSendInvoiceEmail = hasPermission(SALES_PERMISSIONS.INVOICES_SEND_EMAIL);
   const [isRevertingInvoice, setIsRevertingInvoice] = React.useState(false);
   const [isDeletingQuote, setIsDeletingQuote] = React.useState(false);
   const [isDeletingPayment, setIsDeletingPayment] = React.useState(false);
@@ -1703,6 +1706,8 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   const [isMarkingFinalized, setIsMarkingFinalized] = React.useState(false);
   /** Row whose document is currently being fetched + sent to the print dialog. */
   const [printingRowId, setPrintingRowId] = React.useState<string | null>(null);
+  /** Document whose "Enviar" dialog is open — see `handleEmailRow`. */
+  const [emailTarget, setEmailTarget] = React.useState<EmailDocumentTarget | null>(null);
   const [isUnmarkingFinalized, setIsUnmarkingFinalized] = React.useState(false);
 
   const [ledgerByCurrency, setLedgerByCurrency] = React.useState<Record<string, LedgerRow[]>>({});
@@ -2247,6 +2252,54 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
     }
   }, [printingRowId, ledgerData, printPayment, printQuote, printInvoice, printCreditNote, toast, t]);
 
+  /**
+   * Opens the "Enviar" dialog for the whole document behind a selected row (the same one
+   * "Imprimir" prints) — a quote/invoice row is usually one item of it. Recipients default
+   * to the document's email, falling back to the patient's.
+   */
+  const handleEmailRow = React.useCallback((row: LedgerRow) => {
+    let target: EmailDocumentTarget | null = null;
+    if (row.kind === 'payment') {
+      const payment = ledgerData?.payments.find((p) => p.id === row.paymentId);
+      if (payment) {
+        target = {
+          request: { type: 'payment', payment, isSales: true },
+          id: payment.id,
+          docNo: payment.doc_no || payment.payment_doc_no,
+          defaultEmails: payment.userEmail || patientEmail,
+        };
+      }
+    } else if (row.status === 'presupuestado') {
+      const quote = ledgerData?.quotes.find((q) => q.id === row.quoteId);
+      if (quote) {
+        target = {
+          request: { type: 'quote', quote, isSales: true },
+          id: quote.id,
+          docNo: quote.doc_no,
+          defaultEmails: quote.userEmail || patientEmail,
+        };
+      }
+    } else {
+      const invoice = ledgerData?.invoices.find((i) => i.id === row.invoiceId);
+      if (invoice) {
+        target = {
+          request: row.status === 'notaCredito'
+            ? { type: 'credit_note', creditNote: invoice as CreditNote, isSales: true }
+            : { type: 'invoice', invoice, isSales: true },
+          id: invoice.id,
+          docNo: invoice.doc_no,
+          defaultEmails: invoice.userEmail || patientEmail,
+        };
+      }
+    }
+    if (!target) {
+      toast({ title: t('toasts.emailNotFound'), variant: 'destructive' });
+      return;
+    }
+    setSelectedRowId(null);
+    setEmailTarget(target);
+  }, [ledgerData, patientEmail, toast, t]);
+
   /** Centered action buttons shown attached under a selected row — the same actions the
    *  old "…" menu held (custom invoice, credit note, delete), plus a Cancelar to deselect.
    *  Returns a fragment; the row's merged card container provides border/background. */
@@ -2280,6 +2333,14 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
       : row.status === 'presupuestado'
         ? !!row.quoteId
         : !!row.invoiceId;
+    // Same documents as Imprimir, gated by each kind's send permission. Credit-note
+    // allocations are derived bookkeeping, not a receipt anyone was handed, so they don't
+    // offer it (they're not editable either — see showEditPayment).
+    const showEmail = showPrint && (
+      isPayment
+        ? row.transactionType !== 'credit_note_allocation'
+        : row.status === 'presupuestado' ? canSendQuoteEmail : canSendInvoiceEmail
+    );
     const canDelete =
       (isUnbilledQuoteItem && canDeleteQuote) ||
       (isPayment && canDeletePayment) ||
@@ -2326,6 +2387,11 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
             {t('actions.print')}
           </Button>
         )}
+        {showEmail && (
+          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => handleEmailRow(row)}>
+            <Send className="h-3.5 w-3.5" />{t('actions.sendEmail')}
+          </Button>
+        )}
         {canDelete && (
           <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive" onClick={() => handleDeleteRow(row)}>
             <Trash2 className="h-3.5 w-3.5" />{t('inline.delete')}
@@ -2336,7 +2402,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
         </Button>
       </>
     );
-  }, [canInvoiceQuote, canCreateCreditNote, canDeleteQuote, canDeletePayment, canDeleteCreditNote, canRevertInvoice, canEditQuote, canEditInvoice, canCreatePaymentPerm, getMaxCreditableForInvoice, handleInvoice, handleCreditNote, handleEditCreditNote, handleDeleteRow, handlePrintRow, printingRowId, t]);
+  }, [canInvoiceQuote, canCreateCreditNote, canDeleteQuote, canDeletePayment, canDeleteCreditNote, canRevertInvoice, canEditQuote, canEditInvoice, canCreatePaymentPerm, getMaxCreditableForInvoice, handleInvoice, handleCreditNote, handleEditCreditNote, handleDeleteRow, handlePrintRow, handleEmailRow, canSendQuoteEmail, canSendInvoiceEmail, printingRowId, t]);
 
   // Search may be controlled by a host (the sheet renders the search box in its header);
   // otherwise the ledger keeps its own state and shows an expandable search in the toolbar.
@@ -2797,6 +2863,8 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
         isSales
         onSuccess={async () => { setBillingQuote(null); setBillingItemId(null); await load(true); }}
       />
+
+      <SendDocumentEmailDialog document={emailTarget} onClose={() => setEmailTarget(null)} />
 
       <Dialog
         open={!!creditNoteRow}

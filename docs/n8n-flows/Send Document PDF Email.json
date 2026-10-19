@@ -1,0 +1,501 @@
+{
+  "name": "Send Document PDF Email",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "api/documents/send",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1072,
+        112
+      ],
+      "id": "a40d1e39-ed5f-43fa-9fda-8fe63bcff0e2",
+      "name": "api/documents/send",
+      "webhookId": "1d09b245-abfc-4d45-ad24-908dd11103ec",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "AwVlGVOQEcJqJGqa",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/AwVlGVOQEcJqJGqa",
+          "cachedResultName": "Validate User Token"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "token": "={{ $('api/documents/send').item.json.headers.authorization }}"
+          },
+          "matchingColumns": [
+            "token"
+          ],
+          "schema": [
+            {
+              "id": "token",
+              "displayName": "token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -848,
+        112
+      ],
+      "id": "db74955d-e054-4431-bf15-1f4665b1bce5",
+      "name": "Validate User Token"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "191a8945-5a2f-43bf-b0e6-9fc603c7d87b",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -640,
+        112
+      ],
+      "id": "f4ca247c-3ca2-4852-8394-3634a7beda2e",
+      "name": "Is valid?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"message\": $json.message || \"Invalid or expired token\" } }}",
+        "options": {
+          "responseCode": 401,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -432,
+        304
+      ],
+      "id": "2ca16227-cdf9-448f-9473-0236fbf4ead1",
+      "name": "Error: Invalid Token"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Valida el body de POST /api/documents/send y arma asunto, cuerpo y nombre del adjunto.\n// El PDF lo genera el frontend con las mismas plantillas de impresión (ya no se usa Gotenberg).\nconst body = $('api/documents/send').first().json.body || {};\n\nconst LABELS = {\n  quote:       { subject: 'Presupuesto',      article: 'el presupuesto' },\n  invoice:     { subject: 'Factura',          article: 'la factura' },\n  credit_note: { subject: 'Nota de crédito',  article: 'la nota de crédito' },\n  payment:     { subject: 'Recibo de pago',   article: 'el recibo de pago' },\n  prepayment:  { subject: 'Recibo de anticipo', article: 'el recibo de anticipo' },\n};\nconst EMAIL_RE = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\n// ~10 MB de PDF (base64 ocupa 4/3): Gmail admite 25 MB por mensaje.\nconst MAX_BASE64_LENGTH = 14 * 1024 * 1024;\n\nconst fail = (error) => [{ json: { valid: false, error } }];\n\nconst type = String(body.document_type || '');\nconst label = LABELS[type];\nif (!label) return fail('document_type inválido');\nif (body.document_id == null || body.document_id === '') return fail('document_id requerido');\n\nconst emails = (Array.isArray(body.emails) ? body.emails : [])\n  .map((e) => String(e || '').trim())\n  .filter(Boolean);\nif (emails.length === 0) return fail('Se requiere al menos un correo');\nconst invalid = emails.filter((e) => !EMAIL_RE.test(e));\nif (invalid.length > 0) return fail(`Correos inválidos: ${invalid.join(', ')}`);\n\n// Acepta data URI o base64 pelado; un PDF siempre empieza con \"%PDF\" (= \"JVBER\" en base64).\nconst pdf = String(body.pdf_base64 || '').replace(/^data:application\\/pdf;[^,]*,/, '').replace(/\\s/g, '');\nif (!pdf.startsWith('JVBER')) return fail('pdf_base64 no es un PDF válido');\nif (pdf.length > MAX_BASE64_LENGTH) return fail('El PDF supera el tamaño máximo permitido');\n\nconst docNo = String(body.doc_no || '').trim();\nconst ref = docNo ? ` ${docNo}` : '';\nconst safeName = String(body.file_name || '').replace(/[^\\w.\\- ]+/g, '').trim();\nconst fileName = (safeName || `${label.subject}${ref}`.replace(/\\s+/g, '-')).replace(/\\.pdf$/i, '') + '.pdf';\n\nreturn [{\n  json: {\n    valid: true,\n    emails,\n    pdf_base64: pdf,\n    file_name: fileName,\n    subject: `${label.subject}${ref}`,\n    content: `<p>Adjuntamos ${label.article}${ref} en formato PDF.</p><p>Ante cualquier consulta, responda a este correo o comuníquese con la clínica.</p>`,\n  },\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -432,
+        16
+      ],
+      "id": "1469fd7d-6445-4020-8e84-4b13566ce205",
+      "name": "Validate input"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d3d1c7e9-8f00-4722-b326-a107cb11b2f2",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -224,
+        16
+      ],
+      "id": "85c3dee1-ed68-449b-9b3d-74835f115716",
+      "name": "Input OK?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"error\": $json.error } }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -16,
+        208
+      ],
+      "id": "981d1442-8a54-4315-a934-f5587d1372c7",
+      "name": "Error: Bad Request"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "D9eorK93mFaLkKnM",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/D9eorK93mFaLkKnM",
+          "cachedResultName": "Send Email"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "emails": "={{ $json.emails }}",
+            "subject": "={{ $json.subject }}",
+            "template": "generic-info-email",
+            "data": "={{ { content: $json.content } }}",
+            "attachement": "={{ $json.pdf_base64 }}",
+            "attachment_name": "={{ $json.file_name }}",
+            "attachment_mime_type": "application/pdf"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "emails",
+              "displayName": "emails",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array",
+              "removed": false
+            },
+            {
+              "id": "subject",
+              "displayName": "subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "template",
+              "displayName": "template",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "data",
+              "displayName": "data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            },
+            {
+              "id": "attachement",
+              "displayName": "attachement",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "attachment_name",
+              "displayName": "attachment_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "attachment_mime_type",
+              "displayName": "attachment_mime_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -16,
+        -80
+      ],
+      "id": "a204c64d-6236-491f-bb6e-687f7f28ac1c",
+      "name": "Send email"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "eb2dc2b5-4256-47f2-a646-31e74704bb5f",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        192,
+        -80
+      ],
+      "id": "472b71ee-2438-4a91-801c-42b411ee127f",
+      "name": "Sent?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"message\": \"Email sent successfully\"\n}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        400,
+        -176
+      ],
+      "id": "916cbf20-f74f-4dc1-907e-917ecef463a0",
+      "name": "OK: Sent"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"Error sending email\"\n}",
+        "options": {
+          "responseCode": 502,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        400,
+        16
+      ],
+      "id": "0a45ae0f-e23a-4ec7-8af9-1cc161f23447",
+      "name": "Error: Fail to send"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "api/documents/send": {
+      "main": [
+        [
+          {
+            "node": "Validate User Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate User Token": {
+      "main": [
+        [
+          {
+            "node": "Is valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is valid?": {
+      "main": [
+        [
+          {
+            "node": "Validate input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Invalid Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate input": {
+      "main": [
+        [
+          {
+            "node": "Input OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input OK?": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Bad Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        [
+          {
+            "node": "Sent?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sent?": {
+      "main": [
+        [
+          {
+            "node": "OK: Sent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Fail to send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "tags": []
+}

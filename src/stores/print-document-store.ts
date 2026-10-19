@@ -99,11 +99,16 @@ export type PrintData =
   | CajaSesionPrintData
   | ClinicHistoryPrintData;
 
+/** 'print' renders for the browser print dialog; 'capture' renders the same document
+ *  for `renderDocumentPdf` (html2pdf), which needs it without the print-dialog setup. */
+export type PrintDocumentMode = 'print' | 'capture';
+
 interface PrintDocumentStore {
   isActive: boolean;
+  mode: PrintDocumentMode;
   type: PrintDocumentType | null;
   data: PrintData | null;
-  activate: (type: PrintDocumentType, data: PrintData) => void;
+  activate: (type: PrintDocumentType, data: PrintData, mode?: PrintDocumentMode) => void;
   deactivate: () => void;
   customTemplates: Partial<Record<PrintDocumentType, string>>;
   customTemplatesLoaded: boolean;
@@ -112,10 +117,11 @@ interface PrintDocumentStore {
 
 export const usePrintDocumentStore = create<PrintDocumentStore>((set) => ({
   isActive: false,
+  mode: 'print',
   type: null,
   data: null,
-  activate: (type, data) => set({ isActive: true, type, data }),
-  deactivate: () => set({ isActive: false, type: null, data: null }),
+  activate: (type, data, mode = 'print') => set({ isActive: true, mode, type, data }),
+  deactivate: () => set({ isActive: false, mode: 'print', type: null, data: null }),
   customTemplates: {},
   customTemplatesLoaded: false,
   setCustomTemplates: (templates) =>
