@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ImageLightbox } from '@/components/ui/image-viewer';
@@ -88,12 +88,24 @@ type StateEntry = { toothId: string; label: string; color: string; detail?: stri
 
 type Mode = 'odontogram' | 'periodontogram';
 
+/** Outcome of an agent prefill request, reported back so the agent never claims a change that did not happen */
+export interface OdontogramPrefillResult {
+  applied: boolean;
+}
+
 interface DentalRecordViewerProps {
   patientId: string;
   patientName?: string;
   doctorId?: string;
   doctorName?: string;
-  autoStartSession?: boolean;
+  /**
+   * Changes on every agent request to pre-fill the odontogram (title, notes and `autoStartMarcaciones`).
+   * Each new value is applied once: on top of the session being edited, on the appointment's existing
+   * odontogram session, or on a new session.
+   */
+  autoStartKey?: number;
+  /** Reports whether the request for `autoStartKey` could be applied */
+  onAutoStartHandled?: (key: number, result: OdontogramPrefillResult) => void;
   autoStartDescription?: string;
   autoStartNotes?: string;
   autoStartMarcaciones?: OdontogramMarcacion[];
@@ -111,7 +123,7 @@ interface DentalRecordViewerProps {
   hideBillingWizard?: boolean;
 }
 
-export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartSession, autoStartDescription, autoStartNotes, autoStartMarcaciones, onSessionSaved, createMode, onCancelCreate, blockNewSession, blockNewSessionMessage, appointmentId, autoNavigateToAppointmentSession, hideBillingWizard = false }: DentalRecordViewerProps) {
+export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartKey, onAutoStartHandled, autoStartDescription, autoStartNotes, autoStartMarcaciones, onSessionSaved, createMode, onCancelCreate, blockNewSession, blockNewSessionMessage, appointmentId, autoNavigateToAppointmentSession, hideBillingWizard = false }: DentalRecordViewerProps) {
   const t = useTranslations('DentalRecord');
   const isMobile = useViewportNarrow(768);
   const { toast } = useToast();
@@ -164,11 +176,21 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
   }, [patientId]);
 
   useEffect(() => {
-    if ((autoStartSession || createMode) && !isLoading && !blockNewSession) {
+    if (createMode && !isLoading && !blockNewSession) {
       handleStartNewSession(autoStartDescription, autoStartNotes, autoStartMarcaciones);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStartSession, blockNewSession, createMode, isLoading]);
+  }, [blockNewSession, createMode, isLoading]);
+
+  // Agent requests are keyed, so a second request while the odontogram is already open is
+  // applied too (a boolean flag would stay `true` and ignore it).
+  const handledAutoStartKeyRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (autoStartKey === undefined || isLoading || handledAutoStartKeyRef.current === autoStartKey) return;
+    handledAutoStartKeyRef.current = autoStartKey;
+    onAutoStartHandled?.(autoStartKey, applyAgentPrefill());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStartKey, isLoading]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -238,6 +260,48 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     setEditingSnapshot(snapshot);
     setEditingDefaultDescription(snapshot.description || t('session.defaultTitle', { date: format(new Date(), 'dd/MM/yyyy HH:mm') }));
     resetEditingSession(cloneState(snapshot.state), snapshot.notes ?? '');
+  }
+
+  function appendNotes(current: string, extra?: string): string {
+    const text = extra?.trim();
+    if (!text || current.includes(text)) return current;
+    return current.trim() ? `${current}\n${text}` : text;
+  }
+
+  /**
+   * Applies the agent's prefill without discarding work: merges into the session being edited,
+   * otherwise opens this appointment's odontogram session for editing, otherwise starts a new one.
+   */
+  function applyAgentPrefill(): OdontogramPrefillResult {
+    const marcaciones = autoStartMarcaciones ?? [];
+
+    if (isEditing) {
+      const nextNotes = appendNotes(notes, autoStartNotes);
+      if (marcaciones.length > 0) commitEdit(applyMarcaciones(editingState, marcaciones));
+      if (nextNotes !== notes) setNotes(nextNotes);
+      return { applied: true };
+    }
+
+    const appointmentSnapshot = appointmentId
+      ? history.find((s) => s.appointmentId === appointmentId)
+      : undefined;
+    if (appointmentSnapshot) {
+      setHistoryIndex(history.indexOf(appointmentSnapshot));
+      handleStartEditSession(appointmentSnapshot);
+      setEditingState(applyMarcaciones(appointmentSnapshot.state, marcaciones));
+      setNotes(appendNotes(appointmentSnapshot.notes ?? '', autoStartNotes));
+      // The agent's marks can be undone back to the saved session
+      setUndoStack([{ state: cloneState(appointmentSnapshot.state), notes: appointmentSnapshot.notes ?? '' }]);
+      return { applied: true };
+    }
+
+    if (blockNewSession) return { applied: false };
+
+    handleStartNewSession(autoStartDescription, autoStartNotes, marcaciones);
+    if (marcaciones.length > 0) {
+      setUndoStack([{ state: cloneState(currentSnapshot?.state ?? {}), notes: autoStartNotes ?? '' }]);
+    }
+    return { applied: true };
   }
 
   function clearEditingSession() {

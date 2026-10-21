@@ -1656,7 +1656,9 @@
         "sessionConfirmSaveDirect": "Save directly",
         "sessionConfirmCancel": "Cancel",
         "sessionConfirmSaving": "Saving...",
-        "sessionConfirmSavedOk": "Session saved successfully."
+        "sessionConfirmSavedOk": "Session saved successfully.",
+        "odontogramNotApplied": "I couldn't apply the marks to the odontogram: this appointment doesn't allow a new session. Open its existing session and ask me again.",
+        "odontogramNotConfirmed": "I opened the odontogram but couldn't confirm the marks were applied. Please check it before saving."
       },
       "readOnly": "Read-only",
       "readOnlyOnDate": "Read-only · {date}",

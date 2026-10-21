@@ -1656,7 +1656,9 @@
         "sessionConfirmSaveDirect": "Guardar directamente",
         "sessionConfirmCancel": "Cancelar",
         "sessionConfirmSaving": "Guardando...",
-        "sessionConfirmSavedOk": "Sesión guardada correctamente."
+        "sessionConfirmSavedOk": "Sesión guardada correctamente.",
+        "odontogramNotApplied": "No he podido aplicar las marcas en el odontograma: esta cita no admite una sesión nueva. Abre la sesión existente y vuelve a pedírmelo.",
+        "odontogramNotConfirmed": "He abierto el odontograma, pero no he podido confirmar que se hayan aplicado las marcas. Revísalo antes de guardar."
       },
       "readOnly": "Solo lectura",
       "readOnlyOnDate": "Solo lectura · {date}",
