@@ -1827,6 +1827,9 @@ export type AlertRule = {
   source_table: string;
   query_template: string;
   user_id_field?: string;
+  /** condition_config.event_field: column holding the event date (one alert per event date),
+   *  'none' (no event date) or empty (inferred by the scheduler from the conditions). */
+  event_field?: string;
   days_before?: number;
   days_after?: number;
   recurrence_type?: 'ONCE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';

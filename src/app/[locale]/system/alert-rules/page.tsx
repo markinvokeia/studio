@@ -55,6 +55,7 @@ const ruleFormSchema = (t: (key: string) => string) => z.object({
     source_table: z.string().min(1, t('sourceTableRequired')),
     table_id_field: z.string().min(1, t('tableIdFieldRequired')),
     user_id_field: z.string().optional(),
+    event_field: z.string().optional(),
     days_before: z.coerce.number().int().default(0),
     days_after: z.coerce.number().int().default(0),
     recurrence_type: z.enum(['ONCE', 'DAILY', 'WEEKLY', 'MONTHLY']).optional(),
@@ -205,6 +206,7 @@ export default function AlertRulesPage() {
                 ...rule,
                 table_id_field: (rule as any).condition_config?.table_id_field?.name || '',
                 user_id_field: (rule as any).condition_config?.user_id_field || null,
+                event_field: (rule as any).condition_config?.event_field || '',
             }));
             return {
                 rules: mappedRules as AlertRule[],
@@ -296,6 +298,14 @@ export default function AlertRulesPage() {
             .sort((a, b) => a.priority - b.priority);
     };
 
+    const getPotentialEventFields = (tableName: string) => {
+        const tableCols = tablesAndColumns[tableName] || [];
+        return tableCols.filter(col => {
+            const colType = col.type.toLowerCase();
+            return colType.includes('date') || colType.includes('time');
+        });
+    };
+
     const getAvailableOperators = (columnName: string): string[] => {
         const type = getColumnType(columnName);
         if (!type) return ['=', '!=', 'IS NULL', 'IS NOT NULL'];
@@ -325,6 +335,10 @@ export default function AlertRulesPage() {
             if (currentUserIdField && !validateUserIdField(currentUserIdField, selectedTable)) {
                 form.setValue('user_id_field', '');
             }
+            const currentEventField = form.getValues('event_field');
+            if (currentEventField && currentEventField !== 'none' && !validateUserIdField(currentEventField, selectedTable)) {
+                form.setValue('event_field', '');
+            }
         }
     }, [selectedTable, form, validateTableIdField, validateUserIdField]);
 
@@ -333,7 +347,7 @@ export default function AlertRulesPage() {
         setSelectedTable('');
         setConditions([]);
         setDisplayFields([]);
-        form.reset({ code: '', name: '', description: '', is_active: true, priority: 'MEDIUM', source_table: '', table_id_field: '', user_id_field: '', recurrence_type: undefined, email_template_id: undefined, sms_template_id: undefined, whatsapp_template_id: undefined, days_before: 0, days_after: 0 });
+        form.reset({ code: '', name: '', description: '', is_active: true, priority: 'MEDIUM', source_table: '', table_id_field: '', user_id_field: '', event_field: '', recurrence_type: undefined, email_template_id: undefined, sms_template_id: undefined, whatsapp_template_id: undefined, days_before: 0, days_after: 0 });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -364,6 +378,7 @@ export default function AlertRulesPage() {
             sms_template_id: rule.sms_template_id ? parseInt(rule.sms_template_id) : undefined,
             whatsapp_template_id: rule.whatsapp_template_id ? parseInt(rule.whatsapp_template_id) : undefined,
             user_id_field: (rule as any).user_id_field || '',
+            event_field: rule.event_field || '',
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -395,6 +410,7 @@ export default function AlertRulesPage() {
             sms_template_id: rule.sms_template_id ? parseInt(rule.sms_template_id) : undefined,
             whatsapp_template_id: rule.whatsapp_template_id ? parseInt(rule.whatsapp_template_id) : undefined,
             user_id_field: (rule as any).user_id_field || '',
+            event_field: rule.event_field || '',
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -462,6 +478,8 @@ export default function AlertRulesPage() {
                         type: getColumnType(values.table_id_field) || ''
                     },
                     user_id_field: values.user_id_field || null,
+                    // De-duplication key: one alert per value of this column (null = inferred by the scheduler).
+                    event_field: values.event_field || null,
                     // A view's alerts point at its underlying table (WhatsApp entity resolution
                     // and the scheduler's de-duplication key off alert_instances.reference_table).
                     reference_table: sourcesMeta[values.source_table]?.reference_table || values.source_table,
@@ -932,6 +950,32 @@ export default function AlertRulesPage() {
                                                     ))}
                                                 </SelectContent>
                                             </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="event_field"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('dialog.eventField')}</FormLabel>
+                                            <Select onValueChange={(val) => field.onChange(val === 'auto' ? '' : val)} value={field.value || 'auto'}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="auto">{t('dialog.eventFieldAuto')}</SelectItem>
+                                                    <SelectItem value="none">{t('dialog.eventFieldNone')}</SelectItem>
+                                                    {selectedTable && getPotentialEventFields(selectedTable).map(col => (
+                                                        <SelectItem key={col.name} value={col.name}>{col.name} ({col.type})</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <p className="text-xs text-muted-foreground">{t('dialog.eventFieldHint')}</p>
                                             <FormMessage />
                                         </FormItem>
                                     )}
