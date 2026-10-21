@@ -3125,6 +3125,7 @@
       "quantity": "Cantidad",
       "subtotal": "Subtotal",
       "cashOnHand": "Efectivo en Mano",
+      "cashGenerated": "Generado",
       "totalOutcome": "Egresos Totales",
       "totalPos": "POS",
       "transactions": "Transacciones",

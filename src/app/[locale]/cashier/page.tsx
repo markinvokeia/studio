@@ -513,6 +513,16 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         [sumByCurrency, openingDetails.totals],
     );
 
+    // Efectivo neto que entró durante la sesión: lo que hay en mano sin la apertura.
+    const cashGenerated = useMemo(
+        () => sumByCurrency(
+            mov => mov.esEquivalenteEfectivo,
+            {},
+            mov => (mov.tipo === 'INGRESO' ? 1 : -1),
+        ),
+        [sumByCurrency],
+    );
+
     const totalIncome = useMemo(() => sumByCurrency(m => m.tipo === 'INGRESO'), [sumByCurrency]);
 
     const totalOutcome = useMemo(() => sumByCurrency(m => m.tipo === 'EGRESO'), [sumByCurrency]);
@@ -579,6 +589,18 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
         }},
     ];
 
+    const renderCashGenerated = (currency: string) => {
+        const amount = cashGenerated[currency] ?? 0;
+        return (
+            <div className="text-[11px] text-muted-foreground">
+                {t('activeSession.cashGenerated')}:{' '}
+                <span className={cn('font-semibold', amount > 0 && 'text-green-600', amount < 0 && 'text-red-500')}>
+                    {amount > 0 ? '+' : amount < 0 ? '-' : ''}{formatMoney(Math.abs(amount), currency)}
+                </span>
+            </div>
+        );
+    };
+
     const renderAmount = (amount: number, currency: string, key?: string) => {
         const formattedAmount = formatMoney(amount, currency);
         // `date_rate` son unidades de la moneda principal por cada unidad de la
@@ -627,7 +649,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                     {[
                         { title: t('openSession.openingAmount'), accentColor: '#6366f1', extra: <p className="text-[10px] text-muted-foreground mt-1">{formatDateTime(session.fechaApertura)}</p>, amounts: toCardAmounts(openingDetails.totals, openedCurrencies) },
-                        { title: t('activeSession.cashOnHand'), accentColor: '#3B82F6', amounts: toCardAmounts(cashOnHand) },
+                        { title: t('activeSession.cashOnHand'), accentColor: '#3B82F6', amounts: toCardAmounts(cashOnHand), subline: renderCashGenerated },
                         { title: t('activeSession.totalIncome'), accentColor: '#10B981', amounts: toCardAmounts(totalIncome) },
                         { title: t('activeSession.totalOutcome'), accentColor: '#F43F5E', amounts: toCardAmounts(totalOutcome) },
                         { title: t('activeSession.totalPos'), accentColor: '#8B5CF6', amounts: toCardAmounts(totalPos) },
@@ -636,7 +658,12 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                             <div className="h-[3px] w-full" style={{ background: card.accentColor }} />
                             <div className="px-3 py-2.5 flex flex-col gap-1">
                                 <span className="text-[9px] uppercase tracking-wide text-muted-foreground font-medium truncate">{card.title}</span>
-                                {card.amounts.map(({ v, c }) => renderAmount(v, c, c))}
+                                {card.amounts.map(({ v, c }) => (
+                                    <div key={c}>
+                                        {renderAmount(v, c)}
+                                        {card.subline?.(c)}
+                                    </div>
+                                ))}
                                 {card.extra}
                             </div>
                         </div>
