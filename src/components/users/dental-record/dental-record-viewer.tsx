@@ -1,17 +1,27 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ImageLightbox } from '@/components/ui/image-viewer';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import type {
   OdontogramCondition,
   OdontogramMarcacion,
+  OdontogramProcedure,
   OdontogramSnapshot,
   OdontogramState,
   OdontogramSurface,
-  OdontogramToothState,
   ToothPerioData,
 } from '@/lib/types';
 import { upsertOdontogram, fetchDoctors, fetchOdontograms } from '@/services/dental-record';
@@ -19,19 +29,26 @@ import { ensureDoctorOption } from '@/services/doctors';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import type { DoctorOption } from '@/services/dental-record';
-import { CONDITION_MAP } from './condition-toolbar';
-import { ConditionToolbar } from './condition-toolbar';
-import { OdontogramArchView } from './odontogram-arch-view';
-import { ToothDetailPanel } from './tooth-detail-panel';
-import { OdontogramCanvas } from './odontogram-canvas';
+import { getProcedure, getProcedureColor, SURFACE_ABBR } from './odontogram-catalog';
+import {
+  applyMarcaciones,
+  clearTooth,
+  cloneState,
+  listOdontogramEntries,
+  setToothNotes,
+  toggleSurface,
+  toggleToothProcedure,
+} from './odontogram-state';
+import { OdontogramBoard } from './odontogram-board';
+import { ProcedurePalette } from './procedure-palette';
+import { ToothDetailCard } from './tooth-detail-card';
 import { PeriodontogramView } from './periodontogram-view';
 import { SessionForm } from './session-form';
 import type { SessionFormValues } from './session-form';
 import { useTranslations } from 'next-intl';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { usePanelWidth } from '@/hooks/use-panel-width';
 import {
-  AlignJustify,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -41,13 +58,10 @@ import {
   Image as ImageIcon,
   Maximize,
   Minimize,
-  Minus,
   Pencil,
   Plus,
-  Smile,
   Stethoscope,
   User,
-  X,
   Zap,
 } from 'lucide-react';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
@@ -63,110 +77,35 @@ function formatLongSessionDate(dateStr: string) {
   }
 }
 
-function generateSessionLabel() {
-  const now = new Date();
-  const dateStr = format(now, 'dd/MM/yyyy HH:mm');
-  return `Sesión Odontograma ${dateStr}`;
-}
+/** Undo stack entries keep the auto-generated notes in sync with the chart */
+type EditSnapshot = { state: OdontogramState; notes: string };
 
-function cloneState(s: OdontogramState): OdontogramState {
-  return JSON.parse(JSON.stringify(s));
-}
-
-function applyMarcaciones(base: OdontogramState, marcaciones: OdontogramMarcacion[]): OdontogramState {
-  const state = cloneState(base);
-  for (const m of marcaciones) {
-    const tooth: OdontogramToothState = state[m.diente]
-      ? JSON.parse(JSON.stringify(state[m.diente])) : {};
-    if (!m.superficie || m.superficie === 'whole') {
-      tooth.whole = m.condicion;
-    } else if (m.superficie === 'overlay') {
-      tooth.overlays = [...(tooth.overlays ?? []), m.condicion];
-    } else {
-      tooth[m.superficie as OdontogramSurface] = m.condicion;
-    }
-    state[m.diente] = tooth;
-  }
-  return state;
-}
-
-const SURF_ABBR: Record<OdontogramSurface, string> = {
-  top: 'V', center: 'O', bottom: 'L', left: 'M', right: 'D',
-};
-
-const SURFACES: OdontogramSurface[] = ['top', 'left', 'center', 'right', 'bottom'];
+const MAX_UNDO_STEPS = 50;
+/** Container width from which the palette moves to a sticky right column (fixed width, so it never gets squeezed) */
+const SIDEBAR_LAYOUT_MIN_WIDTH = 900;
 
 type StateEntry = { toothId: string; label: string; color: string; detail?: string };
 
-/**
- * Builds a structured list of tooth+condition entries for display.
- * Same logic as the editing notes auto-generator.
- */
-function buildStateEntries(
-  state: OdontogramState,
-  getCondLabel: (c: OdontogramCondition) => string,
-): StateEntry[] {
-  const entries: StateEntry[] = [];
-  const sortedIds = Object.keys(state).sort((a, b) => Number(a) - Number(b));
-
-  for (const toothId of sortedIds) {
-    const ts = state[toothId];
-    if (!ts) continue;
-
-    if (ts.whole) {
-      entries.push({
-        toothId,
-        label: getCondLabel(ts.whole),
-        color: CONDITION_MAP[ts.whole]?.color ?? '#6b7280',
-        detail: 'pieza',
-      });
-    }
-
-    for (const surf of SURFACES) {
-      if (ts[surf]) {
-        entries.push({
-          toothId,
-          label: getCondLabel(ts[surf]!),
-          color: CONDITION_MAP[ts[surf]!]?.color ?? '#6b7280',
-          detail: SURF_ABBR[surf],
-        });
-      }
-    }
-
-    if (ts.overlays?.length) {
-      for (const ov of ts.overlays) {
-        entries.push({
-          toothId,
-          label: getCondLabel(ov),
-          color: CONDITION_MAP[ov]?.color ?? '#6b7280',
-          detail: 'overlay',
-        });
-      }
-    }
-  }
-
-  return entries;
-}
-
-/** Also used to build auto-notes text (same data, flat string form) */
-function buildStateLines(
-  state: OdontogramState,
-  getCondLabel: (c: OdontogramCondition) => string,
-): string[] {
-  return buildStateEntries(state, getCondLabel).map(({ toothId, label, detail }) =>
-    detail ? `D${toothId}: ${label} (${detail})` : `D${toothId}: ${label}`,
-  );
-}
-
 type Mode = 'odontogram' | 'periodontogram';
-type DesktopLayout = 'flat' | 'mouth';
+
+/** Outcome of an agent prefill request, reported back so the agent never claims a change that did not happen */
+export interface OdontogramPrefillResult {
+  applied: boolean;
+}
 
 interface DentalRecordViewerProps {
   patientId: string;
   patientName?: string;
   doctorId?: string;
   doctorName?: string;
-  autoStartSession?: boolean;
+  /**
+   * Changes on every agent request to pre-fill the odontogram (title, notes and `autoStartMarcaciones`).
+   * Each new value is applied once: on top of the session being edited, on the appointment's existing
+   * odontogram session, or on a new session.
+   */
+  autoStartKey?: number;
+  /** Reports whether the request for `autoStartKey` could be applied */
+  onAutoStartHandled?: (key: number, result: OdontogramPrefillResult) => void;
   autoStartDescription?: string;
   autoStartNotes?: string;
   autoStartMarcaciones?: OdontogramMarcacion[];
@@ -184,13 +123,19 @@ interface DentalRecordViewerProps {
   hideBillingWizard?: boolean;
 }
 
-export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartSession, autoStartDescription, autoStartNotes, autoStartMarcaciones, onSessionSaved, createMode, onCancelCreate, blockNewSession, blockNewSessionMessage, appointmentId, autoNavigateToAppointmentSession, hideBillingWizard = false }: DentalRecordViewerProps) {
+export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartKey, onAutoStartHandled, autoStartDescription, autoStartNotes, autoStartMarcaciones, onSessionSaved, createMode, onCancelCreate, blockNewSession, blockNewSessionMessage, appointmentId, autoNavigateToAppointmentSession, hideBillingWizard = false }: DentalRecordViewerProps) {
   const t = useTranslations('DentalRecord');
   const isMobile = useViewportNarrow(768);
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
 
-  const [mode, setMode] = useState<Mode>('odontogram');
+  // The root element changes once loading finishes, so the measured ref follows it
+  const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
+  const rootRef = useMemo(() => ({ current: rootEl }), [rootEl]);
+  const containerWidth = usePanelWidth(rootRef);
+  const useSidebarLayout = containerWidth >= SIDEBAR_LAYOUT_MIN_WIDTH;
+
+  const [mode] = useState<Mode>('odontogram');
   const [history, setHistory] = useState<OdontogramSnapshot[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const [isLoading, setIsLoading] = useState(true);
@@ -200,34 +145,15 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
   const [editingState, setEditingState] = useState<OdontogramState>({});
   const [editingDefaultDescription, setEditingDefaultDescription] = useState('');
   const [notes, setNotes] = useState('');
+  const [initialNotes, setInitialNotes] = useState('');
+  const [undoStack, setUndoStack] = useState<EditSnapshot[]>([]);
   const [perioData, setPerioData] = useState<ToothPerioData[]>([]);
   const [selectedToothId, setSelectedToothId] = useState<string | null>(null);
-  const [activeTool, setActiveTool] = useState<OdontogramCondition | null>('caries');
+  const [activeProcedure, setActiveProcedure] = useState<OdontogramProcedure | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [desktopLayout, setDesktopLayout] = useState<DesktopLayout>('mouth');
-  const [zoom, setZoom] = useState(1);
   const [doctors, setDoctors] = useState<DoctorOption[]>([]);
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
-  const [archExpanded, setArchExpanded] = useState(true);
-
-  // Dynamic tooth size — measured from the canvas wrapper element
-  const canvasWrapperRef = useRef<HTMLDivElement>(null);
-  const [canvasWidth, setCanvasWidth] = useState(0);
-
-  useEffect(() => {
-    const el = canvasWrapperRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      setCanvasWidth(entries[0]?.contentRect.width ?? 0);
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  // 16 teeth per row + gaps + midline ≈ 38px overhead; canvas scrolls so no hard cap needed
-  const computedToothSize = canvasWidth > 30
-    ? Math.max(24, Math.min(90, Math.floor((canvasWidth - 38) / 16)))
-    : 30;
+  const [confirmAction, setConfirmAction] = useState<'cancel' | 'clearAll' | null>(null);
 
   useEffect(() => {
     setIsLoading(true);
@@ -250,11 +176,21 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
   }, [patientId]);
 
   useEffect(() => {
-    if ((autoStartSession || createMode) && !isLoading && !blockNewSession) {
+    if (createMode && !isLoading && !blockNewSession) {
       handleStartNewSession(autoStartDescription, autoStartNotes, autoStartMarcaciones);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStartSession, blockNewSession, createMode, isLoading]);
+  }, [blockNewSession, createMode, isLoading]);
+
+  // Agent requests are keyed, so a second request while the odontogram is already open is
+  // applied too (a boolean flag would stay `true` and ignore it).
+  const handledAutoStartKeyRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (autoStartKey === undefined || isLoading || handledAutoStartKeyRef.current === autoStartKey) return;
+    handledAutoStartKeyRef.current = autoStartKey;
+    onAutoStartHandled?.(autoStartKey, applyAgentPrefill());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStartKey, isLoading]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -272,6 +208,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
   const canGoForward = historyIndex < history.length - 1;
 
   const displayState: OdontogramState = isEditing ? editingState : (currentSnapshot?.state ?? {});
+  const hasUnsavedChanges = undoStack.length > 0 || notes !== initialNotes;
 
   // Resolve doctor name from snapshot (prefers stored name, falls back to local list)
   function resolveDoctorName(snapshot: OdontogramSnapshot): string | null {
@@ -283,9 +220,30 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     return null;
   }
 
-  // Condition label translator
-  function getCondLabel(c: OdontogramCondition): string {
-    try { return t(`conditions.${c}`); } catch { return CONDITION_MAP[c]?.icon ?? c; }
+  // Condition label translator (unknown ids, e.g. from an AI prefill, are shown raw)
+  const getCondLabel = useCallback(
+    (c: OdontogramCondition | string): string => (getProcedure(c) ? t(`procedures.${c}.label`) : c),
+    [t],
+  );
+
+  function buildStateEntries(state: OdontogramState): StateEntry[] {
+    return listOdontogramEntries(state).map(({ toothId, condition, surface }) => ({
+      toothId,
+      label: getCondLabel(condition),
+      color: getProcedureColor(condition),
+      detail: surface ? SURFACE_ABBR[surface] : t('session.wholeToothShort'),
+    }));
+  }
+
+  function resetEditingSession(initialState: OdontogramState, initialNotesValue: string) {
+    setEditingState(initialState);
+    setNotes(initialNotesValue);
+    setInitialNotes(initialNotesValue);
+    setUndoStack([]);
+    setActiveProcedure(null);
+    setIsEditing(true);
+    setSelectedToothId(null);
+    if (isMobile) setIsFullscreen(true);
   }
 
   function handleStartNewSession(description?: string, notes?: string, marcaciones?: OdontogramMarcacion[]) {
@@ -293,35 +251,81 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     const initialState = marcaciones?.length
       ? applyMarcaciones(base, marcaciones)
       : cloneState(base);
-    setEditingState(initialState);
-    setNotes(notes ?? '');
-    setEditingDefaultDescription(description || generateSessionLabel());
-    setIsEditing(true);
-    setSelectedToothId(null);
-    if (isMobile) setIsFullscreen(true);
+    setEditingDefaultDescription(description || t('session.defaultTitle', { date: format(new Date(), 'dd/MM/yyyy HH:mm') }));
+    resetEditingSession(initialState, notes ?? '');
   }
 
   function handleStartEditSession(snapshot: OdontogramSnapshot) {
     setEditingSessionId(snapshot.id ?? null);
     setEditingSnapshot(snapshot);
-    setEditingState(cloneState(snapshot.state));
-    setNotes(snapshot.notes ?? '');
-    setEditingDefaultDescription(snapshot.description || generateSessionLabel());
-    setIsEditing(true);
-    setSelectedToothId(null);
-    if (isMobile) setIsFullscreen(true);
+    setEditingDefaultDescription(snapshot.description || t('session.defaultTitle', { date: format(new Date(), 'dd/MM/yyyy HH:mm') }));
+    resetEditingSession(cloneState(snapshot.state), snapshot.notes ?? '');
   }
 
-  function handleCancelEditing() {
+  function appendNotes(current: string, extra?: string): string {
+    const text = extra?.trim();
+    if (!text || current.includes(text)) return current;
+    return current.trim() ? `${current}\n${text}` : text;
+  }
+
+  /**
+   * Applies the agent's prefill without discarding work: merges into the session being edited,
+   * otherwise opens this appointment's odontogram session for editing, otherwise starts a new one.
+   */
+  function applyAgentPrefill(): OdontogramPrefillResult {
+    const marcaciones = autoStartMarcaciones ?? [];
+
+    if (isEditing) {
+      const nextNotes = appendNotes(notes, autoStartNotes);
+      if (marcaciones.length > 0) commitEdit(applyMarcaciones(editingState, marcaciones));
+      if (nextNotes !== notes) setNotes(nextNotes);
+      return { applied: true };
+    }
+
+    const appointmentSnapshot = appointmentId
+      ? history.find((s) => s.appointmentId === appointmentId)
+      : undefined;
+    if (appointmentSnapshot) {
+      setHistoryIndex(history.indexOf(appointmentSnapshot));
+      handleStartEditSession(appointmentSnapshot);
+      setEditingState(applyMarcaciones(appointmentSnapshot.state, marcaciones));
+      setNotes(appendNotes(appointmentSnapshot.notes ?? '', autoStartNotes));
+      // The agent's marks can be undone back to the saved session
+      setUndoStack([{ state: cloneState(appointmentSnapshot.state), notes: appointmentSnapshot.notes ?? '' }]);
+      return { applied: true };
+    }
+
+    if (blockNewSession) return { applied: false };
+
+    handleStartNewSession(autoStartDescription, autoStartNotes, marcaciones);
+    if (marcaciones.length > 0) {
+      setUndoStack([{ state: cloneState(currentSnapshot?.state ?? {}), notes: autoStartNotes ?? '' }]);
+    }
+    return { applied: true };
+  }
+
+  function clearEditingSession() {
     setIsEditing(false);
     setIsFullscreen(false);
     setEditingState({});
     setEditingSessionId(null);
     setEditingSnapshot(null);
     setNotes('');
+    setInitialNotes('');
+    setUndoStack([]);
+    setActiveProcedure(null);
     setEditingDefaultDescription('');
     setSelectedToothId(null);
+  }
+
+  function handleCancelEditing() {
+    clearEditingSession();
     if (createMode) onCancelCreate?.();
+  }
+
+  function requestCancelEditing() {
+    if (hasUnsavedChanges) setConfirmAction('cancel');
+    else handleCancelEditing();
   }
 
   const handleSave = useCallback(async (values: SessionFormValues) => {
@@ -360,111 +364,85 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     const updated = await fetchOdontograms(patientId);
     setHistory(updated);
     setHistoryIndex(updated.length - 1);
-    setIsEditing(false);
-    setIsFullscreen(false);
-    setEditingState({});
-    setEditingSessionId(null);
-    setEditingSnapshot(null);
-    setNotes('');
-    setEditingDefaultDescription('');
-    setSelectedToothId(null);
+    clearEditingSession();
     toast({ title: t('session.saveSuccess'), description: values.description });
     onSessionSaved?.();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [appointmentId, editingSessionId, editingSnapshot, editingState, onSessionSaved, patientId, perioData, t, toast]);
 
-  function handleApply(
-    toothId: string,
-    target: OdontogramSurface | 'whole' | 'overlay',
-    condition: OdontogramCondition | null,
-  ) {
+  // Every chart edit records the previous state (and notes) so it can be undone
+  function commitEdit(nextState: OdontogramState, noteEntry?: string) {
+    setUndoStack((prev) => [...prev.slice(-(MAX_UNDO_STEPS - 1)), { state: editingState, notes }]);
+    setEditingState(nextState);
+    if (noteEntry) setNotes((prev) => (prev ? `${prev}\n${noteEntry}` : noteEntry));
+  }
+
+  function handleSurfaceApply(toothId: string, surface: OdontogramSurface, procedure?: OdontogramCondition) {
+    const procedureId = procedure ?? activeProcedure?.id;
+    if (!isEditing || !procedureId) return;
+    const { state, removed } = toggleSurface(editingState, toothId, surface, procedureId);
+    const params = { tooth: toothId, surface: SURFACE_ABBR[surface], label: getCondLabel(procedureId) };
+    commitEdit(state, removed ? t('autoNote.surfaceRemoved', params) : t('autoNote.surfaceAdded', params));
+  }
+
+  function handleToothApply(toothId: string, procedure: OdontogramCondition) {
     if (!isEditing) return;
-
-    if (condition) {
-      const currentTooth: OdontogramToothState = JSON.parse(
-        JSON.stringify(editingState[toothId] ?? {}),
-      );
-      const condLabel = getCondLabel(condition);
-      let entry = '';
-
-      if (target === 'overlay') {
-        const isRemoving = (currentTooth.overlays ?? []).includes(condition);
-        entry = `D${toothId}: ${isRemoving ? '-' : '+'}${condLabel}`;
-      } else if (target === 'whole') {
-        entry = currentTooth.whole !== condition
-          ? `D${toothId}: ${condLabel} (pieza completa)`
-          : `D${toothId}: ${condLabel} eliminado`;
-      } else {
-        const surf = target as OdontogramSurface;
-        entry = currentTooth[surf] !== condition
-          ? `D${toothId}(${SURF_ABBR[surf]}): ${condLabel}`
-          : `D${toothId}(${SURF_ABBR[surf]}): ${condLabel} eliminado`;
-      }
-
-      if (entry) setNotes((prev) => (prev ? `${prev}\n${entry}` : entry));
-    }
-
-    setEditingState((prev) => {
-      const current: OdontogramToothState = prev[toothId]
-        ? JSON.parse(JSON.stringify(prev[toothId])) : {};
-
-      if (target === 'whole') {
-        current.whole = current.whole === condition ? undefined : (condition ?? undefined);
-      } else if (target === 'overlay') {
-        if (!condition) return prev;
-        const overlays = current.overlays ?? [];
-        const idx = overlays.indexOf(condition);
-        current.overlays = idx >= 0
-          ? overlays.filter((o) => o !== condition)
-          : [...overlays, condition];
-      } else {
-        const surf = target as OdontogramSurface;
-        if (condition === null || current[surf] === condition) {
-          current[surf] = undefined;
-        } else {
-          current[surf] = condition;
-        }
-      }
-
-      return { ...prev, [toothId]: current };
-    });
+    const { state, removed } = toggleToothProcedure(editingState, toothId, procedure);
+    const params = { tooth: toothId, label: getCondLabel(procedure) };
+    commitEdit(state, removed ? t('autoNote.toothRemoved', params) : t('autoNote.toothAdded', params));
   }
 
   function handleClearTooth(toothId: string) {
     if (!isEditing) return;
-    setNotes((prev) => (prev ? `${prev}\nD${toothId}: limpiado` : `D${toothId}: limpiado`));
-    setEditingState((prev) => { const next = { ...prev }; delete next[toothId]; return next; });
+    commitEdit(clearTooth(editingState, toothId), t('autoNote.cleared', { tooth: toothId }));
+  }
+
+  function handleToothNotesChange(toothId: string, toothNotes: string) {
+    if (!isEditing) return;
+    setEditingState((prev) => setToothNotes(prev, toothId, toothNotes));
   }
 
   function handleClearAll() {
     if (!isEditing) return;
-    setEditingState({});
+    commitEdit({});
     setSelectedToothId(null);
+    setActiveProcedure(null);
   }
 
-  const handleSelectTooth = useCallback((id: string) => {
-    setSelectedToothId((prev) => (prev === id ? null : id));
+  function handleUndo() {
+    const previous = undoStack[undoStack.length - 1];
+    if (!previous) return;
+    setUndoStack((prev) => prev.slice(0, -1));
+    setEditingState(previous.state);
+    setNotes(previous.notes);
+  }
+
+  function handleConfirm() {
+    if (confirmAction === 'cancel') handleCancelEditing();
+    if (confirmAction === 'clearAll') handleClearAll();
+    setConfirmAction(null);
+  }
+
+  const handleSelectTooth = useCallback((id: string | null) => {
+    setSelectedToothId(id);
   }, []);
+
+  const handleDeactivateTool = useCallback(() => setActiveProcedure(null), []);
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-40">
+      <div ref={setRootEl} className="flex items-center justify-center h-40">
         <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
       </div>
     );
   }
 
-  const toothState: OdontogramToothState = selectedToothId
-    ? (displayState[selectedToothId] ?? {}) : {};
-
-  // Both mobile and desktop respect the user's layout toggle
-  const odontogramLayout = desktopLayout;
+  const selectedTooth = selectedToothId ? displayState[selectedToothId] : undefined;
 
   // ── Session detail panel (read mode) ──────────────────────────────────────
   const sessionReadPanel = !isEditing && currentSnapshot ? (() => {
     const doctorName = resolveDoctorName(currentSnapshot);
-    const stateEntries = buildStateEntries(currentSnapshot.state, getCondLabel);
+    const stateEntries = buildStateEntries(currentSnapshot.state);
     const hasContent = !!currentSnapshot.notes || stateEntries.length > 0 || !!doctorName
       || (currentSnapshot.archivosAdjuntos?.length ?? 0) > 0;
 
@@ -554,7 +532,9 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
             <div className="flex flex-wrap gap-2">
               {currentSnapshot.archivosAdjuntos.map((att, i) => {
                 const isImage = att.tipo?.startsWith('image/');
-                const label = att.diente_asociado ? `Diente ${att.diente_asociado}` : t('session.attachment');
+                const label = att.diente_asociado
+                  ? t('board.toothLabel', { tooth: att.diente_asociado })
+                  : t('session.attachment');
                 if (isImage) {
                   return (
                     <button
@@ -589,11 +569,55 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     );
   })() : null;
 
-  // Suppress unused import warning (buildStateLines is used by other callers if needed)
-  void buildStateLines;
+  const board = (
+    <OdontogramBoard
+      state={displayState}
+      selectedToothId={selectedToothId}
+      onSelectTooth={handleSelectTooth}
+      activeProcedure={isEditing ? activeProcedure : null}
+      onSurfaceApply={handleSurfaceApply}
+      onToothApply={handleToothApply}
+      onDeactivateTool={handleDeactivateTool}
+      readOnly={!isEditing}
+    />
+  );
+
+  const toothCard = (isEditing || selectedToothId) && (
+    <ToothDetailCard
+      toothId={selectedToothId}
+      tooth={selectedTooth}
+      readOnly={!isEditing}
+      canUndo={undoStack.length > 0}
+      onUndo={handleUndo}
+      onClearTooth={handleClearTooth}
+      onToggleToothProcedure={handleToothApply}
+      onToggleSurface={handleSurfaceApply}
+      onNotesChange={handleToothNotesChange}
+    />
+  );
+
+  const sessionForm = isEditing && (
+    <SessionForm
+      defaultDate={editingSnapshot?.date ?? new Date().toISOString().split('T')[0]}
+      defaultDescription={editingDefaultDescription}
+      defaultNextSessionPlan={editingSnapshot?.planProximaCita}
+      defaultNextSessionDate={editingSnapshot?.fechaProximaCita}
+      doctors={doctors}
+      notes={notes}
+      onNotesChange={setNotes}
+      onSave={handleSave}
+      onCancel={requestCancelEditing}
+      lockDoctorId={doctorId ?? editingSnapshot?.doctorId}
+      lockDoctorName={doctorName || (editingSnapshot ? resolveDoctorName(editingSnapshot) ?? undefined : undefined)}
+      isEdit={!!editingSessionId}
+    />
+  );
+
+  const billingButtonLabel = t('quickBilling');
 
   return (
     <div
+      ref={setRootEl}
       className={cn(
         'flex flex-col gap-3',
         isFullscreen ? 'fixed inset-0 z-50 bg-background p-4 overflow-auto' : 'h-full',
@@ -609,6 +633,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
               disabled={!canGoBack || isEditing}
               className="p-1 rounded hover:bg-muted disabled:opacity-30 transition-colors shrink-0"
               title={t('prevSession')}
+              aria-label={t('prevSession')}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -628,18 +653,19 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
               disabled={!canGoForward || isEditing}
               className="p-1 rounded hover:bg-muted disabled:opacity-30 transition-colors shrink-0"
               title={t('nextSession')}
+              aria-label={t('nextSession')}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
 
             {!isEditing && currentSnapshot && (
-              <Button size="sm" variant="ghost" onClick={() => handleStartEditSession(currentSnapshot)} className="h-7 w-7 p-0 shrink-0" title={t('editSession')}>
+              <Button size="sm" variant="ghost" onClick={() => handleStartEditSession(currentSnapshot)} className="h-7 w-7 p-0 shrink-0" title={t('editSession')} aria-label={t('editSession')}>
                 <Pencil className="h-3.5 w-3.5" />
               </Button>
             )}
 
             {!isEditing && (
-              <Button size="sm" onClick={() => handleStartNewSession()} disabled={blockNewSession} className="h-7 w-7 p-0 shrink-0" title={blockNewSession ? blockNewSessionMessage : t('newSession')}>
+              <Button size="sm" onClick={() => handleStartNewSession()} disabled={blockNewSession} className="h-7 w-7 p-0 shrink-0" title={blockNewSession ? blockNewSessionMessage : t('newSession')} aria-label={t('newSession')}>
                 <Plus className="h-3.5 w-3.5" />
               </Button>
             )}
@@ -649,31 +675,20 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
                 size="icon"
                 variant="outline"
                 className="h-7 w-7 shrink-0"
-                title="Cobro Rápido"
+                title={billingButtonLabel}
+                aria-label={billingButtonLabel}
                 onClick={() => openBillingWizard({ patientId, patientName, isSales: true })}
               >
                 <Zap className="h-3.5 w-3.5 text-emerald-600" />
               </Button>
             )}
 
-            {/* Layout toggle — mobile */}
-            <Button
-              size="icon" variant="ghost"
-              className="h-7 w-7 shrink-0"
-              onClick={() => setDesktopLayout((l) => l === 'flat' ? 'mouth' : 'flat')}
-              title={desktopLayout === 'flat' ? t('layoutMouth') : t('layoutFlat')}
-            >
-              {desktopLayout === 'flat'
-                ? <Smile className="h-4 w-4" />
-                : <AlignJustify className="h-4 w-4" />
-              }
-            </Button>
-
             <Button
               size="icon" variant="ghost"
               className="h-7 w-7 shrink-0"
               onClick={() => setIsFullscreen((f) => !f)}
               title={isFullscreen ? t('exitFullscreen') : t('fullscreen')}
+              aria-label={isFullscreen ? t('exitFullscreen') : t('fullscreen')}
             >
               {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
             </Button>
@@ -707,6 +722,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
               disabled={!canGoBack || isEditing}
               className="p-1 rounded hover:bg-muted disabled:opacity-30 transition-colors"
               title={t('prevSession')}
+              aria-label={t('prevSession')}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -715,6 +731,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
               disabled={!canGoForward || isEditing}
               className="p-1 rounded hover:bg-muted disabled:opacity-30 transition-colors"
               title={t('nextSession')}
+              aria-label={t('nextSession')}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -747,28 +764,16 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
               onClick={() => openBillingWizard({ patientId, patientName, isSales: true })}
             >
               <Zap className="h-3.5 w-3.5 text-emerald-600" />
-              Cobro Rápido
+              {billingButtonLabel}
             </Button>
           )}
-
-          {/* Desktop layout toggle: flat ↔ mouth */}
-          <Button
-            size="icon" variant="ghost"
-            className="h-7 w-7 shrink-0"
-            onClick={() => setDesktopLayout((l) => l === 'flat' ? 'mouth' : 'flat')}
-            title={desktopLayout === 'flat' ? t('layoutMouth') : t('layoutFlat')}
-          >
-            {desktopLayout === 'flat'
-              ? <Smile className="h-4 w-4" />
-              : <AlignJustify className="h-4 w-4" />
-            }
-          </Button>
 
           <Button
             size="icon" variant="ghost"
             className="h-7 w-7 shrink-0"
             onClick={() => setIsFullscreen((f) => !f)}
             title={isFullscreen ? t('exitFullscreen') : t('fullscreen')}
+            aria-label={isFullscreen ? t('exitFullscreen') : t('fullscreen')}
           >
             {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
           </Button>
@@ -780,19 +785,20 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
         <div className="flex items-center gap-2">
           <Button
             size="sm" variant="ghost"
-            onClick={handleClearAll}
+            onClick={() => setConfirmAction('clearAll')}
+            disabled={Object.keys(editingState).length === 0}
             className="gap-1.5 text-xs text-muted-foreground"
           >
             <Eraser className="h-3.5 w-3.5" />
             {t('clearAll')}
           </Button>
-          <Button size="sm" variant="outline" onClick={handleCancelEditing} className="text-xs">
+          <Button size="sm" variant="outline" onClick={requestCancelEditing} className="text-xs">
             {t('session.cancel')}
           </Button>
         </div>
       )}
 
-      {/* ── Main chart area — flex-1 so it fills remaining height in the outer flex-col ── */}
+      {/* ── Main chart area ── */}
       {history.length === 0 && !isEditing ? (
         <div className="flex flex-col items-center justify-center gap-4 py-12 text-center">
           <div className="h-14 w-14 rounded-full bg-muted flex items-center justify-center">
@@ -810,302 +816,57 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
       ) : mode === 'periodontogram' ? (
         <div className="flex flex-col gap-3">
           {sessionReadPanel}
-          <div className="rounded-xl border bg-muted/20 p-3 opacity-80">
-            <OdontogramCanvas
-              state={displayState}
-              selectedToothId={null}
-              onSelectTooth={() => {}}
-              readOnly
-              half="full"
-              toothSize={isMobile ? 18 : 24}
-            />
+          <div className="opacity-80">
+            <OdontogramBoard state={displayState} selectedToothId={null} onSelectTooth={() => {}} readOnly />
           </div>
           <div className={cn(!isEditing && 'pointer-events-none opacity-60')}>
             <PeriodontogramView teeth={perioData} onTeethChange={setPerioData} />
           </div>
         </div>
-      ) : isMobile ? (
-        /* ── Mobile odontogram ── */
-        <>
-          {/* Fixed tooth overlay — appears on top of the canvas when a tooth is selected */}
-          {selectedToothId && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 backdrop-blur-sm p-4">
-              <div className="relative w-full max-w-sm rounded-2xl border bg-background shadow-2xl p-4 flex flex-col gap-3 max-h-[90vh] overflow-y-auto">
-                <button
-                  onClick={() => setSelectedToothId(null)}
-                  className="absolute top-3 right-3 h-7 w-7 flex items-center justify-center rounded-full bg-muted hover:bg-muted/80 transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-                <ToothDetailPanel
-                  toothId={selectedToothId}
-                  state={toothState}
-                  activeTool={isEditing ? activeTool : null}
-                  readOnly={!isEditing}
-                  onApply={handleApply}
-                  onClearTooth={handleClearTooth}
-                  onClose={() => setSelectedToothId(null)}
-                />
-                {isEditing && (
-                  <ConditionToolbar active={activeTool} onSelect={(c) => setActiveTool(c)} />
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Canvas/arch — always visible */}
-          <div className="flex flex-col gap-2">
-            {/* Compact session header (read mode) */}
-            {!isEditing && currentSnapshot && (
-              <div className="flex items-center justify-between gap-2 px-1">
-                <span className="text-xs font-medium text-foreground truncate">
-                  {currentSnapshot.description || t('session.untitled')}
-                </span>
-                <span className="text-xs text-muted-foreground shrink-0">
-                  {formatLongSessionDate(currentSnapshot.date)}
-                </span>
-              </div>
-            )}
-
-            {/* Canvas */}
-            <div className="relative rounded-xl border bg-muted/20 p-2" style={{ minHeight: '55vh' }}>
-              {odontogramLayout === 'mouth' ? (
-                <OdontogramArchView
-                  state={displayState}
-                  selectedToothId={selectedToothId}
-                  onSelectTooth={handleSelectTooth}
-                  className="h-full"
-                />
-              ) : (
-                <div ref={canvasWrapperRef} style={{ minHeight: '48vh' }}>
-                  <OdontogramCanvas
-                    state={displayState}
-                    selectedToothId={selectedToothId}
-                    onSelectTooth={handleSelectTooth}
-                    readOnly={false}
-                    half="full"
-                    layout="flat"
-                    toothSize={Math.min(120, Math.round(40 * zoom))}
-                  />
-                </div>
-              )}
-              {/* Zoom controls */}
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-background/90 backdrop-blur-sm rounded-md border px-1.5 py-1 z-10 shadow-sm">
-                <button
-                  onClick={() => setZoom((z) => parseFloat(Math.max(0.4, z - 0.1).toFixed(1)))}
-                  className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted transition-colors"
-                  title="Zoom out"
-                >
-                  <Minus className="h-3 w-3" />
-                </button>
-                <span className="text-[10px] font-medium tabular-nums w-8 text-center select-none">
-                  {Math.round(zoom * 100)}%
-                </span>
-                <button
-                  onClick={() => setZoom((z) => parseFloat(Math.min(2.5, z + 0.1).toFixed(1)))}
-                  className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted transition-colors"
-                  title="Zoom in"
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
-
-            {isEditing && (
-              <ConditionToolbar active={activeTool} onSelect={(c) => setActiveTool(c)} />
-            )}
-            {!isEditing && currentSnapshot?.notes && (
-              <p className="text-xs text-muted-foreground px-1 line-clamp-2">
-                {currentSnapshot.notes}
-              </p>
-            )}
+      ) : isEditing && useSidebarLayout ? (
+        /* ── Wide container: chart + tooth card + form, palette as a sticky right column ── */
+        <div className="grid grid-cols-[minmax(0,1fr)_280px] items-start gap-4">
+          <div className="flex min-w-0 flex-col gap-4">
+            {board}
+            {toothCard}
+            {sessionForm}
           </div>
-        </>
-      ) : odontogramLayout === 'mouth' ? (
-        /* ── Desktop mouth view — react-odontogram, collapsible 3-column layout ── */
-        <div className="flex flex-col gap-0">
-          {/* Collapse toggle strip */}
-          <button
-            onClick={() => setArchExpanded((v) => !v)}
-            className="flex items-center justify-between w-full px-3 py-2 rounded-t-xl border border-b-0 bg-muted/40 hover:bg-muted/60 transition-colors text-xs font-medium text-muted-foreground"
-          >
-            <span>{t('odontogramSection')}</span>
-            <ChevronDown
-              className={cn('h-4 w-4 transition-transform duration-200', archExpanded && 'rotate-180')}
-            />
-          </button>
-
-          {archExpanded && (
-            <div className="flex gap-3 items-stretch rounded-b-xl border bg-background p-3">
-              {/* Column 1: Arch — fixed width, stretches to match right column height */}
-              <div
-                className="shrink-0 relative rounded-xl border bg-muted/20 p-2 overflow-hidden"
-                style={{ width: 320 }}
-              >
-                <OdontogramArchView
-                  state={displayState}
-                  selectedToothId={selectedToothId}
-                  onSelectTooth={handleSelectTooth}
-                  className="h-full"
-                />
-              </div>
-
-              {isEditing ? (
-                <>
-                  {/* Column 2: Tooth detail panel */}
-                  <div className="flex-1 min-w-0 self-start">
-                    {selectedToothId ? (
-                      <ToothDetailPanel
-                        toothId={selectedToothId}
-                        state={toothState}
-                        activeTool={activeTool}
-                        readOnly={false}
-                        onApply={handleApply}
-                        onClearTooth={handleClearTooth}
-                        onClose={() => setSelectedToothId(null)}
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center rounded-xl border border-dashed h-[170px] text-xs text-muted-foreground text-center p-4">
-                        {t('selectToothHint')}
-                      </div>
-                    )}
-                  </div>
-                  {/* Column 3: Compact condition toolbar (icon-only, 3 per row) */}
-                  <div className="shrink-0 self-start" style={{ width: 224 }}>
-                    <ConditionToolbar
-                      active={activeTool}
-                      onSelect={(c) => setActiveTool(c)}
-                      vertical
-                      compact
-                    />
-                  </div>
-                </>
-              ) : (
-                /* Read mode: session info + selected tooth */
-                <div className="flex-1 min-w-0 flex flex-col gap-3 self-start">
-                  {sessionReadPanel}
-                  {selectedToothId && (
-                    <div className="flex justify-center">
-                      <ToothDetailPanel
-                        toothId={selectedToothId}
-                        state={toothState}
-                        activeTool={null}
-                        readOnly
-                        onApply={() => {}}
-                        onClearTooth={() => {}}
-                        onClose={() => setSelectedToothId(null)}
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
+          <div className="sticky top-4">
+            <ProcedurePalette activeProcedure={activeProcedure} onSelectProcedure={setActiveProcedure} variant="sidebar" />
+          </div>
         </div>
       ) : (
-        /* ── Desktop flat view ── */
-        <div className="flex flex-col gap-3">
+        /* ── Narrow container or read mode: everything stacked ── */
+        <div className="flex flex-col gap-4">
           {!isEditing && sessionReadPanel}
-
-          {/* Full-width canvas */}
-          <div ref={canvasWrapperRef} className="relative rounded-xl border bg-muted/20 p-2 sm:p-3">
-            <OdontogramCanvas
-              state={displayState}
-              selectedToothId={selectedToothId}
-              onSelectTooth={handleSelectTooth}
-              readOnly={!isEditing}
-              half="full"
-              toothSize={Math.min(120, Math.round(computedToothSize * zoom))}
-              layout="flat"
-              scrollToSelected={false}
-            />
-            {/* Zoom controls */}
-            <div className="absolute bottom-3 right-3 flex items-center gap-0.5 bg-background/90 backdrop-blur-sm rounded-md border px-1.5 py-1 z-10 shadow-sm">
-              <button
-                onClick={() => setZoom((z) => parseFloat(Math.max(0.4, z - 0.1).toFixed(1)))}
-                className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted transition-colors"
-                title="Zoom out"
-              >
-                <Minus className="h-3 w-3" />
-              </button>
-              <span className="text-[10px] font-medium tabular-nums w-8 text-center select-none">
-                {Math.round(zoom * 100)}%
-              </span>
-              <button
-                onClick={() => setZoom((z) => parseFloat(Math.min(2.5, z + 0.1).toFixed(1)))}
-                className="h-5 w-5 flex items-center justify-center rounded hover:bg-muted transition-colors"
-                title="Zoom in"
-              >
-                <Plus className="h-3 w-3" />
-              </button>
-            </div>
-          </div>
-
-          {/* Edit mode: 2 columns — tooth detail + compact toolbar */}
+          {board}
           {isEditing && (
-            <div className="flex gap-3 items-start">
-              <div className="flex-1 min-w-0">
-                {selectedToothId ? (
-                  <ToothDetailPanel
-                    toothId={selectedToothId}
-                    state={toothState}
-                    activeTool={activeTool}
-                    readOnly={false}
-                    onApply={handleApply}
-                    onClearTooth={handleClearTooth}
-                    onClose={() => setSelectedToothId(null)}
-                  />
-                ) : (
-                  <div className="flex items-center justify-center rounded-xl border border-dashed h-[170px] text-xs text-muted-foreground text-center p-4">
-                    {t('selectToothHint')}
-                  </div>
-                )}
-              </div>
-              <div className="shrink-0" style={{ width: 200 }}>
-                <ConditionToolbar
-                  active={activeTool}
-                  onSelect={(c) => setActiveTool(c)}
-                  vertical
-                  compact
-                />
-              </div>
-            </div>
+            <ProcedurePalette activeProcedure={activeProcedure} onSelectProcedure={setActiveProcedure} variant="stacked" />
           )}
-
-          {/* Read mode: selected tooth detail */}
-          {!isEditing && selectedToothId && (
-            <div className="flex justify-center">
-              <ToothDetailPanel
-                toothId={selectedToothId}
-                state={toothState}
-                activeTool={null}
-                readOnly
-                onApply={() => {}}
-                onClearTooth={() => {}}
-                onClose={() => setSelectedToothId(null)}
-              />
-            </div>
-          )}
+          {toothCard}
+          {sessionForm}
         </div>
       )}
 
-      {/* ── Session form (editing only) ── */}
-      {isEditing && (
-        <SessionForm
-          defaultDate={editingSnapshot?.date ?? new Date().toISOString().split('T')[0]}
-          defaultDescription={editingDefaultDescription}
-          defaultNextSessionPlan={editingSnapshot?.planProximaCita}
-          defaultNextSessionDate={editingSnapshot?.fechaProximaCita}
-          doctors={doctors}
-          notes={notes}
-          onNotesChange={setNotes}
-          onSave={handleSave}
-          onCancel={handleCancelEditing}
-          lockDoctorId={doctorId ?? editingSnapshot?.doctorId}
-          lockDoctorName={doctorName || (editingSnapshot ? resolveDoctorName(editingSnapshot) ?? undefined : undefined)}
-          isEdit={!!editingSessionId}
-        />
-      )}
+      {/* ── Confirmations ── */}
+      <AlertDialog open={confirmAction !== null} onOpenChange={(open) => { if (!open) setConfirmAction(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmAction === 'clearAll' ? t('confirm.clearAllTitle') : t('confirm.cancelTitle')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction === 'clearAll' ? t('confirm.clearAllDescription') : t('confirm.cancelDescription')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('confirm.keepEditing')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirm} className="bg-destructive hover:bg-destructive/90">
+              {confirmAction === 'clearAll' ? t('confirm.clearAllAction') : t('confirm.cancelAction')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── Image lightbox ── */}
       {lightbox && (

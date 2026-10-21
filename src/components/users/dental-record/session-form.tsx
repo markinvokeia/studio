@@ -7,9 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useAsyncAction } from '@/hooks/use-async-action';
 import { cn } from '@/lib/utils';
 import { addMonths, format } from 'date-fns';
-import { CalendarIcon, Loader2, Paperclip, Save, X } from 'lucide-react';
+import { CalendarIcon, Paperclip, Save, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import type { DoctorOption } from '@/services/dental-record';
@@ -70,7 +71,6 @@ export function SessionForm({
   const setNotes = (v: string) => { if (onNotesChange) onNotesChange(v); else setInternalNotes(v); };
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [shouldDischarge, setShouldDischarge] = useState(false);
   const [dischargeDate, setDischargeDate] = useState('');
@@ -87,6 +87,12 @@ export function SessionForm({
     setFiles((prev) => prev.filter((_, i) => i !== idx));
   }
 
+  const save = useAsyncAction(
+    () => onSave({ date, description, notes, files, doctorId, shouldDischarge, dischargeDate, nextSessionPlan, nextSessionDate }),
+    { onError: () => setError(t('session.saveError')), showErrorToast: false },
+  );
+  const isSaving = save.isPending;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!description.trim()) { setError(t('session.descriptionRequired')); return; }
@@ -96,32 +102,27 @@ export function SessionForm({
       return;
     }
     setError(null);
-    setIsSaving(true);
-    try {
-      await onSave({ date, description, notes, files, doctorId, shouldDischarge, dischargeDate, nextSessionPlan, nextSessionDate });
-    } catch {
-      setError(t('session.saveError'));
-    } finally {
-      setIsSaving(false);
-    }
+    await save.run();
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-xl border bg-background p-4">
-      <h3 className="text-sm font-semibold text-foreground">{isEdit ? t('session.editTitle') : t('session.newTitle')}</h3>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-2xl border bg-card p-4 shadow-sm sm:p-6">
+      <h3 className="border-b pb-3 text-base font-semibold tracking-tight text-foreground">
+        {isEdit ? t('session.editTitle') : t('session.newTitle')}
+      </h3>
 
       {/* Hidden title — still sent to the API but not shown to the user */}
       <input type="hidden" value={description} readOnly />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <Label className="text-xs">{t('session.date')}</Label>
+          <Label className="text-xs font-semibold">{t('session.date')}</Label>
           <Popover>
             <PopoverTrigger asChild>
               <Button
                 type="button"
                 variant="outline"
-                className={cn('w-full justify-start text-left font-normal h-8 text-xs border-input', !date && 'text-muted-foreground')}
+                className={cn('w-full justify-start text-left font-normal h-9 rounded-lg text-xs border-input', !date && 'text-muted-foreground')}
               >
                 <CalendarIcon className="mr-2 h-3.5 w-3.5" />
                 {date
@@ -143,19 +144,19 @@ export function SessionForm({
         {/* Doctor */}
         {lockDoctorId ? (
           <div className="flex flex-col gap-1">
-            <Label className="text-xs">{t('session.doctor')}</Label>
-            <div className="h-8 flex items-center rounded-md border border-input bg-muted/50 px-3 text-xs text-foreground">
+            <Label className="text-xs font-semibold">{t('session.doctor')}</Label>
+            <div className="h-9 flex items-center rounded-lg border border-input bg-muted/50 px-3 text-xs text-foreground">
               {lockDoctorName ?? lockDoctorId}
             </div>
           </div>
         ) : doctors.length > 0 ? (
           <div className="flex flex-col gap-1">
-            <Label className="text-xs">
+            <Label className="text-xs font-semibold">
               {t('session.doctor')}
               <span className="text-destructive ml-0.5">*</span>
             </Label>
             <Select value={doctorId} onValueChange={setDoctorId}>
-              <SelectTrigger className="h-8 text-xs">
+              <SelectTrigger className="h-9 rounded-lg text-xs">
                 <SelectValue placeholder={t('session.doctorPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
@@ -172,22 +173,22 @@ export function SessionForm({
 
       {/* Notes */}
       <div className="flex flex-col gap-1">
-        <Label className="text-xs">{t('session.notes')}</Label>
+        <Label className="text-xs font-semibold">{t('session.notes')}</Label>
         <Textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder={t('session.notesPlaceholder')}
-          className="min-h-[80px] text-xs resize-y"
+          className="min-h-[90px] rounded-xl text-xs resize-y"
           rows={4}
         />
       </div>
 
       {/* File attachments */}
       <div className="flex flex-col gap-1">
-        <Label className="text-xs">{t('session.files')}</Label>
+        <Label className="text-xs font-semibold">{t('session.files')}</Label>
         <div
           className={cn(
-            'rounded-lg border-2 border-dashed p-3 text-center cursor-pointer transition-colors text-xs text-muted-foreground',
+            'rounded-xl border-2 border-dashed p-5 text-center cursor-pointer transition-colors text-xs text-muted-foreground',
             isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40',
           )}
           onClick={() => fileInputRef.current?.click()}
@@ -224,25 +225,25 @@ export function SessionForm({
 
       {/* Next Session Plan */}
       <div className="flex flex-col gap-1">
-        <Label className="text-xs">{t('session.nextSessionPlan')}</Label>
+        <Label className="text-xs font-semibold">{t('session.nextSessionPlan')}</Label>
         <Textarea
           value={nextSessionPlan}
           onChange={(e) => setNextSessionPlan(e.target.value)}
           placeholder={t('session.nextSessionPlanPlaceholder')}
-          className="min-h-[60px] text-xs resize-y"
+          className="min-h-[80px] rounded-xl text-xs resize-y"
           rows={3}
         />
       </div>
 
       {/* Next Session Date */}
       <div className="flex flex-col gap-1">
-        <Label className="text-xs">{t('session.nextSessionDate')}</Label>
+        <Label className="text-xs font-semibold">{t('session.nextSessionDate')}</Label>
         <Popover>
           <PopoverTrigger asChild>
             <Button
               type="button"
               variant="outline"
-              className={cn('w-full justify-start text-left font-normal h-8 text-xs border-input', !nextSessionDate && 'text-muted-foreground')}
+              className={cn('w-full justify-start text-left font-normal h-9 rounded-lg text-xs border-input', !nextSessionDate && 'text-muted-foreground')}
             >
               <CalendarIcon className="mr-2 h-3.5 w-3.5" />
               {nextSessionDate
@@ -342,12 +343,12 @@ export function SessionForm({
 
       {error && <p className="text-xs text-destructive">{error}</p>}
 
-      <div className="flex gap-2 justify-end">
+      <div className="flex gap-2 justify-end border-t pt-4">
         <Button type="button" variant="ghost" size="sm" onClick={onCancel} disabled={isSaving}>
           {t('session.cancel')}
         </Button>
-        <Button type="submit" size="sm" disabled={isSaving} className="gap-1.5">
-          {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+        <Button type="submit" size="sm" loading={isSaving} className="gap-1.5">
+          {!isSaving && <Save className="h-3.5 w-3.5" />}
           {t('session.save')}
         </Button>
       </div>

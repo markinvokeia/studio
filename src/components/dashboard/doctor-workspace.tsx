@@ -13,6 +13,7 @@ import {
 import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
 import { PrescriptionDialog } from '@/components/medical-instructions/prescription-dialog';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
+import type { OdontogramPrefillResult } from '@/components/users/dental-record/dental-record-viewer';
 import { TreatmentTimeline } from '@/components/users/clinic-history-viewer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -75,6 +76,8 @@ type DoctorAgentActionResult = {
 };
 
 const AUTO_REFRESH_MS = 60_000;
+/** How long an odontogram prefill may take to be applied (includes loading the patient's sessions) */
+const ODONTOGRAM_PREFILL_TIMEOUT_MS = 30_000;
 const KNOWN_APPOINTMENTS_STORAGE_PREFIX = 'doctor-workspace:known-appointments';
 const APPOINTMENT_STATUSES_STORAGE_PREFIX = 'doctor-workspace:appointment-statuses';
 const LOCALLY_UPDATED_STORAGE_PREFIX = 'doctor-workspace:locally-updated';
@@ -873,8 +876,10 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   } | null>(null);
   const [agentSessionTreatments, setAgentSessionTreatments] = React.useState<TreatmentDetail[]>([]);
   const [activePanel, setActivePanel] = React.useState<'sessions' | 'odontogram'>('sessions');
-  const [odontogramAutoStart, setOdontogramAutoStart] = React.useState(false);
-  const [odontogramPrefill, setOdontogramPrefill] = React.useState<{ description: string; notes: string; marcaciones?: import('@/lib/types').OdontogramMarcacion[] } | null>(null);
+  // Each agent request gets its own key so the odontogram applies it even when it is already open
+  const [odontogramPrefill, setOdontogramPrefill] = React.useState<{ key: number; description: string; notes: string; marcaciones?: import('@/lib/types').OdontogramMarcacion[] } | null>(null);
+  const odontogramPrefillKeyRef = React.useRef(0);
+  const pendingOdontogramPrefillsRef = React.useRef(new Map<number, (result: DoctorAgentActionResult) => void>());
   const [lastUpdatedAt, setLastUpdatedAt] = React.useState<Date | null>(null);
   const contextRequestRef = React.useRef(0);
   // Tracks the last appointment context loaded (id:patientId). Used to distinguish a genuine
@@ -913,7 +918,6 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
 
   React.useEffect(() => {
     setActivePanel('sessions');
-    setOdontogramAutoStart(false);
     setOdontogramPrefill(null);
   }, [selectedAppointmentId]);
 
@@ -1273,15 +1277,25 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
 
     if (action.type === 'open_odontogram') {
       const payload = action.payload || {};
+      const key = ++odontogramPrefillKeyRef.current;
       if (isMobile) setMobileDetailsOpen(true);
       setActivePanel('odontogram');
-      setOdontogramAutoStart(true);
       setOdontogramPrefill({
+        key,
         description: payload.procedimiento_realizado || '',
         notes: payload.notas_clinicas || '',
         marcaciones: payload.marcaciones ?? [],
       });
-      return { success: true };
+      // Answer the agent only once the odontogram reports what actually happened
+      return new Promise<DoctorAgentActionResult>((resolve) => {
+        const pending = pendingOdontogramPrefillsRef.current;
+        pending.set(key, resolve);
+        window.setTimeout(() => {
+          if (!pending.has(key)) return;
+          pending.delete(key);
+          resolve({ success: false, message: t('focus.ai.odontogramNotConfirmed') });
+        }, ODONTOGRAM_PREFILL_TIMEOUT_MS);
+      });
     }
 
     if (action.type === 'open_clinic_session') {
@@ -1301,6 +1315,15 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
 
     return { success: false, message: t('focus.ai.actionUnsupported') };
   }, [isMobile, isSessionEditingBlockedByDate, linkedSession, selectedAppointment, t]);
+
+  const handleOdontogramPrefillHandled = React.useCallback((key: number, result: OdontogramPrefillResult) => {
+    // Consumed: a remount of the odontogram must not apply the same request again
+    setOdontogramPrefill((prev) => (prev?.key === key ? null : prev));
+    const resolve = pendingOdontogramPrefillsRef.current.get(key);
+    if (!resolve) return;
+    pendingOdontogramPrefillsRef.current.delete(key);
+    resolve(result.applied ? { success: true } : { success: false, message: t('focus.ai.odontogramNotApplied') });
+  }, [t]);
 
   const handleOdontogramSessionSaved = React.useCallback(async () => {
     if (!selectedAppointment || isSessionEditingBlockedByDate) return;
@@ -1502,7 +1525,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
               <div className="flex overflow-hidden rounded-md border text-xs">
                 <button
                   type="button"
-                  onClick={() => { setActivePanel('sessions'); setOdontogramAutoStart(false); setOdontogramPrefill(null); }}
+                  onClick={() => { setActivePanel('sessions'); setOdontogramPrefill(null); }}
                   className={cn(
                     'whitespace-nowrap px-3 py-1.5 font-medium transition-colors',
                     activePanel === 'sessions'
@@ -1587,7 +1610,8 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   patientName={selectedAppointment.patientName}
                   doctorId={selectedAppointment.doctorId}
                   doctorName={selectedAppointment.doctorName}
-                  autoStartSession={odontogramAutoStart && !isOdontogramSession && !isSessionEditingBlockedByDate}
+                  autoStartKey={odontogramPrefill?.key}
+                  onAutoStartHandled={handleOdontogramPrefillHandled}
                   autoStartDescription={odontogramPrefill?.description}
                   autoStartNotes={odontogramPrefill?.notes}
                   autoStartMarcaciones={odontogramPrefill?.marcaciones}

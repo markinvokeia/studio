@@ -2203,18 +2203,49 @@ export type DentalRecordSession = {
 
 // ──── Odontogram (interactive, session-based) ────
 
-/** All possible conditions that can be applied to a tooth or surface */
+/**
+ * All possible conditions that can be applied to a tooth or surface.
+ * Ids are persisted inside `estado_odontograma`, so existing ids must never be renamed.
+ */
 export type OdontogramCondition =
   // Surface conditions (apply per face)
   | 'healthy' | 'caries' | 'filling' | 'pulp' | 'dyschromic' | 'worn'
+  | 'caries-incipient' | 'amalgam' | 'resin' | 'restoration-required' | 'sealant'
   // Whole-tooth conditions
   | 'crown' | 'crown-tmp' | 'missing' | 'root-remnant' | 'prosthesis'
   | 'fixed-prosth' | 'implant' | 'edentulism' | 'endodontics'
+  | 'crown-indicated' | 'bridge-in-progress' | 'bridge-defective'
+  | 'endo-done' | 'endo-indicated' | 'implant-osseo' | 'implant-planned' | 'extraction-indicated'
   // Overlay conditions (stack on top)
   | 'fracture' | 'diastema' | 'rem-prost' | 'drifting' | 'rotation'
   | 'fusion' | 'eruption' | 'transposition' | 'supernumerary' | 'bolt'
   | 'fixed-ortho' | 'macrodontia' | 'microdontia' | 'impacted-semi'
-  | 'intrusion' | 'ectopic' | 'impacted' | 'rem-orthodo' | 'extrusion' | 'post';
+  | 'intrusion' | 'ectopic' | 'impacted' | 'rem-orthodo' | 'extrusion' | 'post'
+  | 'post-fiber' | 'root-post' | 'perio-pocket' | 'gingival-recession' | 'gingival-enlargement'
+  | 'mobility-1' | 'mobility-2' | 'mobility-3' | 'furcation' | 'retained' | 'semi-erupted'
+  | 'bracket' | 'fixed-retainer' | 'ortho-movement' | 'malposition' | 'ortho-fracture'
+  | 'crown-fracture' | 'root-fracture' | 'periapical-lesion' | 'root-resorption'
+  | 'abrasion' | 'abfraction' | 'erosion';
+
+export type OdontogramProcedureCategory =
+  | 'restorations' | 'fixed-prosthesis' | 'endodontics' | 'implants'
+  | 'periodontics' | 'oral-surgery' | 'orthodontics' | 'pathologies';
+
+/** Whether a procedure is painted on a surface, on the whole tooth, or on either */
+export type OdontogramProcedureTarget = 'surface' | 'tooth' | 'both';
+
+/** Catalog entry for a condition/procedure. Labels live in `DentalRecord.procedures.<id>` */
+export interface OdontogramProcedure {
+  id: OdontogramCondition;
+  category: OdontogramProcedureCategory;
+  code: string;
+  color: string;
+  appliesTo: OdontogramProcedureTarget;
+  /** Tooth-level storage slot: `whole` holds a single primary condition, the rest go to `overlays` */
+  slot: 'whole' | 'overlay';
+  /** Read-only: still rendered on old sessions, but not offered in the palette */
+  legacy?: boolean;
+}
 
 /** 5 surfaces of a tooth */
 export type OdontogramSurface = 'center' | 'top' | 'bottom' | 'left' | 'right';
@@ -2234,6 +2265,8 @@ export type OdontogramToothState = {
   whole?: OdontogramCondition;
   /** Stacked overlays (fractura, ortodoncia, etc.) */
   overlays?: OdontogramCondition[];
+  /** Free-text clinical notes for this tooth */
+  notes?: string;
 };
 
 /** Keyed by FDI tooth ID string (e.g. "16", "48") */
