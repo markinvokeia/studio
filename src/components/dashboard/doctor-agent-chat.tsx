@@ -240,7 +240,8 @@ function normalizeDoctorAction(rawAction: any): DoctorAgentAction | null {
       type: 'open_odontogram',
       payload: {
         procedimiento_realizado: rawAction.procedimiento_realizado || '',
-        notas_clinicas: rawAction.notas_clinicas || rawAction.notas || '',
+        // The model does not always use the documented field name for the dictated procedures
+        notas_clinicas: rawAction.notas_clinicas || rawAction.notas || rawAction.procedimientos || rawAction.observaciones || '',
         plan_proxima_cita: rawAction.plan_proxima_cita || '',
         marcaciones: Array.isArray(rawAction.marcaciones) ? rawAction.marcaciones : [],
       },

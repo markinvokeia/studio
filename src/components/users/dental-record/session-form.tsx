@@ -36,6 +36,9 @@ interface SessionFormProps {
   /** Controlled notes value — when provided, parent owns the notes state */
   notes?: string;
   onNotesChange?: (v: string) => void;
+  /** Controlled next-session plan — when provided, parent owns it (e.g. so the agent can fill it) */
+  nextSessionPlan?: string;
+  onNextSessionPlanChange?: (v: string) => void;
   onSave: (values: SessionFormValues) => Promise<void>;
   onCancel: () => void;
   lockDoctorId?: string;
@@ -51,6 +54,8 @@ export function SessionForm({
   doctors = [],
   notes: controlledNotes,
   onNotesChange,
+  nextSessionPlan: controlledNextSessionPlan,
+  onNextSessionPlanChange,
   onSave,
   onCancel,
   lockDoctorId,
@@ -75,7 +80,11 @@ export function SessionForm({
   const [shouldDischarge, setShouldDischarge] = useState(false);
   const [dischargeDate, setDischargeDate] = useState('');
   const [selectedDischargePreset, setSelectedDischargePreset] = useState<number | null>(null);
-  const [nextSessionPlan, setNextSessionPlan] = useState(defaultNextSessionPlan ?? '');
+  const [internalNextSessionPlan, setInternalNextSessionPlan] = useState(defaultNextSessionPlan ?? '');
+  const nextSessionPlan = controlledNextSessionPlan !== undefined ? controlledNextSessionPlan : internalNextSessionPlan;
+  const setNextSessionPlan = (v: string) => {
+    if (onNextSessionPlanChange) onNextSessionPlanChange(v); else setInternalNextSessionPlan(v);
+  };
   const [nextSessionDate, setNextSessionDate] = useState(defaultNextSessionDate ?? '');
 
   function addFiles(incoming: FileList | null) {

@@ -78,6 +78,8 @@ type DoctorAgentActionResult = {
 const AUTO_REFRESH_MS = 60_000;
 /** How long an odontogram prefill may take to be applied (includes loading the patient's sessions) */
 const ODONTOGRAM_PREFILL_TIMEOUT_MS = 30_000;
+/** Agent "titles" longer than this are really the dictated procedures and belong in the notes */
+const ODONTOGRAM_TITLE_MAX_LENGTH = 80;
 const KNOWN_APPOINTMENTS_STORAGE_PREFIX = 'doctor-workspace:known-appointments';
 const APPOINTMENT_STATUSES_STORAGE_PREFIX = 'doctor-workspace:appointment-statuses';
 const LOCALLY_UPDATED_STORAGE_PREFIX = 'doctor-workspace:locally-updated';
@@ -877,7 +879,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const [agentSessionTreatments, setAgentSessionTreatments] = React.useState<TreatmentDetail[]>([]);
   const [activePanel, setActivePanel] = React.useState<'sessions' | 'odontogram'>('sessions');
   // Each agent request gets its own key so the odontogram applies it even when it is already open
-  const [odontogramPrefill, setOdontogramPrefill] = React.useState<{ key: number; description: string; notes: string; marcaciones?: import('@/lib/types').OdontogramMarcacion[] } | null>(null);
+  const [odontogramPrefill, setOdontogramPrefill] = React.useState<{ key: number; description: string; notes: string; nextSessionPlan: string; marcaciones?: import('@/lib/types').OdontogramMarcacion[] } | null>(null);
   const odontogramPrefillKeyRef = React.useRef(0);
   const pendingOdontogramPrefillsRef = React.useRef(new Map<number, (result: DoctorAgentActionResult) => void>());
   const [lastUpdatedAt, setLastUpdatedAt] = React.useState<Date | null>(null);
@@ -1280,10 +1282,15 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       const key = ++odontogramPrefillKeyRef.current;
       if (isMobile) setMobileDetailsOpen(true);
       setActivePanel('odontogram');
+      const title = (payload.procedimiento_realizado || '').trim();
+      const dictatedNotes = (payload.notas_clinicas || '').trim();
+      // A long title with no notes is the procedures text put in the wrong field: keep it visible
+      const titleIsNotes = !dictatedNotes && (title.length > ODONTOGRAM_TITLE_MAX_LENGTH || title.includes('\n'));
       setOdontogramPrefill({
         key,
-        description: payload.procedimiento_realizado || '',
-        notes: payload.notas_clinicas || '',
+        description: titleIsNotes ? '' : title,
+        notes: titleIsNotes ? title : dictatedNotes,
+        nextSessionPlan: (payload.plan_proxima_cita || '').trim(),
         marcaciones: payload.marcaciones ?? [],
       });
       // Answer the agent only once the odontogram reports what actually happened
@@ -1608,12 +1615,15 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                 <DentalRecordViewer
                   patientId={selectedAppointment.patientId}
                   patientName={selectedAppointment.patientName}
-                  doctorId={selectedAppointment.doctorId}
-                  doctorName={selectedAppointment.doctorName}
+                  // Same doctor resolution as the clinical session: the logged-in doctor when the
+                  // appointment is unassigned or belongs to someone else (calendar view)
+                  doctorId={sessionDoctorId || undefined}
+                  doctorName={sessionDoctorName || undefined}
                   autoStartKey={odontogramPrefill?.key}
                   onAutoStartHandled={handleOdontogramPrefillHandled}
                   autoStartDescription={odontogramPrefill?.description}
                   autoStartNotes={odontogramPrefill?.notes}
+                  autoStartNextSessionPlan={odontogramPrefill?.nextSessionPlan}
                   autoStartMarcaciones={odontogramPrefill?.marcaciones}
                   onSessionSaved={handleOdontogramSessionSaved}
                   autoNavigateToAppointmentSession={isOdontogramSession}

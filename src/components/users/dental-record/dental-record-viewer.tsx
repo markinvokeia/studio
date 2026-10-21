@@ -29,7 +29,7 @@ import { ensureDoctorOption } from '@/services/doctors';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import type { DoctorOption } from '@/services/dental-record';
-import { getProcedure, getProcedureColor, SURFACE_ABBR } from './odontogram-catalog';
+import { getProcedure, getProcedureColor, getToothKind, isTemporalTooth, SURFACE_ABBR } from './odontogram-catalog';
 import {
   applyMarcaciones,
   clearTooth,
@@ -85,6 +85,7 @@ const MAX_UNDO_STEPS = 50;
 const SIDEBAR_LAYOUT_MIN_WIDTH = 900;
 
 type StateEntry = { toothId: string; label: string; color: string; detail?: string };
+type ToothSummary = { toothId: string; entries: StateEntry[]; notes?: string };
 
 type Mode = 'odontogram' | 'periodontogram';
 
@@ -108,6 +109,7 @@ interface DentalRecordViewerProps {
   onAutoStartHandled?: (key: number, result: OdontogramPrefillResult) => void;
   autoStartDescription?: string;
   autoStartNotes?: string;
+  autoStartNextSessionPlan?: string;
   autoStartMarcaciones?: OdontogramMarcacion[];
   onSessionSaved?: () => void;
   /** When true: hides session history nav and auto-starts a new session on load */
@@ -123,7 +125,7 @@ interface DentalRecordViewerProps {
   hideBillingWizard?: boolean;
 }
 
-export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartKey, onAutoStartHandled, autoStartDescription, autoStartNotes, autoStartMarcaciones, onSessionSaved, createMode, onCancelCreate, blockNewSession, blockNewSessionMessage, appointmentId, autoNavigateToAppointmentSession, hideBillingWizard = false }: DentalRecordViewerProps) {
+export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartKey, onAutoStartHandled, autoStartDescription, autoStartNotes, autoStartNextSessionPlan, autoStartMarcaciones, onSessionSaved, createMode, onCancelCreate, blockNewSession, blockNewSessionMessage, appointmentId, autoNavigateToAppointmentSession, hideBillingWizard = false }: DentalRecordViewerProps) {
   const t = useTranslations('DentalRecord');
   const isMobile = useViewportNarrow(768);
   const { toast } = useToast();
@@ -146,6 +148,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
   const [editingDefaultDescription, setEditingDefaultDescription] = useState('');
   const [notes, setNotes] = useState('');
   const [initialNotes, setInitialNotes] = useState('');
+  const [nextSessionPlan, setNextSessionPlan] = useState('');
   const [undoStack, setUndoStack] = useState<EditSnapshot[]>([]);
   const [perioData, setPerioData] = useState<ToothPerioData[]>([]);
   const [selectedToothId, setSelectedToothId] = useState<string | null>(null);
@@ -177,7 +180,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
 
   useEffect(() => {
     if (createMode && !isLoading && !blockNewSession) {
-      handleStartNewSession(autoStartDescription, autoStartNotes, autoStartMarcaciones);
+      handleStartNewSession(autoStartDescription, autoStartNotes, autoStartMarcaciones, autoStartNextSessionPlan);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [blockNewSession, createMode, isLoading]);
@@ -226,6 +229,18 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     [t],
   );
 
+  /** One row per tooth (in FDI order) with its conditions and notes, for the read-mode summary */
+  function buildToothSummaries(state: OdontogramState): ToothSummary[] {
+    const byTooth = new Map<string, StateEntry[]>();
+    for (const entry of buildStateEntries(state)) {
+      byTooth.set(entry.toothId, [...(byTooth.get(entry.toothId) ?? []), entry]);
+    }
+    return Object.keys(state)
+      .sort((a, b) => Number(a) - Number(b))
+      .map((toothId) => ({ toothId, entries: byTooth.get(toothId) ?? [], notes: state[toothId]?.notes?.trim() }))
+      .filter((summary) => summary.entries.length > 0 || !!summary.notes);
+  }
+
   function buildStateEntries(state: OdontogramState): StateEntry[] {
     return listOdontogramEntries(state).map(({ toothId, condition, surface }) => ({
       toothId,
@@ -235,10 +250,11 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     }));
   }
 
-  function resetEditingSession(initialState: OdontogramState, initialNotesValue: string) {
+  function resetEditingSession(initialState: OdontogramState, initialNotesValue: string, initialPlan = '') {
     setEditingState(initialState);
     setNotes(initialNotesValue);
     setInitialNotes(initialNotesValue);
+    setNextSessionPlan(initialPlan);
     setUndoStack([]);
     setActiveProcedure(null);
     setIsEditing(true);
@@ -246,20 +262,20 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     if (isMobile) setIsFullscreen(true);
   }
 
-  function handleStartNewSession(description?: string, notes?: string, marcaciones?: OdontogramMarcacion[]) {
+  function handleStartNewSession(description?: string, notes?: string, marcaciones?: OdontogramMarcacion[], plan?: string) {
     const base = currentSnapshot?.state ?? {};
     const initialState = marcaciones?.length
       ? applyMarcaciones(base, marcaciones)
       : cloneState(base);
     setEditingDefaultDescription(description || t('session.defaultTitle', { date: format(new Date(), 'dd/MM/yyyy HH:mm') }));
-    resetEditingSession(initialState, notes ?? '');
+    resetEditingSession(initialState, notes ?? '', plan ?? '');
   }
 
   function handleStartEditSession(snapshot: OdontogramSnapshot) {
     setEditingSessionId(snapshot.id ?? null);
     setEditingSnapshot(snapshot);
     setEditingDefaultDescription(snapshot.description || t('session.defaultTitle', { date: format(new Date(), 'dd/MM/yyyy HH:mm') }));
-    resetEditingSession(cloneState(snapshot.state), snapshot.notes ?? '');
+    resetEditingSession(cloneState(snapshot.state), snapshot.notes ?? '', snapshot.planProximaCita ?? '');
   }
 
   function appendNotes(current: string, extra?: string): string {
@@ -279,6 +295,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
       const nextNotes = appendNotes(notes, autoStartNotes);
       if (marcaciones.length > 0) commitEdit(applyMarcaciones(editingState, marcaciones));
       if (nextNotes !== notes) setNotes(nextNotes);
+      setNextSessionPlan((prev) => appendNotes(prev, autoStartNextSessionPlan));
       return { applied: true };
     }
 
@@ -290,6 +307,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
       handleStartEditSession(appointmentSnapshot);
       setEditingState(applyMarcaciones(appointmentSnapshot.state, marcaciones));
       setNotes(appendNotes(appointmentSnapshot.notes ?? '', autoStartNotes));
+      setNextSessionPlan(appendNotes(appointmentSnapshot.planProximaCita ?? '', autoStartNextSessionPlan));
       // The agent's marks can be undone back to the saved session
       setUndoStack([{ state: cloneState(appointmentSnapshot.state), notes: appointmentSnapshot.notes ?? '' }]);
       return { applied: true };
@@ -297,7 +315,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
 
     if (blockNewSession) return { applied: false };
 
-    handleStartNewSession(autoStartDescription, autoStartNotes, marcaciones);
+    handleStartNewSession(autoStartDescription, autoStartNotes, marcaciones, autoStartNextSessionPlan);
     if (marcaciones.length > 0) {
       setUndoStack([{ state: cloneState(currentSnapshot?.state ?? {}), notes: autoStartNotes ?? '' }]);
     }
@@ -312,6 +330,7 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     setEditingSnapshot(null);
     setNotes('');
     setInitialNotes('');
+    setNextSessionPlan('');
     setUndoStack([]);
     setActiveProcedure(null);
     setEditingDefaultDescription('');
@@ -442,8 +461,8 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
   // ── Session detail panel (read mode) ──────────────────────────────────────
   const sessionReadPanel = !isEditing && currentSnapshot ? (() => {
     const doctorName = resolveDoctorName(currentSnapshot);
-    const stateEntries = buildStateEntries(currentSnapshot.state);
-    const hasContent = !!currentSnapshot.notes || stateEntries.length > 0 || !!doctorName
+    const toothSummaries = buildToothSummaries(currentSnapshot.state);
+    const hasContent = !!currentSnapshot.notes || toothSummaries.length > 0 || !!doctorName
       || (currentSnapshot.archivosAdjuntos?.length ?? 0) > 0;
 
     if (!hasContent) return null;
@@ -479,32 +498,57 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
         )}
 
         {/* Odontogram state summary */}
-        {stateEntries.length > 0 && (
+        {toothSummaries.length > 0 && (
           <div className="bg-background rounded-lg border px-2.5 py-2 flex flex-col gap-1.5">
             <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
               {t('session.stateSummary')}
             </span>
-            <div className="flex flex-wrap gap-1.5">
-              {stateEntries.map((entry, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs bg-muted/30"
-                  style={{ borderColor: `${entry.color}40` }}
-                >
-                  <span
-                    className="font-bold text-[10px] rounded px-1 py-0.5 text-white shrink-0"
-                    style={{ backgroundColor: entry.color }}
-                  >
-                    D{entry.toothId}
-                  </span>
-                  <span className="text-foreground font-medium">{entry.label}</span>
-                  {entry.detail && (
-                    <span className="text-[10px] text-muted-foreground bg-muted rounded px-1">
-                      {entry.detail}
-                    </span>
-                  )}
-                </div>
-              ))}
+            <div className="flex flex-col divide-y divide-border/60">
+              {toothSummaries.map(({ toothId, entries, notes }) => {
+                const toothNumber = Number(toothId);
+                const kind = getToothKind(toothNumber);
+                return (
+                  <div key={toothId} className="flex items-start gap-3 py-2 first:pt-1 last:pb-0.5">
+                    <div className="flex w-24 shrink-0 flex-col">
+                      <span
+                        className={cn(
+                          'font-mono text-xs font-bold',
+                          isTemporalTooth(toothNumber) ? 'text-amber-600 dark:text-amber-400' : 'text-foreground',
+                        )}
+                      >
+                        {t('board.piece', { tooth: toothNumber })}
+                      </span>
+                      {kind && (
+                        <span className="text-[10px] leading-tight text-muted-foreground">{t(`toothNames.${kind}`)}</span>
+                      )}
+                    </div>
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      {entries.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                          {entries.map((entry, i) => (
+                            <div
+                              key={i}
+                              className="flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs bg-muted/30"
+                              style={{ borderColor: `${entry.color}40` }}
+                            >
+                              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
+                              <span className="text-foreground font-medium">{entry.label}</span>
+                              {entry.detail && (
+                                <span className="text-[10px] text-muted-foreground bg-muted rounded px-1">
+                                  {entry.detail}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {notes && (
+                        <p className="whitespace-pre-wrap text-[11px] italic leading-relaxed text-muted-foreground">{notes}</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -600,11 +644,12 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     <SessionForm
       defaultDate={editingSnapshot?.date ?? new Date().toISOString().split('T')[0]}
       defaultDescription={editingDefaultDescription}
-      defaultNextSessionPlan={editingSnapshot?.planProximaCita}
       defaultNextSessionDate={editingSnapshot?.fechaProximaCita}
       doctors={doctors}
       notes={notes}
       onNotesChange={setNotes}
+      nextSessionPlan={nextSessionPlan}
+      onNextSessionPlanChange={setNextSessionPlan}
       onSave={handleSave}
       onCancel={requestCancelEditing}
       lockDoctorId={doctorId ?? editingSnapshot?.doctorId}
