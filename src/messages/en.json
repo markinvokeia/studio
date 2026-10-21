@@ -9613,5 +9613,12 @@
     "errorPdf": "Couldn't generate the document PDF",
     "sending": "Sending…",
     "generatingPdf": "Generating PDF…"
+  },
+  "CalendarMobileSheet": {
+    "appointmentTitle": "Appointment actions",
+    "reminderTitle": "Reminder actions",
+    "back": "Back",
+    "close": "Close",
+    "patientHint": "Patient account, history and details"
   }
 }

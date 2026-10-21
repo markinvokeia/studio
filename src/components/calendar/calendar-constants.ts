@@ -12,6 +12,11 @@ export const GOOGLE_CALENDAR_COLORS = [
   { id: "11", hex: "#dc2127" }, // Tomato
 ];
 
+/** Duraciones ofrecidas por el submenú "Duración" (y su página en el sheet de móvil). Cubren los tramos habituales de
+ *  la clínica sin volverse una lista interminable; para algo fuera de esto está la
+ *  edición inline. */
+export const DURATION_PRESET_MINUTES = [15, 20, 30, 45, 60, 90] as const;
+
 /** Azul de Google Calendar, para el badge de las citas importadas desde ahí. */
 export const GOOGLE_IMPORT_BADGE_COLOR = '#4285F4';
 
@@ -98,8 +103,9 @@ export const EVENT_STACK_MAX_Z_BOOST = 40;
 export const DRAG_THRESHOLD_PX = 4;
 
 /** Táctil: cuánto hay que mantener apretado antes de que el gesto pueda pasar a
- *  arrastre. Por debajo del long-press de 700 ms del menú contextual de Radix, que
- *  se conserva: si el dedo NO se mueve, gana el menú. */
+ *  arrastre. En móvil la card no tiene menú contextual (sus acciones están en el
+ *  sheet que abre el toque simple), así que el long-press es solo del arrastre. En
+ *  tablet el menú se conserva: su long-press de 700 ms gana si el dedo NO se mueve. */
 export const DRAG_LONG_PRESS_MS = 300;
 
 /** Táctil: cuánto se puede mover el dedo antes de que gane el scroll de la grilla. */

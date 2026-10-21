@@ -82,7 +82,7 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
 
   return (
     <ContextMenu onOpenChange={(o) => { if (o) onEventContextMenuOpen?.(event.data); }}>
-      <ContextMenuTrigger asChild>
+      <ContextMenuTrigger asChild disabled={!onEventContextMenu}>
         <div
           data-testid="calendar-event"
           data-event-id={event.id}

@@ -15,7 +15,7 @@ import { CalendarViewMenu } from '@/components/calendar/calendar-view-menu';
 import { CalendarZoomMenu } from '@/components/calendar/calendar-zoom-menu';
 import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, filterExceptionsForSede, gapKey, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
 import { filterEventsByDayAndGroup } from '@/components/calendar/calendar-utils';
-import { DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT, MINUTES_IN_DAY } from '@/components/calendar/calendar-constants';
+import { DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, DURATION_PRESET_MINUTES, HOUR_SLOT_HEIGHT, MINUTES_IN_DAY } from '@/components/calendar/calendar-constants';
 import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
 import { ReminderPanel } from '@/components/appointments/ReminderPanel';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
@@ -89,6 +89,8 @@ import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { AppointmentHistorySheet } from '@/components/appointments/AppointmentHistorySheet';
 import { AppointmentQuickView } from '@/components/calendar/appointment-quick-view';
 import { ReminderQuickView } from '@/components/calendar/reminder-quick-view';
+import { AppointmentMobileSheet } from '@/components/calendar/appointment-mobile-sheet';
+import { ReminderMobileSheet } from '@/components/calendar/reminder-mobile-sheet';
 import { ReminderScopeDialog } from '@/components/appointments/ReminderScopeDialog';
 import { PatientCreateDialog } from '@/components/patients/patient-create-dialog';
 import { BulkReassignDoctorDialog } from '@/components/appointments/BulkReassignDoctorDialog';
@@ -809,11 +811,6 @@ async function getDoctorCalendarMap(calendars: CalendarType[]): Promise<Map<stri
     return map;
 }
 
-/** Duraciones ofrecidas por el submenú "Duración". Cubren los tramos habituales de
- *  la clínica sin volverse una lista interminable; para algo fuera de esto está la
- *  edición inline. */
-const DURATION_PRESET_MINUTES = [15, 20, 30, 45, 60, 90] as const;
-
 export default function AppointmentsPage() {
     const breakpoint = useCalendarBreakpoint();
     const isMobile = breakpoint === 'mobile';
@@ -904,11 +901,18 @@ export default function AppointmentsPage() {
     const [isDetailViewOpen, setIsDetailViewOpen] = React.useState(false);
     // Ventana flotante de detalle (modo custom): la cita y el rect de su card, para
     // anclarla. En el modo normal el clic simple sigue abriendo el panel lateral.
-    const [quickView, setQuickView] = React.useState<{ appointment: Appointment; anchorRect: DOMRect } | null>(null);
+    // En móvil no hay rect: la ficha se abre como sheet inferior, no anclada a la card.
+    const [quickView, setQuickView] = React.useState<{ appointment: Appointment; anchorRect?: DOMRect } | null>(null);
     // Cita cuyo historial de auditoría se está viendo en el sheet dedicado — se abre
     // desde el botón de historial de la ventana flotante (modo custom).
     const [historyAppointment, setHistoryAppointment] = React.useState<Appointment | null>(null);
-    const [reminderQuickView, setReminderQuickView] = React.useState<{ reminder: CalendarReminder; anchorRect: DOMRect } | null>(null);
+    const [reminderQuickView, setReminderQuickView] = React.useState<{ reminder: CalendarReminder; anchorRect?: DOMRect } | null>(null);
+    // Versión viva de la cita del sheet de móvil: tras cambiar estado, doctor o color
+    // desde el propio sheet, la ficha muestra el dato nuevo sin reabrirse.
+    const liveQuickViewAppointment = quickView
+        ? (appointments.find((a) => a.id === quickView.appointment.id) ?? quickView.appointment)
+        : null;
+    const liveReminderQuickView = reminderQuickView?.reminder ?? null;
     const [selectedReminder, setSelectedReminder] = React.useState<CalendarReminder | null>(null);
     const [isReminderPanelOpen, setIsReminderPanelOpen] = React.useState(false);
     const [isReminderFormOpen, setIsReminderFormOpen] = React.useState(false);
@@ -2188,7 +2192,8 @@ export default function AppointmentsPage() {
             // En modo custom, igual que las citas: ventana flotante anclada a la card en
             // vez del panel lateral. Sin rect (vistas que no posicionan cards) se cae al
             // panel, que siempre funciona.
-            if (calendarMode === 'custom' && anchorRect) {
+            // En móvil se abre igual, como sheet inferior (no necesita rect).
+            if (calendarMode === 'custom' && (anchorRect || isMobile)) {
                 setQuickView(null);
                 setReminderQuickView({ reminder: eventData, anchorRect });
                 return;
@@ -2207,7 +2212,7 @@ export default function AppointmentsPage() {
             setIsDetailViewOpen(false);
             eventClickAbortRef.current?.abort();
             setReminderQuickView(null);
-            setQuickView(anchorRect ? { appointment, anchorRect } : null);
+            setQuickView(anchorRect || isMobile ? { appointment, anchorRect } : null);
             return;
         }
         eventClickAbortRef.current?.abort();
@@ -2224,7 +2229,7 @@ export default function AppointmentsPage() {
         const tasks: Promise<void>[] = [loadLinkedSession(appointment, controller.signal)];
         if (appointment.quote_id) tasks.push(loadQuoteInfo(appointment.quote_id, controller.signal));
         Promise.all(tasks);
-    }, [calendarMode, loadLinkedSession, loadQuoteInfo]);
+    }, [calendarMode, isMobile, loadLinkedSession, loadQuoteInfo]);
 
     // ── Buscar cita — efecto de búsqueda con debounce ────────────────────────
     // Se dispara solo con el panel abierto y >= SEARCH_MIN_CHARS. El pedido (y el
@@ -2811,6 +2816,23 @@ export default function AppointmentsPage() {
     );
     const applyEventTimeChange = (result: CalendarDragResult) => {
         void eventTimeAction.run(String(result.eventId), result);
+    };
+
+    /** Cambio de horario elegido desde un menú ("Mover a…" / "Duración"), no por arrastre. */
+    const retimeAppointment = (appointment: Appointment, nextStart: Date, nextEnd: Date) => {
+        const originalStart = appointment.start?.dateTime ? parseISO(appointment.start.dateTime.replace(/Z$/, '')) : null;
+        const originalEnd = appointment.end?.dateTime ? parseISO(appointment.end.dateTime.replace(/Z$/, '')) : null;
+        if (!originalStart || !originalEnd) return;
+        applyEventTimeChange({
+            data: { ...appointment, kind: 'appointment' as const },
+            eventId: String(appointment.id),
+            mode: nextStart.getTime() === originalStart.getTime() ? 'resize-end' : 'move',
+            start: nextStart,
+            end: nextEnd,
+            originalStart,
+            originalEnd,
+            blocked: false,
+        });
     };
 
     // ── Context-menu financial / session quick actions ───────────────────────
@@ -4601,20 +4623,6 @@ export default function AppointmentsPage() {
             && canReschedule(normalizeAppointmentStatus(appointment.status))
             && !!apptStart && !!apptEnd && isValid(apptStart) && isValid(apptEnd);
 
-        const retimeAppointment = (nextStart: Date, nextEnd: Date) => {
-            if (!apptStart || !apptEnd) return;
-            applyEventTimeChange({
-                data: { ...appointment, kind: 'appointment' as const },
-                eventId: String(appointment.id),
-                mode: nextStart.getTime() === apptStart.getTime() ? 'resize-end' : 'move',
-                start: nextStart,
-                end: nextEnd,
-                originalStart: apptStart,
-                originalEnd: apptEnd,
-                blocked: false,
-            });
-        };
-
         const moveToSubmenu = canRetimeAppointment ? (
             <ContextMenuSub>
                 <ContextMenuSubTrigger className="cursor-pointer gap-2">
@@ -4636,7 +4644,7 @@ export default function AppointmentsPage() {
                                 date: date.getDate(),
                             });
                             if (nextStart.getTime() === apptStart.getTime()) return;
-                            retimeAppointment(nextStart, addMinutes(nextStart, apptDurationMin));
+                            retimeAppointment(appointment, nextStart, addMinutes(nextStart, apptDurationMin));
                         }}
                         initialFocus
                     />
@@ -4659,7 +4667,7 @@ export default function AppointmentsPage() {
                             key={minutes}
                             onSelect={() => {
                                 if (!apptStart || Math.round(apptDurationMin) === minutes) return;
-                                retimeAppointment(apptStart, addMinutes(apptStart, minutes));
+                                retimeAppointment(appointment, apptStart, addMinutes(apptStart, minutes));
                             }}
                             className="flex items-center gap-2 cursor-pointer"
                         >
@@ -5318,8 +5326,10 @@ export default function AppointmentsPage() {
                                 }
                                 handleEditAppointment(data as Appointment);
                             }}
-                            onEventContextMenu={isBulkMode ? undefined : renderEventContextMenu}
-                            onEventContextMenuOpen={isBulkMode ? undefined : (data) => { if (data?.kind !== 'reminder') requestAppointmentMenuData(data as Appointment); }}
+                            // Móvil: sin menú contextual en las cards. Su long-press competía con
+                            // el de arrastrar; las acciones están en el sheet del toque simple.
+                            onEventContextMenu={isBulkMode || isMobile ? undefined : renderEventContextMenu}
+                            onEventContextMenuOpen={isBulkMode || isMobile ? undefined : (data) => { if (data?.kind !== 'reminder') requestAppointmentMenuData(data as Appointment); }}
                             inlineDraft={inlineDraft ? { date: inlineDraft.date, durationMin: inlineDraft.durationMin, groupValue: inlineDraft.context?.value } : null}
                             renderInlineDraft={renderInlineDraft}
                             groupBy={effectiveGroupBy}
@@ -6140,28 +6150,93 @@ export default function AppointmentsPage() {
                 }}
             />
 
-            {reminderQuickView && (
-                <ReminderQuickView
-                    reminder={reminderQuickView.reminder}
-                    anchorRect={reminderQuickView.anchorRect}
-                    calendarName={calendars.find((c) => String(c.id) === String(reminderQuickView.reminder.calendar_id))?.name}
-                    locale={locale}
-                    onClose={() => setReminderQuickView(null)}
-                    onEdit={(reminder) => { setReminderQuickView(null); handleEditReminder(reminder); }}
-                />
-            )}
-            {quickView && (
-                <AppointmentQuickView
-                    appointment={quickView.appointment}
-                    anchorRect={quickView.anchorRect}
-                    locale={locale}
-                    onClose={() => setQuickView(null)}
-                    onEdit={(appointment) => { setQuickView(null); handleEditAppointment(appointment); }}
-                    onViewDetails={canViewAppointmentHistory ? (appointment) => {
-                        setQuickView(null);
-                        setHistoryAppointment(appointment);
-                    } : undefined}
-                />
+            {isMobile ? (
+                <>
+                    <ReminderMobileSheet
+                        reminder={liveReminderQuickView}
+                        onClose={() => setReminderQuickView(null)}
+                        calendarName={calendars.find((c) => String(c.id) === String(liveReminderQuickView?.calendar_id))?.name}
+                        locale={locale}
+                        isActionPending={!!liveReminderQuickView && (
+                            isReminderActionPending(liveReminderQuickView)
+                            || isColorChangePending({ ...liveReminderQuickView, kind: 'reminder' })
+                        )}
+                        onEdit={handleEditReminder}
+                        onMarkDone={handleMarkReminderDone}
+                        onDelete={handleDeleteReminder}
+                        onColorChange={(reminder, colorId) => handleEventColorChange({ ...reminder, kind: 'reminder' }, colorId)}
+                    />
+                    <AppointmentMobileSheet
+                        appointment={liveQuickViewAppointment}
+                        onClose={() => setQuickView(null)}
+                        locale={locale}
+                        doctors={doctors}
+                        calendars={calendars}
+                        canUpdateAppointments={canUpdateAppointments}
+                        isUpdatingStatus={isUpdatingAppointmentStatus}
+                        isRowActionPending={!!liveQuickViewAppointment && (
+                            isReassignPending(liveQuickViewAppointment)
+                            || isColorChangePending({ ...liveQuickViewAppointment, kind: 'appointment' })
+                            || eventTimeAction.isPending(String(liveQuickViewAppointment.id))
+                        )}
+                        patientActions={{
+                            onAccounts: canViewPatientStatement
+                                ? (appointment) => openAccountStatement(appointment.patientId, appointment.patientName)
+                                : undefined,
+                            onClinicHistory: (appointment) => openPatientHistory(appointment.patientId, appointment.patientName),
+                            onDocuments: (appointment) => openPatientDocuments(appointment.patientId, appointment.patientName),
+                            onAppointments: (appointment) => openPatientAppointments(appointment.patientId, appointment.patientName),
+                            onData: (appointment) => openPatientView({
+                                userId: appointment.patientId,
+                                userName: appointment.patientName,
+                                userEmail: getEffectiveAppointmentContact(appointment).email,
+                                userPhone: getEffectiveAppointmentContact(appointment).phone,
+                                initialTab: 'info',
+                            }),
+                        }}
+                        onEdit={handleEditAppointment}
+                        onDelete={setSoftDeleteTarget}
+                        onViewHistory={canViewAppointmentHistory ? setHistoryAppointment : undefined}
+                        onStatusChange={handleStatusChange}
+                        onRequestCustomCancellation={handleRequestCustomCancellation}
+                        onColorChange={(appointment, colorId) => handleEventColorChange({ ...appointment, kind: 'appointment' }, colorId)}
+                        onReassignDoctor={(appointment, doctorId) => {
+                            const doctor = doctors.find((d) => String(d.id) === doctorId);
+                            if (doctor) handleReassign(appointment, { doctor });
+                        }}
+                        onReassignCalendar={(appointment, calendarId) => {
+                            const calendar = calendars.find((c) => String(c.id) === calendarId);
+                            if (calendar) handleReassign(appointment, { calendar });
+                        }}
+                        onRetime={retimeAppointment}
+                    />
+                </>
+            ) : (
+                <>
+                    {reminderQuickView?.anchorRect && (
+                        <ReminderQuickView
+                            reminder={reminderQuickView.reminder}
+                            anchorRect={reminderQuickView.anchorRect}
+                            calendarName={calendars.find((c) => String(c.id) === String(reminderQuickView.reminder.calendar_id))?.name}
+                            locale={locale}
+                            onClose={() => setReminderQuickView(null)}
+                            onEdit={(reminder) => { setReminderQuickView(null); handleEditReminder(reminder); }}
+                        />
+                    )}
+                    {quickView?.anchorRect && (
+                        <AppointmentQuickView
+                            appointment={quickView.appointment}
+                            anchorRect={quickView.anchorRect}
+                            locale={locale}
+                            onClose={() => setQuickView(null)}
+                            onEdit={(appointment) => { setQuickView(null); handleEditAppointment(appointment); }}
+                            onViewDetails={canViewAppointmentHistory ? (appointment) => {
+                                setQuickView(null);
+                                setHistoryAppointment(appointment);
+                            } : undefined}
+                        />
+                    )}
+                </>
             )}
             {historyAppointment && (
                 <AppointmentHistorySheet

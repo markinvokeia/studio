@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover';
 
 import { formatRecurrenceSummary } from '@/lib/reminders';
-import { formatDisplayDateWithWeekday } from '@/lib/utils';
+import { cn, formatDisplayDateWithWeekday } from '@/lib/utils';
 import type { CalendarReminder } from '@/lib/types';
 
 interface ReminderQuickViewProps {
@@ -82,23 +82,6 @@ export function ReminderQuickView({
     return () => window.removeEventListener('scroll', close, { capture: true });
   }, [onClose]);
 
-  const isNote = reminder.type === 'note';
-  const isPersonal = reminder.visibility === 'personal';
-  const isAllDay = reminder.is_all_day;
-  const recurrenceSummary = reminder.recurrence ? formatRecurrenceSummary(reminder.recurrence, t) : null;
-
-  const startTime = timeOf(reminder.start_datetime);
-  const endTime = timeOf(reminder.end_datetime);
-  const dateLine = [
-    formatDisplayDateWithWeekday(reminder.start_datetime, locale),
-    // Un ítem de todo el día guarda 00:00–23:59: mostrarlo sería ruido.
-    isAllDay ? t('allDayBandLabel') : (startTime && endTime ? `${startTime} – ${endTime}` : startTime),
-  ]
-    .filter(Boolean)
-    .join('  ·  ');
-
-  const accentColor = reminder.color || '#8b5cf6';
-
   // En la vista de agenda (y en móvil) la card ocupa casi todo el ancho: anclar
   // el popover "a la derecha" lo deja sin espacio y Radix lo aplasta contra el
   // borde izquierdo o lo empuja fuera de pantalla. Si el ancla es ancha respecto
@@ -152,63 +135,101 @@ export function ReminderQuickView({
           </Button>
         </div>
 
-        <div className="space-y-3 px-4 pb-4">
-          <div className="flex items-start gap-2.5">
-            <span
-              aria-hidden
-              className="mt-1 h-3 w-3 shrink-0 rounded-sm"
-              style={{ backgroundColor: accentColor }}
-            />
-            <div className="min-w-0 space-y-0.5">
-              <h3 className="break-words text-sm font-semibold leading-snug text-foreground">
-                {reminder.title}
-              </h3>
-              <p className="text-xs text-muted-foreground">{dateLine}</p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-              {isNote ? <FileText className="h-3 w-3 shrink-0" aria-hidden /> : <CalendarDays className="h-3 w-3 shrink-0" aria-hidden />}
-              {t(isNote ? 'nota' : 'recordatorio')}
-            </span>
-            <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
-              {t(`status.${reminder.status}`)}
-            </span>
-            {recurrenceSummary && (
-              <span
-                className="inline-flex items-center gap-1 rounded-md bg-teal-600 px-1.5 py-0.5 text-[11px] font-medium text-white"
-                title={recurrenceSummary}
-              >
-                <Repeat className="h-3 w-3 shrink-0" aria-hidden />
-                {t('recurringBadge')}
-              </span>
-            )}
-            {isAllDay && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-indigo-500 px-1.5 py-0.5 text-[11px] font-medium text-white">
-                <Sun className="h-3 w-3 shrink-0" aria-hidden />
-                {t('allDayBadge')}
-              </span>
-            )}
-            {/* Solo se rotula la excepción: lo compartido es el default del modelo. */}
-            {isPersonal && (
-              <span className="inline-flex items-center gap-1 rounded-md bg-slate-500 px-1.5 py-0.5 text-[11px] font-medium text-white">
-                <Lock className="h-3 w-3 shrink-0" aria-hidden />
-                {t('personalBadge')}
-              </span>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Row icon={FileText} label={t('descriptionLabel')} value={reminder.description} />
-            {/* Las notas no tienen prioridad, igual que en el panel lateral. */}
-            {!isNote && (
-              <Row icon={Flag} label={t('priorityLabel')} value={t(`priority.${reminder.priority.toLowerCase()}`)} />
-            )}
-            <Row icon={MapPin} label={t('calendarLabel')} value={calendarName} />
-          </div>
-        </div>
+        <ReminderSummary reminder={reminder} calendarName={calendarName} locale={locale} className="px-4 pb-4" />
       </PopoverContent>
     </Popover>
+  );
+}
+
+/**
+ * Cuerpo de la ficha de una nota o recordatorio (título, fecha, insignias y datos),
+ * sin acciones. Lo comparten el popover de escritorio y el sheet de acciones de móvil.
+ */
+export function ReminderSummary({
+  reminder,
+  calendarName,
+  locale = 'es',
+  className,
+}: {
+  reminder: CalendarReminder;
+  calendarName?: string | null;
+  locale?: string;
+  className?: string;
+}) {
+  const t = useTranslations('Reminders');
+  const isNote = reminder.type === 'note';
+  const isPersonal = reminder.visibility === 'personal';
+  const isAllDay = reminder.is_all_day;
+  const recurrenceSummary = reminder.recurrence ? formatRecurrenceSummary(reminder.recurrence, t) : null;
+
+  const startTime = timeOf(reminder.start_datetime);
+  const endTime = timeOf(reminder.end_datetime);
+  const dateLine = [
+    formatDisplayDateWithWeekday(reminder.start_datetime, locale),
+    // Un ítem de todo el día guarda 00:00–23:59: mostrarlo sería ruido.
+    isAllDay ? t('allDayBandLabel') : (startTime && endTime ? `${startTime} – ${endTime}` : startTime),
+  ]
+    .filter(Boolean)
+    .join('  ·  ');
+
+  const accentColor = reminder.color || '#8b5cf6';
+
+  return (
+    <div className={cn('space-y-3', className)}>
+      <div className="flex items-start gap-2.5">
+        <span
+          aria-hidden
+          className="mt-1 h-3 w-3 shrink-0 rounded-sm"
+          style={{ backgroundColor: accentColor }}
+        />
+        <div className="min-w-0 space-y-0.5">
+          <h3 className="break-words text-sm font-semibold leading-snug text-foreground">
+            {reminder.title}
+          </h3>
+          <p className="text-xs text-muted-foreground">{dateLine}</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+          {isNote ? <FileText className="h-3 w-3 shrink-0" aria-hidden /> : <CalendarDays className="h-3 w-3 shrink-0" aria-hidden />}
+          {t(isNote ? 'nota' : 'recordatorio')}
+        </span>
+        <span className="inline-flex items-center rounded-md bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+          {t(`status.${reminder.status}`)}
+        </span>
+        {recurrenceSummary && (
+          <span
+            className="inline-flex items-center gap-1 rounded-md bg-teal-600 px-1.5 py-0.5 text-[11px] font-medium text-white"
+            title={recurrenceSummary}
+          >
+            <Repeat className="h-3 w-3 shrink-0" aria-hidden />
+            {t('recurringBadge')}
+          </span>
+        )}
+        {isAllDay && (
+          <span className="inline-flex items-center gap-1 rounded-md bg-indigo-500 px-1.5 py-0.5 text-[11px] font-medium text-white">
+            <Sun className="h-3 w-3 shrink-0" aria-hidden />
+            {t('allDayBadge')}
+          </span>
+        )}
+        {/* Solo se rotula la excepción: lo compartido es el default del modelo. */}
+        {isPersonal && (
+          <span className="inline-flex items-center gap-1 rounded-md bg-slate-500 px-1.5 py-0.5 text-[11px] font-medium text-white">
+            <Lock className="h-3 w-3 shrink-0" aria-hidden />
+            {t('personalBadge')}
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Row icon={FileText} label={t('descriptionLabel')} value={reminder.description} />
+        {/* Las notas no tienen prioridad, igual que en el panel lateral. */}
+        {!isNote && (
+          <Row icon={Flag} label={t('priorityLabel')} value={t(`priority.${reminder.priority.toLowerCase()}`)} />
+        )}
+        <Row icon={MapPin} label={t('calendarLabel')} value={calendarName} />
+      </div>
+    </div>
   );
 }

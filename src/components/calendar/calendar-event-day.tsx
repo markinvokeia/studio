@@ -115,7 +115,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
 
   return (
     <ContextMenu onOpenChange={(o) => { if (o) onEventContextMenuOpen?.(event.data); }}>
-      <ContextMenuTrigger asChild disabled={contextMenuDisabled}>
+      <ContextMenuTrigger asChild disabled={contextMenuDisabled || !onEventContextMenu}>
         <div
           data-testid="calendar-day-event"
           data-event-id={event.id}
