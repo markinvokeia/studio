@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { formatDisplayDate } from '@/lib/utils';
 import type { ClinicHistoryPrintData } from '@/stores/print-document-store';
 import type { MedicationItem } from '@/hooks/useClinicHistory';
+import { formatOdontogramEntries, getConditionLabel } from '@/components/users/dental-record/odontogram-state';
 
 interface ClinicHistoryPrintTemplateProps {
   data: ClinicHistoryPrintData;
@@ -56,6 +57,7 @@ function DetailLine({ label, value, muted }: { label: string; value: string; mut
 export function ClinicHistoryPrintTemplate({ data }: ClinicHistoryPrintTemplateProps) {
   const t = useTranslations('ClinicHistoryPrint');
   const tRel = useTranslations('ClinicHistoryPage.anamnesis.dialogs.family');
+  const tDental = useTranslations('DentalRecord');
   const { patient, personalHistory, familyHistory, allergies, medications, habits, sessions, emittedAt } = data;
 
   const relationshipLabel = (parentesco: string): string => {
@@ -253,12 +255,7 @@ export function ClinicHistoryPrintTemplate({ data }: ClinicHistoryPrintTemplateP
                 })
                 .filter(Boolean)
                 .join('; ');
-              const odontogram =
-                s.estado_odontograma && typeof s.estado_odontograma === 'object'
-                  ? Object.entries(s.estado_odontograma as Record<string, any>)
-                      .map(([tooth, info]) => `${tooth}: ${info?.condition ?? '—'}${info?.surface ? ` (${info.surface})` : ''}`)
-                      .join('; ')
-                  : '';
+              const odontogram = formatOdontogramEntries(s.estado_odontograma, (c) => getConditionLabel(c, tDental)).join('; ');
               const attachments = (Array.isArray(s.archivos_adjuntos) ? s.archivos_adjuntos : [])
                 .map((f) => f.file_name || f.tipo || t('field.file'))
                 .join(', ');

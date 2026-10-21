@@ -3,7 +3,8 @@
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
-import { CONDITION_MAP } from '@/components/users/dental-record/condition-toolbar';
+import { getProcedure } from '@/components/users/dental-record/odontogram-catalog';
+import { groupTeethByCondition } from '@/components/users/dental-record/odontogram-state';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -1901,6 +1902,7 @@ interface TreatmentTimelineProps {
 
 export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false, hideToolbar = false, forcedTypeFilter, showSessionColor = false, readOnly = false, linkedAppointmentId }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
+    const tDental = useTranslations('DentalRecord');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
     const tPatientHistory = useTranslations('PatientHistorySheet');
@@ -2728,16 +2730,8 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                             .filter((file: any) => file.file_name || file.ruta);
                                         // Resumen del odontograma: se agrupan las piezas por condición para que la
                                         // sesión informe qué se marcó sin tener que abrir el odontograma completo.
-                                        const odontogramGroups = isOdontogramSession && session.estado_odontograma
-                                            ? Object.entries(
-                                                Object.entries(session.estado_odontograma as Record<string, Record<string, string>>)
-                                                    .reduce((acc: Record<string, string[]>, [tooth, surfaces]) => {
-                                                        new Set(Object.values(surfaces ?? {})).forEach(condition => {
-                                                            (acc[condition] ??= []).push(tooth);
-                                                        });
-                                                        return acc;
-                                                    }, {})
-                                            )
+                                        const odontogramGroups = isOdontogramSession
+                                            ? groupTeethByCondition(session.estado_odontograma)
                                             : [];
                                         const sessionPreview = session.procedimiento_realizado?.trim()
                                             || (isOdontogramSession ? t('odontogramUpdate') : t('noTitle'));
@@ -2781,8 +2775,8 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                         <p className="text-muted-foreground">{t('odontogramUpdate')}:</p>
                                                         <div className="space-y-0.5">
                                                             {odontogramGroups.map(([condition, teeth]) => {
-                                                                const def = CONDITION_MAP[condition as keyof typeof CONDITION_MAP];
-                                                                const label = def ? t(`conditions.${condition}` as Parameters<typeof t>[0]) : condition;
+                                                                const def = getProcedure(condition);
+                                                                const label = def ? tDental(`procedures.${condition}.label`) : condition;
                                                                 return (
                                                                     <div key={condition} className="flex min-w-0 flex-wrap items-center gap-x-1.5">
                                                                         {def && (
@@ -2790,7 +2784,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                                 className="inline-flex items-center rounded px-1 py-0.5 font-mono text-[10px] font-bold text-white"
                                                                                 style={{ backgroundColor: def.color }}
                                                                             >
-                                                                                {def.icon}
+                                                                                {def.code}
                                                                             </span>
                                                                         )}
                                                                         <span className="text-foreground">{label}:</span>

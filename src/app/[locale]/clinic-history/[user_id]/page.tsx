@@ -37,6 +37,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
+import { formatOdontogramEntries, getConditionLabel } from '@/components/users/dental-record/odontogram-state';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
@@ -2118,6 +2119,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
 
     const TreatmentTimeline = ({ sessions, onAction }: { sessions: PatientSession[], onAction: (action: 'add' | 'edit' | 'delete', session?: PatientSession) => void }) => {
         const t = useTranslations('ClinicHistoryPage.timeline');
+        const tDental = useTranslations('DentalRecord');
         const [openItems, setOpenItems] = useState<string[]>([]);
 
         const toggleItem = (id: string) => {
@@ -2247,8 +2249,8 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                                             <div>
                                                                 <strong className="text-foreground">{t('odontogramUpdate')}</strong>
                                                                 <ul className="list-disc pl-5">
-                                                                    {Object.entries(session.estado_odontograma).map(([tooth, data]: [string, any]) => (
-                                                                        <li key={tooth}>Diente {tooth}: {data.condition} ({data.surface})</li>
+                                                                    {formatOdontogramEntries(session.estado_odontograma, (c) => getConditionLabel(c, tDental)).map((line) => (
+                                                                        <li key={line}>{line}</li>
                                                                     ))}
                                                                 </ul>
                                                             </div>

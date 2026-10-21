@@ -5292,43 +5292,6 @@
       },
       "noTitle": "Sin título",
       "apptUnassigned": "No asignado",
-      "conditions": {
-        "healthy": "Sano",
-        "caries": "Caries",
-        "crown": "Corona",
-        "crown-tmp": "Corona Temporal",
-        "missing": "Ausente",
-        "fracture": "Fractura",
-        "diastema": "Diastema",
-        "filling": "Obturación",
-        "rem-prost": "Prótesis Removible",
-        "drifting": "Migración",
-        "rotation": "Rotación",
-        "fusion": "Fusión",
-        "root-remnant": "Resto Radicular",
-        "eruption": "Erupción",
-        "transposition": "Transposición",
-        "supernumerary": "Supernumerario",
-        "pulp": "Pulpa",
-        "prosthesis": "Prótesis",
-        "bolt": "Perno",
-        "fixed-ortho": "Ortodoncia Fija",
-        "fixed-prosth": "Prótesis Fija",
-        "implant": "Implante",
-        "macrodontia": "Macrodontia",
-        "microdontia": "Microdontia",
-        "dyschromic": "Discromía",
-        "worn": "Desgastado",
-        "impacted-semi": "Semi Impactado",
-        "intrusion": "Intrusión",
-        "edentulism": "Edentulismo",
-        "ectopic": "Ectópico",
-        "impacted": "Impactado",
-        "rem-orthodo": "Ortodoncia Removible",
-        "extrusion": "Extrusión",
-        "post": "Post",
-        "endodontics": "Endodoncia"
-      },
       "surfaces": {
         "center": "Centro",
         "O": "Oclusal",
@@ -7865,24 +7828,8 @@
     "selectToothHint": "Toca un diente para ver detalles y aplicar condiciones",
     "clearTooth": "Limpiar diente",
     "clearAll": "Limpiar odontograma",
-    "activeTool": "Herramienta activa",
     "fullscreen": "Pantalla completa",
     "exitFullscreen": "Salir de pantalla completa",
-    "layoutMouth": "Vista boca abierta",
-    "layoutFlat": "Vista plana",
-    "backToMouth": "Volver a la boca",
-    "conditionsPanel": "Condiciones",
-    "odontogramSection": "Odontograma",
-    "conditionCategory": {
-      "surface": "Superficies",
-      "whole": "Pieza",
-      "overlay": "Superposición"
-    },
-    "hint": {
-      "surface": "Haz clic en una zona del diente",
-      "whole": "Haz clic en el diente para aplicar a la pieza completa",
-      "overlay": "Haz clic en el diente para agregar/quitar superposición"
-    },
     "conditions": {
       "healthy": "Sano",
       "caries": "Caries",
@@ -7970,6 +7917,481 @@
         "datePlaceholder": "Selecciona una fecha",
         "toastSuccess": "Paciente dado de alta correctamente",
         "dateRequired": "Debes seleccionar una fecha de alta."
+      },
+      "defaultTitle": "Sesión Odontograma {date}",
+      "wholeToothShort": "pieza"
+    },
+    "quickBilling": "Cobro Rápido",
+    "categories": {
+      "restorations": "Restauración",
+      "fixed-prosthesis": "Prótesis",
+      "endodontics": "Endodoncia",
+      "implants": "Implante",
+      "periodontics": "Periodoncia",
+      "oral-surgery": "Cirugía",
+      "orthodontics": "Ortodoncia",
+      "pathologies": "Patología"
+    },
+    "surfaces": {
+      "top": "Vestibular (V)",
+      "left": "Mesial (M)",
+      "center": "Oclusal/Incisal (O)",
+      "right": "Distal (D)",
+      "bottom": "Lingual/Palatina (L)"
+    },
+    "toothNames": {
+      "central": "Incisivo central",
+      "lateral": "Incisivo lateral",
+      "canine": "Canino",
+      "premolar1": "Primer premolar",
+      "premolar2": "Segundo premolar",
+      "molar1": "Primer molar",
+      "molar2": "Segundo molar",
+      "molar3": "Tercer molar"
+    },
+    "board": {
+      "surfaceTitle": "Diente {tooth} - {surface}",
+      "toothLabel": "Diente {tooth}",
+      "piece": "Pieza {tooth}",
+      "upperPiece": "Pieza superior",
+      "lowerPiece": "Pieza inferior",
+      "clickToZoom": "Haz clic en un diente para ampliarlo aquí",
+      "filter": {
+        "permanent": "Permanente",
+        "temporal": "Temporal",
+        "both": "Ambas"
+      },
+      "layout": {
+        "anatomical": "Arcada anatómica",
+        "traditional": "FDI tradicional"
+      },
+      "activeToolBanner": "Herramienta activa: <strong>{tool}</strong>. Haz clic en cualquier diente o superficie para aplicarla.",
+      "deactivateTool": "Desactivar herramienta",
+      "quadrant": {
+        "q1": "Permanente superior derecho (Q1)",
+        "q2": "Permanente superior izquierdo (Q2)",
+        "q3": "Permanente inferior izquierdo (Q3)",
+        "q4": "Permanente inferior derecho (Q4)",
+        "q5": "Temporal superior derecho (Q5)",
+        "q6": "Temporal superior izquierdo (Q6)",
+        "q7": "Temporal inferior izquierdo (Q7)",
+        "q8": "Temporal inferior derecho (Q8)"
+      }
+    },
+    "palette": {
+      "title": "Simbología",
+      "selectMode": "Modo selección",
+      "selectModeHint": "Modo puntero: selecciona un diente para ver sus detalles",
+      "search": "Buscar",
+      "searchHint": "Buscar procedimientos o símbolos",
+      "searchPlaceholder": "Buscar código o nombre...",
+      "clearSearch": "Limpiar búsqueda",
+      "categoryCount": "{category} ({count, plural, one {# símbolo} other {# símbolos}})",
+      "results": "Resultados ({count})",
+      "noResults": "No hay coincidencias.",
+      "closeCategory": "Cerrar categoría",
+      "pickCategory": "Toca una categoría para desplegar sus símbolos.",
+      "symbol": "Símbolo: {symbol}",
+      "appliesTo": {
+        "surface": "Superficies",
+        "tooth": "Pieza",
+        "both": "Ambas"
+      },
+      "legendTitle": "Simbología FDI:",
+      "legend": {
+        "amalgam": "Amalgama",
+        "resin": "Resina",
+        "required": "Requerida",
+        "caries": "Caries",
+        "missing": "Ausente",
+        "extraction": "Exodoncia"
+      }
+    },
+    "toothCard": {
+      "removeProcedure": "Quitar",
+      "temporal": "Pieza temporal",
+      "permanent": "Pieza permanente",
+      "undo": "Deshacer",
+      "quickAdd": "Patología o procedimiento para la pieza {tooth}",
+      "quickAddPlaceholder": "+ Selecciona una condición o tratamiento del listado FDI...",
+      "alreadyApplied": "(ya registrado)",
+      "summary": "Marcado en esta pieza",
+      "wholeTooth": "pieza",
+      "noMarks": "Todavía no hay nada marcado en esta pieza.",
+      "notes": "Notas de la pieza",
+      "notesPlaceholder": "Diagnóstico, observaciones o notas de esta pieza..."
+    },
+    "autoNote": {
+      "surfaceAdded": "D{tooth}({surface}): {label}",
+      "surfaceRemoved": "D{tooth}({surface}): {label} eliminado",
+      "toothAdded": "D{tooth}: {label} (pieza completa)",
+      "toothRemoved": "D{tooth}: {label} eliminado",
+      "cleared": "D{tooth}: limpiado"
+    },
+    "confirm": {
+      "clearAllTitle": "¿Limpiar el odontograma completo?",
+      "clearAllDescription": "Se quitarán todas las marcas de esta sesión. Puedes deshacerlo mientras sigas editando.",
+      "clearAllAction": "Sí, limpiar todo",
+      "cancelTitle": "¿Descartar los cambios?",
+      "cancelDescription": "Se perderán los cambios realizados en esta sesión.",
+      "cancelAction": "Sí, descartar",
+      "keepEditing": "Seguir editando"
+    },
+    "procedures": {
+      "caries": {
+        "label": "Caries Dental (Cavitada)",
+        "description": "Área roja sombreada que indica caries cavitada extensa que requiere restauración activa.",
+        "symbol": "Rojo sólido en la superficie"
+      },
+      "caries-incipient": {
+        "label": "Caries Incipiente (Punto)",
+        "description": "Punto rojo marcado en surcos o fosas que representa descalcificación o caries incipiente.",
+        "symbol": "Punto rojo en la cara"
+      },
+      "amalgam": {
+        "label": "Amalgama Existente",
+        "description": "Restauración dental existente con amalgama de plata metálica en buen estado.",
+        "symbol": "Cara azul rellena"
+      },
+      "resin": {
+        "label": "Resina Compuesta Existente",
+        "description": "Restauración dental estética con resina compuesta realizada e integrada.",
+        "symbol": "Cara azul rayada"
+      },
+      "restoration-required": {
+        "label": "Restauración Requerida",
+        "description": "Superficie dentaria con restauración perdida, filtrada o requerida por caries.",
+        "symbol": "Cara roja rellena"
+      },
+      "filling": {
+        "label": "Obturación General Existente",
+        "description": "Obturación o calza dental ya existente en buen estado.",
+        "symbol": "Cara azul sólida"
+      },
+      "sealant": {
+        "label": "Sellante (Protector)",
+        "description": "Material sellante preventivo aplicado en fosas y fisuras profundas.",
+        "symbol": "Sello verde"
+      },
+      "healthy": {
+        "label": "Sano",
+        "description": "Superficie sana (condición de sesiones anteriores).",
+        "symbol": "Cara verde"
+      },
+      "pulp": {
+        "label": "Tratamiento Pulpar",
+        "description": "Tratamiento pulpar registrado en sesiones anteriores.",
+        "symbol": "Cara naranja"
+      },
+      "dyschromic": {
+        "label": "Discromía",
+        "description": "Alteración del color dental registrada en sesiones anteriores.",
+        "symbol": "Cara amarilla"
+      },
+      "worn": {
+        "label": "Desgaste",
+        "description": "Desgaste de superficie registrado en sesiones anteriores.",
+        "symbol": "Cara gris"
+      },
+      "crown": {
+        "label": "Corona Protésica Existente",
+        "description": "Corona protésica metálica o cerámica fija colocada previamente.",
+        "symbol": "Circunferencia azul"
+      },
+      "crown-indicated": {
+        "label": "Corona Protésica Indicada",
+        "description": "Tratamiento rehabilitador con corona dental indicado por destrucción o endodoncia.",
+        "symbol": "Circunferencia roja punteada"
+      },
+      "crown-tmp": {
+        "label": "Corona Provisional",
+        "description": "Corona transitoria de acrílico o material provisional en preparación final.",
+        "symbol": "Circunferencia ámbar punteada"
+      },
+      "bridge-in-progress": {
+        "label": "Puente Fijo (En Progreso)",
+        "description": "Puente fijo en proceso de confección o indicado para realizar.",
+        "symbol": "Barra roja"
+      },
+      "fixed-prosth": {
+        "label": "Puente Fijo (Realizado)",
+        "description": "Puente fijo existente ya confeccionado y en buen estado.",
+        "symbol": "Barra azul"
+      },
+      "bridge-defective": {
+        "label": "Puente Fijo (Defectuoso o Recidiva)",
+        "description": "Puente fijo existente en mal estado, defectuoso o con recidiva.",
+        "symbol": "Barra azul con borde rojo"
+      },
+      "rem-prost": {
+        "label": "Prótesis Removible (PPR)",
+        "description": "Soportes de una prótesis removible parcial metálica o acrílica.",
+        "symbol": "Rectángulo punteado"
+      },
+      "post": {
+        "label": "Perno Metálico",
+        "description": "Perno o poste metálico colado de soporte intrarradicular.",
+        "symbol": "Perno gris"
+      },
+      "post-fiber": {
+        "label": "Perno de Fibra",
+        "description": "Perno o poste de fibra de vidrio o cuarzo estético.",
+        "symbol": "Perno mostaza"
+      },
+      "prosthesis": {
+        "label": "Prótesis",
+        "description": "Prótesis registrada en sesiones anteriores.",
+        "symbol": "Circunferencia violeta"
+      },
+      "endo-done": {
+        "label": "Tratamiento Endodóntico Realizado",
+        "description": "Tratamiento de conductos radiculares satisfactorio ya realizado.",
+        "symbol": "Línea azul en la raíz"
+      },
+      "endo-indicated": {
+        "label": "Tratamiento Endodóntico Indicado",
+        "description": "Pieza dental con necrosis pulpar o pulpitis irreversible con endodoncia indicada.",
+        "symbol": "Línea roja en la raíz"
+      },
+      "root-post": {
+        "label": "Poste Intrarradicular",
+        "description": "Elemento de retención intrapulpar como perno de fibra de vidrio o perno colado.",
+        "symbol": "Conducto grueso"
+      },
+      "endodontics": {
+        "label": "Endodoncia (Tratada)",
+        "description": "Tratamiento de conducto general.",
+        "symbol": "Conducto en la raíz"
+      },
+      "implant-osseo": {
+        "label": "Implante Osteointegrado",
+        "description": "Implante de titanio clínicamente osteointegrado.",
+        "symbol": "Tornillo en el hueso"
+      },
+      "implant-planned": {
+        "label": "Implante Planificado",
+        "description": "Sitio edéntulo planificado para la inserción quirúrgica de un implante dental.",
+        "symbol": "Tornillo rojo"
+      },
+      "implant": {
+        "label": "Implante Dental",
+        "description": "Implante dental general.",
+        "symbol": "Tornillo metálico"
+      },
+      "perio-pocket": {
+        "label": "Bolsa Periodontal",
+        "description": "Bolsa periodontal con profundidad de sondaje patológica mayor a 4 mm.",
+        "symbol": "Línea roja vertical"
+      },
+      "gingival-recession": {
+        "label": "Recesión Gingival (Apical)",
+        "description": "Migración del margen gingival en sentido apical, exponiendo la raíz.",
+        "symbol": "Flecha apical"
+      },
+      "gingival-enlargement": {
+        "label": "Agrandamiento Gingival",
+        "description": "Incremento excesivo del tamaño de la encía (hiperplasia o hipertrofia gingival).",
+        "symbol": "Flecha coronal"
+      },
+      "mobility-1": {
+        "label": "Movilidad Dental Grado I",
+        "description": "Movilidad mayor que la fisiológica pero menor de 1 mm en sentido horizontal.",
+        "symbol": "M1"
+      },
+      "mobility-2": {
+        "label": "Movilidad Dental Grado II",
+        "description": "Movilidad horizontal de la pieza dental entre 1 mm y 2 mm.",
+        "symbol": "M2"
+      },
+      "mobility-3": {
+        "label": "Movilidad Dental Grado III",
+        "description": "Movilidad horizontal mayor de 2 mm o en sentido vertical.",
+        "symbol": "M3"
+      },
+      "furcation": {
+        "label": "Compromiso de Furcación",
+        "description": "Pérdida de soporte óseo en el espacio interradicular de molares o premolares.",
+        "symbol": "Triángulo de furca"
+      },
+      "missing": {
+        "label": "Diente Ausente o Extraído",
+        "description": "Diente ya extraído clínicamente o ausente por agenesia.",
+        "symbol": "Aspa azul"
+      },
+      "extraction-indicated": {
+        "label": "Exodoncia Indicada",
+        "description": "Extracción indicada por caries destructiva, infección o fractura.",
+        "symbol": "Aspa roja"
+      },
+      "retained": {
+        "label": "Diente Retenido / Impactado",
+        "description": "Diente que no ha erupcionado y continúa alojado dentro del hueso o encía.",
+        "symbol": "Semicírculo arqueado"
+      },
+      "semi-erupted": {
+        "label": "Diente Semierupcionado",
+        "description": "Pieza que solo ha erupcionado parcialmente a través de la encía.",
+        "symbol": "Sombra translúcida"
+      },
+      "root-remnant": {
+        "label": "Resto Radicular",
+        "description": "Resto radicular registrado en sesiones anteriores.",
+        "symbol": "Círculo rojo punteado"
+      },
+      "edentulism": {
+        "label": "Edentulismo",
+        "description": "Zona edéntula registrada en sesiones anteriores.",
+        "symbol": "Doble línea gris"
+      },
+      "bracket": {
+        "label": "Aparato Fijo (Bracket)",
+        "description": "Presencia de aparatología fija (brackets metálicos o de zafiro).",
+        "symbol": "Bracket cuadrado"
+      },
+      "fixed-retainer": {
+        "label": "Contención Fija Ortodóntica",
+        "description": "Alambre de contención ortodóntica fijo adherido por lingual/palatino.",
+        "symbol": "Línea horizontal continua"
+      },
+      "ortho-movement": {
+        "label": "Movimiento Dentario Requerido",
+        "description": "Migración activa, inclinación o extrusión de la pieza.",
+        "symbol": "Flechas de dirección"
+      },
+      "fixed-ortho": {
+        "label": "Ortodoncia Fija",
+        "description": "Aparatología ortodóntica fija activa (brackets, bandas o arcos).",
+        "symbol": "Bracket verde con arco"
+      },
+      "rem-orthodo": {
+        "label": "Ortodoncia Removible",
+        "description": "Aparato de ortodoncia u ortopedia removible (alineadores, placas).",
+        "symbol": "Triángulo verde"
+      },
+      "bolt": {
+        "label": "Tornillo",
+        "description": "Microtornillo de anclaje esquelético temporal de ortodoncia.",
+        "symbol": "Tornillo gris"
+      },
+      "diastema": {
+        "label": "Diastema",
+        "description": "Espacio o separación interdental entre piezas contiguas.",
+        "symbol": ")( Paréntesis"
+      },
+      "malposition": {
+        "label": "Diente Fuera de Arco (Giro)",
+        "description": "Malposición rotacional, versión o intrusión de la corona fuera de su plano ideal.",
+        "symbol": "Arco punteado"
+      },
+      "ectopic": {
+        "label": "Ectópico",
+        "description": "Erupción dental ectópica fuera del arco normal.",
+        "symbol": "Flecha diagonal"
+      },
+      "eruption": {
+        "label": "Erupción",
+        "description": "Proceso de erupción dentaria activa hacia el plano oclusal.",
+        "symbol": "Flecha oclusal"
+      },
+      "extrusion": {
+        "label": "Extrusión",
+        "description": "Desplazamiento vertical del diente fuera de su alvéolo.",
+        "symbol": "Flecha oclusal violeta"
+      },
+      "ortho-fracture": {
+        "label": "Fractura (Ortodoncia)",
+        "description": "Fractura de corona o de la aparatología.",
+        "symbol": "Zigzag rojo"
+      },
+      "fusion": {
+        "label": "Fusión",
+        "description": "Unión durante el desarrollo de dos gérmenes dentarios independientes.",
+        "symbol": "Símbolo infinito"
+      },
+      "intrusion": {
+        "label": "Intrusión",
+        "description": "Desplazamiento del diente hacia el interior del alvéolo.",
+        "symbol": "Flecha apical"
+      },
+      "macrodontia": {
+        "label": "Macrodoncia",
+        "description": "Diente de tamaño significativamente superior al promedio.",
+        "symbol": "Círculo grande punteado"
+      },
+      "microdontia": {
+        "label": "Microdoncia",
+        "description": "Diente de dimensión anormalmente pequeña o conoide.",
+        "symbol": "Círculo pequeño punteado"
+      },
+      "drifting": {
+        "label": "Migración",
+        "description": "Desplazamiento mesial o distal de la pieza fuera de su posición.",
+        "symbol": "Flecha horizontal"
+      },
+      "impacted": {
+        "label": "Retenido",
+        "description": "Diente retenido o impactado totalmente en el hueso alveolar.",
+        "symbol": "Arco marrón sombreado"
+      },
+      "rotation": {
+        "label": "Rotación",
+        "description": "Giro del diente sobre su propio eje longitudinal.",
+        "symbol": "Flecha circular"
+      },
+      "impacted-semi": {
+        "label": "Semirretenido",
+        "description": "Pieza dentaria con erupción parcial impedida u obstaculizada.",
+        "symbol": "Arco ámbar punteado"
+      },
+      "supernumerary": {
+        "label": "Supernumerario",
+        "description": "Presencia de un diente adicional o supernumerario.",
+        "symbol": "+S"
+      },
+      "transposition": {
+        "label": "Transposición",
+        "description": "Intercambio de posición en la arcada entre dos dientes contiguos.",
+        "symbol": "Flechas opuestas"
+      },
+      "crown-fracture": {
+        "label": "Fractura Coronaria",
+        "description": "Fractura traumática que compromete esmalte, dentina o cámara pulpar.",
+        "symbol": "Zigzag transversal"
+      },
+      "root-fracture": {
+        "label": "Fractura Radicular",
+        "description": "Fractura vertical u horizontal a lo largo de la raíz.",
+        "symbol": "Zigzag vertical"
+      },
+      "periapical-lesion": {
+        "label": "Lesión Periapical (Absceso)",
+        "description": "Proceso inflamatorio crónico o agudo en el ápice radicular visible radiográficamente.",
+        "symbol": "Círculo en el ápice"
+      },
+      "root-resorption": {
+        "label": "Reabsorción Radicular",
+        "description": "Pérdida localizada de cemento y dentina de la raíz.",
+        "symbol": "Línea ondulada"
+      },
+      "abrasion": {
+        "label": "Abrasión Cervical (Desgaste)",
+        "description": "Desgaste patológico del esmalte o dentina por cepillado traumático u objetos.",
+        "symbol": "Cuña cervical"
+      },
+      "abfraction": {
+        "label": "Abfracción Dental",
+        "description": "Lesión cervical no cariosa por microfracturas del esmalte debido a sobrecarga oclusal.",
+        "symbol": "Muesca redondeada"
+      },
+      "erosion": {
+        "label": "Erosión Dental (Química)",
+        "description": "Desmineralización ácida intrínseca o extrínseca del tejido dental.",
+        "symbol": "Desgaste liso"
+      },
+      "fracture": {
+        "label": "Fractura General",
+        "description": "Fractura general de la corona.",
+        "symbol": "Zigzag amarillo"
       }
     }
   },
