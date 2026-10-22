@@ -132,6 +132,9 @@ export function useCalendarDragDrop({
   const pointerRef = React.useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const rafRef = React.useRef<number | null>(null);
   const longPressTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Táctil: el hold ya venció y el gesto le pertenece al arrastre aunque el dedo
+   *  todavía no haya cruzado el slop. Desde acá se le niega el scroll al navegador. */
+  const touchArmedRef = React.useRef(false);
   const didDragResetRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   /** Quién tiene la captura del puntero. Empieza en la card y se muda al contenedor
    *  en cuanto el gesto cambia de período, porque ahí la card se desmonta. */
@@ -350,6 +353,7 @@ export function useCalendarDragDrop({
   const cleanup = React.useCallback((didDrag: boolean) => {
     if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
     if (longPressTimerRef.current) { clearTimeout(longPressTimerRef.current); longPressTimerRef.current = null; }
+    touchArmedRef.current = false;
 
     const gesture = gestureRef.current;
     if (gesture) {
@@ -526,8 +530,15 @@ export function useCalendarDragDrop({
     // un `touchmove` no pasivo. Como el arrastre táctil exige primero mantener
     // apretado 300 ms casi sin moverse, para cuando esto entra en juego el
     // navegador todavía no empezó a scrollear.
+    //
+    // Se corta desde que vence el hold, no recién en `dragging`: el arrastre se
+    // confirma al pasar el slop (8 px), pero el navegador puede arrancar el scroll
+    // vertical con menos, y en cuanto lo arranca dispara `pointercancel` y el gesto
+    // muere. En horizontal no pasaba porque la grilla no tiene scroll en ese eje
+    // —de ahí que solo funcionara "tirando" la cita hacia el costado—.
     const onTouchMove = (e: TouchEvent) => {
-      if (dragStateRef.current.phase !== 'dragging') return;
+      const { phase } = dragStateRef.current;
+      if (phase !== 'dragging' && !(phase === 'pending' && touchArmedRef.current)) return;
       if (e.cancelable) e.preventDefault();
     };
 
@@ -605,9 +616,11 @@ export function useCalendarDragDrop({
     pointerRef.current = { x: e.clientX, y: e.clientY };
     dragStateRef.current = { phase: 'pending', didDrag: false };
 
+    touchArmedRef.current = false;
     if (e.pointerType !== 'mouse' && longPressMs !== null) {
       longPressTimerRef.current = setTimeout(() => {
         longPressTimerRef.current = null;
+        touchArmedRef.current = true;
       }, longPressMs);
     }
   }, [longPressMs, cardSelector, containerSelector]);

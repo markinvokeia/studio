@@ -156,7 +156,14 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
             if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
             onDragPointerDown?.(event, 'move', e);
           }}
-          onContextMenu={(e) => e.stopPropagation()}
+          onContextMenu={(e) => {
+            e.stopPropagation();
+            // Sin menú propio (móvil) nadie frena el long-press nativo: Android lo
+            // usa para seleccionar texto y cancela el puntero a mitad del arrastre.
+            // Antes lo frenaba el preventDefault del trigger de Radix.
+            const pointerType = (e.nativeEvent as Partial<PointerEvent>).pointerType;
+            if (isDraggable && !onEventContextMenu && pointerType && pointerType !== 'mouse') e.preventDefault();
+          }}
           onClick={(e) => {
             if (e.button !== 0) return;
             // Este click cierra un arrastre, no es un clic sobre la cita.
