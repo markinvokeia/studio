@@ -5,7 +5,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DataCard } from '@/components/ui/data-card';
@@ -20,12 +19,21 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { DatePickerInput } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Separator } from '@/components/ui/separator';
+import {
+    AvailabilityExceptionFields,
+    availabilityExceptionFormSchema,
+    availabilityExceptionToFormValues,
+    deleteAvailabilityException,
+    emptyAvailabilityExceptionForm,
+    parseAvailabilityException,
+    upsertAvailabilityException,
+    type AvailabilityExceptionFormValues,
+} from '@/components/doctor-availability/availability-exception-form';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { multiDateLabel, MultiDatePicker } from '@/components/schedules/day-pickers';
 import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
@@ -34,28 +42,15 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AvailabilityException, User } from '@/lib/types';
-import { cn, formatDate, formatDisplayDate } from '@/lib/utils';
-import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
+import { cn } from '@/lib/utils';
+import { api, isTimeoutError } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { format } from 'date-fns';
 import { AlertTriangle, Check, ChevronsUpDown, Pencil, Trash2, UserX } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
-import * as z from 'zod';
 import { createDefaultPagination } from '@/lib/pagination';
-
-const exceptionFormSchema = (t: (key: string) => string) => z.object({
-    id: z.string().optional(),
-    user_id: z.string().min(1, t('doctorRequired')),
-    exception_date: z.string().min(1, t('dateRequired')),
-    start_time: z.string().optional(),
-    end_time: z.string().optional(),
-    is_available: z.boolean().default(false),
-});
-
-type ExceptionFormValues = z.infer<ReturnType<typeof exceptionFormSchema>>;
 
 type GetExceptionsResponse = {
     exceptions: AvailabilityException[];
@@ -72,11 +67,7 @@ async function getAvailabilityExceptions(pagination: PaginationState, searchQuer
     const exceptionsData = data?.data || [];
     const total = Number(data?.total) || 0;
     return {
-        exceptions: exceptionsData.map((ex: any) => ({
-            ...ex,
-            id: String(ex.id),
-            exception_date: formatDate(ex.exception_date)
-        })),
+        exceptions: exceptionsData.map(parseAvailabilityException),
         total
     };
 }
@@ -85,24 +76,6 @@ async function getDoctors(signal?: AbortSignal): Promise<User[]> {
     const data = await api.get(API_ROUTES.USERS_DOCTORS, undefined, undefined, { signal });
     const doctorsData = Array.isArray(data) ? data : (data?.doctors || data?.data || []);
     return doctorsData.map((doc: any) => ({ ...doc, id: String(doc.id) }));
-}
-
-async function upsertAvailabilityException(exceptionData: ExceptionFormValues) {
-    const responseData = await api.post(API_ROUTES.AVAILABILITY_EXCEPTIONS_UPSERT, exceptionData, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
-    if (Array.isArray(responseData) && responseData[0]?.code >= 400 || responseData.error) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
-        throw new Error(message);
-    }
-    return responseData;
-}
-
-async function deleteAvailabilityException(id: string) {
-    const responseData = await api.delete(API_ROUTES.AVAILABILITY_EXCEPTIONS_DELETE, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
-    if (Array.isArray(responseData) && responseData[0]?.code >= 400 || responseData.error) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
-        throw new Error(message);
-    }
-    return responseData;
 }
 
 export default function AvailabilityExceptionsPage() {
@@ -125,8 +98,9 @@ export default function AvailabilityExceptionsPage() {
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedException, setSelectedException] = React.useState<AvailabilityException | null>(null);
 
-    const form = useForm<ExceptionFormValues>({
-        resolver: zodResolver(exceptionFormSchema(tValidation)),
+    const form = useForm<AvailabilityExceptionFormValues>({
+        resolver: zodResolver(availabilityExceptionFormSchema(tValidation)),
+        defaultValues: emptyAvailabilityExceptionForm(),
     });
     const [isDoctorComboboxOpen, setIsDoctorComboboxOpen] = React.useState(false);
 
@@ -159,27 +133,14 @@ export default function AvailabilityExceptionsPage() {
 
     const handleCreate = () => {
         setEditingException(null);
-        form.reset({
-            user_id: '',
-            exception_date: format(new Date(), 'yyyy-MM-dd'),
-            start_time: '',
-            end_time: '',
-            is_available: false,
-        });
+        form.reset(emptyAvailabilityExceptionForm());
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
 
     const handleEdit = (exception: AvailabilityException) => {
         setEditingException(exception);
-        form.reset({
-            id: exception.id,
-            user_id: exception.user_id,
-            exception_date: formatDate(exception.exception_date),
-            start_time: exception.start_time || '',
-            end_time: exception.end_time || '',
-            is_available: exception.is_available,
-        });
+        form.reset(availabilityExceptionToFormValues(exception));
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -211,7 +172,7 @@ export default function AvailabilityExceptionsPage() {
     );
 
     const save = useAsyncAction(
-        async (values: ExceptionFormValues) => {
+        async (values: AvailabilityExceptionFormValues) => {
             setSubmissionError(null);
             await upsertAvailabilityException(values);
             return values;
@@ -250,7 +211,7 @@ export default function AvailabilityExceptionsPage() {
         {
             accessorKey: 'exception_date',
             header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('date')} />,
-            cell: ({ row }) => <span>{formatDisplayDate(row.original.exception_date)}</span>,
+            cell: ({ row }) => <span>{multiDateLabel(row.original.dates, row.original.exception_date)}</span>,
         },
         {
             accessorKey: 'is_available',
@@ -298,7 +259,7 @@ export default function AvailabilityExceptionsPage() {
                     renderCard={(row: AvailabilityException, _isSelected: boolean) => (
                         <DataCard isSelected={_isSelected}
                             title={row.user_name || row.user_id}
-                            subtitle={formatDisplayDate(row.exception_date)}
+                            subtitle={multiDateLabel(row.dates, row.exception_date)}
                             badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{row.is_available ? 'Disponible' : 'No disponible'}</span>}
                             showArrow
                         />
@@ -320,7 +281,7 @@ export default function AvailabilityExceptionsPage() {
                     <div className="header-icon-circle flex-none"><UserX className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
                         <CardTitle className="text-base lg:text-lg truncate">{selectedException.user_name || selectedException.user_id}</CardTitle>
-                        <p className="text-xs text-muted-foreground truncate">{formatDisplayDate(selectedException.exception_date)}</p>
+                        <p className="text-xs text-muted-foreground truncate">{multiDateLabel(selectedException.dates, selectedException.exception_date)}</p>
                     </div>
                     <div className="flex gap-1 flex-none">
                         <Button size="sm" variant="outline" onClick={() => handleEdit(selectedException)}>
@@ -340,8 +301,8 @@ export default function AvailabilityExceptionsPage() {
                         <dd className="text-foreground">{selectedException.user_name || selectedException.user_id || '-'}</dd>
                     </div>
                     <div>
-                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('date')}</dt>
-                        <dd className="text-foreground">{formatDisplayDate(selectedException.exception_date)}</dd>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-1">{tColumns('date')}</dt>
+                        <dd><MultiDatePicker value={selectedException.dates} onChange={() => undefined} readOnly /></dd>
                     </div>
                     <div>
                         <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('available')}</dt>
@@ -447,23 +408,7 @@ export default function AvailabilityExceptionsPage() {
                                         </FormItem>
                                     )}
                                 />
-                                <FormField control={form.control} name="exception_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.date')}</FormLabel><FormControl><DatePickerInput value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
-                                <FormField
-                                    control={form.control}
-                                    name="is_available"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                            <FormControl>
-                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                            </FormControl>
-                                            <FormLabel>{t('dialog.isAvailable')}</FormLabel>
-                                        </FormItem>
-                                    )}
-                                />
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField control={form.control} name="start_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={form.control} name="end_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                </div>
+                                <AvailabilityExceptionFields form={form} />
                                 </fieldset>
                             </DialogBody>
                             <DialogFooter>
@@ -480,7 +425,7 @@ export default function AvailabilityExceptionsPage() {
                 title={t('deleteDialog.title')}
                 description={t('deleteDialog.description', {
                     doctor: deletingException?.user_name || deletingException?.user_id || '',
-                    date: deletingException ? formatDisplayDate(deletingException.exception_date) : '',
+                    date: deletingException ? multiDateLabel(deletingException.dates, deletingException.exception_date) : '',
                 })}
                 cancelLabel={t('deleteDialog.cancel')}
                 confirmLabel={t('deleteDialog.confirm')}

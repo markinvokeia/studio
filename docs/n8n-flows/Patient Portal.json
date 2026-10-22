@@ -1,17 +1,17 @@
 {
-  "name": "Patient Portal",
+  "name": "Patient Portal — Public Clinic Info",
   "nodes": [
     {
       "parameters": {
         "jsCode": "// Normaliza el identificador: email, teléfono o cédula.\n// Sólo se busca por teléfono/cédula cuando hay al menos 6 dígitos, para evitar\n// coincidencias accidentales con valores muy cortos.\nconst body = $input.first().json.body || $input.first().json || {};\nconst raw = String(body.identifier || '').trim();\n\nif (!raw) {\n  return [{ json: { __error: true, statusCode: 400, message: 'identifier is required' } }];\n}\n\nconst digits = raw.replace(/\\D/g, '');\n\nreturn [{ json: {\n  identifier: raw,\n  email_candidate: raw.toLowerCase(),\n  digits_candidate: digits.length >= 6 ? digits : '__no_match__',\n  supplied_email: String(body.email || '').trim().toLowerCase(),\n} }];"
       },
-      "id": "0979fa09-afd6-4306-bf3e-9776b5e56093",
+      "id": "99dc02fa-5441-4f13-a699-aaae89ecd3b7",
       "name": "Normalizar Identificador",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -240,
-        -208
+        1168,
+        -224
       ]
     },
     {
@@ -22,13 +22,13 @@
           "queryReplacement": "={{ [ $json.email_candidate, $json.digits_candidate ] }}"
         }
       },
-      "id": "0c8c4e38-7162-4714-bc2b-0149561b50aa",
+      "id": "4842a1c7-4b90-47a5-ac0c-c7928911fd49",
       "name": "Buscar Paciente",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -16,
-        -208
+        1392,
+        -224
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -44,13 +44,13 @@
       "parameters": {
         "jsCode": "function maskEmail(email) {\n  if (!email) return null;\n  const [user, domain] = String(email).split('@');\n  if (!domain) return null;\n  const head = user.slice(0, 1);\n  const tail = user.length > 1 ? user.slice(-1) : '';\n  return `${head}***${tail}@${domain}`;\n}\n\nconst rows = $input.all().map(i => i.json).filter(r => r && r.id);\nconst user = rows[0];\n\nif (!user) {\n  return [{ json: { statusCode: 200, body: {\n    found: false, needs_email: false, masked_email: null,\n  } } }];\n}\n\nconst hasEmail = !!(user.email && String(user.email).trim());\n\n// `user_id` y `name` son el mínimo para poder reservar sin sesión.\n// NO agregar email, teléfono ni ningún otro dato: este endpoint es público.\nreturn [{ json: { statusCode: 200, body: {\n  found: true,\n  needs_email: !hasEmail,\n  masked_email: hasEmail ? maskEmail(user.email) : null,\n  user_id: user.id,\n  name: user.name || null,\n  has_upcoming_appointments: user.has_upcoming_appointments === true,\n} } }];\n"
       },
-      "id": "aadf81a5-875a-45c1-af22-ceb567cda3db",
+      "id": "6240f519-776c-4609-9a30-abf3132f75c3",
       "name": "Formatear Respuesta",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        208,
-        -208
+        1616,
+        -224
       ]
     },
     {
@@ -61,13 +61,13 @@
           "responseCode": "={{ $json.statusCode }}"
         }
       },
-      "id": "e0bf2814-0e6e-412e-b6b3-fc9c527a3230",
+      "id": "06e8ca61-7427-4084-a6f9-89a4f988eb5f",
       "name": "Responder",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        416,
-        -208
+        1824,
+        -224
       ]
     },
     {
@@ -96,39 +96,39 @@
           "looseTypeValidation": true
         }
       },
-      "id": "0746b631-5fc9-4c8a-a551-6b164ba848bc",
+      "id": "6dfedb50-50e5-4431-8e09-d8e4c2cb99f2",
       "name": "¿Puede Enviar?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        320,
-        576
+        1728,
+        560
       ]
     },
     {
       "parameters": {
         "jsCode": "return [{ json: { statusCode: $json.statusCode, body: $json.body } }];"
       },
-      "id": "d7fdf40b-7c6e-4082-a4bf-081516fd4995",
+      "id": "33f76b02-662e-41cb-8505-465c00615b5d",
       "name": "Error Temprano",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        992,
-        672
+        2400,
+        656
       ]
     },
     {
       "parameters": {
         "jsCode": "// Normaliza el identificador: email, teléfono o cédula.\n// Sólo se busca por teléfono/cédula cuando hay al menos 6 dígitos, para evitar\n// coincidencias accidentales con valores muy cortos.\nconst body = $input.first().json.body || $input.first().json || {};\nconst raw = String(body.identifier || '').trim();\n\nif (!raw) {\n  return [{ json: { __error: true, statusCode: 400, message: 'identifier is required' } }];\n}\n\nconst digits = raw.replace(/\\D/g, '');\n\nreturn [{ json: {\n  identifier: raw,\n  email_candidate: raw.toLowerCase(),\n  digits_candidate: digits.length >= 6 ? digits : '__no_match__',\n  supplied_email: String(body.email || '').trim().toLowerCase(),\n} }];"
       },
-      "id": "6ea30a4e-7a04-4ce1-b21c-4a9c912c1388",
+      "id": "d3b36a9b-461a-4df2-b643-aced6ffcd4eb",
       "name": "Normalizar Identificador1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -352,
-        576
+        1056,
+        560
       ]
     },
     {
@@ -139,13 +139,13 @@
           "queryReplacement": "={{ [ $json.email_candidate, $json.digits_candidate ] }}"
         }
       },
-      "id": "89dd80cd-0472-4af1-96b8-dd4f56d4cf66",
+      "id": "2f2982d2-fdd3-40d9-87b9-ff6f2340a526",
       "name": "Buscar Paciente1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -128,
-        576
+        1280,
+        560
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -160,13 +160,13 @@
       "parameters": {
         "jsCode": "function maskEmail(email) {\n  if (!email) return null;\n  const [user, domain] = String(email).split('@');\n  if (!domain) return null;\n  const head = user.slice(0, 1);\n  const tail = user.length > 1 ? user.slice(-1) : '';\n  return `${head}***${tail}@${domain}`;\n}\n\n// Genera el código de 6 dígitos y valida el rate-limit de reenvío (60 s).\nconst rows = $input.all().map(i => i.json).filter(r => r && r.id);\nconst user = rows[0];\nconst ctx  = $('Normalizar Identificador1').first().json;\n\nif (!user) {\n  return [{ json: { __respond: true, statusCode: 404, body: { message: 'No encontramos ese paciente.' } } }];\n}\n\nif (user.login_code_sent_at) {\n  const elapsed = (Date.now() - new Date(user.login_code_sent_at).getTime()) / 1000;\n  if (elapsed < 60) {\n    return [{ json: { __respond: true, statusCode: 429, body: {\n      message: 'Esperá unos segundos antes de pedir otro código.',\n      retry_after: Math.ceil(60 - elapsed),\n    } } }];\n  }\n}\n\n// El email a usar: el que ya tiene, o el que acaba de ingresar el paciente.\nconst targetEmail = String(user.email || '').trim() || ctx.supplied_email;\nif (!targetEmail) {\n  return [{ json: { __respond: true, statusCode: 400, body: { message: 'Necesitamos un correo para enviarte el código.' } } }];\n}\n\n// Código de 6 dígitos, evitando los que tienen todos los dígitos iguales.\nlet code;\ndo {\n  code = String(Math.floor(100000 + Math.random() * 900000));\n} while (/^(\\d)\\1{5}$/.test(code));\n\nreturn [{ json: {\n  user_id: user.id,\n  user_name: user.name,\n  target_email: targetEmail,\n  // Sólo se persiste cuando el usuario no tenía email cargado.\n  email_to_persist: String(user.email || '').trim() ? null : targetEmail,\n  code,\n  masked_email: maskEmail(targetEmail),\n} }];\n"
       },
-      "id": "26d8e263-f140-476e-b153-559f01758bae",
+      "id": "3d0880e2-a9ce-43bd-8734-cee2fc04ae67",
       "name": "Generar Código1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        96,
-        576
+        1504,
+        560
       ]
     },
     {
@@ -177,13 +177,13 @@
           "queryReplacement": "={{ [ $json.user_id, $json.code, null, $json.email_to_persist ] }}      "
         }
       },
-      "id": "4aba9831-7a7c-4997-8eb4-a360d0445bc6",
+      "id": "86597e3a-9811-4116-a192-25a6bd8d1a4a",
       "name": "Guardar Código1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        544,
-        480
+        1952,
+        464
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -198,13 +198,13 @@
       "parameters": {
         "jsCode": "\nconst item = $input.first().json;\nconst ctx  = $('Generar Código1').first().json;\n\nif (item && item.error) {\n  return [{ json: { statusCode: 500, body: { message: 'No pudimos generar el código. Intentá de nuevo.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  sent: true,\n  masked_email: ctx.masked_email,\n  expires_in: 600,\n} } }];\n"
       },
-      "id": "c5678309-c632-4322-98d4-5752ab5574b3",
+      "id": "1c74b670-5e48-47cc-9001-eec238f521ab",
       "name": "Formatear Respuesta2",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        992,
-        480
+        2400,
+        464
       ]
     },
     {
@@ -215,28 +215,28 @@
           "responseCode": "={{ $json.statusCode }}"
         }
       },
-      "id": "40cfd648-2815-4e0f-9256-db3bb5c2d0cc",
+      "id": "fbb4f00c-2b6f-47ed-803c-8f97f76e5207",
       "name": "Responder2",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        1216,
-        576
+        2624,
+        560
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- La tabla es public.clinic (singular) y sus columnas de contacto son\n-- address / phone / email. El baseline de Liquibase declara \"clinics\" con\n-- location / phone_number / contact_email, pero está desactualizado.\nSELECT\n    c.id,\n    c.name,\n    c.address,\n    COALESCE(c.phone, '')                      AS phone,\n    COALESCE(c.email, '')                      AS email,\n    COALESCE(c.patient_portal_enabled, FALSE)            AS patient_portal_enabled,\n    COALESCE(c.patient_portal_online_booking, TRUE)      AS online_booking_enabled,\n    COALESCE(c.patient_portal_appointments_only, FALSE)  AS appointments_only,\n    c.welcome_video_url,\n    c.welcome_message,\n    (\n      -- clinic_schedules es global (no tiene clinic_id): la instalación es de\n      -- una sola clínica.\n      SELECT json_agg(json_build_object(\n               'day_of_week', s.day_of_week,\n               'start_time',  to_char(s.start_time, 'HH24:MI'),\n               'end_time',    to_char(s.end_time,   'HH24:MI')\n             ) ORDER BY s.day_of_week, s.start_time)\n      FROM public.clinic_schedules s\n    ) AS schedules\nFROM public.clinic c\nWHERE c.is_active IS NOT FALSE\nORDER BY c.id\nLIMIT 1",
+        "query": "-- La tabla es public.clinic (singular) y sus columnas de contacto son\n-- address / phone / email. El baseline de Liquibase declara \"clinics\" con\n-- location / phone_number / contact_email, pero está desactualizado.\nSELECT\n    c.id,\n    c.name,\n    c.address,\n    COALESCE(c.phone, '')                      AS phone,\n    COALESCE(c.email, '')                      AS email,\n    COALESCE(c.patient_portal_enabled, FALSE)            AS patient_portal_enabled,\n    COALESCE(c.patient_portal_online_booking, TRUE)      AS online_booking_enabled,\n    COALESCE(c.patient_portal_appointments_only, FALSE)  AS appointments_only,\n    COALESCE(c.patient_portal_service_selection, FALSE)  AS service_selection_enabled,\n    COALESCE(c.patient_portal_show_pricing, FALSE)       AS show_pricing,\n    (\n      -- Servicio con el que se crea la reserva cuando el paciente no elige.\n      -- No se exige `bookable_online`: el por defecto lo aplica la clínica, no\n      -- el paciente, así que no tiene por qué estar publicado para auto-agenda.\n      SELECT json_build_object(\n               'id',               ds.id,\n               'name',             ds.name,\n               'duration_minutes', ds.duration_minutes\n             )\n      FROM public.service_catalog ds\n      WHERE ds.id = c.patient_portal_default_service_id\n        AND ds.is_active IS NOT FALSE\n    ) AS default_service,\n    c.welcome_video_url,\n    c.welcome_message,\n    (\n      -- Horarios sin sede asignada: valen para toda la clínica.\n      SELECT json_agg(json_build_object(\n               'day_of_week', s.day_of_week,\n               'start_time',  to_char(s.start_time, 'HH24:MI'),\n               'end_time',    to_char(s.end_time,   'HH24:MI')\n             ) ORDER BY s.day_of_week, s.start_time)\n      FROM public.clinic_schedules s\n      WHERE s.sede_id IS NULL\n    ) AS schedules\nFROM public.clinic c\nWHERE c.is_active IS NOT FALSE\nORDER BY c.id\nLIMIT 1",
         "options": {}
       },
-      "id": "359418f0-9818-4e5c-9b04-94c1df0e61db",
+      "id": "31190d0b-436d-4f90-97db-a7103fd6375e",
       "name": "Buscar Clínica",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -16,
-        1472
+        1392,
+        1456
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -245,20 +245,23 @@
           "name": "Postgres account"
         }
       },
-      "continueOnFail": true
+      "disabled": true,
+      "continueOnFail": true,
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
-        "jsCode": "\n// Arma el payload público. NUNCA agregar campos sensibles: este endpoint es\n// accesible sin token por cualquiera que abra /patient-login.\nconst rows = $input.all().map(i => i.json).filter(r => r && r.name);\nconst clinic = rows[0];\n\nif (!clinic) {\n  return [{ json: { statusCode: 404, body: { message: 'No hay una clínica configurada.' } } }];\n}\n\n// El logo se adjunta como data URI por el nodo siguiente si existe el binario.\nreturn [{ json: { statusCode: 200, body: {\n  name: clinic.name,\n  address: clinic.address || null,\n  phone: clinic.phone || null,\n  email: clinic.email || null,\n  logo_url: null,\n  welcome_video_url: clinic.welcome_video_url || null,\n  welcome_message: clinic.welcome_message || null,\n  patient_portal_enabled: clinic.patient_portal_enabled === true,\n  // Modos del portal — deciden el flujo de /patient-login (ver §3).\n  online_booking_enabled: clinic.online_booking_enabled !== false,\n  appointments_only: clinic.appointments_only === true,\n  schedules: clinic.schedules || [],\n} } }];\n"
+        "jsCode": "\n// Arma el payload público. NUNCA agregar campos sensibles: este endpoint es\n// accesible sin token por cualquiera que abra /patient-login.\nconst rows = $input.all().map(i => i.json).filter(r => r && r.name);\nconst clinic = rows[0];\n\nif (!clinic) {\n  return [{ json: { statusCode: 404, body: { message: 'No hay una clínica configurada.' } } }];\n}\n\n// El logo se adjunta como data URI por el nodo siguiente si existe el binario.\nreturn [{ json: { statusCode: 200, body: {\n  name: clinic.name,\n  address: clinic.address || null,\n  phone: clinic.phone || null,\n  email: clinic.email || null,\n  logo_url: null,\n  welcome_video_url: clinic.welcome_video_url || null,\n  welcome_message: clinic.welcome_message || null,\n  patient_portal_enabled: clinic.patient_portal_enabled === true,\n  // Modos del portal — deciden el flujo de /patient-login (ver §3).\n  online_booking_enabled: clinic.online_booking_enabled !== false,\n  appointments_only: clinic.appointments_only === true,\n  // Selección de servicios. `show_pricing` es sólo presentación: la duración\n  // del servicio dimensiona el hueco de la agenda esté visible o no.\n  service_selection_enabled: clinic.service_selection_enabled === true,\n  show_pricing: clinic.show_pricing === true,\n  default_service: clinic.default_service || null,\n  schedules: clinic.schedules || [],\n} } }];\n"
       },
-      "id": "6de218a5-7c09-486b-ace3-82897fadfbb0",
+      "id": "adc85126-e3c7-42b7-acd1-9f5c9609864c",
       "name": "Formatear Respuesta3",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        224,
-        1472
-      ]
+        1632,
+        1456
+      ],
+      "disabled": true
     },
     {
       "parameters": {
@@ -268,14 +271,15 @@
           "responseCode": "={{ $json.statusCode }}"
         }
       },
-      "id": "5bc76626-7fa7-4ca9-8778-e2f61c01a93e",
+      "id": "41eebd2e-ee13-451c-af51-9734161bbf7f",
       "name": "Responder4",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        464,
-        1472
-      ]
+        1872,
+        1456
+      ],
+      "disabled": true
     },
     {
       "parameters": {
@@ -284,13 +288,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "35404daa-d6f0-4c79-8009-b7f0b3d6561c",
+      "id": "ab129f72-c394-4199-b121-361293c17413",
       "name": "POST api/auth/patient/identify",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -464,
-        -208
+        944,
+        -224
       ],
       "webhookId": "52b382e1-a798-4fff-a54e-a27921a243d6"
     },
@@ -301,13 +305,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "3d2b3c2e-747d-4445-a811-22751560dde3",
+      "id": "3d840791-7dff-4dc8-b2d1-d7cf3772ef92",
       "name": "POST api/auth/patient/send-code",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -576,
-        576
+        832,
+        560
       ],
       "webhookId": "8a9511d5-c10a-4b04-9a42-f72af34c4e0c"
     },
@@ -321,10 +325,10 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        784,
-        480
+        2192,
+        464
       ],
-      "id": "f69e3394-8035-4fc8-a234-761b82ab6685",
+      "id": "54b1acaa-b921-4f1b-a2f2-573a94a54d34",
       "name": "Enviar email1",
       "webhookId": "5579adc4-d0f1-4b05-993e-d63cfee5bd41",
       "credentials": {
@@ -340,15 +344,16 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "ba57ec37-a71a-4bb2-89d0-83574690b9ed",
+      "id": "45a7bfa0-4d96-430e-8da0-7ef5514d6c8c",
       "name": "GET api/public/clinic",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -256,
-        1472
+        1152,
+        1456
       ],
-      "webhookId": "33450c6c-33f4-41a9-8133-b2df7430e451"
+      "webhookId": "33450c6c-33f4-41a9-8133-b2df7430e451",
+      "disabled": true
     },
     {
       "parameters": {
@@ -357,13 +362,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "ead082ed-0ade-40b3-b6be-d81c2d023776",
+      "id": "3f7fce89-6a04-4413-9ca6-d449f1f1a017",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -528,
-        1760
+        880,
+        1744
       ],
       "webhookId": "c53e74c5-6c10-43f5-954f-b4fc6db4373f",
       "disabled": true
@@ -372,13 +377,13 @@
       "parameters": {
         "jsCode": "\n// El patient_id efectivo SIEMPRE sale del JWT, nunca del body: un paciente no\n// puede consultar por otro.\nconst headers = $input.first().json.headers || {};\nconst authHeader = (headers.authorization || headers.Authorization || '');\nconst token = authHeader.replace(/^Bearer\\s+/i, '').trim();\n\nif (!token) throw new Error('UNAUTHORIZED: falta el token');\n\nconst payloadPart = token.split('.')[1];\nif (!payloadPart) throw new Error('UNAUTHORIZED: token mal formado');\n\nconst decoded = JSON.parse(\n  Buffer.from(payloadPart.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')\n);\n\nconst body = $input.first().json.body || {};\n\nreturn [{ json: {\n  patient_id: decoded.sub,          // ← autoritativo\n  query: String(body.query || '').trim(),\n  channel: body.channel || 'text',\n  session_id: body.session_id || null,\n  has_existing_session: !!body.has_existing_session,\n} }];\n"
       },
-      "id": "53c1cdab-c633-4fe4-8e6c-9f50e30cc183",
+      "id": "177aa811-fd32-4f0f-b482-5170655bba80",
       "name": "Extraer Contexto del JWT",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -304,
-        1760
+        1104,
+        1744
       ],
       "disabled": true
     },
@@ -390,13 +395,13 @@
           "systemMessage": "=Sos el asistente virtual de la clínica para el portal del paciente.\n\nREGLAS INNEGOCIABLES:\n1. Sólo podés hablar de los datos del paciente cuyo id es {{ $json.patient_id }}. Nunca menciones ni consultes datos de otro paciente.\n2. NO das diagnósticos, interpretaciones clínicas ni consejo médico. Ante cualquier consulta clínica, derivá al paciente a la clínica o a su doctor.\n3. Podés responder sobre: sus citas, su saldo y facturación, su historial, sus indicaciones médicas, y datos públicos de la clínica (horarios, servicios, ubicación, doctores).\n4. Si no tenés el dato, decilo — no inventes.\n5. Respondé en el mismo idioma en que te escriben, en tono cercano y breve.\n\nSi el paciente quiere reservar una cita, devolvé la acción open_booking.\nSi conviene mostrarle una sección del portal, devolvé open_tab con info | appointments | clinical | financial."
         }
       },
-      "id": "ed791b21-1646-4924-95dc-e2e031c63cac",
+      "id": "59e12e6b-103d-4adb-b7a6-2b4f88436d80",
       "name": "Patient Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        -64,
-        1760
+        1344,
+        1744
       ],
       "disabled": true
     },
@@ -404,13 +409,13 @@
       "parameters": {
         "options": {}
       },
-      "id": "7b630e6a-b93c-40c5-9c11-bfec41762783",
+      "id": "141379dd-6710-4bc7-b997-5044b81d737e",
       "name": "Gemini",
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        -144,
-        1984
+        1264,
+        1968
       ],
       "disabled": true
     },
@@ -420,13 +425,13 @@
         "sessionKey": "={{ $('Extraer Contexto del JWT').first().json.session_id }}",
         "contextWindowLength": 10
       },
-      "id": "df8e9b8b-158a-4d18-bb81-4d450e9e204e",
+      "id": "7687dd98-7c45-4ad7-975d-ffdef77dc48e",
       "name": "Memoria de Sesión",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
       "position": [
-        32,
-        1984
+        1440,
+        1968
       ],
       "disabled": true
     },
@@ -434,13 +439,13 @@
       "parameters": {
         "jsCode": "\n// Normaliza la salida del agente al contrato PatientAiQueryResponse.\nconst raw = $input.first().json;\nconst text = raw.output || raw.text || raw.answer || '';\n\nlet action = { type: 'none', payload: null };\nconst match = String(text).match(/\\{\\s*\"action\"[\\s\\S]*\\}/);\nif (match) {\n  try { action = JSON.parse(match[0]).action || action; } catch (e) { /* texto plano */ }\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  answer: String(text).replace(/\\{\\s*\"action\"[\\s\\S]*\\}/, '').trim(),\n  speak_text: String(text).replace(/\\{\\s*\"action\"[\\s\\S]*\\}/, '').trim(),\n  suggestions: raw.suggestions || [],\n  action,\n} } }];\n"
       },
-      "id": "55c121c3-5638-4e5c-aef0-91c101c48ba8",
+      "id": "e03d3b82-7a2b-48f7-9dfa-1be0bb460179",
       "name": "Parsear Salida",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        192,
-        1760
+        1600,
+        1744
       ],
       "disabled": true
     },
@@ -452,13 +457,13 @@
           "responseCode": "={{ $json.statusCode }}"
         }
       },
-      "id": "a5b3a886-d8ef-427a-811e-6c53b2741fdb",
+      "id": "f1b2adc9-5e4a-4fda-b1b8-9be626cf44d0",
       "name": "Responder5",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        416,
-        1760
+        1824,
+        1744
       ],
       "disabled": true
     },
@@ -466,26 +471,26 @@
       "parameters": {
         "jsCode": "\n// Claims EXACTAMENTE como los emite /api/auth/login. Verificado decodificando un\n// token real del sistema:\n//   { \"userId\": \"<uuid>\", \"email\": \"...\", \"expiresIn\": \"24h\", \"iat\": <epoch> }\n//\n// Ojo con lo que NO lleva:\n//   · No hay `sub`  → el identificador del usuario va en `userId`.\n//   · No hay `roles`→ /auth/me los resuelve consultando user_roles en la BD.\n//   · No hay `exp`  → \"expiresIn\" es un claim literal, no la opción de jsonwebtoken.\n// `iat` lo agrega solo el nodo JWT al firmar.\nconst ctx = $('Validar Código').first().json;\n\nreturn [{ json: {\n  userId: ctx.user_id,\n  email: ctx.email,\n  expiresIn: '24h',\n} }];\n"
       },
-      "id": "9708e68e-ef78-46d4-8217-bc2b642e3138",
+      "id": "786569ca-4fd3-4d69-a51b-827480b414f9",
       "name": "Preparar Claims",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        880,
-        992
+        2288,
+        976
       ]
     },
     {
       "parameters": {
         "jsCode": "// Normaliza el identificador: email, teléfono o cédula.\n// Sólo se busca por teléfono/cédula cuando hay al menos 6 dígitos, para evitar\n// coincidencias accidentales con valores muy cortos.\nconst body = $input.first().json.body || $input.first().json || {};\nconst raw = String(body.identifier || '').trim();\n\nif (!raw) {\n  return [{ json: { __error: true, statusCode: 400, message: 'identifier is required' } }];\n}\n\nconst digits = raw.replace(/\\D/g, '');\n\nreturn [{ json: {\n  identifier: raw,\n  email_candidate: raw.toLowerCase(),\n  digits_candidate: digits.length >= 6 ? digits : '__no_match__',\n  supplied_email: String(body.email || '').trim().toLowerCase(),\n} }];"
       },
-      "id": "c6c27b65-15b6-4650-938b-442b58123897",
+      "id": "1e6aefbf-b2e5-4f3e-ad08-44989baa573a",
       "name": "Normalizar Identificador3",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -464,
-        1088
+        944,
+        1072
       ]
     },
     {
@@ -496,13 +501,13 @@
           "queryReplacement": "={{ [ $json.email_candidate, $json.digits_candidate ] }}"
         }
       },
-      "id": "1864b705-df61-42b1-9a27-957b8d0798e3",
+      "id": "5520ff68-373b-4226-852e-3a6fdf33def7",
       "name": "Buscar Paciente3",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -240,
-        1088
+        1168,
+        1072
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -539,13 +544,13 @@
           "looseTypeValidation": true
         }
       },
-      "id": "0a016b92-045c-4286-8d98-79d2b62351bb",
+      "id": "e21e546b-f59a-464e-ad6e-4a0dc0304e34",
       "name": "¿Código Válido?1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        208,
-        1088
+        1616,
+        1072
       ]
     },
     {
@@ -556,13 +561,13 @@
           "queryReplacement": "={{ [ $json.user_id ] }}"
         }
       },
-      "id": "d3d110cd-c946-415c-9518-e11374ccc2c6",
+      "id": "60458edf-ec6c-4a57-ae39-09d217be6901",
       "name": "Limpiar Código1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        432,
-        992
+        1840,
+        976
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -581,13 +586,13 @@
           "queryReplacement": "={{ [ $('Validar Código').first().json.user_id ] }}"
         }
       },
-      "id": "42d50072-32f6-467e-86d4-6ff8766aaaeb",
+      "id": "f18e685c-6799-4d6a-936a-b78abe90fb63",
       "name": "Asignar Rol Paciente2",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        656,
-        992
+        2064,
+        976
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -606,13 +611,13 @@
           "queryReplacement": "={{ [ $json.user_id || null ] }}"
         }
       },
-      "id": "66725d3c-2709-474d-ae66-0c43dde680bc",
+      "id": "f0b29d17-6ccd-46d2-bea1-2e2c01f1dad0",
       "name": "Sumar Intento1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        1104,
-        1184
+        2512,
+        1168
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -627,13 +632,13 @@
       "parameters": {
         "jsCode": "return [{ json: { statusCode: $('Validar Código').first().json.statusCode, body: $('Validar Código').first().json.body } }];"
       },
-      "id": "9bef3f67-820e-459b-a58a-a14a4f8e4b2b",
+      "id": "4c3b236e-bd88-4e7e-a37a-9584483fde12",
       "name": "Formatear Error2",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1328,
-        1184
+        2736,
+        1168
       ]
     },
     {
@@ -644,13 +649,13 @@
           "responseCode": "={{ $json.statusCode }}"
         }
       },
-      "id": "23a83446-87e4-4775-a755-171b24f12d2a",
+      "id": "db35484d-7e13-4bf6-9670-02feb6e49c95",
       "name": "Responder6",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        1552,
-        1088
+        2960,
+        1072
       ]
     },
     {
@@ -659,13 +664,13 @@
         "claimsJson": "={{ JSON.stringify($json) }}",
         "options": {}
       },
-      "id": "b865c298-f0ff-4057-b9d0-b0788f07d4dc",
+      "id": "b2f736e5-ad8e-4725-8b18-9207dfe90d5d",
       "name": "Firmar JWT1",
       "type": "n8n-nodes-base.jwt",
       "typeVersion": 1,
       "position": [
-        1104,
-        992
+        2512,
+        976
       ],
       "credentials": {
         "jwtAuth": {
@@ -678,13 +683,13 @@
       "parameters": {
         "jsCode": "\n// El nodo JWT devuelve { token }. El usuario sale del paso de validación —\n// deliberadamente NO se devuelve users.password ni ningún otro campo interno.\nconst ctx = $('Validar Código').first().json;\nconst token = $input.first().json.token;\n\nif (!token) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo emitir el token de acceso.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  token,\n  user: { id: ctx.user_id, name: ctx.name, email: ctx.email },\n  is_new: ctx.is_new === true,\n} } }];\n"
       },
-      "id": "41bd1f4b-4b51-4478-961f-42d36925c11c",
+      "id": "c6f95368-4355-4033-bd49-e93a95716a29",
       "name": "Formatear Respuesta4",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1328,
-        992
+        2736,
+        976
       ]
     },
     {
@@ -694,13 +699,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "60327690-35ca-44ed-a48e-90557dd34220",
+      "id": "180cca5a-dbb8-41a4-907f-6433ab79a68d",
       "name": "POST api/auth/patient/verify-code",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -688,
-        1088
+        720,
+        1072
       ],
       "webhookId": "f2ecfb58-624f-4082-9599-27050cdc2adb"
     },
@@ -708,27 +713,28 @@
       "parameters": {
         "jsCode": "\n// Valida el código contra el hash guardado, la expiración y los intentos.\nconst rows = $input.all().map(i => i.json).filter(r => r && r.id);\nconst user = rows[0];\nconst body = $('POST api/auth/patient/verify-code').first().json.body || {};\nconst code = String(body.code || '').trim();\n\nif (!user) {\n  return [{ json: { __respond: true, statusCode: 404, body: { message: 'No encontramos ese paciente.' } } }];\n}\nif (!user.login_code || !user.login_code_expires_at) {\n  return [{ json: { __respond: true, statusCode: 410, body: { message: 'Pedí un código nuevo.' } } }];\n}\nif (new Date(user.login_code_expires_at).getTime() < Date.now()) {\n  return [{ json: { __respond: true, statusCode: 410, body: { message: 'El código venció. Pedí uno nuevo.' } } }];\n}\nif (Number(user.login_code_attempts || 0) >= 5) {\n  return [{ json: { __respond: true, statusCode: 429, body: { message: 'Demasiados intentos. Pedí un código nuevo.' } } }];\n}\n\nconst crypto = require('crypto');\nconst hash = crypto.createHash('sha256').update(code + String(user.id)).digest('hex');\n\nif (hash !== user.login_code) {\n  return [{ json: { __respond: false, __invalid: true, user_id: user.id,\n                    statusCode: 401, body: { message: 'El código no es correcto.' } } }];\n}\n\n// is_new: registrado hace menos de 30 min y sin haber entrado nunca al portal.\nconst createdAt = user.created_at ? new Date(user.created_at).getTime() : 0;\nconst isNew = !user.is_portal_user && createdAt > Date.now() - 30 * 60 * 1000;\n\nreturn [{ json: {\n  __respond: false, __invalid: false,\n  user_id: user.id, name: user.name, email: user.email, is_new: isNew,\n} }];\n"
       },
-      "id": "19ed28eb-0d64-453e-8af9-489c29fa3af6",
+      "id": "0eed0f34-0ca1-4312-b6e1-a47a8432228a",
       "name": "Validar Código",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -16,
-        1088
+        1392,
+        1072
       ]
     },
     {
       "parameters": {
         "jsCode": "\n// Sólo se aceptan estos cinco campos. Nada de nombre, RUT ni datos fiscales:\n// esos se editan en Datos de la Clínica, no acá.\nconst body = $input.first().json.body ?? $input.first().json ?? {};\n\nconst asBool = (v) => v === true || v === 'true';\nconst asText = (v) => {\n  const s = v == null ? '' : String(v).trim();\n  return s === '' ? null : s;\n};\n\nreturn [{ json: {\n  patient_portal_enabled:           asBool(body.patient_portal_enabled),\n  patient_portal_online_booking:    asBool(body.online_booking_enabled),\n  patient_portal_appointments_only: asBool(body.appointments_only),\n  welcome_video_url:                asText(body.welcome_video_url),\n  welcome_message:                  asText(body.welcome_message),\n} }];\n"
       },
-      "id": "26cdc4d0-45ef-43aa-ae47-e58501257af0",
+      "id": "669f51fd-4fe0-4776-a76e-ded76199cb5c",
       "name": "Validar Campos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2304,
-        -112
-      ]
+        3712,
+        -128
+      ],
+      "disabled": true
     },
     {
       "parameters": {
@@ -738,13 +744,13 @@
           "queryReplacement": "={{ [ $json.patient_portal_enabled, $json.patient_portal_online_booking, $json.patient_portal_appointments_only, $json.welcome_video_url, $json.welcome_message ] }}"
         }
       },
-      "id": "9094a6f0-ba27-4e4b-8938-ddaf9fb79908",
+      "id": "f7774d3b-8ad7-4e36-b675-96df0afee4c6",
       "name": "Actualizar Clínica",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2528,
-        -112
+        3936,
+        -128
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -753,6 +759,7 @@
           "name": "Postgres account"
         }
       },
+      "disabled": true,
       "continueOnFail": true,
       "onError": "continueErrorOutput"
     },
@@ -760,14 +767,15 @@
       "parameters": {
         "jsCode": "\nconst row = $input.first().json;\n\nif (!row || row.error || !row.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo guardar la configuración del portal.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  patient_portal_enabled: row.patient_portal_enabled === true,\n  online_booking_enabled: row.patient_portal_online_booking === true,\n  appointments_only:      row.patient_portal_appointments_only === true,\n  welcome_video_url:      row.welcome_video_url,\n  welcome_message:        row.welcome_message,\n} } }];\n"
       },
-      "id": "4b0e7776-4857-469f-9880-4e3293f29e48",
+      "id": "8ca66376-57ff-40ec-b621-2f52e21c0308",
       "name": "Formatear Respuesta5",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2752,
-        -112
-      ]
+        4160,
+        -128
+      ],
+      "disabled": true
     },
     {
       "parameters": {
@@ -777,14 +785,15 @@
           "responseCode": "={{ $json.statusCode }}"
         }
       },
-      "id": "e932b987-ca42-4151-bad7-916727b5cc37",
+      "id": "4790aa37-44d3-4b54-a89d-97b45ee1548d",
       "name": "Responder3",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        2960,
-        -112
-      ]
+        4368,
+        -128
+      ],
+      "disabled": true
     },
     {
       "parameters": {
@@ -794,13 +803,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "d0ff62eb-404a-43ed-9141-1d876558ea21",
+      "id": "52db890a-a8b4-4b3a-b95f-7f6b6320326f",
       "name": "POST /clinic/patient-portal-config",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        2080,
-        -112
+        3488,
+        -128
       ],
       "webhookId": "079c344e-b7a7-4670-a2af-46e169f5de23",
       "credentials": {
@@ -814,39 +823,39 @@
       "parameters": {
         "jsCode": "\n// Datos del cambio + destinatarios. La clínica se saca de la BD para no\n// confiar en nada que venga del cliente.\nconst body = $input.first().json.body ?? $input.first().json ?? {};\n\n// El email puede llegar vacío y NO es un error: `/api/auth/patient/identify`\n// es público y sólo devuelve el email enmascarado, así que el cliente no\n// conoce la dirección real de un paciente ya registrado. Se resuelve contra la\n// BD por patient_id en el nodo siguiente.\nconst patientEmail = String(body.patient_email || '').trim();\nconst patientId = body.patient_id || null;\nif (!patientEmail && !patientId) {\n  throw new Error('Se requiere patient_email o patient_id');\n}\n\nconst VALID_EVENTS = ['booked', 'rescheduled', 'cancelled'];\nconst event = VALID_EVENTS.includes(body.event) ? body.event : 'booked';\n\n// Copy por evento. Se arma acá y no en los nodos de email para que el asunto y\n// el encabezado no queden desperdigados en expresiones.\nconst COPY = {\n  booked: {\n    patientSubject: 'Tu cita quedó agendada',\n    patientHeadline: 'Tu cita quedó agendada.',\n    clinicSubject:  'Nueva cita desde el portal',\n    clinicHeadline: 'Un paciente reservó una cita desde el portal.',\n  },\n  rescheduled: {\n    patientSubject: 'Tu cita fue reagendada',\n    patientHeadline: 'Reagendamos tu cita. Este es el nuevo horario.',\n    clinicSubject:  'Cita reagendada desde el portal',\n    clinicHeadline: 'Un paciente reagendó su cita desde el portal.',\n  },\n  cancelled: {\n    patientSubject: 'Tu cita fue cancelada',\n    patientHeadline: 'Cancelamos tu cita. El horario quedó liberado.',\n    clinicSubject:  'Cita cancelada desde el portal',\n    clinicHeadline: 'Un paciente canceló su cita desde el portal.',\n  },\n}[event];\n\nconst previous = body.previous_date\n  ? `${body.previous_date} ${String(body.previous_time || '').trim()}`.trim()\n  : '';\n\nreturn [{ json: {\n  event,\n  ...COPY,\n  previous,\n  is_cancelled:  event === 'cancelled',\n  appointment_id: body.appointment_id || null,\n  patient_id:     patientId,\n  patient_name:   String(body.patient_name || '').trim(),\n  patient_email:  patientEmail,\n  date:           String(body.date || '').trim(),\n  time:           String(body.time || '').trim(),\n  doctor_name:    String(body.doctor_name || '').trim(),\n  sede_name:      String(body.sede_name || '').trim(),\n  reason:         String(body.reason || '').trim(),\n} }];\n"
       },
-      "id": "9f617a16-733e-46d6-95dd-866fe3ccbdda",
+      "id": "b2de3403-a72c-42da-be70-60c198ea2514",
       "name": "Preparar Datos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2320,
-        272
+        3728,
+        256
       ]
     },
     {
       "parameters": {
         "jsCode": "\nconst row = $input.first().json || {};\nconst ctx = $('Preparar Datos').first().json;\n\n// La BD manda: es la dirección que la clínica tiene registrada. El valor del\n// body sólo se usa como respaldo (paciente recién creado, cuya fila todavía\n// podría no estar visible para esta consulta).\nconst patientEmail = String(row.db_patient_email || ctx.patient_email || '').trim();\n\nif (!patientEmail) {\n  throw new Error(`No hay email para notificar al paciente ${ctx.patient_id ?? '(sin id)'}`);\n}\n\nreturn [{ json: {\n  ...ctx,\n  patient_email: patientEmail,\n  patient_name:  ctx.patient_name || row.db_patient_name || '',\n  clinic_name:   row.clinic_name  || 'la clínica',\n  clinic_email:  row.clinic_email || null,\n  clinic_phone:  row.clinic_phone || '',\n} }];\n"
       },
-      "id": "04986613-5103-4cff-b640-4e86cc2ed943",
+      "id": "26b75c8f-7130-4309-b69e-995a963b7458",
       "name": "Combinar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2720,
-        272
+        4128,
+        256
       ]
     },
     {
       "parameters": {
         "jsCode": "return [{ json: { statusCode: 200, body: { sent: true } } }];"
       },
-      "id": "2228ae7b-4a85-4cfd-b011-10e0341f86ac",
+      "id": "48358635-78bf-49c2-bf64-ad4c01a9e6b4",
       "name": "Formatear Respuesta6",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3328,
-        272
+        4736,
+        256
       ]
     },
     {
@@ -857,13 +866,13 @@
           "responseCode": "={{ $json.statusCode }}"
         }
       },
-      "id": "0408e46f-9297-426c-abb0-47cec26c7774",
+      "id": "96379880-1860-4b93-9196-a13b543018cf",
       "name": "Responder7",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        3520,
-        272
+        4928,
+        256
       ]
     },
     {
@@ -874,13 +883,13 @@
         "html": "=<div style=\"font-family:system-ui,-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:24px\"><h2 style=\"margin:0 0 8px\">Hola {{ $json.patient_name }}</h2><p style=\"color:#555;margin:0 0 20px\">Tu cita en {{ $json.clinic_name }} quedó agendada.</p><table style=\"width:100%;border-collapse:collapse;margin:0 0 20px\"><tr><td style=\"padding:6px 0;color:#777\">Fecha</td><td style=\"padding:6px 0;font-weight:600\">{{ $json.date }}</td></tr><tr><td style=\"padding:6px 0;color:#777\">Hora</td><td style=\"padding:6px 0;font-weight:600\">{{ $json.time }}</td></tr><tr><td style=\"padding:6px 0;color:#777\">Profesional</td><td style=\"padding:6px 0;font-weight:600\">{{ $json.doctor_name }}</td></tr><tr><td style=\"padding:6px 0;color:#777\">Lugar</td><td style=\"padding:6px 0;font-weight:600\">{{ $json.sede_name }}</td></tr></table><p style=\"color:#777;font-size:13px;margin:0\">La clínica va a confirmarte la cita. Si necesitás cambiarla o cancelarla, comunicate al {{ $json.clinic_phone }}.</p></div>",
         "options": {}
       },
-      "id": "26632f5d-74ca-4bda-a445-d5561c58b63a",
+      "id": "47d96049-0161-4787-90b2-a209aba4fbe0",
       "name": "Email al Paciente1",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        2912,
-        144
+        4320,
+        128
       ],
       "webhookId": "b22a0557-1ff8-46db-86b4-fc21ccf895b6",
       "disabled": true,
@@ -896,10 +905,10 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        2928,
-        400
+        4336,
+        384
       ],
-      "id": "112d913d-5a13-4041-bdac-b2778954d979",
+      "id": "a8c62531-fc06-437c-9052-8258ef47298f",
       "name": "Email al Paciente",
       "webhookId": "5579adc4-d0f1-4b05-993e-d63cfee5bd41",
       "credentials": {
@@ -917,13 +926,13 @@
         "html": "=<div style=\"font-family:system-ui,sans-serif;padding:16px\"><h3>Nueva cita solicitada desde el portal</h3><p><b>Paciente:</b> {{ $('Combinar').first().json.patient_name }} ({{ $('Combinar').first().json.patient_email }})<br><b>Fecha:</b> {{ $('Combinar').first().json.date }} {{ $('Combinar').first().json.time }}<br><b>Profesional:</b> {{ $('Combinar').first().json.doctor_name }}<br><b>Lugar:</b> {{ $('Combinar').first().json.sede_name }}<br><b>Motivo:</b> {{ $('Combinar').first().json.reason }}</p><p style=\"color:#a00\">La cita está en estado <b>pendiente</b>: hay que confirmarla desde la agenda.</p></div>",
         "options": {}
       },
-      "id": "c1e0cd24-0fed-4343-b61f-c85f6a049574",
+      "id": "608abee2-d938-4a27-a08f-ecb63ded6a09",
       "name": "Email a la Clínica1",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        3120,
-        144
+        4528,
+        128
       ],
       "webhookId": "312f814d-ca86-4a0d-b877-d771bcd64b04",
       "disabled": true,
@@ -939,10 +948,10 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        3120,
-        400
+        4528,
+        384
       ],
-      "id": "3a58a471-ffe7-4caa-94c8-86b442ed7318",
+      "id": "19cd160a-c049-4f86-8109-7b5d92f59566",
       "name": "Email a la Clínica",
       "webhookId": "5579adc4-d0f1-4b05-993e-d63cfee5bd41",
       "credentials": {
@@ -956,13 +965,13 @@
       "parameters": {
         "jsCode": "\n// Normaliza el webhook de rebote del proveedor SMTP. El nombre del campo varía\n// entre proveedores; se prueban los más comunes.\nconst body = $input.first().json.body ?? $input.first().json ?? {};\n\nconst email = String(\n  body.email || body.recipient || body.to ||\n  body['email-address'] || body?.envelope?.to || ''\n).trim().toLowerCase();\n\nif (!email) throw new Error('No se pudo determinar el email que rebotó');\n\nreturn [{ json: { email } }];\n"
       },
-      "id": "b355ffb3-6c16-4ba2-acc6-89aeb1a49955",
+      "id": "0060d61b-e6cd-44f1-a860-bc9eb89bb2f6",
       "name": "Extraer Email",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2336,
-        704
+        3744,
+        688
       ]
     },
     {
@@ -973,13 +982,13 @@
           "queryReplacement": "={{ [ $json.email ] }}"
         }
       },
-      "id": "10c24d66-a601-41db-892b-939a8e46efa8",
+      "id": "0a4838dc-ce93-4ca5-8e5c-59795e0d5cb2",
       "name": "Marcar Rebote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2560,
-        704
+        3968,
+        688
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -999,13 +1008,13 @@
           "queryReplacement": "={{ [ $json.id ] }}"
         }
       },
-      "id": "63849735-7e78-4a7f-a40e-ebd40a40affa",
+      "id": "c135905b-e37e-4388-a024-52a8c97a020e",
       "name": "Señalar Citas",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2784,
-        704
+        4192,
+        688
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1021,13 +1030,13 @@
       "parameters": {
         "jsCode": "return [{ json: { statusCode: 200, body: { handled: true } } }];"
       },
-      "id": "914af74d-868f-4ba6-bd69-18ed1ca6b9d9",
+      "id": "3cfa79fd-f94b-4fe0-bb88-c3cc04e6a118",
       "name": "Formatear Respuesta7",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2992,
-        704
+        4400,
+        688
       ]
     },
     {
@@ -1038,13 +1047,13 @@
           "responseCode": "={{ $json.statusCode }}"
         }
       },
-      "id": "4b8046e4-fa93-415f-9eb8-368309bbb7ea",
+      "id": "2a3f905d-0598-4432-b98a-337e5f02d395",
       "name": "Responder8",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        3200,
-        704
+        4608,
+        688
       ]
     },
     {
@@ -1054,13 +1063,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "319dda0f-f8a5-466a-be52-8e0a75ff5372",
+      "id": "b3e9794f-a4f4-40c4-a969-ec8defe3ecd9",
       "name": "POST /appointment-notify",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        2112,
-        272
+        3520,
+        256
       ],
       "webhookId": "76a3733c-d69a-4238-9a6c-e73d2d655200"
     },
@@ -1071,13 +1080,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "53b9eefe-749c-46d8-8373-ef0aa9180408",
+      "id": "fa5e030e-7cd2-464e-973e-947ff0d9b19e",
       "name": "POST /patient-email-bounce",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        2112,
-        704
+        3520,
+        688
       ],
       "webhookId": "2890da63-d2fb-4d98-ab3b-57fba8e96878"
     },
@@ -1089,13 +1098,13 @@
           "queryReplacement": "={{ [ $json.patient_id ] }}"
         }
       },
-      "id": "7903b787-2e9f-445d-ab26-4702580af7b2",
+      "id": "56b8f523-cda9-460b-8fe5-45d2c3c7bc1b",
       "name": "Buscar Clínica y Paciente",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        2512,
-        272
+        3920,
+        256
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1117,10 +1126,10 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        1008,
-        -16
+        2416,
+        -32
       ],
-      "id": "aea86a0f-9892-4c48-9c35-5fccf3906e6b",
+      "id": "27876add-3ce5-4892-8b42-37d509de8618",
       "name": "Enviar email",
       "webhookId": "5579adc4-d0f1-4b05-993e-d63cfee5bd41",
       "credentials": {
@@ -1134,13 +1143,13 @@
       "parameters": {
         "jsCode": "\n// Valida el payload mínimo de auto-registro: nombre, teléfono y email.\nconst body = $input.first().json.body || $input.first().json || {};\n\nconst name  = String(body.name || '').trim();\nconst phone = String(body.phone || '').trim();\nconst email = String(body.email || '').trim().toLowerCase();\n\n// El teléfono es opcional: sirve para que la clínica pueda contactarlo, pero\n// no bloquea el registro. El email sí es obligatorio: es la credencial del\n// paciente y a donde llega el código de acceso.\nif (!name || !email) {\n  return [{ json: { __respond: true, statusCode: 400,\n                    body: { message: 'Nombre y email son obligatorios.' } } }];\n}\n\nreturn [{ json: {\n  name, email,\n  phone: phone || null,\n  identity_document: String(body.identity_document || '').replace(/\\D/g, '') || null,\n  birth_date: String(body.birth_date || '').trim() || null,\n  address: String(body.address || '').trim() || null,\n  // '__no_match__' evita que un teléfono vacío colisione con filas sin teléfono.\n  phone_digits: phone ? phone.replace(/\\D/g, '') : '__no_match__',\n  // Modo \"sólo citas\": el paciente no verifica nada, mandarle un código\n  // sería un correo inútil. Lo pide el frontend con skip_code.\n  skip_code: body.skip_code === true || body.skip_code === 'true',\n} }];\n"
       },
-      "id": "456027ec-4d2c-42ef-9d8b-d2c44229d863",
+      "id": "e815e5fb-39af-45f3-9678-05ca8ec264b5",
       "name": "Validar Datos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -640,
-        128
+        768,
+        112
       ]
     },
     {
@@ -1151,13 +1160,13 @@
           "queryReplacement": "={{ [ $json.email, $json.phone_digits, $json.identity_document ] }}   "
         }
       },
-      "id": "a371b672-909f-434a-baf1-beac94dfb4e6",
+      "id": "6805d188-93eb-49bb-8f9f-4817d6a03b7c",
       "name": "Buscar Conflictos",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -464,
-        128
+        944,
+        112
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1172,13 +1181,13 @@
       "parameters": {
         "jsCode": "\n// El frontend ya sabe leer este formato de conflicto (ver patient-form-utils.ts).\nconst row = $input.first().json || {};\nconst conflicted = [];\nif (row.email_taken)    conflicted.push('email');\nif (row.phone_taken)    conflicted.push('phone');\nif (row.document_taken) conflicted.push('identity_document');\n\nif (conflicted.length) {\n  return [{ json: { __respond: true, statusCode: 409, body: {\n    error: { code: 'unique_conflict', conflictedFields: conflicted },\n    message: 'Ya existe una cuenta con esos datos.',\n  } } }];\n}\n\nreturn [{ json: { ...$('Validar Datos').first().json, __respond: false } }];\n"
       },
-      "id": "67b2da08-2c49-4dfd-af01-39a3fcbf0be9",
+      "id": "1dfa6e98-5589-454d-bc13-c3bdae7902cd",
       "name": "Evaluar Conflictos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -288,
-        128
+        1120,
+        112
       ]
     },
     {
@@ -1207,13 +1216,13 @@
           "looseTypeValidation": true
         }
       },
-      "id": "74ba59dc-1f57-4f1d-a5fa-ba29c5e94bb1",
+      "id": "6081668e-08a4-434a-9bf2-c3fdd7e28492",
       "name": "¿Sin Conflictos?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        -112,
-        128
+        1296,
+        112
       ]
     },
     {
@@ -1224,13 +1233,13 @@
           "queryReplacement": "={{ [ $json.name, $json.email, $json.phone, $json.identity_document, $json.birth_date, $json.address ] }}      "
         }
       },
-      "id": "9fb4dfb1-949e-4b9d-b392-2328301a2c90",
+      "id": "5f08151d-7d3b-4889-b638-2ef71fbcd1eb",
       "name": "Crear Usuario",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        80,
-        48
+        1488,
+        32
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1248,13 +1257,13 @@
           "queryReplacement": "={{ [ $json.id ] }}"
         }
       },
-      "id": "5ab076da-d303-4687-9b31-1dc39fd701fb",
+      "id": "5b0611cd-d26e-4644-aaa4-7e5cea17ae12",
       "name": "Asignar Rol Paciente",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        256,
-        48
+        1664,
+        32
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1269,13 +1278,13 @@
       "parameters": {
         "jsCode": "function maskEmail(email) {\n  if (!email) return null;\n  const [user, domain] = String(email).split('@');\n  if (!domain) return null;\n  const head = user.slice(0, 1);\n  const tail = user.length > 1 ? user.slice(-1) : '';\n  return `${head}***${tail}@${domain}`;\n}\n\n// Genera y persiste el código para el usuario recién creado.\nconst created = $('Crear Usuario').first().json;\nlet code;\ndo {\n  code = String(Math.floor(100000 + Math.random() * 900000));\n} while (/^(\\d)\\1{5}$/.test(code));\n\nreturn [{ json: {\n  user_id: created.id,\n  user_name: created.name,\n  target_email: created.email,\n  code,\n  masked_email: maskEmail(created.email),\n} }];\n"
       },
-      "id": "207d5a1b-87c8-4257-8362-1875968bfc75",
+      "id": "94bd6380-c381-4c51-8b9b-4a3bbcc49421",
       "name": "Generar Código",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        656,
-        -16
+        2064,
+        -32
       ]
     },
     {
@@ -1286,13 +1295,13 @@
           "queryReplacement": "={{ [ $json.user_id, $json.code ] }}"
         }
       },
-      "id": "d730e0eb-7b36-4486-904b-b5688dcab645",
+      "id": "686a9e94-db6b-4947-8fb6-d617e1fe7d5f",
       "name": "Guardar Código",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        832,
-        -16
+        2240,
+        -32
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -1307,13 +1316,13 @@
       "parameters": {
         "jsCode": "return [{ json: { statusCode: $json.statusCode, body: $json.body } }];"
       },
-      "id": "2df9fe72-bf0f-44ae-bafb-581d4ba1093f",
+      "id": "1b35cf49-6231-4bb4-bbe6-e10ce777c26d",
       "name": "Formatear Error",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        80,
-        240
+        1488,
+        224
       ]
     },
     {
@@ -1342,56 +1351,39 @@
           "looseTypeValidation": true
         }
       },
-      "id": "19750dc2-7432-44d4-951f-05bd0ba982c9",
+      "id": "e3d2b538-b1fc-48fd-8729-7a453066f33e",
       "name": "¿Enviar Código?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        432,
-        48
+        1840,
+        32
       ]
     },
     {
       "parameters": {
         "jsCode": "\n// Usuario creado, sin código: en modo \"sólo citas\" el paciente pasa directo a\n// la agenda y nunca va a verificar su correo.\nconst created = $('Crear Usuario').first().json;\nreturn [{ json: { statusCode: 200, body: {\n  created: true,\n  user_id: created.id,\n  name: created.name,\n  email: created.email,\n  sent: false,\n  masked_email: null,\n} } }];\n"
       },
-      "id": "41684b55-97a4-4857-90d1-cc343e8c476c",
+      "id": "69ebbd16-55d0-4d9c-98ac-41fc295079f3",
       "name": "Responder Sin Código",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        704,
-        256
+        2112,
+        240
       ]
-    },
-    {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "api/auth/patient/register",
-        "responseMode": "responseNode",
-        "options": {}
-      },
-      "id": "a8989420-c974-49d9-81f4-b59d30e3a1a8",
-      "name": "Webhook1",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [
-        -832,
-        128
-      ],
-      "webhookId": "0ec1f22e-ea4d-46aa-a412-57e29756e2dd"
     },
     {
       "parameters": {
         "jsCode": "\nconst ctx = $('Generar Código').first().json;\nreturn [{ json: { statusCode: 200, body: {\n  created: true,\n  user_id: ctx.user_id,\n  sent: true,\n  masked_email: ctx.masked_email,\n  expires_in: 600,\n} } }];\n"
       },
-      "id": "d34d0871-a4fb-411d-8ba8-91f32fd60173",
+      "id": "3726e24a-d6c3-46c7-81c5-864f12b643fa",
       "name": "Formatear Respuesta1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1184,
-        0
+        2592,
+        -16
       ]
     },
     {
@@ -1402,17 +1394,250 @@
           "responseCode": "={{ $json.statusCode }}"
         }
       },
-      "id": "4765073b-83bd-4f3a-8e70-f4bca1ae951c",
+      "id": "7ff06d4b-3c6e-4854-9b2d-7c5920df2627",
       "name": "Responder1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        1456,
-        128
+        2864,
+        112
       ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "api/auth/patient/register",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "531f2980-e8e8-4577-b649-a2c0807fd999",
+      "name": "POSt api/auth/patient/register",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        576,
+        112
+      ],
+      "webhookId": "0ec1f22e-ea4d-46aa-a412-57e29756e2dd"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- La tabla es public.clinic (singular) y sus columnas de contacto son\n-- address / phone / email. El baseline de Liquibase declara \"clinics\" con\n-- location / phone_number / contact_email, pero está desactualizado.\nSELECT\n    c.id,\n    c.name,\n    c.address,\n    COALESCE(c.phone, '')                      AS phone,\n    COALESCE(c.email, '')                      AS email,\n    COALESCE(c.patient_portal_enabled, FALSE)            AS patient_portal_enabled,\n    COALESCE(c.patient_portal_online_booking, TRUE)      AS online_booking_enabled,\n    COALESCE(c.patient_portal_appointments_only, FALSE)  AS appointments_only,\n    c.welcome_video_url,\n    c.welcome_message,\n    (\n      -- clinic_schedules es global (no tiene clinic_id): la instalación es de\n      -- una sola clínica.\n      SELECT json_agg(json_build_object(\n               'day_of_week', s.day_of_week,\n               'start_time',  to_char(s.start_time, 'HH24:MI'),\n               'end_time',    to_char(s.end_time,   'HH24:MI')\n             ) ORDER BY s.day_of_week, s.start_time)\n      FROM public.clinic_schedules s\n    ) AS schedules\nFROM public.clinic c\nWHERE c.is_active IS NOT FALSE\nORDER BY c.id\nLIMIT 1",
+        "options": {}
+      },
+      "id": "a82e1e54-a7ff-4caf-900f-8419703b192c",
+      "name": "Buscar Clínica2",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1392,
+        1296
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "disabled": true,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Arma el payload público. NUNCA agregar campos sensibles: este endpoint es\n// accesible sin token por cualquiera que abra /patient-login.\nconst rows = $input.all().map(i => i.json).filter(r => r && r.name);\nconst clinic = rows[0];\n\nif (!clinic) {\n  return [{ json: { statusCode: 404, body: { message: 'No hay una clínica configurada.' } } }];\n}\n\n// El logo se adjunta como data URI por el nodo siguiente si existe el binario.\nreturn [{ json: { statusCode: 200, body: {\n  name: clinic.name,\n  address: clinic.address || null,\n  phone: clinic.phone || null,\n  email: clinic.email || null,\n  logo_url: null,\n  welcome_video_url: clinic.welcome_video_url || null,\n  welcome_message: clinic.welcome_message || null,\n  patient_portal_enabled: clinic.patient_portal_enabled === true,\n  // Modos del portal — deciden el flujo de /patient-login (ver §3).\n  online_booking_enabled: clinic.online_booking_enabled !== false,\n  appointments_only: clinic.appointments_only === true,\n  schedules: clinic.schedules || [],\n} } }];\n"
+      },
+      "id": "20c42802-61f3-43e3-867f-3176160cde40",
+      "name": "Formatear Respuesta9",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1616,
+        1296
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Sólo se aceptan estos ocho campos. Nada de nombre, RUT ni datos fiscales:\n// esos se editan en Datos de la Clínica, no acá.\nconst body = $input.first().json.body ?? $input.first().json ?? {};\n\nconst asBool = (v) => v === true || v === 'true';\nconst asText = (v) => {\n  const s = v == null ? '' : String(v).trim();\n  return s === '' ? null : s;\n};\n// El id del servicio por defecto es un entero; cualquier cosa que no lo sea\n// (vacío, null, texto) se guarda como NULL ⇒ sin servicio por defecto.\nconst asServiceId = (v) => {\n  const n = Number(v);\n  return Number.isInteger(n) && n > 0 ? n : null;\n};\n\nreturn [{ json: {\n  patient_portal_enabled:           asBool(body.patient_portal_enabled),\n  patient_portal_online_booking:    asBool(body.online_booking_enabled),\n  patient_portal_appointments_only: asBool(body.appointments_only),\n  patient_portal_service_selection: asBool(body.service_selection_enabled),\n  patient_portal_show_pricing:      asBool(body.show_pricing),\n  patient_portal_default_service_id: asServiceId(body.default_service_id),\n  welcome_video_url:                asText(body.welcome_video_url),\n  welcome_message:                  asText(body.welcome_message),\n} }];\n"
+      },
+      "id": "65f28b9c-9691-4918-8ddf-833c073bde20",
+      "name": "Validar Campos1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3712,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- UPDATE puro: este endpoint nunca crea una clínica.\nUPDATE public.clinic\nSET patient_portal_enabled            = $1,\n    patient_portal_online_booking     = $2,\n    patient_portal_appointments_only  = $3,\n    patient_portal_service_selection  = $4,\n    patient_portal_show_pricing       = $5,\n    patient_portal_default_service_id = $6,\n    welcome_video_url                 = $7,\n    welcome_message                   = $8\nWHERE id = (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1)\nRETURNING id,\n          patient_portal_enabled,\n          patient_portal_online_booking,\n          patient_portal_appointments_only,\n          patient_portal_service_selection,\n          patient_portal_show_pricing,\n          patient_portal_default_service_id,\n          welcome_video_url,\n          welcome_message",
+        "options": {
+          "queryReplacement": "={{ [ $json.patient_portal_enabled, $json.patient_portal_online_booking, $json.patient_portal_appointments_only, $json.patient_portal_service_selection, $json.patient_portal_show_pricing, $json.patient_portal_default_service_id, $json.welcome_video_url, $json.welcome_message ] }}        "
+        }
+      },
+      "id": "ac4cf493-dc92-4b48-88eb-23d06a714416",
+      "name": "Actualizar Clínica1",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        3936,
+        -304
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst row = $input.first().json;\n\nif (!row || row.error || !row.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo guardar la configuración del portal.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  patient_portal_enabled: row.patient_portal_enabled === true,\n  online_booking_enabled: row.patient_portal_online_booking === true,\n  appointments_only:      row.patient_portal_appointments_only === true,\n  service_selection_enabled: row.patient_portal_service_selection === true,\n  show_pricing:              row.patient_portal_show_pricing === true,\n  default_service_id:        row.patient_portal_default_service_id,\n  welcome_video_url:      row.welcome_video_url,\n  welcome_message:        row.welcome_message,\n} } }];\n"
+      },
+      "id": "32ba4636-1cee-4c37-9338-d587b0746de1",
+      "name": "Formatear Respuesta8",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4160,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      },
+      "id": "cda28088-1ef1-4506-be92-c40fd69c021c",
+      "name": "Responder9",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        4368,
+        -304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- La tabla es public.clinic (singular) y sus columnas de contacto son\n-- address / phone / email. El baseline de Liquibase declara \"clinics\" con\n-- location / phone_number / contact_email, pero está desactualizado.\nSELECT\n    c.id,\n    c.name,\n    c.address,\n    COALESCE(c.phone, '')                      AS phone,\n    COALESCE(c.email, '')                      AS email,\n    COALESCE(c.patient_portal_enabled, FALSE)            AS patient_portal_enabled,\n    COALESCE(c.patient_portal_online_booking, TRUE)      AS online_booking_enabled,\n    COALESCE(c.patient_portal_appointments_only, FALSE)  AS appointments_only,\n    COALESCE(c.patient_portal_service_selection, FALSE)  AS service_selection_enabled,\n    COALESCE(c.patient_portal_show_pricing, FALSE)       AS show_pricing,\n    (\n      -- Servicio con el que se crea la reserva cuando el paciente no elige.\n      -- No se exige `bookable_online`: el por defecto lo aplica la clínica, no\n      -- el paciente, así que no tiene por qué estar publicado para auto-agenda.\n      SELECT json_build_object(\n               'id',               ds.id,\n               'name',             ds.name,\n               'duration_minutes', ds.duration_minutes\n             )\n      FROM public.service_catalog ds\n      WHERE ds.id = c.patient_portal_default_service_id\n        AND ds.is_active IS NOT FALSE\n    ) AS default_service,\n    c.welcome_video_url,\n    c.welcome_message,\n    (\n      -- Horarios sin sede asignada: valen para toda la clínica.\n      SELECT json_agg(json_build_object(\n               'day_of_week', s.day_of_week,\n               'start_time',  to_char(s.start_time, 'HH24:MI'),\n               'end_time',    to_char(s.end_time,   'HH24:MI')\n             ) ORDER BY s.day_of_week, s.start_time)\n      FROM public.clinic_schedules s\n      WHERE s.sede_id IS NULL\n    ) AS schedules\nFROM public.clinic c\nWHERE c.is_active IS NOT FALSE\nORDER BY c.id\nLIMIT 1",
+        "options": {}
+      },
+      "id": "be6c9f9f-e352-4d57-8328-acf2f240fb82",
+      "name": "Buscar Clínica1",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2480,
+        1440
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Arma el payload público. NUNCA agregar campos sensibles: este endpoint es\n// accesible sin token por cualquiera que abra /patient-login.\nconst rows = $input.all().map(i => i.json).filter(r => r && r.name);\nconst clinic = rows[0];\n\nif (!clinic) {\n  return [{ json: { statusCode: 404, body: { message: 'No hay una clínica configurada.' } } }];\n}\n\n// El logo se adjunta como data URI por el nodo siguiente si existe el binario.\nreturn [{ json: { statusCode: 200, body: {\n  name: clinic.name,\n  address: clinic.address || null,\n  phone: clinic.phone || null,\n  email: clinic.email || null,\n  logo_url: null,\n  welcome_video_url: clinic.welcome_video_url || null,\n  welcome_message: clinic.welcome_message || null,\n  patient_portal_enabled: clinic.patient_portal_enabled === true,\n  // Modos del portal — deciden el flujo de /patient-login (ver §3).\n  online_booking_enabled: clinic.online_booking_enabled !== false,\n  appointments_only: clinic.appointments_only === true,\n  // Selección de servicios. `show_pricing` es sólo presentación: la duración\n  // del servicio dimensiona el hueco de la agenda esté visible o no.\n  service_selection_enabled: clinic.service_selection_enabled === true,\n  show_pricing: clinic.show_pricing === true,\n  default_service: clinic.default_service || null,\n  schedules: clinic.schedules || [],\n} } }];\n"
+      },
+      "id": "97549466-8468-47a5-8b09-e1d926d54e3e",
+      "name": "Formatear Respuesta10",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      },
+      "id": "321df231-79d4-4a10-b8ff-6bb60e5c6ca1",
+      "name": "Responder10",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2960,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "path": "api/public/clinic",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "6209902d-11bf-4318-a573-906d95903530",
+      "name": "GET api/public/clinic1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        1440
+      ],
+      "webhookId": "8d7ab242-eecc-4ac8-b2e9-125b9ed7c8ee"
     }
   ],
-  "pinData": {},
+  "pinData": {
+    "GET api/public/clinic1": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkNTJmOTg4Yy05ODk5LTQxOTctYTgyMy1hMzM3ZTQxODY4N2IiLCJlbWFpbCI6Im1hcmtAaW52b2tlaWEuY29tIiwiZXhwaXJlc0luIjoiMjRoIiwiaWF0IjoxNzkwODg2NzAyfQ.7ncqLxp3rbd1QXlsi6Ju6EE_7QVy8GolbcI57jaylmY",
+            "cache-control": "no-cache",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es/my-profile",
+            "sec-ch-ua": "\"Chromium\";v=\"152\", \"Not?A_Brand\";v=\"24\", \"Google Chrome\";v=\"152\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "167.60.246.22",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "292b596f5d37",
+            "x-real-ip": "167.60.246.22"
+          },
+          "params": {},
+          "query": {},
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/api/public/clinic",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
   "connections": {
     "Normalizar Identificador": {
       "main": [
@@ -1839,7 +2064,7 @@
       "main": [
         [
           {
-            "node": "Validar Campos",
+            "node": "Validar Campos1",
             "type": "main",
             "index": 0
           }
@@ -1899,11 +2124,6 @@
             "index": 0
           }
         ]
-      ]
-    },
-    "Email a la Clínica1": {
-      "main": [
-        []
       ]
     },
     "Email a la Clínica": {
@@ -2140,7 +2360,18 @@
         ]
       ]
     },
-    "Webhook1": {
+    "Formatear Respuesta1": {
+      "main": [
+        [
+          {
+            "node": "Responder1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POSt api/auth/patient/register": {
       "main": [
         [
           {
@@ -2151,11 +2382,66 @@
         ]
       ]
     },
-    "Formatear Respuesta1": {
+    "Validar Campos1": {
       "main": [
         [
           {
-            "node": "Responder1",
+            "node": "Actualizar Clínica1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar Clínica1": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta8": {
+      "main": [
+        [
+          {
+            "node": "Responder9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Clínica1": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta10": {
+      "main": [
+        [
+          {
+            "node": "Responder10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET api/public/clinic1": {
+      "main": [
+        [
+          {
+            "node": "Buscar Clínica1",
             "type": "main",
             "index": 0
           }
@@ -2169,7 +2455,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "5b141ebd-961f-4480-b1c9-4eef2126d80e",
+  "versionId": "de01f957-437a-471f-bb84-bde6888fb2ac",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"

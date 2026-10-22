@@ -1,4 +1,4 @@
-import { format, getISOWeek, parseISO } from 'date-fns';
+import { differenceInCalendarISOWeeks, format, parseISO } from 'date-fns';
 
 import type { ClinicSchedule, ClinicException } from '@/lib/types';
 import type { CalendarEvent } from './calendar-types';
@@ -299,27 +299,31 @@ function isoDayOfWeek(day: Date): number {
 
 /**
  * Whether exception `e` applies to `day`. Mirrors the recurrence semantics of
- * `get_available_users()` in Postgres: 'once' (default, backward compatible)
- * matches the exact date; 'weekly'/'biweekly'/'monthly' match a pattern within
+ * `get_available_users()` in Postgres: 'once' (default) matches any of its
+ * `dates`; 'weekly'/'biweekly'/'monthly' match any of their days within
  * `[date, end_date]` (end_date null = indefinite).
  */
 function exceptionMatchesDay(e: ClinicException, day: Date, dayKey: string): boolean {
   const recurrence = e.recurrence ?? 'once';
-  if (recurrence === 'once') return normalizeDateKey(e.date) === dayKey;
+  if (recurrence === 'once') {
+    return e.dates?.length ? e.dates.some((d) => normalizeDateKey(d) === dayKey) : normalizeDateKey(e.date) === dayKey;
+  }
 
   const startKey = normalizeDateKey(e.date);
   if (!startKey || dayKey < startKey) return false;
   if (e.end_date && dayKey > normalizeDateKey(e.end_date)) return false;
 
   if (recurrence === 'monthly') {
-    return e.day_of_month != null && day.getDate() === Number(e.day_of_month);
+    return !!e.days_of_month?.includes(day.getDate());
   }
   if (recurrence === 'weekly' || recurrence === 'biweekly') {
-    if (e.day_of_week == null || isoDayOfWeek(day) !== Number(e.day_of_week)) return false;
+    if (!e.days_of_week?.includes(isoDayOfWeek(day))) return false;
     if (recurrence === 'weekly') return true;
     if (!e.biweekly_reference_date) return false;
-    const weekDiff = getISOWeek(day) - getISOWeek(parseISO(normalizeDateKey(e.biweekly_reference_date)));
-    return ((weekDiff % 2) + 2) % 2 === 0;
+    // Real distance in weeks between both Mondays: ISO week numbers would flip
+    // the parity after a 53-week year (same fix as script 138 in Postgres).
+    const weekDiff = differenceInCalendarISOWeeks(day, parseISO(normalizeDateKey(e.biweekly_reference_date)));
+    return weekDiff % 2 === 0;
   }
   return false;
 }

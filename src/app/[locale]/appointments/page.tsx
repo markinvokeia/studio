@@ -66,6 +66,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { Appointment, AppointmentBulkFilterParams, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarColorSources, CalendarItemScope, CalendarItemType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, ResponsibleContact, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
 import { getEffectiveAppointmentContact, normalizeResponsibleContact, patchAppointmentsForPatient } from '@/lib/appointment-contact';
+import { parseClinicExceptions } from '@/lib/clinic-exceptions';
 import { getDependantContactInfo } from '@/components/patients/patient-form-utils';
 import { getDateFnsLocale } from '@/lib/locale';
 import { cn, toLocalISOString } from '@/lib/utils';
@@ -4057,31 +4058,9 @@ export default function AppointmentsPage() {
     // Clinic exceptions (holidays / one-off openings) for out-of-office blocking.
     React.useEffect(() => {
         api.get(API_ROUTES.EXCEPTIONS)
-            .then((data) => {
-                const rows = Array.isArray(data) ? data : ((data as { exceptions?: unknown[]; data?: unknown[]; result?: unknown[] })?.exceptions || (data as { data?: unknown[] })?.data || (data as { result?: unknown[] })?.result || []);
-                setClinicExceptions((rows as Record<string, unknown>[]).map((e) => ({
-                    id: String(e.id ?? ''),
-                    date: String(e.date ?? ''),
-                    is_open: e.is_open as boolean,
-                    start_time: (e.start_time as string) ?? '',
-                    end_time: (e.end_time as string) ?? '',
-                    // Empty/absent sede = clinic-wide exception (applies to every branch).
-                    sede_id: e.sede_id !== undefined && e.sede_id !== null && String(e.sede_id) !== ''
-                        ? String(e.sede_id)
-                        : undefined,
-                    // Notes can come under a few key names depending on the flow.
-                    notes: String(e.notes ?? e.note ?? e.nota ?? e.notas ?? e.description ?? e.descripcion ?? e.motivo ?? ''),
-                    // Recurrence pattern ('once' default, backward compatible) plus its
-                    // supporting fields — without these, calendar-gaps.ts treats every
-                    // exception as a single exact date and weekly/biweekly/monthly
-                    // exceptions never match beyond the day they were created on.
-                    recurrence: (e.recurrence as ClinicException['recurrence']) ?? 'once',
-                    day_of_week: e.day_of_week != null ? Number(e.day_of_week) : undefined,
-                    day_of_month: e.day_of_month != null ? Number(e.day_of_month) : undefined,
-                    biweekly_reference_date: e.biweekly_reference_date != null ? String(e.biweekly_reference_date) : undefined,
-                    end_date: e.end_date != null ? String(e.end_date) : undefined,
-                })));
-            })
+            // Recurrence and its day lists come along: without them calendar-gaps.ts
+            // couldn't match weekly/biweekly/monthly or multi-date exceptions.
+            .then((data) => setClinicExceptions(parseClinicExceptions(data)))
             .catch(() => setClinicExceptions([]));
     }, []);
 

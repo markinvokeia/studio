@@ -3,20 +3,17 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableAdvancedToolbar } from '@/components/ui/data-table-advanced-toolbar';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { DatePickerInput } from '@/components/ui/date-picker';
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Form } from "@/components/ui/form";
 import { Separator } from '@/components/ui/separator';
-import { Textarea } from '@/components/ui/textarea';
+import { EMPTY_EXCEPTION_FORM, ExceptionFormFields, exceptionFormSchema, type ExceptionFormValues } from '@/components/holidays/exception-form-fields';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { multiDateLabel, useWeekdayListLabel } from '@/components/schedules/day-pickers';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
@@ -25,9 +22,9 @@ import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { parseClinicExceptions } from '@/lib/clinic-exceptions';
 import { getErrorMessage } from '@/lib/error-utils';
 import { ClinicException } from '@/lib/types';
-import { formatHolidayDate, formatDate } from '@/lib/utils';
 import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
@@ -35,103 +32,43 @@ import { AlertTriangle, CalendarOff, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-
-/** Radix Select no admite value=""; este centinela representa "todas las sedes". */
-const ALL_SEDES_VALUE = '__all__';
-
-const DAY_NAMES = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
-
-const holidayFormSchema = (t: (key: string) => string) => z.object({
-    id: z.string().optional(),
-    date: z.string().min(1, t('dateRequired')),
-    is_open: z.boolean().default(false),
-    start_time: z.string().optional(),
-    end_time: z.string().optional(),
-    // '' = la excepción aplica a todas las sedes.
-    sede_id: z.string().optional(),
-    notes: z.string().optional(),
-    recurrence: z.enum(['once', 'weekly', 'biweekly', 'monthly']).default('once'),
-    day_of_week: z.string().optional(),
-    day_of_month: z.string().optional(),
-    biweekly_reference_date: z.string().optional(),
-    end_date: z.string().optional(),
-}).refine(data => {
-    if ((data.recurrence === 'weekly' || data.recurrence === 'biweekly') && !data.day_of_week) {
-        return false;
-    }
-    return true;
-}, {
-    message: t('dayOfWeekRequired'),
-    path: ["day_of_week"],
-}).refine(data => {
-    if (data.recurrence === 'monthly') {
-        const day = Number(data.day_of_month);
-        if (!data.day_of_month || Number.isNaN(day) || day < 1 || day > 31) {
-            return false;
-        }
-    }
-    return true;
-}, {
-    message: t('dayOfMonthRequired'),
-    path: ["day_of_month"],
-}).refine(data => {
-    if (data.recurrence === 'biweekly' && !data.biweekly_reference_date) {
-        return false;
-    }
-    return true;
-}, {
-    message: t('biweeklyReferenceDateRequired'),
-    path: ["biweekly_reference_date"],
-});
-
-type HolidayFormValues = z.infer<ReturnType<typeof holidayFormSchema>>;
 
 async function getHolidays(signal?: AbortSignal): Promise<ClinicException[]> {
         const data = await api.get(API_ROUTES.EXCEPTIONS, undefined, undefined, { signal });
-        const holidaysData = Array.isArray(data) ? data : (data?.exceptions || data?.data || data?.result || []);
-        return holidaysData.map((apiHoliday: any) => ({
-            id: apiHoliday.id ? String(apiHoliday.id) : `ex_${Math.random().toString(36).substr(2, 9)}`,
-            // Keep an ISO (yyyy-MM-dd) date; format only at display time.
-            date: formatDate(apiHoliday.date),
-            is_open: apiHoliday.is_open,
-            start_time: apiHoliday.start_time ?? '',
-            end_time: apiHoliday.end_time ?? '',
-            // Sede vacía/ausente = excepción global (aplica a todas las sedes).
-            sede_id: apiHoliday.sede_id !== undefined && apiHoliday.sede_id !== null && String(apiHoliday.sede_id) !== ''
-                ? String(apiHoliday.sede_id)
-                : undefined,
-            sede_name: apiHoliday.sede_name ? String(apiHoliday.sede_name) : undefined,
-            notes: apiHoliday.notes || '',
-            recurrence: apiHoliday.recurrence || 'once',
-            day_of_week: apiHoliday.day_of_week ?? undefined,
-            day_of_month: apiHoliday.day_of_month ?? undefined,
-            biweekly_reference_date: apiHoliday.biweekly_reference_date ? formatDate(apiHoliday.biweekly_reference_date) : undefined,
-            end_date: apiHoliday.end_date ? formatDate(apiHoliday.end_date) : undefined,
-        }));
+        return parseClinicExceptions(data);
 }
 
-function mapHolidayToFormValues(holiday: ClinicException): HolidayFormValues {
+function mapHolidayToFormValues(holiday: ClinicException): ExceptionFormValues {
     return {
         id: holiday.id,
         // Already ISO (yyyy-MM-dd) — the DatePicker/Input handle this directly.
         date: holiday.date,
+        dates: holiday.dates ?? [],
         is_open: holiday.is_open,
         start_time: holiday.start_time ?? '',
         end_time: holiday.end_time ?? '',
         sede_id: holiday.sede_id ?? '',
         notes: holiday.notes ?? '',
         recurrence: holiday.recurrence ?? 'once',
-        day_of_week: holiday.day_of_week?.toString(),
-        day_of_month: holiday.day_of_month?.toString(),
+        days_of_week: holiday.days_of_week ?? [],
+        days_of_month: holiday.days_of_month ?? [],
         biweekly_reference_date: holiday.biweekly_reference_date ?? '',
         end_date: holiday.end_date ?? '',
     };
 }
 
-async function upsertHoliday(holidayData: HolidayFormValues) {
+async function upsertHoliday(holidayData: ExceptionFormValues) {
+    const isOnce = holidayData.recurrence === 'once';
+    const isWeekly = holidayData.recurrence === 'weekly' || holidayData.recurrence === 'biweekly';
+    const dates = [...holidayData.dates].sort();
     const payload = {
         ...holidayData,
+        // 'once': la fila se ordena por su primera fecha.
+        date: isOnce ? dates[0] : holidayData.date,
+        // Sólo viaja la lista de la recurrencia elegida; las demás van en NULL.
+        dates: isOnce ? dates : null,
+        days_of_week: isWeekly ? holidayData.days_of_week : null,
+        days_of_month: holidayData.recurrence === 'monthly' ? holidayData.days_of_month : null,
         // '' = todas las sedes -> NULL en la columna. Number('') es 0, que sería
         // una FK inválida, de ahí el branch explícito.
         sede_id: holidayData.sede_id ? Number(holidayData.sede_id) : null,
@@ -139,8 +76,6 @@ async function upsertHoliday(holidayData: HolidayFormValues) {
         // fallar el cast a `time`. Un cierre sin horas cierra el día completo.
         start_time: holidayData.start_time || null,
         end_time: holidayData.end_time || null,
-        day_of_week: holidayData.day_of_week ? Number(holidayData.day_of_week) : null,
-        day_of_month: holidayData.day_of_month ? Number(holidayData.day_of_month) : null,
         biweekly_reference_date: holidayData.biweekly_reference_date || null,
         end_date: holidayData.end_date || null,
     };
@@ -160,6 +95,11 @@ async function deleteHoliday(id: string) {
         throw new Error(responseData[0]?.message || 'Failed to delete holiday');
     }
     return responseData;
+}
+
+/** Fecha de la regla para lista y títulos: 'once' con varias fechas muestra la primera y cuántas más. */
+function holidayDateLabel(holiday: ClinicException): string {
+    return multiDateLabel(holiday.dates, holiday.date);
 }
 
 export default function HolidaysPage() {
@@ -186,26 +126,10 @@ export default function HolidaysPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingHoliday, setDeletingHoliday] = React.useState<ClinicException | null>(null);
 
-    const form = useForm<HolidayFormValues>({
-        resolver: zodResolver(holidayFormSchema(tValidation)),
-        defaultValues: { date: '', is_open: false, start_time: '', end_time: '', sede_id: '', notes: '', recurrence: 'once' },
+    const form = useForm<ExceptionFormValues>({
+        resolver: zodResolver(exceptionFormSchema(tValidation)),
+        defaultValues: EMPTY_EXCEPTION_FORM,
     });
-    const watchedRecurrence = form.watch('recurrence');
-
-    React.useEffect(() => {
-        if (watchedRecurrence !== 'weekly' && watchedRecurrence !== 'biweekly') {
-            form.setValue('day_of_week', undefined);
-        }
-        if (watchedRecurrence !== 'biweekly') {
-            form.setValue('biweekly_reference_date', undefined);
-        }
-        if (watchedRecurrence !== 'monthly') {
-            form.setValue('day_of_month', undefined);
-        }
-        if (watchedRecurrence === 'once') {
-            form.setValue('end_date', undefined);
-        }
-    }, [watchedRecurrence, form]);
 
 
     const filteredHolidays = React.useMemo(() => {
@@ -235,7 +159,7 @@ export default function HolidaysPage() {
         setRowSelection({});
         setIsEditing(true);
         setSubmissionError(null);
-        form.reset({ date: '', is_open: false, start_time: '', end_time: '', sede_id: '', notes: '', recurrence: 'once' });
+        form.reset(EMPTY_EXCEPTION_FORM);
         setIsCreateDialogOpen(true);
     };
 
@@ -257,7 +181,7 @@ export default function HolidaysPage() {
     };
 
     const save = useAsyncAction(
-        async (values: HolidayFormValues) => {
+        async (values: ExceptionFormValues) => {
             setSubmissionError(null);
             await upsertHoliday(values);
             return values;
@@ -321,16 +245,20 @@ export default function HolidaysPage() {
     };
 
     // Resumen legible de la recurrencia para la tabla y las tarjetas.
+    const tDayPickers = useTranslations('DayPickers');
+    const weekdayListLabel = useWeekdayListLabel();
     const recurrenceLabel = React.useCallback((holiday: ClinicException) => {
         const recurrence = holiday.recurrence ?? 'once';
-        if (recurrence === 'once') return t('createDialog.once');
-        if (recurrence === 'monthly') return `${t('createDialog.monthly')} · ${holiday.day_of_month ?? '-'}`;
-        const dayLabel = holiday.day_of_week ? t(`days.${DAY_NAMES[holiday.day_of_week - 1]}`) : '-';
-        return `${t(`createDialog.${recurrence}`)} · ${dayLabel}`;
-    }, [t]);
+        if (recurrence === 'once') {
+            const count = holiday.dates?.length ?? 1;
+            return count > 1 ? `${t('createDialog.once')} · ${tDayPickers('datesCount', { count })}` : t('createDialog.once');
+        }
+        if (recurrence === 'monthly') return `${t('createDialog.monthly')} · ${holiday.days_of_month?.join(', ') || '-'}`;
+        return `${t(`createDialog.${recurrence}`)} · ${weekdayListLabel(holiday.days_of_week)}`;
+    }, [t, tDayPickers, weekdayListLabel]);
 
     const columns: ColumnDef<ClinicException>[] = [
-        { accessorKey: 'date', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.date')} />, cell: ({ row }) => formatHolidayDate(row.original.date) },
+        { accessorKey: 'date', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.date')} />, cell: ({ row }) => holidayDateLabel(row.original) },
         {
             accessorKey: 'recurrence',
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.recurrence')} />,
@@ -395,7 +323,7 @@ export default function HolidaysPage() {
                     )}
                     renderCard={(row: ClinicException, _isSelected: boolean) => (
                         <DataCard isSelected={_isSelected}
-                            title={formatHolidayDate(row.date)}
+                            title={holidayDateLabel(row)}
                             subtitle={[recurrenceLabel(row), row.notes || (row.is_open ? `${row.start_time} – ${row.end_time}` : ''), sedeLabel(row.sede_id, row.sede_name)].filter(Boolean).join(' · ')}
                             badge={<span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${row.is_open ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-500'}`}>{row.is_open ? 'Abierto' : 'Cerrado'}</span>}
                             showArrow
@@ -413,7 +341,7 @@ export default function HolidaysPage() {
                     <div className="flex items-center gap-2 min-w-0">
                         <div className="header-icon-circle flex-none"><CalendarOff className="h-5 w-5" /></div>
                         <CardTitle className="text-base lg:text-lg truncate">
-                            {isEditing && !selectedHoliday ? t('createDialog.title') : (selectedHoliday ? formatHolidayDate(selectedHoliday.date) : '')}
+                            {isEditing && !selectedHoliday ? t('createDialog.title') : (selectedHoliday ? holidayDateLabel(selectedHoliday) : '')}
                         </CardTitle>
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-none">
@@ -451,129 +379,7 @@ export default function HolidaysPage() {
                         )}
                         {/* Native fieldset disables every control while the request is in flight */}
                         <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
-                        <FormField control={form.control} name="date" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{t('createDialog.date')}</FormLabel>
-                                <FormControl>
-                                    {isEditing ? <DatePickerInput value={field.value ?? ''} onChange={field.onChange} /> : <Input {...field} value={formatHolidayDate(field.value)} disabled />}
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                        <FormField control={form.control} name="recurrence" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{t('createDialog.recurrence')}</FormLabel>
-                                <Select value={field.value} onValueChange={field.onChange} disabled={!isEditing}>
-                                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="once">{t('createDialog.once')}</SelectItem>
-                                        <SelectItem value="weekly">{t('createDialog.weekly')}</SelectItem>
-                                        <SelectItem value="biweekly">{t('createDialog.biweekly')}</SelectItem>
-                                        <SelectItem value="monthly">{t('createDialog.monthly')}</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                        {(watchedRecurrence === 'weekly' || watchedRecurrence === 'biweekly') && (
-                            <FormField control={form.control} name="day_of_week" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('createDialog.dayOfWeek')}</FormLabel>
-                                    <Select value={field.value} onValueChange={field.onChange} disabled={!isEditing}>
-                                        <FormControl><SelectTrigger><SelectValue placeholder={t('createDialog.selectDay')} /></SelectTrigger></FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="1">{t('days.monday')}</SelectItem>
-                                            <SelectItem value="2">{t('days.tuesday')}</SelectItem>
-                                            <SelectItem value="3">{t('days.wednesday')}</SelectItem>
-                                            <SelectItem value="4">{t('days.thursday')}</SelectItem>
-                                            <SelectItem value="5">{t('days.friday')}</SelectItem>
-                                            <SelectItem value="6">{t('days.saturday')}</SelectItem>
-                                            <SelectItem value="7">{t('days.sunday')}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                        )}
-                        {watchedRecurrence === 'biweekly' && (
-                            <FormField control={form.control} name="biweekly_reference_date" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('createDialog.biweeklyReferenceDate')}</FormLabel>
-                                    <FormControl><DatePickerInput value={field.value ?? ''} onChange={field.onChange} disabled={!isEditing} /></FormControl>
-                                    <FormDescription>{t('createDialog.biweeklyReferenceDateHelp')}</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                        )}
-                        {watchedRecurrence === 'monthly' && (
-                            <FormField control={form.control} name="day_of_month" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('createDialog.dayOfMonth')}</FormLabel>
-                                    <FormControl><Input type="number" min={1} max={31} {...field} value={field.value ?? ''} disabled={!isEditing} /></FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                        )}
-                        {watchedRecurrence !== 'once' && (
-                            <FormField control={form.control} name="end_date" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('createDialog.endDate')}</FormLabel>
-                                    <FormControl><DatePickerInput value={field.value ?? ''} onChange={field.onChange} disabled={!isEditing} /></FormControl>
-                                    <FormDescription>{t('createDialog.endDateHelp')}</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                        )}
-                        <FormField control={form.control} name="is_open" render={({ field }) => (
-                            <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
-                                <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!isEditing} /></FormControl>
-                                <FormLabel className="font-normal">{t('createDialog.isOpen')}</FormLabel>
-                            </FormItem>
-                        )} />
-                        {sedes.length > 0 && (
-                            <FormField control={form.control} name="sede_id" render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>{t('createDialog.sede')}</FormLabel>
-                                    <Select
-                                        value={field.value ? field.value : ALL_SEDES_VALUE}
-                                        onValueChange={(val) => field.onChange(val === ALL_SEDES_VALUE ? '' : val)}
-                                        disabled={!isEditing}
-                                    >
-                                        <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                        <SelectContent>
-                                            <SelectItem value={ALL_SEDES_VALUE}>{t('createDialog.allSedes')}</SelectItem>
-                                            {sedes.map((sede) => (
-                                                <SelectItem key={sede.id} value={String(sede.id)}>{sede.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormDescription>{t('createDialog.sedeHelp')}</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )} />
-                        )}
-                        <FormField control={form.control} name="start_time" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{t('createDialog.startTime')}</FormLabel>
-                                <FormControl><Input type="time" {...field} value={field.value ?? ''} disabled={!isEditing} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                        <FormField control={form.control} name="end_time" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{t('createDialog.endTime')}</FormLabel>
-                                <FormControl><Input type="time" {...field} value={field.value ?? ''} disabled={!isEditing} /></FormControl>
-                                <FormDescription>{t('createDialog.timesHelp')}</FormDescription>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
-                        <FormField control={form.control} name="notes" render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>{t('createDialog.notes')}</FormLabel>
-                                <FormControl><Textarea {...field} value={field.value ?? ''} disabled={!isEditing} placeholder={isEditing ? t('createDialog.notesPlaceholder') : ''} /></FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )} />
+                        <ExceptionFormFields form={form} readOnly={!isEditing} sedes={sedes} />
                         </fieldset>
                         {isEditing && (
                             <div className="flex gap-2 pt-2">
@@ -605,7 +411,7 @@ export default function HolidaysPage() {
                 open={isDeleteDialogOpen}
                 onOpenChange={setIsDeleteDialogOpen}
                 title={t('deleteDialog.title')}
-                description={t('deleteDialog.description', { date: deletingHoliday ? formatHolidayDate(deletingHoliday.date) : '' })}
+                description={t('deleteDialog.description', { date: deletingHoliday ? holidayDateLabel(deletingHoliday) : '' })}
                 cancelLabel={t('deleteDialog.cancel')}
                 confirmLabel={t('deleteDialog.confirm')}
                 onConfirm={() => { if (deletingHoliday) remove.run(deletingHoliday); }}
@@ -619,7 +425,7 @@ export default function HolidaysPage() {
                     if (!open) {
                         setIsEditing(false);
                         setSubmissionError(null);
-                        form.reset({ date: '', is_open: false, start_time: '', end_time: '', sede_id: '', notes: '', recurrence: 'once' });
+                        form.reset(EMPTY_EXCEPTION_FORM);
                     }
                 }}
             >
@@ -639,126 +445,7 @@ export default function HolidaysPage() {
                                 )}
                                 {/* Native fieldset disables every control while the request is in flight */}
                                 <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
-                                <FormField control={form.control} name="date" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('createDialog.date')}</FormLabel>
-                                        <FormControl><DatePickerInput value={field.value} onChange={field.onChange} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="recurrence" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('createDialog.recurrence')}</FormLabel>
-                                        <Select value={field.value} onValueChange={field.onChange}>
-                                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="once">{t('createDialog.once')}</SelectItem>
-                                                <SelectItem value="weekly">{t('createDialog.weekly')}</SelectItem>
-                                                <SelectItem value="biweekly">{t('createDialog.biweekly')}</SelectItem>
-                                                <SelectItem value="monthly">{t('createDialog.monthly')}</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                {(watchedRecurrence === 'weekly' || watchedRecurrence === 'biweekly') && (
-                                    <FormField control={form.control} name="day_of_week" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('createDialog.dayOfWeek')}</FormLabel>
-                                            <Select value={field.value} onValueChange={field.onChange}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder={t('createDialog.selectDay')} /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="1">{t('days.monday')}</SelectItem>
-                                                    <SelectItem value="2">{t('days.tuesday')}</SelectItem>
-                                                    <SelectItem value="3">{t('days.wednesday')}</SelectItem>
-                                                    <SelectItem value="4">{t('days.thursday')}</SelectItem>
-                                                    <SelectItem value="5">{t('days.friday')}</SelectItem>
-                                                    <SelectItem value="6">{t('days.saturday')}</SelectItem>
-                                                    <SelectItem value="7">{t('days.sunday')}</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                )}
-                                {watchedRecurrence === 'biweekly' && (
-                                    <FormField control={form.control} name="biweekly_reference_date" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('createDialog.biweeklyReferenceDate')}</FormLabel>
-                                            <FormControl><DatePickerInput value={field.value ?? ''} onChange={field.onChange} /></FormControl>
-                                            <FormDescription>{t('createDialog.biweeklyReferenceDateHelp')}</FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                )}
-                                {watchedRecurrence === 'monthly' && (
-                                    <FormField control={form.control} name="day_of_month" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('createDialog.dayOfMonth')}</FormLabel>
-                                            <FormControl><Input type="number" min={1} max={31} {...field} value={field.value ?? ''} /></FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                )}
-                                {watchedRecurrence !== 'once' && (
-                                    <FormField control={form.control} name="end_date" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('createDialog.endDate')}</FormLabel>
-                                            <FormControl><DatePickerInput value={field.value ?? ''} onChange={field.onChange} /></FormControl>
-                                            <FormDescription>{t('createDialog.endDateHelp')}</FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                )}
-                                <FormField control={form.control} name="is_open" render={({ field }) => (
-                                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-lg border p-3">
-                                        <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                                        <FormLabel className="font-normal">{t('createDialog.isOpen')}</FormLabel>
-                                    </FormItem>
-                                )} />
-                                {sedes.length > 0 && (
-                                    <FormField control={form.control} name="sede_id" render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('createDialog.sede')}</FormLabel>
-                                            <Select
-                                                value={field.value ? field.value : ALL_SEDES_VALUE}
-                                                onValueChange={(val) => field.onChange(val === ALL_SEDES_VALUE ? '' : val)}
-                                            >
-                                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value={ALL_SEDES_VALUE}>{t('createDialog.allSedes')}</SelectItem>
-                                                    {sedes.map((sede) => (
-                                                        <SelectItem key={sede.id} value={String(sede.id)}>{sede.name}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormDescription>{t('createDialog.sedeHelp')}</FormDescription>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )} />
-                                )}
-                                <FormField control={form.control} name="start_time" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('createDialog.startTime')}</FormLabel>
-                                        <FormControl><Input type="time" {...field} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="end_time" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('createDialog.endTime')}</FormLabel>
-                                        <FormControl><Input type="time" {...field} /></FormControl>
-                                        <FormDescription>{t('createDialog.timesHelp')}</FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="notes" render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>{t('createDialog.notes')}</FormLabel>
-                                        <FormControl><Textarea {...field} placeholder={t('createDialog.notesPlaceholder')} /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )} />
+                                <ExceptionFormFields form={form} sedes={sedes} />
                                 </fieldset>
                             </DialogBody>
                             <DialogFooter>

@@ -4037,10 +4037,12 @@
       "cancel": "Cancelar",
       "editTitle": "Editar horario",
       "editDescription": "Editar el horario para la clínica",
-      "editSave": "Guardar Cambios"
+      "editSave": "Guardar Cambios",
+      "daysOfWeek": "Días de la Semana",
+      "daysOfWeekHelp": "Se crea un horario por cada día elegido, con el mismo rango."
     },
     "validation": {
-      "dayRequired": "El día de la semana es obligatorio.",
+      "dayRequired": "Selecciona al menos un día.",
       "startRequired": "La hora de inicio es obligatoria.",
       "endRequired": "La hora de fin es obligatoria.",
       "dayOfWeekRequired": "El día de la semana es obligatorio.",
@@ -4099,11 +4101,8 @@
       "weekly": "Semanal",
       "biweekly": "Quincenal",
       "monthly": "Mensual",
-      "dayOfWeek": "Día de la Semana",
-      "dayOfMonth": "Día del Mes",
-      "selectDay": "Selecciona el día",
       "biweeklyReferenceDate": "Fecha de Referencia",
-      "biweeklyReferenceDateHelp": "Fecha ancla usada para calcular en qué semanas cae el patrón quincenal.",
+      "biweeklyReferenceDateHelp": "Las semanas se cuentan desde la semana de esta fecha: se aplica esa semana, dos semanas después, y así sucesivamente.",
       "endDate": "Fecha de Fin",
       "endDateHelp": "Deja vacío para que la recurrencia aplique indefinidamente.",
       "isOpen": "¿Está Abierto?",
@@ -4120,22 +4119,18 @@
       "editTitle": "Editar horario de excepción",
       "editDescription": "Editar el horario de excepción para la clínica",
       "edit": "Editar",
-      "editSave": "Guardar Cambios"
-    },
-    "days": {
-      "monday": "Lunes",
-      "tuesday": "Martes",
-      "wednesday": "Miércoles",
-      "thursday": "Jueves",
-      "friday": "Viernes",
-      "saturday": "Sábado",
-      "sunday": "Domingo"
+      "editSave": "Guardar Cambios",
+      "dates": "Fechas",
+      "startDate": "Fecha de Inicio",
+      "daysOfWeek": "Días de la Semana",
+      "daysOfMonth": "Días del Mes"
     },
     "validation": {
-      "dateRequired": "La fecha es obligatoria.",
-      "dayOfWeekRequired": "El día de la semana es obligatorio para recurrencia semanal o quincenal.",
-      "dayOfMonthRequired": "El día del mes (1-31) es obligatorio para recurrencia mensual.",
-      "biweeklyReferenceDateRequired": "La fecha de referencia es obligatoria para recurrencia quincenal."
+      "dateRequired": "La fecha de inicio es obligatoria.",
+      "dayOfWeekRequired": "Selecciona al menos un día de la semana para la recurrencia semanal o quincenal.",
+      "dayOfMonthRequired": "Selecciona al menos un día del mes para la recurrencia mensual.",
+      "biweeklyReferenceDateRequired": "La fecha de referencia es obligatoria para recurrencia quincenal.",
+      "datesRequired": "Selecciona al menos una fecha."
     },
     "deleteDialog": {
       "title": "Eliminar Horario de Excepción",
@@ -4153,6 +4148,31 @@
       "deleteErrorDescription": "No se pudo eliminar el horario de excepción. Inténtalo de nuevo.",
       "genericError": "Ocurrió un error inesperado."
     }
+  },
+  "DayPickers": {
+    "days": {
+      "monday": "Lunes",
+      "tuesday": "Martes",
+      "wednesday": "Miércoles",
+      "thursday": "Jueves",
+      "friday": "Viernes",
+      "saturday": "Sábado",
+      "sunday": "Domingo"
+    },
+    "daysShort": {
+      "monday": "Lun",
+      "tuesday": "Mar",
+      "wednesday": "Mié",
+      "thursday": "Jue",
+      "friday": "Vie",
+      "saturday": "Sáb",
+      "sunday": "Dom"
+    },
+    "datesHelp": "Haz clic en los días del calendario para añadirlos o quitarlos.",
+    "noDatesSelected": "Ninguna fecha seleccionada",
+    "removeDate": "Quitar {date}",
+    "datesCount": "{count, plural, one {# fecha} other {# fechas}}",
+    "shortMonthsHelp": "Los días que un mes no tiene (29, 30 o 31) no se aplican ese mes."
   },
   "CalendarsPage": {
     "title": "Calendarios",
@@ -4342,14 +4362,12 @@
     "description": "Gestionar la disponibilidad de doctores para la clínica",
     "filterPlaceholder": "Filtrar aquí...",
     "dialog": {
-      "daily": "Diario",
       "weekly": "Semanal",
       "monthly": "Mensual",
       "biweekly": "Quincenal",
       "selectRecurrence": "Selecciona la recurrencia",
       "searchDoctor": "Buscar doctor",
       "noDoctorFound": "No se encontró el doctor",
-      "selectDay": "Selecciona el día",
       "save": "Guardar",
       "edit": "Editar",
       "createTitle": "Crear Disponibilidad",
@@ -4359,23 +4377,16 @@
       "doctor": "Doctor",
       "selectDoctor": "Seleccionar un doctor",
       "recurrence": "Recurrencia",
-      "dayOfWeek": "Día de la Semana",
-      "dayOfMonth": "Día del Mes",
       "startTime": "Hora de Inicio",
       "endTime": "Hora de Fin",
       "startDate": "Fecha de Inicio",
       "endDate": "Fecha de Fin",
       "create": "Crear",
-      "cancel": "Cancelar"
-    },
-    "days": {
-      "monday": "Lunes",
-      "tuesday": "Martes",
-      "wednesday": "Miércoles",
-      "thursday": "Jueves",
-      "friday": "Viernes",
-      "saturday": "Sábado",
-      "sunday": "Domingo"
+      "cancel": "Cancelar",
+      "daysOfWeek": "Días de la Semana",
+      "daysOfMonth": "Días del Mes",
+      "biweeklyReferenceDate": "Fecha de Referencia",
+      "biweeklyStartHelp": "En quincenal, las semanas se cuentan desde la semana de la fecha de inicio: se aplica esa semana, dos semanas después, y así sucesivamente."
     },
     "validation": {
       "doctorRequired": "El doctor es obligatorio.",
@@ -4384,8 +4395,8 @@
       "endTimeRequired": "La hora de fin es obligatoria.",
       "endTimeAfterStartTime": "La hora de fin debe ser mayor que la hora de inicio.",
       "startDateRequired": "La fecha de inicio es obligatoria.",
-      "dayOfWeekRequired": "El día de la semana es obligatorio para recurrencia semanal o quincenal.",
-      "dayOfMonthRequired": "El día del mes (1-31) es obligatorio para recurrencia mensual."
+      "dayOfWeekRequired": "Selecciona al menos un día de la semana para la recurrencia semanal o quincenal.",
+      "dayOfMonthRequired": "Selecciona al menos un día del mes para la recurrencia mensual."
     },
     "toast": {
       "createTitle": "Disponibilidad Creada",
@@ -4445,13 +4456,13 @@
       "selectDoctor": "Seleccionar un doctor",
       "searchDoctor": "Buscar doctor",
       "noDoctorFound": "No se encontró el doctor",
-      "date": "Fecha",
       "isAvailable": "¿Está Disponible?",
       "startTime": "Hora de Inicio",
       "endTime": "Hora de Fin",
       "create": "Crear",
       "cancel": "Cancelar",
-      "save": "Guardar Cambios"
+      "save": "Guardar Cambios",
+      "dates": "Fechas"
     },
     "toast": {
       "createTitle": "Excepción Creada",
@@ -4472,7 +4483,7 @@
     },
     "validation": {
       "doctorRequired": "El doctor es obligatorio.",
-      "dateRequired": "La fecha es obligatoria."
+      "dateRequired": "Selecciona al menos una fecha."
     },
     "empty": "No hay excepciones de disponibilidad para este doctor."
   },

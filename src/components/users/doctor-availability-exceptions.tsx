@@ -4,7 +4,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogBody,
@@ -14,36 +13,31 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { DatePickerInput } from '@/components/ui/date-picker';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from '@/components/ui/input';
+import { Form } from "@/components/ui/form";
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+    AvailabilityExceptionFields,
+    availabilityExceptionFormSchema,
+    availabilityExceptionToFormValues,
+    deleteAvailabilityException,
+    emptyAvailabilityExceptionForm,
+    parseAvailabilityException,
+    upsertAvailabilityException,
+    type AvailabilityExceptionFormValues,
+} from '@/components/doctor-availability/availability-exception-form';
+import { multiDateLabel } from '@/components/schedules/day-pickers';
 import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AvailabilityException } from '@/lib/types';
-import { formatDate, formatDisplayDate } from '@/lib/utils';
-import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
+import { api, isTimeoutError } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format, parseISO } from 'date-fns';
 import { AlertTriangle, Pencil, Plus, Trash2, UserX } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-
-const exceptionFormSchema = (t: (key: string) => string) => z.object({
-    id: z.string().optional(),
-    user_id: z.string(),
-    exception_date: z.string().min(1, t('dateRequired')),
-    start_time: z.string().optional(),
-    end_time: z.string().optional(),
-    is_available: z.boolean().default(false),
-});
-
-type ExceptionFormValues = z.infer<ReturnType<typeof exceptionFormSchema>>;
 
 async function getExceptionsForUser(userId: string, signal?: AbortSignal): Promise<AvailabilityException[]> {
     const responseData = await api.get(API_ROUTES.AVAILABILITY_EXCEPTIONS_SEARCH, {
@@ -53,29 +47,7 @@ async function getExceptionsForUser(userId: string, signal?: AbortSignal): Promi
     }, undefined, { signal });
     const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
     const exceptionsData = data?.data || [];
-    return exceptionsData.map((ex: any) => ({
-        ...ex,
-        id: String(ex.id),
-        exception_date: formatDate(ex.exception_date),
-    }));
-}
-
-async function upsertException(data: ExceptionFormValues) {
-    const responseData = await api.post(API_ROUTES.AVAILABILITY_EXCEPTIONS_UPSERT, data, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
-    if (Array.isArray(responseData) && responseData[0]?.code >= 400 || responseData.error) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
-        throw new Error(message);
-    }
-    return responseData;
-}
-
-async function deleteException(id: string) {
-    const responseData = await api.delete(API_ROUTES.AVAILABILITY_EXCEPTIONS_DELETE, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
-    if (Array.isArray(responseData) && responseData[0]?.code >= 400 || responseData.error) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
-        throw new Error(message);
-    }
-    return responseData;
+    return exceptionsData.map(parseAvailabilityException);
 }
 
 export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
@@ -99,34 +71,21 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
     const tValidation = useTranslations('DoctorAvailabilityExceptionsPage.validation');
-    const form = useForm<ExceptionFormValues>({
-        resolver: zodResolver(exceptionFormSchema(tValidation)),
+    const form = useForm<AvailabilityExceptionFormValues>({
+        resolver: zodResolver(availabilityExceptionFormSchema(tValidation)),
+        defaultValues: emptyAvailabilityExceptionForm(userId),
     });
-
 
     const handleCreate = () => {
         setEditingException(null);
-        form.reset({
-            user_id: userId,
-            exception_date: format(new Date(), 'yyyy-MM-dd'),
-            start_time: '',
-            end_time: '',
-            is_available: false,
-        });
+        form.reset(emptyAvailabilityExceptionForm(userId));
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
 
     const handleEdit = (ex: AvailabilityException) => {
         setEditingException(ex);
-        form.reset({
-            id: ex.id,
-            user_id: ex.user_id,
-            exception_date: formatDate(ex.exception_date),
-            start_time: ex.start_time || '',
-            end_time: ex.end_time || '',
-            is_available: ex.is_available,
-        });
+        form.reset(availabilityExceptionToFormValues(ex));
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -137,7 +96,7 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
     };
 
     const remove = useAsyncAction(
-        (ex: AvailabilityException) => deleteException(ex.id),
+        (ex: AvailabilityException) => deleteAvailabilityException(ex.id),
         {
             onSuccess: async () => {
                 toast({ title: t('toast.deleteTitle'), description: t('toast.deleteDescription') });
@@ -151,9 +110,9 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
     );
 
     const save = useAsyncAction(
-        async (values: ExceptionFormValues) => {
+        async (values: AvailabilityExceptionFormValues) => {
             setSubmissionError(null);
-            await upsertException(values);
+            await upsertAvailabilityException(values);
             return values;
         },
         {
@@ -222,7 +181,7 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
                         <div key={ex.id} className="flex items-start justify-between rounded-lg border px-4 py-3 gap-4">
                             <div className="flex flex-col gap-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="text-sm font-medium">{formatDisplayDate(ex.exception_date)}</span>
+                                    <span className="text-sm font-medium">{multiDateLabel(ex.dates, ex.exception_date)}</span>
                                     <Badge variant={ex.is_available ? 'success' : 'destructive'} className="text-xs">
                                         {ex.is_available ? tColumns('yes') : tColumns('no')}
                                     </Badge>
@@ -267,25 +226,7 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
                                 )}
                                 {/* Native fieldset disables every control while the request is in flight */}
                                 <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
-                                <FormField control={form.control} name="exception_date" render={({ field }) => (
-                                    <FormItem><FormLabel>{t('dialog.date')}</FormLabel><FormControl><DatePickerInput value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>
-                                )} />
-                                <FormField
-                                    control={form.control}
-                                    name="is_available"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                                            <FormControl>
-                                                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                                            </FormControl>
-                                            <FormLabel>{t('dialog.isAvailable')}</FormLabel>
-                                        </FormItem>
-                                    )}
-                                />
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField control={form.control} name="start_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={form.control} name="end_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                </div>
+                                <AvailabilityExceptionFields form={form} />
                                 </fieldset>
                             </DialogBody>
                             <DialogFooter>
@@ -303,7 +244,7 @@ export function DoctorAvailabilityExceptions({ userId }: { userId: string }) {
                 title={t('deleteDialog.title')}
                 description={t('deleteDialog.description', {
                     doctor: deletingException?.user_name || '',
-                    date: deletingException ? formatDisplayDate(deletingException.exception_date) : '',
+                    date: deletingException ? multiDateLabel(deletingException.dates, deletingException.exception_date) : '',
                 })}
                 cancelLabel={t('deleteDialog.cancel')}
                 confirmLabel={t('deleteDialog.confirm')}

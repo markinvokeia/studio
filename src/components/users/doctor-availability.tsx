@@ -13,65 +13,33 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { DatePickerInput } from '@/components/ui/date-picker';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Form } from "@/components/ui/form";
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+    AvailabilityRuleFields,
+    availabilityRuleFormSchema,
+    availabilityRuleToFormValues,
+    deleteAvailabilityRule,
+    emptyAvailabilityRuleForm,
+    parseAvailabilityRule,
+    ruleRecurrenceKey,
+    upsertAvailabilityRule,
+    useAvailabilityRuleDaysLabel,
+    type AvailabilityRuleFormValues,
+} from '@/components/doctor-availability/availability-rule-form';
 import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AvailabilityRule } from '@/lib/types';
-import { formatDate, formatDisplayDate } from '@/lib/utils';
-import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
+import { formatDisplayDate } from '@/lib/utils';
+import { api, isTimeoutError } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { format } from 'date-fns';
 import { AlertTriangle, CalendarPlus, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
-import * as z from 'zod';
-
-const availabilityFormSchema = (t: (key: string) => string) => z.object({
-    id: z.string().optional(),
-    user_id: z.string(),
-    recurrence: z.enum(['daily', 'weekly', 'biweekly', 'monthly']),
-    day_of_week: z.string().optional(),
-    day_of_month: z.string().optional(),
-    start_time: z.string().min(1, t('startTimeRequired')),
-    end_time: z.string().min(1, t('endTimeRequired')),
-    start_date: z.string().min(1, t('startDateRequired')),
-    end_date: z.string().optional(),
-}).refine(data => {
-    if ((data.recurrence === 'weekly' || data.recurrence === 'biweekly') && !data.day_of_week) {
-        return false;
-    }
-    return true;
-}, {
-    message: t('dayOfWeekRequired'),
-    path: ["day_of_week"],
-}).refine(data => {
-    if (data.recurrence === 'monthly') {
-        const day = Number(data.day_of_month);
-        if (!data.day_of_month || Number.isNaN(day) || day < 1 || day > 31) {
-            return false;
-        }
-    }
-    return true;
-}, {
-    message: t('dayOfMonthRequired'),
-    path: ["day_of_month"],
-}).refine(data => {
-    if (!data.start_time || !data.end_time) return true;
-    return data.end_time > data.start_time;
-}, {
-    message: t('endTimeAfterStartTime'),
-    path: ["end_time"],
-});
-
-type AvailabilityFormValues = z.infer<ReturnType<typeof availabilityFormSchema>>;
 
 async function getAvailabilityRulesForUser(userId: string, signal?: AbortSignal): Promise<AvailabilityRule[]> {
     const responseData = await api.get(API_ROUTES.AVAILABILITY_RULES_SEARCH, {
@@ -81,32 +49,8 @@ async function getAvailabilityRulesForUser(userId: string, signal?: AbortSignal)
     }, undefined, { signal });
     const data = Array.isArray(responseData) && responseData.length > 0 ? responseData[0] : responseData;
     const rulesData = data?.data || [];
-    return rulesData.map((rule: any) => ({ ...rule, id: String(rule.id) }));
+    return rulesData.map(parseAvailabilityRule);
 }
-
-async function upsertAvailabilityRule(ruleData: AvailabilityFormValues) {
-    const responseData = await api.post(API_ROUTES.AVAILABILITY_RULES_UPSERT, {
-        ...ruleData,
-        day_of_week: ruleData.day_of_week ? Number(ruleData.day_of_week) : null,
-        day_of_month: ruleData.day_of_month ? Number(ruleData.day_of_month) : null,
-    }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
-    if (responseData.error || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
-        throw new Error(message);
-    }
-    return responseData;
-}
-
-async function deleteAvailabilityRule(id: string) {
-    const responseData = await api.delete(API_ROUTES.AVAILABILITY_RULES_DELETE, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
-    if (responseData.error || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
-        throw new Error(message);
-    }
-    return responseData;
-}
-
-const DAY_NAMES = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 
 export function DoctorAvailability({ userId }: { userId: string }) {
     const t = useTranslations('DoctorAvailabilityPage');
@@ -129,48 +73,22 @@ export function DoctorAvailability({ userId }: { userId: string }) {
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
     const tValidation = useTranslations('DoctorAvailabilityPage.validation');
-    const form = useForm<AvailabilityFormValues>({
-        resolver: zodResolver(availabilityFormSchema(tValidation)),
+    const form = useForm<AvailabilityRuleFormValues>({
+        resolver: zodResolver(availabilityRuleFormSchema(tValidation)),
+        defaultValues: emptyAvailabilityRuleForm(userId),
     });
-    const watchedRecurrence = form.watch('recurrence');
-
-    React.useEffect(() => {
-        if (watchedRecurrence !== 'weekly' && watchedRecurrence !== 'biweekly') {
-            form.setValue('day_of_week', undefined);
-        }
-        if (watchedRecurrence !== 'monthly') {
-            form.setValue('day_of_month', undefined);
-        }
-    }, [watchedRecurrence, form]);
-
+    const daysLabel = useAvailabilityRuleDaysLabel();
 
     const handleCreate = () => {
         setEditingRule(null);
-        form.reset({
-            user_id: userId,
-            recurrence: 'weekly',
-            start_time: '',
-            end_time: '',
-            start_date: format(new Date(), 'yyyy-MM-dd'),
-            end_date: '',
-        });
+        form.reset(emptyAvailabilityRuleForm(userId));
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
 
     const handleEdit = (rule: AvailabilityRule) => {
         setEditingRule(rule);
-        form.reset({
-            id: rule.id,
-            user_id: rule.user_id,
-            recurrence: rule.recurrence as any,
-            day_of_week: rule.day_of_week?.toString(),
-            day_of_month: rule.day_of_month?.toString(),
-            start_time: rule.start_time,
-            end_time: rule.end_time,
-            start_date: formatDate(rule.start_date),
-            end_date: rule.end_date ? formatDate(rule.end_date) : '',
-        });
+        form.reset(availabilityRuleToFormValues(rule));
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -195,7 +113,7 @@ export function DoctorAvailability({ userId }: { userId: string }) {
     );
 
     const save = useAsyncAction(
-        async (values: AvailabilityFormValues) => {
+        async (values: AvailabilityRuleFormValues) => {
             setSubmissionError(null);
             await upsertAvailabilityRule(values);
             return values;
@@ -266,13 +184,10 @@ export function DoctorAvailability({ userId }: { userId: string }) {
                         <div key={rule.id} className="flex items-start justify-between rounded-lg border px-4 py-3 gap-4">
                             <div className="flex flex-col gap-1 min-w-0">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                    <Badge variant="outline" className="text-xs">{t(`dialog.${rule.recurrence}`)}</Badge>
-                                    {rule.day_of_week !== undefined && rule.day_of_week !== null && (
-                                        <span className="text-xs text-muted-foreground">{t(`days.${DAY_NAMES[rule.day_of_week - 1]}`)}</span>
-                                    )}
-                                    {rule.day_of_month !== undefined && rule.day_of_month !== null && (
-                                        <span className="text-xs text-muted-foreground">{t('dialog.dayOfMonth')}: {rule.day_of_month}</span>
-                                    )}
+                                    <Badge variant="outline" className="text-xs">{t(`dialog.${ruleRecurrenceKey(rule)}`)}</Badge>
+                                    <span className="text-xs text-muted-foreground">
+                                        {rule.recurrence === 'monthly' ? `${t('dialog.daysOfMonth')}: ${daysLabel(rule)}` : daysLabel(rule)}
+                                    </span>
                                 </div>
                                 <div className="flex items-center gap-3 text-sm">
                                     <span>{rule.start_time} – {rule.end_time}</span>
@@ -315,72 +230,7 @@ export function DoctorAvailability({ userId }: { userId: string }) {
                                 )}
                                 {/* Native fieldset disables every control while the request is in flight */}
                                 <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
-                                <FormField
-                                    control={form.control}
-                                    name="recurrence"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('dialog.recurrence')}</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectRecurrence')} /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="daily">{t('dialog.daily')}</SelectItem>
-                                                    <SelectItem value="weekly">{t('dialog.weekly')}</SelectItem>
-                                                    <SelectItem value="biweekly">{t('dialog.biweekly')}</SelectItem>
-                                                    <SelectItem value="monthly">{t('dialog.monthly')}</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                {(watchedRecurrence === 'weekly' || watchedRecurrence === 'biweekly') && (
-                                    <FormField
-                                        control={form.control}
-                                        name="day_of_week"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>{t('dialog.dayOfWeek')}</FormLabel>
-                                                <Select onValueChange={field.onChange} value={field.value}>
-                                                    <FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectDay')} /></SelectTrigger></FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="1">{t('days.monday')}</SelectItem>
-                                                        <SelectItem value="2">{t('days.tuesday')}</SelectItem>
-                                                        <SelectItem value="3">{t('days.wednesday')}</SelectItem>
-                                                        <SelectItem value="4">{t('days.thursday')}</SelectItem>
-                                                        <SelectItem value="5">{t('days.friday')}</SelectItem>
-                                                        <SelectItem value="6">{t('days.saturday')}</SelectItem>
-                                                        <SelectItem value="7">{t('days.sunday')}</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                )}
-                                {watchedRecurrence === 'monthly' && (
-                                    <FormField
-                                        control={form.control}
-                                        name="day_of_month"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>{t('dialog.dayOfMonth')}</FormLabel>
-                                                <FormControl>
-                                                    <Input type="number" min={1} max={31} {...field} value={field.value ?? ''} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                )}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField control={form.control} name="start_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={form.control} name="end_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField control={form.control} name="start_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startDate')}</FormLabel><FormControl><DatePickerInput value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={form.control} name="end_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endDate')}</FormLabel><FormControl><DatePickerInput value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
-                                </div>
+                                <AvailabilityRuleFields form={form} />
                                 </fieldset>
                             </DialogBody>
                             <DialogFooter>
@@ -398,7 +248,7 @@ export function DoctorAvailability({ userId }: { userId: string }) {
                 title={t('deleteDialog.title')}
                 description={t('deleteDialog.description', {
                     doctor: deletingRule?.user_name || '',
-                    schedule: deletingRule ? `${t(`dialog.${deletingRule.recurrence}`)} ${deletingRule.start_time}–${deletingRule.end_time}` : '',
+                    schedule: deletingRule ? `${t(`dialog.${ruleRecurrenceKey(deletingRule)}`)} · ${daysLabel(deletingRule)} ${deletingRule.start_time}–${deletingRule.end_time}` : '',
                 })}
                 cancelLabel={t('deleteDialog.cancel')}
                 confirmLabel={t('deleteDialog.confirm')}

@@ -4037,10 +4037,12 @@
       "cancel": "Cancel",
       "editTitle": "Edit schedule",
       "editDescription": "Edit the schedule for the clinic",
-      "editSave": "Save Changes"
+      "editSave": "Save Changes",
+      "daysOfWeek": "Days of the Week",
+      "daysOfWeekHelp": "One schedule is created for each selected day, with the same hours."
     },
     "validation": {
-      "dayRequired": "Day of week is required.",
+      "dayRequired": "Select at least one day.",
       "startRequired": "Start time is required.",
       "endRequired": "End time is required.",
       "dayOfWeekRequired": "Day of week is required.",
@@ -4099,11 +4101,8 @@
       "weekly": "Weekly",
       "biweekly": "Biweekly",
       "monthly": "Monthly",
-      "dayOfWeek": "Day of Week",
-      "dayOfMonth": "Day of Month",
-      "selectDay": "Select day",
       "biweeklyReferenceDate": "Reference Date",
-      "biweeklyReferenceDateHelp": "Anchor date used to compute which weeks the biweekly pattern falls on.",
+      "biweeklyReferenceDateHelp": "Weeks are counted from the week of this date: it applies that week, two weeks later, and so on.",
       "endDate": "End Date",
       "endDateHelp": "Leave empty for the recurrence to apply indefinitely.",
       "isOpen": "Is Open?",
@@ -4120,22 +4119,18 @@
       "editTitle": "Edit exception schedule",
       "editDescription": "Edit the exception schedule for the clinic",
       "edit": "Edit",
-      "editSave": "Save Changes"
-    },
-    "days": {
-      "monday": "Monday",
-      "tuesday": "Tuesday",
-      "wednesday": "Wednesday",
-      "thursday": "Thursday",
-      "friday": "Friday",
-      "saturday": "Saturday",
-      "sunday": "Sunday"
+      "editSave": "Save Changes",
+      "dates": "Dates",
+      "startDate": "Start Date",
+      "daysOfWeek": "Days of the Week",
+      "daysOfMonth": "Days of the Month"
     },
     "validation": {
-      "dateRequired": "Date is required.",
-      "dayOfWeekRequired": "Day of week is required for weekly or biweekly recurrence.",
-      "dayOfMonthRequired": "Day of month (1-31) is required for monthly recurrence.",
-      "biweeklyReferenceDateRequired": "Reference date is required for biweekly recurrence."
+      "dateRequired": "The start date is required.",
+      "dayOfWeekRequired": "Select at least one day of the week for weekly or biweekly recurrence.",
+      "dayOfMonthRequired": "Select at least one day of the month for monthly recurrence.",
+      "biweeklyReferenceDateRequired": "Reference date is required for biweekly recurrence.",
+      "datesRequired": "Select at least one date."
     },
     "deleteDialog": {
       "title": "Delete Exception Schedule",
@@ -4153,6 +4148,31 @@
       "deleteErrorDescription": "Failed to delete the exception schedule. Please try again.",
       "genericError": "An unexpected error occurred."
     }
+  },
+  "DayPickers": {
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "daysShort": {
+      "monday": "Mon",
+      "tuesday": "Tue",
+      "wednesday": "Wed",
+      "thursday": "Thu",
+      "friday": "Fri",
+      "saturday": "Sat",
+      "sunday": "Sun"
+    },
+    "datesHelp": "Click days on the calendar to add or remove them.",
+    "noDatesSelected": "No dates selected",
+    "removeDate": "Remove {date}",
+    "datesCount": "{count, plural, one {# date} other {# dates}}",
+    "shortMonthsHelp": "Days a month doesn’t have (29, 30 or 31) are skipped that month."
   },
   "CalendarsPage": {
     "title": "Calendars",
@@ -4342,14 +4362,12 @@
     "description": "Manage doctor availability for the clinic",
     "filterPlaceholder": "Filter here...",
     "dialog": {
-      "daily": "Daily",
       "weekly": "Weekly",
       "monthly": "Monthly",
       "biweekly": "Biweekly",
       "selectRecurrence": "Select recurrence",
       "searchDoctor": "Search doctor",
       "noDoctorFound": "No doctor found",
-      "selectDay": "Select day",
       "save": "Save Changes",
       "edit": "Edit",
       "createTitle": "Create Availability",
@@ -4359,23 +4377,16 @@
       "doctor": "Doctor",
       "selectDoctor": "Select a doctor",
       "recurrence": "Recurrence",
-      "dayOfWeek": "Day of Week",
-      "dayOfMonth": "Day of Month",
       "startTime": "Start Time",
       "endTime": "End Time",
       "startDate": "Start Date",
       "endDate": "End Date",
       "create": "Create",
-      "cancel": "Cancel"
-    },
-    "days": {
-      "monday": "Monday",
-      "tuesday": "Tuesday",
-      "wednesday": "Wednesday",
-      "thursday": "Thursday",
-      "friday": "Friday",
-      "saturday": "Saturday",
-      "sunday": "Sunday"
+      "cancel": "Cancel",
+      "daysOfWeek": "Days of the Week",
+      "daysOfMonth": "Days of the Month",
+      "biweeklyReferenceDate": "Reference Date",
+      "biweeklyStartHelp": "For biweekly rules, weeks are counted from the week of the start date: it applies that week, two weeks later, and so on."
     },
     "validation": {
       "doctorRequired": "Doctor is required.",
@@ -4384,8 +4395,8 @@
       "endTimeRequired": "End time is required.",
       "endTimeAfterStartTime": "End time must be later than start time.",
       "startDateRequired": "Start date is required.",
-      "dayOfWeekRequired": "Day of week is required for weekly or biweekly recurrence.",
-      "dayOfMonthRequired": "Day of month (1-31) is required for monthly recurrence."
+      "dayOfWeekRequired": "Select at least one day of the week for weekly or biweekly recurrence.",
+      "dayOfMonthRequired": "Select at least one day of the month for monthly recurrence."
     },
     "toast": {
       "createTitle": "Availability Created",
@@ -4445,13 +4456,13 @@
       "selectDoctor": "Select a doctor",
       "searchDoctor": "Search doctor",
       "noDoctorFound": "No doctor found",
-      "date": "Date",
       "isAvailable": "Is Available?",
       "startTime": "Start Time",
       "endTime": "End Time",
       "create": "Create",
       "cancel": "Cancel",
-      "save": "Save Changes"
+      "save": "Save Changes",
+      "dates": "Dates"
     },
     "toast": {
       "createTitle": "Exception Created",
@@ -4472,7 +4483,7 @@
     },
     "validation": {
       "doctorRequired": "Doctor is required.",
-      "dateRequired": "Date is required."
+      "dateRequired": "Select at least one date."
     },
     "empty": "No availability exceptions for this doctor."
   },

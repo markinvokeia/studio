@@ -19,12 +19,21 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { DatePickerInput } from '@/components/ui/date-picker';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import {
+    AvailabilityRuleFields,
+    availabilityRuleFormSchema,
+    availabilityRuleToFormValues,
+    deleteAvailabilityRule,
+    emptyAvailabilityRuleForm,
+    parseAvailabilityRule,
+    ruleRecurrenceKey,
+    upsertAvailabilityRule,
+    useAvailabilityRuleDaysLabel,
+    type AvailabilityRuleFormValues,
+} from '@/components/doctor-availability/availability-rule-form';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
@@ -34,56 +43,15 @@ import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AvailabilityRule, User } from '@/lib/types';
-import { cn, formatDate, formatDisplayDate } from '@/lib/utils';
+import { cn, formatDisplayDate } from '@/lib/utils';
 import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { format } from 'date-fns';
 import { AlertTriangle, CalendarPlus, Check, ChevronsUpDown, Pencil, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
-import * as z from 'zod';
 import { createDefaultPagination } from '@/lib/pagination';
-
-const availabilityFormSchema = (t: (key: string) => string) => z.object({
-    id: z.string().optional(),
-    user_id: z.string().min(1, t('doctorRequired')),
-    recurrence: z.enum(['daily', 'weekly', 'biweekly', 'monthly']),
-    day_of_week: z.string().optional(),
-    day_of_month: z.string().optional(),
-    start_time: z.string().min(1, t('startTimeRequired')),
-    end_time: z.string().min(1, t('endTimeRequired')),
-    start_date: z.string().min(1, t('startDateRequired')),
-    end_date: z.string().optional(),
-}).refine(data => {
-    if ((data.recurrence === 'weekly' || data.recurrence === 'biweekly') && !data.day_of_week) {
-        return false;
-    }
-    return true;
-}, {
-    message: t('dayOfWeekRequired'),
-    path: ["day_of_week"],
-}).refine(data => {
-    if (data.recurrence === 'monthly') {
-        const day = Number(data.day_of_month);
-        if (!data.day_of_month || Number.isNaN(day) || day < 1 || day > 31) {
-            return false;
-        }
-    }
-    return true;
-}, {
-    message: t('dayOfMonthRequired'),
-    path: ["day_of_month"],
-}).refine(data => {
-    if (!data.start_time || !data.end_time) return true;
-    return data.end_time > data.start_time;
-}, {
-    message: t('endTimeAfterStartTime'),
-    path: ["end_time"],
-});
-
-type AvailabilityFormValues = z.infer<ReturnType<typeof availabilityFormSchema>>;
 
 type GetAvailabilityResponse = {
     rules: AvailabilityRule[];
@@ -100,7 +68,7 @@ async function getAvailabilityRules(pagination: PaginationState, searchQuery: st
     const rulesData = data?.data || [];
     const total = Number(data?.total) || 0;
     return {
-        rules: rulesData.map((rule: any) => ({ ...rule, id: String(rule.id) })),
+        rules: rulesData.map(parseAvailabilityRule),
         total
     };
 }
@@ -109,28 +77,6 @@ async function getDoctors(signal?: AbortSignal): Promise<User[]> {
     const data = await api.get(API_ROUTES.USERS_DOCTORS, undefined, undefined, { signal });
     const doctorsData = Array.isArray(data) ? data : (data?.doctors || data?.data || []);
     return doctorsData.map((doc: any) => ({ ...doc, id: String(doc.id) }));
-}
-
-async function upsertAvailabilityRule(ruleData: AvailabilityFormValues) {
-    const responseData = await api.post(API_ROUTES.AVAILABILITY_RULES_UPSERT, {
-        ...ruleData,
-        day_of_week: ruleData.day_of_week ? Number(ruleData.day_of_week) : null,
-        day_of_month: ruleData.day_of_month ? Number(ruleData.day_of_month) : null,
-    }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
-    if (responseData.error || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
-        throw new Error(message);
-    }
-    return responseData;
-}
-
-async function deleteAvailabilityRule(id: string) {
-    const responseData = await api.delete(API_ROUTES.AVAILABILITY_RULES_DELETE, { id }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
-    if (responseData.error || (Array.isArray(responseData) && responseData[0]?.code >= 400)) {
-        const message = responseData.message || (Array.isArray(responseData) && responseData[0]?.message);
-        throw new Error(message);
-    }
-    return responseData;
 }
 
 export default function DoctorAvailabilityPage() {
@@ -152,20 +98,12 @@ export default function DoctorAvailabilityPage() {
     const [selectedRule, setSelectedRule] = React.useState<AvailabilityRule | null>(null);
 
     const tValidation = useTranslations('DoctorAvailabilityPage.validation');
-    const form = useForm<AvailabilityFormValues>({
-        resolver: zodResolver(availabilityFormSchema(tValidation)),
+    const form = useForm<AvailabilityRuleFormValues>({
+        resolver: zodResolver(availabilityRuleFormSchema(tValidation)),
+        defaultValues: emptyAvailabilityRuleForm(),
     });
     const [isDoctorComboboxOpen, setIsDoctorComboboxOpen] = React.useState(false);
-    const watchedRecurrence = form.watch("recurrence");
-
-    React.useEffect(() => {
-        if (watchedRecurrence !== 'weekly' && watchedRecurrence !== 'biweekly') {
-            form.setValue('day_of_week', undefined);
-        }
-        if (watchedRecurrence !== 'monthly') {
-            form.setValue('day_of_month', undefined);
-        }
-    }, [watchedRecurrence, form]);
+    const daysLabel = useAvailabilityRuleDaysLabel();
 
     const searchQuery = (columnFilters.find(f => f.id === 'user_name')?.value as string) || '';
     const debouncedSearch = useDebounce(searchQuery, 500);
@@ -196,31 +134,14 @@ export default function DoctorAvailabilityPage() {
 
     const handleCreate = () => {
         setEditingRule(null);
-        form.reset({
-            user_id: '',
-            recurrence: 'weekly',
-            start_time: '',
-            end_time: '',
-            start_date: format(new Date(), 'yyyy-MM-dd'),
-            end_date: '',
-        });
+        form.reset(emptyAvailabilityRuleForm());
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
 
     const handleEdit = (rule: AvailabilityRule) => {
         setEditingRule(rule);
-        form.reset({
-            id: rule.id,
-            user_id: rule.user_id,
-            recurrence: rule.recurrence as any,
-            day_of_week: rule.day_of_week?.toString(),
-            day_of_month: rule.day_of_month?.toString(),
-            start_time: rule.start_time,
-            end_time: rule.end_time,
-            start_date: formatDate(rule.start_date),
-            end_date: rule.end_date ? formatDate(rule.end_date) : '',
-        });
+        form.reset(availabilityRuleToFormValues(rule));
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
@@ -252,7 +173,7 @@ export default function DoctorAvailabilityPage() {
     );
 
     const save = useAsyncAction(
-        async (values: AvailabilityFormValues) => {
+        async (values: AvailabilityRuleFormValues) => {
             setSubmissionError(null);
             await upsertAvailabilityRule(values);
             return values;
@@ -287,25 +208,18 @@ export default function DoctorAvailabilityPage() {
 
     const tColumns = useTranslations('DoctorAvailabilityColumns');
 
-    const DAY_NAMES = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
-
     const columns: ColumnDef<AvailabilityRule>[] = React.useMemo(() => [
         { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title="ID" />, enableHiding: true },
         { accessorKey: 'user_name', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('doctor')} /> },
         {
             accessorKey: 'recurrence',
             header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('recurrence')} />,
-            cell: ({ row }) => <span>{t(`dialog.${row.original.recurrence}`)}</span>,
+            cell: ({ row }) => <span>{t(`dialog.${ruleRecurrenceKey(row.original)}`)}</span>,
         },
         {
-            accessorKey: 'day_of_week',
+            id: 'days',
             header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('day')} />,
-            cell: ({ row }) => {
-                const { day_of_week, day_of_month } = row.original;
-                if (day_of_week != null) return <span>{t(`days.${DAY_NAMES[day_of_week - 1]}`)}</span>;
-                if (day_of_month != null) return <span>{day_of_month}</span>;
-                return <span>-</span>;
-            },
+            cell: ({ row }) => <span>{daysLabel(row.original)}</span>,
         },
         { accessorKey: 'start_time', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('startTime')} /> },
         { accessorKey: 'end_time', header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('endTime')} /> },
@@ -319,7 +233,7 @@ export default function DoctorAvailabilityPage() {
             header: ({ column }) => <DataTableColumnHeader column={column} title={tColumns('endDate')} />,
             cell: ({ row }) => <span>{formatDisplayDate(row.original.end_date)}</span>,
         },
-    ], [tColumns, t]);
+    ], [tColumns, t, daysLabel]);
 
     const leftPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
@@ -354,8 +268,8 @@ export default function DoctorAvailabilityPage() {
                     renderCard={(row: AvailabilityRule, _isSelected: boolean) => (
                         <DataCard isSelected={_isSelected}
                             title={row.user_name || row.user_id}
-                            subtitle={`${row.start_time} – ${row.end_time}`}
-                            badge={<span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">{t(`dialog.${row.recurrence}`)}</span>}
+                            subtitle={`${daysLabel(row)} · ${row.start_time} – ${row.end_time}`}
+                            badge={<span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">{t(`dialog.${ruleRecurrenceKey(row)}`)}</span>}
                             showArrow
                         />
                     )}
@@ -397,18 +311,16 @@ export default function DoctorAvailabilityPage() {
                     </div>
                     <div className="flex items-center gap-2">
                         <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{tColumns('recurrence')}</dt>
-                        <dd><Badge variant="outline">{t(`dialog.${selectedRule.recurrence}`)}</Badge></dd>
+                        <dd><Badge variant="outline">{t(`dialog.${ruleRecurrenceKey(selectedRule)}`)}</Badge></dd>
                     </div>
-                    {selectedRule.day_of_week !== undefined && selectedRule.day_of_week !== null && (
+                    <div>
+                        <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('day')}</dt>
+                        <dd className="text-foreground">{daysLabel(selectedRule)}</dd>
+                    </div>
+                    {selectedRule.recurrence === 'biweekly' && selectedRule.biweekly_reference_date && (
                         <div>
-                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('day')}</dt>
-                            <dd className="text-foreground">{t(`days.${DAY_NAMES[selectedRule.day_of_week - 1]}`)}</dd>
-                        </div>
-                    )}
-                    {selectedRule.day_of_month !== undefined && selectedRule.day_of_month !== null && (
-                        <div>
-                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{tColumns('day')}</dt>
-                            <dd className="text-foreground">{selectedRule.day_of_month}</dd>
+                            <dt className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-0.5">{t('dialog.biweeklyReferenceDate')}</dt>
+                            <dd className="text-foreground">{formatDisplayDate(selectedRule.biweekly_reference_date)}</dd>
                         </div>
                     )}
                     <div className="grid grid-cols-2 gap-3">
@@ -519,72 +431,7 @@ export default function DoctorAvailabilityPage() {
                                         </FormItem>
                                     )}
                                 />
-                                <FormField
-                                    control={form.control}
-                                    name="recurrence"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>{t('dialog.recurrence')}</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectRecurrence')} /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="daily">{t('dialog.daily')}</SelectItem>
-                                                    <SelectItem value="weekly">{t('dialog.weekly')}</SelectItem>
-                                                    <SelectItem value="biweekly">{t('dialog.biweekly')}</SelectItem>
-                                                    <SelectItem value="monthly">{t('dialog.monthly')}</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                {(watchedRecurrence === 'weekly' || watchedRecurrence === 'biweekly') && (
-                                    <FormField
-                                        control={form.control}
-                                        name="day_of_week"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>{t('dialog.dayOfWeek')}</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl><SelectTrigger><SelectValue placeholder={t('dialog.selectDay')} /></SelectTrigger></FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="1">{t('days.monday')}</SelectItem>
-                                                        <SelectItem value="2">{t('days.tuesday')}</SelectItem>
-                                                        <SelectItem value="3">{t('days.wednesday')}</SelectItem>
-                                                        <SelectItem value="4">{t('days.thursday')}</SelectItem>
-                                                        <SelectItem value="5">{t('days.friday')}</SelectItem>
-                                                        <SelectItem value="6">{t('days.saturday')}</SelectItem>
-                                                        <SelectItem value="7">{t('days.sunday')}</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                )}
-                                {watchedRecurrence === 'monthly' && (
-                                    <FormField
-                                        control={form.control}
-                                        name="day_of_month"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>{t('dialog.dayOfMonth')}</FormLabel>
-                                                <FormControl>
-                                                    <Input type="number" min={1} max={31} {...field} value={field.value ?? ''} />
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                )}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField control={form.control} name="start_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={form.control} name="end_time" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endTime')}</FormLabel><FormControl><Input type="time" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <FormField control={form.control} name="start_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.startDate')}</FormLabel><FormControl><DatePickerInput value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
-                                    <FormField control={form.control} name="end_date" render={({ field }) => (<FormItem><FormLabel>{t('dialog.endDate')}</FormLabel><FormControl><DatePickerInput value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
-                                </div>
+                                <AvailabilityRuleFields form={form} />
                                 </fieldset>
                             </DialogBody>
                             <DialogFooter>
@@ -601,7 +448,7 @@ export default function DoctorAvailabilityPage() {
                 title={t('deleteDialog.title')}
                 description={t('deleteDialog.description', {
                     doctor: deletingRule?.user_name || deletingRule?.user_id || '',
-                    schedule: deletingRule ? `${t(`dialog.${deletingRule.recurrence}`)} ${deletingRule.start_time}–${deletingRule.end_time}` : '',
+                    schedule: deletingRule ? `${t(`dialog.${ruleRecurrenceKey(deletingRule)}`)} · ${daysLabel(deletingRule)} ${deletingRule.start_time}–${deletingRule.end_time}` : '',
                 })}
                 cancelLabel={t('deleteDialog.cancel')}
                 confirmLabel={t('deleteDialog.confirm')}

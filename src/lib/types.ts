@@ -545,10 +545,12 @@ export type ClinicSchedule = {
   sede_id?: string;
 };
 
+export type ClinicExceptionRecurrence = 'once' | 'weekly' | 'biweekly' | 'monthly';
+
 export type ClinicException = {
   id: string;
-  /** Fecha exacta cuando recurrence es 'once' (o no está definido); fecha de
-   *  inicio de la recurrencia para 'weekly' | 'biweekly' | 'monthly'. */
+  /** Primera de `dates` cuando recurrence es 'once'; fecha de inicio de la
+   *  recurrencia para 'weekly' | 'biweekly' | 'monthly'. */
   date: string;
   is_open: boolean;
   start_time?: string;
@@ -558,13 +560,15 @@ export type ClinicException = {
   sede_id?: string;
   /** Nombre de la sede, cuando la API lo devuelve resuelto. */
   sede_name?: string;
-  /** Patrón de repetición. 'once' (default) = una fecha exacta, igual que antes. */
-  recurrence?: 'once' | 'weekly' | 'biweekly' | 'monthly';
-  /** Requerido para 'weekly' | 'biweekly' (1=lunes..7=domingo). */
-  day_of_week?: number;
-  /** Requerido para 'monthly' (1-31). */
-  day_of_month?: number;
-  /** Requerido para 'biweekly': ancla para calcular la paridad de semana. */
+  /** Patrón de repetición. 'once' (default) = fechas sueltas (`dates`). */
+  recurrence?: ClinicExceptionRecurrence;
+  /** Fechas `yyyy-MM-dd` para 'once', ordenadas. */
+  dates?: string[];
+  /** Días ISO para 'weekly' | 'biweekly' (1=lunes..7=domingo), ordenados. */
+  days_of_week?: number[];
+  /** Días del mes para 'monthly' (1-31), ordenados. */
+  days_of_month?: number[];
+  /** Requerido para 'biweekly': la paridad se cuenta desde el lunes de esta semana. */
   biweekly_reference_date?: string;
   /** Fin de la recurrencia (inclusive). Vacío/undefined = indefinida. */
   end_date?: string;
@@ -1601,9 +1605,14 @@ export type AvailabilityRule = {
   id: string;
   user_id: string;
   user_name?: string;
+  /** 'daily' (lunes a viernes) es legado: el script 139 lo pasó a weekly y la UI ya no lo crea. */
   recurrence: 'daily' | 'weekly' | 'biweekly' | 'monthly';
-  day_of_week?: number;
-  day_of_month?: number;
+  /** Días ISO para 'weekly' | 'biweekly' (1=lunes..7=domingo), ordenados. */
+  days_of_week?: number[];
+  /** Días del mes para 'monthly' (1-31), ordenados. */
+  days_of_month?: number[];
+  /** 'biweekly': la paridad se cuenta desde el lunes de esta semana. */
+  biweekly_reference_date?: string;
   start_time: string;
   end_time: string;
   start_date: string;
@@ -1614,7 +1623,10 @@ export type AvailabilityException = {
   id: string;
   user_id: string;
   user_name?: string;
+  /** Primera de `dates` (orden y buscador). */
   exception_date: string;
+  /** Fechas `yyyy-MM-dd` a las que aplica, ordenadas. */
+  dates: string[];
   start_time: string;
   end_time: string;
   is_available: boolean;

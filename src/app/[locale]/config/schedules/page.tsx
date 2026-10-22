@@ -8,11 +8,12 @@ import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { WeekdayToggleGroup } from '@/components/schedules/day-pickers';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
@@ -33,11 +34,22 @@ import * as z from 'zod';
 
 const scheduleFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
-    day_of_week: z.string().min(1, t('dayRequired')),
+    /** Edición: el día de esa fila (0=domingo..6=sábado). */
+    day_of_week: z.string().optional(),
+    /** Alta: todos los días que comparten el rango; se crea una fila por día. */
+    days_of_week: z.array(z.number().int().min(0).max(6)).default([]),
     start_time: z.string().min(1, t('startRequired')),
     end_time: z.string().min(1, t('endRequired')),
     sede_id: z.string().optional(),
+}).refine(data => (data.id ? !!data.day_of_week : data.days_of_week.length > 0), {
+    message: t('dayRequired'),
+    path: ['days_of_week'],
+}).refine(data => !data.id || !!data.day_of_week, {
+    message: t('dayRequired'),
+    path: ['day_of_week'],
 });
+
+const EMPTY_SCHEDULE_FORM = { day_of_week: '', days_of_week: [] as number[], start_time: '', end_time: '', sede_id: '' };
 
 type ScheduleFormValues = z.infer<ReturnType<typeof scheduleFormSchema>>;
 
@@ -69,7 +81,9 @@ async function getSchedules(sedeId?: string, signal?: AbortSignal): Promise<Clin
 async function upsertSchedule(scheduleData: ScheduleFormValues) {
     const payload: any = {
         ...scheduleData,
-        day_of_week: Number(scheduleData.day_of_week),
+        // Alta: una fila por día elegido (clinicschedules/upsert); edición: la fila misma.
+        day_of_week: scheduleData.id ? Number(scheduleData.day_of_week) : null,
+        days_of_week: scheduleData.id ? null : scheduleData.days_of_week,
         sede_id: Number(scheduleData.sede_id),
     };
     const responseData = await api.post(API_ROUTES.CLINIC_SCHEDULES_UPSERT, payload, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
@@ -111,7 +125,7 @@ export default function SchedulesPage() {
 
     const form = useForm<ScheduleFormValues>({
         resolver: zodResolver(scheduleFormSchema(tValidation)),
-        defaultValues: { day_of_week: '', start_time: '', end_time: '', sede_id: '' },
+        defaultValues: EMPTY_SCHEDULE_FORM,
     });
 
     React.useEffect(() => {
@@ -159,7 +173,7 @@ export default function SchedulesPage() {
         setSubmissionError(null);
         if (schedule) {
             setIsEditing(false);
-            form.reset({ ...schedule, day_of_week: String(schedule.day_of_week), sede_id: schedule.sede_id || '' });
+            form.reset({ ...schedule, day_of_week: String(schedule.day_of_week), days_of_week: [], sede_id: schedule.sede_id || '' });
         }
     };
 
@@ -168,7 +182,7 @@ export default function SchedulesPage() {
         setRowSelection({});
         setIsEditing(true);
         setSubmissionError(null);
-        form.reset({ day_of_week: '', start_time: '', end_time: '', sede_id: activeSede });
+        form.reset({ ...EMPTY_SCHEDULE_FORM, sede_id: activeSede });
         setIsCreateDialogOpen(true);
     };
 
@@ -183,7 +197,7 @@ export default function SchedulesPage() {
         if (isEditing && form.formState.isDirty && !window.confirm(tCommon('unsavedChangesConfirm'))) return;
         if (isEditing && selectedSchedule) {
             setIsEditing(false);
-            form.reset({ ...selectedSchedule, day_of_week: String(selectedSchedule.day_of_week), sede_id: selectedSchedule.sede_id || '' });
+            form.reset({ ...selectedSchedule, day_of_week: String(selectedSchedule.day_of_week), days_of_week: [], sede_id: selectedSchedule.sede_id || '' });
         } else {
             handleClose();
         }
@@ -214,7 +228,7 @@ export default function SchedulesPage() {
                 const updated = fresh?.find((s) => s.id === values.id);
                 if (updated) {
                     setSelectedSchedule(updated);
-                    form.reset({ ...updated, day_of_week: String(updated.day_of_week), sede_id: updated.sede_id || '' });
+                    form.reset({ ...updated, day_of_week: String(updated.day_of_week), days_of_week: [], sede_id: updated.sede_id || '' });
                 }
             },
             onError: (error) => {
@@ -257,31 +271,45 @@ export default function SchedulesPage() {
 
     const sedeTabLabel = sedes.find(s => s.id === activeSede)?.name ?? activeSede;
 
-    // Render the day-of-week + times form fields (shared by panel and dialog)
-    const scheduleFields = (disabled: boolean) => (
+    // Render the day-of-week + times form fields (shared by panel and dialog).
+    // Creating picks several days at once (one row per day); editing is one row.
+    const scheduleFields = (disabled: boolean, isCreate = false) => (
         <>
-            <FormField control={form.control} name="day_of_week" render={({ field }) => (
-                <FormItem>
-                    <FormLabel>{t('createDialog.dayOfWeek')}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} disabled={disabled}>
+            {isCreate ? (
+                <FormField control={form.control} name="days_of_week" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>{t('createDialog.daysOfWeek')}</FormLabel>
                         <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder={t('createDialog.selectDay')} />
-                            </SelectTrigger>
+                            <WeekdayToggleGroup value={field.value} onChange={field.onChange} disabled={disabled} convention="js" aria-label={t('createDialog.daysOfWeek')} />
                         </FormControl>
-                        <SelectContent>
-                            <SelectItem value="1">{t('days.monday')}</SelectItem>
-                            <SelectItem value="2">{t('days.tuesday')}</SelectItem>
-                            <SelectItem value="3">{t('days.wednesday')}</SelectItem>
-                            <SelectItem value="4">{t('days.thursday')}</SelectItem>
-                            <SelectItem value="5">{t('days.friday')}</SelectItem>
-                            <SelectItem value="6">{t('days.saturday')}</SelectItem>
-                            <SelectItem value="0">{t('days.sunday')}</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <FormMessage />
-                </FormItem>
-            )} />
+                        <FormDescription>{t('createDialog.daysOfWeekHelp')}</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+            ) : (
+                <FormField control={form.control} name="day_of_week" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>{t('createDialog.dayOfWeek')}</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={disabled}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder={t('createDialog.selectDay')} />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="1">{t('days.monday')}</SelectItem>
+                                <SelectItem value="2">{t('days.tuesday')}</SelectItem>
+                                <SelectItem value="3">{t('days.wednesday')}</SelectItem>
+                                <SelectItem value="4">{t('days.thursday')}</SelectItem>
+                                <SelectItem value="5">{t('days.friday')}</SelectItem>
+                                <SelectItem value="6">{t('days.saturday')}</SelectItem>
+                                <SelectItem value="0">{t('days.sunday')}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )} />
+            )}
             <FormField control={form.control} name="start_time" render={({ field }) => (
                 <FormItem>
                     <FormLabel>{t('createDialog.startTime')}</FormLabel>
@@ -427,7 +455,7 @@ export default function SchedulesPage() {
                         {scheduleFields(!isEditing || save.isPending)}
                         {isEditing && (
                             <div className="flex gap-2 pt-2">
-                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); setSubmissionError(null); if (selectedSchedule) form.reset({ ...selectedSchedule, day_of_week: String(selectedSchedule.day_of_week), sede_id: selectedSchedule.sede_id || '' }); else handleClose(); }} disabled={save.isPending}>
+                                <Button type="button" variant="outline" onClick={() => { setIsEditing(false); setSubmissionError(null); if (selectedSchedule) form.reset({ ...selectedSchedule, day_of_week: String(selectedSchedule.day_of_week), days_of_week: [], sede_id: selectedSchedule.sede_id || '' }); else handleClose(); }} disabled={save.isPending}>
                                     {t('createDialog.cancel')}
                                 </Button>
                                 <Button type="submit" loading={save.isPending}>
@@ -471,7 +499,7 @@ export default function SchedulesPage() {
                     if (!open) {
                         setIsEditing(false);
                         setSubmissionError(null);
-                        form.reset({ day_of_week: '', start_time: '', end_time: '', sede_id: '' });
+                        form.reset(EMPTY_SCHEDULE_FORM);
                     }
                 }}
             >
@@ -496,7 +524,7 @@ export default function SchedulesPage() {
                                         <AlertDescription>{submissionError}</AlertDescription>
                                     </Alert>
                                 )}
-                                {scheduleFields(save.isPending)}
+                                {scheduleFields(save.isPending, true)}
                             </DialogBody>
                             <DialogFooter>
                                 <DialogCancelButton disabled={save.isPending}>
