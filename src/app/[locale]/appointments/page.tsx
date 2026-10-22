@@ -3,7 +3,7 @@
 
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
 import Calendar, { type CalendarGroupBy, type CalendarGroupingColumn, type CalendarView, type CalendarEvent } from '@/components/calendar/Calendar';
-import type { CalendarDragMode, CalendarDragResult, CalendarSlotContextMenuContext } from '@/components/calendar/calendar-types';
+import type { CalendarDragMode, CalendarDragResult, CalendarDraftPreview, CalendarSlotContextMenuContext } from '@/components/calendar/calendar-types';
 import { DatePicker } from '@/components/ui/date-picker';
 import { CalendarSettingsPopover } from '@/components/calendar/calendar-settings-popover';
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
@@ -277,6 +277,34 @@ const GOOGLE_CALENDAR_COLORS = [
 ];
 
 const colorMap = new Map(GOOGLE_CALENDAR_COLORS.map(c => [c.id, c.hex]));
+
+/**
+ * Overlap among the loaded appointments: any non-cancelled appointment of the same
+ * doctor OR the same room whose span intersects the draft (including one that
+ * started earlier and is still running). Without doctor and room, any.
+ */
+function inlineDraftOverlaps(draft: InlineAppointmentDraftState, appointments: Appointment[]): boolean {
+    const draftStart = draft.date.getTime();
+    const draftEnd = addMinutes(draft.date, draft.durationMin || 30).getTime();
+    return appointments.some((a) => {
+        if (a.status === 'cancelled') return false;
+        if (draft.editing && String(a.id) === String(draft.editing.id)) return false;
+        const sameDoctor = !!draft.doctor && String(a.doctorId) === String(draft.doctor.id);
+        const sameRoom = !!draft.calendar && String(a.calendar_source_id) === String(draft.calendar.id);
+        if ((draft.doctor || draft.calendar) && !sameDoctor && !sameRoom) return false;
+        const s = a.start?.dateTime ? parseISO(a.start.dateTime.replace(/Z$/, '')).getTime() : NaN;
+        const e = a.end?.dateTime ? parseISO(a.end.dateTime.replace(/Z$/, '')).getTime() : s;
+        return !Number.isNaN(s) && s < draftEnd && e > draftStart;
+    });
+}
+
+/** Color precedence shown on the card: explicit background > service > doctor > calendar. */
+function inlineDraftAccentColor(draft: InlineAppointmentDraftState): string | undefined {
+    const selectedColor = draft.color ? colorMap.get(draft.color) : undefined;
+    return selectedColor || draft.services[draft.services.length - 1]?.color
+        || (draft.doctor as any)?.color || getGoogleCalendarColorHex((draft.calendar as any)?.color) || undefined;
+}
+
 const colorIdByHex = new Map(GOOGLE_CALENDAR_COLORS.map(c => [c.hex.toLowerCase(), c.id]));
 const UNASSIGNED_CALENDAR_GROUP_ID = '__calendar-items-unassigned__';
 const CALENDAR_ITEMS_DOCTOR_GROUP_ID = '__calendar-items-doctor-column__';
@@ -1798,6 +1826,28 @@ export default function AppointmentsPage() {
             : false
     );
 
+    // `inline_draft_live_preview`: the inline card floats next to the appointment,
+    // which is previewed live on the grid. Mobile keeps the centered card.
+    const inlineDraftLivePreview = !!calendarSettings?.inline_draft_live_preview && !isMobile;
+    const hasAnchoredInlineDraft = inlineDraftLivePreview && inlineDraft !== null;
+
+    // Moves the open draft to another slot/column, keeping what was already filled
+    // in. The clicked column's agenda/doctor replaces the draft's one.
+    const moveInlineDraftTo = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
+        setInlineDraft((d) => {
+            if (!d) return d;
+            const next: InlineAppointmentDraftState = { ...d, date, context: context ?? d.context };
+            if (context?.groupBy === 'calendar') {
+                const calendar = calendars.find((c) => String(c.id) === String(context.value));
+                if (calendar) next.calendar = calendar;
+            } else if (context?.groupBy === 'doctor') {
+                const doctor = doctors.find((doc) => String(doc.id) === String(context.value));
+                if (doctor) next.doctor = doctor;
+            }
+            return next;
+        });
+    }, [calendars, doctors, setInlineDraft]);
+
     const closeInlineDraft = () => {
         setIsInlineDiscardConfirmOpen(false);
         setInlineDraft(null);
@@ -1814,27 +1864,10 @@ export default function AppointmentsPage() {
 
     const renderInlineDraft = () => {
         if (!inlineDraft) return null;
-        const draftStart = inlineDraft.date.getTime();
-        const draftEnd = addMinutes(inlineDraft.date, inlineDraft.durationMin || 30).getTime();
-        // Overlap among the loaded appointments: any non-cancelled appointment of the
-        // same doctor OR the same room whose span intersects the draft (including one
-        // that started earlier and is still running). Without doctor and room, any.
-        const overlap = appointments.some((a) => {
-            if (a.status === 'cancelled') return false;
-            if (inlineDraft.editing && String(a.id) === String(inlineDraft.editing.id)) return false;
-            const sameDoctor = !!inlineDraft.doctor && String(a.doctorId) === String(inlineDraft.doctor.id);
-            const sameRoom = !!inlineDraft.calendar && String(a.calendar_source_id) === String(inlineDraft.calendar.id);
-            if ((inlineDraft.doctor || inlineDraft.calendar) && !sameDoctor && !sameRoom) return false;
-            const s = a.start?.dateTime ? parseISO(a.start.dateTime.replace(/Z$/, '')).getTime() : NaN;
-            const e = a.end?.dateTime ? parseISO(a.end.dateTime.replace(/Z$/, '')).getTime() : s;
-            return !Number.isNaN(s) && s < draftEnd && e > draftStart;
-        });
+        const overlap = inlineDraftOverlaps(inlineDraft, appointments);
         const isEditing = !!inlineDraft.editing;
         const isRescheduling = isEditing && !!inlineDraft.rescheduling;
-        const selectedColor = inlineDraft.color ? colorMap.get(inlineDraft.color) : undefined;
-        // Color precedence shown on the card: explicit background > service > doctor > calendar.
-        const accentColor = selectedColor || inlineDraft.services[inlineDraft.services.length - 1]?.color
-            || (inlineDraft.doctor as any)?.color || getGoogleCalendarColorHex((inlineDraft.calendar as any)?.color) || undefined;
+        const accentColor = inlineDraftAccentColor(inlineDraft);
         return (
             <InlineAppointmentDraft
                 variant={calendarMode === 'custom' ? 'custom' : 'default'}
@@ -1928,6 +1961,12 @@ export default function AppointmentsPage() {
     // Left-click on an empty slot → the centered inline draft in custom mode.
     // Outside custom mode, the saved inline preference still applies only to time grids.
     const handleSlotClick = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
+        // With the floating card the grid stays clickable: an empty slot moves the
+        // open draft there instead of starting a new one.
+        if (hasAnchoredInlineDraft) {
+            if (!isSavingInline) moveInlineDraftTo(date, context);
+            return;
+        }
         const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
         if (isCustomMode || (calendarSettings?.inline_appointment_creation && isTimeGrid)) {
             const draftDoctor = context?.groupBy === 'doctor' ? (doctors.find((d) => String(d.id) === String(context.value)) ?? null) : null;
@@ -1941,7 +1980,7 @@ export default function AppointmentsPage() {
         prepareSlot(date, context);
         setIsReschedulingMode(false);
         setCreateOpen(true);
-    }, [prepareSlot, calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, slotDuration, isCustomMode, personalizedCalendarId, selectedCalendarIds]);
+    }, [prepareSlot, calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, slotDuration, isCustomMode, personalizedCalendarId, selectedCalendarIds, hasAnchoredInlineDraft, isSavingInline, moveInlineDraftTo]);
 
     // Opens the inline edit/reschedule card for an existing appointment. Custom
     // mode always uses this centered window, regardless of view or preference.
@@ -4202,6 +4241,14 @@ export default function AppointmentsPage() {
             ? { groupBy: groupBy as 'doctor' | 'calendar' | 'sede', value: gap.groupValue }
             : undefined;
 
+        // Floating card open: the chosen gap becomes the draft's new slot.
+        if (hasAnchoredInlineDraft) {
+            if (!isSavingInline) moveInlineDraftTo(gap.start, context);
+            setGapsActive(false);
+            setSelectedGap(null);
+            return;
+        }
+
         // Custom mode always uses the centered inline window. Outside custom mode,
         // the saved preference applies only to time-grid views.
         const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
@@ -4243,7 +4290,7 @@ export default function AppointmentsPage() {
         // Per the requirement: selecting a proposal closes the panel and clears the effect.
         setGapsActive(false);
         setSelectedGap(null);
-    }, [groupBy, doctors, calendars, calendarSettings?.inline_appointment_creation, currentView, slotDuration, isCustomMode, personalizedCalendarId, selectedCalendarIds]);
+    }, [groupBy, doctors, calendars, calendarSettings?.inline_appointment_creation, currentView, slotDuration, isCustomMode, personalizedCalendarId, selectedCalendarIds, hasAnchoredInlineDraft, isSavingInline, moveInlineDraftTo]);
 
     const handleSelectDoctor = React.useCallback((doctorId: string, checked: boolean) => {
         setSelectedDoctorIds(prev => {
@@ -4429,6 +4476,32 @@ export default function AppointmentsPage() {
         () => effectiveEvents.filter((event) => !event.allDay),
         [effectiveEvents],
     );
+
+    // Live preview of the inline draft on the grid (floating-card mode only). It lands
+    // in the column of the draft's agenda/doctor, so picking another one in the card
+    // moves it; when the draft has none, it stays in the clicked column.
+    const inlineDraftPreview = React.useMemo<CalendarDraftPreview | null>(() => {
+        if (!hasAnchoredInlineDraft || !inlineDraft) return null;
+        const contextValue = inlineDraft.context?.groupBy === effectiveGroupBy ? inlineDraft.context.value : undefined;
+        const groupValue = effectiveGroupBy === 'calendar'
+            ? (inlineDraft.calendar?.id ? String(inlineDraft.calendar.id) : contextValue)
+            : effectiveGroupBy === 'doctor'
+                ? (inlineDraft.doctor?.id ? String(inlineDraft.doctor.id) : contextValue)
+                : undefined;
+        const subtitle = [inlineDraft.services.map((s) => s.name).join(', '), inlineDraft.doctor?.name]
+            .filter(Boolean)
+            .join(' · ');
+        return {
+            start: inlineDraft.date,
+            end: addMinutes(inlineDraft.date, inlineDraft.durationMin || 30),
+            groupValue,
+            title: inlineDraft.patient?.name || inlineDraft.summary.trim() || (inlineDraft.editing ? tInline('editTitle') : tInline('title')),
+            subtitle: subtitle || undefined,
+            color: inlineDraftAccentColor(inlineDraft),
+            conflict: inlineDraftOverlaps(inlineDraft, appointments) || inlineAvailability === 'unavailable',
+            sourceEventId: inlineDraft.editing?.id ? String(inlineDraft.editing.id) : undefined,
+        };
+    }, [hasAnchoredInlineDraft, inlineDraft, effectiveGroupBy, appointments, inlineAvailability, tInline]);
 
     const allDayEvents = React.useMemo<CalendarEvent[]>(
         () => effectiveEvents.filter((event) => event.allDay),
@@ -5319,7 +5392,10 @@ export default function AppointmentsPage() {
                             isLoading={isRefreshing}
                             onEventClick={handleEventClick}
                             onEventColorChange={handleEventColorChange}
-                            onEventDoubleClick={isBulkMode ? undefined : (data) => {
+                            // With the floating draft open the grid stays interactive, so the
+                            // actions that would replace the draft (edit, context menus) are off
+                            // until it is saved or discarded.
+                            onEventDoubleClick={isBulkMode || hasAnchoredInlineDraft ? undefined : (data) => {
                                 if (data?.kind === 'reminder') {
                                     handleEditReminder(data as CalendarReminder);
                                     return;
@@ -5328,10 +5404,12 @@ export default function AppointmentsPage() {
                             }}
                             // Móvil: sin menú contextual en las cards. Su long-press competía con
                             // el de arrastrar; las acciones están en el sheet del toque simple.
-                            onEventContextMenu={isBulkMode || isMobile ? undefined : renderEventContextMenu}
-                            onEventContextMenuOpen={isBulkMode || isMobile ? undefined : (data) => { if (data?.kind !== 'reminder') requestAppointmentMenuData(data as Appointment); }}
+                            onEventContextMenu={isBulkMode || isMobile || hasAnchoredInlineDraft ? undefined : renderEventContextMenu}
+                            onEventContextMenuOpen={isBulkMode || isMobile || hasAnchoredInlineDraft ? undefined : (data) => { if (data?.kind !== 'reminder') requestAppointmentMenuData(data as Appointment); }}
                             inlineDraft={inlineDraft ? { date: inlineDraft.date, durationMin: inlineDraft.durationMin, groupValue: inlineDraft.context?.value } : null}
                             renderInlineDraft={renderInlineDraft}
+                            inlineDraftLayout={inlineDraftLivePreview ? 'anchored' : 'overlay'}
+                            draftPreview={inlineDraftPreview}
                             groupBy={effectiveGroupBy}
                             groupingColumns={effectiveGroupingColumns}
                             hideTitle={isCustomMode}
@@ -5358,7 +5436,7 @@ export default function AppointmentsPage() {
                             bulkModeContent={bulkModeHeaderContent}
                             onSlotClick={handleSlotClick}
                             onCreateClick={handleNewAppointmentClick}
-                            renderSlotContextMenu={renderSlotContextMenu}
+                            renderSlotContextMenu={hasAnchoredInlineDraft ? undefined : renderSlotContextMenu}
                             gaps={gapsActive ? calendarGaps : undefined}
                             selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
                             onGapClick={handleSelectGap}

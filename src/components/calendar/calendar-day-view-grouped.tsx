@@ -31,6 +31,7 @@ import { CalendarTimeColumn } from './calendar-time-column';
 import { TimeSlotDividers } from './calendar-time-column';
 import { CalendarHourRail } from './calendar-hour-rail';
 import { CalendarGapOverlays } from './calendar-gap-overlay';
+import { CalendarDraftPreviewBand } from './calendar-draft-preview';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isRangeBlocked, isSlotBlocked } from './calendar-gaps';
 import type { Gap, BlockedRange } from './calendar-gaps';
@@ -453,6 +454,11 @@ export function CalendarDayViewGrouped({
                             groupValue={col.value}
                             hourSlotHeight={hourSlotHeight}
                             store={dragStore}
+                          />
+                          <CalendarDraftPreviewBand
+                            dayKey={format(day, 'yyyy-MM-dd')}
+                            groupValue={col.value}
+                            hourSlotHeight={hourSlotHeight}
                           />
                         </div>
                       </div>

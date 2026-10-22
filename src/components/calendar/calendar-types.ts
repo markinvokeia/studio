@@ -171,6 +171,25 @@ export interface InlineDraft {
   groupValue?: string;
 }
 
+/** Cómo se muestra la tarjeta inline: centrada con backdrop, o flotando al lado de
+ *  la cita, que se previsualiza en vivo en la grilla (estilo Google Calendar). */
+export type CalendarInlineDraftLayout = 'overlay' | 'anchored';
+
+/** Cita en edición previsualizada sobre la rejilla mientras se completa la tarjeta inline. */
+export interface CalendarDraftPreview {
+  start: Date;
+  end: Date;
+  /** Columna de agrupación donde cae (agenda/doctor). Sin agrupar, `undefined`. */
+  groupValue?: string;
+  title?: string;
+  subtitle?: string;
+  color?: string;
+  /** Choca con otra cita o la disponibilidad dio ocupado. */
+  conflict?: boolean;
+  /** Cita que se está editando/reprogramando: se atenúa en la grilla. */
+  sourceEventId?: string;
+}
+
 export interface CalendarProps {
   events?: CalendarEvent[];
   /** Ítems de todo el día, en su propio array. Van a la banda fija bajo el nombre del
@@ -225,6 +244,12 @@ export interface CalendarProps {
   inlineDraft?: InlineDraft | null;
   /** Renders the inline creation form inside the positioned draft card. */
   renderInlineDraft?: () => React.ReactNode;
+  /** 'anchored' (tablet/desktop): la tarjeta flota al lado de `draftPreview`, que se
+   *  dibuja en su columna, sin backdrop. En mobile siempre es 'overlay'. Default 'overlay'. */
+  inlineDraftLayout?: CalendarInlineDraftLayout;
+  /** Cita previsualizada en la grilla. Solo se usa con `inlineDraftLayout="anchored"`: el
+   *  calendario navega a su día si queda fuera del rango visible y la centra. */
+  draftPreview?: CalendarDraftPreview | null;
   /** Content rendered inside the mobile bottom sheet for filters */
   filterSheet?: React.ReactNode;
   /** Hide the static "Calendar" header title (custom mode). */

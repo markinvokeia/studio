@@ -975,6 +975,7 @@
       "checkAvailability": "Verificar disponibilidad",
       "filterDoctorsByService": "Filtrar doctores por servicio",
       "inlineAppointmentCreation": "Crear cita en el calendario (sin modal)",
+      "inlineDraftLivePreview": "Previsualizar la cita al crearla",
       "options": {
         "day": "Día",
         "2_days": "2 Días",
@@ -1011,6 +1012,7 @@
         "blockUnavailable": "Atenúa y bloquea en el calendario los horarios fuera de atención (según horarios y excepciones), impidiendo crear citas ahí.",
         "filterDoctorsByService": "Al crear una cita, filtra la lista de doctores para mostrar solo los que prestan el servicio seleccionado.",
         "inlineAppointmentCreation": "Al hacer clic en un slot crea la cita directamente en el calendario con un card, sin abrir el modal. El botón Crear siempre abre el modal.",
+        "inlineDraftLivePreview": "La tarjeta de cita inline se abre al lado de la cita, que se ve en el calendario mientras la completás, para ver cómo entra en los huecos. Al cambiar la fecha el calendario se mueve a ese día. Solo en tablet y escritorio.",
         "colorByStatus": "Las citas muestran su estado con color. Si la cita tiene una etiqueta de color propia o el color de su servicio, lo conserva y el estado aparece como una franja en el borde izquierdo. Si solo hereda el color del doctor o del consultorio, toda la cita se pinta con el color del estado. Algunos estados están configurados para pintar siempre la cita sin importar esta preferencia — ver Configuración → Colores de Calendario.",
         "hiddenWeekdays": "Oculta los días elegidos como columnas en las vistas de día y semana. Es solo visual, para ganar espacio: no afecta la disponibilidad ni los días en que se pueden agendar citas."
       }

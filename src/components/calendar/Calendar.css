@@ -1382,6 +1382,75 @@ body[data-calendar-drag-edge='right']::after {
   white-space: nowrap;
 }
 
+/* ── Preview en vivo de la tarjeta inline ──────────────────────────────────
+   Con `inline_draft_live_preview` la tarjeta flota al lado de la cita (sin
+   backdrop) y la cita se dibuja sobre su columna mientras se completa. */
+
+/* La banda del preview. Mismo modelo de capas que el fantasma de arrastre: encima
+   de las citas, sin capturar el puntero. */
+.calendar-draft-preview {
+  --draft-preview-color: hsl(var(--primary));
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  pointer-events: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-radius: 6px;
+  border: 2px dashed var(--draft-preview-color);
+  background-color: color-mix(in srgb, var(--draft-preview-color) 22%, transparent);
+  box-shadow: 0 4px 14px -6px color-mix(in srgb, var(--draft-preview-color) 60%, transparent);
+  padding: 2px 6px;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  color: hsl(var(--foreground));
+  transition: top 120ms ease-out, height 120ms ease-out;
+}
+
+.calendar-draft-preview--conflict {
+  --draft-preview-color: hsl(var(--destructive));
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 6px,
+    hsl(var(--destructive) / 0.14) 6px 12px
+  );
+}
+
+.calendar-draft-preview--short {
+  flex-direction: row;
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.calendar-draft-preview__time {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-draft-preview__title,
+.calendar-draft-preview__subtitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-draft-preview__title {
+  font-weight: 600;
+}
+
+.calendar-draft-preview__subtitle {
+  color: hsl(var(--muted-foreground));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calendar-draft-preview { transition: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .event-in-day-view[data-dragging='true'] { opacity: 0.5; }
   body[data-calendar-drag-edge]::after { animation: none; opacity: 0.8; }

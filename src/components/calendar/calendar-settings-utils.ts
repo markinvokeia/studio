@@ -13,6 +13,7 @@ export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   slot_duration: DEFAULT_SLOT_DURATION,
   event_label_format: DEFAULT_EVENT_LABEL_FORMAT,
   default_sede: '',
+  inline_draft_live_preview: false,
   color_by_status: DEFAULT_COLOR_BY_STATUS,
   mode: DEFAULT_CALENDAR_MODE,
   hidden_weekdays: [],
@@ -73,6 +74,7 @@ const CALENDAR_SETTINGS_ROW_KEYS = [
   'event_label_format',
   'default_sede',
   'inline_appointment_creation',
+  'inline_draft_live_preview',
   'color_by_status',
   'mode',
   'hidden_weekdays',
@@ -143,6 +145,10 @@ export const normalizeCalendarSettings = (data: unknown): CalendarSettings | nul
         ? rawSettings.event_label_format
         : DEFAULT_CALENDAR_SETTINGS.event_label_format,
     default_sede: typeof rawSettings.default_sede === 'string' ? rawSettings.default_sede : DEFAULT_CALENDAR_SETTINGS.default_sede,
+    inline_draft_live_preview: normalizeBoolean(
+      (rawSettings as { inline_draft_live_preview?: unknown }).inline_draft_live_preview,
+      false,
+    ),
     // Ausente (usuario sin la preferencia guardada todavía) => queda activa.
     color_by_status: normalizeBoolean(
       (rawSettings as { color_by_status?: unknown }).color_by_status,

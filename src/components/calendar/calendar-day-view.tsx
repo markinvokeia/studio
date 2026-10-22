@@ -26,6 +26,7 @@ import { CalendarTimeColumn } from './calendar-time-column';
 import { TimeSlotDividers } from './calendar-time-column';
 import { CalendarHourRail } from './calendar-hour-rail';
 import { CalendarGapOverlays } from './calendar-gap-overlay';
+import { CalendarDraftPreviewBand } from './calendar-draft-preview';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isSlotBlocked } from './calendar-gaps';
 import type { Gap, BlockedRange } from './calendar-gaps';
@@ -227,6 +228,10 @@ export function CalendarDayView({
                         onEventContextMenuOpen={onEventContextMenuOpen}
                       />
                     ))}
+                    <CalendarDraftPreviewBand
+                      dayKey={format(day, 'yyyy-MM-dd')}
+                      hourSlotHeight={hourSlotHeight}
+                    />
                   </div>
                 </div>
               </ContextMenuTrigger>

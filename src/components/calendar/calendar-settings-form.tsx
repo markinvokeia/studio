@@ -15,6 +15,7 @@ import {
   LayoutGrid,
   MousePointerClick,
   Palette,
+  ScanEye,
   Ruler,
   Stethoscope,
   Tag,
@@ -477,6 +478,17 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
           id="inline-appointment-creation"
           checked={settings.inline_appointment_creation ?? false}
           onCheckedChange={(checked) => updateSettings({ inline_appointment_creation: checked })}
+          disabled={isLocked}
+          className="scale-90"
+        />
+      </div>
+
+      <div className="flex items-center justify-between pt-4 px-1">
+        <SettingHeader icon={ScanEye} label={t('inlineDraftLivePreview')} help={t('help.inlineDraftLivePreview')} htmlFor="inline-draft-live-preview" variant="toggle" />
+        <Switch
+          id="inline-draft-live-preview"
+          checked={settings.inline_draft_live_preview ?? false}
+          onCheckedChange={(checked) => updateSettings({ inline_draft_live_preview: checked })}
           disabled={isLocked}
           className="scale-90"
         />

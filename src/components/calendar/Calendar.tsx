@@ -4,6 +4,7 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import React from 'react';
+import { addDays, format, startOfDay } from 'date-fns';
 
 import './Calendar.css';
 
@@ -24,10 +25,53 @@ import { CalendarScheduleView } from './calendar-schedule-view';
 import { CalendarViewTabs } from './calendar-view-tabs';
 import { CalendarFab } from './calendar-fab';
 import { CalendarFilterSheet } from './calendar-filter-sheet';
-import { CalendarInlineDraftOverlay } from './inline-draft-overlay';
+import { CalendarAnchoredInlineDraft, CalendarInlineDraftOverlay } from './inline-draft-overlay';
+import { CalendarDraftPreviewProvider } from './calendar-draft-preview';
 
 // Re-export types for backward compatibility
 export type { CalendarGroupBy, CalendarEvent, CalendarGroupingColumn, CalendarView } from './calendar-types';
+
+/** Days rendered by each time-grid view, counted from `currentDate` (the navigation
+ *  hook already keeps it at the first day of the visible block). */
+const TIME_GRID_DAYS: Partial<Record<CalendarView, number>> = {
+  day: 1, '2-day': 2, '3-day': 3, '4-day': 4, '5-day': 5, '6-day': 6, week: 7,
+};
+
+/**
+ * Centra `el` dentro del contenedor scrolleable de la vista (no de la página).
+ * `rightInset` descuenta lo que tape un panel flotante a la derecha. Con
+ * `onlyIfHidden` no mueve nada si la card ya se ve entera.
+ */
+function scrollElementIntoGrid(el: HTMLElement, rightInset = 0, onlyIfHidden = false) {
+  const er = el.getBoundingClientRect();
+  const scroller = el.closest('.day-view-container, .overflow-y-auto') as HTMLElement | null;
+  if (!scroller) {
+    el.scrollIntoView({ block: onlyIfHidden ? 'nearest' : 'center', inline: 'nearest', behavior: 'smooth' });
+    return;
+  }
+  const sr = scroller.getBoundingClientRect();
+  const visRight = sr.right - Math.max(0, rightInset);
+  if (onlyIfHidden && er.top >= sr.top && er.bottom <= sr.bottom && er.left >= sr.left && er.right <= visRight) return;
+  const maxTop = scroller.scrollHeight - scroller.clientHeight;
+  const maxLeft = scroller.scrollWidth - scroller.clientWidth;
+  const opts: ScrollToOptions = { behavior: 'smooth' };
+  // Vertical: centrar la card en el alto visible; si es más alta que la vista, que
+  // al menos se vea su inicio.
+  if (maxTop > 1) {
+    const top = er.height > scroller.clientHeight
+      ? scroller.scrollTop + (er.top - sr.top) - 16
+      : scroller.scrollTop + (er.top - sr.top) - scroller.clientHeight / 2 + er.height / 2;
+    opts.top = Math.max(0, Math.min(top, maxTop));
+  }
+  // Horizontal: centrar en el ancho VISIBLE. En vistas multi-día también trae la
+  // columna del día correcto.
+  if (maxLeft > 1) {
+    const visCenter = (sr.left + visRight) / 2;
+    const left = scroller.scrollLeft + (er.left + er.width / 2) - visCenter;
+    opts.left = Math.max(0, Math.min(left, maxLeft));
+  }
+  if (opts.top !== undefined || opts.left !== undefined) scroller.scrollTo(opts);
+}
 
 /** Resolve view to an effective variant based on breakpoint */
 function resolveViewForBreakpoint(view: CalendarView, isMobile: boolean): CalendarView {
@@ -65,6 +109,8 @@ const Calendar: React.FC<CalendarProps> = ({
   onEventContextMenuOpen,
   inlineDraft,
   renderInlineDraft,
+  inlineDraftLayout = 'overlay',
+  draftPreview,
   filterSheet,
   hideTitle,
   arrowsBeforeToday,
@@ -219,30 +265,9 @@ const Calendar: React.FC<CalendarProps> = ({
 
         if (!didScroll) {
           didScroll = true;
-          const scroller = el.closest('.day-view-container, .overflow-y-auto') as HTMLElement | null;
-          if (scroller) {
-            const sr = scroller.getBoundingClientRect();
-            const maxTop = scroller.scrollHeight - scroller.clientHeight;
-            const maxLeft = scroller.scrollWidth - scroller.clientWidth;
-            const opts: ScrollToOptions = { behavior: 'smooth' };
-            // Vertical: centrar la card en el alto visible.
-            if (maxTop > 1) {
-              const top = scroller.scrollTop + (er.top - sr.top) - scroller.clientHeight / 2 + er.height / 2;
-              opts.top = Math.max(0, Math.min(top, maxTop));
-            }
-            // Horizontal: centrar en el ancho VISIBLE, descontando lo que tape un
-            // panel a la derecha (el buscador en desktop) para que la card no quede
-            // debajo. En vistas multi-día también trae la columna del día correcto.
-            if (maxLeft > 1) {
-              const visRight = sr.right - Math.max(0, focusScrollRightInset ?? 0);
-              const visCenter = (sr.left + visRight) / 2;
-              const left = scroller.scrollLeft + (er.left + er.width / 2) - visCenter;
-              opts.left = Math.max(0, Math.min(left, maxLeft));
-            }
-            if (opts.top !== undefined || opts.left !== undefined) scroller.scrollTo(opts);
-          } else {
-            el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
-          }
+          // Se descuenta lo que tape un panel a la derecha (el buscador en desktop)
+          // para que la card no quede debajo.
+          scrollElementIntoGrid(el, focusScrollRightInset ?? 0);
         }
       } else {
         ring.hidden = true;
@@ -260,6 +285,75 @@ const Calendar: React.FC<CalendarProps> = ({
   }, [focusedEventId, focusEventNonce, focusScrollRightInset]);
 
   const effectiveView = resolveViewForBreakpoint(view, isMobile);
+
+  // ── Tarjeta inline flotando junto a la cita + preview en vivo ─────────────
+  // En mobile no hay lugar al costado de la cita: ahí sigue la tarjeta centrada.
+  const showAnchoredDraft = inlineDraftLayout === 'anchored' && !isMobile && !!inlineDraft && !!renderInlineDraft;
+  const activeDraftPreview = showAnchoredDraft ? (draftPreview ?? null) : null;
+  const previewStartMs = activeDraftPreview?.start.getTime() ?? null;
+  const previewEndMs = activeDraftPreview?.end.getTime() ?? null;
+  const previewGroupValue = activeDraftPreview?.groupValue ?? '';
+  const previewDayKey = activeDraftPreview ? format(activeDraftPreview.start, 'yyyy-MM-dd') : null;
+  const visibleDaysCount = TIME_GRID_DAYS[effectiveView];
+  const currentDateKey = format(currentDate, 'yyyy-MM-dd');
+
+  // Un día oculto por preferencia (`hidden_weekdays`, p. ej. fin de semana) se
+  // muestra mientras el borrador esté en él: si no, la cita no tendría columna donde
+  // dibujarse y el calendario parecería no moverse al elegir esa fecha.
+  const previewWeekday = activeDraftPreview ? activeDraftPreview.start.getDay() : null;
+  const effectiveHiddenWeekdays = React.useMemo(
+    () => (previewWeekday === null || !hiddenWeekdays?.includes(previewWeekday)
+      ? hiddenWeekdays
+      : hiddenWeekdays.filter((d) => d !== previewWeekday)),
+    [hiddenWeekdays, previewWeekday],
+  );
+
+  // Si la fecha del borrador queda fuera del rango visible, el calendario navega a
+  // ese día. Solo cuenta el día: cambiar la hora dentro del rango no navega.
+  React.useEffect(() => {
+    if (!previewDayKey || !visibleDaysCount) return;
+    const target = new Date(`${previewDayKey}T00:00:00`);
+    const rangeStart = startOfDay(currentDate);
+    if (target < rangeStart || target >= addDays(rangeStart, visibleDaysCount)) setCurrentDate(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewDayKey, visibleDaysCount]);
+
+  // Centra el preview al abrir la tarjeta y cada vez que cambia su inicio o su
+  // columna (fecha, hora, agenda/doctor). Tras navegar a otro día la grilla se
+  // vuelve a montar, así que la banda se busca por rAF hasta que aparezca.
+  React.useEffect(() => {
+    const root = calendarBodyRef.current;
+    if (!root || previewStartMs === null) return;
+    const startedAt = Date.now();
+    let raf = 0;
+    const frame = () => {
+      const el = root.querySelector<HTMLElement>('[data-draft-preview]');
+      if (el) {
+        scrollElementIntoGrid(el);
+        return;
+      }
+      if (Date.now() - startedAt < 2000) raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [previewStartMs, previewGroupValue, currentDateKey]);
+
+  // Cambiar solo la duración no re-centra (sería mareante mientras se escribe):
+  // apenas se asegura de que la card siga entera a la vista.
+  React.useEffect(() => {
+    const root = calendarBodyRef.current;
+    if (!root || previewEndMs === null) return;
+    const raf = requestAnimationFrame(() => {
+      const el = root.querySelector<HTMLElement>('[data-draft-preview]');
+      if (el) scrollElementIntoGrid(el, 0, true);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [previewEndMs]);
+
+  const sourceEventId = activeDraftPreview?.sourceEventId;
+  const sourceEventSelector = sourceEventId
+    ? `.calendar-body [data-event-id="${typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(sourceEventId) : sourceEventId}"]`
+    : null;
   const timeZoneLabel = t('timeZone');
   const isGrouped = groupBy !== 'none' && groupingColumns.length > 0;
   const isMultiDayView = effectiveView === 'week' || effectiveView === '2-day' || effectiveView === '3-day' || effectiveView === '4-day' || effectiveView === '5-day' || effectiveView === '6-day';
@@ -349,7 +443,7 @@ const Calendar: React.FC<CalendarProps> = ({
               dateLocale={dateLocale}
               hourSlotHeight={effectiveSlotHeight}
               slotMinutes={slotMinutes}
-              hiddenWeekdays={hiddenWeekdays}
+              hiddenWeekdays={effectiveHiddenWeekdays}
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
@@ -379,7 +473,7 @@ const Calendar: React.FC<CalendarProps> = ({
               onToggleTimeColumn={handleToggleTimeColumn}
               hideTimeGutter={hideTimeGutter}
               onNavigatePeriod={handleDragEdgeNavigate}
-              hiddenWeekdays={hiddenWeekdays}
+              hiddenWeekdays={effectiveHiddenWeekdays}
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
@@ -402,7 +496,7 @@ const Calendar: React.FC<CalendarProps> = ({
             slotMinutes={slotMinutes}
             showTimeColumn={showTimeColumn}
             onToggleTimeColumn={handleToggleTimeColumn}
-            hiddenWeekdays={hiddenWeekdays}
+            hiddenWeekdays={effectiveHiddenWeekdays}
             {...eventHandlers}
             {...gapProps}
             {...blockProps}
@@ -529,7 +623,11 @@ const Calendar: React.FC<CalendarProps> = ({
         className="calendar-body relative"
         style={{ '--cal-slots-per-hour': slotsPerHour } as React.CSSProperties}
       >
-        {renderView()}
+        <CalendarDraftPreviewProvider value={activeDraftPreview}>
+          {renderView()}
+        </CalendarDraftPreviewProvider>
+        {/* La cita que se está editando se atenúa: el preview marca dónde va a quedar. */}
+        {sourceEventSelector && <style>{`${sourceEventSelector} { opacity: 0.35; }`}</style>}
         {/* Aro de "hormigas en marcha" para la cita enfocada desde el buscador.
             Posicionado por rAF en el efecto de arriba; oculto por defecto. */}
         <div ref={focusRingRef} className="calendar-focus-ring" aria-hidden hidden />
@@ -559,7 +657,11 @@ const Calendar: React.FC<CalendarProps> = ({
       {/* Inline appointment draft — rendered once as a centered overlay so it stays
           visible regardless of the date selected inside it (it is not pinned to the
           clicked day's column). */}
-      {inlineDraft && renderInlineDraft && (
+      {/* Con preview en vivo, la misma card flota al lado de la cita en la grilla. */}
+      {showAnchoredDraft && (
+        <CalendarAnchoredInlineDraft anchorRoot={calendarBodyRef}>{renderInlineDraft?.()}</CalendarAnchoredInlineDraft>
+      )}
+      {inlineDraft && renderInlineDraft && !showAnchoredDraft && (
         <CalendarInlineDraftOverlay>{renderInlineDraft()}</CalendarInlineDraftOverlay>
       )}
     </div>

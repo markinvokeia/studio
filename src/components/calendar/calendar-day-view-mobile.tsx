@@ -46,6 +46,7 @@ import { TimeSlotDividers } from './calendar-time-column';
 import { CalendarAllDayBand } from './calendar-all-day-band';
 import { CalendarHourRail } from './calendar-hour-rail';
 import { CalendarGapOverlays } from './calendar-gap-overlay';
+import { CalendarDraftPreviewBand } from './calendar-draft-preview';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isRangeBlocked, isSlotBlocked, type Gap, type BlockedRange } from './calendar-gaps';
 
@@ -548,6 +549,11 @@ export function CalendarDayViewMobile({
                                 groupValue={slide.column?.value}
                                 hourSlotHeight={hourSlotHeight}
                                 store={dragStore}
+                              />
+                              <CalendarDraftPreviewBand
+                                dayKey={format(slide.day, 'yyyy-MM-dd')}
+                                groupValue={slide.column?.value}
+                                hourSlotHeight={hourSlotHeight}
                               />
                               {showIndicator && (
                                 <div

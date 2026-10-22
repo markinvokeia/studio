@@ -31,3 +31,91 @@ export function CalendarInlineDraftOverlay({ children }: { children: React.React
     document.body,
   );
 }
+
+/** Separación entre la card y la cita previsualizada, y margen contra los bordes. */
+const ANCHOR_GAP = 12;
+const VIEWPORT_MARGIN = 12;
+
+/**
+ * La misma card, flotando al lado de la cita previsualizada en la rejilla (estilo
+ * Google Calendar) en vez de centrada con backdrop. Sin backdrop: la grilla sigue
+ * visible e interactiva, así que se ve cómo encaja la cita y un clic en otro slot la
+ * mueve.
+ *
+ * Se ancla a `[data-draft-preview]` dentro de `anchorRoot`: va a su izquierda y, si
+ * no entra, a su derecha; si no entra de ningún lado, del lado con más espacio,
+ * acotada a la pantalla. Verticalmente se centra en la cita, también acotada. Un
+ * rAF la mantiene pegada mientras la grilla hace scroll (el centrado es animado) o
+ * la cita cambia de día/hora/duración; escribe el `transform` directo en el nodo,
+ * sin re-render. Mientras la cita no está a la vista (cargando otro rango, agenda
+ * oculta) se queda centrada en la pantalla.
+ */
+export function CalendarAnchoredInlineDraft({
+  children,
+  anchorRoot,
+}: {
+  children: React.ReactNode;
+  anchorRoot: React.RefObject<HTMLElement | null>;
+}) {
+  const [mounted, setMounted] = React.useState(false);
+  const cardRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => setMounted(true), []);
+
+  React.useEffect(() => {
+    if (!mounted) return;
+    let raf = 0;
+    let lastTransform = '';
+    const frame = () => {
+      const card = cardRef.current;
+      if (card) {
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const cw = card.offsetWidth;
+        const ch = card.offsetHeight;
+        const anchor = anchorRoot.current?.querySelector<HTMLElement>('[data-draft-preview]');
+        const ar = anchor?.getBoundingClientRect();
+        let left: number;
+        let top: number;
+        if (ar && ar.bottom > 0 && ar.top < vh && ar.right > 0 && ar.left < vw) {
+          const spaceLeft = ar.left - ANCHOR_GAP - VIEWPORT_MARGIN;
+          const spaceRight = vw - ar.right - ANCHOR_GAP - VIEWPORT_MARGIN;
+          if (spaceLeft >= cw) left = ar.left - ANCHOR_GAP - cw;
+          else if (spaceRight >= cw) left = ar.right + ANCHOR_GAP;
+          else left = spaceLeft >= spaceRight ? VIEWPORT_MARGIN : vw - VIEWPORT_MARGIN - cw;
+          top = ar.top + ar.height / 2 - ch / 2;
+        } else {
+          left = (vw - cw) / 2;
+          top = (vh - ch) / 2;
+        }
+        left = Math.max(VIEWPORT_MARGIN, Math.min(left, vw - VIEWPORT_MARGIN - cw));
+        top = Math.max(VIEWPORT_MARGIN, Math.min(top, vh - VIEWPORT_MARGIN - ch));
+        const transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+        if (transform !== lastTransform) {
+          card.style.transform = transform;
+          card.style.visibility = 'visible';
+          lastTransform = transform;
+        }
+      }
+      raf = requestAnimationFrame(frame);
+    };
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
+  }, [mounted, anchorRoot]);
+
+  if (!mounted) return null;
+
+  return createPortal(
+    <div
+      ref={cardRef}
+      data-testid="calendar-inline-draft-anchored"
+      className="fixed left-0 top-0 z-50 max-h-[calc(100vh-1.5rem)] w-[340px] max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg shadow-2xl sm:w-[520px]"
+      // Oculta hasta el primer posicionamiento, para que no aparezca un frame en la esquina.
+      style={{ visibility: 'hidden' }}
+      onClick={(e) => e.stopPropagation()}
+      onContextMenu={(e) => e.stopPropagation()}
+    >
+      {children}
+    </div>,
+    document.body,
+  );
+}

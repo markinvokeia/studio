@@ -975,6 +975,7 @@
       "checkAvailability": "Check availability",
       "filterDoctorsByService": "Filter doctors by service",
       "inlineAppointmentCreation": "Create appointment on the calendar (no modal)",
+      "inlineDraftLivePreview": "Live appointment preview while creating",
       "options": {
         "day": "Day",
         "2_days": "2 Days",
@@ -1011,6 +1012,7 @@
         "blockUnavailable": "Greys out and blocks out-of-office hours on the calendar (per schedules and exceptions), preventing appointments there.",
         "filterDoctorsByService": "When creating an appointment, filters the doctor list to only those who provide the selected service.",
         "inlineAppointmentCreation": "Clicking a slot creates the appointment inline on the calendar with a card, without opening the modal. The Create button always opens the modal.",
+        "inlineDraftLivePreview": "The inline appointment card floats next to the appointment, which is previewed on the calendar as you fill it in, so you can see how it fits in the free slots. Changing the date moves the calendar to that day. Tablet and desktop only.",
         "colorByStatus": "Appointments show their status with color. If the appointment has its own color tag or its service has a color, it keeps that color and the status appears as a stripe on the left edge. If it only inherits the doctor's or the consulting room's color, the whole appointment is painted with the status color. Some statuses are configured to always paint the appointment regardless of this switch — see Settings → Calendar Colors.",
         "hiddenWeekdays": "Hides the selected days as columns in the day/week views. Purely visual to save space — it doesn't affect availability or which days appointments can be booked on."
       }

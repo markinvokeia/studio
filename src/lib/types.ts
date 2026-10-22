@@ -1206,6 +1206,12 @@ export type CalendarSettings = {
    *  (a draft card) instead of opening the modal. The "Create" button always
    *  opens the modal regardless. Default false. */
   inline_appointment_creation?: boolean;
+  /** When true (tablet/desktop), the inline appointment card floats next to the
+   *  appointment (Google Calendar style, no backdrop), which is previewed live on the
+   *  grid while it is filled in (date/time/duration/agenda). Changing the date
+   *  navigates the calendar to that day and keeps the appointment centered.
+   *  Purely visual. Default false. */
+  inline_draft_live_preview?: boolean;
   /** When true, appointments in a status other than "scheduled" paint the whole
    *  card with that status' color instead of the calendar/service/doctor color.
    *  Default true. */
