@@ -27,6 +27,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useFinanceTableSorting } from '@/hooks/use-finance-sort-order';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import {
   buildDiscountedDocument,
   computeDiscountAmount,
@@ -987,6 +988,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
 
   const discounts = useDiscountSettings();
   const quoteEditSchema = React.useMemo(() => buildQuoteEditSchema(discounts.maxPct), [discounts.maxPct]);
+  const onInvalidSubmit = useInvalidSubmitToast();
   const quoteEditForm = useForm<QuoteEditFormValues>({ resolver: zodResolver(quoteEditSchema) });
   const { fields: editItemFields, append: appendEditItem, remove: removeEditItem, update: updateEditItem } = useFieldArray({
     control: quoteEditForm.control,
@@ -1858,7 +1860,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
       <Dialog open={isEditQuoteOpen} onOpenChange={setIsEditQuoteOpen}>
         <DialogContent maxWidth="4xl" confirmOnClose isDirty={quoteEditForm.formState.isDirty}>
           <Form {...quoteEditForm}>
-            <form onSubmit={quoteEditForm.handleSubmit(handleSubmitQuoteEdit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendEditItem({ service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' as any }); } } }}>
+            <form onSubmit={quoteEditForm.handleSubmit(handleSubmitQuoteEdit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendEditItem({ service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' as any }); } } }}>
               <DialogHeader>
                 <DialogTitle>{t('UserQuotes.dialogs.editQuote.title')}</DialogTitle>
                 <DialogDescription>{t('UserQuotes.dialogs.editQuote.description', { docNo: selectedQuote?.doc_no })}</DialogDescription>
@@ -2158,7 +2160,7 @@ export function UserQuotes({ userId, onQuoteSelect, mode = 'sales', onDataChange
             <DialogDescription>{t('UserQuotes.dialogs.itemDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...itemForm}>
-            <form onSubmit={itemForm.handleSubmit(handleSubmitItem)} onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') e.preventDefault(); }}>
+            <form onSubmit={itemForm.handleSubmit(handleSubmitItem, onInvalidSubmit)} onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') e.preventDefault(); }}>
               <div className="px-6 py-4 space-y-4">
                 <FormField control={itemForm.control} name="service_id" render={({ field }) => (
                   <FormItem>

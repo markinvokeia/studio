@@ -26,6 +26,7 @@ import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
@@ -172,6 +173,7 @@ export default function PatientGroupsPage() {
 
     const { data: doctors, error: doctorsError } = useDataLoader(getDoctors, [] as DoctorOption[]);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<PatientGroupFormValues>({
         resolver: zodResolver(patientGroupFormSchema(t)),
         defaultValues: { name: '', description: '', is_active: true, is_doctor: false, user_id: null },
@@ -394,7 +396,7 @@ export default function PatientGroupsPage() {
                 </TabsList>
                 <TabsContent value="info" className="mt-0 min-h-0 flex-1 flex-col data-[state=active]:flex">
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(save.run)} className="flex-1 flex flex-col min-h-0">
+                <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex-1 flex flex-col min-h-0">
                     <CardContent className="flex-1 overflow-auto p-4 space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
@@ -525,7 +527,7 @@ export default function PatientGroupsPage() {
                         <DialogDescription>{t('createDialog.description')}</DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">

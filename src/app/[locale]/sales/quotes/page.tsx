@@ -54,6 +54,7 @@ import { downloadCSV, downloadExcel, type ExportColumn } from '@/lib/export-util
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -98,8 +99,8 @@ const quoteFormSchema = (t: (key: string) => string, maxDiscountPct: number) => 
         'Draft', 'Sent', 'Accepted', 'Rejected', 'Pending', 'Confirmed']),
     payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid',
         'not_paid', 'not invoiced', 'not_invoiced']),
-    billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced',
-        'not_invoiced', 'partially_invoiced', 'Pending']),
+    // Lo gestiona el backend y no se muestra: un valor fuera de lista no puede bloquear el guardado.
+    billing_status: z.string(),
     exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
     created_at: z.date({ required_error: t('validation.dateRequired') }),
     notes: z.string().optional(),
@@ -761,6 +762,7 @@ export default function QuotesPage() {
     const discounts = useDiscountSettings();
     const quoteSchema = React.useMemo(() => quoteFormSchema(tVal, discounts.maxPct), [tVal, discounts.maxPct]);
     const quoteItemSchema = React.useMemo(() => quoteItemFormSchema(tVal, discounts.maxPct), [tVal, discounts.maxPct]);
+    const onInvalidSubmit = useInvalidSubmitToast();
     const quoteForm = useForm<QuoteFormValues>({ resolver: zodResolver(quoteSchema), mode: 'onBlur' });
     const quoteItemForm = useForm<QuoteItemFormValues>({ resolver: zodResolver(quoteItemSchema), mode: 'onBlur' });
     const { fields: quoteFormFields, append: appendQuoteItem, remove: removeQuoteItem, replace: replaceQuoteItems } = useFieldArray({
@@ -2051,7 +2053,7 @@ export default function QuotesPage() {
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...quoteForm}>
-                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddQuoteItem(); } }}>
+                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddQuoteItem(); } }}>
                             <DialogBody className="space-y-4 py-4 px-6">
                                 {quoteSubmissionError && (
                                     <Alert variant="destructive">
@@ -2485,7 +2487,7 @@ export default function QuotesPage() {
                         <DialogDescription>{t('itemDialog.description')}</DialogDescription>
                     </DialogHeader>
                     <Form {...quoteItemForm}>
-                        <form onSubmit={quoteItemForm.handleSubmit(onQuoteItemSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={quoteItemForm.handleSubmit(onQuoteItemSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
                             <DialogBody className="space-y-4 py-4 px-6">
                                 {quoteItemSubmissionError && (
                                     <Alert variant="destructive">

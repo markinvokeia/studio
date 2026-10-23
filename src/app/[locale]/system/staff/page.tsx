@@ -42,6 +42,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useLicenseStore } from '@/stores/license-store';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Role, User, UserRole, UserRoleAssignment } from '@/lib/types';
 import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
@@ -442,6 +443,7 @@ export default function StaffPage() {
   const [activeTab, setActiveTab] = React.useState('details');
 
   // Forms
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<StaffFormValues>({
     resolver: zodResolver(staffFormSchema(t)),
     defaultValues: {
@@ -995,7 +997,7 @@ export default function StaffPage() {
                       <TabsContent value="details" className="m-0">
                         <Form {...detailForm}>
                           <form
-                            onSubmit={detailForm.handleSubmit(onDetailSubmit)}
+                            onSubmit={detailForm.handleSubmit(onDetailSubmit, onInvalidSubmit)}
                             className="space-y-4"
                           >
                             {detailError && (
@@ -1191,7 +1193,7 @@ export default function StaffPage() {
           </DialogHeader>
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)}
               className="flex flex-col flex-1 overflow-hidden"
             >
               <DialogBody className="space-y-4 px-6 py-4">

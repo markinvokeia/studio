@@ -32,6 +32,7 @@ import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getErrorMessage } from '@/lib/error-utils';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
@@ -140,6 +141,7 @@ export default function PrescriptionTemplatesPage() {
 
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<TemplateFormValues>({
         resolver: zodResolver(templateFormSchema(t)),
     });
@@ -410,7 +412,7 @@ export default function PrescriptionTemplatesPage() {
                         <DialogTitle>{editingTemplate ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form id="template-form" onSubmit={form.handleSubmit(save.run)} className="space-y-4 py-4 px-6 max-h-[85vh] overflow-y-auto">
+                        <form id="template-form" onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="space-y-4 py-4 px-6 max-h-[85vh] overflow-y-auto">
                             {submissionError && (
                                 <Alert variant="destructive">
                                     <AlertTriangle className="h-4 w-4" />

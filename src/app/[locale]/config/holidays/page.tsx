@@ -20,6 +20,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { parseClinicExceptions } from '@/lib/clinic-exceptions';
@@ -126,6 +127,7 @@ export default function HolidaysPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingHoliday, setDeletingHoliday] = React.useState<ClinicException | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<ExceptionFormValues>({
         resolver: zodResolver(exceptionFormSchema(tValidation)),
         defaultValues: EMPTY_EXCEPTION_FORM,
@@ -369,7 +371,7 @@ export default function HolidaysPage() {
             <Separator />
             <CardContent className="flex-1 overflow-auto p-4">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(save.run)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -434,7 +436,7 @@ export default function HolidaysPage() {
                         <DialogTitle>{t('createDialog.title')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">

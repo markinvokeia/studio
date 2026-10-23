@@ -16,6 +16,7 @@ import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { PaymentMethod, User } from '@/lib/types';
 import { toLocalISOString } from '@/lib/utils';
@@ -74,6 +75,7 @@ export function PurchasePrepaidFormDialog({ open, onOpenChange, initialUser, onS
     const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
     const [pendingData, setPendingData] = React.useState<PrepaidFormValues | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<PrepaidFormValues>({
         resolver: zodResolver(prepaidFormSchema(tValidation)),
         defaultValues: {
@@ -171,7 +173,7 @@ export function PurchasePrepaidFormDialog({ open, onOpenChange, initialUser, onS
                         <DialogTitle>{t('prepaidDialog.title')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">

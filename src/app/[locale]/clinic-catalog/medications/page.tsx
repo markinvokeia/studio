@@ -15,6 +15,7 @@ import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { CLINIC_CATALOG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Medication } from '@/lib/types';
@@ -124,6 +125,7 @@ export default function MedicationsPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingMedication, setDeletingMedication] = React.useState<Medication | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<MedicationFormValues>({
         resolver: zodResolver(medicationFormSchema(t)),
         defaultValues: { nombre_generico: '', nombre_comercial: '' },
@@ -296,7 +298,7 @@ export default function MedicationsPage() {
             <Separator />
             <CardContent className="flex-1 overflow-auto p-4">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -374,7 +376,7 @@ export default function MedicationsPage() {
                         <DialogDescription>{t('createDialog.description')}</DialogDescription>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">

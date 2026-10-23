@@ -153,6 +153,7 @@ export function ClinicSessionDialog({
     const [doctorError, setDoctorError] = React.useState(false);
     const [shouldDischargePatient, setShouldDischargePatient] = React.useState(false);
     const [dischargeDate, setDischargeDate] = React.useState('');
+    const [dischargeDateError, setDischargeDateError] = React.useState(false);
 
     // Treatments state
     const [treatments, setTreatments] = React.useState<{ numero_diente: number | null; descripcion: string }[]>([]);
@@ -503,6 +504,7 @@ export function ClinicSessionDialog({
         }
 
         if (shouldDischargePatient && !dischargeDate) {
+            setDischargeDateError(true);
             toast({ title: t('discharge.dateRequired'), variant: 'destructive' });
             return;
         }
@@ -1386,6 +1388,7 @@ export function ClinicSessionDialog({
                                                         <Button
                                                             type="button"
                                                             variant="outline"
+                                                            aria-invalid={(dischargeDateError && !dischargeDate) || undefined}
                                                             className={cn(
                                                                 "w-full justify-start text-left font-normal h-10 border-input",
                                                                 !dischargeDate && "text-muted-foreground"

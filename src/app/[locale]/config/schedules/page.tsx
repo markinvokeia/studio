@@ -19,6 +19,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
@@ -123,6 +124,7 @@ export default function SchedulesPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingSchedule, setDeletingSchedule] = React.useState<ClinicSchedule | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<ScheduleFormValues>({
         resolver: zodResolver(scheduleFormSchema(tValidation)),
         defaultValues: EMPTY_SCHEDULE_FORM,
@@ -444,7 +446,7 @@ export default function SchedulesPage() {
             <Separator />
             <CardContent className="flex-1 overflow-auto p-4">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(save.run)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -515,7 +517,7 @@ export default function SchedulesPage() {
                         </DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">

@@ -20,6 +20,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
@@ -116,6 +117,7 @@ export default function SedesPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingSede, setDeletingSede] = React.useState<Sede | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<SedeFormValues>({
         resolver: zodResolver(sedeFormSchema(t)),
         defaultValues: { name: '', address: '', phone: '', email: '', is_active: true },
@@ -376,7 +378,7 @@ export default function SedesPage() {
             <Separator />
             <CardContent className="flex-1 overflow-auto p-4">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(save.run)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="space-y-4">
                         {sedeForm(!isEditing || save.isPending)}
                         {isEditing && (
                             <div className="flex gap-2 pt-2">
@@ -426,7 +428,7 @@ export default function SedesPage() {
                         <DialogTitle>{t('SedesPage.form.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col min-h-0">
+                        <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex flex-col min-h-0">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {sedeForm(save.isPending)}
                             </DialogBody>

@@ -31,6 +31,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AvailabilityRule } from '@/lib/types';
 import { formatDisplayDate } from '@/lib/utils';
@@ -73,6 +74,7 @@ export function DoctorAvailability({ userId }: { userId: string }) {
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
     const tValidation = useTranslations('DoctorAvailabilityPage.validation');
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<AvailabilityRuleFormValues>({
         resolver: zodResolver(availabilityRuleFormSchema(tValidation)),
         defaultValues: emptyAvailabilityRuleForm(userId),
@@ -219,7 +221,7 @@ export function DoctorAvailability({ userId }: { userId: string }) {
                         <DialogTitle>{editingRule ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
                             <DialogBody className="space-y-4 py-4 px-6">
                                 {submissionError && (
                                     <Alert variant="destructive">

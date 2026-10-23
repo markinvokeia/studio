@@ -23,6 +23,7 @@ import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { getErrorMessage, handleApiErrorEnhanced } from '@/lib/error-utils';
 import { SEQUENCE_VARIABLES, previewPattern, validatePattern } from '@/lib/sequence-utils';
 import { Sequence } from '@/lib/types';
@@ -193,6 +194,7 @@ export default function SequencesPage() {
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [selectedSequence, setSelectedSequence] = React.useState<Sequence | null>(null);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<SequenceFormValues>({
     resolver: zodResolver(sequenceFormSchema(tValidation)),
     defaultValues: {
@@ -602,7 +604,7 @@ export default function SequencesPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 py-4 px-6">
                 {submissionError && (
                   <Alert variant="destructive">

@@ -25,6 +25,7 @@ import { cn, formatDate, sortQuoteItems, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { calculateQuoteFinancialSummary, fetchQuoteInvoicesForFinancials } from '@/services/quote-financials';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { addDays, parseISO } from 'date-fns';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
@@ -188,6 +189,7 @@ export function QuoteBillingDialog({
   const { toast } = useToast();
 
   const schema = React.useMemo(() => getSchema(t), [t]);
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<QuoteBillingFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -477,7 +479,7 @@ export function QuoteBillingDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent maxWidth="4xl" confirmOnClose isDirty={form.formState.isDirty}>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col flex-1 overflow-hidden">
+          <form onSubmit={form.handleSubmit(handleSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
             <DialogHeader>
               <div className="flex items-start gap-3">
                 <div className="header-icon-circle mt-0.5">

@@ -40,6 +40,7 @@ import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getErrorMessage } from '@/lib/error-utils';
 import { Calendar, Sede, User, UserRole } from '@/lib/types';
@@ -314,6 +315,7 @@ export default function DoctorsPage() {
     }).catch(() => setSedes([]));
   }, []);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<DoctorFormValues>({
     resolver: zodResolver(doctorFormSchema(t)),
     defaultValues: {
@@ -689,7 +691,7 @@ export default function DoctorsPage() {
                 <div className="flex-1 overflow-auto px-4 py-4">
                   {activeTab === 'details' && (
                     <Form {...detailForm}>
-                      <form onSubmit={detailForm.handleSubmit(saveDetail.run)} className="space-y-4">
+                      <form onSubmit={detailForm.handleSubmit(saveDetail.run, onInvalidSubmit)} className="space-y-4">
                         {detailError && (
                           <Alert variant="destructive">
                             <AlertTriangle className="h-4 w-4" />
@@ -827,7 +829,7 @@ export default function DoctorsPage() {
             <DialogDescription>{t('DoctorsPage.createDialog.createDescription')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(create.run)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit(create.run, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 px-6 py-4">
                 {submissionError && (
                   <Alert variant="destructive">

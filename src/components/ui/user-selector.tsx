@@ -22,6 +22,8 @@ interface UserSelectorProps {
     triggerText?: string;
     className?: string;
     disabled?: boolean;
+    /** Marca el campo como inválido (borde rojo). `FormControl` lo pasa solo. */
+    'aria-invalid'?: React.AriaAttributes['aria-invalid'];
     openCreateToken?: number;
     /** When provided, "create new" delegates to this callback (e.g. to open a
      *  full patient form dialog) instead of the built-in inline mini-form.
@@ -39,6 +41,7 @@ export function UserSelector({
     triggerText = 'Seleccionar',
     className,
     disabled = false,
+    'aria-invalid': ariaInvalid,
     openCreateToken,
     onRequestCreate,
 }: UserSelectorProps) {
@@ -243,6 +246,7 @@ export function UserSelector({
                 <Button
                     variant="outline"
                     role="combobox"
+                    aria-invalid={ariaInvalid}
                     className={cn('w-full justify-between', !value && 'text-muted-foreground', className)}
                     disabled={disabled}
                 >

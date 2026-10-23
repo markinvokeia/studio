@@ -36,6 +36,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useLicenseStore } from '@/stores/license-store';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Role, User, UserRole, UserRoleAssignment } from '@/lib/types';
 import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
@@ -292,6 +293,7 @@ export default function SystemUsersPage() {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [showOnlyActive, setShowOnlyActive] = React.useState(true);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
     defaultValues: {
@@ -701,7 +703,7 @@ export default function SystemUsersPage() {
                     <div className="flex-1 overflow-auto mt-4">
                       <TabsContent value="details" className="m-0">
                         <Form {...detailForm}>
-                          <form onSubmit={detailForm.handleSubmit(onDetailSubmit)} className="space-y-4">
+                          <form onSubmit={detailForm.handleSubmit(onDetailSubmit, onInvalidSubmit)} className="space-y-4">
                             {detailError && (
                               <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -796,7 +798,7 @@ export default function SystemUsersPage() {
             <DialogDescription>{t('SystemUsersPage.createDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 px-6 py-4">
                 {submissionError && (
                   <Alert variant="destructive">

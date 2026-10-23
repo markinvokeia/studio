@@ -34,6 +34,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { DiscountControl, DocumentTotals } from '@/components/ui/discount-control';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
 import {
@@ -655,6 +656,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
     }
   }, [userSearchOpen, isSales, users.length]);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<CreateInvoiceFormValues>({
     resolver: zodResolver(createInvoiceFormSchema),
     defaultValues: {
@@ -1078,7 +1080,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent maxWidth="4xl" confirmOnClose isDirty={form.formState.isDirty}>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 w-full overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddItem(); } }}>
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 w-full overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddItem(); } }}>
             <DialogHeader>
               <div className="flex items-start gap-3">
                 <div className="header-icon-circle mt-0.5">

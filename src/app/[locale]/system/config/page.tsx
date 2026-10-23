@@ -21,6 +21,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
@@ -94,6 +95,7 @@ export default function SystemConfigPage() {
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
     const [deletingConfig, setDeletingConfig] = React.useState<SystemConfiguration | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<ConfigFormValues>({
         resolver: zodResolver(configFormSchema(t)),
     });
@@ -297,7 +299,7 @@ export default function SystemConfigPage() {
             <Separator />
             <CardContent className="flex-1 overflow-auto p-4">
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(save.run)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="space-y-4">
                         {submissionError && (
                             <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />

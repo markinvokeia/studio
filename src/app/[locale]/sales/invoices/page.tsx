@@ -29,6 +29,7 @@ import { GridExportDialog, type GridExportFormat } from '@/components/ui/grid-ex
 import { downloadCSV, downloadExcel, type ExportColumn } from '@/lib/export-utils';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getCreditNotesForInvoice } from '@/lib/credit-notes';
@@ -991,6 +992,7 @@ const ItemFormDialog = ({
 
     const discounts = useDiscountSettings();
     const itemSchema = React.useMemo(() => getInvoiceItemSchema(t, discounts.maxPct), [t, discounts.maxPct]);
+    const onInvalidSubmit = useInvalidSubmitToast();
     const itemForm = useForm<InvoiceItemFormValues>({
         resolver: zodResolver(itemSchema),
         defaultValues: {
@@ -1052,7 +1054,7 @@ const ItemFormDialog = ({
                     </div>
                 </DialogHeader>
                 <Form {...itemForm}>
-                    <form onSubmit={itemForm.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') e.preventDefault(); }}>
+                    <form onSubmit={itemForm.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') e.preventDefault(); }}>
                         <DialogBody className="space-y-4 px-6 py-4">
                             <FormField
                                 control={itemForm.control}

@@ -14,6 +14,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { Credit, Invoice, PaymentMethod, User } from '@/lib/types';
 import { toLocalISOString } from '@/lib/utils';
@@ -112,6 +113,7 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
   const [pendingData, setPendingData] = React.useState<SmartPaymentFormValues | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<SmartPaymentFormValues>({
     resolver: zodResolver(smartPaymentFormSchema(tValidation)),
     defaultValues: {
@@ -333,7 +335,7 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
             <DialogTitle>{t('smartPaymentDialog.title')}</DialogTitle>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 px-6 py-4">
                 {submissionError && (
                   <Alert variant="destructive">

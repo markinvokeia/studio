@@ -26,6 +26,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { getErrorMessage } from '@/lib/error-utils';
@@ -156,6 +157,7 @@ export default function ServicesPage() {
   const { toast } = useToast();
   const clinicInfo = useClinicInfo();
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema(tValidation)),
     defaultValues: { service_type: 'single', treatment_steps: [] },
@@ -308,7 +310,7 @@ export default function ServicesPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 px-6 py-4">
                 {submissionError && (
                   <Alert variant="destructive">

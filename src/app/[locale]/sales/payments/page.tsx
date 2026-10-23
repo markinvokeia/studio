@@ -29,6 +29,7 @@ import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -208,6 +209,7 @@ export default function PaymentsPage() {
     );
     const prepaidAvailable = Math.max(0, prepaidTotal - prepaidUsed);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<PrepaidFormValues>({
         resolver: zodResolver(prepaidFormSchema(tValidation)),
         defaultValues: {
@@ -616,7 +618,7 @@ export default function PaymentsPage() {
                         <DialogTitle>{t('prepaidDialog.title')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onPrepaidSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={form.handleSubmit(onPrepaidSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">

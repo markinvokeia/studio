@@ -1692,8 +1692,8 @@ export default function AppointmentsPage() {
 
     const runSaveInlineDraft = React.useCallback(async () => {
         // Las citas importadas de Google llegan sin paciente y aun así se pueden
-        // guardar; el resto sigue necesitando uno (ver la validación más abajo).
-        if (!inlineDraft || (!inlineDraft.patient && !inlineDraft.editing?.imported_from_google)) return;
+        // guardar; el resto sigue necesitando uno (la validación de más abajo avisa).
+        if (!inlineDraft) return;
         try {
             const start = inlineDraft.date;
             const end = addMinutes(start, inlineDraft.durationMin || 30);

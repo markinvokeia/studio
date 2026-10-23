@@ -1,4 +1,8 @@
 {
+  "FormValidation": {
+    "title": "Missing required information",
+    "description": "Fill in the fields marked in red."
+  },
   "FinanceSortOrder": {
     "label": "Order",
     "newestFirst": "Most recent at the top",

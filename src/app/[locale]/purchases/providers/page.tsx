@@ -52,6 +52,7 @@ import { ProviderGroupsField, saveProviderGroups } from '@/components/providers/
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { User, UserFinancial } from '@/lib/types';
@@ -417,6 +418,7 @@ function ProvidersPageContent() {
   const [refreshPaymentsTrigger, setRefreshPaymentsTrigger] = React.useState(0);
   const [refreshOrdersTrigger, setRefreshOrdersTrigger] = React.useState(0);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<ProviderFormValues>({
     resolver: zodResolver(providerFormSchema(t)),
     defaultValues: {
@@ -992,7 +994,7 @@ function ProvidersPageContent() {
                       <Card className="h-full flex flex-col shadow-none border-0">
                         <CardContent className="flex-1 overflow-auto p-4 bg-card">
                           <Form {...detailForm}>
-                            <form onSubmit={detailForm.handleSubmit(onDetailSubmit)} className="space-y-4">
+                            <form onSubmit={detailForm.handleSubmit(onDetailSubmit, onInvalidSubmit)} className="space-y-4">
                               {detailError && (
                                 <Alert variant="destructive">
                                   <AlertTriangle className="h-4 w-4" />
@@ -1152,7 +1154,7 @@ function ProvidersPageContent() {
             <DialogDescription>{t('ProvidersPage.createDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 px-6 py-4">
                 {submissionError && (
                   <Alert variant="destructive">

@@ -28,6 +28,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AlertCategory, AlertRule, AlertSourceColumn, AlertSourceMeta } from '@/lib/types';
@@ -47,13 +48,15 @@ import { RowSelectionState } from '@tanstack/react-table';
 
 const ruleFormSchema = (t: (key: string) => string) => z.object({
     id: z.union([z.string(), z.number()]).optional(),
-    category_id: z.string().min(1, t('categoryRequired')),
-    code: z.string().min(1, t('codeRequired')),
-    name: z.string().min(1, t('nameRequired')),
+    // `required_error` cubre el campo `undefined` (el reset de alta no lo trae):
+    // sin él zod responde el "Required" en inglés.
+    category_id: z.string({ required_error: t('categoryRequired') }).min(1, t('categoryRequired')),
+    code: z.string({ required_error: t('codeRequired') }).min(1, t('codeRequired')),
+    name: z.string({ required_error: t('nameRequired') }).min(1, t('nameRequired')),
     description: z.string().optional(),
-    priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
-    source_table: z.string().min(1, t('sourceTableRequired')),
-    table_id_field: z.string().min(1, t('tableIdFieldRequired')),
+    priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'], { errorMap: () => ({ message: t('priorityRequired') }) }),
+    source_table: z.string({ required_error: t('sourceTableRequired') }).min(1, t('sourceTableRequired')),
+    table_id_field: z.string({ required_error: t('tableIdFieldRequired') }).min(1, t('tableIdFieldRequired')),
     user_id_field: z.string().optional(),
     event_field: z.string().optional(),
     days_before: z.coerce.number().int().default(0),
@@ -182,6 +185,7 @@ export default function AlertRulesPage() {
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedRule, setSelectedRule] = React.useState<AlertRule | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<RuleFormValues>({
         resolver: zodResolver(ruleFormSchema(tValidation)),
     });
@@ -737,7 +741,7 @@ export default function AlertRulesPage() {
                         <DialogTitle>{editingRule ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form id="alert-rule-form" onSubmit={form.handleSubmit(save.run)} className="flex-1 overflow-y-auto space-y-5 px-4 py-4 sm:px-6">
+                        <form id="alert-rule-form" onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex-1 overflow-y-auto space-y-5 px-4 py-4 sm:px-6">
                             {/* Native fieldset disables every control while the request is in flight */}
                             <fieldset disabled={save.isPending} className="min-w-0 space-y-5">
                             {submissionError && (

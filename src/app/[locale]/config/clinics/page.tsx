@@ -21,6 +21,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getErrorMessage } from '@/lib/error-utils';
 import { Clinic, Sede } from '@/lib/types';
@@ -165,6 +166,7 @@ export default function ClinicsPage() {
     const [isDeleteSedeOpen, setIsDeleteSedeOpen] = React.useState(false);
     const [sedeError, setSedeError] = React.useState<string | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const sedeForm = useForm<SedeFormValues>({
         resolver: zodResolver(sedeFormSchema(t)),
         defaultValues: { name: '', address: '', phone: '', email: '', is_active: true },
@@ -682,7 +684,7 @@ export default function ClinicsPage() {
                         <DialogTitle>{tc('sedeCreateTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...sedeForm}>
-                        <form onSubmit={sedeForm.handleSubmit(saveSede.run)} className="flex flex-col min-h-0">
+                        <form onSubmit={sedeForm.handleSubmit(saveSede.run, onInvalidSubmit)} className="flex flex-col min-h-0">
                             <DialogBody className="px-6 py-4">
                                 {sedeFormFields(saveSede.isPending)}
                             </DialogBody>
@@ -709,7 +711,7 @@ export default function ClinicsPage() {
                         <DialogTitle>{tc('sedeEditTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...sedeForm}>
-                        <form onSubmit={sedeForm.handleSubmit(saveSede.run)} className="flex flex-col min-h-0">
+                        <form onSubmit={sedeForm.handleSubmit(saveSede.run, onInvalidSubmit)} className="flex flex-col min-h-0">
                             <DialogBody className="px-6 py-4">
                                 {sedeFormFields(saveSede.isPending)}
                             </DialogBody>

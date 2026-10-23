@@ -21,6 +21,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { getErrorMessage } from '@/lib/error-utils';
 import { getLicenseKey, getMasterSec } from '@/lib/runtime-config';
 import type { AiAccessLevel, CreateLicenseInput, LicensePayload, SubscriptionType } from '@/lib/types';
@@ -188,6 +189,7 @@ export default function LicensesPage() {
     return () => controller.abort();
   }, [isUnlocked, licenseSecret, loadLicense, fetchAttempt, tCommon]);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<LicenseFormValues>({
     resolver: zodResolver(licenseFormSchema),
     defaultValues: {
@@ -391,7 +393,7 @@ export default function LicensesPage() {
               </CardHeader>
               <CardContent>
                 <Form {...form}>
-                  <form onSubmit={form.handleSubmit((values) => setPendingInput(values))} className="space-y-6">
+                  <form onSubmit={form.handleSubmit((values) => setPendingInput(values), onInvalidSubmit)} className="space-y-6">
                     {/* Native fieldset disables every control while the request is in flight */}
                     <fieldset disabled={generate.isPending} className="min-w-0 space-y-6">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

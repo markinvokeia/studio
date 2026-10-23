@@ -40,6 +40,7 @@ import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
 import { AvailabilityRule, User } from '@/lib/types';
@@ -98,6 +99,7 @@ export default function DoctorAvailabilityPage() {
     const [selectedRule, setSelectedRule] = React.useState<AvailabilityRule | null>(null);
 
     const tValidation = useTranslations('DoctorAvailabilityPage.validation');
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<AvailabilityRuleFormValues>({
         resolver: zodResolver(availabilityRuleFormSchema(tValidation)),
         defaultValues: emptyAvailabilityRuleForm(),
@@ -370,7 +372,7 @@ export default function DoctorAvailabilityPage() {
                         <DialogTitle>{editingRule ? t('dialog.editTitle') : t('dialog.createTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(save.run)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
                             <DialogBody className="space-y-4 py-4 px-6">
                                 {/* Native fieldset disables every control while the request is in flight */}
                                 <fieldset disabled={save.isPending} className="min-w-0 space-y-4">

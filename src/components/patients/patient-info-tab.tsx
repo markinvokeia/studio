@@ -25,6 +25,7 @@ import { PatientGroupsField, savePatientGroups } from '@/components/patients/pat
 import { useReadOnly } from '@/components/patient-portal/read-only-context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { cn } from '@/lib/utils';
 import { IDENTITY_DOCUMENT_TYPES } from '@/lib/identity-document';
@@ -298,6 +299,7 @@ export function PatientInfoTab({
   const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
 
   const identityDocumentRequired = useClinicPreferencesStore((s) => s.preferences.identity_document_required);
+  const onInvalidSubmit = useInvalidSubmitToast();
   const infoForm = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t, { identityDocumentRequired })),
     defaultValues: {
@@ -469,7 +471,7 @@ export function PatientInfoTab({
           save footer sits right below them — hugging the form when it's short,
           pinned to the bottom edge when the form overflows. No content shows
           through the footer. */}
-      <form onSubmit={infoForm.handleSubmit((data) => handleSave(data))} className="flex max-h-full min-h-0 flex-col">
+      <form onSubmit={infoForm.handleSubmit((data) => handleSave(data), onInvalidSubmit)} className="flex max-h-full min-h-0 flex-col">
         {/* El scroll va en este div y no en el `fieldset`: Chrome no hace scrollable
             la caja de un fieldset —renderiza su contenido en una caja anónima—, así
             que con `overflow-y-auto` sobre el fieldset la rueda no hacía nada y su

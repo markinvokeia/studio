@@ -30,6 +30,7 @@ import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { DiscountControl, DocumentTotals } from '@/components/ui/discount-control';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import {
   buildDiscountedDocument,
   computeDiscountAmount,
@@ -649,6 +650,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
   // ── Edit invoice form ─────────────────────────────────────────────────────────
   const discounts = useDiscountSettings();
   const invoiceEditSchema = React.useMemo(() => buildInvoiceEditSchema(discounts.maxPct), [discounts.maxPct]);
+  const onInvalidSubmit = useInvalidSubmitToast();
   const invoiceEditForm = useForm<InvoiceEditFormValues>({ resolver: zodResolver(invoiceEditSchema) });
   const { fields: editInvoiceItemFields, append: appendEditInvoiceItem, remove: removeEditInvoiceItem } = useFieldArray({
     control: invoiceEditForm.control,
@@ -1442,7 +1444,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
       <Dialog open={isEditInvoiceOpen} onOpenChange={setIsEditInvoiceOpen}>
         <DialogContent maxWidth="4xl" confirmOnClose isDirty={invoiceEditForm.formState.isDirty}>
           <Form {...invoiceEditForm}>
-            <form onSubmit={invoiceEditForm.handleSubmit(handleSubmitInvoiceEdit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendEditInvoiceItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); } } }}>
+            <form onSubmit={invoiceEditForm.handleSubmit(handleSubmitInvoiceEdit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendEditInvoiceItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); } } }}>
               <DialogHeader>
                 <DialogTitle>Editar factura</DialogTitle>
                 <DialogDescription>Modifica los datos de la factura {selectedInvoice?.doc_no}.</DialogDescription>
@@ -1713,7 +1715,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
             <DialogDescription>Completa los datos del ítem de la factura.</DialogDescription>
           </DialogHeader>
           <Form {...itemForm}>
-            <form onSubmit={itemForm.handleSubmit(handleSubmitItem)}>
+            <form onSubmit={itemForm.handleSubmit(handleSubmitItem, onInvalidSubmit)}>
               <div className="px-6 py-4 space-y-4">
                 <FormField control={itemForm.control} name="service_id" render={({ field }) => (
                   <FormItem>
@@ -1808,7 +1810,7 @@ export function UserInvoices({ userId, mode = 'sales', onDataChange, refreshTrig
       <Dialog open={isCreditNoteOpen} onOpenChange={setIsCreditNoteOpen}>
         <DialogContent maxWidth="4xl" confirmOnClose isDirty={creditNoteForm.formState.isDirty}>
           <Form {...creditNoteForm}>
-            <form onSubmit={creditNoteForm.handleSubmit(handleSubmitCreditNote)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendCreditNoteItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); } } }}>
+            <form onSubmit={creditNoteForm.handleSubmit(handleSubmitCreditNote, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) { loadServices(); appendCreditNoteItem({ service_id: '', quantity: 1, unit_price: 0, total: 0 }); } } }}>
               <DialogHeader>
                 <div className="flex items-start gap-3">
                   <div className="header-icon-circle mt-0.5">

@@ -37,6 +37,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { Credit, Invoice, PaymentMethod } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -127,6 +128,7 @@ export function InvoicePaymentDialog({
   const [isNoSessionAlertOpen, setIsNoSessionAlertOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentFormSchema(t)),
     defaultValues: { status: 'completed', notes: '' },
@@ -407,7 +409,7 @@ export function InvoicePaymentDialog({
         <DialogContent maxWidth="2xl" confirmOnClose isDirty={form.formState.isDirty}>
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit(handleSubmit)}
+              onSubmit={form.handleSubmit(handleSubmit, onInvalidSubmit)}
               className="flex flex-col flex-1 w-full overflow-hidden"
             >
               <DialogHeader>

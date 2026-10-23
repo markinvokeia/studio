@@ -69,7 +69,7 @@ export function SessionForm({
   useEffect(() => {
     if (!defaultDate && !date) setDate(new Date().toISOString().split('T')[0]);
   }, [defaultDate]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [description, setDescription] = useState(defaultDescription ?? '');
+  const [description] = useState(defaultDescription ?? '');
   const [doctorId, setDoctorId] = useState(lockDoctorId ?? '');
   const [internalNotes, setInternalNotes] = useState('');
   const notes = controlledNotes !== undefined ? controlledNotes : internalNotes;
@@ -77,6 +77,7 @@ export function SessionForm({
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [invalidField, setInvalidField] = useState<'doctor' | 'dischargeDate' | null>(null);
   const [shouldDischarge, setShouldDischarge] = useState(false);
   const [dischargeDate, setDischargeDate] = useState('');
   const [selectedDischargePreset, setSelectedDischargePreset] = useState<number | null>(null);
@@ -96,20 +97,30 @@ export function SessionForm({
     setFiles((prev) => prev.filter((_, i) => i !== idx));
   }
 
+  // El título va oculto: el usuario no puede completarlo, así que nunca bloquea el
+  // guardado; si llega vacío se genera el mismo título por defecto que usa el visor.
+  const resolveDescription = () =>
+    description.trim() || defaultDescription?.trim() || t('session.defaultTitle', { date: format(new Date(), 'dd/MM/yyyy HH:mm') });
+
   const save = useAsyncAction(
-    () => onSave({ date, description, notes, files, doctorId, shouldDischarge, dischargeDate, nextSessionPlan, nextSessionDate }),
+    () => onSave({ date, description: resolveDescription(), notes, files, doctorId, shouldDischarge, dischargeDate, nextSessionPlan, nextSessionDate }),
     { onError: () => setError(t('session.saveError')), showErrorToast: false },
   );
   const isSaving = save.isPending;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!description.trim()) { setError(t('session.descriptionRequired')); return; }
-    if (doctors.length > 0 && !doctorId) { setError(t('session.doctorRequired')); return; }
+    if (doctors.length > 0 && !doctorId) {
+      setInvalidField('doctor');
+      setError(t('session.doctorRequired'));
+      return;
+    }
     if (shouldDischarge && !dischargeDate) {
+      setInvalidField('dischargeDate');
       setError(t('session.discharge.dateRequired'));
       return;
     }
+    setInvalidField(null);
     setError(null);
     await save.run();
   }
@@ -164,8 +175,8 @@ export function SessionForm({
               {t('session.doctor')}
               <span className="text-destructive ml-0.5">*</span>
             </Label>
-            <Select value={doctorId} onValueChange={setDoctorId}>
-              <SelectTrigger className="h-9 rounded-lg text-xs">
+            <Select value={doctorId} onValueChange={(v) => { setDoctorId(v); if (invalidField === 'doctor') { setInvalidField(null); setError(null); } }}>
+              <SelectTrigger aria-invalid={invalidField === 'doctor' || undefined} className="h-9 rounded-lg text-xs">
                 <SelectValue placeholder={t('session.doctorPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
@@ -327,6 +338,7 @@ export function SessionForm({
                   <Button
                     type="button"
                     variant="outline"
+                    aria-invalid={(invalidField === 'dischargeDate' && !dischargeDate) || undefined}
                     className={cn('w-full justify-start text-left font-normal h-10 border-input', !dischargeDate && 'text-muted-foreground')}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />

@@ -36,6 +36,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { normalizeApiResponse } from '@/lib/api-utils';
@@ -59,23 +60,25 @@ import { createDefaultPagination } from '@/lib/pagination';
 
 const transactionFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
-    category_id: z.string().min(1, t('validation.categoryRequired')),
-    transaction_date: z.string().min(1, t('validation.dateRequired')),
+    // `required_error` cubre el campo `undefined` (el reset de alta no trae el
+    // método de pago): sin él zod responde el "Required" en inglés.
+    category_id: z.string({ required_error: t('validation.categoryRequired') }).min(1, t('validation.categoryRequired')),
+    transaction_date: z.string({ required_error: t('validation.dateRequired') }).min(1, t('validation.dateRequired')),
     amount: z.coerce.number().positive(t('validation.amountPositive')),
-    description: z.string().min(1, t('validation.descriptionRequired')),
+    description: z.string({ required_error: t('validation.descriptionRequired') }).min(1, t('validation.descriptionRequired')),
     beneficiary_name: z.string().optional(),
     currency: currencySchema,
     exchange_rate: z.coerce.number().optional().default(1),
     external_reference: z.string().optional(),
     tags: z.string().optional(),
-    payment_method_id: z.string().min(1, t('validation.paymentMethodRequired')),
+    payment_method_id: z.string({ required_error: t('validation.paymentMethodRequired') }).min(1, t('validation.paymentMethodRequired')),
 });
 
 type TransactionFormValues = z.infer<ReturnType<typeof transactionFormSchema>>;
 
 const completeTransactionSchema = (t: (key: string) => string) => z.object({
-    cash_session_id: z.string().min(1, t('validation.sessionRequired')),
-    payment_method_id: z.string().min(1, t('validation.paymentMethodRequired')),
+    cash_session_id: z.string({ required_error: t('validation.sessionRequired') }).min(1, t('validation.sessionRequired')),
+    payment_method_id: z.string({ required_error: t('validation.paymentMethodRequired') }).min(1, t('validation.paymentMethodRequired')),
 });
 
 type CompleteTransactionFormValues = z.infer<ReturnType<typeof completeTransactionSchema>>;
@@ -269,6 +272,7 @@ export default function MiscellaneousTransactionsPage() {
     const [isCategoryOpen, setIsCategoryOpen] = React.useState(false);
 
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<TransactionFormValues>({
         resolver: zodResolver(transactionFormSchema(t)),
     });
@@ -601,7 +605,7 @@ export default function MiscellaneousTransactionsPage() {
                         </div>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(saveAction.run)} className="space-y-4 py-4 px-6">
+                        <form onSubmit={form.handleSubmit(saveAction.run, onInvalidSubmit)} className="space-y-4 py-4 px-6">
                             {submissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>{t('toasts.errorTitle')}</AlertTitle><AlertDescription>{submissionError}</AlertDescription></Alert>}
                             {/* Native fieldset disables every control while the request is in flight */}
                             <fieldset disabled={saveAction.isPending} className="min-w-0 space-y-4">

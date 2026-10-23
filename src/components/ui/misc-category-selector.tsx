@@ -49,6 +49,8 @@ interface MiscCategorySelectorProps {
   noResultsText?: string;
   className?: string;
   disabled?: boolean;
+  /** Marca el campo como inválido (borde rojo). `FormControl` lo pasa solo. */
+  'aria-invalid'?: React.AriaAttributes['aria-invalid'];
 }
 
 export function MiscCategorySelector({
@@ -62,6 +64,7 @@ export function MiscCategorySelector({
   noResultsText,
   className,
   disabled = false,
+  'aria-invalid': ariaInvalid,
 }: MiscCategorySelectorProps) {
   const t = useTranslations('ProductCategoriesPage');
   const tValidation = useTranslations('ProductCategoriesPage.validation');
@@ -154,6 +157,7 @@ export function MiscCategorySelector({
             type="button"
             variant="outline"
             role="combobox"
+            aria-invalid={ariaInvalid}
             className={cn('w-full justify-between font-normal', !selectedCategory && 'text-muted-foreground', className)}
             disabled={disabled}
           >

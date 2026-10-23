@@ -324,6 +324,14 @@ export function InlineAppointmentDraft({
   // Start time is read-only until clicked; while editing we hide "→ end" so the
   // input fits on a single line.
   const [editingStart, setEditingStart] = React.useState(false);
+  // Guardar sin paciente no se deshabilita: el host avisa con un toast y el
+  // selector se pinta en rojo, en vez de un botón gris que no explica nada.
+  const [saveAttempted, setSaveAttempted] = React.useState(false);
+  const patientMissing = !patient?.id && !importedFromGoogle;
+  const handleSaveClick = () => {
+    setSaveAttempted(true);
+    onSave();
+  };
   const hasDebt = (patientDebt?.length ?? 0) > 0;
   const startMinutes = date.getHours() * 60 + date.getMinutes();
   const startTimeValue = format(date, 'HH:mm');
@@ -430,6 +438,7 @@ export function InlineAppointmentDraft({
       onRequestCreate={onRequestCreatePatient}
       triggerText={t('selectPatient')}
       placeholder={t('searchPatient')}
+      aria-invalid={(saveAttempted && patientMissing) || undefined}
       className="h-7 px-2 text-xs font-normal"
     />
   );
@@ -715,7 +724,7 @@ export function InlineAppointmentDraft({
         <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={onCancel} disabled={isSaving}>
           {t('cancel')}
         </Button>
-        <Button size="sm" className="h-7 gap-1 px-2.5 text-xs" onClick={onSave} disabled={isSaving || (!patient?.id && !importedFromGoogle)}>
+        <Button size="sm" className="h-7 gap-1 px-2.5 text-xs" onClick={handleSaveClick} disabled={isSaving}>
           {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
           {saveLabel ?? t('save')}
         </Button>

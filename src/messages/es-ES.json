@@ -1,4 +1,8 @@
 {
+  "FormValidation": {
+    "title": "Faltan datos obligatorios",
+    "description": "Completa los campos marcados en rojo."
+  },
   "FinanceSortOrder": {
     "label": "Orden",
     "newestFirst": "Más recientes arriba",

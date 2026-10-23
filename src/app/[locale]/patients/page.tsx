@@ -85,6 +85,7 @@ import { BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HIST
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useFinanceViewPreference } from '@/hooks/use-finance-view-preference';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
@@ -731,6 +732,7 @@ export default function UsersPage() {
     }
   }, []);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t, { identityDocumentRequired })),
     defaultValues: {
@@ -1598,7 +1600,7 @@ export default function UsersPage() {
             <DialogDescription>{editingUser ? t('UsersPage.createDialog.editDescription') : t('UsersPage.createDialog.createDescription')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => onSubmit(data))} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit((data) => onSubmit(data), onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 px-6 py-4">
                 {submissionError && (
                   <Alert variant="destructive">

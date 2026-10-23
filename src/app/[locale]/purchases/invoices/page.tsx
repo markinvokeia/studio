@@ -27,6 +27,7 @@ import { downloadCSV, downloadExcel, type ExportColumn } from '@/lib/export-util
 import { format } from 'date-fns';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -1018,6 +1019,7 @@ const ItemFormDialog = ({
     itemForm: any;
     t: any;
 }) => {
+    const onInvalidSubmit = useInvalidSubmitToast();
     const title = editingItem ? t('InvoiceItemsTable.editTitle') : t('InvoiceItemsTable.createTitle');
 
     React.useEffect(() => {
@@ -1064,7 +1066,7 @@ const ItemFormDialog = ({
                     </div>
                 </DialogHeader>
                 <Form {...itemForm}>
-                    <form onSubmit={itemForm.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') e.preventDefault(); }}>
+                    <form onSubmit={itemForm.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') e.preventDefault(); }}>
                         <DialogBody className="space-y-4 px-6 py-4">
                             <FormField
                                 control={itemForm.control}

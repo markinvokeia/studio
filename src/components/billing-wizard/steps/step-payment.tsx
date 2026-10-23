@@ -34,6 +34,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import type { Credit, Invoice, PaymentMethod } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -271,6 +272,7 @@ export function StepPayment({
 
   const pendingAmountAfterCredits = Math.max(0, pendingAmount - creditsTotalConverted);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -1027,7 +1029,7 @@ export function StepPayment({
       )}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmitPayments)} id="billing-payment-form" className="space-y-4">
+        <form onSubmit={form.handleSubmit(handleSubmitPayments, onInvalidSubmit)} id="billing-payment-form" className="space-y-4">
           {error && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />

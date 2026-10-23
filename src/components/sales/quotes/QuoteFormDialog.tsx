@@ -34,6 +34,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import {
     buildDiscountedDocument,
     computeDiscountAmount,
@@ -175,6 +176,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
     const discounts = useDiscountSettings();
 
     const schema = React.useMemo(() => quoteFormSchema(t, discounts.maxPct), [t, discounts.maxPct]);
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<QuoteFormValues>({
         resolver: zodResolver(schema),
         mode: 'onBlur',
@@ -438,7 +440,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                     <DialogDescription>{t('quoteDialog.description')}</DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddItem(); } }}>
+                    <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddItem(); } }}>
                         <DialogBody className="space-y-4 py-4 px-6">
                             {submissionError && (
                                 <Alert variant="destructive">
