@@ -659,7 +659,10 @@ const Calendar: React.FC<CalendarProps> = ({
           clicked day's column). */}
       {/* Con preview en vivo, la misma card flota al lado de la cita en la grilla. */}
       {showAnchoredDraft && (
-        <CalendarAnchoredInlineDraft anchorRoot={calendarBodyRef}>{renderInlineDraft?.()}</CalendarAnchoredInlineDraft>
+        <CalendarAnchoredInlineDraft
+          anchorRoot={calendarBodyRef}
+          side={effectiveView === 'day' ? 'right' : 'left'}
+        >{renderInlineDraft?.()}</CalendarAnchoredInlineDraft>
       )}
       {inlineDraft && renderInlineDraft && !showAnchoredDraft && (
         <CalendarInlineDraftOverlay>{renderInlineDraft()}</CalendarInlineDraftOverlay>

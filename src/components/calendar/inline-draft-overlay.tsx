@@ -42,9 +42,11 @@ const VIEWPORT_MARGIN = 12;
  * visible e interactiva, así que se ve cómo encaja la cita y un clic en otro slot la
  * mueve.
  *
- * Se ancla a `[data-draft-preview]` dentro de `anchorRoot`: va a su izquierda y, si
- * no entra, a su derecha; si no entra de ningún lado, del lado con más espacio,
- * acotada a la pantalla. Verticalmente se centra en la cita, también acotada. Un
+ * Se ancla a `[data-draft-preview]` dentro de `anchorRoot`: va del lado `side`
+ * (izquierda por defecto) y, si no entra, del opuesto; si no entra de ningún lado,
+ * del lado con más espacio, acotada a la pantalla. Con `side="right"` (vista de un
+ * día, donde la cita ocupa casi todo el ancho) cae pegada al borde derecho, para que
+ * no tape el texto de la cita, que arranca a la izquierda. Verticalmente se centra en la cita, también acotada. Un
  * rAF la mantiene pegada mientras la grilla hace scroll (el centrado es animado) o
  * la cita cambia de día/hora/duración; escribe el `transform` directo en el nodo,
  * sin re-render. Mientras la cita no está a la vista (cargando otro rango, agenda
@@ -53,9 +55,11 @@ const VIEWPORT_MARGIN = 12;
 export function CalendarAnchoredInlineDraft({
   children,
   anchorRoot,
+  side = 'left',
 }: {
   children: React.ReactNode;
   anchorRoot: React.RefObject<HTMLElement | null>;
+  side?: 'left' | 'right';
 }) {
   const [mounted, setMounted] = React.useState(false);
   const cardRef = React.useRef<HTMLDivElement>(null);
@@ -79,8 +83,14 @@ export function CalendarAnchoredInlineDraft({
         if (ar && ar.bottom > 0 && ar.top < vh && ar.right > 0 && ar.left < vw) {
           const spaceLeft = ar.left - ANCHOR_GAP - VIEWPORT_MARGIN;
           const spaceRight = vw - ar.right - ANCHOR_GAP - VIEWPORT_MARGIN;
-          if (spaceLeft >= cw) left = ar.left - ANCHOR_GAP - cw;
-          else if (spaceRight >= cw) left = ar.right + ANCHOR_GAP;
+          const leftPos = ar.left - ANCHOR_GAP - cw;
+          const rightPos = ar.right + ANCHOR_GAP;
+          if (side === 'right') {
+            if (spaceRight >= cw) left = rightPos;
+            else if (spaceLeft >= cw) left = leftPos;
+            else left = vw - VIEWPORT_MARGIN - cw;
+          } else if (spaceLeft >= cw) left = leftPos;
+          else if (spaceRight >= cw) left = rightPos;
           else left = spaceLeft >= spaceRight ? VIEWPORT_MARGIN : vw - VIEWPORT_MARGIN - cw;
           top = ar.top + ar.height / 2 - ch / 2;
         } else {
@@ -100,7 +110,7 @@ export function CalendarAnchoredInlineDraft({
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, [mounted, anchorRoot]);
+  }, [mounted, anchorRoot, side]);
 
   if (!mounted) return null;
 
