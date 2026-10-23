@@ -1,0 +1,151 @@
+{
+  "name": "Help - Asistente Feedback",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "help/assistant/feedback",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "id": "node-auth",
+      "name": "Validar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "// Usuario autenticado: el Webhook ya verificó el JWT (credencial JWT Auth account)\nconst input = $input.first().json;\nconst userId = input.jwtPayload?.userId ?? input.jwtPayload?.sub;\nif (!userId) throw new Error('userId no encontrado en el token');\n\nconst body = input.body || {};\nconst questionId = String(body.question_id || '');\nif (!/^[0-9a-f-]{36}$/i.test(questionId)) throw new Error('question_id inválido');\nconst rating = Number(body.rating);\nif (rating !== 1 && rating !== -1) throw new Error('rating inválido');\nconst feedback = typeof body.feedback === 'string' ? body.feedback.slice(0, 2000) : null;\nreturn [{ json: { user_id: String(userId), question_id: questionId, rating, feedback } }];"
+      },
+      "position": [
+        330,
+        300
+      ]
+    },
+    {
+      "id": "node-pg-feedback",
+      "name": "Guardar Feedback",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.help_questions\n   SET rating            = $2::smallint,\n       feedback          = COALESCE($3, feedback),\n       resolution_status = CASE WHEN $2::smallint = -1 THEN 'open' ELSE resolution_status END\n WHERE id = $1::uuid\n   AND (user_id IS NULL OR user_id = $4::uuid)\nRETURNING id, rating;",
+        "options": {
+          "queryReplacement": "={{ [ $json.question_id, $json.rating, $json.feedback, $json.user_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "position": [
+        560,
+        300
+      ]
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const row = $input.first()?.json || {};\nif (row.error) throw new Error('Error en base de datos: ' + (row.error?.message || String(row.error)));\nreturn [{ json: { body: { ok: Boolean(row.id) } } }];"
+      },
+      "position": [
+        790,
+        300
+      ]
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "position": [
+        1020,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada": {
+      "main": [
+        [
+          {
+            "node": "Guardar Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Feedback": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN:\n1. Credenciales ya asignadas: \"JWT Auth account\" en el Webhook y \"Postgres account\" en los nodos Postgres.\n2. Activar el workflow.\n\nGENERADO por scripts/n8n/generate-help-workflows.mjs — no editar a mano.\nTablas: database/scripts/140_20261023_help-assistant-and-onboarding.sql\n\nRUTA: POST /webhook/help/assistant/feedback (Authorization: Bearer <JWT>)\nBODY: { question_id, rating: 1 | -1, feedback? }\n\nUn 👎 deja la pregunta en resolution_status='open': entra a la cola de\npreguntas sin buena respuesta para completar el catálogo."
+  }
+}

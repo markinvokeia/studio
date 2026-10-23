@@ -1,0 +1,25 @@
+{
+  "id": "patients",
+  "status": "draft",
+  "summary": "Listado y ficha completa de pacientes.",
+  "purpose": "Desde la ficha se accede a historia clínica, presupuestos, facturas, pagos, turnos y mensajes del paciente.",
+  "prerequisites": [],
+  "tips": [
+    "El teléfono con código de país habilita los recordatorios por WhatsApp.",
+    "Un paciente dependiente (menor) tiene un contacto responsable."
+  ],
+  "useCases": [
+    "patients.create"
+  ],
+  "elements": {
+    "patients.field.phone": {
+      "description": "Teléfono para recordatorios y WhatsApp."
+    },
+    "patients.field.is_dependent": {
+      "description": "Menor o persona a cargo: se le asigna un tutor."
+    },
+    "patients.field.doctor_id": {
+      "description": "Profesional que se propone al agendarle."
+    }
+  }
+}

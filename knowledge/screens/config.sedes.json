@@ -1,0 +1,37 @@
+{
+  "id": "config.sedes",
+  "status": "draft",
+  "summary": "Lugares físicos donde atiende la clínica.",
+  "purpose": "Cada sede agrupa sus consultorios y su horario de atención. Los pacientes eligen sede al reservar online y el equipo trabaja con una sede activa.",
+  "prerequisites": [
+    "config.clinics"
+  ],
+  "tips": [
+    "Una sede inactiva deja de ofrecerse para reservar, pero conserva su historial."
+  ],
+  "useCases": [
+    "onboarding.sede",
+    "onboarding.schedules",
+    "onboarding.calendar"
+  ],
+  "elements": {
+    "config.sedes.btn.new": {
+      "description": "Abre el formulario para crear una sede."
+    },
+    "config.sedes.field.name": {
+      "description": "Nombre corto que reconoce el equipo (Centro, Pocitos…)."
+    },
+    "config.sedes.field.address": {
+      "description": "Dirección: se usa en el mapa, en recordatorios y en el portal."
+    },
+    "config.sedes.field.phone": {
+      "description": "Teléfono de la sede."
+    },
+    "config.sedes.field.email": {
+      "description": "Correo de la sede."
+    },
+    "config.sedes.field.is_active": {
+      "description": "Si está desmarcada, la sede no aparece para agendar."
+    }
+  }
+}

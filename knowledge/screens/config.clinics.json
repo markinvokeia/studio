@@ -1,0 +1,83 @@
+{
+  "id": "config.clinics",
+  "status": "draft",
+  "summary": "Datos generales del negocio: nombre, logo, contacto, RUT y monedas.",
+  "purpose": "Es lo primero que se configura. El nombre y el logo aparecen en presupuestos, facturas, recordatorios y el portal de pacientes; la moneda principal es la de precios y caja.",
+  "prerequisites": [],
+  "tips": [
+    "Si tenés más de una sede, la dirección se carga en cada sede y no acá.",
+    "Cambiar la moneda principal no convierte los precios ya cargados."
+  ],
+  "useCases": [
+    "onboarding.business",
+    "onboarding.sede"
+  ],
+  "ignoreElements": [
+    "config.clinics.field.name",
+    "config.clinics.field.address",
+    "config.clinics.field.phone",
+    "config.clinics.field.email",
+    "config.clinics.field.is_active",
+    "config.clinics.btn.submit"
+  ],
+  "elements": {
+    "config.clinics.field.clinic-logo": {
+      "label": "Logo",
+      "description": "Imagen que sale en documentos impresos y en el portal de pacientes."
+    },
+    "config.clinics.field.clinic-name": {
+      "label": "Nombre",
+      "description": "Nombre comercial de la clínica."
+    },
+    "config.clinics.field.clinic-location": {
+      "label": "Dirección",
+      "description": "Sólo visible con una sede o ninguna; con varias, cada sede tiene la suya."
+    },
+    "config.clinics.field.clinic-email": {
+      "label": "Correo",
+      "description": "Correo de contacto que ven los pacientes."
+    },
+    "config.clinics.field.clinic-phone": {
+      "label": "Teléfono",
+      "description": "Teléfono de contacto, con código de país."
+    },
+    "config.clinics.field.clinic-rut": {
+      "label": "RUT",
+      "description": "Identificación fiscal para facturación."
+    },
+    "config.clinics.field.clinic-currency": {
+      "label": "Moneda principal",
+      "description": "Moneda de precios, presupuestos y caja."
+    },
+    "config.clinics.field.clinic-secondary-currency": {
+      "label": "Moneda secundaria",
+      "description": "Opcional: otra moneda en la que también se cobra (se muestra la conversión)."
+    },
+    "config.clinics.btn.save": {
+      "label": "Guardar",
+      "description": "Guarda los datos de la clínica."
+    },
+    "config.clinics.btn.add-sede": {
+      "label": "Agregar sede",
+      "description": "Crea una sede sin salir de esta pantalla."
+    },
+    "config.clinics.sede.field.name": {
+      "label": "Nombre de la sede"
+    },
+    "config.clinics.sede.field.address": {
+      "label": "Dirección de la sede"
+    },
+    "config.clinics.sede.field.phone": {
+      "label": "Teléfono de la sede"
+    },
+    "config.clinics.sede.field.email": {
+      "label": "Correo de la sede"
+    },
+    "config.clinics.sede.field.is_active": {
+      "label": "Sede activa"
+    },
+    "config.clinics.sede.btn.submit": {
+      "label": "Crear / Guardar sede"
+    }
+  }
+}

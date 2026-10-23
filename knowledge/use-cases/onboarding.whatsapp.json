@@ -1,0 +1,48 @@
+{
+  "id": "onboarding.whatsapp",
+  "title": "Activar el agente de WhatsApp",
+  "module": "Integraciones",
+  "summary": "El agente confirma turnos y responde a los pacientes por WhatsApp. Se activa acá; el número lo conecta el equipo de Invoke.",
+  "screens": [
+    "system.whatsapp-agent"
+  ],
+  "keywords": [
+    "whatsapp",
+    "agente",
+    "bot",
+    "mensajes",
+    "ycloud"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/whatsapp-agent",
+      "title": "Abro el agente de WhatsApp"
+    },
+    {
+      "id": "enable",
+      "action": "highlight",
+      "target": "system.whatsapp-agent.field.agent-enabled",
+      "title": "Activá el agente",
+      "description": "Con el agente activo, responde a los pacientes y confirma turnos solo.",
+      "details": "Activo: el agente responde a los pacientes, confirma y reprograma turnos. Apagado: los mensajes quedan para que los atienda el equipo."
+    },
+    {
+      "id": "hours",
+      "action": "highlight",
+      "target": "system.whatsapp-agent.field.hours-enabled",
+      "title": "Horario de atención del agente",
+      "description": "Opcional: limitá en qué horario responde el agente y qué dice fuera de hora.",
+      "optional": true,
+      "details": "Si lo activás, fuera del horario el agente responde con el mensaje que configures en vez de atender."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "system.whatsapp-agent.btn.save",
+      "title": "Guardar cambios",
+      "details": "Guarda la configuración del agente. Los cambios aplican a los mensajes nuevos."
+    }
+  ]
+}

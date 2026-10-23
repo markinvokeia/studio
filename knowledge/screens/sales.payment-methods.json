@@ -1,0 +1,15 @@
+{
+  "id": "sales.payment-methods",
+  "status": "draft",
+  "summary": "Medios de pago disponibles al cobrar.",
+  "purpose": "Se eligen en cada cobro. Los equivalentes a efectivo cuentan para el arqueo de caja.",
+  "prerequisites": [],
+  "useCases": [
+    "onboarding.payment-method"
+  ],
+  "elements": {
+    "sales.payment-methods.field.is_cash_equivalent": {
+      "description": "Si suma al efectivo de la caja física."
+    }
+  }
+}

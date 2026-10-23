@@ -10063,5 +10063,122 @@
     "back": "Back",
     "close": "Close",
     "patientHint": "Patient account, history and details"
+  },
+  "HelpAssistant": {
+    "open": "Open the Invoke assistant",
+    "title": "Invoke Assistant",
+    "subtitle": "I guide you step by step and answer your questions",
+    "close": "Close assistant",
+    "guideTitle": "Guiding you",
+    "guideSubtitle": "Follow the steps or ask me to do them",
+    "catalogError": "Help could not be loaded. Reload the page to try again.",
+    "tabs": {
+      "onboarding": "Getting started",
+      "chat": "Help",
+      "screen": "This screen"
+    },
+    "spotlight": {
+      "mode": {
+        "info": "Look here",
+        "action": "I'm doing it",
+        "input": "Fill this in",
+        "confirm": "You confirm",
+        "filled": "Filled in"
+      },
+      "stepOf": "Step {current} of {total}",
+      "exit": "Exit",
+      "doAll": "Do it all",
+      "next": "Next",
+      "alreadyDone": "I did it",
+      "required": "Required",
+      "optional": "Optional"
+    },
+    "guide": {
+      "finishedTitle": "All done!",
+      "finishedDescription": "You finished “{title}”.",
+      "close": "Back to the assistant",
+      "progress": "{done} of {total} steps",
+      "errors": {
+        "targetNotFound": "I can't find this element on the screen. A permission may be missing or the screen may have changed.",
+        "navigationFailed": "I couldn't open the screen. Try “Take me there” from the assistant."
+      },
+      "exit": "Exit",
+      "retry": "Retry",
+      "doAll": "Do everything up to OK",
+      "alreadyDone": "I confirmed it",
+      "skip": "Skip step",
+      "next": "Next"
+    },
+    "onboarding": {
+      "title": "Getting your clinic ready",
+      "readyTitle": "The essentials are done!",
+      "progress": "{done}/{total}",
+      "description": "Complete these steps and the clinic is ready to book appointments. Each step is checked automatically when you do it.",
+      "readyDescription": "Your clinic can now book appointments. Below are optional steps to get more out of it.",
+      "loadError": "I couldn't load your progress.",
+      "retry": "Retry",
+      "optionalHeader": "Optional",
+      "next": "Next",
+      "guideMe": "Take me there and guide me",
+      "takeMeThere": "Just take me there",
+      "skip": "Skip",
+      "unskip": "Reactivate",
+      "skipError": "The step could not be updated",
+      "guideAgain": "Guide me to add another"
+    },
+    "screen": {
+      "noScreen": "There is no help for this screen yet.",
+      "autoOnly": "This screen has no written guide yet: here is what I detected.",
+      "guides": "Guides for this screen",
+      "prerequisites": "Set up first",
+      "tips": "Tips",
+      "elements": "Fields and buttons",
+      "show": "Show",
+      "tourCta": "Guide me through this screen",
+      "tourTitle": "Tour of {screen}"
+    },
+    "chat": {
+      "welcomeTitle": "Hi! What do you want to do now?",
+      "welcomeDescription": "Ask me anything or dictate the details and I'll fill them in. You always confirm before saving.",
+      "quick": {
+        "patients": {
+          "label": "Manage patients",
+          "prompt": "How do I register a new patient?"
+        },
+        "agenda": {
+          "label": "Manage the schedule",
+          "prompt": "How does the schedule work and how do I book an appointment?"
+        },
+        "sales": {
+          "label": "Manage sales and cash",
+          "prompt": "How do I charge a treatment and close the cash register?"
+        },
+        "reports": {
+          "label": "View reports",
+          "prompt": "Which reports do I have and where are they?"
+        },
+        "integrations": {
+          "label": "Set up integrations",
+          "prompt": "How do I connect WhatsApp to confirm appointments?"
+        }
+      },
+      "placeholder": "Type your question or ask me to “guide me”…",
+      "listening": "Listening… tap the microphone to finish",
+      "dictate": "Dictate",
+      "stopDictation": "Stop dictation",
+      "send": "Send",
+      "thinking": "Thinking…",
+      "guideMe": "Guide me",
+      "fillForMe": "Fill it in for me",
+      "takeMeTo": "Take me to {label}",
+      "watchVideo": "Watch video",
+      "escalated": "If this didn't help, I logged the question so the Invoke team can review it.",
+      "helpful": "Helpful",
+      "notHelpful": "Not helpful",
+      "feedbackError": "Your feedback could not be saved",
+      "fallbackFound": "I can't reach the assistant right now, but this is what I found in the help:",
+      "fallbackNone": "I can't reach the assistant right now and found nothing about that in the help. Try other words or check the “This screen” tab.",
+      "tourTitle": "Tour of {screen}"
+    }
   }
 }

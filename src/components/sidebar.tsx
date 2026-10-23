@@ -46,6 +46,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { rememberLocale } from '@/lib/locale';
 import { filterNavByPermissions } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
+import { navHelpId } from '@/lib/help/help-id';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -218,6 +219,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                         <div className="relative w-full">
                                             <Link
                                                 href={linkHref}
+                                                data-help-id={navHelpId(item)}
                                                 className={cn(
                                                     "flex h-12 w-full flex-col items-center justify-center gap-0.5 rounded-xl transition-all duration-200 relative group",
                                                     (isActive || isHovered)
@@ -489,6 +491,7 @@ const SecondarySidebar = ({ item, onLeave }: { item: any; onLeave: () => void })
                             <Link
                                 key={index}
                                 href={subLinkHref}
+                                data-help-id={navHelpId(subItem)}
                                 onClick={onLeave}
                                 className={cn(
                                     "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all active:scale-95 relative",
@@ -672,6 +675,7 @@ function MobileNav() {
                                         {hasChildren ? (
                                             <button
                                                 type="button"
+                                                data-help-id={navHelpId(item)}
                                                 onClick={() => setExpandedItem(isExpanded ? null : item.title)}
                                                 className={cn(
                                                     "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors",
@@ -690,6 +694,7 @@ function MobileNav() {
                                         ) : (
                                             <Link
                                                 href={linkHref}
+                                                data-help-id={navHelpId(item)}
                                                 onClick={() => setIsOpen(false)}
                                                 className={cn(
                                                     "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors",
@@ -721,6 +726,7 @@ function MobileNav() {
                                                         <Link
                                                             key={idx}
                                                             href={subHref}
+                                                            data-help-id={navHelpId(sub)}
                                                             onClick={() => setIsOpen(false)}
                                                             className={cn(
                                                                 "flex items-center gap-3 px-8 py-2.5 text-sm transition-colors relative",

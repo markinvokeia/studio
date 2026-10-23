@@ -1,0 +1,79 @@
+{
+  "id": "patients.create",
+  "title": "Registrar un paciente",
+  "module": "Pacientes",
+  "summary": "Alta de un paciente con sus datos de contacto. El teléfono se usa para recordatorios por WhatsApp.",
+  "screens": [
+    "patients"
+  ],
+  "inputs": {
+    "name": "Nombre y apellido",
+    "phone": "Teléfono con código de país",
+    "email": "Correo",
+    "identity_document": "Documento de identidad",
+    "birth_date": "Fecha de nacimiento AAAA-MM-DD"
+  },
+  "keywords": [
+    "paciente",
+    "alta de paciente",
+    "nuevo paciente",
+    "registrar paciente"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Abro Pacientes"
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "patients.btn.new",
+      "title": "Nuevo paciente",
+      "details": "Abre el alta de paciente. Tu licencia puede limitar los pacientes nuevos por mes."
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "patients.field.name",
+      "value": "{{values.name}}",
+      "title": "Nombre y apellido",
+      "details": "Nombre y apellido tal como aparecerá en turnos, presupuestos y facturas."
+    },
+    {
+      "id": "phone",
+      "action": "fill",
+      "target": "patients.field.phone",
+      "value": "{{values.phone}}",
+      "title": "Teléfono",
+      "description": "Con este número le llegan los recordatorios de turno.",
+      "details": "Con código de país. Sin teléfono el paciente no recibe recordatorios ni mensajes por WhatsApp."
+    },
+    {
+      "id": "email",
+      "action": "fill",
+      "target": "patients.field.email",
+      "value": "{{values.email}}",
+      "title": "Correo",
+      "optional": true,
+      "details": "Opcional: habilita el envío de presupuestos y facturas por correo."
+    },
+    {
+      "id": "document",
+      "action": "fill",
+      "target": "patients.field.identity_document",
+      "value": "{{values.identity_document}}",
+      "title": "Documento",
+      "optional": true,
+      "details": "Opcional, pero recomendado para facturar y para evitar pacientes duplicados."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "patients.btn.submit",
+      "title": "Guardar el paciente",
+      "details": "Crea el paciente. Desde su ficha ya podés agendarle, presupuestar y cobrar."
+    }
+  ]
+}

@@ -10063,5 +10063,122 @@
     "back": "Volver",
     "close": "Cerrar",
     "patientHint": "Cuentas, historia y datos del paciente"
+  },
+  "HelpAssistant": {
+    "open": "Abrir el asistente de Invoke",
+    "title": "Asistente Invoke",
+    "subtitle": "Te guío paso a paso y respondo tus dudas",
+    "close": "Cerrar asistente",
+    "guideTitle": "Te estoy guiando",
+    "guideSubtitle": "Seguí los pasos o pedime que los haga yo",
+    "catalogError": "No se pudo cargar la ayuda. Recargá la página para intentar de nuevo.",
+    "tabs": {
+      "onboarding": "Puesta en marcha",
+      "chat": "Ayuda",
+      "screen": "Esta pantalla"
+    },
+    "spotlight": {
+      "mode": {
+        "info": "Mirá acá",
+        "action": "Lo hago yo",
+        "input": "Completalo vos",
+        "confirm": "Confirmá vos",
+        "filled": "Lo completé"
+      },
+      "stepOf": "Paso {current} de {total}",
+      "exit": "Salir",
+      "doAll": "Hacer todo",
+      "next": "Siguiente",
+      "alreadyDone": "Ya lo hice",
+      "required": "Obligatorio",
+      "optional": "Opcional"
+    },
+    "guide": {
+      "finishedTitle": "¡Listo!",
+      "finishedDescription": "Terminaste «{title}».",
+      "close": "Volver al asistente",
+      "progress": "{done} de {total} pasos",
+      "errors": {
+        "targetNotFound": "No encuentro este elemento en la pantalla. Puede que falte un permiso o que la pantalla haya cambiado.",
+        "navigationFailed": "No pude abrir la pantalla. Probá con «Llevarme ahí» desde el asistente."
+      },
+      "exit": "Salir",
+      "retry": "Reintentar",
+      "doAll": "Hacer todo hasta el OK",
+      "alreadyDone": "Ya lo confirmé",
+      "skip": "Saltar paso",
+      "next": "Siguiente"
+    },
+    "onboarding": {
+      "title": "Puesta en marcha de tu clínica",
+      "readyTitle": "¡Ya está lo mínimo!",
+      "progress": "{done}/{total}",
+      "description": "Completá estos pasos y la clínica queda lista para dar turnos. Cada paso se marca solo cuando lo hacés.",
+      "readyDescription": "Tu clínica ya puede dar turnos. Abajo tenés pasos opcionales para sacarle más jugo.",
+      "loadError": "No pude ver tu avance.",
+      "retry": "Reintentar",
+      "optionalHeader": "Opcionales",
+      "next": "Siguiente",
+      "guideMe": "Llevarme y guiarme",
+      "takeMeThere": "Sólo llevarme",
+      "skip": "Omitir",
+      "unskip": "Reactivar",
+      "skipError": "No se pudo actualizar el paso",
+      "guideAgain": "Guiarme para agregar otro"
+    },
+    "screen": {
+      "noScreen": "Todavía no hay ayuda para esta pantalla.",
+      "autoOnly": "Esta pantalla todavía no tiene una ficha redactada: te muestro lo que detecté.",
+      "guides": "Guías de esta pantalla",
+      "prerequisites": "Antes conviene tener",
+      "tips": "Consejos",
+      "elements": "Campos y botones",
+      "show": "Mostrar",
+      "tourCta": "Guiarme por esta pantalla",
+      "tourTitle": "Recorrido por {screen}"
+    },
+    "chat": {
+      "welcomeTitle": "¡Hola! ¿Qué querés hacer ahora?",
+      "welcomeDescription": "Preguntame lo que necesites o dictame los datos y lo cargo por vos. Siempre vas a confirmar vos antes de guardar.",
+      "quick": {
+        "patients": {
+          "label": "Gestionar pacientes",
+          "prompt": "¿Cómo registro un paciente nuevo?"
+        },
+        "agenda": {
+          "label": "Gestionar la agenda",
+          "prompt": "¿Cómo funciona la agenda y cómo doy un turno?"
+        },
+        "sales": {
+          "label": "Gestionar ventas y caja",
+          "prompt": "¿Cómo cobro un tratamiento y cierro la caja?"
+        },
+        "reports": {
+          "label": "Ver reportes",
+          "prompt": "¿Qué reportes tengo y dónde los veo?"
+        },
+        "integrations": {
+          "label": "Configurar integraciones",
+          "prompt": "¿Cómo conecto WhatsApp para confirmar turnos?"
+        }
+      },
+      "placeholder": "Escribí tu pregunta o pedime «guiame»…",
+      "listening": "Te escucho… pulsá el micrófono para terminar",
+      "dictate": "Dictar",
+      "stopDictation": "Terminar dictado",
+      "send": "Enviar",
+      "thinking": "Pensando…",
+      "guideMe": "Guiarme",
+      "fillForMe": "Completarlo por mí",
+      "takeMeTo": "Llevarme a {label}",
+      "watchVideo": "Ver video",
+      "escalated": "Si no te sirvió, dejé registrada la consulta para que el equipo de Invoke la revise.",
+      "helpful": "Me sirvió",
+      "notHelpful": "No me sirvió",
+      "feedbackError": "No se pudo guardar tu opinión",
+      "fallbackFound": "Ahora no puedo consultar al asistente, pero esto es lo que encontré en la ayuda:",
+      "fallbackNone": "Ahora no puedo consultar al asistente y no encontré nada sobre eso en la ayuda. Probá con otras palabras o mirá la pestaña «Esta pantalla».",
+      "tourTitle": "Recorrido por {screen}"
+    }
   }
 }

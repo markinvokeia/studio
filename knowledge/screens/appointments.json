@@ -1,0 +1,16 @@
+{
+  "id": "appointments",
+  "status": "draft",
+  "summary": "Agenda de turnos por consultorio y profesional.",
+  "purpose": "Para agendar, mover, confirmar y cancelar turnos. Requiere sedes, horarios, consultorios, profesionales con disponibilidad y servicios.",
+  "prerequisites": [
+    "config.calendars",
+    "config.doctor-availability",
+    "sales.services"
+  ],
+  "tips": [
+    "Arrastrá un turno para cambiarlo de hora o de consultorio.",
+    "Hacé clic en un hueco libre para crear un turno ahí mismo."
+  ],
+  "useCases": []
+}
