@@ -1,0 +1,7 @@
+{
+  "id": "dashboard",
+  "status": "draft",
+  "summary": "Inicio: resumen del día y del mes.",
+  "purpose": "Indicadores principales de la clínica. Desde el menú lateral se llega a cada módulo.",
+  "useCases": []
+}

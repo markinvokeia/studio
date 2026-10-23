@@ -1,0 +1,69 @@
+/**
+ * Geometría del spotlight: dónde va la manito, dónde la burbuja y dónde el
+ * panel de pasos para que ninguno tape al elemento ni se tapen entre sí.
+ * Todo en coordenadas de viewport (position: fixed): nada de esto altera el
+ * layout de la página ni de los diálogos.
+ */
+
+export interface Rect { top: number; left: number; width: number; height: number }
+
+export const VIEWPORT_MARGIN = 8;
+
+export function intersects(a: Rect, b: Rect, gap = 0): boolean {
+  return a.left < b.left + b.width + gap && a.left + a.width + gap > b.left
+    && a.top < b.top + b.height + gap && a.top + a.height + gap > b.top;
+}
+
+export function fitsViewport(r: Rect): boolean {
+  return r.left >= VIEWPORT_MARGIN && r.top >= VIEWPORT_MARGIN
+    && r.left + r.width <= window.innerWidth - VIEWPORT_MARGIN
+    && r.top + r.height <= window.innerHeight - VIEWPORT_MARGIN;
+}
+
+export function clampToViewport(r: Rect): Rect {
+  return {
+    ...r,
+    left: Math.max(VIEWPORT_MARGIN, Math.min(window.innerWidth - r.width - VIEWPORT_MARGIN, r.left)),
+    top: Math.max(VIEWPORT_MARGIN, Math.min(window.innerHeight - r.height - VIEWPORT_MARGIN, r.top)),
+  };
+}
+
+/**
+ * Primer candidato que entra en pantalla y no pisa ningún obstáculo; si
+ * ninguno cumple, el primero que entra en pantalla; si tampoco, el primero
+ * recortado a la pantalla.
+ */
+export function pickPlacement<T extends { rect: Rect }>(candidates: T[], obstacles: Rect[]): T {
+  const free = candidates.find((c) => fitsViewport(c.rect) && obstacles.every((o) => !intersects(c.rect, o, 4)));
+  if (free) return free;
+  const inside = candidates.find((c) => fitsViewport(c.rect));
+  if (inside) return inside;
+  return { ...candidates[0], rect: clampToViewport(candidates[0].rect) };
+}
+
+export function toRect(r: DOMRect): Rect {
+  return { top: r.top, left: r.left, width: r.width, height: r.height };
+}
+
+/**
+ * Muestra el elemento desplazando sólo los contenedores realmente
+ * desplazables (overflow auto/scroll). `scrollIntoView` también corre los
+ * contenedores con overflow hidden — el propio diálogo — y eso desarmaba
+ * banner y footer de los popups.
+ */
+export function revealElement(el: HTMLElement) {
+  let node = el.parentElement;
+  while (node && node !== document.body && node !== document.documentElement) {
+    const style = window.getComputedStyle(node);
+    const scrollable = /(auto|scroll|overlay)/.test(style.overflowY) && node.scrollHeight > node.clientHeight + 1;
+    if (scrollable) {
+      const container = node.getBoundingClientRect();
+      const target = el.getBoundingClientRect();
+      if (target.top < container.top + 8 || target.bottom > container.bottom - 8) {
+        const delta = target.top - container.top - Math.max(8, (container.height - target.height) / 2);
+        node.scrollTop += delta;
+      }
+    }
+    node = node.parentElement;
+  }
+}

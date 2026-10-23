@@ -444,7 +444,7 @@ export function Header() {
                     </button>
                 ) : (
                     /* Expanded: vertical strip */
-                    <div className="fixed inset-y-0 right-0 z-[50] flex flex-col items-center gap-2 pt-3 pb-3 w-14 bg-[hsl(var(--floating-header-bg)/0.97)] backdrop-blur-md border-l border-border shadow-[-2px_0_16px_rgba(0,0,0,0.08)] animate-in fade-in slide-in-from-right-4 duration-200 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <div data-help-rail className="fixed inset-y-0 right-0 z-[50] flex flex-col items-center gap-2 pt-3 pb-3 w-14 bg-[hsl(var(--floating-header-bg)/0.97)] backdrop-blur-md border-l border-border shadow-[-2px_0_16px_rgba(0,0,0,0.08)] animate-in fade-in slide-in-from-right-4 duration-200 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
                         <Button
                             ref={toggleBtnRef}

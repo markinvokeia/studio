@@ -3377,3 +3377,161 @@ export type PatientAiQueryResponse = {
   suggestions?: string[];
   action?: PatientAiAction | null;
 };
+
+// ─── Asistente guiado / base de conocimiento ────────────────────────────────
+// Catálogo generado por scripts/knowledge/build-catalog.mjs en
+// src/generated/help-catalog.json. Ver docs/onboarding-asistente.md.
+
+/** Tipo de elemento indexado. Es el segundo segmento del help id: `<scope>.<kind>.<name>`. */
+export type HelpElementKind = 'field' | 'btn' | 'tab' | 'filter' | 'nav' | 'section';
+
+export interface HelpCatalogElement {
+  /** Help id estable (`config.sedes.field.name`). Lo usan el asistente, los tests y la documentación. */
+  id: string;
+  kind: HelpElementKind;
+  /** Etiqueta visible (resuelta desde es.json cuando el extractor la encuentra). */
+  label?: string;
+  description?: string;
+  /** Archivo donde el extractor lo encontró. */
+  source?: string;
+}
+
+export interface HelpCatalogScreen {
+  /** Scope de la pantalla, derivado de la ruta (`/config/sedes` → `config.sedes`). */
+  id: string;
+  route: string;
+  title: string;
+  module?: string;
+  permissions: string[];
+  summary?: string;
+  purpose?: string;
+  prerequisites?: string[];
+  tips?: string[];
+  useCases?: string[];
+  /** `draft` = generado/redactado por IA; `validated` = revisado por soporte/QA. */
+  status: 'auto' | 'draft' | 'validated';
+  inMenu: boolean;
+  elements: HelpCatalogElement[];
+}
+
+/**
+ * Paso de una guía. El motor (src/lib/help/guide-engine.ts) nunca hace clic
+ * solo en un paso `confirm`: lo resalta y espera a que la persona lo pulse.
+ */
+export type HelpGuideStepAction =
+  | 'navigate'
+  | 'click'
+  | 'highlight'
+  | 'fill'
+  | 'confirm'
+  | 'wait';
+
+/** Dato dictado que completa un campo (los días de la semana van como lista). */
+export type HelpValue = string | number | boolean | Array<string | number>;
+
+export interface HelpGuideStep {
+  id: string;
+  action: HelpGuideStepAction;
+  title: string;
+  description?: string;
+  /** Help id del elemento (todas las acciones menos `navigate`). */
+  target?: string;
+  /** Ruta sin locale (`/config/sedes`) para `navigate`. */
+  route?: string;
+  /** Valor para `fill`. Admite `{{values.campo}}`, que se resuelve con los datos dictados. */
+  value?: string | number | boolean;
+  /** Si el paso es opcional, sin valor para `fill` se salta en vez de esperar. */
+  optional?: boolean;
+  /**
+   * Lo que se ve junto a la manito: para qué sirve, qué cambia según lo que se
+   * elija. Si la guía no lo trae, el extractor copia la descripción del
+   * elemento desde su ficha.
+   */
+  details?: string;
+  /** Recorridos de pantalla: si el elemento no está a la vista, el paso se salta. */
+  skipIfMissing?: boolean;
+}
+
+export interface HelpUseCase {
+  id: string;
+  title: string;
+  summary?: string;
+  module?: string;
+  /** Pantallas involucradas (scopes). */
+  screens: string[];
+  /** Datos que la guía puede completar con lo dictado: nombre → descripción. */
+  inputs?: Record<string, string>;
+  steps: HelpGuideStep[];
+  /** Fase 3: id del video demo generado desde el test E2E de este caso. */
+  videoId?: string;
+  keywords?: string[];
+}
+
+export interface HelpJourneyStep {
+  id: string;
+  title: string;
+  description: string;
+  route: string;
+  useCaseId?: string;
+  required: boolean;
+}
+
+export interface HelpPermissionDoc {
+  code: string;
+  constant: string;
+  description?: string;
+}
+
+export interface HelpCatalog {
+  /** Hash del contenido: cambia sólo cuando cambia el catálogo. */
+  version: string;
+  screens: HelpCatalogScreen[];
+  useCases: HelpUseCase[];
+  journey: HelpJourneyStep[];
+  permissions: HelpPermissionDoc[];
+}
+
+export type OnboardingStepStatus = 'done' | 'pending' | 'skipped';
+
+export interface OnboardingStepState {
+  step_id: string;
+  status: OnboardingStepStatus;
+  /** Cuántos registros encontró el chequeo (sedes, consultorios…). */
+  count?: number;
+  completed_at?: string | null;
+  notes?: string | null;
+}
+
+/** Respuesta de GET /help/onboarding/status. Qué pasos son obligatorios lo dice el journey del catálogo. */
+export interface OnboardingStatusResponse {
+  steps: OnboardingStepState[];
+}
+
+/** Elemento visible en pantalla que el frontend le manda al asistente como contexto. */
+export interface HelpVisibleTarget {
+  id: string;
+  kind: HelpElementKind;
+  label?: string;
+}
+
+export interface HelpAssistantLink {
+  route: string;
+  label: string;
+}
+
+/** Respuesta de POST /help/assistant/chat (ya validada por el workflow contra el catálogo). */
+export interface HelpAssistantReply {
+  answer: string;
+  confidence?: number;
+  links?: HelpAssistantLink[];
+  /** Guía elegida del catálogo, o armada ad hoc con targets del catálogo / visibles. */
+  useCaseId?: string | null;
+  guide?: { title: string; steps: HelpGuideStep[] } | null;
+  /** Valores extraídos de lo dictado para `{{values.x}}`. */
+  values?: Record<string, HelpValue>;
+  /** true cuando la persona pidió "guiame": la guía arranca sola. */
+  autoStart?: boolean;
+  videoUrl?: string | null;
+  questionId?: string | null;
+  escalated?: boolean;
+}

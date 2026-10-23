@@ -1,0 +1,32 @@
+{
+  "id": "config.calendars",
+  "status": "draft",
+  "summary": "Consultorios: cada uno es una agenda (columna del calendario).",
+  "purpose": "Los turnos se agendan en un consultorio. Opcionalmente se sincroniza con un Google Calendar.",
+  "prerequisites": [
+    "config.sedes"
+  ],
+  "tips": [
+    "En la pestaña de acceso elegís qué profesionales pueden usar cada consultorio."
+  ],
+  "useCases": [
+    "onboarding.calendar"
+  ],
+  "elements": {
+    "config.calendars.field.name": {
+      "description": "Nombre del consultorio (Consultorio 1, Sillón A…)."
+    },
+    "config.calendars.field.sede_id": {
+      "description": "Sede donde está el consultorio."
+    },
+    "config.calendars.field.color": {
+      "description": "Color con que se ve en la agenda."
+    },
+    "config.calendars.field.google_calendar_id": {
+      "description": "Opcional: id del Google Calendar para sincronizar los turnos."
+    },
+    "config.calendars.tab.access": {
+      "description": "Profesionales que pueden atender en este consultorio."
+    }
+  }
+}

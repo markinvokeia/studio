@@ -1,0 +1,38 @@
+{
+  "id": "sales.services",
+  "status": "draft",
+  "summary": "Catálogo de servicios y tratamientos con precio y duración.",
+  "purpose": "Se eligen al agendar, presupuestar y facturar. La duración define el largo del turno; los servicios con flujo tienen pasos (sesiones).",
+  "prerequisites": [
+    "config.clinics"
+  ],
+  "tips": [
+    "Marcá 'Agendable online' para que el paciente lo pueda reservar desde el portal."
+  ],
+  "useCases": [
+    "onboarding.service"
+  ],
+  "elements": {
+    "sales.services.field.name": {
+      "description": "Nombre del servicio."
+    },
+    "sales.services.field.price": {
+      "description": "Precio de lista."
+    },
+    "sales.services.field.currency": {
+      "description": "Moneda del precio."
+    },
+    "sales.services.field.duration_minutes": {
+      "description": "Duración del turno en minutos."
+    },
+    "sales.services.field.category_id": {
+      "description": "Categoría para agrupar en listados y reportes."
+    },
+    "sales.services.field.bookable_online": {
+      "description": "El paciente lo puede reservar desde el portal."
+    },
+    "sales.services.field.service_type": {
+      "description": "Servicio con flujo: tratamiento en varios pasos/sesiones."
+    }
+  }
+}

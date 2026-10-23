@@ -5707,6 +5707,7 @@ export default function AppointmentsPage() {
                                                 <TooltipTrigger asChild>
                                                     <DropdownMenuTrigger asChild>
                                                         <Button
+                                                            data-help-id="appointments.btn.create-menu"
                                                             variant={isMobile ? "ghost" : "default"}
                                                             size={primaryIconOnly ? "icon" : "sm"}
                                                             className={primaryIconOnly ? (isMobile ? "h-8 w-8" : "h-10 w-10") : "h-10 gap-1.5"}
@@ -5728,6 +5729,7 @@ export default function AppointmentsPage() {
                                         </TooltipProvider>
                                         <DropdownMenuContent align="end" className="w-64 p-1.5">
                                             <DropdownMenuItem
+                                                data-help-id="appointments.btn.new-appointment"
                                                 className="cursor-pointer items-start gap-3 rounded-md p-3"
                                                 onSelect={handleNewAppointmentClick}
                                             >

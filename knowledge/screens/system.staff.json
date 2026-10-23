@@ -1,0 +1,27 @@
+{
+  "id": "system.staff",
+  "status": "draft",
+  "summary": "Usuarios del equipo administrativo (recepción, administración, gerencia).",
+  "purpose": "Da acceso a Invoke al equipo que no es profesional de la salud. El rol define los permisos.",
+  "prerequisites": [
+    "config.sedes"
+  ],
+  "tips": [
+    "El límite de usuarios depende de la licencia.",
+    "Los permisos de cada rol se ven en Sistema → Roles."
+  ],
+  "useCases": [
+    "onboarding.staff"
+  ],
+  "elements": {
+    "system.staff.field.role_id": {
+      "description": "Rol: define qué puede ver y hacer."
+    },
+    "system.staff.field.email": {
+      "description": "Correo: es su usuario."
+    },
+    "system.staff.field.active_sede_id": {
+      "description": "Sede con la que trabaja por defecto."
+    }
+  }
+}

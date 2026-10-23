@@ -1,0 +1,44 @@
+{
+  "id": "config.doctors",
+  "status": "draft",
+  "summary": "Médicos y odontólogos de la clínica.",
+  "purpose": "Cada profesional tiene su usuario, color, consultorio y sede por defecto, servicios que realiza, disponibilidad y firma para recetas.",
+  "prerequisites": [
+    "config.sedes",
+    "config.calendars"
+  ],
+  "tips": [
+    "El límite de profesionales depende de la licencia.",
+    "La disponibilidad se carga en la pestaña Disponibilidad o en Disponibilidad médica."
+  ],
+  "useCases": [
+    "onboarding.doctor",
+    "onboarding.availability"
+  ],
+  "elements": {
+    "config.doctors.field.name": {
+      "description": "Nombre y apellido."
+    },
+    "config.doctors.field.email": {
+      "description": "Correo: es el usuario para entrar a Invoke."
+    },
+    "config.doctors.field.color": {
+      "description": "Color de sus turnos en la agenda."
+    },
+    "config.doctors.field.calendar_source_id": {
+      "description": "Consultorio que se propone al agendarle."
+    },
+    "config.doctors.field.active_sede_id": {
+      "description": "Sede con la que trabaja por defecto."
+    },
+    "config.doctors.tab.availability": {
+      "description": "Días y horarios en que atiende."
+    },
+    "config.doctors.tab.services": {
+      "description": "Servicios que realiza (filtra lo que se le puede agendar)."
+    },
+    "config.doctors.tab.signature": {
+      "description": "Firma que sale en recetas e indicaciones."
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "id": "onboarding.payment-method",
+  "title": "Agregar un medio de pago",
+  "module": "Ventas",
+  "summary": "Los medios que se eligen al cobrar. Los equivalentes a efectivo entran al arqueo de caja.",
+  "screens": [
+    "sales.payment-methods"
+  ],
+  "inputs": {
+    "name": "Nombre (ej. Tarjeta de débito)",
+    "code": "Código corto (ej. DEB)"
+  },
+  "keywords": [
+    "medio de pago",
+    "forma de pago",
+    "tarjeta",
+    "efectivo",
+    "transferencia"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/payment-methods",
+      "title": "Abro Métodos de pago"
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "sales.payment-methods.btn.new",
+      "title": "Nuevo medio de pago",
+      "details": "Abre el alta de medio de pago."
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "sales.payment-methods.field.name",
+      "value": "{{values.name}}",
+      "title": "Nombre",
+      "details": "Es lo que se elige al cobrar."
+    },
+    {
+      "id": "code",
+      "action": "fill",
+      "target": "sales.payment-methods.field.code",
+      "value": "{{values.code}}",
+      "title": "Código",
+      "optional": true,
+      "details": "Opcional: abreviatura para reportes y exportaciones."
+    },
+    {
+      "id": "cash",
+      "action": "highlight",
+      "target": "sales.payment-methods.field.is_cash_equivalent",
+      "title": "¿Cuenta como efectivo?",
+      "description": "Marcalo si el dinero entra a la caja física (efectivo). Tarjetas y transferencias, no.",
+      "details": "Si lo marcás, lo cobrado con este medio suma al efectivo de la caja física y se cuenta en el arqueo. Tarjetas y transferencias van sin marcar."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "sales.payment-methods.btn.submit",
+      "title": "Guardar el medio de pago",
+      "details": "Guarda el medio de pago y queda disponible en todos los cobros."
+    }
+  ]
+}

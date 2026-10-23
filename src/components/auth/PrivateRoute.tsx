@@ -1,6 +1,8 @@
 'use client';
 
 import { Header } from '@/components/header';
+import { HelpAssistant } from '@/components/help/help-assistant';
+import { HelpScopeProvider } from '@/components/help/help-scope';
 import { LicenseExpirationBanner, LicenseExpiredBanner } from '@/components/license/LicenseExpirationBanner';
 import { LicenseExpiredScreen } from '@/components/license/LicenseExpiredScreen';
 import { PatientPortalLayout } from '@/components/patient-portal/patient-portal-layout';
@@ -15,6 +17,7 @@ import { SedeSelectionModal } from '@/components/sede-selection-modal';
 import { useAuth } from '@/context/AuthContext';
 import { usePatientPortal } from '@/hooks/usePatientPortal';
 import { usePermissions } from '@/hooks/usePermissions';
+import { routeToHelpScope } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 import { navItems, type NavItem } from '@/config/nav';
 import { DASHBOARD_PERMISSIONS } from '@/constants/permissions';
@@ -221,6 +224,9 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
     <PatientHistorySheet />
     <PatientAppointmentsHistorySheet />
     <PatientDocumentsSheet />
+    <div className="print:hidden">
+      <HelpAssistant />
+    </div>
     <div className="flex h-[100dvh] print:h-auto print:block bg-[var(--page-tint,hsl(var(--background)))] overflow-hidden print:overflow-visible text-foreground">
       <SedeSelectionModal />
       <div className="print:hidden">
@@ -236,7 +242,10 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         )}
         <main className="flex-1 flex flex-col min-h-0 bg-[var(--page-tint,hsl(var(--background)))] px-0 sm:px-4 lg:px-6 pb-0 sm:pb-6 lg:pb-6 pt-0 overflow-hidden print:block print:h-auto print:overflow-visible print:px-0 relative">
           <div className="flex-1 flex flex-col min-h-0 print:block print:h-auto overflow-hidden print:overflow-visible relative">
-            {children}
+            {/* Scope de help ids de la pantalla: lo usan las primitivas de ui para los data-help-id. */}
+            <HelpScopeProvider scope={routeToHelpScope(effectivePathname)}>
+              {children}
+            </HelpScopeProvider>
             {isExpired && !isInvokeUser && <LicenseExpiredScreen />}
           </div>
         </main>
