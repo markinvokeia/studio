@@ -21,6 +21,8 @@ interface DoctorSelectorSingleProps {
     loadingText?: string;
     className?: string;
     disabled?: boolean;
+    /** Marca el campo como inválido (borde rojo). `FormControl` lo pasa solo. */
+    'aria-invalid'?: React.AriaAttributes['aria-invalid'];
 }
 
 interface DoctorSelectorMultipleProps {
@@ -34,6 +36,8 @@ interface DoctorSelectorMultipleProps {
     loadingText?: string;
     className?: string;
     disabled?: boolean;
+    /** Marca el campo como inválido (borde rojo). `FormControl` lo pasa solo. */
+    'aria-invalid'?: React.AriaAttributes['aria-invalid'];
 }
 
 type DoctorSelectorProps = DoctorSelectorSingleProps | DoctorSelectorMultipleProps;
@@ -154,6 +158,7 @@ export function DoctorSelector(props: DoctorSelectorProps) {
                     role="combobox"
                     className={cn('w-full justify-between', !hasSelection && 'text-muted-foreground', className)}
                     disabled={disabled}
+                    aria-invalid={props['aria-invalid']}
                 >
                     <span className="truncate block">{triggerLabel}</span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

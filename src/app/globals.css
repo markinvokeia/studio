@@ -281,6 +281,18 @@ textarea::placeholder {
   color: hsl(var(--muted-foreground)) !important;
 }
 
+/* Campo inválido/obligatorio sin completar: todo control con aria-invalid se pinta en
+   rojo. `FormControl` lo pone solo; los selectores compartidos lo reenvían a su
+   trigger y los editores sin <FormField> lo pasan a mano. Va fuera de @layer y con
+   el elemento en el selector para ganarle a `border-input` de las utilidades. */
+input[aria-invalid="true"],
+textarea[aria-invalid="true"],
+button[aria-invalid="true"],
+div[role="combobox"][aria-invalid="true"] {
+  border-color: hsl(var(--destructive));
+  --tw-ring-color: hsl(var(--destructive));
+}
+
 /* ── Panel slide animations ──────────────────────────────────────────────── */
 @keyframes panel-slide-in {
   from {

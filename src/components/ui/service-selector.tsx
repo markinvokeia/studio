@@ -36,6 +36,8 @@ interface ServiceSelectorProps {
     className?: string;
     /** Si está deshabilitado */
     disabled?: boolean;
+    /** Marca el campo como inválido (borde rojo). `FormControl` lo pasa solo. */
+    'aria-invalid'?: React.AriaAttributes['aria-invalid'];
 }
 
 /**
@@ -55,6 +57,7 @@ export function ServiceSelector({
     triggerText = 'Seleccionar servicio',
     className,
     disabled = false,
+    'aria-invalid': ariaInvalid,
 }: ServiceSelectorProps) {
     const t = useTranslations('General');
     const { hasPermission } = usePermissions();
@@ -205,6 +208,7 @@ export function ServiceSelector({
                     role="combobox"
                     className={cn("w-full justify-between", !value && "text-muted-foreground", className)}
                     disabled={disabled}
+                    aria-invalid={ariaInvalid}
                 >
                     {value && selectedService
                         ? <span className="truncate block">{selectedService.name}</span>

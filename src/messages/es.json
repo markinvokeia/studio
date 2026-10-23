@@ -85,7 +85,8 @@
       "negativeTooth": "El número de pieza no puede ser negativo",
       "sedeRequired": "La sede es obligatoria",
       "methodRequired": "Debes seleccionar un método de pago",
-      "amountRequired": "El monto debe ser mayor a cero"
+      "amountRequired": "El monto debe ser mayor a cero",
+      "requiredFields": "Completá los campos marcados en rojo"
     },
     "columns": {
       "date": "Fecha",

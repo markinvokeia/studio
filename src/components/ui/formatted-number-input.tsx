@@ -12,6 +12,8 @@ interface FormattedNumberInputProps {
   disabled?: boolean;
   id?: string;
   'aria-label'?: string;
+  /** Marca el campo como inválido (borde rojo). `FormControl` lo pasa solo. */
+  'aria-invalid'?: React.AriaAttributes['aria-invalid'];
 }
 
 function toNumber(value: number | string | null | undefined) {
@@ -89,6 +91,7 @@ export function FormattedNumberInput({
   disabled,
   id,
   'aria-label': ariaLabel,
+  'aria-invalid': ariaInvalid,
 }: FormattedNumberInputProps) {
   const isFocused = React.useRef(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -135,6 +138,7 @@ export function FormattedNumberInput({
       }}
       inputMode="decimal"
       aria-label={ariaLabel}
+      aria-invalid={ariaInvalid}
     />
   );
 }

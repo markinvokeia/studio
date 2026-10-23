@@ -587,7 +587,7 @@ function ToothIcon({ className }: { className?: string }) {
  * collapses again once focus/click moves elsewhere. When `currencyLocked` (edit mode, or
  * a credit note bound to one currency) the selector never shows — only the amount edits.
  */
-function CurrencyAmountInput({ amount, currency, onAmountChange, onCurrencyChange, currencyLocked, placeholder, ariaLabel, className }: {
+function CurrencyAmountInput({ amount, currency, onAmountChange, onCurrencyChange, currencyLocked, placeholder, ariaLabel, className, amountInvalid, currencyInvalid }: {
   amount: number;
   currency: string;
   onAmountChange: (v: number) => void;
@@ -596,6 +596,9 @@ function CurrencyAmountInput({ amount, currency, onAmountChange, onCurrencyChang
   placeholder?: string;
   ariaLabel?: string;
   className?: string;
+  /** Pinta en rojo el importe / la moneda cuando la validación los rechaza. */
+  amountInvalid?: boolean;
+  currencyInvalid?: boolean;
 }) {
   const { optionsFor } = useCurrencySettings();
   const options = optionsFor(currency);
@@ -606,10 +609,10 @@ function CurrencyAmountInput({ amount, currency, onAmountChange, onCurrencyChang
   return (
     <div className={cn('flex items-center gap-1.5', className)}>
       {!showSelector ? (
-        <span className="flex h-8 shrink-0 items-center px-1 text-xs font-medium text-muted-foreground">{currencySymbol(currency)}</span>
+        <span className={cn('flex h-8 shrink-0 items-center px-1 text-xs font-medium text-muted-foreground', currencyInvalid && 'text-destructive')}>{currencySymbol(currency)}</span>
       ) : (
         <Select value={currency} onValueChange={(v) => onCurrencyChange!(v)}>
-          <SelectTrigger className="h-8 w-[5.5rem] shrink-0 px-2 text-xs"><SelectValue /></SelectTrigger>
+          <SelectTrigger aria-invalid={currencyInvalid || undefined} className="h-8 w-[5.5rem] shrink-0 px-2 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             {options.map((code) => (
               <SelectItem key={code} value={code}>{currencySymbol(code)} {code}</SelectItem>
@@ -623,6 +626,7 @@ function CurrencyAmountInput({ amount, currency, onAmountChange, onCurrencyChang
         placeholder={placeholder || '0.00'}
         className="h-8 min-w-[5.5rem] flex-1 text-right text-sm"
         aria-label={ariaLabel}
+        aria-invalid={amountInvalid || undefined}
       />
     </div>
   );
@@ -673,7 +677,7 @@ const buildQuoteEditorSchema = (maxDiscountPct: number) => z.object({
   quantity: z.coerce.number().int().min(1),
   unit_price: z.coerce.number().min(0),
   doctor_id: z.string().optional(),
-  sede_id: z.string().optional(),
+  sede_id: z.string().min(1),
   description: z.string().optional(),
   discount_mode: z.enum(['percent', 'amount']).nullish(),
   discount_value: z.coerce.number().min(0).nullish(),
@@ -815,10 +819,6 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
     }
     if (values.tooth_number && Number(values.tooth_number) < 0) {
       toast({ title: t('errors.negativeTooth'), variant: 'destructive' });
-      return;
-    }
-    if (!values.sede_id) {
-      toast({ title: t('errors.sedeRequired'), variant: 'destructive' });
       return;
     }
     setSubmitting(true);
@@ -1004,10 +1004,17 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
     }
   };
 
+  // Sin <FormField> no hay <FormMessage>: los campos rechazados se marcan en rojo con
+  // aria-invalid y un toast avisa, para que el clic en guardar nunca quede mudo.
+  const errors = form.formState.errors;
+  const onInvalid = (invalid: FieldErrors<QuoteEditorValues>) => {
+    toast({ title: t(invalid.sede_id && Object.keys(invalid).length === 1 ? 'errors.sedeRequired' : 'errors.requiredFields'), variant: 'destructive' });
+  };
+
   const editorTitle = `${t(isEdit ? 'inline.edit' : 'inline.new')} ${t(doc === 'quote' ? 'inline.addQuote' : 'inline.addTreatment')}`;
 
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
+    <form onSubmit={form.handleSubmit(onSubmit, onInvalid)}>
       <InlineEditorShell
         title={editorTitle}
         controls={<EditorControls submitting={submitting} onCancel={onCancel} />}
@@ -1023,7 +1030,8 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
           <FieldIcon icon={Calendar} className="[grid-area:date]">
             <DatePickerInput
               value={format(createdAt, 'yyyy-MM-dd')}
-              onChange={(iso) => iso && form.setValue('created_at', parseISO(iso))}
+              onChange={(iso) => iso && form.setValue('created_at', parseISO(iso), { shouldValidate: true })}
+              aria-invalid={!!errors.created_at}
               className="h-8 pl-7 text-xs"
             />
           </FieldIcon>
@@ -1035,6 +1043,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
               onChange={(iso) => form.setValue('due_date', iso ? parseISO(iso) : undefined, { shouldValidate: true })}
               disabledDays={(date) => date <= createdAt}
               placeholder={t('fields.dueDate')}
+              aria-invalid={!!errors.due_date}
               className="h-8 pl-7 text-xs"
             />
           </FieldIcon>
@@ -1058,6 +1067,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
             }}
             placeholder={t('fields.searchService')}
             triggerText={t('fields.selectService')}
+            aria-invalid={!!errors.service_id}
             className="h-8 pl-7"
           />
         </FieldIcon>
@@ -1067,6 +1077,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
             min={1}
             placeholder={t('fields.quantity')}
             aria-label={t('fields.quantity')}
+            aria-invalid={!!errors.quantity}
             className="h-8 pl-7 text-sm"
             {...form.register('quantity')}
           />
@@ -1085,6 +1096,8 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
             onCurrencyChange={(c) => form.setValue('currency', c, { shouldValidate: true })}
             currencyLocked={isEdit}
             ariaLabel={t('fields.price')}
+            amountInvalid={!!errors.unit_price}
+            currencyInvalid={!!errors.currency}
             className="min-w-0 flex-1 basis-[11.5rem]"
           />
           {/* Descuento, inline junto al precio. Este editor maneja una sola
@@ -1126,9 +1139,10 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
         <FieldIcon icon={MapPin} className="[grid-area:sede]">
           <SedeSelector
             value={form.watch('sede_id')}
-            onValueChange={(sedeId) => form.setValue('sede_id', sedeId)}
+            onValueChange={(sedeId) => form.setValue('sede_id', sedeId, { shouldValidate: true })}
             placeholder={t('fields.searchSede')}
             triggerText={t('fields.selectSede')}
+            aria-invalid={!!errors.sede_id}
             className="h-8 pl-7"
           />
         </FieldIcon>
@@ -1146,6 +1160,7 @@ function QuoteInvoiceInlineEditor({ doc, editRow, editInvoice, editQuote, editIt
             min={0}
             placeholder={t('fields.tooth')}
             aria-label={t('fields.tooth')}
+            aria-invalid={!!errors.tooth_number}
             className="h-8 pl-7 text-sm"
             {...form.register('tooth_number')}
           />
@@ -1434,8 +1449,8 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
       ? t('errors.methodRequired')
       : errors.payment_amount
         ? t('errors.amountRequired')
-        : null;
-    if (message) toast({ title: message, variant: 'destructive' });
+        : t('errors.requiredFields');
+    toast({ title: message, variant: 'destructive' });
   };
 
   return (
@@ -1529,6 +1544,8 @@ function PaymentInlineEditor({ userId, patientName, patientEmail, currency, pend
           onCurrencyChange={(c) => form.setValue('currency', c, { shouldValidate: true })}
           currencyLocked={isEdit}
           ariaLabel={t('fields.amount')}
+          amountInvalid={!!form.formState.errors.payment_amount}
+          currencyInvalid={!!form.formState.errors.currency}
           className="[grid-area:amt]"
         />
         <FieldIcon icon={StickyNote} className="[grid-area:notes]">
@@ -1600,7 +1617,9 @@ function CreditNoteInlineEditor({ row, userId, parentInvoiceId, sedeId, maxCredi
     if (submitting || !row.invoiceId || !row.itemId || !row.serviceId) return;
     const total = values.quantity * values.unit_price;
     if (total > maxCreditable + 0.01) {
-      form.setError('unit_price', { message: t('dialogs.creditNote.exceedsMax', { max: maxCreditable.toFixed(2) }) });
+      const message = t('dialogs.creditNote.exceedsMax', { max: maxCreditable.toFixed(2) });
+      form.setError('unit_price', { message });
+      toast({ title: message, variant: 'destructive' });
       return;
     }
     setSubmitting(true);
@@ -1628,8 +1647,11 @@ function CreditNoteInlineEditor({ row, userId, parentInvoiceId, sedeId, maxCredi
     }
   };
 
+  const errors = form.formState.errors;
+  const onInvalid = () => toast({ title: t('errors.requiredFields'), variant: 'destructive' });
+
   return (
-    <form onSubmit={form.handleSubmit(onSubmit)}>
+    <form onSubmit={form.handleSubmit(onSubmit, onInvalid)}>
       <InlineEditorShell
         title={`${t('inline.edit')} ${t('docLine.creditNote')}`}
         controls={<EditorControls submitting={submitting} onCancel={onCancel} />}
@@ -1647,6 +1669,7 @@ function CreditNoteInlineEditor({ row, userId, parentInvoiceId, sedeId, maxCredi
             type="number"
             min={1}
             aria-label={t('dialogs.creditNote.quantity')}
+            aria-invalid={!!errors.quantity}
             className="h-8 pl-7 text-sm"
             {...form.register('quantity')}
           />
@@ -1657,6 +1680,7 @@ function CreditNoteInlineEditor({ row, userId, parentInvoiceId, sedeId, maxCredi
           onAmountChange={(v) => form.setValue('unit_price', v, { shouldValidate: true })}
           currencyLocked
           ariaLabel={t('dialogs.creditNote.unitPrice')}
+          amountInvalid={!!errors.unit_price}
           className="[grid-area:amt]"
         />
         <span className="flex h-8 items-center justify-end gap-1 whitespace-nowrap text-sm font-medium tabular-nums text-muted-foreground [grid-area:total]">

@@ -21,6 +21,8 @@ interface CurrencySelectProps {
   className?: string;
   placeholder?: string;
   id?: string;
+  /** Marca el campo como inválido (borde rojo). `FormControl` lo pasa solo. */
+  'aria-invalid'?: React.AriaAttributes['aria-invalid'];
 }
 
 /**
@@ -39,6 +41,7 @@ export function CurrencySelect({
   className,
   placeholder,
   id,
+  'aria-invalid': ariaInvalid,
 }: CurrencySelectProps) {
   const { optionsFor } = useCurrencySettings();
   const options = optionsFor(savedCurrency ?? value);
@@ -61,8 +64,10 @@ export function CurrencySelect({
       <div
         id={id}
         data-testid="currency-select-static"
+        aria-invalid={ariaInvalid}
         className={cn(
           'flex h-10 items-center rounded-md border border-input bg-muted/40 px-3 text-sm text-muted-foreground',
+          (ariaInvalid === true || ariaInvalid === 'true') && 'border-destructive',
           className,
         )}
       >
@@ -73,7 +78,7 @@ export function CurrencySelect({
 
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled}>
-      <SelectTrigger id={id} className={className} data-testid="currency-select">
+      <SelectTrigger id={id} className={className} aria-invalid={ariaInvalid} data-testid="currency-select">
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

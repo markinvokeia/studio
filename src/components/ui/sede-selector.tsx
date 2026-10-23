@@ -16,6 +16,8 @@ interface SedeSelectorProps {
     emptyText?: string;
     className?: string;
     disabled?: boolean;
+    /** Marca el campo como inválido (borde rojo). `FormControl` lo pasa solo. */
+    'aria-invalid'?: React.AriaAttributes['aria-invalid'];
 }
 
 export function SedeSelector({
@@ -26,6 +28,7 @@ export function SedeSelector({
     emptyText = 'No hay resultados.',
     className,
     disabled = false,
+    'aria-invalid': ariaInvalid,
 }: SedeSelectorProps) {
     const { sedes } = useAuth();
     const [open, setOpen] = React.useState(false);
@@ -46,6 +49,7 @@ export function SedeSelector({
                     role="combobox"
                     className={cn('w-full justify-between font-normal', !value && 'text-muted-foreground', className)}
                     disabled={disabled}
+                    aria-invalid={ariaInvalid}
                 >
                     <span className="truncate block">{selectedSede ? selectedSede.name : triggerText}</span>
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

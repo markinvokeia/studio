@@ -312,6 +312,8 @@ type DatePickerInputProps = {
   /** Overrides the calendar-toggle icon color (defaults to a muted foreground). */
   iconClassName?: string
   disabledDays?: (date: Date) => boolean
+  /** Marks the field invalid (red border). `FormControl` passes it automatically. */
+  'aria-invalid'?: React.AriaAttributes['aria-invalid']
 }
 
 const DATE_FORMAT = 'dd/MM/yyyy'
@@ -359,6 +361,7 @@ export function DatePickerInput({
   className,
   iconClassName,
   disabledDays,
+  'aria-invalid': ariaInvalid,
 }: DatePickerInputProps) {
   const [inputValue, setInputValue] = React.useState<string>(() => {
     if (!value) return ''
@@ -462,6 +465,7 @@ export function DatePickerInput({
             )}
             inputMode="numeric"
             maxLength={10}
+            aria-invalid={ariaInvalid || error || undefined}
           />
           <PopoverTrigger asChild>
             <button
