@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, X } from 'lucide-react';
+import { ArrowLeft, EyeOff, Volume2, VolumeX, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -15,11 +15,17 @@ import { HelpScopeProvider } from '@/components/help/help-scope';
 import { OnboardingChecklist } from '@/components/help/onboarding-checklist';
 import { ScreenHelp } from '@/components/help/screen-help';
 
+import { useAuth } from '@/context/AuthContext';
+import { isSpeechSupported, stopAssistantSpeech, useAssistantVoice } from '@/hooks/use-assistant-voice';
+import { useMascotPreference } from '@/hooks/use-mascot-preference';
 import { useCurrentHelpRoute } from '@/hooks/use-current-help-route';
 import { usePermissions } from '@/hooks/usePermissions';
 import { findScreen, findUseCase, loadHelpCatalog } from '@/lib/help/catalog';
 import { configureGuideRunner, nextStep, startGuide } from '@/lib/help/guide-runner';
+import { findHelpTarget } from '@/lib/help/guide-engine';
 import { stripLocale } from '@/lib/help/help-id';
+import { pickPlacement, rectOf, type Rect } from '@/lib/help/placement';
+import { cn } from '@/lib/utils';
 import { getOnboardingStatus, getPublishedCatalogVersion, publishCatalog } from '@/services/help-assistant';
 import { useHelpAssistant } from '@/stores/help-assistant-store';
 
@@ -36,7 +42,13 @@ const CATALOG_IDLE_DELAY_MS = 2500;
 const MOBILE_BREAKPOINT_PX = 640;
 const WINDOW_WIDTH = 380;
 const WINDOW_MAX_HEIGHT = 560;
+/** Menos lugar que esto arriba de la mascota: la ventana sale abajo. */
+const WINDOW_MIN_SPACE = 360;
 const ANCHOR_POLL_MS = 200;
+/** Ventana apartada mientras señala: márgenes para el riel (derecha) y el menú (izquierda). */
+const DETACHED_RIGHT_PX = 72;
+const DETACHED_LEFT_PX = 96;
+const DETACHED_SHORT_HEIGHT = 380;
 
 interface Anchor { left: number; top: number; width: number }
 
@@ -58,6 +70,76 @@ function useMascotAnchor(active: boolean): Anchor | null {
     return () => { clearInterval(interval); window.removeEventListener('resize', measure); };
   }, [active]);
   return anchor;
+}
+
+/** Mientras señala algo con la ventana abierta: el elemento y la barra de pasos, para no taparlos. */
+function usePointedRects(targetId: string | null): { target: Rect | null; toolbar: Rect | null } | null {
+  const [rects, setRects] = React.useState<{ target: Rect | null; toolbar: Rect | null } | null>(null);
+  React.useEffect(() => {
+    if (!targetId) { setRects(null); return; }
+    const measure = () => {
+      const el = findHelpTarget(targetId)?.highlight.getBoundingClientRect();
+      const target = el ? { left: el.left - 8, top: el.top - 8, width: el.width + 16, height: el.height + 16 } : null;
+      const toolbar = rectOf('[data-help-bubble]');
+      setRects((prev) => (prev && sameRect(prev.target, target) && sameRect(prev.toolbar, toolbar) ? prev : { target, toolbar }));
+    };
+    measure();
+    const interval = setInterval(measure, ANCHOR_POLL_MS);
+    return () => clearInterval(interval);
+  }, [targetId]);
+  return rects;
+}
+
+function sameRect(a: Rect | null, b: Rect | null) {
+  if (!a || !b) return a === b;
+  return Math.abs(a.left - b.left) < 1 && Math.abs(a.top - b.top) < 1 && Math.abs(a.width - b.width) < 1 && Math.abs(a.height - b.height) < 1;
+}
+
+/** Una esquina (abajo a la derecha primero) donde la ventana no pise nada de `avoid`; si no entra, más baja. */
+function placeAwayFrom(avoid: (Rect | null)[]): React.CSSProperties {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const mobile = vw < MOBILE_BREAKPOINT_PX;
+  const width = mobile ? vw - 16 : WINDOW_WIDTH;
+  const right = mobile ? 8 : vw - width - DETACHED_RIGHT_PX;
+  const left = mobile ? 8 : DETACHED_LEFT_PX;
+  const candidates = [Math.min(WINDOW_MAX_HEIGHT, vh * 0.75), DETACHED_SHORT_HEIGHT].flatMap((height) => [
+    { rect: { width, height, left: right, top: vh - height - 16 } },
+    { rect: { width, height, left, top: vh - height - 16 } },
+    { rect: { width, height, left: right, top: 16 } },
+    { rect: { width, height, left, top: 16 } },
+  ]);
+  const { rect } = pickPlacement(candidates, avoid.filter((r): r is Rect => !!r));
+  return { left: rect.left, top: rect.top, width: rect.width, height: rect.height, maxHeight: rect.height };
+}
+
+const QUICK_ACTION_PX = 36;
+const QUICK_ACTION_GAP = 8;
+
+/** Columna de iconos al costado de la mascota, del lado que da al centro de la pantalla. */
+function quickActionsStyle(anchor: Anchor, count: number): React.CSSProperties {
+  const height = count * QUICK_ACTION_PX + (count - 1) * QUICK_ACTION_GAP;
+  const onRightHalf = anchor.left + anchor.width / 2 > window.innerWidth / 2;
+  return {
+    top: Math.max(8, anchor.top + anchor.width / 2 - height / 2),
+    left: onRightHalf ? anchor.left - QUICK_ACTION_PX - QUICK_ACTION_GAP : anchor.left + anchor.width + QUICK_ACTION_GAP,
+  };
+}
+
+function QuickAction({ label, onClick, pressed, delay, children }: { label: string; onClick: () => void; pressed?: boolean; delay: number; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={pressed}
+      title={label}
+      style={{ animationDelay: `${delay}ms`, animationFillMode: 'both', width: QUICK_ACTION_PX, height: QUICK_ACTION_PX }}
+      className="flex items-center justify-center rounded-full border border-[#7C3AED]/25 bg-white text-[#5B21B6] shadow-[0_6px_16px_rgba(60,20,90,0.22)] transition-colors animate-in fade-in zoom-in-50 duration-300 hover:bg-[#7C3AED] hover:text-white dark:bg-card dark:text-violet-300"
+    >
+      {children}
+    </button>
+  );
 }
 
 function readStorage(storage: 'local' | 'session', key: string): string | null {
@@ -175,6 +257,22 @@ function HelpAssistantRoot() {
   // Mientras guía, lo primario es la guía (la mascota y la barra de pasos): la ventana se oculta.
   const showWindow = isOpen && !guide;
   const anchor = useMascotAnchor(showWindow);
+  const spotlightId = useHelpAssistant((s) => s.spotlight?.targetId ?? null);
+  const pointing = usePointedRects(showWindow ? spotlightId : null);
+  const voiceMuted = useAssistantVoice((s) => s.muted);
+  const setVoiceMuted = useAssistantVoice((s) => s.setMuted);
+  const [canSpeak, setCanSpeak] = React.useState(false);
+  React.useEffect(() => { setCanSpeak(isSpeechSupported()); }, []);
+  const { user } = useAuth();
+  const [, setShowMascot] = useMascotPreference(user?.id);
+
+  // Esconderla: se despide y queda dormida en el riel (MascotWakeButton) hasta que la despierten.
+  const hideMascot = React.useCallback(async () => {
+    close();
+    stopAssistantSpeech();
+    await mascotRef.current.gesture('wave', 900);
+    setShowMascot(false);
+  }, [close, setShowMascot]);
 
   // "Guiame en esta pantalla" se destaca si llegó a una pantalla nueva desde la última vez que la abrió.
   const lastSeenRoute = React.useRef<string | null>(null);
@@ -203,21 +301,29 @@ function HelpAssistantRoot() {
   const screenTitle = catalog ? findScreen(catalog, scope)?.title : undefined;
 
   // Ventana anclada arriba de la mascota, con la colita apuntándola.
+  // Si la dejaron arriba y no entra, sale abajo de ella.
+  // Mientras señala algo ("Mostrar" en la ficha de la pantalla) no la sigue: va a una
+  // esquina que no tape el elemento, la mascota ni la barra.
   let windowStyle: React.CSSProperties = {};
   let tailLeft = 0;
-  if (anchor && typeof window !== 'undefined') {
+  let below = false;
+  const detached = !!pointing && !!anchor;
+  if (detached && typeof window !== 'undefined') {
+    windowStyle = placeAwayFrom([pointing.target, pointing.toolbar, { left: anchor.left, top: anchor.top, width: anchor.width, height: anchor.width }]);
+  } else if (anchor && typeof window !== 'undefined') {
     const vw = window.innerWidth;
+    const vh = window.innerHeight;
     const mobile = vw < MOBILE_BREAKPOINT_PX;
     const width = mobile ? vw - 16 : WINDOW_WIDTH;
     const center = anchor.left + anchor.width / 2;
     const onRight = center > vw / 2;
     const left = Math.max(8, Math.min(vw - width - 8, onRight ? center - width + 48 : center - 48));
-    windowStyle = {
-      left,
-      width,
-      bottom: window.innerHeight - anchor.top + 4,
-      maxHeight: Math.max(240, Math.min(WINDOW_MAX_HEIGHT, anchor.top - 20)),
-    };
+    const spaceAbove = anchor.top - 20;
+    const spaceBelow = vh - (anchor.top + anchor.width) - 20;
+    below = spaceAbove < WINDOW_MIN_SPACE && spaceBelow > spaceAbove;
+    windowStyle = below
+      ? { left, width, top: anchor.top + anchor.width + 4, maxHeight: Math.max(240, Math.min(WINDOW_MAX_HEIGHT, spaceBelow)) }
+      : { left, width, bottom: vh - anchor.top + 4, maxHeight: Math.max(240, Math.min(WINDOW_MAX_HEIGHT, spaceAbove)) };
     tailLeft = Math.max(20, Math.min(width - 36, center - left - 8));
   }
 
@@ -282,11 +388,39 @@ function HelpAssistantRoot() {
             </div>
 
             {/* Colita del globo, hacia la mascota. */}
-            <span
+            {!detached && <span
               aria-hidden="true"
-              className="absolute -bottom-[9px] h-4 w-4 rotate-45 border-b-2 border-r-2 border-[#7C3AED]/25 bg-white dark:bg-card"
+              className={cn(
+                'absolute h-4 w-4 rotate-45 border-[#7C3AED]/25',
+                below ? '-top-[9px] border-l-2 border-t-2 bg-[#7C3AED]' : '-bottom-[9px] border-b-2 border-r-2 bg-white dark:bg-card',
+              )}
               style={{ left: tailLeft }}
-            />
+            />}
+          </div>
+        )}
+
+        {/* Iconos que salen al lado de la mascota al tocarla: silenciar la voz y esconderla. */}
+        {showWindow && anchor && !detached && (
+          <div
+            role="toolbar"
+            aria-label={t('mascotActions')}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="fixed z-[9986] flex flex-col gap-2"
+            style={quickActionsStyle(anchor, canSpeak ? 2 : 1)}
+          >
+            {canSpeak && (
+              <QuickAction
+                label={voiceMuted ? t('voiceOn') : t('voiceOff')}
+                pressed={voiceMuted}
+                onClick={() => setVoiceMuted(!voiceMuted)}
+                delay={0}
+              >
+                {voiceMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </QuickAction>
+            )}
+            <QuickAction label={t('hideMascot')} onClick={() => void hideMascot()} delay={canSpeak ? 70 : 0}>
+              <EyeOff className="h-4 w-4" />
+            </QuickAction>
           </div>
         )}
       </div>

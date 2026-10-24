@@ -67,6 +67,7 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 import { useTheme } from 'next-themes';
 import Image from 'next/image';
+import { MascotPeekZone } from '@/components/invoke-mascot';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -185,6 +186,14 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
     };
 
     return (
+        // Escondite de la mascota cuando la dejan a la izquierda: se asoma de costado
+        // detrás del menú (el menú es opaco). Posición inline: el CSS de la mascota va después de Tailwind.
+        <MascotPeekZone
+            edge="right"
+            name="left"
+            className="hidden sm:block"
+            style={{ position: 'fixed', top: 0, bottom: 0, left: 0, width: '5rem', zIndex: 20 }}
+        >
         <aside className="fixed inset-y-0 left-0 z-[20] hidden sm:flex h-screen w-20 flex-col bg-[var(--nav-bg)] shadow-[2px_0_12px_rgba(0,0,0,0.15)] transition-all">
             <div className="flex h-14 items-center justify-center mb-2 mt-2 shrink-0">
                 <Link href={`/${locale}`} className="transition-transform hover:scale-110">
@@ -439,6 +448,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                 </DialogContent>
             </Dialog>
         </aside>
+        </MascotPeekZone>
     );
 }
 

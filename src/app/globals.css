@@ -920,3 +920,15 @@ div[role="combobox"][aria-invalid="true"] {
 
 /* El riel derecho del header es el escondite de la mascota (MascotPeekZone): su contenido ocupa todo el alto. */
 .help-rail-zone > .ivm-peekzone-content { height: 100%; }
+/* Panel del contenido como escondite: el envoltorio ocupa el lugar del panel y es opaco
+   (con el mismo tinte de la página), así la mascota no se ve por los huecos entre tarjetas. */
+.help-content-zone > .ivm-peekzone-content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--page-tint, hsl(var(--background)));
+}
+@media print {
+  .help-content-zone > .ivm-peekzone-content { display: block; background: none; }
+}

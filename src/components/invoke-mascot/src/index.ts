@@ -10,9 +10,12 @@ export { useLookVector } from './useLookVector';
 export { ensureMascotStyles, MASCOT_CSS } from './styles';
 export type {
   DockPosition,
+  MascotAnchor,
   MascotActions,
   MascotController,
   MascotGesture,
+  MascotHome,
+  MascotHomeSide,
   MascotMood,
   MascotPhase,
   MascotTarget,

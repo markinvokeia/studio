@@ -1,5 +1,5 @@
 {
- "version": "8fedb193b7cd9ec2",
+ "version": "8d8aaba95aebb6cd",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -2616,9 +2616,81 @@
   {
    "elements": [
     {
+     "id": "appointments.btn.agendas",
+     "kind": "btn",
+     "label": "Agendas",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.bulk",
+     "kind": "btn",
+     "label": "Operaciones en Lotes",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.change-calendar",
+     "kind": "btn",
+     "label": "Cambiar consultorio",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.change-color",
+     "kind": "btn",
+     "label": "Cambiar color",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.change-doctor",
+     "kind": "btn",
+     "label": "Cambiar doctor",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.change-status",
+     "kind": "btn",
+     "label": "Cambiar estado",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.clinic-session",
+     "kind": "btn",
+     "label": "Editar sesión clínica",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
      "id": "appointments.btn.create-menu",
      "kind": "btn",
      "label": "Crear",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.delete-appointment",
+     "kind": "btn",
+     "label": "Eliminar cita",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.duration",
+     "kind": "btn",
+     "label": "Duración",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.edit-appointment",
+     "kind": "btn",
+     "label": "Editar cita",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.gaps",
+     "kind": "btn",
+     "label": "Buscar huecos",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.move-to",
+     "kind": "btn",
+     "label": "Mover a…",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
@@ -2634,10 +2706,81 @@
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "id": "appointments.btn.new-note",
+     "kind": "btn",
+     "label": "Crear nota",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.new-reminder",
+     "kind": "btn",
+     "label": "Crear recordatorio",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.patient-accounts",
+     "kind": "btn",
+     "label": "Cuentas",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.patient-appointments",
+     "kind": "btn",
+     "label": "Historial de Citas",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.patient-data",
+     "kind": "btn",
+     "label": "Datos del paciente",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.patient-documents",
+     "kind": "btn",
+     "label": "Imágenes y archivos",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.patient-history",
+     "kind": "btn",
+     "label": "Historia",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.patient-menu",
+     "kind": "btn",
+     "label": "Ninguno",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.print",
+     "kind": "btn",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.quick-edit",
+     "kind": "btn",
+     "label": "Editar",
+     "source": "src/components/calendar/appointment-quick-view.tsx"
+    },
+    {
+     "id": "appointments.btn.quick-history",
+     "kind": "btn",
+     "label": "Historial de cambios",
+     "source": "src/components/calendar/appointment-quick-view.tsx"
+    },
+    {
      "id": "appointments.btn.refresh",
      "kind": "btn",
      "label": "Refrescar",
-     "source": "src/components/tables/invoices-table.tsx"
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.reschedule",
+     "kind": "btn",
+     "label": "Reagendar",
+     "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
      "id": "appointments.btn.save",
@@ -2646,10 +2789,51 @@
      "source": "src/components/appointments/AppointmentFormDialog.tsx"
     },
     {
+     "id": "appointments.btn.search",
+     "kind": "btn",
+     "label": "Buscar cita",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.settings",
+     "kind": "btn",
+     "source": "src/components/calendar/calendar-settings-popover.tsx"
+    },
+    {
+     "id": "appointments.btn.slot-new-appointment",
+     "kind": "btn",
+     "label": "Crear cita",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.slot-new-note",
+     "kind": "btn",
+     "label": "Crear nota",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.slot-new-reminder",
+     "kind": "btn",
+     "label": "Crear recordatorio",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
      "id": "appointments.btn.submit",
      "kind": "btn",
      "label": "Guardar",
      "source": "src/components/appointments/ReminderFormDialog.tsx"
+    },
+    {
+     "id": "appointments.btn.view",
+     "kind": "btn",
+     "label": "Ver",
+     "source": "src/components/calendar/calendar-view-menu.tsx"
+    },
+    {
+     "id": "appointments.btn.zoom",
+     "kind": "btn",
+     "label": "Zoom",
+     "source": "src/components/calendar/calendar-zoom-menu.tsx"
     },
     {
      "id": "appointments.field.calendar",
@@ -2759,9 +2943,39 @@
      "source": "src/components/sales/quotes/QuoteFormDialog.tsx"
     },
     {
+     "id": "appointments.filter.appointments",
+     "kind": "filter",
+     "label": "Paciente o título de la cita…",
+     "source": "src/components/calendar/calendar-search-panel.tsx"
+    },
+    {
      "id": "appointments.filter.search",
      "kind": "filter",
      "source": "src/components/tables/invoices-table.tsx"
+    },
+    {
+     "id": "appointments.section.agendas",
+     "kind": "section",
+     "label": "Agendas",
+     "source": "src/components/calendar/calendar-agendas-panel.tsx"
+    },
+    {
+     "id": "appointments.section.calendar",
+     "kind": "section",
+     "label": "Expandir mes",
+     "source": "src/components/calendar/Calendar.tsx"
+    },
+    {
+     "id": "appointments.section.gaps",
+     "kind": "section",
+     "label": "Huecos disponibles",
+     "source": "src/components/calendar/calendar-gaps-panel.tsx"
+    },
+    {
+     "id": "appointments.section.quick-view",
+     "kind": "section",
+     "label": "Historial de cambios",
+     "source": "src/components/calendar/appointment-quick-view.tsx"
     }
    ],
    "id": "appointments",

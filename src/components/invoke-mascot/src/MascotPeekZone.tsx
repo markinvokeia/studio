@@ -13,8 +13,11 @@ export interface MascotPeekZoneProps {
    * - `bottom`: la barra está arriba (header); la mascota asoma cabeza abajo por DEBAJO de la barra.
    * - `left`: barra vertical sobre el borde derecho (riel de widgets); asoma de costado por la IZQUIERDA.
    * - `right`: barra vertical sobre el borde izquierdo; asoma de costado por la DERECHA.
+   * - `auto`: `bottom` si el lugar elegido está abajo, si no `top` (el panel del contenido).
    */
-  edge?: Edge;
+  edge?: Edge | 'auto';
+  /** Nombre de la zona: el provider elige dónde esconderse por nombre (`hideZones`). */
+  name?: string;
   /** Margen dentro de la barra (a lo largo) donde puede aparecer (px). Por defecto 16. */
   inset?: number;
   className?: string;
@@ -58,19 +61,22 @@ const along = (edge: Edge, sign: 1 | -1): Point => (isVertical(edge) ? { x: 0, y
  * Requisitos: la barra debe tener fondo opaco, y sus contenedores padres no deben recortar
  * (`overflow: hidden`) el espacio por donde asoma la mascota.
  */
-export function MascotPeekZone({ children, edge = 'top', inset = 16, className, style }: MascotPeekZoneProps) {
+export function MascotPeekZone({ children, edge: edgeProp = 'top', name, inset = 16, className, style }: MascotPeekZoneProps) {
   const internal = React.useContext(MascotInternalContext);
   const rootRef = React.useRef<HTMLDivElement>(null);
   const [zoneId, setZoneId] = React.useState<number | null>(null);
   const [box, setBox] = React.useState({ w: 0, h: 0 });
+  const edge: Edge = edgeProp === 'auto' ? (internal?.home?.side === 'bottom' ? 'bottom' : 'top') : edgeProp;
 
   React.useEffect(() => {
     if (!internal) return;
-    const { id, unregister } = internal.registerZone();
+    // Sólo sirve de escondite si se ve (con `display: none` en mobile, no).
+    const usable = () => !!rootRef.current && rootRef.current.offsetWidth > 0 && rootRef.current.offsetHeight > 0;
+    const { id, unregister } = internal.registerZone(name, usable);
     setZoneId(id);
     return unregister;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [!!internal]);
+  }, [!!internal, name]);
 
   React.useLayoutEffect(() => {
     const el = rootRef.current;
@@ -90,6 +96,14 @@ export function MascotPeekZone({ children, edge = 'top', inset = 16, className, 
   const showActor = !!internal && internal.phase === 'peeking' && isActiveZone && box.h > 0 && box.w > 0;
   const vertical = isVertical(edge);
   const extra = internal?.size ?? 0;
+  // Con un lugar elegido, se asoma justo donde la soltaron (si no, en lugares al azar).
+  let fixedAt: number | undefined;
+  if (showActor && internal?.home && internal.peekAt && rootRef.current) {
+    const r = rootRef.current.getBoundingClientRect();
+    const along = vertical ? internal.peekAt.y - r.top : internal.peekAt.x - r.left;
+    const length = vertical ? box.h : box.w;
+    fixedAt = Math.round(Math.min(Math.max(inset, along - extra / 2), Math.max(inset, length - extra - inset)));
+  }
   const layerStyle: React.CSSProperties =
     edge === 'top' ? { bottom: 0, height: box.h + extra }
     : edge === 'bottom' ? { top: 0, height: box.h + extra }
@@ -106,6 +120,7 @@ export function MascotPeekZone({ children, edge = 'top', inset = 16, className, 
             width={vertical ? box.h : box.w}
             inset={inset}
             edge={edge}
+            fixedAt={fixedAt}
             exiting={internal.peekExiting}
             onExited={internal.onPeekExited}
             onClick={internal.onPeekClick}
@@ -123,14 +138,16 @@ interface PeekingProps {
   width: number;
   inset: number;
   edge: Edge;
+  /** Posición fija a lo largo de la barra (px); sin ella, cambia al azar cada vez. */
+  fixedAt?: number;
   exiting: boolean;
   onExited(): void;
   onClick(): void;
 }
 
-function PeekingMascot({ size, barH, width, inset, edge, exiting, onExited, onClick }: PeekingProps) {
+function PeekingMascot({ size, barH, width, inset, edge, fixedAt, exiting, onExited, onClick }: PeekingProps) {
   const [level, setLevel] = React.useState<Level>('hidden');
-  const [x, setX] = React.useState(() => Math.max(inset, width - size - inset));
+  const [x, setX] = React.useState(() => fixedAt ?? Math.max(inset, width - size - inset));
   const [mood, setMood] = React.useState<MascotMood>('neutral');
   const [gesture, setGesture] = React.useState<MascotGesture>('none');
   const [scripted, setScripted] = React.useState<Point | 'cursor'>({ x: 0, y: -0.4 });
@@ -148,7 +165,7 @@ function PeekingMascot({ size, barH, width, inset, edge, exiting, onExited, onCl
       while (alive) {
         setFast(false);
         const maxX = Math.max(inset, width - size - inset);
-        setX(Math.round(inset + Math.random() * (maxX - inset)));
+        setX(fixedAt ?? Math.round(inset + Math.random() * (maxX - inset)));
         await w8(90);
         if (!alive) return;
         setMood('neutral');
@@ -193,7 +210,7 @@ function PeekingMascot({ size, barH, width, inset, edge, exiting, onExited, onCl
     return () => {
       alive = false;
     };
-  }, [exiting, width, size, inset, edge]);
+  }, [exiting, width, size, inset, edge, fixedAt]);
 
   // Salida: sube del todo, se pone contenta y "salta" fuera de la barra.
   React.useEffect(() => {

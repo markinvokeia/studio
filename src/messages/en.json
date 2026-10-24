@@ -10161,7 +10161,9 @@
       "mascotLetsGo": "Let's go! I'll take you there.",
       "onboardingTitle": "Getting started",
       "onboardingPending": "{count, plural, one {# step} other {# steps}} left to get started",
-      "guideThisScreen": "Guide me on this screen"
+      "guideThisScreen": "Guide me on this screen",
+      "readAloud": "Listen",
+      "stopReading": "Stop reading"
     },
     "mascot": {
       "label": "Invoke assistant",
@@ -10175,7 +10177,9 @@
       "loading": {
         "loadingScreen": "Opening the screen… the first time can take a while.",
         "loadingElement": "Waiting for the screen to finish loading…"
-      }
+      },
+      "wake": "Wake the assistant up",
+      "railLabel": "Assistant"
     },
     "toolbar": {
       "label": "Guide: step {current} of {total}",
@@ -10190,7 +10194,11 @@
       "required": "Required",
       "retry": "Retry"
     },
-    "back": "Back"
+    "back": "Back",
+    "voiceOn": "Turn voice on",
+    "voiceOff": "Mute voice",
+    "hideMascot": "Hide the assistant",
+    "mascotActions": "Assistant options"
   },
   "HelpInsightsPage": {
     "title": "Assistant insights",
@@ -10283,5 +10291,13 @@
       "ticketUpdated": "Ticket updated",
       "error": "Could not update"
     }
+  },
+  "RouteError": {
+    "title": "Something went wrong",
+    "description": "We couldn't show this screen. Please try again.",
+    "chunkDescription": "There is a newer version of this screen. Reload the page to continue.",
+    "retry": "Try again",
+    "reload": "Reload page",
+    "reloading": "Reloading the page…"
   }
 }

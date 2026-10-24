@@ -16,6 +16,9 @@ import {
 import type {
   MascotActions,
   DockPosition,
+  MascotAnchor,
+  MascotHome,
+  MascotHomeSide,
   MascotController,
   MascotGesture,
   MascotMood,
@@ -58,7 +61,45 @@ export interface MascotProviderProps {
   label?: string;
   /** nonce para Content-Security-Policy, si la app lo usa. */
   styleNonce?: string;
+  /** Lugar elegido arrastrándola (controlado: guardalo con `onHomeChange`). Sin él, usa `dock`. */
+  home?: MascotHome | null;
+  /** Se puede arrastrar para elegir su lugar. Sólo en reposo (sin acciones en curso). Por defecto false. */
+  draggable?: boolean;
+  /** Al soltarla en un lugar nuevo. */
+  onHomeChange?: (home: MascotHome) => void;
+  /**
+   * En qué `MascotPeekZone` (por `name`) se esconde según el lado de su lugar; `default`
+   * sin lugar elegido. Si ninguna zona tiene nombre, usa la última montada.
+   */
+  hideZones?: Partial<Record<MascotHomeSide | 'default', string>>;
+  /** Selector de elementos que el globo no debe tapar (además del elemento señalado). */
+  bubbleAvoid?: string;
 }
+
+interface Zone {
+  id: number;
+  name?: string;
+  usable: () => boolean;
+}
+
+interface BubblePlace {
+  left: number;
+  top: number;
+  /** Esquina del globo que apunta a la mascota. */
+  tail: 'bl' | 'br' | 'tl' | 'tr' | 'l' | 'r';
+}
+
+const DEFAULT_HIDE_ZONES: Record<MascotHomeSide | 'default', string> = {
+  default: 'right',
+  right: 'right',
+  left: 'left',
+  top: 'content',
+  bottom: 'content',
+};
+/** Distancia mínima del puntero para que un clic pase a ser arrastre. */
+const DRAG_THRESHOLD = 6;
+/** Franja de cada costado (fracción del ancho) que cuenta como "izquierda" o "derecha". */
+const SIDE_BAND = 0.25;
 
 interface Burst {
   id: number;
@@ -71,7 +112,11 @@ interface Internal {
   phase: MascotPhase;
   activeZone: number | null;
   peekExiting: boolean;
-  registerZone(): { id: number; unregister: () => void };
+  /** Lugar elegido (para las zonas con `edge="auto"` y para asomarse donde la soltaron). */
+  home: MascotHome | null;
+  /** Centro de la mascota (viewport) al esconderse. */
+  peekAt: Point | null;
+  registerZone(name: string | undefined, usable: () => boolean): { id: number; unregister: () => void };
   onPeekExited(): void;
   onPeekClick(): void;
 }
@@ -86,8 +131,10 @@ export function useMascot(): MascotController {
   return c;
 }
 
-const DOCKS: DockPosition[] = ['bottom-right', 'bottom-left', 'top-right', 'top-left', 'center-right', 'center-left'];
-const isDock = (t: unknown): t is DockPosition => typeof t === 'string' && (DOCKS as string[]).includes(t);
+const DOCKS: MascotAnchor[] = ['bottom-right', 'bottom-left', 'top-right', 'top-left', 'center-right', 'center-left', 'home'];
+const isDock = (t: unknown): t is MascotAnchor => typeof t === 'string' && (DOCKS as string[]).includes(t);
+const sameHome = (a: MascotHome | null, b: MascotHome | null) =>
+  a === b || (!!a && !!b && a.side === b.side && Math.abs(a.x - b.x) < 1e-4 && Math.abs(a.y - b.y) < 1e-4);
 const isPoint = (t: unknown): t is Point =>
   !!t && typeof t === 'object' && typeof (t as Point).x === 'number' && typeof (t as Point).y === 'number' && !(t instanceof Element);
 
@@ -144,6 +191,11 @@ export function MascotProvider({
   onMascotClick,
   label = 'Asistente de Invoke',
   styleNonce,
+  home: homeProp = null,
+  draggable = false,
+  onHomeChange,
+  hideZones,
+  bubbleAvoid,
 }: MascotProviderProps) {
   // ---------- estado visible ----------
   const [phase, setPhaseS] = React.useState<MascotPhase>('active');
@@ -160,6 +212,10 @@ export function MascotProvider({
   const [activeZone, setActiveZone] = React.useState<number | null>(null);
   const [peekExiting, setPeekExiting] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
+  const [home, setHomeS] = React.useState<MascotHome | null>(homeProp);
+  const [peekAt, setPeekAt] = React.useState<Point | null>(null);
+  const [dragging, setDragging] = React.useState(false);
+  const [bubblePlace, setBubblePlace] = React.useState<BubblePlace | null>(null);
 
   // ---------- refs (fuente de verdad para los flujos async) ----------
   const actorRef = React.useRef<HTMLDivElement>(null);
@@ -167,19 +223,27 @@ export function MascotProvider({
   const enabledRef = React.useRef<boolean>(enabledProp);
   const messageRef = React.useRef<string | null>(null);
   const posRef = React.useRef<Point>({ x: -9999, y: -9999 });
-  const dockRef = React.useRef<DockPosition | null>(dock);
+  const dockRef = React.useRef<MascotAnchor | null>(homeProp ? 'home' : dock);
+  const homeRef = React.useRef<MascotHome | null>(homeProp);
+  const zonesRef = React.useRef<Zone[]>([]);
+  const activeZoneRef = React.useRef<number | null>(null);
+  const draggingRef = React.useRef(false);
+  const dragRef = React.useRef<{ id: number; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
+  const suppressClickRef = React.useRef(false);
+  const bubbleRef = React.useRef<HTMLDivElement>(null);
+  /** Elemento que está señalando (el globo no lo tapa). */
+  const pointedRef = React.useRef<Element | null>(null);
   const lastRequestRef = React.useRef<number>(Date.now());
   const lastInteractionRef = React.useRef<number>(Date.now());
   const busyRef = React.useRef(0);
   const queueRef = React.useRef<Promise<unknown>>(Promise.resolve());
-  const zonesRef = React.useRef<number[]>([]);
   const zoneSeq = React.useRef(0);
   const peekExitResolve = React.useRef<(() => void) | null>(null);
   const burstSeq = React.useRef(0);
   const aliveRef = React.useRef(true);
   const lastPersist = React.useRef(0);
 
-  const props = { size, dock, margin, insets, defaultTravel, storageKey, idleAfterMs, sleepAfterMs };
+  const props = { size, dock, margin, insets, defaultTravel, storageKey, idleAfterMs, sleepAfterMs, draggable, onHomeChange, hideZones, bubbleAvoid };
   const propsRef = React.useRef(props);
   propsRef.current = props;
 
@@ -193,14 +257,36 @@ export function MascotProvider({
   };
 
   // ---------- geometría ----------
-  const dockPoint = (d: DockPosition): Point => {
+  /** Límites de la esquina superior izquierda respetando márgenes e insets. */
+  const bounds = () => {
     const { size: s, margin: m, insets: ins } = propsRef.current;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const L = m + (ins?.left ?? 0);
-    const R = vw - s - m - (ins?.right ?? 0);
     const Tt = m + (ins?.top ?? 0);
-    const B = vh - s - m - (ins?.bottom ?? 0);
+    return {
+      L,
+      R: Math.max(L, vw - s - m - (ins?.right ?? 0)),
+      Tt,
+      B: Math.max(Tt, vh - s - m - (ins?.bottom ?? 0)),
+    };
+  };
+
+  /** Dónde descansa en su lugar elegido (esquina superior izquierda). */
+  const homeTL = (h: MascotHome): Point => {
+    const s = propsRef.current.size;
+    const { L, R, Tt, B } = bounds();
+    return {
+      x: clamp(h.x * window.innerWidth - s / 2, L, R),
+      y: clamp(h.y * window.innerHeight - s / 2, Tt, B),
+    };
+  };
+
+  const dockPoint = (d: MascotAnchor): Point => {
+    if (d === 'home') return homeRef.current ? homeTL(homeRef.current) : dockPoint(propsRef.current.dock);
+    const s = propsRef.current.size;
+    const vh = window.innerHeight;
+    const { L, R, Tt, B } = bounds();
     const C = (vh - s) / 2;
     switch (d) {
       case 'bottom-left':
@@ -240,7 +326,7 @@ export function MascotProvider({
   };
 
   /** Punto del viewport que representa el destino (para mirar/señalar). */
-  const resolvePoint = (t: MascotTarget | DockPosition): Point | null => {
+  const resolvePoint = (t: MascotTarget | MascotAnchor): Point | null => {
     const s = propsRef.current.size;
     if (isPoint(t)) return t;
     if (isDock(t)) {
@@ -254,7 +340,7 @@ export function MascotProvider({
   };
 
   /** Esquina superior izquierda donde debe quedar la mascota al viajar a `t`. */
-  const resolveTL = (t: MascotTarget | DockPosition): { tl: Point; dock: DockPosition | null } | null => {
+  const resolveTL = (t: MascotTarget | MascotAnchor): { tl: Point; dock: MascotAnchor | null } | null => {
     const s = propsRef.current.size;
     if (isDock(t)) return { tl: dockPoint(t), dock: t };
     if (isPoint(t)) return { tl: clampTL({ x: t.x - s / 2, y: t.y - s / 2 }), dock: null };
@@ -336,7 +422,7 @@ export function MascotProvider({
   };
 
   // ---------- flujos internos ----------
-  const doTravel = async (target: MascotTarget | DockPosition, opts: TravelOptions = {}) => {
+  const doTravel = async (target: MascotTarget | MascotAnchor, opts: TravelOptions = {}) => {
     const r = resolveTL(target);
     if (!r) return;
     const to = r.tl;
@@ -408,9 +494,24 @@ export function MascotProvider({
     }
   };
 
+  /** Zona donde esconderse: la del lado de su lugar (o la de por defecto), si está visible. */
+  const pickZone = (): number | null => {
+    const usable = zonesRef.current.filter((z) => z.usable());
+    if (!usable.length) return null;
+    const named = usable.filter((z) => z.name);
+    if (!named.length) return usable[usable.length - 1].id;
+    const zones = { ...DEFAULT_HIDE_ZONES, ...propsRef.current.hideZones };
+    const want = homeRef.current && dockRef.current === 'home' ? zones[homeRef.current.side] : zones.default;
+    return named.find((z) => z.name === want)?.id ?? null;
+  };
+
   const doHide = async () => {
-    if (!zonesRef.current.length) return;
     if (phaseRef.current !== 'active') return;
+    const zone = pickZone();
+    if (zone === null) return;
+    activeZoneRef.current = zone;
+    setActiveZone(zone);
+    setPeekAt(actorCenter());
     setMessage(null);
     setGestureS('none');
     setPointAngle(null);
@@ -434,7 +535,7 @@ export function MascotProvider({
 
   const doShow = async () => {
     if (phaseRef.current !== 'peeking') return;
-    if (zonesRef.current.length) {
+    if (activeZoneRef.current !== null && zonesRef.current.some((z) => z.id === activeZoneRef.current)) {
       await Promise.race([
         new Promise<void>((res) => {
           peekExitResolve.current = res;
@@ -532,6 +633,7 @@ export function MascotProvider({
           const c = actorCenter();
           const angle = (Math.atan2(p.y - c.y, p.x - c.x) * 180) / Math.PI;
           const el = resolveElement(target);
+          pointedRef.current = el;
           setPointAngle(angle);
           setGestureS('point');
           setLookMode(p);
@@ -550,6 +652,7 @@ export function MascotProvider({
               : undefined;
           await holdFor(o.duration ?? (o.say ? readDuration(o.say) : 3500), o.signal);
           if (talkTimer) clearTimeout(talkTimer);
+          if (pointedRef.current === el) pointedRef.current = null;
           setGestureS('none');
           setPointAngle(null);
           setLookMode('cursor');
@@ -653,7 +756,7 @@ export function MascotProvider({
   // Temporizadores: esconderse en reposo y dormirse tras horas sin pedidos.
   React.useEffect(() => {
     const t = setInterval(() => {
-      if (busyRef.current > 0) return;
+      if (busyRef.current > 0 || draggingRef.current) return;
       const now = Date.now();
       const { idleAfterMs: ia, sleepAfterMs: sa } = propsRef.current;
       if (!enabledRef.current) {
@@ -668,8 +771,8 @@ export function MascotProvider({
         ia > 0 &&
         phaseRef.current === 'active' &&
         !messageRef.current &&
-        zonesRef.current.length > 0 &&
-        now - lastInteractionRef.current > ia
+        now - lastInteractionRef.current > ia &&
+        pickZone() !== null
       ) {
         void enqueue(doHide);
       }
@@ -685,15 +788,17 @@ export function MascotProvider({
       phase,
       activeZone,
       peekExiting,
-      registerZone: () => {
+      home,
+      peekAt,
+      registerZone: (name, usable) => {
         const id = ++zoneSeq.current;
-        zonesRef.current = [...zonesRef.current, id];
-        setActiveZone(id);
+        zonesRef.current = [...zonesRef.current, { id, name, usable }];
         const unregister = () => {
-          zonesRef.current = zonesRef.current.filter((z) => z !== id);
-          const next = zonesRef.current[zonesRef.current.length - 1] ?? null;
-          setActiveZone(next);
-          if (next === null && phaseRef.current === 'peeking') {
+          zonesRef.current = zonesRef.current.filter((z) => z.id !== id);
+          if (activeZoneRef.current !== id) return;
+          activeZoneRef.current = null;
+          setActiveZone(null);
+          if (phaseRef.current === 'peeking') {
             // La barra desapareció (cambio de página): vuelve a escena.
             if (peekExitResolve.current) peekExitResolve.current();
             else void enqueue(async () => {
@@ -713,13 +818,168 @@ export function MascotProvider({
       },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [size, phase, activeZone, peekExiting, onMascotClick],
+    [size, phase, activeZone, peekExiting, home, peekAt, onMascotClick],
   );
+
+  // Lugar elegido controlado por prop (la app lo guarda y lo devuelve; o lo borra).
+  React.useEffect(() => {
+    if (sameHome(homeProp, homeRef.current)) return;
+    homeRef.current = homeProp;
+    setHomeS(homeProp);
+    if (!mounted || draggingRef.current) return;
+    if (homeProp) {
+      if (dockRef.current === 'home' || dockRef.current === null) {
+        dockRef.current = 'home';
+        if (phaseRef.current === 'active' && busyRef.current === 0) setPosNow(homeTL(homeProp));
+      }
+    } else if (dockRef.current === 'home') {
+      void api.travelTo(propsRef.current.dock);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homeProp?.side, homeProp?.x, homeProp?.y, mounted]);
+
+  // ---------- arrastrar para elegir su lugar ----------
+  /** Lado según dónde la soltó: franjas de los costados, si no arriba o abajo. */
+  const homeFromDrop = (center: Point): MascotHome => {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const side: MascotHomeSide =
+      center.x < vw * SIDE_BAND ? 'left' : center.x > vw * (1 - SIDE_BAND) ? 'right' : center.y < vh / 2 ? 'top' : 'bottom';
+    const draft = { side, x: center.x / vw, y: center.y / vh };
+    // Se acomoda dentro de los márgenes (no queda debajo del riel ni del menú).
+    const tl = homeTL(draft);
+    const s = propsRef.current.size;
+    return { side, x: (tl.x + s / 2) / vw, y: (tl.y + s / 2) / vh };
+  };
+
+  const onHitPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!propsRef.current.draggable || e.button !== 0) return;
+    if (phaseRef.current !== 'active' || busyRef.current > 0) return;
+    dragRef.current = { id: e.pointerId, sx: e.clientX, sy: e.clientY, ox: posRef.current.x, oy: posRef.current.y, moved: false };
+  };
+
+  const onHitPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = dragRef.current;
+    if (!d || d.id !== e.pointerId) return;
+    const dx = e.clientX - d.sx;
+    const dy = e.clientY - d.sy;
+    if (!d.moved) {
+      if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+      if (phaseRef.current !== 'active' || busyRef.current > 0) {
+        dragRef.current = null;
+        return;
+      }
+      d.moved = true;
+      draggingRef.current = true;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      setDragging(true);
+      setMessage(null);
+      setGestureS('none');
+      setPointAngle(null);
+      setLookMode('cursor');
+      setMoodS('surprised');
+    }
+    setPosNow(clampTL({ x: d.ox + dx, y: d.oy + dy }));
+  };
+
+  const onHitPointerUp = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const d = dragRef.current;
+    if (!d || d.id !== e.pointerId) return;
+    dragRef.current = null;
+    if (!d.moved) return;
+    draggingRef.current = false;
+    suppressClickRef.current = true;
+    setDragging(false);
+    const next = homeFromDrop(actorCenter());
+    homeRef.current = next;
+    setHomeS(next);
+    dockRef.current = 'home';
+    setPosNow(homeTL(next));
+    markInteraction();
+    setMoodS('happy');
+    setTimeout(() => {
+      if (aliveRef.current && phaseRef.current === 'active' && !messageRef.current) setMoodS('neutral');
+    }, 900);
+    propsRef.current.onHomeChange?.(next);
+  };
+
+  // ---------- globo: dónde entra completo ----------
+  React.useLayoutEffect(() => {
+    const el = bubbleRef.current;
+    if (!message || !el || !stageVisible) {
+      setBubblePlace(null);
+      return;
+    }
+    const place = () => {
+      const s = propsRef.current.size;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const m = 8;
+      const w = el.offsetWidth;
+      const h = el.offsetHeight;
+      const { x, y } = posRef.current;
+      const above = y + 6 - h;
+      const below = y + s - 6;
+      const right = x + s * 0.62;
+      const left = x + s * 0.38 - w;
+      // Al costado prueba varias alturas: alineado arriba, centrado y alineado abajo con la mascota.
+      const sideTops = [y + s * 0.12, y + s / 2 - h / 2, y + s - h, y - h / 2].map((t) => clamp(t, m, Math.max(m, vh - h - m)));
+      const sideR = sideTops.map((top) => ({ left: x + s * 0.9, top, tail: 'l' as const }));
+      const sideL = sideTops.map((top) => ({ left: x + s * 0.1 - w, top, tail: 'r' as const }));
+      const aboveR: BubblePlace = { left: right, top: above, tail: 'bl' };
+      const aboveL: BubblePlace = { left, top: above, tail: 'br' };
+      const belowR: BubblePlace = { left: right, top: below, tail: 'tl' };
+      const belowL: BubblePlace = { left, top: below, tail: 'tr' };
+      // Primero arriba del lado de siempre; si no entra (cerca del tope), a un costado; si no, abajo.
+      const preferRight = x + s / 2 <= vw / 2;
+      const candidates: BubblePlace[] = preferRight
+        ? [aboveR, aboveL, ...sideR, ...sideL, belowR, belowL]
+        : [aboveL, aboveR, ...sideL, ...sideR, belowL, belowR];
+      const avoid: DOMRect[] = [];
+      if (pointedRef.current) avoid.push(pointedRef.current.getBoundingClientRect());
+      const sel = propsRef.current.bubbleAvoid;
+      if (sel) {
+        try {
+          document.querySelectorAll(sel).forEach((n) => avoid.push(n.getBoundingClientRect()));
+        } catch {
+          /* selector inválido */
+        }
+      }
+      const fits = (b: BubblePlace) => b.left >= m && b.top >= m && b.left + w <= vw - m && b.top + h <= vh - m;
+      /** Cuánto tapa de lo que no debe tapar (área, con 4 px de aire). */
+      const covered = (b: BubblePlace) =>
+        avoid.reduce((sum, r) => {
+          const ox = Math.min(b.left + w, r.right + 4) - Math.max(b.left, r.left - 4);
+          const oy = Math.min(b.top + h, r.bottom + 4) - Math.max(b.top, r.top - 4);
+          return sum + (r.width > 0 && ox > 0 && oy > 0 ? ox * oy : 0);
+        }, 0);
+      const inside = candidates.filter(fits);
+      // Si ninguno queda libre, el que menos tapa (y siempre completo en pantalla).
+      const pick =
+        inside.find((b) => covered(b) === 0) ??
+        (inside.length ? inside.reduce((best, b) => (covered(b) < covered(best) ? b : best)) : null) ?? {
+          ...candidates[0],
+          left: clamp(candidates[0].left, m, Math.max(m, vw - w - m)),
+          top: clamp(candidates[0].top, m, Math.max(m, vh - h - m)),
+        };
+      const next = { left: pick.left - x, top: pick.top - y, tail: pick.tail };
+      setBubblePlace((prev) =>
+        prev && prev.tail === next.tail && Math.abs(prev.left - next.left) < 0.5 && Math.abs(prev.top - next.top) < 0.5 ? prev : next,
+      );
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [message, pos.x, pos.y, size, stageVisible]);
 
   // ---------- render ----------
   const look = useLookVector(actorRef, lookMode, mounted && phase !== 'sleeping' && stageVisible);
 
   const handleClick = () => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
     markRequest();
     if (onMascotClick) return onMascotClick(controllerRef.current);
     if (phaseRef.current === 'sleeping') void api.wake();
@@ -767,20 +1027,30 @@ export function MascotProvider({
             ))}
             <div
               ref={actorRef}
-              className={`ivm-actor${stageVisible ? '' : ' ivm-hidden'}`}
+              className={`ivm-actor${stageVisible ? '' : ' ivm-hidden'}${dragging ? ' ivm-dragging' : ''}`}
               style={{ width: size, height: size, transform: T(pos), zIndex }}
             >
               {message && stageVisible && (
-                <div className={`ivm-bubble ivm-bubble-${side}`} role="status" aria-live="polite">
+                <div
+                  ref={bubbleRef}
+                  className={bubblePlace ? `ivm-bubble ivm-bubble-placed ivm-tail-${bubblePlace.tail}` : `ivm-bubble ivm-bubble-${side}`}
+                  style={bubblePlace ? { left: bubblePlace.left, top: bubblePlace.top, right: 'auto', bottom: 'auto', height: 'auto' } : undefined}
+                  role="status"
+                  aria-live="polite"
+                >
                   {message}
                 </div>
               )}
               <button
                 type="button"
-                className="ivm-hit"
+                className={`ivm-hit${draggable && phase === 'active' ? ' ivm-draggable' : ''}`}
                 aria-label={phase === 'sleeping' ? `${label} (durmiendo)` : label}
                 onClick={handleClick}
                 onPointerEnter={markInteraction}
+                onPointerDown={onHitPointerDown}
+                onPointerMove={onHitPointerMove}
+                onPointerUp={onHitPointerUp}
+                onPointerCancel={onHitPointerUp}
               >
                 <InvokeMascot
                   size={size}

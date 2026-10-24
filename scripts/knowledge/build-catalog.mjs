@@ -395,6 +395,9 @@ function validateGuides(screens, navItems, useCases, journey) {
       } else if (!ids.has(step.target)) {
         errors.push(`${where}: el help id "${step.target}" no existe en el catálogo`);
       }
+      for (const id of [].concat(step.until ?? [])) {
+        if (!ids.has(id)) errors.push(`${where}: el help id de "until" "${id}" no existe en el catálogo`);
+      }
     });
     for (const scope of data.screens ?? []) {
       if (!screens.some((s) => s.id === scope)) errors.push(`${file}: la pantalla "${scope}" no existe`);

@@ -2092,21 +2092,21 @@ export default function AppointmentsPage() {
             <ContextMenuItem
                 disabled={slot.isBlocked}
                 className="flex cursor-pointer items-center gap-2"
-                onSelect={() => handleCreateAppointmentFromSlot(slot)}
+                data-help-id="appointments.btn.slot-new-appointment" onSelect={() => handleCreateAppointmentFromSlot(slot)}
             >
                 <CalendarPlus className="h-4 w-4" />
                 {tReminders('createType.appointment')}
             </ContextMenuItem>
             <ContextMenuItem
                 className="flex cursor-pointer items-center gap-2"
-                onSelect={() => handleCreateReminderFromSlot(slot)}
+                data-help-id="appointments.btn.slot-new-reminder" onSelect={() => handleCreateReminderFromSlot(slot)}
             >
                 <BellRing className="h-4 w-4" />
                 {tReminders('createType.reminder')}
             </ContextMenuItem>
             <ContextMenuItem
                 className="flex cursor-pointer items-center gap-2"
-                onSelect={() => handleCreateNoteFromSlot(slot)}
+                data-help-id="appointments.btn.slot-new-note" onSelect={() => handleCreateNoteFromSlot(slot)}
             >
                 <FileText className="h-4 w-4" />
                 {tReminders('createType.note')}
@@ -4642,7 +4642,7 @@ export default function AppointmentsPage() {
         // Shared building blocks reused across the "invoke" and "custom" layouts.
         const statusSubmenu = (
             <ContextMenuSub>
-                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                <ContextMenuSubTrigger data-help-id="appointments.btn.change-status" className="cursor-pointer gap-2">
                     <ClipboardCheck className="h-4 w-4 shrink-0" />
                     <span className="flex min-w-0 flex-col">
                         <span>{tStatusMenu('changeStatus')}</span>
@@ -4677,7 +4677,7 @@ export default function AppointmentsPage() {
 
         const moveToSubmenu = canRetimeAppointment ? (
             <ContextMenuSub>
-                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                <ContextMenuSubTrigger data-help-id="appointments.btn.move-to" className="cursor-pointer gap-2">
                     <CalendarIcon className="h-4 w-4 shrink-0" />
                     <span className="flex min-w-0 flex-col">
                         <span>{tDrag('moveTo')}</span>
@@ -4706,7 +4706,7 @@ export default function AppointmentsPage() {
 
         const durationSubmenu = canRetimeAppointment ? (
             <ContextMenuSub>
-                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                <ContextMenuSubTrigger data-help-id="appointments.btn.duration" className="cursor-pointer gap-2">
                     <Clock className="h-4 w-4 shrink-0" />
                     <span className="flex min-w-0 flex-col">
                         <span>{tDrag('duration')}</span>
@@ -4733,7 +4733,7 @@ export default function AppointmentsPage() {
 
         const doctorSubmenu = (
             <ContextMenuSub>
-                <ContextMenuSubTrigger disabled={rowActionPending} className="cursor-pointer gap-2">
+                <ContextMenuSubTrigger data-help-id="appointments.btn.change-doctor" disabled={rowActionPending} className="cursor-pointer gap-2">
                     <UserCog className="h-4 w-4 shrink-0" />
                     <span className="flex min-w-0 flex-col">
                         <span>{appointment.doctorId ? tPanel('changeDoctor') : tPanel('assignDoctor')}</span>
@@ -4770,7 +4770,7 @@ export default function AppointmentsPage() {
         );
         const calendarSubmenu = (
             <ContextMenuSub>
-                <ContextMenuSubTrigger disabled={rowActionPending} className="cursor-pointer gap-2">
+                <ContextMenuSubTrigger data-help-id="appointments.btn.change-calendar" disabled={rowActionPending} className="cursor-pointer gap-2">
                     <Building2 className="h-4 w-4 shrink-0" />
                     <span className="flex min-w-0 flex-col">
                         <span>{appointment.calendar_source_id ? tPanel('changeCalendar') : tPanel('assignCalendar')}</span>
@@ -4807,7 +4807,7 @@ export default function AppointmentsPage() {
         );
         const rescheduleItem = canReschedule(appointment.status) ? (
             <ContextMenuItem
-                key="reschedule"
+                data-help-id="appointments.btn.reschedule" key="reschedule"
                 onClick={(e) => {
                     e.stopPropagation();
                     handleReschedule(appointment);
@@ -4820,7 +4820,7 @@ export default function AppointmentsPage() {
         ) : null;
         const editItem = (
             <ContextMenuItem
-                key="edit-appointment"
+                data-help-id="appointments.btn.edit-appointment" key="edit-appointment"
                 onSelect={() => handleEditAppointment(appointment)}
                 className="flex items-center gap-2 cursor-pointer"
             >
@@ -4841,14 +4841,14 @@ export default function AppointmentsPage() {
                 <>
                     <ContextMenuSeparator />
                     <ContextMenuSub>
-                        <ContextMenuSubTrigger disabled={!hasPatient} className="cursor-pointer gap-2 font-medium">
+                        <ContextMenuSubTrigger data-help-id="appointments.btn.patient-menu" disabled={!hasPatient} className="cursor-pointer gap-2 font-medium">
                             <UserRound className="h-4 w-4 shrink-0" />
                             <span className="min-w-0 flex-1 truncate">{hasPatient ? appointment.patientName : t('createDialog.none')}</span>
                         </ContextMenuSubTrigger>
                         <ContextMenuSubContent className="w-56">
                             {canViewPatientStatement && (
                                 <ContextMenuItem
-                                    key="patient-accounts"
+                                    data-help-id="appointments.btn.patient-accounts" key="patient-accounts"
                                     onSelect={() => openAccountStatement(appointment.patientId, appointment.patientName)}
                                     className="flex items-center gap-2 cursor-pointer"
                                 >
@@ -4857,7 +4857,7 @@ export default function AppointmentsPage() {
                                 </ContextMenuItem>
                             )}
                             <ContextMenuItem
-                                key="patient-history"
+                                data-help-id="appointments.btn.patient-history" key="patient-history"
                                 onSelect={() => openPatientHistory(appointment.patientId, appointment.patientName)}
                                 className="flex items-center gap-2 cursor-pointer"
                             >
@@ -4865,7 +4865,7 @@ export default function AppointmentsPage() {
                                 {t('contextMenu.clinicHistory')}
                             </ContextMenuItem>
                             <ContextMenuItem
-                                key="patient-documents"
+                                data-help-id="appointments.btn.patient-documents" key="patient-documents"
                                 onSelect={() => openPatientDocuments(appointment.patientId, appointment.patientName)}
                                 className="flex items-center gap-2 cursor-pointer"
                             >
@@ -4874,7 +4874,7 @@ export default function AppointmentsPage() {
                             </ContextMenuItem>
                             <ContextMenuSeparator />
                             <ContextMenuItem
-                                key="patient-appointments-history"
+                                data-help-id="appointments.btn.patient-appointments" key="patient-appointments-history"
                                 onSelect={() => openPatientAppointments(appointment.patientId, appointment.patientName)}
                                 className="flex items-center gap-2 cursor-pointer"
                             >
@@ -4883,7 +4883,7 @@ export default function AppointmentsPage() {
                             </ContextMenuItem>
                             <ContextMenuSeparator />
                             <ContextMenuItem
-                                key="patient-data"
+                                data-help-id="appointments.btn.patient-data" key="patient-data"
                                 onSelect={() => openPatientView({
                                     userId: appointment.patientId,
                                     userName: appointment.patientName,
@@ -4915,7 +4915,7 @@ export default function AppointmentsPage() {
                     <ContextMenuSeparator />
                     {editItem}
                     <ContextMenuItem
-                        key="delete"
+                        data-help-id="appointments.btn.delete-appointment" key="delete"
                         onClick={(e) => {
                             e.stopPropagation();
                             setSoftDeleteTarget(appointment);
@@ -4928,7 +4928,7 @@ export default function AppointmentsPage() {
 
                     <ContextMenuSeparator />
                     <ContextMenuSub>
-                        <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                        <ContextMenuSubTrigger data-help-id="appointments.btn.change-color" className="cursor-pointer gap-2">
                             <Palette className="h-4 w-4 shrink-0" />
                             {tPanel('changeColor')}
                         </ContextMenuSubTrigger>
@@ -4956,7 +4956,7 @@ export default function AppointmentsPage() {
             {durationSubmenu}
             {rescheduleItem}
             <ContextMenuItem
-                key="clinic-session"
+                data-help-id="appointments.btn.clinic-session" key="clinic-session"
                 onClick={(e) => {
                     e.stopPropagation();
                     handleOpenClinicSession(appointment);
@@ -5044,7 +5044,7 @@ export default function AppointmentsPage() {
 
                 <ContextMenuSeparator />
                 <ContextMenuItem
-                    key="delete"
+                    data-help-id="appointments.btn.delete-appointment" key="delete"
                     onClick={(e) => {
                         e.stopPropagation();
                         setSoftDeleteTarget(appointment);
@@ -5402,7 +5402,7 @@ export default function AppointmentsPage() {
                                     variant={agendasPanelOpen ? 'default' : 'outline'}
                                     size="sm"
                                     className="h-10 gap-1.5 shrink-0"
-                                    onClick={() => setAgendasPanelOpen((o) => !o)}
+                                    data-help-id="appointments.btn.agendas" onClick={() => setAgendasPanelOpen((o) => !o)}
                                     title="Ctrl+B"
                                 >
                                     <CalendarDays className="h-4 w-4" />
@@ -5436,7 +5436,7 @@ export default function AppointmentsPage() {
                                         variant={searchActive ? 'default' : 'outline'}
                                         size="sm"
                                         className="h-10 w-full justify-start gap-2"
-                                        onClick={handleToggleSearch}
+                                        data-help-id="appointments.btn.search" onClick={handleToggleSearch}
                                     >
                                         <Search className="h-4 w-4 shrink-0" />
                                         <span className="truncate">{tSearch('button')}</span>
@@ -5446,7 +5446,7 @@ export default function AppointmentsPage() {
                                             variant={gapsActive ? 'default' : 'outline'}
                                             size="sm"
                                             className="h-10 justify-start gap-2"
-                                            onClick={handleToggleGaps}
+                                            data-help-id="appointments.btn.gaps" onClick={handleToggleGaps}
                                         >
                                             <CalendarSearch className="h-4 w-4 shrink-0" />
                                             <span className="truncate">{tGaps('button')}</span>
@@ -5654,7 +5654,7 @@ export default function AppointmentsPage() {
                                                     variant={searchActive ? 'default' : 'outline'}
                                                     size={secondaryIconOnly ? 'icon' : 'sm'}
                                                     className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
-                                                    onClick={handleToggleSearch}
+                                                    data-help-id="appointments.btn.search" onClick={handleToggleSearch}
                                                 >
                                                     <Search className="h-4 w-4 shrink-0" />
                                                     {!secondaryIconOnly && (
@@ -5670,7 +5670,7 @@ export default function AppointmentsPage() {
                                                     variant={gapsActive ? 'default' : 'outline'}
                                                     size={secondaryIconOnly ? 'icon' : 'sm'}
                                                     className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
-                                                    onClick={handleToggleGaps}
+                                                    data-help-id="appointments.btn.gaps" onClick={handleToggleGaps}
                                                 >
                                                     <CalendarSearch className="h-4 w-4 shrink-0" />
                                                     {!secondaryIconOnly && (
@@ -5682,7 +5682,7 @@ export default function AppointmentsPage() {
                                         </Tooltip>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Button
+                                                <Button data-help-id="appointments.btn.bulk"
                                                     variant={isBulkMode ? 'default' : 'outline'}
                                                     size={secondaryIconOnly ? 'icon' : 'sm'}
                                                     className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
@@ -5745,7 +5745,7 @@ export default function AppointmentsPage() {
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
                                                 className="cursor-pointer items-start gap-3 rounded-md p-3"
-                                                onSelect={handleNewReminderClick}
+                                                data-help-id="appointments.btn.new-reminder" onSelect={handleNewReminderClick}
                                             >
                                                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-violet-100 text-violet-700">
                                                     <BellRing className="h-4 w-4" />
@@ -5759,7 +5759,7 @@ export default function AppointmentsPage() {
                                             </DropdownMenuItem>
                                             <DropdownMenuItem
                                                 className="cursor-pointer items-start gap-3 rounded-md p-3"
-                                                onSelect={handleNewNoteClick}
+                                                data-help-id="appointments.btn.new-note" onSelect={handleNewNoteClick}
                                             >
                                                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-sky-100 text-sky-700">
                                                     <FileText className="h-4 w-4" />
@@ -5793,7 +5793,7 @@ export default function AppointmentsPage() {
                                 <TooltipProvider>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Button onClick={() => setIsPrintScheduleOpen(true)} variant="ghost" size="icon" className={isMobile ? "h-8 w-8" : "h-10 w-10"}>
+                                            <Button data-help-id="appointments.btn.print" onClick={() => setIsPrintScheduleOpen(true)} variant="ghost" size="icon" className={isMobile ? "h-8 w-8" : "h-10 w-10"}>
                                                 <FileSpreadsheet className="h-4 w-4" />
                                             </Button>
                                         </TooltipTrigger>
@@ -5803,7 +5803,7 @@ export default function AppointmentsPage() {
                                     </Tooltip>
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Button onClick={forceRefresh} variant="ghost" size="icon" disabled={isRefreshing} className={isMobile ? "h-8 w-8" : "h-10 w-10"}>
+                                            <Button data-help-id="appointments.btn.refresh" onClick={forceRefresh} variant="ghost" size="icon" disabled={isRefreshing} className={isMobile ? "h-8 w-8" : "h-10 w-10"}>
                                                 <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                                             </Button>
                                         </TooltipTrigger>

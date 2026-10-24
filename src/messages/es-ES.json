@@ -10161,7 +10161,9 @@
       "mascotLetsGo": "¡Vamos! Te llevo.",
       "onboardingTitle": "Puesta en marcha",
       "onboardingPending": "{count, plural, one {Falta # paso} other {Faltan # pasos}} para empezar",
-      "guideThisScreen": "Guíame en esta pantalla"
+      "guideThisScreen": "Guíame en esta pantalla",
+      "readAloud": "Escuchar",
+      "stopReading": "Dejar de leer"
     },
     "mascot": {
       "label": "Asistente de Invoke",
@@ -10175,7 +10177,9 @@
       "loading": {
         "loadingScreen": "Abriendo la pantalla… la primera vez puede tardar.",
         "loadingElement": "Esperando a que la pantalla termine de cargar…"
-      }
+      },
+      "wake": "Despertar al asistente",
+      "railLabel": "Asistente"
     },
     "toolbar": {
       "label": "Guía: paso {current} de {total}",
@@ -10190,7 +10194,11 @@
       "required": "Obligatorio",
       "retry": "Inténtalo de nuevo"
     },
-    "back": "Volver"
+    "back": "Volver",
+    "voiceOn": "Activar la voz",
+    "voiceOff": "Silenciar la voz",
+    "hideMascot": "Esconder al asistente",
+    "mascotActions": "Opciones del asistente"
   },
   "HelpInsightsPage": {
     "title": "Métricas del asistente",
@@ -10283,5 +10291,13 @@
       "ticketUpdated": "Ticket actualizado",
       "error": "No se ha podido actualizar"
     }
+  },
+  "RouteError": {
+    "title": "Algo no ha salido bien",
+    "description": "No hemos podido mostrar esta pantalla. Inténtalo de nuevo.",
+    "chunkDescription": "Hay una versión nueva de esta pantalla. Recarga la página para continuar.",
+    "retry": "Reintentar",
+    "reload": "Recargar la página",
+    "reloading": "Recargando la página…"
   }
 }

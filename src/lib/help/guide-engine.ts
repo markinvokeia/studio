@@ -84,6 +84,23 @@ function setNativeValue(el: HTMLInputElement | HTMLTextAreaElement, value: strin
   el.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
+/**
+ * Pulsa como una persona: pointerdown → mousedown → pointerup → mouseup → click.
+ * Los menús de Radix (DropdownMenu, ContextMenu) abren en pointerdown, no en click:
+ * con un `.click()` solo, "Crear ▾" de la agenda no se abría y la guía se trababa.
+ * Para el resto de los controles el resultado es el mismo que un clic.
+ */
+export function pressElement(el: HTMLElement) {
+  const r = el.getBoundingClientRect();
+  const mouse = { bubbles: true, cancelable: true, composed: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, button: 0, buttons: 1 };
+  const pointer = { ...mouse, pointerId: 1, pointerType: 'mouse', isPrimary: true };
+  el.dispatchEvent(new PointerEvent('pointerdown', pointer));
+  el.dispatchEvent(new MouseEvent('mousedown', mouse));
+  el.dispatchEvent(new PointerEvent('pointerup', { ...pointer, buttons: 0 }));
+  el.dispatchEvent(new MouseEvent('mouseup', { ...mouse, buttons: 0 }));
+  el.click();
+}
+
 const normalizeText = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
 /**

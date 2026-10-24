@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom';
 
 import { findHelpTarget, isMissingOrInvalid } from '@/lib/help/guide-engine';
 import { goToStep, lastStep, nextStep, previousStep, retryStep, skipStep, stopGuide } from '@/lib/help/guide-runner';
-import { pickPlacement, revealElement, VIEWPORT_MARGIN, type Rect } from '@/lib/help/placement';
+import { MASCOT_SIZE, pickPlacement, placeGuideMascot, revealElement, VIEWPORT_MARGIN, type Rect } from '@/lib/help/placement';
 import { cn } from '@/lib/utils';
 import { useHelpAssistant } from '@/stores/help-assistant-store';
 
@@ -28,17 +28,27 @@ function sameBox(a: Rect | null, b: Rect | null) {
     && Math.abs(a.width - b.width) < 0.5 && Math.abs(a.height - b.height) < 0.5;
 }
 
-/** La barra va debajo del elemento; si no entra, arriba; si es enorme, abajo al centro. */
+/**
+ * La barra va debajo del elemento; si no entra, al costado de la mascota (derecha o
+ * izquierda), nunca debajo de ella; si tampoco, arriba del elemento o abajo al centro.
+ * Usa el lugar al que va a ir la mascota (el mismo cálculo que MascotHost, que después
+ * la ubica esquivando esta barra, así que queda en ese lugar).
+ */
 function placeToolbar(box: Rect): Rect {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const left = Math.max(VIEWPORT_MARGIN, Math.min(vw - TOOLBAR_WIDTH - VIEWPORT_MARGIN, box.left));
   const size = { width: TOOLBAR_WIDTH, height: TOOLBAR_HEIGHT };
+  const spot = placeGuideMascot(box, MASCOT_SIZE, []);
+  const mascot = { left: spot.x - MASCOT_SIZE / 2, top: spot.y - MASCOT_SIZE / 2, width: MASCOT_SIZE, height: MASCOT_SIZE };
+  const besideTop = spot.y - TOOLBAR_HEIGHT / 2;
   return pickPlacement([
     { rect: { ...size, top: box.top + box.height + TOOLBAR_GAP, left } },
+    { rect: { ...size, top: besideTop, left: mascot.left + mascot.width + TOOLBAR_GAP } },
+    { rect: { ...size, top: besideTop, left: mascot.left - TOOLBAR_WIDTH - TOOLBAR_GAP } },
     { rect: { ...size, top: box.top - TOOLBAR_GAP - TOOLBAR_HEIGHT, left } },
     { rect: { ...size, top: vh - TOOLBAR_HEIGHT - 16, left: vw / 2 - TOOLBAR_WIDTH / 2 } },
-  ], [box]).rect;
+  ], [box, mascot]).rect;
 }
 
 function ToolbarButton({ label, onClick, disabled, children, primary }: { label: string; onClick: () => void; disabled?: boolean; children: React.ReactNode; primary?: boolean }) {

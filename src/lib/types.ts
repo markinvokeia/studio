@@ -3452,6 +3452,18 @@ export interface HelpGuideStep {
   details?: string;
   /** Recorridos de pantalla: si el elemento no está a la vista, el paso se salta. */
   skipIfMissing?: boolean;
+  /**
+   * `highlight`: el paso se da por hecho cuando aparece alguno de estos help ids
+   * (p. ej. la persona hizo clic derecho en el turno y se abrió su menú). Sirve para
+   * gestos que la guía no puede hacer por la persona: clic derecho, arrastrar.
+   */
+  until?: string | string[];
+  /**
+   * `highlight` sobre una opción de menú: el paso se da por hecho cuando el elemento
+   * desaparece (la persona eligió una opción y el menú se cerró), aunque haya
+   * elegido otra opción distinta de la señalada.
+   */
+  doneOnClose?: boolean;
 }
 
 export interface HelpUseCase {

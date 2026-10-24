@@ -17,6 +17,7 @@ import {
   findHelpTarget,
   helpSleep,
   isTypingIn,
+  pressElement,
   readTargetValue,
   resolveStepValue,
   waitForHelpTarget,
@@ -143,7 +144,7 @@ async function execute(step: HelpGuideStep, signal: AbortSignal): Promise<StepRe
       // La mascota señala un momento antes de pulsar, para que se vea qué hace.
       spotlightFor(step, 'action');
       await helpSleep(1000, signal);
-      target.control.click();
+      pressElement(target.control);
       await helpSleep(450, signal);
       return { status: 'done' };
 
@@ -196,6 +197,8 @@ async function completeWaitingStep(index: number, signal: AbortSignal, pauseMs: 
 }
 
 const VALUE_POLL_MS = 300;
+/** `doneOnClose`: cuánto tiene que estar cerrado el menú para darlo por hecho. */
+const GONE_SETTLE_MS = 600;
 /** Tras elegir una opción o marcar un check, cuánto se espera antes de avanzar. */
 const SETTLE_CHOICE_MS = 700;
 /** Si la persona sigue escribiendo, se espera a que haga una pausa. */
@@ -207,10 +210,46 @@ const SETTLE_TYPING_MS = 1800;
  */
 function armAutoAdvance(index: number, step: HelpGuideStep, signal: AbortSignal) {
   if (!step.target) return;
+  if (step.until) {
+    // Gestos que no se pueden hacer por la persona (clic derecho, arrastrar): sigue
+    // cuando aparece lo que ese gesto abre (el menú del turno, la tarjeta).
+    const ids = Array.isArray(step.until) ? step.until : [step.until];
+    const timer = setInterval(() => {
+      const guide = store().guide;
+      if (signal.aborted || !guide || guide.current !== index || guide.statuses[index] !== 'waiting') {
+        clearInterval(timer);
+        return;
+      }
+      if (ids.some((id) => findHelpTarget(id))) {
+        clearInterval(timer);
+        void completeWaitingStep(index, signal, 250);
+      }
+    }, VALUE_POLL_MS);
+    signal.addEventListener('abort', () => clearInterval(timer), { once: true });
+    return;
+  }
   if (!step.target.includes('.field.')) {
     waitForHumanClick(step.target, signal)
       .then(() => completeWaitingStep(index, signal, 900))
       .catch(() => { /* guía cancelada */ });
+    if (step.doneOnClose) {
+      // Eligió otra opción del menú (o lo cerró): el elemento señalado ya no está.
+      let goneSince = 0;
+      const timer = setInterval(() => {
+        const guide = store().guide;
+        if (signal.aborted || !guide || guide.current !== index || guide.statuses[index] !== 'waiting') {
+          clearInterval(timer);
+          return;
+        }
+        if (findHelpTarget(step.target!)) { goneSince = 0; return; }
+        if (!goneSince) goneSince = Date.now();
+        else if (Date.now() - goneSince >= GONE_SETTLE_MS) {
+          clearInterval(timer);
+          void completeWaitingStep(index, signal, 300);
+        }
+      }, VALUE_POLL_MS);
+      signal.addEventListener('abort', () => clearInterval(timer), { once: true });
+    }
     return;
   }
   const first = findHelpTarget(step.target);

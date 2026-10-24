@@ -215,6 +215,7 @@ export function CalendarSearchPanel({
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           </span>
           <Input
+            data-help-id="appointments.filter.appointments"
             ref={inputRef}
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
