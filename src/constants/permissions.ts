@@ -781,6 +781,8 @@ export const HELP_PERMISSIONS = {
   ONBOARDING_MANAGE: 'HELP_ONBOARDING_MANAGE',
   /** Publicar en la BD del cliente el catálogo que trae el frontend desplegado. */
   CATALOG_SYNC:      'HELP_CATALOG_SYNC',
+  /** Panel de métricas: preguntas, resolución, tickets, videos y onboarding. */
+  INSIGHTS_VIEW:     'HELP_INSIGHTS_VIEW',
 } as const;
 
 export type HelpPermission = (typeof HELP_PERMISSIONS)[keyof typeof HELP_PERMISSIONS];

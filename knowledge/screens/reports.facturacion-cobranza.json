@@ -1,0 +1,6 @@
+{
+  "id": "reports.facturacion-cobranza",
+  "status": "draft",
+  "summary": "Facturación contra cobranza.",
+  "purpose": "Compara lo facturado con lo efectivamente cobrado en el período."
+}

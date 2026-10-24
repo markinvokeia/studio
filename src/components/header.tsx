@@ -42,6 +42,7 @@ import { ExchangeRate } from './exchange-rate';
 import { StickyNotesOverlay } from './sticky-notes-overlay';
 import { VoiceAssistant } from './voice-assistant';
 import { VoiceChat, type ChatMessage } from './voice-chat';
+import { MascotPeekZone } from '@/components/invoke-mascot';
 
 // ── Webhook URL ───────────────────────────────────────────────────────────────
 
@@ -444,139 +445,147 @@ export function Header() {
                     </button>
                 ) : (
                     /* Expanded: vertical strip */
-                    <div data-help-rail className="fixed inset-y-0 right-0 z-[50] flex flex-col items-center gap-2 pt-3 pb-3 w-14 bg-[hsl(var(--floating-header-bg)/0.97)] backdrop-blur-md border-l border-border shadow-[-2px_0_16px_rgba(0,0,0,0.08)] animate-in fade-in slide-in-from-right-4 duration-200 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <MascotPeekZone
+                        edge="left"
+                        className="help-rail-zone"
+                        // Escondite de la mascota: el riel tiene fondo opaco y nada lo recorta. El
+                        // posicionamiento va acá (inline: el CSS de la mascota se carga después de Tailwind).
+                        style={{ position: 'fixed', top: 0, bottom: 0, right: 0, width: '3.5rem', zIndex: 50 }}
+                    >
+                    <div data-help-rail className="flex h-full w-full flex-col items-center gap-2 pt-3 pb-3 bg-[hsl(var(--floating-header-bg))] border-l border-border shadow-[-2px_0_16px_rgba(0,0,0,0.08)] animate-in fade-in slide-in-from-right-4 duration-200 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
-                        <Button
-                            ref={toggleBtnRef}
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setIsExpanded(false)}
-                            className="rounded-xl h-9 w-9 bg-muted/60 hover:bg-muted text-muted-foreground shrink-0"
-                        >
-                            <ChevronRight className="h-4 w-4" />
-                        </Button>
+                            <Button
+                                ref={toggleBtnRef}
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setIsExpanded(false)}
+                                className="rounded-xl h-9 w-9 bg-muted/60 hover:bg-muted text-muted-foreground shrink-0"
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
 
-                        {hasPermission(PATIENTS_PERMISSIONS.VIEW_LIST) && (
-                            <PanelItem label="Paciente">
-                                <QuickPatientSearch />
-                            </PanelItem>
-                        )}
+                            {hasPermission(PATIENTS_PERMISSIONS.VIEW_LIST) && (
+                                <PanelItem label="Paciente">
+                                    <QuickPatientSearch />
+                                </PanelItem>
+                            )}
 
-                        {sedes.length > 1 && (
-                            <PanelItem label="Sede">
-                                <WorkingSedeSelector />
-                            </PanelItem>
-                        )}
+                            {sedes.length > 1 && (
+                                <PanelItem label="Sede">
+                                    <WorkingSedeSelector />
+                                </PanelItem>
+                            )}
 
-                        {hasPermission(CASHIER_PERMISSIONS.VIEW_WIDGET) && (
-                            <PanelItem label="Caja">
-                                <OpenCashSessionWidget />
-                            </PanelItem>
-                        )}
+                            {hasPermission(CASHIER_PERMISSIONS.VIEW_WIDGET) && (
+                                <PanelItem label="Caja">
+                                    <OpenCashSessionWidget />
+                                </PanelItem>
+                            )}
 
-                        {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && (
-                            <PanelItem label="TV">
-                                <TVDisplayWidget />
-                            </PanelItem>
-                        )}
+                            {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && (
+                                <PanelItem label="TV">
+                                    <TVDisplayWidget />
+                                </PanelItem>
+                            )}
 
-                        {hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) && (
-                            <PanelItem label="Cobrar">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => openBillingWizard({})}
-                                    className="rounded-xl h-10 w-10 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
-                                    title="Cobro Rápido"
-                                >
-                                    <Zap className="h-5 w-5" />
-                                </Button>
-                            </PanelItem>
-                        )}
-
-                        <div className="w-8 h-px bg-border/50 my-1.5 shrink-0" />
-
-                        <div ref={alertsIconRef} className="w-full">
-                            <PanelItem label="Alertas">
-                                <AlertsWidget />
-                            </PanelItem>
-                        </div>
-
-                        {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_EXCHANGE_RATE) && activeCashSession && (
-                            <PanelItem label="Cambio">
-                                <ExchangeRate activeCashSession={activeCashSession} />
-                            </PanelItem>
-                        )}
-
-                        <div ref={inboxIconRef} className="w-full">
-                            <PanelItem label="Inbox">
-                                <NotificationsBell variant="round" />
-                            </PanelItem>
-                        </div>
-
-                        {hasPermission(STICKY_NOTES_PERMISSIONS.VIEW) && (
-                            <div ref={notesIconRef} className="w-full">
-                            <PanelItem label="Notas">
+                            {hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) && (
+                                <PanelItem label="Cobrar">
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() => setIsStickyNotesOpen(true)}
-                                        className={cn(
-                                            'relative rounded-xl h-10 w-10',
-                                            notes.length > 0
-                                                ? 'bg-yellow-400/20 text-yellow-500'
-                                                : 'bg-muted/60 text-muted-foreground',
-                                        )}
-                                        title={tStickyNotes('openNotes')}
+                                        onClick={() => openBillingWizard({})}
+                                        className="rounded-xl h-10 w-10 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+                                        title="Cobro Rápido"
                                     >
-                                        <StickyNoteIcon className={cn('h-5 w-5', notes.length > 0 ? 'text-yellow-500' : 'text-muted-foreground')} />
-                                        {notes.length > 0 && (
-                                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-yellow-500 ring-2 ring-background">
-                                                {notes.length > 99 ? '99+' : notes.length}
-                                            </span>
-                                        )}
+                                        <Zap className="h-5 w-5" />
                                     </Button>
                                 </PanelItem>
+                            )}
+
+                            <div className="w-8 h-px bg-border/50 my-1.5 shrink-0" />
+
+                            <div ref={alertsIconRef} className="w-full">
+                                <PanelItem label="Alertas">
+                                    <AlertsWidget />
+                                </PanelItem>
                             </div>
-                        )}
 
-                        <div className="w-8 h-px bg-border/50 my-1.5 shrink-0" />
+                            {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_EXCHANGE_RATE) && activeCashSession && (
+                                <PanelItem label="Cambio">
+                                    <ExchangeRate activeCashSession={activeCashSession} />
+                                </PanelItem>
+                            )}
 
-                        <PanelItem label="Chat">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={openChatPanel}
-                                className={cn(
-                                    'rounded-xl h-10 w-10',
-                                    isChatOpen ? 'bg-primary/10 text-primary' : 'bg-muted/60 text-muted-foreground',
-                                )}
-                                title={tFloating('openChat')}
-                            >
-                                <MessageSquare className="h-5 w-5" />
-                            </Button>
-                        </PanelItem>
+                            <div ref={inboxIconRef} className="w-full">
+                                <PanelItem label="Inbox">
+                                    <NotificationsBell variant="round" />
+                                </PanelItem>
+                            </div>
 
-                        <PanelItem label="Voz">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setTtsEnabled((v) => !v)}
-                                className={cn(
-                                    'rounded-xl h-10 w-10',
-                                    ttsEnabled ? 'bg-primary/10 text-primary' : 'bg-muted/60 text-muted-foreground',
-                                )}
-                                title={ttsEnabled ? tChat('ttsDisable') : tChat('ttsEnable')}
-                            >
-                                {ttsEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-                            </Button>
-                        </PanelItem>
+                            {hasPermission(STICKY_NOTES_PERMISSIONS.VIEW) && (
+                                <div ref={notesIconRef} className="w-full">
+                                <PanelItem label="Notas">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => setIsStickyNotesOpen(true)}
+                                            className={cn(
+                                                'relative rounded-xl h-10 w-10',
+                                                notes.length > 0
+                                                    ? 'bg-yellow-400/20 text-yellow-500'
+                                                    : 'bg-muted/60 text-muted-foreground',
+                                            )}
+                                            title={tStickyNotes('openNotes')}
+                                        >
+                                            <StickyNoteIcon className={cn('h-5 w-5', notes.length > 0 ? 'text-yellow-500' : 'text-muted-foreground')} />
+                                            {notes.length > 0 && (
+                                                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-yellow-500 ring-2 ring-background">
+                                                    {notes.length > 99 ? '99+' : notes.length}
+                                                </span>
+                                            )}
+                                        </Button>
+                                    </PanelItem>
+                                </div>
+                            )}
 
-                        <PanelItem label="Mic">
-                            <VoiceAssistant onAudioReady={handleAudioReady} isProcessing={isSending} />
-                        </PanelItem>
+                            <div className="w-8 h-px bg-border/50 my-1.5 shrink-0" />
 
-                    </div>
+                            <PanelItem label="Chat">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={openChatPanel}
+                                    className={cn(
+                                        'rounded-xl h-10 w-10',
+                                        isChatOpen ? 'bg-primary/10 text-primary' : 'bg-muted/60 text-muted-foreground',
+                                    )}
+                                    title={tFloating('openChat')}
+                                >
+                                    <MessageSquare className="h-5 w-5" />
+                                </Button>
+                            </PanelItem>
+
+                            <PanelItem label="Voz">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setTtsEnabled((v) => !v)}
+                                    className={cn(
+                                        'rounded-xl h-10 w-10',
+                                        ttsEnabled ? 'bg-primary/10 text-primary' : 'bg-muted/60 text-muted-foreground',
+                                    )}
+                                    title={ttsEnabled ? tChat('ttsDisable') : tChat('ttsEnable')}
+                                >
+                                    {ttsEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                                </Button>
+                            </PanelItem>
+
+                            <PanelItem label="Mic">
+                                <VoiceAssistant onAudioReady={handleAudioReady} isProcessing={isSending} />
+                            </PanelItem>
+
+                        </div>
+                    </MascotPeekZone>
                 )}
             </div>
 

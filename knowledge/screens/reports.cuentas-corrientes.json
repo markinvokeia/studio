@@ -1,0 +1,6 @@
+{
+  "id": "reports.cuentas-corrientes",
+  "status": "draft",
+  "summary": "Cuentas corrientes de pacientes.",
+  "purpose": "Saldo de cada paciente: lo facturado, lo pagado y lo que debe o tiene a favor."
+}

@@ -1,0 +1,9 @@
+{
+  "id": "config.sequences",
+  "status": "draft",
+  "summary": "Numeración de documentos.",
+  "purpose": "Prefijos y próximos números de presupuestos, facturas y demás comprobantes.",
+  "tips": [
+    "Cambiar una secuencia no renumera los documentos ya emitidos."
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "clinic-catalog.medications",
+  "status": "draft",
+  "summary": "Catálogo de medicamentos.",
+  "purpose": "Medicamentos que se eligen al indicar tratamientos, registrar medicación del paciente y armar recetas.",
+  "tips": [
+    "Las recetas usan este catálogo y las plantillas de receta."
+  ]
+}

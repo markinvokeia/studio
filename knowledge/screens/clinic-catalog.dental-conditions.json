@@ -1,0 +1,6 @@
+{
+  "id": "clinic-catalog.dental-conditions",
+  "status": "draft",
+  "summary": "Condiciones dentales del odontograma.",
+  "purpose": "Define qué se puede marcar en cada pieza (caries, obturación, ausente…) y cómo se ve en el odontograma."
+}

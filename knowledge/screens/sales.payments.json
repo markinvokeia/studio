@@ -1,0 +1,13 @@
+{
+  "id": "sales.payments",
+  "status": "draft",
+  "summary": "Pagos de pacientes.",
+  "purpose": "Cobros registrados y su aplicación a facturas; también pagos anticipados que quedan como saldo a favor.",
+  "tips": [
+    "Para cobrar en efectivo hace falta una sesión de caja abierta."
+  ],
+  "prerequisites": [
+    "cashier",
+    "sales.invoices"
+  ]
+}

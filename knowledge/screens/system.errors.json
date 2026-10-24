@@ -1,0 +1,6 @@
+{
+  "id": "system.errors",
+  "status": "draft",
+  "summary": "Registro de errores.",
+  "purpose": "Errores técnicos registrados, útil para reportarlos a soporte."
+}

@@ -1,0 +1,9 @@
+{
+  "id": "reports.cierre-caja",
+  "status": "draft",
+  "summary": "Reporte de cierre de caja.",
+  "purpose": "Resumen de cada sesión de caja: cobros por medio de pago, egresos y diferencias del arqueo.",
+  "prerequisites": [
+    "cashier"
+  ]
+}

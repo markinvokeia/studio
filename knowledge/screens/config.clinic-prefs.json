@@ -1,0 +1,12 @@
+{
+  "id": "config.clinic-prefs",
+  "status": "draft",
+  "summary": "Preferencias generales de la clínica.",
+  "purpose": "Opciones de funcionamiento: descuentos, comportamiento de cobros y presupuestos y otros ajustes que afectan a todo el equipo.",
+  "tips": [
+    "Afectan a todos los usuarios: conviene cambiarlas con el equipo avisado."
+  ],
+  "prerequisites": [
+    "config.clinics"
+  ]
+}

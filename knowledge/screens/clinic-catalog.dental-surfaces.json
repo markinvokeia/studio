@@ -1,0 +1,6 @@
+{
+  "id": "clinic-catalog.dental-surfaces",
+  "status": "draft",
+  "summary": "Superficies dentales del odontograma.",
+  "purpose": "Caras de la pieza (oclusal, mesial, distal…) sobre las que se registran hallazgos y tratamientos."
+}

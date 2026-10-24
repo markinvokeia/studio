@@ -441,7 +441,8 @@
     "ReportBalanceMensual": "Balance Mensual",
     "Sedes": "Sedes",
     "PatientsPortal": "Portal del Paciente",
-    "PrescriptionTemplates": "Plantillas de Receta"
+    "PrescriptionTemplates": "Plantillas de Receta",
+    "HelpInsights": "Métricas del Asistente"
   },
   "TVDisplayPage": {
     "title": "Pantalla TV",
@@ -6860,7 +6861,10 @@
       "tabs": "Normal"
     },
     "calendarSection": "Calendario",
-    "signatureSection": "Firma"
+    "signatureSection": "Firma",
+    "assistantSection": "Asistente",
+    "showMascotLabel": "Mostrar asistente animado",
+    "showMascotDescription": "La mascota de Invoke te acompaña, señala en pantalla lo que te explica y se esconde detrás de la barra cuando no la usás. Desactivada, se queda dormida y no reacciona."
   },
   "UserCommunicationPreferences": {
     "title": "Preferencias",
@@ -10069,49 +10073,13 @@
     "patientHint": "Cuentas, historia y datos del paciente"
   },
   "HelpAssistant": {
-    "open": "Abrir el asistente de Invoke",
     "title": "Asistente Invoke",
-    "subtitle": "Te guío paso a paso y respondo tus dudas",
     "close": "Cerrar asistente",
-    "guideTitle": "Te estoy guiando",
-    "guideSubtitle": "Seguí los pasos o pedime que los haga yo",
     "catalogError": "No se pudo cargar la ayuda. Recargá la página para intentar de nuevo.",
     "tabs": {
       "onboarding": "Puesta en marcha",
       "chat": "Ayuda",
       "screen": "Esta pantalla"
-    },
-    "spotlight": {
-      "mode": {
-        "info": "Mirá acá",
-        "action": "Lo hago yo",
-        "input": "Completalo vos",
-        "confirm": "Confirmá vos",
-        "filled": "Lo completé"
-      },
-      "stepOf": "Paso {current} de {total}",
-      "exit": "Salir",
-      "doAll": "Hacer todo",
-      "next": "Siguiente",
-      "alreadyDone": "Ya lo hice",
-      "required": "Obligatorio",
-      "optional": "Opcional"
-    },
-    "guide": {
-      "finishedTitle": "¡Listo!",
-      "finishedDescription": "Terminaste «{title}».",
-      "close": "Volver al asistente",
-      "progress": "{done} de {total} pasos",
-      "errors": {
-        "targetNotFound": "No encuentro este elemento en la pantalla. Puede que falte un permiso o que la pantalla haya cambiado.",
-        "navigationFailed": "No pude abrir la pantalla. Probá con «Llevarme ahí» desde el asistente."
-      },
-      "exit": "Salir",
-      "retry": "Reintentar",
-      "doAll": "Hacer todo hasta el OK",
-      "alreadyDone": "Ya lo confirmé",
-      "skip": "Saltar paso",
-      "next": "Siguiente"
     },
     "onboarding": {
       "title": "Puesta en marcha de tu clínica",
@@ -10182,7 +10150,138 @@
       "feedbackError": "No se pudo guardar tu opinión",
       "fallbackFound": "Ahora no puedo consultar al asistente, pero esto es lo que encontré en la ayuda:",
       "fallbackNone": "Ahora no puedo consultar al asistente y no encontré nada sobre eso en la ayuda. Probá con otras palabras o mirá la pestaña «Esta pantalla».",
-      "tourTitle": "Recorrido por {screen}"
+      "tourTitle": "Recorrido por {screen}",
+      "requestVideo": "Pedir video",
+      "videoRequested": "Pedí el video: aparece acá cuando esté listo.",
+      "videoRequestError": "No se pudo pedir el video",
+      "ticketCreated": "Abrí el ticket #{id} para el equipo de soporte.",
+      "subtitles": "Subtítulos",
+      "mascotError": "Uy, algo falló. ¿Probamos de nuevo?",
+      "mascotSorry": "Uy, no encontré eso. Le avisé al equipo.",
+      "mascotLetsGo": "¡Vamos! Te llevo.",
+      "onboardingTitle": "Puesta en marcha",
+      "onboardingPending": "{count, plural, one {Falta # paso} other {Faltan # pasos}} para arrancar",
+      "guideThisScreen": "Guiame en esta pantalla"
+    },
+    "mascot": {
+      "label": "Asistente de Invoke",
+      "pendingSteps": "¡Hola! Te {count, plural, one {falta # paso} other {faltan # pasos}} para arrancar. ¿Te guío?",
+      "guideFinished": "¡Listo! Terminamos «{title}».",
+      "guideError": {
+        "targetNotFound": "Uy, no encuentro ese elemento en la pantalla. Puede que falte un permiso. ¿Reintentamos o lo salteamos?",
+        "navigationFailed": "Uy, no pude abrir la pantalla. Puede que no tengas permiso para verla."
+      },
+      "appError": "Uy, algo no salió bien. Fijate el mensaje.",
+      "loading": {
+        "loadingScreen": "Abriendo la pantalla… la primera vez puede tardar.",
+        "loadingElement": "Esperando que la pantalla termine de cargar…"
+      }
+    },
+    "toolbar": {
+      "label": "Guía: paso {current} de {total}",
+      "step": "Paso {current}/{total}",
+      "first": "Ir al primer paso",
+      "previous": "Paso anterior",
+      "next": "Siguiente paso",
+      "alreadyDone": "Ya lo hice",
+      "skip": "Saltar este paso",
+      "last": "Ir al último paso",
+      "close": "Cerrar la guía",
+      "required": "Obligatorio",
+      "retry": "Reintentar"
+    },
+    "back": "Volver"
+  },
+  "HelpInsightsPage": {
+    "title": "Métricas del asistente",
+    "description": "Cuánto resuelve solo el asistente, qué se escala y dónde se traba la gente.",
+    "range": "Últimos {days} días",
+    "refresh": "Actualizar",
+    "retry": "Reintentar",
+    "empty": "Todavía no hay datos en este período.",
+    "kpi": {
+      "questions": "Preguntas",
+      "resolved": "Resueltas por el asistente",
+      "resolvedGoal": "Meta: 85% o más",
+      "escalated": "Escaladas",
+      "feedback": "👍 / 👎",
+      "confidence": "Confianza promedio",
+      "weekend": "Escaladas en fin de semana",
+      "weekendGoal": "Meta: sólo incidentes críticos"
+    },
+    "byWeek": {
+      "title": "Preguntas por semana",
+      "description": "Total y escaladas al equipo de soporte."
+    },
+    "byScreen": {
+      "title": "Pantallas con más dudas",
+      "description": "En rojo, las que el asistente no pudo resolver.",
+      "none": "Sin pantalla"
+    },
+    "open": {
+      "title": "Preguntas sin resolver ({count})",
+      "description": "Escaladas o con 👎. Completá la ficha o la guía de esa pantalla y marcala resuelta.",
+      "empty": "No hay preguntas pendientes.",
+      "confidence": "confianza {value}%",
+      "resolve": "Resuelta",
+      "ignore": "Ignorar"
+    },
+    "tickets": {
+      "title": "Tickets abiertos ({count})",
+      "description": "Lo que el asistente le pasó al equipo, con la pantalla y el contexto.",
+      "empty": "No hay tickets abiertos.",
+      "take": "Tomar",
+      "resolve": "Resolver",
+      "priority": {
+        "low": "Baja",
+        "normal": "Normal",
+        "high": "Alta",
+        "critical": "Crítica"
+      },
+      "status": {
+        "open": "Abierto",
+        "in_progress": "En curso",
+        "resolved": "Resuelto",
+        "closed": "Cerrado"
+      }
+    },
+    "catalog": {
+      "title": "Mapa del producto",
+      "screens": "{validated} de {total} pantallas validadas",
+      "tables": "{count} tablas de la BD documentadas",
+      "version": "Versión {version} · publicada {date}"
+    },
+    "videos": {
+      "title": "Videos demo",
+      "ready": "{count} videos publicados",
+      "requests": "{count} pedidos en curso",
+      "stale": "{count} videos desactualizados",
+      "failed": "{count} pedidos fallidos"
+    },
+    "onboarding": {
+      "title": "Onboarding",
+      "done": "Cumplido",
+      "pending": "Pendiente",
+      "skipped": "Omitido"
+    },
+    "steps": {
+      "business": "Datos de la clínica",
+      "sedes": "Sedes",
+      "schedules": "Horario de atención",
+      "calendars": "Consultorios",
+      "doctors": "Profesionales",
+      "availability": "Disponibilidad",
+      "services": "Servicios",
+      "first_appointment": "Turno de prueba",
+      "staff": "Equipo administrativo",
+      "payment_methods": "Medios de pago",
+      "whatsapp": "WhatsApp",
+      "patients_import": "Importar pacientes"
+    },
+    "toast": {
+      "questionUpdated": "Pregunta actualizada",
+      "ticketUpdated": "Ticket actualizado",
+      "error": "No se pudo actualizar"
     }
   }
 }

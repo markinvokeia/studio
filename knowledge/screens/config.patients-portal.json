@@ -1,0 +1,13 @@
+{
+  "id": "config.patients-portal",
+  "status": "draft",
+  "summary": "Configuración del portal del paciente.",
+  "purpose": "Define qué ve y qué puede hacer el paciente online: reservar turnos, elegir servicios, ver precios, mensaje y video de bienvenida.",
+  "tips": [
+    "Sólo se ofrecen los servicios marcados como agendables online."
+  ],
+  "prerequisites": [
+    "sales.services",
+    "config.doctor-availability"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "id": "system.licenses",
+  "status": "draft",
+  "summary": "Licencia de Invoke.",
+  "purpose": "El plan contratado, sus límites (profesionales, usuarios, pacientes nuevos por mes) y su vencimiento.",
+  "prerequisites": [
+    "subscriptions"
+  ]
+}

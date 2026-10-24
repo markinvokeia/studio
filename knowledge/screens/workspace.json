@@ -1,0 +1,9 @@
+{
+  "id": "workspace",
+  "status": "draft",
+  "summary": "Mi consultorio.",
+  "purpose": "Vista del profesional: sus turnos del día, la historia clínica del paciente en atención y sus pendientes.",
+  "prerequisites": [
+    "appointments"
+  ]
+}

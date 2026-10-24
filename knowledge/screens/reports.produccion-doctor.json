@@ -1,0 +1,6 @@
+{
+  "id": "reports.produccion-doctor",
+  "status": "draft",
+  "summary": "Producción por profesional.",
+  "purpose": "Tratamientos realizados y su valor por profesional."
+}

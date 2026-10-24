@@ -213,3 +213,41 @@ export function collectVisibleTargets(limit = 80): HelpVisibleTarget[] {
   });
   return out;
 }
+
+/**
+ * "Firma" de lo que el campo muestra elegido o escrito: valores de inputs,
+ * checks y el texto del contenedor (el trigger de un select o combobox muestra
+ * la opción elegida). Abrir un desplegable no la cambia; elegir una opción sí.
+ */
+export function readTargetValue(target: HelpTarget): string {
+  const root = target.highlight;
+  const parts: string[] = [];
+  root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>('input, textarea, select').forEach((el) => {
+    if (el instanceof HTMLInputElement && (el.type === 'checkbox' || el.type === 'radio')) parts.push(String(el.checked));
+    else parts.push(el.value);
+  });
+  root.querySelectorAll('[aria-checked]').forEach((el) => parts.push(el.getAttribute('aria-checked') ?? ''));
+  parts.push((root.textContent ?? '').replace(/\s+/g, ' ').trim());
+  return parts.join('|');
+}
+
+/** La persona está escribiendo en este campo (se espera a que haga una pausa). */
+export function isTypingIn(target: HelpTarget): boolean {
+  const active = document.activeElement;
+  return !!active && target.highlight.contains(active)
+    && (active instanceof HTMLTextAreaElement || (active instanceof HTMLInputElement && !['checkbox', 'radio', 'button'].includes(active.type)));
+}
+
+/**
+ * ¿El campo señalado está mal o falta y es obligatorio? (el borde pasa a rojo).
+ * Mal: `aria-invalid` o el mensaje de error de FormMessage. Falta: obligatorio y
+ * vacío (inputs de texto sin valor, o un Select de Radix con su placeholder).
+ */
+export function isMissingOrInvalid(target: HelpTarget, required: boolean): boolean {
+  const root = target.highlight;
+  if (root.getAttribute('aria-invalid') === 'true' || root.querySelector('[aria-invalid="true"], [id$="-form-item-message"]')) return true;
+  if (!required) return false;
+  if (root.querySelector('[data-placeholder]')) return true;
+  const inputs = Array.from(root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input:not([type=hidden]):not([type=checkbox]):not([type=radio]), textarea'));
+  return inputs.length > 0 && inputs.every((el) => el.value.trim() === '');
+}

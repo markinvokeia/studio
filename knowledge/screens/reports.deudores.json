@@ -1,0 +1,9 @@
+{
+  "id": "reports.deudores",
+  "status": "draft",
+  "summary": "Pacientes deudores.",
+  "purpose": "Pacientes con saldo pendiente y antigüedad de la deuda, para gestionar la cobranza.",
+  "tips": [
+    "Desde el Centro de alertas se puede contactar a los deudores."
+  ]
+}

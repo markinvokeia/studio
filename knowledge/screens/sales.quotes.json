@@ -1,0 +1,12 @@
+{
+  "id": "sales.quotes",
+  "status": "draft",
+  "summary": "Presupuestos a pacientes.",
+  "purpose": "Plan de tratamiento con precios para que el paciente lo apruebe; al aceptarlo se puede facturar y agendar.",
+  "tips": [
+    "Se pueden enviar por correo o WhatsApp para que el paciente los confirme."
+  ],
+  "prerequisites": [
+    "sales.services"
+  ]
+}

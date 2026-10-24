@@ -1,0 +1,6 @@
+{
+  "id": "system.communication-history",
+  "status": "draft",
+  "summary": "Historial de comunicaciones.",
+  "purpose": "Mensajes enviados a pacientes por correo y WhatsApp, con su estado de entrega."
+}

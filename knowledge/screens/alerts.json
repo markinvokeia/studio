@@ -1,0 +1,13 @@
+{
+  "id": "alerts",
+  "status": "draft",
+  "summary": "Bandeja de alertas operativas: pacientes a contactar, cobros pendientes, turnos sin confirmar.",
+  "purpose": "Reúne lo que el sistema detectó según las reglas de alertas para que el equipo lo trabaje: llamar, mandar WhatsApp o correo, posponer o dar por resuelto.",
+  "tips": [
+    "Las alertas se generan con las reglas de Sistema → Reglas de alertas.",
+    "Asignar una alerta a alguien la saca de la vista del resto del equipo."
+  ],
+  "prerequisites": [
+    "system.alert-rules"
+  ]
+}

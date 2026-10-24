@@ -1,0 +1,9 @@
+{
+  "id": "config.provider-groups",
+  "status": "draft",
+  "summary": "Grupos de proveedores.",
+  "purpose": "Agrupan proveedores para ordenar compras y reportes de gastos.",
+  "prerequisites": [
+    "purchases.providers"
+  ]
+}

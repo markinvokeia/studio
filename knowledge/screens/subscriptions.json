@@ -1,0 +1,9 @@
+{
+  "id": "subscriptions",
+  "status": "draft",
+  "summary": "Historial de suscripciones.",
+  "purpose": "Las suscripciones y renovaciones de la licencia de Invoke.",
+  "prerequisites": [
+    "system.licenses"
+  ]
+}

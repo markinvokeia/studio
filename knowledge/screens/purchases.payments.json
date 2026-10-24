@@ -1,0 +1,9 @@
+{
+  "id": "purchases.payments",
+  "status": "draft",
+  "summary": "Pagos a proveedores.",
+  "purpose": "Registra los pagos y los aplica a las facturas de compra pendientes.",
+  "prerequisites": [
+    "purchases.invoices"
+  ]
+}

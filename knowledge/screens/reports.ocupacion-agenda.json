@@ -1,0 +1,9 @@
+{
+  "id": "reports.ocupacion-agenda",
+  "status": "draft",
+  "summary": "Ocupación de la agenda.",
+  "purpose": "Qué porcentaje de las horas disponibles se usaron, por profesional y consultorio.",
+  "prerequisites": [
+    "appointments"
+  ]
+}

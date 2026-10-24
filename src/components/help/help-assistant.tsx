@@ -1,66 +1,63 @@
 'use client';
 
-import { BookOpen, ListChecks, MessageCircleQuestion, X } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
-import { GuidePanel } from '@/components/help/guide-panel';
-import { GuideSpotlight, HELP_PANEL_Z_ON_SPOTLIGHT } from '@/components/help/guide-spotlight';
-import { HelpChat, isSadReply } from '@/components/help/help-chat';
+import { useMascot } from '@/components/invoke-mascot';
+
+import { GuideSpotlight } from '@/components/help/guide-spotlight';
+import { HelpChat } from '@/components/help/help-chat';
 import { HelpScopeProvider } from '@/components/help/help-scope';
-import { InvokeMascot, type InvokeMascotState } from '@/components/help/invoke-mascot';
-import { MascotLauncher } from '@/components/help/mascot-launcher';
 import { OnboardingChecklist } from '@/components/help/onboarding-checklist';
 import { ScreenHelp } from '@/components/help/screen-help';
 
 import { useCurrentHelpRoute } from '@/hooks/use-current-help-route';
 import { usePermissions } from '@/hooks/usePermissions';
-import { loadHelpCatalog } from '@/lib/help/catalog';
-import { findHelpTarget } from '@/lib/help/guide-engine';
-import { configureGuideRunner } from '@/lib/help/guide-runner';
-import { intersects, toRect, type Rect } from '@/lib/help/placement';
+import { findScreen, findUseCase, loadHelpCatalog } from '@/lib/help/catalog';
+import { configureGuideRunner, nextStep, startGuide } from '@/lib/help/guide-runner';
 import { stripLocale } from '@/lib/help/help-id';
-import { cn } from '@/lib/utils';
 import { getOnboardingStatus, getPublishedCatalogVersion, publishCatalog } from '@/services/help-assistant';
-import { useHelpAssistant, type HelpAssistantTab } from '@/stores/help-assistant-store';
+import { useHelpAssistant } from '@/stores/help-assistant-store';
 
 import { HELP_PERMISSIONS } from '@/constants/permissions';
 import type { HelpCatalog } from '@/lib/types';
 
-const AUTO_OPEN_KEY = 'invoke-help:onboarding-auto-opened';
+/** La mascota avisa una vez por sesión cuántos pasos obligatorios faltan. */
+const PENDING_SAID_KEY = 'invoke-help:pending-said';
+/** Lo prende el grabador de videos (e2e/videos): expone window.__invokeHelp. */
+const AUTOMATION_KEY = 'invoke-help:automation';
 const SYNCED_KEY = 'invoke-help:catalog-synced';
 /** El catálogo (~25 KB gzip) se baja cuando la página ya cargó. */
 const CATALOG_IDLE_DELAY_MS = 2500;
-
-type PanelCorner = 'bottom-right' | 'top-right' | 'bottom-left' | 'top-left';
-const PANEL_CORNERS: PanelCorner[] = ['bottom-right', 'top-right', 'bottom-left', 'top-left'];
-/** Margen derecho: deja libre el riel del header (w-14). En mobile el panel ocupa el ancho. */
-const PANEL_RIGHT_PX = 72;
-/** Margen izquierdo: deja libre el sidebar (w-20). */
-const PANEL_LEFT_PX = 96;
-const PANEL_EDGE_PX = 16;
 const MOBILE_BREAKPOINT_PX = 640;
+const WINDOW_WIDTH = 380;
+const WINDOW_MAX_HEIGHT = 560;
+const ANCHOR_POLL_MS = 200;
 
-function cornerRect(corner: PanelCorner, width: number, height: number): Rect {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const mobile = vw < MOBILE_BREAKPOINT_PX;
-  const left = mobile ? 0 : corner.endsWith('left') ? PANEL_LEFT_PX : vw - PANEL_RIGHT_PX - width;
-  const top = corner.startsWith('top') ? (mobile ? 0 : PANEL_EDGE_PX) : vh - height - (mobile ? 0 : PANEL_EDGE_PX);
-  return { top, left, width: mobile ? vw : width, height };
-}
+interface Anchor { left: number; top: number; width: number }
 
-function cornerStyle(corner: PanelCorner): React.CSSProperties {
-  const mobile = window.innerWidth < MOBILE_BREAKPOINT_PX;
-  if (mobile) return corner.startsWith('top') ? { top: 0, left: 0, right: 0 } : { bottom: 0, left: 0, right: 0 };
-  return {
-    ...(corner.startsWith('top') ? { top: PANEL_EDGE_PX } : { bottom: PANEL_EDGE_PX }),
-    ...(corner.endsWith('left') ? { left: PANEL_LEFT_PX } : { right: PANEL_RIGHT_PX }),
-  };
+/** Dónde está la mascota (la ventana sale arriba de ella). Sin mascota a la vista, su lugar de anclaje. */
+function useMascotAnchor(active: boolean): Anchor | null {
+  const [anchor, setAnchor] = React.useState<Anchor | null>(null);
+  React.useEffect(() => {
+    if (!active) return;
+    const measure = () => {
+      const actor = document.querySelector('.ivm-actor:not(.ivm-hidden)')?.getBoundingClientRect();
+      const next = actor && actor.width > 0
+        ? { left: actor.left, top: actor.top, width: actor.width }
+        : { left: window.innerWidth - 56 - 20 - 88, top: window.innerHeight - 20 - 88, width: 88 };
+      setAnchor((prev) => (prev && Math.abs(prev.left - next.left) < 1 && Math.abs(prev.top - next.top) < 1 ? prev : next));
+    };
+    measure();
+    const interval = setInterval(measure, ANCHOR_POLL_MS);
+    window.addEventListener('resize', measure);
+    return () => { clearInterval(interval); window.removeEventListener('resize', measure); };
+  }, [active]);
+  return anchor;
 }
 
 function readStorage(storage: 'local' | 'session', key: string): string | null {
@@ -84,18 +81,17 @@ function HelpAssistantRoot() {
   const t = useTranslations('HelpAssistant');
   const router = useRouter();
   const locale = useLocale();
-  const { route } = useCurrentHelpRoute();
+  const { route, scope } = useCurrentHelpRoute();
   const { hasPermission } = usePermissions();
-  const { isOpen, tab, guide, spotlight, messages, open, close, setTab } = useHelpAssistant();
+  const { isOpen, tab, guide, close, setTab } = useHelpAssistant();
+  const mascot = useMascot();
+  const mascotRef = React.useRef(mascot);
+  React.useLayoutEffect(() => { mascotRef.current = mascot; });
 
   const [catalog, setCatalog] = React.useState<HelpCatalog | null>(null);
   const [catalogError, setCatalogError] = React.useState(false);
-  const [pendingRequired, setPendingRequired] = React.useState<number | null>(null);
-  const [thinking, setThinking] = React.useState(false);
-  const [lookAt, setLookAt] = React.useState<{ x: number; y: number } | null>(null);
-  const [targetRect, setTargetRect] = React.useState<Rect | null>(null);
-  const [panelCorner, setPanelCorner] = React.useState<PanelCorner>('bottom-right');
-  const panelRef = React.useRef<HTMLDivElement | null>(null);
+  const [pendingSteps, setPendingSteps] = React.useState(0);
+  const windowRef = React.useRef<HTMLDivElement | null>(null);
 
   const canSeeOnboarding = hasPermission(HELP_PERMISSIONS.ONBOARDING_VIEW);
   const canSync = hasPermission(HELP_PERMISSIONS.CATALOG_SYNC);
@@ -109,16 +105,40 @@ function HelpAssistantRoot() {
     return () => configureGuideRunner(null);
   }, [router, locale]);
 
-  // Catálogo: en diferido, o enseguida si se abre el panel.
+  const automation = React.useMemo(() => readStorage('local', AUTOMATION_KEY) === '1', []);
+
+  // Catálogo: en diferido, o enseguida si se abre el asistente (o lo pide el grabador).
   React.useEffect(() => {
     if (catalog) return;
     let cancelled = false;
     const load = () => loadHelpCatalog()
       .then((c) => { if (!cancelled) setCatalog(c); })
       .catch(() => { if (!cancelled) setCatalogError(true); });
-    const timer = setTimeout(load, isOpen ? 0 : CATALOG_IDLE_DELAY_MS);
+    const timer = setTimeout(load, isOpen || automation ? 0 : CATALOG_IDLE_DELAY_MS);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [catalog, isOpen]);
+  }, [catalog, isOpen, automation]);
+
+  // Fase 3: el grabador maneja la guía real (la mascota señalando) para el video demo.
+  React.useEffect(() => {
+    if (!automation || !catalog) return;
+    const w = window as unknown as Record<string, unknown>;
+    w.__invokeHelp = {
+      ready: true,
+      startUseCase: (id: string, values?: Record<string, unknown>) => {
+        const useCase = findUseCase(catalog, id);
+        if (!useCase) return false;
+        startGuide({ title: useCase.title, steps: useCase.steps }, { useCaseId: useCase.id, values: values ?? {} });
+        return true;
+      },
+      next: () => nextStep('single'),
+      state: () => {
+        const { guide: g, spotlight: sp } = useHelpAssistant.getState();
+        return { guide: g && { current: g.current, statuses: g.statuses, finished: g.finished, steps: g.steps }, spotlight: sp };
+      },
+      catalogVersion: catalog.version,
+    };
+    return () => { delete w.__invokeHelp; };
+  }, [automation, catalog]);
 
   // Cada deploy trae su catálogo: si la BD del cliente tiene otra versión, se publica.
   React.useEffect(() => {
@@ -133,7 +153,8 @@ function HelpAssistantRoot() {
     return () => controller.abort();
   }, [catalog, canSync]);
 
-  // Badge del lanzador y primera apertura automática para clínicas sin configurar.
+  // Onboarding: cuántos pasos obligatorios faltan. La opción sólo aparece si falta
+  // alguno, y la mascota lo avisa una vez por sesión invitando a abrirla.
   React.useEffect(() => {
     if (!catalog || !canSeeOnboarding) return;
     const controller = new AbortController();
@@ -141,157 +162,131 @@ function HelpAssistantRoot() {
       .then((res) => {
         const done = new Set(res.steps.filter((s) => s.status !== 'pending').map((s) => s.step_id));
         const pending = catalog.journey.filter((s) => s.required && !done.has(s.id)).length;
-        setPendingRequired(pending);
-        if (pending > 0 && !readStorage('session', AUTO_OPEN_KEY)) {
-          writeStorage('session', AUTO_OPEN_KEY, '1');
-          open('onboarding');
+        setPendingSteps(pending);
+        if (pending > 0 && !automation && !readStorage('session', PENDING_SAID_KEY)) {
+          writeStorage('session', PENDING_SAID_KEY, '1');
+          void mascotRef.current.say(t('mascot.pendingSteps', { count: pending }), { gesture: 'wave' });
         }
       })
-      .catch(() => { /* el badge es opcional */ });
+      .catch(() => { /* sin estado no se muestra la opción */ });
     return () => controller.abort();
-  }, [catalog, canSeeOnboarding, open]);
+  }, [catalog, canSeeOnboarding, automation, t]);
 
-  // Los ojos de la mascota siguen al elemento resaltado, y el panel de pasos lo esquiva.
+  // Mientras guía, lo primario es la guía (la mascota y la barra de pasos): la ventana se oculta.
+  const showWindow = isOpen && !guide;
+  const anchor = useMascotAnchor(showWindow);
+
+  // "Guiame en esta pantalla" se destaca si llegó a una pantalla nueva desde la última vez que la abrió.
+  const lastSeenRoute = React.useRef<string | null>(null);
+  const [highlightScreen, setHighlightScreen] = React.useState(true);
   React.useEffect(() => {
-    if (!spotlight) { setLookAt(null); setTargetRect(null); return; }
-    const update = () => {
-      const target = findHelpTarget(spotlight.targetId);
-      if (!target) return;
-      const r = target.highlight.getBoundingClientRect();
-      setLookAt({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
-      setTargetRect((prev) => (prev && Math.abs(prev.top - r.top) < 1 && Math.abs(prev.left - r.left) < 1 && Math.abs(prev.height - r.height) < 1 ? prev : toRect(r)));
-    };
-    update();
-    const interval = setInterval(update, 400);
-    return () => clearInterval(interval);
-  }, [spotlight]);
+    if (!showWindow) return;
+    setHighlightScreen(lastSeenRoute.current !== route);
+    lastSeenRoute.current = route;
+  }, [showWindow, route]);
 
-  const guideActive = !!guide;
-  const showPanel = isOpen || guideActive;
-
-  // Durante una guía el panel de pasos va a la primera esquina que no tapa el elemento resaltado.
-  React.useLayoutEffect(() => {
-    if (!guideActive || !targetRect || !panelRef.current) { setPanelCorner('bottom-right'); return; }
-    const { width, height } = panelRef.current.getBoundingClientRect();
-    const free = PANEL_CORNERS.find((corner) => !intersects(cornerRect(corner, width, height), targetRect, 12));
-    setPanelCorner(free ?? 'bottom-right');
-  }, [guideActive, targetRect]);
-
-  // Los clics en el panel no deben cerrar el diálogo de Radix abierto debajo.
+  // Al abrirse, la mascota deja de hablar (su globo quedaría debajo de la ventana).
   React.useEffect(() => {
-    const el = panelRef.current;
+    if (showWindow) void mascotRef.current.setMood('happy');
+  }, [showWindow]);
+
+  // Los clics en la ventana no deben cerrar el diálogo de Radix abierto debajo.
+  React.useEffect(() => {
+    const el = windowRef.current;
     if (!el) return;
     const stop = (e: Event) => e.stopPropagation();
     el.addEventListener('pointerdown', stop);
     return () => el.removeEventListener('pointerdown', stop);
-  }, [showPanel]);
-  // Apenada si el paso actual falló o la última respuesta no encontró ayuda.
-  const guideFailed = !!guide && guide.statuses[guide.current] === 'failed';
-  const lastMessage = messages[messages.length - 1];
-  const lastReplySad = tab === 'chat' && lastMessage?.role === 'assistant' && !!lastMessage.reply && isSadReply(lastMessage.reply);
-  const mascotState: InvokeMascotState = thinking
-    ? 'thinking'
-    : guideFailed || (lastReplySad && !guide)
-      ? 'sad'
-      : guide?.finished || pendingRequired === 0 ? 'happy' : 'idle';
-  const activeTab: HelpAssistantTab = tab === 'onboarding' && !canSeeOnboarding ? 'chat' : tab;
+  }, [showWindow]);
 
-  const tabs: { id: HelpAssistantTab; icon: React.ElementType; label: string; visible: boolean }[] = [
-    { id: 'onboarding', icon: ListChecks, label: t('tabs.onboarding'), visible: canSeeOnboarding },
-    { id: 'chat', icon: MessageCircleQuestion, label: t('tabs.chat'), visible: true },
-    { id: 'screen', icon: BookOpen, label: t('tabs.screen'), visible: true },
-  ];
+  const view = tab === 'onboarding' && (!canSeeOnboarding || !catalog) ? 'chat' : tab;
+  const screenTitle = catalog ? findScreen(catalog, scope)?.title : undefined;
+
+  // Ventana anclada arriba de la mascota, con la colita apuntándola.
+  let windowStyle: React.CSSProperties = {};
+  let tailLeft = 0;
+  if (anchor && typeof window !== 'undefined') {
+    const vw = window.innerWidth;
+    const mobile = vw < MOBILE_BREAKPOINT_PX;
+    const width = mobile ? vw - 16 : WINDOW_WIDTH;
+    const center = anchor.left + anchor.width / 2;
+    const onRight = center > vw / 2;
+    const left = Math.max(8, Math.min(vw - width - 8, onRight ? center - width + 48 : center - 48));
+    windowStyle = {
+      left,
+      width,
+      bottom: window.innerHeight - anchor.top + 4,
+      maxHeight: Math.max(240, Math.min(WINDOW_MAX_HEIGHT, anchor.top - 20)),
+    };
+    tailLeft = Math.max(20, Math.min(width - 36, center - left - 8));
+  }
 
   return (
     <HelpScopeProvider scope="help-assistant">
       <div data-help-ignore>
         <GuideSpotlight />
 
-        {!showPanel && (
-          <MascotLauncher
-            label={t('open')}
-            pending={pendingRequired}
-            state={thinking ? 'thinking' : undefined}
-            onOpen={() => open()}
-          />
-        )}
-
-        {showPanel && (
+        {/* El lanzador es la mascota (MascotHost): al hacerle clic se abre esta ventana arriba de ella. */}
+        {showWindow && anchor && (
           <div
-            ref={panelRef}
+            ref={windowRef}
             role="dialog"
             aria-label={t('title')}
-            // La burbuja y la manito del spotlight esquivan este panel.
-            data-help-guide-panel={guideActive ? '' : undefined}
-            // Con algo resaltado, el panel queda por encima del oscurecido: es parte de la guía.
-            style={{
-              pointerEvents: 'auto',
-              zIndex: spotlight ? HELP_PANEL_Z_ON_SPOTLIGHT : undefined,
-              ...(guideActive ? cornerStyle(panelCorner) : {}),
-            }}
-            className={cn(
-              'fixed z-[9985] flex flex-col overflow-hidden border border-border bg-card text-card-foreground shadow-2xl',
-              guideActive
-                ? 'max-h-[40dvh] rounded-2xl sm:max-h-[min(420px,55vh)] sm:w-80'
-                : 'inset-x-0 bottom-0 h-[75dvh] rounded-t-2xl sm:inset-x-auto sm:bottom-4 sm:right-[4.5rem] sm:h-[min(640px,78vh)] sm:w-[400px] sm:rounded-2xl',
-            )}
+            data-help-panel
+            style={{ ...windowStyle, pointerEvents: 'auto' }}
+            className="fixed z-[9985] flex h-[min(560px,75dvh)] flex-col rounded-[22px] border-2 border-[#7C3AED]/25 bg-white text-card-foreground shadow-[0_18px_48px_rgba(60,20,90,0.28)] animate-in fade-in slide-in-from-bottom-2 duration-200 dark:bg-card"
           >
-            <div className="flex flex-none items-center gap-2 border-b bg-gradient-to-r from-primary/10 via-transparent to-transparent px-3 py-2">
-              <InvokeMascot state={mascotState} lookAt={lookAt} className="h-10 w-10 flex-none" aria-hidden="true" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{guideActive ? t('guideTitle') : t('title')}</p>
-                <p className="truncate text-[11px] text-muted-foreground">{guideActive ? t('guideSubtitle') : t('subtitle')}</p>
-              </div>
-              {!guideActive && (
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={close} aria-label={t('close')}>
-                  <X className="h-4 w-4" />
-                </Button>
+            <div className="flex flex-none items-center gap-1.5 rounded-t-[20px] bg-gradient-to-r from-[#7C3AED] to-[#A855F7] px-2 py-2 text-white">
+              {view !== 'chat' ? (
+                <button type="button" onClick={() => setTab('chat')} className="rounded-full p-1.5 hover:bg-white/15" aria-label={t('back')}>
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+              ) : (
+                <span className="ml-1.5 h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_0_3px_rgba(110,231,183,0.3)]" aria-hidden="true" />
+              )}
+              <p className="min-w-0 flex-1 truncate px-1 text-sm font-semibold">
+                {view === 'onboarding' ? t('tabs.onboarding') : view === 'screen' ? screenTitle ?? t('tabs.screen') : t('title')}
+              </p>
+              <button type="button" onClick={close} className="rounded-full p-1.5 hover:bg-white/15" aria-label={t('close')}>
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-b-[20px]">
+              {!catalog ? (
+                <div className="space-y-2 p-4">
+                  {catalogError ? (
+                    <p className="text-sm text-destructive">{t('catalogError')}</p>
+                  ) : (
+                    <>
+                      <Skeleton className="h-6 w-2/3" />
+                      <Skeleton className="h-16 w-full" />
+                      <Skeleton className="h-16 w-full" />
+                    </>
+                  )}
+                </div>
+              ) : view === 'onboarding' ? (
+                <OnboardingChecklist catalog={catalog} onPendingChange={setPendingSteps} />
+              ) : view === 'screen' ? (
+                <ScreenHelp key={route} catalog={catalog} />
+              ) : (
+                <HelpChat
+                  catalog={catalog}
+                  pendingSteps={canSeeOnboarding ? pendingSteps : 0}
+                  screenTitle={screenTitle}
+                  highlightScreen={highlightScreen}
+                  onOpenScreen={() => setTab('screen')}
+                  onOpenOnboarding={() => setTab('onboarding')}
+                />
               )}
             </div>
 
-            {guideActive ? (
-              <GuidePanel />
-            ) : (
-              <>
-                <div className="flex flex-none gap-1 border-b px-2 py-1.5" role="tablist">
-                  {tabs.filter((x) => x.visible).map(({ id, icon: Icon, label }) => (
-                    <button
-                      key={id}
-                      type="button"
-                      role="tab"
-                      aria-selected={activeTab === id}
-                      onClick={() => setTab(id)}
-                      className={cn(
-                        'flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
-                        activeTab === id ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                      )}
-                    >
-                      <Icon className="h-3.5 w-3.5" />
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                {!catalog ? (
-                  <div className="space-y-2 p-4">
-                    {catalogError ? (
-                      <p className="text-sm text-destructive">{t('catalogError')}</p>
-                    ) : (
-                      <>
-                        <Skeleton className="h-6 w-2/3" />
-                        <Skeleton className="h-16 w-full" />
-                        <Skeleton className="h-16 w-full" />
-                      </>
-                    )}
-                  </div>
-                ) : activeTab === 'onboarding' ? (
-                  <OnboardingChecklist catalog={catalog} onPendingChange={setPendingRequired} />
-                ) : activeTab === 'chat' ? (
-                  <HelpChat catalog={catalog} onThinkingChange={setThinking} />
-                ) : (
-                  <ScreenHelp key={route} catalog={catalog} />
-                )}
-              </>
-            )}
+            {/* Colita del globo, hacia la mascota. */}
+            <span
+              aria-hidden="true"
+              className="absolute -bottom-[9px] h-4 w-4 rotate-45 border-b-2 border-r-2 border-[#7C3AED]/25 bg-white dark:bg-card"
+              style={{ left: tailLeft }}
+            />
           </div>
         )}
       </div>

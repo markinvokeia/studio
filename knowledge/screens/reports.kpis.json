@@ -1,0 +1,6 @@
+{
+  "id": "reports.kpis",
+  "status": "draft",
+  "summary": "Indicadores clave de la clínica.",
+  "purpose": "Los números principales del negocio en un tablero: producción, cobranza, ocupación y pacientes."
+}

@@ -1,0 +1,12 @@
+{
+  "id": "system.alert-rules",
+  "status": "draft",
+  "summary": "Reglas de alertas.",
+  "purpose": "Definen cuándo el sistema genera una alerta (deuda, paciente inactivo, turno sin confirmar) y si se envía sola por correo o WhatsApp.",
+  "tips": [
+    "Una regla con envío automático manda mensajes a pacientes: revisala bien antes de activarla."
+  ],
+  "prerequisites": [
+    "system.communication-templates"
+  ]
+}

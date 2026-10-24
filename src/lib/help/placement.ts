@@ -1,6 +1,6 @@
 /**
- * Geometría del spotlight: dónde va la manito, dónde la burbuja y dónde el
- * panel de pasos para que ninguno tape al elemento ni se tapen entre sí.
+ * Geometría del spotlight: dónde va la mascota y dónde la barra de pasos para
+ * que ninguno tape al elemento ni se tapen entre sí.
  * Todo en coordenadas de viewport (position: fixed): nada de esto altera el
  * layout de la página ni de los diálogos.
  */
@@ -66,4 +66,35 @@ export function revealElement(el: HTMLElement) {
     }
     node = node.parentElement;
   }
+}
+
+/** Rectángulo de un elemento del asistente por selector (barra de pasos). */
+function rectOf(selector: string): Rect | null {
+  const el = document.querySelector(selector);
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return r.width > 0 && r.height > 0 ? toRect(r) : null;
+}
+
+/**
+ * Dónde se para la mascota para señalar un elemento durante una guía (centro,
+ * en px del viewport): arriba señalando hacia abajo si hay lugar; si no, a un
+ * costado; si no, abajo. Hacia el extremo derecho del elemento (el texto de los
+ * campos está a la izquierda) y sin pisar la barra de pasos.
+ */
+export function placeGuideMascot(target: DOMRect | Rect, size: number): { x: number; y: number } {
+  const box = { top: target.top, left: target.left, width: target.width, height: target.height };
+  // La caja de la mascota tiene aire alrededor del cuerpo: se acerca un poco para que la mano llegue.
+  const gap = -Math.round(size * 0.18);
+  const anchorX = box.width > size * 2 ? box.left + box.width - size - 12 : box.left + box.width / 2 - size / 2;
+  const midY = box.top + box.height / 2 - size / 2;
+  const candidates = [
+    { rect: { width: size, height: size, top: box.top - size - gap, left: anchorX } },
+    { rect: { width: size, height: size, top: midY, left: box.left + box.width + gap } },
+    { rect: { width: size, height: size, top: midY, left: box.left - size - gap } },
+    { rect: { width: size, height: size, top: box.top + box.height + gap, left: anchorX } },
+  ];
+  const obstacles = [rectOf('[data-help-bubble]')].filter((r): r is Rect => !!r);
+  const { rect } = pickPlacement(candidates, obstacles);
+  return { x: rect.left + size / 2, y: rect.top + size / 2 };
 }

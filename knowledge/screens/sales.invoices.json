@@ -1,0 +1,13 @@
+{
+  "id": "sales.invoices",
+  "status": "draft",
+  "summary": "Facturas a pacientes.",
+  "purpose": "Emisión de facturas, notas de crédito y control de su cobro.",
+  "tips": [
+    "Una factura puede generarse desde un presupuesto aceptado."
+  ],
+  "prerequisites": [
+    "sales.quotes",
+    "sales.payments"
+  ]
+}

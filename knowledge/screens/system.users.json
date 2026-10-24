@@ -1,0 +1,12 @@
+{
+  "id": "system.users",
+  "status": "draft",
+  "summary": "Usuarios del sistema.",
+  "purpose": "Todos los usuarios con acceso (staff y profesionales), sus roles y su estado.",
+  "tips": [
+    "Para dar de alta recepción o administración es más simple Secretarias y Administración."
+  ],
+  "prerequisites": [
+    "roles"
+  ]
+}

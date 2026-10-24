@@ -1,0 +1,9 @@
+{
+  "id": "system.alert-categories",
+  "status": "draft",
+  "summary": "Categorías de alertas.",
+  "purpose": "Agrupan las alertas (cobranza, recordatorios, seguimiento) para filtrarlas y priorizarlas.",
+  "prerequisites": [
+    "system.alert-rules"
+  ]
+}

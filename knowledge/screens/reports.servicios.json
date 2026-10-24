@@ -1,0 +1,9 @@
+{
+  "id": "reports.servicios",
+  "status": "draft",
+  "summary": "Rendimiento de los servicios.",
+  "purpose": "Qué servicios se venden más y cuánto aportan.",
+  "prerequisites": [
+    "sales.services"
+  ]
+}

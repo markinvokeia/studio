@@ -1,0 +1,9 @@
+{
+  "id": "purchases.services",
+  "status": "draft",
+  "summary": "Productos y servicios de proveedores.",
+  "purpose": "Catálogo de lo que se compra a cada proveedor, con su precio, para armar presupuestos y facturas de compra.",
+  "prerequisites": [
+    "purchases.providers"
+  ]
+}

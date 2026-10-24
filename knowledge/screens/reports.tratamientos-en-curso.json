@@ -1,0 +1,6 @@
+{
+  "id": "reports.tratamientos-en-curso",
+  "status": "draft",
+  "summary": "Tratamientos en curso.",
+  "purpose": "Tratamientos de varios pasos que todavía no terminaron, para darles seguimiento."
+}

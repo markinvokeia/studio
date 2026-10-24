@@ -1,0 +1,12 @@
+{
+  "id": "cashier.cash-points",
+  "status": "draft",
+  "summary": "Cajas registradoras físicas de la clínica.",
+  "purpose": "Cada caja física (recepción, sede secundaria) tiene sus propias sesiones de apertura y cierre.",
+  "tips": [
+    "Con una sola recepción alcanza con una caja."
+  ],
+  "prerequisites": [
+    "config.sedes"
+  ]
+}

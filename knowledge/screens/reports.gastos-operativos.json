@@ -1,0 +1,6 @@
+{
+  "id": "reports.gastos-operativos",
+  "status": "draft",
+  "summary": "Gastos operativos.",
+  "purpose": "Egresos del período por categoría y proveedor."
+}
