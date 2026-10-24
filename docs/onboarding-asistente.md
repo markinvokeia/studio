@@ -120,8 +120,20 @@ tiene la base de conocimiento de *su* versión del frontend, sin secretos de CI.
     asoma de costado en distintas alturas.
   - **Sueño**: tras 3 h sin pedidos (o con "Mostrar asistente animado" apagado en
     Preferencias → `users/preferences.show_mascot`) bosteza y se duerme.
-  - **Cambio de página**: cruza al otro lado (`teleport`), salvo durante una guía o
-    con el chat abierto; al cerrar vuelve a su esquina.
+  - **Cambio de página**: cruza al otro lado (`teleport`), salvo durante una guía, con
+    el chat abierto o si la persona ya eligió su lugar; al cerrar vuelve a su lugar.
+  - **Arrastrar**: en reposo (sin guía ni chat) se arrastra a cualquier lugar, que queda
+    guardado en el navegador (`useMascotHome`). Soltada en el 25 % derecho se esconde
+    detrás del riel; en el izquierdo, detrás del menú (`sidebar.tsx`); si no, arriba o
+    abajo, detrás del panel del contenido (`PrivateRoute`, `MascotPeekZone name="content"
+    edge="auto"`). Se asoma justo donde la dejaron.
+  - **Iconos al tocarla**: junto al chat salen silenciar la voz y esconderla. Escondida
+    (o con "Mostrar asistente animado" apagado) no está en pantalla y en el riel queda
+    su ícono dormido (`MascotWakeButton`): un clic y se levanta.
+  - **Globo**: va arriba; si no entra completo (cerca del tope), a un costado o abajo,
+    sin tapar el elemento señalado ni la barra de pasos.
+  - **Ficha de la pantalla con "Mostrar"**: la ventana deja de seguir a la mascota y va
+    a una esquina que no tape el elemento, la mascota ni la barra.
   - **Chat**: "pensando" al enviar, "cargando" si tarda, contenta o una frase corta
     al responder, triste ante un error o una pregunta sin ayuda, asiente al pedir video.
   - **Guías**: viaja junto al elemento (`placeGuideMascot`, sin pisar la barra de
@@ -149,6 +161,12 @@ tiene la base de conocimiento de *su* versión del frontend, sin secretos de CI.
   - Preguntas con dictado por voz (Web Speech API). Cada respuesta trae "Guiarme"
     y "Llevarme" (`resolveReplyActions` completa lo que el agente no devolvió),
     video (Fase 3) y 👍/👎. Si el backend no responde, cae a búsqueda local.
+  - **Voz**: la mascota lee cada respuesta en voz alta (`speechSynthesis` del
+    navegador, `src/hooks/use-assistant-voice.ts`) con cara de "hablando" y, si la
+    respuesta arranca una guía, la guía empieza al terminar de leer. Se silencia con
+    el parlante del encabezado (queda guardado en este navegador); cada respuesta
+    tiene "Escuchar" / "Dejar de leer". Dictar, empezar una guía o cerrar el chat
+    corta la lectura.
 
 ### Guías
 
@@ -162,7 +180,8 @@ un borde que **titila cada vez más fuerte** (`--help-level` sube de 1 a 5 cada
 2,5 s). Quien señala es la mascota, y lo que hay que hacer lo dice en su globo:
 título, descripción y el `details` del paso (qué cambia según lo que elijas; si la
 guía no lo trae, el extractor usa la descripción del elemento en su ficha).
-Debajo del elemento queda una barra mínima, sólo con iconos: **Paso X/Y** (un
+Debajo del elemento (si no entra, al costado de la mascota; nunca debajo de ella) queda
+una barra mínima, sólo con iconos: **Paso X/Y** (un
 punto si es obligatorio, rojo si falta), ir al primero, anterior, siguiente (✓ en
 un `confirm`: "ya lo hice"), saltar el actual, ir al final y cerrar
 (`goToStep`, `previousStep`, `nextStep`, `skipStep`, `lastStep`, `stopGuide`).
@@ -190,6 +209,10 @@ contenedores con overflow hidden y desarmaba banner y footer de los diálogos.
   mismos help ids (`appointments.field.*`, `appointments.btn.save`), así la misma
   guía sirve en cualquier modo. Un componente nuevo que repita un formulario
   existente debe reutilizar sus ids.
+- `ChunkLoadError` (el navegador pide un chunk que ya no existe: en desarrollo,
+  Next descartó la pantalla; en producción, hubo un deploy) lo atrapa
+  `src/app/[locale]/error.tsx` y recarga la página una vez. En desarrollo
+  `next.config.ts` (`onDemandEntries`) mantiene compiladas 30 pantallas por 30 min.
 - Los clics en el asistente y en la barra de pasos no cierran el diálogo de Radix que
   está debajo (se corta el `pointerdown`). Limitación conocida: con un diálogo
   modal abierto no se puede escribir en el chat (el diálogo atrapa el foco); las

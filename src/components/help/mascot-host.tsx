@@ -7,18 +7,16 @@ import * as React from 'react';
 import { MascotProvider, useMascot, useMascotRouteTravel, type MascotController } from '@/components/invoke-mascot';
 
 import { useAuth } from '@/context/AuthContext';
-import { useMascotPreference } from '@/hooks/use-mascot-preference';
+import { useMascotHome, useMascotPreference } from '@/hooks/use-mascot-preference';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { waitForHelpTarget } from '@/lib/help/guide-engine';
 import { stopGuide } from '@/lib/help/guide-runner';
-import { placeGuideMascot } from '@/lib/help/placement';
+import { MASCOT_SIZE, placeGuideMascot } from '@/lib/help/placement';
 import { useHelpAssistant, type HelpSpotlight } from '@/stores/help-assistant-store';
 
 import { HELP_PERMISSIONS } from '@/constants/permissions';
 
-/** Tamaño de la mascota en px (la misma caja que usa la ubicación durante las guías). */
-export const MASCOT_SIZE = 88;
 /** Por encima del contenido y del sidebar, por debajo del riel (z-50) y de los diálogos de Radix (z-50). */
 const MASCOT_Z = 45;
 /** Durante una guía señala por encima de diálogos, del oscurecido y de la barra de pasos. */
@@ -74,6 +72,10 @@ export function MascotHost({ children }: { children: React.ReactNode }) {
   const { hasPermission, isLoading } = usePermissions();
   const [showMascot] = useMascotPreference(user?.id);
   const guiding = useHelpAssistant((s) => !!s.spotlight);
+  // Se arrastra sólo en reposo: sin guía ni chat abierto.
+  const idle = useHelpAssistant((s) => !s.guide && !s.isOpen);
+  const home = useMascotHome((s) => s.home);
+  const setHome = useMascotHome((s) => s.setHome);
   const insets = useMascotInsets();
   const canUse = !isLoading && hasPermission(HELP_PERMISSIONS.ASSISTANT_USE);
 
@@ -93,10 +95,18 @@ export function MascotHost({ children }: { children: React.ReactNode }) {
       idleAfterMs={IDLE_AFTER_MS}
       sleepAfterMs={SLEEP_AFTER_MS}
       enabled={showMascot}
-      hidden={!canUse}
+      // Escondida desde sus iconos (o apagada en Preferencias): queda dormida en el riel.
+      hidden={!canUse || !showMascot}
       zIndex={guiding ? MASCOT_Z_GUIDING : MASCOT_Z}
       onMascotClick={handleClick}
       label={t('label')}
+      // Arrastrándola elige su lugar: a la derecha se esconde tras el riel, a la izquierda
+      // tras el menú, arriba o abajo tras el panel del contenido (zonas en header, sidebar y layout).
+      home={home}
+      draggable={idle}
+      onHomeChange={setHome}
+      // El globo de cada paso no tapa la barra de pasos.
+      bubbleAvoid="[data-help-bubble]"
     >
       {children}
       {canUse && <MascotBridge />}
@@ -112,6 +122,7 @@ function MascotBridge() {
   const mRef = React.useRef(m);
   React.useLayoutEffect(() => { mRef.current = m; });
   const pathname = usePathname() ?? '/';
+  const hasHome = useMascotHome((s) => !!s.home);
   const spotlight = useHelpAssistant((s) => s.spotlight);
   const guideActive = useHelpAssistant((s) => !!s.guide && !s.guide.finished);
   const hasGuide = useHelpAssistant((s) => !!s.guide);
@@ -125,18 +136,19 @@ function MascotBridge() {
   // festejar) o acompaña al chat: ahí la ruta la maneja la guía o el panel.
   const busy = hasGuide || isOpen;
   const [routeKey, setRouteKey] = React.useState(pathname);
-  useMascotRouteTravel(routeKey, { animation: 'teleport' });
+  // Con un lugar elegido no cruza de lado: se queda donde la dejaron.
+  useMascotRouteTravel(routeKey, { animation: 'teleport', disabled: hasHome });
 
   // La clave de ruta sólo avanza cuando la mascota está libre. Al terminar de guiar o
   // cerrar el chat: si cambió la página, el hook la cruza; si no, vuelve a su lugar.
   const wasBusy = React.useRef(busy);
   React.useEffect(() => {
     if (!busy) {
-      if (wasBusy.current && routeKey === pathname) void mRef.current.travelTo('bottom-right', { animation: 'hop' });
+      if (wasBusy.current && (routeKey === pathname || hasHome)) void mRef.current.travelTo('home', { animation: 'hop' });
       setRouteKey(pathname);
     }
     wasBusy.current = busy;
-  }, [busy, pathname, routeKey]);
+  }, [busy, pathname, routeKey, hasHome]);
 
   // Chat abierto (sin guía): el chat sale arriba de la mascota; ella saluda y, si nadie
   // escribe, cada tanto hace un gesto invitando a pedirle algo.

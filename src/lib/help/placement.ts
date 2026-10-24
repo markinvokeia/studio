@@ -8,6 +8,8 @@
 export interface Rect { top: number; left: number; width: number; height: number }
 
 export const VIEWPORT_MARGIN = 8;
+/** Tamaño de la mascota en px (MascotHost la monta con este tamaño). */
+export const MASCOT_SIZE = 88;
 
 export function intersects(a: Rect, b: Rect, gap = 0): boolean {
   return a.left < b.left + b.width + gap && a.left + a.width + gap > b.left
@@ -69,7 +71,7 @@ export function revealElement(el: HTMLElement) {
 }
 
 /** Rectángulo de un elemento del asistente por selector (barra de pasos). */
-function rectOf(selector: string): Rect | null {
+export function rectOf(selector: string): Rect | null {
   const el = document.querySelector(selector);
   if (!el) return null;
   const r = el.getBoundingClientRect();
@@ -82,7 +84,11 @@ function rectOf(selector: string): Rect | null {
  * costado; si no, abajo. Hacia el extremo derecho del elemento (el texto de los
  * campos está a la izquierda) y sin pisar la barra de pasos.
  */
-export function placeGuideMascot(target: DOMRect | Rect, size: number): { x: number; y: number } {
+export function placeGuideMascot(
+  target: DOMRect | Rect,
+  size: number,
+  obstacles: Rect[] = [rectOf('[data-help-bubble]')].filter((r): r is Rect => !!r),
+): { x: number; y: number } {
   const box = { top: target.top, left: target.left, width: target.width, height: target.height };
   // La caja de la mascota tiene aire alrededor del cuerpo: se acerca un poco para que la mano llegue.
   const gap = -Math.round(size * 0.18);
@@ -94,7 +100,6 @@ export function placeGuideMascot(target: DOMRect | Rect, size: number): { x: num
     { rect: { width: size, height: size, top: midY, left: box.left - size - gap } },
     { rect: { width: size, height: size, top: box.top + box.height + gap, left: anchorX } },
   ];
-  const obstacles = [rectOf('[data-help-bubble]')].filter((r): r is Rect => !!r);
   const { rect } = pickPlacement(candidates, obstacles);
   return { x: rect.left + size / 2, y: rect.top + size / 2 };
 }

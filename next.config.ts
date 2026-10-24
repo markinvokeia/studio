@@ -58,6 +58,12 @@ const nextConfig: any = {
     ],
   },
   allowedDevOrigins: ['localhost:3000', '192.168.1.*'],
+  // Sólo desarrollo: Next descarta las pantallas sin uso al minuto y guarda 5. Con las
+  // guías saltando entre pantallas, el navegador pedía chunks ya descartados (ChunkLoadError).
+  onDemandEntries: {
+    maxInactiveAge: 30 * 60 * 1000,
+    pagesBufferLength: 30,
+  },
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000', '192.168.1.*'],

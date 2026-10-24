@@ -93,6 +93,19 @@ export const MASCOT_CSS = `
 .ivm-bubble-left{right:62%;border-bottom-right-radius:4px;transform-origin:100% 100%}
 .ivm-bubble-right{left:62%;border-bottom-left-radius:4px;transform-origin:0 100%}
 @keyframes ivm-bubble-in{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+/* globo ubicado donde entra completo (cerca del tope va a un costado o abajo) */
+.ivm-bubble-placed{bottom:auto;right:auto}
+.ivm-tail-bl{border-bottom-left-radius:4px;transform-origin:0 100%}
+.ivm-tail-br{border-bottom-right-radius:4px;transform-origin:100% 100%}
+.ivm-tail-tl{border-top-left-radius:4px;transform-origin:0 0}
+.ivm-tail-tr{border-top-right-radius:4px;transform-origin:100% 0}
+.ivm-tail-l{border-top-left-radius:4px;transform-origin:0 20%}
+.ivm-tail-r{border-top-right-radius:4px;transform-origin:100% 20%}
+
+/* arrastrar para elegir su lugar */
+.ivm-draggable{cursor:grab;touch-action:none}
+.ivm-dragging .ivm-hit{cursor:grabbing}
+.ivm-dragging{filter:drop-shadow(0 14px 18px rgba(60,20,90,.32))}
 
 /* anillo sobre el elemento señalado */
 .ivm-highlight{position:fixed;pointer-events:none;border-radius:14px;box-shadow:0 0 0 3px #EC4899,0 0 0 9px rgba(236,72,153,.22);animation:ivm-ring 1.1s ease-in-out infinite}
@@ -104,9 +117,11 @@ export const MASCOT_CSS = `
 @keyframes ivm-burst{from{transform:translate(0,0) scale(1.2);opacity:1}to{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
 
 /* zona para esconderse detrás de la barra de widgets */
-.ivm-peekzone{position:relative;isolation:isolate}
-.ivm-peekzone-content{position:relative;z-index:1}
-.ivm-peek-layer{position:absolute;left:0;right:0;z-index:0;overflow:hidden;pointer-events:none}
+/* sin z-index ni isolation: la capa va antes que el contenido en el DOM y se pinta debajo
+   por orden, sin crear un contexto de apilamiento que encierre los z-index del contenido */
+.ivm-peekzone{position:relative}
+.ivm-peekzone-content{position:relative}
+.ivm-peek-layer{position:absolute;left:0;right:0;overflow:hidden;pointer-events:none}
 .ivm-peek-actor{position:absolute;pointer-events:auto}
 .ivm-peek-actor-inner{transition:transform .55s cubic-bezier(.34,1.35,.64,1)}
 .ivm-peek-actor-inner.ivm-fast{transition:transform .3s cubic-bezier(.5,0,.75,0)}
@@ -123,7 +138,10 @@ let injected = false;
 /** Inserta los estilos una sola vez. Seguro para SSR (no hace nada sin `document`). */
 export function ensureMascotStyles(nonce?: string): void {
   if (injected || typeof document === 'undefined') return;
-  if (document.getElementById('ivm-styles')) {
+  const existing = document.getElementById('ivm-styles');
+  if (existing) {
+    // Una versión anterior (recarga en caliente o un deploy con la pestaña abierta): se actualiza.
+    if (existing.textContent !== MASCOT_CSS) existing.textContent = MASCOT_CSS;
     injected = true;
     return;
   }

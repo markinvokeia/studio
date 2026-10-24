@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart2, Calendar, ChevronRight, Clapperboard, Compass, ListChecks, Mic, PlayCircle, Plug, Route, SendHorizontal, Square, ThumbsDown, ThumbsUp, Users, Video, Wallet } from 'lucide-react';
+import { BarChart2, Calendar, ChevronRight, Clapperboard, Compass, ListChecks, Mic, PlayCircle, Plug, Route, SendHorizontal, Square, ThumbsDown, ThumbsUp, Users, Video, Volume2, Wallet } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 
 import { useMascot } from '@/components/invoke-mascot';
 
+import { isSpeechSupported, speakAssistant, stopAssistantSpeech, useAssistantVoice } from '@/hooks/use-assistant-voice';
 import { useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrentHelpRoute } from '@/hooks/use-current-help-route';
@@ -94,8 +95,20 @@ export function HelpChat({ catalog, pendingSteps, screenTitle, highlightScreen, 
   const abortRef = React.useRef<AbortController | null>(null);
   const bottomRef = React.useRef<HTMLDivElement | null>(null);
   const textareaRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const mountedRef = React.useRef(true);
+  const speakingId = useAssistantVoice((s) => s.speakingId);
+  const [canSpeak, setCanSpeak] = React.useState(false);
 
-  React.useEffect(() => () => abortRef.current?.abort(), []);
+  React.useEffect(() => { setCanSpeak(isSpeechSupported()); }, []);
+  // Al cerrar el chat se corta la lectura y lo que estuviera en curso.
+  React.useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      abortRef.current?.abort();
+      stopAssistantSpeech();
+    };
+  }, []);
   React.useEffect(() => { bottomRef.current?.scrollIntoView({ block: 'end' }); }, [messages, isSending]);
 
   const actionsFor = React.useCallback(
@@ -106,6 +119,7 @@ export function HelpChat({ catalog, pendingSteps, screenTitle, highlightScreen, 
   const runGuide = React.useCallback((reply: HelpAssistantReply) => {
     const { guide } = actionsFor(reply);
     if (!guide?.steps.length) return;
+    stopAssistantSpeech();
     startGuide(guide, {
       useCaseId: guide.useCaseId,
       values: reply.values ?? {},
@@ -154,7 +168,13 @@ export function HelpChat({ catalog, pendingSteps, screenTitle, highlightScreen, 
       lockRef.current = false;
     }
 
-    addMessage({ id: `${Date.now()}-a`, role: 'assistant', content: reply.answer, reply });
+    const replyId = `${Date.now()}-a`;
+    addMessage({ id: replyId, role: 'assistant', content: reply.answer, reply });
+    // La mascota lee la respuesta en voz alta (salvo que esté silenciada) antes de guiar.
+    void mascotRef.current.setMood('talking');
+    const spoken = await speakAssistant(replyId, reply.answer, locale);
+    if (!mountedRef.current) return;
+    if (!spoken) void mascotRef.current.setMood('neutral');
     // Una frase como máximo por respuesta: acompaña, no repite lo que dice el chat.
     if (failed) void mascotRef.current.say(t('mascotError'), { mood: 'sad' });
     else if (isSadReply(reply)) void mascotRef.current.say(t('mascotSorry'), { mood: 'sad' });
@@ -164,6 +184,16 @@ export function HelpChat({ catalog, pendingSteps, screenTitle, highlightScreen, 
   }, [addMessage, catalog, locale, route, runGuide, scope, t]);
 
   const dictation = useSpeechDictation(locale, (text) => { void send(text, true); });
+  // Que el micrófono no escuche a la mascota.
+  const startDictation = () => { stopAssistantSpeech(); dictation.start(); };
+
+  const toggleReading = (msg: HelpChatMessage) => {
+    if (speakingId === msg.id) { stopAssistantSpeech(); return; }
+    void mascotRef.current.setMood('talking');
+    void speakAssistant(msg.id, msg.content, locale).then(() => {
+      if (mountedRef.current && useAssistantVoice.getState().speakingId === null) void mascotRef.current.setMood('happy');
+    });
+  };
 
   // La caja crece con el texto hasta un máximo y después scrollea.
   const composerValue = dictation.isListening ? dictation.interim : input;
@@ -327,16 +357,31 @@ export function HelpChat({ catalog, pendingSteps, screenTitle, highlightScreen, 
               {reply?.escalated && (
                 <p className="text-[11px] text-muted-foreground">{reply.ticketId ? t('ticketCreated', { id: reply.ticketId }) : t('escalated')}</p>
               )}
-              {reply?.questionId && (
+              {(reply?.questionId || canSpeak) && (
                 <div className="flex items-center gap-1 text-muted-foreground">
-                  <button type="button" aria-label={t('helpful')} disabled={!!rated[msg.id]} onClick={() => rate(msg, 1)}
-                    className={cn('rounded p-1 hover:bg-muted disabled:cursor-default', rated[msg.id] === 1 && 'text-green-600')}>
-                    <ThumbsUp className="h-3.5 w-3.5" />
-                  </button>
-                  <button type="button" aria-label={t('notHelpful')} disabled={!!rated[msg.id]} onClick={() => rate(msg, -1)}
-                    className={cn('rounded p-1 hover:bg-muted disabled:cursor-default', rated[msg.id] === -1 && 'text-destructive')}>
-                    <ThumbsDown className="h-3.5 w-3.5" />
-                  </button>
+                  {canSpeak && (
+                    <button
+                      type="button"
+                      aria-label={speakingId === msg.id ? t('stopReading') : t('readAloud')}
+                      title={speakingId === msg.id ? t('stopReading') : t('readAloud')}
+                      onClick={() => toggleReading(msg)}
+                      className={cn('rounded p-1 hover:bg-muted', speakingId === msg.id && 'text-[#7C3AED]')}
+                    >
+                      {speakingId === msg.id ? <Square className="h-3 w-3 fill-current" /> : <Volume2 className="h-3.5 w-3.5" />}
+                    </button>
+                  )}
+                  {reply?.questionId && (
+                    <>
+                      <button type="button" aria-label={t('helpful')} disabled={!!rated[msg.id]} onClick={() => rate(msg, 1)}
+                        className={cn('rounded p-1 hover:bg-muted disabled:cursor-default', rated[msg.id] === 1 && 'text-green-600')}>
+                        <ThumbsUp className="h-3.5 w-3.5" />
+                      </button>
+                      <button type="button" aria-label={t('notHelpful')} disabled={!!rated[msg.id]} onClick={() => rate(msg, -1)}
+                        className={cn('rounded p-1 hover:bg-muted disabled:cursor-default', rated[msg.id] === -1 && 'text-destructive')}>
+                        <ThumbsDown className="h-3.5 w-3.5" />
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -381,7 +426,7 @@ export function HelpChat({ catalog, pendingSteps, screenTitle, highlightScreen, 
               size="icon"
               variant="ghost"
               className={cn('h-9 w-9 flex-none rounded-full', dictation.isListening ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : 'text-muted-foreground')}
-              onClick={dictation.isListening ? dictation.stop : dictation.start}
+              onClick={dictation.isListening ? dictation.stop : startDictation}
               disabled={isSending}
               aria-label={dictation.isListening ? t('stopDictation') : t('dictate')}
               title={dictation.isListening ? t('stopDictation') : t('dictate')}

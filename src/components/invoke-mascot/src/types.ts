@@ -44,6 +44,22 @@ export type DockPosition =
   | 'center-right'
   | 'center-left';
 
+/** Lado de la pantalla del lugar elegido: define detrás de qué barra se esconde. */
+export type MascotHomeSide = 'left' | 'right' | 'top' | 'bottom';
+
+/**
+ * Lugar elegido por la persona arrastrando la mascota: el centro, en fracciones
+ * del viewport (sobrevive a cambios de tamaño de la ventana).
+ */
+export interface MascotHome {
+  side: MascotHomeSide;
+  x: number;
+  y: number;
+}
+
+/** Anclaje: una esquina fija o el lugar elegido (`home`; sin uno, el `dock`). */
+export type MascotAnchor = DockPosition | 'home';
+
 /**
  * Destino de un viaje o de un señalamiento:
  * - un punto `{x, y}` en px del viewport (centro de la mascota / punto señalado),
@@ -103,7 +119,7 @@ export interface MascotController {
   /** Mira un punto/elemento (o `'cursor'` para volver a seguir el puntero). */
   lookAt(target: MascotTarget | 'cursor'): void;
   /** Viaja a otro lugar de la pantalla. */
-  travelTo(target: MascotTarget | DockPosition, options?: TravelOptions): Promise<void>;
+  travelTo(target: MascotTarget | MascotAnchor, options?: TravelOptions): Promise<void>;
   /** Se esconde detrás de la barra de widgets (MascotPeekZone) y se asoma de a ratos. */
   hide(): Promise<void>;
   /** Sale de su escondite y vuelve a su lugar. */

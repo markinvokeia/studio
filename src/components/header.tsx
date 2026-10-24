@@ -7,14 +7,11 @@ import { QuickPatientSearch } from '@/components/patients/QuickPatientSearch';
 import { NotificationsBell } from '@/components/notifications/notifications-bell';
 import { NotificationsPanel } from '@/components/notifications/notifications-panel';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CASHIER_PERMISSIONS, GLOBAL_PERMISSIONS, PATIENTS_PERMISSIONS, SALES_PERMISSIONS, STICKY_NOTES_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { useNotifications } from '@/context/notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useToast } from '@/hooks/use-toast';
-import { getApiUrl } from '@/lib/runtime-config';
 import { cn } from '@/lib/utils';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import {
@@ -22,11 +19,7 @@ import {
     ChevronLeft,
     ChevronRight,
     Inbox,
-    MessageSquare,
     StickyNote as StickyNoteIcon,
-    Volume2,
-    VolumeX,
-    X,
     Zap,
 } from 'lucide-react';
 import { useStickyNotes } from '@/hooks/use-sticky-notes';
@@ -34,76 +27,14 @@ import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import type { StickyNote } from '@/lib/types';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { AlertsWidget } from './alerts-widget';
 import { ExchangeRate } from './exchange-rate';
 import { StickyNotesOverlay } from './sticky-notes-overlay';
-import { VoiceAssistant } from './voice-assistant';
-import { VoiceChat, type ChatMessage } from './voice-chat';
 import { MascotPeekZone } from '@/components/invoke-mascot';
-
-// ── Webhook URL ───────────────────────────────────────────────────────────────
-
-const CHAT_WEBHOOK_URL =
-    getApiUrl() +
-    '/webhook/a8ad846b-de6a-4d89-8e02-01072101cfe6/chat';
-
-// ── TTS ───────────────────────────────────────────────────────────────────────
-
-const PREFERRED_VOICE_NAMES = [
-    'Google español',
-    'Microsoft Sabina',
-    'Microsoft Helena',
-    'Paulina',
-    'Monica',
-    'Jorge',
-    'Diego',
-];
-
-function pickSpanishVoice(): Promise<SpeechSynthesisVoice | null> {
-    return new Promise((resolve) => {
-        const synth = window.speechSynthesis;
-
-        const find = () => {
-            const voices = synth.getVoices();
-            if (voices.length === 0) return null;
-            for (const name of PREFERRED_VOICE_NAMES) {
-                const v = voices.find((v) => v.name.includes(name));
-                if (v) return v;
-            }
-            const local = voices.find((v) => v.lang.startsWith('es') && v.localService);
-            if (local) return local;
-            return voices.find((v) => v.lang.startsWith('es')) ?? null;
-        };
-
-        const result = find();
-        if (result) { resolve(result); return; }
-
-        const onLoaded = () => {
-            synth.removeEventListener('voiceschanged', onLoaded);
-            resolve(find());
-        };
-        synth.addEventListener('voiceschanged', onLoaded);
-        setTimeout(() => { synth.removeEventListener('voiceschanged', onLoaded); resolve(null); }, 2000);
-    });
-}
-
-async function speakText(text: string, enabled: boolean) {
-    if (!enabled || typeof window === 'undefined' || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'es-ES';
-    utterance.rate = 0.92;
-    utterance.pitch = 1;
-
-    const voice = await pickSpanishVoice();
-    if (voice) utterance.voice = voice;
-
-    window.speechSynthesis.speak(utterance);
-}
+import { MascotWakeButton } from '@/components/help/mascot-wake-button';
 
 // ── Deep-link helper ──────────────────────────────────────────────────────────
 
@@ -145,17 +76,14 @@ const PEEK_ICON: Record<PeekItem, React.ReactNode> = {
 export function Header() {
     const pathname = usePathname();
     const tFloating = useTranslations('FloatingActions');
-    const tChat = useTranslations('VoiceChat');
     const tStickyNotes = useTranslations('StickyNotes');
     const locale = useLocale();
-    const router = useRouter();
     const { activeCashSession, user, sedes } = useAuth();
     const { pendingCount: alertCount, highestPriority } = useAlertNotifications();
     const { pendingCount: inboxCount, notifications } = useNotifications();
     const { hasPermission } = usePermissions();
-    const { toast } = useToast();
 
-    const { notes, isLoading: isLoadingNotes, fetchNotes, createNote, updateNote, deleteNote, prependNote } = useStickyNotes();
+    const { notes, isLoading: isLoadingNotes, fetchNotes, createNote, updateNote, deleteNote } = useStickyNotes();
     const { open: openBillingWizard } = useBillingWizard();
 
     const [isExpanded, setIsExpanded] = React.useState(true);
@@ -167,11 +95,6 @@ export function Header() {
     // marcar las novedades como vistas y hacer pulsar la pestaña colapsada.
     const isNarrowViewport = useViewportNarrow(640);
     const isPanelOpen = isNarrowViewport ? isMobileExpanded : isExpanded;
-    const [isChatOpen, setIsChatOpen] = React.useState(false);
-    const [isChatMinimized, setIsChatMinimized] = React.useState(false);
-    const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>([]);
-    const [isSending, setIsSending] = React.useState(false);
-    const [ttsEnabled, setTtsEnabled] = React.useState(false);
     const [isClient, setIsClient] = React.useState(false);
     const [isStickyNotesOpen, setIsStickyNotesOpen] = React.useState(false);
     const [peekItem, setPeekItem] = React.useState<PeekItem | null>(null);
@@ -185,7 +108,6 @@ export function Header() {
     } | null>(null);
     const [panelHintLeaving, setPanelHintLeaving] = React.useState(false);
 
-    const sessionId = React.useRef(`sid-${Date.now()}`);
     // Tracks count at the previous render (to detect increases)
     const prevCountsRef = React.useRef({ alerts: 0, inbox: 0, notes: 0 });
     // Tracks what the user last saw when they opened the panel (persisted)
@@ -316,103 +238,7 @@ export function Header() {
         return () => { panelHintTimerRef.current.forEach(clearTimeout); };
     }, []);
 
-    const openChatPanel = React.useCallback(() => {
-        setIsChatOpen(true);
-        setIsChatMinimized(false);
-    }, []);
-
     const openStickyNotes = React.useCallback(() => { setIsStickyNotesOpen(true); }, []);
-    const closeChatPanel = React.useCallback(() => { setIsChatOpen(false); setIsChatMinimized(false); }, []);
-
-    const sendToWebhook = React.useCallback(
-        async (chatInput: string, audioBlob?: Blob) => {
-            setIsSending(true);
-            try {
-                let body: BodyInit;
-
-                if (audioBlob) {
-                    const fd = new FormData();
-                    fd.append('action', 'sendMessage');
-                    fd.append('sessionId', sessionId.current);
-                    fd.append('chatInput', chatInput);
-                    if (user?.id) fd.append('user_id', String(user.id));
-                    fd.append('files', audioBlob, 'voice-message.webm');
-                    body = fd;
-                } else {
-                    body = JSON.stringify({
-                        action: 'sendMessage',
-                        sessionId: sessionId.current,
-                        chatInput,
-                        ...(user?.id ? { user_id: user.id } : {}),
-                    });
-                }
-
-                const response = await fetch(CHAT_WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: audioBlob ? undefined : { 'Content-Type': 'application/json' },
-                    body,
-                });
-
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                let reply = '';
-                let redirect: string | null = null;
-                try {
-                    const data = await response.json() as Record<string, unknown>;
-                    reply =
-                        (data.output as string) ??
-                        (data.text as string) ??
-                        (data.message as string) ??
-                        (data.response as string) ??
-                        '';
-                    if (typeof data.redirect === 'string' && data.redirect) redirect = data.redirect;
-                    if (data.openStickyNotes === true) setIsStickyNotesOpen(true);
-                    if (data.note && typeof (data.note as Record<string, unknown>).id === 'string') {
-                        prependNote(data.note as StickyNote);
-                    }
-                } catch {
-                    reply = await response.text();
-                }
-
-                if (reply) {
-                    setChatMessages((prev) => [
-                        ...prev,
-                        { id: `${Date.now()}-ai`, role: 'assistant', content: reply, timestamp: new Date() },
-                    ]);
-                    speakText(reply, ttsEnabled);
-                    if (redirect) router.push(`/${locale}${redirect}`);
-                }
-            } catch {
-                toast({ title: tChat('sendError'), variant: 'destructive' });
-            } finally {
-                setIsSending(false);
-            }
-        },
-        [tChat, toast, ttsEnabled, locale, router, user, prependNote],
-    );
-
-    const handleAudioReady = React.useCallback(
-        (blob: Blob) => {
-            openChatPanel();
-            setChatMessages((prev) => [
-                ...prev,
-                { id: `${Date.now()}-user`, role: 'user', content: tChat('voiceMessage'), isVoice: true, timestamp: new Date() },
-            ]);
-            sendToWebhook(tChat('voiceMessage'), blob);
-        },
-        [openChatPanel, sendToWebhook, tChat],
-    );
-
-    const handleSendText = React.useCallback(
-        (text: string) => {
-            setChatMessages((prev) => [
-                ...prev,
-                { id: `${Date.now()}-user`, role: 'user', content: text, timestamp: new Date() },
-            ]);
-            sendToWebhook(text);
-        },
-        [sendToWebhook],
-    );
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -447,6 +273,7 @@ export function Header() {
                     /* Expanded: vertical strip */
                     <MascotPeekZone
                         edge="left"
+                        name="right"
                         className="help-rail-zone"
                         // Escondite de la mascota: el riel tiene fondo opaco y nada lo recorta. El
                         // posicionamiento va acá (inline: el CSS de la mascota se carga después de Tailwind).
@@ -548,41 +375,8 @@ export function Header() {
                                 </div>
                             )}
 
-                            <div className="w-8 h-px bg-border/50 my-1.5 shrink-0" />
-
-                            <PanelItem label="Chat">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={openChatPanel}
-                                    className={cn(
-                                        'rounded-xl h-10 w-10',
-                                        isChatOpen ? 'bg-primary/10 text-primary' : 'bg-muted/60 text-muted-foreground',
-                                    )}
-                                    title={tFloating('openChat')}
-                                >
-                                    <MessageSquare className="h-5 w-5" />
-                                </Button>
-                            </PanelItem>
-
-                            <PanelItem label="Voz">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setTtsEnabled((v) => !v)}
-                                    className={cn(
-                                        'rounded-xl h-10 w-10',
-                                        ttsEnabled ? 'bg-primary/10 text-primary' : 'bg-muted/60 text-muted-foreground',
-                                    )}
-                                    title={ttsEnabled ? tChat('ttsDisable') : tChat('ttsEnable')}
-                                >
-                                    {ttsEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-                                </Button>
-                            </PanelItem>
-
-                            <PanelItem label="Mic">
-                                <VoiceAssistant onAudioReady={handleAudioReady} isProcessing={isSending} />
-                            </PanelItem>
+                            {/* Asistente escondido: la mascota dormida, un clic y se levanta. */}
+                            <MascotWakeButton withDivider />
 
                         </div>
                     </MascotPeekZone>
@@ -667,16 +461,7 @@ export function Header() {
                             </Button>
                         )}
 
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={openChatPanel}
-                            className="rounded-xl h-10 w-10"
-                        >
-                            <MessageSquare className="h-5 w-5 text-muted-foreground" />
-                        </Button>
-
-                        <VoiceAssistant onAudioReady={handleAudioReady} isProcessing={isSending} />
+                        <MascotWakeButton compact />
 
                         <Button
                             variant="ghost"
@@ -689,64 +474,6 @@ export function Header() {
                     </div>
                 )}
             </div>
-
-            {/* ── Chat panel ─────────────────────────────────────────────── */}
-            {isClient && isChatOpen && createPortal(
-                <div className="fixed bottom-0 right-0 z-[9990] flex w-full justify-end p-0 sm:bottom-4 sm:right-16 sm:w-auto sm:p-0 pointer-events-none">
-                    {isChatMinimized ? (
-                        <div className="pointer-events-auto px-3 pb-3 sm:px-0 sm:pb-0">
-                            <Button
-                                type="button"
-                                onClick={() => setIsChatMinimized(false)}
-                                className="h-12 rounded-full px-4 shadow-2xl"
-                                title={tFloating('restoreChat')}
-                            >
-                                <MessageSquare className="mr-2 h-4 w-4" />
-                                {tFloating('chatbotTitle')}
-                            </Button>
-                        </div>
-                    ) : (
-                        <div className="pointer-events-auto w-full px-0 md:w-[24rem] lg:w-[26rem]">
-                            <Card className="h-[60vh] w-full rounded-none border-primary/20 shadow-2xl overflow-hidden sm:rounded-2xl">
-                                <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-primary text-primary-foreground shrink-0">
-                                    <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                        <MessageSquare className="h-4 w-4" />
-                                        {tFloating('chatbotTitle')}
-                                    </CardTitle>
-                                    <div className="flex items-center gap-1">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => setIsChatMinimized(true)}
-                                            className="h-7 w-7 text-primary-foreground hover:bg-white/20"
-                                            title={tFloating('minimizeChat')}
-                                        >
-                                            <ChevronRight className="h-4 w-4 rotate-90" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={closeChatPanel}
-                                            className="h-7 w-7 text-primary-foreground hover:bg-white/20"
-                                            title={tFloating('closeChat')}
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="p-0 flex-1 overflow-hidden">
-                                    <VoiceChat
-                                        messages={chatMessages}
-                                        onSendText={handleSendText}
-                                        isSending={isSending}
-                                    />
-                                </CardContent>
-                            </Card>
-                        </div>
-                    )}
-                </div>,
-                document.body
-            )}
 
             {/* ── Sticky notes overlay ────────────────────────────────────── */}
             {isClient && (

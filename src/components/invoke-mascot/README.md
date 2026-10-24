@@ -170,6 +170,18 @@ Para incorporar en la próxima versión del paquete:
 3. `index.ts` en la raíz de la carpeta re-exporta `./src` (`@/components/invoke-mascot`).
 4. `pointAt(…, { say, duration: Infinity, signal })`: habla el tiempo de lectura y después
    sigue señalando con ánimo `happy` (el globo queda visible hasta que se aborta).
+5. **Globo que entra completo** (`MascotProvider.tsx`, `styles.ts`): se mide y va arriba del lado
+   de siempre; si no entra (cerca del tope), a un costado; si no, abajo. No tapa el elemento que
+   señala ni lo que indique `bubbleAvoid` (selector).
+6. **Lugar elegido arrastrando** (`home`, `draggable`, `onHomeChange`; tipos `MascotHome`,
+   `MascotAnchor`): en reposo se arrastra; el lado donde la sueltan (franjas izquierda/derecha
+   del 25 %, si no arriba/abajo) define detrás de qué zona se esconde (`hideZones`, por nombre:
+   `right`, `left`, `content`) y se asoma justo donde la dejaron. `travelTo('home')` vuelve a ese
+   lugar (sin uno, al `dock`).
+7. `MascotPeekZone`: `name`, `edge="auto"` (`bottom` si el lugar está abajo, si no `top`), y sólo
+   sirve de escondite si es visible. Sin `isolation` ni `z-index`: la capa se pinta debajo del
+   contenido por orden del DOM, así envolver el panel de la página no encierra sus z-index.
+8. `useMascotRouteTravel(…, { disabled })`: no cruza de lado (con un lugar elegido).
 
 El ESLint del proyecto apaga `react-hooks/refs` y `react-hooks/purity` sólo para esta
 carpeta (el dibujo usa refs y `Date.now()` en render a propósito).

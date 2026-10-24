@@ -6,6 +6,7 @@ import { create } from 'zustand';
 import { api } from '@/services/api';
 
 import { API_ROUTES } from '@/constants/routes';
+import type { MascotHome } from '@/components/invoke-mascot';
 import type { UserPreferences, UserPreferencesResponse } from '@/lib/types';
 
 const CACHE_KEY_PREFIX = 'show-mascot';
@@ -33,7 +34,8 @@ const useMascotPrefStore = create<{ value: boolean; loadedFor: string | null; se
 
 /**
  * "Mostrar asistente animado" (users/preferences → show_mascot). Por defecto
- * prendido. Desactivada, la mascota hiberna y no reacciona.
+ * prendido. Apagada (o escondida desde sus iconos), la mascota no está en
+ * pantalla y en el riel queda su ícono dormido para despertarla.
  */
 export function useMascotPreference(userId?: string | number): [boolean, (value: boolean) => void] {
   const id = userId === undefined || userId === null ? null : String(userId);
@@ -64,3 +66,31 @@ export function useMascotPreference(userId?: string | number): [boolean, (value:
 
   return [value, setValue];
 }
+
+const HOME_KEY = 'invoke-mascot:home';
+const HOME_SIDES = ['left', 'right', 'top', 'bottom'];
+
+function readHome(): MascotHome | null {
+  try {
+    const raw = typeof window === 'undefined' ? null : window.localStorage.getItem(HOME_KEY);
+    const home = raw ? (JSON.parse(raw) as MascotHome) : null;
+    return home && HOME_SIDES.includes(home.side) && Number.isFinite(home.x) && Number.isFinite(home.y) ? home : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Dónde dejó la persona la mascota arrastrándola (en este navegador). Define
+ * dónde descansa y detrás de qué se esconde: el riel, el menú o el panel.
+ */
+export const useMascotHome = create<{ home: MascotHome | null; setHome: (home: MascotHome | null) => void }>((set) => ({
+  home: readHome(),
+  setHome: (home) => {
+    try {
+      if (home) window.localStorage.setItem(HOME_KEY, JSON.stringify(home));
+      else window.localStorage.removeItem(HOME_KEY);
+    } catch { /* sin storage queda en memoria */ }
+    set({ home });
+  },
+}));

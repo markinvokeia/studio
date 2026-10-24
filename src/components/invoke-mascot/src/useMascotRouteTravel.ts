@@ -17,6 +17,8 @@ export interface RouteTravelOptions {
   say?: Record<string, string> | ((route: string) => string | undefined);
   /** Si está escondida o dormida, ¿debe salir para viajar? Por defecto false (sigue en lo suyo). */
   wakeOnNavigate?: boolean;
+  /** No viaja (por ejemplo, si la persona ya eligió su lugar). */
+  disabled?: boolean;
 }
 
 const CYCLE: TravelAnimation[] = ['teleport', 'hop', 'jump'];
@@ -44,6 +46,7 @@ export function useMascotRouteTravel(routeKey: string, options: RouteTravelOptio
     }
     const m = mascotRef.current;
     const o = optsRef.current;
+    if (o.disabled) return;
     if (!o.wakeOnNavigate && (m.phase === 'peeking' || m.phase === 'sleeping')) return;
     const sides = o.sides ?? ['bottom-right', 'bottom-left'];
     let target = o.positions?.[routeKey];

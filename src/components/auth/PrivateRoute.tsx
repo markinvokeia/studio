@@ -4,6 +4,7 @@ import { Header } from '@/components/header';
 import { HelpAssistant } from '@/components/help/help-assistant';
 import { HelpScopeProvider } from '@/components/help/help-scope';
 import { MascotHost } from '@/components/help/mascot-host';
+import { MascotPeekZone } from '@/components/invoke-mascot';
 import { LicenseExpirationBanner, LicenseExpiredBanner } from '@/components/license/LicenseExpirationBanner';
 import { LicenseExpiredScreen } from '@/components/license/LicenseExpiredScreen';
 import { PatientPortalLayout } from '@/components/patient-portal/patient-portal-layout';
@@ -243,7 +244,10 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         {isExpiringSoon && !isExpired && (
           <LicenseExpirationBanner daysLeft={daysLeft} />
         )}
-        <main className="flex-1 flex flex-col min-h-0 bg-[var(--page-tint,hsl(var(--background)))] px-0 sm:px-4 lg:px-6 pb-0 sm:pb-6 lg:pb-6 pt-0 overflow-hidden print:block print:h-auto print:overflow-visible print:px-0 relative">
+        {/* overflow visible: la mascota escondida detrás del panel se asoma por el margen de arriba o de abajo. */}
+        <main className="flex-1 flex flex-col min-h-0 bg-[var(--page-tint,hsl(var(--background)))] px-0 sm:px-4 lg:px-6 pb-0 sm:pb-6 lg:pb-6 pt-0 overflow-visible print:block print:h-auto print:overflow-visible print:px-0 relative">
+          {/* Escondite de la mascota cuando la dejan arriba o abajo: detrás del panel del contenido. */}
+          <MascotPeekZone edge="auto" name="content" className="help-content-zone flex-1 flex flex-col min-h-0 print:block">
           <div className="flex-1 flex flex-col min-h-0 print:block print:h-auto overflow-hidden print:overflow-visible relative">
             {/* Scope de help ids de la pantalla: lo usan las primitivas de ui para los data-help-id. */}
             <HelpScopeProvider scope={routeToHelpScope(effectivePathname)}>
@@ -251,6 +255,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
             </HelpScopeProvider>
             {isExpired && !isInvokeUser && <LicenseExpiredScreen />}
           </div>
+          </MascotPeekZone>
         </main>
         <footer className="sm:hidden print:hidden flex-none h-6 flex items-center justify-center bg-[var(--nav-bg)] px-4">
           <p className="text-[10px] text-white/70 select-none">
