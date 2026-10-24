@@ -1,0 +1,6 @@
+{
+  "id": "reports.pacientes-inactivos",
+  "status": "draft",
+  "summary": "Pacientes inactivos.",
+  "purpose": "Pacientes que no vienen hace tiempo, para campañas de recaptación."
+}

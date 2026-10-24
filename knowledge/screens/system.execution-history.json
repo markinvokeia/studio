@@ -1,0 +1,9 @@
+{
+  "id": "system.execution-history",
+  "status": "draft",
+  "summary": "Ejecuciones de alertas.",
+  "purpose": "Cada corrida del motor de alertas: cuántas generó y si hubo errores.",
+  "prerequisites": [
+    "system.alert-rules"
+  ]
+}

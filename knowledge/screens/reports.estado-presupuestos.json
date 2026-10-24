@@ -1,0 +1,9 @@
+{
+  "id": "reports.estado-presupuestos",
+  "status": "draft",
+  "summary": "Estado de los presupuestos.",
+  "purpose": "Presupuestos emitidos, aceptados, rechazados y pendientes, con su monto.",
+  "prerequisites": [
+    "sales.quotes"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "id": "system.access",
+  "status": "draft",
+  "summary": "Registro de accesos.",
+  "purpose": "Quién entró al sistema, cuándo y desde dónde."
+}

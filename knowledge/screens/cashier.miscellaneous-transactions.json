@@ -1,0 +1,12 @@
+{
+  "id": "cashier.miscellaneous-transactions",
+  "status": "draft",
+  "summary": "Ingresos y egresos de caja que no son cobros a pacientes.",
+  "purpose": "Para registrar gastos menores, retiros o aportes de efectivo, con su categoría y comprobante adjunto.",
+  "tips": [
+    "Requieren una sesión de caja abierta."
+  ],
+  "prerequisites": [
+    "cashier.miscellaneous-categories"
+  ]
+}

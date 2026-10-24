@@ -1,0 +1,14 @@
+{
+  "id": "cashier",
+  "status": "draft",
+  "summary": "Caja del día: apertura, cobros, egresos y cierre.",
+  "purpose": "Registra todo el dinero que entra y sale en la caja física durante la sesión. Para cobrar hay que tener una sesión de caja abierta.",
+  "tips": [
+    "Al cerrar se hace el arqueo: lo contado contra lo esperado por medio de pago.",
+    "Los medios marcados como equivalentes a efectivo son los que se cuentan en el arqueo."
+  ],
+  "prerequisites": [
+    "cashier.cash-points",
+    "sales.payment-methods"
+  ]
+}

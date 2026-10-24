@@ -16,6 +16,8 @@ export interface GuideRun {
   values: Record<string, unknown>;
   /** Mensaje del último paso que no se pudo ejecutar (elemento no encontrado, etc.). */
   error?: string;
+  /** Espera larga en curso (en desarrollo, Next compila cada pantalla la primera vez). */
+  notice?: 'loadingScreen' | 'loadingElement';
   finished: boolean;
 }
 
@@ -59,7 +61,7 @@ type HelpAssistantStore = {
 
 export const useHelpAssistant = create<HelpAssistantStore>((set) => ({
   isOpen: false,
-  tab: 'onboarding',
+  tab: 'chat',
   guide: null,
   spotlight: null,
   messages: [],

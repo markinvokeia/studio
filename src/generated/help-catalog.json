@@ -1,5 +1,5 @@
 {
- "version": "bdb59bc8ec1eb46b",
+ "version": "8fedb193b7cd9ec2",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -834,6 +834,11 @@
    "code": "HELP_CATALOG_SYNC",
    "constant": "HELP_PERMISSIONS.CATALOG_SYNC",
    "description": "Publicar en la BD del cliente el catálogo que trae el frontend desplegado."
+  },
+  {
+   "code": "HELP_INSIGHTS_VIEW",
+   "constant": "HELP_PERMISSIONS.INSIGHTS_VIEW",
+   "description": "Panel de métricas: preguntas, resolución, tickets, videos y onboarding."
   },
   {
    "code": "HELP_ONBOARDING_MANAGE",
@@ -2522,6 +2527,12 @@
      "label": "Ejecuciones de Alertas"
     },
     {
+     "description": "/system/help-insights",
+     "id": "nav.system.help-insights",
+     "kind": "nav",
+     "label": "Métricas del Asistente"
+    },
+    {
      "description": "/system/import",
      "id": "nav.system.import",
      "kind": "nav",
@@ -2589,8 +2600,17 @@
    "permissions": [
     "ALERT_CENTER_VIEW_MENU"
    ],
+   "prerequisites": [
+    "system.alert-rules"
+   ],
+   "purpose": "Reúne lo que el sistema detectó según las reglas de alertas para que el equipo lo trabaje: llamar, mandar WhatsApp o correo, posponer o dar por resuelto.",
    "route": "/alerts",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Bandeja de alertas operativas: pacientes a contactar, cobros pendientes, turnos sin confirmar.",
+   "tips": [
+    "Las alertas se generan con las reglas de Sistema → Reglas de alertas.",
+    "Asignar una alerta a alguien la saca de la vista del resto del equipo."
+   ],
    "title": "Centro de Alertas"
   },
   {
@@ -2808,8 +2828,18 @@
    "inMenu": true,
    "module": "Caja",
    "permissions": [],
+   "prerequisites": [
+    "cashier.cash-points",
+    "sales.payment-methods"
+   ],
+   "purpose": "Registra todo el dinero que entra y sale en la caja física durante la sesión. Para cobrar hay que tener una sesión de caja abierta.",
    "route": "/cashier",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Caja del día: apertura, cobros, egresos y cierre.",
+   "tips": [
+    "Al cerrar se hace el arqueo: lo contado contra lo esperado por medio de pago.",
+    "Los medios marcados como equivalentes a efectivo son los que se cuentan en el arqueo."
+   ],
    "title": "Caja"
   },
   {
@@ -2861,8 +2891,16 @@
    "inMenu": true,
    "module": "Caja",
    "permissions": [],
+   "prerequisites": [
+    "config.sedes"
+   ],
+   "purpose": "Cada caja física (recepción, sede secundaria) tiene sus propias sesiones de apertura y cierre.",
    "route": "/cashier/cash-points",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Cajas registradoras físicas de la clínica.",
+   "tips": [
+    "Con una sola recepción alcanza con una caja."
+   ],
    "title": "Cajas Registradoras Físicas"
   },
   {
@@ -2926,8 +2964,10 @@
    "inMenu": true,
    "module": "Caja",
    "permissions": [],
+   "purpose": "Clasifican los movimientos de caja que no son cobros a pacientes (compras menores, retiros, aportes) para que salgan ordenados en los reportes.",
    "route": "/cashier/miscellaneous-categories",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Categorías para ingresos y egresos varios.",
    "title": "Categorías de Productos y Servicios"
   },
   {
@@ -3015,8 +3055,16 @@
    "inMenu": true,
    "module": "Caja",
    "permissions": [],
+   "prerequisites": [
+    "cashier.miscellaneous-categories"
+   ],
+   "purpose": "Para registrar gastos menores, retiros o aportes de efectivo, con su categoría y comprobante adjunto.",
    "route": "/cashier/miscellaneous-transactions",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Ingresos y egresos de caja que no son cobros a pacientes.",
+   "tips": [
+    "Requieren una sesión de caja abierta."
+   ],
    "title": "Transacciones Misceláneas"
   },
   {
@@ -3038,8 +3086,16 @@
    "inMenu": true,
    "module": "Caja",
    "permissions": [],
+   "prerequisites": [
+    "cashier"
+   ],
+   "purpose": "Muestra cada apertura y cierre con su arqueo, diferencias y responsable.",
    "route": "/cashier/sessions",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Historial de sesiones de caja.",
+   "tips": [
+    "Una diferencia en el cierre queda registrada con quién la cerró."
+   ],
    "title": "Sesiones de Caja"
   },
   {
@@ -3093,8 +3149,13 @@
    "permissions": [
     "CATALOG_CONDITIONS_VIEW_LIST"
    ],
+   "purpose": "Lista de diagnósticos y padecimientos que se eligen en la historia clínica y en los antecedentes del paciente.",
    "route": "/clinic-catalog/ailments",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Catálogo de padecimientos.",
+   "tips": [
+    "Mantener nombres únicos evita duplicados en los reportes clínicos."
+   ],
    "title": "Padecimientos"
   },
   {
@@ -3148,8 +3209,10 @@
    "permissions": [
     "CATALOG_DENTAL_COND_VIEW_LIST"
    ],
+   "purpose": "Define qué se puede marcar en cada pieza (caries, obturación, ausente…) y cómo se ve en el odontograma.",
    "route": "/clinic-catalog/dental-conditions",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Condiciones dentales del odontograma.",
    "title": "Condiciones Dentales"
   },
   {
@@ -3197,8 +3260,10 @@
    "permissions": [
     "CATALOG_DENTAL_SURF_VIEW_LIST"
    ],
+   "purpose": "Caras de la pieza (oclusal, mesial, distal…) sobre las que se registran hallazgos y tratamientos.",
    "route": "/clinic-catalog/dental-surfaces",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Superficies dentales del odontograma.",
    "title": "Superficies Dentales"
   },
   {
@@ -3246,8 +3311,13 @@
    "permissions": [
     "CATALOG_MEDICATIONS_VIEW_LIST"
    ],
+   "purpose": "Medicamentos que se eligen al indicar tratamientos, registrar medicación del paciente y armar recetas.",
    "route": "/clinic-catalog/medications",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Catálogo de medicamentos.",
+   "tips": [
+    "Las recetas usan este catálogo y las plantillas de receta."
+   ],
    "title": "Medicamentos"
   },
   {
@@ -3413,8 +3483,16 @@
    "permissions": [
     "AVAILABILITY_EXCEPTIONS_VIEW"
    ],
+   "prerequisites": [
+    "config.doctor-availability"
+   ],
+   "purpose": "Vacaciones, licencias o días puntuales en que un profesional no atiende (o atiende en otro horario). Ganan sobre la disponibilidad habitual.",
    "route": "/config/availability-exceptions",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Excepciones a la disponibilidad de los profesionales.",
+   "tips": [
+    "Una excepción puede abarcar varios días de una vez."
+   ],
    "title": "Excepciones de Disponibilidad"
   },
   {
@@ -3425,8 +3503,16 @@
    "permissions": [
     "CALENDAR_DISPLAY_VIEW"
    ],
+   "prerequisites": [
+    "appointments"
+   ],
+   "purpose": "Elige si los turnos se colorean por consultorio, profesional, servicio o estado, y la paleta de cada estado de cita.",
    "route": "/config/calendar-colors",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Colores de la agenda.",
+   "tips": [
+    "Los cambios se previsualizan antes de guardar."
+   ],
    "title": "Colores de Calendario"
   },
   {
@@ -3532,8 +3618,16 @@
    "permissions": [
     "CLINIC_PREFS_VIEW"
    ],
+   "prerequisites": [
+    "config.clinics"
+   ],
+   "purpose": "Opciones de funcionamiento: descuentos, comportamiento de cobros y presupuestos y otros ajustes que afectan a todo el equipo.",
    "route": "/config/clinic-prefs",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Preferencias generales de la clínica.",
+   "tips": [
+    "Afectan a todos los usuarios: conviene cambiarlas con el equipo avisado."
+   ],
    "title": "Preferencias de Clínica"
   },
   {
@@ -3681,8 +3775,16 @@
    "permissions": [
     "CURRENCIES_VIEW_LIST"
    ],
+   "prerequisites": [
+    "config.clinics"
+   ],
+   "purpose": "Las monedas en que se trabaja y la cotización usada para convertir entre la moneda principal y la secundaria.",
    "route": "/config/currencies",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Monedas y tipos de cambio.",
+   "tips": [
+    "La moneda principal se define en Detalles de la clínica."
+   ],
    "title": "Monedas y Tipos de Cambio"
   },
   {
@@ -4044,8 +4146,16 @@
    "permissions": [
     "HOLIDAYS_VIEW_LIST"
    ],
+   "prerequisites": [
+    "config.schedules"
+   ],
+   "purpose": "Días en que la clínica cierra o abre con otro horario. La agenda y el portal no ofrecen turnos en esos días.",
    "route": "/config/holidays",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Feriados y horarios de excepción de la clínica.",
+   "tips": [
+    "Cargá los feriados del año apenas arranca para evitar reservas por error."
+   ],
    "title": "Horarios de Excepción"
   },
   {
@@ -4104,8 +4214,13 @@
    "permissions": [
     "MEDICAL_INSTRUCTION_TEMPLATES_VIEW"
    ],
+   "purpose": "Textos predefinidos (cuidados posoperatorios, preparación para estudios) que se entregan al paciente desde su historia clínica.",
    "route": "/config/medical-instruction-templates",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Plantillas de indicaciones médicas.",
+   "tips": [
+    "Usá variables para que el texto salga con los datos del paciente."
+   ],
    "title": "Plantillas de Indicaciones Médicas"
   },
   {
@@ -4165,8 +4280,10 @@
    "permissions": [
     "MUTUAL_SOC_VIEW_MENU"
    ],
+   "purpose": "Las coberturas que pueden tener los pacientes; se asignan en la ficha del paciente.",
    "route": "/config/mutual-societies",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Sociedades mutuales y coberturas.",
    "title": "Sociedades Mutuales"
   },
   {
@@ -4250,8 +4367,13 @@
    "permissions": [
     "PATIENT_GROUPS_VIEW_MENU"
    ],
+   "prerequisites": [
+    "patients"
+   ],
+   "purpose": "Agrupan pacientes (convenios, campañas, familias) para filtrarlos, aplicar condiciones y exportarlos.",
    "route": "/config/patient-groups",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Grupos de pacientes.",
    "title": "Grupos de Pacientes"
   },
   {
@@ -4262,8 +4384,17 @@
    "permissions": [
     "PATIENT_PORTAL_CONFIG_VIEW"
    ],
+   "prerequisites": [
+    "sales.services",
+    "config.doctor-availability"
+   ],
+   "purpose": "Define qué ve y qué puede hacer el paciente online: reservar turnos, elegir servicios, ver precios, mensaje y video de bienvenida.",
    "route": "/config/patients-portal",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Configuración del portal del paciente.",
+   "tips": [
+    "Sólo se ofrecen los servicios marcados como agendables online."
+   ],
    "title": "Portal del Paciente"
   },
   {
@@ -4322,8 +4453,16 @@
    "permissions": [
     "PRESCRIPTION_TEMPLATES_VIEW"
    ],
+   "prerequisites": [
+    "config.doctors"
+   ],
+   "purpose": "El formato de las recetas que emiten los profesionales: membrete, cuerpo y firma.",
    "route": "/config/prescription-templates",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Plantillas de receta.",
+   "tips": [
+    "La firma de cada profesional se carga en su ficha."
+   ],
    "title": "Plantillas de Receta"
   },
   {
@@ -4398,8 +4537,13 @@
    "permissions": [
     "PROVIDER_GROUPS_VIEW_MENU"
    ],
+   "prerequisites": [
+    "purchases.providers"
+   ],
+   "purpose": "Agrupan proveedores para ordenar compras y reportes de gastos.",
    "route": "/config/provider-groups",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Grupos de proveedores.",
    "title": "Grupos de Proveedores"
   },
   {
@@ -4628,8 +4772,13 @@
    "permissions": [
     "SEQUENCES_VIEW_LIST"
    ],
+   "purpose": "Prefijos y próximos números de presupuestos, facturas y demás comprobantes.",
    "route": "/config/sequences",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Numeración de documentos.",
+   "tips": [
+    "Cambiar una secuencia no renumera los documentos ya emitidos."
+   ],
    "title": "Secuencias"
   },
   {
@@ -4728,8 +4877,13 @@
    "permissions": [
     "PRINT_TEMPLATES_VIEW"
    ],
+   "prerequisites": [
+    "config.clinics"
+   ],
+   "purpose": "El diseño de los documentos que se imprimen o se envían: presupuestos, facturas, pagos y notas de crédito.",
    "route": "/config/templates",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Plantillas de impresión.",
    "title": "Plantillas"
   },
   {
@@ -5105,8 +5259,16 @@
    "permissions": [
     "PERMISSIONS_VIEW_MENU"
    ],
+   "prerequisites": [
+    "roles"
+   ],
+   "purpose": "Cada permiso habilita una pantalla o una acción; se asignan a los roles.",
    "route": "/permissions",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Catálogo de permisos del sistema.",
+   "tips": [
+    "Los permisos se otorgan por rol, no por usuario."
+   ],
    "title": "Permisos"
   },
   {
@@ -5283,8 +5445,13 @@
    "permissions": [
     "PURCHASE_INVOICES_VIEW_MENU"
    ],
+   "prerequisites": [
+    "purchases.providers"
+   ],
+   "purpose": "Registra lo que la clínica compra y debe, con sus ítems, vencimientos y pagos aplicados.",
    "route": "/purchases/invoices",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Facturas de compra a proveedores.",
    "title": "Facturas de Compra"
   },
   {
@@ -5504,8 +5671,13 @@
    "permissions": [
     "PURCHASE_PAYMENTS_VIEW_MENU"
    ],
+   "prerequisites": [
+    "purchases.invoices"
+   ],
+   "purpose": "Registra los pagos y los aplica a las facturas de compra pendientes.",
    "route": "/purchases/payments",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Pagos a proveedores.",
    "title": "Pagos de Compra"
   },
   {
@@ -5757,8 +5929,10 @@
    "permissions": [
     "SUPPLIERS_VIEW_MENU"
    ],
+   "purpose": "Datos de contacto, condiciones y productos de cada proveedor.",
    "route": "/purchases/providers",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Proveedores de la clínica.",
    "title": "Proveedores"
   },
   {
@@ -5920,8 +6094,13 @@
    "permissions": [
     "PURCHASE_QUOTES_VIEW_MENU"
    ],
+   "prerequisites": [
+    "purchases.providers"
+   ],
+   "purpose": "Cotizaciones pedidas a proveedores antes de comprar; se pueden convertir en factura de compra.",
    "route": "/purchases/quotes",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Presupuestos de compra.",
    "title": "Presupuestos de Compra"
   },
   {
@@ -6011,8 +6190,13 @@
    "permissions": [
     "PURCHASE_PRODUCTS_VIEW_MENU"
    ],
+   "prerequisites": [
+    "purchases.providers"
+   ],
+   "purpose": "Catálogo de lo que se compra a cada proveedor, con su precio, para armar presupuestos y facturas de compra.",
    "route": "/purchases/services",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Productos y servicios de proveedores.",
    "title": "Productos y Servicios de Proveedores"
   },
   {
@@ -6035,8 +6219,10 @@
    "permissions": [
     "REPORTS_BALANCE_MENSUAL_VIEW"
    ],
+   "purpose": "Ingresos, egresos y resultado de cada mes.",
    "route": "/reports/balance-mensual",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Balance mensual.",
    "title": "Balance Mensual"
   },
   {
@@ -6053,8 +6239,13 @@
    "permissions": [
     "REPORTS_AGENDA_VIEW"
    ],
+   "purpose": "Turnos cancelados o con ausencia, por período, profesional y motivo.",
    "route": "/reports/cancelaciones",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Reporte de cancelaciones.",
+   "tips": [
+    "Sirve para detectar horarios con muchas ausencias y reforzar recordatorios."
+   ],
    "title": "Cancelaciones"
   },
   {
@@ -6071,8 +6262,13 @@
    "permissions": [
     "REPORTS_CAJA_VIEW"
    ],
+   "prerequisites": [
+    "cashier"
+   ],
+   "purpose": "Resumen de cada sesión de caja: cobros por medio de pago, egresos y diferencias del arqueo.",
    "route": "/reports/cierre-caja",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Reporte de cierre de caja.",
    "title": "Cierre de Caja"
   },
   {
@@ -6089,8 +6285,10 @@
    "permissions": [
     "REPORTS_CAJA_VIEW"
    ],
+   "purpose": "Todo lo cobrado en el día por medio de pago, profesional y sede.",
    "route": "/reports/cobros-dia",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Cobros del día.",
    "title": "Cobros del Día"
   },
   {
@@ -6107,8 +6305,10 @@
    "permissions": [
     "REPORTS_PRODUCCION_VIEW"
    ],
+   "purpose": "Compara la producción entre períodos o profesionales.",
    "route": "/reports/comparativo-produccion",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Comparativo de producción.",
    "title": "Comparativo de Producción"
   },
   {
@@ -6125,8 +6325,10 @@
    "permissions": [
     "REPORTS_INGRESOS_VIEW"
    ],
+   "purpose": "Saldo de cada paciente: lo facturado, lo pagado y lo que debe o tiene a favor.",
    "route": "/reports/cuentas-corrientes",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Cuentas corrientes de pacientes.",
    "title": "Cuentas Corrientes"
   },
   {
@@ -6143,8 +6345,13 @@
    "permissions": [
     "REPORTS_INGRESOS_VIEW"
    ],
+   "purpose": "Pacientes con saldo pendiente y antigüedad de la deuda, para gestionar la cobranza.",
    "route": "/reports/deudores",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Pacientes deudores.",
+   "tips": [
+    "Desde el Centro de alertas se puede contactar a los deudores."
+   ],
    "title": "Deudores"
   },
   {
@@ -6161,8 +6368,13 @@
    "permissions": [
     "REPORTS_INGRESOS_VIEW"
    ],
+   "prerequisites": [
+    "sales.quotes"
+   ],
+   "purpose": "Presupuestos emitidos, aceptados, rechazados y pendientes, con su monto.",
    "route": "/reports/estado-presupuestos",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Estado de los presupuestos.",
    "title": "Estado de Presupuestos"
   },
   {
@@ -6173,8 +6385,10 @@
    "permissions": [
     "REPORTS_GESTION_VIEW"
    ],
+   "purpose": "Ingresos menos gastos del período: el resultado económico de la clínica.",
    "route": "/reports/estado-resultados",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Estado de resultados.",
    "title": "Estado de Resultados"
   },
   {
@@ -6191,8 +6405,10 @@
    "permissions": [
     "REPORTS_INGRESOS_VIEW"
    ],
+   "purpose": "Compara lo facturado con lo efectivamente cobrado en el período.",
    "route": "/reports/facturacion-cobranza",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Facturación contra cobranza.",
    "title": "Facturación vs Cobranza"
   },
   {
@@ -6209,8 +6425,10 @@
    "permissions": [
     "REPORTS_GASTOS_VIEW"
    ],
+   "purpose": "Egresos del período por categoría y proveedor.",
    "route": "/reports/gastos-operativos",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Gastos operativos.",
    "title": "Gastos Operativos"
   },
   {
@@ -6227,8 +6445,10 @@
    "permissions": [
     "REPORTS_PRODUCCION_VIEW"
    ],
+   "purpose": "Lo producido por cada profesional y lo que le corresponde según su forma de liquidación.",
    "route": "/reports/honorarios",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Honorarios de profesionales.",
    "title": "Honorarios"
   },
   {
@@ -6245,8 +6465,10 @@
    "permissions": [
     "REPORTS_INGRESOS_VIEW"
    ],
+   "purpose": "Evolución de los ingresos por día, semana o mes.",
    "route": "/reports/ingresos-periodo",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Ingresos por período.",
    "title": "Ingresos por Período"
   },
   {
@@ -6266,8 +6488,10 @@
    "permissions": [
     "REPORTS_GESTION_VIEW"
    ],
+   "purpose": "Los números principales del negocio en un tablero: producción, cobranza, ocupación y pacientes.",
    "route": "/reports/kpis",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Indicadores clave de la clínica.",
    "title": "KPIs Clínica"
   },
   {
@@ -6284,8 +6508,13 @@
    "permissions": [
     "REPORTS_PACIENTES_VIEW"
    ],
+   "prerequisites": [
+    "patients"
+   ],
+   "purpose": "Pacientes registrados en el período y de dónde llegaron.",
    "route": "/reports/nuevos-pacientes",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Nuevos pacientes.",
    "title": "Nuevos Pacientes"
   },
   {
@@ -6302,8 +6531,13 @@
    "permissions": [
     "REPORTS_AGENDA_VIEW"
    ],
+   "prerequisites": [
+    "appointments"
+   ],
+   "purpose": "Qué porcentaje de las horas disponibles se usaron, por profesional y consultorio.",
    "route": "/reports/ocupacion-agenda",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Ocupación de la agenda.",
    "title": "Ocupación de Agenda"
   },
   {
@@ -6320,8 +6554,10 @@
    "permissions": [
     "REPORTS_PACIENTES_VIEW"
    ],
+   "purpose": "Pacientes que no vienen hace tiempo, para campañas de recaptación.",
    "route": "/reports/pacientes-inactivos",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Pacientes inactivos.",
    "title": "Pacientes Inactivos"
   },
   {
@@ -6338,8 +6574,10 @@
    "permissions": [
     "REPORTS_PRODUCCION_VIEW"
    ],
+   "purpose": "Tratamientos realizados y su valor por profesional.",
    "route": "/reports/produccion-doctor",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Producción por profesional.",
    "title": "Producción por Doctor"
   },
   {
@@ -6356,8 +6594,13 @@
    "permissions": [
     "REPORTS_INGRESOS_VIEW"
    ],
+   "prerequisites": [
+    "sales.services"
+   ],
+   "purpose": "Qué servicios se venden más y cuánto aportan.",
    "route": "/reports/servicios",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Rendimiento de los servicios.",
    "title": "Rendimiento de Servicios"
   },
   {
@@ -6374,8 +6617,10 @@
    "permissions": [
     "REPORTS_PRODUCCION_VIEW"
    ],
+   "purpose": "Detalle de los tratamientos hechos en el período.",
    "route": "/reports/tratamientos",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Tratamientos realizados.",
    "title": "Tratamientos Realizados"
   },
   {
@@ -6392,8 +6637,10 @@
    "permissions": [
     "REPORTS_PACIENTES_VIEW"
    ],
+   "purpose": "Tratamientos de varios pasos que todavía no terminaron, para darles seguimiento.",
    "route": "/reports/tratamientos-en-curso",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Tratamientos en curso.",
    "title": "Tratamientos en Curso"
   },
   {
@@ -6457,8 +6704,16 @@
    "permissions": [
     "ROLES_VIEW_MENU"
    ],
+   "prerequisites": [
+    "permissions"
+   ],
+   "purpose": "Un rol agrupa permisos (Recepcionista, Administrador, Doctor…). Cada usuario recibe uno o más roles.",
    "route": "/roles",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Roles y sus permisos.",
+   "tips": [
+    "Cambiar los permisos de un rol afecta a todos los usuarios que lo tienen."
+   ],
    "title": "Roles"
   },
   {
@@ -6626,8 +6881,17 @@
    "permissions": [
     "SALES_INVOICES_VIEW_MENU"
    ],
+   "prerequisites": [
+    "sales.quotes",
+    "sales.payments"
+   ],
+   "purpose": "Emisión de facturas, notas de crédito y control de su cobro.",
    "route": "/sales/invoices",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Facturas a pacientes.",
+   "tips": [
+    "Una factura puede generarse desde un presupuesto aceptado."
+   ],
    "title": "Facturas"
   },
   {
@@ -6915,8 +7179,17 @@
    "permissions": [
     "SALES_PAYMENTS_VIEW_MENU"
    ],
+   "prerequisites": [
+    "cashier",
+    "sales.invoices"
+   ],
+   "purpose": "Cobros registrados y su aplicación a facturas; también pagos anticipados que quedan como saldo a favor.",
    "route": "/sales/payments",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Pagos de pacientes.",
+   "tips": [
+    "Para cobrar en efectivo hace falta una sesión de caja abierta."
+   ],
    "title": "Pagos"
   },
   {
@@ -7101,8 +7374,16 @@
    "permissions": [
     "SALES_QUOTES_VIEW_MENU"
    ],
+   "prerequisites": [
+    "sales.services"
+   ],
+   "purpose": "Plan de tratamiento con precios para que el paciente lo apruebe; al aceptarlo se puede facturar y agendar.",
    "route": "/sales/quotes",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Presupuestos a pacientes.",
+   "tips": [
+    "Se pueden enviar por correo o WhatsApp para que el paciente los confirme."
+   ],
    "title": "Presupuestos"
   },
   {
@@ -7246,8 +7527,13 @@
    "permissions": [
     "DICOM_VIEW_SHARED_STUDIES"
    ],
+   "prerequisites": [
+    "studies"
+   ],
+   "purpose": "Estudios de imágenes compartidos con otros profesionales o con el paciente.",
    "route": "/shared-studies",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Estudios compartidos.",
    "title": "Estudios Compartidos"
   },
   {
@@ -7258,8 +7544,13 @@
    "permissions": [
     "DICOM_VIEW_STUDIES"
    ],
+   "prerequisites": [
+    "patients"
+   ],
+   "purpose": "Radiografías y estudios del paciente, con visor.",
    "route": "/studies",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Estudios de imágenes (DICOM).",
    "title": "Estudios"
   },
   {
@@ -7270,8 +7561,13 @@
    "permissions": [
     "SUBSCRIPTIONS_VIEW_MENU"
    ],
+   "prerequisites": [
+    "system.licenses"
+   ],
+   "purpose": "Las suscripciones y renovaciones de la licencia de Invoke.",
    "route": "/subscriptions",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Historial de suscripciones.",
    "title": "Suscripciones"
   },
   {
@@ -7295,8 +7591,10 @@
    "permissions": [
     "ACCESS_LOG_VIEW_MENU"
    ],
+   "purpose": "Quién entró al sistema, cuándo y desde dónde.",
    "route": "/system/access",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Registro de accesos.",
    "title": "Registro de Acceso"
   },
   {
@@ -7380,8 +7678,13 @@
    "permissions": [
     "ALERT_CATEGORIES_VIEW_MENU"
    ],
+   "prerequisites": [
+    "system.alert-rules"
+   ],
+   "purpose": "Agrupan las alertas (cobranza, recordatorios, seguimiento) para filtrarlas y priorizarlas.",
    "route": "/system/alert-categories",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Categorías de alertas.",
    "title": "Categorías de Alertas"
   },
   {
@@ -7525,8 +7828,16 @@
    "permissions": [
     "ALERT_RULES_VIEW_MENU"
    ],
+   "prerequisites": [
+    "system.communication-templates"
+   ],
+   "purpose": "Definen cuándo el sistema genera una alerta (deuda, paciente inactivo, turno sin confirmar) y si se envía sola por correo o WhatsApp.",
    "route": "/system/alert-rules",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Reglas de alertas.",
+   "tips": [
+    "Una regla con envío automático manda mensajes a pacientes: revisala bien antes de activarla."
+   ],
    "title": "Reglas de Alertas"
   },
   {
@@ -7537,8 +7848,13 @@
    "permissions": [
     "ALERT_CONFIG_VIEW_MENU"
    ],
+   "prerequisites": [
+    "system.alert-rules"
+   ],
+   "purpose": "Horarios y parámetros con que corre el motor de alertas.",
    "route": "/system/alerts-config",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Configuración general de alertas.",
    "title": "Configuración de Alertas"
   },
   {
@@ -7562,8 +7878,10 @@
    "permissions": [
     "AUDIT_LOG_VIEW_MENU"
    ],
+   "purpose": "Historial de cambios sobre los datos: qué se modificó, quién y cuándo.",
    "route": "/system/audit",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Registro de auditoría.",
    "title": "Registro de Auditoría"
   },
   {
@@ -7587,8 +7905,10 @@
    "permissions": [
     "ALERT_HISTORY_VIEW_MENU"
    ],
+   "purpose": "Mensajes enviados a pacientes por correo y WhatsApp, con su estado de entrega.",
    "route": "/system/communication-history",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Historial de comunicaciones.",
    "title": "Historial de Alertas"
   },
   {
@@ -7683,8 +8003,13 @@
    "permissions": [
     "ALERT_TEMPLATES_VIEW_MENU"
    ],
+   "purpose": "Textos de correos y WhatsApp que usan las alertas y los recordatorios.",
    "route": "/system/communication-templates",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Plantillas de mensajes.",
+   "tips": [
+    "Las plantillas de WhatsApp pueden requerir aprobación previa del proveedor."
+   ],
    "title": "Plantillas de Alertas"
   },
   {
@@ -7750,8 +8075,13 @@
    "permissions": [
     "SYS_CONFIG_VIEW_MENU"
    ],
+   "purpose": "Claves de configuración técnica (integraciones, envíos, comportamiento). Sólo para administradores.",
    "route": "/system/config",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Configuraciones del sistema.",
+   "tips": [
+    "Un valor mal cargado puede cortar una integración: anotá el valor anterior antes de cambiarlo."
+   ],
    "title": "Configuraciones"
   },
   {
@@ -7775,8 +8105,10 @@
    "permissions": [
     "ERROR_LOG_VIEW_MENU"
    ],
+   "purpose": "Errores técnicos registrados, útil para reportarlos a soporte.",
    "route": "/system/errors",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Registro de errores.",
    "title": "Registro de Errores"
   },
   {
@@ -7800,9 +8132,32 @@
    "permissions": [
     "ALERT_EXECUTIONS_VIEW_MENU"
    ],
+   "prerequisites": [
+    "system.alert-rules"
+   ],
+   "purpose": "Cada corrida del motor de alertas: cuántas generó y si hubo errores.",
    "route": "/system/execution-history",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Ejecuciones de alertas.",
    "title": "Ejecuciones de Alertas"
+  },
+  {
+   "elements": [],
+   "id": "system.help-insights",
+   "inMenu": true,
+   "module": "Sistema",
+   "permissions": [
+    "HELP_INSIGHTS_VIEW"
+   ],
+   "purpose": "Muestra cuánto resuelve solo el asistente, qué se escala al equipo y en qué pantallas se traba la gente. Desde acá se trabaja la cola de preguntas sin resolver y los tickets.",
+   "route": "/system/help-insights",
+   "status": "draft",
+   "summary": "Métricas del asistente de Invoke: preguntas, resolución, tickets, videos y avance del onboarding.",
+   "tips": [
+    "Una pregunta sin resolver se cierra completando la ficha o la guía de su pantalla en knowledge/ y marcándola como resuelta.",
+    "La meta es que el asistente resuelva el 85% de las preguntas y que el fin de semana sólo lleguen incidentes críticos."
+   ],
+   "title": "Métricas del Asistente"
   },
   {
    "elements": [
@@ -7824,9 +8179,17 @@
    "permissions": [
     "IMPORT_DATA_VIEW_MENU"
    ],
+   "purpose": "Asistente para importar pacientes y otros datos desde Excel o CSV: mapea columnas, valida y recién después importa.",
    "route": "/system/import",
-   "status": "auto",
-   "title": "Importar Datos"
+   "status": "draft",
+   "summary": "Importación de datos desde planillas.",
+   "tips": [
+    "Probá primero con pocas filas."
+   ],
+   "title": "Importar Datos",
+   "useCases": [
+    "onboarding.patients-import"
+   ]
   },
   {
    "elements": [
@@ -7879,8 +8242,13 @@
    "permissions": [
     "LICENSING_VIEW_MENU"
    ],
+   "prerequisites": [
+    "subscriptions"
+   ],
+   "purpose": "El plan contratado, sus límites (profesionales, usuarios, pacientes nuevos por mes) y su vencimiento.",
    "route": "/system/licenses",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Licencia de Invoke.",
    "title": "Licencias"
   },
   {
@@ -7891,8 +8259,10 @@
    "permissions": [
     "NOTIFICATION_SETTINGS_VIEW_MENU"
    ],
+   "purpose": "Qué avisos internos recibe cada uno y por qué canal.",
    "route": "/system/notification-settings",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Notificaciones del equipo.",
    "title": "Notificaciones"
   },
   {
@@ -8112,8 +8482,16 @@
    "permissions": [
     "USERS_VIEW_MENU"
    ],
+   "prerequisites": [
+    "roles"
+   ],
+   "purpose": "Todos los usuarios con acceso (staff y profesionales), sus roles y su estado.",
    "route": "/system/users",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Usuarios del sistema.",
+   "tips": [
+    "Para dar de alta recepción o administración es más simple Secretarias y Administración."
+   ],
    "title": "Usuarios"
   },
   {
@@ -8143,9 +8521,17 @@
    "permissions": [
     "WHATSAPP_AGENT_CONFIG_VIEW_MENU"
    ],
+   "purpose": "Activa el agente que atiende a los pacientes por WhatsApp y define su horario de atención.",
    "route": "/system/whatsapp-agent",
-   "status": "auto",
-   "title": "Agente WhatsApp"
+   "status": "draft",
+   "summary": "Agente de WhatsApp.",
+   "tips": [
+    "El número lo conecta el equipo de Invoke; acá se prende y se configura."
+   ],
+   "title": "Agente WhatsApp",
+   "useCases": [
+    "onboarding.whatsapp"
+   ]
   },
   {
    "elements": [],
@@ -8154,8 +8540,13 @@
    "permissions": [
     "TV_DISPLAY_VIEW_MENU"
    ],
+   "prerequisites": [
+    "appointments"
+   ],
+   "purpose": "Configura la pantalla de TV que llama a los pacientes por su turno.",
    "route": "/tv-display",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Pantalla de sala de espera.",
    "title": "Pantalla TV"
   },
   {
@@ -8165,8 +8556,13 @@
    "permissions": [
     "DASHBOARD_DOCTOR_WORKSPACE_ACCESS"
    ],
+   "prerequisites": [
+    "appointments"
+   ],
+   "purpose": "Vista del profesional: sus turnos del día, la historia clínica del paciente en atención y sus pendientes.",
    "route": "/workspace",
-   "status": "auto",
+   "status": "draft",
+   "summary": "Mi consultorio.",
    "title": "Mi Consultorio"
   }
  ],

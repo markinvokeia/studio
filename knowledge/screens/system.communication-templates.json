@@ -1,0 +1,9 @@
+{
+  "id": "system.communication-templates",
+  "status": "draft",
+  "summary": "Plantillas de mensajes.",
+  "purpose": "Textos de correos y WhatsApp que usan las alertas y los recordatorios.",
+  "tips": [
+    "Las plantillas de WhatsApp pueden requerir aprobación previa del proveedor."
+  ]
+}

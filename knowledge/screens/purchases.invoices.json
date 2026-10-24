@@ -1,0 +1,9 @@
+{
+  "id": "purchases.invoices",
+  "status": "draft",
+  "summary": "Facturas de compra a proveedores.",
+  "purpose": "Registra lo que la clínica compra y debe, con sus ítems, vencimientos y pagos aplicados.",
+  "prerequisites": [
+    "purchases.providers"
+  ]
+}

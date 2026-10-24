@@ -80,19 +80,22 @@ interface InlineAppointmentDraftProps {
   saveLabel?: string;
 }
 
-/** A field row: leading icon + content. */
-function Field({ icon: Icon, children }: { icon: React.ComponentType<{ className?: string }>; children: React.ReactNode }) {
+/**
+ * A field row: leading icon + content. `helpId` uses the same ids as
+ * AppointmentFormDialog so the assistant's guide works in both modes.
+ */
+function Field({ icon: Icon, children, helpId }: { icon: React.ComponentType<{ className?: string }>; children: React.ReactNode; helpId?: string }) {
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5" data-help-id={helpId}>
       <Icon className="h-3.5 w-3.5 shrink-0 text-primary/70" />
       <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
 }
 
-function CustomField({ label, children }: { label: string; children: React.ReactNode }) {
+function CustomField({ label, children, helpId }: { label: string; children: React.ReactNode; helpId?: string }) {
   return (
-    <div className="grid grid-cols-[4.25rem_minmax(0,1fr)] items-center gap-2">
+    <div className="grid grid-cols-[4.25rem_minmax(0,1fr)] items-center gap-2" data-help-id={helpId}>
       <span className="text-[11px] font-semibold text-muted-foreground">{label}</span>
       <div className="min-w-0">{children}</div>
     </div>
@@ -101,8 +104,9 @@ function CustomField({ label, children }: { label: string; children: React.React
 
 /** Inline searchable picker (doctor/room) shown as a badge + popover. */
 function PickerField({
-  icon, valueLabel, valueColor, placeholder, options, selectedId, onSelect, searchPlaceholder, emptyText,
+  icon, valueLabel, valueColor, placeholder, options, selectedId, onSelect, searchPlaceholder, emptyText, helpId,
 }: {
+  helpId?: string;
   icon: React.ComponentType<{ className?: string }>;
   valueLabel?: string;
   valueColor?: string;
@@ -115,7 +119,7 @@ function PickerField({
 }) {
   const [open, setOpen] = React.useState(false);
   return (
-    <Field icon={icon}>
+    <Field icon={icon} helpId={helpId}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button variant="outline" size="sm" className="h-7 w-full justify-between px-2 text-xs font-normal">
@@ -393,6 +397,7 @@ export function InlineAppointmentDraft({
 
   const roomField = (
     <PickerField
+      helpId="appointments.field.calendar"
       icon={Building2}
       valueLabel={calendar?.name}
       valueColor={calendar?.color}
@@ -407,6 +412,7 @@ export function InlineAppointmentDraft({
 
   const doctorField = (
     <PickerField
+      helpId="appointments.field.doctor"
       icon={UserCog}
       valueLabel={doctor?.name}
       valueColor={doctor?.color}
@@ -436,7 +442,7 @@ export function InlineAppointmentDraft({
 
   const serviceField = (
     <>
-      <Field icon={Stethoscope}>
+      <Field icon={Stethoscope} helpId="appointments.field.services">
         <Popover open={serviceOpen} onOpenChange={setServiceOpen}>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="h-7 w-full justify-between px-2 text-xs font-normal">
@@ -523,7 +529,7 @@ export function InlineAppointmentDraft({
       {variant === 'custom' ? (
         <>
           <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 sm:gap-3">
-            <CustomField label={t('date')}>
+            <CustomField label={t('date')} helpId="appointments.field.date">
               <div className="relative">
                 <CalendarDays className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -552,7 +558,7 @@ export function InlineAppointmentDraft({
           </div>
 
           <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 sm:gap-3">
-            <CustomField label={t('from')}>
+            <CustomField label={t('from')} helpId="appointments.field.time">
               <TimeScrollSelect
                 value={startTimeValue}
                 options={startTimeOptions}
@@ -570,7 +576,7 @@ export function InlineAppointmentDraft({
             </CustomField>
           </div>
 
-          <CustomField label={t('patient')}>
+          <CustomField label={t('patient')} helpId="appointments.field.patient">
             <div className="flex items-center gap-1">
               <div className="min-w-0 flex-1">{patientSelector}</div>
               {canCreatePatient && (
@@ -600,7 +606,7 @@ export function InlineAppointmentDraft({
             </div>
           </CustomField>
 
-          <CustomField label={t('annotation')}>
+          <CustomField label={t('annotation')} helpId="appointments.field.notes">
             <Textarea
               value={notes}
               onChange={(e) => onNotesChange(e.target.value)}
@@ -628,7 +634,7 @@ export function InlineAppointmentDraft({
 
           {/* Time: start (click to edit) → end + duration. While editing the start,
               the "→ end" is hidden so the time input fits on one line. */}
-          <Field icon={Clock}>
+          <Field icon={Clock} helpId="appointments.field.time">
             <div className="flex items-center gap-1.5">
               {onStartTimeChange && editingStart ? (
                 <Input
@@ -665,7 +671,7 @@ export function InlineAppointmentDraft({
           </Field>
 
           {/* Patient */}
-          <Field icon={UserRound}>{patientSelector}</Field>
+          <Field icon={UserRound} helpId="appointments.field.patient">{patientSelector}</Field>
         </>
       )}
 
@@ -698,7 +704,7 @@ export function InlineAppointmentDraft({
           {serviceField}
 
           {/* Note */}
-          <Field icon={StickyNote}>
+          <Field icon={StickyNote} helpId="appointments.field.notes">
             <Textarea
               value={notes}
               onChange={(e) => onNotesChange(e.target.value)}
@@ -715,7 +721,7 @@ export function InlineAppointmentDraft({
         <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={onCancel} disabled={isSaving}>
           {t('cancel')}
         </Button>
-        <Button size="sm" className="h-7 gap-1 px-2.5 text-xs" onClick={onSave} disabled={isSaving || (!patient?.id && !importedFromGoogle)}>
+        <Button size="sm" className="h-7 gap-1 px-2.5 text-xs" data-help-id="appointments.btn.save" onClick={onSave} disabled={isSaving || (!patient?.id && !importedFromGoogle)}>
           {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
           {saveLabel ?? t('save')}
         </Button>

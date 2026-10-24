@@ -1,0 +1,6 @@
+{
+  "id": "config.mutual-societies",
+  "status": "draft",
+  "summary": "Sociedades mutuales y coberturas.",
+  "purpose": "Las coberturas que pueden tener los pacientes; se asignan en la ficha del paciente."
+}

@@ -1,0 +1,12 @@
+{
+  "id": "config.availability-exceptions",
+  "status": "draft",
+  "summary": "Excepciones a la disponibilidad de los profesionales.",
+  "purpose": "Vacaciones, licencias o días puntuales en que un profesional no atiende (o atiende en otro horario). Ganan sobre la disponibilidad habitual.",
+  "tips": [
+    "Una excepción puede abarcar varios días de una vez."
+  ],
+  "prerequisites": [
+    "config.doctor-availability"
+  ]
+}

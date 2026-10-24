@@ -1,0 +1,9 @@
+{
+  "id": "tv-display",
+  "status": "draft",
+  "summary": "Pantalla de sala de espera.",
+  "purpose": "Configura la pantalla de TV que llama a los pacientes por su turno.",
+  "prerequisites": [
+    "appointments"
+  ]
+}

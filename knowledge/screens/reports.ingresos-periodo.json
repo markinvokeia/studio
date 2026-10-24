@@ -1,0 +1,6 @@
+{
+  "id": "reports.ingresos-periodo",
+  "status": "draft",
+  "summary": "Ingresos por período.",
+  "purpose": "Evolución de los ingresos por día, semana o mes."
+}

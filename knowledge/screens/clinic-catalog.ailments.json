@@ -1,0 +1,9 @@
+{
+  "id": "clinic-catalog.ailments",
+  "status": "draft",
+  "summary": "Catálogo de padecimientos.",
+  "purpose": "Lista de diagnósticos y padecimientos que se eligen en la historia clínica y en los antecedentes del paciente.",
+  "tips": [
+    "Mantener nombres únicos evita duplicados en los reportes clínicos."
+  ]
+}

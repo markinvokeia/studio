@@ -108,46 +108,69 @@ tiene la base de conocimiento de *su* versión del frontend, sin secretos de CI.
 
 ## Asistente (UI)
 
-- **Mascota**: el logo de Invoke (mismos degradés, sin las letras) con ojitos,
-  sonrisa y manitas que giran alrededor del cuerpo para señalar en cualquier
-  dirección. Estados: `idle`, `waving`, `thinking`, `pointing`, `happy` y `sad`
-  (paso fallido o pregunta sin ayuda: cejitas caídas y lagrimita).
-- **Lanzador** (`mascot-launcher.tsx`): en reposo la mascota se asoma de detrás
-  del riel derecho del header (`data-help-rail`; si está colapsado, del borde),
-  mira hacia la pantalla, saluda con la mano visible y vuelve. Badge con los pasos
-  obligatorios pendientes. Se abre sola una vez por sesión si la clínica no llegó
-  al mínimo operativo.
-- **Guiar siempre a mano**: la checklist tiene "Llevarme y guiarme" en todos los
-  pasos; cada respuesta del chat trae "Guiarme" y "Llevarme"
-  (`resolveReplyActions` completa lo que el agente no devolvió: la guía de la
-  pantalla del link o un recorrido de la pantalla); "Esta pantalla" tiene
-  "Guiarme por esta pantalla" (`screenTour`) además de sus guías.
-- **Puesta en marcha**: checklist del journey. Cada paso se marca solo, mirando
-  la BD. "Guiarme", "Llevarme ahí" y, con `HELP_ONBOARDING_MANAGE`, "Omitir".
-- **Ayuda**: chat con dictado por voz (Web Speech API). Las respuestas traen
-  "Guiarme" / "Completarlo por mí", "Llevarme a …", video (Fase 3) y 👍/👎. Si
-  el backend no responde, cae a búsqueda local en el catálogo.
-- **Esta pantalla**: la ficha de la ruta actual, con "Mostrar" para resaltar cada campo.
+- **Mascota** (`src/components/invoke-mascot`, librería de Claude Design: ver su
+  README y `CLAUDE_CODE_INTEGRATION.md`). La monta `src/components/help/mascot-host.tsx`
+  en el layout autenticado (sólo con `HELP_ASSISTANT_USE`) y la conecta:
+  - **Lanzador**: hacerle clic abre el chat justo encima de ella (si duerme, se
+    despierta; si está escondida, sale) y saluda; con el chat abierto y sin que nadie
+    escriba, cada 11 s hace un gesto invitando a pedirle algo. Avisa una vez por sesión
+    cuántos pasos obligatorios faltan (sin abrir nada).
+  - **Escondite**: tras 45 s sin uso se mete detrás del riel derecho del header
+    (`MascotPeekZone edge="left"`; el riel tiene fondo opaco y nada lo recorta) y se
+    asoma de costado en distintas alturas.
+  - **Sueño**: tras 3 h sin pedidos (o con "Mostrar asistente animado" apagado en
+    Preferencias → `users/preferences.show_mascot`) bosteza y se duerme.
+  - **Cambio de página**: cruza al otro lado (`teleport`), salvo durante una guía o
+    con el chat abierto; al cerrar vuelve a su esquina.
+  - **Chat**: "pensando" al enviar, "cargando" si tarda, contenta o una frase corta
+    al responder, triste ante un error o una pregunta sin ayuda, asiente al pedir video.
+  - **Guías**: viaja junto al elemento (`placeGuideMascot`, sin pisar la barra de
+    pasos) y lo señala con `pointAt(…, { duration: Infinity, signal, say })` hasta que
+    el paso cambia; el texto del paso (título, descripción, `details`) sale en su
+    propio globo. En el último paso festeja ("¡Listo!…") y la guía se cierra sola a
+    los 3,2 s; si un paso falla, triste y explica por qué. Un toast destructivo en
+    cualquier pantalla también la pone triste. Mientras algo carga (la guía esperando
+    una pantalla o un elemento, o un link del menú que tarda) pone cara de cargando.
+    Durante la guía su capa va por encima de diálogos; en reposo, debajo (z 45).
+  - Borde del elemento señalado: **violeta**; **rojo** si es obligatorio y falta o si
+    el campo tiene error (`aria-invalid` / mensaje de validación).
+- **Chat** (`help-assistant.tsx` + `help-chat.tsx`): una sola ventana, anclada
+  encima de la mascota, con el estilo de sus globos. Sin pestañas: arranca con un
+  saludo, los atajos y ejemplos de pedidos. **Se oculta mientras hay una guía**
+  (al empezar una guía el chat se cierra): lo principal es la mascota yendo de un
+  elemento a otro.
+  - **Puesta en marcha**: atajo que sólo aparece si falta algún paso del journey;
+    abre la checklist (cada paso se marca solo mirando la BD; "Llevarme y guiarme"
+    en todos, "Omitir" con `HELP_ONBOARDING_MANAGE`).
+  - **Guíame en esta pantalla**: siempre presente, destacado si llegaste a una
+    pantalla nueva desde la última vez que abriste el chat. Abre la ficha de la
+    ruta actual: recorrido completo (`screenTour`), sus guías y cada elemento con
+    "Mostrar".
+  - Preguntas con dictado por voz (Web Speech API). Cada respuesta trae "Guiarme"
+    y "Llevarme" (`resolveReplyActions` completa lo que el agente no devolvió),
+    video (Fase 3) y 👍/👎. Si el backend no responde, cae a búsqueda local.
 
 ### Guías
 
 `startGuide()` ejecuta solos los pasos que preparan la pantalla (navegar, abrir
 el diálogo, esperar) y se detiene en el primer campo o botón que hay que mirar;
-si lo completó con datos dictados, lo deja señalado ("Lo completé") hasta
-"Siguiente". La lista de pasos queda en un panel compacto que cambia de esquina
-para no tapar el elemento resaltado. Quien señala es la propia mascota: se ubica
-junto al elemento, lo mira y apunta con su manita al punto más cercano. Con datos dictados (`values`), "Completarlo por mí" corre todo hasta el
-primer `confirm`. El spotlight oscurece la pantalla, marca el elemento con un
-borde que **titila cada vez más fuerte** (`--help-level` sube de 1 a 5 cada
-2,5 s), una **manito** lo señala y una burbuja explica qué hacer: título,
-**Obligatorio/Opcional** (sale de `optional`) y el `details` del paso (qué
-cambia según lo que elijas; si la guía no lo trae, el extractor usa la
-descripción del elemento en su ficha).
+si lo completó con datos dictados, lo deja señalado hasta "Siguiente". Con datos
+dictados (`values`), "Completarlo por mí" corre todo hasta el primer `confirm`.
+
+El spotlight (`guide-spotlight.tsx`) oscurece la pantalla y marca el elemento con
+un borde que **titila cada vez más fuerte** (`--help-level` sube de 1 a 5 cada
+2,5 s). Quien señala es la mascota, y lo que hay que hacer lo dice en su globo:
+título, descripción y el `details` del paso (qué cambia según lo que elijas; si la
+guía no lo trae, el extractor usa la descripción del elemento en su ficha).
+Debajo del elemento queda una barra mínima, sólo con iconos: **Paso X/Y** (un
+punto si es obligatorio, rojo si falta), ir al primero, anterior, siguiente (✓ en
+un `confirm`: "ya lo hice"), saltar el actual, ir al final y cerrar
+(`goToStep`, `previousStep`, `nextStep`, `skipStep`, `lastStep`, `stopGuide`).
+Si un paso falla, la barra queda abajo al centro con reintentar, saltar y cerrar.
 
 Ubicación (`src/lib/help/placement.ts`, todo `position: fixed`, sin tocar el
-layout): la burbuja va abajo del elemento, si no arriba, si no a un costado; la
-manito va arriba apuntando hacia abajo, si no a un costado, si no abajo
-apuntando hacia arriba, sin pisar la burbuja ni el panel de pasos. El scroll
+layout): la barra va abajo del elemento, si no arriba; la mascota va arriba
+señalando hacia abajo, si no a un costado, si no abajo, sin pisar la barra. El scroll
 sólo mueve contenedores desplazables: `scrollIntoView` corría también los
 contenedores con overflow hidden y desarmaba banner y footer de los diálogos.
 
@@ -155,14 +178,26 @@ contenedores con overflow hidden y desarmaba banner y footer de los diálogos.
   (funciona con Select, checkbox, PhoneInput…); para selects/comboboxes elige la
   opción por el texto dictado; si no puede, pide completarlo a mano.
 - `confirm` nunca se pulsa solo: se espera el clic de la persona y la guía sigue.
-- Los clics en el asistente y en la burbuja no cierran el diálogo de Radix que
+- Avance automático: mientras un paso espera a la persona, la guía mira el
+  elemento señalado. Un campo se da por hecho cuando cambia su valor (elegir una
+  opción, marcar un check; si está escribiendo, espera una pausa de ~2 s); un
+  botón, tab o sección, cuando lo pulsa. Abrir un desplegable no cuenta.
+- Esperas largas: navegación hasta 90 s (reintenta a los 12 s) y elementos hasta
+  30 s, con aviso "Abriendo la pantalla…": en desarrollo Next compila cada
+  pantalla la primera vez.
+- La agenda crea citas en un diálogo (`AppointmentFormDialog`) o en la tarjeta
+  inline (`inline-appointment-draft.tsx`, modo personalizado). Los dos usan los
+  mismos help ids (`appointments.field.*`, `appointments.btn.save`), así la misma
+  guía sirve en cualquier modo. Un componente nuevo que repita un formulario
+  existente debe reutilizar sus ids.
+- Los clics en el asistente y en la barra de pasos no cierran el diálogo de Radix que
   está debajo (se corta el `pointerdown`). Limitación conocida: con un diálogo
   modal abierto no se puede escribir en el chat (el diálogo atrapa el foco); las
   guías se manejan con botones y funcionan.
 
 ## Backend
 
-### BD (script 140)
+### BD (scripts 140 y 141)
 
 | Objeto | Para qué |
 | --- | --- |
@@ -186,6 +221,11 @@ Generados por `pnpm n8n:help` (no editar los JSON):
 | `POST help/catalog/sync` | `help-catalog-sync.json` |
 | `POST help/assistant/chat` | `help-assistant-chat.json` |
 | `POST help/assistant/feedback` | `help-assistant-feedback.json` |
+| `POST help/videos/request` | `help-video-request.json` |
+| `POST help/videos/queue` | `help-video-queue.json` (worker) |
+| `POST help/videos/register` | `help-video-register.json` (publicar / fallido / desactualizado) |
+| `GET help/insights` | `help-insights.json` |
+| `POST help/support/update` | `help-support-update.json` |
 
 El chat es RAG sin herramientas: búsqueda full-text → prompt con fichas,
 pantalla actual, **elementos visibles** (los manda el frontend), casos de uso y
@@ -193,10 +233,53 @@ pasos pendientes → OpenAI (`gpt-6-luna`, constante `OPENAI_MODEL` del generado
 casos de uso del catálogo, help ids del catálogo o visibles) y descarta lo que
 no exista. El asistente no puede inventar una ruta ni un paso.
 
+### Videos demo (Fase 3)
+
+Cada guía del catálogo se graba ejecutada por el asistente real (la mascota
+señalando, la burbuja con el detalle), se narra y se publica:
+
+```
+pnpm videos:record    # e2e/videos/record.video.ts (proyecto help-videos de Playwright)
+pnpm videos:build     # scripts/videos/build-videos.mjs: narración + subtítulos + logo
+pnpm videos:publish   # scripts/videos/publish-videos.mjs: GCS + POST help/videos/register
+pnpm videos:worker    # video a demanda: procesa los pedidos del chat ("Pedir video")
+```
+
+| Variable | Para qué |
+| --- | --- |
+| `HELP_VIDEO_DEMO_TENANT=1` + `E2E_BASE_URL` | Obligatorio para grabar: sólo contra el tenant demo (datos sintéticos de `e2e/videos/demo-values.ts`). |
+| `HELP_VIDEO_USE_CASES` | Casos a grabar/armar/publicar (por defecto, todos). |
+| `HELP_VIDEO_CONFIRM=1` | Pulsa el OK al final (crea los datos en el demo). |
+| `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, `ELEVENLABS_MODEL` | Narración (caché por texto en `videos/cache`). Sin clave, sale sin voz. |
+| `HELP_VIDEOS_BUCKET` | Bucket de GCS (`gcloud` autenticado; el bucket necesita CORS para los subtítulos). Sin bucket va a `public/help-videos/` (sólo desarrollo). |
+| `HELP_API_URL`, `HELP_API_TOKEN` | n8n del cliente y JWT de un usuario técnico con `HELP_CATALOG_SYNC` (registro, cola, job nocturno). |
+
+El grabador maneja la guía por `window.__invokeHelp`, que el asistente expone
+sólo con `localStorage['invoke-help:automation'] = '1'`. Los subtítulos siempre
+salen como `.vtt` (los muestra el reproductor del chat) y como pista del mp4; si
+el ffmpeg tiene libass, además se queman en la imagen. `videos/` no se versiona.
+
+### Soporte y métricas (Fase 4)
+
+- Toda pregunta escalada (baja confianza, error del sistema o pedido de una
+  persona) abre un ticket en `help_support_tickets` con la pantalla y el
+  contexto; prioridad alta si el agente lo marca como error del sistema.
+- **Sistema → Métricas del Asistente** (`/system/help-insights`,
+  `HELP_INSIGHTS_VIEW`): preguntas por semana, % resuelto por el asistente
+  (meta 85%), escaladas en fin de semana (meta: sólo críticas), pantallas con
+  más dudas, cola de preguntas sin resolver, tickets, estado del catálogo, videos
+  y onboarding.
+- Esquema de la BD en el catálogo: cada `POST help/catalog/sync` llama a
+  `help_refresh_schema_items()`, que vuelca tablas, columnas, FKs y `COMMENT ON`
+  a `help_catalog_items` (kind `table`). Nunca viaja al navegador. El
+  significado de negocio sale de los comentarios de las migraciones.
+- `pnpm knowledge:nightly` (cron del servidor de QA): cobertura estricta +
+  regresión de guías; las guías rotas marcan su video como desactualizado.
+
 ### Despliegue
 
-1. Aplicar `140_20261023_help-assistant-and-onboarding.sql`.
-2. Importar `n8n-workflows/help-*.json` y activarlos. Ya traen las credenciales compartidas: "JWT Auth account" en los Webhooks (el token se valida en n8n y el usuario sale de `jwtPayload.userId`) y "Postgres account" en los nodos Postgres y "OpenAi account 2" en el nodo "OpenAI" del chat.
+1. Aplicar `140_20261023_help-assistant-and-onboarding.sql` y `141_20261023_help-schema-videos-support.sql`.
+2. Importar `n8n-workflows/help-*.json` (11 workflows) y activarlos. Ya traen las credenciales compartidas: "JWT Auth account" en los Webhooks (el token se valida en n8n y el usuario sale de `jwtPayload.userId`), "Postgres account" en los nodos Postgres y "OpenAi account 2" en el nodo "OpenAI" del chat.
 3. Desplegar el frontend. Al entrar un administrador, el catálogo se publica solo.
 
 Sin el script nadie tiene `HELP_ASSISTANT_USE` y el asistente no aparece.
@@ -205,11 +288,7 @@ Sin el script nadie tiene `HELP_ASSISTANT_USE` y el asistente no aparece.
 
 | Fase | Estado |
 | --- | --- |
-| 1 · Mapa del producto | Base lista: IDs automáticos en toda la app, extractor, 95 pantallas / ~780 elementos / 455 permisos indexados, fichas redactadas del recorrido de onboarding. **Falta**: fichas del resto del menú (`knowledge:check` lista las que faltan), validación humana, esquema de BD documentado (exportar `information_schema` a `knowledge/db/`), embeddings. |
-| 2 · Asistente de onboarding | Funcional: checklist derivada de datos, guías de los 9 pasos con formulario, chat con dictado, ayuda contextual, modo implementador (omitir/notas). **Falta**: probar con dos clínicas nuevas, notas del implementador en la UI, modo multitenant. |
-| 3 · Tests y videos | Base: `runUseCase()` corre cualquier guía como test E2E (modo `demo` lento y resaltado para grabar) y `help-guides.spec.ts` es la regresión de guías. **Falta**: tenant demo con datos sintéticos, grabación + narración (ElevenLabs) + subtítulos (ffmpeg), carga en `help_videos`. |
-| 4 · Soporte automático | Base: registro de preguntas, confianza, escalado y feedback. **Falta**: canal WhatsApp (YCloud) con el mismo agente, tickets de escalado, panel de métricas, job nocturno (`knowledge:strict` + suite de guías). |
-
-Las respuestas mejoran solas a medida que se avanza: cada ficha nueva entra al
-catálogo en el commit, cada guía nueva aparece en "Guiarme", y cuando un caso
-de uso tenga video en `help_videos` el chat lo ofrece sin cambiar código.
+| 1 · Mapa del producto | IDs automáticos en toda la app; 96 pantallas, ~810 elementos, 456 permisos; **ficha en el 100% del menú** (`draft`, falta la validación de soporte); esquema de la BD documentado en cada sync; `knowledge:strict` en el job nocturno. **Falta**: validar fichas (`validated`), comentarios de negocio en las tablas principales, embeddings (requiere pgvector en el servidor). |
+| 2 · Asistente de onboarding | Checklist derivada de datos con "Llevarme y guiarme" en los 12 pasos; guías con la mascota señalando, detalle y obligatorio/opcional; chat con dictado que siempre ofrece guiar y llevar; ayuda contextual con recorrido de pantalla; modo implementador. **Falta**: probar con dos clínicas nuevas; modo multitenant. |
+| 3 · Tests y videos | Regresión de guías; grabación de la guía real, narración ElevenLabs, subtítulos y logo; publicación en GCS + registro; video a demanda con cola y worker; videos desactualizados por el job nocturno. **Falta**: levantar el tenant demo, elegir la voz y el bucket, correr la primera tanda de los 13 casos (y llegar a 30). |
+| 4 · Soporte automático | Tickets al escalar, cola de preguntas sin resolver, panel de métricas, job nocturno. **Falta**: canal WhatsApp (YCloud) con el mismo agente, aviso a soporte por ticket crítico. |

@@ -1,0 +1,9 @@
+{
+  "id": "reports.nuevos-pacientes",
+  "status": "draft",
+  "summary": "Nuevos pacientes.",
+  "purpose": "Pacientes registrados en el período y de dónde llegaron.",
+  "prerequisites": [
+    "patients"
+  ]
+}

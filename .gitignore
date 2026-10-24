@@ -57,3 +57,7 @@ database/drivers/*.jar
 
 # MCP local config (contains DB credentials) — commit .mcp.json.example instead
 .mcp.json
+
+# Videos demo del asistente (scripts/videos): se publican en GCS, no se versionan
+/videos/
+/public/help-videos/

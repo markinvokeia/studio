@@ -1,0 +1,12 @@
+{
+  "id": "config.holidays",
+  "status": "draft",
+  "summary": "Feriados y horarios de excepción de la clínica.",
+  "purpose": "Días en que la clínica cierra o abre con otro horario. La agenda y el portal no ofrecen turnos en esos días.",
+  "tips": [
+    "Cargá los feriados del año apenas arranca para evitar reservas por error."
+  ],
+  "prerequisites": [
+    "config.schedules"
+  ]
+}

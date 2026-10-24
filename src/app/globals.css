@@ -876,7 +876,7 @@ div[role="combobox"][aria-invalid="true"] {
   color: hsl(var(--primary-foreground)) !important;
 }
 
-/* ── Asistente guiado: spotlight, manito y mascota ─────────────────────────
+/* ── Asistente guiado: spotlight ──────────────────────────────────────────
    --help-level (1..5) lo sube el spotlight cada pocos segundos mientras el
    elemento sigue sin atención: el borde titila cada vez más fuerte y rápido. */
 .help-spotlight-ring {
@@ -892,8 +892,8 @@ div[role="combobox"][aria-invalid="true"] {
   animation: help-blink calc(1.5s - var(--help-level) * 0.18s) ease-in-out infinite;
   transition: top 180ms ease-out, left 180ms ease-out, width 180ms ease-out, height 180ms ease-out;
 }
-.help-spotlight-ring[data-mode='confirm'] { --help-color: 142 70% 40%; }
-.help-spotlight-ring[data-mode='input'] { --help-color: 38 92% 50%; }
+/* Violeta siempre; rojo cuando señala algo obligatorio que falta o un campo con error. */
+.help-spotlight-ring[data-alert] { --help-color: 0 84% 58%; }
 
 @keyframes help-blink {
   0%, 100% {
@@ -908,59 +908,15 @@ div[role="combobox"][aria-invalid="true"] {
   }
 }
 
-/* La mascota como puntero: se ubica junto al elemento y lo señala con su manita. */
-.help-mascot-pointer {
-  position: fixed;
-  pointer-events: none;
-  filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.28));
-  transition: top 220ms ease-out, left 220ms ease-out;
-}
-
-.help-mascot { overflow: visible; }
-.help-mascot__body { transform-box: fill-box; transform-origin: center bottom; }
-.help-mascot--idle .help-mascot__body,
-.help-mascot--happy .help-mascot__body,
-.help-mascot--waving .help-mascot__body { animation: help-bob 3.2s ease-in-out infinite; }
-.help-mascot--thinking .help-mascot__body { animation: help-bob 1s ease-in-out infinite; }
-.help-mascot--sad .help-mascot__body { animation: help-sigh 2.6s ease-in-out infinite; }
-.help-mascot__eyes { transform-box: fill-box; transform-origin: center; animation: help-eyes-blink 4.5s infinite; }
-.help-mascot__hand { transform-box: fill-box; transform-origin: center; }
-/* Saludo: la manita levantada gira sobre la muñeca. */
-.help-mascot__hand--waving { animation: help-wave 1.4s ease-in-out infinite; transform-origin: 30% 80%; }
-/* Señalar: la manita (rotada hacia el elemento) empuja en su propio eje. */
-.help-mascot--pointing .help-mascot__hand:has(.help-mascot__finger) { animation: help-poke 0.9s ease-in-out infinite; }
-.help-mascot--talking .help-mascot__mouth { animation: help-talk 0.35s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
-.help-mascot__tear { animation: help-tear 2.2s ease-in infinite; }
-.help-mascot__thinking circle { animation: help-fade 1.2s ease-in-out infinite; }
-.help-mascot__thinking circle:nth-child(2) { animation-delay: 0.2s; }
-.help-mascot__thinking circle:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes help-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4%); } }
-@keyframes help-sigh { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(2%) scaleY(0.97); } }
-@keyframes help-eyes-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.08); } }
-@keyframes help-wave { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-22deg); } 75% { transform: rotate(18deg); } }
-@keyframes help-poke { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(70px); } }
-@keyframes help-talk { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.4); } }
-@keyframes help-tear { 0%, 30% { transform: translateY(0); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateY(160px); opacity: 0; } }
-@keyframes help-fade { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
-
-/* Lanzador en reposo: se asoma de detrás del riel derecho, mira y saluda, y vuelve. */
-.help-peek { animation: help-peek 11s ease-in-out infinite; transition: transform 250ms ease-out; }
-/* Al pasar el mouse sale del todo y se queda. */
-.help-peek:hover, .help-peek:focus-visible { animation: none; transform: translateX(-8%); }
-@keyframes help-peek {
-  0%, 8% { transform: translateX(46%); }
-  16%, 58% { transform: translateX(-6%); }
-  66%, 100% { transform: translateX(46%); }
+/* La mascota (src/components/invoke-mascot) es una capa flotante propia: no se imprime. */
+@media print {
+  .ivm-stage { display: none !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .help-spotlight-ring,
-  .help-peek,
-  .help-mascot__body,
-  .help-mascot__eyes,
-  .help-mascot__hand,
-  .help-mascot__mouth,
-  .help-mascot__tear,
-  .help-mascot__thinking circle { animation: none !important; }
+  .help-spotlight-ring { animation: none !important; }
 }
+
+
+/* El riel derecho del header es el escondite de la mascota (MascotPeekZone): su contenido ocupa todo el alto. */
+.help-rail-zone > .ivm-peekzone-content { height: 100%; }

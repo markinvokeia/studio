@@ -3,6 +3,7 @@
 import { Header } from '@/components/header';
 import { HelpAssistant } from '@/components/help/help-assistant';
 import { HelpScopeProvider } from '@/components/help/help-scope';
+import { MascotHost } from '@/components/help/mascot-host';
 import { LicenseExpirationBanner, LicenseExpiredBanner } from '@/components/license/LicenseExpirationBanner';
 import { LicenseExpiredScreen } from '@/components/license/LicenseExpiredScreen';
 import { PatientPortalLayout } from '@/components/patient-portal/patient-portal-layout';
@@ -210,7 +211,9 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const effectivePathname = getEffectivePathname(pathname, locale);
 
   return (
-    <>
+    // La mascota del asistente (escondite en el riel del header, guías, chat). Sólo en el
+    // dashboard del staff: no se monta en login, portal del paciente ni pantalla de TV.
+    <MascotHost>
     {/* Overlays/sheets del staff, disparados por stores globales desde
         cualquier punto del dashboard. Viven acá — y no en el layout raíz —
         para que nunca se monten en la landing pública ni en el portal del
@@ -264,6 +267,6 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         </footer>
       </div>
     </div>
-    </>
+    </MascotHost>
   );
 }

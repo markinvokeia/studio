@@ -1,0 +1,12 @@
+{
+  "id": "permissions",
+  "status": "draft",
+  "summary": "Catálogo de permisos del sistema.",
+  "purpose": "Cada permiso habilita una pantalla o una acción; se asignan a los roles.",
+  "tips": [
+    "Los permisos se otorgan por rol, no por usuario."
+  ],
+  "prerequisites": [
+    "roles"
+  ]
+}

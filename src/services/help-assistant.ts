@@ -3,6 +3,8 @@ import api, { REQUEST_TIMEOUT_MS } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import type {
   HelpAssistantReply,
+  HelpInsights,
+  HelpTicketStatus,
   HelpCatalog,
   HelpVisibleTarget,
   OnboardingStatusResponse,
@@ -55,4 +57,26 @@ export async function getPublishedCatalogVersion(signal?: AbortSignal): Promise<
 
 export function publishCatalog(catalog: HelpCatalog) {
   return api.post(API_ROUTES.HELP.CATALOG_SYNC, catalog, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.longRunning });
+}
+
+export function requestHelpVideo(useCaseId: string, locale: string, questionId?: string | null) {
+  return api.post(API_ROUTES.HELP.VIDEO_REQUEST, { use_case_id: useCaseId, locale, question_id: questionId ?? undefined }, undefined, undefined, {
+    timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+  });
+}
+
+export async function getHelpInsights(days: number, signal?: AbortSignal): Promise<HelpInsights> {
+  return api.get(API_ROUTES.HELP.INSIGHTS, { days: String(days) }, undefined, { signal, timeoutMs: READ_TIMEOUT_MS });
+}
+
+export function updateHelpQuestion(id: string, status: 'resolved' | 'ignored' | 'open', note?: string) {
+  return api.post(API_ROUTES.HELP.SUPPORT_UPDATE, { type: 'question', id, status, note }, undefined, undefined, {
+    timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+  });
+}
+
+export function updateHelpTicket(id: number, status: HelpTicketStatus, note?: string) {
+  return api.post(API_ROUTES.HELP.SUPPORT_UPDATE, { type: 'ticket', id: String(id), status, note }, undefined, undefined, {
+    timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+  });
 }

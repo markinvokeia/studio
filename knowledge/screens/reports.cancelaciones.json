@@ -1,0 +1,9 @@
+{
+  "id": "reports.cancelaciones",
+  "status": "draft",
+  "summary": "Reporte de cancelaciones.",
+  "purpose": "Turnos cancelados o con ausencia, por período, profesional y motivo.",
+  "tips": [
+    "Sirve para detectar horarios con muchas ausencias y reforzar recordatorios."
+  ]
+}

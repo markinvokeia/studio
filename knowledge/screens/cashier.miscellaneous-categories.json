@@ -1,0 +1,6 @@
+{
+  "id": "cashier.miscellaneous-categories",
+  "status": "draft",
+  "summary": "Categorías para ingresos y egresos varios.",
+  "purpose": "Clasifican los movimientos de caja que no son cobros a pacientes (compras menores, retiros, aportes) para que salgan ordenados en los reportes."
+}

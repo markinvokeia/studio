@@ -1,0 +1,6 @@
+{
+  "id": "system.audit",
+  "status": "draft",
+  "summary": "Registro de auditoría.",
+  "purpose": "Historial de cambios sobre los datos: qué se modificó, quién y cuándo."
+}

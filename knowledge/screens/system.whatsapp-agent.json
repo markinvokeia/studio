@@ -1,0 +1,12 @@
+{
+  "id": "system.whatsapp-agent",
+  "status": "draft",
+  "summary": "Agente de WhatsApp.",
+  "purpose": "Activa el agente que atiende a los pacientes por WhatsApp y define su horario de atención.",
+  "tips": [
+    "El número lo conecta el equipo de Invoke; acá se prende y se configura."
+  ],
+  "useCases": [
+    "onboarding.whatsapp"
+  ]
+}

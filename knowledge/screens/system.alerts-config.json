@@ -1,0 +1,9 @@
+{
+  "id": "system.alerts-config",
+  "status": "draft",
+  "summary": "Configuración general de alertas.",
+  "purpose": "Horarios y parámetros con que corre el motor de alertas.",
+  "prerequisites": [
+    "system.alert-rules"
+  ]
+}

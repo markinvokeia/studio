@@ -1,0 +1,6 @@
+{
+  "id": "purchases.providers",
+  "status": "draft",
+  "summary": "Proveedores de la clínica.",
+  "purpose": "Datos de contacto, condiciones y productos de cada proveedor."
+}

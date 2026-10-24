@@ -1,0 +1,9 @@
+{
+  "id": "config.medical-instruction-templates",
+  "status": "draft",
+  "summary": "Plantillas de indicaciones médicas.",
+  "purpose": "Textos predefinidos (cuidados posoperatorios, preparación para estudios) que se entregan al paciente desde su historia clínica.",
+  "tips": [
+    "Usá variables para que el texto salga con los datos del paciente."
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "cashier.sessions",
+  "status": "draft",
+  "summary": "Historial de sesiones de caja.",
+  "purpose": "Muestra cada apertura y cierre con su arqueo, diferencias y responsable.",
+  "tips": [
+    "Una diferencia en el cierre queda registrada con quién la cerró."
+  ],
+  "prerequisites": [
+    "cashier"
+  ]
+}

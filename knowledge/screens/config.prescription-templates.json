@@ -1,0 +1,12 @@
+{
+  "id": "config.prescription-templates",
+  "status": "draft",
+  "summary": "Plantillas de receta.",
+  "purpose": "El formato de las recetas que emiten los profesionales: membrete, cuerpo y firma.",
+  "tips": [
+    "La firma de cada profesional se carga en su ficha."
+  ],
+  "prerequisites": [
+    "config.doctors"
+  ]
+}

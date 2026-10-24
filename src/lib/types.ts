@@ -2078,6 +2078,8 @@ export type UserPreferences = {
   alert_style?: DoctorAlertStyle;
   finance_view?: PatientFinanceView;
   toast_position?: ToastPosition;
+  /** Mostrar la mascota animada del asistente (por defecto true). */
+  show_mascot?: boolean;
 };
 
 export type UserPreferencesResponse = {
@@ -3534,4 +3536,54 @@ export interface HelpAssistantReply {
   videoUrl?: string | null;
   questionId?: string | null;
   escalated?: boolean;
+  /** Ticket de soporte abierto al escalar. */
+  ticketId?: string | null;
+}
+
+export interface HelpInsightsTotals {
+  total: number;
+  resolved: number;
+  escalated: number;
+  positive: number;
+  negative: number;
+  avg_confidence: number | null;
+  /** Escaladas en fin de semana (la meta es sólo incidentes críticos). */
+  weekend_human: number;
+}
+
+export interface HelpInsightsOpenQuestion {
+  id: string;
+  question: string;
+  answer: string | null;
+  confidence: number | null;
+  rating: number | null;
+  route: string | null;
+  screen_id: string | null;
+  created_at: string;
+  user_name: string | null;
+}
+
+export type HelpTicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+
+export interface HelpInsightsTicket {
+  id: number;
+  subject: string;
+  route: string | null;
+  status: HelpTicketStatus;
+  priority: 'low' | 'normal' | 'high' | 'critical';
+  channel: string;
+  created_at: string;
+  user_name: string | null;
+}
+
+/** Respuesta de GET /help/insights. */
+export interface HelpInsights {
+  totals: HelpInsightsTotals;
+  by_week: { week: string; total: number; escalated: number }[];
+  by_screen: { screen_id: string; total: number; unresolved: number }[];
+  open_questions: HelpInsightsOpenQuestion[];
+  tickets: HelpInsightsTicket[];
+  onboarding: { step_id: string; status: OnboardingStepStatus; completed_at: string | null }[];
+  videos: { ready: number; stale: number; requests_open: number; requests_failed: number } | null;
+  catalog: { version: string | null; synced_at: string | null; screens: number; validated: number; tables: number } | null;
 }

@@ -437,7 +437,8 @@
     "ReportBalanceMensual": "Monthly Balance",
     "Sedes": "Branches",
     "PatientsPortal": "Patient Portal",
-    "PrescriptionTemplates": "Prescription Templates"
+    "PrescriptionTemplates": "Prescription Templates",
+    "HelpInsights": "Assistant Insights"
   },
   "TVDisplayPage": {
     "title": "TV Display",
@@ -6856,7 +6857,10 @@
       "tabs": "Normal"
     },
     "calendarSection": "Calendar",
-    "signatureSection": "Signature"
+    "signatureSection": "Signature",
+    "assistantSection": "Assistant",
+    "showMascotLabel": "Show animated assistant",
+    "showMascotDescription": "Invoke's mascot keeps you company, points on screen at what it explains and hides behind the bar when you're not using it. When off, it stays asleep and doesn't react."
   },
   "UserCommunicationPreferences": {
     "title": "Preferences",
@@ -10065,49 +10069,13 @@
     "patientHint": "Patient account, history and details"
   },
   "HelpAssistant": {
-    "open": "Open the Invoke assistant",
     "title": "Invoke Assistant",
-    "subtitle": "I guide you step by step and answer your questions",
     "close": "Close assistant",
-    "guideTitle": "Guiding you",
-    "guideSubtitle": "Follow the steps or ask me to do them",
     "catalogError": "Help could not be loaded. Reload the page to try again.",
     "tabs": {
       "onboarding": "Getting started",
       "chat": "Help",
       "screen": "This screen"
-    },
-    "spotlight": {
-      "mode": {
-        "info": "Look here",
-        "action": "I'm doing it",
-        "input": "Fill this in",
-        "confirm": "You confirm",
-        "filled": "Filled in"
-      },
-      "stepOf": "Step {current} of {total}",
-      "exit": "Exit",
-      "doAll": "Do it all",
-      "next": "Next",
-      "alreadyDone": "I did it",
-      "required": "Required",
-      "optional": "Optional"
-    },
-    "guide": {
-      "finishedTitle": "All done!",
-      "finishedDescription": "You finished “{title}”.",
-      "close": "Back to the assistant",
-      "progress": "{done} of {total} steps",
-      "errors": {
-        "targetNotFound": "I can't find this element on the screen. A permission may be missing or the screen may have changed.",
-        "navigationFailed": "I couldn't open the screen. Try “Take me there” from the assistant."
-      },
-      "exit": "Exit",
-      "retry": "Retry",
-      "doAll": "Do everything up to OK",
-      "alreadyDone": "I confirmed it",
-      "skip": "Skip step",
-      "next": "Next"
     },
     "onboarding": {
       "title": "Getting your clinic ready",
@@ -10178,7 +10146,138 @@
       "feedbackError": "Your feedback could not be saved",
       "fallbackFound": "I can't reach the assistant right now, but this is what I found in the help:",
       "fallbackNone": "I can't reach the assistant right now and found nothing about that in the help. Try other words or check the “This screen” tab.",
-      "tourTitle": "Tour of {screen}"
+      "tourTitle": "Tour of {screen}",
+      "requestVideo": "Request video",
+      "videoRequested": "Video requested: it will show up here when ready.",
+      "videoRequestError": "The video could not be requested",
+      "ticketCreated": "I opened ticket #{id} for the support team.",
+      "subtitles": "Subtitles",
+      "mascotError": "Oops, something failed. Shall we try again?",
+      "mascotSorry": "Oops, I couldn't find that. I let the team know.",
+      "mascotLetsGo": "Let's go! I'll take you there.",
+      "onboardingTitle": "Getting started",
+      "onboardingPending": "{count, plural, one {# step} other {# steps}} left to get started",
+      "guideThisScreen": "Guide me on this screen"
+    },
+    "mascot": {
+      "label": "Invoke assistant",
+      "pendingSteps": "Hi! {count, plural, one {# step} other {# steps}} left to get started. Shall I guide you?",
+      "guideFinished": "Done! We finished “{title}”.",
+      "guideError": {
+        "targetNotFound": "Oops, I can't find that element on the screen. A permission may be missing. Retry or skip it?",
+        "navigationFailed": "Oops, I couldn't open the screen. You may not have permission to see it."
+      },
+      "appError": "Oops, something went wrong. Check the message.",
+      "loading": {
+        "loadingScreen": "Opening the screen… the first time can take a while.",
+        "loadingElement": "Waiting for the screen to finish loading…"
+      }
+    },
+    "toolbar": {
+      "label": "Guide: step {current} of {total}",
+      "step": "Step {current}/{total}",
+      "first": "Go to first step",
+      "previous": "Previous step",
+      "next": "Next step",
+      "alreadyDone": "I did it",
+      "skip": "Skip this step",
+      "last": "Go to last step",
+      "close": "Close guide",
+      "required": "Required",
+      "retry": "Retry"
+    },
+    "back": "Back"
+  },
+  "HelpInsightsPage": {
+    "title": "Assistant insights",
+    "description": "How much the assistant solves on its own, what gets escalated and where people get stuck.",
+    "range": "Last {days} days",
+    "refresh": "Refresh",
+    "retry": "Retry",
+    "empty": "No data for this period yet.",
+    "kpi": {
+      "questions": "Questions",
+      "resolved": "Solved by the assistant",
+      "resolvedGoal": "Goal: 85% or more",
+      "escalated": "Escalated",
+      "feedback": "👍 / 👎",
+      "confidence": "Average confidence",
+      "weekend": "Weekend escalations",
+      "weekendGoal": "Goal: critical incidents only"
+    },
+    "byWeek": {
+      "title": "Questions per week",
+      "description": "Total and escalated to the support team."
+    },
+    "byScreen": {
+      "title": "Screens with most questions",
+      "description": "In red, the ones the assistant could not solve.",
+      "none": "No screen"
+    },
+    "open": {
+      "title": "Unanswered questions ({count})",
+      "description": "Escalated or rated 👎. Fill in the screen guide or a use case, then mark it solved.",
+      "empty": "No pending questions.",
+      "confidence": "confidence {value}%",
+      "resolve": "Solved",
+      "ignore": "Ignore"
+    },
+    "tickets": {
+      "title": "Open tickets ({count})",
+      "description": "What the assistant handed over to the team, with its screen and context.",
+      "empty": "No open tickets.",
+      "take": "Take",
+      "resolve": "Resolve",
+      "priority": {
+        "low": "Low",
+        "normal": "Normal",
+        "high": "High",
+        "critical": "Critical"
+      },
+      "status": {
+        "open": "Open",
+        "in_progress": "In progress",
+        "resolved": "Resolved",
+        "closed": "Closed"
+      }
+    },
+    "catalog": {
+      "title": "Product map",
+      "screens": "{validated} of {total} screens validated",
+      "tables": "{count} documented database tables",
+      "version": "Version {version} · published {date}"
+    },
+    "videos": {
+      "title": "Demo videos",
+      "ready": "{count} videos published",
+      "requests": "{count} requests in progress",
+      "stale": "{count} outdated videos",
+      "failed": "{count} failed requests"
+    },
+    "onboarding": {
+      "title": "Onboarding",
+      "done": "Done",
+      "pending": "Pending",
+      "skipped": "Skipped"
+    },
+    "steps": {
+      "business": "Clinic details",
+      "sedes": "Locations",
+      "schedules": "Opening hours",
+      "calendars": "Rooms",
+      "doctors": "Practitioners",
+      "availability": "Availability",
+      "services": "Services",
+      "first_appointment": "Test appointment",
+      "staff": "Admin team",
+      "payment_methods": "Payment methods",
+      "whatsapp": "WhatsApp",
+      "patients_import": "Import patients"
+    },
+    "toast": {
+      "questionUpdated": "Question updated",
+      "ticketUpdated": "Ticket updated",
+      "error": "Could not update"
     }
   }
 }

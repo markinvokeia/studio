@@ -1,0 +1,9 @@
+{
+  "id": "purchases.quotes",
+  "status": "draft",
+  "summary": "Presupuestos de compra.",
+  "purpose": "Cotizaciones pedidas a proveedores antes de comprar; se pueden convertir en factura de compra.",
+  "prerequisites": [
+    "purchases.providers"
+  ]
+}

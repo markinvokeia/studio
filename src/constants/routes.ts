@@ -569,5 +569,11 @@ export const API_ROUTES = {
         CATALOG_VERSION:     '/help/catalog/version',
         /** Publica el catálogo que trae este frontend (requiere HELP_CATALOG_SYNC). */
         CATALOG_SYNC:        '/help/catalog/sync',
+        /** Pide el video de un caso de uso (lo genera el worker de scripts/videos). */
+        VIDEO_REQUEST:       '/help/videos/request',
+        /** Panel de métricas del asistente (HELP_INSIGHTS_VIEW). */
+        INSIGHTS:            '/help/insights',
+        /** Resolver/ignorar una pregunta o cambiar el estado de un ticket. */
+        SUPPORT_UPDATE:      '/help/support/update',
     },
 };

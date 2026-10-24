@@ -1,0 +1,9 @@
+{
+  "id": "config.templates",
+  "status": "draft",
+  "summary": "Plantillas de impresión.",
+  "purpose": "El diseño de los documentos que se imprimen o se envían: presupuestos, facturas, pagos y notas de crédito.",
+  "prerequisites": [
+    "config.clinics"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "config.calendar-colors",
+  "status": "draft",
+  "summary": "Colores de la agenda.",
+  "purpose": "Elige si los turnos se colorean por consultorio, profesional, servicio o estado, y la paleta de cada estado de cita.",
+  "tips": [
+    "Los cambios se previsualizan antes de guardar."
+  ],
+  "prerequisites": [
+    "appointments"
+  ]
+}

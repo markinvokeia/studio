@@ -1,0 +1,9 @@
+{
+  "id": "system.config",
+  "status": "draft",
+  "summary": "Configuraciones del sistema.",
+  "purpose": "Claves de configuración técnica (integraciones, envíos, comportamiento). Sólo para administradores.",
+  "tips": [
+    "Un valor mal cargado puede cortar una integración: anotá el valor anterior antes de cambiarlo."
+  ]
+}

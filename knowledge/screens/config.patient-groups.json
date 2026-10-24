@@ -1,0 +1,9 @@
+{
+  "id": "config.patient-groups",
+  "status": "draft",
+  "summary": "Grupos de pacientes.",
+  "purpose": "Agrupan pacientes (convenios, campañas, familias) para filtrarlos, aplicar condiciones y exportarlos.",
+  "prerequisites": [
+    "patients"
+  ]
+}

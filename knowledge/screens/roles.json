@@ -1,0 +1,12 @@
+{
+  "id": "roles",
+  "status": "draft",
+  "summary": "Roles y sus permisos.",
+  "purpose": "Un rol agrupa permisos (Recepcionista, Administrador, Doctor…). Cada usuario recibe uno o más roles.",
+  "tips": [
+    "Cambiar los permisos de un rol afecta a todos los usuarios que lo tienen."
+  ],
+  "prerequisites": [
+    "permissions"
+  ]
+}
