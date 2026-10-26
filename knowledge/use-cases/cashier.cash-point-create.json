@@ -1,0 +1,63 @@
+{
+  "id": "cashier.cash-point-create",
+  "title": "Crear una caja física",
+  "module": "Caja",
+  "summary": "Dar de alta una caja (recepción, otra sede) que se abre y cierra por separado.",
+  "screens": [
+    "cashier.cash-points"
+  ],
+  "inputs": {
+    "name": "Nombre de la caja",
+    "sede": "Sede"
+  },
+  "keywords": [
+    "nueva caja",
+    "caja fisica",
+    "punto de caja",
+    "caja registradora",
+    "agregar caja"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/cashier/cash-points",
+      "title": "Menú → Caja → Cajas Registradoras Físicas"
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "cashier.cash-points.btn.new",
+      "title": "Nueva caja"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "cashier.cash-points.field.name",
+      "value": "{{values.name}}",
+      "title": "Nombre",
+      "details": "Ejemplo: «Recepción planta baja»."
+    },
+    {
+      "id": "sede",
+      "action": "fill",
+      "target": "cashier.cash-points.field.sede_id",
+      "value": "{{values.sede}}",
+      "title": "Sede",
+      "details": "La sede donde está la caja: sus cobros salen en los reportes de esa sede."
+    },
+    {
+      "id": "active",
+      "action": "highlight",
+      "target": "cashier.cash-points.field.is_active",
+      "title": "Activa",
+      "details": "Sólo las activas se pueden abrir."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "cashier.cash-points.btn.submit",
+      "title": "Crear"
+    }
+  ]
+}

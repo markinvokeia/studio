@@ -151,7 +151,20 @@ function ToolbarButton({ label, onClick, disabled, children, primary, pressed }:
   );
 }
 
+/** Pasos que se cuentan y se listan (los `na` no aplican en este caso). */
+function visibleSteps(guide: GuideRun): number[] {
+  return guide.statuses.map((status, i) => (status === 'na' ? -1 : i)).filter((i) => i >= 0);
+}
+
+/** "Paso X/Y" sin contar los que no aplican. */
+function stepPosition(guide: GuideRun, index: number): { current: number; total: number } {
+  const visible = visibleSteps(guide);
+  const at = visible.findIndex((i) => i >= index);
+  return { current: (at < 0 ? visible.length - 1 : at) + 1, total: visible.length };
+}
+
 const STATUS_ICON: Record<GuideStepStatus, React.ComponentType<{ className?: string }>> = {
+  na: Circle,
   pending: Circle,
   running: CircleDot,
   waiting: CircleDot,
@@ -178,6 +191,7 @@ function StepsList({ guide, shown, blocked, rect }: { guide: GuideRun; shown: nu
     >
       <ol ref={listRef} aria-label={t('stepsLabel')} className="h-full overflow-y-auto px-1.5 py-1.5">
         {guide.steps.map((step, i) => {
+          if (guide.statuses[i] === 'na') return null;
           const status: GuideStepStatus = i === shown && guide.statuses[i] === 'pending' ? 'waiting' : guide.statuses[i];
           const Icon = STATUS_ICON[status];
           const current = i === shown;
@@ -201,7 +215,7 @@ function StepsList({ guide, shown, blocked, rect }: { guide: GuideRun; shown: nu
                 style={{ height: STEP_ROW_PX }}
               >
                 <Icon className={cn('h-3.5 w-3.5 shrink-0', status === 'done' && 'text-emerald-600', current && 'text-[#7C3AED]')} />
-                <span className="w-4 shrink-0 text-[10px] tabular-nums text-muted-foreground">{i + 1}</span>
+                <span className="w-4 shrink-0 text-[10px] tabular-nums text-muted-foreground">{stepPosition(guide, i).current}</span>
                 <span className="min-w-0 flex-1 truncate">{step.title}</span>
                 {isBlockingStep(step) && status !== 'done' && status !== 'skipped' && (
                   <span className="shrink-0 rounded-full bg-amber-100 px-1.5 text-[9px] font-semibold text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">{t('yourTurn')}</span>
@@ -336,7 +350,8 @@ export function GuideSpotlight() {
   // Los clics en la barra y la lista no deben cerrar el diálogo de Radix que está debajo
   // (escucha pointerdown en document para detectar "clic afuera").
   const stopPointer = (e: React.PointerEvent) => e.stopPropagation();
-  const total = guide?.steps.length ?? 0;
+  // Sin contar los pasos que no aplican en este caso (`na`).
+  const total = guide ? visibleSteps(guide).length : 0;
   const blocked = !!guide && guide.statuses[guide.current] === 'waiting' && isBlockingStep(guide.steps[guide.current]);
   const listHeight = Math.min(total, STEP_ROWS_VISIBLE) * STEP_ROW_PX + 12;
   const listToggle = (
@@ -356,12 +371,12 @@ export function GuideSpotlight() {
         <div
           data-help-bubble
           role="toolbar"
-          aria-label={t('label', { current: guide.current + 1, total })}
+          aria-label={t('label', { current: stepPosition(guide, guide.current).current, total })}
           className={cn('flex items-center gap-0.5 rounded-full border bg-white px-1.5 shadow-[0_10px_28px_rgba(60,20,90,0.25)] dark:bg-card', failed ? 'border-destructive/40' : 'border-[#7C3AED]/25')}
           style={{ position: 'fixed', ...toolbar, zIndex: Z_TOP + 2, pointerEvents: 'auto' }}
         >
           <span className={cn('flex-1 px-2 text-xs font-semibold tabular-nums', failed ? 'text-destructive' : 'text-[#5B21B6] dark:text-violet-300')}>
-            {t('step', { current: guide.current + 1, total })}
+            {t('step', { current: stepPosition(guide, guide.current).current, total })}
           </span>
           {listToggle}
           {failed && <ToolbarButton label={t('retry')} onClick={retryStep} primary><RotateCcw className="h-4 w-4" /></ToolbarButton>}
@@ -387,6 +402,7 @@ export function GuideSpotlight() {
   const running = !!guide && guide.statuses[guide.current] === 'running';
   const doing = spotlight.mode === 'action' || running;
   const waitingConfirm = spotlight.mode === 'confirm';
+  const position = guide ? stepPosition(guide, shown) : { current: 0, total: 0 };
   const list = guide && listOpen && total > 1 ? placeList(toolbar, listHeight, mascot ? [anchor, mascot] : [anchor], dialogBox) : null;
   // Si la lista no entra sin pisar el elemento (o su menú), no se muestra (queda el botón para abrirla otra vez).
   const showList = !!list && !intersects(list, anchor, 2);
@@ -404,27 +420,27 @@ export function GuideSpotlight() {
       <div
         data-help-bubble
         role="toolbar"
-        aria-label={guide ? t('label', { current: shown + 1, total }) : t('close')}
+        aria-label={guide ? t('label', { current: position.current, total }) : t('close')}
         className="flex items-center gap-0.5 rounded-full border border-[#7C3AED]/25 bg-white px-1.5 shadow-[0_10px_28px_rgba(60,20,90,0.25)] dark:bg-card"
         style={{ position: 'fixed', top: toolbar.top, left: toolbar.left, width: guide ? TOOLBAR_WIDTH : undefined, height: TOOLBAR_HEIGHT, zIndex: Z_TOP + 2, pointerEvents: 'auto' }}
       >
         {guide ? (
           <>
             <span className="flex flex-1 items-center gap-1.5 pl-1.5 text-xs font-semibold tabular-nums text-[#5B21B6] dark:text-violet-300">
-              {t('step', { current: shown + 1, total })}
+              {t('step', { current: position.current, total })}
               {spotlight.required && (
                 <span className={cn('h-1.5 w-1.5 rounded-full', alert ? 'bg-destructive' : 'bg-[#7C3AED]/50')} title={t('required')} aria-label={t('required')} />
               )}
             </span>
             {listToggle}
-            <ToolbarButton label={t('first')} onClick={() => goToStep(0)} disabled={doing || shown <= 0}><ChevronsLeft className="h-4 w-4" /></ToolbarButton>
-            <ToolbarButton label={t('previous')} onClick={previousStep} disabled={doing || shown <= 0}><ChevronLeft className="h-4 w-4" /></ToolbarButton>
+            <ToolbarButton label={t('first')} onClick={() => goToStep(0)} disabled={doing || position.current <= 1}><ChevronsLeft className="h-4 w-4" /></ToolbarButton>
+            <ToolbarButton label={t('previous')} onClick={previousStep} disabled={doing || position.current <= 1}><ChevronLeft className="h-4 w-4" /></ToolbarButton>
             {/* Un paso que la persona tiene que hacer no se puede pasar de largo: sigue solo cuando lo hace. */}
             <ToolbarButton label={blocked ? t('waitingForYou') : waitingConfirm ? t('alreadyDone') : t('next')} onClick={() => nextStep('single')} disabled={doing || blocked} primary>
               {waitingConfirm ? <Check className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
             </ToolbarButton>
             <ToolbarButton label={t('skip')} onClick={skipStep} disabled={doing || blocked}><SkipForward className="h-4 w-4" /></ToolbarButton>
-            <ToolbarButton label={t('last')} onClick={lastStep} disabled={doing || blocked || shown >= total - 1}><ChevronsRight className="h-4 w-4" /></ToolbarButton>
+            <ToolbarButton label={t('last')} onClick={lastStep} disabled={doing || blocked || position.current >= total}><ChevronsRight className="h-4 w-4" /></ToolbarButton>
           </>
         ) : null}
         {/* Sin guía (un "Mostrar" de la ayuda de pantalla) sólo queda cerrar. */}

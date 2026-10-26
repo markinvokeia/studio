@@ -48,6 +48,51 @@ export function configureGuideRunner(next: GuideRunnerDeps | null) {
 
 const store = () => useHelpAssistant.getState();
 
+/** Estados de la app que las guías consultan en `onlyIf` / `unless` (los registra HelpAssistant). */
+const conditions = new Map<string, () => boolean>();
+
+export function registerGuideCondition(name: string, check: () => boolean): () => void {
+  conditions.set(name, check);
+  return () => { if (conditions.get(name) === check) conditions.delete(name); };
+}
+
+/** Cuánto se espera un help id de una condición antes de darla por falsa. */
+const CONDITION_WAIT_MS = 1500;
+
+/** Estado de las condiciones al arrancar la guía (`cash-session-open@start`). */
+let startSnapshot = new Map<string, boolean>();
+
+async function conditionHolds(condition: string, signal: AbortSignal): Promise<boolean> {
+  // `@start`: cómo estaba al empezar la guía. "Abrir la caja" con la caja abierta cierra
+  // primero: los pasos del cierre siguen aunque a mitad de camino la caja ya esté cerrada.
+  if (condition.endsWith('@start')) return startSnapshot.get(condition.slice(0, -'@start'.length)) ?? false;
+  const check = conditions.get(condition);
+  if (check) return check();
+  return !!(await waitForHelpTarget(condition, { signal, timeoutMs: CONDITION_WAIT_MS }));
+}
+
+/**
+ * Condición que ya se conoce al arrancar (estado registrado de la app o `@start`): si no
+ * aplica, el paso queda `na` desde el principio y no se cuenta en "Paso X/Y".
+ */
+function knownAtStart(condition: string): boolean | null {
+  if (condition.endsWith('@start')) return startSnapshot.get(condition.slice(0, -'@start'.length)) ?? false;
+  return null;
+}
+
+function notApplicableAtStart(step: HelpGuideStep): boolean {
+  const only = step.onlyIf ? knownAtStart(step.onlyIf) : null;
+  const unless = step.unless ? knownAtStart(step.unless) : null;
+  return only === false || unless === true;
+}
+
+/** Paso que no aplica en el estado actual (`onlyIf` falso o `unless` verdadero). */
+async function stepApplies(step: HelpGuideStep, signal: AbortSignal): Promise<boolean> {
+  if (step.onlyIf && !(await conditionHolds(step.onlyIf, signal))) return false;
+  if (step.unless && (await conditionHolds(step.unless, signal))) return false;
+  return true;
+}
+
 function setStatus(index: number, status: GuideStepStatus, patch: { error?: string } = {}) {
   store().setGuide((g) => {
     if (!g) return g;
@@ -246,9 +291,17 @@ async function execute(rawStep: HelpGuideStep, signal: AbortSignal): Promise<Ste
     case 'highlight':
       spotlightFor(step, 'info');
       // Con datos dictados (pruebas, videos) la guía elige ella el registro o abre el panel.
+      // Con `until`, repite el clic hasta que aparece (un asistente con un "Siguiente" por moneda).
       if (step.autoClick && Object.keys(values).length > 0) {
-        await helpSleep(900, signal);
-        pressElement(target.control);
+        const untilIds = step.until ? ([] as string[]).concat(step.until) : [];
+        for (let attempt = 0; attempt < AUTO_CLICK_MAX; attempt++) {
+          await helpSleep(900, signal);
+          const current = findHelpTarget(step.target) ?? target;
+          pressElement(current.control);
+          if (!untilIds.length) break;
+          await helpSleep(AUTO_CLICK_SETTLE_MS, signal);
+          if (untilIds.some((id) => findHelpTarget(id))) break;
+        }
       }
       return { status: 'waiting' };
 
@@ -276,6 +329,9 @@ async function completeWaitingStep(index: number, signal: AbortSignal, pauseMs: 
 }
 
 const VALUE_POLL_MS = 300;
+/** `autoClick` con `until`: cuántas veces se vuelve a pulsar y cuánto se espera entre una y otra. */
+const AUTO_CLICK_MAX = 6;
+const AUTO_CLICK_SETTLE_MS = 1200;
 /** `doneOnClose`: cuánto tiene que estar cerrado el menú para darlo por hecho. */
 const GONE_SETTLE_MS = 600;
 /** Tras elegir una opción o marcar un check, cuánto se espera antes de avanzar. */
@@ -380,7 +436,12 @@ async function runFrom(start: number, mode: 'single' | 'untilConfirm') {
   try {
     for (let i = start; i < guide.steps.length; i++) {
       const step = guide.steps[i];
+      if (store().guide?.statuses[i] === 'na') continue;
       setStatus(i, 'running');
+      if (!(await stepApplies(step, signal))) {
+        setStatus(i, 'skipped');
+        continue;
+      }
       const result = await execute(step, signal);
       if (result.status === 'failed') {
         setStatus(i, 'failed', { error: result.error });
@@ -423,6 +484,7 @@ export interface StartGuideOptions {
 export function startGuide(guide: { title: string; steps: HelpGuideStep[] }, options: StartGuideOptions = {}) {
   abortGuide();
   if (!guide.steps.length) return;
+  startSnapshot = new Map([...conditions].map(([name, check]) => [name, check()]));
   // Mientras guía, lo principal es la navegación y la mascota: el chat se cierra.
   store().close();
   controller = new AbortController();
@@ -432,7 +494,7 @@ export function startGuide(guide: { title: string; steps: HelpGuideStep[] }, opt
     title: guide.title,
     useCaseId: options.useCaseId,
     steps: guide.steps,
-    statuses: guide.steps.map(() => 'pending'),
+    statuses: guide.steps.map((step) => (notApplicableAtStart(step) ? 'na' : 'pending')),
     current: 0,
     values: options.values ?? {},
     finished: false,
@@ -476,6 +538,7 @@ export function goToStep(target: number) {
   // Hacia adelante no se puede saltar un paso que la persona tiene que hacer.
   if (index > guide.current && blockedNow(guide)) return;
   const statuses = guide.statuses.map((status, i): GuideStepStatus => {
+    if (status === 'na') return 'na';
     if (i >= index) return 'pending';
     return status === 'done' || status === 'skipped' ? status : 'skipped';
   });
@@ -490,7 +553,7 @@ export function previousStep() {
   if (!guide || busy) return;
   const shown = store().spotlight?.mode === 'filled' ? guide.current - 1 : guide.current;
   for (let i = shown - 1; i >= 0; i--) {
-    if (isVisibleStep(guide.steps[i])) { goToStep(i); return; }
+    if (isVisibleStep(guide.steps[i]) && guide.statuses[i] !== 'na') { goToStep(i); return; }
   }
   goToStep(0);
 }
@@ -507,7 +570,10 @@ export function skipStep() {
 
 export function lastStep() {
   const guide = store().guide;
-  if (guide) goToStep(guide.steps.length - 1);
+  if (!guide) return;
+  let last = guide.steps.length - 1;
+  while (last > 0 && guide.statuses[last] === 'na') last--;
+  goToStep(last);
 }
 
 export function retryStep() {

@@ -40,6 +40,15 @@ const SAMPLE_VALUES: Record<string, Record<string, unknown>> = {
   'alerts.send-email': { subject: 'Correo E2E' },
   'alerts.complete': { demo: true },
   'alerts.bulk': { demo: true },
+  'cashier.open': { prefill: 'zero', notes: 'Cierre E2E' },
+  'cashier.close': { prefill: 'zero', notes: 'Cierre E2E' },
+  'cashier.misc-expense': { category: 'Limpieza', beneficiary: 'Proveedor E2E', payment_method: 'Efectivo', amount: 100, description: 'Gasto E2E' },
+  'cashier.misc-income': { category: 'Aportes', beneficiary: 'Socio E2E', payment_method: 'Efectivo', amount: 100, description: 'Ingreso E2E' },
+  'cashier.misc-review': { demo: true },
+  'cashier.misc-category': { name: 'Categoría E2E', code: 'E2E', type: 'Gasto' },
+  'cashier.session-history': { demo: true },
+  'cashier.cash-point-create': { name: 'Caja E2E', sede: 'Sede E2E' },
+  'cashier.cash-point-edit': { demo: true },
 };
 
 test.describe('Guías del asistente', () => {

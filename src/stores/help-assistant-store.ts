@@ -4,7 +4,8 @@ import type { HelpAssistantReply, HelpGuideStep } from '@/lib/types';
 
 export type HelpAssistantTab = 'onboarding' | 'chat' | 'screen';
 
-export type GuideStepStatus = 'pending' | 'running' | 'waiting' | 'done' | 'skipped' | 'failed';
+/** `na`: no aplica en este caso (su condición `onlyIf`/`unless` se resolvió al arrancar); no se cuenta ni se lista. */
+export type GuideStepStatus = 'pending' | 'running' | 'waiting' | 'done' | 'skipped' | 'failed' | 'na';
 
 export interface GuideRun {
   key: number;

@@ -1,5 +1,5 @@
 {
- "version": "98569554d4c1bccc",
+ "version": "3d85c665c4cdac02",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -3774,6 +3774,162 @@
   {
    "elements": [
     {
+     "id": "cashier.btn.all-cash-points",
+     "kind": "btn",
+     "label": "Ver todas las cajas",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "id": "cashier.btn.close-back",
+     "kind": "btn",
+     "label": "Atrás",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "id": "cashier.btn.close-confirm",
+     "kind": "btn",
+     "label": "Cerrar sesión",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "id": "cashier.btn.close-next",
+     "kind": "btn",
+     "label": "Siguiente",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "id": "cashier.btn.open-back",
+     "kind": "btn",
+     "label": "Atrás",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "id": "cashier.btn.open-confirm",
+     "kind": "btn",
+     "label": "Confirmar y abrir",
+     "source": "knowledge/screens/cashier.json"
+    },
+    {
+     "id": "cashier.btn.open-next",
+     "kind": "btn",
+     "label": "Siguiente",
+     "source": "knowledge/screens/cashier.json"
+    },
+    {
+     "id": "cashier.btn.open-session",
+     "kind": "btn",
+     "label": "Abrir",
+     "source": "knowledge/screens/cashier.json"
+    },
+    {
+     "id": "cashier.btn.prefill-last",
+     "kind": "btn",
+     "label": "Rellenar con último cierre",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "id": "cashier.btn.prefill-zero",
+     "kind": "btn",
+     "label": "Rellenar con 0",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "id": "cashier.btn.print-closing",
+     "kind": "btn",
+     "label": "Imprimir cierre",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "id": "cashier.btn.print-opening",
+     "kind": "btn",
+     "label": "Imprimir apertura",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "id": "cashier.btn.report-finish",
+     "kind": "btn",
+     "label": "Finalizar y volver",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "id": "cashier.btn.start-closing",
+     "kind": "btn",
+     "label": "Iniciar cierre / Siguiente",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "description": "Abre tu sesión de caja abierta.",
+     "id": "cashier.btn.view-session",
+     "kind": "btn",
+     "label": "Ver registro",
+     "source": "knowledge/screens/cashier.json"
+    },
+    {
+     "id": "cashier.field.closing-notes",
+     "kind": "field",
+     "label": "Notas del cierre",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "id": "cashier.field.date-rate",
+     "kind": "field",
+     "label": "Tipo de cambio",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "id": "cashier.field.open-currency",
+     "kind": "field",
+     "label": "Moneda",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "description": "Apertura, efectivo en mano, ingresos, egresos y POS por moneda.",
+     "id": "cashier.section.active-session",
+     "kind": "section",
+     "label": "Sesión activa",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "description": "Efectivo que se retira para el banco, opcional.",
+     "id": "cashier.section.bank-deposit",
+     "kind": "section",
+     "label": "Depósito bancario",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "description": "Cada caja con su estado (abierta por quién, o cerrada).",
+     "id": "cashier.section.cash-points",
+     "kind": "section",
+     "label": "Cajas físicas",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "description": "Cantidad de billetes y monedas por valor.",
+     "id": "cashier.section.count",
+     "kind": "section",
+     "label": "Conteo de efectivo",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "description": "Sistema vs. declarado y diferencia por medio de pago.",
+     "id": "cashier.section.declare",
+     "kind": "section",
+     "label": "Arqueo",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "id": "cashier.section.open-summary",
+     "kind": "section",
+     "label": "Confirmación de apertura",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
+     "id": "cashier.section.report",
+     "kind": "section",
+     "label": "Reporte del cierre",
+     "source": "src/app/[locale]/cashier/page.tsx"
+    },
+    {
      "id": "cashier.tab.BANK_DEPOSIT",
      "kind": "tab",
      "label": "Depósito Bancario",
@@ -3818,18 +3974,33 @@
     "cashier.cash-points",
     "sales.payment-methods"
    ],
-   "purpose": "Registra todo el dinero que entra y sale en la caja física durante la sesión. Para cobrar hay que tener una sesión de caja abierta.",
+   "purpose": "Para cobrar o registrar movimientos tiene que haber una sesión de caja abierta. Se abre contando el efectivo inicial y se cierra contando el efectivo final: el sistema compara lo contado con lo registrado (arqueo) y deja el reporte de cierre.",
    "route": "/cashier",
    "status": "draft",
-   "summary": "Caja del día: apertura, cobros, egresos y cierre.",
+   "summary": "Caja del día: apertura, movimientos y cierre de la caja física.",
    "tips": [
-    "Al cerrar se hace el arqueo: lo contado contra lo esperado por medio de pago.",
-    "Los medios marcados como equivalentes a efectivo son los que se cuentan en el arqueo."
+    "Cada usuario puede tener una sola caja abierta a la vez.",
+    "El ícono de caja de la barra flotante está verde con la caja abierta y naranja con la caja cerrada.",
+    "«Rellenar con último cierre» copia el conteo del cierre anterior en la apertura.",
+    "Las diferencias del arqueo se explican en las notas del cierre."
    ],
-   "title": "Caja"
+   "title": "Caja",
+   "useCases": [
+    "cashier.open",
+    "cashier.close",
+    "cashier.overview",
+    "cashier.misc-expense",
+    "cashier.misc-income"
+   ]
   },
   {
    "elements": [
+    {
+     "id": "cashier.cash-points.btn.delete-confirm",
+     "kind": "btn",
+     "label": "Confirmar eliminación",
+     "source": "src/app/[locale]/cashier/cash-points/page.tsx"
+    },
     {
      "id": "cashier.cash-points.btn.new",
      "kind": "btn",
@@ -3841,6 +4012,18 @@
      "kind": "btn",
      "label": "Refrescar",
      "source": "src/app/[locale]/cashier/cash-points/page.tsx"
+    },
+    {
+     "id": "cashier.cash-points.btn.row-delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/app/[locale]/cashier/cash-points/columns.tsx"
+    },
+    {
+     "id": "cashier.cash-points.btn.row-edit",
+     "kind": "btn",
+     "label": "Editar",
+     "source": "src/app/[locale]/cashier/cash-points/columns.tsx"
     },
     {
      "id": "cashier.cash-points.btn.submit",
@@ -3871,6 +4054,18 @@
      "kind": "filter",
      "label": "Filtrar aquí...",
      "source": "src/app/[locale]/cashier/cash-points/page.tsx"
+    },
+    {
+     "id": "cashier.cash-points.section.first-row",
+     "kind": "section",
+     "label": "Caja",
+     "source": "knowledge/screens/cashier.cash-points.json"
+    },
+    {
+     "id": "cashier.cash-points.section.row",
+     "kind": "section",
+     "label": "Caja",
+     "source": "knowledge/screens/cashier.cash-points.json"
     }
    ],
    "id": "cashier.cash-points",
@@ -3880,17 +4075,27 @@
    "prerequisites": [
     "config.sedes"
    ],
-   "purpose": "Cada caja física (recepción, sede secundaria) tiene sus propias sesiones de apertura y cierre.",
+   "purpose": "Cada caja física (recepción, otra sede) tiene sus propias sesiones de apertura y cierre y pertenece a una sede.",
    "route": "/cashier/cash-points",
    "status": "draft",
    "summary": "Cajas registradoras físicas de la clínica.",
    "tips": [
     "Con una sola recepción alcanza con una caja."
    ],
-   "title": "Cajas Registradoras Físicas"
+   "title": "Cajas Registradoras Físicas",
+   "useCases": [
+    "cashier.cash-point-create",
+    "cashier.cash-point-edit"
+   ]
   },
   {
    "elements": [
+    {
+     "id": "cashier.miscellaneous-categories.btn.delete-confirm",
+     "kind": "btn",
+     "label": "Confirmar eliminación",
+     "source": "src/app/[locale]/cashier/miscellaneous-categories/page.tsx"
+    },
     {
      "id": "cashier.miscellaneous-categories.btn.new",
      "kind": "btn",
@@ -3902,6 +4107,18 @@
      "kind": "btn",
      "label": "Refrescar",
      "source": "src/app/[locale]/cashier/miscellaneous-categories/page.tsx"
+    },
+    {
+     "id": "cashier.miscellaneous-categories.btn.row-delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/app/[locale]/cashier/miscellaneous-categories/columns.tsx"
+    },
+    {
+     "id": "cashier.miscellaneous-categories.btn.row-edit",
+     "kind": "btn",
+     "label": "Editar",
+     "source": "src/app/[locale]/cashier/miscellaneous-categories/columns.tsx"
     },
     {
      "id": "cashier.miscellaneous-categories.btn.submit",
@@ -3944,20 +4161,42 @@
      "kind": "filter",
      "label": "Filtrar aquí...",
      "source": "src/app/[locale]/cashier/miscellaneous-categories/page.tsx"
+    },
+    {
+     "id": "cashier.miscellaneous-categories.section.first-row",
+     "kind": "section",
+     "label": "Categoría",
+     "source": "knowledge/screens/cashier.miscellaneous-categories.json"
+    },
+    {
+     "id": "cashier.miscellaneous-categories.section.row",
+     "kind": "section",
+     "label": "Categoría",
+     "source": "knowledge/screens/cashier.miscellaneous-categories.json"
     }
    ],
    "id": "cashier.miscellaneous-categories",
    "inMenu": true,
    "module": "Caja",
    "permissions": [],
-   "purpose": "Clasifican los movimientos de caja que no son cobros a pacientes (compras menores, retiros, aportes) para que salgan ordenados en los reportes.",
+   "purpose": "Clasifican los movimientos varios y definen si son ingreso o gasto, para que salgan ordenados en los reportes.",
    "route": "/cashier/miscellaneous-categories",
    "status": "draft",
-   "summary": "Categorías para ingresos y egresos varios.",
-   "title": "Categorías de Productos y Servicios"
+   "summary": "Categorías de ingresos y gastos de caja.",
+   "title": "Categorías de Productos y Servicios",
+   "useCases": [
+    "cashier.misc-category",
+    "cashier.misc-category-edit"
+   ]
   },
   {
    "elements": [
+    {
+     "id": "cashier.miscellaneous-transactions.btn.delete-confirm",
+     "kind": "btn",
+     "label": "Confirmar eliminación",
+     "source": "src/app/[locale]/cashier/miscellaneous-transactions/page.tsx"
+    },
     {
      "id": "cashier.miscellaneous-transactions.btn.new",
      "kind": "btn",
@@ -3968,6 +4207,24 @@
      "id": "cashier.miscellaneous-transactions.btn.refresh",
      "kind": "btn",
      "label": "Refrescar",
+     "source": "src/app/[locale]/cashier/miscellaneous-transactions/page.tsx"
+    },
+    {
+     "id": "cashier.miscellaneous-transactions.btn.row-actions",
+     "kind": "btn",
+     "label": "Acciones",
+     "source": "src/app/[locale]/cashier/miscellaneous-transactions/page.tsx"
+    },
+    {
+     "id": "cashier.miscellaneous-transactions.btn.row-delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/app/[locale]/cashier/miscellaneous-transactions/page.tsx"
+    },
+    {
+     "id": "cashier.miscellaneous-transactions.btn.row-edit",
+     "kind": "btn",
+     "label": "Editar",
      "source": "src/app/[locale]/cashier/miscellaneous-transactions/page.tsx"
     },
     {
@@ -4035,6 +4292,18 @@
      "kind": "filter",
      "label": "Filtrar aquí...",
      "source": "src/app/[locale]/cashier/miscellaneous-transactions/page.tsx"
+    },
+    {
+     "id": "cashier.miscellaneous-transactions.section.first-row",
+     "kind": "section",
+     "label": "Movimiento más reciente",
+     "source": "knowledge/screens/cashier.miscellaneous-transactions.json"
+    },
+    {
+     "id": "cashier.miscellaneous-transactions.section.row",
+     "kind": "section",
+     "label": "Movimiento",
+     "source": "knowledge/screens/cashier.miscellaneous-transactions.json"
     }
    ],
    "id": "cashier.miscellaneous-transactions",
@@ -4044,17 +4313,30 @@
    "prerequisites": [
     "cashier.miscellaneous-categories"
    ],
-   "purpose": "Para registrar gastos menores, retiros o aportes de efectivo, con su categoría y comprobante adjunto.",
+   "purpose": "Gastos menores (limpieza, librería, envíos), retiros o aportes de efectivo, con su categoría (que define si es ingreso o gasto), medio de pago y comprobante. Se registran en la sesión de caja abierta.",
    "route": "/cashier/miscellaneous-transactions",
    "status": "draft",
-   "summary": "Ingresos y egresos de caja que no son cobros a pacientes.",
+   "summary": "Ingresos y gastos de caja que no son cobros a pacientes.",
    "tips": [
-    "Requieren una sesión de caja abierta."
+    "Hace falta tener la caja abierta para registrar un movimiento.",
+    "Sólo se editan o eliminan los movimientos de la sesión de caja abierta.",
+    "En verde los ingresos, en rojo los gastos."
    ],
-   "title": "Transacciones Misceláneas"
+   "title": "Transacciones Misceláneas",
+   "useCases": [
+    "cashier.misc-expense",
+    "cashier.misc-income",
+    "cashier.misc-review"
+   ]
   },
   {
    "elements": [
+    {
+     "id": "cashier.sessions.btn.print-closing",
+     "kind": "btn",
+     "label": "Imprimir cierre",
+     "source": "src/app/[locale]/cashier/sessions/page.tsx"
+    },
     {
      "id": "cashier.sessions.btn.refresh",
      "kind": "btn",
@@ -4062,10 +4344,40 @@
      "source": "src/app/[locale]/cashier/sessions/page.tsx"
     },
     {
+     "id": "cashier.sessions.btn.row-print",
+     "kind": "btn",
+     "label": "Imprimir",
+     "source": "src/app/[locale]/cashier/sessions/columns.tsx"
+    },
+    {
+     "id": "cashier.sessions.btn.row-view",
+     "kind": "btn",
+     "label": "Ver detalle",
+     "source": "src/app/[locale]/cashier/sessions/columns.tsx"
+    },
+    {
      "id": "cashier.sessions.filter.search",
      "kind": "filter",
      "label": "Filtrar aquí...",
      "source": "src/app/[locale]/cashier/sessions/page.tsx"
+    },
+    {
+     "id": "cashier.sessions.section.details",
+     "kind": "section",
+     "label": "Detalle de la sesión",
+     "source": "src/app/[locale]/cashier/sessions/page.tsx"
+    },
+    {
+     "id": "cashier.sessions.section.first-row",
+     "kind": "section",
+     "label": "Sesión más reciente",
+     "source": "knowledge/screens/cashier.sessions.json"
+    },
+    {
+     "id": "cashier.sessions.section.row",
+     "kind": "section",
+     "label": "Sesión",
+     "source": "knowledge/screens/cashier.sessions.json"
     }
    ],
    "id": "cashier.sessions",
@@ -4075,14 +4387,17 @@
    "prerequisites": [
     "cashier"
    ],
-   "purpose": "Muestra cada apertura y cierre con su arqueo, diferencias y responsable.",
+   "purpose": "Cada apertura y cierre con su responsable, caja, conteos, movimientos y conciliación (sistema vs. declarado) por medio de pago.",
    "route": "/cashier/sessions",
    "status": "draft",
    "summary": "Historial de sesiones de caja.",
    "tips": [
     "Una diferencia en el cierre queda registrada con quién la cerró."
    ],
-   "title": "Sesiones de Caja"
+   "title": "Sesiones de Caja",
+   "useCases": [
+    "cashier.session-history"
+   ]
   },
   {
    "elements": [
@@ -11801,6 +12116,1428 @@
    ],
    "summary": "Encontrar las citas de un paciente en cualquier fecha.",
    "title": "Buscar una cita"
+  },
+  {
+   "id": "cashier.cash-point-create",
+   "inputs": {
+    "name": "Nombre de la caja",
+    "sede": "Sede"
+   },
+   "keywords": [
+    "nueva caja",
+    "caja fisica",
+    "punto de caja",
+    "caja registradora",
+    "agregar caja"
+   ],
+   "module": "Caja",
+   "screens": [
+    "cashier.cash-points"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "id": "go",
+     "route": "/cashier/cash-points",
+     "title": "Menú → Caja → Cajas Registradoras Físicas"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "cashier.cash-points.btn.new",
+     "title": "Nueva caja"
+    },
+    {
+     "action": "fill",
+     "details": "Ejemplo: «Recepción planta baja».",
+     "id": "name",
+     "target": "cashier.cash-points.field.name",
+     "title": "Nombre",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "fill",
+     "details": "La sede donde está la caja: sus cobros salen en los reportes de esa sede.",
+     "id": "sede",
+     "target": "cashier.cash-points.field.sede_id",
+     "title": "Sede",
+     "value": "{{values.sede}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Sólo las activas se pueden abrir.",
+     "id": "active",
+     "target": "cashier.cash-points.field.is_active",
+     "title": "Activa"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "cashier.cash-points.btn.submit",
+     "title": "Crear"
+    }
+   ],
+   "summary": "Dar de alta una caja (recepción, otra sede) que se abre y cierra por separado.",
+   "title": "Crear una caja física"
+  },
+  {
+   "id": "cashier.cash-point-edit",
+   "inputs": {
+    "name": "Nombre de la caja"
+   },
+   "keywords": [
+    "editar caja",
+    "desactivar caja",
+    "eliminar caja",
+    "renombrar caja"
+   ],
+   "module": "Caja",
+   "screens": [
+    "cashier.cash-points"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "id": "go",
+     "route": "/cashier/cash-points",
+     "title": "Menú → Caja → Cajas Registradoras Físicas"
+    },
+    {
+     "action": "highlight",
+     "details": "Cada caja con su sede y estado.",
+     "id": "row",
+     "skipIfMissing": true,
+     "target": "cashier.cash-points.section.first-row",
+     "title": "Una caja"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Cambiá el nombre, la sede o desactivala.",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "cashier.cash-points.btn.row-edit",
+     "title": "Editar",
+     "until": "cashier.cash-points.field.name"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "name",
+     "optional": true,
+     "target": "cashier.cash-points.field.name",
+     "title": "Nombre",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Desactivala si ya no se usa: no se borra su historial.",
+     "id": "active",
+     "target": "cashier.cash-points.field.is_active",
+     "title": "Activa"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "cashier.cash-points.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Renombrar una caja, cambiarla de sede o desactivarla.",
+   "title": "Editar o desactivar una caja física"
+  },
+  {
+   "id": "cashier.close",
+   "inputs": {
+    "exchange_rate": "Tipo de cambio (número)",
+    "notes": "Notas",
+    "prefill": "zero | last"
+   },
+   "keywords": [
+    "cerrar caja",
+    "cierre",
+    "arqueo",
+    "cerrar sesion",
+    "fin del dia",
+    "rendicion",
+    "cuadrar la caja"
+   ],
+   "module": "Caja",
+   "screens": [
+    "cashier"
+   ],
+   "steps": [
+    {
+     "action": "highlight",
+     "details": "Para cerrarla primero tiene que estar abierta: te guío por la apertura y al final por el cierre.",
+     "id": "already-closed",
+     "onlyIf": "cash-session-closed@start",
+     "skipIfMissing": true,
+     "target": "cashier.section.cash-points",
+     "title": "La caja está cerrada"
+    },
+    {
+     "action": "navigate",
+     "details": "La caja del día: apertura, movimientos y cierre.",
+     "id": "o-go",
+     "onlyIf": "cash-session-closed@start",
+     "route": "/cashier",
+     "title": "Menú → Caja → Caja"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Cada caja física (recepción, otra sede) se abre por separado. Si ya tenés una caja abierta, las demás quedan deshabilitadas.",
+     "id": "o-point",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.btn.open-session",
+     "title": "Elegí la caja a abrir",
+     "until": [
+      "cashier.field.date-rate",
+      "cashier.section.count"
+     ]
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Sólo si la clínica trabaja con dos monedas: el tipo de cambio del día para convertir entre ellas. Se trae solo; podés corregirlo.",
+     "id": "o-rate",
+     "onlyIf": "cash-session-closed@start",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "cashier.field.date-rate",
+     "title": "Tipo de cambio",
+     "value": "{{values.exchange_rate}}"
+    },
+    {
+     "action": "highlight",
+     "details": "La moneda en la que se lleva la caja.",
+     "id": "o-currency",
+     "onlyIf": "cash-session-closed@start",
+     "skipIfMissing": true,
+     "target": "cashier.field.open-currency",
+     "title": "Moneda principal"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Pasa al conteo del efectivo.",
+     "id": "o-next-config",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.btn.open-next",
+     "title": "Siguiente",
+     "until": "cashier.section.count"
+    },
+    {
+     "action": "click",
+     "id": "o-prefill",
+     "onlyIf": "cash-session-closed@start",
+     "optional": true,
+     "target": "cashier.btn.prefill-{{values.prefill}}",
+     "title": "Rellenar el conteo"
+    },
+    {
+     "action": "highlight",
+     "details": "Cuántos billetes y monedas de cada valor hay en la caja al abrir; arriba se ve el total. «Rellenar con último cierre» copia lo que quedó en el cierre anterior; «Rellenar con 0» si la caja empieza vacía.",
+     "id": "o-count",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.section.count",
+     "title": "Contá el efectivo de apertura"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Si hay más de una moneda, se cuenta cada una.",
+     "id": "o-next",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.btn.open-next",
+     "title": "Siguiente",
+     "until": "cashier.section.open-summary"
+    },
+    {
+     "action": "highlight",
+     "details": "Caja, usuario, fecha, moneda, tipo de cambio y el total contado por moneda (con su desglose).",
+     "id": "o-summary",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.section.open-summary",
+     "title": "Revisá la apertura"
+    },
+    {
+     "action": "confirm",
+     "details": "Desde ahora los cobros, pagos y movimientos varios se registran en esta caja.",
+     "id": "o-confirm",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.btn.open-confirm",
+     "title": "Confirmar y abrir"
+    },
+    {
+     "action": "navigate",
+     "details": "La caja del día: apertura, movimientos y cierre.",
+     "id": "c-go",
+     "route": "/cashier",
+     "title": "Menú → Caja → Caja"
+    },
+    {
+     "action": "click",
+     "details": "Abre tu sesión de caja abierta.",
+     "id": "c-session",
+     "skipIfMissing": true,
+     "target": "cashier.btn.view-session",
+     "title": "Tu sesión abierta"
+    },
+    {
+     "action": "click",
+     "details": "El cierre va en pasos: revisar, contar, depósito, arqueo y reporte.",
+     "id": "c-start",
+     "target": "cashier.btn.start-closing",
+     "title": "Iniciar cierre"
+    },
+    {
+     "action": "highlight",
+     "details": "Monto de apertura, efectivo en mano, ingresos, egresos y POS por moneda. En Transacciones está cada movimiento.",
+     "id": "c-review",
+     "target": "cashier.section.active-session",
+     "title": "Revisá la sesión"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Pasa al conteo.",
+     "id": "c-next-review",
+     "target": "cashier.btn.start-closing",
+     "title": "Siguiente",
+     "until": "cashier.section.count"
+    },
+    {
+     "action": "click",
+     "id": "c-prefill",
+     "optional": true,
+     "target": "cashier.btn.prefill-{{values.prefill}}",
+     "title": "Rellenar el conteo"
+    },
+    {
+     "action": "highlight",
+     "details": "Contá lo que hay físicamente en la caja, billete por billete. La diferencia con lo que dice el sistema se ve en el arqueo.",
+     "id": "c-count",
+     "target": "cashier.section.count",
+     "title": "Contá el efectivo"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Una vez por cada moneda.",
+     "id": "c-next-count",
+     "target": "cashier.btn.close-next",
+     "title": "Siguiente",
+     "until": "cashier.section.bank-deposit"
+    },
+    {
+     "action": "highlight",
+     "details": "Si retirás efectivo para depositar en el banco, contá lo que sale y adjuntá el comprobante. Si no, seguí.",
+     "id": "c-deposit",
+     "target": "cashier.section.bank-deposit",
+     "title": "Depósito bancario (opcional)"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "c-next-deposit",
+     "target": "cashier.btn.close-next",
+     "title": "Siguiente",
+     "until": "cashier.section.declare"
+    },
+    {
+     "action": "highlight",
+     "details": "Por moneda y medio de pago: total del sistema, declarado y diferencia (en rojo si falta, en verde si sobra).",
+     "id": "c-declare",
+     "target": "cashier.section.declare",
+     "title": "Arqueo"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Explicá cualquier diferencia: queda en el reporte.",
+     "id": "c-notes",
+     "optional": true,
+     "target": "cashier.field.closing-notes",
+     "title": "Notas del cierre",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "confirm",
+     "id": "c-confirm",
+     "target": "cashier.btn.close-confirm",
+     "title": "Cerrar la sesión"
+    },
+    {
+     "action": "highlight",
+     "details": "Imprimilo para la rendición; queda en Sesiones de caja.",
+     "id": "c-report",
+     "target": "cashier.section.report",
+     "title": "Reporte del cierre"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "c-finish",
+     "target": "cashier.btn.report-finish",
+     "title": "Finalizar y volver",
+     "until": "cashier.section.cash-points"
+    }
+   ],
+   "summary": "Cerrar la sesión de caja: revisar, contar el efectivo, depósito bancario, arqueo y reporte. Si la caja está cerrada, primero guía la apertura.",
+   "title": "Cerrar la caja"
+  },
+  {
+   "id": "cashier.misc-category",
+   "inputs": {
+    "code": "Código",
+    "description": "Descripción",
+    "name": "Nombre",
+    "type": "Ingreso | Gasto"
+   },
+   "keywords": [
+    "categoria",
+    "tipo de gasto",
+    "rubro",
+    "clasificar gastos",
+    "nueva categoria"
+   ],
+   "module": "Caja",
+   "screens": [
+    "cashier.miscellaneous-categories"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "id": "go",
+     "route": "/cashier/miscellaneous-categories",
+     "title": "Menú → Caja → Categorías"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "cashier.miscellaneous-categories.btn.new",
+     "title": "Nueva categoría"
+    },
+    {
+     "action": "fill",
+     "details": "Ejemplos de gasto: Limpieza, Librería, Envíos. De ingreso: Aporte de socios, Reintegros.",
+     "id": "name",
+     "target": "cashier.miscellaneous-categories.field.name",
+     "title": "Nombre",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "fill",
+     "details": "Corto y único, para los reportes (ej. LIMP).",
+     "id": "code",
+     "target": "cashier.miscellaneous-categories.field.code",
+     "title": "Código",
+     "value": "{{values.code}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "description",
+     "optional": true,
+     "target": "cashier.miscellaneous-categories.field.description",
+     "title": "Descripción",
+     "value": "{{values.description}}"
+    },
+    {
+     "action": "fill",
+     "details": "Gasto: sale dinero de la caja. Ingreso: entra. No se puede cambiar después si ya tiene movimientos.",
+     "id": "type",
+     "target": "cashier.miscellaneous-categories.field.type",
+     "title": "Tipo",
+     "value": "{{values.type}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Sólo las activas se ofrecen al registrar un movimiento.",
+     "id": "active",
+     "target": "cashier.miscellaneous-categories.field.is_active",
+     "title": "Activa"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "cashier.miscellaneous-categories.btn.submit",
+     "title": "Crear"
+    }
+   ],
+   "summary": "Las categorías ordenan los movimientos varios y definen si son ingreso o gasto.",
+   "title": "Crear una categoría de gastos o ingresos"
+  },
+  {
+   "id": "cashier.misc-category-edit",
+   "keywords": [
+    "editar categoria",
+    "desactivar categoria",
+    "eliminar categoria"
+   ],
+   "module": "Caja",
+   "screens": [
+    "cashier.miscellaneous-categories"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "id": "go",
+     "route": "/cashier/miscellaneous-categories",
+     "title": "Menú → Caja → Categorías"
+    },
+    {
+     "action": "highlight",
+     "details": "Las categorías de la lista con su tipo y estado.",
+     "id": "row",
+     "skipIfMissing": true,
+     "target": "cashier.miscellaneous-categories.section.first-row",
+     "title": "Una categoría"
+    },
+    {
+     "action": "highlight",
+     "details": "Cambiá el nombre, la descripción o desactivala para que no se ofrezca más.",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "cashier.miscellaneous-categories.btn.row-edit",
+     "title": "Editar"
+    },
+    {
+     "action": "highlight",
+     "details": "Pide confirmación. Si ya tiene movimientos, mejor desactivarla.",
+     "id": "delete",
+     "skipIfMissing": true,
+     "target": "cashier.miscellaneous-categories.btn.row-delete",
+     "title": "Eliminar"
+    }
+   ],
+   "summary": "Cambiar el nombre o desactivar una categoría, o eliminarla si no tiene movimientos.",
+   "title": "Editar o eliminar una categoría"
+  },
+  {
+   "id": "cashier.misc-expense",
+   "inputs": {
+    "amount": "Monto (número)",
+    "beneficiary": "Nombre",
+    "category": "Nombre de la categoría",
+    "currency": "Moneda",
+    "date": "Fecha AAAA-MM-DD",
+    "description": "Descripción",
+    "payment_method": "Medio de pago (ej. Efectivo)",
+    "reference": "Nro. de comprobante",
+    "tags": "Etiquetas separadas por coma"
+   },
+   "keywords": [
+    "gasto",
+    "egreso",
+    "salida de caja",
+    "pagar",
+    "compra menor",
+    "retiro",
+    "caja chica"
+   ],
+   "module": "Caja",
+   "screens": [
+    "cashier.miscellaneous-transactions",
+    "cashier"
+   ],
+   "steps": [
+    {
+     "action": "highlight",
+     "details": "Los movimientos se registran en la sesión de caja abierta: te guío por la apertura y después volvemos.",
+     "id": "closed",
+     "onlyIf": "cash-session-closed@start",
+     "skipIfMissing": true,
+     "target": "cashier.section.cash-points",
+     "title": "Primero abrí la caja"
+    },
+    {
+     "action": "navigate",
+     "details": "La caja del día: apertura, movimientos y cierre.",
+     "id": "o-go",
+     "onlyIf": "cash-session-closed@start",
+     "route": "/cashier",
+     "title": "Menú → Caja → Caja"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Cada caja física (recepción, otra sede) se abre por separado. Si ya tenés una caja abierta, las demás quedan deshabilitadas.",
+     "id": "o-point",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.btn.open-session",
+     "title": "Elegí la caja a abrir",
+     "until": [
+      "cashier.field.date-rate",
+      "cashier.section.count"
+     ]
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Sólo si la clínica trabaja con dos monedas: el tipo de cambio del día para convertir entre ellas. Se trae solo; podés corregirlo.",
+     "id": "o-rate",
+     "onlyIf": "cash-session-closed@start",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "cashier.field.date-rate",
+     "title": "Tipo de cambio",
+     "value": "{{values.exchange_rate}}"
+    },
+    {
+     "action": "highlight",
+     "details": "La moneda en la que se lleva la caja.",
+     "id": "o-currency",
+     "onlyIf": "cash-session-closed@start",
+     "skipIfMissing": true,
+     "target": "cashier.field.open-currency",
+     "title": "Moneda principal"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Pasa al conteo del efectivo.",
+     "id": "o-next-config",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.btn.open-next",
+     "title": "Siguiente",
+     "until": "cashier.section.count"
+    },
+    {
+     "action": "click",
+     "id": "o-prefill",
+     "onlyIf": "cash-session-closed@start",
+     "optional": true,
+     "target": "cashier.btn.prefill-{{values.prefill}}",
+     "title": "Rellenar el conteo"
+    },
+    {
+     "action": "highlight",
+     "details": "Cuántos billetes y monedas de cada valor hay en la caja al abrir; arriba se ve el total. «Rellenar con último cierre» copia lo que quedó en el cierre anterior; «Rellenar con 0» si la caja empieza vacía.",
+     "id": "o-count",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.section.count",
+     "title": "Contá el efectivo de apertura"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Si hay más de una moneda, se cuenta cada una.",
+     "id": "o-next",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.btn.open-next",
+     "title": "Siguiente",
+     "until": "cashier.section.open-summary"
+    },
+    {
+     "action": "highlight",
+     "details": "Caja, usuario, fecha, moneda, tipo de cambio y el total contado por moneda (con su desglose).",
+     "id": "o-summary",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.section.open-summary",
+     "title": "Revisá la apertura"
+    },
+    {
+     "action": "confirm",
+     "details": "Desde ahora los cobros, pagos y movimientos varios se registran en esta caja.",
+     "id": "o-confirm",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.btn.open-confirm",
+     "title": "Confirmar y abrir"
+    },
+    {
+     "action": "navigate",
+     "details": "Entradas y salidas de dinero que no son cobros a pacientes: gastos menores, retiros, aportes.",
+     "id": "go",
+     "route": "/cashier/miscellaneous-transactions",
+     "title": "Menú → Caja → Transacciones Misceláneas"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "cashier.miscellaneous-transactions.btn.new",
+     "title": "Nueva transacción"
+    },
+    {
+     "action": "fill",
+     "details": "La categoría define si es gasto (egreso). Ejemplo: «Insumos de limpieza». Las categorías se crean en Caja → Categorías.",
+     "id": "category",
+     "target": "cashier.miscellaneous-transactions.field.category_id",
+     "title": "Categoría",
+     "value": "{{values.category}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Ejemplo: «Supermercado El Dorado».",
+     "id": "beneficiary",
+     "optional": true,
+     "target": "cashier.miscellaneous-transactions.field.beneficiary_name",
+     "title": "Beneficiario",
+     "value": "{{values.beneficiary}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "date",
+     "optional": true,
+     "target": "cashier.miscellaneous-transactions.field.transaction_date",
+     "title": "Fecha",
+     "value": "{{values.date}}"
+    },
+    {
+     "action": "fill",
+     "details": "Efectivo mueve el efectivo en mano de la caja; con otro medio queda registrado pero no cambia el conteo.",
+     "id": "method",
+     "target": "cashier.miscellaneous-transactions.field.payment_method_id",
+     "title": "Medio de pago",
+     "value": "{{values.payment_method}}"
+    },
+    {
+     "action": "fill",
+     "details": "Ejemplo: 1200.",
+     "id": "amount",
+     "target": "cashier.miscellaneous-transactions.field.amount",
+     "title": "Monto",
+     "value": "{{values.amount}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "currency",
+     "optional": true,
+     "target": "cashier.miscellaneous-transactions.field.currency",
+     "title": "Moneda",
+     "value": "{{values.currency}}"
+    },
+    {
+     "action": "fill",
+     "details": "Ejemplo: «Compra de artículos de limpieza para el consultorio».",
+     "id": "description",
+     "target": "cashier.miscellaneous-transactions.field.description",
+     "title": "Descripción",
+     "value": "{{values.description}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Número de factura o ticket del comprobante.",
+     "id": "reference",
+     "optional": true,
+     "target": "cashier.miscellaneous-transactions.field.external_reference",
+     "title": "Referencia",
+     "value": "{{values.reference}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Separadas por coma, para agrupar en reportes.",
+     "id": "tags",
+     "optional": true,
+     "target": "cashier.miscellaneous-transactions.field.tags",
+     "title": "Etiquetas",
+     "value": "{{values.tags}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Queda en la sesión de caja abierta como gasto (egreso).",
+     "id": "save",
+     "target": "cashier.miscellaneous-transactions.btn.submit",
+     "title": "Crear"
+    }
+   ],
+   "summary": "Sacar dinero de la caja por un gasto menor (limpieza, librería, un envío), con su categoría y comprobante.",
+   "title": "Registrar un gasto de caja"
+  },
+  {
+   "id": "cashier.misc-income",
+   "inputs": {
+    "amount": "Monto (número)",
+    "beneficiary": "Nombre",
+    "category": "Nombre de la categoría",
+    "currency": "Moneda",
+    "date": "Fecha AAAA-MM-DD",
+    "description": "Descripción",
+    "payment_method": "Medio de pago (ej. Efectivo)",
+    "reference": "Nro. de comprobante",
+    "tags": "Etiquetas separadas por coma"
+   },
+   "keywords": [
+    "ingreso",
+    "entrada de caja",
+    "aporte",
+    "reintegro",
+    "deposito en caja"
+   ],
+   "module": "Caja",
+   "screens": [
+    "cashier.miscellaneous-transactions",
+    "cashier"
+   ],
+   "steps": [
+    {
+     "action": "highlight",
+     "details": "Los movimientos se registran en la sesión de caja abierta: te guío por la apertura y después volvemos.",
+     "id": "closed",
+     "onlyIf": "cash-session-closed@start",
+     "skipIfMissing": true,
+     "target": "cashier.section.cash-points",
+     "title": "Primero abrí la caja"
+    },
+    {
+     "action": "navigate",
+     "details": "La caja del día: apertura, movimientos y cierre.",
+     "id": "o-go",
+     "onlyIf": "cash-session-closed@start",
+     "route": "/cashier",
+     "title": "Menú → Caja → Caja"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Cada caja física (recepción, otra sede) se abre por separado. Si ya tenés una caja abierta, las demás quedan deshabilitadas.",
+     "id": "o-point",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.btn.open-session",
+     "title": "Elegí la caja a abrir",
+     "until": [
+      "cashier.field.date-rate",
+      "cashier.section.count"
+     ]
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Sólo si la clínica trabaja con dos monedas: el tipo de cambio del día para convertir entre ellas. Se trae solo; podés corregirlo.",
+     "id": "o-rate",
+     "onlyIf": "cash-session-closed@start",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "cashier.field.date-rate",
+     "title": "Tipo de cambio",
+     "value": "{{values.exchange_rate}}"
+    },
+    {
+     "action": "highlight",
+     "details": "La moneda en la que se lleva la caja.",
+     "id": "o-currency",
+     "onlyIf": "cash-session-closed@start",
+     "skipIfMissing": true,
+     "target": "cashier.field.open-currency",
+     "title": "Moneda principal"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Pasa al conteo del efectivo.",
+     "id": "o-next-config",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.btn.open-next",
+     "title": "Siguiente",
+     "until": "cashier.section.count"
+    },
+    {
+     "action": "click",
+     "id": "o-prefill",
+     "onlyIf": "cash-session-closed@start",
+     "optional": true,
+     "target": "cashier.btn.prefill-{{values.prefill}}",
+     "title": "Rellenar el conteo"
+    },
+    {
+     "action": "highlight",
+     "details": "Cuántos billetes y monedas de cada valor hay en la caja al abrir; arriba se ve el total. «Rellenar con último cierre» copia lo que quedó en el cierre anterior; «Rellenar con 0» si la caja empieza vacía.",
+     "id": "o-count",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.section.count",
+     "title": "Contá el efectivo de apertura"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Si hay más de una moneda, se cuenta cada una.",
+     "id": "o-next",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.btn.open-next",
+     "title": "Siguiente",
+     "until": "cashier.section.open-summary"
+    },
+    {
+     "action": "highlight",
+     "details": "Caja, usuario, fecha, moneda, tipo de cambio y el total contado por moneda (con su desglose).",
+     "id": "o-summary",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.section.open-summary",
+     "title": "Revisá la apertura"
+    },
+    {
+     "action": "confirm",
+     "details": "Desde ahora los cobros, pagos y movimientos varios se registran en esta caja.",
+     "id": "o-confirm",
+     "onlyIf": "cash-session-closed@start",
+     "target": "cashier.btn.open-confirm",
+     "title": "Confirmar y abrir"
+    },
+    {
+     "action": "navigate",
+     "details": "Entradas y salidas de dinero que no son cobros a pacientes: gastos menores, retiros, aportes.",
+     "id": "go",
+     "route": "/cashier/miscellaneous-transactions",
+     "title": "Menú → Caja → Transacciones Misceláneas"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "cashier.miscellaneous-transactions.btn.new",
+     "title": "Nueva transacción"
+    },
+    {
+     "action": "fill",
+     "details": "La categoría define si es ingreso. Ejemplo: «Aporte de socios». Las categorías se crean en Caja → Categorías.",
+     "id": "category",
+     "target": "cashier.miscellaneous-transactions.field.category_id",
+     "title": "Categoría",
+     "value": "{{values.category}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Ejemplo: «Dra. Lucía Pereira».",
+     "id": "beneficiary",
+     "optional": true,
+     "target": "cashier.miscellaneous-transactions.field.beneficiary_name",
+     "title": "Quién lo entrega",
+     "value": "{{values.beneficiary}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "date",
+     "optional": true,
+     "target": "cashier.miscellaneous-transactions.field.transaction_date",
+     "title": "Fecha",
+     "value": "{{values.date}}"
+    },
+    {
+     "action": "fill",
+     "details": "Efectivo mueve el efectivo en mano de la caja; con otro medio queda registrado pero no cambia el conteo.",
+     "id": "method",
+     "target": "cashier.miscellaneous-transactions.field.payment_method_id",
+     "title": "Medio de pago",
+     "value": "{{values.payment_method}}"
+    },
+    {
+     "action": "fill",
+     "details": "Ejemplo: 5000.",
+     "id": "amount",
+     "target": "cashier.miscellaneous-transactions.field.amount",
+     "title": "Monto",
+     "value": "{{values.amount}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "currency",
+     "optional": true,
+     "target": "cashier.miscellaneous-transactions.field.currency",
+     "title": "Moneda",
+     "value": "{{values.currency}}"
+    },
+    {
+     "action": "fill",
+     "details": "Ejemplo: «Aporte de efectivo para cambio».",
+     "id": "description",
+     "target": "cashier.miscellaneous-transactions.field.description",
+     "title": "Descripción",
+     "value": "{{values.description}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Número de factura o ticket del comprobante.",
+     "id": "reference",
+     "optional": true,
+     "target": "cashier.miscellaneous-transactions.field.external_reference",
+     "title": "Referencia",
+     "value": "{{values.reference}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Separadas por coma, para agrupar en reportes.",
+     "id": "tags",
+     "optional": true,
+     "target": "cashier.miscellaneous-transactions.field.tags",
+     "title": "Etiquetas",
+     "value": "{{values.tags}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Queda en la sesión de caja abierta como ingreso.",
+     "id": "save",
+     "target": "cashier.miscellaneous-transactions.btn.submit",
+     "title": "Crear"
+    }
+   ],
+   "summary": "Entrada de dinero que no es un cobro a un paciente (aporte para cambio, reintegro, venta menor).",
+   "title": "Registrar un ingreso de caja"
+  },
+  {
+   "id": "cashier.misc-review",
+   "inputs": {
+    "query": "Beneficiario"
+   },
+   "keywords": [
+    "editar movimiento",
+    "anular gasto",
+    "borrar gasto",
+    "buscar gasto",
+    "movimientos varios",
+    "corregir"
+   ],
+   "module": "Caja",
+   "screens": [
+    "cashier.miscellaneous-transactions"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Entradas y salidas de dinero que no son cobros a pacientes: gastos menores, retiros, aportes.",
+     "id": "go",
+     "route": "/cashier/miscellaneous-transactions",
+     "title": "Menú → Caja → Transacciones Misceláneas"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "cashier.miscellaneous-transactions.filter.search",
+     "title": "Buscar por beneficiario",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "details": "En verde los ingresos y en rojo los gastos. Tocá la fila para editarla. Sólo se pueden editar o eliminar los de la sesión de caja abierta.",
+     "id": "row",
+     "skipIfMissing": true,
+     "target": "cashier.miscellaneous-transactions.section.first-row",
+     "title": "El movimiento más reciente"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Editar o Eliminar el movimiento.",
+     "id": "actions",
+     "skipIfMissing": true,
+     "target": "cashier.miscellaneous-transactions.btn.row-actions",
+     "title": "Acciones",
+     "until": [
+      "cashier.miscellaneous-transactions.btn.row-edit"
+     ]
+    },
+    {
+     "action": "highlight",
+     "details": "Abre el formulario con los datos para corregirlos.",
+     "doneOnClose": true,
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "cashier.miscellaneous-transactions.btn.row-edit",
+     "title": "Editar"
+    }
+   ],
+   "summary": "Buscar un movimiento por beneficiario, abrirlo para editarlo o eliminarlo (sólo los de la caja abierta).",
+   "title": "Ver, editar o anular un movimiento vario"
+  },
+  {
+   "id": "cashier.open",
+   "inputs": {
+    "exchange_rate": "Tipo de cambio (número)",
+    "notes": "Notas",
+    "prefill": "zero | last"
+   },
+   "keywords": [
+    "abrir caja",
+    "apertura",
+    "abrir sesion",
+    "empezar el dia",
+    "iniciar caja",
+    "fondo de caja"
+   ],
+   "module": "Caja",
+   "screens": [
+    "cashier"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La caja del día: apertura, movimientos y cierre.",
+     "id": "c-go",
+     "onlyIf": "cash-session-open@start",
+     "route": "/cashier",
+     "title": "Menú → Caja → Caja"
+    },
+    {
+     "action": "click",
+     "details": "Abre tu sesión de caja abierta.",
+     "id": "c-session",
+     "onlyIf": "cash-session-open@start",
+     "skipIfMissing": true,
+     "target": "cashier.btn.view-session",
+     "title": "Tu sesión abierta"
+    },
+    {
+     "action": "highlight",
+     "details": "Para abrir una nueva hay que cerrar esta primero: te guío por el cierre y después por la apertura.",
+     "id": "already-open",
+     "onlyIf": "cash-session-open@start",
+     "skipIfMissing": true,
+     "target": "cashier.section.active-session",
+     "title": "La caja ya está abierta"
+    },
+    {
+     "action": "click",
+     "details": "El cierre va en pasos: revisar, contar, depósito, arqueo y reporte.",
+     "id": "c-start",
+     "onlyIf": "cash-session-open@start",
+     "target": "cashier.btn.start-closing",
+     "title": "Iniciar cierre"
+    },
+    {
+     "action": "highlight",
+     "details": "Monto de apertura, efectivo en mano, ingresos, egresos y POS por moneda. En Transacciones está cada movimiento.",
+     "id": "c-review",
+     "onlyIf": "cash-session-open@start",
+     "target": "cashier.section.active-session",
+     "title": "Revisá la sesión"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Pasa al conteo.",
+     "id": "c-next-review",
+     "onlyIf": "cash-session-open@start",
+     "target": "cashier.btn.start-closing",
+     "title": "Siguiente",
+     "until": "cashier.section.count"
+    },
+    {
+     "action": "click",
+     "id": "c-prefill",
+     "onlyIf": "cash-session-open@start",
+     "optional": true,
+     "target": "cashier.btn.prefill-{{values.prefill}}",
+     "title": "Rellenar el conteo"
+    },
+    {
+     "action": "highlight",
+     "details": "Contá lo que hay físicamente en la caja, billete por billete. La diferencia con lo que dice el sistema se ve en el arqueo.",
+     "id": "c-count",
+     "onlyIf": "cash-session-open@start",
+     "target": "cashier.section.count",
+     "title": "Contá el efectivo"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Una vez por cada moneda.",
+     "id": "c-next-count",
+     "onlyIf": "cash-session-open@start",
+     "target": "cashier.btn.close-next",
+     "title": "Siguiente",
+     "until": "cashier.section.bank-deposit"
+    },
+    {
+     "action": "highlight",
+     "details": "Si retirás efectivo para depositar en el banco, contá lo que sale y adjuntá el comprobante. Si no, seguí.",
+     "id": "c-deposit",
+     "onlyIf": "cash-session-open@start",
+     "target": "cashier.section.bank-deposit",
+     "title": "Depósito bancario (opcional)"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "c-next-deposit",
+     "onlyIf": "cash-session-open@start",
+     "target": "cashier.btn.close-next",
+     "title": "Siguiente",
+     "until": "cashier.section.declare"
+    },
+    {
+     "action": "highlight",
+     "details": "Por moneda y medio de pago: total del sistema, declarado y diferencia (en rojo si falta, en verde si sobra).",
+     "id": "c-declare",
+     "onlyIf": "cash-session-open@start",
+     "target": "cashier.section.declare",
+     "title": "Arqueo"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Explicá cualquier diferencia: queda en el reporte.",
+     "id": "c-notes",
+     "onlyIf": "cash-session-open@start",
+     "optional": true,
+     "target": "cashier.field.closing-notes",
+     "title": "Notas del cierre",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "confirm",
+     "id": "c-confirm",
+     "onlyIf": "cash-session-open@start",
+     "target": "cashier.btn.close-confirm",
+     "title": "Cerrar la sesión"
+    },
+    {
+     "action": "highlight",
+     "details": "Imprimilo para la rendición; queda en Sesiones de caja.",
+     "id": "c-report",
+     "onlyIf": "cash-session-open@start",
+     "target": "cashier.section.report",
+     "title": "Reporte del cierre"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "c-finish",
+     "onlyIf": "cash-session-open@start",
+     "target": "cashier.btn.report-finish",
+     "title": "Finalizar y volver",
+     "until": "cashier.section.cash-points"
+    },
+    {
+     "action": "navigate",
+     "details": "La caja del día: apertura, movimientos y cierre.",
+     "id": "o-go",
+     "route": "/cashier",
+     "title": "Menú → Caja → Caja"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Cada caja física (recepción, otra sede) se abre por separado. Si ya tenés una caja abierta, las demás quedan deshabilitadas.",
+     "id": "o-point",
+     "target": "cashier.btn.open-session",
+     "title": "Elegí la caja a abrir",
+     "until": [
+      "cashier.field.date-rate",
+      "cashier.section.count"
+     ]
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Sólo si la clínica trabaja con dos monedas: el tipo de cambio del día para convertir entre ellas. Se trae solo; podés corregirlo.",
+     "id": "o-rate",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "cashier.field.date-rate",
+     "title": "Tipo de cambio",
+     "value": "{{values.exchange_rate}}"
+    },
+    {
+     "action": "highlight",
+     "details": "La moneda en la que se lleva la caja.",
+     "id": "o-currency",
+     "skipIfMissing": true,
+     "target": "cashier.field.open-currency",
+     "title": "Moneda principal"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Pasa al conteo del efectivo.",
+     "id": "o-next-config",
+     "target": "cashier.btn.open-next",
+     "title": "Siguiente",
+     "until": "cashier.section.count"
+    },
+    {
+     "action": "click",
+     "id": "o-prefill",
+     "optional": true,
+     "target": "cashier.btn.prefill-{{values.prefill}}",
+     "title": "Rellenar el conteo"
+    },
+    {
+     "action": "highlight",
+     "details": "Cuántos billetes y monedas de cada valor hay en la caja al abrir; arriba se ve el total. «Rellenar con último cierre» copia lo que quedó en el cierre anterior; «Rellenar con 0» si la caja empieza vacía.",
+     "id": "o-count",
+     "target": "cashier.section.count",
+     "title": "Contá el efectivo de apertura"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Si hay más de una moneda, se cuenta cada una.",
+     "id": "o-next",
+     "target": "cashier.btn.open-next",
+     "title": "Siguiente",
+     "until": "cashier.section.open-summary"
+    },
+    {
+     "action": "highlight",
+     "details": "Caja, usuario, fecha, moneda, tipo de cambio y el total contado por moneda (con su desglose).",
+     "id": "o-summary",
+     "target": "cashier.section.open-summary",
+     "title": "Revisá la apertura"
+    },
+    {
+     "action": "confirm",
+     "details": "Desde ahora los cobros, pagos y movimientos varios se registran en esta caja.",
+     "id": "o-confirm",
+     "target": "cashier.btn.open-confirm",
+     "title": "Confirmar y abrir"
+    }
+   ],
+   "summary": "Abrir la sesión de caja del día contando el efectivo de apertura. Si ya hay una caja abierta, primero guía el cierre.",
+   "title": "Abrir la caja"
+  },
+  {
+   "id": "cashier.overview",
+   "keywords": [
+    "saldo",
+    "efectivo en mano",
+    "movimientos de caja",
+    "cuanto hay en caja",
+    "ingresos",
+    "egresos",
+    "pos",
+    "ver caja"
+   ],
+   "module": "Caja",
+   "screens": [
+    "cashier"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La caja del día: apertura, movimientos y cierre.",
+     "id": "go-cashier",
+     "route": "/cashier",
+     "title": "Menú → Caja → Caja"
+    },
+    {
+     "action": "highlight",
+     "details": "Cada caja con su estado: verde abierta (y quién la abrió), gris cerrada. Sólo podés tener una abierta a la vez.",
+     "id": "points",
+     "onlyIf": "cash-session-closed",
+     "skipIfMissing": true,
+     "target": "cashier.section.cash-points",
+     "title": "Cajas físicas"
+    },
+    {
+     "action": "click",
+     "details": "Abre tu sesión de caja abierta.",
+     "id": "session",
+     "skipIfMissing": true,
+     "target": "cashier.btn.view-session",
+     "title": "Tu sesión abierta"
+    },
+    {
+     "action": "highlight",
+     "details": "Monto de apertura, efectivo en mano (y lo generado en el día), ingresos, egresos y cobros por POS, por moneda.",
+     "id": "active",
+     "skipIfMissing": true,
+     "target": "cashier.section.active-session",
+     "title": "Sesión activa"
+    },
+    {
+     "action": "highlight",
+     "details": "Cada cobro, pago y movimiento vario de la sesión.",
+     "id": "transactions",
+     "skipIfMissing": true,
+     "target": "cashier.tab.transactions",
+     "title": "Transacciones"
+    },
+    {
+     "action": "highlight",
+     "details": "El conteo de billetes y monedas con que se abrió.",
+     "id": "opening",
+     "skipIfMissing": true,
+     "target": "cashier.tab.opening_details",
+     "title": "Detalles de apertura"
+    },
+    {
+     "action": "highlight",
+     "id": "print",
+     "skipIfMissing": true,
+     "target": "cashier.btn.print-opening",
+     "title": "Imprimir apertura"
+    },
+    {
+     "action": "highlight",
+     "details": "Vuelve al listado de cajas físicas.",
+     "id": "all",
+     "skipIfMissing": true,
+     "target": "cashier.btn.all-cash-points",
+     "title": "Ver todas las cajas"
+    },
+    {
+     "action": "highlight",
+     "details": "Para cerrar, usá la guía «Cerrar la caja».",
+     "id": "close",
+     "skipIfMissing": true,
+     "target": "cashier.btn.start-closing",
+     "title": "Iniciar cierre"
+    }
+   ],
+   "summary": "Qué muestra la caja abierta (apertura, efectivo en mano, ingresos, egresos, POS, transacciones) y las cajas físicas.",
+   "title": "Ver la caja: saldos, movimientos y cajas"
+  },
+  {
+   "id": "cashier.session-history",
+   "keywords": [
+    "sesiones de caja",
+    "historial de caja",
+    "cierres anteriores",
+    "diferencia de caja",
+    "reimprimir cierre",
+    "arqueo anterior"
+   ],
+   "module": "Caja",
+   "screens": [
+    "cashier.sessions"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Cada apertura y cierre, con su responsable y sus diferencias.",
+     "id": "go",
+     "route": "/cashier/sessions",
+     "title": "Menú → Caja → Sesiones de Caja"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá la fila (o el ojo) para ver su detalle.",
+     "id": "row",
+     "target": "cashier.sessions.section.first-row",
+     "title": "La sesión más reciente",
+     "until": "cashier.sessions.section.details"
+    },
+    {
+     "action": "highlight",
+     "details": "Usuario, caja, apertura y cierre; conteos de billetes de apertura y cierre; los movimientos; y la conciliación por medio de pago: sistema, declarado y diferencia.",
+     "id": "details",
+     "target": "cashier.sessions.section.details",
+     "title": "Detalle de la sesión"
+    },
+    {
+     "action": "highlight",
+     "details": "Reimprime el reporte de cierre.",
+     "id": "print",
+     "skipIfMissing": true,
+     "target": "cashier.sessions.btn.print-closing",
+     "title": "Imprimir cierre"
+    }
+   ],
+   "summary": "Abrir una sesión cerrada (la más reciente) y ver su arqueo, diferencias, movimientos y conteos, e imprimir el cierre.",
+   "title": "Ver el detalle de una sesión de caja"
   },
   {
    "id": "dashboard.filters",

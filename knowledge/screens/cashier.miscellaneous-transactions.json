@@ -1,12 +1,39 @@
 {
   "id": "cashier.miscellaneous-transactions",
   "status": "draft",
-  "summary": "Ingresos y egresos de caja que no son cobros a pacientes.",
-  "purpose": "Para registrar gastos menores, retiros o aportes de efectivo, con su categoría y comprobante adjunto.",
+  "summary": "Ingresos y gastos de caja que no son cobros a pacientes.",
+  "purpose": "Gastos menores (limpieza, librería, envíos), retiros o aportes de efectivo, con su categoría (que define si es ingreso o gasto), medio de pago y comprobante. Se registran en la sesión de caja abierta.",
   "tips": [
-    "Requieren una sesión de caja abierta."
+    "Hace falta tener la caja abierta para registrar un movimiento.",
+    "Sólo se editan o eliminan los movimientos de la sesión de caja abierta.",
+    "En verde los ingresos, en rojo los gastos."
   ],
   "prerequisites": [
     "cashier.miscellaneous-categories"
+  ],
+  "elements": {
+    "cashier.miscellaneous-transactions.section.first-row": {
+      "label": "Movimiento más reciente"
+    },
+    "cashier.miscellaneous-transactions.section.row": {
+      "label": "Movimiento"
+    },
+    "cashier.miscellaneous-transactions.btn.row-actions": {
+      "label": "Acciones"
+    },
+    "cashier.miscellaneous-transactions.btn.row-edit": {
+      "label": "Editar"
+    },
+    "cashier.miscellaneous-transactions.btn.row-delete": {
+      "label": "Eliminar"
+    },
+    "cashier.miscellaneous-transactions.btn.delete-confirm": {
+      "label": "Confirmar eliminación"
+    }
+  },
+  "useCases": [
+    "cashier.misc-expense",
+    "cashier.misc-income",
+    "cashier.misc-review"
   ]
 }

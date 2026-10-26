@@ -241,6 +241,12 @@ Cobertura por pantalla (todas probadas en la app real, sin guardar en DEV):
   Las acciones que se ejecutan al tocarlas (WhatsApp, completar) son `confirm`: la guía
   sólo las señala y explica.
 
+- **Caja** (las 5 pantallas): abrir y cerrar la caja (cada una cubre el otro estado: abrir
+  con la caja abierta guía primero el cierre, cerrar con la caja cerrada guía primero la
+  apertura), ver la caja abierta, gasto e ingreso varios con ejemplos (si la caja está
+  cerrada, primero la abre), ver/editar movimientos, categorías, historial de sesiones y
+  cajas físicas.
+
 Más reglas de ubicación: un botón que se repite en varias filas (acciones por alerta o
 por cita) se señala en una fila donde esté habilitado; dentro de un diálogo, si la lista
 de pasos taparía sus otros campos, va al costado del diálogo.

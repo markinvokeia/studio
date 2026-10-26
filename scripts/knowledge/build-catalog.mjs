@@ -376,6 +376,9 @@ function mergeCuratedScreens(screens) {
   }
 }
 
+/** Estados de la app que registra HelpAssistant (registerGuideCondition). */
+const GUIDE_CONDITIONS = new Set(['cash-session-open', 'cash-session-closed']);
+
 function validateGuides(screens, navItems, useCases, journey) {
   const routes = new Set(screens.map((s) => s.route));
   const ids = new Set([...screens.flatMap((s) => s.elements.map((e) => e.id)), ...navItems.map((n) => n.id)]);
@@ -397,6 +400,10 @@ function validateGuides(screens, navItems, useCases, journey) {
         if (!step.optional) errors.push(`${where}: un target con {{values.x}} tiene que ser optional`);
       } else if (!ids.has(step.target)) {
         errors.push(`${where}: el help id "${step.target}" no existe en el catálogo`);
+      }
+      for (const cond of [step.onlyIf, step.unless].filter(Boolean)) {
+        const base = cond.replace(/@start$/, '');
+        if (base.includes('.') ? !ids.has(base) : !GUIDE_CONDITIONS.has(base)) errors.push(`${where}: la condición "${cond}" no existe (help id o ${[...GUIDE_CONDITIONS].join(', ')})`);
       }
       for (const id of [].concat(step.until ?? [])) {
         if (!ids.has(id)) errors.push(`${where}: el help id de "until" "${id}" no existe en el catálogo`);

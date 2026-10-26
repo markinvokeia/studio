@@ -21,7 +21,7 @@ import { useMascotOnStage, useMascotPreference } from '@/hooks/use-mascot-prefer
 import { useCurrentHelpRoute } from '@/hooks/use-current-help-route';
 import { usePermissions } from '@/hooks/usePermissions';
 import { findScreen, findUseCase, loadHelpCatalog } from '@/lib/help/catalog';
-import { configureGuideRunner, nextStep, startGuide } from '@/lib/help/guide-runner';
+import { configureGuideRunner, nextStep, registerGuideCondition, startGuide } from '@/lib/help/guide-runner';
 import { findHelpTarget } from '@/lib/help/guide-engine';
 import { stripLocale } from '@/lib/help/help-id';
 import { pickPlacement, rectOf, type Rect } from '@/lib/help/placement';
@@ -279,7 +279,16 @@ function HelpAssistantRoot() {
   const setVoiceMuted = useAssistantVoice((s) => s.setMuted);
   const [canSpeak, setCanSpeak] = React.useState(false);
   React.useEffect(() => { setCanSpeak(isSpeechSupported()); }, []);
-  const { user } = useAuth();
+  const { user, activeCashSession } = useAuth();
+  // Estados que consultan las guías (`onlyIf` / `unless`): "abrir la caja" con la caja ya
+  // abierta empieza por cerrarla, y al revés. Mismo criterio que el widget de caja del riel.
+  const cashOpenRef = React.useRef(false);
+  React.useLayoutEffect(() => { cashOpenRef.current = !!(activeCashSession && activeCashSession.data?.current_balances); });
+  React.useEffect(() => {
+    const offOpen = registerGuideCondition('cash-session-open', () => cashOpenRef.current);
+    const offClosed = registerGuideCondition('cash-session-closed', () => !cashOpenRef.current);
+    return () => { offOpen(); offClosed(); };
+  }, []);
   const [, setShowMascot] = useMascotPreference(user?.id);
   const mascotOnStage = useMascotOnStage();
 

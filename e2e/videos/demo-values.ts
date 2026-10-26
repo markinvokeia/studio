@@ -36,4 +36,13 @@ export const DEMO_VALUES: Record<string, Record<string, unknown>> = {
   'alerts.send-email': { subject: 'Te esperamos en tu próxima consulta' },
   'alerts.complete': { demo: true },
   'alerts.bulk': { demo: true },
+  'cashier.open': { exchange_rate: 40.2, prefill: 'last', notes: 'Sin diferencias' },
+  'cashier.close': { exchange_rate: 40.2, prefill: 'last', notes: 'Sin diferencias' },
+  'cashier.misc-expense': { category: 'Limpieza', beneficiary: 'Supermercado El Dorado', payment_method: 'Efectivo', amount: 1200, currency: 'UYU', description: 'Artículos de limpieza para el consultorio', reference: 'Ticket 4521', tags: 'limpieza, insumos' },
+  'cashier.misc-income': { category: 'Aporte de socios', beneficiary: 'Dra. Lucía Pereira', payment_method: 'Efectivo', amount: 5000, currency: 'UYU', description: 'Aporte de efectivo para cambio' },
+  'cashier.misc-review': { demo: true },
+  'cashier.misc-category': { name: 'Limpieza', code: 'LIMP', description: 'Artículos y servicios de limpieza', type: 'Gasto' },
+  'cashier.session-history': { demo: true },
+  'cashier.cash-point-create': { name: 'Recepción planta baja', sede: 'Sede Centro' },
+  'cashier.cash-point-edit': { demo: true },
 };

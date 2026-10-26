@@ -3482,6 +3482,15 @@ export interface HelpGuideStep {
    * la guía pulsa el elemento sola; con una persona, espera a que lo haga.
    */
   autoClick?: boolean;
+  /**
+   * El paso sólo corre si se cumple (si no, se salta). Un estado que registra la app
+   * (`cash-session-open`, `cash-session-closed`) o un help id que tiene que estar en pantalla.
+   * Con `@start`, el estado de cuando arrancó la guía. Así una guía cubre los dos casos:
+   * "abrir la caja" con la caja ya abierta empieza por cerrarla.
+   */
+  onlyIf?: string;
+  /** Lo contrario de `onlyIf`: el paso se salta si se cumple. */
+  unless?: string;
 }
 
 export interface HelpUseCase {

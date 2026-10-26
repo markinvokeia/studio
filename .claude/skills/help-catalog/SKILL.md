@@ -78,6 +78,13 @@ tiene que quedar cubierta entera:
   explican una por una); sin `ask`, un opcional sin dato se salta.
 - `autoClick: true` (en `highlight` con `until`): con datos (pruebas, videos) la guía pulsa
   sola (elige la cita, abre el diálogo); con una persona, espera a que lo haga.
+- `onlyIf` / `unless`: el paso corre sólo si se cumple un estado de la app que registra
+  HelpAssistant (`cash-session-open`, `cash-session-closed`) o si está en pantalla un help id.
+  Con `@start` (`cash-session-open@start`) se usa el estado de cuando arrancó la guía: así
+  "Abrir la caja" con la caja abierta guía primero el cierre completo y después la apertura.
+  Los pasos que no aplican desde el arranque quedan `na`: no se cuentan ni se listan.
+- Tablas (`DataTable`): la primera fila es `<scope>.section.first-row` (la más reciente o la
+  primera del orden) y el resto `<scope>.section.row`; para mostrar "el registro más cercano".
 - Componentes compartidos entre pantallas (filtros de período, diálogos de sesión clínica,
   receta, ajustes de agenda): ids con el scope de la pantalla (`useHelpScope` +
   `composeHelpId`) y declarados en la ficha de cada pantalla (el extractor no los ve).
