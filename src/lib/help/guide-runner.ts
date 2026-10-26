@@ -13,6 +13,7 @@
  */
 
 import {
+  closeListHiding,
   fillHelpTarget,
   findHelpTarget,
   helpSleep,
@@ -250,6 +251,7 @@ async function execute(rawStep: HelpGuideStep, signal: AbortSignal): Promise<Ste
 
   if (!step.target) return { status: 'failed', error: 'targetNotFound' };
   const canSkip = step.skipIfMissing || step.optional;
+  if (step.action !== 'fill' && step.action !== 'wait') closeListHiding(step.target);
   const settled = Date.now() - lastNavigationAt > SETTLE_AFTER_NAVIGATION_MS;
   const timeoutMs = step.action === 'wait' ? WAIT_TIMEOUT_MS : canSkip && settled ? OPTIONAL_TIMEOUT_MS : TARGET_TIMEOUT_MS;
   // Un paso que se puede saltar no avisa "cargando": si el elemento no aparece (otro modo de

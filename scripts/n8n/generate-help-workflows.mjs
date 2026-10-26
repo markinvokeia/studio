@@ -450,7 +450,7 @@ return [{ json: {
     pg('node-pg-allowed', 'Lista Cerrada', `SELECT
   (SELECT COALESCE(jsonb_agg(DISTINCT route), '[]'::jsonb)
      FROM public.help_catalog_items WHERE kind = 'screen' AND status <> 'stale') AS routes,
-  (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', data ->> 'id', 'title', title, 'summary', data ->> 'summary', 'inputs', data -> 'inputs', 'screens', data -> 'screens')), '[]'::jsonb)
+  (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', data ->> 'id', 'title', title, 'summary', data ->> 'summary', 'inputs', data -> 'inputs', 'screens', data -> 'screens', 'group', data ->> 'group')), '[]'::jsonb)
      FROM public.help_catalog_items WHERE kind = 'use_case' AND status <> 'stale') AS use_cases,
   (SELECT COALESCE(jsonb_agg(data ->> 'id'), '[]'::jsonb)
      FROM public.help_catalog_items WHERE kind = 'element' AND status <> 'stale') AS element_ids,
@@ -481,7 +481,7 @@ const prompt = [
   context || '(sin coincidencias en el catálogo)',
   '',
   'CASOS DE USO:',
-  (allowed.use_cases || []).map(u => '- ' + u.id + (Array.isArray(u.screens) && u.screens.length ? ' [pantallas: ' + u.screens.join(', ') + ']' : '') + ': ' + u.title + (u.summary ? ' — ' + u.summary : '') + (u.inputs ? ' · inputs ' + JSON.stringify(u.inputs) : '')).join('\\n'),
+  (allowed.use_cases || []).map(u => '- ' + u.id + (Array.isArray(u.screens) && u.screens.length ? ' [pantallas: ' + u.screens.join(', ') + ']' : '') + (u.group ? ' [' + u.group + ']' : '') + ': ' + u.title + (u.summary ? ' — ' + u.summary : '') + (u.inputs ? ' · inputs ' + JSON.stringify(u.inputs) : '')).join('\\n'),
   '',
   'RUTAS PERMITIDAS: ' + (allowed.routes || []).join(', '),
   '',

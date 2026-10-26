@@ -3500,6 +3500,8 @@ export interface HelpUseCase {
   module?: string;
   /** Pantallas involucradas (scopes). */
   screens: string[];
+  /** Agrupa las guías de una pantalla con muchas funciones (p. ej. la pestaña de la ficha). */
+  group?: string;
   /** Datos que la guía puede completar con lo dictado: nombre → descripción. */
   inputs?: Record<string, string>;
   steps: HelpGuideStep[];

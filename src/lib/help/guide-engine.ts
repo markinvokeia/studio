@@ -127,12 +127,24 @@ function openListSearchInput(): HTMLInputElement | null {
  * Cierra la lista sólo si sigue abierta. Un Escape de más le llega al diálogo o a la
  * tarjeta de la cita, que preguntan "¿Descartar cambios?".
  */
+const openList = () => Array.from(document.querySelectorAll<HTMLElement>('[data-radix-popper-content-wrapper]')).reverse().find(isElementVisible);
+
 const closeOpenList = () => {
-  const open = Array.from(document.querySelectorAll<HTMLElement>('[data-radix-popper-content-wrapper]')).reverse().find(isElementVisible);
+  const open = openList();
   if (!open) return;
   const target = open.querySelector<HTMLElement>('[cmdk-input], input, [role="listbox"], [role="dialog"]') ?? open;
   target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 };
+
+/**
+ * Un menú que quedó abierto (la persona tocó "Siguiente" sin cerrarlo) tapa el resto de la
+ * pantalla: se cierra si lo que el paso busca no está en él.
+ */
+export function closeListHiding(id: string) {
+  const open = openList();
+  if (!open || open.querySelector(`[${HELP_ITEM_ATTR}="${id}"], ${helpSelector(id)}`) || findHelpTarget(id)) return;
+  closeOpenList();
+}
 
 /**
  * Select de Radix, combobox o popover con lista de cmdk: abre la lista y elige la

@@ -246,6 +246,15 @@ Cobertura por pantalla (todas probadas en la app real, sin guardar en DEV):
   apertura), ver la caja abierta, gasto e ingreso varios con ejemplos (si la caja está
   cerrada, primero la abre), ver/editar movimientos, categorías, historial de sesiones y
   cajas físicas.
+- **Pacientes** (`/patients`, 27 guías agrupadas por pestaña con `group`): *Listado y
+  alta* (buscar y filtrar, registrar, recorrer la ficha); *Información* (recorrido de la
+  pestaña, editar datos, notas, preferencias); *Historia clínica* (recorrido, anamnesis,
+  línea de tiempo, sesión clínica, odontograma, planes, receta, indicación, documentos);
+  *Finanzas* (cuenta en sus dos vistas, cobro rápido, presupuesto, factura, prepago);
+  *Agenda y comunicación* (cita, email, WhatsApp, recordatorio); *Estado* (alta /
+  readmitir, activar / desactivar). Toda guía de ficha arranca buscando al paciente y
+  espera a que la persona abra su ficha. Readmitir y Activar/Desactivar se aplican al
+  tocarlos: son `confirm`.
 
 Más reglas de ubicación: un botón que se repite en varias filas (acciones por alerta o
 por cita) se señala en una fila donde esté habilitado; dentro de un diálogo, si la lista

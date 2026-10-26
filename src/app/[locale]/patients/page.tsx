@@ -282,11 +282,11 @@ const NotesTab = ({ user, onUpdate }: { user: User; onUpdate: (notes: string) =>
   };
 
   return (
-    <Card className="h-full flex flex-col shadow-none border-0">
+    <Card data-help-id="patients.section.notes" className="h-full flex flex-col shadow-none border-0">
       <CardHeader className="flex flex-row items-center justify-end flex-none p-4 pb-2">
         <div className="flex items-center gap-2">
           {!isEditing && (
-            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+            <Button data-help-id="patients.btn.notes-edit" variant="outline" size="sm" onClick={() => setIsEditing(true)}>
               {t('UsersPage.notes.edit')}
             </Button>
           )}
@@ -295,7 +295,7 @@ const NotesTab = ({ user, onUpdate }: { user: User; onUpdate: (notes: string) =>
               <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
                 {t('UsersPage.notes.cancel')}
               </Button>
-              <Button size="sm" onClick={handleSave} disabled={isSaving}>
+              <Button data-help-id="patients.btn.notes-save" size="sm" onClick={handleSave} disabled={isSaving}>
                 {isSaving ? t('UsersPage.notes.saving') : t('UsersPage.notes.save')}
               </Button>
             </>
@@ -305,6 +305,7 @@ const NotesTab = ({ user, onUpdate }: { user: User; onUpdate: (notes: string) =>
       <CardContent className="flex-1 overflow-auto p-4 pt-2">
         {isEditing ? (
           <Textarea
+            data-help-id="patients.field.notes-text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder={t('UsersPage.notes.placeholder')}
@@ -1851,8 +1852,8 @@ export default function UsersPage() {
               {t('ClinicHistoryPage.discharge.dialogDescription')}
             </DialogDescription>
           </DialogHeader>
-          <DialogBody className="space-y-6 px-6 py-4">
-            <div className="space-y-3">
+          <DialogBody data-help-id="patients.section.discharge" className="space-y-6 px-6 py-4">
+            <div data-help-id="patients.field.discharge-options" className="space-y-3">
               <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                 {t('ClinicHistoryPage.discharge.optionsLabel')}
               </Label>
@@ -1860,6 +1861,7 @@ export default function UsersPage() {
                 {([1, 3, 6, 12] as const).map((months) => (
                   <Button
                     key={months}
+                    data-help-id={`patients.btn.discharge-${months}m`}
                     variant={dischargePreset === months ? 'default' : 'secondary'}
                     size="sm"
                     className="rounded-full"
@@ -1880,7 +1882,7 @@ export default function UsersPage() {
               </div>
             </div>
 
-            <div className="space-y-3 pt-2">
+            <div data-help-id="patients.field.discharge-date" className="space-y-3 pt-2">
               <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                 {t('ClinicHistoryPage.discharge.dateLabel')}
               </Label>
@@ -1894,6 +1896,7 @@ export default function UsersPage() {
           </DialogBody>
           <DialogFooter>
             <Button
+              data-help-id="patients.btn.discharge-save"
               className="px-8"
               onClick={handleSaveDischarge}
               disabled={!dischargeDate || isSubmittingDischarge}

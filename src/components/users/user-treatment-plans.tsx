@@ -34,6 +34,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useHelpScope } from '@/components/help/help-scope';
 import {
     Select,
     SelectContent,
@@ -50,6 +51,7 @@ import type {
     TreatmentSequenceStep,
     TreatmentSequenceStepStatus,
 } from '@/lib/types';
+import { composeHelpId } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
@@ -2022,6 +2024,7 @@ function CompactSequenceCard({
 
 export function UserTreatmentPlans({ userId, onCreateAppointment, onViewAppointment, onViewSession, onStepCompleted, onContact, readOnly = false }: UserTreatmentPlansProps) {
     const t = useTranslations('TreatmentPlans');
+    const helpScope = useHelpScope();
     const [sequences, setSequences] = React.useState<TreatmentSequence[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const [showHistorical, setShowHistorical] = React.useState(false);
@@ -2054,14 +2057,14 @@ export function UserTreatmentPlans({ userId, onCreateAppointment, onViewAppointm
 
     if (sequences.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-12 gap-4 text-center px-4">
+            <div data-help-id={composeHelpId(helpScope, 'section', 'treatment-plans')} className="flex flex-col items-center justify-center py-12 gap-4 text-center px-4">
                 <ClipboardList className="h-10 w-10 text-muted-foreground/30" />
                 <div className="space-y-1">
                     <p className="font-medium text-sm text-muted-foreground">{t('emptyState')}</p>
                     <p className="text-xs text-muted-foreground max-w-xs">{t('emptyStateDescription')}</p>
                 </div>
                 {onCreateAppointment && !readOnly && (
-                    <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={onCreateAppointment}>
+                    <Button data-help-id={composeHelpId(helpScope, 'btn', 'plans-create-appointment')} size="sm" variant="outline" className="gap-1.5 text-xs" onClick={onCreateAppointment}>
                         <PlusCircle className="h-3.5 w-3.5" />
                         {t('createAppointment')}
                     </Button>
@@ -2074,7 +2077,7 @@ export function UserTreatmentPlans({ userId, onCreateAppointment, onViewAppointm
     const historical = sequences.filter(s => s.status === 'completed' || s.status === 'cancelled');
 
     return (
-        <div className="space-y-3 pb-4">
+        <div data-help-id={composeHelpId(helpScope, 'section', 'treatment-plans')} className="space-y-3 pb-4">
             {active.map(seq => (
                 <ActivePlanCard
                     key={seq.id}
@@ -2099,6 +2102,7 @@ export function UserTreatmentPlans({ userId, onCreateAppointment, onViewAppointm
                         </span>
                         <button
                             type="button"
+                            data-help-id={composeHelpId(helpScope, 'btn', 'plans-historical')}
                             className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors text-[10px] font-medium"
                             onClick={() => setShowHistorical(v => !v)}
                         >

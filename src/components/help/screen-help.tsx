@@ -1,6 +1,6 @@
 'use client';
 
-import { Eye, Info, Lightbulb, ListChecks, PlayCircle, Route } from 'lucide-react';
+import { ChevronRight, Eye, Info, Lightbulb, ListChecks, PlayCircle, Route } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -11,6 +11,7 @@ import { useCurrentHelpRoute } from '@/hooks/use-current-help-route';
 import { findScreen, findUseCase, screenTour } from '@/lib/help/catalog';
 import { findHelpTarget } from '@/lib/help/guide-engine';
 import { startGuide } from '@/lib/help/guide-runner';
+import { cn } from '@/lib/utils';
 import { useHelpAssistant } from '@/stores/help-assistant-store';
 
 import type { HelpCatalog, HelpCatalogElement } from '@/lib/types';
@@ -34,6 +35,16 @@ export function ScreenHelp({ catalog }: { catalog: HelpCatalog }) {
     return () => clearInterval(interval);
   }, [screen]);
 
+  // Los grupos de guías arrancan colapsados: con muchas guías (la ficha del paciente) la lista no se hace eterna.
+  const [openGroups, setOpenGroups] = React.useState<Set<string>>(new Set());
+  const toggleGroup = (name: string) =>
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+
   if (!screen) {
     return <p className="p-4 text-sm text-muted-foreground">{t('noScreen')}</p>;
   }
@@ -45,6 +56,13 @@ export function ScreenHelp({ catalog }: { catalog: HelpCatalog }) {
   // Guiar siempre disponible: recorrido por lo que se ve ahora (si no se ve nada, por lo principal).
   const tour = screenTour(screen, t('tourTitle', { screen: screen.title }), visibleIds.size ? (id) => visibleIds.has(id) : undefined);
   const useCases = (screen.useCases ?? []).map((id) => findUseCase(catalog, id)).filter((u) => !!u);
+  // Pantallas con muchas guías (p. ej. la ficha del paciente) las agrupan por pestaña, en el orden de la ficha.
+  const useCaseGroups = useCases.reduce<{ name?: string; items: typeof useCases }[]>((groups, u) => {
+    const last = groups[groups.length - 1];
+    if (last && last.name === u.group) last.items.push(u);
+    else groups.push({ name: u.group, items: [u] });
+    return groups;
+  }, []);
   const prerequisites = (screen.prerequisites ?? []).map((id) => findScreen(catalog, id)).filter((s) => !!s);
 
   return (
@@ -74,13 +92,36 @@ export function ScreenHelp({ catalog }: { catalog: HelpCatalog }) {
       {useCases.length > 0 && (
         <section>
           <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold"><PlayCircle className="h-3.5 w-3.5" />{t('guides')}</p>
-          <div className="flex flex-col gap-1">
-            {useCases.map((u) => (
-              <Button key={u.id} variant="outline" size="sm" className="h-auto justify-start whitespace-normal py-1.5 text-left text-xs"
-                onClick={() => startGuide({ title: u.title, steps: u.steps }, { useCaseId: u.id, returnTo: 'screen' })}>
-                {u.title}
-              </Button>
-            ))}
+          <div className="flex flex-col gap-1.5">
+            {useCaseGroups.map((group, i) => {
+              const isOpen = !group.name || openGroups.has(group.name);
+              return (
+                <div key={group.name ?? i} className="flex flex-col gap-1">
+                  {group.name && (
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      onClick={() => toggleGroup(group.name!)}
+                      className="flex items-center gap-1.5 rounded-md px-1 py-1 text-left text-[10px] font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      <ChevronRight className={cn('h-3.5 w-3.5 flex-none transition-transform', isOpen && 'rotate-90')} />
+                      <span className="min-w-0 flex-1 truncate">{group.name}</span>
+                      <span className="flex-none rounded-full bg-muted px-1.5 text-[10px] font-medium normal-case tracking-normal">{group.items.length}</span>
+                    </button>
+                  )}
+                  {isOpen && (
+                    <div className={cn('flex flex-col gap-1', group.name && 'pl-2')}>
+                      {group.items.map((u) => (
+                        <Button key={u.id} variant="outline" size="sm" className="h-auto justify-start whitespace-normal py-1.5 text-left text-xs"
+                          onClick={() => startGuide({ title: u.title, steps: u.steps }, { useCaseId: u.id, returnTo: 'screen' })}>
+                          {u.title}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </section>
       )}

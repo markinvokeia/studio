@@ -1,0 +1,87 @@
+{
+  "id": "patients.whatsapp",
+  "title": "Escribirle por WhatsApp",
+  "module": "Pacientes",
+  "summary": "Más acciones → WhatsApp: abre WhatsApp con el número del paciente y tu mensaje.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Agenda y comunicación",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente",
+    "message": "Mensaje"
+  },
+  "keywords": [
+    "whatsapp",
+    "mensaje",
+    "escribir por whatsapp",
+    "contactar"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.more-menu",
+      "title": "Más acciones",
+      "details": "Comunicación, estado del paciente y preferencias.",
+      "until": "patients.btn.whatsapp"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "patients.btn.whatsapp",
+      "title": "WhatsApp",
+      "details": "Sólo aparece si el paciente (o su responsable) tiene teléfono.",
+      "until": "patients.field.whatsapp-message",
+      "skipIfMissing": true
+    },
+    {
+      "id": "phone",
+      "action": "highlight",
+      "target": "patients.field.whatsapp-phone",
+      "title": "Teléfono",
+      "details": "El del paciente o el de su responsable."
+    },
+    {
+      "id": "message",
+      "action": "fill",
+      "target": "patients.field.whatsapp-message",
+      "title": "Mensaje",
+      "value": "{{values.message}}",
+      "optional": true
+    },
+    {
+      "id": "open",
+      "action": "confirm",
+      "target": "patients.btn.whatsapp-open",
+      "title": "Abrir WhatsApp",
+      "details": "Abre WhatsApp Web o la app con el mensaje listo para enviar."
+    }
+  ]
+}

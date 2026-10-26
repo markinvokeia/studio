@@ -1,5 +1,5 @@
 {
- "version": "3d85c665c4cdac02",
+ "version": "7e24faa4bdc60023",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -6244,10 +6244,288 @@
      "source": "src/components/appointments/AppointmentFormDialog.tsx"
     },
     {
+     "id": "billing-wizard.section.wizard",
+     "kind": "section",
+     "label": "Asistente de cobro",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Alergias y padecimientos de la anamnesis.",
+     "id": "patients.btn.alerts",
+     "kind": "btn",
+     "label": "Alertas clínicas",
+     "source": "src/components/patients/patient-detail-header.tsx"
+    },
+    {
+     "id": "patients.btn.anamnesis-add-allergy",
+     "kind": "btn",
+     "label": "Agregar alergia",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.anamnesis-add-family",
+     "kind": "btn",
+     "label": "Agregar antecedente familiar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.anamnesis-add-medication",
+     "kind": "btn",
+     "label": "Agregar medicación",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.anamnesis-add-personal",
+     "kind": "btn",
+     "label": "Agregar antecedente",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Clínico, financiero y agenda.",
+     "id": "patients.btn.create-menu",
+     "kind": "btn",
+     "label": "Crear",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Readmitir quita el alta al tocarlo.",
+     "id": "patients.btn.discharge",
+     "kind": "btn",
+     "label": "Dar alta / Readmitir",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.discharge-12m",
+     "kind": "btn",
+     "label": "12 meses",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.discharge-1m",
+     "kind": "btn",
+     "label": "1 mes",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.discharge-3m",
+     "kind": "btn",
+     "label": "3 meses",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.discharge-6m",
+     "kind": "btn",
+     "label": "6 meses",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.discharge-save",
+     "kind": "btn",
+     "label": "Guardar alta",
+     "source": "src/app/[locale]/patients/page.tsx"
+    },
+    {
+     "id": "patients.btn.documents-add",
+     "kind": "btn",
+     "label": "Agregar documento",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.documents-upload",
+     "kind": "btn",
+     "label": "Subir",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.email",
+     "kind": "btn",
+     "label": "Enviar email",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.email-send",
+     "kind": "btn",
+     "label": "Enviar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Período de alta y estado (deudores, activos).",
+     "id": "patients.btn.filters",
+     "kind": "btn",
+     "label": "Filtros",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.finance-print",
+     "kind": "btn",
+     "label": "Imprimir resumen",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.finance-statement",
+     "kind": "btn",
+     "label": "Estado de cuenta",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.finance-view-tabs",
+     "kind": "btn",
+     "label": "Normal",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.finance-view-unified",
+     "kind": "btn",
+     "label": "Personalizado",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.ledger-add-payment",
+     "kind": "btn",
+     "label": "Registrar pago",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.ledger-add-quote",
+     "kind": "btn",
+     "label": "Agregar presupuesto",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.ledger-add-treatment",
+     "kind": "btn",
+     "label": "Agregar tratamiento",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.ledger-print",
+     "kind": "btn",
+     "label": "Imprimir resumen",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.ledger-statement",
+     "kind": "btn",
+     "label": "Estado de cuenta",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.mi-new",
+     "kind": "btn",
+     "label": "Nueva indicación",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.mi-save",
+     "kind": "btn",
+     "label": "Guardar indicación",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Comunicación, estado y preferencias.",
+     "id": "patients.btn.more-menu",
+     "kind": "btn",
+     "label": "Más acciones",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Alta de un paciente nuevo.",
      "id": "patients.btn.new",
      "kind": "btn",
      "label": "Crear",
      "source": "src/app/[locale]/patients/page.tsx"
+    },
+    {
+     "id": "patients.btn.new-appointment",
+     "kind": "btn",
+     "label": "Cita",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.new-document",
+     "kind": "btn",
+     "label": "Documento",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.new-indication",
+     "kind": "btn",
+     "label": "Indicación médica",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.new-invoice",
+     "kind": "btn",
+     "label": "Factura",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.new-odontogram",
+     "kind": "btn",
+     "label": "Sesión de odontograma",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Dinero a cuenta.",
+     "id": "patients.btn.new-prepaid",
+     "kind": "btn",
+     "label": "Prepago",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.new-prescription",
+     "kind": "btn",
+     "label": "Receta médica",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.new-quote",
+     "kind": "btn",
+     "label": "Presupuesto",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.new-session",
+     "kind": "btn",
+     "label": "Sesión clínica",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.notes-edit",
+     "kind": "btn",
+     "label": "Editar notas",
+     "source": "src/app/[locale]/patients/page.tsx"
+    },
+    {
+     "id": "patients.btn.notes-save",
+     "kind": "btn",
+     "label": "Guardar nota",
+     "source": "src/app/[locale]/patients/page.tsx"
+    },
+    {
+     "id": "patients.btn.plans-create-appointment",
+     "kind": "btn",
+     "label": "Agendar cita",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.plans-historical",
+     "kind": "btn",
+     "label": "Ver finalizados",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.preferences",
+     "kind": "btn",
+     "label": "Preferencias",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Factura y cobra en un paso.",
+     "id": "patients.btn.quick-bill",
+     "kind": "btn",
+     "label": "Cobro rápido",
+     "source": "knowledge/screens/patients.json"
     },
     {
      "id": "patients.btn.refresh",
@@ -6256,10 +6534,90 @@
      "source": "src/app/[locale]/patients/page.tsx"
     },
     {
+     "id": "patients.btn.rx-add-medication",
+     "kind": "btn",
+     "label": "Agregar medicamento",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.rx-new",
+     "kind": "btn",
+     "label": "Nueva receta",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.rx-print",
+     "kind": "btn",
+     "label": "Imprimir receta",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "id": "patients.btn.submit",
      "kind": "btn",
-     "label": "Guardar Cambios",
+     "label": "Guardar",
      "source": "src/app/[locale]/patients/page.tsx"
+    },
+    {
+     "id": "patients.btn.timeline-add",
+     "kind": "btn",
+     "label": "Nueva sesión",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.timeline-add-clinical",
+     "kind": "btn",
+     "label": "Sesión clínica",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.timeline-add-odontogram",
+     "kind": "btn",
+     "label": "Odontograma",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.timeline-filters",
+     "kind": "btn",
+     "label": "Filtrar eventos",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.timeline-print",
+     "kind": "btn",
+     "label": "Imprimir historia",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Se aplica al tocarlo.",
+     "id": "patients.btn.toggle-active",
+     "kind": "btn",
+     "label": "Activar / Desactivar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.whatsapp",
+     "kind": "btn",
+     "label": "WhatsApp",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.whatsapp-open",
+     "kind": "btn",
+     "label": "Abrir WhatsApp",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Plantilla de WhatsApp aprobada.",
+     "id": "patients.btn.whatsapp-reminder",
+     "kind": "btn",
+     "label": "Enviar recordatorio",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.btn.whatsapp-template-send",
+     "kind": "btn",
+     "label": "Enviar",
+     "source": "knowledge/screens/patients.json"
     },
     {
      "id": "patients.field.address",
@@ -6268,6 +6626,7 @@
      "source": "src/components/patients/patient-info-tab.tsx"
     },
     {
+     "description": "Muestra la edad y habilita el saludo de cumpleaños.",
      "id": "patients.field.birth_date",
      "kind": "field",
      "label": "Fecha de nacimiento",
@@ -6276,7 +6635,7 @@
     {
      "id": "patients.field.created_at",
      "kind": "field",
-     "label": "Fecha de Factura",
+     "label": "Fecha",
      "source": "src/components/tables/invoices-table.tsx"
     },
     {
@@ -6291,11 +6650,30 @@
      "source": "src/components/financial/quick-treatment-dialog.tsx"
     },
     {
+     "id": "patients.field.discharge-date",
+     "kind": "field",
+     "label": "Fecha de alta",
+     "source": "src/app/[locale]/patients/page.tsx"
+    },
+    {
+     "id": "patients.field.discharge-options",
+     "kind": "field",
+     "label": "Opciones rápidas",
+     "source": "src/app/[locale]/patients/page.tsx"
+    },
+    {
      "description": "Profesional que se propone al agendarle.",
      "id": "patients.field.doctor_id",
      "kind": "field",
      "label": "Doctor por defecto",
      "source": "src/app/[locale]/patients/page.tsx"
+    },
+    {
+     "description": "PDF, imagen o Word, hasta 10 MB.",
+     "id": "patients.field.documents-file",
+     "kind": "field",
+     "label": "Archivo",
+     "source": "knowledge/screens/patients.json"
     },
     {
      "id": "patients.field.due_date",
@@ -6304,10 +6682,29 @@
      "source": "src/components/tables/invoices-table.tsx"
     },
     {
+     "description": "Envío de presupuestos, facturas y emails.",
      "id": "patients.field.email",
      "kind": "field",
-     "label": "Correo Electrónico",
+     "label": "Correo",
      "source": "src/app/[locale]/patients/page.tsx"
+    },
+    {
+     "id": "patients.field.email-body",
+     "kind": "field",
+     "label": "Mensaje",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.email-subject",
+     "kind": "field",
+     "label": "Asunto",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.email-to",
+     "kind": "field",
+     "label": "Para",
+     "source": "knowledge/screens/patients.json"
     },
     {
      "id": "patients.field.exchange_rate",
@@ -6316,28 +6713,29 @@
      "source": "src/components/sales/quotes/QuoteFormDialog.tsx"
     },
     {
+     "description": "Evita duplicados y se usa al facturar.",
      "id": "patients.field.identity_document",
      "kind": "field",
-     "label": "Documento de Identidad",
+     "label": "Documento",
      "source": "src/app/[locale]/patients/page.tsx"
     },
     {
      "id": "patients.field.identity_document_type",
      "kind": "field",
-     "label": "Tipo de Documento",
+     "label": "Tipo de documento",
      "source": "src/app/[locale]/patients/page.tsx"
     },
     {
      "id": "patients.field.is_active",
      "kind": "field",
-     "label": "Está Activo",
+     "label": "Activo",
      "source": "src/app/[locale]/patients/page.tsx"
     },
     {
-     "description": "Menor o persona a cargo: se le asigna un tutor.",
+     "description": "Menor o persona a cargo: los avisos van al responsable.",
      "id": "patients.field.is_dependent",
      "kind": "field",
-     "label": "Paciente dependiente (menor, adulto mayor, a cargo de tutor)",
+     "label": "Paciente dependiente",
      "source": "src/app/[locale]/patients/page.tsx"
     },
     {
@@ -6352,21 +6750,58 @@
      "source": "src/components/financial/quick-treatment-dialog.tsx"
     },
     {
+     "id": "patients.field.mi-content",
+     "kind": "field",
+     "label": "Contenido",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.mi-date",
+     "kind": "field",
+     "label": "Fecha",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.mi-doctor",
+     "kind": "field",
+     "label": "Profesional",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.mi-template",
+     "kind": "field",
+     "label": "Plantilla",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.mi-tooth",
+     "kind": "field",
+     "label": "Pieza",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Para precios y facturación por convenio.",
      "id": "patients.field.mutual_society_id",
      "kind": "field",
-     "label": "Seleccionar sociedad",
+     "label": "Mutualista o sociedad",
      "source": "src/app/[locale]/patients/page.tsx"
     },
     {
      "id": "patients.field.name",
      "kind": "field",
-     "label": "Nombre",
+     "label": "Nombre y apellido",
      "source": "src/app/[locale]/patients/page.tsx"
     },
     {
      "id": "patients.field.notes",
      "kind": "field",
-     "label": "Notas del Paciente",
+     "label": "Notas",
+     "source": "src/app/[locale]/patients/page.tsx"
+    },
+    {
+     "id": "patients.field.notes-text",
+     "kind": "field",
+     "label": "Nota",
      "source": "src/app/[locale]/patients/page.tsx"
     },
     {
@@ -6389,11 +6824,11 @@
     {
      "id": "patients.field.payment_method_id",
      "kind": "field",
-     "label": "Método de Pago",
+     "label": "Medio de pago",
      "source": "src/components/sales/payments/PrepaidFormDialog.tsx"
     },
     {
-     "description": "Teléfono para recordatorios y WhatsApp.",
+     "description": "Con código de país: recordatorios y WhatsApp.",
      "id": "patients.field.phone",
      "kind": "field",
      "label": "Teléfono",
@@ -6406,10 +6841,77 @@
      "source": "src/components/users/patient-ledger.tsx"
     },
     {
+     "description": "Tutor o familiar que recibe los avisos.",
      "id": "patients.field.responsible_contact_id",
      "kind": "field",
-     "label": "Contacto responsable (tutor/padre)",
+     "label": "Contacto responsable",
      "source": "src/components/patients/patient-info-tab.tsx"
+    },
+    {
+     "id": "patients.field.rx-date",
+     "kind": "field",
+     "label": "Fecha",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.rx-diagnosis",
+     "kind": "field",
+     "label": "Diagnóstico",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.rx-doctor",
+     "kind": "field",
+     "label": "Profesional",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.rx-dosage",
+     "kind": "field",
+     "label": "Dosis",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.rx-duration",
+     "kind": "field",
+     "label": "Duración (días)",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.rx-frequency",
+     "kind": "field",
+     "label": "Frecuencia",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.rx-instructions",
+     "kind": "field",
+     "label": "Indicaciones",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.rx-medication",
+     "kind": "field",
+     "label": "Medicamento",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.rx-notes",
+     "kind": "field",
+     "label": "Notas",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.rx-quantity",
+     "kind": "field",
+     "label": "Cantidad",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.rx-template",
+     "kind": "field",
+     "label": "Plantilla de receta",
+     "source": "knowledge/screens/patients.json"
     },
     {
      "id": "patients.field.sede_id",
@@ -6422,6 +6924,62 @@
      "kind": "field",
      "label": "Tratamiento",
      "source": "src/components/financial/quick-treatment-dialog.tsx"
+    },
+    {
+     "id": "patients.field.session-attachments",
+     "kind": "field",
+     "label": "Adjuntos",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.session-date",
+     "kind": "field",
+     "label": "Fecha de la sesión",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.session-diagnosis",
+     "kind": "field",
+     "label": "Diagnóstico",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.session-discharge",
+     "kind": "field",
+     "label": "Dar de alta",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.session-doctor",
+     "kind": "field",
+     "label": "Profesional",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.session-next-plan",
+     "kind": "field",
+     "label": "Plan de la próxima sesión",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.session-notes",
+     "kind": "field",
+     "label": "Notas",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Lo que se hizo.",
+     "id": "patients.field.session-procedure",
+     "kind": "field",
+     "label": "Procedimiento",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Los del presupuesto realizados hoy.",
+     "id": "patients.field.session-treatments",
+     "kind": "field",
+     "label": "Tratamientos",
+     "source": "knowledge/screens/patients.json"
     },
     {
      "id": "patients.field.sex",
@@ -6454,16 +7012,232 @@
      "source": "src/components/tables/invoices-table.tsx"
     },
     {
+     "id": "patients.field.whatsapp-message",
+     "kind": "field",
+     "label": "Mensaje",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.whatsapp-phone",
+     "kind": "field",
+     "label": "Teléfono",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.field.whatsapp-template",
+     "kind": "field",
+     "label": "Plantilla",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Oculta a los desactivados.",
+     "id": "patients.filter.option-active",
+     "kind": "filter",
+     "label": "Sólo activos",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.filter.option-allTime",
+     "kind": "filter",
+     "label": "Todos",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Pacientes con saldo pendiente.",
+     "id": "patients.filter.option-debtors",
+     "kind": "filter",
+     "label": "Sólo deudores",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.filter.option-month",
+     "kind": "filter",
+     "label": "Este mes",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Pacientes registrados hoy.",
+     "id": "patients.filter.option-today",
+     "kind": "filter",
+     "label": "Hoy",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.filter.option-week",
+     "kind": "filter",
+     "label": "Esta semana",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Por nombre, correo o documento.",
      "id": "patients.filter.search",
      "kind": "filter",
-     "label": "Filtrar pacientes por correo...",
+     "label": "Buscar",
      "source": "src/app/[locale]/patients/page.tsx"
+    },
+    {
+     "description": "Se muestran como alerta en la ficha.",
+     "id": "patients.section.anamnesis-allergies",
+     "kind": "section",
+     "label": "Alergias",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.section.anamnesis-family",
+     "kind": "section",
+     "label": "Antecedentes familiares",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.section.anamnesis-habits",
+     "kind": "section",
+     "label": "Hábitos",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.section.anamnesis-medications",
+     "kind": "section",
+     "label": "Medicación",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.section.anamnesis-personal",
+     "kind": "section",
+     "label": "Antecedentes personales",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.section.calendar-prefs",
+     "kind": "section",
+     "label": "Preferencias de agenda",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Edad, documento, teléfono y correo.",
+     "id": "patients.section.contact",
+     "kind": "section",
+     "label": "Contacto",
+     "source": "src/components/patients/patient-detail-header.tsx"
+    },
+    {
+     "id": "patients.section.discharge",
+     "kind": "section",
+     "label": "Dar de alta",
+     "source": "src/app/[locale]/patients/page.tsx"
+    },
+    {
+     "id": "patients.section.documents",
+     "kind": "section",
+     "label": "Documentos",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.section.filters",
+     "kind": "section",
+     "label": "Opciones de filtro",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Facturado, pagado, deuda y saldo.",
+     "id": "patients.section.finance-summary",
+     "kind": "section",
+     "label": "Resumen financiero",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Normal (pestañas) o Personalizado (cuenta corriente). Se guarda al tocarla.",
+     "id": "patients.section.finance-view",
+     "kind": "section",
+     "label": "Vista de finanzas",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.section.first-row",
+     "kind": "section",
+     "label": "Primer paciente de la lista",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Nombre, estado, alta y responsable.",
+     "id": "patients.section.header",
+     "kind": "section",
+     "label": "Encabezado de la ficha",
+     "source": "src/components/patients/patient-detail-header.tsx"
+    },
+    {
+     "description": "Presupuestos, tratamientos y pagos con su saldo.",
+     "id": "patients.section.ledger",
+     "kind": "section",
+     "label": "Cuenta corriente",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.section.ledger-toolbar",
+     "kind": "section",
+     "label": "Período, búsqueda y moneda",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.section.notes",
+     "kind": "section",
+     "label": "Notas",
+     "source": "src/app/[locale]/patients/page.tsx"
+    },
+    {
+     "id": "patients.section.odontogram-create",
+     "kind": "section",
+     "label": "Nueva sesión de odontograma",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Tocalo para abrir su ficha.",
+     "id": "patients.section.row",
+     "kind": "section",
+     "label": "Paciente",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Sesiones, odontogramas y citas.",
+     "id": "patients.section.timeline",
+     "kind": "section",
+     "label": "Línea de tiempo",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.section.treatment-plans",
+     "kind": "section",
+     "label": "Planes de tratamiento",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.tab.anamnesis",
+     "kind": "tab",
+     "label": "Anamnesis",
+     "source": "knowledge/screens/patients.json"
     },
     {
      "id": "patients.tab.clinical",
      "kind": "tab",
      "label": "Historia clínica",
      "source": "src/components/patients/patient-detail-main-content.tsx"
+    },
+    {
+     "id": "patients.tab.clinical-history",
+     "kind": "tab",
+     "label": "Línea de tiempo",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.tab.details",
+     "kind": "tab",
+     "label": "Datos",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.tab.documents",
+     "kind": "tab",
+     "label": "Documentos",
+     "source": "knowledge/screens/patients.json"
     },
     {
      "id": "patients.tab.financial",
@@ -6476,6 +7250,62 @@
      "kind": "tab",
      "label": "Información",
      "source": "src/components/patients/patient-detail-main-content.tsx"
+    },
+    {
+     "id": "patients.tab.instructions",
+     "kind": "tab",
+     "label": "Indicaciones",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.tab.invoices",
+     "kind": "tab",
+     "label": "Facturas",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Indicaciones médicas y recetas.",
+     "id": "patients.tab.medical-instructions",
+     "kind": "tab",
+     "label": "Indicaciones",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Notas internas, no clínicas.",
+     "id": "patients.tab.notes",
+     "kind": "tab",
+     "label": "Notas",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.tab.payments",
+     "kind": "tab",
+     "label": "Pagos",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.tab.preferences",
+     "kind": "tab",
+     "label": "Preferencias",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.tab.prescriptions",
+     "kind": "tab",
+     "label": "Recetas",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.tab.quotes",
+     "kind": "tab",
+     "label": "Presupuestos",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.tab.treatment-plans",
+     "kind": "tab",
+     "label": "Planes de tratamiento",
+     "source": "knowledge/screens/patients.json"
     }
    ],
    "id": "patients",
@@ -6485,17 +7315,47 @@
     "PATIENTS_VIEW_LIST"
    ],
    "prerequisites": [],
-   "purpose": "Desde la ficha se accede a historia clínica, presupuestos, facturas, pagos, turnos y mensajes del paciente.",
+   "purpose": "Buscar, registrar y editar pacientes. La ficha reúne todo lo del paciente: datos y notas, anamnesis, línea de tiempo clínica, planes de tratamiento, indicaciones y recetas, documentos, y su cuenta (presupuestos, facturas y pagos). Desde «Crear» y «Más acciones» se registran sesiones, se cobra, se agenda y se le escribe.",
    "route": "/patients",
    "status": "draft",
-   "summary": "Listado y ficha completa de pacientes.",
+   "summary": "Listado de pacientes y su ficha completa: datos, historia clínica y finanzas.",
    "tips": [
     "El teléfono con código de país habilita los recordatorios por WhatsApp.",
-    "Un paciente dependiente (menor) tiene un contacto responsable."
+    "Un paciente dependiente (menor) tiene un contacto responsable: email y WhatsApp van a ese contacto.",
+    "Las alergias y padecimientos de la anamnesis aparecen como alerta en el encabezado de la ficha.",
+    "La sección Finanzas se ve como cuenta corriente (Personalizado) o en pestañas (Normal), según tus Preferencias.",
+    "Cobro rápido, prepago y pagos necesitan una caja abierta.",
+    "Readmitir y Activar/Desactivar se aplican al tocarlos, sin diálogo previo."
    ],
    "title": "Pacientes",
    "useCases": [
-    "patients.create"
+    "patients.search",
+    "patients.create",
+    "patients.overview",
+    "patients.info-tab",
+    "patients.edit",
+    "patients.notes",
+    "patients.preferences",
+    "patients.clinical-tab",
+    "patients.anamnesis",
+    "patients.history",
+    "patients.clinical-session",
+    "patients.odontogram",
+    "patients.treatment-plans",
+    "patients.prescription",
+    "patients.medical-instruction",
+    "patients.documents",
+    "patients.finance",
+    "patients.quick-bill",
+    "patients.quote",
+    "patients.invoice",
+    "patients.prepaid",
+    "patients.appointment",
+    "patients.email",
+    "patients.whatsapp",
+    "patients.whatsapp-reminder",
+    "patients.discharge",
+    "patients.toggle-active"
    ]
   },
   {
@@ -14591,19 +15451,19 @@
    "title": "Activar el agente de WhatsApp"
   },
   {
-   "id": "patients.create",
+   "group": "Historia clínica",
+   "id": "patients.anamnesis",
    "inputs": {
-    "birth_date": "Fecha de nacimiento AAAA-MM-DD",
-    "email": "Correo",
-    "identity_document": "Documento de identidad",
-    "name": "Nombre y apellido",
-    "phone": "Teléfono con código de país"
+    "patient": "Nombre, correo o documento del paciente"
    },
    "keywords": [
-    "paciente",
-    "alta de paciente",
-    "nuevo paciente",
-    "registrar paciente"
+    "anamnesis",
+    "alergias",
+    "antecedentes",
+    "medicación",
+    "hábitos",
+    "historia médica",
+    "padecimientos"
    ],
    "module": "Pacientes",
    "screens": [
@@ -14612,20 +15472,546 @@
    "steps": [
     {
      "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
      "id": "go",
      "route": "/patients",
-     "title": "Abro Pacientes"
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "id": "clinical",
+     "target": "patients.tab.clinical",
+     "title": "Historia clínica",
+     "until": "patients.tab.anamnesis"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "target": "patients.tab.anamnesis",
+     "title": "Anamnesis",
+     "until": "patients.section.anamnesis-personal"
+    },
+    {
+     "action": "highlight",
+     "details": "Enfermedades y condiciones del paciente. Con + agregás una.",
+     "id": "personal",
+     "target": "patients.section.anamnesis-personal",
+     "title": "Antecedentes personales"
+    },
+    {
+     "action": "highlight",
+     "details": "Lo que toma habitualmente: se consulta al recetar.",
+     "id": "meds",
+     "target": "patients.section.anamnesis-medications",
+     "title": "Medicación"
+    },
+    {
+     "action": "highlight",
+     "id": "family",
+     "skipIfMissing": true,
+     "target": "patients.section.anamnesis-family",
+     "title": "Antecedentes familiares"
+    },
+    {
+     "action": "highlight",
+     "details": "Se muestran como alerta roja en el encabezado de la ficha.",
+     "id": "allergies",
+     "target": "patients.section.anamnesis-allergies",
+     "title": "Alergias"
+    },
+    {
+     "action": "highlight",
+     "details": "Elegí la alergia del catálogo y su severidad.",
+     "id": "add",
+     "skipIfMissing": true,
+     "target": "patients.btn.anamnesis-add-allergy",
+     "title": "Agregar alergia"
+    },
+    {
+     "action": "highlight",
+     "details": "Tabaco, alcohol, bruxismo y otros.",
+     "id": "habits",
+     "skipIfMissing": true,
+     "target": "patients.section.anamnesis-habits",
+     "title": "Hábitos"
+    }
+   ],
+   "summary": "Antecedentes personales, medicación, antecedentes familiares, alergias y hábitos. Alergias y padecimientos aparecen como alerta en la ficha.",
+   "title": "Cargar la anamnesis"
+  },
+  {
+   "group": "Agenda y comunicación",
+   "id": "patients.appointment",
+   "inputs": {
+    "date": "Fecha AAAA-MM-DD",
+    "notes": "Notas",
+    "patient": "Nombre, correo o documento del paciente",
+    "services": "Servicios",
+    "time": "Hora HH:MM"
+   },
+   "keywords": [
+    "agendar",
+    "cita",
+    "turno",
+    "reservar",
+    "nueva cita"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente: clínico, financiero y agenda.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-appointment"
+    },
+    {
+     "action": "click",
+     "details": "Abre la tarjeta de nueva cita para este paciente.",
+     "id": "item",
+     "target": "patients.btn.new-appointment",
+     "title": "Cita",
+     "until": "appointments.btn.save"
+    },
+    {
+     "action": "fill",
+     "details": "Define duración y lo que se factura.",
+     "id": "services",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "appointments.field.services",
+     "title": "Servicios",
+     "value": "{{values.services}}"
+    },
+    {
+     "action": "highlight",
+     "id": "doctor",
+     "skipIfMissing": true,
+     "target": "appointments.field.doctor",
+     "title": "Doctor"
+    },
+    {
+     "action": "highlight",
+     "id": "calendar",
+     "skipIfMissing": true,
+     "target": "appointments.field.calendar",
+     "title": "Calendario"
+    },
+    {
+     "action": "fill",
+     "id": "date",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "appointments.field.date",
+     "title": "Fecha",
+     "value": "{{values.date}}"
+    },
+    {
+     "action": "fill",
+     "id": "time",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "appointments.field.time",
+     "title": "Hora",
+     "value": "{{values.time}}"
+    },
+    {
+     "action": "fill",
+     "id": "notes",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "appointments.field.notes",
+     "title": "Notas",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Se avisa si el horario está ocupado o fuera de la agenda.",
+     "id": "save",
+     "target": "appointments.btn.save",
+     "title": "Guardar la cita"
+    }
+   ],
+   "summary": "Crear → Cita: la tarjeta de cita sale con el paciente ya cargado.",
+   "title": "Agendar una cita desde la ficha"
+  },
+  {
+   "group": "Historia clínica",
+   "id": "patients.clinical-session",
+   "inputs": {
+    "diagnosis": "Diagnóstico",
+    "next_plan": "Plan de la próxima sesión",
+    "notes": "Notas",
+    "patient": "Nombre, correo o documento del paciente",
+    "procedure": "Procedimiento realizado"
+   },
+   "keywords": [
+    "sesión clínica",
+    "registrar atención",
+    "evolución",
+    "cargar sesión",
+    "procedimiento",
+    "consulta"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente: clínico, financiero y agenda.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-session"
+    },
+    {
+     "action": "click",
+     "details": "Abre la historia clínica y el formulario de nueva sesión.",
+     "id": "item",
+     "target": "patients.btn.new-session",
+     "title": "Sesión clínica",
+     "until": "patients.field.session-procedure"
+    },
+    {
+     "action": "highlight",
+     "id": "date",
+     "skipIfMissing": true,
+     "target": "patients.field.session-date",
+     "title": "Fecha de la sesión"
+    },
+    {
+     "action": "highlight",
+     "details": "Quien atendió.",
+     "id": "doctor",
+     "skipIfMissing": true,
+     "target": "patients.field.session-doctor",
+     "title": "Profesional"
+    },
+    {
+     "action": "fill",
+     "details": "Lo que se hizo en la sesión.",
+     "id": "procedure",
+     "target": "patients.field.session-procedure",
+     "title": "Procedimiento",
+     "value": "{{values.procedure}}"
+    },
+    {
+     "action": "fill",
+     "id": "diagnosis",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "patients.field.session-diagnosis",
+     "title": "Diagnóstico",
+     "value": "{{values.diagnosis}}"
+    },
+    {
+     "action": "fill",
+     "id": "notes",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "patients.field.session-notes",
+     "title": "Notas",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "fill",
+     "details": "Se muestra al doctor en la próxima cita.",
+     "id": "plan",
+     "optional": true,
+     "target": "patients.field.session-next-plan",
+     "title": "Plan de la próxima sesión",
+     "value": "{{values.next_plan}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Marcá los del presupuesto que se hicieron hoy: quedan listos para facturar.",
+     "id": "treatments",
+     "skipIfMissing": true,
+     "target": "patients.field.session-treatments",
+     "title": "Tratamientos"
+    },
+    {
+     "action": "highlight",
+     "details": "Radiografías, fotos o estudios de esta sesión.",
+     "id": "attachments",
+     "skipIfMissing": true,
+     "target": "patients.field.session-attachments",
+     "title": "Adjuntos"
+    },
+    {
+     "action": "confirm",
+     "details": "Queda en la línea de tiempo del paciente.",
+     "id": "save",
+     "target": "patients.btn.submit",
+     "title": "Guardar la sesión"
+    }
+   ],
+   "summary": "Desde la ficha: Crear → Sesión clínica. Procedimiento, diagnóstico, notas, plan de la próxima sesión y tratamientos realizados.",
+   "title": "Registrar una sesión clínica"
+  },
+  {
+   "group": "Historia clínica",
+   "id": "patients.clinical-tab",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "pestaña historia clínica",
+    "qué hay en la historia clínica",
+    "recorrer historia clínica"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "target": "patients.tab.clinical",
+     "title": "Historia clínica",
+     "until": "patients.tab.anamnesis"
+    },
+    {
+     "action": "click",
+     "details": "Antecedentes, medicación, alergias y hábitos.",
+     "id": "anamnesis",
+     "target": "patients.tab.anamnesis",
+     "title": "Anamnesis",
+     "until": "patients.section.anamnesis-personal"
+    },
+    {
+     "action": "highlight",
+     "details": "Lo que se carga acá aparece como alerta en la ficha.",
+     "id": "anamnesis-body",
+     "target": "patients.section.anamnesis-allergies",
+     "title": "Alergias"
+    },
+    {
+     "action": "click",
+     "details": "Sesiones, odontogramas y citas.",
+     "id": "history",
+     "target": "patients.tab.clinical-history",
+     "title": "Línea de tiempo",
+     "until": "patients.section.timeline"
+    },
+    {
+     "action": "highlight",
+     "details": "Tocá un evento para verlo; «+» agrega una sesión.",
+     "id": "history-body",
+     "target": "patients.section.timeline",
+     "title": "Eventos"
+    },
+    {
+     "action": "click",
+     "id": "plans",
+     "target": "patients.tab.treatment-plans",
+     "title": "Planes de tratamiento",
+     "until": "patients.section.treatment-plans"
+    },
+    {
+     "action": "highlight",
+     "details": "Etapas, citas y avance de cada plan.",
+     "id": "plans-body",
+     "target": "patients.section.treatment-plans",
+     "title": "Planes"
+    },
+    {
+     "action": "click",
+     "details": "Indicaciones médicas y recetas, cada una en su sub-pestaña.",
+     "id": "indications",
+     "target": "patients.tab.medical-instructions",
+     "title": "Indicaciones"
+    },
+    {
+     "action": "highlight",
+     "id": "instructions",
+     "skipIfMissing": true,
+     "target": "patients.btn.mi-new",
+     "title": "Nueva indicación"
+    },
+    {
+     "action": "click",
+     "id": "prescriptions",
+     "skipIfMissing": true,
+     "target": "patients.tab.prescriptions",
+     "title": "Recetas",
+     "until": "patients.btn.rx-new"
+    },
+    {
+     "action": "highlight",
+     "id": "rx",
+     "skipIfMissing": true,
+     "target": "patients.btn.rx-new",
+     "title": "Nueva receta"
+    },
+    {
+     "action": "click",
+     "id": "documents",
+     "skipIfMissing": true,
+     "target": "patients.tab.documents",
+     "title": "Documentos",
+     "until": "patients.section.documents"
+    },
+    {
+     "action": "highlight",
+     "details": "Archivos subidos y adjuntos de las sesiones.",
+     "id": "documents-body",
+     "skipIfMissing": true,
+     "target": "patients.section.documents",
+     "title": "Documentos"
+    }
+   ],
+   "summary": "Anamnesis, línea de tiempo, planes de tratamiento, indicaciones y recetas, y documentos.",
+   "title": "Recorrer la pestaña Historia clínica"
+  },
+  {
+   "group": "Listado y alta",
+   "id": "patients.create",
+   "inputs": {
+    "birth_date": "Fecha de nacimiento AAAA-MM-DD",
+    "doctor_id": "Doctor por defecto",
+    "email": "Correo",
+    "identity_document": "Documento de identidad",
+    "identity_document_type": "Tipo de documento",
+    "mutual_society_id": "Mutualista",
+    "name": "Nombre y apellido",
+    "phone": "Teléfono con código de país",
+    "sex": "Sexo"
+   },
+   "keywords": [
+    "paciente",
+    "alta de paciente",
+    "nuevo paciente",
+    "registrar paciente",
+    "crear paciente"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
     },
     {
      "action": "click",
      "details": "Abre el alta de paciente. Tu licencia puede limitar los pacientes nuevos por mes.",
      "id": "new",
      "target": "patients.btn.new",
-     "title": "Nuevo paciente"
+     "title": "Nuevo paciente",
+     "until": "patients.field.name"
     },
     {
      "action": "fill",
-     "details": "Nombre y apellido tal como aparecerá en turnos, presupuestos y facturas.",
+     "details": "Tal como aparecerá en citas, presupuestos y facturas.",
      "id": "name",
      "target": "patients.field.name",
      "title": "Nombre y apellido",
@@ -14633,8 +16019,7 @@
     },
     {
      "action": "fill",
-     "description": "Con este número le llegan los recordatorios de turno.",
-     "details": "Con código de país. Sin teléfono el paciente no recibe recordatorios ni mensajes por WhatsApp.",
+     "details": "Con código de país. Sin teléfono no recibe recordatorios ni mensajes por WhatsApp.",
      "id": "phone",
      "target": "patients.field.phone",
      "title": "Teléfono",
@@ -14651,12 +16036,64 @@
     },
     {
      "action": "fill",
-     "details": "Opcional, pero recomendado para facturar y para evitar pacientes duplicados.",
+     "details": "Cédula, pasaporte u otro.",
+     "id": "doctype",
+     "optional": true,
+     "target": "patients.field.identity_document_type",
+     "title": "Tipo de documento",
+     "value": "{{values.identity_document_type}}"
+    },
+    {
+     "action": "fill",
+     "details": "Recomendado para facturar y para evitar pacientes duplicados.",
      "id": "document",
      "optional": true,
      "target": "patients.field.identity_document",
      "title": "Documento",
      "value": "{{values.identity_document}}"
+    },
+    {
+     "action": "fill",
+     "details": "Muestra la edad en la ficha y habilita el saludo de cumpleaños.",
+     "id": "birth",
+     "optional": true,
+     "target": "patients.field.birth_date",
+     "title": "Fecha de nacimiento",
+     "value": "{{values.birth_date}}"
+    },
+    {
+     "action": "fill",
+     "id": "sex",
+     "optional": true,
+     "target": "patients.field.sex",
+     "title": "Sexo",
+     "value": "{{values.sex}}"
+    },
+    {
+     "action": "fill",
+     "details": "Para precios y facturación por convenio.",
+     "id": "society",
+     "optional": true,
+     "target": "patients.field.mutual_society_id",
+     "title": "Mutualista o sociedad",
+     "value": "{{values.mutual_society_id}}"
+    },
+    {
+     "action": "fill",
+     "details": "Se propone al agendarle una cita.",
+     "id": "doctor",
+     "optional": true,
+     "target": "patients.field.doctor_id",
+     "title": "Doctor por defecto",
+     "value": "{{values.doctor_id}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Marcalo si es menor o está a cargo de un tutor: los avisos van al contacto responsable.",
+     "id": "dependent",
+     "skipIfMissing": true,
+     "target": "patients.field.is_dependent",
+     "title": "¿Es dependiente?"
     },
     {
      "action": "confirm",
@@ -14668,6 +16105,2082 @@
    ],
    "summary": "Alta de un paciente con sus datos de contacto. El teléfono se usa para recordatorios por WhatsApp.",
    "title": "Registrar un paciente"
+  },
+  {
+   "group": "Estado del paciente",
+   "id": "patients.discharge",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "alta",
+    "dar de alta",
+    "alta médica",
+    "readmitir",
+    "fin de tratamiento"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Comunicación, estado y preferencias.",
+     "id": "menu",
+     "target": "patients.btn.more-menu",
+     "title": "Más acciones",
+     "until": "patients.btn.discharge"
+    },
+    {
+     "action": "confirm",
+     "details": "Si el paciente no tiene alta, abre el diálogo. Si ya la tiene, dice «Readmitir» y la quita al tocarlo.",
+     "id": "item",
+     "target": "patients.btn.discharge",
+     "title": "Dar alta / Readmitir"
+    },
+    {
+     "action": "highlight",
+     "details": "Alta por 1, 3, 6 o 12 meses: completa la fecha.",
+     "id": "options",
+     "skipIfMissing": true,
+     "target": "patients.field.discharge-options",
+     "title": "Opciones rápidas"
+    },
+    {
+     "action": "highlight",
+     "details": "O elegí una fecha a mano.",
+     "id": "date",
+     "skipIfMissing": true,
+     "target": "patients.field.discharge-date",
+     "title": "Fecha de alta"
+    },
+    {
+     "action": "confirm",
+     "details": "El paciente queda de alta hasta esa fecha; se ve en el encabezado de la ficha.",
+     "id": "save",
+     "skipIfMissing": true,
+     "target": "patients.btn.discharge-save",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Más acciones → Dar alta: elegir hasta cuándo (1, 3, 6 o 12 meses o una fecha). Readmitir quita el alta.",
+   "title": "Dar de alta a un paciente"
+  },
+  {
+   "group": "Historia clínica",
+   "id": "patients.documents",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "documento",
+    "subir archivo",
+    "adjuntar",
+    "consentimiento",
+    "radiografía",
+    "estudio",
+    "pdf"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "id": "clinical",
+     "target": "patients.tab.clinical",
+     "title": "Historia clínica",
+     "until": "patients.tab.documents"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "target": "patients.tab.documents",
+     "title": "Documentos",
+     "until": "patients.section.documents"
+    },
+    {
+     "action": "highlight",
+     "details": "Los subidos y los adjuntos de las sesiones. Tocá uno para verlo.",
+     "id": "list",
+     "target": "patients.section.documents",
+     "title": "Documentos del paciente"
+    },
+    {
+     "action": "click",
+     "id": "add",
+     "skipIfMissing": true,
+     "target": "patients.btn.documents-add",
+     "title": "Agregar documento",
+     "until": "patients.field.documents-file"
+    },
+    {
+     "action": "highlight",
+     "details": "Tocá o arrastrá el archivo: PDF, imagen o Word, hasta 10 MB.",
+     "id": "file",
+     "target": "patients.field.documents-file",
+     "title": "Elegí el archivo"
+    },
+    {
+     "action": "confirm",
+     "details": "Se habilita cuando elegiste el archivo.",
+     "id": "upload",
+     "target": "patients.btn.documents-upload",
+     "title": "Subir"
+    }
+   ],
+   "summary": "Clínica → Documentos: subir PDF o imágenes (consentimientos, estudios, radiografías).",
+   "title": "Subir un documento al paciente"
+  },
+  {
+   "group": "Información",
+   "id": "patients.edit",
+   "inputs": {
+    "email": "Correo nuevo",
+    "patient": "Nombre, correo o documento del paciente",
+    "phone": "Teléfono nuevo"
+   },
+   "keywords": [
+    "editar paciente",
+    "modificar paciente",
+    "cambiar teléfono",
+    "cambiar correo",
+    "actualizar datos",
+    "corregir paciente"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "id": "info",
+     "skipIfMissing": true,
+     "target": "patients.tab.info",
+     "title": "Información"
+    },
+    {
+     "action": "click",
+     "details": "El formulario con todos los datos del paciente.",
+     "id": "details",
+     "skipIfMissing": true,
+     "target": "patients.tab.details",
+     "title": "Datos",
+     "until": "patients.field.name"
+    },
+    {
+     "action": "highlight",
+     "id": "name",
+     "target": "patients.field.name",
+     "title": "Nombre y apellido"
+    },
+    {
+     "action": "fill",
+     "details": "Con código de país; es el número de los recordatorios.",
+     "id": "phone",
+     "optional": true,
+     "target": "patients.field.phone",
+     "title": "Teléfono",
+     "value": "{{values.phone}}"
+    },
+    {
+     "action": "fill",
+     "details": "Envío de presupuestos, facturas y emails.",
+     "id": "email",
+     "optional": true,
+     "target": "patients.field.email",
+     "title": "Correo",
+     "value": "{{values.email}}"
+    },
+    {
+     "action": "highlight",
+     "id": "address",
+     "skipIfMissing": true,
+     "target": "patients.field.address",
+     "title": "Dirección"
+    },
+    {
+     "action": "highlight",
+     "details": "Sólo si es dependiente: a quién se le envían los avisos.",
+     "id": "responsible",
+     "skipIfMissing": true,
+     "target": "patients.field.responsible_contact_id",
+     "title": "Contacto responsable"
+    },
+    {
+     "action": "confirm",
+     "details": "Guarda los datos. Si el correo o teléfono ya es de otro paciente, te avisa antes.",
+     "id": "save",
+     "target": "patients.btn.submit",
+     "title": "Guardar cambios"
+    }
+   ],
+   "summary": "Cambiar nombre, contacto, documento, mutualista, doctor por defecto o responsable desde Información → Datos.",
+   "title": "Editar los datos de un paciente"
+  },
+  {
+   "group": "Agenda y comunicación",
+   "id": "patients.email",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente",
+    "subject": "Asunto"
+   },
+   "keywords": [
+    "email",
+    "correo",
+    "mandar mail",
+    "escribir al paciente"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Comunicación, estado del paciente y preferencias.",
+     "id": "menu",
+     "target": "patients.btn.more-menu",
+     "title": "Más acciones",
+     "until": "patients.btn.email"
+    },
+    {
+     "action": "click",
+     "details": "Sólo aparece si el paciente (o su responsable) tiene correo.",
+     "id": "item",
+     "skipIfMissing": true,
+     "target": "patients.btn.email",
+     "title": "Enviar email",
+     "until": "patients.field.email-subject"
+    },
+    {
+     "action": "highlight",
+     "id": "to",
+     "target": "patients.field.email-to",
+     "title": "Para"
+    },
+    {
+     "action": "fill",
+     "id": "subject",
+     "optional": true,
+     "target": "patients.field.email-subject",
+     "title": "Asunto",
+     "value": "{{values.subject}}"
+    },
+    {
+     "action": "highlight",
+     "id": "body",
+     "target": "patients.field.email-body",
+     "title": "Mensaje"
+    },
+    {
+     "action": "confirm",
+     "details": "Queda en el historial de comunicaciones.",
+     "id": "send",
+     "target": "patients.btn.email-send",
+     "title": "Enviar"
+    }
+   ],
+   "summary": "Más acciones → Enviar email: para, asunto y mensaje.",
+   "title": "Enviar un email al paciente"
+  },
+  {
+   "group": "Finanzas",
+   "id": "patients.finance",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "cuenta del paciente",
+    "saldo",
+    "deuda",
+    "estado de cuenta",
+    "pagos del paciente",
+    "facturas del paciente",
+    "cuenta corriente"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "target": "patients.tab.financial",
+     "title": "Finanzas"
+    },
+    {
+     "action": "highlight",
+     "details": "Filtrá por período, buscá un documento y elegí la moneda.",
+     "id": "toolbar",
+     "skipIfMissing": true,
+     "target": "patients.section.ledger-toolbar",
+     "title": "Período y moneda"
+    },
+    {
+     "action": "highlight",
+     "details": "Cada presupuesto, tratamiento y pago con su saldo. Tocá una fila para facturarla, cobrarla, imprimirla o enviarla.",
+     "id": "ledger",
+     "skipIfMissing": true,
+     "target": "patients.section.ledger",
+     "title": "Cuenta corriente"
+    },
+    {
+     "action": "highlight",
+     "id": "add-quote",
+     "skipIfMissing": true,
+     "target": "patients.btn.ledger-add-quote",
+     "title": "Agregar presupuesto"
+    },
+    {
+     "action": "highlight",
+     "details": "Factura un tratamiento realizado.",
+     "id": "add-treatment",
+     "skipIfMissing": true,
+     "target": "patients.btn.ledger-add-treatment",
+     "title": "Agregar tratamiento"
+    },
+    {
+     "action": "highlight",
+     "id": "add-payment",
+     "skipIfMissing": true,
+     "target": "patients.btn.ledger-add-payment",
+     "title": "Registrar pago"
+    },
+    {
+     "action": "highlight",
+     "details": "Del período que estás viendo.",
+     "id": "print",
+     "skipIfMissing": true,
+     "target": "patients.btn.ledger-print",
+     "title": "Imprimir resumen"
+    },
+    {
+     "action": "highlight",
+     "details": "Facturado, pagado, deuda y saldo disponible.",
+     "id": "summary",
+     "skipIfMissing": true,
+     "target": "patients.section.finance-summary",
+     "title": "Resumen"
+    },
+    {
+     "action": "highlight",
+     "id": "quotes",
+     "skipIfMissing": true,
+     "target": "patients.tab.quotes",
+     "title": "Presupuestos"
+    },
+    {
+     "action": "highlight",
+     "id": "invoices",
+     "skipIfMissing": true,
+     "target": "patients.tab.invoices",
+     "title": "Facturas"
+    },
+    {
+     "action": "highlight",
+     "id": "payments",
+     "skipIfMissing": true,
+     "target": "patients.tab.payments",
+     "title": "Pagos"
+    }
+   ],
+   "summary": "Finanzas: presupuestos, tratamientos facturados, pagos y saldo; imprimir el resumen o el estado de cuenta.",
+   "title": "Ver la cuenta del paciente"
+  },
+  {
+   "group": "Historia clínica",
+   "id": "patients.history",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "historia clínica",
+    "línea de tiempo",
+    "sesiones anteriores",
+    "imprimir historia",
+    "evolución",
+    "timeline"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "id": "clinical",
+     "target": "patients.tab.clinical",
+     "title": "Historia clínica",
+     "until": "patients.tab.clinical-history"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "target": "patients.tab.clinical-history",
+     "title": "Línea de tiempo",
+     "until": "patients.section.timeline"
+    },
+    {
+     "action": "highlight",
+     "details": "Sesiones clínicas, odontogramas y citas, del más reciente al más antiguo. Tocá un evento para ver el detalle.",
+     "id": "timeline",
+     "target": "patients.section.timeline",
+     "title": "Eventos"
+    },
+    {
+     "action": "highlight",
+     "details": "Por tipo de evento (clínica, odontograma, cita) y por doctor.",
+     "id": "filters",
+     "skipIfMissing": true,
+     "target": "patients.btn.timeline-filters",
+     "title": "Filtrar"
+    },
+    {
+     "action": "highlight",
+     "details": "Imprime la anamnesis y las sesiones clínicas.",
+     "id": "print",
+     "skipIfMissing": true,
+     "target": "patients.btn.timeline-print",
+     "title": "Imprimir historia"
+    },
+    {
+     "action": "highlight",
+     "details": "Agrega una sesión clínica o de odontograma.",
+     "id": "add",
+     "skipIfMissing": true,
+     "target": "patients.btn.timeline-add",
+     "title": "Nueva sesión"
+    }
+   ],
+   "summary": "Línea de tiempo con sesiones clínicas, odontogramas y citas del paciente; filtrar e imprimir.",
+   "title": "Ver la historia clínica"
+  },
+  {
+   "group": "Información",
+   "id": "patients.info-tab",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "pestaña información",
+    "datos personales",
+    "qué hay en información"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Datos personales, notas internas y preferencias.",
+     "id": "tab",
+     "target": "patients.tab.info",
+     "title": "Información",
+     "until": "patients.tab.details"
+    },
+    {
+     "action": "click",
+     "details": "Formulario con nombre, contacto, documento, mutualista, doctor por defecto, dependiente y responsable. Se edita y se guarda acá.",
+     "id": "details",
+     "target": "patients.tab.details",
+     "title": "Datos",
+     "until": "patients.field.name"
+    },
+    {
+     "action": "highlight",
+     "details": "Cambiá lo que necesites y guardá con «Guardar cambios».",
+     "id": "form",
+     "target": "patients.field.name",
+     "title": "Datos del paciente"
+    },
+    {
+     "action": "click",
+     "details": "Notas internas para el equipo, no clínicas.",
+     "id": "notes",
+     "skipIfMissing": true,
+     "target": "patients.tab.notes",
+     "title": "Notas",
+     "until": "patients.section.notes"
+    },
+    {
+     "action": "highlight",
+     "details": "«Editar» para escribir; se guardan con «Guardar».",
+     "id": "notes-body",
+     "skipIfMissing": true,
+     "target": "patients.section.notes",
+     "title": "Notas del paciente"
+    },
+    {
+     "action": "click",
+     "details": "Avisos que recibe, vista de finanzas y agenda.",
+     "id": "prefs",
+     "skipIfMissing": true,
+     "target": "patients.tab.preferences",
+     "title": "Preferencias",
+     "until": "patients.section.finance-view"
+    },
+    {
+     "action": "highlight",
+     "details": "Normal o Personalizado. Se guarda al tocarla.",
+     "id": "prefs-body",
+     "skipIfMissing": true,
+     "target": "patients.section.finance-view",
+     "title": "Vista de finanzas"
+    }
+   ],
+   "summary": "Datos, notas y preferencias del paciente, sub-pestaña por sub-pestaña.",
+   "title": "Recorrer la pestaña Información"
+  },
+  {
+   "group": "Finanzas",
+   "id": "patients.invoice",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "factura",
+    "facturar",
+    "emitir factura"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente: clínico, financiero y agenda.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-invoice"
+    },
+    {
+     "action": "click",
+     "details": "Abre la factura con el paciente cargado.",
+     "id": "item",
+     "target": "patients.btn.new-invoice",
+     "title": "Factura",
+     "until": "patients.field.currency"
+    },
+    {
+     "action": "highlight",
+     "id": "date",
+     "skipIfMissing": true,
+     "target": "patients.field.created_at",
+     "title": "Fecha"
+    },
+    {
+     "action": "highlight",
+     "id": "due",
+     "skipIfMissing": true,
+     "target": "patients.field.due_date",
+     "title": "Vencimiento"
+    },
+    {
+     "action": "highlight",
+     "id": "currency",
+     "target": "patients.field.currency",
+     "title": "Moneda"
+    },
+    {
+     "action": "highlight",
+     "id": "sede",
+     "skipIfMissing": true,
+     "target": "patients.field.sede_id",
+     "title": "Sede"
+    },
+    {
+     "action": "confirm",
+     "details": "Queda pendiente de pago en la cuenta del paciente.",
+     "id": "save",
+     "target": "patients.btn.submit",
+     "title": "Guardar la factura"
+    }
+   ],
+   "summary": "Crear → Factura: fecha, vencimiento, moneda, sede y servicios facturados.",
+   "title": "Hacer una factura desde la ficha"
+  },
+  {
+   "group": "Historia clínica",
+   "id": "patients.medical-instruction",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente",
+    "template": "Plantilla de indicación"
+   },
+   "keywords": [
+    "indicación",
+    "indicaciones",
+    "cuidados",
+    "post operatorio",
+    "instrucciones al paciente"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente: clínico, financiero y agenda.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-indication"
+    },
+    {
+     "action": "click",
+     "details": "Abre Indicaciones y el formulario de nueva indicación.",
+     "id": "item",
+     "target": "patients.btn.new-indication",
+     "title": "Indicación médica",
+     "until": "patients.field.mi-template"
+    },
+    {
+     "action": "highlight",
+     "id": "date",
+     "target": "patients.field.mi-date",
+     "title": "Fecha"
+    },
+    {
+     "action": "highlight",
+     "details": "Opcional: la pieza a la que se refiere.",
+     "id": "tooth",
+     "target": "patients.field.mi-tooth",
+     "title": "Pieza"
+    },
+    {
+     "action": "highlight",
+     "id": "doctor",
+     "target": "patients.field.mi-doctor",
+     "title": "Profesional"
+    },
+    {
+     "action": "fill",
+     "details": "Carga el texto con las variables del paciente ya completas.",
+     "id": "template",
+     "optional": true,
+     "target": "patients.field.mi-template",
+     "title": "Plantilla",
+     "value": "{{values.template}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Editalo libremente. «Actualizar variables» vuelve a cargar los datos del paciente.",
+     "id": "content",
+     "target": "patients.field.mi-content",
+     "title": "Contenido"
+    },
+    {
+     "action": "confirm",
+     "details": "Al guardarla se habilita Imprimir.",
+     "id": "save",
+     "target": "patients.btn.mi-save",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Desde la ficha: Crear → Indicación médica. Texto a partir de una plantilla con los datos del paciente, para imprimir.",
+   "title": "Dar una indicación médica"
+  },
+  {
+   "group": "Información",
+   "id": "patients.notes",
+   "inputs": {
+    "notes": "Texto de la nota",
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "notas",
+    "anotar",
+    "observaciones",
+    "nota del paciente",
+    "comentario"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "id": "info",
+     "skipIfMissing": true,
+     "target": "patients.tab.info",
+     "title": "Información"
+    },
+    {
+     "action": "click",
+     "details": "Texto libre interno; lo ve el equipo, no el paciente.",
+     "id": "tab",
+     "target": "patients.tab.notes",
+     "title": "Notas",
+     "until": "patients.section.notes"
+    },
+    {
+     "action": "click",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "patients.btn.notes-edit",
+     "title": "Editar notas",
+     "until": "patients.field.notes-text"
+    },
+    {
+     "action": "fill",
+     "id": "text",
+     "optional": true,
+     "target": "patients.field.notes-text",
+     "title": "Escribí la nota",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Guarda la nota. Cancelar descarta lo escrito.",
+     "id": "save",
+     "target": "patients.btn.notes-save",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Notas internas del paciente (no clínicas): preferencias, avisos para recepción.",
+   "title": "Anotar algo en la ficha del paciente"
+  },
+  {
+   "group": "Historia clínica",
+   "id": "patients.odontogram",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "odontograma",
+    "piezas",
+    "dientes",
+    "caries",
+    "estado dental",
+    "carta dental"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente: clínico, financiero y agenda.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-odontogram"
+    },
+    {
+     "action": "click",
+     "details": "Abre el odontograma de una nueva sesión.",
+     "id": "item",
+     "target": "patients.btn.new-odontogram",
+     "title": "Sesión de odontograma",
+     "until": "patients.section.odontogram-create"
+    },
+    {
+     "action": "highlight",
+     "details": "Elegí una condición y tocá la pieza o cara. Al guardar queda como sesión en la línea de tiempo.",
+     "doneOnClose": true,
+     "id": "chart",
+     "target": "patients.section.odontogram-create",
+     "title": "Odontograma"
+    }
+   ],
+   "summary": "Desde la ficha: Crear → Sesión de odontograma, para marcar el estado de cada pieza.",
+   "title": "Registrar un odontograma"
+  },
+  {
+   "group": "Listado y alta",
+   "id": "patients.overview",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "ficha del paciente",
+    "ver paciente",
+    "datos del paciente",
+    "historia del paciente",
+    "perfil del paciente"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "highlight",
+     "details": "Nombre, estado (activo, de alta) y, si es dependiente, quién es su responsable.",
+     "id": "header",
+     "target": "patients.section.header",
+     "title": "Encabezado"
+    },
+    {
+     "action": "highlight",
+     "details": "Aparece si tiene alergias o padecimientos cargados en la anamnesis. Tocalo para verlos.",
+     "id": "alerts",
+     "skipIfMissing": true,
+     "target": "patients.btn.alerts",
+     "title": "Alertas clínicas"
+    },
+    {
+     "action": "highlight",
+     "details": "Edad, documento, teléfono y correo (o los del responsable si es dependiente).",
+     "id": "contact",
+     "target": "patients.section.contact",
+     "title": "Contacto"
+    },
+    {
+     "action": "highlight",
+     "details": "Sesión clínica, odontograma, indicación, receta, documento, cobro rápido, presupuesto, factura, prepago o cita.",
+     "id": "create",
+     "skipIfMissing": true,
+     "target": "patients.btn.create-menu",
+     "title": "Crear"
+    },
+    {
+     "action": "highlight",
+     "details": "Email, WhatsApp, recordatorio, dar de alta, activar/desactivar y preferencias.",
+     "id": "more",
+     "skipIfMissing": true,
+     "target": "patients.btn.more-menu",
+     "title": "Más acciones"
+    },
+    {
+     "action": "click",
+     "details": "Datos personales, notas y preferencias del paciente.",
+     "id": "info",
+     "skipIfMissing": true,
+     "target": "patients.tab.info",
+     "title": "Información"
+    },
+    {
+     "action": "click",
+     "details": "Anamnesis, línea de tiempo, planes de tratamiento, indicaciones y documentos.",
+     "id": "clinical",
+     "skipIfMissing": true,
+     "target": "patients.tab.clinical",
+     "title": "Historia clínica"
+    },
+    {
+     "action": "click",
+     "details": "Presupuestos, tratamientos facturados, pagos y saldo.",
+     "id": "financial",
+     "skipIfMissing": true,
+     "target": "patients.tab.financial",
+     "title": "Finanzas"
+    }
+   ],
+   "summary": "Qué muestra la ficha: encabezado con alertas clínicas y contacto, acciones, y las pestañas Información, Historia clínica y Finanzas.",
+   "title": "Recorrer la ficha del paciente"
+  },
+  {
+   "group": "Información",
+   "id": "patients.preferences",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "preferencias",
+    "notificaciones del paciente",
+    "no enviar recordatorios",
+    "vista de finanzas",
+    "preferencias de agenda"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Comunicación, estado del paciente y preferencias.",
+     "id": "menu",
+     "target": "patients.btn.more-menu",
+     "title": "Más acciones",
+     "until": "patients.btn.preferences"
+    },
+    {
+     "action": "click",
+     "details": "Abre Información → Preferencias.",
+     "id": "item",
+     "skipIfMissing": true,
+     "target": "patients.btn.preferences",
+     "title": "Preferencias",
+     "until": "patients.section.finance-view"
+    },
+    {
+     "action": "highlight",
+     "details": "Normal: presupuestos, facturas y pagos en pestañas. Personalizado: una sola cuenta corriente. Se guarda al tocarla.",
+     "id": "finance",
+     "skipIfMissing": true,
+     "target": "patients.section.finance-view",
+     "title": "Vista de finanzas"
+    },
+    {
+     "action": "highlight",
+     "details": "Preferencias de agenda de este paciente.",
+     "id": "calendar",
+     "skipIfMissing": true,
+     "target": "patients.section.calendar-prefs",
+     "title": "Agenda"
+    }
+   ],
+   "summary": "Avisos que recibe, cómo se ve su sección de Finanzas y sus preferencias de agenda.",
+   "title": "Preferencias del paciente"
+  },
+  {
+   "group": "Finanzas",
+   "id": "patients.prepaid",
+   "inputs": {
+    "amount": "Monto",
+    "notes": "Notas",
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "prepago",
+    "seña",
+    "pago a cuenta",
+    "anticipo",
+    "adelanto"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente: clínico, financiero y agenda.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-prepaid"
+    },
+    {
+     "action": "click",
+     "details": "Abre el registro de prepago. Necesita la caja abierta.",
+     "id": "item",
+     "target": "patients.btn.new-prepaid",
+     "title": "Prepago",
+     "until": "patients.field.payment_amount"
+    },
+    {
+     "action": "fill",
+     "id": "amount",
+     "optional": true,
+     "target": "patients.field.payment_amount",
+     "title": "Monto",
+     "value": "{{values.amount}}"
+    },
+    {
+     "action": "highlight",
+     "id": "currency",
+     "target": "patients.field.currency",
+     "title": "Moneda"
+    },
+    {
+     "action": "highlight",
+     "details": "Efectivo suma al arqueo de caja.",
+     "id": "method",
+     "target": "patients.field.payment_method_id",
+     "title": "Medio de pago"
+    },
+    {
+     "action": "fill",
+     "id": "notes",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "patients.field.notes",
+     "title": "Notas",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Queda como saldo a favor del paciente.",
+     "id": "save",
+     "target": "patients.btn.submit",
+     "title": "Guardar el prepago"
+    }
+   ],
+   "summary": "Crear → Prepago: dinero que el paciente deja a cuenta; se usa después para pagar facturas.",
+   "title": "Registrar un prepago"
+  },
+  {
+   "group": "Historia clínica",
+   "id": "patients.prescription",
+   "inputs": {
+    "diagnosis": "Diagnóstico",
+    "dosage": "Dosis",
+    "duration": "Duración en días",
+    "frequency": "Frecuencia",
+    "instructions": "Indicaciones",
+    "medication": "Medicamento",
+    "patient": "Nombre, correo o documento del paciente",
+    "template": "Plantilla"
+   },
+   "keywords": [
+    "receta",
+    "recetar",
+    "prescripción",
+    "medicamento",
+    "indicar medicación"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente: clínico, financiero y agenda.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-prescription"
+    },
+    {
+     "action": "click",
+     "details": "Abre Indicaciones → Recetas y el formulario de receta.",
+     "id": "item",
+     "target": "patients.btn.new-prescription",
+     "title": "Receta médica",
+     "until": "patients.field.rx-diagnosis"
+    },
+    {
+     "action": "fill",
+     "details": "Carga medicamentos e indicaciones habituales.",
+     "id": "template",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "patients.field.rx-template",
+     "title": "Plantilla",
+     "value": "{{values.template}}"
+    },
+    {
+     "action": "fill",
+     "id": "diagnosis",
+     "optional": true,
+     "target": "patients.field.rx-diagnosis",
+     "title": "Diagnóstico",
+     "value": "{{values.diagnosis}}"
+    },
+    {
+     "action": "highlight",
+     "id": "add",
+     "target": "patients.btn.rx-add-medication",
+     "title": "Agregar medicamento",
+     "until": "patients.field.rx-medication"
+    },
+    {
+     "action": "fill",
+     "id": "medication",
+     "target": "patients.field.rx-medication",
+     "title": "Medicamento",
+     "value": "{{values.medication}}"
+    },
+    {
+     "action": "fill",
+     "id": "dosage",
+     "target": "patients.field.rx-dosage",
+     "title": "Dosis",
+     "value": "{{values.dosage}}"
+    },
+    {
+     "action": "fill",
+     "id": "frequency",
+     "target": "patients.field.rx-frequency",
+     "title": "Frecuencia",
+     "value": "{{values.frequency}}"
+    },
+    {
+     "action": "fill",
+     "id": "duration",
+     "optional": true,
+     "target": "patients.field.rx-duration",
+     "title": "Duración (días)",
+     "value": "{{values.duration}}"
+    },
+    {
+     "action": "fill",
+     "id": "instructions",
+     "optional": true,
+     "target": "patients.field.rx-instructions",
+     "title": "Indicaciones",
+     "value": "{{values.instructions}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Después la podés imprimir desde la lista de recetas.",
+     "id": "save",
+     "target": "patients.btn.submit",
+     "title": "Guardar la receta"
+    }
+   ],
+   "summary": "Desde la ficha: Crear → Receta médica. Plantilla, diagnóstico y medicamentos con dosis, frecuencia y duración.",
+   "title": "Hacer una receta"
+  },
+  {
+   "group": "Finanzas",
+   "id": "patients.quick-bill",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "cobro rápido",
+    "cobrar",
+    "cobrar al paciente",
+    "facturar y cobrar"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente: clínico, financiero y agenda.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.quick-bill"
+    },
+    {
+     "action": "click",
+     "details": "Abre el asistente de cobro con este paciente.",
+     "id": "item",
+     "target": "patients.btn.quick-bill",
+     "title": "Cobro rápido",
+     "until": "billing-wizard.section.wizard"
+    },
+    {
+     "action": "highlight",
+     "details": "Elegí qué cobrar (presupuesto, factura pendiente o ítems sueltos), revisá los montos y registrá el pago. Necesita la caja abierta.",
+     "doneOnClose": true,
+     "id": "wizard",
+     "target": "billing-wizard.section.wizard",
+     "title": "Asistente de cobro"
+    }
+   ],
+   "summary": "Crear → Cobro rápido: factura y cobra en un solo paso, con el paciente ya elegido.",
+   "title": "Cobro rápido desde la ficha"
+  },
+  {
+   "group": "Finanzas",
+   "id": "patients.quote",
+   "inputs": {
+    "notes": "Notas del presupuesto",
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "presupuesto",
+    "cotización",
+    "presupuestar",
+    "plan de costos"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente: clínico, financiero y agenda.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-quote"
+    },
+    {
+     "action": "click",
+     "details": "Abre el presupuesto con el paciente cargado.",
+     "id": "item",
+     "target": "patients.btn.new-quote",
+     "title": "Presupuesto",
+     "until": "patients.field.currency"
+    },
+    {
+     "action": "highlight",
+     "id": "date",
+     "skipIfMissing": true,
+     "target": "patients.field.created_at",
+     "title": "Fecha"
+    },
+    {
+     "action": "highlight",
+     "id": "currency",
+     "target": "patients.field.currency",
+     "title": "Moneda"
+    },
+    {
+     "action": "highlight",
+     "details": "Profesional que se propone al agendarle.",
+     "id": "doctor",
+     "skipIfMissing": true,
+     "target": "patients.field.doctor_id",
+     "title": "Doctor"
+    },
+    {
+     "action": "highlight",
+     "id": "sede",
+     "skipIfMissing": true,
+     "target": "patients.field.sede_id",
+     "title": "Sede"
+    },
+    {
+     "action": "fill",
+     "id": "notes",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "patients.field.notes",
+     "title": "Notas",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Agregá los servicios y guardá. Aceptado, genera el plan de tratamiento.",
+     "id": "save",
+     "target": "patients.btn.submit",
+     "title": "Guardar el presupuesto"
+    }
+   ],
+   "summary": "Crear → Presupuesto: fecha, moneda, doctor, sede y servicios del presupuesto.",
+   "title": "Hacer un presupuesto desde la ficha"
+  },
+  {
+   "group": "Listado y alta",
+   "id": "patients.search",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "buscar paciente",
+    "encontrar paciente",
+    "filtrar pacientes",
+    "deudores",
+    "pacientes activos",
+    "pacientes nuevos"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Escribí parte del nombre, el correo o el documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscar",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "click",
+     "details": "Período de alta (todos, hoy, esta semana, este mes) y estado: sólo deudores o sólo activos.",
+     "id": "filters",
+     "target": "patients.btn.filters",
+     "title": "Filtros",
+     "until": "patients.section.filters"
+    },
+    {
+     "action": "highlight",
+     "details": "«Este mes» muestra los pacientes registrados en el mes; «Todos» quita el filtro de fecha.",
+     "id": "period",
+     "skipIfMissing": true,
+     "target": "patients.filter.option-month",
+     "title": "Por fecha de alta"
+    },
+    {
+     "action": "highlight",
+     "details": "Pacientes con saldo pendiente; la lista muestra la deuda de cada uno.",
+     "id": "debtors",
+     "skipIfMissing": true,
+     "target": "patients.filter.option-debtors",
+     "title": "Sólo deudores"
+    },
+    {
+     "action": "highlight",
+     "details": "Oculta a los pacientes desactivados.",
+     "doneOnClose": true,
+     "id": "active",
+     "skipIfMissing": true,
+     "target": "patients.filter.option-active",
+     "title": "Sólo activos"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá un paciente para ver su ficha completa a la derecha.",
+     "id": "row",
+     "target": "patients.section.first-row",
+     "title": "Abrí la ficha",
+     "until": "patients.section.header"
+    }
+   ],
+   "summary": "Buscar por nombre, correo o documento; filtrar por fecha de alta, deudores o sólo activos; abrir la ficha.",
+   "title": "Buscar y filtrar pacientes"
+  },
+  {
+   "group": "Estado del paciente",
+   "id": "patients.toggle-active",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "desactivar paciente",
+    "activar paciente",
+    "dar de baja",
+    "inactivo",
+    "archivar paciente"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Comunicación, estado y preferencias.",
+     "id": "menu",
+     "target": "patients.btn.more-menu",
+     "title": "Más acciones",
+     "until": "patients.btn.toggle-active"
+    },
+    {
+     "action": "confirm",
+     "details": "Se aplica al tocarlo. Su historia y su cuenta se conservan.",
+     "id": "toggle",
+     "target": "patients.btn.toggle-active",
+     "title": "Activar / Desactivar"
+    }
+   ],
+   "summary": "Más acciones → Desactivar (o Activar). Un paciente inactivo no aparece con el filtro «Sólo activos».",
+   "title": "Activar o desactivar un paciente"
+  },
+  {
+   "group": "Historia clínica",
+   "id": "patients.treatment-plans",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "plan de tratamiento",
+    "etapas",
+    "avance del tratamiento",
+    "secuencia",
+    "tratamiento en curso"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "id": "clinical",
+     "target": "patients.tab.clinical",
+     "title": "Historia clínica",
+     "until": "patients.tab.treatment-plans"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "target": "patients.tab.treatment-plans",
+     "title": "Planes de tratamiento",
+     "until": "patients.section.treatment-plans"
+    },
+    {
+     "action": "highlight",
+     "details": "Activos arriba con sus etapas, citas y sesiones; los finalizados, abajo. Los planes salen de los presupuestos aceptados.",
+     "id": "plans",
+     "target": "patients.section.treatment-plans",
+     "title": "Planes"
+    },
+    {
+     "action": "highlight",
+     "id": "historical",
+     "skipIfMissing": true,
+     "target": "patients.btn.plans-historical",
+     "title": "Ver finalizados"
+    }
+   ],
+   "summary": "Clínica → Planes de tratamiento: etapas, avance y citas de cada plan del paciente.",
+   "title": "Ver los planes de tratamiento"
+  },
+  {
+   "group": "Agenda y comunicación",
+   "id": "patients.whatsapp",
+   "inputs": {
+    "message": "Mensaje",
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "whatsapp",
+    "mensaje",
+    "escribir por whatsapp",
+    "contactar"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Comunicación, estado del paciente y preferencias.",
+     "id": "menu",
+     "target": "patients.btn.more-menu",
+     "title": "Más acciones",
+     "until": "patients.btn.whatsapp"
+    },
+    {
+     "action": "click",
+     "details": "Sólo aparece si el paciente (o su responsable) tiene teléfono.",
+     "id": "item",
+     "skipIfMissing": true,
+     "target": "patients.btn.whatsapp",
+     "title": "WhatsApp",
+     "until": "patients.field.whatsapp-message"
+    },
+    {
+     "action": "highlight",
+     "details": "El del paciente o el de su responsable.",
+     "id": "phone",
+     "target": "patients.field.whatsapp-phone",
+     "title": "Teléfono"
+    },
+    {
+     "action": "fill",
+     "id": "message",
+     "optional": true,
+     "target": "patients.field.whatsapp-message",
+     "title": "Mensaje",
+     "value": "{{values.message}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Abre WhatsApp Web o la app con el mensaje listo para enviar.",
+     "id": "open",
+     "target": "patients.btn.whatsapp-open",
+     "title": "Abrir WhatsApp"
+    }
+   ],
+   "summary": "Más acciones → WhatsApp: abre WhatsApp con el número del paciente y tu mensaje.",
+   "title": "Escribirle por WhatsApp"
+  },
+  {
+   "group": "Agenda y comunicación",
+   "id": "patients.whatsapp-reminder",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "recordatorio",
+    "plantilla de whatsapp",
+    "recordar cita",
+    "felicitar cumpleaños",
+    "vencimiento de factura"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Comunicación, estado del paciente y preferencias.",
+     "id": "menu",
+     "target": "patients.btn.more-menu",
+     "title": "Más acciones",
+     "until": "patients.btn.whatsapp-reminder"
+    },
+    {
+     "action": "click",
+     "details": "Requiere WhatsApp conectado en la clínica.",
+     "id": "item",
+     "skipIfMissing": true,
+     "target": "patients.btn.whatsapp-reminder",
+     "title": "Enviar recordatorio",
+     "until": "patients.field.whatsapp-template"
+    },
+    {
+     "action": "highlight",
+     "details": "Cumpleaños, recordatorio de cita (elegís la cita) o factura por vencer (elegís la factura).",
+     "id": "template",
+     "target": "patients.field.whatsapp-template",
+     "title": "Plantilla"
+    },
+    {
+     "action": "confirm",
+     "details": "Se envía al tocarlo y queda en el historial de comunicaciones.",
+     "id": "send",
+     "target": "patients.btn.whatsapp-template-send",
+     "title": "Enviar"
+    }
+   ],
+   "summary": "Más acciones → Enviar recordatorio: plantilla aprobada de cumpleaños, recordatorio de cita o vencimiento de factura.",
+   "title": "Enviar un recordatorio por WhatsApp"
   },
   {
    "id": "workspace.agent",

@@ -83,6 +83,9 @@ tiene que quedar cubierta entera:
   Con `@start` (`cash-session-open@start`) se usa el estado de cuando arrancó la guía: así
   "Abrir la caja" con la caja abierta guía primero el cierre completo y después la apertura.
   Los pasos que no aplican desde el arranque quedan `na`: no se cuentan ni se listan.
+- `group` (en la guía, no en el paso): pantallas con muchas funciones (la ficha del
+  paciente) agrupan sus guías por pestaña; «¿Qué es esto?» las muestra bajo ese título, en
+  el orden de `useCases` de la ficha. Cada grupo empieza con un recorrido de la pestaña.
 - Tablas (`DataTable`): la primera fila es `<scope>.section.first-row` (la más reciente o la
   primera del orden) y el resto `<scope>.section.row`; para mostrar "el registro más cercano".
 - Componentes compartidos entre pantallas (filtros de período, diálogos de sesión clínica,

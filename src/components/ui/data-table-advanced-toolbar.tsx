@@ -130,6 +130,7 @@ export function DataTableAdvancedToolbar<TData>({
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
+                                data-help-id={composeHelpId(helpScope, 'btn', 'filters')}
                                 variant="ghost"
                                 size="sm"
                                 className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
@@ -138,7 +139,7 @@ export function DataTableAdvancedToolbar<TData>({
                                 <SlidersHorizontal className="h-3.5 w-3.5" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[200px] z-50">
+                        <DropdownMenuContent data-help-id={composeHelpId(helpScope, 'section', 'filters')} align="end" className="w-[200px] z-50">
                             <DropdownMenuLabel className="text-xs">{t('advancedFilters') || 'Advanced Filters'}</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             {Object.entries(groupedFilters).map(([group, groupFilters], index) => (
@@ -154,6 +155,7 @@ export function DataTableAdvancedToolbar<TData>({
                                     {groupFilters.map((filter) => (
                                         <DropdownMenuItem
                                             key={filter.value}
+                                            data-help-id={composeHelpId(helpScope, 'filter', `option-${filter.value}`)}
                                             className="flex items-center justify-between text-sm py-1.5"
                                             onSelect={(e) => {
                                                 e.preventDefault();

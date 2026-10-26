@@ -1,0 +1,131 @@
+{
+  "id": "patients.finance",
+  "title": "Ver la cuenta del paciente",
+  "module": "Pacientes",
+  "summary": "Finanzas: presupuestos, tratamientos facturados, pagos y saldo; imprimir el resumen o el estado de cuenta.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Finanzas",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "cuenta del paciente",
+    "saldo",
+    "deuda",
+    "estado de cuenta",
+    "pagos del paciente",
+    "facturas del paciente",
+    "cuenta corriente"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "patients.tab.financial",
+      "title": "Finanzas"
+    },
+    {
+      "id": "toolbar",
+      "action": "highlight",
+      "target": "patients.section.ledger-toolbar",
+      "title": "Período y moneda",
+      "details": "Filtrá por período, buscá un documento y elegí la moneda.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "ledger",
+      "action": "highlight",
+      "target": "patients.section.ledger",
+      "title": "Cuenta corriente",
+      "details": "Cada presupuesto, tratamiento y pago con su saldo. Tocá una fila para facturarla, cobrarla, imprimirla o enviarla.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "add-quote",
+      "action": "highlight",
+      "target": "patients.btn.ledger-add-quote",
+      "title": "Agregar presupuesto",
+      "skipIfMissing": true
+    },
+    {
+      "id": "add-treatment",
+      "action": "highlight",
+      "target": "patients.btn.ledger-add-treatment",
+      "title": "Agregar tratamiento",
+      "details": "Factura un tratamiento realizado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "add-payment",
+      "action": "highlight",
+      "target": "patients.btn.ledger-add-payment",
+      "title": "Registrar pago",
+      "skipIfMissing": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "patients.btn.ledger-print",
+      "title": "Imprimir resumen",
+      "details": "Del período que estás viendo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "summary",
+      "action": "highlight",
+      "target": "patients.section.finance-summary",
+      "title": "Resumen",
+      "details": "Facturado, pagado, deuda y saldo disponible.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "quotes",
+      "action": "highlight",
+      "target": "patients.tab.quotes",
+      "title": "Presupuestos",
+      "skipIfMissing": true
+    },
+    {
+      "id": "invoices",
+      "action": "highlight",
+      "target": "patients.tab.invoices",
+      "title": "Facturas",
+      "skipIfMissing": true
+    },
+    {
+      "id": "payments",
+      "action": "highlight",
+      "target": "patients.tab.payments",
+      "title": "Pagos",
+      "skipIfMissing": true
+    }
+  ]
+}
