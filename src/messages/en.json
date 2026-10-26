@@ -1310,7 +1310,51 @@
       "title": "Treatment Plan",
       "stepRef": "Plan step #{id}"
     },
-    "importedFromGoogle": "Imported from Google Calendar"
+    "importedFromGoogle": "Imported from Google Calendar",
+    "enableSlot": {
+      "menuItem": "Enable hours…",
+      "title": "Enable hours",
+      "description": "{date} · {scope}",
+      "thisBranch": "This branch",
+      "allBranches": "All branches",
+      "startTime": "From",
+      "endTime": "To",
+      "notes": "Reason (optional)",
+      "notesPlaceholder": "E.g. extended hours for a surgery",
+      "defaultNote": "Enabled from the calendar",
+      "resultingHours": "Open hours that day: {hours}",
+      "alreadyOpen": "Those hours are already open. Pick a time outside the schedule.",
+      "hint": "Only this day changes. It's saved as an exception schedule, which you can review or remove in Settings → Exception schedules.",
+      "cancel": "Cancel",
+      "confirm": "Enable",
+      "successTitle": "Hours enabled",
+      "successDescription": "Open hours that day: {hours}",
+      "partialError": "Only {saved} of {total} changes were applied. Check the day in Exception schedules.",
+      "validation": {
+        "time": "Enter a valid time",
+        "endAfterStart": "The end must be after the start"
+      },
+      "unnamedClosure": "Closure without a note",
+      "closedAllDay": "closed all day",
+      "nothingEditable": "Those hours stay closed by closures that can't be changed from here.",
+      "missingPermission": "You don't have permission to make every change on Exception schedules this needs.",
+      "changes": {
+        "title": "What will change",
+        "liftClosure": "The closure “{name}” is removed.",
+        "trimClosure": "The closure “{name}” now covers only {hours}.",
+        "removeDate": "This day is removed from the closure “{name}” (it stays on {count, plural, one {# other date} other {# other dates}}).",
+        "removeDatePartial": "This day is removed from the closure “{name}” (it stays on {count, plural, one {# other date} other {# other dates}}); {hours} stays closed today.",
+        "extendHours": "The day's hours are extended.",
+        "closedOutsideHours": "The closure “{name}” now only covers time outside the day's hours.",
+        "removeDateOutsideHours": "This day is removed from the closure “{name}” (it stays on {count, plural, one {# other date} other {# other dates}}); today it only stays closed outside the day's hours."
+      },
+      "locked": {
+        "title": "These closures can't be changed from the calendar:",
+        "recurring": "“{name}” repeats on other dates.",
+        "otherScope": "“{name}” applies to another branch scope (e.g. all branches).",
+        "link": "Open Exception schedules"
+      }
+    }
   },
   "PrintScheduleDialog": {
     "title": "Export schedule to Excel",

@@ -1310,7 +1310,51 @@
       "title": "Plan de Tratamiento",
       "stepRef": "Paso del plan #{id}"
     },
-    "importedFromGoogle": "Importado de Google Calendar"
+    "importedFromGoogle": "Importado de Google Calendar",
+    "enableSlot": {
+      "menuItem": "Habilitar horario…",
+      "title": "Habilitar horario",
+      "description": "{date} · {scope}",
+      "thisBranch": "Esta sede",
+      "allBranches": "Todas las sedes",
+      "startTime": "Desde",
+      "endTime": "Hasta",
+      "notes": "Motivo (opcional)",
+      "notesPlaceholder": "Ej.: horario extendido por cirugía",
+      "defaultNote": "Habilitado desde el calendario",
+      "resultingHours": "Horario de atención ese día: {hours}",
+      "alreadyOpen": "Ese horario ya está habilitado. Elegí un rango fuera del horario.",
+      "hint": "Solo cambia este día. Se guarda como horario de excepción, que podés revisar o quitar en Configuración → Horarios de excepción.",
+      "cancel": "Cancelar",
+      "confirm": "Habilitar",
+      "successTitle": "Horario habilitado",
+      "successDescription": "Horario de atención ese día: {hours}",
+      "partialError": "Solo se aplicaron {saved} de {total} cambios. Revisá el día en Horarios de excepción.",
+      "validation": {
+        "time": "Ingresá una hora válida",
+        "endAfterStart": "El fin tiene que ser posterior al inicio"
+      },
+      "unnamedClosure": "Cierre sin nota",
+      "closedAllDay": "cerrado todo el día",
+      "nothingEditable": "Ese horario sigue cerrado por cierres que no se pueden cambiar desde acá.",
+      "missingPermission": "No tenés permiso para hacer todos los cambios en Horarios de excepción que hacen falta.",
+      "changes": {
+        "title": "Qué va a cambiar",
+        "liftClosure": "Se quita el cierre «{name}».",
+        "trimClosure": "El cierre «{name}» queda solo en {hours}.",
+        "removeDate": "Se quita este día del cierre «{name}» (sigue en {count, plural, one {# fecha más} other {# fechas más}}).",
+        "removeDatePartial": "Se quita este día del cierre «{name}» (sigue en {count, plural, one {# fecha más} other {# fechas más}}); hoy queda cerrado {hours}.",
+        "extendHours": "Se amplía el horario de atención del día.",
+        "closedOutsideHours": "El cierre «{name}» queda solo fuera del horario de atención.",
+        "removeDateOutsideHours": "Se quita este día del cierre «{name}» (sigue en {count, plural, one {# fecha más} other {# fechas más}}); hoy queda cerrado solo fuera del horario de atención."
+      },
+      "locked": {
+        "title": "Estos cierres no se pueden cambiar desde el calendario:",
+        "recurring": "«{name}» se repite en otras fechas.",
+        "otherScope": "«{name}» aplica a otro alcance de sedes (por ejemplo, todas las sedes).",
+        "link": "Abrir Horarios de excepción"
+      }
+    }
   },
   "PrintScheduleDialog": {
     "title": "Exportar agenda a Excel",
