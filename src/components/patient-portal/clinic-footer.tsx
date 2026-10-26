@@ -10,9 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 
-import { INVOKEIA_LOGO } from '@/components/patient-portal/invokeia-logo';
-
 import { API_ROUTES } from '@/constants/routes';
+import { INVOKEIA_LOGO } from '@/lib/brand';
 import type { PublicClinicInfo, PublicClinicSchedule, PublicSede } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { getWebhookBaseUrl } from '@/lib/runtime-config';

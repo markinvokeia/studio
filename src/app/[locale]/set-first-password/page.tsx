@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { INVOKEIA_LOGO } from '@/lib/brand';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Check, Globe, Loader2, Moon, Sun } from 'lucide-react';
@@ -198,7 +199,7 @@ export default function SetFirstPasswordPage() {
             <Card className="w-full max-w-sm">
                 <CardHeader className="text-center">
                     <Image
-                        src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp"
+                        src={INVOKEIA_LOGO}
                         width={80}
                         height={80}
                         alt="InvokeIA Logo"

@@ -25,6 +25,7 @@ import { UyFlagIcon } from '@/components/icons/uy-flag-icon';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { INVOKEIA_LOGO } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 
@@ -247,7 +248,7 @@ export default function LoginPage() {
         <Card className="my-auto w-full max-w-sm shadow-2xl">
           <CardHeader className="text-center">
             <Image
-              src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp"
+              src={INVOKEIA_LOGO}
               width={80}
               height={80}
               alt="InvokeIA Logo"

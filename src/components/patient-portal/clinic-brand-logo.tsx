@@ -3,8 +3,7 @@
 import Image from 'next/image';
 import * as React from 'react';
 
-import { INVOKEIA_LOGO } from '@/components/patient-portal/invokeia-logo';
-
+import { INVOKEIA_LOGO } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 import { fetchPublicClinicInfo } from '@/services/public-clinic';
 

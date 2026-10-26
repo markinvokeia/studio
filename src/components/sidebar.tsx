@@ -43,6 +43,7 @@ import { useTableDensity } from '@/hooks/use-table-density';
 import { useToast } from '@/hooks/use-toast';
 import { usePatientPortal } from '@/hooks/usePatientPortal';
 import { usePermissions } from '@/hooks/usePermissions';
+import { INVOKEIA_LOGO } from '@/lib/brand';
 import { rememberLocale } from '@/lib/locale';
 import { filterNavByPermissions } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
@@ -186,7 +187,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
         <aside className="fixed inset-y-0 left-0 z-[20] hidden sm:flex h-screen w-20 flex-col bg-[var(--nav-bg)] shadow-[2px_0_12px_rgba(0,0,0,0.15)] transition-all">
             <div className="flex h-14 items-center justify-center mb-2 mt-2 shrink-0">
                 <Link href={`/${locale}`} className="transition-transform hover:scale-110">
-                    <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={44} height={44} alt="InvokeIA Logo" priority />
+                    <Image src={INVOKEIA_LOGO} width={44} height={44} alt="InvokeIA Logo" priority />
                 </Link>
             </div>
             <TooltipProvider>
@@ -617,7 +618,7 @@ function MobileNav() {
                 {/* Logo — centered */}
                 <Link href={`/${locale}`} className="flex-1 flex items-center justify-center gap-2">
                     <Image
-                        src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp"
+                        src={INVOKEIA_LOGO}
                         width={28}
                         height={28}
                         alt=""
@@ -640,7 +641,7 @@ function MobileNav() {
                         {/* Header */}
                         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--nav-border)] shrink-0">
                             <Link href={`/${locale}`} onClick={() => setIsOpen(false)}>
-                                <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={36} height={36} alt="InvokeIA Logo" />
+                                <Image src={INVOKEIA_LOGO} width={36} height={36} alt="InvokeIA Logo" />
                             </Link>
                             <button
                                 type="button"

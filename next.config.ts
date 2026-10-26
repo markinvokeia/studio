@@ -27,12 +27,6 @@ const nextConfig: any = {
       },
       {
         protocol: 'https',
-        hostname: 'www.invokeia.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
         hostname: 'www.brou.com.uy',
         port: '',
         pathname: '/**',
