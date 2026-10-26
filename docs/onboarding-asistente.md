@@ -215,6 +215,35 @@ Pasos especiales (ver la skill `help-catalog`):
   dato el paso se salta y el siguiente pide elegir.
 - `click` pulsa como una persona (pointerdown → mousedown → pointerup → mouseup →
   click): los menús de Radix abren en pointerdown.
+- `fill` en selectores con lista (profesional, consultorio, servicios, paciente):
+  abre la lista y elige por texto; si no está a la vista y la lista tiene buscador
+  (pacientes, búsqueda en el servidor) escribe lo dictado y espera los resultados.
+  En fechas con máscara pasa `AAAA-MM-DD` a `dd/mm/aaaa` y confirma al salir del campo.
+  Sólo cierra la lista con Escape si sigue abierta: un Escape de más le llega a la
+  tarjeta o al diálogo, que preguntan "¿Descartar cambios?".
+- Mientras guía, la mascota no captura clics (`interactive={false}`): clic derecho y
+  arrastre llegan a la pantalla aunque esté encima del elemento.
+- Una opción dentro de un menú (contextual, select) se señala desde afuera del menú, y
+  la barra y la lista de pasos se ubican alrededor del menú entero.
+
+Cobertura por pantalla (todas probadas en la app real, sin guardar en DEV):
+- **Panel de Control**: `dashboard.overview`, `dashboard.filters`.
+- **Citas** (`/appointments`): agendar (botón Crear, en un horario libre, desde un
+  hueco), cambiar estado, cancelar con motivo, editar, mover / duración, cambiar
+  profesional o consultorio, eliminar, ver la ficha del paciente desde la cita,
+  buscar una cita, recordatorios y notas, moverse por la agenda, reasignar en lote.
+  También la vista por defecto (modo, vista, agrupación, sede, tamaño, slots, formato,
+  días ocultos, color por estado) y las reglas al agendar, en Ajustes de la agenda.
+- **Mi Consultorio** (`/workspace`): usar la pantalla, ver otro día/período/calendario,
+  completar la sesión clínica, recetar, odontograma y agente clínico con IA.
+- **Centro de Alertas** (`/alerts`): usar la pantalla, filtrar, registrar llamada,
+  pausar, ignorar, agregar nota, WhatsApp, correo, marcar resueltas y trabajar en lote.
+  Las acciones que se ejecutan al tocarlas (WhatsApp, completar) son `confirm`: la guía
+  sólo las señala y explica.
+
+Más reglas de ubicación: un botón que se repite en varias filas (acciones por alerta o
+por cita) se señala en una fila donde esté habilitado; dentro de un diálogo, si la lista
+de pasos taparía sus otros campos, va al costado del diálogo.
 
 Ubicación (`src/lib/help/placement.ts`, todo `position: fixed`, sin tocar el
 layout): la barra va abajo del elemento, si no arriba; la mascota va arriba

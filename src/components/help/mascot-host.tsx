@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { waitForHelpTarget } from '@/lib/help/guide-engine';
 import { stopGuide } from '@/lib/help/guide-runner';
-import { MASCOT_SIZE, placeGuideMascot } from '@/lib/help/placement';
+import { MASCOT_SIZE, menuRectOf, placeGuideMascot, placeGuideMascotBesideMenu, rectOf } from '@/lib/help/placement';
 import { useHelpAssistant } from '@/stores/help-assistant-store';
 
 import { HELP_PERMISSIONS } from '@/constants/permissions';
@@ -106,6 +106,8 @@ export function MascotHost({ children }: { children: React.ReactNode }) {
       onHomeChange={setHome}
       // El globo de cada paso no tapa la barra de pasos.
       bubbleAvoid="[data-help-bubble],[data-help-steps]"
+      // Mientras señala no tiene que robar el clic (ni el clic derecho ni el arrastre) a la pantalla.
+      interactive={!guiding}
     >
       {children}
       {canUse && <MascotBridge />}
@@ -175,7 +177,12 @@ function MascotBridge() {
       // Un frame para que la barra de pasos ya estén ubicados (son obstáculos).
       await new Promise((r) => requestAnimationFrame(() => r(null)));
       if (signal.aborted) return;
-      const spot = placeGuideMascot(target.highlight.getBoundingClientRect(), MASCOT_SIZE);
+      const rect = target.highlight.getBoundingClientRect();
+      const menu = menuRectOf(target.highlight);
+      // Una opción de un menú se señala desde afuera del menú, sin tapar las otras opciones.
+      const spot = menu
+        ? placeGuideMascotBesideMenu(rect, menu, MASCOT_SIZE, [rectOf('[data-help-bubble]'), rectOf('[data-help-steps]')].filter((r): r is NonNullable<typeof r> => !!r))
+        : placeGuideMascot(rect, MASCOT_SIZE);
       await mRef.current.travelTo(spot, { animation: 'auto', speed: spotlight.mode === 'action' ? 2 : 1.4 });
       if (signal.aborted) return;
       // El texto del paso sale del globo de la propia mascota mientras señala.

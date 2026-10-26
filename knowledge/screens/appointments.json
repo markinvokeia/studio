@@ -1,16 +1,384 @@
 {
   "id": "appointments",
   "status": "draft",
-  "summary": "Agenda de turnos por consultorio y profesional.",
-  "purpose": "Para agendar, mover, confirmar y cancelar turnos. Requiere sedes, horarios, consultorios, profesionales con disponibilidad y servicios.",
+  "summary": "Agenda de citas por consultorio y profesional.",
+  "purpose": "Para agendar, mover, confirmar, cancelar y reasignar citas, buscar horarios libres y dejar recordatorios internos. Cada cita se ve en la agenda de su consultorio; el menú de la cita (clic derecho) concentra los cambios de estado, la edición, los datos del paciente y las reasignaciones. Requiere sedes, horarios, consultorios, profesionales con disponibilidad y servicios.",
   "prerequisites": [
     "config.calendars",
     "config.doctor-availability",
     "sales.services"
   ],
   "tips": [
-    "Arrastrá un turno para cambiarlo de hora o de consultorio.",
-    "Hacé clic en un hueco libre para crear un turno ahí mismo."
+    "Clic derecho sobre una cita abre su menú: estado, editar, eliminar, color, profesional, consultorio, mover a otro día y duración.",
+    "Arrastrá una cita para cambiarla de hora o de consultorio; estirá su borde para cambiar la duración.",
+    "Hacé clic en un horario libre para crear una cita ahí mismo, o clic derecho para crear un recordatorio o una nota.",
+    "Cancelar no es eliminar: una cancelación con su motivo queda en el historial y en los reportes; eliminar es para citas cargadas por error.",
+    "Operaciones en lotes reasigna muchas citas a otro profesional de una sola vez (vacaciones, licencias).",
+    "La vista por defecto, la agrupación, el tamaño de las horas y las reglas al agendar se configuran en Ajustes de la agenda (engranaje); son por usuario y se guardan solas."
   ],
-  "useCases": []
+  "useCases": [
+    "appointments.create",
+    "appointments.create-from-slot",
+    "appointments.change-status",
+    "appointments.cancel",
+    "appointments.edit",
+    "appointments.move",
+    "appointments.reassign",
+    "appointments.delete",
+    "appointments.find-gaps",
+    "appointments.search",
+    "appointments.reminder",
+    "appointments.patient-info",
+    "appointments.navigate",
+    "appointments.bulk-reassign",
+    "onboarding.first-appointment",
+    "appointments.default-view",
+    "appointments.booking-rules"
+  ],
+  "elements": {
+    "appointments.btn.create-menu": {
+      "label": "Crear",
+      "description": "Nueva cita, recordatorio o nota."
+    },
+    "appointments.btn.new-appointment": {
+      "label": "Nueva cita"
+    },
+    "appointments.btn.new-reminder": {
+      "label": "Recordatorio",
+      "description": "Tarea interna visible en la agenda."
+    },
+    "appointments.btn.new-note": {
+      "label": "Nota",
+      "description": "Nota interna silenciosa en la agenda."
+    },
+    "appointments.btn.agendas": {
+      "label": "Agendas",
+      "description": "Panel para elegir qué consultorio ver (modo personalizado)."
+    },
+    "appointments.section.agendas": {
+      "label": "Panel de agendas",
+      "description": "Las agendas agrupadas por sede; el pin deja el panel fijo."
+    },
+    "appointments.btn.today": {
+      "label": "Hoy",
+      "description": "Vuelve al día de hoy."
+    },
+    "appointments.btn.prev": {
+      "label": "Anterior"
+    },
+    "appointments.btn.next": {
+      "label": "Siguiente"
+    },
+    "appointments.btn.date-picker": {
+      "label": "Fecha",
+      "description": "Clic para saltar a un día."
+    },
+    "appointments.btn.view": {
+      "label": "Vista",
+      "description": "Día, varios días, semana, mes o lista."
+    },
+    "appointments.btn.zoom": {
+      "label": "Zoom",
+      "description": "Alto de las franjas horarias."
+    },
+    "appointments.btn.search": {
+      "label": "Buscar cita",
+      "description": "Busca citas de un paciente en todas las fechas."
+    },
+    "appointments.filter.appointments": {
+      "label": "Buscar",
+      "description": "Nombre, teléfono, email o documento del paciente, o título de la cita."
+    },
+    "appointments.btn.gaps": {
+      "label": "Buscar huecos",
+      "description": "Horarios libres de los días visibles."
+    },
+    "appointments.section.gaps": {
+      "label": "Huecos disponibles",
+      "description": "Al elegir uno se abre la cita en ese horario."
+    },
+    "appointments.btn.bulk": {
+      "label": "Operaciones en lotes",
+      "description": "Seleccionar varias citas y reasignarlas."
+    },
+    "appointments.filter.bulk-period": {
+      "label": "Rango de fechas (lotes)"
+    },
+    "appointments.filter.bulk-doctors": {
+      "label": "Profesionales (lotes)"
+    },
+    "appointments.filter.bulk-calendars": {
+      "label": "Consultorios (lotes)"
+    },
+    "appointments.field.bulk-select-all": {
+      "label": "Seleccionar todas"
+    },
+    "appointments.btn.bulk-reassign": {
+      "label": "Reasignar doctor"
+    },
+    "appointments.field.bulk-doctor": {
+      "label": "Profesional nuevo"
+    },
+    "appointments.btn.bulk-confirm": {
+      "label": "Confirmar reasignación"
+    },
+    "appointments.btn.bulk-exit": {
+      "label": "Salir del modo lotes"
+    },
+    "appointments.btn.print": {
+      "label": "Exportar agenda a Excel"
+    },
+    "appointments.btn.refresh": {
+      "label": "Actualizar"
+    },
+    "appointments.btn.settings": {
+      "label": "Ajustes de la agenda",
+      "description": "Horario visible, franjas, forma de crear citas y agrupación."
+    },
+    "appointments.section.calendar": {
+      "label": "Agenda",
+      "description": "Clic en un horario libre para agendar; clic derecho para recordatorio o nota."
+    },
+    "appointments.section.event": {
+      "label": "Cita",
+      "description": "Clic derecho: menú de la cita. Arrastrar: mover. Borde: duración."
+    },
+    "appointments.section.quick-view": {
+      "label": "Tarjeta de la cita",
+      "description": "Resumen con editar e historial."
+    },
+    "appointments.btn.quick-edit": {
+      "label": "Editar"
+    },
+    "appointments.btn.quick-history": {
+      "label": "Historial de la cita"
+    },
+    "appointments.btn.change-status": {
+      "label": "Cambiar estado"
+    },
+    "appointments.btn.status-scheduled": {
+      "label": "Programada"
+    },
+    "appointments.btn.status-confirmed": {
+      "label": "Confirmada",
+      "description": "El paciente avisó que viene."
+    },
+    "appointments.btn.status-arrived": {
+      "label": "Llegó",
+      "description": "Está en la sala de espera."
+    },
+    "appointments.btn.status-in_progress": {
+      "label": "En curso"
+    },
+    "appointments.btn.status-completed": {
+      "label": "Completada"
+    },
+    "appointments.btn.status-arrived_late": {
+      "label": "Llegó tarde"
+    },
+    "appointments.btn.status-no_show": {
+      "label": "No asistió",
+      "description": "No vino ni avisó."
+    },
+    "appointments.btn.status-attended_late": {
+      "label": "Se le atiende tarde"
+    },
+    "appointments.btn.cancel-in_time": {
+      "label": "Cancelada con tiempo"
+    },
+    "appointments.btn.cancel-late": {
+      "label": "Cancelada tarde"
+    },
+    "appointments.btn.cancel-by_doctor": {
+      "label": "Cancelada por el doctor"
+    },
+    "appointments.btn.cancel-menu": {
+      "label": "Cancelar…",
+      "description": "Sin aviso, por la clínica u otro motivo."
+    },
+    "appointments.btn.cancel-no_notice": {
+      "label": "Cancelada sin aviso"
+    },
+    "appointments.btn.cancel-by_clinic": {
+      "label": "Cancelada por la clínica"
+    },
+    "appointments.btn.cancel-other": {
+      "label": "Otro motivo",
+      "description": "Pide una nota."
+    },
+    "appointments.field.cancellation-note": {
+      "label": "Nota de cancelación"
+    },
+    "appointments.btn.cancellation-confirm": {
+      "label": "Confirmar cancelación"
+    },
+    "appointments.btn.edit-appointment": {
+      "label": "Editar cita"
+    },
+    "appointments.btn.delete-appointment": {
+      "label": "Eliminar cita",
+      "description": "Para citas cargadas por error."
+    },
+    "appointments.btn.delete-confirm": {
+      "label": "Confirmar eliminación"
+    },
+    "appointments.btn.change-color": {
+      "label": "Cambiar color"
+    },
+    "appointments.btn.change-doctor": {
+      "label": "Cambiar profesional"
+    },
+    "appointments.btn.change-calendar": {
+      "label": "Cambiar consultorio"
+    },
+    "appointments.btn.move-to": {
+      "label": "Mover a",
+      "description": "Otro día con la misma hora y duración."
+    },
+    "appointments.btn.duration": {
+      "label": "Duración"
+    },
+    "appointments.btn.reschedule": {
+      "label": "Reagendar",
+      "description": "Cancela la cita y crea una nueva con los datos editados."
+    },
+    "appointments.btn.clinic-session": {
+      "label": "Sesión clínica"
+    },
+    "appointments.btn.patient-menu": {
+      "label": "Paciente",
+      "description": "Cuenta, historia, archivos, citas y datos."
+    },
+    "appointments.btn.patient-accounts": {
+      "label": "Estado de cuenta"
+    },
+    "appointments.btn.patient-history": {
+      "label": "Historia clínica"
+    },
+    "appointments.btn.patient-documents": {
+      "label": "Imágenes y archivos"
+    },
+    "appointments.btn.patient-appointments": {
+      "label": "Historial de citas"
+    },
+    "appointments.btn.patient-data": {
+      "label": "Datos del paciente"
+    },
+    "appointments.btn.slot-new-appointment": {
+      "label": "Cita en este horario"
+    },
+    "appointments.btn.slot-new-reminder": {
+      "label": "Recordatorio en este horario"
+    },
+    "appointments.btn.slot-new-note": {
+      "label": "Nota en este horario"
+    },
+    "appointments.field.patient": {
+      "label": "Paciente"
+    },
+    "appointments.field.services": {
+      "label": "Servicio",
+      "description": "Define duración y lo que se factura."
+    },
+    "appointments.field.doctor": {
+      "label": "Profesional"
+    },
+    "appointments.field.calendar": {
+      "label": "Consultorio"
+    },
+    "appointments.field.date": {
+      "label": "Fecha"
+    },
+    "appointments.field.time": {
+      "label": "Hora"
+    },
+    "appointments.field.notes": {
+      "label": "Notas"
+    },
+    "appointments.btn.save": {
+      "label": "Guardar la cita"
+    },
+    "appointments.field.reminder-title": {
+      "label": "Título del recordatorio"
+    },
+    "appointments.field.reminder-description": {
+      "label": "Descripción"
+    },
+    "appointments.field.reminder-date": {
+      "label": "Fecha"
+    },
+    "appointments.field.reminder-time": {
+      "label": "Hora"
+    },
+    "appointments.field.reminder-all-day": {
+      "label": "Todo el día"
+    },
+    "appointments.field.reminder-repeat": {
+      "label": "Repetir"
+    },
+    "appointments.section.search-results": {
+      "label": "Resultados de la búsqueda",
+      "description": "Citas que coinciden, de todas las fechas."
+    },
+    "appointments.section.settings": {
+      "label": "Configuración del Calendario",
+      "description": "Preferencias de la agenda de cada usuario; se guardan solas."
+    },
+    "appointments.field.calendar-mode": {
+      "label": "Vista (Modo)",
+      "description": "Invoke muestra el calendario como siempre. Personalizado muestra una sola agenda a la vez a pantalla completa; usa el botón 'Agendas' (arriba a la izquierda) para elegir cuál ver."
+    },
+    "appointments.field.default-view": {
+      "label": "Vista predeterminada",
+      "description": "Define qué vista se muestra al abrir el calendario (día, semana, mes, agenda…). Cambiarla aplica la vista al instante."
+    },
+    "appointments.field.grouped-by": {
+      "label": "Agrupar por",
+      "description": "Divide el calendario en columnas por doctor o por consultorio. 'Sin agrupar' muestra una sola columna combinada."
+    },
+    "appointments.field.default-sede": {
+      "label": "Sede",
+      "description": "Limita el calendario a los consultorios de una sede. 'Todas las sedes' muestra todos los consultorios."
+    },
+    "appointments.field.hour-height": {
+      "label": "Altura de la hora",
+      "description": "Espacio vertical de cada hora en las vistas de día y semana. Más alto = más separación entre las citas y más visibles los huecos libres entre ellas. El zoom multiplica este valor y la duración del slot lo reparte: abajo se indica cuántos píxeles queda midiendo cada slot."
+    },
+    "appointments.field.slot-duration": {
+      "label": "Duración del slot",
+      "description": "Duración de cada slot (10, 15, 20, 30 min o 1 h). Define cuántos slots entran por hora: cuantos más slots, más finos quedan dentro de la altura de hora configurada. Si quedan muy justos, sube la altura de la hora o el zoom."
+    },
+    "appointments.field.event-label-format": {
+      "label": "Formato de la cita",
+      "description": "Define cómo se compone el texto que se ve en cada cita (hora, paciente, tratamiento, notas)."
+    },
+    "appointments.field.hidden-weekdays": {
+      "label": "Ocultar días",
+      "description": "Oculta los días elegidos como columnas en las vistas de día y semana. Es solo visual, para ganar espacio: no afecta la disponibilidad ni los días en que se pueden agendar citas."
+    },
+    "appointments.field.color-by-status": {
+      "label": "Color por estado",
+      "description": "Las citas muestran su estado con color. Si la cita tiene una etiqueta de color propia o el color de su servicio, lo conserva y el estado aparece como una franja en el borde izquierdo. Si solo hereda el color del doctor o del consultorio, toda la cita se pinta con el color del estado. Algunos estados están configurados para pintar siempre la cita sin importar esta preferencia — ver Configuración → Colores de Calendario."
+    },
+    "appointments.field.check-availability": {
+      "label": "Verificar disponibilidad",
+      "description": "Al crear/editar una cita valida que el horario esté disponible para el doctor o consultorio elegido."
+    },
+    "appointments.field.block-unavailable": {
+      "label": "Bloquear fuera de atención",
+      "description": "Atenúa y bloquea en el calendario los horarios fuera de atención (según horarios y excepciones), impidiendo crear citas ahí."
+    },
+    "appointments.field.filter-doctors-by-service": {
+      "label": "Filtrar doctores por servicio",
+      "description": "Al crear una cita, filtra la lista de doctores para mostrar solo los que prestan el servicio seleccionado."
+    },
+    "appointments.field.inline-appointment-creation": {
+      "label": "Crear cita en el calendario",
+      "description": "Al hacer clic en un slot crea la cita directamente en el calendario con un card, sin abrir el modal. El botón Crear siempre abre el modal."
+    },
+    "appointments.field.inline-draft-live-preview": {
+      "label": "Previsualizar la cita",
+      "description": "La tarjeta de cita inline se abre al lado de la cita, que se ve en el calendario mientras la completás, para ver cómo entra en los huecos. Al cambiar la fecha el calendario se mueve a ese día. Solo en tablet y escritorio."
+    }
+  }
 }

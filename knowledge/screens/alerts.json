@@ -1,13 +1,157 @@
 {
   "id": "alerts",
   "status": "draft",
-  "summary": "Bandeja de alertas operativas: pacientes a contactar, cobros pendientes, turnos sin confirmar.",
-  "purpose": "Reúne lo que el sistema detectó según las reglas de alertas para que el equipo lo trabaje: llamar, mandar WhatsApp o correo, posponer o dar por resuelto.",
+  "summary": "Centro de Alertas: lo que el sistema detectó y el equipo tiene que trabajar.",
+  "purpose": "Reúne las alertas que generan las reglas (citas sin confirmar, cobros pendientes, seguimientos, cumpleaños…) agrupadas por categoría y prioridad, para trabajarlas: avisar por WhatsApp o correo, registrar la llamada, pausar, ignorar, anotar o dar por resueltas, de a una o varias a la vez.",
   "tips": [
     "Las alertas se generan con las reglas de Sistema → Reglas de alertas.",
-    "Asignar una alerta a alguien la saca de la vista del resto del equipo."
+    "Asignar una alerta a alguien la saca de la vista del resto del equipo.",
+    "La franja de color de cada alerta es su prioridad: roja crítica, naranja alta, amarilla media.",
+    "Cada acción (llamada, mensaje, nota) queda en el historial de la alerta.",
+    "Pausar la saca de la bandeja hasta una fecha; ignorar la descarta con un motivo."
   ],
   "prerequisites": [
     "system.alert-rules"
-  ]
+  ],
+  "useCases": [
+    "alerts.overview",
+    "alerts.filter",
+    "alerts.register-call",
+    "alerts.snooze",
+    "alerts.ignore",
+    "alerts.add-note",
+    "alerts.send-whatsapp",
+    "alerts.send-email",
+    "alerts.complete",
+    "alerts.bulk"
+  ],
+  "elements": {
+    "alerts.section.summary": {
+      "label": "Resumen",
+      "description": "Pendientes en total, críticas, altas y medias."
+    },
+    "alerts.btn.refresh": {
+      "label": "Actualizar"
+    },
+    "alerts.btn.filters": {
+      "label": "Filtros"
+    },
+    "alerts.section.filters": {
+      "label": "Filtros"
+    },
+    "alerts.filter.status": {
+      "label": "Estado"
+    },
+    "alerts.filter.priority": {
+      "label": "Prioridad"
+    },
+    "alerts.section.list": {
+      "label": "Alertas diarias"
+    },
+    "alerts.section.category": {
+      "label": "Categoría"
+    },
+    "alerts.field.select-category": {
+      "label": "Seleccionar la categoría"
+    },
+    "alerts.section.alert": {
+      "label": "Alerta"
+    },
+    "alerts.field.select-alert": {
+      "label": "Seleccionar la alerta"
+    },
+    "alerts.btn.view-patient": {
+      "label": "Ver al paciente"
+    },
+    "alerts.btn.send-email": {
+      "label": "Enviar correo"
+    },
+    "alerts.btn.complete": {
+      "label": "Marcar como completada"
+    },
+    "alerts.btn.send-whatsapp": {
+      "label": "Enviar WhatsApp"
+    },
+    "alerts.btn.register-call": {
+      "label": "Registrar llamada"
+    },
+    "alerts.btn.snooze": {
+      "label": "Pausar"
+    },
+    "alerts.btn.ignore": {
+      "label": "Ignorar"
+    },
+    "alerts.btn.add-note": {
+      "label": "Agregar nota"
+    },
+    "alerts.field.ignore-reason": {
+      "label": "Motivo"
+    },
+    "alerts.btn.ignore-confirm": {
+      "label": "Ignorar"
+    },
+    "alerts.field.snooze-date": {
+      "label": "Hasta"
+    },
+    "alerts.btn.snooze-1d": {
+      "label": "1 día"
+    },
+    "alerts.btn.snooze-3d": {
+      "label": "3 días"
+    },
+    "alerts.btn.snooze-1w": {
+      "label": "1 semana"
+    },
+    "alerts.field.snooze-reason": {
+      "label": "Motivo"
+    },
+    "alerts.btn.snooze-confirm": {
+      "label": "Pausar"
+    },
+    "alerts.field.call-date": {
+      "label": "Fecha y hora"
+    },
+    "alerts.field.call-notes": {
+      "label": "Notas"
+    },
+    "alerts.btn.call-confirm": {
+      "label": "Registrar"
+    },
+    "alerts.field.note": {
+      "label": "Nota"
+    },
+    "alerts.btn.note-confirm": {
+      "label": "Agregar"
+    },
+    "alerts.field.email-to": {
+      "label": "Para"
+    },
+    "alerts.field.email-subject": {
+      "label": "Asunto"
+    },
+    "alerts.field.email-body": {
+      "label": "Mensaje"
+    },
+    "alerts.btn.email-send": {
+      "label": "Enviar"
+    },
+    "alerts.section.bulk-bar": {
+      "label": "Barra de acciones"
+    },
+    "alerts.btn.bulk-complete": {
+      "label": "Completar seleccionadas"
+    },
+    "alerts.btn.bulk-email": {
+      "label": "Correo"
+    },
+    "alerts.btn.bulk-snooze": {
+      "label": "Pausar seleccionadas"
+    },
+    "alerts.btn.bulk-whatsapp": {
+      "label": "WhatsApp a seleccionadas"
+    },
+    "alerts.btn.bulk-deselect": {
+      "label": "Deseleccionar"
+    }
+  }
 }

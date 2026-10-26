@@ -5095,6 +5095,7 @@ export default function AppointmentsPage() {
                 {/* Left: selection counter — always visible */}
                 <div className="flex items-center gap-2 shrink-0">
                     <Checkbox
+                        data-help-id="appointments.field.bulk-select-all"
                         checked={bulkSomeSelected ? 'indeterminate' : bulkAllSelected}
                         onCheckedChange={(c) => handleSelectAllVisible(!!c)}
                     />
@@ -5120,7 +5121,7 @@ export default function AppointmentsPage() {
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                     {/* Date preset selector */}
                     <Select value={bulkDatePreset} onValueChange={(v) => setBulkDatePreset(v as AppointmentDatePreset)}>
-                        <SelectTrigger className={cn('h-8 text-xs shrink-0', isBulkToolbarCompact ? 'w-28' : 'w-36')}>
+                        <SelectTrigger data-help-id="appointments.filter.bulk-period" className={cn('h-8 text-xs shrink-0', isBulkToolbarCompact ? 'w-28' : 'w-36')}>
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -5137,7 +5138,7 @@ export default function AppointmentsPage() {
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <PopoverTrigger asChild>
-                                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
+                                    <Button data-help-id="appointments.filter.bulk-doctors" variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
                                         <Users className="h-3.5 w-3.5 shrink-0" />
                                         {!isBulkToolbarCompact && tBulk('doctorFilter')}
                                         {bulkDoctorIds.length > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{bulkDoctorIds.length}</Badge>}
@@ -5180,7 +5181,7 @@ export default function AppointmentsPage() {
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <PopoverTrigger asChild>
-                                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
+                                    <Button data-help-id="appointments.filter.bulk-calendars" variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
                                         <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
                                         {!isBulkToolbarCompact && tBulk('calendarFilter')}
                                         {bulkCalendarIds.length > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{bulkCalendarIds.length}</Badge>}
@@ -5228,7 +5229,7 @@ export default function AppointmentsPage() {
                                 size="sm"
                                 className="h-8 gap-1.5 text-xs"
                                 disabled={bulkSelectedIds.size === 0}
-                                onClick={() => setIsReassignDialogOpen(true)}
+                                data-help-id="appointments.btn.bulk-reassign" onClick={() => setIsReassignDialogOpen(true)}
                             >
                                 <Stethoscope className="h-3.5 w-3.5 shrink-0" />
                                 {!isBulkToolbarCompact && tBulk('reassignDoctor')}
@@ -5238,7 +5239,7 @@ export default function AppointmentsPage() {
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleToggleBulkMode}>
+                            <Button data-help-id="appointments.btn.bulk-exit" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleToggleBulkMode}>
                                 <X className="h-3.5 w-3.5 shrink-0" />
                                 {!isBulkToolbarCompact && tBulk('exitBulkMode')}
                             </Button>
@@ -5842,7 +5843,7 @@ export default function AppointmentsPage() {
                                             size="sm"
                                             className="h-7 shrink-0 gap-1.5"
                                             disabled={bulkSelectedIds.size === 0}
-                                            onClick={() => setIsReassignDialogOpen(true)}
+                                            data-help-id="appointments.btn.bulk-reassign" onClick={() => setIsReassignDialogOpen(true)}
                                         >
                                             <Stethoscope className="h-3.5 w-3.5" />
                                             {breakpoint === 'tablet' && <span className="text-xs">{tBulk('reassignDoctor')}</span>}
@@ -6182,6 +6183,7 @@ export default function AppointmentsPage() {
                     <AlertDialogFooter>
                         <AlertDialogCancel disabled={isSoftDeleting}>{tPanel('deleteCancel')}</AlertDialogCancel>
                         <AlertDialogAction
+                            data-help-id="appointments.btn.delete-confirm"
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             disabled={isSoftDeleting}
                             onClick={(e) => {

@@ -74,6 +74,25 @@ tiene que quedar cubierta entera:
 - `target` con `{{values.x}}` (sólo en pasos `optional`): con el dato (pruebas, videos)
   la guía elige esa opción; sin él el paso se salta y el siguiente le pide a la persona.
 - `skipIfMissing`: el bloque depende de un permiso o de la configuración.
+- `ask: true` (en `fill` opcional): sin dato igual se muestra y espera (preferencias que se
+  explican una por una); sin `ask`, un opcional sin dato se salta.
+- `autoClick: true` (en `highlight` con `until`): con datos (pruebas, videos) la guía pulsa
+  sola (elige la cita, abre el diálogo); con una persona, espera a que lo haga.
+- Componentes compartidos entre pantallas (filtros de período, diálogos de sesión clínica,
+  receta, ajustes de agenda): ids con el scope de la pantalla (`useHelpScope` +
+  `composeHelpId`) y declarados en la ficha de cada pantalla (el extractor no los ve).
+
+### Lo que la guía no puede hacer por la persona
+
+Clic derecho, arrastrar y elegir un registro real los hace la persona: el paso señala
+dónde (`highlight` con `until` del menú o panel que se abre) y no deja avanzar hasta
+que lo hace. Mientras guía, la mascota deja pasar clics, clic derecho y arrastres a la
+pantalla (está encima de lo que señala). Una opción de un menú se señala desde afuera
+del menú, y la barra y la lista de pasos van alrededor del menú entero.
+
+Pantallas con más de un modo (la agenda: modo personalizado con tarjeta flotante y
+modo estándar con panel/diálogo): mismos help ids en los dos (`appointments.field.*`,
+`appointments.btn.save`) y pasos `skipIfMissing` para lo que sólo existe en uno.
 
 ## Al agregar un paso al onboarding
 

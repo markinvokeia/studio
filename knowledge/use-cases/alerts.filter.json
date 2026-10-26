@@ -1,0 +1,58 @@
+{
+  "id": "alerts.filter",
+  "title": "Filtrar alertas por estado y prioridad",
+  "module": "Centro de Alertas",
+  "summary": "Ver sólo las pendientes, las críticas, las completadas o las ignoradas.",
+  "screens": [
+    "alerts"
+  ],
+  "inputs": {
+    "status": "Todos | Pendiente | Completada | Acción Tomada | Ignorada | Suprimida",
+    "priority": "Todos | Baja | Media | Alta | Crítica"
+  },
+  "keywords": [
+    "filtrar",
+    "filtro",
+    "estado",
+    "prioridad",
+    "criticas",
+    "completadas",
+    "ignoradas",
+    "pendientes"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/alerts",
+      "title": "Menú → Centro de Alertas",
+      "details": "Lo que el sistema detectó con las reglas de alertas y el equipo tiene que trabajar."
+    },
+    {
+      "id": "open",
+      "action": "click",
+      "target": "alerts.btn.filters",
+      "title": "Filtros"
+    },
+    {
+      "id": "status",
+      "action": "fill",
+      "target": "alerts.filter.status",
+      "value": "{{values.status}}",
+      "optional": true,
+      "ask": true,
+      "title": "Estado",
+      "details": "Pendiente: sin trabajar. Acción tomada: ya se hizo algo (llamada, mensaje). Completada: resuelta. Ignorada: descartada. Suprimida: la regla dejó de aplicar."
+    },
+    {
+      "id": "priority",
+      "action": "fill",
+      "target": "alerts.filter.priority",
+      "value": "{{values.priority}}",
+      "optional": true,
+      "ask": true,
+      "title": "Prioridad",
+      "details": "Baja, media, alta o crítica, según la regla que generó la alerta."
+    }
+  ]
+}

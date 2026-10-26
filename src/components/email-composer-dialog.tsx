@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { useHelpScope } from '@/components/help/help-scope';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +21,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { useCommunicationTemplates, substituteTokens } from '@/hooks/useCommunicationTemplates';
+import { composeHelpId } from '@/lib/help/help-id';
 import { EMAIL_TEMPLATE_DEFAULTS } from '@/lib/email-template-defaults';
 import { api } from '@/services/api';
 import { cn } from '@/lib/utils';
@@ -72,6 +74,8 @@ export function EmailComposerDialog({
   onSent,
 }: EmailComposerDialogProps) {
   const t = useTranslations('EmailComposerDialog');
+  // Help ids con el scope de la pantalla (alerts.field.email-subject, patients.field.email-subject…).
+  const helpScope = useHelpScope();
   const { toast } = useToast();
 
   const clinic = useClinicInfo();
@@ -203,14 +207,14 @@ export function EmailComposerDialog({
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* To / Subject */}
           <div className="px-4 py-2 space-y-2 shrink-0">
-            <div className="flex items-center gap-2">
+            <div data-help-id={composeHelpId(helpScope, 'field', 'email-to')} className="flex items-center gap-2">
               <Label className="w-14 shrink-0 text-xs text-muted-foreground">{t('to')}</Label>
               <Input value={to} readOnly className="h-8 text-sm bg-muted/50 border-0 px-2" />
             </div>
             {!to && missingToMessage && (
               <p className="text-xs text-destructive pl-16">{missingToMessage}</p>
             )}
-            <div className="flex items-center gap-2">
+            <div data-help-id={composeHelpId(helpScope, 'field', 'email-subject')} className="flex items-center gap-2">
               <Label htmlFor="email-subject" className="w-14 shrink-0 text-xs text-muted-foreground">{t('subject')}</Label>
               <Input
                 id="email-subject"
@@ -256,7 +260,7 @@ export function EmailComposerDialog({
           {/* Editor area */}
           <div className="flex-1 overflow-y-auto px-4 py-2 min-h-0">
             {/* WYSIWYG — kept mounted so the ref stays valid */}
-            <div
+            <div data-help-id={composeHelpId(helpScope, 'field', 'email-body')}
               ref={setEditorRef}
               contentEditable
               suppressContentEditableWarning
@@ -298,7 +302,7 @@ export function EmailComposerDialog({
               <X className="h-4 w-4 mr-1" />
               {t('cancel')}
             </DialogCancelButton>
-            <Button size="sm" onClick={handleSend} disabled={!to || !subject || !userId || isSending}>
+            <Button size="sm" data-help-id={composeHelpId(helpScope, 'btn', 'email-send')} onClick={handleSend} disabled={!to || !subject || !userId || isSending}>
               <Send className="h-4 w-4 mr-1" />
               {isSending ? t('sending') : t('send')}
             </Button>

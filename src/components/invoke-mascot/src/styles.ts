@@ -87,6 +87,8 @@ export const MASCOT_CSS = `
 .ivm-hit{all:unset;display:block;cursor:pointer;border-radius:40%;pointer-events:auto;-webkit-tap-highlight-color:transparent}
 .ivm-hit:focus-visible{outline:3px solid #7C3AED;outline-offset:4px}
 .ivm-hidden{visibility:hidden}
+/* no interactiva (guiando): clics, clic derecho y arrastres pasan a la pantalla */
+.ivm-passthrough .ivm-hit,.ivm-passthrough .ivm-bubble{pointer-events:none}
 
 /* burbuja de diálogo */
 .ivm-bubble{position:absolute;bottom:calc(100% - 6px);width:max-content;max-width:240px;box-sizing:border-box;background:#7C3AED;color:#fff;font:500 14px/1.45 Poppins,'Segoe UI',system-ui,sans-serif;padding:10px 14px;border-radius:16px;box-shadow:0 10px 28px rgba(60,20,90,.25);pointer-events:auto;animation:ivm-bubble-in .3s cubic-bezier(.34,1.56,.64,1)}

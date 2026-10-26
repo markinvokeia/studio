@@ -84,6 +84,30 @@ export function rectOf(selector: string): Rect | null {
  * costado; si no, abajo. Hacia el extremo derecho del elemento (el texto de los
  * campos está a la izquierda) y sin pisar la barra de pasos.
  */
+/**
+ * Menú o lista que contiene al elemento (una opción de un menú contextual, de un
+ * select): la mascota, la barra y la lista de pasos se ubican alrededor del menú
+ * entero para no tapar las otras opciones.
+ */
+export function menuRectOf(el: Element): Rect | null {
+  const menu = el.closest('[role="menu"], [role="listbox"], [data-radix-popper-content-wrapper]');
+  if (!menu) return null;
+  const r = menu.getBoundingClientRect();
+  return r.height > el.getBoundingClientRect().height + 4 ? toRect(r) : null;
+}
+
+/** Dónde se para la mascota para señalar una opción de un menú: al costado del menú, a la altura de la opción. */
+export function placeGuideMascotBesideMenu(target: DOMRect | Rect, menu: Rect, size: number, obstacles: Rect[] = []): { x: number; y: number } {
+  const midY = target.top + target.height / 2 - size / 2;
+  const gap = 4;
+  const { rect } = pickPlacement([
+    { rect: { width: size, height: size, top: midY, left: menu.left + menu.width + gap } },
+    { rect: { width: size, height: size, top: midY, left: menu.left - size - gap } },
+    { rect: { width: size, height: size, top: menu.top - size - gap, left: menu.left + menu.width - size } },
+  ], obstacles);
+  return { x: rect.left + size / 2, y: rect.top + size / 2 };
+}
+
 export function placeGuideMascot(
   target: DOMRect | Rect,
   size: number,

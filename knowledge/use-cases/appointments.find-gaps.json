@@ -1,0 +1,90 @@
+{
+  "id": "appointments.find-gaps",
+  "title": "Buscar un horario libre",
+  "module": "Agenda",
+  "summary": "Ver los huecos libres de los días visibles y agendar en uno.",
+  "screens": [
+    "appointments"
+  ],
+  "inputs": {
+    "patient": "Nombre del paciente",
+    "service": "Nombre del servicio",
+    "doctor": "Nombre del profesional",
+    "notes": "Nota interna"
+  },
+  "keywords": [
+    "hueco",
+    "huecos",
+    "horario libre",
+    "disponibilidad",
+    "lugar",
+    "cuando hay lugar",
+    "espacio"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/appointments",
+      "title": "Menú → Citas",
+      "details": "La agenda muestra las citas por consultorio y profesional."
+    },
+    {
+      "id": "gaps",
+      "action": "click",
+      "target": "appointments.btn.gaps",
+      "title": "Buscar huecos",
+      "details": "Calcula los espacios libres según los horarios de atención y las citas."
+    },
+    {
+      "id": "list",
+      "action": "highlight",
+      "target": "appointments.section.gaps",
+      "title": "Elegí un hueco",
+      "blocking": true,
+      "until": "appointments.field.patient",
+      "details": "Ordenados por día y consultorio; «Mayor» marca el más largo. Al elegir uno se abre la cita en ese horario."
+    },
+    {
+      "id": "patient",
+      "action": "fill",
+      "target": "appointments.field.patient",
+      "value": "{{values.patient}}",
+      "title": "Elegí el paciente",
+      "details": "Buscá por nombre, teléfono o documento. Si el paciente tiene un profesional por defecto, se propone solo."
+    },
+    {
+      "id": "services",
+      "action": "fill",
+      "target": "appointments.field.services",
+      "value": "{{values.service}}",
+      "optional": true,
+      "title": "Servicio",
+      "details": "Opcional. Define la duración de la cita y lo que se va a facturar."
+    },
+    {
+      "id": "doctor",
+      "action": "fill",
+      "target": "appointments.field.doctor",
+      "value": "{{values.doctor}}",
+      "title": "Profesional",
+      "details": "Quién atiende. Sólo se ofrecen los horarios en que tiene disponibilidad."
+    },
+    {
+      "id": "notes",
+      "action": "fill",
+      "target": "appointments.field.notes",
+      "value": "{{values.notes}}",
+      "optional": true,
+      "title": "Notas",
+      "details": "Opcional. Texto interno que se ve en la cita."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "appointments.btn.save",
+      "title": "Guardar la cita",
+      "details": "Revisá los datos y guardá. Se avisa al paciente si tiene recordatorios activos."
+    }
+  ]
+}

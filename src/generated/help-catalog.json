@@ -1,5 +1,5 @@
 {
- "version": "c9de0c01751d2eb4",
+ "version": "98569554d4c1bccc",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -2711,7 +2711,261 @@
    ]
   },
   {
-   "elements": [],
+   "elements": [
+    {
+     "id": "alerts.btn.add-note",
+     "kind": "btn",
+     "label": "Agregar nota",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.btn.bulk-complete",
+     "kind": "btn",
+     "label": "Completar seleccionadas",
+     "source": "src/components/alerts/bulk-actions-floating-bar.tsx"
+    },
+    {
+     "id": "alerts.btn.bulk-deselect",
+     "kind": "btn",
+     "label": "Deseleccionar",
+     "source": "src/components/alerts/bulk-actions-floating-bar.tsx"
+    },
+    {
+     "id": "alerts.btn.bulk-email",
+     "kind": "btn",
+     "label": "Correo",
+     "source": "src/components/alerts/bulk-actions-floating-bar.tsx"
+    },
+    {
+     "id": "alerts.btn.bulk-snooze",
+     "kind": "btn",
+     "label": "Pausar seleccionadas",
+     "source": "src/components/alerts/bulk-actions-floating-bar.tsx"
+    },
+    {
+     "id": "alerts.btn.bulk-whatsapp",
+     "kind": "btn",
+     "label": "WhatsApp a seleccionadas",
+     "source": "src/components/alerts/bulk-actions-floating-bar.tsx"
+    },
+    {
+     "id": "alerts.btn.call-confirm",
+     "kind": "btn",
+     "label": "Registrar",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.btn.complete",
+     "kind": "btn",
+     "label": "Marcar como completada",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.btn.email-send",
+     "kind": "btn",
+     "label": "Enviar",
+     "source": "knowledge/screens/alerts.json"
+    },
+    {
+     "id": "alerts.btn.filters",
+     "kind": "btn",
+     "label": "Filtros",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.btn.ignore",
+     "kind": "btn",
+     "label": "Ignorar",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.btn.ignore-confirm",
+     "kind": "btn",
+     "label": "Ignorar",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.btn.note-confirm",
+     "kind": "btn",
+     "label": "Agregar",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.btn.refresh",
+     "kind": "btn",
+     "label": "Actualizar",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.btn.register-call",
+     "kind": "btn",
+     "label": "Registrar llamada",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.btn.send-email",
+     "kind": "btn",
+     "label": "Enviar correo",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.btn.send-whatsapp",
+     "kind": "btn",
+     "label": "Enviar WhatsApp",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.btn.snooze",
+     "kind": "btn",
+     "label": "Pausar",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.btn.snooze-1d",
+     "kind": "btn",
+     "label": "1 día",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.btn.snooze-1w",
+     "kind": "btn",
+     "label": "1 semana",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.btn.snooze-3d",
+     "kind": "btn",
+     "label": "3 días",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.btn.snooze-confirm",
+     "kind": "btn",
+     "label": "Pausar",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.btn.view-patient",
+     "kind": "btn",
+     "label": "Ver al paciente",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.field.call-date",
+     "kind": "field",
+     "label": "Fecha y hora",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.field.call-notes",
+     "kind": "field",
+     "label": "Notas",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.field.email-body",
+     "kind": "field",
+     "label": "Mensaje",
+     "source": "knowledge/screens/alerts.json"
+    },
+    {
+     "id": "alerts.field.email-subject",
+     "kind": "field",
+     "label": "Asunto",
+     "source": "knowledge/screens/alerts.json"
+    },
+    {
+     "id": "alerts.field.email-to",
+     "kind": "field",
+     "label": "Para",
+     "source": "knowledge/screens/alerts.json"
+    },
+    {
+     "id": "alerts.field.ignore-reason",
+     "kind": "field",
+     "label": "Motivo",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.field.note",
+     "kind": "field",
+     "label": "Nota",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.field.select-alert",
+     "kind": "field",
+     "label": "Seleccionar la alerta",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.field.select-category",
+     "kind": "field",
+     "label": "Seleccionar la categoría",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.field.snooze-date",
+     "kind": "field",
+     "label": "Hasta",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.field.snooze-reason",
+     "kind": "field",
+     "label": "Motivo",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.filter.priority",
+     "kind": "filter",
+     "label": "Prioridad",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.filter.status",
+     "kind": "filter",
+     "label": "Estado",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.section.alert",
+     "kind": "section",
+     "label": "Alerta",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.section.bulk-bar",
+     "kind": "section",
+     "label": "Barra de acciones",
+     "source": "src/components/alerts/bulk-actions-floating-bar.tsx"
+    },
+    {
+     "id": "alerts.section.category",
+     "kind": "section",
+     "label": "Categoría",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.section.filters",
+     "kind": "section",
+     "label": "Filtros",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "id": "alerts.section.list",
+     "kind": "section",
+     "label": "Alertas diarias",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    },
+    {
+     "description": "Pendientes en total, críticas, altas y medias.",
+     "id": "alerts.section.summary",
+     "kind": "section",
+     "label": "Resumen",
+     "source": "src/app/[locale]/alerts/page.tsx"
+    }
+   ],
    "id": "alerts",
    "inMenu": true,
    "permissions": [
@@ -2720,29 +2974,114 @@
    "prerequisites": [
     "system.alert-rules"
    ],
-   "purpose": "Reúne lo que el sistema detectó según las reglas de alertas para que el equipo lo trabaje: llamar, mandar WhatsApp o correo, posponer o dar por resuelto.",
+   "purpose": "Reúne las alertas que generan las reglas (citas sin confirmar, cobros pendientes, seguimientos, cumpleaños…) agrupadas por categoría y prioridad, para trabajarlas: avisar por WhatsApp o correo, registrar la llamada, pausar, ignorar, anotar o dar por resueltas, de a una o varias a la vez.",
    "route": "/alerts",
    "status": "draft",
-   "summary": "Bandeja de alertas operativas: pacientes a contactar, cobros pendientes, turnos sin confirmar.",
+   "summary": "Centro de Alertas: lo que el sistema detectó y el equipo tiene que trabajar.",
    "tips": [
     "Las alertas se generan con las reglas de Sistema → Reglas de alertas.",
-    "Asignar una alerta a alguien la saca de la vista del resto del equipo."
+    "Asignar una alerta a alguien la saca de la vista del resto del equipo.",
+    "La franja de color de cada alerta es su prioridad: roja crítica, naranja alta, amarilla media.",
+    "Cada acción (llamada, mensaje, nota) queda en el historial de la alerta.",
+    "Pausar la saca de la bandeja hasta una fecha; ignorar la descarta con un motivo."
    ],
-   "title": "Centro de Alertas"
+   "title": "Centro de Alertas",
+   "useCases": [
+    "alerts.overview",
+    "alerts.filter",
+    "alerts.register-call",
+    "alerts.snooze",
+    "alerts.ignore",
+    "alerts.add-note",
+    "alerts.send-whatsapp",
+    "alerts.send-email",
+    "alerts.complete",
+    "alerts.bulk"
+   ]
   },
   {
    "elements": [
     {
+     "description": "Panel para elegir qué consultorio ver (modo personalizado).",
      "id": "appointments.btn.agendas",
      "kind": "btn",
      "label": "Agendas",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Seleccionar varias citas y reasignarlas.",
      "id": "appointments.btn.bulk",
      "kind": "btn",
-     "label": "Operaciones en Lotes",
+     "label": "Operaciones en lotes",
      "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.bulk-confirm",
+     "kind": "btn",
+     "label": "Confirmar reasignación",
+     "source": "src/components/appointments/BulkReassignDoctorDialog.tsx"
+    },
+    {
+     "id": "appointments.btn.bulk-exit",
+     "kind": "btn",
+     "label": "Salir del modo lotes",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.bulk-reassign",
+     "kind": "btn",
+     "label": "Reasignar doctor",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.cancel-by_clinic",
+     "kind": "btn",
+     "label": "Cancelada por la clínica",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "id": "appointments.btn.cancel-by_doctor",
+     "kind": "btn",
+     "label": "Cancelada por el doctor",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "id": "appointments.btn.cancel-in_time",
+     "kind": "btn",
+     "label": "Cancelada con tiempo",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "id": "appointments.btn.cancel-late",
+     "kind": "btn",
+     "label": "Cancelada tarde",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Sin aviso, por la clínica u otro motivo.",
+     "id": "appointments.btn.cancel-menu",
+     "kind": "btn",
+     "label": "Cancelar…",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "id": "appointments.btn.cancel-no_notice",
+     "kind": "btn",
+     "label": "Cancelada sin aviso",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Pide una nota.",
+     "id": "appointments.btn.cancel-other",
+     "kind": "btn",
+     "label": "Otro motivo",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "id": "appointments.btn.cancellation-confirm",
+     "kind": "btn",
+     "label": "Confirmar cancelación",
+     "source": "src/components/appointments/CancellationNoteDialog.tsx"
     },
     {
      "id": "appointments.btn.change-calendar",
@@ -2759,7 +3098,7 @@
     {
      "id": "appointments.btn.change-doctor",
      "kind": "btn",
-     "label": "Cambiar doctor",
+     "label": "Cambiar profesional",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
@@ -2771,19 +3110,34 @@
     {
      "id": "appointments.btn.clinic-session",
      "kind": "btn",
-     "label": "Editar sesión clínica",
+     "label": "Sesión clínica",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Nueva cita, recordatorio o nota.",
      "id": "appointments.btn.create-menu",
      "kind": "btn",
      "label": "Crear",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Clic para saltar a un día.",
+     "id": "appointments.btn.date-picker",
+     "kind": "btn",
+     "label": "Fecha",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Para citas cargadas por error.",
      "id": "appointments.btn.delete-appointment",
      "kind": "btn",
      "label": "Eliminar cita",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.delete-confirm",
+     "kind": "btn",
+     "label": "Confirmar eliminación",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
@@ -2799,15 +3153,17 @@
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Horarios libres de los días visibles.",
      "id": "appointments.btn.gaps",
      "kind": "btn",
      "label": "Buscar huecos",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Otro día con la misma hora y duración.",
      "id": "appointments.btn.move-to",
      "kind": "btn",
-     "label": "Mover a…",
+     "label": "Mover a",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
@@ -2819,31 +3175,39 @@
     {
      "id": "appointments.btn.new-appointment",
      "kind": "btn",
-     "label": "Crear cita",
+     "label": "Nueva cita",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Nota interna silenciosa en la agenda.",
      "id": "appointments.btn.new-note",
      "kind": "btn",
-     "label": "Crear nota",
+     "label": "Nota",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Tarea interna visible en la agenda.",
      "id": "appointments.btn.new-reminder",
      "kind": "btn",
-     "label": "Crear recordatorio",
+     "label": "Recordatorio",
      "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.next",
+     "kind": "btn",
+     "label": "Siguiente",
+     "source": "knowledge/screens/appointments.json"
     },
     {
      "id": "appointments.btn.patient-accounts",
      "kind": "btn",
-     "label": "Cuentas",
+     "label": "Estado de cuenta",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
      "id": "appointments.btn.patient-appointments",
      "kind": "btn",
-     "label": "Historial de Citas",
+     "label": "Historial de citas",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
@@ -2861,18 +3225,26 @@
     {
      "id": "appointments.btn.patient-history",
      "kind": "btn",
-     "label": "Historia",
+     "label": "Historia clínica",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Cuenta, historia, archivos, citas y datos.",
      "id": "appointments.btn.patient-menu",
      "kind": "btn",
-     "label": "Ninguno",
+     "label": "Paciente",
      "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.btn.prev",
+     "kind": "btn",
+     "label": "Anterior",
+     "source": "knowledge/screens/appointments.json"
     },
     {
      "id": "appointments.btn.print",
      "kind": "btn",
+     "label": "Exportar agenda a Excel",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
@@ -2884,16 +3256,17 @@
     {
      "id": "appointments.btn.quick-history",
      "kind": "btn",
-     "label": "Historial de cambios",
+     "label": "Historial de la cita",
      "source": "src/components/calendar/appointment-quick-view.tsx"
     },
     {
      "id": "appointments.btn.refresh",
      "kind": "btn",
-     "label": "Refrescar",
+     "label": "Actualizar",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Cancela la cita y crea una nueva con los datos editados.",
      "id": "appointments.btn.reschedule",
      "kind": "btn",
      "label": "Reagendar",
@@ -2902,37 +3275,91 @@
     {
      "id": "appointments.btn.save",
      "kind": "btn",
-     "label": "Reagendar",
+     "label": "Guardar la cita",
      "source": "src/components/appointments/AppointmentFormDialog.tsx"
     },
     {
+     "description": "Busca citas de un paciente en todas las fechas.",
      "id": "appointments.btn.search",
      "kind": "btn",
      "label": "Buscar cita",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Horario visible, franjas, forma de crear citas y agrupación.",
      "id": "appointments.btn.settings",
      "kind": "btn",
+     "label": "Ajustes de la agenda",
      "source": "src/components/calendar/calendar-settings-popover.tsx"
     },
     {
      "id": "appointments.btn.slot-new-appointment",
      "kind": "btn",
-     "label": "Crear cita",
+     "label": "Cita en este horario",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
      "id": "appointments.btn.slot-new-note",
      "kind": "btn",
-     "label": "Crear nota",
+     "label": "Nota en este horario",
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
      "id": "appointments.btn.slot-new-reminder",
      "kind": "btn",
-     "label": "Crear recordatorio",
+     "label": "Recordatorio en este horario",
      "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "description": "Está en la sala de espera.",
+     "id": "appointments.btn.status-arrived",
+     "kind": "btn",
+     "label": "Llegó",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "id": "appointments.btn.status-arrived_late",
+     "kind": "btn",
+     "label": "Llegó tarde",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "id": "appointments.btn.status-attended_late",
+     "kind": "btn",
+     "label": "Se le atiende tarde",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "id": "appointments.btn.status-completed",
+     "kind": "btn",
+     "label": "Completada",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "El paciente avisó que viene.",
+     "id": "appointments.btn.status-confirmed",
+     "kind": "btn",
+     "label": "Confirmada",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "id": "appointments.btn.status-in_progress",
+     "kind": "btn",
+     "label": "En curso",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "No vino ni avisó.",
+     "id": "appointments.btn.status-no_show",
+     "kind": "btn",
+     "label": "No asistió",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "id": "appointments.btn.status-scheduled",
+     "kind": "btn",
+     "label": "Programada",
+     "source": "knowledge/screens/appointments.json"
     },
     {
      "id": "appointments.btn.submit",
@@ -2941,22 +3368,77 @@
      "source": "src/components/appointments/ReminderFormDialog.tsx"
     },
     {
+     "description": "Vuelve al día de hoy.",
+     "id": "appointments.btn.today",
+     "kind": "btn",
+     "label": "Hoy",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Día, varios días, semana, mes o lista.",
      "id": "appointments.btn.view",
      "kind": "btn",
-     "label": "Ver",
+     "label": "Vista",
      "source": "src/components/calendar/calendar-view-menu.tsx"
     },
     {
+     "description": "Alto de las franjas horarias.",
      "id": "appointments.btn.zoom",
      "kind": "btn",
      "label": "Zoom",
      "source": "src/components/calendar/calendar-zoom-menu.tsx"
     },
     {
+     "description": "Atenúa y bloquea en el calendario los horarios fuera de atención (según horarios y excepciones), impidiendo crear citas ahí.",
+     "id": "appointments.field.block-unavailable",
+     "kind": "field",
+     "label": "Bloquear fuera de atención",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "id": "appointments.field.bulk-doctor",
+     "kind": "field",
+     "label": "Profesional nuevo",
+     "source": "src/components/appointments/BulkReassignDoctorDialog.tsx"
+    },
+    {
+     "id": "appointments.field.bulk-select-all",
+     "kind": "field",
+     "label": "Seleccionar todas",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
      "id": "appointments.field.calendar",
      "kind": "field",
-     "label": "Calendario",
+     "label": "Consultorio",
      "source": "src/components/appointments/AppointmentFormDialog.tsx"
+    },
+    {
+     "description": "Invoke muestra el calendario como siempre. Personalizado muestra una sola agenda a la vez a pantalla completa; usa el botón 'Agendas' (arriba a la izquierda) para elegir cuál ver.",
+     "id": "appointments.field.calendar-mode",
+     "kind": "field",
+     "label": "Vista (Modo)",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "id": "appointments.field.cancellation-note",
+     "kind": "field",
+     "label": "Nota de cancelación",
+     "source": "src/components/appointments/CancellationNoteDialog.tsx"
+    },
+    {
+     "description": "Al crear/editar una cita valida que el horario esté disponible para el doctor o consultorio elegido.",
+     "id": "appointments.field.check-availability",
+     "kind": "field",
+     "label": "Verificar disponibilidad",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Las citas muestran su estado con color. Si la cita tiene una etiqueta de color propia o el color de su servicio, lo conserva y el estado aparece como una franja en el borde izquierdo. Si solo hereda el color del doctor o del consultorio, toda la cita se pinta con el color del estado. Algunos estados están configurados para pintar siempre la cita sin importar esta preferencia — ver Configuración → Colores de Calendario.",
+     "id": "appointments.field.color-by-status",
+     "kind": "field",
+     "label": "Color por estado",
+     "source": "knowledge/screens/appointments.json"
     },
     {
      "id": "appointments.field.created_at",
@@ -2977,9 +3459,23 @@
      "source": "src/components/appointments/AppointmentFormDialog.tsx"
     },
     {
+     "description": "Limita el calendario a los consultorios de una sede. 'Todas las sedes' muestra todos los consultorios.",
+     "id": "appointments.field.default-sede",
+     "kind": "field",
+     "label": "Sede",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Define qué vista se muestra al abrir el calendario (día, semana, mes, agenda…). Cambiarla aplica la vista al instante.",
+     "id": "appointments.field.default-view",
+     "kind": "field",
+     "label": "Vista predeterminada",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "id": "appointments.field.doctor",
      "kind": "field",
-     "label": "Doctor",
+     "label": "Profesional",
      "source": "src/components/appointments/AppointmentFormDialog.tsx"
     },
     {
@@ -2995,10 +3491,59 @@
      "source": "src/components/tables/invoices-table.tsx"
     },
     {
+     "description": "Define cómo se compone el texto que se ve en cada cita (hora, paciente, tratamiento, notas).",
+     "id": "appointments.field.event-label-format",
+     "kind": "field",
+     "label": "Formato de la cita",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "id": "appointments.field.exchange_rate",
      "kind": "field",
      "label": "Tasa de Cambio",
      "source": "src/components/sales/quotes/QuoteFormDialog.tsx"
+    },
+    {
+     "description": "Al crear una cita, filtra la lista de doctores para mostrar solo los que prestan el servicio seleccionado.",
+     "id": "appointments.field.filter-doctors-by-service",
+     "kind": "field",
+     "label": "Filtrar doctores por servicio",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Divide el calendario en columnas por doctor o por consultorio. 'Sin agrupar' muestra una sola columna combinada.",
+     "id": "appointments.field.grouped-by",
+     "kind": "field",
+     "label": "Agrupar por",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Oculta los días elegidos como columnas en las vistas de día y semana. Es solo visual, para ganar espacio: no afecta la disponibilidad ni los días en que se pueden agendar citas.",
+     "id": "appointments.field.hidden-weekdays",
+     "kind": "field",
+     "label": "Ocultar días",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Espacio vertical de cada hora en las vistas de día y semana. Más alto = más separación entre las citas y más visibles los huecos libres entre ellas. El zoom multiplica este valor y la duración del slot lo reparte: abajo se indica cuántos píxeles queda midiendo cada slot.",
+     "id": "appointments.field.hour-height",
+     "kind": "field",
+     "label": "Altura de la hora",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Al hacer clic en un slot crea la cita directamente en el calendario con un card, sin abrir el modal. El botón Crear siempre abre el modal.",
+     "id": "appointments.field.inline-appointment-creation",
+     "kind": "field",
+     "label": "Crear cita en el calendario",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "La tarjeta de cita inline se abre al lado de la cita, que se ve en el calendario mientras la completás, para ver cómo entra en los huecos. Al cambiar la fecha el calendario se mueve a ese día. Solo en tablet y escritorio.",
+     "id": "appointments.field.inline-draft-live-preview",
+     "kind": "field",
+     "label": "Previsualizar la cita",
+     "source": "knowledge/screens/appointments.json"
     },
     {
      "id": "appointments.field.is_historical",
@@ -3021,7 +3566,7 @@
     {
      "id": "appointments.field.patient",
      "kind": "field",
-     "label": "Nombre de paciente",
+     "label": "Paciente",
      "source": "src/components/appointments/AppointmentFormDialog.tsx"
     },
     {
@@ -3030,16 +3575,60 @@
      "source": "src/components/sales/quotes/QuoteFormDialog.tsx"
     },
     {
+     "id": "appointments.field.reminder-all-day",
+     "kind": "field",
+     "label": "Todo el día",
+     "source": "src/components/appointments/ReminderFormDialog.tsx"
+    },
+    {
+     "id": "appointments.field.reminder-date",
+     "kind": "field",
+     "label": "Fecha",
+     "source": "src/components/appointments/ReminderFormDialog.tsx"
+    },
+    {
+     "id": "appointments.field.reminder-description",
+     "kind": "field",
+     "label": "Descripción",
+     "source": "src/components/appointments/ReminderFormDialog.tsx"
+    },
+    {
+     "id": "appointments.field.reminder-repeat",
+     "kind": "field",
+     "label": "Repetir",
+     "source": "src/components/appointments/ReminderFormDialog.tsx"
+    },
+    {
+     "id": "appointments.field.reminder-time",
+     "kind": "field",
+     "label": "Hora",
+     "source": "src/components/appointments/ReminderFormDialog.tsx"
+    },
+    {
+     "id": "appointments.field.reminder-title",
+     "kind": "field",
+     "label": "Título del recordatorio",
+     "source": "src/components/appointments/ReminderFormDialog.tsx"
+    },
+    {
      "id": "appointments.field.sede_id",
      "kind": "field",
      "label": "Sede",
      "source": "src/components/sales/quotes/QuoteFormDialog.tsx"
     },
     {
+     "description": "Define duración y lo que se factura.",
      "id": "appointments.field.services",
      "kind": "field",
-     "label": "Servicios",
+     "label": "Servicio",
      "source": "src/components/appointments/AppointmentFormDialog.tsx"
+    },
+    {
+     "description": "Duración de cada slot (10, 15, 20, 30 min o 1 h). Define cuántos slots entran por hora: cuantos más slots, más finos quedan dentro de la altura de hora configurada. Si quedan muy justos, sube la altura de la hora o el zoom.",
+     "id": "appointments.field.slot-duration",
+     "kind": "field",
+     "label": "Duración del slot",
+     "source": "knowledge/screens/appointments.json"
     },
     {
      "id": "appointments.field.time",
@@ -3060,10 +3649,29 @@
      "source": "src/components/sales/quotes/QuoteFormDialog.tsx"
     },
     {
+     "description": "Nombre, teléfono, email o documento del paciente, o título de la cita.",
      "id": "appointments.filter.appointments",
      "kind": "filter",
-     "label": "Paciente o título de la cita…",
+     "label": "Buscar",
      "source": "src/components/calendar/calendar-search-panel.tsx"
+    },
+    {
+     "id": "appointments.filter.bulk-calendars",
+     "kind": "filter",
+     "label": "Consultorios (lotes)",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.filter.bulk-doctors",
+     "kind": "filter",
+     "label": "Profesionales (lotes)",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "id": "appointments.filter.bulk-period",
+     "kind": "filter",
+     "label": "Rango de fechas (lotes)",
+     "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
      "id": "appointments.filter.search",
@@ -3071,28 +3679,53 @@
      "source": "src/components/tables/invoices-table.tsx"
     },
     {
+     "description": "Las agendas agrupadas por sede; el pin deja el panel fijo.",
      "id": "appointments.section.agendas",
      "kind": "section",
-     "label": "Agendas",
+     "label": "Panel de agendas",
      "source": "src/components/calendar/calendar-agendas-panel.tsx"
     },
     {
+     "description": "Clic en un horario libre para agendar; clic derecho para recordatorio o nota.",
      "id": "appointments.section.calendar",
      "kind": "section",
-     "label": "Expandir mes",
+     "label": "Agenda",
      "source": "src/components/calendar/Calendar.tsx"
     },
     {
+     "description": "Clic derecho: menú de la cita. Arrastrar: mover. Borde: duración.",
+     "id": "appointments.section.event",
+     "kind": "section",
+     "label": "Cita",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Al elegir uno se abre la cita en ese horario.",
      "id": "appointments.section.gaps",
      "kind": "section",
      "label": "Huecos disponibles",
      "source": "src/components/calendar/calendar-gaps-panel.tsx"
     },
     {
+     "description": "Resumen con editar e historial.",
      "id": "appointments.section.quick-view",
      "kind": "section",
-     "label": "Historial de cambios",
+     "label": "Tarjeta de la cita",
      "source": "src/components/calendar/appointment-quick-view.tsx"
+    },
+    {
+     "description": "Citas que coinciden, de todas las fechas.",
+     "id": "appointments.section.search-results",
+     "kind": "section",
+     "label": "Resultados de la búsqueda",
+     "source": "src/components/calendar/calendar-search-panel.tsx"
+    },
+    {
+     "description": "Preferencias de la agenda de cada usuario; se guardan solas.",
+     "id": "appointments.section.settings",
+     "kind": "section",
+     "label": "Configuración del Calendario",
+     "source": "src/components/calendar/calendar-settings-popover.tsx"
     }
    ],
    "id": "appointments",
@@ -3105,16 +3738,38 @@
     "config.doctor-availability",
     "sales.services"
    ],
-   "purpose": "Para agendar, mover, confirmar y cancelar turnos. Requiere sedes, horarios, consultorios, profesionales con disponibilidad y servicios.",
+   "purpose": "Para agendar, mover, confirmar, cancelar y reasignar citas, buscar horarios libres y dejar recordatorios internos. Cada cita se ve en la agenda de su consultorio; el menú de la cita (clic derecho) concentra los cambios de estado, la edición, los datos del paciente y las reasignaciones. Requiere sedes, horarios, consultorios, profesionales con disponibilidad y servicios.",
    "route": "/appointments",
    "status": "draft",
-   "summary": "Agenda de turnos por consultorio y profesional.",
+   "summary": "Agenda de citas por consultorio y profesional.",
    "tips": [
-    "Arrastrá un turno para cambiarlo de hora o de consultorio.",
-    "Hacé clic en un hueco libre para crear un turno ahí mismo."
+    "Clic derecho sobre una cita abre su menú: estado, editar, eliminar, color, profesional, consultorio, mover a otro día y duración.",
+    "Arrastrá una cita para cambiarla de hora o de consultorio; estirá su borde para cambiar la duración.",
+    "Hacé clic en un horario libre para crear una cita ahí mismo, o clic derecho para crear un recordatorio o una nota.",
+    "Cancelar no es eliminar: una cancelación con su motivo queda en el historial y en los reportes; eliminar es para citas cargadas por error.",
+    "Operaciones en lotes reasigna muchas citas a otro profesional de una sola vez (vacaciones, licencias).",
+    "La vista por defecto, la agrupación, el tamaño de las horas y las reglas al agendar se configuran en Ajustes de la agenda (engranaje); son por usuario y se guardan solas."
    ],
    "title": "Citas",
-   "useCases": []
+   "useCases": [
+    "appointments.create",
+    "appointments.create-from-slot",
+    "appointments.change-status",
+    "appointments.cancel",
+    "appointments.edit",
+    "appointments.move",
+    "appointments.reassign",
+    "appointments.delete",
+    "appointments.find-gaps",
+    "appointments.search",
+    "appointments.reminder",
+    "appointments.patient-info",
+    "appointments.navigate",
+    "appointments.bulk-reassign",
+    "onboarding.first-appointment",
+    "appointments.default-view",
+    "appointments.booking-rules"
+   ]
   },
   {
    "elements": [
@@ -8887,7 +9542,327 @@
    "title": "Pantalla TV"
   },
   {
-   "elements": [],
+   "elements": [
+    {
+     "description": "Agente clínico con IA de la cita.",
+     "id": "workspace.btn.agent-chat",
+     "kind": "btn",
+     "label": "Consulta al agente",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "Alergias y padecimientos del paciente.",
+     "id": "workspace.btn.patient-alerts",
+     "kind": "btn",
+     "label": "Alertas",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "id": "workspace.btn.patient-file",
+     "kind": "btn",
+     "label": "Ficha del paciente",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "id": "workspace.btn.prescribe",
+     "kind": "btn",
+     "label": "Recetar",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "id": "workspace.btn.refresh",
+     "kind": "btn",
+     "label": "Actualizar",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "id": "workspace.btn.rx-add-medication",
+     "kind": "btn",
+     "label": "Agregar medicamento",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.btn.rx-print",
+     "kind": "btn",
+     "label": "Imprimir receta",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "Una por paciente por día, desde el día de la cita. Al guardar, la cita queda Completada.",
+     "id": "workspace.btn.session",
+     "kind": "btn",
+     "label": "Completar sesión clínica",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "description": "Guardar la sesión clínica o la receta.",
+     "id": "workspace.btn.submit",
+     "kind": "btn",
+     "label": "Guardar",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "Vuelve a la agenda de hoy.",
+     "id": "workspace.btn.today",
+     "kind": "btn",
+     "label": "Hoy",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "id": "workspace.field.rx-date",
+     "kind": "field",
+     "label": "Fecha",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.rx-diagnosis",
+     "kind": "field",
+     "label": "Diagnóstico",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.rx-doctor",
+     "kind": "field",
+     "label": "Profesional",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.rx-dosage",
+     "kind": "field",
+     "label": "Dosis",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.rx-duration",
+     "kind": "field",
+     "label": "Duración (días)",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.rx-frequency",
+     "kind": "field",
+     "label": "Frecuencia",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.rx-instructions",
+     "kind": "field",
+     "label": "Indicaciones",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.rx-medication",
+     "kind": "field",
+     "label": "Medicamento",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.rx-notes",
+     "kind": "field",
+     "label": "Notas",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.rx-quantity",
+     "kind": "field",
+     "label": "Cantidad",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.rx-template",
+     "kind": "field",
+     "label": "Plantilla de receta",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.session-attachments",
+     "kind": "field",
+     "label": "Adjuntos",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.session-date",
+     "kind": "field",
+     "label": "Fecha de la sesión",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.session-diagnosis",
+     "kind": "field",
+     "label": "Diagnóstico",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.session-discharge",
+     "kind": "field",
+     "label": "Dar de alta",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.session-doctor",
+     "kind": "field",
+     "label": "Profesional",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.session-next-plan",
+     "kind": "field",
+     "label": "Plan de la próxima sesión",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.field.session-notes",
+     "kind": "field",
+     "label": "Notas",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "Lo que se hizo hoy.",
+     "id": "workspace.field.session-procedure",
+     "kind": "field",
+     "label": "Procedimiento",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "Los del presupuesto que se hicieron hoy.",
+     "id": "workspace.field.session-treatments",
+     "kind": "field",
+     "label": "Tratamientos",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.filter.calendar",
+     "kind": "filter",
+     "label": "Calendario",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "description": "Hoy, mañana, esta semana, próximos 7 días, este mes, mes próximo, mes pasado o un día/período del calendario.",
+     "id": "workspace.filter.date",
+     "kind": "filter",
+     "label": "Día o período",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.filter.date-month",
+     "kind": "filter",
+     "label": "Este mes",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.filter.date-next7",
+     "kind": "filter",
+     "label": "Próximos 7 días",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.filter.date-nextMonth",
+     "kind": "filter",
+     "label": "Mes próximo",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.filter.date-prevMonth",
+     "kind": "filter",
+     "label": "Mes pasado",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.filter.date-today",
+     "kind": "filter",
+     "label": "Hoy",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.filter.date-tomorrow",
+     "kind": "filter",
+     "label": "Mañana",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.filter.date-week",
+     "kind": "filter",
+     "label": "Esta semana",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "Citas del profesional en orden horario.",
+     "id": "workspace.section.agenda",
+     "kind": "section",
+     "label": "Agenda del día",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "id": "workspace.section.agent-chat",
+     "kind": "section",
+     "label": "Agente clínico",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.section.appointment",
+     "kind": "section",
+     "label": "Cita",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "description": "Tocá una para abrir el panel del paciente.",
+     "id": "workspace.section.appointments",
+     "kind": "section",
+     "label": "Citas",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "id": "workspace.section.date-options",
+     "kind": "section",
+     "label": "Opciones de fecha",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "id": "workspace.section.focus",
+     "kind": "section",
+     "label": "Paciente en foco",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "id": "workspace.section.odontogram",
+     "kind": "section",
+     "label": "Odontograma",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "description": "Sesiones anteriores; la más reciente abierta.",
+     "id": "workspace.section.timeline",
+     "kind": "section",
+     "label": "Línea de tiempo",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "description": "Las citas en las que sos el profesional.",
+     "id": "workspace.tab.assigned",
+     "kind": "tab",
+     "label": "Asignadas a mí",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "description": "Las citas de un consultorio al que tenés acceso.",
+     "id": "workspace.tab.calendars",
+     "kind": "tab",
+     "label": "Mis calendarios",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "id": "workspace.tab.odontogram",
+     "kind": "tab",
+     "label": "Odontograma",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "id": "workspace.tab.sessions",
+     "kind": "tab",
+     "label": "Sesiones clínicas",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    }
+   ],
    "id": "workspace",
    "inMenu": true,
    "permissions": [
@@ -8896,14 +9871,1937 @@
    "prerequisites": [
     "appointments"
    ],
-   "purpose": "Vista del profesional: sus turnos del día, la historia clínica del paciente en atención y sus pendientes.",
+   "purpose": "Para el profesional: ve sus citas del día (o de un período o calendario), elige al paciente y, sin salir, revisa alertas, ficha, sesiones y odontograma, completa la sesión clínica, receta y consulta al agente clínico con IA.",
    "route": "/workspace",
    "status": "draft",
-   "summary": "Mi consultorio.",
-   "title": "Mi Consultorio"
+   "summary": "Mi Consultorio: la agenda del profesional y el panel clínico del paciente que atiende.",
+   "tips": [
+    "La agenda se refresca sola cada minuto y avisa cuando entra, cambia, se reagenda o te reasignan una cita.",
+    "Sólo hay una sesión clínica por paciente por día, y se completa desde el día de la cita.",
+    "Al guardar la sesión clínica la cita pasa a Completada.",
+    "En «Mis calendarios» ves las citas de un consultorio aunque no sean tuyas."
+   ],
+   "title": "Mi Consultorio",
+   "useCases": [
+    "workspace.overview",
+    "workspace.change-period",
+    "workspace.complete-session",
+    "workspace.prescribe",
+    "workspace.odontogram",
+    "workspace.agent"
+   ]
   }
  ],
  "useCases": [
+  {
+   "id": "alerts.add-note",
+   "inputs": {
+    "note": "Texto de la nota"
+   },
+   "keywords": [
+    "nota",
+    "comentario",
+    "anotar",
+    "observacion"
+   ],
+   "module": "Centro de Alertas",
+   "screens": [
+    "alerts"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que el sistema detectó con las reglas de alertas y el equipo tiene que trabajar.",
+     "id": "go",
+     "route": "/alerts",
+     "title": "Menú → Centro de Alertas"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá el ícono de nota de la alerta. Hacelo en la alerta que quieras trabajar.",
+     "id": "open",
+     "target": "alerts.btn.add-note",
+     "title": "Agregar nota",
+     "until": "alerts.field.note"
+    },
+    {
+     "action": "fill",
+     "id": "note",
+     "target": "alerts.field.note",
+     "title": "Nota",
+     "value": "{{values.note}}"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "alerts.btn.note-confirm",
+     "title": "Agregar"
+    }
+   ],
+   "summary": "Dejar un comentario para el equipo en la alerta.",
+   "title": "Agregar una nota a una alerta"
+  },
+  {
+   "id": "alerts.bulk",
+   "keywords": [
+    "varias alertas",
+    "todas",
+    "masivo",
+    "en lote",
+    "seleccionar todas",
+    "categoria completa"
+   ],
+   "module": "Centro de Alertas",
+   "screens": [
+    "alerts"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que el sistema detectó con las reglas de alertas y el equipo tiene que trabajar.",
+     "id": "go",
+     "route": "/alerts",
+     "title": "Menú → Centro de Alertas"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "El check de la categoría marca todas sus alertas; también podés marcarlas de a una.",
+     "id": "select",
+     "target": "alerts.field.select-category",
+     "title": "Seleccioná una categoría",
+     "until": "alerts.section.bulk-bar"
+    },
+    {
+     "action": "highlight",
+     "details": "Cuántas hay seleccionadas y qué se puede hacer con todas juntas.",
+     "id": "bar",
+     "target": "alerts.section.bulk-bar",
+     "title": "Barra de acciones"
+    },
+    {
+     "action": "highlight",
+     "details": "Manda la plantilla a las que tienen teléfono; avisa cuántas se enviaron y cuántas se saltaron.",
+     "id": "whatsapp",
+     "skipIfMissing": true,
+     "target": "alerts.btn.bulk-whatsapp",
+     "title": "WhatsApp a todas"
+    },
+    {
+     "action": "highlight",
+     "details": "Las pausa hasta la fecha que elijas.",
+     "id": "snooze",
+     "skipIfMissing": true,
+     "target": "alerts.btn.bulk-snooze",
+     "title": "Pausar todas"
+    },
+    {
+     "action": "highlight",
+     "details": "Sólo con una alerta seleccionada.",
+     "id": "email",
+     "skipIfMissing": true,
+     "target": "alerts.btn.bulk-email",
+     "title": "Correo"
+    },
+    {
+     "action": "highlight",
+     "details": "Las da por resueltas.",
+     "id": "complete",
+     "skipIfMissing": true,
+     "target": "alerts.btn.bulk-complete",
+     "title": "Completar todas"
+    },
+    {
+     "action": "highlight",
+     "details": "Limpia la selección.",
+     "id": "deselect",
+     "target": "alerts.btn.bulk-deselect",
+     "title": "Deseleccionar"
+    }
+   ],
+   "summary": "Seleccionar alertas (o una categoría entera) y completarlas, pausarlas o mandarles WhatsApp juntas.",
+   "title": "Trabajar varias alertas a la vez"
+  },
+  {
+   "id": "alerts.complete",
+   "keywords": [
+    "completar",
+    "resuelta",
+    "resolver",
+    "marcar como hecha",
+    "cerrar alerta",
+    "listo"
+   ],
+   "module": "Centro de Alertas",
+   "screens": [
+    "alerts"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que el sistema detectó con las reglas de alertas y el equipo tiene que trabajar.",
+     "id": "go",
+     "route": "/alerts",
+     "title": "Menú → Centro de Alertas"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Marcá el check de cada alerta resuelta, o el de la categoría para marcar todas. Abajo aparece la barra de acciones.",
+     "id": "select",
+     "target": "alerts.field.select-alert",
+     "title": "Marcá las alertas",
+     "until": "alerts.section.bulk-bar"
+    },
+    {
+     "action": "confirm",
+     "details": "Pasan a Completada y salen de las pendientes.",
+     "id": "complete",
+     "target": "alerts.btn.bulk-complete",
+     "title": "Marcar como completadas"
+    }
+   ],
+   "summary": "Dar por completadas una o varias alertas ya trabajadas.",
+   "title": "Marcar alertas como resueltas"
+  },
+  {
+   "id": "alerts.filter",
+   "inputs": {
+    "priority": "Todos | Baja | Media | Alta | Crítica",
+    "status": "Todos | Pendiente | Completada | Acción Tomada | Ignorada | Suprimida"
+   },
+   "keywords": [
+    "filtrar",
+    "filtro",
+    "estado",
+    "prioridad",
+    "criticas",
+    "completadas",
+    "ignoradas",
+    "pendientes"
+   ],
+   "module": "Centro de Alertas",
+   "screens": [
+    "alerts"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que el sistema detectó con las reglas de alertas y el equipo tiene que trabajar.",
+     "id": "go",
+     "route": "/alerts",
+     "title": "Menú → Centro de Alertas"
+    },
+    {
+     "action": "click",
+     "id": "open",
+     "target": "alerts.btn.filters",
+     "title": "Filtros"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Pendiente: sin trabajar. Acción tomada: ya se hizo algo (llamada, mensaje). Completada: resuelta. Ignorada: descartada. Suprimida: la regla dejó de aplicar.",
+     "id": "status",
+     "optional": true,
+     "target": "alerts.filter.status",
+     "title": "Estado",
+     "value": "{{values.status}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Baja, media, alta o crítica, según la regla que generó la alerta.",
+     "id": "priority",
+     "optional": true,
+     "target": "alerts.filter.priority",
+     "title": "Prioridad",
+     "value": "{{values.priority}}"
+    }
+   ],
+   "summary": "Ver sólo las pendientes, las críticas, las completadas o las ignoradas.",
+   "title": "Filtrar alertas por estado y prioridad"
+  },
+  {
+   "id": "alerts.ignore",
+   "inputs": {
+    "reason": "Motivo"
+   },
+   "keywords": [
+    "ignorar",
+    "descartar",
+    "no aplica",
+    "eliminar alerta"
+   ],
+   "module": "Centro de Alertas",
+   "screens": [
+    "alerts"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que el sistema detectó con las reglas de alertas y el equipo tiene que trabajar.",
+     "id": "go",
+     "route": "/alerts",
+     "title": "Menú → Centro de Alertas"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá la cruz de la alerta. Hacelo en la alerta que quieras trabajar.",
+     "id": "open",
+     "target": "alerts.btn.ignore",
+     "title": "Ignorar",
+     "until": "alerts.field.ignore-reason"
+    },
+    {
+     "action": "fill",
+     "details": "Por qué no hace falta hacer nada: queda en el historial.",
+     "id": "reason",
+     "target": "alerts.field.ignore-reason",
+     "title": "Motivo",
+     "value": "{{values.reason}}"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "alerts.btn.ignore-confirm",
+     "title": "Ignorar"
+    }
+   ],
+   "summary": "Descartar una alerta que no requiere acción, dejando el motivo.",
+   "title": "Ignorar una alerta"
+  },
+  {
+   "id": "alerts.overview",
+   "keywords": [
+    "alertas",
+    "centro de alertas",
+    "pendientes",
+    "avisos",
+    "que tengo que hacer",
+    "prioridad",
+    "critica"
+   ],
+   "module": "Centro de Alertas",
+   "screens": [
+    "alerts"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que el sistema detectó con las reglas de alertas y el equipo tiene que trabajar.",
+     "id": "go",
+     "route": "/alerts",
+     "title": "Menú → Centro de Alertas"
+    },
+    {
+     "action": "highlight",
+     "details": "Cuántas alertas pendientes hay en total y cuántas son críticas, de prioridad alta y media.",
+     "id": "summary",
+     "skipIfMissing": true,
+     "target": "alerts.section.summary",
+     "title": "Resumen"
+    },
+    {
+     "action": "highlight",
+     "details": "Vuelve a traer las alertas.",
+     "id": "refresh",
+     "target": "alerts.btn.refresh",
+     "title": "Actualizar"
+    },
+    {
+     "action": "highlight",
+     "details": "Por estado (pendiente, completada, acción tomada, ignorada, suprimida) y por prioridad.",
+     "id": "filters",
+     "skipIfMissing": true,
+     "target": "alerts.btn.filters",
+     "title": "Filtros"
+    },
+    {
+     "action": "highlight",
+     "details": "Las alertas se agrupan por categoría (citas, facturación, seguimiento, pacientes, recordatorios, fechas). El check de la categoría selecciona todas sus alertas.",
+     "id": "category",
+     "skipIfMissing": true,
+     "target": "alerts.section.category",
+     "title": "Categorías"
+    },
+    {
+     "action": "highlight",
+     "details": "La franja de color es la prioridad. Debajo del título se ven los datos que la generaron, el historial de acciones y el estado.",
+     "id": "alert",
+     "skipIfMissing": true,
+     "target": "alerts.section.alert",
+     "title": "Una alerta"
+    },
+    {
+     "action": "highlight",
+     "details": "El título abre la ficha del paciente.",
+     "id": "patient",
+     "skipIfMissing": true,
+     "target": "alerts.btn.view-patient",
+     "title": "Ver al paciente"
+    },
+    {
+     "action": "highlight",
+     "details": "Manda la plantilla de WhatsApp de la regla al paciente. Deshabilitado si no tiene teléfono o la regla no tiene plantilla.",
+     "id": "whatsapp",
+     "skipIfMissing": true,
+     "target": "alerts.btn.send-whatsapp",
+     "title": "Enviar WhatsApp"
+    },
+    {
+     "action": "highlight",
+     "details": "Abre el correo con el texto de la regla para revisarlo y enviarlo.",
+     "id": "email",
+     "skipIfMissing": true,
+     "target": "alerts.btn.send-email",
+     "title": "Enviar correo"
+    },
+    {
+     "action": "highlight",
+     "details": "Anota que llamaste, cuándo y qué se habló.",
+     "id": "call",
+     "skipIfMissing": true,
+     "target": "alerts.btn.register-call",
+     "title": "Registrar llamada"
+    },
+    {
+     "action": "highlight",
+     "details": "La saca de la bandeja hasta una fecha (1 día, 3 días, 1 semana u otra).",
+     "id": "snooze",
+     "skipIfMissing": true,
+     "target": "alerts.btn.snooze",
+     "title": "Pausar"
+    },
+    {
+     "action": "highlight",
+     "details": "La descarta con un motivo, sin hacer nada.",
+     "id": "ignore",
+     "skipIfMissing": true,
+     "target": "alerts.btn.ignore",
+     "title": "Ignorar"
+    },
+    {
+     "action": "highlight",
+     "details": "Un comentario para el equipo; queda en el historial de la alerta.",
+     "id": "note",
+     "skipIfMissing": true,
+     "target": "alerts.btn.add-note",
+     "title": "Agregar nota"
+    }
+   ],
+   "summary": "Qué muestra cada parte: resumen por prioridad, alertas por categoría, el paciente, el estado, el historial y las acciones.",
+   "title": "Usar el Centro de Alertas"
+  },
+  {
+   "id": "alerts.register-call",
+   "inputs": {
+    "date": "Fecha y hora AAAA-MM-DDTHH:MM",
+    "notes": "Qué se habló"
+   },
+   "keywords": [
+    "llamada",
+    "llame",
+    "registrar llamada",
+    "telefono",
+    "contacte"
+   ],
+   "module": "Centro de Alertas",
+   "screens": [
+    "alerts"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que el sistema detectó con las reglas de alertas y el equipo tiene que trabajar.",
+     "id": "go",
+     "route": "/alerts",
+     "title": "Menú → Centro de Alertas"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá el teléfono de la alerta. Hacelo en la alerta que quieras trabajar.",
+     "id": "open",
+     "target": "alerts.btn.register-call",
+     "title": "Registrar llamada",
+     "until": "alerts.field.call-date"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Cuándo se hizo la llamada.",
+     "id": "date",
+     "optional": true,
+     "target": "alerts.field.call-date",
+     "title": "Fecha y hora",
+     "value": "{{values.date}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Qué se habló, si atendió, si hay que volver a llamar.",
+     "id": "notes",
+     "optional": true,
+     "target": "alerts.field.call-notes",
+     "title": "Notas",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "confirm",
+     "details": "La alerta pasa a Acción tomada y la llamada queda en su historial.",
+     "id": "save",
+     "target": "alerts.btn.call-confirm",
+     "title": "Registrar"
+    }
+   ],
+   "summary": "Dejar constancia de que se llamó al paciente por una alerta: cuándo y qué se habló.",
+   "title": "Registrar una llamada al paciente"
+  },
+  {
+   "id": "alerts.send-email",
+   "inputs": {
+    "subject": "Asunto del correo"
+   },
+   "keywords": [
+    "correo",
+    "email",
+    "mail",
+    "enviar correo",
+    "avisar por mail"
+   ],
+   "module": "Centro de Alertas",
+   "screens": [
+    "alerts"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que el sistema detectó con las reglas de alertas y el equipo tiene que trabajar.",
+     "id": "go",
+     "route": "/alerts",
+     "title": "Menú → Centro de Alertas"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá el sobre de la alerta (deshabilitado si el paciente no tiene correo). Hacelo en la alerta que quieras trabajar.",
+     "id": "open",
+     "target": "alerts.btn.send-email",
+     "title": "Enviar correo",
+     "until": "alerts.field.email-subject"
+    },
+    {
+     "action": "highlight",
+     "details": "El correo del paciente; si falta, se carga en su ficha.",
+     "id": "to",
+     "target": "alerts.field.email-to",
+     "title": "Para"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "subject",
+     "optional": true,
+     "target": "alerts.field.email-subject",
+     "title": "Asunto",
+     "value": "{{values.subject}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Viene armado con la plantilla de la regla; podés editarlo antes de enviar.",
+     "id": "body",
+     "target": "alerts.field.email-body",
+     "title": "Mensaje"
+    },
+    {
+     "action": "confirm",
+     "id": "send",
+     "target": "alerts.btn.email-send",
+     "title": "Enviar"
+    }
+   ],
+   "summary": "Abrir el correo con el texto de la regla, revisarlo y enviarlo.",
+   "title": "Mandar un correo al paciente desde una alerta"
+  },
+  {
+   "id": "alerts.send-whatsapp",
+   "keywords": [
+    "whatsapp",
+    "mensaje",
+    "avisar al paciente",
+    "recordatorio por whatsapp"
+   ],
+   "module": "Centro de Alertas",
+   "screens": [
+    "alerts"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que el sistema detectó con las reglas de alertas y el equipo tiene que trabajar.",
+     "id": "go",
+     "route": "/alerts",
+     "title": "Menú → Centro de Alertas"
+    },
+    {
+     "action": "highlight",
+     "details": "El mensaje sale con la plantilla de la regla y los datos de la alerta (paciente, fecha, monto…).",
+     "id": "alert",
+     "skipIfMissing": true,
+     "target": "alerts.section.alert",
+     "title": "Elegí la alerta"
+    },
+    {
+     "action": "confirm",
+     "details": "Se envía al tocarlo. Deshabilitado si el paciente no tiene teléfono o la regla no tiene plantilla de WhatsApp. Queda en el historial de la alerta.",
+     "id": "send",
+     "target": "alerts.btn.send-whatsapp",
+     "title": "Enviar WhatsApp"
+    }
+   ],
+   "summary": "Mandar la plantilla de WhatsApp de la regla al paciente de la alerta.",
+   "title": "Avisar al paciente por WhatsApp desde una alerta"
+  },
+  {
+   "id": "alerts.snooze",
+   "inputs": {
+    "date": "Fecha AAAA-MM-DDTHH:MM",
+    "quick": "1d | 3d | 1w",
+    "reason": "Motivo"
+   },
+   "keywords": [
+    "pausar",
+    "posponer",
+    "mas tarde",
+    "recordar despues",
+    "snooze"
+   ],
+   "module": "Centro de Alertas",
+   "screens": [
+    "alerts"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que el sistema detectó con las reglas de alertas y el equipo tiene que trabajar.",
+     "id": "go",
+     "route": "/alerts",
+     "title": "Menú → Centro de Alertas"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá el reloj de la alerta. Hacelo en la alerta que quieras trabajar.",
+     "id": "open",
+     "target": "alerts.btn.snooze",
+     "title": "Pausar",
+     "until": "alerts.field.snooze-date"
+    },
+    {
+     "action": "click",
+     "id": "quick",
+     "optional": true,
+     "target": "alerts.btn.snooze-{{values.quick}}",
+     "title": "Opción rápida"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Usá 1 día, 3 días o 1 semana, o elegí la fecha. Vuelve a aparecer ese día.",
+     "id": "date",
+     "optional": true,
+     "target": "alerts.field.snooze-date",
+     "title": "Hasta cuándo",
+     "value": "{{values.date}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "reason",
+     "optional": true,
+     "target": "alerts.field.snooze-reason",
+     "title": "Motivo",
+     "value": "{{values.reason}}"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "alerts.btn.snooze-confirm",
+     "title": "Pausar"
+    }
+   ],
+   "summary": "Sacar una alerta de la bandeja hasta una fecha, con el motivo.",
+   "title": "Pausar una alerta hasta otra fecha"
+  },
+  {
+   "id": "appointments.booking-rules",
+   "keywords": [
+    "disponibilidad",
+    "bloquear horarios",
+    "fuera de horario",
+    "filtrar doctores",
+    "crear en el calendario",
+    "sin modal",
+    "tarjeta",
+    "previsualizar",
+    "reglas de agenda"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "click",
+     "details": "Son preferencias de cada usuario: se guardan solas al cambiarlas y se aplican al instante.",
+     "id": "settings",
+     "target": "appointments.btn.settings",
+     "title": "Ajustes de la agenda"
+    },
+    {
+     "action": "highlight",
+     "details": "Al crear/editar una cita valida que el horario esté disponible para el doctor o consultorio elegido.",
+     "id": "availability",
+     "target": "appointments.field.check-availability",
+     "title": "Verificar disponibilidad"
+    },
+    {
+     "action": "highlight",
+     "details": "Atenúa y bloquea en el calendario los horarios fuera de atención (según horarios y excepciones), impidiendo crear citas ahí.",
+     "id": "block",
+     "target": "appointments.field.block-unavailable",
+     "title": "Bloquear fuera de atención"
+    },
+    {
+     "action": "highlight",
+     "details": "Al crear una cita, filtra la lista de doctores para mostrar solo los que prestan el servicio seleccionado.",
+     "id": "filter",
+     "target": "appointments.field.filter-doctors-by-service",
+     "title": "Filtrar doctores por servicio"
+    },
+    {
+     "action": "highlight",
+     "details": "Al hacer clic en un slot crea la cita directamente en el calendario con un card, sin abrir el modal. El botón Crear siempre abre el modal.",
+     "id": "inline",
+     "skipIfMissing": true,
+     "target": "appointments.field.inline-appointment-creation",
+     "title": "Crear la cita en el calendario"
+    },
+    {
+     "action": "highlight",
+     "details": "La tarjeta de cita inline se abre al lado de la cita, que se ve en el calendario mientras la completás, para ver cómo entra en los huecos. Al cambiar la fecha el calendario se mueve a ese día. Solo en tablet y escritorio.",
+     "id": "preview",
+     "skipIfMissing": true,
+     "target": "appointments.field.inline-draft-live-preview",
+     "title": "Previsualizar la cita al crearla"
+    }
+   ],
+   "summary": "Verificar disponibilidad, bloquear horarios fuera de atención, filtrar doctores por servicio y crear la cita directo en la agenda.",
+   "title": "Configurar las reglas al agendar"
+  },
+  {
+   "id": "appointments.bulk-reassign",
+   "inputs": {
+    "doctor": "Profesional al que se pasan las citas",
+    "period": "Hoy, Esta semana o Este mes"
+   },
+   "keywords": [
+    "lote",
+    "lotes",
+    "varias citas",
+    "reasignar",
+    "masivo",
+    "cambiar doctor a muchas",
+    "vacaciones",
+    "licencia"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La agenda muestra las citas por consultorio y profesional.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "click",
+     "details": "La agenda pasa a modo selección.",
+     "id": "bulk",
+     "target": "appointments.btn.bulk",
+     "title": "Operaciones en lotes"
+    },
+    {
+     "action": "fill",
+     "details": "Hoy, esta semana o este mes.",
+     "id": "period",
+     "optional": true,
+     "target": "appointments.filter.bulk-period",
+     "title": "Rango de fechas",
+     "value": "{{values.period}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Marcá de qué profesionales tomar las citas: se seleccionan solas.",
+     "id": "doctors",
+     "skipIfMissing": true,
+     "target": "appointments.filter.bulk-doctors",
+     "title": "Profesionales"
+    },
+    {
+     "action": "highlight",
+     "details": "Opcional: sólo las citas de esas agendas. También podés marcar citas una por una en la agenda.",
+     "id": "calendars",
+     "skipIfMissing": true,
+     "target": "appointments.filter.bulk-calendars",
+     "title": "Consultorios"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "Se habilita cuando hay citas seleccionadas.",
+     "id": "reassign",
+     "target": "appointments.btn.bulk-reassign",
+     "title": "Reasignar doctor",
+     "until": "appointments.field.bulk-doctor"
+    },
+    {
+     "action": "fill",
+     "id": "doctor",
+     "target": "appointments.field.bulk-doctor",
+     "title": "Profesional nuevo",
+     "value": "{{values.doctor}}"
+    },
+    {
+     "action": "confirm",
+     "id": "confirm",
+     "target": "appointments.btn.bulk-confirm",
+     "title": "Confirmar reasignación"
+    }
+   ],
+   "summary": "Operaciones en lotes: seleccionar citas por fecha, profesional o consultorio y pasarlas a otro profesional.",
+   "title": "Reasignar varias citas a otro profesional"
+  },
+  {
+   "id": "appointments.cancel",
+   "keywords": [
+    "cancelar",
+    "cancelacion",
+    "anular cita",
+    "motivo",
+    "sin aviso",
+    "baja de turno"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La agenda muestra las citas por consultorio y profesional.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "Se abre el menú de la cita. Si no la ves, cambiá de día con las flechas o usá Buscar cita.",
+     "id": "open-menu",
+     "target": "appointments.section.event",
+     "title": "Clic derecho sobre la cita",
+     "until": [
+      "appointments.btn.cancel-in_time",
+      "appointments.btn.change-status"
+     ]
+    },
+    {
+     "action": "highlight",
+     "details": "Pasá el mouse por Cambiar estado para ver los estados.",
+     "id": "status-menu",
+     "skipIfMissing": true,
+     "target": "appointments.btn.change-status",
+     "title": "Cambiar estado",
+     "until": "appointments.btn.cancel-in_time"
+    },
+    {
+     "action": "highlight",
+     "details": "Con tiempo: avisó con anticipación. Tarde: avisó sobre la hora. Por el doctor: la cancela el profesional. En Cancelar… están sin aviso, por la clínica y Otro motivo (con nota). El motivo queda en el historial y en los reportes de cancelaciones.",
+     "doneOnClose": true,
+     "id": "reason",
+     "target": "appointments.btn.cancel-in_time",
+     "title": "Elegí el motivo"
+    },
+    {
+     "action": "highlight",
+     "details": "Sólo con Otro motivo: explicá por qué se cancela.",
+     "id": "note",
+     "skipIfMissing": true,
+     "target": "appointments.field.cancellation-note",
+     "title": "Nota de la cancelación"
+    },
+    {
+     "action": "confirm",
+     "id": "confirm",
+     "skipIfMissing": true,
+     "target": "appointments.btn.cancellation-confirm",
+     "title": "Confirmar la cancelación"
+    }
+   ],
+   "summary": "Cancelar con el motivo correcto: con tiempo, tarde, por el profesional, sin aviso, por la clínica u otro.",
+   "title": "Cancelar una cita"
+  },
+  {
+   "id": "appointments.change-status",
+   "keywords": [
+    "estado",
+    "confirmar",
+    "confirmada",
+    "llego",
+    "llegó",
+    "en curso",
+    "completada",
+    "no asistio",
+    "no vino",
+    "check in",
+    "atendido"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La agenda muestra las citas por consultorio y profesional.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "Se abre el menú de la cita. Si no la ves, cambiá de día con las flechas o usá Buscar cita.",
+     "id": "open-menu",
+     "target": "appointments.section.event",
+     "title": "Clic derecho sobre la cita",
+     "until": [
+      "appointments.btn.status-confirmed",
+      "appointments.btn.change-status"
+     ]
+    },
+    {
+     "action": "highlight",
+     "details": "Pasá el mouse por Cambiar estado para ver los estados.",
+     "id": "status-menu",
+     "skipIfMissing": true,
+     "target": "appointments.btn.change-status",
+     "title": "Cambiar estado",
+     "until": "appointments.btn.status-confirmed"
+    },
+    {
+     "action": "highlight",
+     "details": "Confirmada: avisó que viene. Llegó: está en la sala. En curso: se lo está atendiendo. Completada: terminó la consulta. No asistió: no vino ni avisó. Sólo se habilitan los cambios permitidos desde el estado actual.",
+     "doneOnClose": true,
+     "id": "status",
+     "target": "appointments.btn.status-confirmed",
+     "title": "Elegí el estado nuevo"
+    }
+   ],
+   "summary": "Confirmada, llegó, en curso, completada, no asistió: desde el menú de la cita.",
+   "title": "Cambiar el estado de una cita"
+  },
+  {
+   "id": "appointments.create",
+   "inputs": {
+    "calendar": "Nombre del consultorio",
+    "date": "Fecha AAAA-MM-DD",
+    "doctor": "Nombre del profesional",
+    "notes": "Nota interna",
+    "patient": "Nombre del paciente",
+    "service": "Nombre del servicio",
+    "time": "Hora HH:MM"
+   },
+   "keywords": [
+    "agendar",
+    "cita",
+    "turno",
+    "reservar",
+    "nueva cita",
+    "crear cita",
+    "programar"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La agenda muestra las citas por consultorio y profesional.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "click",
+     "details": "Desde acá se crean citas, recordatorios y notas.",
+     "id": "menu",
+     "target": "appointments.btn.create-menu",
+     "title": "Crear"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "appointments.btn.new-appointment",
+     "title": "Nueva cita"
+    },
+    {
+     "action": "fill",
+     "details": "Buscá por nombre, teléfono o documento. Si el paciente tiene un profesional por defecto, se propone solo.",
+     "id": "patient",
+     "target": "appointments.field.patient",
+     "title": "Elegí el paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "fill",
+     "details": "Opcional. Define la duración de la cita y lo que se va a facturar.",
+     "id": "services",
+     "optional": true,
+     "target": "appointments.field.services",
+     "title": "Servicio",
+     "value": "{{values.service}}"
+    },
+    {
+     "action": "fill",
+     "details": "Quién atiende. Sólo se ofrecen los horarios en que tiene disponibilidad.",
+     "id": "doctor",
+     "target": "appointments.field.doctor",
+     "title": "Profesional",
+     "value": "{{values.doctor}}"
+    },
+    {
+     "action": "fill",
+     "details": "La agenda (consultorio o sala) donde se reserva el lugar.",
+     "id": "calendar",
+     "target": "appointments.field.calendar",
+     "title": "Consultorio",
+     "value": "{{values.calendar}}"
+    },
+    {
+     "action": "fill",
+     "details": "Día de la cita (dd/mm/aaaa).",
+     "id": "date",
+     "target": "appointments.field.date",
+     "title": "Fecha",
+     "value": "{{values.date}}"
+    },
+    {
+     "action": "fill",
+     "details": "Hora de inicio; el fin se calcula con la duración del servicio.",
+     "id": "time",
+     "target": "appointments.field.time",
+     "title": "Hora",
+     "value": "{{values.time}}"
+    },
+    {
+     "action": "fill",
+     "details": "Opcional. Texto interno que se ve en la cita.",
+     "id": "notes",
+     "optional": true,
+     "target": "appointments.field.notes",
+     "title": "Notas",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Revisá los datos y guardá. Se avisa al paciente si tiene recordatorios activos.",
+     "id": "save",
+     "target": "appointments.btn.save",
+     "title": "Guardar la cita"
+    }
+   ],
+   "summary": "Crear una cita desde el botón Crear: paciente, servicio, profesional, consultorio, fecha y hora.",
+   "title": "Agendar una cita"
+  },
+  {
+   "id": "appointments.create-from-slot",
+   "inputs": {
+    "doctor": "Nombre del profesional",
+    "notes": "Nota interna",
+    "patient": "Nombre del paciente",
+    "service": "Nombre del servicio"
+   },
+   "keywords": [
+    "hueco",
+    "horario libre",
+    "clic en la agenda",
+    "agendar rapido",
+    "slot"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La agenda muestra las citas por consultorio y profesional.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "Clic en el horario y la columna del consultorio. Se abre la cita con ese día, hora y consultorio ya puestos.",
+     "id": "slot",
+     "target": "appointments.section.calendar",
+     "title": "Hacé clic en un horario libre",
+     "until": [
+      "appointments.field.patient"
+     ]
+    },
+    {
+     "action": "fill",
+     "details": "Buscá por nombre, teléfono o documento. Si el paciente tiene un profesional por defecto, se propone solo.",
+     "id": "patient",
+     "target": "appointments.field.patient",
+     "title": "Elegí el paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "fill",
+     "details": "Opcional. Define la duración de la cita y lo que se va a facturar.",
+     "id": "services",
+     "optional": true,
+     "target": "appointments.field.services",
+     "title": "Servicio",
+     "value": "{{values.service}}"
+    },
+    {
+     "action": "fill",
+     "details": "Quién atiende. Sólo se ofrecen los horarios en que tiene disponibilidad.",
+     "id": "doctor",
+     "target": "appointments.field.doctor",
+     "title": "Profesional",
+     "value": "{{values.doctor}}"
+    },
+    {
+     "action": "fill",
+     "details": "Opcional. Texto interno que se ve en la cita.",
+     "id": "notes",
+     "optional": true,
+     "target": "appointments.field.notes",
+     "title": "Notas",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Revisá los datos y guardá. Se avisa al paciente si tiene recordatorios activos.",
+     "id": "save",
+     "target": "appointments.btn.save",
+     "title": "Guardar la cita"
+    }
+   ],
+   "summary": "Hacer clic en un hueco libre de la agenda y completar la cita ahí mismo.",
+   "title": "Agendar en un horario libre de la agenda"
+  },
+  {
+   "id": "appointments.default-view",
+   "inputs": {
+    "group": "Doctores | Consultorios | Sedes | Sin agrupar",
+    "hour_height": "Altura en px (ej. 120 px)",
+    "label": "Formato del texto de la cita",
+    "mode": "Invoke | Personalizado",
+    "sede": "Nombre de la sede o Todas las sedes",
+    "slot": "10 min | 15 min | 20 min | 30 min | 1 hora",
+    "view": "Día | 2 Días | 3 Días | Semana | Mes | Agenda"
+   },
+   "keywords": [
+    "vista por defecto",
+    "vista predeterminada",
+    "configurar agenda",
+    "ajustes de la agenda",
+    "preferencias del calendario",
+    "semana",
+    "dia",
+    "mes",
+    "agrupar",
+    "slot",
+    "altura",
+    "formato de la cita",
+    "ocultar dias",
+    "modo personalizado"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "click",
+     "details": "Son preferencias de cada usuario: se guardan solas al cambiarlas y se aplican al instante.",
+     "id": "settings",
+     "target": "appointments.btn.settings",
+     "title": "Ajustes de la agenda"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Invoke muestra el calendario como siempre. Personalizado muestra una sola agenda a la vez a pantalla completa; usa el botón 'Agendas' (arriba a la izquierda) para elegir cuál ver.",
+     "id": "mode",
+     "optional": true,
+     "target": "appointments.field.calendar-mode",
+     "title": "Modo de la agenda",
+     "value": "{{values.mode}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Define qué vista se muestra al abrir el calendario (día, semana, mes, agenda…). Cambiarla aplica la vista al instante.",
+     "id": "view",
+     "optional": true,
+     "target": "appointments.field.default-view",
+     "title": "Vista predeterminada",
+     "value": "{{values.view}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Divide el calendario en columnas por doctor o por consultorio. 'Sin agrupar' muestra una sola columna combinada.",
+     "id": "group",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "appointments.field.grouped-by",
+     "title": "Agrupar por",
+     "value": "{{values.group}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Limita el calendario a los consultorios de una sede. 'Todas las sedes' muestra todos los consultorios.",
+     "id": "sede",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "appointments.field.default-sede",
+     "title": "Sede",
+     "value": "{{values.sede}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Espacio vertical de cada hora en las vistas de día y semana. Más alto = más separación entre las citas y más visibles los huecos libres entre ellas. El zoom multiplica este valor y la duración del slot lo reparte: abajo se indica cuántos píxeles queda midiendo cada slot.",
+     "id": "hour-height",
+     "optional": true,
+     "target": "appointments.field.hour-height",
+     "title": "Altura de la hora",
+     "value": "{{values.hour_height}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Duración de cada slot (10, 15, 20, 30 min o 1 h). Define cuántos slots entran por hora: cuantos más slots, más finos quedan dentro de la altura de hora configurada. Si quedan muy justos, sube la altura de la hora o el zoom.",
+     "id": "slot",
+     "optional": true,
+     "target": "appointments.field.slot-duration",
+     "title": "Duración del slot",
+     "value": "{{values.slot}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Define cómo se compone el texto que se ve en cada cita (hora, paciente, tratamiento, notas).",
+     "id": "label",
+     "optional": true,
+     "target": "appointments.field.event-label-format",
+     "title": "Formato de la cita",
+     "value": "{{values.label}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Oculta los días elegidos como columnas en las vistas de día y semana. Es solo visual, para ganar espacio: no afecta la disponibilidad ni los días en que se pueden agendar citas.",
+     "id": "weekdays",
+     "target": "appointments.field.hidden-weekdays",
+     "title": "Ocultar días"
+    },
+    {
+     "action": "highlight",
+     "details": "Las citas muestran su estado con color. Si la cita tiene una etiqueta de color propia o el color de su servicio, lo conserva y el estado aparece como una franja en el borde izquierdo. Si solo hereda el color del doctor o del consultorio, toda la cita se pinta con el color del estado. Algunos estados están configurados para pintar siempre la cita sin importar esta preferencia — ver Configuración → Colores de Calendario.",
+     "id": "color",
+     "target": "appointments.field.color-by-status",
+     "title": "Color por estado"
+    }
+   ],
+   "summary": "Elegir cómo se abre la agenda: modo, vista (día, semana, mes…), agrupación, sede, tamaño de las horas, duración de los slots, texto de las citas y días ocultos.",
+   "title": "Configurar la vista por defecto de la agenda"
+  },
+  {
+   "id": "appointments.delete",
+   "keywords": [
+    "eliminar",
+    "borrar",
+    "quitar cita",
+    "cita duplicada",
+    "error"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La agenda muestra las citas por consultorio y profesional.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "Se abre el menú de la cita. Si no la ves, cambiá de día con las flechas o usá Buscar cita.",
+     "id": "open-menu",
+     "target": "appointments.section.event",
+     "title": "Clic derecho sobre la cita",
+     "until": [
+      "appointments.btn.delete-appointment"
+     ]
+    },
+    {
+     "action": "highlight",
+     "details": "Para citas cargadas por error. Si el paciente no viene, cancelala con su motivo: así queda en los reportes.",
+     "id": "delete",
+     "target": "appointments.btn.delete-appointment",
+     "title": "Eliminar cita",
+     "until": "appointments.btn.delete-confirm"
+    },
+    {
+     "action": "confirm",
+     "id": "confirm",
+     "target": "appointments.btn.delete-confirm",
+     "title": "Confirmar"
+    }
+   ],
+   "summary": "Borrar una cita cargada por error (no es lo mismo que cancelarla).",
+   "title": "Eliminar una cita"
+  },
+  {
+   "id": "appointments.edit",
+   "inputs": {
+    "calendar": "Nombre del consultorio",
+    "date": "Fecha AAAA-MM-DD",
+    "doctor": "Nombre del profesional",
+    "time": "Hora HH:MM"
+   },
+   "keywords": [
+    "editar",
+    "modificar",
+    "cambiar hora",
+    "cambiar fecha",
+    "reprogramar",
+    "cambiar profesional",
+    "cambiar consultorio"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La agenda muestra las citas por consultorio y profesional.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "Clic derecho sobre la cita (o un clic: en el modo personalizado se abre su tarjeta).",
+     "id": "open-menu",
+     "target": "appointments.section.event",
+     "title": "Abrí la cita",
+     "until": [
+      "appointments.btn.edit-appointment",
+      "appointments.btn.quick-edit"
+     ]
+    },
+    {
+     "action": "click",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "appointments.btn.edit-appointment",
+     "title": "Editar cita"
+    },
+    {
+     "action": "click",
+     "id": "quick-edit",
+     "skipIfMissing": true,
+     "target": "appointments.btn.quick-edit",
+     "title": "Editar"
+    },
+    {
+     "action": "fill",
+     "id": "doctor",
+     "optional": true,
+     "target": "appointments.field.doctor",
+     "title": "Profesional",
+     "value": "{{values.doctor}}"
+    },
+    {
+     "action": "fill",
+     "id": "calendar",
+     "optional": true,
+     "target": "appointments.field.calendar",
+     "title": "Consultorio",
+     "value": "{{values.calendar}}"
+    },
+    {
+     "action": "fill",
+     "id": "date",
+     "optional": true,
+     "target": "appointments.field.date",
+     "title": "Fecha",
+     "value": "{{values.date}}"
+    },
+    {
+     "action": "fill",
+     "id": "time",
+     "optional": true,
+     "target": "appointments.field.time",
+     "title": "Hora",
+     "value": "{{values.time}}"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "appointments.btn.save",
+     "title": "Guardar los cambios"
+    }
+   ],
+   "summary": "Abrir la cita, cambiar sus datos y guardar.",
+   "title": "Editar una cita: fecha, hora, profesional o consultorio"
+  },
+  {
+   "id": "appointments.find-gaps",
+   "inputs": {
+    "doctor": "Nombre del profesional",
+    "notes": "Nota interna",
+    "patient": "Nombre del paciente",
+    "service": "Nombre del servicio"
+   },
+   "keywords": [
+    "hueco",
+    "huecos",
+    "horario libre",
+    "disponibilidad",
+    "lugar",
+    "cuando hay lugar",
+    "espacio"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La agenda muestra las citas por consultorio y profesional.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "click",
+     "details": "Calcula los espacios libres según los horarios de atención y las citas.",
+     "id": "gaps",
+     "target": "appointments.btn.gaps",
+     "title": "Buscar huecos"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "Ordenados por día y consultorio; «Mayor» marca el más largo. Al elegir uno se abre la cita en ese horario.",
+     "id": "list",
+     "target": "appointments.section.gaps",
+     "title": "Elegí un hueco",
+     "until": "appointments.field.patient"
+    },
+    {
+     "action": "fill",
+     "details": "Buscá por nombre, teléfono o documento. Si el paciente tiene un profesional por defecto, se propone solo.",
+     "id": "patient",
+     "target": "appointments.field.patient",
+     "title": "Elegí el paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "fill",
+     "details": "Opcional. Define la duración de la cita y lo que se va a facturar.",
+     "id": "services",
+     "optional": true,
+     "target": "appointments.field.services",
+     "title": "Servicio",
+     "value": "{{values.service}}"
+    },
+    {
+     "action": "fill",
+     "details": "Quién atiende. Sólo se ofrecen los horarios en que tiene disponibilidad.",
+     "id": "doctor",
+     "target": "appointments.field.doctor",
+     "title": "Profesional",
+     "value": "{{values.doctor}}"
+    },
+    {
+     "action": "fill",
+     "details": "Opcional. Texto interno que se ve en la cita.",
+     "id": "notes",
+     "optional": true,
+     "target": "appointments.field.notes",
+     "title": "Notas",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Revisá los datos y guardá. Se avisa al paciente si tiene recordatorios activos.",
+     "id": "save",
+     "target": "appointments.btn.save",
+     "title": "Guardar la cita"
+    }
+   ],
+   "summary": "Ver los huecos libres de los días visibles y agendar en uno.",
+   "title": "Buscar un horario libre"
+  },
+  {
+   "id": "appointments.move",
+   "keywords": [
+    "mover",
+    "arrastrar",
+    "cambiar de dia",
+    "duracion",
+    "alargar",
+    "acortar",
+    "pasar a otro dia"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La agenda muestra las citas por consultorio y profesional.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "Arrastrala a otro horario o consultorio: se guarda al soltar. Para otro día, clic derecho → Mover a.",
+     "id": "open-menu",
+     "target": "appointments.section.event",
+     "title": "Arrastrá la cita o hacé clic derecho",
+     "until": [
+      "appointments.btn.move-to"
+     ]
+    },
+    {
+     "action": "highlight",
+     "details": "Elegí el día en el calendario: se mantienen la hora y la duración.",
+     "doneOnClose": true,
+     "id": "move-to",
+     "target": "appointments.btn.move-to",
+     "title": "Mover a"
+    },
+    {
+     "action": "highlight",
+     "details": "Otra opción del mismo menú: alarga o acorta la cita (15, 30, 45 min…). También se puede estirar desde el borde de la cita.",
+     "doneOnClose": true,
+     "id": "duration",
+     "skipIfMissing": true,
+     "target": "appointments.btn.duration",
+     "title": "Duración"
+    }
+   ],
+   "summary": "Arrastrar la cita a otro horario, o moverla de día y cambiar su duración desde el menú.",
+   "title": "Mover una cita de día u hora"
+  },
+  {
+   "id": "appointments.navigate",
+   "keywords": [
+    "cambiar de dia",
+    "semana",
+    "vista",
+    "zoom",
+    "hoy",
+    "ir a fecha",
+    "agendas",
+    "ver otro consultorio",
+    "ajustes de agenda",
+    "exportar",
+    "excel",
+    "actualizar"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La agenda muestra las citas por consultorio y profesional.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "highlight",
+     "details": "Vuelve al día de hoy.",
+     "id": "today",
+     "target": "appointments.btn.today",
+     "title": "Hoy"
+    },
+    {
+     "action": "highlight",
+     "details": "Avanzan o retroceden un día, una semana o un mes según la vista.",
+     "id": "arrows",
+     "target": "appointments.btn.next",
+     "title": "Anterior y siguiente"
+    },
+    {
+     "action": "highlight",
+     "details": "Clic en la fecha para elegir un día en el calendario.",
+     "id": "date",
+     "target": "appointments.btn.date-picker",
+     "title": "Ir a una fecha"
+    },
+    {
+     "action": "highlight",
+     "details": "Muestra u oculta el panel de agendas: elegí qué consultorio ver.",
+     "id": "agendas",
+     "skipIfMissing": true,
+     "target": "appointments.btn.agendas",
+     "title": "Agendas"
+    },
+    {
+     "action": "highlight",
+     "details": "Día, varios días, semana, mes o lista, y qué agendas se muestran.",
+     "id": "view",
+     "skipIfMissing": true,
+     "target": "appointments.btn.view",
+     "title": "Vista"
+    },
+    {
+     "action": "highlight",
+     "details": "Agranda o achica las franjas horarias.",
+     "id": "zoom",
+     "skipIfMissing": true,
+     "target": "appointments.btn.zoom",
+     "title": "Zoom"
+    },
+    {
+     "action": "highlight",
+     "details": "Vuelve a traer las citas (por si alguien agendó desde otro lado).",
+     "id": "refresh",
+     "target": "appointments.btn.refresh",
+     "title": "Actualizar"
+    },
+    {
+     "action": "highlight",
+     "details": "Descarga las citas de un período en Excel.",
+     "id": "print",
+     "target": "appointments.btn.print",
+     "title": "Exportar agenda a Excel"
+    },
+    {
+     "action": "highlight",
+     "details": "Horario visible, duración de las franjas, cómo se crea una cita (ventana o tarjeta) y agrupación.",
+     "id": "settings",
+     "skipIfMissing": true,
+     "target": "appointments.btn.settings",
+     "title": "Ajustes de la agenda"
+    }
+   ],
+   "summary": "Cambiar de día, saltar a una fecha, elegir la vista, el zoom y las agendas visibles.",
+   "title": "Moverse por la agenda: días, vista, agendas y ajustes"
+  },
+  {
+   "id": "appointments.patient-info",
+   "keywords": [
+    "historia clinica",
+    "ficha del paciente",
+    "estado de cuenta",
+    "deuda",
+    "imagenes",
+    "archivos",
+    "datos del paciente",
+    "historial de citas"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La agenda muestra las citas por consultorio y profesional.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "Se abre el menú de la cita. Si no la ves, cambiá de día con las flechas o usá Buscar cita.",
+     "id": "open-menu",
+     "target": "appointments.section.event",
+     "title": "Clic derecho sobre la cita",
+     "until": [
+      "appointments.btn.patient-menu"
+     ]
+    },
+    {
+     "action": "highlight",
+     "details": "Pasá el mouse por el nombre del paciente.",
+     "id": "patient",
+     "target": "appointments.btn.patient-menu",
+     "title": "El paciente",
+     "until": "appointments.btn.patient-history"
+    },
+    {
+     "action": "highlight",
+     "details": "Estado de cuenta (lo que debe y pagó), Historia clínica, Imágenes y archivos, Historial de citas y Datos del paciente.",
+     "doneOnClose": true,
+     "id": "options",
+     "target": "appointments.btn.patient-history",
+     "title": "Elegí qué ver"
+    }
+   ],
+   "summary": "Desde el menú de la cita: historia clínica, imágenes, estado de cuenta, historial de citas y datos.",
+   "title": "Ver la ficha, la historia o la cuenta del paciente desde la cita"
+  },
+  {
+   "id": "appointments.reassign",
+   "keywords": [
+    "reasignar",
+    "cambiar doctor",
+    "cambiar profesional",
+    "cambiar consultorio",
+    "otro doctor",
+    "otra agenda"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La agenda muestra las citas por consultorio y profesional.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "Se abre el menú de la cita. Si no la ves, cambiá de día con las flechas o usá Buscar cita.",
+     "id": "open-menu",
+     "target": "appointments.section.event",
+     "title": "Clic derecho sobre la cita",
+     "until": [
+      "appointments.btn.change-doctor"
+     ]
+    },
+    {
+     "action": "highlight",
+     "details": "Pasá el mouse y elegí el profesional nuevo. Para varias citas a la vez, usá Operaciones en lotes.",
+     "doneOnClose": true,
+     "id": "doctor",
+     "target": "appointments.btn.change-doctor",
+     "title": "Cambiar profesional"
+    },
+    {
+     "action": "highlight",
+     "details": "En el mismo menú: mueve la cita a otra agenda manteniendo día y hora.",
+     "doneOnClose": true,
+     "id": "calendar",
+     "skipIfMissing": true,
+     "target": "appointments.btn.change-calendar",
+     "title": "Cambiar consultorio"
+    }
+   ],
+   "summary": "Reasignar la cita a otro profesional u otra agenda desde su menú.",
+   "title": "Cambiar el profesional o el consultorio de una cita"
+  },
+  {
+   "id": "appointments.reminder",
+   "inputs": {
+    "date": "Fecha AAAA-MM-DD",
+    "description": "Detalle",
+    "time": "Hora HH:MM",
+    "title": "Título del recordatorio"
+   },
+   "keywords": [
+    "recordatorio",
+    "nota",
+    "tarea",
+    "aviso interno",
+    "recordar"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La agenda muestra las citas por consultorio y profesional.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "click",
+     "details": "Nueva cita, recordatorio o nota.",
+     "id": "menu",
+     "target": "appointments.btn.create-menu",
+     "title": "Crear"
+    },
+    {
+     "action": "click",
+     "details": "Para una nota silenciosa elegí Nota en el mismo menú.",
+     "id": "new",
+     "target": "appointments.btn.new-reminder",
+     "title": "Recordatorio"
+    },
+    {
+     "action": "fill",
+     "details": "Qué hay que hacer. Se ve en la agenda.",
+     "id": "title",
+     "target": "appointments.field.reminder-title",
+     "title": "Título",
+     "value": "{{values.title}}"
+    },
+    {
+     "action": "fill",
+     "id": "description",
+     "optional": true,
+     "target": "appointments.field.reminder-description",
+     "title": "Descripción",
+     "value": "{{values.description}}"
+    },
+    {
+     "action": "fill",
+     "id": "date",
+     "target": "appointments.field.reminder-date",
+     "title": "Fecha",
+     "value": "{{values.date}}"
+    },
+    {
+     "action": "fill",
+     "details": "Sin hora si marcás Todo el día.",
+     "id": "time",
+     "optional": true,
+     "target": "appointments.field.reminder-time",
+     "title": "Hora",
+     "value": "{{values.time}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Opcional: se repite cada día, semana o mes hasta una fecha o una cantidad de veces.",
+     "id": "repeat",
+     "skipIfMissing": true,
+     "target": "appointments.field.reminder-repeat",
+     "title": "Repetir"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "appointments.btn.submit",
+     "title": "Guardar el recordatorio"
+    }
+   ],
+   "summary": "Tareas internas (llamar al laboratorio) o notas silenciosas en la agenda de la clínica.",
+   "title": "Crear un recordatorio o una nota en la agenda"
+  },
+  {
+   "id": "appointments.search",
+   "inputs": {
+    "query": "Nombre, teléfono o documento del paciente"
+   },
+   "keywords": [
+    "buscar",
+    "encontrar",
+    "donde esta",
+    "cuando tiene",
+    "citas de un paciente",
+    "proxima cita"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La agenda muestra las citas por consultorio y profesional.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "click",
+     "details": "Busca citas de un paciente en todas las fechas.",
+     "id": "search",
+     "target": "appointments.btn.search",
+     "title": "Buscar cita"
+    },
+    {
+     "action": "fill",
+     "details": "Por nombre, teléfono, email o documento del paciente, o por el título de la cita. Busca en todas las fechas; al elegir un resultado la agenda va a ese día y abre la cita.",
+     "id": "query",
+     "target": "appointments.filter.appointments",
+     "title": "Escribí el paciente o el título",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Se ven las citas pasadas y futuras que coinciden. Al elegir una, la agenda va a ese día y abre la cita.",
+     "id": "result",
+     "target": "appointments.section.search-results",
+     "title": "Elegí la cita",
+     "until": [
+      "appointments.section.quick-view",
+      "appointments.btn.edit-appointment"
+     ]
+    }
+   ],
+   "summary": "Encontrar las citas de un paciente en cualquier fecha.",
+   "title": "Buscar una cita"
+  },
   {
    "id": "dashboard.filters",
    "inputs": {
@@ -10033,6 +12931,555 @@
    ],
    "summary": "Alta de un paciente con sus datos de contacto. El teléfono se usa para recordatorios por WhatsApp.",
    "title": "Registrar un paciente"
+  },
+  {
+   "id": "workspace.agent",
+   "keywords": [
+    "agente",
+    "ia",
+    "inteligencia artificial",
+    "asistente clinico",
+    "resumen clinico",
+    "dictar",
+    "que toca hoy",
+    "ultimo procedimiento"
+   ],
+   "module": "Mi Consultorio",
+   "screens": [
+    "workspace"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La vista del profesional: su agenda y el panel clínico del paciente que atiende.",
+     "id": "go",
+     "route": "/workspace",
+     "title": "Menú → Mi Consultorio"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá la cita en la agenda: a la derecha se abre el panel del paciente. Si no ves citas, cambiá el día o el período arriba.",
+     "id": "select",
+     "target": "workspace.section.appointment",
+     "title": "Elegí la cita del paciente",
+     "until": "workspace.section.focus"
+    },
+    {
+     "action": "click",
+     "details": "Agente clínico con IA de la cita.",
+     "id": "open",
+     "target": "workspace.btn.agent-chat",
+     "title": "Consulta al agente"
+    },
+    {
+     "action": "highlight",
+     "details": "Conoce la cita y la historia del paciente. Usá los atajos (lo último que se hizo, qué toca hoy, alertas) o escribí y dictá tu pregunta. Puede preparar la sesión clínica o marcar el odontograma: siempre lo revisás vos antes de guardar.",
+     "id": "chat",
+     "target": "workspace.section.agent-chat",
+     "title": "Agente clínico"
+    }
+   ],
+   "summary": "Preguntar por el último procedimiento, lo que toca hoy o las alertas del paciente, y pedirle que prepare la sesión.",
+   "title": "Consultar al agente clínico con IA"
+  },
+  {
+   "id": "workspace.change-period",
+   "inputs": {
+    "calendar": "Nombre del calendario",
+    "period": "today | tomorrow | week | next7 | month | nextMonth | prevMonth"
+   },
+   "keywords": [
+    "otro dia",
+    "mañana",
+    "semana",
+    "periodo",
+    "mes",
+    "calendario",
+    "consultorio",
+    "asignadas a mi",
+    "mis calendarios"
+   ],
+   "module": "Mi Consultorio",
+   "screens": [
+    "workspace"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La vista del profesional: su agenda y el panel clínico del paciente que atiende.",
+     "id": "go",
+     "route": "/workspace",
+     "title": "Menú → Mi Consultorio"
+    },
+    {
+     "action": "click",
+     "details": "Hoy, mañana, esta semana, los próximos 7 días, este mes… o un día o período del calendario.",
+     "id": "date",
+     "target": "workspace.filter.date",
+     "title": "Día o período"
+    },
+    {
+     "action": "click",
+     "id": "date-pick",
+     "optional": true,
+     "target": "workspace.filter.date-{{values.period}}",
+     "title": "Período elegido"
+    },
+    {
+     "action": "highlight",
+     "details": "Un día muestra su agenda; un período agrupa las citas por día. Los días que no son hoy son de sólo lectura para la sesión clínica.",
+     "doneOnClose": true,
+     "id": "date-options",
+     "skipIfMissing": true,
+     "target": "workspace.section.date-options",
+     "title": "Elegí el día o el período"
+    },
+    {
+     "action": "highlight",
+     "details": "Vuelve a la agenda de hoy.",
+     "id": "today",
+     "skipIfMissing": true,
+     "target": "workspace.btn.today",
+     "title": "Hoy"
+    },
+    {
+     "action": "highlight",
+     "details": "Sólo las citas en las que sos el profesional.",
+     "id": "assigned",
+     "skipIfMissing": true,
+     "target": "workspace.tab.assigned",
+     "title": "Asignadas a mí"
+    },
+    {
+     "action": "click",
+     "details": "Las citas de un consultorio al que tenés acceso, sean tuyas o de otro profesional.",
+     "id": "calendars",
+     "skipIfMissing": true,
+     "target": "workspace.tab.calendars",
+     "title": "Mis calendarios"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "El consultorio o agenda cuyas citas querés ver.",
+     "id": "calendar",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "workspace.filter.calendar",
+     "title": "Elegí el calendario",
+     "value": "{{values.calendar}}"
+    }
+   ],
+   "summary": "Cambiar el día o el período de la agenda y ver las citas de un calendario en vez de las asignadas a vos.",
+   "title": "Ver las citas de otro día, período o calendario"
+  },
+  {
+   "id": "workspace.complete-session",
+   "inputs": {
+    "diagnosis": "Diagnóstico",
+    "next_plan": "Plan de la próxima sesión",
+    "notes": "Notas clínicas",
+    "procedure": "Procedimiento realizado"
+   },
+   "keywords": [
+    "sesion clinica",
+    "completar sesion",
+    "registrar atencion",
+    "evolucion",
+    "procedimiento",
+    "diagnostico",
+    "plan",
+    "nota clinica",
+    "cerrar la cita",
+    "alta"
+   ],
+   "module": "Mi Consultorio",
+   "screens": [
+    "workspace"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La vista del profesional: su agenda y el panel clínico del paciente que atiende.",
+     "id": "go",
+     "route": "/workspace",
+     "title": "Menú → Mi Consultorio"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá la cita en la agenda: a la derecha se abre el panel del paciente. Si no ves citas, cambiá el día o el período arriba.",
+     "id": "select",
+     "target": "workspace.section.appointment",
+     "title": "Elegí la cita del paciente",
+     "until": "workspace.section.focus"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Si el botón está deshabilitado: ya hay una sesión de hoy, la cita es de otro día o la sesión es de odontograma (se edita desde Odontograma).",
+     "id": "open",
+     "target": "workspace.btn.session",
+     "title": "Completar sesión clínica",
+     "until": "workspace.field.session-procedure"
+    },
+    {
+     "action": "fill",
+     "details": "Qué se hizo hoy. Podés dictarlo; los tratamientos del presupuesto aparecen como etiquetas para marcar.",
+     "id": "procedure",
+     "target": "workspace.field.session-procedure",
+     "title": "Procedimiento",
+     "value": "{{values.procedure}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "diagnosis",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "workspace.field.session-diagnosis",
+     "title": "Diagnóstico",
+     "value": "{{values.diagnosis}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "notes",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "workspace.field.session-notes",
+     "title": "Notas",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Lo que toca la próxima vez: queda como contexto cuando se agende la siguiente cita.",
+     "id": "plan",
+     "optional": true,
+     "target": "workspace.field.session-next-plan",
+     "title": "Plan de la próxima sesión",
+     "value": "{{values.next_plan}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Los tratamientos del presupuesto: marcá los que se realizaron hoy.",
+     "id": "treatments",
+     "skipIfMissing": true,
+     "target": "workspace.field.session-treatments",
+     "title": "Tratamientos"
+    },
+    {
+     "action": "highlight",
+     "details": "Fotos, radiografías o documentos de esta sesión.",
+     "id": "attachments",
+     "skipIfMissing": true,
+     "target": "workspace.field.session-attachments",
+     "title": "Adjuntos"
+    },
+    {
+     "action": "highlight",
+     "details": "Si el tratamiento terminó, marca al paciente como dado de alta.",
+     "id": "discharge",
+     "skipIfMissing": true,
+     "target": "workspace.field.session-discharge",
+     "title": "Dar de alta"
+    },
+    {
+     "action": "confirm",
+     "details": "Al guardar, la cita queda Completada.",
+     "id": "save",
+     "target": "workspace.btn.submit",
+     "title": "Guardar la sesión"
+    }
+   ],
+   "summary": "Registrar el procedimiento, el diagnóstico, las notas y el plan de la próxima sesión; al guardar, la cita queda completada.",
+   "title": "Completar la sesión clínica de una cita"
+  },
+  {
+   "id": "workspace.odontogram",
+   "keywords": [
+    "odontograma",
+    "piezas",
+    "dientes",
+    "caries",
+    "marcar pieza",
+    "estado dental"
+   ],
+   "module": "Mi Consultorio",
+   "screens": [
+    "workspace"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La vista del profesional: su agenda y el panel clínico del paciente que atiende.",
+     "id": "go",
+     "route": "/workspace",
+     "title": "Menú → Mi Consultorio"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá la cita en la agenda: a la derecha se abre el panel del paciente. Si no ves citas, cambiá el día o el período arriba.",
+     "id": "select",
+     "target": "workspace.section.appointment",
+     "title": "Elegí la cita del paciente",
+     "until": "workspace.section.focus"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "target": "workspace.tab.odontogram",
+     "title": "Odontograma"
+    },
+    {
+     "action": "highlight",
+     "details": "Tocá una pieza para ver y marcar su estado y sus superficies. Lo que marques hoy queda en una sesión de tipo odontograma de esta cita.",
+     "id": "chart",
+     "target": "workspace.section.odontogram",
+     "title": "Odontograma"
+    }
+   ],
+   "summary": "Abrir el odontograma desde la cita para ver el estado de cada pieza y marcar lo que se hizo.",
+   "title": "Ver y registrar el odontograma del paciente"
+  },
+  {
+   "id": "workspace.overview",
+   "keywords": [
+    "mi consultorio",
+    "consultorio",
+    "vista doctor",
+    "agenda del dia",
+    "mis citas",
+    "paciente en foco",
+    "workspace",
+    "doctor"
+   ],
+   "module": "Mi Consultorio",
+   "screens": [
+    "workspace"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La vista del profesional: su agenda y el panel clínico del paciente que atiende.",
+     "id": "go",
+     "route": "/workspace",
+     "title": "Menú → Mi Consultorio"
+    },
+    {
+     "action": "highlight",
+     "details": "Tus citas de hoy en orden horario, con su estado. Se actualiza sola cada minuto y avisa cuando entra una cita nueva o cambia una.",
+     "id": "agenda",
+     "target": "workspace.section.agenda",
+     "title": "Agenda del día"
+    },
+    {
+     "action": "highlight",
+     "details": "Trae los cambios en el momento, sin esperar el refresco automático.",
+     "id": "refresh",
+     "target": "workspace.btn.refresh",
+     "title": "Actualizar"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá la cita en la agenda: a la derecha se abre el panel del paciente. Si no ves citas, cambiá el día o el período arriba.",
+     "id": "select",
+     "target": "workspace.section.appointment",
+     "title": "Elegí la cita del paciente",
+     "until": "workspace.section.focus"
+    },
+    {
+     "action": "highlight",
+     "details": "Todo lo de este paciente sin salir de la cita: alertas, ficha, sesiones clínicas y odontograma.",
+     "id": "focus",
+     "target": "workspace.section.focus",
+     "title": "Paciente en foco"
+    },
+    {
+     "action": "highlight",
+     "details": "Alergias y padecimientos registrados. Si titila, tiene alertas que conviene revisar antes de atender.",
+     "id": "alerts",
+     "skipIfMissing": true,
+     "target": "workspace.btn.patient-alerts",
+     "title": "Alertas del paciente"
+    },
+    {
+     "action": "highlight",
+     "details": "Abre la ficha completa: datos, historia clínica, presupuestos, facturas y citas.",
+     "id": "file",
+     "target": "workspace.btn.patient-file",
+     "title": "Ficha del paciente"
+    },
+    {
+     "action": "highlight",
+     "details": "La línea de tiempo con las sesiones anteriores; la más reciente aparece abierta para repasar antes de atender.",
+     "id": "sessions",
+     "target": "workspace.tab.sessions",
+     "title": "Sesiones clínicas"
+    },
+    {
+     "action": "highlight",
+     "details": "El estado de cada pieza dental y los tratamientos marcados.",
+     "id": "odontogram",
+     "target": "workspace.tab.odontogram",
+     "title": "Odontograma"
+    },
+    {
+     "action": "highlight",
+     "details": "Registra lo que se hizo hoy. Al guardar, la cita queda Completada. Sólo una sesión por paciente por día y desde el día de la cita.",
+     "id": "session",
+     "target": "workspace.btn.session",
+     "title": "Completar sesión clínica"
+    },
+    {
+     "action": "highlight",
+     "details": "Arma la receta con medicamentos, dosis y frecuencia, y la imprime con tu firma.",
+     "id": "prescribe",
+     "skipIfMissing": true,
+     "target": "workspace.btn.prescribe",
+     "title": "Recetar"
+    },
+    {
+     "action": "highlight",
+     "details": "Preguntale por el último procedimiento, qué toca hoy o las alertas; puede preparar la sesión o el odontograma para que los revises.",
+     "id": "agent",
+     "skipIfMissing": true,
+     "target": "workspace.btn.agent-chat",
+     "title": "Agente clínico"
+    }
+   ],
+   "summary": "Recorrer la agenda del día y el panel del paciente: alertas, ficha, sesiones clínicas, odontograma, receta y agente con IA.",
+   "title": "Usar Mi Consultorio"
+  },
+  {
+   "id": "workspace.prescribe",
+   "inputs": {
+    "diagnosis": "Diagnóstico",
+    "dosage": "Dosis (ej. 500 mg)",
+    "duration_days": "Días de tratamiento (número)",
+    "frequency": "Frecuencia (ej. cada 8 horas)",
+    "instructions": "Indicaciones",
+    "medication": "Medicamento",
+    "template": "Nombre de la plantilla"
+   },
+   "keywords": [
+    "receta",
+    "recetar",
+    "prescripcion",
+    "medicamento",
+    "dosis",
+    "indicaciones",
+    "imprimir receta"
+   ],
+   "module": "Mi Consultorio",
+   "screens": [
+    "workspace"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La vista del profesional: su agenda y el panel clínico del paciente que atiende.",
+     "id": "go",
+     "route": "/workspace",
+     "title": "Menú → Mi Consultorio"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá la cita en la agenda: a la derecha se abre el panel del paciente. Si no ves citas, cambiá el día o el período arriba.",
+     "id": "select",
+     "target": "workspace.section.appointment",
+     "title": "Elegí la cita del paciente",
+     "until": "workspace.section.focus"
+    },
+    {
+     "action": "click",
+     "id": "open",
+     "target": "workspace.btn.prescribe",
+     "title": "Recetar"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Una receta armada de antemano (Configuración → Plantillas de indicaciones) que completa los medicamentos.",
+     "id": "template",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "workspace.field.rx-template",
+     "title": "Plantilla",
+     "value": "{{values.template}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "diagnosis",
+     "optional": true,
+     "target": "workspace.field.rx-diagnosis",
+     "title": "Diagnóstico",
+     "value": "{{values.diagnosis}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Cada medicamento lleva presentación, dosis, vía, frecuencia, duración, cantidad e indicaciones.",
+     "id": "add",
+     "target": "workspace.btn.rx-add-medication",
+     "title": "Agregar medicamento",
+     "until": "workspace.field.rx-medication"
+    },
+    {
+     "action": "fill",
+     "id": "medication",
+     "target": "workspace.field.rx-medication",
+     "title": "Medicamento",
+     "value": "{{values.medication}}"
+    },
+    {
+     "action": "fill",
+     "id": "dosage",
+     "target": "workspace.field.rx-dosage",
+     "title": "Dosis",
+     "value": "{{values.dosage}}"
+    },
+    {
+     "action": "fill",
+     "id": "frequency",
+     "target": "workspace.field.rx-frequency",
+     "title": "Frecuencia",
+     "value": "{{values.frequency}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "duration",
+     "optional": true,
+     "target": "workspace.field.rx-duration",
+     "title": "Duración (días)",
+     "value": "{{values.duration_days}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "instructions",
+     "optional": true,
+     "target": "workspace.field.rx-instructions",
+     "title": "Indicaciones",
+     "value": "{{values.instructions}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Después podés imprimirla con el botón de imprimir.",
+     "id": "save",
+     "target": "workspace.btn.submit",
+     "title": "Guardar la receta"
+    }
+   ],
+   "summary": "Crear la receta del paciente: plantilla, diagnóstico, medicamentos con dosis y frecuencia, e imprimirla.",
+   "title": "Hacer una receta desde la cita"
   }
  ]
 }

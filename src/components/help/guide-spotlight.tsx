@@ -8,7 +8,7 @@ import { createPortal } from 'react-dom';
 import { useMascotOnStage } from '@/hooks/use-mascot-preference';
 import { findHelpTarget, isMissingOrInvalid } from '@/lib/help/guide-engine';
 import { goToStep, isBlockingStep, lastStep, nextStep, previousStep, retryStep, skipStep, stopGuide } from '@/lib/help/guide-runner';
-import { intersects, MASCOT_SIZE, pickPlacement, placeGuideMascot, revealElement, VIEWPORT_MARGIN, type Rect } from '@/lib/help/placement';
+import { intersects, MASCOT_SIZE, menuRectOf, pickPlacement, placeGuideMascot, placeGuideMascotBesideMenu, revealElement, VIEWPORT_MARGIN, type Rect } from '@/lib/help/placement';
 import { cn } from '@/lib/utils';
 import { useHelpAssistant, type GuideRun, type GuideStepStatus } from '@/stores/help-assistant-store';
 
@@ -35,45 +35,10 @@ function sameBox(a: Rect | null, b: Rect | null) {
     && Math.abs(a.width - b.width) < 0.5 && Math.abs(a.height - b.height) < 0.5;
 }
 
-/** Dónde va a pararse la mascota para señalar `box`. */
-function mascotRectFor(box: Rect): Rect {
-  const spot = placeGuideMascot(box, MASCOT_SIZE, []);
+/** Dónde va a pararse la mascota para señalar `box` (al costado del menú si es una opción de menú). */
+function mascotRectFor(box: Rect, menu: Rect | null): Rect {
+  const spot = menu ? placeGuideMascotBesideMenu(box, menu, MASCOT_SIZE) : placeGuideMascot(box, MASCOT_SIZE, []);
   return { left: spot.x - MASCOT_SIZE / 2, top: spot.y - MASCOT_SIZE / 2, width: MASCOT_SIZE, height: MASCOT_SIZE };
-}
-
-/**
- * La barra va debajo del elemento; si no entra, al costado de la mascota (derecha o
- * izquierda), nunca debajo de ella; si tampoco, arriba del elemento o abajo al centro.
- * Usa el lugar al que va a ir la mascota (el mismo cálculo que MascotHost, que después
- * la ubica esquivando esta barra, así que queda en ese lugar).
- */
-function placeToolbar(box: Rect, mascot: Rect | null): Rect {
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const left = Math.max(VIEWPORT_MARGIN, Math.min(vw - TOOLBAR_WIDTH - VIEWPORT_MARGIN, box.left));
-  const size = { width: TOOLBAR_WIDTH, height: TOOLBAR_HEIGHT };
-  const candidates = [{ rect: { ...size, top: box.top + box.height + TOOLBAR_GAP, left } }];
-  if (mascot) {
-    const besideTop = mascot.top + mascot.height / 2 - TOOLBAR_HEIGHT / 2;
-    candidates.push(
-      { rect: { ...size, top: besideTop, left: mascot.left + mascot.width + TOOLBAR_GAP } },
-      { rect: { ...size, top: besideTop, left: mascot.left - TOOLBAR_WIDTH - TOOLBAR_GAP } },
-    );
-  }
-  candidates.push(
-    { rect: { ...size, top: box.top - TOOLBAR_GAP - TOOLBAR_HEIGHT, left } },
-    { rect: { ...size, top: vh - TOOLBAR_HEIGHT - 16, left: vw / 2 - TOOLBAR_WIDTH / 2 } },
-  );
-  return pickPlacement(candidates, mascot ? [box, mascot] : [box]).rect;
-}
-
-/** La lista de pasos va pegada a la barra: abajo si entra, si no arriba; sin pisar el elemento ni la mascota. */
-function placeList(toolbar: Rect, height: number, obstacles: Rect[]): Rect {
-  const base = { width: TOOLBAR_WIDTH, height, left: toolbar.left };
-  return pickPlacement([
-    { rect: { ...base, top: toolbar.top + toolbar.height + LIST_GAP } },
-    { rect: { ...base, top: toolbar.top - LIST_GAP - height } },
-  ], obstacles).rect;
 }
 
 /** Área que `a` le tapa a `b` (con 4 px de aire). */
@@ -82,6 +47,60 @@ function overlapArea(a: Rect, b: Rect): number {
   const y = Math.min(a.top + a.height, b.top + b.height + 4) - Math.max(a.top, b.top - 4);
   return x > 0 && y > 0 ? x * y : 0;
 }
+
+/**
+ * La barra va debajo del elemento (o del menú que lo contiene); si no entra, al costado
+ * de la mascota, nunca debajo de ella; si no, al costado del menú o arriba; como último
+ * recurso abajo al centro. Si ninguno queda libre, el que menos tapa. Usa el lugar al
+ * que va a ir la mascota (el mismo cálculo que MascotHost, que después la ubica
+ * esquivando esta barra, así que queda en ese lugar).
+ */
+function placeToolbar(anchor: Rect, box: Rect, mascot: Rect | null): Rect {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const size = { width: TOOLBAR_WIDTH, height: TOOLBAR_HEIGHT };
+  const clampLeft = (left: number) => Math.max(VIEWPORT_MARGIN, Math.min(vw - TOOLBAR_WIDTH - VIEWPORT_MARGIN, left));
+  const clampTop = (top: number) => Math.max(VIEWPORT_MARGIN, Math.min(vh - TOOLBAR_HEIGHT - VIEWPORT_MARGIN, top));
+  const boxMid = clampTop(box.top + box.height / 2 - TOOLBAR_HEIGHT / 2);
+  const rightOf = Math.max(anchor.left + anchor.width, mascot ? mascot.left + mascot.width : 0) + TOOLBAR_GAP;
+  const candidates: Rect[] = [{ ...size, top: anchor.top + anchor.height + TOOLBAR_GAP, left: clampLeft(anchor.left) }];
+  if (mascot) {
+    const besideTop = mascot.top + mascot.height / 2 - TOOLBAR_HEIGHT / 2;
+    candidates.push(
+      { ...size, top: besideTop, left: mascot.left + mascot.width + TOOLBAR_GAP },
+      { ...size, top: besideTop, left: mascot.left - TOOLBAR_WIDTH - TOOLBAR_GAP },
+    );
+  }
+  candidates.push(
+    { ...size, top: boxMid, left: anchor.left - TOOLBAR_WIDTH - TOOLBAR_GAP },
+    { ...size, top: boxMid, left: rightOf },
+    { ...size, top: anchor.top - TOOLBAR_GAP - TOOLBAR_HEIGHT, left: clampLeft(anchor.left) },
+    { ...size, top: vh - TOOLBAR_HEIGHT - 16, left: vw / 2 - TOOLBAR_WIDTH / 2 },
+  );
+  const avoid = mascot ? [anchor, box, mascot] : [anchor, box];
+  const inside = candidates.filter((c) => c.left >= VIEWPORT_MARGIN && c.top >= VIEWPORT_MARGIN && c.left + c.width <= vw - VIEWPORT_MARGIN && c.top + c.height <= vh - VIEWPORT_MARGIN);
+  if (!inside.length) return pickPlacement(candidates.map((rect) => ({ rect })), avoid).rect;
+  const covered = (c: Rect) => avoid.reduce((sum, o) => sum + overlapArea(c, o), 0);
+  return inside.find((c) => covered(c) === 0) ?? inside.reduce((best, c) => (covered(c) < covered(best) ? c : best));
+}
+
+/** La lista de pasos va pegada a la barra: abajo si entra, si no arriba; sin pisar el elemento ni la mascota. */
+function placeList(toolbar: Rect, height: number, obstacles: Rect[], dialog: Rect | null = null): Rect {
+  const base = { width: TOOLBAR_WIDTH, height, left: toolbar.left };
+  const below = { ...base, top: toolbar.top + toolbar.height + LIST_GAP };
+  const above = { ...base, top: toolbar.top - LIST_GAP - height };
+  if (!dialog) return pickPlacement([{ rect: below }, { rect: above }], obstacles).rect;
+  // Dentro de un diálogo: si pegada a la barra taparía los otros campos del diálogo, va
+  // al costado del diálogo (a la altura de la barra), donde no tapa nada.
+  const top = Math.max(VIEWPORT_MARGIN, Math.min(window.innerHeight - height - VIEWPORT_MARGIN, toolbar.top));
+  return pickPlacement([
+    { rect: below },
+    { rect: above },
+    { rect: { ...base, top, left: dialog.left + dialog.width + LIST_GAP * 2 } },
+    { rect: { ...base, top, left: dialog.left - TOOLBAR_WIDTH - LIST_GAP * 2 } },
+  ], [...obstacles, dialog]).rect;
+}
+
 
 /**
  * Globo propio: arriba del elemento, si no a un costado (dentro de la pantalla aunque
@@ -252,6 +271,11 @@ export function GuideSpotlight() {
   const setListOpen = useHelpAssistant((s) => s.setStepsListOpen);
   const mascotOnStage = useMascotOnStage();
   const [box, setBox] = React.useState<Rect | null>(null);
+  // Si lo señalado es una opción de un menú o una lista, la barra y la lista de pasos se
+  // ubican respecto del menú entero: no tapan las otras opciones.
+  const [menuBox, setMenuBox] = React.useState<Rect | null>(null);
+  // Diálogo que contiene lo señalado: la lista de pasos no tapa sus otros campos.
+  const [dialogBox, setDialogBox] = React.useState<Rect | null>(null);
   const [alert, setAlert] = React.useState(false);
   const [level, setLevel] = React.useState(1);
 
@@ -259,10 +283,12 @@ export function GuideSpotlight() {
 
   // Sigue al elemento (scroll, layout, diálogos que se animan) y revisa si falta o está mal.
   React.useEffect(() => {
-    if (!targetId) { setBox(null); return; }
+    if (!targetId) { setBox(null); setMenuBox(null); return; }
     let frame = 0;
     let scrolled = false;
     let last: Rect | null = null;
+    let lastMenu: Rect | null = null;
+    let lastDialog: Rect | null = null;
     let lastAlertCheck = 0;
     const required = spotlight?.required === true;
     const checkAlert = spotlight?.mode !== 'filled' && spotlight?.mode !== 'action';
@@ -282,6 +308,11 @@ export function GuideSpotlight() {
         const r = target.highlight.getBoundingClientRect();
         const next = { top: r.top - PADDING, left: r.left - PADDING, width: r.width + PADDING * 2, height: r.height + PADDING * 2 };
         if (!sameBox(last, next)) { last = next; setBox(next); }
+        const nextMenu = menuRectOf(target.highlight);
+        if (!sameBox(lastMenu, nextMenu)) { lastMenu = nextMenu; setMenuBox(nextMenu); }
+        const dlg = target.highlight.closest('[role="dialog"], [role="alertdialog"]')?.getBoundingClientRect();
+        const nextDialog = dlg && !nextMenu ? { top: dlg.top, left: dlg.left, width: dlg.width, height: dlg.height } : null;
+        if (!sameBox(lastDialog, nextDialog)) { lastDialog = nextDialog; setDialogBox(nextDialog); }
       } else if (last) {
         last = null;
         setBox(null);
@@ -347,16 +378,18 @@ export function GuideSpotlight() {
 
   if (!spotlight || !box) return null;
 
-  const mascot = mascotOnStage ? mascotRectFor(box) : null;
-  const toolbar = placeToolbar(box, mascot);
+  const mascot = mascotOnStage ? mascotRectFor(box, menuBox) : null;
+  // Dentro de un menú, la barra se ubica respecto del menú entero (debajo o al costado).
+  const anchor = menuBox ?? box;
+  const toolbar = placeToolbar(anchor, box, mascot);
   // Un campo ya completado queda señalado mientras `current` apunta al paso siguiente.
   const shown = guide ? (spotlight.mode === 'filled' ? guide.current - 1 : guide.current) : 0;
   const running = !!guide && guide.statuses[guide.current] === 'running';
   const doing = spotlight.mode === 'action' || running;
   const waitingConfirm = spotlight.mode === 'confirm';
-  const list = guide && listOpen && total > 1 ? placeList(toolbar, listHeight, mascot ? [box, mascot] : [box]) : null;
-  // Si la lista no entra sin pisar el elemento, no se muestra (queda el botón para abrirla otra vez).
-  const showList = !!list && !intersects(list, box, 2);
+  const list = guide && listOpen && total > 1 ? placeList(toolbar, listHeight, mascot ? [anchor, mascot] : [anchor], dialogBox) : null;
+  // Si la lista no entra sin pisar el elemento (o su menú), no se muestra (queda el botón para abrirla otra vez).
+  const showList = !!list && !intersects(list, anchor, 2);
 
   return createPortal(
     <div data-help-ignore onPointerDown={stopPointer}>
@@ -366,7 +399,7 @@ export function GuideSpotlight() {
         style={{ top: box.top, left: box.left, width: box.width, height: box.height, zIndex: Z_TOP, ['--help-level' as string]: level }}
       />
       {!mascotOnStage && (
-        <StepBubble box={box} obstacles={[toolbar, ...(list && showList ? [list] : [])]} text={stepSpeechText(spotlight)} />
+        <StepBubble box={box} obstacles={[toolbar, ...(menuBox ? [menuBox] : []), ...(list && showList ? [list] : [])]} text={stepSpeechText(spotlight)} />
       )}
       <div
         data-help-bubble

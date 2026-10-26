@@ -207,7 +207,10 @@ async function execute(rawStep: HelpGuideStep, signal: AbortSignal): Promise<Ste
   const canSkip = step.skipIfMissing || step.optional;
   const settled = Date.now() - lastNavigationAt > SETTLE_AFTER_NAVIGATION_MS;
   const timeoutMs = step.action === 'wait' ? WAIT_TIMEOUT_MS : canSkip && settled ? OPTIONAL_TIMEOUT_MS : TARGET_TIMEOUT_MS;
-  const target = await withNotice('loadingElement', () => waitForHelpTarget(step.target!, { signal, timeoutMs }));
+  // Un paso que se puede saltar no avisa "cargando": si el elemento no aparece (otro modo de
+  // la pantalla, sin permiso), se salta en un momento y el aviso quedaría colgado en el globo.
+  const wait = () => waitForHelpTarget(step.target!, { signal, timeoutMs });
+  const target = canSkip && settled ? await wait() : await withNotice('loadingElement', wait);
   if (!target) return canSkip ? { status: 'skipped' } : { status: 'failed', error: 'targetNotFound' };
 
   switch (step.action) {
@@ -222,7 +225,7 @@ async function execute(rawStep: HelpGuideStep, signal: AbortSignal): Promise<Ste
     case 'fill': {
       const value = resolveStepValue(step.value, values);
       if (value === undefined || value === null || value === '') {
-        if (step.optional) return { status: 'skipped' };
+        if (step.optional && !step.ask) return { status: 'skipped' };
         spotlightFor(step, 'input');
         return { status: 'waiting' };
       }
@@ -242,6 +245,11 @@ async function execute(rawStep: HelpGuideStep, signal: AbortSignal): Promise<Ste
 
     case 'highlight':
       spotlightFor(step, 'info');
+      // Con datos dictados (pruebas, videos) la guía elige ella el registro o abre el panel.
+      if (step.autoClick && Object.keys(values).length > 0) {
+        await helpSleep(900, signal);
+        pressElement(target.control);
+      }
       return { status: 'waiting' };
 
     case 'wait':

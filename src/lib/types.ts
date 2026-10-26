@@ -3472,6 +3472,16 @@ export interface HelpGuideStep {
    * `until` lo son siempre.
    */
   blocking?: boolean;
+  /**
+   * `fill` opcional que igual se muestra sin dato dictado (preferencias: se explica cada
+   * opción y la persona decide si la cambia). Sin `ask`, un opcional sin dato se salta.
+   */
+  ask?: boolean;
+  /**
+   * `highlight` con `until`: si la guía corre con datos dictados (pruebas, videos demo),
+   * la guía pulsa el elemento sola; con una persona, espera a que lo haga.
+   */
+  autoClick?: boolean;
 }
 
 export interface HelpUseCase {

@@ -30,12 +30,21 @@ export function isElementVisible(el: Element): boolean {
   return style.visibility !== 'hidden' && style.display !== 'none' && Number(style.opacity) > 0;
 }
 
+const isDisabled = (el: HTMLElement) => (el as HTMLButtonElement).disabled === true || el.getAttribute('aria-disabled') === 'true';
+
 function lastVisible(nodes: NodeListOf<Element>): HTMLElement | null {
   // El último visible es el de más arriba en el apilado (un diálogo abierto
-  // sobre el panel de detalle que tiene los mismos campos).
+  // sobre el panel de detalle que tiene los mismos campos). Si el mismo botón se
+  // repite en varias filas (una acción por alerta o por cita), se prefiere uno
+  // habilitado: señalar uno deshabilitado deja a la persona sin poder seguir.
   let found: HTMLElement | null = null;
-  nodes.forEach((n) => { if (isElementVisible(n)) found = n as HTMLElement; });
-  return found;
+  let enabled: HTMLElement | null = null;
+  nodes.forEach((n) => {
+    if (!isElementVisible(n)) return;
+    found = n as HTMLElement;
+    if (!isDisabled(n as HTMLElement)) enabled = n as HTMLElement;
+  });
+  return enabled ?? found;
 }
 
 export function findHelpTarget(id: string): HelpTarget | null {
@@ -103,40 +112,89 @@ export function pressElement(el: HTMLElement) {
 
 const normalizeText = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
+/** Opciones a la vista sin tiempo de búsqueda: si no aparece la buscada, se escribe en el buscador. */
+const OPTIONS_WAIT_MS = 1200;
+/** Búsquedas en el servidor (pacientes): cuánto se espera el resultado después de escribir. */
+const SEARCH_WAIT_MS = 8000;
+
+/** El buscador de la lista abierta (cmdk o un input dentro del popover), si hay. */
+function openListSearchInput(): HTMLInputElement | null {
+  const candidates = document.querySelectorAll<HTMLInputElement>('[cmdk-input], [data-radix-popper-content-wrapper] input:not([type=hidden])');
+  return Array.from(candidates).reverse().find(isElementVisible) ?? null;
+}
+
 /**
- * Select de Radix / combobox de cmdk: abre la lista y elige la opción cuyo texto
- * coincide con lo dictado ("Sede Centro"), porque el valor real es un id. Radix
- * abre y selecciona con `.click()` mientras no haya habido un pointerdown de mouse.
+ * Cierra la lista sólo si sigue abierta. Un Escape de más le llega al diálogo o a la
+ * tarjeta de la cita, que preguntan "¿Descartar cambios?".
+ */
+const closeOpenList = () => {
+  const open = Array.from(document.querySelectorAll<HTMLElement>('[data-radix-popper-content-wrapper]')).reverse().find(isElementVisible);
+  if (!open) return;
+  const target = open.querySelector<HTMLElement>('[cmdk-input], input, [role="listbox"], [role="dialog"]') ?? open;
+  target.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+};
+
+/**
+ * Select de Radix, combobox o popover con lista de cmdk: abre la lista y elige la
+ * opción cuyo texto coincide con lo dictado ("Sede Centro"), porque el valor real es
+ * un id. Si la opción no está a la vista y la lista tiene buscador (pacientes, que se
+ * buscan en el servidor), escribe lo dictado y espera los resultados. En listas que
+ * quedan abiertas tras elegir (servicios, varios a la vez) la cierra.
+ * Radix abre y selecciona con `.click()` mientras no haya habido un pointerdown de mouse.
  */
 async function pickOption(trigger: HTMLElement, value: string, signal?: AbortSignal): Promise<boolean> {
   trigger.click();
   const wanted = normalizeText(value);
-  const deadline = Date.now() + 2000;
+  let typed = false;
+  let deadline = Date.now() + OPTIONS_WAIT_MS;
   while (Date.now() < deadline) {
     const options = Array.from(document.querySelectorAll<HTMLElement>('[role="option"]')).filter(isElementVisible);
-    if (options.length) {
-      const scored = options
-        .map((el) => ({ el, text: normalizeText(el.textContent ?? '') }))
-        .map(({ el, text }) => ({ el, score: text === wanted ? 3 : text.startsWith(wanted) ? 2 : text.includes(wanted) ? 1 : 0 }))
-        .filter((o) => o.score > 0)
-        .sort((a, b) => b.score - a.score);
-      if (scored[0]) {
-        scored[0].el.click();
-        return true;
+    const scored = options
+      .map((el) => ({ el, text: normalizeText(el.textContent ?? '') }))
+      .map(({ el, text }) => ({ el, score: text === wanted ? 3 : text.startsWith(wanted) ? 2 : text.includes(wanted) ? 1 : 0 }))
+      .filter((o) => o.score > 0)
+      .sort((a, b) => b.score - a.score);
+    if (scored[0]) {
+      scored[0].el.click();
+      await sleep(450, signal);
+      // Lista de varios a la vez: sigue abierta, se cierra para mostrar el formulario.
+      if (scored[0].el.isConnected && isElementVisible(scored[0].el)) closeOpenList();
+      return true;
+    }
+    if (!typed) {
+      const search = openListSearchInput();
+      if (search) {
+        typed = true;
+        search.focus();
+        setNativeValue(search, value);
+        deadline = Date.now() + SEARCH_WAIT_MS;
       }
-      // No hay coincidencia: se cierra la lista para no dejarla abierta encima del formulario.
-      document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-      return false;
     }
     await sleep(POLL_MS, signal);
   }
+  // No hay coincidencia: se cierra la lista para no dejarla abierta encima del formulario.
+  closeOpenList();
   return false;
+}
+
+/** `2026-10-27` → `27/10/2026` para los campos de fecha con máscara dd/mm/aaaa. */
+function toDisplayDate(input: HTMLInputElement, value: string): string {
+  const iso = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!iso || input.type === 'date' || !/dd/i.test(input.placeholder)) return value;
+  return `${iso[3]}/${iso[2]}/${iso[1]}`;
 }
 
 /** Completa un campo. Devuelve false si no sabe cómo (la guía pide hacerlo a mano). */
 export async function fillHelpTarget(target: HelpTarget, value: unknown, signal?: AbortSignal, helpId?: string): Promise<boolean> {
   const { control } = target;
-  const combobox = control.getAttribute('role') === 'combobox' ? control : control.querySelector<HTMLElement>('[role="combobox"]');
+  // Combobox, Select o botón que abre un popover con la lista (profesional, consultorio, servicios).
+  // Si el campo tiene donde escribir (fecha dd/mm/aaaa con su botón de calendario), se escribe
+  // ahí: el botón que abre un popover sólo se usa cuando no hay input.
+  const isPicker = (el: Element) => el.getAttribute('role') === 'combobox' || (el.tagName === 'BUTTON' && el.hasAttribute('aria-haspopup'));
+  const typeable = control.querySelector('input:not([type=hidden]):not([readonly]):not([type=checkbox]):not([type=radio]), textarea');
+  const combobox = isPicker(control)
+    ? control
+    : control.querySelector<HTMLElement>('[role="combobox"]') ?? (typeable ? null : control.querySelector<HTMLElement>('button[aria-haspopup]'));
   if (combobox && typeof value === 'string' && combobox.tagName !== 'INPUT') {
     if (await pickOption(combobox, value, signal)) return true;
   }
@@ -154,7 +212,10 @@ export async function fillHelpTarget(target: HelpTarget, value: unknown, signal?
     if (input instanceof HTMLInputElement && (input.type === 'checkbox' || input.type === 'radio')) {
       if (input.checked !== Boolean(value)) input.click();
     } else {
-      setNativeValue(input, String(value ?? ''));
+      setNativeValue(input, input instanceof HTMLInputElement ? toDisplayDate(input, String(value ?? '')) : String(value ?? ''));
+      // Algunos campos confirman el valor al salir (fecha dd/mm/aaaa).
+      input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+      input.dispatchEvent(new FocusEvent('blur'));
     }
     return true;
   }

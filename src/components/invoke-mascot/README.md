@@ -182,6 +182,8 @@ Para incorporar en la próxima versión del paquete:
    sirve de escondite si es visible. Sin `isolation` ni `z-index`: la capa se pinta debajo del
    contenido por orden del DOM, así envolver el panel de la página no encierra sus z-index.
 8. `useMascotRouteTravel(…, { disabled })`: no cruza de lado (con un lugar elegido).
+9. `interactive={false}`: la mascota y su globo dejan pasar clics, clic derecho y arrastres
+   (mientras guía se para sobre el elemento que señala).
 
 El ESLint del proyecto apaga `react-hooks/refs` y `react-hooks/purity` sólo para esta
 carpeta (el dibujo usa refs y `Date.now()` en render a propósito).

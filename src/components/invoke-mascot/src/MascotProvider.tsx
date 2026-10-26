@@ -74,6 +74,13 @@ export interface MascotProviderProps {
   hideZones?: Partial<Record<MascotHomeSide | 'default', string>>;
   /** Selector de elementos que el globo no debe tapar (además del elemento señalado). */
   bubbleAvoid?: string;
+  /**
+   * false: la mascota y su globo dejan pasar clics, clic derecho y arrastres a lo que
+   * hay debajo. Mientras guía se para encima del elemento que señala, y sin esto el
+   * clic derecho de la persona caía en la mascota (salía el menú del navegador en vez
+   * del menú contextual de la pantalla). Por defecto true.
+   */
+  interactive?: boolean;
 }
 
 interface Zone {
@@ -196,6 +203,7 @@ export function MascotProvider({
   onHomeChange,
   hideZones,
   bubbleAvoid,
+  interactive = true,
 }: MascotProviderProps) {
   // ---------- estado visible ----------
   const [phase, setPhaseS] = React.useState<MascotPhase>('active');
@@ -992,7 +1000,7 @@ export function MascotProvider({
   const stage =
     mounted && !hidden
       ? createPortal(
-          <div className="ivm-stage" style={{ zIndex }} data-ivm-phase={phase}>
+          <div className={`ivm-stage${interactive ? '' : ' ivm-passthrough'}`} style={{ zIndex }} data-ivm-phase={phase}>
             {highlight && (
               <div
                 className="ivm-highlight"

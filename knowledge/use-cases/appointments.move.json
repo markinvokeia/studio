@@ -1,0 +1,55 @@
+{
+  "id": "appointments.move",
+  "title": "Mover una cita de día u hora",
+  "module": "Agenda",
+  "summary": "Arrastrar la cita a otro horario, o moverla de día y cambiar su duración desde el menú.",
+  "screens": [
+    "appointments"
+  ],
+  "keywords": [
+    "mover",
+    "arrastrar",
+    "cambiar de dia",
+    "duracion",
+    "alargar",
+    "acortar",
+    "pasar a otro dia"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/appointments",
+      "title": "Menú → Citas",
+      "details": "La agenda muestra las citas por consultorio y profesional."
+    },
+    {
+      "id": "open-menu",
+      "action": "highlight",
+      "target": "appointments.section.event",
+      "title": "Arrastrá la cita o hacé clic derecho",
+      "until": [
+        "appointments.btn.move-to"
+      ],
+      "blocking": true,
+      "details": "Arrastrala a otro horario o consultorio: se guarda al soltar. Para otro día, clic derecho → Mover a."
+    },
+    {
+      "id": "move-to",
+      "action": "highlight",
+      "target": "appointments.btn.move-to",
+      "title": "Mover a",
+      "doneOnClose": true,
+      "details": "Elegí el día en el calendario: se mantienen la hora y la duración."
+    },
+    {
+      "id": "duration",
+      "action": "highlight",
+      "target": "appointments.btn.duration",
+      "title": "Duración",
+      "skipIfMissing": true,
+      "doneOnClose": true,
+      "details": "Otra opción del mismo menú: alarga o acorta la cita (15, 30, 45 min…). También se puede estirar desde el borde de la cita."
+    }
+  ]
+}
