@@ -80,7 +80,7 @@ import { useSlotAvailability } from '@/hooks/use-slot-availability';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
-import { AlertTriangle, BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarDays, Clock, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Search, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
+import { AlertTriangle, Ban, BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarDays, Clock, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Search, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -3790,9 +3790,28 @@ export default function AppointmentsPage() {
 
         const appointment = eventData as Appointment;
 
-        // Optimistically update UI. El origen pasa a 'appointment': el usuario acaba de
-        // elegirle una etiqueta de color a esta cita, así que deja de heredar.
-        const colorPatch = { color: colorHex, colorId, colorSource: 'appointment' as const };
+        // Optimistically update UI. Con una etiqueta el origen pasa a 'appointment': el
+        // usuario acaba de elegirle color a esta cita, así que deja de heredar. "Sin
+        // fondo" (colorId vacío) le saca el color propio y la cita vuelve a la cadena
+        // servicio > doctor > calendario, que se resuelve acá igual que en el mapper
+        // para no pintarla sin color hasta que llegue el refresco.
+        const colorPatch = colorId
+            ? { color: colorHex, colorId, colorSource: 'appointment' as const }
+            : (() => {
+                const service = services.find((s) =>
+                    s.name === appointment.summary ||
+                    (appointment.services ?? []).some((as) => String(as.id) === String(s.id)),
+                );
+                const doctor = doctors.find((d) => String(d.id) === String(appointment.doctorId));
+                const calendar = calendars.find((c) => String(c.id) === String(appointment.calendar_source_id));
+                const { color, colorSource } = resolveAppointmentColor({
+                    serviceColor: service?.color,
+                    doctorColor: doctor?.color,
+                    calendarColor: getGoogleCalendarColorHex(calendar?.color),
+                    sources: colorSourcesFor(String(appointment.calendar_source_id ?? '')),
+                });
+                return { color, colorId: '', colorSource };
+            })();
         setAppointments(prev => prev.map(a => a.id === appointment.id ? { ...a, ...colorPatch } : a));
         setSelectedAppointment(prev => (prev && prev.id === appointment.id ? { ...prev, ...colorPatch } : prev));
 
@@ -4555,21 +4574,32 @@ export default function AppointmentsPage() {
     const renderEventContextMenu = (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' })) => {
         // Google-color swatch grid. Rendered inline at the top of the menu in the
         // default layout; in custom mode it moves into a "Cambiar color" submenu.
+        // "Sin fondo" solo para citas (como en la tarjeta inline): les saca el color
+        // propio y vuelven a heredar. Los recordatorios siempre llevan un color.
+        // Cada muestra es un ContextMenuItem para que elegir un color cierre el menú
+        // (también desde el submenú) y se pueda navegar con teclado.
+        const colorSwatchClass = 'h-6 w-6 cursor-pointer justify-center rounded-full p-0 focus:ring-2 focus:ring-ring focus:ring-offset-1';
         const colorSwatchGrid = (
             <div className="grid grid-cols-4 gap-2 p-2">
+                {eventData.kind !== 'reminder' && (
+                    <ContextMenuItem
+                        aria-label={t('inlineCreate.noBackground')}
+                        title={t('inlineCreate.noBackground')}
+                        disabled={isColorChangePending(eventData)}
+                        className={cn(colorSwatchClass, 'border border-border bg-background text-muted-foreground hover:bg-muted')}
+                        onSelect={() => handleEventColorChange(eventData, '')}
+                    >
+                        <Ban className="h-3.5 w-3.5" />
+                    </ContextMenuItem>
+                )}
                 {GOOGLE_CALENDAR_COLORS.map((color) => (
-                    <div
+                    <ContextMenuItem
                         key={color.id}
-                        aria-disabled={isColorChangePending(eventData) || undefined}
-                        className={cn(
-                            'w-6 h-6 rounded-full',
-                            isColorChangePending(eventData) ? 'pointer-events-none opacity-50' : 'cursor-pointer hover:opacity-80',
-                        )}
+                        aria-label={color.id}
+                        disabled={isColorChangePending(eventData)}
+                        className={cn(colorSwatchClass, 'hover:opacity-80')}
                         style={{ backgroundColor: color.hex }}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleEventColorChange(eventData, color.id);
-                        }}
+                        onSelect={() => handleEventColorChange(eventData, color.id)}
                     />
                 ))}
             </div>

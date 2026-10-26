@@ -6,6 +6,7 @@ import { getDateFnsLocale } from '@/lib/locale';
 import {
   AlertTriangle,
   ArrowRight,
+  Ban,
   Calendar as CalendarIcon,
   CalendarSync,
   ChevronDown,
@@ -900,9 +901,11 @@ export function AppointmentPanel({
   // wins) so the panel header matches how the appointment looks on the calendar.
   const headerColor = localColor ?? appointment.color ?? undefined;
   const headerText = headerColor ? getReadableTextColor(headerColor) : undefined;
+  // `colorId` vacío = "Sin fondo": se suelta el override local y el encabezado toma
+  // el color heredado que el calendario ya recalculó en `appointment.color`.
   const handleColorSelect = (colorId: string) => {
     const hex = GOOGLE_CALENDAR_COLORS.find((c) => c.id === colorId)?.hex;
-    if (hex) setLocalColor(hex);
+    setLocalColor(hex);
     setIsColorPickerOpen(false);
     onColorChange?.(appointment, colorId);
   };
@@ -971,6 +974,15 @@ export function AppointmentPanel({
                   </PopoverTrigger>
                   <PopoverContent align="end" className="w-auto p-2">
                     <div className="grid grid-cols-4 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleColorSelect('')}
+                        className="grid h-6 w-6 place-items-center rounded-full border border-border bg-background text-muted-foreground transition-transform hover:scale-110 hover:bg-muted"
+                        aria-label={tInline('noBackground')}
+                        title={tInline('noBackground')}
+                      >
+                        <Ban className="h-3.5 w-3.5" />
+                      </button>
                       {GOOGLE_CALENDAR_COLORS.map((color) => (
                         <button
                           key={color.id}
