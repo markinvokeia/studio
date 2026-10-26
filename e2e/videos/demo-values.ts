@@ -13,4 +13,5 @@ export const DEMO_VALUES: Record<string, Record<string, unknown>> = {
   'onboarding.staff': { name: 'Martina Gómez', email: 'recepcion@clinicasonrisas.demo', role: 'Recepcionista' },
   'onboarding.payment-method': { name: 'Tarjeta de débito', code: 'DEB' },
   'patients.create': { name: 'Juan Rodríguez', phone: '+59899333444', email: 'juan.rodriguez@paciente.demo' },
+  'dashboard.filters': { branch: 'Consolidado', period: 'month', currency: 'USD' },
 };

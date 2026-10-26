@@ -12,6 +12,7 @@ import {
   HelpCircle,
   Mail,
   Percent,
+  Sparkles,
   Save,
   SlidersHorizontal,
   type LucideIcon,
@@ -59,6 +60,7 @@ import {
   updateClinicAutomationSettings,
 } from '@/services/system-config';
 import { useClinicPreferencesStore } from '@/stores/clinic-preferences-store';
+import { useHelpAssistant } from '@/stores/help-assistant-store';
 
 const SYNC_MODE_ICONS: Record<GoogleCalendarSyncMode, LucideIcon> = {
   none: CalendarOff,
@@ -161,6 +163,8 @@ export default function ClinicPrefsConfigPage() {
     {
       onSuccess: async (values) => {
         applySavedPreferences(values.prefs);
+        // El asistente toma el cambio de la mascota sin esperar a recargar.
+        useHelpAssistant.getState().setClinicMascotVisible(values.automation.help_mascot_visible);
         await reloadAutomation();
         toast({ title: t('saved') });
       },
@@ -424,6 +428,43 @@ export default function ClinicPrefsConfigPage() {
                 )}
               >
                 {automation.alert_email_auto_send_enabled ? t('alertEmail.notice.on') : t('alertEmail.notice.off')}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* ── Asistente guiado ───────────────────────────────────────── */}
+          <Card>
+            <CardContent className="space-y-5 p-5">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <h2 className="text-sm font-semibold">{t('assistant.sectionTitle')}</h2>
+              </div>
+
+              {isAutomationLoading ? (
+                <Skeleton className="h-8 w-full rounded-lg" />
+              ) : (
+                <SettingRow
+                  label={t('assistant.mascotVisible.label')}
+                  help={t('assistant.mascotVisible.help')}
+                  disabled={!!automationError}
+                  control={
+                    <Switch
+                      data-help-id="config.clinic-prefs.field.help_mascot_visible"
+                      checked={automation.help_mascot_visible}
+                      disabled={!canEdit || !!automationError}
+                      onCheckedChange={(v) => patchAutomation({ help_mascot_visible: v })}
+                    />
+                  }
+                />
+              )}
+
+              <p
+                className={cn(
+                  'rounded-xl px-4 py-3 text-xs leading-relaxed text-muted-foreground',
+                  automation.help_mascot_visible ? 'bg-primary/5' : 'bg-muted/60'
+                )}
+              >
+                {automation.help_mascot_visible ? t('assistant.mascotVisible.notice.on') : t('assistant.mascotVisible.notice.off')}
               </p>
             </CardContent>
           </Card>

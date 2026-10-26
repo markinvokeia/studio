@@ -6,6 +6,8 @@ import * as React from 'react';
 
 import { MascotProvider, useMascot, useMascotRouteTravel, type MascotController } from '@/components/invoke-mascot';
 
+import { stepSpeechText } from '@/components/help/guide-spotlight';
+
 import { useAuth } from '@/context/AuthContext';
 import { useMascotHome, useMascotPreference } from '@/hooks/use-mascot-preference';
 import { useToast } from '@/hooks/use-toast';
@@ -13,7 +15,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { waitForHelpTarget } from '@/lib/help/guide-engine';
 import { stopGuide } from '@/lib/help/guide-runner';
 import { MASCOT_SIZE, placeGuideMascot } from '@/lib/help/placement';
-import { useHelpAssistant, type HelpSpotlight } from '@/stores/help-assistant-store';
+import { useHelpAssistant } from '@/stores/help-assistant-store';
 
 import { HELP_PERMISSIONS } from '@/constants/permissions';
 
@@ -34,11 +36,6 @@ const FINISHED_CLOSE_MS = 3200;
 /** Con el chat abierto y sin actividad, cada cuánto hace un gesto invitando a escribir. */
 const CHAT_NUDGE_MS = 11_000;
 
-/** Lo que dice la mascota en su globo mientras señala un paso. */
-function stepSpeech(spot: HelpSpotlight): string {
-  const parts = spot.mode === 'action' ? [spot.title] : [spot.title, spot.description, spot.details];
-  return parts.filter(Boolean).map((p) => p!.trim().replace(/[.:]$/, '')).join('. ') + '.';
-}
 
 /** Márgenes para el anclaje: el riel derecho (si está expandido) y el sidebar. */
 function useMascotInsets() {
@@ -71,6 +68,8 @@ export function MascotHost({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { hasPermission, isLoading } = usePermissions();
   const [showMascot] = useMascotPreference(user?.id);
+  // La clínica puede no querer la mascota (Preferencias de Clínica): las guías siguen sin ella.
+  const clinicVisible = useHelpAssistant((s) => s.clinicMascotVisible);
   const guiding = useHelpAssistant((s) => !!s.spotlight);
   // Se arrastra sólo en reposo: sin guía ni chat abierto.
   const idle = useHelpAssistant((s) => !s.guide && !s.isOpen);
@@ -96,7 +95,7 @@ export function MascotHost({ children }: { children: React.ReactNode }) {
       sleepAfterMs={SLEEP_AFTER_MS}
       enabled={showMascot}
       // Escondida desde sus iconos (o apagada en Preferencias): queda dormida en el riel.
-      hidden={!canUse || !showMascot}
+      hidden={!canUse || !showMascot || !clinicVisible}
       zIndex={guiding ? MASCOT_Z_GUIDING : MASCOT_Z}
       onMascotClick={handleClick}
       label={t('label')}
@@ -106,7 +105,7 @@ export function MascotHost({ children }: { children: React.ReactNode }) {
       draggable={idle}
       onHomeChange={setHome}
       // El globo de cada paso no tapa la barra de pasos.
-      bubbleAvoid="[data-help-bubble]"
+      bubbleAvoid="[data-help-bubble],[data-help-steps]"
     >
       {children}
       {canUse && <MascotBridge />}
@@ -180,7 +179,7 @@ function MascotBridge() {
       await mRef.current.travelTo(spot, { animation: 'auto', speed: spotlight.mode === 'action' ? 2 : 1.4 });
       if (signal.aborted) return;
       // El texto del paso sale del globo de la propia mascota mientras señala.
-      await mRef.current.pointAt(target.highlight, { highlight: false, duration: Infinity, signal, say: stepSpeech(spotlight) });
+      await mRef.current.pointAt(target.highlight, { highlight: false, duration: Infinity, signal, say: stepSpeechText(spotlight) });
     })();
     return () => controller.abort();
   }, [spotlight]);

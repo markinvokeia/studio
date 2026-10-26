@@ -9576,6 +9576,17 @@
           "description": "Combina las dos direcciones."
         }
       }
+    },
+    "assistant": {
+      "sectionTitle": "Asistente guiado",
+      "mascotVisible": {
+        "label": "Mascota visible",
+        "help": "La mascota de Invoke acompaña las guías señalando cada paso y se esconde detrás de la barra cuando no la usás.",
+        "notice": {
+          "on": "La mascota se ve: guía señalando cada paso y, en reposo, se asoma detrás de la barra flotante.",
+          "off": "Sin mascota: las guías muestran igual el resaltado, la descripción del paso, la barra de navegación y la lista de pasos. Al asistente se entra con el ícono de ayuda de la barra flotante."
+        }
+      }
     }
   },
   "DuplicateContact": {
@@ -10163,7 +10174,9 @@
       "onboardingPending": "{count, plural, one {Falta # paso} other {Faltan # pasos}} para arrancar",
       "guideThisScreen": "Guiame en esta pantalla",
       "readAloud": "Escuchar",
-      "stopReading": "Dejar de leer"
+      "stopReading": "Dejar de leer",
+      "suggestedGuides": "Guías para esto",
+      "stepsCount": "{count, plural, one {# paso} other {# pasos}}"
     },
     "mascot": {
       "label": "Asistente de Invoke",
@@ -10179,7 +10192,9 @@
         "loadingElement": "Esperando que la pantalla termine de cargar…"
       },
       "wake": "Despertar al asistente",
-      "railLabel": "Asistente"
+      "railLabel": "Asistente",
+      "openHelp": "Abrir la ayuda",
+      "helpLabel": "Ayuda"
     },
     "toolbar": {
       "label": "Guía: paso {current} de {total}",
@@ -10192,7 +10207,13 @@
       "last": "Ir al último paso",
       "close": "Cerrar la guía",
       "required": "Obligatorio",
-      "retry": "Reintentar"
+      "retry": "Reintentar",
+      "hideSteps": "Ocultar los pasos",
+      "showSteps": "Ver los pasos",
+      "stepsLabel": "Pasos de la guía",
+      "goTo": "Ir a: {title}",
+      "yourTurn": "te toca",
+      "waitingForYou": "Esperando que lo hagas"
     },
     "back": "Volver",
     "voiceOn": "Activar la voz",

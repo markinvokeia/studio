@@ -77,7 +77,7 @@ export function OnboardingChecklist({ catalog, onPendingChange }: OnboardingChec
 
   const guide = (step: HelpJourneyStep) => {
     const useCase = findUseCase(catalog, step.useCaseId);
-    if (useCase) startGuide({ title: useCase.title, steps: useCase.steps }, { useCaseId: useCase.id });
+    if (useCase) startGuide({ title: useCase.title, steps: useCase.steps }, { useCaseId: useCase.id, returnTo: 'onboarding' });
   };
 
   const goTo = (step: HelpJourneyStep) => router.push(`/${locale}${step.route === '/' ? '' : step.route}`);

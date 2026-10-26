@@ -111,36 +111,63 @@ export function screenTour(screen: HelpCatalogScreen, title: string, isVisible?:
   return elements.length ? { title, steps } : null;
 }
 
+const SUGGESTIONS_MAX = 3;
+
 /**
- * Toda respuesta del asistente ofrece "Llevarme" y "Guiarme": completa lo que
- * falte con el catálogo (la guía de la pantalla a la que lleva, el link de la
- * guía que propone o, como último recurso, un recorrido de la pantalla).
+ * Guías de una pantalla ordenadas por parecido con lo que escribió la persona
+ * (título y keywords pesan más que el resumen). Con `query` vacío, en su orden.
+ */
+export function rankScreenUseCases(catalog: HelpCatalog, scope: string, query: string): HelpUseCase[] {
+  const q = words(query);
+  const own = catalog.useCases.filter((u) => u.screens.includes(scope));
+  const score = (u: HelpUseCase) => {
+    const strong = words(`${u.title} ${(u.keywords ?? []).join(' ')}`);
+    const weak = words(u.summary ?? '');
+    return q.reduce((acc, word) => acc + (strong.some((x) => x.startsWith(word) || word.startsWith(x)) ? 3 : 0) + (weak.some((x) => x.startsWith(word)) ? 1 : 0), 0);
+  };
+  return own.map((u) => ({ u, s: score(u) })).sort((a, b) => b.s - a.s).map(({ u }) => u);
+}
+
+/**
+ * Toda respuesta del asistente ofrece "Llevarme" y "Guiarme". Las guías son
+ * siempre las predefinidas del catálogo: las que propone el agente (hasta 3) o,
+ * si no propuso ninguna, las de la pantalla más parecidas a la pregunta; como
+ * último recurso, un recorrido de la pantalla.
  */
 export function resolveReplyActions(
   catalog: HelpCatalog,
   reply: HelpAssistantReply,
   currentRoute: string,
   tourTitle: (screenTitle: string) => string,
-): { guide: ResolvedGuide | null; links: HelpAssistantLink[] } {
+  question = '',
+): { guide: ResolvedGuide | null; suggestions: ResolvedGuide[]; links: HelpAssistantLink[] } {
   let links = reply.links ?? [];
-  let useCase = findUseCase(catalog, reply.useCaseId);
-  if (!useCase && !reply.guide) {
-    for (const link of links) {
-      useCase = guideUseCaseForRoute(catalog, link.route);
-      if (useCase) break;
+  const toGuide = (u: HelpUseCase): ResolvedGuide => ({ title: u.title, steps: u.steps, useCaseId: u.id });
+  let useCases = [...(reply.useCaseIds ?? []), reply.useCaseId]
+    .map((id) => findUseCase(catalog, id))
+    .filter((u, i, all): u is HelpUseCase => !!u && all.findIndex((x) => x?.id === u.id) === i);
+  if (!useCases.length) {
+    // Las guías de la pantalla del link (o la actual) más parecidas a la pregunta.
+    const scopes = [...links.map((l) => routeToHelpScope(l.route)), routeToHelpScope(currentRoute)];
+    for (const scope of scopes) {
+      useCases = rankScreenUseCases(catalog, scope, question);
+      if (useCases.length) break;
+    }
+    if (!useCases.length) {
+      const byRoute = links.map((l) => guideUseCaseForRoute(catalog, l.route)).find(Boolean);
+      if (byRoute) useCases = [byRoute];
     }
   }
+  useCases = useCases.slice(0, SUGGESTIONS_MAX);
   if (!links.length) {
-    const route = useCase ? routeOfUseCase(useCase) : reply.guide?.steps.find((s) => s.action === 'navigate')?.route;
+    const route = useCases[0] ? routeOfUseCase(useCases[0]) : undefined;
     const screen = route ? findScreen(catalog, routeToHelpScope(route)) : undefined;
     if (route && screen) links = [{ route, label: screen.title }];
   }
-  let guide: ResolvedGuide | null = useCase
-    ? { title: useCase.title, steps: useCase.steps, useCaseId: useCase.id }
-    : reply.guide ?? null;
+  let guide: ResolvedGuide | null = useCases[0] ? toGuide(useCases[0]) : null;
   if (!guide) {
     const screen = findScreen(catalog, routeToHelpScope(links[0]?.route ?? currentRoute));
     guide = screen ? screenTour(screen, tourTitle(screen.title)) : null;
   }
-  return { guide, links };
+  return { guide, suggestions: useCases.map(toGuide), links };
 }

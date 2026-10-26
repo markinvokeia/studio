@@ -1,5 +1,6 @@
 'use client';
 
+import { HelpCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -9,6 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useMascotPreference } from '@/hooks/use-mascot-preference';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
+import { useHelpAssistant } from '@/stores/help-assistant-store';
 
 import { HELP_PERMISSIONS } from '@/constants/permissions';
 
@@ -20,29 +22,35 @@ interface MascotWakeButtonProps {
 }
 
 /**
- * Con la mascota escondida, queda dormida en el riel: un clic y se levanta.
- * No se muestra mientras la mascota está en pantalla.
+ * Entrada al asistente desde el riel cuando la mascota no está en pantalla:
+ * - la persona la escondió → la mascota dormida: un clic y se levanta;
+ * - la clínica no la quiere visible (Preferencias de Clínica) → el ícono de ayuda,
+ *   que abre el asistente (las guías funcionan igual, sin mascota).
  */
 export function MascotWakeButton({ withDivider, compact }: MascotWakeButtonProps) {
   const t = useTranslations('HelpAssistant.mascot');
   const { user } = useAuth();
   const { hasPermission, isLoading } = usePermissions();
   const [showMascot, setShowMascot] = useMascotPreference(user?.id);
+  const clinicVisible = useHelpAssistant((s) => s.clinicMascotVisible);
+  const open = useHelpAssistant((s) => s.open);
 
-  if (showMascot || isLoading || !hasPermission(HELP_PERMISSIONS.ASSISTANT_USE)) return null;
+  if ((clinicVisible && showMascot) || isLoading || !hasPermission(HELP_PERMISSIONS.ASSISTANT_USE)) return null;
 
+  const label = clinicVisible ? t('wake') : t('openHelp');
   const button = (
     <button
       type="button"
-      onClick={() => setShowMascot(true)}
+      data-help-launcher
+      onClick={() => (clinicVisible ? setShowMascot(true) : open())}
       className={cn(
-        'flex h-10 w-10 items-center justify-center rounded-xl bg-[#7C3AED]/10 transition-colors hover:bg-[#7C3AED]/20',
+        'flex h-10 w-10 items-center justify-center rounded-xl bg-[#7C3AED]/10 text-[#7C3AED] transition-colors hover:bg-[#7C3AED]/20',
         'animate-in fade-in zoom-in-75 duration-300',
       )}
-      aria-label={t('wake')}
-      title={t('wake')}
+      aria-label={label}
+      title={label}
     >
-      <InvokeMascot size={34} mood="sleeping" title={t('wake')} />
+      {clinicVisible ? <InvokeMascot size={34} mood="sleeping" title={label} /> : <HelpCircle className="h-5 w-5" />}
     </button>
   );
 
@@ -54,7 +62,7 @@ export function MascotWakeButton({ withDivider, compact }: MascotWakeButtonProps
       <div className="flex w-full flex-col items-center gap-1 px-1">
         {button}
         <span className="select-none text-center text-[7.5px] font-medium leading-none tracking-tight text-muted-foreground">
-          {t('railLabel')}
+          {clinicVisible ? t('railLabel') : t('helpLabel')}
         </span>
       </div>
     </>

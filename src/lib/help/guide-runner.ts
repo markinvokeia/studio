@@ -24,8 +24,10 @@ import {
   waitForHumanClick,
   waitForPath,
 } from '@/lib/help/guide-engine';
-import { useHelpAssistant, type GuideRun, type GuideStepStatus, type HelpSpotlight } from '@/stores/help-assistant-store';
+import { navHelpId } from '@/lib/help/help-id';
+import { useHelpAssistant, type GuideRun, type GuideStepStatus, type HelpAssistantTab, type HelpSpotlight } from '@/stores/help-assistant-store';
 
+import { navItems, type NavItem } from '@/config/nav';
 import type { HelpGuideStep } from '@/lib/types';
 
 export type GuideErrorCode = 'targetNotFound' | 'navigationFailed';
@@ -116,15 +118,84 @@ async function navigateTo(route: string, signal: AbortSignal): Promise<boolean> 
   return currentPath() === route;
 }
 
-async function execute(step: HelpGuideStep, signal: AbortSignal): Promise<StepResult> {
+/** Un paso que la persona tiene que hacer: no se puede pasar de largo. */
+export function isBlockingStep(step: HelpGuideStep | undefined): boolean {
+  return !!step && (step.blocking === true || !!step.until);
+}
+
+/** El paso actual espera a la persona y es obligatorio hacerlo. */
+function blockedNow(guide: GuideRun): boolean {
+  return guide.statuses[guide.current] === 'waiting' && isBlockingStep(guide.steps[guide.current]);
+}
+
+/** Grupo del menú lateral que contiene la ruta (o null si es un ítem de primer nivel). */
+function menuGroupFor(route: string): NavItem | null {
+  return navItems.find((item) => item.items?.some((sub) => sub.href === route)) ?? null;
+}
+
+/** Abre el submenú de un grupo: el menú lateral lo despliega al pasar el mouse. */
+function hoverElement(el: HTMLElement) {
+  const r = el.getBoundingClientRect();
+  const init = { bubbles: true, cancelable: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, relatedTarget: document.body };
+  el.dispatchEvent(new PointerEvent('pointerover', { ...init, pointerType: 'mouse' }));
+  el.dispatchEvent(new MouseEvent('mouseover', init));
+}
+
+/**
+ * Ir a otra pantalla por el menú, como lo haría la persona: la mascota señala el
+ * menú (y el submenú, en un solo paso) y lo pulsa. Devuelve false si el menú no
+ * está a la vista (mobile, sin permiso): entonces se navega directo.
+ */
+async function openFromMenu(step: HelpGuideStep, route: string, signal: AbortSignal): Promise<boolean> {
+  const leafId = `nav.${route === '/' ? 'dashboard' : route.slice(1).split('/').join('.')}`;
+  const group = menuGroupFor(route);
+  const point = (targetId: string) => store().setSpotlight({ targetId, title: step.title, details: step.details, mode: 'action' });
+  if (group) {
+    const groupId = navHelpId(group);
+    const groupEl = groupId ? findHelpTarget(groupId) : null;
+    if (!groupId || !groupEl) return false;
+    point(groupId);
+    await helpSleep(MENU_POINT_MS, signal);
+    hoverElement(groupEl.control);
+  }
+  const leaf = await waitForHelpTarget(leafId, { signal, timeoutMs: group ? MENU_OPEN_TIMEOUT_MS : 300 });
+  if (!leaf) return false;
+  point(leafId);
+  await helpSleep(group ? MENU_POINT_MS * 0.7 : MENU_POINT_MS, signal);
+  pressElement(leaf.control);
+  store().setSpotlight(null);
+  return true;
+}
+
+/** Señala el menú un momento antes de pulsarlo, para que se vea por dónde se llega. */
+const MENU_POINT_MS = 1100;
+/** Cuánto se espera a que se despliegue el submenú. */
+const MENU_OPEN_TIMEOUT_MS = 2500;
+
+async function execute(rawStep: HelpGuideStep, signal: AbortSignal): Promise<StepResult> {
   if (!deps) return { status: 'failed', error: 'navigationFailed' };
   const values = store().guide?.values ?? {};
+  // El target puede depender de los datos (`dashboard.filter.period-{{values.period}}`): en
+  // las pruebas y los videos la guía elige esa opción; sin el dato, el paso es opcional y
+  // se salta, y el siguiente le pide a la persona que elija.
+  let step = rawStep;
+  if (rawStep.target?.includes('{{')) {
+    const target = resolveStepValue(rawStep.target, values);
+    if (typeof target !== 'string' || !target) return rawStep.optional ? { status: 'skipped' } : { status: 'failed', error: 'targetNotFound' };
+    step = { ...rawStep, target };
+  }
 
   if (step.action === 'navigate') {
     store().setSpotlight(null);
     const route = step.route ?? '/';
     if (deps.currentPath() !== route) {
-      const ok = await withNotice('loadingScreen', () => navigateTo(route, signal));
+      const viaMenu = await openFromMenu(step, route, signal);
+      const { currentPath } = deps;
+      // Por el menú, la navegación ya se pidió: sólo se espera (y se reintenta si se perdió).
+      const ok = await withNotice('loadingScreen', () =>
+        viaMenu
+          ? waitForPath(route, currentPath, { signal, timeoutMs: NAVIGATION_RETRY_MS }).then((done) => done || navigateTo(route, signal))
+          : navigateTo(route, signal));
       if (!ok) return { status: 'failed', error: 'navigationFailed' };
       lastNavigationAt = Date.now();
     }
@@ -337,10 +408,12 @@ export interface StartGuideOptions {
   /** `untilConfirm`: con datos dictados, completa todo y se detiene en el OK. */
   autoRun?: 'first' | 'untilConfirm';
   useCaseId?: string;
+  /** Al cerrar o terminar la guía, se vuelve a esta vista del asistente. */
+  returnTo?: HelpAssistantTab;
 }
 
 export function startGuide(guide: { title: string; steps: HelpGuideStep[] }, options: StartGuideOptions = {}) {
-  stopGuide();
+  abortGuide();
   if (!guide.steps.length) return;
   // Mientras guía, lo principal es la navegación y la mascota: el chat se cierra.
   store().close();
@@ -355,6 +428,7 @@ export function startGuide(guide: { title: string; steps: HelpGuideStep[] }, opt
     current: 0,
     values: options.values ?? {},
     finished: false,
+    returnTo: options.returnTo,
   }));
   void runFrom(0, options.autoRun === 'untilConfirm' ? 'untilConfirm' : 'single');
 }
@@ -362,7 +436,7 @@ export function startGuide(guide: { title: string; steps: HelpGuideStep[] }, opt
 /** "Siguiente": da por hecho el paso que espera a la persona y ejecuta el próximo. */
 export function nextStep(mode: 'single' | 'untilConfirm' = 'single') {
   const guide = store().guide;
-  if (!guide || guide.finished || busy) return;
+  if (!guide || guide.finished || busy || blockedNow(guide)) return;
   const status = guide.statuses[guide.current];
   if (status === 'running') return;
   const step = guide.steps[guide.current];
@@ -391,6 +465,8 @@ export function goToStep(target: number) {
   const guide = store().guide;
   if (!guide || busy) return;
   const index = Math.max(0, Math.min(guide.steps.length - 1, target));
+  // Hacia adelante no se puede saltar un paso que la persona tiene que hacer.
+  if (index > guide.current && blockedNow(guide)) return;
   const statuses = guide.statuses.map((status, i): GuideStepStatus => {
     if (i >= index) return 'pending';
     return status === 'done' || status === 'skipped' ? status : 'skipped';
@@ -414,7 +490,7 @@ export function previousStep() {
 /** "Saltar": deja el paso actual sin hacer y sigue con el próximo. */
 export function skipStep() {
   const guide = store().guide;
-  if (!guide || guide.finished || busy) return;
+  if (!guide || guide.finished || busy || blockedNow(guide)) return;
   setStatus(guide.current, 'skipped');
   store().setSpotlight(null);
   if (guide.current + 1 >= guide.steps.length) { finish(); return; }
@@ -432,10 +508,18 @@ export function retryStep() {
   void runFrom(guide.current, 'single');
 }
 
-export function stopGuide() {
+/** Corta la guía sin volver a ningún lado (al arrancar otra). */
+function abortGuide() {
   controller?.abort();
   controller = null;
   busy = false;
   store().setSpotlight(null);
   store().setGuide(() => null);
+}
+
+/** Cierra la guía y vuelve a la vista del asistente desde la que se abrió (el chat donde quedó). */
+export function stopGuide() {
+  const returnTo = store().guide?.returnTo;
+  abortGuide();
+  if (returnTo) store().open(returnTo);
 }

@@ -55,6 +55,13 @@ export async function getPublishedCatalogVersion(signal?: AbortSignal): Promise<
   return typeof data?.version === 'string' ? data.version : null;
 }
 
+/** Ajustes del asistente que fija la clínica. Sin el flujo o la clave, la mascota se ve. */
+export async function getHelpSettings(signal?: AbortSignal): Promise<{ mascotVisible: boolean }> {
+  const data = await api.get(API_ROUTES.HELP.SETTINGS, undefined, undefined, { signal, timeoutMs: READ_TIMEOUT_MS });
+  const body = Array.isArray(data) ? data[0] : data;
+  return { mascotVisible: body?.mascot_visible !== false };
+}
+
 export function publishCatalog(catalog: HelpCatalog) {
   return api.post(API_ROUTES.HELP.CATALOG_SYNC, catalog, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.longRunning });
 }

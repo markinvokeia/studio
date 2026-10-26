@@ -575,5 +575,7 @@ export const API_ROUTES = {
         INSIGHTS:            '/help/insights',
         /** Resolver/ignorar una pregunta o cambiar el estado de un ticket. */
         SUPPORT_UPDATE:      '/help/support/update',
+        /** Ajustes del asistente que fija la clínica (mascota visible). */
+        SETTINGS:            '/help/settings',
     },
 };

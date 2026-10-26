@@ -17,7 +17,7 @@ import { ScreenHelp } from '@/components/help/screen-help';
 
 import { useAuth } from '@/context/AuthContext';
 import { isSpeechSupported, stopAssistantSpeech, useAssistantVoice } from '@/hooks/use-assistant-voice';
-import { useMascotPreference } from '@/hooks/use-mascot-preference';
+import { useMascotOnStage, useMascotPreference } from '@/hooks/use-mascot-preference';
 import { useCurrentHelpRoute } from '@/hooks/use-current-help-route';
 import { usePermissions } from '@/hooks/usePermissions';
 import { findScreen, findUseCase, loadHelpCatalog } from '@/lib/help/catalog';
@@ -26,7 +26,7 @@ import { findHelpTarget } from '@/lib/help/guide-engine';
 import { stripLocale } from '@/lib/help/help-id';
 import { pickPlacement, rectOf, type Rect } from '@/lib/help/placement';
 import { cn } from '@/lib/utils';
-import { getOnboardingStatus, getPublishedCatalogVersion, publishCatalog } from '@/services/help-assistant';
+import { getHelpSettings, getOnboardingStatus, getPublishedCatalogVersion, publishCatalog } from '@/services/help-assistant';
 import { useHelpAssistant } from '@/stores/help-assistant-store';
 
 import { HELP_PERMISSIONS } from '@/constants/permissions';
@@ -37,6 +37,7 @@ const PENDING_SAID_KEY = 'invoke-help:pending-said';
 /** Lo prende el grabador de videos (e2e/videos): expone window.__invokeHelp. */
 const AUTOMATION_KEY = 'invoke-help:automation';
 const SYNCED_KEY = 'invoke-help:catalog-synced';
+const MASCOT_VISIBLE_KEY = 'invoke-help:mascot-visible';
 /** El catálogo (~25 KB gzip) se baja cuando la página ya cargó. */
 const CATALOG_IDLE_DELAY_MS = 2500;
 const MOBILE_BREAKPOINT_PX = 640;
@@ -235,6 +236,21 @@ function HelpAssistantRoot() {
     return () => controller.abort();
   }, [catalog, canSync]);
 
+  // Ajustes de la clínica (mascota visible). Se recuerda el último valor para no
+  // mostrar la mascota un instante y esconderla cuando llega la respuesta.
+  React.useEffect(() => {
+    const cached = readStorage('local', MASCOT_VISIBLE_KEY);
+    if (cached !== null) useHelpAssistant.getState().setClinicMascotVisible(cached !== 'false');
+    const controller = new AbortController();
+    getHelpSettings(controller.signal)
+      .then(({ mascotVisible }) => {
+        useHelpAssistant.getState().setClinicMascotVisible(mascotVisible);
+        writeStorage('local', MASCOT_VISIBLE_KEY, String(mascotVisible));
+      })
+      .catch(() => { /* sin el flujo, queda como estaba (por defecto visible) */ });
+    return () => controller.abort();
+  }, []);
+
   // Onboarding: cuántos pasos obligatorios faltan. La opción sólo aparece si falta
   // alguno, y la mascota lo avisa una vez por sesión invitando a abrirla.
   React.useEffect(() => {
@@ -265,6 +281,7 @@ function HelpAssistantRoot() {
   React.useEffect(() => { setCanSpeak(isSpeechSupported()); }, []);
   const { user } = useAuth();
   const [, setShowMascot] = useMascotPreference(user?.id);
+  const mascotOnStage = useMascotOnStage();
 
   // Esconderla: se despide y queda dormida en el riel (MascotWakeButton) hasta que la despierten.
   const hideMascot = React.useCallback(async () => {
@@ -353,6 +370,19 @@ function HelpAssistantRoot() {
               <p className="min-w-0 flex-1 truncate px-1 text-sm font-semibold">
                 {view === 'onboarding' ? t('tabs.onboarding') : view === 'screen' ? screenTitle ?? t('tabs.screen') : t('title')}
               </p>
+              {/* Sin mascota no hay iconos a su lado: silenciar la voz queda en el encabezado. */}
+              {!mascotOnStage && canSpeak && (
+                <button
+                  type="button"
+                  onClick={() => setVoiceMuted(!voiceMuted)}
+                  className="rounded-full p-1.5 hover:bg-white/15"
+                  aria-label={voiceMuted ? t('voiceOn') : t('voiceOff')}
+                  aria-pressed={voiceMuted}
+                  title={voiceMuted ? t('voiceOn') : t('voiceOff')}
+                >
+                  {voiceMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                </button>
+              )}
               <button type="button" onClick={close} className="rounded-full p-1.5 hover:bg-white/15" aria-label={t('close')}>
                 <X className="h-4 w-4" />
               </button>
@@ -400,7 +430,7 @@ function HelpAssistantRoot() {
         )}
 
         {/* Iconos que salen al lado de la mascota al tocarla: silenciar la voz y esconderla. */}
-        {showWindow && anchor && !detached && (
+        {showWindow && anchor && !detached && mascotOnStage && (
           <div
             role="toolbar"
             aria-label={t('mascotActions')}

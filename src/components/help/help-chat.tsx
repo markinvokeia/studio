@@ -14,7 +14,7 @@ import { useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useToast } from '@/hooks/use-toast';
 import { useCurrentHelpRoute } from '@/hooks/use-current-help-route';
 import { useSpeechDictation } from '@/hooks/use-speech-dictation';
-import { resolveReplyActions, searchCatalogLocally } from '@/lib/help/catalog';
+import { resolveReplyActions, searchCatalogLocally, type ResolvedGuide } from '@/lib/help/catalog';
 import { collectVisibleTargets } from '@/lib/help/guide-engine';
 import { startGuide } from '@/lib/help/guide-runner';
 import { cn } from '@/lib/utils';
@@ -112,16 +112,19 @@ export function HelpChat({ catalog, pendingSteps, screenTitle, highlightScreen, 
   React.useEffect(() => { bottomRef.current?.scrollIntoView({ block: 'end' }); }, [messages, isSending]);
 
   const actionsFor = React.useCallback(
-    (reply: HelpAssistantReply) => resolveReplyActions(catalog, reply, route, (title) => t('tourTitle', { screen: title })),
+    (reply: HelpAssistantReply, question?: string) =>
+      resolveReplyActions(catalog, reply, route, (title) => t('tourTitle', { screen: title }), question),
     [catalog, route, t],
   );
 
-  const runGuide = React.useCallback((reply: HelpAssistantReply) => {
-    const { guide } = actionsFor(reply);
+  /** Corre la guía elegida (o la más parecida). Siempre una guía predefinida del catálogo. */
+  const runGuide = React.useCallback((reply: HelpAssistantReply, question?: string, chosen?: ResolvedGuide) => {
+    const guide = chosen ?? actionsFor(reply, question).guide;
     if (!guide?.steps.length) return;
     stopAssistantSpeech();
     startGuide(guide, {
       useCaseId: guide.useCaseId,
+      returnTo: 'chat',
       values: reply.values ?? {},
       // Con datos dictados completa todo y se detiene en el OK; sin datos, va paso a paso.
       autoRun: hasValues(reply) ? 'untilConfirm' : 'first',
@@ -169,7 +172,7 @@ export function HelpChat({ catalog, pendingSteps, screenTitle, highlightScreen, 
     }
 
     const replyId = `${Date.now()}-a`;
-    addMessage({ id: replyId, role: 'assistant', content: reply.answer, reply });
+    addMessage({ id: replyId, role: 'assistant', content: reply.answer, reply, question: message });
     // La mascota lee la respuesta en voz alta (salvo que esté silenciada) antes de guiar.
     void mascotRef.current.setMood('talking');
     const spoken = await speakAssistant(replyId, reply.answer, locale);
@@ -180,7 +183,7 @@ export function HelpChat({ catalog, pendingSteps, screenTitle, highlightScreen, 
     else if (isSadReply(reply)) void mascotRef.current.say(t('mascotSorry'), { mood: 'sad' });
     else if (reply.autoStart) void mascotRef.current.say(t('mascotLetsGo'), { mood: 'happy' });
     else void mascotRef.current.setMood('happy');
-    if (reply.autoStart) runGuide(reply);
+    if (reply.autoStart) runGuide(reply, message);
   }, [addMessage, catalog, locale, route, runGuide, scope, t]);
 
   const dictation = useSpeechDictation(locale, (text) => { void send(text, true); });
@@ -306,15 +309,36 @@ export function HelpChat({ catalog, pendingSteps, screenTitle, highlightScreen, 
             );
           }
           const reply = msg.reply;
-          const actions = reply ? actionsFor(reply) : null;
+          const actions = reply ? actionsFor(reply, msg.question) : null;
           return (
             <div key={msg.id} className="space-y-2">
               <div className={cn('max-w-[92%] space-y-0.5 rounded-2xl rounded-bl-md px-3.5 py-2.5 text-sm leading-relaxed shadow-sm', BUBBLE)}>{renderAnswer(msg.content)}</div>
               {actions && (
                 <div className="flex flex-wrap gap-1.5">
-                  {/* Siempre las dos: guiar y llevar. */}
-                  {actions.guide && (
-                    <Button size="sm" className="h-7 gap-1 rounded-full bg-[#7C3AED] px-2.5 text-xs hover:bg-[#6D28D9]" onClick={() => runGuide(reply!)}>
+                  {/* Siempre las dos: guiar y llevar. Con varias guías parecidas, se elige cuál. */}
+                  {actions.suggestions.length > 1 ? (
+                    <div className="w-full space-y-1">
+                      <p className="px-0.5 text-[11px] font-medium text-muted-foreground">{t('suggestedGuides')}</p>
+                      {actions.suggestions.map((g, i) => (
+                        <button
+                          key={g.useCaseId ?? g.title}
+                          type="button"
+                          onClick={() => runGuide(reply!, msg.question, g)}
+                          className={cn(
+                            'flex w-full items-center gap-2 rounded-xl border px-2.5 py-1.5 text-left text-xs font-medium transition-colors',
+                            i === 0
+                              ? 'border-[#7C3AED] bg-[#7C3AED] text-white hover:bg-[#6D28D9]'
+                              : 'border-[#7C3AED]/25 bg-white text-[#5B21B6] hover:bg-[#7C3AED]/5 dark:bg-card dark:text-violet-300',
+                          )}
+                        >
+                          <PlayCircle className="h-3.5 w-3.5 shrink-0" />
+                          <span className="min-w-0 flex-1 truncate">{g.title}</span>
+                          <span className="shrink-0 text-[10px] opacity-75">{t('stepsCount', { count: g.steps.length })}</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : actions.guide && (
+                    <Button size="sm" className="h-7 gap-1 rounded-full bg-[#7C3AED] px-2.5 text-xs hover:bg-[#6D28D9]" onClick={() => runGuide(reply!, msg.question)}>
                       <PlayCircle className="h-3.5 w-3.5" />
                       {hasValues(reply!) ? t('fillForMe') : t('guideMe')}
                     </Button>

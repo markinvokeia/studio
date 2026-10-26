@@ -43,6 +43,38 @@ Referencia completa: `docs/onboarding-asistente.md`.
   onboarding, a `knowledge/onboarding/journey.json`.
 - Agregá datos de ejemplo en `e2e/tests/help/help-guides.spec.ts`.
 
+## Cubrir una pantalla (de a una, completa antes de pasar a la siguiente)
+
+Las guías son **predefinidas y probadas**: el agente nunca arma pasos al vuelo, sólo
+propone hasta 3 guías de la pantalla (la más parecida primero). Por eso cada pantalla
+tiene que quedar cubierta entera:
+
+1. Help ids en todo lo que una guía toca: filtros, botones, tabs, menús (también
+   los ítems de menús contextuales y submenús), secciones y campos.
+2. Ficha con `summary`, `purpose`, `tips` y `elements`: qué significa cada campo,
+   botón, indicador o columna y qué cambia según lo que se elija.
+3. Guías por tarea (crear, editar, filtrar, cambiar estado, borrar, leer la pantalla…).
+   Mientras menos casos borde tenga la pantalla, menos guías; pueden ser largas.
+4. Si la tarea es sobre un registro: primero filtrar/buscar, después **seleccionarlo**
+   (paso `highlight` con `until` = el panel de detalle o su menú; la persona elige un
+   registro real), y recién ahí el tab, el menú o el botón de la acción.
+5. Correr cada guía en la app real (con y sin datos dictados) y sumarla a
+   `SAMPLE_VALUES` (e2e) y `DEMO_VALUES` (videos).
+
+### Propiedades de los pasos
+
+- `navigate` (route): la guía va por el **menú lateral** como la persona, menú y
+  submenú en un solo paso. Título: "Menú → Submenú". Si ya está en la pantalla, sigue.
+- `until: "id"` o `["id", …]` (en `highlight`): sigue sola cuando aparece ese elemento.
+  Para gestos que la guía no puede hacer: clic derecho, arrastrar, elegir un registro.
+- `blocking: true`: la persona tiene que hacerlo; "Siguiente", "Saltar" e "Ir al final"
+  quedan deshabilitados. Los pasos con `until` lo son siempre.
+- `doneOnClose: true` (en `highlight` de una opción de menú): sigue cuando el menú se
+  cierra, aunque haya elegido otra opción.
+- `target` con `{{values.x}}` (sólo en pasos `optional`): con el dato (pruebas, videos)
+  la guía elige esa opción; sin él el paso se salta y el siguiente le pide a la persona.
+- `skipIfMissing`: el bloque depende de un permiso o de la configuración.
+
 ## Al agregar un paso al onboarding
 
 Agregalo en `knowledge/onboarding/journey.json` **y** en

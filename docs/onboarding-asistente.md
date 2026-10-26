@@ -158,9 +158,22 @@ tiene la base de conocimiento de *su* versión del frontend, sin secretos de CI.
     pantalla nueva desde la última vez que abriste el chat. Abre la ficha de la
     ruta actual: recorrido completo (`screenTour`), sus guías y cada elemento con
     "Mostrar".
-  - Preguntas con dictado por voz (Web Speech API). Cada respuesta trae "Guiarme"
-    y "Llevarme" (`resolveReplyActions` completa lo que el agente no devolvió),
-    video (Fase 3) y 👍/👎. Si el backend no responde, cae a búsqueda local.
+  - Preguntas con dictado por voz (Web Speech API). Las guías son **predefinidas**:
+    el agente nunca arma pasos, devuelve hasta 3 `useCaseIds` (la más parecida
+    primero, preferentemente de la pantalla actual) y la respuesta las ofrece cada
+    una con su "Guiarme", más "Llevarme" al link. Si el agente no propone ninguna,
+    `resolveReplyActions` busca las guías de la pantalla más parecidas a la pregunta
+    (`rankScreenUseCases`). Video (Fase 3) y 👍/👎. Sin backend, búsqueda local.
+  - Al cerrar una guía (o al terminar) se vuelve a la vista del asistente desde la
+    que se abrió (`returnTo`): el chat con la conversación, la ficha de la pantalla
+    o la checklist.
+  - **Mascota visible** (Configuración → Preferencias de Clínica → Asistente guiado,
+    `system_configurations.help_mascot_visible`, script 142; lo lee cualquiera con
+    `GET /help/settings`). Apagada, las guías muestran igual el resaltado, la
+    descripción del paso en un globo propio junto al elemento, la barra y la lista
+    de pasos, sin mascota; al asistente se entra por el ícono **?** del riel
+    (`MascotWakeButton`). Prendida y escondida por la persona, en el riel queda la
+    mascota dormida.
   - **Voz**: la mascota lee cada respuesta en voz alta (`speechSynthesis` del
     navegador, `src/hooks/use-assistant-voice.ts`) con cara de "hablando" y, si la
     respuesta arranca una guía, la guía empieza al terminar de leer. Se silencia con
@@ -186,6 +199,22 @@ punto si es obligatorio, rojo si falta), ir al primero, anterior, siguiente (✓
 un `confirm`: "ya lo hice"), saltar el actual, ir al final y cerrar
 (`goToStep`, `previousStep`, `nextStep`, `skipStep`, `lastStep`, `stopGuide`).
 Si un paso falla, la barra queda abajo al centro con reintentar, saltar y cerrar.
+Junto a la barra (abajo si entra, si no arriba) va la **lista de pasos** con su
+estado (hecho, actual, pendiente, saltado; "te toca" en los que hace la persona),
+que se pliega con el ícono de lista; tocar un paso lleva a ese paso.
+
+Pasos especiales (ver la skill `help-catalog`):
+- `navigate` va por el **menú lateral** como la persona: la mascota señala el menú,
+  se despliega el submenú y pulsa el ítem, en un solo paso ("Menú → Submenú"). Sin
+  menú a la vista (mobile, permiso) navega directo.
+- `until` / `blocking`: pasos que hace la persona (clic derecho en un turno, elegir
+  un registro real). Siguen solos cuando aparece lo que abren; mientras tanto
+  "Siguiente", "Saltar" e "Ir al final" están deshabilitados.
+- `doneOnClose`: una opción de menú se da por hecha al cerrarse el menú.
+- `target` con `{{values.x}}`: en pruebas y videos elige la opción del dato; sin el
+  dato el paso se salta y el siguiente pide elegir.
+- `click` pulsa como una persona (pointerdown → mousedown → pointerup → mouseup →
+  click): los menús de Radix abren en pointerdown.
 
 Ubicación (`src/lib/help/placement.ts`, todo `position: fixed`, sin tocar el
 layout): la barra va abajo del elemento, si no arriba; la mascota va arriba

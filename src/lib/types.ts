@@ -609,6 +609,8 @@ export type GoogleCalendarSyncMode = 'none' | 'from_google' | 'to_google' | 'bot
 export interface ClinicAutomationSettings {
   alert_email_auto_send_enabled: boolean;
   google_calendar_sync_mode: GoogleCalendarSyncMode;
+  /** `help_mascot_visible`: la mascota del asistente se ve en pantalla (por defecto sí). */
+  help_mascot_visible: boolean;
 }
 
 export type AuditLog = {
@@ -3464,6 +3466,12 @@ export interface HelpGuideStep {
    * elegido otra opción distinta de la señalada.
    */
   doneOnClose?: boolean;
+  /**
+   * La persona tiene que hacerlo (elegir un registro real, abrir su menú…): "Siguiente",
+   * "Saltar" e "Ir al final" quedan deshabilitados hasta que lo haga. Los pasos con
+   * `until` lo son siempre.
+   */
+  blocking?: boolean;
 }
 
 export interface HelpUseCase {
@@ -3538,9 +3546,10 @@ export interface HelpAssistantReply {
   answer: string;
   confidence?: number;
   links?: HelpAssistantLink[];
-  /** Guía elegida del catálogo, o armada ad hoc con targets del catálogo / visibles. */
+  /** La guía del catálogo más parecida al pedido (la primera de `useCaseIds`). */
   useCaseId?: string | null;
-  guide?: { title: string; steps: HelpGuideStep[] } | null;
+  /** Hasta 3 guías predefinidas, de la más parecida a la menos. Nunca se arman guías al vuelo. */
+  useCaseIds?: string[];
   /** Valores extraídos de lo dictado para `{{values.x}}`. */
   values?: Record<string, HelpValue>;
   /** true cuando la persona pidió "guiame": la guía arranca sola. */

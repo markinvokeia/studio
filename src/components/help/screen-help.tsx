@@ -64,7 +64,7 @@ export function ScreenHelp({ catalog }: { catalog: HelpCatalog }) {
 
       <div className="flex flex-col gap-1.5">
         {tour && (
-          <Button size="sm" className="h-8 justify-start gap-1.5 text-xs" onClick={() => startGuide(tour)}>
+          <Button size="sm" className="h-8 justify-start gap-1.5 text-xs" onClick={() => startGuide(tour, { returnTo: 'screen' })}>
             <Route className="h-3.5 w-3.5" />
             {t('tourCta')}
           </Button>
@@ -77,7 +77,7 @@ export function ScreenHelp({ catalog }: { catalog: HelpCatalog }) {
           <div className="flex flex-col gap-1">
             {useCases.map((u) => (
               <Button key={u.id} variant="outline" size="sm" className="h-auto justify-start whitespace-normal py-1.5 text-left text-xs"
-                onClick={() => startGuide({ title: u.title, steps: u.steps }, { useCaseId: u.id })}>
+                onClick={() => startGuide({ title: u.title, steps: u.steps }, { useCaseId: u.id, returnTo: 'screen' })}>
                 {u.title}
               </Button>
             ))}

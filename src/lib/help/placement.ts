@@ -87,7 +87,7 @@ export function rectOf(selector: string): Rect | null {
 export function placeGuideMascot(
   target: DOMRect | Rect,
   size: number,
-  obstacles: Rect[] = [rectOf('[data-help-bubble]')].filter((r): r is Rect => !!r),
+  obstacles: Rect[] = [rectOf('[data-help-bubble]'), rectOf('[data-help-steps]')].filter((r): r is Rect => !!r),
 ): { x: number; y: number } {
   const box = { top: target.top, left: target.left, width: target.width, height: target.height };
   // La caja de la mascota tiene aire alrededor del cuerpo: se acerca un poco para que la mano llegue.

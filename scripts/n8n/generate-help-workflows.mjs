@@ -238,6 +238,32 @@ return [{ json: { body: { version: row.version ?? null, synced_at: row.synced_at
   ],
 );
 
+// ─── GET help/settings ───────────────────────────────────────────────────────
+
+const settings = workflow(
+  'Help - Ajustes',
+  `${REQUIRED_SETUP()}
+
+RUTA: GET /webhook/help/settings (Authorization: Bearer <JWT>)
+RESPUESTA: { mascot_visible: boolean }
+Ajustes del asistente que fija la clínica (Configuración → Preferencias de Clínica).
+Los lee cualquier usuario con el asistente: system_configurations no está a su alcance.
+Clave: system_configurations.help_mascot_visible (database/scripts/142), default true.`,
+  [
+    webhook('help/settings', 'GET'),
+    code('node-auth', 'Extraer User ID', `${JWT_DECODE}
+return [{ json: { user_id: String(userId) } }];`),
+    pg('node-pg-settings', 'Leer Ajustes', `SELECT (SELECT value FROM public.system_configurations WHERE key = 'help_mascot_visible' LIMIT 1) AS mascot_visible;`, '={{ [] }}'),
+    code('node-format', 'Formatear Respuesta', `const row = $input.first()?.json || {};
+if (row.error) throw new Error('Error en base de datos: ' + (row.error?.message || String(row.error)));
+// Sin la clave (script 142 sin aplicar) la mascota se ve, como hasta ahora.
+const raw = row.mascot_visible;
+const mascot_visible = raw === null || raw === undefined ? true : String(raw).trim().toLowerCase() !== 'false';
+return [{ json: { body: { mascot_visible } } }];`),
+    respond(),
+  ],
+);
+
 // ─── POST help/catalog/sync ──────────────────────────────────────────────────
 
 const catalogSync = workflow(
@@ -360,14 +386,14 @@ REGLAS
 1. Respondé SOLO con lo que está en el CONTEXTO (fichas del catálogo). Si no alcanza, decilo, poné confidence bajo (< 0.4) y no inventes pantallas, campos, botones ni pasos.
 2. Respondé en el idioma del usuario (locale indicado), breve y práctico: pasos concretos, nombres de menú tal como aparecen.
 3. "links": SIEMPRE al menos uno, la pantalla más relevante para la pregunta, sólo con rutas de RUTAS PERMITIDAS. Nunca inventes una ruta ni agregues el locale.
-4. Si un caso de uso de CASOS DE USO resuelve el pedido o está relacionado con la pantalla del link, devolvé su id en "useCaseId" y NO armes "guide". La persona siempre ve "Llevarme" y "Guiarme".
-5. Sólo si no hay caso de uso y el pedido requiere varios pasos en la pantalla actual, armá "guide" usando EXCLUSIVAMENTE help ids de ELEMENTOS VISIBLES o del CONTEXTO. Acciones: navigate (route), click (target), fill (target, value), highlight (target), confirm (target). El botón que guarda SIEMPRE va como "confirm": la persona confirma, nunca vos.
+4. Las guías están PREDEFINIDAS y probadas: NUNCA armes una guía ni pasos propios. En "useCaseIds" devolvé hasta 3 ids de CASOS DE USO, del más parecido al pedido al menos parecido. Preferí los de la PANTALLA ACTUAL y los de la pantalla del link. "useCaseId" es el primero (o null). La persona ve "Guiarme" en cada uno y "Llevarme" en el link.
+5. Si ningún caso de uso aplica, "useCaseIds": [] y explicá en "answer" qué hacer y dónde (con el link).
 6. Si el usuario dictó datos (nombres, teléfonos, horarios, precios…), extraelos en "values" con las claves de "inputs" del caso de uso. Días de la semana como lista de números según indique el input. Horas como HH:MM. Montos y minutos como número.
 7. "autoStart": true cuando el usuario pide que lo guíes o que lo hagas ("guiame", "hacelo", "cargalo", "llevame paso a paso") o cuando dictó datos para completar.
 8. Si es un error del sistema, algo que no podés resolver o pide hablar con una persona: "escalate": true (se abre un ticket para el equipo de soporte). Si es un error del sistema, además "systemError": true.
 
 FORMATO: respondé ÚNICAMENTE un JSON válido, sin texto alrededor:
-{"answer": "markdown breve", "confidence": 0.0-1.0, "links": [{"route": "/config/sedes", "label": "Sedes"}], "useCaseId": "id o null", "guide": null o {"title": "...", "steps": [{"id": "s1", "action": "click", "target": "help.id", "title": "...", "description": "..."}]}, "values": {}, "autoStart": false, "escalate": false, "systemError": false}`;
+{"answer": "markdown breve", "confidence": 0.0-1.0, "links": [{"route": "/config/sedes", "label": "Sedes"}], "useCaseIds": ["id más parecido", "otro"], "useCaseId": "el primero o null", "values": {}, "autoStart": false, "escalate": false, "systemError": false}`;
 
 const assistantChat = workflow(
   'Help - Asistente Chat',
@@ -383,7 +409,7 @@ OpenAI (${OPENAI_MODEL}) → validación contra la lista cerrada (rutas, casos d
 del catálogo o visibles) → registro en help_questions.
 
 RESPUESTA (HelpAssistantReply en src/lib/types.ts):
-{ answer, confidence, links, useCaseId, guide, values, autoStart, videoUrl, questionId, escalated }`,
+{ answer, confidence, links, useCaseId, useCaseIds, values, autoStart, videoUrl, questionId, escalated }`,
   [
     webhook('help/assistant/chat', 'POST'),
     code('node-prepare', 'Preparar Consulta', `${JWT_DECODE}
@@ -424,7 +450,7 @@ return [{ json: {
     pg('node-pg-allowed', 'Lista Cerrada', `SELECT
   (SELECT COALESCE(jsonb_agg(DISTINCT route), '[]'::jsonb)
      FROM public.help_catalog_items WHERE kind = 'screen' AND status <> 'stale') AS routes,
-  (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', data ->> 'id', 'title', title, 'summary', data ->> 'summary', 'inputs', data -> 'inputs')), '[]'::jsonb)
+  (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', data ->> 'id', 'title', title, 'summary', data ->> 'summary', 'inputs', data -> 'inputs', 'screens', data -> 'screens')), '[]'::jsonb)
      FROM public.help_catalog_items WHERE kind = 'use_case' AND status <> 'stale') AS use_cases,
   (SELECT COALESCE(jsonb_agg(data ->> 'id'), '[]'::jsonb)
      FROM public.help_catalog_items WHERE kind = 'element' AND status <> 'stale') AS element_ids,
@@ -455,7 +481,7 @@ const prompt = [
   context || '(sin coincidencias en el catálogo)',
   '',
   'CASOS DE USO:',
-  (allowed.use_cases || []).map(u => '- ' + u.id + ': ' + u.title + (u.inputs ? ' · inputs ' + JSON.stringify(u.inputs) : '')).join('\\n'),
+  (allowed.use_cases || []).map(u => '- ' + u.id + (Array.isArray(u.screens) && u.screens.length ? ' [pantallas: ' + u.screens.join(', ') + ']' : '') + ': ' + u.title + (u.summary ? ' — ' + u.summary : '') + (u.inputs ? ' · inputs ' + JSON.stringify(u.inputs) : '')).join('\\n'),
   '',
   'RUTAS PERMITIDAS: ' + (allowed.routes || []).join(', '),
   '',
@@ -490,8 +516,6 @@ try {
 // Lista cerrada: nada que no exista en el catálogo publicado o en pantalla.
 const routes = new Set(allowed.routes || []);
 const useCases = new Set((allowed.use_cases || []).map(u => u.id));
-const targets = new Set([...(allowed.element_ids || []), ...q.visible.map(v => v.id)]);
-const ACTIONS = new Set(['navigate', 'click', 'fill', 'highlight', 'confirm', 'wait']);
 const cleanRoute = (r) => String(r || '').replace(/^\\/(es-ES|es|en)(?=\\/|$)/, '') || '/';
 
 const links = (Array.isArray(parsed.links) ? parsed.links : [])
@@ -499,21 +523,12 @@ const links = (Array.isArray(parsed.links) ? parsed.links : [])
   .filter(l => routes.has(l.route) && l.label)
   .slice(0, 3);
 
-const useCaseId = useCases.has(parsed.useCaseId) ? parsed.useCaseId : null;
-
-let guide = null;
-if (!useCaseId && parsed.guide && Array.isArray(parsed.guide.steps)) {
-  const steps = parsed.guide.steps.slice(0, 15).map((s, i) => ({
-    id: String(s?.id || 's' + (i + 1)).slice(0, 40),
-    action: String(s?.action || ''),
-    title: String(s?.title || '').slice(0, 120),
-    description: s?.description ? String(s.description).slice(0, 300) : undefined,
-    target: s?.target ? String(s.target) : undefined,
-    route: s?.route ? cleanRoute(s.route).split('?')[0] : undefined,
-    value: ['string', 'number', 'boolean'].includes(typeof s?.value) ? s.value : undefined,
-  })).filter(s => ACTIONS.has(s.action) && s.title && (s.action === 'navigate' ? routes.has(s.route) : targets.has(s.target)));
-  if (steps.length) guide = { title: String(parsed.guide.title || 'Guía').slice(0, 120), steps };
-}
+// Sólo guías predefinidas del catálogo (nunca pasos armados por el modelo).
+const suggested = [...(Array.isArray(parsed.useCaseIds) ? parsed.useCaseIds : []), parsed.useCaseId]
+  .map(id => String(id || ''))
+  .filter((id, i, all) => id && useCases.has(id) && all.indexOf(id) === i)
+  .slice(0, 3);
+const useCaseId = suggested[0] || null;
 
 const values = {};
 if (parsed.values && typeof parsed.values === 'object') {
@@ -535,9 +550,9 @@ return [{ json: {
     confidence,
     links,
     useCaseId,
-    guide,
+    useCaseIds: suggested,
     values,
-    autoStart: parsed.autoStart === true && Boolean(useCaseId || guide),
+    autoStart: parsed.autoStart === true && Boolean(useCaseId),
     videoUrl: (useCaseId && (allowed.videos || {})[useCaseId]) || null,
     escalated,
   },
@@ -914,6 +929,7 @@ const files = {
   'help-onboarding-status.json': onboardingStatus,
   'help-onboarding-progress.json': onboardingProgress,
   'help-catalog-version.json': catalogVersion,
+  'help-settings.json': settings,
   'help-catalog-sync.json': catalogSync,
   'help-assistant-chat.json': assistantChat,
   'help-assistant-feedback.json': assistantFeedback,

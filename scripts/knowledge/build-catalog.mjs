@@ -392,6 +392,9 @@ function validateGuides(screens, navItems, useCases, journey) {
         if (!routes.has(step.route)) errors.push(`${where}: la ruta "${step.route}" no existe`);
       } else if (!step.target) {
         errors.push(`${where}: falta target`);
+      } else if (step.target.includes('{{')) {
+        // Target con datos (`…period-{{values.period}}`): sólo en pasos opcionales.
+        if (!step.optional) errors.push(`${where}: un target con {{values.x}} tiene que ser optional`);
       } else if (!ids.has(step.target)) {
         errors.push(`${where}: el help id "${step.target}" no existe en el catálogo`);
       }

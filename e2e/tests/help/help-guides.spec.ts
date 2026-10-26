@@ -18,6 +18,7 @@ const SAMPLE_VALUES: Record<string, Record<string, unknown>> = {
   'onboarding.staff': { name: 'Recepción E2E', email: 'recepcion.e2e@example.com' },
   'onboarding.payment-method': { name: 'Medio E2E', code: 'E2E' },
   'patients.create': { name: 'Paciente E2E', phone: '+59899123456' },
+  'dashboard.filters': { branch: 'Consolidado', period: 'prevMonth', currency: 'USD' },
 };
 
 test.describe('Guías del asistente', () => {

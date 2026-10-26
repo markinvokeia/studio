@@ -19,6 +19,8 @@ export interface GuideRun {
   /** Espera larga en curso (en desarrollo, Next compila cada pantalla la primera vez). */
   notice?: 'loadingScreen' | 'loadingElement';
   finished: boolean;
+  /** Desde dónde se abrió: al cerrar la guía se vuelve ahí (el chat donde quedó). */
+  returnTo?: HelpAssistantTab;
 }
 
 /** Qué se está resaltando. El spotlight resuelve el elemento por help id. */
@@ -39,6 +41,8 @@ export interface HelpChatMessage {
   role: 'user' | 'assistant';
   content: string;
   reply?: HelpAssistantReply;
+  /** La pregunta que respondió: ordena las guías sugeridas de la pantalla. */
+  question?: string;
   isVoice?: boolean;
 }
 
@@ -48,6 +52,14 @@ type HelpAssistantStore = {
   guide: GuideRun | null;
   spotlight: HelpSpotlight | null;
   messages: HelpChatMessage[];
+  /** La lista de pasos junto a la barra de navegación (se puede plegar). */
+  stepsListOpen: boolean;
+  /**
+   * Preferencias de Clínica → "Mascota visible" (`system_configurations.help_mascot_visible`).
+   * Apagada, las guías siguen igual (resaltado, globo, barra y pasos) pero sin la mascota,
+   * y al asistente se entra por el ícono de ayuda del riel.
+   */
+  clinicMascotVisible: boolean;
   /** Se incrementa cuando conviene volver a pedir el estado del onboarding. */
   onboardingRefreshKey: number;
   open: (tab?: HelpAssistantTab) => void;
@@ -57,6 +69,8 @@ type HelpAssistantStore = {
   setSpotlight: (spotlight: HelpSpotlight | null) => void;
   addMessage: (message: HelpChatMessage) => void;
   refreshOnboarding: () => void;
+  setStepsListOpen: (open: boolean) => void;
+  setClinicMascotVisible: (visible: boolean) => void;
 };
 
 export const useHelpAssistant = create<HelpAssistantStore>((set) => ({
@@ -65,6 +79,8 @@ export const useHelpAssistant = create<HelpAssistantStore>((set) => ({
   guide: null,
   spotlight: null,
   messages: [],
+  stepsListOpen: true,
+  clinicMascotVisible: true,
   onboardingRefreshKey: 0,
   open: (tab) => set((s) => ({ isOpen: true, tab: tab ?? s.tab })),
   close: () => set({ isOpen: false }),
@@ -73,4 +89,6 @@ export const useHelpAssistant = create<HelpAssistantStore>((set) => ({
   setSpotlight: (spotlight) => set({ spotlight }),
   addMessage: (message) => set((s) => ({ messages: [...s.messages, message].slice(-60) })),
   refreshOnboarding: () => set((s) => ({ onboardingRefreshKey: s.onboardingRefreshKey + 1 })),
+  setStepsListOpen: (stepsListOpen) => set({ stepsListOpen }),
+  setClinicMascotVisible: (clinicMascotVisible) => set({ clinicMascotVisible }),
 }));

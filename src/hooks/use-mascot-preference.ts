@@ -3,7 +3,9 @@
 import * as React from 'react';
 import { create } from 'zustand';
 
+import { useAuth } from '@/context/AuthContext';
 import { api } from '@/services/api';
+import { useHelpAssistant } from '@/stores/help-assistant-store';
 
 import { API_ROUTES } from '@/constants/routes';
 import type { MascotHome } from '@/components/invoke-mascot';
@@ -94,3 +96,15 @@ export const useMascotHome = create<{ home: MascotHome | null; setHome: (home: M
     set({ home });
   },
 }));
+
+/**
+ * ¿La mascota está en pantalla? La clínica la permite (Preferencias de Clínica →
+ * "Mascota visible") y la persona no la escondió. Sin ella, las guías muestran el
+ * texto del paso en un globo propio junto al elemento.
+ */
+export function useMascotOnStage(): boolean {
+  const { user } = useAuth();
+  const [userShow] = useMascotPreference(user?.id);
+  const clinicVisible = useHelpAssistant((s) => s.clinicMascotVisible);
+  return clinicVisible && userShow;
+}

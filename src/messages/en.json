@@ -9576,6 +9576,17 @@
           "description": "Combines both directions."
         }
       }
+    },
+    "assistant": {
+      "sectionTitle": "Guided assistant",
+      "mascotVisible": {
+        "label": "Mascot visible",
+        "help": "The Invoke mascot walks you through guides by pointing at each step and hides behind the bar when you are not using it.",
+        "notice": {
+          "on": "The mascot is visible: it points at each step and, when idle, peeks out from behind the floating bar.",
+          "off": "No mascot: guides still show the highlight, the step description, the navigation bar and the step list. Open the assistant with the help icon in the floating bar."
+        }
+      }
     }
   },
   "DuplicateContact": {
@@ -10163,7 +10174,9 @@
       "onboardingPending": "{count, plural, one {# step} other {# steps}} left to get started",
       "guideThisScreen": "Guide me on this screen",
       "readAloud": "Listen",
-      "stopReading": "Stop reading"
+      "stopReading": "Stop reading",
+      "suggestedGuides": "Guides for this",
+      "stepsCount": "{count, plural, one {# step} other {# steps}}"
     },
     "mascot": {
       "label": "Invoke assistant",
@@ -10179,7 +10192,9 @@
         "loadingElement": "Waiting for the screen to finish loading…"
       },
       "wake": "Wake the assistant up",
-      "railLabel": "Assistant"
+      "railLabel": "Assistant",
+      "openHelp": "Open help",
+      "helpLabel": "Help"
     },
     "toolbar": {
       "label": "Guide: step {current} of {total}",
@@ -10192,7 +10207,13 @@
       "last": "Go to last step",
       "close": "Close guide",
       "required": "Required",
-      "retry": "Retry"
+      "retry": "Retry",
+      "hideSteps": "Hide the steps",
+      "showSteps": "Show the steps",
+      "stepsLabel": "Guide steps",
+      "goTo": "Go to: {title}",
+      "yourTurn": "your turn",
+      "waitingForYou": "Waiting for you to do it"
     },
     "back": "Back",
     "voiceOn": "Turn voice on",
