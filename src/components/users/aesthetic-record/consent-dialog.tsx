@@ -29,6 +29,7 @@ import { useAsyncAction } from '@/hooks/use-async-action';
 import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/error-utils';
+import { cn } from '@/lib/utils';
 import { signAestheticConsent } from '@/services/aesthetic-record';
 
 import type { AestheticSession } from '@/lib/types';
@@ -181,10 +182,15 @@ export function ConsentDialog({ open, onOpenChange, patientId, patientName, sess
                     key={name}
                     control={form.control}
                     name={name}
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <FormItem className="flex flex-row items-start gap-2 space-y-0">
                         <FormControl>
-                          <Checkbox checked={field.value} onCheckedChange={(v) => field.onChange(v === true)} disabled={sign.isPending} />
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={(v) => field.onChange(v === true)}
+                            disabled={sign.isPending}
+                            className={cn(fieldState.error && 'border-destructive ring-2 ring-destructive/25')}
+                          />
                         </FormControl>
                         <div className="space-y-1 leading-none">
                           <FormLabel className="text-sm font-normal">{t(`consent.${name}`)}</FormLabel>
@@ -198,16 +204,22 @@ export function ConsentDialog({ open, onOpenChange, patientId, patientName, sess
                 <FormField
                   control={form.control}
                   name="signature"
-                  render={() => (
+                  render={({ fieldState }) => (
                     <FormItem>
                       <FormLabel>{t('consent.signature')}</FormLabel>
                       <div className="flex items-center gap-3">
-                        <div className="flex h-20 flex-1 items-center justify-center rounded-xl border border-dashed bg-white">
+                        <div
+                          className={cn(
+                            'flex h-20 flex-1 items-center justify-center rounded-xl border border-dashed bg-white',
+                            fieldState.error && 'border-2 border-destructive bg-destructive/5',
+                          )}
+                          aria-invalid={!!fieldState.error || undefined}
+                        >
                           {signaturePreview ? (
                             // eslint-disable-next-line @next/next/no-img-element -- local object URL
                             <img src={signaturePreview} alt={t('consent.signature')} className="max-h-16 max-w-full object-contain" />
                           ) : (
-                            <span className="text-xs text-gray-400">{t('consent.notSignedYet')}</span>
+                            <span className={cn('text-xs', fieldState.error ? 'text-destructive' : 'text-gray-400')}>{t('consent.notSignedYet')}</span>
                           )}
                         </div>
                         <Button type="button" variant="outline" onClick={() => setIsPadOpen(true)} disabled={sign.isPending}>

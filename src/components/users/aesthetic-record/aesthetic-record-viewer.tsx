@@ -142,6 +142,8 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
   const [pendingPhotos, setPendingPhotos] = React.useState<PendingPhoto[]>([]);
   const [removedPhotoIds, setRemovedPhotoIds] = React.useState<string[]>([]);
   const [saveError, setSaveError] = React.useState<string | null>(null);
+  /** A save was blocked by missing fields: mark them in red until editing ends */
+  const [showValidation, setShowValidation] = React.useState(false);
   const [confirmDiscard, setConfirmDiscard] = React.useState<null | (() => void)>(null);
   const [consentOpen, setConsentOpen] = React.useState(false);
   const presetRef = React.useRef<PointPreset>(DEFAULT_PRESET);
@@ -198,6 +200,7 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
     setPendingPhotos([]);
     setRemovedPhotoIds([]);
     setSaveError(null);
+    setShowValidation(false);
     setSelectedPointId(null);
     presetRef.current = next.points.length ? pickPreset(next.points[next.points.length - 1]) : DEFAULT_PRESET;
   }
@@ -238,6 +241,7 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
     setPendingPhotos([]);
     setRemovedPhotoIds([]);
     setSaveError(null);
+    setShowValidation(false);
     setSelectedPointId(null);
   }
 
@@ -327,11 +331,14 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
   function handleSave() {
     if (!draft) return;
     if (!draft.date) {
+      setShowValidation(true);
       setSaveError(t('session.dateRequired'));
+      document.getElementById('aes-session-date')?.focus();
       return;
     }
     const incomplete = draft.points.find(isPointIncomplete);
     if (incomplete) {
+      setShowValidation(true);
       setSaveError(t('session.incompletePoints', { count: draft.points.filter(isPointIncomplete).length }));
       setTab('map');
       setView(incomplete.view);
@@ -441,12 +448,25 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
     </div>
   );
 
+  const dateInvalid = showValidation && !draft?.date;
+  const invalidPointIds = showValidation ? new Set(points.filter(isPointIncomplete).map((p) => p.id)) : undefined;
+
   const sessionFields = draft && (
     <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm">
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="aes-session-date" className="text-xs">{t('session.date')}</Label>
-          <Input id="aes-session-date" type="date" value={draft.date} onChange={(e) => updateDraft({ date: e.target.value })} disabled={save.isPending} aria-invalid={!draft.date} className="h-9" />
+          <Label htmlFor="aes-session-date" className={cn('text-xs', dateInvalid && 'text-destructive')}>{t('session.date')}</Label>
+          <Input
+            id="aes-session-date"
+            type="date"
+            value={draft.date}
+            onChange={(e) => updateDraft({ date: e.target.value })}
+            disabled={save.isPending}
+            aria-invalid={dateInvalid || undefined}
+            aria-describedby={dateInvalid ? 'aes-session-date-error' : undefined}
+            className="h-9"
+          />
+          {dateInvalid && <p id="aes-session-date-error" className="text-xs font-medium text-destructive">{t('session.dateRequired')}</p>}
         </div>
         <div className="flex flex-col gap-1.5">
           <Label className="text-xs">{t('session.doctor')}</Label>
@@ -512,6 +532,7 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
         pointNumbers={pointNumbers}
         selectedPointId={selectedPointId}
         readOnly={!isEditing || tab === 'zones'}
+        invalidPointIds={invalidPointIds}
         highlightZones={tab === 'zones' ? (zoneHighlight ? [zoneHighlight] : []) : selectedPoint?.zone ? [selectedPoint.zone] : []}
         onAddPoint={isEditing ? addPoint : undefined}
         onMovePoint={isEditing ? (id, x, y, zone) => updatePoint(id, { x, y, zone }) : undefined}
@@ -532,12 +553,13 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
           point={selectedPoint}
           number={pointNumbers.get(selectedPoint.id)}
           readOnly={!isEditing}
+          showErrors={showValidation}
           onChange={(patch) => updatePoint(selectedPoint.id, patch)}
           onDelete={() => deletePoint(selectedPoint.id)}
         />
       )}
       {(isEditing || current) && (
-        <PointsSummary points={points} pointNumbers={pointNumbers} selectedPointId={selectedPointId} isEditing={isEditing} onSelectPoint={selectFromList} />
+        <PointsSummary points={points} pointNumbers={pointNumbers} selectedPointId={selectedPointId} isEditing={isEditing} showErrors={showValidation} onSelectPoint={selectFromList} />
       )}
       {!isEditing && current?.notes && (
         <div className="flex flex-col gap-1 rounded-xl border bg-muted/20 p-3">

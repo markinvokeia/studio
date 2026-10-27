@@ -10250,7 +10250,9 @@
       "technique": "Técnica",
       "zone": "Zona",
       "notes": "Notas",
-      "notSet": "Sin indicar"
+      "notSet": "Sin indicar",
+      "productRequired": "Ingresá el producto",
+      "quantityRequired": "Ingresá una cantidad mayor a 0"
     },
     "photos": {
       "sessionTitle": "Fotos de la sesión",

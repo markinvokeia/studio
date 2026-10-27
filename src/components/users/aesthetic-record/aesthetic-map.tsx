@@ -35,6 +35,8 @@ interface AestheticMapProps {
   pointNumbers: Map<string, number>;
   selectedPointId: string | null;
   readOnly?: boolean;
+  /** Points drawn with an error ring (missing required data) */
+  invalidPointIds?: Set<string>;
   /** Zones painted as highlighted (e.g. the selected point's zone) */
   highlightZones?: AestheticZoneId[];
   onAddPoint?: (x: number, y: number, zone: AestheticZoneId | null) => void;
@@ -77,6 +79,7 @@ function MapCanvas({
   selectedPointId,
   readOnly = false,
   highlightZones,
+  invalidPointIds,
   onAddPoint,
   onMovePoint,
   onSelectPoint,
@@ -287,6 +290,7 @@ function MapCanvas({
           const isDragging = drag?.id === point.id;
           const at = isDragging ? { x: drag.x, y: drag.y } : fromNormalized(point.x, point.y);
           const isSelected = selectedPointId === point.id;
+        const isInvalid = invalidPointIds?.has(point.id) ?? false;
           const number = pointNumbers.get(point.id);
           const label = t('map.pointLabel', {
             number: number ?? 0,
@@ -310,7 +314,15 @@ function MapCanvas({
               className={cn('outline-none [&:focus-visible>circle:first-child]:stroke-ring', !readOnly ? 'cursor-grab' : 'cursor-pointer', isDragging && 'cursor-grabbing')}
             >
               <title>{label}</title>
-              <circle cx={at.x} cy={at.y} r={r + 4 * scale} className={cn(isSelected ? 'fill-amber-400/25 stroke-amber-500' : 'fill-transparent stroke-transparent')} strokeWidth={1.5 * scale} />
+              <circle
+                cx={at.x}
+                cy={at.y}
+                r={r + 4 * scale}
+                className={cn(
+                  isInvalid ? 'fill-destructive/20 stroke-destructive' : isSelected ? 'fill-amber-400/25 stroke-amber-500' : 'fill-transparent stroke-transparent',
+                )}
+                strokeWidth={(isInvalid ? 2 : 1.5) * scale}
+              />
               <circle cx={at.x} cy={at.y} r={r} fill={UNIT_COLORS[point.unit]} className="stroke-white" strokeWidth={1.5 * scale} />
               {number !== undefined && (
                 <text x={at.x} y={at.y} dy="0.35em" textAnchor="middle" fontSize={7 * scale} className="fill-white font-semibold" pointerEvents="none">

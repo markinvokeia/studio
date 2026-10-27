@@ -18,10 +18,12 @@ interface PointsSummaryProps {
   pointNumbers: Map<string, number>;
   selectedPointId: string | null;
   isEditing: boolean;
+  /** Mark the incomplete points as errors (after a blocked save) */
+  showErrors?: boolean;
   onSelectPoint: (point: AestheticPoint) => void;
 }
 
-export function PointsSummary({ points, pointNumbers, selectedPointId, isEditing, onSelectPoint }: PointsSummaryProps) {
+export function PointsSummary({ points, pointNumbers, selectedPointId, isEditing, showErrors = false, onSelectPoint }: PointsSummaryProps) {
   const t = useTranslations('AestheticRecord');
   const zoneLabel = useZoneLabel();
 
@@ -74,6 +76,7 @@ export function PointsSummary({ points, pointNumbers, selectedPointId, isEditing
                   className={cn(
                     'flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors hover:bg-muted/50',
                     selectedPointId === point.id && 'bg-primary/5',
+                    incomplete && showErrors && 'bg-destructive/5 hover:bg-destructive/10',
                   )}
                 >
                   <span
@@ -91,7 +94,7 @@ export function PointsSummary({ points, pointNumbers, selectedPointId, isEditing
                     </span>
                   </span>
                   {incomplete && isEditing ? (
-                    <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" aria-label={t('map.incompletePoint')} />
+                    <AlertTriangle className={cn('h-4 w-4 shrink-0', showErrors ? 'text-destructive' : 'text-amber-500')} aria-label={t('map.incompletePoint')} />
                   ) : (
                     <span className="shrink-0 font-semibold text-foreground">
                       {point.quantity != null ? `${formatQuantity(point.quantity)} ${point.unit}` : '—'}

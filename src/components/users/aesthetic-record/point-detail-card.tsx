@@ -24,15 +24,19 @@ interface PointDetailCardProps {
   point: AestheticPoint;
   number?: number;
   readOnly?: boolean;
+  /** Mark the missing required fields (after a save attempt) */
+  showErrors?: boolean;
   onChange: (patch: Partial<AestheticPoint>) => void;
   onDelete: () => void;
 }
 
-export function PointDetailCard({ point, number, readOnly = false, onChange, onDelete }: PointDetailCardProps) {
+export function PointDetailCard({ point, number, readOnly = false, showErrors = false, onChange, onDelete }: PointDetailCardProps) {
   const t = useTranslations('AestheticRecord');
   const zoneLabel = useZoneLabel();
   const zones = React.useMemo(() => getViewZoneIds(point.view), [point.view]);
   const idPrefix = `aes-point-${point.id}`;
+  const productInvalid = showErrors && !point.productName.trim();
+  const quantityInvalid = showErrors && (point.quantity == null || point.quantity <= 0);
 
   const header = (
     <div className="flex items-center gap-2">
@@ -83,12 +87,13 @@ export function PointDetailCard({ point, number, readOnly = false, onChange, onD
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm">
+    <div className={cn('flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm', (productInvalid || quantityInvalid) && 'border-destructive/60')}>
       {header}
 
       <div className="flex flex-col gap-1.5">
-        <Label className="text-xs">{t('point.product')}</Label>
+        <Label htmlFor={`${idPrefix}-name`} className={cn('text-xs', productInvalid && 'text-destructive')}>{t('point.product')}</Label>
         <ServiceSelector
+          className={cn(productInvalid && 'border-destructive')}
           value={point.serviceId}
           selectedServiceName={point.serviceId ? point.productName : undefined}
           onValueChange={(serviceId, service) => onChange({ serviceId, productName: service?.name ?? point.productName })}
@@ -103,13 +108,16 @@ export function PointDetailCard({ point, number, readOnly = false, onChange, onD
           onChange={(e) => onChange({ productName: e.target.value })}
           placeholder={t('point.productNamePlaceholder')}
           aria-label={t('point.productName')}
+          aria-invalid={productInvalid || undefined}
+          aria-describedby={productInvalid ? `${idPrefix}-name-error` : undefined}
           className="h-8 text-xs"
         />
+        {productInvalid && <p id={`${idPrefix}-name-error`} className="text-xs font-medium text-destructive">{t('point.productRequired')}</p>}
       </div>
 
       <div className="grid grid-cols-[1fr_auto] items-end gap-2">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor={`${idPrefix}-qty`} className="text-xs">{t('point.quantity')}</Label>
+          <Label htmlFor={`${idPrefix}-qty`} className={cn('text-xs', quantityInvalid && 'text-destructive')}>{t('point.quantity')}</Label>
           <Input
             id={`${idPrefix}-qty`}
             type="number"
@@ -121,6 +129,8 @@ export function PointDetailCard({ point, number, readOnly = false, onChange, onD
               const value = e.target.value === '' ? null : Number(e.target.value);
               onChange({ quantity: value != null && Number.isFinite(value) ? value : null });
             }}
+            aria-invalid={quantityInvalid || undefined}
+            aria-describedby={quantityInvalid ? `${idPrefix}-qty-error` : undefined}
             className="h-9"
           />
         </div>
@@ -141,6 +151,7 @@ export function PointDetailCard({ point, number, readOnly = false, onChange, onD
             </button>
           ))}
         </div>
+        {quantityInvalid && <p id={`${idPrefix}-qty-error`} className="col-span-2 text-xs font-medium text-destructive">{t('point.quantityRequired')}</p>}
       </div>
 
       <div className="grid grid-cols-2 gap-2">

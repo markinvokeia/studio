@@ -10250,7 +10250,9 @@
       "technique": "Technique",
       "zone": "Zone",
       "notes": "Notes",
-      "notSet": "Not set"
+      "notSet": "Not set",
+      "productRequired": "Enter the product",
+      "quantityRequired": "Enter a quantity greater than 0"
     },
     "photos": {
       "sessionTitle": "Session photos",
