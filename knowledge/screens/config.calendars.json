@@ -10,7 +10,11 @@
     "En la pestaña de acceso elegís qué profesionales pueden usar cada consultorio."
   ],
   "useCases": [
-    "onboarding.calendar"
+    "onboarding.calendar",
+    "config.calendars.overview",
+    "config.calendars.create",
+    "config.calendars.edit",
+    "config.calendars.delete"
   ],
   "elements": {
     "config.calendars.field.name": {
@@ -27,6 +31,29 @@
     },
     "config.calendars.tab.access": {
       "description": "Profesionales que pueden atender en este consultorio."
+    },
+    "config.calendars.section.first-row": {
+      "label": "Primer registro de la lista"
+    },
+    "config.calendars.section.row": {
+      "label": "Registro"
+    },
+    "config.calendars.section.detail": {
+      "label": "Detalle"
+    },
+    "config.calendars.btn.edit": {
+      "label": "Editar"
+    },
+    "config.calendars.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "config.calendars.btn.confirm-action": {
+      "label": "Confirmar",
+      "description": "No se puede deshacer."
+    },
+    "config.calendars.field.is_active": {
+      "label": "Activo"
     }
   }
 }

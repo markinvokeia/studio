@@ -12,7 +12,11 @@
   "useCases": [
     "onboarding.sede",
     "onboarding.schedules",
-    "onboarding.calendar"
+    "onboarding.calendar",
+    "config.sedes.overview",
+    "config.sedes.create",
+    "config.sedes.edit",
+    "config.sedes.delete"
   ],
   "elements": {
     "config.sedes.btn.new": {
@@ -32,6 +36,26 @@
     },
     "config.sedes.field.is_active": {
       "description": "Si está desmarcada, la sede no aparece para agendar."
+    },
+    "config.sedes.section.first-row": {
+      "label": "Primer registro de la lista"
+    },
+    "config.sedes.section.row": {
+      "label": "Registro"
+    },
+    "config.sedes.section.detail": {
+      "label": "Detalle"
+    },
+    "config.sedes.btn.edit": {
+      "label": "Editar"
+    },
+    "config.sedes.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "config.sedes.btn.confirm-action": {
+      "label": "Confirmar",
+      "description": "No se puede deshacer."
     }
   }
 }

@@ -10,7 +10,8 @@
   ],
   "useCases": [
     "onboarding.business",
-    "onboarding.sede"
+    "onboarding.sede",
+    "config.clinics.overview"
   ],
   "ignoreElements": [
     "config.clinics.field.name",

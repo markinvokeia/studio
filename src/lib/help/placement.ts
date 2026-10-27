@@ -66,6 +66,16 @@ export function revealElement(el: HTMLElement) {
         node.scrollTop += delta;
       }
     }
+    // Tablas anchas: las acciones de la fila suelen quedar en la última columna, fuera de la vista.
+    const scrollableX = /(auto|scroll|overlay)/.test(style.overflowX) && node.scrollWidth > node.clientWidth + 1;
+    if (scrollableX) {
+      const container = node.getBoundingClientRect();
+      const target = el.getBoundingClientRect();
+      if (target.left < container.left + 8 || target.right > container.right - 8) {
+        const delta = target.left - container.left - Math.max(8, (container.width - target.width) / 2);
+        node.scrollLeft += delta;
+      }
+    }
     node = node.parentElement;
   }
 }

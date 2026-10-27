@@ -13,7 +13,11 @@
   ],
   "useCases": [
     "onboarding.doctor",
-    "onboarding.availability"
+    "onboarding.availability",
+    "config.doctors.overview",
+    "config.doctors.create",
+    "config.doctors.edit",
+    "config.doctors.initial-password"
   ],
   "elements": {
     "config.doctors.field.name": {
@@ -39,6 +43,43 @@
     },
     "config.doctors.tab.signature": {
       "description": "Firma que sale en recetas e indicaciones."
+    },
+    "config.doctors.section.first-row": {
+      "label": "Primero de la lista"
+    },
+    "config.doctors.section.row": {
+      "label": "Registro"
+    },
+    "config.doctors.section.detail": {
+      "label": "Ficha"
+    },
+    "config.doctors.btn.initial-password": {
+      "label": "Contraseña inicial"
+    },
+    "config.doctors.detail.field.name": {
+      "label": "Nombre"
+    },
+    "config.doctors.detail.field.email": {
+      "label": "Correo"
+    },
+    "config.doctors.detail.btn.submit": {
+      "label": "Guardar"
+    },
+    "config.doctors.tab.details": {
+      "label": "Datos",
+      "description": "Nombre, contacto, sede activa, color y calendario de Google."
+    },
+    "config.doctors.tab.calendars": {
+      "label": "Calendarios",
+      "description": "En qué consultorios atiende."
+    },
+    "config.doctors.tab.exceptions": {
+      "label": "Excepciones",
+      "description": "Licencias y días extra."
+    },
+    "config.doctors.tab.preferences": {
+      "label": "Preferencias",
+      "description": "Vista de agenda y avisos del profesional."
     }
   }
 }

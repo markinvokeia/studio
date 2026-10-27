@@ -1,0 +1,68 @@
+{
+  "id": "config.medical-instruction-templates.create",
+  "title": "Crear una plantilla de indicación",
+  "module": "Configuración de Negocio",
+  "summary": "Alta de una plantilla de indicación.",
+  "screens": [
+    "config.medical-instruction-templates"
+  ],
+  "inputs": {
+    "name": "Nombre"
+  },
+  "keywords": [
+    "nuevo plantilla de indicación",
+    "nueva plantilla de indicación",
+    "crear plantilla de indicación",
+    "agregar plantilla de indicación"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/medical-instruction-templates",
+      "title": "Menú → Configuración de Negocio → Plantillas de Indicaciones Médicas",
+      "details": "Textos base de indicaciones (post operatorio, cuidados) con variables del paciente; se eligen al dar una indicación."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "config.medical-instruction-templates.btn.new",
+      "title": "Crear",
+      "until": "config.medical-instruction-templates.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "config.medical-instruction-templates.field.name",
+      "title": "Nombre",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "description",
+      "action": "highlight",
+      "target": "config.medical-instruction-templates.field.description",
+      "title": "Descripción",
+      "skipIfMissing": true
+    },
+    {
+      "id": "content_html",
+      "action": "highlight",
+      "target": "config.medical-instruction-templates.field.content_html",
+      "title": "Contenido",
+      "details": "Texto con variables ({paciente}, {fecha}…) que se completan solas."
+    },
+    {
+      "id": "is_active",
+      "action": "highlight",
+      "target": "config.medical-instruction-templates.field.is_active",
+      "title": "Activa",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.medical-instruction-templates.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

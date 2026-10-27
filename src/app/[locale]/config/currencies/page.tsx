@@ -113,7 +113,7 @@ export default function CurrenciesPage() {
                     <DatePickerInput value={endDate} onChange={setEndDate} />
                 </div>
             </div>
-            <Button onClick={handleApplyFilters} disabled={isRefreshing} size="sm" className="h-9">
+            <Button data-help-id="config.currencies.btn.apply-filters" onClick={handleApplyFilters} disabled={isRefreshing} size="sm" className="h-9">
                 <RefreshCw className={`h-4 w-4 sm:mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">{t('applyFilters')}</span>
             </Button>
@@ -151,7 +151,7 @@ export default function CurrenciesPage() {
                 </CardContent>
             </Card>
             {hasAutoRate && (
-            <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-0 lg:border shadow-none lg:shadow-sm">
+            <Card data-help-id="config.currencies.section.rates" className="flex-1 flex flex-col min-h-0 overflow-hidden border-0 lg:border shadow-none lg:shadow-sm">
                 <CardHeader className="flex-none p-4">
                     <div className="flex items-start gap-3">
                         <div className="header-icon-circle mt-0.5"><History className="h-5 w-5" /></div>
@@ -194,7 +194,7 @@ export default function CurrenciesPage() {
 
     const rightPanel = selectedItem ? (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="config.currencies.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="header-icon-circle flex-none"><History className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">

@@ -1,0 +1,105 @@
+{
+  "id": "config.doctor-availability.edit",
+  "title": "Editar la regla de disponibilidad",
+  "module": "Configuración de Negocio",
+  "summary": "Cambiar los datos de una regla de disponibilidad existente.",
+  "screens": [
+    "config.doctor-availability"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "editar regla de disponibilidad",
+    "modificar regla de disponibilidad",
+    "cambiar regla de disponibilidad"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/doctor-availability",
+      "title": "Menú → Configuración de Negocio → Disponibilidad Médica",
+      "details": "Cuándo atiende cada profesional: días y horas, desde y hasta cuándo. La agenda sólo ofrece turnos dentro de esta disponibilidad."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "config.doctor-availability.filter.search",
+      "title": "Buscá la regla de disponibilidad",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "config.doctor-availability.section.first-row",
+      "title": "Elegí la regla de disponibilidad",
+      "details": "Tocalo en la lista para ver su detalle.",
+      "until": "config.doctor-availability.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "edit",
+      "action": "click",
+      "target": "config.doctor-availability.btn.edit",
+      "title": "Editar",
+      "until": "config.doctor-availability.btn.submit",
+      "skipIfMissing": true
+    },
+    {
+      "id": "user_id",
+      "action": "highlight",
+      "target": "config.doctor-availability.field.user_id",
+      "title": "Profesional"
+    },
+    {
+      "id": "recurrence",
+      "action": "highlight",
+      "target": "config.doctor-availability.field.recurrence",
+      "title": "Recurrencia",
+      "details": "Semanal, quincenal o mensual."
+    },
+    {
+      "id": "days_of_week",
+      "action": "highlight",
+      "target": "config.doctor-availability.field.days_of_week",
+      "title": "Días"
+    },
+    {
+      "id": "start_time",
+      "action": "highlight",
+      "target": "config.doctor-availability.field.start_time",
+      "title": "Desde"
+    },
+    {
+      "id": "end_time",
+      "action": "highlight",
+      "target": "config.doctor-availability.field.end_time",
+      "title": "Hasta"
+    },
+    {
+      "id": "start_date",
+      "action": "highlight",
+      "target": "config.doctor-availability.field.start_date",
+      "title": "Vigente desde",
+      "skipIfMissing": true
+    },
+    {
+      "id": "end_date",
+      "action": "highlight",
+      "target": "config.doctor-availability.field.end_date",
+      "title": "Vigente hasta",
+      "details": "Opcional.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.doctor-availability.btn.submit",
+      "title": "Guardar cambios"
+    }
+  ]
+}

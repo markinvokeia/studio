@@ -1,0 +1,68 @@
+{
+  "id": "config.mutual-societies.create",
+  "title": "Crear una sociedad mutual",
+  "module": "Configuración de Negocio",
+  "summary": "Alta de una sociedad mutual.",
+  "screens": [
+    "config.mutual-societies"
+  ],
+  "inputs": {
+    "name": "Nombre"
+  },
+  "keywords": [
+    "nuevo sociedad mutual",
+    "nueva sociedad mutual",
+    "crear sociedad mutual",
+    "agregar sociedad mutual"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/mutual-societies",
+      "title": "Menú → Configuración de Negocio → Sociedades Mutuales",
+      "details": "Mutualistas, seguros o convenios a los que pertenecen los pacientes (se elige en la ficha del paciente)."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "config.mutual-societies.btn.new",
+      "title": "Crear",
+      "until": "config.mutual-societies.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "config.mutual-societies.field.name",
+      "title": "Nombre",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "code",
+      "action": "highlight",
+      "target": "config.mutual-societies.field.code",
+      "title": "Código",
+      "skipIfMissing": true
+    },
+    {
+      "id": "description",
+      "action": "highlight",
+      "target": "config.mutual-societies.field.description",
+      "title": "Descripción",
+      "skipIfMissing": true
+    },
+    {
+      "id": "is_active",
+      "action": "highlight",
+      "target": "config.mutual-societies.field.is_active",
+      "title": "Activa",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.mutual-societies.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

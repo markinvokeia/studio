@@ -8,5 +8,45 @@
   ],
   "prerequisites": [
     "config.doctors"
-  ]
+  ],
+  "useCases": [
+    "config.prescription-templates.overview",
+    "config.prescription-templates.create",
+    "config.prescription-templates.edit",
+    "config.prescription-templates.delete"
+  ],
+  "elements": {
+    "config.prescription-templates.section.first-row": {
+      "label": "Primer registro de la lista"
+    },
+    "config.prescription-templates.section.row": {
+      "label": "Registro"
+    },
+    "config.prescription-templates.section.detail": {
+      "label": "Detalle"
+    },
+    "config.prescription-templates.btn.edit": {
+      "label": "Editar"
+    },
+    "config.prescription-templates.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "config.prescription-templates.btn.confirm-action": {
+      "label": "Confirmar",
+      "description": "No se puede deshacer."
+    },
+    "config.prescription-templates.field.name": {
+      "label": "Nombre"
+    },
+    "config.prescription-templates.field.description": {
+      "label": "Descripción"
+    },
+    "config.prescription-templates.field.content_html": {
+      "label": "Contenido"
+    },
+    "config.prescription-templates.field.is_active": {
+      "label": "Activa"
+    }
+  }
 }

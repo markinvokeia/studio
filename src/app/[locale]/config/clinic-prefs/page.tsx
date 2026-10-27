@@ -220,7 +220,7 @@ export default function ClinicPrefsConfigPage() {
           description={t('description')}
           actions={
             canUpdate ? (
-              <Button onClick={() => save.run({ prefs: config, automation })} disabled={!canSave} loading={save.isPending} className="gap-1.5">
+              <Button data-help-id="config.clinic-prefs.btn.save" onClick={() => save.run({ prefs: config, automation })} disabled={!canSave} loading={save.isPending} className="gap-1.5">
                 <Save className="h-4 w-4" />
                 {t('save')}
               </Button>
@@ -230,7 +230,7 @@ export default function ClinicPrefsConfigPage() {
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-1 pb-6">
           {/* ── Descuentos ─────────────────────────────────────────────── */}
-          <Card>
+          <Card data-help-id="config.clinic-prefs.section.discounts">
             <CardContent className="space-y-5 p-5">
               <div className="flex items-center gap-2">
                 <Percent className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -331,7 +331,7 @@ export default function ClinicPrefsConfigPage() {
           </Card>
 
           {/* ── Documento de identidad ─────────────────────────────────── */}
-          <Card>
+          <Card data-help-id="config.clinic-prefs.section.identity-document">
             <CardContent className="space-y-5 p-5">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -353,7 +353,7 @@ export default function ClinicPrefsConfigPage() {
           </Card>
 
           {/* ── Contacto de pacientes ──────────────────────────────────── */}
-          <Card>
+          <Card data-help-id="config.clinic-prefs.section.duplicate-contact">
             <CardContent className="space-y-5 p-5">
               <div className="flex items-center gap-2">
                 <Copy className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -382,7 +382,7 @@ export default function ClinicPrefsConfigPage() {
 
           {/* ── Automatización (system_configurations) ──────────────────── */}
           {automationError && (
-            <Alert variant="destructive">
+            <Alert data-help-id="config.clinic-prefs.section.automation" variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>{t('automation.loadError')}</AlertTitle>
               <AlertDescription className="flex flex-wrap items-center gap-3">
@@ -395,7 +395,7 @@ export default function ClinicPrefsConfigPage() {
           )}
 
           {/* ── Emails automáticos de alertas ──────────────────────────── */}
-          <Card>
+          <Card data-help-id="config.clinic-prefs.section.alert-email">
             <CardContent className="space-y-5 p-5">
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -433,7 +433,7 @@ export default function ClinicPrefsConfigPage() {
           </Card>
 
           {/* ── Asistente guiado ───────────────────────────────────────── */}
-          <Card>
+          <Card data-help-id="config.clinic-prefs.section.assistant">
             <CardContent className="space-y-5 p-5">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -470,7 +470,7 @@ export default function ClinicPrefsConfigPage() {
           </Card>
 
           {/* ── Google Calendar ────────────────────────────────────────── */}
-          <Card>
+          <Card data-help-id="config.clinic-prefs.section.google-calendar">
             <CardContent className="space-y-5 p-5">
               <div className="flex items-center gap-2">
                 <CalendarSync className="h-4 w-4 shrink-0 text-muted-foreground" />

@@ -1,0 +1,78 @@
+{
+  "id": "config.calendars.create",
+  "title": "Crear un calendario",
+  "module": "Configuración de Negocio",
+  "summary": "Alta de un calendario.",
+  "screens": [
+    "config.calendars"
+  ],
+  "inputs": {
+    "name": "Nombre"
+  },
+  "keywords": [
+    "nuevo calendario",
+    "nueva calendario",
+    "crear calendario",
+    "agregar calendario"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/calendars",
+      "title": "Menú → Configuración de Negocio → Calendarios",
+      "details": "Los consultorios o sillones: cada uno es una columna de la agenda, con su sede, color y quién atiende ahí."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "config.calendars.btn.new",
+      "title": "Crear",
+      "until": "config.calendars.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "config.calendars.field.name",
+      "title": "Nombre",
+      "details": "Consultorio 1, Sillón A…",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "sede_id",
+      "action": "highlight",
+      "target": "config.calendars.field.sede_id",
+      "title": "Sede",
+      "details": "Sede donde está."
+    },
+    {
+      "id": "color",
+      "action": "highlight",
+      "target": "config.calendars.field.color",
+      "title": "Color",
+      "details": "Color con que se ve en la agenda.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "google_calendar_id",
+      "action": "highlight",
+      "target": "config.calendars.field.google_calendar_id",
+      "title": "Google Calendar",
+      "details": "Opcional: para sincronizar con un Google Calendar.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "is_active",
+      "action": "highlight",
+      "target": "config.calendars.field.is_active",
+      "title": "Activo",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.calendars.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

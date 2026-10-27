@@ -12,7 +12,11 @@
     "Quincenal alterna semanas a partir de una fecha de referencia."
   ],
   "useCases": [
-    "onboarding.availability"
+    "onboarding.availability",
+    "config.doctor-availability.overview",
+    "config.doctor-availability.create",
+    "config.doctor-availability.edit",
+    "config.doctor-availability.delete"
   ],
   "elements": {
     "config.doctor-availability.field.user_id": {
@@ -35,6 +39,26 @@
     },
     "config.doctor-availability.field.end_date": {
       "description": "Opcional: hasta cuándo rige."
+    },
+    "config.doctor-availability.section.first-row": {
+      "label": "Primer registro de la lista"
+    },
+    "config.doctor-availability.section.row": {
+      "label": "Registro"
+    },
+    "config.doctor-availability.section.detail": {
+      "label": "Detalle"
+    },
+    "config.doctor-availability.btn.edit": {
+      "label": "Editar"
+    },
+    "config.doctor-availability.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "config.doctor-availability.btn.confirm-action": {
+      "label": "Confirmar",
+      "description": "No se puede deshacer."
     }
   }
 }

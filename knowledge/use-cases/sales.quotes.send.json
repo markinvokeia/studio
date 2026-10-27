@@ -1,0 +1,76 @@
+{
+  "id": "sales.quotes.send",
+  "title": "Imprimir o enviar un presupuesto por correo",
+  "module": "Ventas",
+  "summary": "Imprimir el presupuesto o mandarlo por correo al paciente en PDF.",
+  "screens": [
+    "sales.quotes"
+  ],
+  "inputs": {
+    "query": "Número o paciente"
+  },
+  "keywords": [
+    "imprimir presupuesto",
+    "enviar presupuesto",
+    "mandar presupuesto por mail",
+    "pdf del presupuesto"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/quotes",
+      "title": "Menú → Ventas → Presupuestos",
+      "details": "El plan de tratamiento con precios para que el paciente lo apruebe; confirmado se factura, se agenda y se cobra."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "sales.quotes.filter.search",
+      "title": "Buscá el presupuesto",
+      "details": "Por número o por paciente.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "sales.quotes.section.first-row",
+      "title": "Abrí el presupuesto",
+      "details": "Tocá el presupuesto en la lista. La guía sigue cuando se abre su detalle.",
+      "until": "sales.quotes.section.detail-header",
+      "autoClick": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "sales.quotes.btn.print",
+      "title": "Imprimir",
+      "details": "Abre la vista de impresión con el formato de la clínica.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "email",
+      "action": "click",
+      "target": "sales.quotes.btn.email",
+      "title": "Enviar por correo",
+      "until": "sales.quotes.field.doc-email-to",
+      "skipIfMissing": true
+    },
+    {
+      "id": "to",
+      "action": "highlight",
+      "target": "sales.quotes.field.doc-email-to",
+      "title": "Destinatarios",
+      "details": "Viene el correo del paciente; podés agregar otros separados por coma."
+    },
+    {
+      "id": "send",
+      "action": "confirm",
+      "target": "sales.quotes.btn.doc-email-send",
+      "title": "Enviar",
+      "details": "Se adjunta el PDF y queda en el historial de comunicaciones."
+    }
+  ]
+}

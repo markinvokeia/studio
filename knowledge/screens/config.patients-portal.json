@@ -9,5 +9,25 @@
   "prerequisites": [
     "sales.services",
     "config.doctor-availability"
-  ]
+  ],
+  "useCases": [
+    "config.patients-portal.overview"
+  ],
+  "elements": {
+    "config.patients-portal.section.access": {
+      "label": "Acceso",
+      "description": "Si el portal está habilitado y qué pueden hacer los pacientes (reservar, cancelar, ver documentos)."
+    },
+    "config.patients-portal.section.booking-services": {
+      "label": "Servicios de la reserva",
+      "description": "Qué servicios se pueden reservar en línea."
+    },
+    "config.patients-portal.section.presentation": {
+      "label": "Presentación",
+      "description": "Textos y datos que ve el paciente."
+    },
+    "config.patients-portal.btn.save": {
+      "label": "Guardar"
+    }
+  }
 }

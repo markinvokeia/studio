@@ -1,0 +1,125 @@
+{
+  "id": "purchases.quotes.create",
+  "title": "Crear un presupuesto de compra",
+  "module": "Compras",
+  "summary": "Alta de un presupuesto: proveedor, fecha, moneda, sede y los ítems con cantidad y precio. Queda en borrador.",
+  "screens": [
+    "purchases.quotes"
+  ],
+  "inputs": {
+    "party": "Proveedor",
+    "service": "Servicio o producto",
+    "quantity": "Cantidad",
+    "notes": "Notas"
+  },
+  "keywords": [
+    "nuevo presupuesto de compra",
+    "cargar cotización",
+    "presupuesto de proveedor"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/purchases/quotes",
+      "title": "Menú → Compras → Presupuestos de Compra",
+      "details": "La cotización de un proveedor: qué productos o servicios, a qué precio. Confirmada, se factura al recibirla."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "purchases.quotes.btn.new",
+      "title": "Crear",
+      "details": "Abre el formulario del presupuesto.",
+      "until": "purchases.quotes.field.user_id"
+    },
+    {
+      "id": "party",
+      "action": "fill",
+      "target": "purchases.quotes.field.user_id",
+      "title": "Proveedor",
+      "details": "Elegí al proveedor. Si no aparece, primero registralo.",
+      "value": "{{values.party}}"
+    },
+    {
+      "id": "date",
+      "action": "highlight",
+      "target": "purchases.quotes.field.created_at",
+      "title": "Fecha",
+      "skipIfMissing": true
+    },
+    {
+      "id": "currency",
+      "action": "highlight",
+      "target": "purchases.quotes.field.currency",
+      "title": "Moneda",
+      "details": "Si elegís otra moneda distinta a la de la clínica, aparece el tipo de cambio."
+    },
+    {
+      "id": "rate",
+      "action": "highlight",
+      "target": "purchases.quotes.field.exchange_rate",
+      "title": "Tipo de cambio",
+      "skipIfMissing": true
+    },
+    {
+      "id": "sede",
+      "action": "highlight",
+      "target": "purchases.quotes.field.sede_id",
+      "title": "Sede",
+      "skipIfMissing": true
+    },
+    {
+      "id": "items",
+      "action": "highlight",
+      "target": "purchases.quotes.section.quote-items",
+      "title": "Ítems",
+      "details": "Cada línea es un servicio o producto con cantidad, precio y total."
+    },
+    {
+      "id": "add",
+      "action": "click",
+      "target": "purchases.quotes.btn.add-item",
+      "title": "Agregar ítem",
+      "until": "purchases.quotes.field.items.service_id"
+    },
+    {
+      "id": "service",
+      "action": "fill",
+      "target": "purchases.quotes.field.items.service_id",
+      "title": "Producto o servicio",
+      "details": "El precio se completa con el de la lista; lo podés cambiar.",
+      "value": "{{values.service}}",
+      "optional": true
+    },
+    {
+      "id": "qty",
+      "action": "fill",
+      "target": "purchases.quotes.field.items.quantity",
+      "title": "Cantidad",
+      "value": "{{values.quantity}}",
+      "optional": true
+    },
+    {
+      "id": "price",
+      "action": "highlight",
+      "target": "purchases.quotes.field.items.unit_price",
+      "title": "Precio unitario"
+    },
+    {
+      "id": "notes",
+      "action": "fill",
+      "target": "purchases.quotes.field.notes",
+      "title": "Notas",
+      "value": "{{values.notes}}",
+      "optional": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "purchases.quotes.btn.submit",
+      "title": "Guardar",
+      "details": "Queda en borrador: lo podés revisar, enviar y confirmar después."
+    }
+  ]
+}

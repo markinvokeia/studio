@@ -255,6 +255,21 @@ Cobertura por pantalla (todas probadas en la app real, sin guardar en DEV):
   readmitir, activar / desactivar). Toda guía de ficha arranca buscando al paciente y
   espera a que la persona abra su ficha. Readmitir y Activar/Desactivar se aplican al
   tocarlos: son `confirm`.
+- **Ventas y Compras** (Presupuestos, Facturas y Pagos, en paralelo: la misma guía en las
+  dos, aterrizada a paciente o proveedor; se generan juntas). Presupuestos: recorrer, crear,
+  editar borrador, confirmar/rechazar, facturar, imprimir/enviar, eliminar, ítems, exportar.
+  Facturas: recorrer, crear, confirmar, cobrar/pagar, imprimir/enviar, ítems, notas de
+  crédito, exportar (+ importar en compras). Pagos: recorrer, prepago/anticipo,
+  imprimir/enviar recibo, corregir medio de pago, exportar. «Facturar» en compras factura
+  al tocarlo: es `confirm`.
+- **Configuración de Negocio** (20 pantallas, 65 guías): en los listados (sedes, horarios,
+  excepciones, calendarios, disponibilidad, excepciones de disponibilidad, secuencias,
+  mutualistas, grupos, plantillas de indicación y receta) recorrer, crear, editar y
+  eliminar (la baja confirma en `<scope>.btn.confirm-action` del `ConfirmActionDialog`);
+  doctores y personal: recorrer la ficha con sus pestañas, alta, edición y contraseña
+  inicial (se envía al tocarla: `confirm`); pantallas de ajustes (preferencias, portal,
+  colores, plantillas de impresión, datos de la clínica, tipo de cambio): recorrido por
+  sección y guardar. Catálogo de la Clínica va al final, después de Pantalla TV.
 
 Más reglas de ubicación: un botón que se repite en varias filas (acciones por alerta o
 por cita) se señala en una fila donde esté habilitado; dentro de un diálogo, si la lista

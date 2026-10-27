@@ -572,7 +572,7 @@ export default function TemplatesPage() {
     <div className="flex h-full overflow-hidden">
 
       {/* ── Left sidebar ─────────────────────────────────────────────────── */}
-      <aside className="hidden md:flex flex-col w-52 border-r shrink-0 bg-muted/10 overflow-y-auto">
+      <aside data-help-id="config.templates.section.types" className="hidden md:flex flex-col w-52 border-r shrink-0 bg-muted/10 overflow-y-auto">
         <div className="flex items-center gap-2 px-3 py-3 border-b">
           <FileText className="h-4 w-4 text-primary shrink-0" />
           <span className="text-xs font-semibold truncate">{t('title')}</span>
@@ -641,13 +641,13 @@ export default function TemplatesPage() {
         </div>
 
         {/* ── Action bar ────────────────────────────────────────────────── */}
-        <div className="flex items-center gap-2 px-3 py-2 border-b bg-background shrink-0 z-10">
+        <div data-help-id="config.templates.section.actions" className="flex items-center gap-2 px-3 py-2 border-b bg-background shrink-0 z-10">
           <span className="hidden md:block text-sm font-medium text-foreground truncate">{activeLabel}</span>
 
           {/* Variable insertion */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" disabled={!canEdit} className="h-8 gap-1.5">
+              <Button data-help-id="config.templates.btn.insert-variable" variant="outline" size="sm" disabled={!canEdit} className="h-8 gap-1.5">
                 <Code2 className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">{t('insertVariable')}</span>
               </Button>
@@ -708,6 +708,7 @@ export default function TemplatesPage() {
           {canEdit && (
             <>
               <Button
+                data-help-id="config.templates.btn.save"
                 onClick={() => save.run(activeType, activeType)}
                 disabled={isActiveBusy}
                 aria-busy={save.isPending(activeType) || undefined}
@@ -720,6 +721,7 @@ export default function TemplatesPage() {
               </Button>
               <Button
                 variant="outline"
+                data-help-id="config.templates.btn.reset-default"
                 onClick={() => setResetTarget(activeType)}
                 disabled={isActiveBusy}
                 size="sm"
@@ -751,7 +753,7 @@ export default function TemplatesPage() {
         <div className="flex flex-1 min-h-0 overflow-hidden">
 
           {/* ── Left pane: editor ── */}
-          <div className={cn(
+          <div data-help-id="config.templates.section.editor" className={cn(
             'flex flex-col min-w-0',
             editorExpanded ? 'flex-1' : 'flex-1 md:flex-none md:w-1/2',
             mobileView === 'preview' ? 'hidden md:flex' : 'flex',
@@ -802,7 +804,7 @@ export default function TemplatesPage() {
 
           {/* ── Right pane: preview ── */}
           {!editorExpanded && (
-            <div className={cn(
+            <div data-help-id="config.templates.section.preview" className={cn(
               'overflow-auto border-l',
               !isPlainText(activeType) && activeSection !== 'whatsapp' && 'bg-white',
               mobileView === 'code' ? 'hidden md:block md:flex-1' : 'flex-1',

@@ -1,0 +1,103 @@
+{
+  "id": "sales.invoices.create",
+  "title": "Crear una factura",
+  "module": "Ventas",
+  "summary": "Factura directa (sin presupuesto): paciente, fechas, moneda, sede e ítems. Queda en borrador.",
+  "screens": [
+    "sales.invoices"
+  ],
+  "inputs": {
+    "party": "Paciente",
+    "service": "Servicio o producto",
+    "quantity": "Cantidad"
+  },
+  "keywords": [
+    "nueva factura",
+    "crear factura",
+    "facturar sin presupuesto"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/invoices",
+      "title": "Menú → Ventas → Facturas",
+      "details": "Lo que se le cobra al paciente: sale de un presupuesto confirmado, de un cobro rápido o se carga directo."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "sales.invoices.btn.new",
+      "title": "Crear",
+      "until": "sales.invoices.field.user_id"
+    },
+    {
+      "id": "party",
+      "action": "fill",
+      "target": "sales.invoices.field.user_id",
+      "title": "Paciente",
+      "value": "{{values.party}}"
+    },
+    {
+      "id": "date",
+      "action": "highlight",
+      "target": "sales.invoices.field.created_at",
+      "title": "Fecha",
+      "skipIfMissing": true
+    },
+    {
+      "id": "due",
+      "action": "highlight",
+      "target": "sales.invoices.field.due_date",
+      "title": "Vencimiento",
+      "details": "Después de esta fecha la deuda figura como vencida.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "currency",
+      "action": "highlight",
+      "target": "sales.invoices.field.currency",
+      "title": "Moneda"
+    },
+    {
+      "id": "sede",
+      "action": "highlight",
+      "target": "sales.invoices.field.sede_id",
+      "title": "Sede",
+      "skipIfMissing": true
+    },
+    {
+      "id": "service",
+      "action": "fill",
+      "target": "sales.invoices.field.items.service_id",
+      "title": "Servicio",
+      "value": "{{values.service}}",
+      "optional": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "qty",
+      "action": "fill",
+      "target": "sales.invoices.field.items.quantity",
+      "title": "Cantidad",
+      "value": "{{values.quantity}}",
+      "optional": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "historical",
+      "action": "highlight",
+      "target": "sales.invoices.field.is_historical",
+      "title": "Histórico",
+      "details": "Para cargar facturas viejas sin que afecten la caja de hoy.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "sales.invoices.btn.submit",
+      "title": "Guardar",
+      "details": "Queda en borrador; confirmala para poder cobrarla."
+    }
+  ]
+}

@@ -8,5 +8,20 @@
   ],
   "prerequisites": [
     "appointments"
-  ]
+  ],
+  "useCases": [
+    "config.calendar-colors.overview"
+  ],
+  "elements": {
+    "config.calendar-colors.section.scopes": {
+      "label": "General o por calendario",
+      "description": "«General» aplica a toda la agenda; cada calendario puede tener los suyos."
+    },
+    "config.calendar-colors.btn.save": {
+      "label": "Guardar"
+    },
+    "config.calendar-colors.btn.restore-defaults": {
+      "label": "Restaurar colores"
+    }
+  }
 }

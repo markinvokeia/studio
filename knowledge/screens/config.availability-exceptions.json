@@ -8,5 +8,51 @@
   ],
   "prerequisites": [
     "config.doctor-availability"
-  ]
+  ],
+  "useCases": [
+    "config.availability-exceptions.overview",
+    "config.availability-exceptions.create",
+    "config.availability-exceptions.edit",
+    "config.availability-exceptions.delete"
+  ],
+  "elements": {
+    "config.availability-exceptions.section.first-row": {
+      "label": "Primer registro de la lista"
+    },
+    "config.availability-exceptions.section.row": {
+      "label": "Registro"
+    },
+    "config.availability-exceptions.section.detail": {
+      "label": "Detalle"
+    },
+    "config.availability-exceptions.btn.edit": {
+      "label": "Editar"
+    },
+    "config.availability-exceptions.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "config.availability-exceptions.btn.confirm-action": {
+      "label": "Confirmar",
+      "description": "No se puede deshacer."
+    },
+    "config.availability-exceptions.field.user_id": {
+      "label": "Profesional"
+    },
+    "config.availability-exceptions.field.dates": {
+      "label": "Fechas",
+      "description": "Uno o varios días."
+    },
+    "config.availability-exceptions.field.is_available": {
+      "label": "¿Disponible?",
+      "description": "Desmarcado: no atiende esos días. Marcado: atiende extra en ese horario."
+    },
+    "config.availability-exceptions.field.start_time": {
+      "label": "Desde",
+      "description": "Vacío: todo el día."
+    },
+    "config.availability-exceptions.field.end_time": {
+      "label": "Hasta"
+    }
+  }
 }

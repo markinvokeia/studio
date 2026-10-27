@@ -282,9 +282,9 @@ export default function MedicalInstructionTemplatesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                            {canUpdate && <DropdownMenuItem onClick={() => handleEdit(template)}>{t('columns.edit')}</DropdownMenuItem>}
+                            {canUpdate && <DropdownMenuItem data-help-id="config.medical-instruction-templates.btn.row-edit" onClick={() => handleEdit(template)}>{t('columns.edit')}</DropdownMenuItem>}
                             <DropdownMenuSeparator />
-                            {canDelete && <DropdownMenuItem onClick={() => handleDelete(template)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
+                            {canDelete && <DropdownMenuItem data-help-id="config.medical-instruction-templates.btn.row-delete" onClick={() => handleDelete(template)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
                         </DropdownMenuContent>
                     </DropdownMenu>
                     </div>
@@ -348,7 +348,7 @@ export default function MedicalInstructionTemplatesPage() {
 
     const rightPanel = selectedTemplate ? (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="config.medical-instruction-templates.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="header-icon-circle flex-none"><ClipboardList className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
@@ -357,12 +357,12 @@ export default function MedicalInstructionTemplatesPage() {
                     </div>
                     <div className="flex gap-1 flex-none">
                         {canUpdate && (
-                            <Button size="sm" variant="outline" onClick={() => handleEdit(selectedTemplate)}>
+                            <Button data-help-id="config.medical-instruction-templates.btn.edit" size="sm" variant="outline" onClick={() => handleEdit(selectedTemplate)}>
                                 <Pencil className="h-4 w-4 mr-1" />{t('columns.edit')}
                             </Button>
                         )}
                         {canDelete && (
-                            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('columns.delete')} onClick={() => handleDelete(selectedTemplate)}>
+                            <Button data-help-id="config.medical-instruction-templates.btn.delete" size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('columns.delete')} onClick={() => handleDelete(selectedTemplate)}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}

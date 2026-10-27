@@ -1,0 +1,87 @@
+{
+  "id": "system.staff.create",
+  "title": "Dar de alta una persona del equipo",
+  "module": "Configuración de Negocio",
+  "summary": "Alta con sus datos de contacto; el correo es su usuario para entrar.",
+  "screens": [
+    "system.staff"
+  ],
+  "inputs": {
+    "name": "Nombre",
+    "email": "Correo",
+    "phone": "Teléfono"
+  },
+  "keywords": [
+    "nuevo persona del equipo",
+    "dar de alta",
+    "agregar al equipo"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/staff",
+      "title": "Menú → Configuración de Negocio → Secretarias y Administración"
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "system.staff.btn.new",
+      "title": "Crear",
+      "details": "Si la clínica llegó al máximo de usuarios de su licencia, en vez del formulario aparece un aviso.",
+      "until": "system.staff.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "system.staff.field.name",
+      "title": "Nombre",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "email",
+      "action": "fill",
+      "target": "system.staff.field.email",
+      "title": "Correo",
+      "details": "Con este correo entra al sistema.",
+      "value": "{{values.email}}"
+    },
+    {
+      "id": "phone",
+      "action": "fill",
+      "target": "system.staff.field.phone",
+      "title": "Teléfono",
+      "value": "{{values.phone}}",
+      "optional": true
+    },
+    {
+      "id": "role_id",
+      "action": "highlight",
+      "target": "system.staff.field.role_id",
+      "title": "Rol",
+      "details": "Define qué puede ver y hacer.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "identity_document",
+      "action": "highlight",
+      "target": "system.staff.field.identity_document",
+      "title": "Documento",
+      "skipIfMissing": true
+    },
+    {
+      "id": "active_sede_id",
+      "action": "highlight",
+      "target": "system.staff.field.active_sede_id",
+      "title": "Sede",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "system.staff.btn.submit",
+      "title": "Guardar",
+      "details": "Después enviale la contraseña inicial desde su ficha."
+    }
+  ]
+}

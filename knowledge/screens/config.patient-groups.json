@@ -5,5 +5,47 @@
   "purpose": "Agrupan pacientes (convenios, campañas, familias) para filtrarlos, aplicar condiciones y exportarlos.",
   "prerequisites": [
     "patients"
-  ]
+  ],
+  "useCases": [
+    "config.patient-groups.overview",
+    "config.patient-groups.create",
+    "config.patient-groups.edit",
+    "config.patient-groups.delete",
+    "config.patient-groups.members"
+  ],
+  "elements": {
+    "config.patient-groups.section.first-row": {
+      "label": "Primer registro de la lista"
+    },
+    "config.patient-groups.section.row": {
+      "label": "Registro"
+    },
+    "config.patient-groups.section.detail": {
+      "label": "Detalle"
+    },
+    "config.patient-groups.btn.edit": {
+      "label": "Editar"
+    },
+    "config.patient-groups.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "config.patient-groups.btn.confirm-action": {
+      "label": "Confirmar",
+      "description": "No se puede deshacer."
+    },
+    "config.patient-groups.field.name": {
+      "label": "Nombre",
+      "description": "Ej.: Ortodoncia."
+    },
+    "config.patient-groups.field.description": {
+      "label": "Descripción"
+    },
+    "config.patient-groups.field.user_id": {
+      "label": "Doctor responsable"
+    },
+    "config.patient-groups.field.is_active": {
+      "label": "Activo"
+    }
+  }
 }

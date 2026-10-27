@@ -8,5 +8,42 @@
   ],
   "prerequisites": [
     "config.clinics"
-  ]
+  ],
+  "useCases": [
+    "config.clinic-prefs.overview",
+    "config.clinic-prefs.mascot"
+  ],
+  "elements": {
+    "config.clinic-prefs.section.discounts": {
+      "label": "Descuentos",
+      "description": "Habilita descuentos en presupuestos y facturas, con el tope por porcentaje o monto."
+    },
+    "config.clinic-prefs.section.identity-document": {
+      "label": "Documento de identidad",
+      "description": "Si es obligatorio al registrar pacientes."
+    },
+    "config.clinic-prefs.section.duplicate-contact": {
+      "label": "Contactos duplicados",
+      "description": "Si se permite el mismo teléfono o correo en dos pacientes (familias). Afecta WhatsApp y el portal."
+    },
+    "config.clinic-prefs.section.automation": {
+      "label": "Automatización",
+      "description": "Envíos automáticos que hace el sistema."
+    },
+    "config.clinic-prefs.section.alert-email": {
+      "label": "Emails de alertas",
+      "description": "Si las alertas envían su correo solas al paciente."
+    },
+    "config.clinic-prefs.section.assistant": {
+      "label": "Asistente guiado",
+      "description": "Mascota visible o sólo el ícono de ayuda."
+    },
+    "config.clinic-prefs.section.google-calendar": {
+      "label": "Google Calendar",
+      "description": "Sincronización de la agenda con Google Calendar."
+    },
+    "config.clinic-prefs.btn.save": {
+      "label": "Guardar"
+    }
+  }
 }

@@ -2,5 +2,45 @@
   "id": "config.mutual-societies",
   "status": "draft",
   "summary": "Sociedades mutuales y coberturas.",
-  "purpose": "Las coberturas que pueden tener los pacientes; se asignan en la ficha del paciente."
+  "purpose": "Las coberturas que pueden tener los pacientes; se asignan en la ficha del paciente.",
+  "useCases": [
+    "config.mutual-societies.overview",
+    "config.mutual-societies.create",
+    "config.mutual-societies.edit",
+    "config.mutual-societies.delete"
+  ],
+  "elements": {
+    "config.mutual-societies.section.first-row": {
+      "label": "Primer registro de la lista"
+    },
+    "config.mutual-societies.section.row": {
+      "label": "Registro"
+    },
+    "config.mutual-societies.section.detail": {
+      "label": "Detalle"
+    },
+    "config.mutual-societies.btn.edit": {
+      "label": "Editar"
+    },
+    "config.mutual-societies.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "config.mutual-societies.btn.confirm-action": {
+      "label": "Confirmar",
+      "description": "No se puede deshacer."
+    },
+    "config.mutual-societies.field.name": {
+      "label": "Nombre"
+    },
+    "config.mutual-societies.field.code": {
+      "label": "Código"
+    },
+    "config.mutual-societies.field.description": {
+      "label": "Descripción"
+    },
+    "config.mutual-societies.field.is_active": {
+      "label": "Activa"
+    }
+  }
 }

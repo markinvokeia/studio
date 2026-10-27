@@ -1,0 +1,72 @@
+{
+  "id": "purchases.invoices.send",
+  "title": "Imprimir o enviar una factura por correo",
+  "module": "Compras",
+  "summary": "Imprimir la factura o mandarla al proveedor en PDF.",
+  "screens": [
+    "purchases.invoices"
+  ],
+  "inputs": {
+    "query": "Número de factura"
+  },
+  "keywords": [
+    "imprimir factura",
+    "enviar factura",
+    "mandar factura por mail"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/purchases/invoices",
+      "title": "Menú → Compras → Facturas de Compra",
+      "details": "Lo que la clínica le debe a un proveedor: sale de un presupuesto de compra o se carga/importa directo."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "purchases.invoices.filter.search",
+      "title": "Buscá la factura",
+      "details": "Por número de documento.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "purchases.invoices.section.first-row",
+      "title": "Abrí la factura",
+      "details": "Tocala en la lista. La guía sigue cuando se abre su detalle.",
+      "until": "purchases.invoices.section.summary",
+      "autoClick": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "purchases.invoices.btn.print",
+      "title": "Imprimir",
+      "skipIfMissing": true
+    },
+    {
+      "id": "email",
+      "action": "click",
+      "target": "purchases.invoices.btn.email",
+      "title": "Enviar por correo",
+      "until": "purchases.invoices.field.doc-email-to",
+      "skipIfMissing": true
+    },
+    {
+      "id": "to",
+      "action": "highlight",
+      "target": "purchases.invoices.field.doc-email-to",
+      "title": "Destinatarios"
+    },
+    {
+      "id": "send",
+      "action": "confirm",
+      "target": "purchases.invoices.btn.doc-email-send",
+      "title": "Enviar"
+    }
+  ]
+}

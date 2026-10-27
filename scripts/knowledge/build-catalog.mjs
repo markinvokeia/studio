@@ -232,6 +232,11 @@ function attrString(attr) {
   if (ts.isJsxExpression(attr.initializer) && attr.initializer.expression && ts.isStringLiteralLike(attr.initializer.expression)) {
     return attr.initializer.expression.text;
   }
+  // `items.${index}.unit_price` (filas de useFieldArray): el índice se descarta igual que en la app → items.unit_price.
+  if (ts.isJsxExpression(attr.initializer) && attr.initializer.expression && ts.isTemplateExpression(attr.initializer.expression)) {
+    const tpl = attr.initializer.expression;
+    return tpl.head.text + tpl.templateSpans.map((span) => '0' + span.literal.text).join('');
+  }
   return undefined;
 }
 

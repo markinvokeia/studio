@@ -86,6 +86,17 @@ tiene que quedar cubierta entera:
 - `group` (en la guía, no en el paso): pantallas con muchas funciones (la ficha del
   paciente) agrupan sus guías por pestaña; «¿Qué es esto?» las muestra bajo ese título, en
   el orden de `useCases` de la ficha. Cada grupo empieza con un recorrido de la pestaña.
+- Panel de detalle con tablas en sus pestañas (ítems, pagos, facturas): envolvé el contenido
+  de las pestañas en `<HelpScopeProvider scope="<pantalla>.detail">`. Si no, sus filas y su
+  «Crear» tienen el mismo id que el listado (`first-row`, `btn.new`) y la guía señala el
+  equivocado. Las pestañas quedan con el scope de la pantalla; las tablas de adentro con
+  `<pantalla>.detail.*` (declaralas en la ficha).
+- Filas de `useFieldArray` (`name={`items.${index}.unit_price`}`): el id descarta el índice
+  → `<scope>.field.items.unit_price` (el de la última fila visible). No confundir con
+  `field.unit_price` de otro formulario de la misma pantalla.
+- `pnpm knowledge:build` no reescribe el catálogo si hay errores: corregilos antes de
+  mirar `src/generated/help-catalog.json`. Y no lo regeneres mientras corre una prueba en
+  el dev server: la app lo importa y la recompilación corta la prueba.
 - Tablas (`DataTable`): la primera fila es `<scope>.section.first-row` (la más reciente o la
   primera del orden) y el resto `<scope>.section.row`; para mostrar "el registro más cercano".
 - Componentes compartidos entre pantallas (filtros de período, diálogos de sesión clínica,

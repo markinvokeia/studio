@@ -1,0 +1,109 @@
+{
+  "id": "sales.invoices.overview",
+  "title": "Recorrer facturas",
+  "module": "Ventas",
+  "summary": "Listado con filtro por tipo (factura o nota de crédito), detalle con estado, cobro y vencimiento, acciones y pestañas.",
+  "screens": [
+    "sales.invoices"
+  ],
+  "inputs": {
+    "query": "Número de factura"
+  },
+  "keywords": [
+    "facturas",
+    "ver factura",
+    "estado de la factura",
+    "notas de crédito"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/invoices",
+      "title": "Menú → Ventas → Facturas",
+      "details": "Lo que se le cobra al paciente: sale de un presupuesto confirmado, de un cobro rápido o se carga directo."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "sales.invoices.filter.search",
+      "title": "Buscar",
+      "details": "Por número de documento.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "filters",
+      "action": "click",
+      "target": "sales.invoices.btn.filters",
+      "title": "Filtrar por tipo",
+      "details": "Facturas o notas de crédito.",
+      "until": "sales.invoices.section.filters"
+    },
+    {
+      "id": "type",
+      "action": "highlight",
+      "target": "sales.invoices.section.filters",
+      "title": "Tipo de documento",
+      "details": "Todas, sólo facturas o sólo notas de crédito.",
+      "doneOnClose": true
+    },
+    {
+      "id": "export",
+      "action": "highlight",
+      "target": "sales.invoices.btn.export",
+      "title": "Exportar",
+      "skipIfMissing": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "sales.invoices.section.first-row",
+      "title": "Abrí una factura",
+      "until": "sales.invoices.section.summary",
+      "autoClick": true
+    },
+    {
+      "id": "summary",
+      "action": "highlight",
+      "target": "sales.invoices.section.summary",
+      "title": "Resumen",
+      "details": "Estado (borrador o confirmada), estado de pago, total, paciente, presupuesto de origen, vencimiento y fecha."
+    },
+    {
+      "id": "actions",
+      "action": "highlight",
+      "target": "sales.invoices.section.actions",
+      "title": "Acciones",
+      "details": "Borrador: confirmar. Confirmada con saldo: agregar pago. Siempre: imprimir y enviar."
+    },
+    {
+      "id": "items",
+      "action": "click",
+      "target": "sales.invoices.tab.items",
+      "title": "Artículos"
+    },
+    {
+      "id": "payments",
+      "action": "click",
+      "target": "sales.invoices.tab.payments",
+      "title": "Pagos",
+      "details": "Los pagos aplicados a esta factura."
+    },
+    {
+      "id": "notes",
+      "action": "click",
+      "target": "sales.invoices.tab.notes",
+      "title": "Notas"
+    },
+    {
+      "id": "credit",
+      "action": "click",
+      "target": "sales.invoices.tab.creditNotes",
+      "title": "Notas de crédito",
+      "details": "Las notas de crédito que descuentan de esta factura.",
+      "skipIfMissing": true
+    }
+  ]
+}

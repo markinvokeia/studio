@@ -2,11 +2,98 @@
   "id": "sales.quotes",
   "status": "draft",
   "summary": "Presupuestos a pacientes.",
-  "purpose": "Plan de tratamiento con precios para que el paciente lo apruebe; al aceptarlo se puede facturar y agendar.",
+  "purpose": "El plan de tratamiento con precios para que el paciente lo apruebe; confirmado se factura, se agenda y se cobra.",
   "tips": [
     "Se pueden enviar por correo o WhatsApp para que el paciente los confirme."
   ],
   "prerequisites": [
     "sales.services"
-  ]
+  ],
+  "useCases": [
+    "sales.quotes.overview",
+    "sales.quotes.create",
+    "sales.quotes.edit",
+    "sales.quotes.confirm",
+    "sales.quotes.invoice",
+    "sales.quotes.send",
+    "sales.quotes.delete",
+    "sales.quotes.items",
+    "sales.quotes.export"
+  ],
+  "elements": {
+    "sales.quotes.section.detail-header": {
+      "label": "Resumen del documento"
+    },
+    "sales.quotes.section.first-row": {
+      "label": "Primer documento de la lista"
+    },
+    "sales.quotes.section.row": {
+      "label": "Documento"
+    },
+    "sales.quotes.btn.row-actions": {
+      "label": "Acciones de la fila"
+    },
+    "sales.quotes.btn.export": {
+      "label": "Exportar",
+      "description": "Excel o CSV."
+    },
+    "sales.quotes.section.export": {
+      "label": "Formato de exportación"
+    },
+    "sales.quotes.btn.export-run": {
+      "label": "Descargar"
+    },
+    "sales.quotes.field.doc-email-to": {
+      "label": "Destinatarios",
+      "description": "Correos separados por coma."
+    },
+    "sales.quotes.btn.doc-email-send": {
+      "label": "Enviar por correo"
+    },
+    "sales.quotes.detail.section.first-row": {
+      "label": "Primera línea"
+    },
+    "sales.quotes.detail.section.row": {
+      "label": "Línea"
+    },
+    "sales.quotes.detail.btn.new": {
+      "label": "Agregar"
+    },
+    "sales.quotes.btn.filters": {
+      "label": "Filtros"
+    },
+    "sales.quotes.section.filters": {
+      "label": "Opciones de filtro"
+    },
+    "sales.quotes.btn.row-print": {
+      "label": "Imprimir"
+    },
+    "sales.quotes.btn.row-email": {
+      "label": "Enviar por correo"
+    },
+    "sales.quotes.btn.row-edit": {
+      "label": "Editar"
+    },
+    "sales.quotes.btn.row-confirm": {
+      "label": "Confirmar"
+    },
+    "sales.quotes.btn.row-reject": {
+      "label": "Rechazar"
+    },
+    "sales.quotes.btn.row-delete": {
+      "label": "Eliminar"
+    },
+    "sales.quotes.section.billing": {
+      "label": "Qué facturar"
+    },
+    "sales.quotes.btn.billing-add-item": {
+      "label": "Agregar línea"
+    },
+    "sales.quotes.btn.billing-submit": {
+      "label": "Crear factura"
+    },
+    "sales.quotes.field.user_id": {
+      "label": "Paciente"
+    }
+  }
 }

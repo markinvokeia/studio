@@ -8,5 +8,13 @@
   ],
   "prerequisites": [
     "config.clinics"
-  ]
+  ],
+  "useCases": [
+    "config.currencies.overview"
+  ],
+  "elements": {
+    "config.currencies.section.rates": {
+      "label": "Historial de cotizaciones"
+    }
+  }
 }
