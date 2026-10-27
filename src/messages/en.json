@@ -1715,7 +1715,8 @@
       },
       "readOnly": "Read-only",
       "readOnlyOnDate": "Read-only · {date}",
-      "prescribe": "Prescribe"
+      "prescribe": "Prescribe",
+      "tabAesthetic": "Aesthetics"
     },
     "calendarSwitch": {
       "myAppointments": "My appointments",
@@ -1991,7 +1992,8 @@
       "anamnesis": "Anamnesis",
       "summary": "Summary",
       "history": "Timeline",
-      "medicalInstructions": "Medical Instructions"
+      "medicalInstructions": "Medical Instructions",
+      "aesthetic": "Aesthetics"
     },
     "createDialog": {
       "title": "Create New Patient",
@@ -5135,7 +5137,8 @@
       "timeline": "Timeline",
       "odontogram": "Odontogram",
       "images": "Images",
-      "documents": "Documents"
+      "documents": "Documents",
+      "aesthetic": "Aesthetics"
     },
     "viewer": {
       "maximize": "Expand window",
@@ -10111,5 +10114,256 @@
     "back": "Back",
     "close": "Close",
     "patientHint": "Patient account, history and details"
+  },
+  "AestheticRecord": {
+    "tabs": {
+      "label": "Aesthetic record sections",
+      "map": "Map",
+      "photos": "Photos",
+      "consent": "Consent",
+      "zones": "By zone"
+    },
+    "regions": {
+      "face": "Face",
+      "body": "Body"
+    },
+    "views": {
+      "front": "Front",
+      "left": "Left profile",
+      "right": "Right profile",
+      "bodyFront": "Front",
+      "bodyBack": "Back"
+    },
+    "figures": {
+      "female": "Female",
+      "male": "Male"
+    },
+    "sides": {
+      "left": "left",
+      "right": "right"
+    },
+    "zones": {
+      "forehead": "Forehead",
+      "glabella": "Glabella",
+      "temple": "Temple",
+      "crowsFeet": "Crow's feet",
+      "tearTrough": "Tear trough",
+      "cheek": "Cheek (malar)",
+      "nose": "Nose",
+      "nasolabial": "Nasolabial fold",
+      "upperLip": "Upper lip",
+      "lowerLip": "Lower lip",
+      "marionette": "Marionette lines",
+      "masseter": "Masseter",
+      "jawline": "Jawline",
+      "chin": "Chin",
+      "neck": "Neck",
+      "sternocleidomastoid": "Sternocleidomastoid",
+      "trapezius": "Trapezius",
+      "anterior_deltoid": "Anterior deltoid",
+      "lateral_deltoid": "Lateral deltoid",
+      "posterior_deltoid": "Posterior deltoid",
+      "pectoralis_major": "Pectoralis major (chest)",
+      "biceps_brachii": "Biceps brachii",
+      "brachialis": "Brachialis",
+      "serratus_anterior": "Serratus anterior",
+      "rectus_abdominis": "Rectus abdominis (abdomen)",
+      "external_oblique": "External oblique (flank)",
+      "forearm_flexors": "Forearm flexors",
+      "tensor_fasciae_latae": "Tensor fasciae latae",
+      "iliopsoas": "Iliopsoas (hip flexors)",
+      "hip_adductors": "Hip adductors (inner thigh)",
+      "sartorius": "Sartorius",
+      "rectus_femoris": "Rectus femoris",
+      "vastus_lateralis": "Vastus lateralis",
+      "vastus_medialis": "Vastus medialis",
+      "patella_region": "Kneecap / front of knee",
+      "tibialis_anterior": "Tibialis anterior",
+      "gastrocnemius": "Gastrocnemius (calf)",
+      "fibularis_group": "Fibularis (peroneal) group",
+      "soleus": "Soleus",
+      "posterior_rotator_cuff": "Posterior rotator cuff",
+      "triceps_brachii": "Triceps brachii",
+      "latissimus_dorsi": "Latissimus dorsi",
+      "erector_spinae": "Erector spinae / lower back",
+      "forearm_extensors": "Forearm extensors",
+      "gluteus_medius": "Gluteus medius",
+      "gluteus_maximus": "Gluteus maximus (buttock)",
+      "iliotibial_tract": "Iliotibial band",
+      "biceps_femoris": "Biceps femoris",
+      "medial_hamstrings": "Medial hamstrings",
+      "popliteal_region": "Back of knee (popliteal)",
+      "achilles_tendon": "Achilles tendon",
+      "patellar_tendon_region": "Patellar tendon",
+      "none": "No zone",
+      "withSide": "{zone} ({side})"
+    },
+    "units": {
+      "U": "U",
+      "mL": "mL"
+    },
+    "depths": {
+      "intradermal": "Intradermal",
+      "subcutaneous": "Subcutaneous",
+      "supraperiosteal": "Supraperiosteal",
+      "intramuscular": "Intramuscular"
+    },
+    "techniques": {
+      "bolus": "Bolus",
+      "linearRetrograde": "Linear retrograde",
+      "fanning": "Fanning",
+      "microdroplets": "Microdroplets",
+      "cannula": "Cannula"
+    },
+    "map": {
+      "pointLabel": "Point {number}: {product}, {zone}",
+      "viewsLabel": "Face view",
+      "legendToxin": "Toxin (U)",
+      "legendFiller": "Filler (mL)",
+      "hint": "Click the map to add a point (it copies the last one's product). Drag to move it; Delete removes the selected one.",
+      "empty": "No injection points in this session.",
+      "emptyEditing": "Click the face or body map to mark the first injection point.",
+      "totals": "Totals per product",
+      "pointsTitle": "{count, plural, one {# point} other {# points}}",
+      "incompletePoint": "Missing product or quantity",
+      "regionsLabel": "Body region",
+      "regionWithCount": "{region} ({count})",
+      "figureLabel": "Body figure",
+      "figureLocked": "The figure can't be changed once the session has body points.",
+      "loadError": "The body map couldn't be loaded."
+    },
+    "point": {
+      "noProduct": "No product",
+      "delete": "Delete point",
+      "product": "Product",
+      "productSearch": "Search the catalog...",
+      "productNoResults": "No products found.",
+      "productLoading": "Loading...",
+      "productPick": "Pick from catalog",
+      "productName": "Product name",
+      "productNamePlaceholder": "Or type the product",
+      "quantity": "Quantity",
+      "unit": "Unit",
+      "lot": "Lot",
+      "lotExpiry": "Lot expiry",
+      "depth": "Depth",
+      "technique": "Technique",
+      "zone": "Zone",
+      "notes": "Notes",
+      "notSet": "Not set"
+    },
+    "photos": {
+      "sessionTitle": "Session photos",
+      "kind": "Type",
+      "view": "View",
+      "kinds": {
+        "before": "Before",
+        "after": "After"
+      },
+      "add": "Add photos",
+      "empty": "This session has no photos.",
+      "emptyEditing": "Pick the type and view, then add the photos.",
+      "pending": "Unsaved",
+      "remove": "Remove photo {label}",
+      "unavailable": "Not available on this device",
+      "compareTitle": "Before and after",
+      "compareNeedsTwo": "Add at least two photos to compare them.",
+      "compareLeft": "Left photo",
+      "compareRight": "Right photo",
+      "compareSlider": "Comparison divider position",
+      "optionLabel": "{date} · {kind} · {view}",
+      "optionLabelShort": "{kind} · {view}"
+    },
+    "consent": {
+      "badge": "Consent",
+      "missingTitle": "No signed consent",
+      "missingDescription": "The patient must sign the informed consent for this session's treatment.",
+      "open": "Sign consent",
+      "saveFirst": "Save the session to collect the signature.",
+      "noPermission": "You don't have permission to collect consents.",
+      "dialogTitle": "Informed consent",
+      "dialogDescription": "Review the text with the patient and collect their signature.",
+      "signerName": "Signed by",
+      "procedure": "Procedure",
+      "template": "I, {patient}, state that {doctor} has explained to me the procedure ({procedure}), its purpose, the expected results, the alternatives and its possible risks and side effects, such as bruising, swelling, asymmetry, infection or allergic reactions.\n\nI have been able to ask questions and they have been answered. I understand that results vary from person to person and are not guaranteed, and that additional sessions may be needed.\n\nI have reported my medical history, allergies and medications truthfully, and I authorize the procedure to be performed.",
+      "patientFallback": "the patient",
+      "doctorFallback": "the practitioner",
+      "risksExplained": "The risks were explained and the patient's questions answered",
+      "allowsClinicalPhotos": "Authorizes photos for the clinical record",
+      "allowsMarketingPhotos": "Authorizes using the photos for marketing",
+      "signature": "Signature",
+      "notSignedYet": "Not signed yet",
+      "sign": "Sign",
+      "signAgain": "Sign again",
+      "submit": "Save consent",
+      "toastSigned": "Consent signed",
+      "signedTitle": "Consent signed",
+      "signedBy": "Signed by {name} on {date}",
+      "signedAt": "Date",
+      "showText": "View consent text",
+      "print": "Print",
+      "printTitle": "Informed consent",
+      "yes": "Yes",
+      "no": "No",
+      "validation": {
+        "signerRequired": "Enter who signs.",
+        "procedureRequired": "Enter the procedure.",
+        "risksRequired": "Confirm that the risks were explained.",
+        "signatureRequired": "The signature is missing."
+      }
+    },
+    "zoneHistory": {
+      "title": "Accumulated history by zone",
+      "period": "Period",
+      "periods": {
+        "3": "Last 3 months",
+        "6": "Last 6 months",
+        "12": "Last 12 months",
+        "all": "All history"
+      },
+      "empty": "No points recorded in this period.",
+      "sessions": "{count, plural, one {# session} other {# sessions}}",
+      "last": "last on {date}",
+      "points": "{count, plural, one {# point} other {# points}}",
+      "selectHint": "Click a zone to locate it on the map."
+    },
+    "session": {
+      "new": "New session",
+      "defaultTitle": "Aesthetic session {date}",
+      "date": "Date",
+      "doctor": "Practitioner",
+      "doctorPick": "Select",
+      "doctorSearch": "Search practitioner...",
+      "doctorEmpty": "No results.",
+      "doctorLoading": "Searching...",
+      "title": "Title",
+      "notes": "Session notes",
+      "notesPlaceholder": "Assessment, patient feedback, post-treatment instructions...",
+      "dateRequired": "Enter the session date.",
+      "incompletePoints": "{count, plural, one {# point is missing product or quantity.} other {# points are missing product or quantity.}}"
+    },
+    "toast": {
+      "created": "Aesthetic session created",
+      "updated": "Aesthetic session updated"
+    },
+    "discard": {
+      "title": "Discard changes?",
+      "description": "The changes to this session haven't been saved and will be lost.",
+      "keep": "Keep editing",
+      "confirm": "Discard"
+    },
+    "emptyTitle": "No aesthetic sessions",
+    "emptyDescription": "Record the first session to map injection points, photos and consent.",
+    "noSessions": "No sessions recorded",
+    "sessionCounter": "{current} of {total}",
+    "newSession": "New session",
+    "editSession": "Edit",
+    "editing": "Editing",
+    "prevSession": "Previous session",
+    "nextSession": "Next session",
+    "save": "Save session",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "credits": "Body map: Open Muscle Map (MIT)."
   }
 }

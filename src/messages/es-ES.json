@@ -1715,7 +1715,8 @@
       },
       "readOnly": "Solo lectura",
       "readOnlyOnDate": "Solo lectura · {date}",
-      "prescribe": "Recetar"
+      "prescribe": "Recetar",
+      "tabAesthetic": "Estética"
     },
     "calendarSwitch": {
       "myAppointments": "Mis citas",
@@ -1991,7 +1992,8 @@
       "anamnesis": "Anamnesis",
       "summary": "Resumen",
       "history": "Línea de tiempo",
-      "medicalInstructions": "Indicaciones Médicas"
+      "medicalInstructions": "Indicaciones Médicas",
+      "aesthetic": "Estética"
     },
     "createDialog": {
       "title": "Crear Nuevo Paciente",
@@ -5134,7 +5136,8 @@
       "timeline": "Línea de Tiempo",
       "odontogram": "Odontograma",
       "images": "Imágenes",
-      "documents": "Documentos"
+      "documents": "Documentos",
+      "aesthetic": "Estética"
     },
     "viewer": {
       "maximize": "Ampliar ventana",
@@ -10111,5 +10114,256 @@
     "back": "Volver",
     "close": "Cerrar",
     "patientHint": "Cuentas, historia y datos del paciente"
+  },
+  "AestheticRecord": {
+    "tabs": {
+      "label": "Secciones de la ficha estética",
+      "map": "Mapa",
+      "photos": "Fotos",
+      "consent": "Consentimiento",
+      "zones": "Por zona"
+    },
+    "regions": {
+      "face": "Cara",
+      "body": "Cuerpo"
+    },
+    "views": {
+      "front": "Frente",
+      "left": "Perfil izquierdo",
+      "right": "Perfil derecho",
+      "bodyFront": "Anterior",
+      "bodyBack": "Posterior"
+    },
+    "figures": {
+      "female": "Mujer",
+      "male": "Hombre"
+    },
+    "sides": {
+      "left": "izq.",
+      "right": "der."
+    },
+    "zones": {
+      "forehead": "Frente",
+      "glabella": "Glabela",
+      "temple": "Sien",
+      "crowsFeet": "Patas de gallo",
+      "tearTrough": "Surco lagrimal",
+      "cheek": "Pómulo (malar)",
+      "nose": "Nariz",
+      "nasolabial": "Surco nasogeniano",
+      "upperLip": "Labio superior",
+      "lowerLip": "Labio inferior",
+      "marionette": "Líneas de marioneta",
+      "masseter": "Masetero",
+      "jawline": "Línea mandibular",
+      "chin": "Mentón",
+      "neck": "Cuello",
+      "sternocleidomastoid": "Esternocleidomastoideo",
+      "trapezius": "Trapecio",
+      "anterior_deltoid": "Deltoides anterior",
+      "lateral_deltoid": "Deltoides lateral",
+      "posterior_deltoid": "Deltoides posterior",
+      "pectoralis_major": "Pectoral mayor",
+      "biceps_brachii": "Bíceps braquial",
+      "brachialis": "Braquial",
+      "serratus_anterior": "Serrato anterior",
+      "rectus_abdominis": "Recto abdominal (abdomen)",
+      "external_oblique": "Oblicuo externo (flanco)",
+      "forearm_flexors": "Flexores del antebrazo",
+      "tensor_fasciae_latae": "Tensor de la fascia lata",
+      "iliopsoas": "Iliopsoas (flexores de cadera)",
+      "hip_adductors": "Aductores (cara interna del muslo)",
+      "sartorius": "Sartorio",
+      "rectus_femoris": "Recto femoral",
+      "vastus_lateralis": "Vasto lateral",
+      "vastus_medialis": "Vasto medial",
+      "patella_region": "Rótula / cara anterior de la rodilla",
+      "tibialis_anterior": "Tibial anterior",
+      "gastrocnemius": "Gastrocnemio (pantorrilla)",
+      "fibularis_group": "Peroneos",
+      "soleus": "Sóleo",
+      "posterior_rotator_cuff": "Manguito rotador posterior",
+      "triceps_brachii": "Tríceps braquial",
+      "latissimus_dorsi": "Dorsal ancho",
+      "erector_spinae": "Erectores espinales / zona lumbar",
+      "forearm_extensors": "Extensores del antebrazo",
+      "gluteus_medius": "Glúteo medio",
+      "gluteus_maximus": "Glúteo mayor",
+      "iliotibial_tract": "Cintilla iliotibial",
+      "biceps_femoris": "Bíceps femoral",
+      "medial_hamstrings": "Isquiotibiales mediales",
+      "popliteal_region": "Hueco poplíteo",
+      "achilles_tendon": "Tendón de Aquiles",
+      "patellar_tendon_region": "Tendón rotuliano",
+      "none": "Sin zona",
+      "withSide": "{zone} ({side})"
+    },
+    "units": {
+      "U": "U",
+      "mL": "mL"
+    },
+    "depths": {
+      "intradermal": "Intradérmica",
+      "subcutaneous": "Subcutánea",
+      "supraperiosteal": "Supraperióstica",
+      "intramuscular": "Intramuscular"
+    },
+    "techniques": {
+      "bolus": "Bolo",
+      "linearRetrograde": "Retroinyección lineal",
+      "fanning": "Abanico",
+      "microdroplets": "Microgotas",
+      "cannula": "Cánula"
+    },
+    "map": {
+      "pointLabel": "Punto {number}: {product}, {zone}",
+      "viewsLabel": "Vista de la cara",
+      "legendToxin": "Toxina (U)",
+      "legendFiller": "Relleno (mL)",
+      "hint": "Haz clic en el mapa para añadir un punto (copia el producto del último). Arrástralo para moverlo; Supr borra el seleccionado.",
+      "empty": "Esta sesión no tiene puntos de inyección.",
+      "emptyEditing": "Haz clic en la cara o el cuerpo para marcar el primer punto de inyección.",
+      "totals": "Totales por producto",
+      "pointsTitle": "{count, plural, one {# punto} other {# puntos}}",
+      "incompletePoint": "Falta producto o cantidad",
+      "regionsLabel": "Región del cuerpo",
+      "regionWithCount": "{region} ({count})",
+      "figureLabel": "Figura del cuerpo",
+      "figureLocked": "La figura no se puede cambiar cuando la sesión ya tiene puntos en el cuerpo.",
+      "loadError": "No se ha podido cargar el mapa del cuerpo."
+    },
+    "point": {
+      "noProduct": "Sin producto",
+      "delete": "Eliminar punto",
+      "product": "Producto",
+      "productSearch": "Buscar en el catálogo...",
+      "productNoResults": "No se encontraron productos.",
+      "productLoading": "Cargando...",
+      "productPick": "Elegir del catálogo",
+      "productName": "Nombre del producto",
+      "productNamePlaceholder": "O escribe el producto",
+      "quantity": "Cantidad",
+      "unit": "Unidad",
+      "lot": "Lote",
+      "lotExpiry": "Vencimiento del lote",
+      "depth": "Profundidad",
+      "technique": "Técnica",
+      "zone": "Zona",
+      "notes": "Notas",
+      "notSet": "Sin indicar"
+    },
+    "photos": {
+      "sessionTitle": "Fotos de la sesión",
+      "kind": "Tipo",
+      "view": "Vista",
+      "kinds": {
+        "before": "Antes",
+        "after": "Después"
+      },
+      "add": "Añadir fotos",
+      "empty": "Esta sesión no tiene fotos.",
+      "emptyEditing": "Elige el tipo y la vista, y añade las fotos.",
+      "pending": "Sin guardar",
+      "remove": "Quitar foto {label}",
+      "unavailable": "No disponible en este dispositivo",
+      "compareTitle": "Antes y después",
+      "compareNeedsTwo": "Añade al menos dos fotos para compararlas.",
+      "compareLeft": "Foto izquierda",
+      "compareRight": "Foto derecha",
+      "compareSlider": "Posición del divisor de la comparación",
+      "optionLabel": "{date} · {kind} · {view}",
+      "optionLabelShort": "{kind} · {view}"
+    },
+    "consent": {
+      "badge": "Consentimiento",
+      "missingTitle": "Sin consentimiento firmado",
+      "missingDescription": "El paciente debe firmar el consentimiento informado del tratamiento de esta sesión.",
+      "open": "Firmar consentimiento",
+      "saveFirst": "Guarda la sesión para recoger la firma.",
+      "noPermission": "No tienes permiso para recoger consentimientos.",
+      "dialogTitle": "Consentimiento informado",
+      "dialogDescription": "Revisa el texto con el paciente y recoge su firma.",
+      "signerName": "Firma",
+      "procedure": "Procedimiento",
+      "template": "Yo, {patient}, declaro que {doctor} me ha explicado el procedimiento ({procedure}), su finalidad, los resultados esperables, las alternativas y sus posibles riesgos y efectos adversos, como hematomas, inflamación, asimetrías, infección o reacciones alérgicas.\n\nHe podido hacer preguntas y se me han respondido. Entiendo que los resultados varían en cada persona y no están garantizados, y que pueden ser necesarias sesiones adicionales.\n\nHe informado con veracidad de mis antecedentes médicos, alergias y medicación, y autorizo la realización del procedimiento.",
+      "patientFallback": "el paciente",
+      "doctorFallback": "el profesional",
+      "risksExplained": "Se han explicado los riesgos y se han respondido las dudas del paciente",
+      "allowsClinicalPhotos": "Autoriza fotos para la historia clínica",
+      "allowsMarketingPhotos": "Autoriza el uso de las fotos con fines publicitarios",
+      "signature": "Firma",
+      "notSignedYet": "Aún sin firmar",
+      "sign": "Firmar",
+      "signAgain": "Volver a firmar",
+      "submit": "Guardar consentimiento",
+      "toastSigned": "Consentimiento firmado",
+      "signedTitle": "Consentimiento firmado",
+      "signedBy": "Firmado por {name} el {date}",
+      "signedAt": "Fecha",
+      "showText": "Ver texto del consentimiento",
+      "print": "Imprimir",
+      "printTitle": "Consentimiento informado",
+      "yes": "Sí",
+      "no": "No",
+      "validation": {
+        "signerRequired": "Indica quién firma.",
+        "procedureRequired": "Indica el procedimiento.",
+        "risksRequired": "Confirma que se han explicado los riesgos.",
+        "signatureRequired": "Falta la firma."
+      }
+    },
+    "zoneHistory": {
+      "title": "Historial acumulado por zona",
+      "period": "Período",
+      "periods": {
+        "3": "Últimos 3 meses",
+        "6": "Últimos 6 meses",
+        "12": "Últimos 12 meses",
+        "all": "Todo el historial"
+      },
+      "empty": "No hay puntos registrados en este período.",
+      "sessions": "{count, plural, one {# sesión} other {# sesiones}}",
+      "last": "última el {date}",
+      "points": "{count, plural, one {# punto} other {# puntos}}",
+      "selectHint": "Haz clic en una zona para ubicarla en el mapa."
+    },
+    "session": {
+      "new": "Nueva sesión",
+      "defaultTitle": "Sesión estética {date}",
+      "date": "Fecha",
+      "doctor": "Profesional",
+      "doctorPick": "Seleccionar",
+      "doctorSearch": "Buscar profesional...",
+      "doctorEmpty": "No hay resultados.",
+      "doctorLoading": "Buscando...",
+      "title": "Título",
+      "notes": "Notas de la sesión",
+      "notesPlaceholder": "Valoración, comentarios del paciente, indicaciones postratamiento...",
+      "dateRequired": "Indica la fecha de la sesión.",
+      "incompletePoints": "{count, plural, one {A # punto le falta producto o cantidad.} other {A # puntos les falta producto o cantidad.}}"
+    },
+    "toast": {
+      "created": "Sesión estética creada",
+      "updated": "Sesión estética actualizada"
+    },
+    "discard": {
+      "title": "¿Descartar los cambios?",
+      "description": "Los cambios de esta sesión no se han guardado y se perderán.",
+      "keep": "Seguir editando",
+      "confirm": "Descartar"
+    },
+    "emptyTitle": "Sin sesiones estéticas",
+    "emptyDescription": "Registra la primera sesión para mapear puntos de inyección, fotos y consentimiento.",
+    "noSessions": "Sin sesiones registradas",
+    "sessionCounter": "{current} de {total}",
+    "newSession": "Nueva sesión",
+    "editSession": "Editar",
+    "editing": "Editando",
+    "prevSession": "Sesión anterior",
+    "nextSession": "Sesión siguiente",
+    "save": "Guardar sesión",
+    "cancel": "Cancelar",
+    "retry": "Reintentar",
+    "credits": "Mapa corporal: Open Muscle Map (MIT)."
   }
 }

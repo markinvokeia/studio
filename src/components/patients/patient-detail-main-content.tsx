@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 
 export type PatientMacroTab = 'info' | 'clinical' | 'financial'
 export type InfoSubTab = 'details' | 'notes' | 'preferences'
-export type ClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'medical-instructions' | 'documents'
+export type ClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'medical-instructions' | 'aesthetic' | 'documents'
 
 interface PatientDetailMainContentProps {
   activeTab: PatientMacroTab
@@ -21,6 +21,7 @@ interface PatientDetailMainContentProps {
   activeClinicalSubTab: ClinicalSubTab
   onClinicalSubTabChange: (tab: ClinicalSubTab) => void
   showDocuments: boolean
+  showAesthetic?: boolean
   showNotes: boolean
   showPreferences: boolean
   /** Macro-tab visibility, permission-driven by the caller. */
@@ -34,6 +35,7 @@ interface PatientDetailMainContentProps {
   clinicalHistoryContent: React.ReactNode
   treatmentPlansContent: React.ReactNode
   medicalInstructionsContent: React.ReactNode
+  aestheticContent?: React.ReactNode
   documentsContent?: React.ReactNode
   ledgerContent: React.ReactNode
 }
@@ -46,6 +48,7 @@ export function PatientDetailMainContent({
   activeClinicalSubTab,
   onClinicalSubTabChange,
   showDocuments,
+  showAesthetic = false,
   showNotes,
   showPreferences,
   showInfo,
@@ -58,6 +61,7 @@ export function PatientDetailMainContent({
   clinicalHistoryContent,
   treatmentPlansContent,
   medicalInstructionsContent,
+  aestheticContent,
   documentsContent,
   ledgerContent,
 }: PatientDetailMainContentProps) {
@@ -80,8 +84,9 @@ export function PatientDetailMainContent({
     { id: 'clinical-history', label: t('tabs.history') },
     { id: 'treatment-plans', label: t('tabs.treatmentPlans'), desktopLabel: 'Planes de Tratamiento' },
     { id: 'medical-instructions', label: t('tabs.medicalInstructions') },
+    ...(showAesthetic ? [{ id: 'aesthetic', label: t('tabs.aesthetic') }] : []),
     ...(showDocuments ? [{ id: 'documents', label: t('tabs.documents') }] : []),
-  ], [showDocuments, t])
+  ], [showAesthetic, showDocuments, t])
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -125,6 +130,7 @@ export function PatientDetailMainContent({
             {activeClinicalSubTab === 'clinical-history' && clinicalHistoryContent}
             {activeClinicalSubTab === 'treatment-plans' && treatmentPlansContent}
             {activeClinicalSubTab === 'medical-instructions' && medicalInstructionsContent}
+            {activeClinicalSubTab === 'aesthetic' && showAesthetic && aestheticContent}
             {activeClinicalSubTab === 'documents' && documentsContent}
           </>
         )}

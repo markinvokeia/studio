@@ -2313,6 +2313,152 @@ export type OdontogramSnapshot = {
   archivosAdjuntos?: OdontogramAttachment[];
 };
 
+// ──── Aesthetic record (face map) ────
+
+/** Region of the body a map view belongs to */
+export type AestheticMapRegion = 'face' | 'body';
+
+/**
+ * Template shown on the map. Face views keep their original ids (`front`, `left`, `right`);
+ * profiles are named after the patient's visible side.
+ */
+export type AestheticMapView = 'front' | 'left' | 'right' | 'bodyFront' | 'bodyBack';
+
+export type AestheticBodyFigure = 'female' | 'male';
+
+/** Patient's side (not the viewer's) */
+export type AestheticSide = 'left' | 'right';
+
+/** Zones drawn on the face templates */
+export type AestheticFaceZone =
+  | 'forehead'
+  | 'glabella'
+  | 'temple'
+  | 'crowsFeet'
+  | 'tearTrough'
+  | 'cheek'
+  | 'nose'
+  | 'nasolabial'
+  | 'upperLip'
+  | 'lowerLip'
+  | 'marionette'
+  | 'masseter'
+  | 'jawline'
+  | 'chin'
+  | 'neck';
+
+/** Muscle panels of the body map (Open Muscle Map `muscleId`s) */
+export type AestheticBodyMuscle =
+  | 'sternocleidomastoid'
+  | 'trapezius'
+  | 'anterior_deltoid'
+  | 'lateral_deltoid'
+  | 'posterior_deltoid'
+  | 'pectoralis_major'
+  | 'biceps_brachii'
+  | 'brachialis'
+  | 'serratus_anterior'
+  | 'rectus_abdominis'
+  | 'external_oblique'
+  | 'forearm_flexors'
+  | 'tensor_fasciae_latae'
+  | 'iliopsoas'
+  | 'hip_adductors'
+  | 'sartorius'
+  | 'rectus_femoris'
+  | 'vastus_lateralis'
+  | 'vastus_medialis'
+  | 'patella_region'
+  | 'tibialis_anterior'
+  | 'gastrocnemius'
+  | 'fibularis_group'
+  | 'soleus'
+  | 'posterior_rotator_cuff'
+  | 'triceps_brachii'
+  | 'latissimus_dorsi'
+  | 'erector_spinae'
+  | 'forearm_extensors'
+  | 'gluteus_medius'
+  | 'gluteus_maximus'
+  | 'iliotibial_tract'
+  | 'biceps_femoris'
+  | 'medial_hamstrings'
+  | 'popliteal_region'
+  | 'achilles_tendon'
+  | 'patellar_tendon_region';
+
+export type AestheticZoneBase = AestheticFaceZone | AestheticBodyMuscle;
+
+/** Midline zones are bare (`chin`); bilateral ones carry the patient's side (`crowsFeet.left`) */
+export type AestheticZoneId = AestheticZoneBase | `${AestheticZoneBase}.${AestheticSide}`;
+
+export type AestheticDoseUnit = 'U' | 'mL';
+
+export type AestheticDepth = 'intradermal' | 'subcutaneous' | 'supraperiosteal' | 'intramuscular';
+
+export type AestheticTechnique = 'bolus' | 'linearRetrograde' | 'fanning' | 'microdroplets' | 'cannula';
+
+export interface AestheticPoint {
+  id: string;
+  view: AestheticMapView;
+  /** Position relative to the template (0..1), so it survives any render size */
+  x: number;
+  y: number;
+  /** Zone under the point; null when it was placed outside every zone */
+  zone: AestheticZoneId | null;
+  serviceId?: string;
+  productName: string;
+  quantity: number | null;
+  unit: AestheticDoseUnit;
+  lot?: string;
+  /** yyyy-MM-dd */
+  lotExpiry?: string;
+  depth?: AestheticDepth;
+  technique?: AestheticTechnique;
+  notes?: string;
+}
+
+export type AestheticPhotoKind = 'before' | 'after';
+
+export interface AestheticPhoto {
+  id: string;
+  kind: AestheticPhotoKind;
+  view: AestheticMapView;
+  fileName: string;
+  mimeType: string;
+  createdAt: string;
+}
+
+export interface AestheticConsent {
+  signedAt: string;
+  signerName: string;
+  procedure: string;
+  /** Rendered consent text, frozen at signing time */
+  text: string;
+  allowsClinicalPhotos: boolean;
+  allowsMarketingPhotos: boolean;
+  signatureFileId: string;
+}
+
+export interface AestheticSession {
+  id: string;
+  patientId: string;
+  /** yyyy-MM-dd */
+  date: string;
+  title: string;
+  doctorId?: string;
+  doctorName?: string;
+  appointmentId?: string;
+  notes: string;
+  points: AestheticPoint[];
+  photos: AestheticPhoto[];
+  consent: AestheticConsent | null;
+  /** Body figure the body points were placed on (their coordinates depend on it) */
+  bodyFigure?: AestheticBodyFigure;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type StickyNoteColor = 'yellow' | 'pink' | 'blue' | 'green' | 'purple' | 'orange';
 
 export type StickyNote = {

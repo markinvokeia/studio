@@ -12,6 +12,7 @@ import {
 } from '@/components/dashboard/workspace-date-range-filter';
 import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
 import { PrescriptionDialog } from '@/components/medical-instructions/prescription-dialog';
+import { AestheticRecordViewer } from '@/components/users/aesthetic-record/aesthetic-record-viewer';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import type { OdontogramPrefillResult } from '@/components/users/dental-record/dental-record-viewer';
 import { TreatmentTimeline } from '@/components/users/clinic-history-viewer';
@@ -31,7 +32,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
-import { TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { AESTHETIC_RECORD_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { Appointment, AppointmentStatus, DoctorAgentAction, DoctorAgentActionPayload, PatientSession, QuoteItem, TreatmentDetail } from '@/lib/types';
 import { canManageDoctorWorkspaceSessions } from '@/lib/permissions';
 import { cn, formatDate } from '@/lib/utils';
@@ -831,6 +832,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const canManageSessions = React.useMemo(() => canManageDoctorWorkspaceSessions(permissions, roles), [permissions, roles]);
   // Recetar no depende de poder editar la sesión ni de la fecha de la cita.
   const canPrescribe = hasPermission(TIMELINE_PERMISSIONS.PRESCRIPTIONS_CREATE);
+  const canViewAesthetic = hasPermission(AESTHETIC_RECORD_PERMISSIONS.VIEW);
   const isMobile = useViewportNarrow(1024);
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
@@ -877,7 +879,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     fecha_proxima_cita?: string;
   } | null>(null);
   const [agentSessionTreatments, setAgentSessionTreatments] = React.useState<TreatmentDetail[]>([]);
-  const [activePanel, setActivePanel] = React.useState<'sessions' | 'odontogram'>('sessions');
+  const [activePanel, setActivePanel] = React.useState<'sessions' | 'odontogram' | 'aesthetic'>('sessions');
   // Each agent request gets its own key so the odontogram applies it even when it is already open
   const [odontogramPrefill, setOdontogramPrefill] = React.useState<{ key: number; description: string; notes: string; nextSessionPlan: string; marcaciones?: import('@/lib/types').OdontogramMarcacion[] } | null>(null);
   const odontogramPrefillKeyRef = React.useRef(0);
@@ -1554,6 +1556,20 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                 >
                   {t('focus.tabOdontogram')}
                 </button>
+                {canViewAesthetic && (
+                  <button
+                    type="button"
+                    onClick={() => { setActivePanel('aesthetic'); setOdontogramPrefill(null); }}
+                    className={cn(
+                      'whitespace-nowrap px-3 py-1.5 font-medium transition-colors',
+                      activePanel === 'aesthetic'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background text-muted-foreground hover:bg-muted',
+                    )}
+                  >
+                    {t('focus.tabAesthetic')}
+                  </button>
+                )}
               </div>
 
               {activePanel === 'sessions' && (
@@ -1610,6 +1626,18 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   )}
                 </div>
               </>
+            ) : activePanel === 'aesthetic' ? (
+              <div className="flex-1 min-h-0 overflow-y-auto pb-6">
+                <AestheticRecordViewer
+                  key={selectedAppointment.patientId}
+                  patientId={selectedAppointment.patientId}
+                  patientName={selectedAppointment.patientName}
+                  doctorId={sessionDoctorId || undefined}
+                  doctorName={sessionDoctorName || undefined}
+                  appointmentId={selectedAppointment.id}
+                  readOnly={!canManageSessions || isSessionEditingBlockedByDate}
+                />
+              </div>
             ) : (
               <div className="flex-1 min-h-0 overflow-y-auto pb-6">
                 <DentalRecordViewer

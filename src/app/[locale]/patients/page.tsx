@@ -75,13 +75,14 @@ import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { QuickTreatmentDialog } from '@/components/financial/quick-treatment-dialog';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { PatientIndicationsTab } from '@/components/medical-instructions/patient-indications-tab';
+import { AestheticRecordViewer } from '@/components/users/aesthetic-record/aesthetic-record-viewer';
 import { UserPreferencesTab } from '@/components/users/user-preferences-tab';
 import { PatientFinanceSection } from '@/components/users/patient-finance-section';
 import type { VisibleLedger } from '@/components/users/patient-ledger';
 import { UserTreatmentPlans, type TreatmentContactContext } from '@/components/users/user-treatment-plans';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { UserOrders } from '@/components/users/user-orders';
-import { BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SALES_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { AESTHETIC_RECORD_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SALES_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -515,6 +516,7 @@ export default function UsersPage() {
     CLINICAL_HISTORY_PERMISSIONS.ODONTOGRAM_REGISTER_SESSION,
   ]);
   const isClinicalReadOnly = !canWriteClinical;
+  const canViewAesthetic = hasPermission(AESTHETIC_RECORD_PERMISSIONS.VIEW);
 
   // Header actions that were previously ungated.
   const canQuickBill = hasAnyPermission([SALES_PERMISSIONS.INVOICES_CREATE, SALES_PERMISSIONS.PAYMENTS_CREATE]);
@@ -1464,6 +1466,7 @@ export default function UsersPage() {
                         activeClinicalSubTab={activeClinicalSubTab}
                         onClinicalSubTabChange={setActiveClinicalSubTab}
                         showDocuments={canViewHistory}
+                        showAesthetic={canViewAesthetic}
                         showNotes={canViewNotes}
                         showPreferences={canUpdate}
                         showInfo={canViewInfoTab}
@@ -1552,6 +1555,15 @@ export default function UsersPage() {
                             readOnly={isClinicalReadOnly}
                             createTrigger={createMedicalInstructionTrigger}
                             createPrescriptionTrigger={createPrescriptionTrigger}
+                          />
+                        }
+                        aestheticContent={
+                          <AestheticRecordViewer
+                            key={selectedUser.id}
+                            patientId={selectedUser.id}
+                            patientName={selectedUser.name}
+                            patientSex={selectedUser.sex}
+                            readOnly={isClinicalReadOnly}
                           />
                         }
                         documentsContent={<DocumentsViewer userId={selectedUser.id} createTrigger={createDocumentTrigger} readOnly={isClinicalReadOnly} />}

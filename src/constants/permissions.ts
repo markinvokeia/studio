@@ -145,6 +145,13 @@ export const CLINICAL_HISTORY_PERMISSIONS = {
 
 export type ClinicalHistoryPermission = (typeof CLINICAL_HISTORY_PERMISSIONS)[keyof typeof CLINICAL_HISTORY_PERMISSIONS];
 
+// Aesthetic record (face map) — frontend-only mockup for now. It borrows the
+// odontogram codes until the backend seeds its own AESTHETIC_RECORD_* codes.
+export const AESTHETIC_RECORD_PERMISSIONS = {
+  VIEW: CLINICAL_HISTORY_PERMISSIONS.ODONTOGRAM_VIEW,
+  REGISTER_SESSION: CLINICAL_HISTORY_PERMISSIONS.ODONTOGRAM_REGISTER_SESSION,
+} as const;
+
 export const TIMELINE_PERMISSIONS = {
   VIEW: 'TIMELINE_VIEW',
   CREATE: 'CLINICAL_SESSION_CREATE',

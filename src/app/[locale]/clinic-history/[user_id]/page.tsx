@@ -36,11 +36,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AestheticRecordViewer } from '@/components/users/aesthetic-record/aesthetic-record-viewer';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { formatOdontogramEntries, getConditionLabel } from '@/components/users/dental-record/odontogram-state';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
+import { AESTHETIC_RECORD_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { getApiUrl } from '@/lib/runtime-config';
 import type { Ailment, AttachedFile, Document, Medication, PatientSession, User as UserType } from '@/lib/types';
 import { cn, formatDisplayDate } from '@/lib/utils';
@@ -70,6 +73,7 @@ import {
     Search,
     SearchCheck,
     Smile,
+    Sparkles,
     Stethoscope,
     Trash2,
     Upload,
@@ -1742,6 +1746,8 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const userId = (params?.user_id as string) || initialUserId;
 
     const [activeView, setActiveView] = useState('anamnesis');
+    const { hasPermission } = usePermissions();
+    const canViewAesthetic = hasPermission(AESTHETIC_RECORD_PERMISSIONS.VIEW);
 
     // Patient Search State
     const [patientSearchOpen, setPatientSearchOpen] = useState(false);
@@ -2091,6 +2097,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
             { id: 'anamnesis', label: t('tabs.anamnesis'), icon: FileText },
             { id: 'timeline', label: t('tabs.timeline'), icon: Clock },
             { id: 'odontogram', label: t('tabs.odontogram'), icon: Smile },
+            ...(canViewAesthetic ? [{ id: 'aesthetic', label: t('tabs.aesthetic'), icon: Sparkles }] : []),
             { id: 'documents', label: t('tabs.documents'), icon: FolderArchive },
         ];
 
@@ -2364,7 +2371,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                     <div className="flex-1 flex flex-col min-h-0 px-6 py-4">
                         <div className={cn(
                             "flex-1 flex flex-col min-h-0 rounded-xl border overflow-hidden",
-                            activeView === 'odontogram' ? 'bg-background' : 'bg-gradient-to-br from-muted/20 to-muted/5'
+                            activeView === 'odontogram' || activeView === 'aesthetic' ? 'bg-background' : 'bg-gradient-to-br from-muted/20 to-muted/5'
                         )}>
                             {activeView === 'anamnesis' &&
                                 <ScrollArea className='flex-1 p-4'>
@@ -2396,6 +2403,15 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                     <DentalRecordViewer
                                         patientId={userId}
                                         patientName={selectedPatient?.name}
+                                    />
+                                </div>
+                            )}
+                            {activeView === 'aesthetic' && canViewAesthetic && (
+                                <div className="flex-1 min-h-0 overflow-auto p-4">
+                                    <AestheticRecordViewer
+                                        patientId={userId}
+                                        patientName={selectedPatient?.name}
+                                        patientSex={selectedPatient?.sex}
                                     />
                                 </div>
                             )}
