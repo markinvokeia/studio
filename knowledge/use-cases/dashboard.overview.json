@@ -6,6 +6,7 @@
   "screens": [
     "dashboard"
   ],
+  "group": "Panel de Control",
   "keywords": [
     "panel",
     "inicio",

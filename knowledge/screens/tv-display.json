@@ -5,5 +5,76 @@
   "purpose": "Configura la pantalla de TV que llama a los pacientes por su turno.",
   "prerequisites": [
     "appointments"
-  ]
+  ],
+  "useCases": [
+    "tv-display.overview",
+    "tv-display.setup",
+    "tv-display.control",
+    "tv-display.next-patient"
+  ],
+  "elements": {
+    "tv-display.section.settings": {
+      "label": "Ajustes"
+    },
+    "tv-display.section.preview": {
+      "label": "Vista previa"
+    },
+    "tv-display.section.controls": {
+      "label": "Controles"
+    },
+    "tv-display.section.rooms": {
+      "label": "Acciones rápidas",
+      "description": "Siguiente paciente por consultorio."
+    },
+    "tv-display.btn.open-screen": {
+      "label": "Abrir pantalla"
+    },
+    "tv-display.btn.turn-on": {
+      "label": "Encender"
+    },
+    "tv-display.btn.turn-off": {
+      "label": "Apagar",
+      "description": "Se aplica al tocarlo."
+    },
+    "tv-display.btn.resume": {
+      "label": "Reanudar"
+    },
+    "tv-display.btn.pause": {
+      "label": "Pausar"
+    },
+    "tv-display.btn.promo": {
+      "label": "Mostrar promo"
+    },
+    "tv-display.btn.refresh": {
+      "label": "Actualizar"
+    },
+    "tv-display.btn.next": {
+      "label": "Siguiente",
+      "description": "Se aplica al tocarlo."
+    },
+    "tv-display.field.theme": {
+      "label": "Tema"
+    },
+    "tv-display.section.calendars": {
+      "label": "Consultorios"
+    },
+    "tv-display.field.refresh-interval": {
+      "label": "Actualización"
+    },
+    "tv-display.field.promo-interval": {
+      "label": "Intervalo de promo"
+    },
+    "tv-display.section.promo-videos": {
+      "label": "Videos promocionales"
+    },
+    "tv-display.section.video-column": {
+      "label": "Columna de video"
+    },
+    "tv-display.section.music": {
+      "label": "Música"
+    },
+    "tv-display.btn.save": {
+      "label": "Guardar"
+    }
+  }
 }

@@ -42,6 +42,7 @@ export function MascotWakeButton({ withDivider, compact }: MascotWakeButtonProps
     <button
       type="button"
       data-help-launcher
+      data-help-id="rail.section.assistant"
       onClick={() => (clinicVisible ? setShowMascot(true) : open())}
       className={cn(
         'flex h-10 w-10 items-center justify-center rounded-xl bg-[#7C3AED]/10 text-[#7C3AED] transition-colors hover:bg-[#7C3AED]/20',

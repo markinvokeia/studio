@@ -97,6 +97,9 @@ tiene que quedar cubierta entera:
 - `pnpm knowledge:build` no reescribe el catálogo si hay errores: corregilos antes de
   mirar `src/generated/help-catalog.json`. Y no lo regeneres mientras corre una prueba en
   el dev server: la app lo importa y la recompilación corta la prueba.
+- Evitá guías de 1–2 pasos: agrupá en un recorrido (p. ej. «Recorrer la barra lateral») y
+  hacé guías de detalle con varios pasos. Para recorrer pantallas, `navigate` + `highlight`
+  de `app.section.page` (el paso navigate sólo señala el menú un instante).
 - Tablas (`DataTable`): la primera fila es `<scope>.section.first-row` (la más reciente o la
   primera del orden) y el resto `<scope>.section.row`; para mostrar "el registro más cercano".
 - Componentes compartidos entre pantallas (filtros de período, diálogos de sesión clínica,

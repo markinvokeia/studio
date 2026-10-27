@@ -12,7 +12,30 @@
   ],
   "useCases": [
     "dashboard.overview",
-    "dashboard.filters"
+    "dashboard.filters",
+    "dashboard.rail-tour",
+    "dashboard.rail-patient-sede-cash",
+    "dashboard.rail-tv-bill",
+    "dashboard.rail-alerts-inbox-notes",
+    "dashboard.menu-tour",
+    "dashboard.menu-Cashier",
+    "dashboard.menu-Sales",
+    "dashboard.menu-Purchases",
+    "dashboard.menu-ClinicCatalog",
+    "dashboard.menu-BusinessSetup-1",
+    "dashboard.menu-BusinessSetup-2",
+    "dashboard.menu-BusinessSetup-3",
+    "dashboard.menu-BusinessSetup-4",
+    "dashboard.menu-System-1",
+    "dashboard.menu-System-2",
+    "dashboard.menu-System-3",
+    "dashboard.menu-System-4",
+    "dashboard.menu-System-5",
+    "dashboard.menu-Reports-1",
+    "dashboard.menu-Reports-2",
+    "dashboard.menu-Reports-3",
+    "dashboard.menu-Reports-4",
+    "dashboard.menu-Reports-5"
   ],
   "elements": {
     "dashboard.filter.branch": {
@@ -73,6 +96,101 @@
     "dashboard.section.evolution": {
       "label": "Evolución",
       "description": "Los últimos 6 meses de producción, cobranza, atenciones, pacientes nuevos y gastos, con la variación contra el mes anterior. No depende del período; el mes en curso figura como parcial."
+    },
+    "rail.btn.expand": {
+      "label": "Abrir la barra",
+      "description": "Pestaña arriba a la derecha."
+    },
+    "rail.btn.collapse": {
+      "label": "Cerrar la barra"
+    },
+    "rail.section.rail": {
+      "label": "Barra de accesos rápidos"
+    },
+    "rail.section.patient": {
+      "label": "Paciente",
+      "description": "Búsqueda rápida y ficha rápida."
+    },
+    "rail.section.sede": {
+      "label": "Sede",
+      "description": "Sede de trabajo."
+    },
+    "rail.section.cash": {
+      "label": "Caja",
+      "description": "Estado de la caja abierta."
+    },
+    "rail.section.tv": {
+      "label": "TV",
+      "description": "Pantalla de la sala de espera."
+    },
+    "rail.btn.bill": {
+      "label": "Cobrar",
+      "description": "Cobro rápido."
+    },
+    "rail.section.alerts": {
+      "label": "Alertas"
+    },
+    "rail.section.exchange": {
+      "label": "Cambio",
+      "description": "Tipo de cambio de la caja."
+    },
+    "rail.section.inbox": {
+      "label": "Inbox",
+      "description": "Notificaciones internas."
+    },
+    "rail.section.notes": {
+      "label": "Notas",
+      "description": "Notas adhesivas personales."
+    },
+    "rail.section.assistant": {
+      "label": "Asistente"
+    },
+    "billing-wizard.section.wizard": {
+      "label": "Asistente de cobro"
+    },
+    "app.section.page": {
+      "label": "Pantalla",
+      "description": "El contenido de la pantalla actual."
+    },
+    "rail.btn.patient": {
+      "label": "Buscar paciente"
+    },
+    "rail.section.patient-search": {
+      "label": "Búsqueda rápida de pacientes"
+    },
+    "rail.btn.sede": {
+      "label": "Sede"
+    },
+    "rail.section.sede-list": {
+      "label": "Sedes"
+    },
+    "rail.btn.cash": {
+      "label": "Caja"
+    },
+    "rail.section.cash-panel": {
+      "label": "Tu caja"
+    },
+    "rail.btn.tv": {
+      "label": "TV"
+    },
+    "rail.section.tv-menu": {
+      "label": "Control de la TV"
+    },
+    "rail.btn.alerts": {
+      "label": "Alertas"
+    },
+    "rail.section.alerts-panel": {
+      "label": "Alertas pendientes"
+    },
+    "rail.btn.notes": {
+      "label": "Notas"
+    },
+    "rail.section.notes-panel": {
+      "label": "Notas"
+    },
+    "rail.section.bill": {
+      "label": "Cobrar",
+      "description": "Cobro rápido."
     }
   }
 }

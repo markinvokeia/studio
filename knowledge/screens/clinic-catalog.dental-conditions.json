@@ -2,5 +2,42 @@
   "id": "clinic-catalog.dental-conditions",
   "status": "draft",
   "summary": "Condiciones dentales del odontograma.",
-  "purpose": "Define qué se puede marcar en cada pieza (caries, obturación, ausente…) y cómo se ve en el odontograma."
+  "purpose": "Define qué se puede marcar en cada pieza (caries, obturación, ausente…) y cómo se ve en el odontograma.",
+  "useCases": [
+    "clinic-catalog.dental-conditions.overview",
+    "clinic-catalog.dental-conditions.create",
+    "clinic-catalog.dental-conditions.edit",
+    "clinic-catalog.dental-conditions.delete"
+  ],
+  "elements": {
+    "clinic-catalog.dental-conditions.section.first-row": {
+      "label": "Primero de la lista"
+    },
+    "clinic-catalog.dental-conditions.section.row": {
+      "label": "Registro"
+    },
+    "clinic-catalog.dental-conditions.section.detail": {
+      "label": "Detalle"
+    },
+    "clinic-catalog.dental-conditions.btn.edit": {
+      "label": "Editar"
+    },
+    "clinic-catalog.dental-conditions.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "clinic-catalog.dental-conditions.btn.delete-confirm": {
+      "label": "Confirmar eliminación"
+    },
+    "clinic-catalog.dental-conditions.field.nombre": {
+      "label": "Nombre"
+    },
+    "clinic-catalog.dental-conditions.field.codigo_visual": {
+      "label": "Código visual",
+      "description": "Cómo se dibuja en la pieza."
+    },
+    "clinic-catalog.dental-conditions.field.color_hex": {
+      "label": "Color"
+    }
+  }
 }

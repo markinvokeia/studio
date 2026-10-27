@@ -2,8 +2,67 @@
   "id": "reports.deudores",
   "status": "draft",
   "summary": "Pacientes deudores.",
-  "purpose": "Pacientes con saldo pendiente y antigüedad de la deuda, para gestionar la cobranza.",
+  "purpose": "La deuda de pacientes por antigüedad: herramienta de cobranza.",
   "tips": [
+    "Elegí los filtros y tocá «Generar»: el reporte no se calcula solo.",
     "Desde el Centro de alertas se puede contactar a los deudores."
-  ]
+  ],
+  "useCases": [
+    "reports.deudores.overview"
+  ],
+  "elements": {
+    "reports.deudores.section.filters": {
+      "label": "Filtros",
+      "description": "Moneda, antigüedad y deuda mínima."
+    },
+    "reports.deudores.btn.generate": {
+      "label": "Generar",
+      "description": "Calcula el reporte."
+    },
+    "reports.deudores.section.empty": {
+      "label": "Sin datos"
+    },
+    "reports.deudores.section.kpi": {
+      "label": "Indicadores",
+      "description": "Total de deuda, cantidad de deudores, vencida más de 90 días y corriente 0-30 días."
+    },
+    "reports.deudores.section.results": {
+      "label": "Resultados",
+      "description": "Cada deudor con su deuda por tramo de antigüedad."
+    },
+    "reports.deudores.section.table": {
+      "label": "Detalle"
+    },
+    "reports.deudores.section.export": {
+      "label": "Exportar e imprimir"
+    },
+    "reports.deudores.btn.export": {
+      "label": "Exportar",
+      "description": "Excel, CSV o PDF."
+    },
+    "reports.deudores.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.deudores.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.deudores.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.deudores.btn.print": {
+      "label": "Imprimir"
+    },
+    "reports.deudores.filter.period": {
+      "label": "Período"
+    },
+    "reports.deudores.section.period-options": {
+      "label": "Opciones de período"
+    },
+    "reports.deudores.filter.currency": {
+      "label": "Moneda"
+    },
+    "reports.deudores.filter.currency-filter": {
+      "label": "Moneda"
+    }
+  }
 }

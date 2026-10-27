@@ -280,6 +280,16 @@ Cobertura por pantalla (todas probadas en la app real, sin guardar en DEV):
   auditoría, errores, historial y ejecuciones de alertas (consulta); ajustes de alertas,
   agente de WhatsApp, notificaciones, licencias, métricas del asistente, suscripciones e
   importación.
+- **Reportes** (21): una guía por reporte (período, moneda, filtros propios, Generar,
+  indicadores, resultados, detalle, exportar e imprimir). Los ids están en los componentes
+  compartidos (`ReportShell`, `ReportKPICard`, `ReportDataTable`, `ReportExportActions`).
+- **Panel de Control, grupos «Menú» y «Barra lateral»**: un recorrido del menú, un
+  recorrido de la barra lateral, guías de detalle de la barra (paciente/sede/caja,
+  TV/cobro, alertas/cambio/inbox/notas) y «Conocer <sección>» que entra a cada pantalla de
+  la sección (tramos de hasta 6, según los separadores del menú). Sin guías de 1–2 pasos.
+  La barra tiene ids globales `rail.*`; el contenido de cada pantalla, `app.section.page`.
+- **Pantalla TV** (4) y **Catálogo de la Clínica** (16). Estudios y Estudios compartidos
+  quedan sin cubrir por decisión del usuario.
 
 Más reglas de ubicación: un botón que se repite en varias filas (acciones por alerta o
 por cita) se señala en una fila donde esté habilitado; dentro de un diálogo, si la lista

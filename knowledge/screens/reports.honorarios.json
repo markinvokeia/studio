@@ -2,5 +2,66 @@
   "id": "reports.honorarios",
   "status": "draft",
   "summary": "Honorarios de profesionales.",
-  "purpose": "Lo producido por cada profesional y lo que le corresponde según su forma de liquidación."
+  "purpose": "Lo producido por cada profesional y lo que le corresponde según su porcentaje.",
+  "useCases": [
+    "reports.honorarios.overview"
+  ],
+  "tips": [
+    "Elegí los filtros y tocá «Generar»: el reporte no se calcula solo."
+  ],
+  "elements": {
+    "reports.honorarios.section.filters": {
+      "label": "Filtros",
+      "description": "«Calcular sobre» (lo facturado o lo cobrado) y moneda."
+    },
+    "reports.honorarios.btn.generate": {
+      "label": "Generar",
+      "description": "Calcula el reporte."
+    },
+    "reports.honorarios.section.empty": {
+      "label": "Sin datos"
+    },
+    "reports.honorarios.section.kpi": {
+      "label": "Indicadores",
+      "description": "Cantidad de profesionales y porcentaje promedio."
+    },
+    "reports.honorarios.section.results": {
+      "label": "Resultados",
+      "description": "Por profesional: base, porcentaje y honorario a pagar."
+    },
+    "reports.honorarios.section.table": {
+      "label": "Detalle"
+    },
+    "reports.honorarios.section.export": {
+      "label": "Exportar e imprimir"
+    },
+    "reports.honorarios.btn.export": {
+      "label": "Exportar",
+      "description": "Excel, CSV o PDF."
+    },
+    "reports.honorarios.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.honorarios.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.honorarios.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.honorarios.btn.print": {
+      "label": "Imprimir"
+    },
+    "reports.honorarios.filter.period": {
+      "label": "Período"
+    },
+    "reports.honorarios.section.period-options": {
+      "label": "Opciones de período"
+    },
+    "reports.honorarios.filter.currency": {
+      "label": "Moneda"
+    },
+    "reports.honorarios.filter.currency-filter": {
+      "label": "Moneda"
+    }
+  }
 }

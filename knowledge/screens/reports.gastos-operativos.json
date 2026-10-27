@@ -2,5 +2,66 @@
   "id": "reports.gastos-operativos",
   "status": "draft",
   "summary": "Gastos operativos.",
-  "purpose": "Egresos del período por categoría y proveedor."
+  "purpose": "Los egresos del período: misceláneas de caja y compras a proveedores.",
+  "useCases": [
+    "reports.gastos-operativos.overview"
+  ],
+  "tips": [
+    "Elegí los filtros y tocá «Generar»: el reporte no se calcula solo."
+  ],
+  "elements": {
+    "reports.gastos-operativos.section.filters": {
+      "label": "Filtros",
+      "description": "Moneda."
+    },
+    "reports.gastos-operativos.btn.generate": {
+      "label": "Generar",
+      "description": "Calcula el reporte."
+    },
+    "reports.gastos-operativos.section.empty": {
+      "label": "Sin datos"
+    },
+    "reports.gastos-operativos.section.kpi": {
+      "label": "Indicadores",
+      "description": "Misceláneas, facturado y pagado a proveedores y deuda con proveedores."
+    },
+    "reports.gastos-operativos.section.results": {
+      "label": "Resultados",
+      "description": "Gastos por categoría y por proveedor."
+    },
+    "reports.gastos-operativos.section.table": {
+      "label": "Detalle"
+    },
+    "reports.gastos-operativos.section.export": {
+      "label": "Exportar e imprimir"
+    },
+    "reports.gastos-operativos.btn.export": {
+      "label": "Exportar",
+      "description": "Excel, CSV o PDF."
+    },
+    "reports.gastos-operativos.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.gastos-operativos.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.gastos-operativos.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.gastos-operativos.btn.print": {
+      "label": "Imprimir"
+    },
+    "reports.gastos-operativos.filter.period": {
+      "label": "Período"
+    },
+    "reports.gastos-operativos.section.period-options": {
+      "label": "Opciones de período"
+    },
+    "reports.gastos-operativos.filter.currency": {
+      "label": "Moneda"
+    },
+    "reports.gastos-operativos.filter.currency-filter": {
+      "label": "Moneda"
+    }
+  }
 }

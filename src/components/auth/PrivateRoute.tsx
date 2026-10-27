@@ -248,7 +248,8 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         <main className="flex-1 flex flex-col min-h-0 bg-[var(--page-tint,hsl(var(--background)))] px-0 sm:px-4 lg:px-6 pb-0 sm:pb-6 lg:pb-6 pt-0 overflow-visible print:block print:h-auto print:overflow-visible print:px-0 relative">
           {/* Escondite de la mascota cuando la dejan arriba o abajo: detrás del panel del contenido. */}
           <MascotPeekZone edge="auto" name="content" className="help-content-zone flex-1 flex flex-col min-h-0 print:block">
-          <div className="flex-1 flex flex-col min-h-0 print:block print:h-auto overflow-hidden print:overflow-visible relative">
+          {/* app.section.page: el contenido de la pantalla, para las guías que recorren el menú. */}
+          <div data-help-id="app.section.page" className="flex-1 flex flex-col min-h-0 print:block print:h-auto overflow-hidden print:overflow-visible relative">
             {/* Scope de help ids de la pantalla: lo usan las primitivas de ui para los data-help-id. */}
             <HelpScopeProvider scope={routeToHelpScope(effectivePathname)}>
               {children}

@@ -1,0 +1,94 @@
+{
+  "id": "dashboard.menu-BusinessSetup-1",
+  "title": "Conocer Configuración de Negocio: Detalles de la Clínica, Preferencias de Clínica y más",
+  "module": "Panel de Control",
+  "summary": "Recorrido por Detalles de la Clínica, Preferencias de Clínica, Portal del Paciente, Sedes y Horarios: para qué sirve cada pantalla.",
+  "screens": [
+    "dashboard"
+  ],
+  "group": "Menú",
+  "keywords": [
+    "configuración de negocio",
+    "qué hay en configuración de negocio",
+    "detalles de la clínica",
+    "preferencias de clínica",
+    "portal del paciente",
+    "sedes",
+    "horarios"
+  ],
+  "steps": [
+    {
+      "id": "section",
+      "action": "highlight",
+      "target": "nav.group.BusinessSetup",
+      "title": "Configuración de Negocio",
+      "details": "Recorremos Detalles de la Clínica, Preferencias de Clínica, Portal del Paciente, Sedes y Horarios.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "go-config.clinics",
+      "action": "navigate",
+      "route": "/config/clinics",
+      "title": "Menú → Configuración de Negocio → Detalles de la Clínica"
+    },
+    {
+      "id": "page-config.clinics",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Detalles de la Clínica",
+      "details": "Es lo primero que se configura. El nombre y el logo aparecen en presupuestos, facturas, recordatorios y el portal de pacientes; la moneda principal es la de precios y caja. Tiene 3 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-config.clinic-prefs",
+      "action": "navigate",
+      "route": "/config/clinic-prefs",
+      "title": "Menú → Configuración de Negocio → Preferencias de Clínica"
+    },
+    {
+      "id": "page-config.clinic-prefs",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Preferencias de Clínica",
+      "details": "Opciones de funcionamiento: descuentos, comportamiento de cobros y presupuestos y otros ajustes que afectan a todo el equipo. Tiene 2 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-config.patients-portal",
+      "action": "navigate",
+      "route": "/config/patients-portal",
+      "title": "Menú → Configuración de Negocio → Portal del Paciente"
+    },
+    {
+      "id": "page-config.patients-portal",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Portal del Paciente",
+      "details": "Define qué ve y qué puede hacer el paciente online: reservar turnos, elegir servicios, ver precios, mensaje y video de bienvenida. Tiene 1 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-config.sedes",
+      "action": "navigate",
+      "route": "/config/sedes",
+      "title": "Menú → Configuración de Negocio → Sedes"
+    },
+    {
+      "id": "page-config.sedes",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Sedes",
+      "details": "Cada sede agrupa sus consultorios y su horario de atención. Los pacientes eligen sede al reservar online y el equipo trabaja con una sede activa. Tiene 7 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-config.schedules",
+      "action": "navigate",
+      "route": "/config/schedules",
+      "title": "Menú → Configuración de Negocio → Horarios"
+    },
+    {
+      "id": "page-config.schedules",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Horarios",
+      "details": "Limita en qué días y horas se pueden dar turnos en la sede. Se combina con la disponibilidad de cada profesional. Tiene 5 guías en «Guiame en esta pantalla»."
+    }
+  ]
+}

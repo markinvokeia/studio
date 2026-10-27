@@ -2,5 +2,66 @@
   "id": "reports.produccion-doctor",
   "status": "draft",
   "summary": "Producción por profesional.",
-  "purpose": "Tratamientos realizados y su valor por profesional."
+  "purpose": "Lo que produjo cada profesional en el período: tratamientos facturados y su valor.",
+  "useCases": [
+    "reports.produccion-doctor.overview"
+  ],
+  "tips": [
+    "Elegí los filtros y tocá «Generar»: el reporte no se calcula solo."
+  ],
+  "elements": {
+    "reports.produccion-doctor.section.filters": {
+      "label": "Filtros",
+      "description": "Moneda."
+    },
+    "reports.produccion-doctor.btn.generate": {
+      "label": "Generar",
+      "description": "Calcula el reporte."
+    },
+    "reports.produccion-doctor.section.empty": {
+      "label": "Sin datos"
+    },
+    "reports.produccion-doctor.section.kpi": {
+      "label": "Indicadores",
+      "description": "Cuántos profesionales produjeron y el total."
+    },
+    "reports.produccion-doctor.section.results": {
+      "label": "Resultados",
+      "description": "Gráfico y tabla por profesional."
+    },
+    "reports.produccion-doctor.section.table": {
+      "label": "Detalle"
+    },
+    "reports.produccion-doctor.section.export": {
+      "label": "Exportar e imprimir"
+    },
+    "reports.produccion-doctor.btn.export": {
+      "label": "Exportar",
+      "description": "Excel, CSV o PDF."
+    },
+    "reports.produccion-doctor.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.produccion-doctor.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.produccion-doctor.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.produccion-doctor.btn.print": {
+      "label": "Imprimir"
+    },
+    "reports.produccion-doctor.filter.period": {
+      "label": "Período"
+    },
+    "reports.produccion-doctor.section.period-options": {
+      "label": "Opciones de período"
+    },
+    "reports.produccion-doctor.filter.currency": {
+      "label": "Moneda"
+    },
+    "reports.produccion-doctor.filter.currency-filter": {
+      "label": "Moneda"
+    }
+  }
 }

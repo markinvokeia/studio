@@ -1,0 +1,60 @@
+{
+  "id": "clinic-catalog.ailments.create",
+  "title": "Agregar un padecimiento",
+  "module": "Catálogo de la Clínica",
+  "summary": "Alta en el catálogo de padecimientos.",
+  "screens": [
+    "clinic-catalog.ailments"
+  ],
+  "inputs": {
+    "name": "Nombre"
+  },
+  "keywords": [
+    "nuevo padecimiento",
+    "agregar padecimiento"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/clinic-catalog/ailments",
+      "title": "Menú → Catálogo de la Clínica → Padecimientos",
+      "details": "Las enfermedades y condiciones que se cargan en la anamnesis; las de nivel de alerta alto aparecen como alerta en la ficha del paciente."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "clinic-catalog.ailments.btn.new",
+      "title": "Crear",
+      "until": "clinic-catalog.ailments.field.nombre"
+    },
+    {
+      "id": "nombre",
+      "action": "fill",
+      "target": "clinic-catalog.ailments.field.nombre",
+      "title": "Nombre",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "categoria",
+      "action": "highlight",
+      "target": "clinic-catalog.ailments.field.categoria",
+      "title": "Categoría",
+      "skipIfMissing": true
+    },
+    {
+      "id": "nivel_alerta",
+      "action": "highlight",
+      "target": "clinic-catalog.ailments.field.nivel_alerta",
+      "title": "Nivel de alerta",
+      "details": "Alto: se muestra como alerta en la ficha del paciente.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "clinic-catalog.ailments.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

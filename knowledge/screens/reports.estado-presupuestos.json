@@ -2,8 +2,69 @@
   "id": "reports.estado-presupuestos",
   "status": "draft",
   "summary": "Estado de los presupuestos.",
-  "purpose": "Presupuestos emitidos, aceptados, rechazados y pendientes, con su monto.",
+  "purpose": "Presupuestos emitidos, aceptados, rechazados y pendientes, con su tasa de conversión.",
   "prerequisites": [
     "sales.quotes"
-  ]
+  ],
+  "useCases": [
+    "reports.estado-presupuestos.overview"
+  ],
+  "tips": [
+    "Elegí los filtros y tocá «Generar»: el reporte no se calcula solo."
+  ],
+  "elements": {
+    "reports.estado-presupuestos.section.filters": {
+      "label": "Filtros",
+      "description": "Moneda."
+    },
+    "reports.estado-presupuestos.btn.generate": {
+      "label": "Generar",
+      "description": "Calcula el reporte."
+    },
+    "reports.estado-presupuestos.section.empty": {
+      "label": "Sin datos"
+    },
+    "reports.estado-presupuestos.section.kpi": {
+      "label": "Indicadores",
+      "description": "Cantidad de presupuestos, días promedio hasta que se aceptan y tasa de conversión."
+    },
+    "reports.estado-presupuestos.section.results": {
+      "label": "Resultados",
+      "description": "Distribución por estado y el detalle de cada presupuesto."
+    },
+    "reports.estado-presupuestos.section.table": {
+      "label": "Detalle"
+    },
+    "reports.estado-presupuestos.section.export": {
+      "label": "Exportar e imprimir"
+    },
+    "reports.estado-presupuestos.btn.export": {
+      "label": "Exportar",
+      "description": "Excel, CSV o PDF."
+    },
+    "reports.estado-presupuestos.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.estado-presupuestos.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.estado-presupuestos.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.estado-presupuestos.btn.print": {
+      "label": "Imprimir"
+    },
+    "reports.estado-presupuestos.filter.period": {
+      "label": "Período"
+    },
+    "reports.estado-presupuestos.section.period-options": {
+      "label": "Opciones de período"
+    },
+    "reports.estado-presupuestos.filter.currency": {
+      "label": "Moneda"
+    },
+    "reports.estado-presupuestos.filter.currency-filter": {
+      "label": "Moneda"
+    }
+  }
 }

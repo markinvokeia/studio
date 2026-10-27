@@ -1,0 +1,52 @@
+{
+  "id": "dashboard.menu-System-5",
+  "title": "Conocer Sistema: Licencias y Suscripciones",
+  "module": "Panel de Control",
+  "summary": "Recorrido por Licencias y Suscripciones: para qué sirve cada pantalla.",
+  "screens": [
+    "dashboard"
+  ],
+  "group": "Menú",
+  "keywords": [
+    "sistema",
+    "qué hay en sistema",
+    "licencias",
+    "suscripciones"
+  ],
+  "steps": [
+    {
+      "id": "section",
+      "action": "highlight",
+      "target": "nav.group.System",
+      "title": "Sistema",
+      "details": "Recorremos Licencias y Suscripciones.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "go-system.licenses",
+      "action": "navigate",
+      "route": "/system/licenses",
+      "title": "Menú → Sistema → Licencias"
+    },
+    {
+      "id": "page-system.licenses",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Licencias",
+      "details": "El plan contratado, sus límites (profesionales, usuarios, pacientes nuevos por mes) y su vencimiento. Tiene 1 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-subscriptions",
+      "action": "navigate",
+      "route": "/subscriptions",
+      "title": "Menú → Sistema → Suscripciones"
+    },
+    {
+      "id": "page-subscriptions",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Suscripciones",
+      "details": "Las suscripciones y renovaciones de la licencia de Invoke. Tiene 1 guías en «Guiame en esta pantalla»."
+    }
+  ]
+}

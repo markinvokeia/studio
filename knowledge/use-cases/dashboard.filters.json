@@ -6,6 +6,7 @@
   "screens": [
     "dashboard"
   ],
+  "group": "Panel de Control",
   "inputs": {
     "branch": "Nombre de la sucursal, o Consolidado para todas",
     "period": "today | week | month | prevMonth | year",

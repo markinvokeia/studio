@@ -2,5 +2,66 @@
   "id": "reports.cuentas-corrientes",
   "status": "draft",
   "summary": "Cuentas corrientes de pacientes.",
-  "purpose": "Saldo de cada paciente: lo facturado, lo pagado y lo que debe o tiene a favor."
+  "purpose": "El saldo de cada paciente: lo facturado, lo cobrado y lo que debe.",
+  "useCases": [
+    "reports.cuentas-corrientes.overview"
+  ],
+  "tips": [
+    "Elegí los filtros y tocá «Generar»: el reporte no se calcula solo."
+  ],
+  "elements": {
+    "reports.cuentas-corrientes.section.filters": {
+      "label": "Filtros",
+      "description": "Moneda y estado (con deuda, al día, a favor)."
+    },
+    "reports.cuentas-corrientes.btn.generate": {
+      "label": "Generar",
+      "description": "Calcula el reporte."
+    },
+    "reports.cuentas-corrientes.section.empty": {
+      "label": "Sin datos"
+    },
+    "reports.cuentas-corrientes.section.kpi": {
+      "label": "Indicadores",
+      "description": "Total facturado, total cobrado, saldo neto y cuántos pacientes tienen deuda."
+    },
+    "reports.cuentas-corrientes.section.results": {
+      "label": "Resultados",
+      "description": "Una fila por paciente con su saldo; tocá el nombre para ir a su ficha."
+    },
+    "reports.cuentas-corrientes.section.table": {
+      "label": "Detalle"
+    },
+    "reports.cuentas-corrientes.section.export": {
+      "label": "Exportar e imprimir"
+    },
+    "reports.cuentas-corrientes.btn.export": {
+      "label": "Exportar",
+      "description": "Excel, CSV o PDF."
+    },
+    "reports.cuentas-corrientes.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.cuentas-corrientes.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.cuentas-corrientes.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.cuentas-corrientes.btn.print": {
+      "label": "Imprimir"
+    },
+    "reports.cuentas-corrientes.filter.period": {
+      "label": "Período"
+    },
+    "reports.cuentas-corrientes.section.period-options": {
+      "label": "Opciones de período"
+    },
+    "reports.cuentas-corrientes.filter.currency": {
+      "label": "Moneda"
+    },
+    "reports.cuentas-corrientes.filter.currency-filter": {
+      "label": "Moneda"
+    }
+  }
 }

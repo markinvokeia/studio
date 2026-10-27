@@ -1,0 +1,107 @@
+{
+  "id": "reports.estado-presupuestos.overview",
+  "title": "Usar el reporte Estado de Presupuestos",
+  "module": "Reportes",
+  "summary": "Presupuestos emitidos, aceptados, rechazados y pendientes, con su tasa de conversión.",
+  "screens": [
+    "reports.estado-presupuestos"
+  ],
+  "keywords": [
+    "estado de presupuestos",
+    "conversión de presupuestos",
+    "presupuestos aceptados",
+    "presupuestos pendientes"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/reports/estado-presupuestos",
+      "title": "Menú → Reportes → Estado de Presupuestos",
+      "details": "Presupuestos emitidos, aceptados, rechazados y pendientes, con su tasa de conversión."
+    },
+    {
+      "id": "period",
+      "action": "highlight",
+      "target": "reports.estado-presupuestos.filter.period",
+      "title": "Período",
+      "details": "Hoy, esta semana, este mes, el mes pasado, este año o un rango propio.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "currency-filter",
+      "action": "highlight",
+      "target": "reports.estado-presupuestos.filter.currency-filter",
+      "title": "Moneda",
+      "details": "Sólo si la clínica trabaja con dos monedas: todas o una.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "reports.estado-presupuestos.section.filters",
+      "title": "Filtros",
+      "details": "Moneda."
+    },
+    {
+      "id": "generate",
+      "action": "click",
+      "target": "reports.estado-presupuestos.btn.generate",
+      "title": "Generar",
+      "details": "Calcula el reporte con los filtros elegidos.",
+      "until": [
+        "reports.estado-presupuestos.section.results",
+        "reports.estado-presupuestos.section.empty"
+      ]
+    },
+    {
+      "id": "empty",
+      "action": "highlight",
+      "target": "reports.estado-presupuestos.section.empty",
+      "title": "Sin datos",
+      "details": "No hay datos para esos filtros: probá con otro período.",
+      "onlyIf": "reports.estado-presupuestos.section.empty",
+      "skipIfMissing": true
+    },
+    {
+      "id": "kpis",
+      "action": "highlight",
+      "target": "reports.estado-presupuestos.section.kpi",
+      "title": "Indicadores",
+      "details": "Cantidad de presupuestos, días promedio hasta que se aceptan y tasa de conversión.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "results",
+      "action": "highlight",
+      "target": "reports.estado-presupuestos.section.results",
+      "title": "Resultados",
+      "details": "Distribución por estado y el detalle de cada presupuesto.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "table",
+      "action": "highlight",
+      "target": "reports.estado-presupuestos.section.table",
+      "title": "Detalle",
+      "details": "Ordená por columna tocando el encabezado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "export",
+      "action": "highlight",
+      "target": "reports.estado-presupuestos.btn.export",
+      "title": "Exportar",
+      "details": "Excel, CSV o PDF con lo que estás viendo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "reports.estado-presupuestos.btn.print",
+      "title": "Imprimir",
+      "details": "Con el encabezado de la clínica.",
+      "skipIfMissing": true
+    }
+  ]
+}

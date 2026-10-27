@@ -48,9 +48,9 @@ function StickyNotesDeepLink({ onOpen }: { onOpen: () => void }) {
 
 // ── Panel item: icon + label ──────────────────────────────────────────────────
 
-function PanelItem({ label, children }: { label: string; children: React.ReactNode }) {
+function PanelItem({ label, helpId, children }: { label: string; helpId?: string; children: React.ReactNode }) {
     return (
-        <div className="flex flex-col items-center gap-1 w-full px-1">
+        <div data-help-id={helpId} className="flex flex-col items-center gap-1 w-full px-1">
             {children}
             <span className="text-[7.5px] font-medium text-muted-foreground leading-none text-center tracking-tight select-none">
                 {label}
@@ -251,6 +251,7 @@ export function Header() {
                     <button
                         ref={toggleBtnRef}
                         type="button"
+                        data-help-id="rail.btn.expand"
                         onClick={() => { setIsExpanded(true); setShouldPulse(false); setPeekItem(null); }}
                         className={cn(
                             'fixed top-3 right-0 z-[50]',
@@ -279,12 +280,13 @@ export function Header() {
                         // posicionamiento va acá (inline: el CSS de la mascota se carga después de Tailwind).
                         style={{ position: 'fixed', top: 0, bottom: 0, right: 0, width: '3.5rem', zIndex: 50 }}
                     >
-                    <div data-help-rail className="flex h-full w-full flex-col items-center gap-2 pt-3 pb-3 bg-[hsl(var(--floating-header-bg))] border-l border-border shadow-[-2px_0_16px_rgba(0,0,0,0.08)] animate-in fade-in slide-in-from-right-4 duration-200 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <div data-help-rail data-help-id="rail.section.rail" className="flex h-full w-full flex-col items-center gap-2 pt-3 pb-3 bg-[hsl(var(--floating-header-bg))] border-l border-border shadow-[-2px_0_16px_rgba(0,0,0,0.08)] animate-in fade-in slide-in-from-right-4 duration-200 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
                             <Button
                                 ref={toggleBtnRef}
                                 variant="ghost"
                                 size="icon"
+                                data-help-id="rail.btn.collapse"
                                 onClick={() => setIsExpanded(false)}
                                 className="rounded-xl h-9 w-9 bg-muted/60 hover:bg-muted text-muted-foreground shrink-0"
                             >
@@ -292,32 +294,33 @@ export function Header() {
                             </Button>
 
                             {hasPermission(PATIENTS_PERMISSIONS.VIEW_LIST) && (
-                                <PanelItem label="Paciente">
+                                <PanelItem label="Paciente" helpId="rail.section.patient">
                                     <QuickPatientSearch />
                                 </PanelItem>
                             )}
 
                             {sedes.length > 1 && (
-                                <PanelItem label="Sede">
+                                <PanelItem label="Sede" helpId="rail.section.sede">
                                     <WorkingSedeSelector />
                                 </PanelItem>
                             )}
 
                             {hasPermission(CASHIER_PERMISSIONS.VIEW_WIDGET) && (
-                                <PanelItem label="Caja">
+                                <PanelItem label="Caja" helpId="rail.section.cash">
                                     <OpenCashSessionWidget />
                                 </PanelItem>
                             )}
 
                             {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && (
-                                <PanelItem label="TV">
+                                <PanelItem label="TV" helpId="rail.section.tv">
                                     <TVDisplayWidget />
                                 </PanelItem>
                             )}
 
                             {hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) && (
-                                <PanelItem label="Cobrar">
+                                <PanelItem label="Cobrar" helpId="rail.section.bill">
                                     <Button
+                                        data-help-id="rail.btn.bill"
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => openBillingWizard({})}
@@ -332,27 +335,28 @@ export function Header() {
                             <div className="w-8 h-px bg-border/50 my-1.5 shrink-0" />
 
                             <div ref={alertsIconRef} className="w-full">
-                                <PanelItem label="Alertas">
+                                <PanelItem label="Alertas" helpId="rail.section.alerts">
                                     <AlertsWidget />
                                 </PanelItem>
                             </div>
 
                             {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_EXCHANGE_RATE) && activeCashSession && (
-                                <PanelItem label="Cambio">
+                                <PanelItem label="Cambio" helpId="rail.section.exchange">
                                     <ExchangeRate activeCashSession={activeCashSession} />
                                 </PanelItem>
                             )}
 
                             <div ref={inboxIconRef} className="w-full">
-                                <PanelItem label="Inbox">
+                                <PanelItem label="Inbox" helpId="rail.section.inbox">
                                     <NotificationsBell variant="round" />
                                 </PanelItem>
                             </div>
 
                             {hasPermission(STICKY_NOTES_PERMISSIONS.VIEW) && (
                                 <div ref={notesIconRef} className="w-full">
-                                <PanelItem label="Notas">
+                                <PanelItem label="Notas" helpId="rail.section.notes">
                                         <Button
+                                            data-help-id="rail.btn.notes"
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => setIsStickyNotesOpen(true)}
