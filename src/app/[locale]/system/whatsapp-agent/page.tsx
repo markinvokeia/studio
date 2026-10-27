@@ -355,7 +355,7 @@ export default function WhatsAppAgentConfigPage() {
                 </CardHeader>
             </Card>
 
-            <Card>
+            <Card data-help-id="system.whatsapp-agent.section.agent">
                 <CardHeader>
                     <CardTitle>{t('agent.title')}</CardTitle>
                     <CardDescription>{t('agent.description')}</CardDescription>
@@ -371,7 +371,7 @@ export default function WhatsAppAgentConfigPage() {
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card data-help-id="system.whatsapp-agent.section.hours">
                 <CardHeader>
                     <CardTitle>{t('hours.title')}</CardTitle>
                     <CardDescription>{t('hours.description')}</CardDescription>

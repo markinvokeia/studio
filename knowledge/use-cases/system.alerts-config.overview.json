@@ -1,0 +1,45 @@
+{
+  "id": "system.alerts-config.overview",
+  "title": "Configurar Configuración de Alertas",
+  "module": "Sistema",
+  "summary": "Ajustes globales del sistema de alertas: cuándo corre el generador y cuánto se guarda el historial.",
+  "screens": [
+    "system.alerts-config"
+  ],
+  "keywords": [
+    "configuración de alertas",
+    "cuándo corren las alertas"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/alerts-config",
+      "title": "Menú → Sistema → Configuración de Alertas",
+      "details": "Ajustes globales del sistema de alertas: cuándo corre el generador y cuánto se guarda el historial."
+    },
+    {
+      "id": "scheduler",
+      "action": "highlight",
+      "target": "system.alerts-config.section.scheduler",
+      "title": "Programación",
+      "details": "Cada cuánto y a qué hora se generan las alertas.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "retention",
+      "action": "highlight",
+      "target": "system.alerts-config.section.retention",
+      "title": "Retención",
+      "details": "Cuántos días se guardan alertas e historial antes de limpiarse.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "system.alerts-config.btn.save",
+      "title": "Guardar",
+      "details": "Los cambios no se aplican hasta guardar."
+    }
+  ]
+}

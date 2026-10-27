@@ -5,5 +5,13 @@
   "purpose": "Las suscripciones y renovaciones de la licencia de Invoke.",
   "prerequisites": [
     "system.licenses"
-  ]
+  ],
+  "useCases": [
+    "subscriptions.overview"
+  ],
+  "elements": {
+    "subscriptions.section.first-row": {
+      "label": "La más reciente"
+    }
+  }
 }

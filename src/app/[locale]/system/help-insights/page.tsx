@@ -134,7 +134,7 @@ export default function HelpInsightsPage() {
             </div>
 
             <div className="grid gap-4 lg:grid-cols-3">
-              <Card className="lg:col-span-2">
+              <Card data-help-id="system.help-insights.section.by-week" className="lg:col-span-2">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">{t('byWeek.title')}</CardTitle>
                   <CardDescription className="text-xs">{t('byWeek.description')}</CardDescription>
@@ -157,7 +157,7 @@ export default function HelpInsightsPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card data-help-id="system.help-insights.section.by-screen">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">{t('byScreen.title')}</CardTitle>
                   <CardDescription className="text-xs">{t('byScreen.description')}</CardDescription>
@@ -176,7 +176,7 @@ export default function HelpInsightsPage() {
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
-              <Card>
+              <Card data-help-id="system.help-insights.section.open">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">{t('open.title', { count: data.open_questions.length })}</CardTitle>
                   <CardDescription className="text-xs">{t('open.description')}</CardDescription>
@@ -212,7 +212,7 @@ export default function HelpInsightsPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card data-help-id="system.help-insights.section.tickets">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base">{t('tickets.title', { count: data.tickets.length })}</CardTitle>
                   <CardDescription className="text-xs">{t('tickets.description')}</CardDescription>
@@ -250,7 +250,7 @@ export default function HelpInsightsPage() {
             </div>
 
             <div className="grid gap-4 lg:grid-cols-3">
-              <Card>
+              <Card data-help-id="system.help-insights.section.catalog">
                 <CardHeader className="pb-2"><CardTitle className="text-base">{t('catalog.title')}</CardTitle></CardHeader>
                 <CardContent className="space-y-1 text-sm">
                   <p>{t('catalog.screens', { validated: data.catalog?.validated ?? 0, total: data.catalog?.screens ?? 0 })}</p>
@@ -260,7 +260,7 @@ export default function HelpInsightsPage() {
                   </p>
                 </CardContent>
               </Card>
-              <Card>
+              <Card data-help-id="system.help-insights.section.videos">
                 <CardHeader className="pb-2"><CardTitle className="flex items-center gap-1.5 text-base"><Video className="h-4 w-4" />{t('videos.title')}</CardTitle></CardHeader>
                 <CardContent className="space-y-1 text-sm">
                   <p>{t('videos.ready', { count: data.videos?.ready ?? 0 })}</p>
@@ -269,7 +269,7 @@ export default function HelpInsightsPage() {
                   {(data.videos?.requests_failed ?? 0) > 0 && <p className="text-destructive">{t('videos.failed', { count: data.videos?.requests_failed ?? 0 })}</p>}
                 </CardContent>
               </Card>
-              <Card>
+              <Card data-help-id="system.help-insights.section.onboarding">
                 <CardHeader className="pb-2"><CardTitle className="text-base">{t('onboarding.title')}</CardTitle></CardHeader>
                 <CardContent className="space-y-1 text-sm">
                   {data.onboarding.length === 0 && <p className="text-muted-foreground">{t('empty')}</p>}

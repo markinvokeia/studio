@@ -67,6 +67,14 @@
       "skipIfMissing": true
     },
     {
+      "id": "add",
+      "action": "click",
+      "target": "sales.invoices.btn.add-item",
+      "title": "Agregar ítem",
+      "until": "sales.invoices.field.items.service_id",
+      "skipIfMissing": true
+    },
+    {
       "id": "service",
       "action": "fill",
       "target": "sales.invoices.field.items.service_id",

@@ -7,6 +7,19 @@
     "El número lo conecta el equipo de Invoke; acá se prende y se configura."
   ],
   "useCases": [
-    "onboarding.whatsapp"
-  ]
+    "onboarding.whatsapp",
+    "system.whatsapp-agent.overview"
+  ],
+  "elements": {
+    "system.whatsapp-agent.section.agent": {
+      "label": "Agente"
+    },
+    "system.whatsapp-agent.section.hours": {
+      "label": "Horario",
+      "description": "Fuera de horario responde con el mensaje de ausencia."
+    },
+    "system.whatsapp-agent.btn.save": {
+      "label": "Guardar"
+    }
+  }
 }

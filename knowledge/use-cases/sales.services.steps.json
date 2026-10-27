@@ -1,0 +1,67 @@
+{
+  "id": "sales.services.steps",
+  "title": "Armar un tratamiento por etapas",
+  "module": "Ventas",
+  "summary": "Servicio de tipo «por etapas»: sus sesiones, plazos entre una y otra y si dependen del laboratorio. Con él se arman los planes de tratamiento.",
+  "screens": [
+    "sales.services"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "etapas",
+    "tratamiento por etapas",
+    "plan de tratamiento",
+    "sesiones del tratamiento",
+    "laboratorio"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/services",
+      "title": "Menú → Ventas → Servicios"
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "sales.services.filter.search",
+      "title": "Buscá el servicio",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "sales.services.section.first-row",
+      "title": "Elegí el servicio",
+      "until": "sales.services.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "type",
+      "action": "highlight",
+      "target": "sales.services.field.service_type",
+      "title": "Tipo",
+      "details": "Elegí «por etapas» y guardá para que aparezca la pestaña Etapas.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "sales.services.tab.steps",
+      "title": "Etapas",
+      "skipIfMissing": true
+    },
+    {
+      "id": "add",
+      "action": "highlight",
+      "target": "sales.services.btn.add-step",
+      "title": "Agregar etapa",
+      "details": "Nombre, días desde la etapa anterior y si depende del laboratorio.",
+      "skipIfMissing": true
+    }
+  ]
+}

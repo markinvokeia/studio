@@ -1,0 +1,58 @@
+{
+  "id": "system.alert-rules.delete",
+  "title": "Eliminar la regla",
+  "module": "Sistema",
+  "summary": "Borrar (pide confirmación).",
+  "screens": [
+    "system.alert-rules"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "eliminar regla",
+    "borrar regla"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/alert-rules",
+      "title": "Menú → Sistema → Reglas de Alertas",
+      "details": "Qué genera una alerta y cuándo: tabla y fecha del evento, días antes o después, recurrencia, prioridad y las plantillas de correo, WhatsApp o SMS que se mandan."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "system.alert-rules.filter.search",
+      "title": "Buscá la regla",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "system.alert-rules.section.first-row",
+      "title": "Elegí la regla",
+      "until": "system.alert-rules.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "delete",
+      "action": "click",
+      "target": "system.alert-rules.btn.delete",
+      "title": "Eliminar",
+      "until": "system.alert-rules.btn.confirm-action",
+      "skipIfMissing": true
+    },
+    {
+      "id": "ok",
+      "action": "confirm",
+      "target": "system.alert-rules.btn.confirm-action",
+      "title": "Confirmar",
+      "details": "No se puede deshacer.",
+      "skipIfMissing": true
+    }
+  ]
+}

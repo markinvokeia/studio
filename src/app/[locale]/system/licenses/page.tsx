@@ -384,7 +384,7 @@ export default function LicensesPage() {
           )}
 
           {canGenerate && !isFetchingLicense && !fetchError && (
-            <Card>
+            <Card data-help-id="system.licenses.section.generate-new">
               <CardHeader>
                 <CardTitle>{t('management.generateNew')}</CardTitle>
                 <CardDescription>
@@ -545,7 +545,7 @@ export default function LicensesPage() {
           )}
 
           {licenseKey && !generatedKey && (
-            <Card>
+            <Card data-help-id="system.licenses.section.generated-key">
               <CardHeader>
                 <CardTitle>{t('management.generatedKey')} (actual)</CardTitle>
                 <CardDescription>Clave activa actualmente en el sistema.</CardDescription>

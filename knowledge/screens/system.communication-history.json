@@ -2,5 +2,19 @@
   "id": "system.communication-history",
   "status": "draft",
   "summary": "Historial de comunicaciones.",
-  "purpose": "Mensajes enviados a pacientes por correo y WhatsApp, con su estado de entrega."
+  "purpose": "Mensajes enviados a pacientes por correo y WhatsApp, con su estado de entrega.",
+  "useCases": [
+    "system.communication-history.overview"
+  ],
+  "elements": {
+    "system.communication-history.section.first-row": {
+      "label": "El más reciente"
+    },
+    "system.communication-history.section.row": {
+      "label": "Registro"
+    },
+    "system.communication-history.section.detail": {
+      "label": "Detalle"
+    }
+  }
 }

@@ -2,5 +2,13 @@
   "id": "system.notification-settings",
   "status": "draft",
   "summary": "Notificaciones del equipo.",
-  "purpose": "Qué avisos internos recibe cada uno y por qué canal."
+  "purpose": "Qué avisos internos recibe cada uno y por qué canal.",
+  "useCases": [
+    "system.notification-settings.overview"
+  ],
+  "elements": {
+    "system.notification-settings.btn.save": {
+      "label": "Guardar"
+    }
+  }
 }

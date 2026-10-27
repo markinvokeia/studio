@@ -7,6 +7,8 @@
     "Probá primero con pocas filas."
   ],
   "useCases": [
-    "onboarding.patients-import"
-  ]
+    "onboarding.patients-import",
+    "system.import.overview"
+  ],
+  "elements": {}
 }

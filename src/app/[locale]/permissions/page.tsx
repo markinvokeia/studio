@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { HelpScopeProvider } from '@/components/help/help-scope';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
@@ -316,7 +317,7 @@ export default function PermissionsPage() {
         rightPanel={
           selectedPermission && (
             <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-              <CardHeader className="flex flex-row items-start justify-between flex-none p-4 pb-2">
+              <CardHeader data-help-id="permissions.section.detail" className="flex flex-row items-start justify-between flex-none p-4 pb-2">
                 <div className="flex items-start gap-3 min-w-0 flex-1">
                   <div className="header-icon-circle mt-0.5">
                     <Shield className="h-5 w-5" />
@@ -331,6 +332,7 @@ export default function PermissionsPage() {
                   <span className="sr-only">{t('close')}</span>
                 </Button>
               </CardHeader>
+              <HelpScopeProvider scope="permissions.detail">
               <CardContent className="flex-1 overflow-auto p-4 pt-0">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
                   <TabsList>
@@ -417,6 +419,7 @@ export default function PermissionsPage() {
                   </div>
                 </Tabs>
               </CardContent>
+              </HelpScopeProvider>
             </Card>
           )
         }
@@ -513,7 +516,7 @@ export default function PermissionsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+            <AlertDialogAction data-help-id="permissions.btn.delete-confirm" onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
             <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>

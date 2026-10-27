@@ -8,5 +8,91 @@
   ],
   "prerequisites": [
     "system.communication-templates"
-  ]
+  ],
+  "useCases": [
+    "system.alert-rules.overview",
+    "system.alert-rules.create",
+    "system.alert-rules.edit",
+    "system.alert-rules.delete",
+    "system.alert-rules.test"
+  ],
+  "elements": {
+    "system.alert-rules.section.first-row": {
+      "label": "Primero de la lista"
+    },
+    "system.alert-rules.section.row": {
+      "label": "Registro"
+    },
+    "system.alert-rules.section.detail": {
+      "label": "Detalle"
+    },
+    "system.alert-rules.btn.edit": {
+      "label": "Editar"
+    },
+    "system.alert-rules.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "system.alert-rules.btn.confirm-action": {
+      "label": "Confirmar"
+    },
+    "system.alert-rules.field.name": {
+      "label": "Nombre"
+    },
+    "system.alert-rules.field.code": {
+      "label": "Código"
+    },
+    "system.alert-rules.field.category_id": {
+      "label": "Categoría",
+      "description": "Dónde aparece en el Centro de Alertas."
+    },
+    "system.alert-rules.field.source_table": {
+      "label": "Origen",
+      "description": "De dónde salen los casos (citas, facturas, pacientes…)."
+    },
+    "system.alert-rules.field.event_field": {
+      "label": "Fecha del evento",
+      "description": "La fecha contra la que se cuentan los días."
+    },
+    "system.alert-rules.field.days_before": {
+      "label": "Días antes"
+    },
+    "system.alert-rules.field.days_after": {
+      "label": "Días después"
+    },
+    "system.alert-rules.field.recurrence_type": {
+      "label": "Recurrencia"
+    },
+    "system.alert-rules.field.priority": {
+      "label": "Prioridad"
+    },
+    "system.alert-rules.field.email_template_id": {
+      "label": "Plantilla de correo"
+    },
+    "system.alert-rules.field.whatsapp_template_id": {
+      "label": "Plantilla de WhatsApp"
+    },
+    "system.alert-rules.field.auto_send_email": {
+      "label": "Enviar correo automático",
+      "description": "Si está marcado, el correo sale solo al generarse la alerta."
+    },
+    "system.alert-rules.field.is_active": {
+      "label": "Activa"
+    },
+    "system.alert-rules.btn.row-actions": {
+      "label": "Acciones"
+    },
+    "system.alert-rules.btn.row-edit": {
+      "label": "Editar"
+    },
+    "system.alert-rules.btn.row-duplicate": {
+      "label": "Duplicar"
+    },
+    "system.alert-rules.btn.row-test": {
+      "label": "Probar"
+    },
+    "system.alert-rules.btn.row-delete": {
+      "label": "Eliminar"
+    }
+  }
 }

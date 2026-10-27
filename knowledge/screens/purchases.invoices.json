@@ -82,6 +82,10 @@
     },
     "purchases.invoices.filter.option-Factura": {
       "label": "Sólo facturas"
+    },
+    "purchases.invoices.btn.add-item": {
+      "label": "Agregar ítem",
+      "description": "Agrega una línea con servicio, cantidad y precio."
     }
   }
 }

@@ -1,5 +1,5 @@
 {
- "version": "7770273776036e5c",
+ "version": "4c743d2e51792474",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -8287,6 +8287,12 @@
   {
    "elements": [
     {
+     "id": "permissions.btn.delete-confirm",
+     "kind": "btn",
+     "label": "Confirmar eliminación",
+     "source": "src/app/[locale]/permissions/page.tsx"
+    },
+    {
      "id": "permissions.btn.new",
      "kind": "btn",
      "label": "Crear",
@@ -8299,9 +8305,58 @@
      "source": "src/app/[locale]/permissions/page.tsx"
     },
     {
+     "id": "permissions.btn.row-delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/app/[locale]/permissions/columns.tsx"
+    },
+    {
      "id": "permissions.btn.submit",
      "kind": "btn",
+     "label": "Crear",
+     "source": "src/app/[locale]/permissions/page.tsx"
+    },
+    {
+     "id": "permissions.detail.btn.submit",
+     "kind": "btn",
      "label": "Guardar",
+     "source": "src/app/[locale]/permissions/page.tsx"
+    },
+    {
+     "id": "permissions.detail.field.action",
+     "kind": "field",
+     "label": "Acción",
+     "source": "src/app/[locale]/permissions/page.tsx"
+    },
+    {
+     "id": "permissions.detail.field.description",
+     "kind": "field",
+     "label": "Descripción",
+     "source": "src/app/[locale]/permissions/page.tsx"
+    },
+    {
+     "id": "permissions.detail.field.name",
+     "kind": "field",
+     "label": "Nombre",
+     "source": "src/app/[locale]/permissions/page.tsx"
+    },
+    {
+     "id": "permissions.detail.field.resource",
+     "kind": "field",
+     "label": "Recurso",
+     "source": "src/app/[locale]/permissions/page.tsx"
+    },
+    {
+     "id": "permissions.detail.tab.details",
+     "kind": "tab",
+     "label": "Datos",
+     "source": "src/app/[locale]/permissions/page.tsx"
+    },
+    {
+     "description": "Quiénes tienen este permiso por sus roles.",
+     "id": "permissions.detail.tab.users",
+     "kind": "tab",
+     "label": "Usuarios",
      "source": "src/app/[locale]/permissions/page.tsx"
     },
     {
@@ -8334,16 +8389,22 @@
      "source": "src/app/[locale]/permissions/page.tsx"
     },
     {
-     "id": "permissions.tab.details",
-     "kind": "tab",
-     "label": "Detalles",
+     "id": "permissions.section.detail",
+     "kind": "section",
+     "label": "Ficha",
      "source": "src/app/[locale]/permissions/page.tsx"
     },
     {
-     "id": "permissions.tab.users",
-     "kind": "tab",
-     "label": "Usuarios",
-     "source": "src/app/[locale]/permissions/page.tsx"
+     "id": "permissions.section.first-row",
+     "kind": "section",
+     "label": "Primero de la lista",
+     "source": "knowledge/screens/permissions.json"
+    },
+    {
+     "id": "permissions.section.row",
+     "kind": "section",
+     "label": "Registro",
+     "source": "knowledge/screens/permissions.json"
     }
    ],
    "id": "permissions",
@@ -8362,7 +8423,13 @@
    "tips": [
     "Los permisos se otorgan por rol, no por usuario."
    ],
-   "title": "Permisos"
+   "title": "Permisos",
+   "useCases": [
+    "permissions.overview",
+    "permissions.create",
+    "permissions.edit",
+    "permissions.delete"
+   ]
   },
   {
    "elements": [],
@@ -8375,6 +8442,13 @@
   },
   {
    "elements": [
+    {
+     "description": "Agrega una línea con servicio, cantidad y precio.",
+     "id": "purchases.invoices.btn.add-item",
+     "kind": "btn",
+     "label": "Agregar ítem",
+     "source": "knowledge/screens/purchases.invoices.json"
+    },
     {
      "id": "purchases.invoices.btn.add-payment",
      "kind": "btn",
@@ -9190,9 +9264,65 @@
   {
    "elements": [
     {
+     "description": "Presupuesto, factura o anticipo.",
+     "id": "purchases.providers.btn.create-menu",
+     "kind": "btn",
+     "label": "Crear",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.btn.email",
+     "kind": "btn",
+     "label": "Email",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.btn.email-send",
+     "kind": "btn",
+     "label": "Enviar",
+     "source": "knowledge/screens/purchases.providers.json"
+    },
+    {
      "id": "purchases.providers.btn.new",
      "kind": "btn",
      "label": "Crear",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.btn.new-invoice",
+     "kind": "btn",
+     "label": "Factura",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.btn.new-prepaid",
+     "kind": "btn",
+     "label": "Anticipo",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.btn.new-quote",
+     "kind": "btn",
+     "label": "Presupuesto",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.btn.notes-edit",
+     "kind": "btn",
+     "label": "Editar notas",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.btn.notes-save",
+     "kind": "btn",
+     "label": "Guardar notas",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "description": "Se guardan al tocarlas.",
+     "id": "purchases.providers.btn.preferences",
+     "kind": "btn",
+     "label": "Preferencias",
      "source": "src/app/[locale]/purchases/providers/page.tsx"
     },
     {
@@ -9204,8 +9334,87 @@
     {
      "id": "purchases.providers.btn.submit",
      "kind": "btn",
+     "label": "Crear",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "description": "Se aplica al tocarlo.",
+     "id": "purchases.providers.btn.toggle-active",
+     "kind": "btn",
+     "label": "Activar / Desactivar",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.btn.whatsapp",
+     "kind": "btn",
+     "label": "WhatsApp",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.btn.whatsapp-open",
+     "kind": "btn",
+     "label": "Abrir WhatsApp",
+     "source": "knowledge/screens/purchases.providers.json"
+    },
+    {
+     "id": "purchases.providers.detail.btn.submit",
+     "kind": "btn",
      "label": "Guardar",
      "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.detail.field.address",
+     "kind": "field",
+     "label": "Dirección",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.detail.field.alternative_phone",
+     "kind": "field",
+     "label": "Teléfono Alternativo",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.detail.field.bank_account",
+     "kind": "field",
+     "label": "Cuenta bancaria",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.detail.field.email",
+     "kind": "field",
+     "label": "Correo",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.detail.field.identity_document",
+     "kind": "field",
+     "label": "RUT",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.detail.field.is_active",
+     "kind": "field",
+     "label": "¿Está Activo?",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.detail.field.name",
+     "kind": "field",
+     "label": "Nombre",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.detail.field.phone",
+     "kind": "field",
+     "label": "Teléfono",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.detail.section.first-row",
+     "kind": "section",
+     "label": "Primer documento",
+     "source": "knowledge/screens/purchases.providers.json"
     },
     {
      "id": "purchases.providers.field.address",
@@ -9254,6 +9463,18 @@
      "kind": "field",
      "label": "Correo Electrónico",
      "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.field.email-subject",
+     "kind": "field",
+     "label": "Asunto",
+     "source": "knowledge/screens/purchases.providers.json"
+    },
+    {
+     "id": "purchases.providers.field.email-to",
+     "kind": "field",
+     "label": "Para",
+     "source": "knowledge/screens/purchases.providers.json"
     },
     {
      "id": "purchases.providers.field.exchange_rate",
@@ -9398,10 +9619,34 @@
      "source": "src/components/tables/invoices-table.tsx"
     },
     {
+     "id": "purchases.providers.field.whatsapp-message",
+     "kind": "field",
+     "label": "Mensaje",
+     "source": "knowledge/screens/purchases.providers.json"
+    },
+    {
      "id": "purchases.providers.filter.search",
      "kind": "filter",
      "label": "Filtrar aquí...",
      "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.section.detail",
+     "kind": "section",
+     "label": "Encabezado de la ficha",
+     "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "id": "purchases.providers.section.first-row",
+     "kind": "section",
+     "label": "Primero de la lista",
+     "source": "knowledge/screens/purchases.providers.json"
+    },
+    {
+     "id": "purchases.providers.section.row",
+     "kind": "section",
+     "label": "Proveedor",
+     "source": "knowledge/screens/purchases.providers.json"
     },
     {
      "id": "purchases.providers.tab.clinic-sessions",
@@ -9470,7 +9715,22 @@
    "route": "/purchases/providers",
    "status": "draft",
    "summary": "Proveedores de la clínica.",
-   "title": "Proveedores"
+   "title": "Proveedores",
+   "useCases": [
+    "purchases.providers.overview",
+    "purchases.providers.search",
+    "purchases.providers.create",
+    "purchases.providers.edit",
+    "purchases.providers.notes",
+    "purchases.providers.preferences",
+    "purchases.providers.quote",
+    "purchases.providers.invoice",
+    "purchases.providers.prepaid",
+    "purchases.providers.account",
+    "purchases.providers.email",
+    "purchases.providers.whatsapp",
+    "purchases.providers.toggle-active"
+   ]
   },
   {
    "elements": [
@@ -9908,6 +10168,19 @@
   {
    "elements": [
     {
+     "description": "Pide confirmación.",
+     "id": "purchases.services.btn.delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/app/[locale]/purchases/services/page.tsx"
+    },
+    {
+     "id": "purchases.services.btn.delete-confirm",
+     "kind": "btn",
+     "label": "Confirmar eliminación",
+     "source": "src/app/[locale]/purchases/services/page.tsx"
+    },
+    {
      "id": "purchases.services.btn.new",
      "kind": "btn",
      "label": "Crear",
@@ -9964,7 +10237,7 @@
     {
      "id": "purchases.services.field.price",
      "kind": "field",
-     "label": "Precio",
+     "label": "Precio de referencia",
      "source": "src/app/[locale]/purchases/services/page.tsx"
     },
     {
@@ -9972,6 +10245,24 @@
      "kind": "filter",
      "label": "Filtrar aquí...",
      "source": "src/app/[locale]/purchases/services/page.tsx"
+    },
+    {
+     "id": "purchases.services.section.detail",
+     "kind": "section",
+     "label": "Ficha",
+     "source": "src/app/[locale]/purchases/services/page.tsx"
+    },
+    {
+     "id": "purchases.services.section.first-row",
+     "kind": "section",
+     "label": "Primero de la lista",
+     "source": "knowledge/screens/purchases.services.json"
+    },
+    {
+     "id": "purchases.services.section.row",
+     "kind": "section",
+     "label": "Registro",
+     "source": "knowledge/screens/purchases.services.json"
     },
     {
      "id": "purchases.services.tab.details",
@@ -9999,7 +10290,13 @@
    "route": "/purchases/services",
    "status": "draft",
    "summary": "Productos y servicios de proveedores.",
-   "title": "Productos y Servicios de Proveedores"
+   "title": "Productos y Servicios de Proveedores",
+   "useCases": [
+    "purchases.services.overview",
+    "purchases.services.create",
+    "purchases.services.edit",
+    "purchases.services.delete"
+   ]
   },
   {
    "elements": [
@@ -10448,6 +10745,12 @@
   {
    "elements": [
     {
+     "id": "roles.btn.delete-confirm",
+     "kind": "btn",
+     "label": "Confirmar eliminación",
+     "source": "src/app/[locale]/roles/page.tsx"
+    },
+    {
      "id": "roles.btn.new",
      "kind": "btn",
      "label": "Crear",
@@ -10460,9 +10763,47 @@
      "source": "src/app/[locale]/roles/page.tsx"
     },
     {
+     "id": "roles.btn.row-delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/app/[locale]/roles/columns.tsx"
+    },
+    {
      "id": "roles.btn.submit",
      "kind": "btn",
-     "label": "Guardar Cambios",
+     "label": "Guardar",
+     "source": "src/app/[locale]/roles/page.tsx"
+    },
+    {
+     "id": "roles.detail.btn.submit",
+     "kind": "btn",
+     "label": "Guardar",
+     "source": "src/app/[locale]/roles/page.tsx"
+    },
+    {
+     "id": "roles.detail.field.name",
+     "kind": "field",
+     "label": "Nombre",
+     "source": "src/app/[locale]/roles/page.tsx"
+    },
+    {
+     "id": "roles.detail.tab.details",
+     "kind": "tab",
+     "label": "Datos",
+     "source": "src/app/[locale]/roles/page.tsx"
+    },
+    {
+     "description": "Qué puede ver y hacer quien tenga el rol.",
+     "id": "roles.detail.tab.permissions",
+     "kind": "tab",
+     "label": "Permisos",
+     "source": "src/app/[locale]/roles/page.tsx"
+    },
+    {
+     "description": "Quiénes tienen este rol.",
+     "id": "roles.detail.tab.users",
+     "kind": "tab",
+     "label": "Usuarios",
      "source": "src/app/[locale]/roles/page.tsx"
     },
     {
@@ -10482,22 +10823,22 @@
      "source": "src/app/[locale]/roles/page.tsx"
     },
     {
-     "id": "roles.tab.details",
-     "kind": "tab",
-     "label": "Detalles",
+     "id": "roles.section.detail",
+     "kind": "section",
+     "label": "Ficha",
      "source": "src/app/[locale]/roles/page.tsx"
     },
     {
-     "id": "roles.tab.permissions",
-     "kind": "tab",
-     "label": "Permisos",
-     "source": "src/app/[locale]/roles/page.tsx"
+     "id": "roles.section.first-row",
+     "kind": "section",
+     "label": "Primero de la lista",
+     "source": "knowledge/screens/roles.json"
     },
     {
-     "id": "roles.tab.users",
-     "kind": "tab",
-     "label": "Usuarios",
-     "source": "src/app/[locale]/roles/page.tsx"
+     "id": "roles.section.row",
+     "kind": "section",
+     "label": "Registro",
+     "source": "knowledge/screens/roles.json"
     }
    ],
    "id": "roles",
@@ -10516,10 +10857,24 @@
    "tips": [
     "Cambiar los permisos de un rol afecta a todos los usuarios que lo tienen."
    ],
-   "title": "Roles"
+   "title": "Roles",
+   "useCases": [
+    "roles.overview",
+    "roles.create",
+    "roles.edit",
+    "roles.delete",
+    "roles.permissions"
+   ]
   },
   {
    "elements": [
+    {
+     "description": "Agrega una línea con servicio, cantidad y precio.",
+     "id": "sales.invoices.btn.add-item",
+     "kind": "btn",
+     "label": "Agregar ítem",
+     "source": "knowledge/screens/sales.invoices.json"
+    },
     {
      "id": "sales.invoices.btn.add-payment",
      "kind": "btn",
@@ -11066,6 +11421,25 @@
   {
    "elements": [
     {
+     "description": "Pide confirmación.",
+     "id": "sales.payment-methods.btn.delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/app/[locale]/sales/payment-methods/page.tsx"
+    },
+    {
+     "id": "sales.payment-methods.btn.delete-confirm",
+     "kind": "btn",
+     "label": "Confirmar eliminación",
+     "source": "src/app/[locale]/sales/payment-methods/page.tsx"
+    },
+    {
+     "id": "sales.payment-methods.btn.edit",
+     "kind": "btn",
+     "label": "Editar",
+     "source": "src/app/[locale]/sales/payment-methods/page.tsx"
+    },
+    {
      "id": "sales.payment-methods.btn.new",
      "kind": "btn",
      "label": "Crear",
@@ -11084,6 +11458,7 @@
      "source": "src/app/[locale]/sales/payment-methods/page.tsx"
     },
     {
+     "description": "Corto, para reportes (EFE, TC, TRF).",
      "id": "sales.payment-methods.field.code",
      "kind": "field",
      "label": "Código",
@@ -11092,7 +11467,7 @@
     {
      "id": "sales.payment-methods.field.is_active",
      "kind": "field",
-     "label": "¿Está Activo?",
+     "label": "Activo",
      "source": "src/app/[locale]/sales/payment-methods/page.tsx"
     },
     {
@@ -11113,6 +11488,24 @@
      "kind": "filter",
      "label": "Filtrar aquí...",
      "source": "src/app/[locale]/sales/payment-methods/page.tsx"
+    },
+    {
+     "id": "sales.payment-methods.section.detail",
+     "kind": "section",
+     "label": "Detalle",
+     "source": "src/app/[locale]/sales/payment-methods/page.tsx"
+    },
+    {
+     "id": "sales.payment-methods.section.first-row",
+     "kind": "section",
+     "label": "Primero de la lista",
+     "source": "knowledge/screens/sales.payment-methods.json"
+    },
+    {
+     "id": "sales.payment-methods.section.row",
+     "kind": "section",
+     "label": "Registro",
+     "source": "knowledge/screens/sales.payment-methods.json"
     }
    ],
    "id": "sales.payment-methods",
@@ -11128,7 +11521,11 @@
    "summary": "Medios de pago disponibles al cobrar.",
    "title": "Métodos de Pago",
    "useCases": [
-    "onboarding.payment-method"
+    "onboarding.payment-method",
+    "sales.payment-methods.overview",
+    "sales.payment-methods.create",
+    "sales.payment-methods.edit",
+    "sales.payment-methods.delete"
    ]
   },
   {
@@ -11904,6 +12301,25 @@
   {
    "elements": [
     {
+     "id": "sales.services.btn.add-step",
+     "kind": "btn",
+     "label": "Agregar etapa",
+     "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
+     "description": "Pide confirmación.",
+     "id": "sales.services.btn.delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
+     "id": "sales.services.btn.delete-confirm",
+     "kind": "btn",
+     "label": "Confirmar eliminación",
+     "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
      "id": "sales.services.btn.new",
      "kind": "btn",
      "label": "Crear",
@@ -11936,6 +12352,7 @@
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
+     "description": "Color de la cita en la agenda.",
      "id": "sales.services.field.color",
      "kind": "field",
      "label": "Color",
@@ -11962,6 +12379,7 @@
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
+     "description": "Lo que se le avisa al paciente antes de la cita.",
      "id": "sales.services.field.indications",
      "kind": "field",
      "label": "Indicaciones",
@@ -12001,6 +12419,24 @@
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
+     "id": "sales.services.section.detail",
+     "kind": "section",
+     "label": "Ficha",
+     "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
+     "id": "sales.services.section.first-row",
+     "kind": "section",
+     "label": "Primero de la lista",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "id": "sales.services.section.row",
+     "kind": "section",
+     "label": "Registro",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
      "id": "sales.services.tab.details",
      "kind": "tab",
      "label": "Detalles",
@@ -12031,7 +12467,12 @@
    ],
    "title": "Servicios",
    "useCases": [
-    "onboarding.service"
+    "onboarding.service",
+    "sales.services.overview",
+    "sales.services.create",
+    "sales.services.edit",
+    "sales.services.delete",
+    "sales.services.steps"
    ]
   },
   {
@@ -12069,7 +12510,14 @@
    "title": "Estudios"
   },
   {
-   "elements": [],
+   "elements": [
+    {
+     "id": "subscriptions.section.first-row",
+     "kind": "section",
+     "label": "La más reciente",
+     "source": "knowledge/screens/subscriptions.json"
+    }
+   ],
    "id": "subscriptions",
    "inMenu": true,
    "module": "Sistema",
@@ -12083,7 +12531,10 @@
    "route": "/subscriptions",
    "status": "draft",
    "summary": "Historial de suscripciones.",
-   "title": "Suscripciones"
+   "title": "Suscripciones",
+   "useCases": [
+    "subscriptions.overview"
+   ]
   },
   {
    "elements": [
@@ -12098,6 +12549,24 @@
      "kind": "filter",
      "label": "Filtrar aquí...",
      "source": "src/app/[locale]/system/access/page.tsx"
+    },
+    {
+     "id": "system.access.section.detail",
+     "kind": "section",
+     "label": "Detalle",
+     "source": "src/app/[locale]/system/access/page.tsx"
+    },
+    {
+     "id": "system.access.section.first-row",
+     "kind": "section",
+     "label": "El más reciente",
+     "source": "knowledge/screens/system.access.json"
+    },
+    {
+     "id": "system.access.section.row",
+     "kind": "section",
+     "label": "Registro",
+     "source": "knowledge/screens/system.access.json"
     }
    ],
    "id": "system.access",
@@ -12110,10 +12579,32 @@
    "route": "/system/access",
    "status": "draft",
    "summary": "Registro de accesos.",
-   "title": "Registro de Acceso"
+   "title": "Registro de Acceso",
+   "useCases": [
+    "system.access.overview"
+   ]
   },
   {
    "elements": [
+    {
+     "id": "system.alert-categories.btn.confirm-action",
+     "kind": "btn",
+     "label": "Confirmar",
+     "source": "knowledge/screens/system.alert-categories.json"
+    },
+    {
+     "description": "Pide confirmación.",
+     "id": "system.alert-categories.btn.delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/app/[locale]/system/alert-categories/page.tsx"
+    },
+    {
+     "id": "system.alert-categories.btn.edit",
+     "kind": "btn",
+     "label": "Editar",
+     "source": "src/app/[locale]/system/alert-categories/page.tsx"
+    },
     {
      "id": "system.alert-categories.btn.new",
      "kind": "btn",
@@ -12133,6 +12624,7 @@
      "source": "src/app/[locale]/system/alert-categories/page.tsx"
     },
     {
+     "description": "Identificador interno, sin espacios.",
      "id": "system.alert-categories.field.code",
      "kind": "field",
      "label": "Código",
@@ -12153,19 +12645,20 @@
     {
      "id": "system.alert-categories.field.icon",
      "kind": "field",
-     "label": "Icono",
+     "label": "Ícono",
      "source": "src/app/[locale]/system/alert-categories/page.tsx"
     },
     {
+     "description": "A qué módulo pertenece.",
      "id": "system.alert-categories.field.internal_category_id",
      "kind": "field",
-     "label": "Categoría Interna",
+     "label": "Categoría interna",
      "source": "src/app/[locale]/system/alert-categories/page.tsx"
     },
     {
      "id": "system.alert-categories.field.is_active",
      "kind": "field",
-     "label": "Está Activa",
+     "label": "Activa",
      "source": "src/app/[locale]/system/alert-categories/page.tsx"
     },
     {
@@ -12175,9 +12668,10 @@
      "source": "src/app/[locale]/system/alert-categories/page.tsx"
     },
     {
+     "description": "Posición en el Centro de Alertas.",
      "id": "system.alert-categories.field.sort_order",
      "kind": "field",
-     "label": "Orden de Clasificación",
+     "label": "Orden",
      "source": "src/app/[locale]/system/alert-categories/page.tsx"
     },
     {
@@ -12185,6 +12679,24 @@
      "kind": "filter",
      "label": "Filtrar por nombre de categoría...",
      "source": "src/app/[locale]/system/alert-categories/page.tsx"
+    },
+    {
+     "id": "system.alert-categories.section.detail",
+     "kind": "section",
+     "label": "Detalle",
+     "source": "src/app/[locale]/system/alert-categories/page.tsx"
+    },
+    {
+     "id": "system.alert-categories.section.first-row",
+     "kind": "section",
+     "label": "Primero de la lista",
+     "source": "knowledge/screens/system.alert-categories.json"
+    },
+    {
+     "id": "system.alert-categories.section.row",
+     "kind": "section",
+     "label": "Registro",
+     "source": "knowledge/screens/system.alert-categories.json"
     }
    ],
    "id": "system.alert-categories",
@@ -12200,10 +12712,35 @@
    "route": "/system/alert-categories",
    "status": "draft",
    "summary": "Categorías de alertas.",
-   "title": "Categorías de Alertas"
+   "title": "Categorías de Alertas",
+   "useCases": [
+    "system.alert-categories.overview",
+    "system.alert-categories.create",
+    "system.alert-categories.edit",
+    "system.alert-categories.delete"
+   ]
   },
   {
    "elements": [
+    {
+     "id": "system.alert-rules.btn.confirm-action",
+     "kind": "btn",
+     "label": "Confirmar",
+     "source": "knowledge/screens/system.alert-rules.json"
+    },
+    {
+     "description": "Pide confirmación.",
+     "id": "system.alert-rules.btn.delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/app/[locale]/system/alert-rules/page.tsx"
+    },
+    {
+     "id": "system.alert-rules.btn.edit",
+     "kind": "btn",
+     "label": "Editar",
+     "source": "src/app/[locale]/system/alert-rules/page.tsx"
+    },
     {
      "id": "system.alert-rules.btn.new",
      "kind": "btn",
@@ -12217,15 +12754,46 @@
      "source": "src/app/[locale]/system/alert-rules/page.tsx"
     },
     {
+     "id": "system.alert-rules.btn.row-actions",
+     "kind": "btn",
+     "label": "Acciones",
+     "source": "src/app/[locale]/system/alert-rules/page.tsx"
+    },
+    {
+     "id": "system.alert-rules.btn.row-delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/app/[locale]/system/alert-rules/page.tsx"
+    },
+    {
+     "id": "system.alert-rules.btn.row-duplicate",
+     "kind": "btn",
+     "label": "Duplicar",
+     "source": "src/app/[locale]/system/alert-rules/page.tsx"
+    },
+    {
+     "id": "system.alert-rules.btn.row-edit",
+     "kind": "btn",
+     "label": "Editar",
+     "source": "src/app/[locale]/system/alert-rules/page.tsx"
+    },
+    {
+     "id": "system.alert-rules.btn.row-test",
+     "kind": "btn",
+     "label": "Probar",
+     "source": "src/app/[locale]/system/alert-rules/page.tsx"
+    },
+    {
      "id": "system.alert-rules.btn.submit",
      "kind": "btn",
      "label": "Guardar Cambios",
      "source": "src/app/[locale]/system/alert-rules/page.tsx"
     },
     {
+     "description": "Si está marcado, el correo sale solo al generarse la alerta.",
      "id": "system.alert-rules.field.auto_send_email",
      "kind": "field",
-     "label": "Enviar Correo Automáticamente",
+     "label": "Enviar correo automático",
      "source": "src/app/[locale]/system/alert-rules/page.tsx"
     },
     {
@@ -12235,6 +12803,7 @@
      "source": "src/app/[locale]/system/alert-rules/page.tsx"
     },
     {
+     "description": "Dónde aparece en el Centro de Alertas.",
      "id": "system.alert-rules.field.category_id",
      "kind": "field",
      "label": "Categoría",
@@ -12249,13 +12818,13 @@
     {
      "id": "system.alert-rules.field.days_after",
      "kind": "field",
-     "label": "Días Después del Evento",
+     "label": "Días después",
      "source": "src/app/[locale]/system/alert-rules/page.tsx"
     },
     {
      "id": "system.alert-rules.field.days_before",
      "kind": "field",
-     "label": "Días Antes del Evento",
+     "label": "Días antes",
      "source": "src/app/[locale]/system/alert-rules/page.tsx"
     },
     {
@@ -12267,10 +12836,11 @@
     {
      "id": "system.alert-rules.field.email_template_id",
      "kind": "field",
-     "label": "Plantilla de Correo",
+     "label": "Plantilla de correo",
      "source": "src/app/[locale]/system/alert-rules/page.tsx"
     },
     {
+     "description": "La fecha contra la que se cuentan los días.",
      "id": "system.alert-rules.field.event_field",
      "kind": "field",
      "label": "Fecha del evento",
@@ -12279,7 +12849,7 @@
     {
      "id": "system.alert-rules.field.is_active",
      "kind": "field",
-     "label": "Está Activa",
+     "label": "Activa",
      "source": "src/app/[locale]/system/alert-rules/page.tsx"
     },
     {
@@ -12297,7 +12867,7 @@
     {
      "id": "system.alert-rules.field.recurrence_type",
      "kind": "field",
-     "label": "Tipo de Recurrencia",
+     "label": "Recurrencia",
      "source": "src/app/[locale]/system/alert-rules/page.tsx"
     },
     {
@@ -12307,9 +12877,10 @@
      "source": "src/app/[locale]/system/alert-rules/page.tsx"
     },
     {
+     "description": "De dónde salen los casos (citas, facturas, pacientes…).",
      "id": "system.alert-rules.field.source_table",
      "kind": "field",
-     "label": "Tabla de Origen",
+     "label": "Origen",
      "source": "src/app/[locale]/system/alert-rules/page.tsx"
     },
     {
@@ -12335,6 +12906,24 @@
      "kind": "filter",
      "label": "Filtrar por nombre de regla...",
      "source": "src/app/[locale]/system/alert-rules/page.tsx"
+    },
+    {
+     "id": "system.alert-rules.section.detail",
+     "kind": "section",
+     "label": "Detalle",
+     "source": "src/app/[locale]/system/alert-rules/page.tsx"
+    },
+    {
+     "id": "system.alert-rules.section.first-row",
+     "kind": "section",
+     "label": "Primero de la lista",
+     "source": "knowledge/screens/system.alert-rules.json"
+    },
+    {
+     "id": "system.alert-rules.section.row",
+     "kind": "section",
+     "label": "Registro",
+     "source": "knowledge/screens/system.alert-rules.json"
     }
    ],
    "id": "system.alert-rules",
@@ -12353,10 +12942,38 @@
    "tips": [
     "Una regla con envío automático manda mensajes a pacientes: revisala bien antes de activarla."
    ],
-   "title": "Reglas de Alertas"
+   "title": "Reglas de Alertas",
+   "useCases": [
+    "system.alert-rules.overview",
+    "system.alert-rules.create",
+    "system.alert-rules.edit",
+    "system.alert-rules.delete",
+    "system.alert-rules.test"
+   ]
   },
   {
-   "elements": [],
+   "elements": [
+    {
+     "id": "system.alerts-config.btn.save",
+     "kind": "btn",
+     "label": "Guardar",
+     "source": "src/app/[locale]/system/alerts-config/page.tsx"
+    },
+    {
+     "description": "Cuántos días se guardan alertas e historial antes de limpiarse.",
+     "id": "system.alerts-config.section.retention",
+     "kind": "section",
+     "label": "Retención",
+     "source": "src/app/[locale]/system/alerts-config/page.tsx"
+    },
+    {
+     "description": "Cada cuánto y a qué hora se generan las alertas.",
+     "id": "system.alerts-config.section.scheduler",
+     "kind": "section",
+     "label": "Programación",
+     "source": "src/app/[locale]/system/alerts-config/page.tsx"
+    }
+   ],
    "id": "system.alerts-config",
    "inMenu": true,
    "module": "Sistema",
@@ -12370,7 +12987,10 @@
    "route": "/system/alerts-config",
    "status": "draft",
    "summary": "Configuración general de alertas.",
-   "title": "Configuración de Alertas"
+   "title": "Configuración de Alertas",
+   "useCases": [
+    "system.alerts-config.overview"
+   ]
   },
   {
    "elements": [
@@ -12385,6 +13005,24 @@
      "kind": "filter",
      "label": "Filtrar aquí...",
      "source": "src/app/[locale]/system/audit/page.tsx"
+    },
+    {
+     "id": "system.audit.section.detail",
+     "kind": "section",
+     "label": "Detalle",
+     "source": "src/app/[locale]/system/audit/page.tsx"
+    },
+    {
+     "id": "system.audit.section.first-row",
+     "kind": "section",
+     "label": "El más reciente",
+     "source": "knowledge/screens/system.audit.json"
+    },
+    {
+     "id": "system.audit.section.row",
+     "kind": "section",
+     "label": "Registro",
+     "source": "knowledge/screens/system.audit.json"
     }
    ],
    "id": "system.audit",
@@ -12397,7 +13035,10 @@
    "route": "/system/audit",
    "status": "draft",
    "summary": "Registro de auditoría.",
-   "title": "Registro de Auditoría"
+   "title": "Registro de Auditoría",
+   "useCases": [
+    "system.audit.overview"
+   ]
   },
   {
    "elements": [
@@ -12412,6 +13053,24 @@
      "kind": "filter",
      "label": "Filtrar por destinatario...",
      "source": "src/app/[locale]/system/communication-history/page.tsx"
+    },
+    {
+     "id": "system.communication-history.section.detail",
+     "kind": "section",
+     "label": "Detalle",
+     "source": "src/app/[locale]/system/communication-history/page.tsx"
+    },
+    {
+     "id": "system.communication-history.section.first-row",
+     "kind": "section",
+     "label": "El más reciente",
+     "source": "knowledge/screens/system.communication-history.json"
+    },
+    {
+     "id": "system.communication-history.section.row",
+     "kind": "section",
+     "label": "Registro",
+     "source": "knowledge/screens/system.communication-history.json"
     }
    ],
    "id": "system.communication-history",
@@ -12424,10 +13083,32 @@
    "route": "/system/communication-history",
    "status": "draft",
    "summary": "Historial de comunicaciones.",
-   "title": "Historial de Alertas"
+   "title": "Historial de Alertas",
+   "useCases": [
+    "system.communication-history.overview"
+   ]
   },
   {
    "elements": [
+    {
+     "id": "system.communication-templates.btn.confirm-action",
+     "kind": "btn",
+     "label": "Confirmar",
+     "source": "knowledge/screens/system.communication-templates.json"
+    },
+    {
+     "description": "Pide confirmación.",
+     "id": "system.communication-templates.btn.delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/app/[locale]/system/communication-templates/page.tsx"
+    },
+    {
+     "id": "system.communication-templates.btn.edit",
+     "kind": "btn",
+     "label": "Editar",
+     "source": "src/app/[locale]/system/communication-templates/page.tsx"
+    },
     {
      "id": "system.communication-templates.btn.new",
      "kind": "btn",
@@ -12441,14 +13122,34 @@
      "source": "src/app/[locale]/system/communication-templates/page.tsx"
     },
     {
+     "id": "system.communication-templates.btn.row-delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/app/[locale]/system/communication-templates/page.tsx"
+    },
+    {
+     "id": "system.communication-templates.btn.row-duplicate",
+     "kind": "btn",
+     "label": "Duplicar",
+     "source": "src/app/[locale]/system/communication-templates/page.tsx"
+    },
+    {
+     "id": "system.communication-templates.btn.row-edit",
+     "kind": "btn",
+     "label": "Editar",
+     "source": "src/app/[locale]/system/communication-templates/page.tsx"
+    },
+    {
      "id": "system.communication-templates.btn.submit",
      "kind": "btn",
      "label": "Guardar Cambios",
      "source": "src/app/[locale]/system/communication-templates/page.tsx"
     },
     {
+     "description": "Texto con variables que se completan al enviar.",
      "id": "system.communication-templates.field.body_html",
      "kind": "field",
+     "label": "Contenido",
      "source": "src/app/[locale]/system/communication-templates/page.tsx"
     },
     {
@@ -12466,7 +13167,7 @@
     {
      "id": "system.communication-templates.field.default_sender",
      "kind": "field",
-     "label": "Enviador por defecto",
+     "label": "Remitente",
      "source": "src/app/[locale]/system/communication-templates/page.tsx"
     },
     {
@@ -12478,7 +13179,7 @@
     {
      "id": "system.communication-templates.field.is_active",
      "kind": "field",
-     "label": "Está Activa",
+     "label": "Activa",
      "source": "src/app/[locale]/system/communication-templates/page.tsx"
     },
     {
@@ -12488,12 +13189,14 @@
      "source": "src/app/[locale]/system/communication-templates/page.tsx"
     },
     {
+     "description": "Sólo correo.",
      "id": "system.communication-templates.field.subject",
      "kind": "field",
      "label": "Asunto",
      "source": "src/app/[locale]/system/communication-templates/page.tsx"
     },
     {
+     "description": "Correo, SMS o WhatsApp.",
      "id": "system.communication-templates.field.type",
      "kind": "field",
      "label": "Tipo",
@@ -12510,6 +13213,24 @@
      "kind": "filter",
      "label": "Filtrar por nombre de plantilla...",
      "source": "src/app/[locale]/system/communication-templates/page.tsx"
+    },
+    {
+     "id": "system.communication-templates.section.detail",
+     "kind": "section",
+     "label": "Detalle",
+     "source": "src/app/[locale]/system/communication-templates/page.tsx"
+    },
+    {
+     "id": "system.communication-templates.section.first-row",
+     "kind": "section",
+     "label": "Primero de la lista",
+     "source": "knowledge/screens/system.communication-templates.json"
+    },
+    {
+     "id": "system.communication-templates.section.row",
+     "kind": "section",
+     "label": "Registro",
+     "source": "knowledge/screens/system.communication-templates.json"
     }
    ],
    "id": "system.communication-templates",
@@ -12525,10 +13246,35 @@
    "tips": [
     "Las plantillas de WhatsApp pueden requerir aprobación previa del proveedor."
    ],
-   "title": "Plantillas de Alertas"
+   "title": "Plantillas de Alertas",
+   "useCases": [
+    "system.communication-templates.overview",
+    "system.communication-templates.create",
+    "system.communication-templates.edit",
+    "system.communication-templates.delete"
+   ]
   },
   {
    "elements": [
+    {
+     "id": "system.config.btn.confirm-action",
+     "kind": "btn",
+     "label": "Confirmar",
+     "source": "knowledge/screens/system.config.json"
+    },
+    {
+     "description": "Pide confirmación.",
+     "id": "system.config.btn.delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/app/[locale]/system/config/page.tsx"
+    },
+    {
+     "id": "system.config.btn.edit",
+     "kind": "btn",
+     "label": "Editar",
+     "source": "src/app/[locale]/system/config/page.tsx"
+    },
     {
      "id": "system.config.btn.new",
      "kind": "btn",
@@ -12550,7 +13296,7 @@
     {
      "id": "system.config.field.data_type",
      "kind": "field",
-     "label": "Tipo de Dato",
+     "label": "Tipo de dato",
      "source": "src/app/[locale]/system/config/page.tsx"
     },
     {
@@ -12560,9 +13306,10 @@
      "source": "src/app/[locale]/system/config/page.tsx"
     },
     {
+     "description": "Visible para la app sin permisos especiales.",
      "id": "system.config.field.is_public",
      "kind": "field",
-     "label": "¿Es Público?",
+     "label": "Público",
      "source": "src/app/[locale]/system/config/page.tsx"
     },
     {
@@ -12582,6 +13329,24 @@
      "kind": "filter",
      "label": "Filtrar aquí...",
      "source": "src/app/[locale]/system/config/page.tsx"
+    },
+    {
+     "id": "system.config.section.detail",
+     "kind": "section",
+     "label": "Detalle",
+     "source": "src/app/[locale]/system/config/page.tsx"
+    },
+    {
+     "id": "system.config.section.first-row",
+     "kind": "section",
+     "label": "Primero de la lista",
+     "source": "knowledge/screens/system.config.json"
+    },
+    {
+     "id": "system.config.section.row",
+     "kind": "section",
+     "label": "Registro",
+     "source": "knowledge/screens/system.config.json"
     }
    ],
    "id": "system.config",
@@ -12597,7 +13362,13 @@
    "tips": [
     "Un valor mal cargado puede cortar una integración: anotá el valor anterior antes de cambiarlo."
    ],
-   "title": "Configuraciones"
+   "title": "Configuraciones",
+   "useCases": [
+    "system.config.overview",
+    "system.config.create",
+    "system.config.edit",
+    "system.config.delete"
+   ]
   },
   {
    "elements": [
@@ -12612,6 +13383,24 @@
      "kind": "filter",
      "label": "Filtrar aquí...",
      "source": "src/app/[locale]/system/errors/page.tsx"
+    },
+    {
+     "id": "system.errors.section.detail",
+     "kind": "section",
+     "label": "Detalle",
+     "source": "src/app/[locale]/system/errors/page.tsx"
+    },
+    {
+     "id": "system.errors.section.first-row",
+     "kind": "section",
+     "label": "El más reciente",
+     "source": "knowledge/screens/system.errors.json"
+    },
+    {
+     "id": "system.errors.section.row",
+     "kind": "section",
+     "label": "Registro",
+     "source": "knowledge/screens/system.errors.json"
     }
    ],
    "id": "system.errors",
@@ -12624,7 +13413,10 @@
    "route": "/system/errors",
    "status": "draft",
    "summary": "Registro de errores.",
-   "title": "Registro de Errores"
+   "title": "Registro de Errores",
+   "useCases": [
+    "system.errors.overview"
+   ]
   },
   {
    "elements": [
@@ -12639,6 +13431,24 @@
      "kind": "filter",
      "label": "Filtrar por estado...",
      "source": "src/app/[locale]/system/execution-history/page.tsx"
+    },
+    {
+     "id": "system.execution-history.section.detail",
+     "kind": "section",
+     "label": "Detalle",
+     "source": "src/app/[locale]/system/execution-history/page.tsx"
+    },
+    {
+     "id": "system.execution-history.section.first-row",
+     "kind": "section",
+     "label": "El más reciente",
+     "source": "knowledge/screens/system.execution-history.json"
+    },
+    {
+     "id": "system.execution-history.section.row",
+     "kind": "section",
+     "label": "Registro",
+     "source": "knowledge/screens/system.execution-history.json"
     }
    ],
    "id": "system.execution-history",
@@ -12654,10 +13464,63 @@
    "route": "/system/execution-history",
    "status": "draft",
    "summary": "Ejecuciones de alertas.",
-   "title": "Ejecuciones de Alertas"
+   "title": "Ejecuciones de Alertas",
+   "useCases": [
+    "system.execution-history.overview"
+   ]
   },
   {
-   "elements": [],
+   "elements": [
+    {
+     "description": "Dónde más se pide ayuda.",
+     "id": "system.help-insights.section.by-screen",
+     "kind": "section",
+     "label": "Por pantalla",
+     "source": "src/app/[locale]/system/help-insights/page.tsx"
+    },
+    {
+     "description": "Preguntas, guías iniciadas y resueltas.",
+     "id": "system.help-insights.section.by-week",
+     "kind": "section",
+     "label": "Por semana",
+     "source": "src/app/[locale]/system/help-insights/page.tsx"
+    },
+    {
+     "description": "Versión del mapa del producto publicada.",
+     "id": "system.help-insights.section.catalog",
+     "kind": "section",
+     "label": "Catálogo",
+     "source": "src/app/[locale]/system/help-insights/page.tsx"
+    },
+    {
+     "description": "Avance de las clínicas en el onboarding.",
+     "id": "system.help-insights.section.onboarding",
+     "kind": "section",
+     "label": "Puesta en marcha",
+     "source": "src/app/[locale]/system/help-insights/page.tsx"
+    },
+    {
+     "description": "Lo que la gente pidió y no le sirvió: candidatos a guía nueva.",
+     "id": "system.help-insights.section.open",
+     "kind": "section",
+     "label": "Preguntas sin buena respuesta",
+     "source": "src/app/[locale]/system/help-insights/page.tsx"
+    },
+    {
+     "description": "Consultas derivadas a soporte.",
+     "id": "system.help-insights.section.tickets",
+     "kind": "section",
+     "label": "Tickets",
+     "source": "src/app/[locale]/system/help-insights/page.tsx"
+    },
+    {
+     "description": "Pedidos de videos de guías.",
+     "id": "system.help-insights.section.videos",
+     "kind": "section",
+     "label": "Videos",
+     "source": "src/app/[locale]/system/help-insights/page.tsx"
+    }
+   ],
    "id": "system.help-insights",
    "inMenu": true,
    "module": "Sistema",
@@ -12672,7 +13535,10 @@
     "Una pregunta sin resolver se cierra completando la ficha o la guía de su pantalla en knowledge/ y marcándola como resuelta.",
     "La meta es que el asistente resuelva el 85% de las preguntas y que el fin de semana sólo lleguen incidentes críticos."
    ],
-   "title": "Métricas del Asistente"
+   "title": "Métricas del Asistente",
+   "useCases": [
+    "system.help-insights.overview"
+   ]
   },
   {
    "elements": [
@@ -12703,7 +13569,8 @@
    ],
    "title": "Importar Datos",
    "useCases": [
-    "onboarding.patients-import"
+    "onboarding.patients-import",
+    "system.import.overview"
    ]
   },
   {
@@ -12749,6 +13616,20 @@
      "kind": "field",
      "label": "Tipo de Suscripción",
      "source": "src/app/[locale]/system/licenses/page.tsx"
+    },
+    {
+     "description": "Tipo, fechas, límites y acceso a IA.",
+     "id": "system.licenses.section.generate-new",
+     "kind": "section",
+     "label": "Generar licencia",
+     "source": "src/app/[locale]/system/licenses/page.tsx"
+    },
+    {
+     "description": "La clave vigente.",
+     "id": "system.licenses.section.generated-key",
+     "kind": "section",
+     "label": "Licencia actual",
+     "source": "src/app/[locale]/system/licenses/page.tsx"
     }
    ],
    "id": "system.licenses",
@@ -12764,10 +13645,20 @@
    "route": "/system/licenses",
    "status": "draft",
    "summary": "Licencia de Invoke.",
-   "title": "Licencias"
+   "title": "Licencias",
+   "useCases": [
+    "system.licenses.overview"
+   ]
   },
   {
-   "elements": [],
+   "elements": [
+    {
+     "id": "system.notification-settings.btn.save",
+     "kind": "btn",
+     "label": "Guardar",
+     "source": "src/app/[locale]/system/notification-settings/page.tsx"
+    }
+   ],
    "id": "system.notification-settings",
    "inMenu": true,
    "module": "Sistema",
@@ -12778,7 +13669,10 @@
    "route": "/system/notification-settings",
    "status": "draft",
    "summary": "Notificaciones del equipo.",
-   "title": "Notificaciones"
+   "title": "Notificaciones",
+   "useCases": [
+    "system.notification-settings.overview"
+   ]
   },
   {
    "elements": [
@@ -12973,6 +13867,13 @@
   {
    "elements": [
     {
+     "description": "Se envía al tocarlo.",
+     "id": "system.users.btn.initial-password",
+     "kind": "btn",
+     "label": "Contraseña inicial",
+     "source": "src/app/[locale]/system/users/page.tsx"
+    },
+    {
      "id": "system.users.btn.new",
      "kind": "btn",
      "label": "Crear",
@@ -12988,6 +13889,80 @@
      "id": "system.users.btn.submit",
      "kind": "btn",
      "label": "Guardar",
+     "source": "src/app/[locale]/system/users/page.tsx"
+    },
+    {
+     "id": "system.users.detail.btn.submit",
+     "kind": "btn",
+     "label": "Guardar",
+     "source": "src/app/[locale]/system/users/page.tsx"
+    },
+    {
+     "id": "system.users.detail.field.active_sede_id",
+     "kind": "field",
+     "label": "Sede por defecto",
+     "source": "src/app/[locale]/system/users/page.tsx"
+    },
+    {
+     "id": "system.users.detail.field.email",
+     "kind": "field",
+     "label": "Correo Electrónico",
+     "source": "src/app/[locale]/system/users/page.tsx"
+    },
+    {
+     "id": "system.users.detail.field.identity_document",
+     "kind": "field",
+     "label": "Documento de Identidad",
+     "source": "src/app/[locale]/system/users/page.tsx"
+    },
+    {
+     "id": "system.users.detail.field.is_active",
+     "kind": "field",
+     "label": "¿Está Activo?",
+     "source": "src/app/[locale]/system/users/page.tsx"
+    },
+    {
+     "id": "system.users.detail.field.name",
+     "kind": "field",
+     "label": "Nombre",
+     "source": "src/app/[locale]/system/users/page.tsx"
+    },
+    {
+     "id": "system.users.detail.field.phone",
+     "kind": "field",
+     "label": "Teléfono",
+     "source": "src/app/[locale]/system/users/page.tsx"
+    },
+    {
+     "id": "system.users.detail.tab.details",
+     "kind": "tab",
+     "label": "Datos",
+     "source": "src/app/[locale]/system/users/page.tsx"
+    },
+    {
+     "description": "Lo que hizo en el sistema.",
+     "id": "system.users.detail.tab.logs",
+     "kind": "tab",
+     "label": "Registros",
+     "source": "src/app/[locale]/system/users/page.tsx"
+    },
+    {
+     "id": "system.users.detail.tab.preferences",
+     "kind": "tab",
+     "label": "Preferencias",
+     "source": "src/app/[locale]/system/users/page.tsx"
+    },
+    {
+     "description": "Qué roles tiene: cada rol suma permisos.",
+     "id": "system.users.detail.tab.roles",
+     "kind": "tab",
+     "label": "Roles",
+     "source": "src/app/[locale]/system/users/page.tsx"
+    },
+    {
+     "id": "system.users.detail.tab.signature",
+     "kind": "tab",
+     "label": "Firma",
      "source": "src/app/[locale]/system/users/page.tsx"
     },
     {
@@ -13033,34 +14008,22 @@
      "source": "src/app/[locale]/system/users/page.tsx"
     },
     {
-     "id": "system.users.tab.details",
-     "kind": "tab",
-     "label": "Detalles",
+     "id": "system.users.section.detail",
+     "kind": "section",
+     "label": "Ficha",
      "source": "src/app/[locale]/system/users/page.tsx"
     },
     {
-     "id": "system.users.tab.logs",
-     "kind": "tab",
-     "label": "Registros",
-     "source": "src/app/[locale]/system/users/page.tsx"
+     "id": "system.users.section.first-row",
+     "kind": "section",
+     "label": "Primero de la lista",
+     "source": "knowledge/screens/system.users.json"
     },
     {
-     "id": "system.users.tab.preferences",
-     "kind": "tab",
-     "label": "Preferencias",
-     "source": "src/app/[locale]/system/users/page.tsx"
-    },
-    {
-     "id": "system.users.tab.roles",
-     "kind": "tab",
-     "label": "Roles",
-     "source": "src/app/[locale]/system/users/page.tsx"
-    },
-    {
-     "id": "system.users.tab.signature",
-     "kind": "tab",
-     "label": "Firma",
-     "source": "src/app/[locale]/system/users/page.tsx"
+     "id": "system.users.section.row",
+     "kind": "section",
+     "label": "Registro",
+     "source": "knowledge/screens/system.users.json"
     }
    ],
    "id": "system.users",
@@ -13079,14 +14042,21 @@
    "tips": [
     "Para dar de alta recepción o administración es más simple Secretarias y Administración."
    ],
-   "title": "Usuarios"
+   "title": "Usuarios",
+   "useCases": [
+    "system.users.overview",
+    "system.users.create",
+    "system.users.edit",
+    "system.users.roles",
+    "system.users.initial-password"
+   ]
   },
   {
    "elements": [
     {
      "id": "system.whatsapp-agent.btn.save",
      "kind": "btn",
-     "label": "Guardar Cambios",
+     "label": "Guardar",
      "source": "src/app/[locale]/system/whatsapp-agent/page.tsx"
     },
     {
@@ -13099,6 +14069,19 @@
      "id": "system.whatsapp-agent.field.hours-enabled",
      "kind": "field",
      "label": "Aplicar horario",
+     "source": "src/app/[locale]/system/whatsapp-agent/page.tsx"
+    },
+    {
+     "id": "system.whatsapp-agent.section.agent",
+     "kind": "section",
+     "label": "Agente",
+     "source": "src/app/[locale]/system/whatsapp-agent/page.tsx"
+    },
+    {
+     "description": "Fuera de horario responde con el mensaje de ausencia.",
+     "id": "system.whatsapp-agent.section.hours",
+     "kind": "section",
+     "label": "Horario",
      "source": "src/app/[locale]/system/whatsapp-agent/page.tsx"
     }
    ],
@@ -13117,7 +14100,8 @@
    ],
    "title": "Agente WhatsApp",
    "useCases": [
-    "onboarding.whatsapp"
+    "onboarding.whatsapp",
+    "system.whatsapp-agent.overview"
    ]
   },
   {
@@ -25079,6 +26063,246 @@
    "title": "Enviar un recordatorio por WhatsApp"
   },
   {
+   "id": "permissions.create",
+   "inputs": {
+    "name": "Nombre"
+   },
+   "keywords": [
+    "nuevo permiso",
+    "crear permiso"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "permissions"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Cada acción que se puede habilitar (ver, crear, editar…) sobre cada pantalla.",
+     "id": "go",
+     "route": "/permissions",
+     "title": "Menú → Sistema → Permisos"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "permissions.btn.new",
+     "title": "Crear",
+     "until": "permissions.field.name"
+    },
+    {
+     "action": "fill",
+     "id": "name",
+     "target": "permissions.field.name",
+     "title": "Nombre",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "highlight",
+     "id": "action",
+     "skipIfMissing": true,
+     "target": "permissions.field.action",
+     "title": "Acción"
+    },
+    {
+     "action": "highlight",
+     "id": "resource",
+     "skipIfMissing": true,
+     "target": "permissions.field.resource",
+     "title": "Recurso"
+    },
+    {
+     "action": "highlight",
+     "id": "description",
+     "skipIfMissing": true,
+     "target": "permissions.field.description",
+     "title": "Descripción"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "permissions.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Alta de un permiso.",
+   "title": "Crear un permiso"
+  },
+  {
+   "id": "permissions.delete",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "eliminar permiso",
+    "borrar permiso"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "permissions"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Cada acción que se puede habilitar (ver, crear, editar…) sobre cada pantalla.",
+     "id": "go",
+     "route": "/permissions",
+     "title": "Menú → Sistema → Permisos"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "permissions.filter.search",
+     "title": "Buscá el permiso",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "click",
+     "id": "row",
+     "target": "permissions.btn.row-delete",
+     "title": "Eliminar",
+     "until": "permissions.btn.delete-confirm"
+    },
+    {
+     "action": "confirm",
+     "details": "No se puede deshacer.",
+     "id": "ok",
+     "target": "permissions.btn.delete-confirm",
+     "title": "Confirmar"
+    }
+   ],
+   "summary": "Desde el listado (pide confirmación).",
+   "title": "Eliminar un permiso"
+  },
+  {
+   "id": "permissions.edit",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "editar permiso",
+    "modificar permiso"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "permissions"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Cada acción que se puede habilitar (ver, crear, editar…) sobre cada pantalla.",
+     "id": "go",
+     "route": "/permissions",
+     "title": "Menú → Sistema → Permisos"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "permissions.filter.search",
+     "title": "Buscá el permiso",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "permissions.section.first-row",
+     "title": "Elegí el permiso",
+     "until": "permissions.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "skipIfMissing": true,
+     "target": "permissions.detail.tab.details",
+     "title": "Datos",
+     "until": "permissions.detail.field.name"
+    },
+    {
+     "action": "highlight",
+     "id": "name",
+     "target": "permissions.detail.field.name",
+     "title": "Nombre"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "permissions.detail.btn.submit",
+     "title": "Guardar cambios"
+    }
+   ],
+   "summary": "Pestaña Datos de la ficha.",
+   "title": "Editar un permiso"
+  },
+  {
+   "id": "permissions.overview",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "permisos",
+    "permiso",
+    "ver permiso"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "permissions"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Cada acción que se puede habilitar (ver, crear, editar…) sobre cada pantalla.",
+     "id": "go",
+     "route": "/permissions",
+     "title": "Menú → Sistema → Permisos"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "permissions.filter.search",
+     "title": "Buscá el permiso",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "permissions.section.first-row",
+     "title": "Elegí el permiso",
+     "until": "permissions.section.detail"
+    },
+    {
+     "action": "highlight",
+     "id": "detail",
+     "target": "permissions.section.detail",
+     "title": "Ficha"
+    },
+    {
+     "action": "click",
+     "id": "tab-details",
+     "skipIfMissing": true,
+     "target": "permissions.detail.tab.details",
+     "title": "Datos"
+    },
+    {
+     "action": "click",
+     "details": "Quiénes tienen este permiso por sus roles.",
+     "id": "tab-users",
+     "skipIfMissing": true,
+     "target": "permissions.detail.tab.users",
+     "title": "Usuarios"
+    }
+   ],
+   "summary": "Cada acción que se puede habilitar (ver, crear, editar…) sobre cada pantalla.",
+   "title": "Recorrer Permisos"
+  },
+  {
    "id": "purchases.invoices.confirm",
    "inputs": {
     "query": "Número de factura"
@@ -25204,6 +26428,15 @@
      "skipIfMissing": true,
      "target": "purchases.invoices.field.sede_id",
      "title": "Sede"
+    },
+    {
+     "action": "click",
+     "details": "Agrega una línea con servicio, cantidad y precio.",
+     "id": "add",
+     "skipIfMissing": true,
+     "target": "purchases.invoices.btn.add-item",
+     "title": "Agregar ítem",
+     "until": "purchases.invoices.field.items.service_id"
     },
     {
      "action": "fill",
@@ -26101,6 +27334,929 @@
    "title": "Imprimir o enviar un recibo"
   },
   {
+   "group": "Compras al proveedor",
+   "id": "purchases.providers.account",
+   "inputs": {
+    "query": "Nombre, correo o RUT"
+   },
+   "keywords": [
+    "cuenta del proveedor",
+    "deuda con proveedor",
+    "qué le debemos"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.providers"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos.",
+     "id": "go",
+     "route": "/purchases/providers",
+     "title": "Menú → Compras → Proveedores"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o RUT.",
+     "id": "search",
+     "optional": true,
+     "target": "purchases.providers.filter.search",
+     "title": "Buscá el proveedor",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "purchases.providers.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "purchases.providers.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "quotes",
+     "skipIfMissing": true,
+     "target": "purchases.providers.tab.quotes",
+     "title": "Presupuestos"
+    },
+    {
+     "action": "click",
+     "id": "invoices",
+     "skipIfMissing": true,
+     "target": "purchases.providers.tab.invoices",
+     "title": "Facturas"
+    },
+    {
+     "action": "highlight",
+     "details": "Tocala para ver su detalle.",
+     "id": "row",
+     "skipIfMissing": true,
+     "target": "purchases.providers.detail.section.first-row",
+     "title": "Una factura"
+    },
+    {
+     "action": "click",
+     "id": "payments",
+     "skipIfMissing": true,
+     "target": "purchases.providers.tab.payments",
+     "title": "Pagos"
+    }
+   ],
+   "summary": "Pestañas Presupuestos, Facturas y Pagos: qué le pedimos, qué nos facturó y qué le pagamos.",
+   "title": "Ver la cuenta de un proveedor"
+  },
+  {
+   "group": "Listado y alta",
+   "id": "purchases.providers.create",
+   "inputs": {
+    "email": "Correo",
+    "name": "Nombre",
+    "phone": "Teléfono"
+   },
+   "keywords": [
+    "nuevo proveedor",
+    "alta de proveedor",
+    "registrar proveedor"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.providers"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos.",
+     "id": "go",
+     "route": "/purchases/providers",
+     "title": "Menú → Compras → Proveedores"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "purchases.providers.btn.new",
+     "title": "Crear",
+     "until": "purchases.providers.field.name"
+    },
+    {
+     "action": "fill",
+     "id": "name",
+     "target": "purchases.providers.field.name",
+     "title": "Nombre o razón social",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "fill",
+     "details": "Para mandarle presupuestos y órdenes.",
+     "id": "email",
+     "optional": true,
+     "target": "purchases.providers.field.email",
+     "title": "Correo",
+     "value": "{{values.email}}"
+    },
+    {
+     "action": "fill",
+     "id": "phone",
+     "optional": true,
+     "target": "purchases.providers.field.phone",
+     "title": "Teléfono",
+     "value": "{{values.phone}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Necesario para registrar sus facturas.",
+     "id": "doc",
+     "skipIfMissing": true,
+     "target": "purchases.providers.field.identity_document",
+     "title": "RUT"
+    },
+    {
+     "action": "highlight",
+     "id": "address",
+     "skipIfMissing": true,
+     "target": "purchases.providers.field.address",
+     "title": "Dirección"
+    },
+    {
+     "action": "highlight",
+     "details": "Para transferirle los pagos.",
+     "id": "bank",
+     "skipIfMissing": true,
+     "target": "purchases.providers.field.bank_account",
+     "title": "Cuenta bancaria"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "purchases.providers.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Alta con nombre, contacto, RUT y cuenta bancaria.",
+   "title": "Registrar un proveedor"
+  },
+  {
+   "group": "Información",
+   "id": "purchases.providers.edit",
+   "inputs": {
+    "query": "Nombre, correo o RUT"
+   },
+   "keywords": [
+    "editar proveedor",
+    "cambiar datos del proveedor",
+    "cuenta bancaria del proveedor"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.providers"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos.",
+     "id": "go",
+     "route": "/purchases/providers",
+     "title": "Menú → Compras → Proveedores"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o RUT.",
+     "id": "search",
+     "optional": true,
+     "target": "purchases.providers.filter.search",
+     "title": "Buscá el proveedor",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "purchases.providers.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "purchases.providers.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "target": "purchases.providers.tab.info",
+     "title": "Información",
+     "until": "purchases.providers.detail.field.name"
+    },
+    {
+     "action": "highlight",
+     "id": "name",
+     "target": "purchases.providers.detail.field.name",
+     "title": "Nombre"
+    },
+    {
+     "action": "highlight",
+     "id": "email",
+     "target": "purchases.providers.detail.field.email",
+     "title": "Correo"
+    },
+    {
+     "action": "highlight",
+     "id": "doc",
+     "skipIfMissing": true,
+     "target": "purchases.providers.detail.field.identity_document",
+     "title": "RUT"
+    },
+    {
+     "action": "highlight",
+     "id": "bank",
+     "skipIfMissing": true,
+     "target": "purchases.providers.detail.field.bank_account",
+     "title": "Cuenta bancaria"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "purchases.providers.detail.btn.submit",
+     "title": "Guardar cambios"
+    }
+   ],
+   "summary": "Pestaña Información de la ficha.",
+   "title": "Editar los datos de un proveedor"
+  },
+  {
+   "group": "Comunicación y estado",
+   "id": "purchases.providers.email",
+   "inputs": {
+    "query": "Nombre, correo o RUT",
+    "subject": "Asunto"
+   },
+   "keywords": [
+    "email al proveedor",
+    "correo al proveedor"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.providers"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos.",
+     "id": "go",
+     "route": "/purchases/providers",
+     "title": "Menú → Compras → Proveedores"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o RUT.",
+     "id": "search",
+     "optional": true,
+     "target": "purchases.providers.filter.search",
+     "title": "Buscá el proveedor",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "purchases.providers.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "purchases.providers.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "email",
+     "skipIfMissing": true,
+     "target": "purchases.providers.btn.email",
+     "title": "Email",
+     "until": "purchases.providers.field.email-subject"
+    },
+    {
+     "action": "highlight",
+     "id": "to",
+     "skipIfMissing": true,
+     "target": "purchases.providers.field.email-to",
+     "title": "Para"
+    },
+    {
+     "action": "fill",
+     "id": "subject",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "purchases.providers.field.email-subject",
+     "title": "Asunto",
+     "value": "{{values.subject}}"
+    },
+    {
+     "action": "confirm",
+     "id": "send",
+     "skipIfMissing": true,
+     "target": "purchases.providers.btn.email-send",
+     "title": "Enviar"
+    }
+   ],
+   "summary": "Botón Email de la ficha.",
+   "title": "Enviar un email al proveedor"
+  },
+  {
+   "group": "Compras al proveedor",
+   "id": "purchases.providers.invoice",
+   "inputs": {
+    "query": "Nombre, correo o RUT"
+   },
+   "keywords": [
+    "registrar una factura del proveedor",
+    "proveedor"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.providers"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos.",
+     "id": "go",
+     "route": "/purchases/providers",
+     "title": "Menú → Compras → Proveedores"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o RUT.",
+     "id": "search",
+     "optional": true,
+     "target": "purchases.providers.filter.search",
+     "title": "Buscá el proveedor",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "purchases.providers.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "purchases.providers.section.detail"
+    },
+    {
+     "action": "click",
+     "details": "Presupuesto, factura o anticipo.",
+     "id": "menu",
+     "target": "purchases.providers.btn.create-menu",
+     "title": "Crear",
+     "until": "purchases.providers.btn.new-invoice"
+    },
+    {
+     "action": "click",
+     "details": "Crear → Factura: lo que le debemos.",
+     "id": "item",
+     "target": "purchases.providers.btn.new-invoice",
+     "title": "Registrar una factura del proveedor",
+     "until": "purchases.providers.btn.submit"
+    },
+    {
+     "action": "confirm",
+     "details": "Completá los datos del formulario y guardá.",
+     "id": "save",
+     "target": "purchases.providers.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Crear → Factura: lo que le debemos.",
+   "title": "Registrar una factura del proveedor"
+  },
+  {
+   "group": "Información",
+   "id": "purchases.providers.notes",
+   "inputs": {
+    "query": "Nombre, correo o RUT"
+   },
+   "keywords": [
+    "notas del proveedor",
+    "anotar proveedor"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.providers"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos.",
+     "id": "go",
+     "route": "/purchases/providers",
+     "title": "Menú → Compras → Proveedores"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o RUT.",
+     "id": "search",
+     "optional": true,
+     "target": "purchases.providers.filter.search",
+     "title": "Buscá el proveedor",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "purchases.providers.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "purchases.providers.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "target": "purchases.providers.tab.notes",
+     "title": "Notas"
+    },
+    {
+     "action": "click",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "purchases.providers.btn.notes-edit",
+     "title": "Editar"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "skipIfMissing": true,
+     "target": "purchases.providers.btn.notes-save",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Pestaña Notas: texto interno.",
+   "title": "Anotar algo en la ficha del proveedor"
+  },
+  {
+   "group": "Listado y alta",
+   "id": "purchases.providers.overview",
+   "inputs": {
+    "query": "Nombre, correo o RUT"
+   },
+   "keywords": [
+    "proveedores",
+    "ficha del proveedor",
+    "ver proveedor"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.providers"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos.",
+     "id": "go",
+     "route": "/purchases/providers",
+     "title": "Menú → Compras → Proveedores"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o RUT.",
+     "id": "search",
+     "optional": true,
+     "target": "purchases.providers.filter.search",
+     "title": "Buscá el proveedor",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "purchases.providers.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "purchases.providers.section.detail"
+    },
+    {
+     "action": "highlight",
+     "details": "Nombre, estado y acciones.",
+     "id": "detail",
+     "target": "purchases.providers.section.detail",
+     "title": "Encabezado"
+    },
+    {
+     "action": "highlight",
+     "details": "Presupuesto, factura o anticipo para este proveedor.",
+     "id": "create",
+     "skipIfMissing": true,
+     "target": "purchases.providers.btn.create-menu",
+     "title": "Crear"
+    },
+    {
+     "action": "highlight",
+     "id": "email",
+     "skipIfMissing": true,
+     "target": "purchases.providers.btn.email",
+     "title": "Email"
+    },
+    {
+     "action": "highlight",
+     "id": "wa",
+     "skipIfMissing": true,
+     "target": "purchases.providers.btn.whatsapp",
+     "title": "WhatsApp"
+    },
+    {
+     "action": "click",
+     "details": "Datos de contacto, RUT y cuenta bancaria.",
+     "id": "info",
+     "skipIfMissing": true,
+     "target": "purchases.providers.tab.info",
+     "title": "Información"
+    },
+    {
+     "action": "click",
+     "details": "Lo que le compramos a este proveedor.",
+     "id": "services",
+     "skipIfMissing": true,
+     "target": "purchases.providers.tab.services",
+     "title": "Servicios"
+    },
+    {
+     "action": "click",
+     "id": "quotes",
+     "skipIfMissing": true,
+     "target": "purchases.providers.tab.quotes",
+     "title": "Presupuestos"
+    },
+    {
+     "action": "click",
+     "details": "Lo que le debemos.",
+     "id": "invoices",
+     "skipIfMissing": true,
+     "target": "purchases.providers.tab.invoices",
+     "title": "Facturas"
+    },
+    {
+     "action": "click",
+     "details": "Lo que le pagamos.",
+     "id": "payments",
+     "skipIfMissing": true,
+     "target": "purchases.providers.tab.payments",
+     "title": "Pagos"
+    },
+    {
+     "action": "click",
+     "id": "notes",
+     "skipIfMissing": true,
+     "target": "purchases.providers.tab.notes",
+     "title": "Notas"
+    }
+   ],
+   "summary": "Encabezado con acciones (crear, preferencias, activar, email, WhatsApp) y pestañas Información, Servicios, Presupuestos, Facturas, Pagos y Notas.",
+   "title": "Recorrer la ficha de un proveedor"
+  },
+  {
+   "group": "Información",
+   "id": "purchases.providers.preferences",
+   "inputs": {
+    "query": "Nombre, correo o RUT"
+   },
+   "keywords": [
+    "preferencias del proveedor",
+    "avisos al proveedor"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.providers"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos.",
+     "id": "go",
+     "route": "/purchases/providers",
+     "title": "Menú → Compras → Proveedores"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o RUT.",
+     "id": "search",
+     "optional": true,
+     "target": "purchases.providers.filter.search",
+     "title": "Buscá el proveedor",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "purchases.providers.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "purchases.providers.section.detail"
+    },
+    {
+     "action": "highlight",
+     "details": "Abre las preferencias de comunicación; cada cambio se guarda solo.",
+     "id": "prefs",
+     "target": "purchases.providers.btn.preferences",
+     "title": "Preferencias"
+    }
+   ],
+   "summary": "Qué avisos le llegan y por qué canal. Se guardan al tocarlas.",
+   "title": "Preferencias de comunicación del proveedor"
+  },
+  {
+   "group": "Compras al proveedor",
+   "id": "purchases.providers.prepaid",
+   "inputs": {
+    "query": "Nombre, correo o RUT"
+   },
+   "keywords": [
+    "registrar un anticipo al proveedor",
+    "proveedor"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.providers"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos.",
+     "id": "go",
+     "route": "/purchases/providers",
+     "title": "Menú → Compras → Proveedores"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o RUT.",
+     "id": "search",
+     "optional": true,
+     "target": "purchases.providers.filter.search",
+     "title": "Buscá el proveedor",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "purchases.providers.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "purchases.providers.section.detail"
+    },
+    {
+     "action": "click",
+     "details": "Presupuesto, factura o anticipo.",
+     "id": "menu",
+     "target": "purchases.providers.btn.create-menu",
+     "title": "Crear",
+     "until": "purchases.providers.btn.new-prepaid"
+    },
+    {
+     "action": "click",
+     "details": "Crear → Prepago: dinero adelantado que se aplica a sus facturas.",
+     "id": "item",
+     "target": "purchases.providers.btn.new-prepaid",
+     "title": "Registrar un anticipo al proveedor",
+     "until": "purchases.providers.btn.submit"
+    },
+    {
+     "action": "confirm",
+     "details": "Completá los datos del formulario y guardá.",
+     "id": "save",
+     "target": "purchases.providers.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Crear → Prepago: dinero adelantado que se aplica a sus facturas.",
+   "title": "Registrar un anticipo al proveedor"
+  },
+  {
+   "group": "Compras al proveedor",
+   "id": "purchases.providers.quote",
+   "inputs": {
+    "query": "Nombre, correo o RUT"
+   },
+   "keywords": [
+    "pedir un presupuesto al proveedor",
+    "proveedor"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.providers"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos.",
+     "id": "go",
+     "route": "/purchases/providers",
+     "title": "Menú → Compras → Proveedores"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o RUT.",
+     "id": "search",
+     "optional": true,
+     "target": "purchases.providers.filter.search",
+     "title": "Buscá el proveedor",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "purchases.providers.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "purchases.providers.section.detail"
+    },
+    {
+     "action": "click",
+     "details": "Presupuesto, factura o anticipo.",
+     "id": "menu",
+     "target": "purchases.providers.btn.create-menu",
+     "title": "Crear",
+     "until": "purchases.providers.btn.new-quote"
+    },
+    {
+     "action": "click",
+     "details": "Crear → Presupuesto: queda en Compras → Presupuestos de Compra.",
+     "id": "item",
+     "target": "purchases.providers.btn.new-quote",
+     "title": "Pedir un presupuesto al proveedor",
+     "until": "purchases.providers.btn.submit"
+    },
+    {
+     "action": "confirm",
+     "details": "Completá los datos del formulario y guardá.",
+     "id": "save",
+     "target": "purchases.providers.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Crear → Presupuesto: queda en Compras → Presupuestos de Compra.",
+   "title": "Pedir un presupuesto al proveedor"
+  },
+  {
+   "group": "Listado y alta",
+   "id": "purchases.providers.search",
+   "inputs": {
+    "query": "Nombre, correo o RUT"
+   },
+   "keywords": [
+    "buscar proveedor",
+    "encontrar proveedor"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.providers"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos.",
+     "id": "go",
+     "route": "/purchases/providers",
+     "title": "Menú → Compras → Proveedores"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o RUT.",
+     "id": "search",
+     "optional": true,
+     "target": "purchases.providers.filter.search",
+     "title": "Buscá el proveedor",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "purchases.providers.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "purchases.providers.section.detail"
+    }
+   ],
+   "summary": "Buscar por nombre, correo o RUT y abrir su ficha.",
+   "title": "Buscar un proveedor"
+  },
+  {
+   "group": "Comunicación y estado",
+   "id": "purchases.providers.toggle-active",
+   "inputs": {
+    "query": "Nombre, correo o RUT"
+   },
+   "keywords": [
+    "desactivar proveedor",
+    "activar proveedor",
+    "dar de baja proveedor"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.providers"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos.",
+     "id": "go",
+     "route": "/purchases/providers",
+     "title": "Menú → Compras → Proveedores"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o RUT.",
+     "id": "search",
+     "optional": true,
+     "target": "purchases.providers.filter.search",
+     "title": "Buscá el proveedor",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "purchases.providers.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "purchases.providers.section.detail"
+    },
+    {
+     "action": "confirm",
+     "details": "Se aplica al tocarlo. Su historial se conserva.",
+     "id": "toggle",
+     "target": "purchases.providers.btn.toggle-active",
+     "title": "Activar / Desactivar"
+    }
+   ],
+   "summary": "Se aplica al tocarlo; un proveedor inactivo no aparece para nuevas compras.",
+   "title": "Activar o desactivar un proveedor"
+  },
+  {
+   "group": "Comunicación y estado",
+   "id": "purchases.providers.whatsapp",
+   "inputs": {
+    "message": "Mensaje",
+    "query": "Nombre, correo o RUT"
+   },
+   "keywords": [
+    "whatsapp proveedor"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.providers"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos.",
+     "id": "go",
+     "route": "/purchases/providers",
+     "title": "Menú → Compras → Proveedores"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o RUT.",
+     "id": "search",
+     "optional": true,
+     "target": "purchases.providers.filter.search",
+     "title": "Buscá el proveedor",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "purchases.providers.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "purchases.providers.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "wa",
+     "skipIfMissing": true,
+     "target": "purchases.providers.btn.whatsapp",
+     "title": "WhatsApp",
+     "until": "purchases.providers.field.whatsapp-message"
+    },
+    {
+     "action": "fill",
+     "id": "msg",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "purchases.providers.field.whatsapp-message",
+     "title": "Mensaje",
+     "value": "{{values.message}}"
+    },
+    {
+     "action": "confirm",
+     "id": "open",
+     "skipIfMissing": true,
+     "target": "purchases.providers.btn.whatsapp-open",
+     "title": "Abrir WhatsApp"
+    }
+   ],
+   "summary": "Botón WhatsApp de la ficha.",
+   "title": "Escribirle por WhatsApp al proveedor"
+  },
+  {
    "id": "purchases.quotes.confirm",
    "inputs": {
     "query": "Número o proveedor"
@@ -26793,6 +28949,571 @@
    "title": "Imprimir o enviar un presupuesto por correo"
   },
   {
+   "id": "purchases.services.create",
+   "inputs": {
+    "name": "Nombre",
+    "price": "Precio de referencia"
+   },
+   "keywords": [
+    "nuevo producto o servicio",
+    "crear producto o servicio",
+    "agregar a la lista de precios"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.services"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que la clínica le compra a proveedores, con su precio de referencia: se usa en presupuestos y facturas de compra.",
+     "id": "go",
+     "route": "/purchases/services",
+     "title": "Menú → Compras → Productos y Servicios de Proveedores"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "purchases.services.btn.new",
+     "title": "Crear",
+     "until": "purchases.services.field.name"
+    },
+    {
+     "action": "fill",
+     "id": "name",
+     "optional": false,
+     "target": "purchases.services.field.name",
+     "title": "Nombre",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "highlight",
+     "id": "category_id",
+     "skipIfMissing": true,
+     "target": "purchases.services.field.category_id",
+     "title": "Categoría"
+    },
+    {
+     "action": "fill",
+     "id": "price",
+     "optional": true,
+     "target": "purchases.services.field.price",
+     "title": "Precio de referencia",
+     "value": "{{values.price}}"
+    },
+    {
+     "action": "highlight",
+     "id": "currency",
+     "skipIfMissing": true,
+     "target": "purchases.services.field.currency",
+     "title": "Moneda"
+    },
+    {
+     "action": "highlight",
+     "id": "color",
+     "skipIfMissing": true,
+     "target": "purchases.services.field.color",
+     "title": "Color"
+    },
+    {
+     "action": "highlight",
+     "id": "description",
+     "skipIfMissing": true,
+     "target": "purchases.services.field.description",
+     "title": "Descripción"
+    },
+    {
+     "action": "highlight",
+     "id": "is_active",
+     "skipIfMissing": true,
+     "target": "purchases.services.field.is_active",
+     "title": "Activo"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "purchases.services.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Alta de un producto o servicio con precio y moneda.",
+   "title": "Crear un producto o servicio"
+  },
+  {
+   "id": "purchases.services.delete",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "eliminar producto o servicio",
+    "borrar producto o servicio"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.services"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que la clínica le compra a proveedores, con su precio de referencia: se usa en presupuestos y facturas de compra.",
+     "id": "go",
+     "route": "/purchases/services",
+     "title": "Menú → Compras → Productos y Servicios de Proveedores"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "purchases.services.filter.search",
+     "title": "Buscá el producto o servicio",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocalo para abrir su ficha.",
+     "id": "pick",
+     "target": "purchases.services.section.first-row",
+     "title": "Elegí el producto o servicio",
+     "until": "purchases.services.section.detail"
+    },
+    {
+     "action": "click",
+     "details": "Pide confirmación.",
+     "id": "delete",
+     "target": "purchases.services.btn.delete",
+     "title": "Eliminar",
+     "until": "purchases.services.btn.delete-confirm"
+    },
+    {
+     "action": "confirm",
+     "details": "No se puede deshacer.",
+     "id": "ok",
+     "target": "purchases.services.btn.delete-confirm",
+     "title": "Confirmar"
+    }
+   ],
+   "summary": "Borrarlo de la lista (pide confirmación). Si ya se usó, conviene desactivarlo.",
+   "title": "Eliminar un producto o servicio"
+  },
+  {
+   "id": "purchases.services.edit",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "editar producto o servicio",
+    "cambiar precio",
+    "actualizar precio",
+    "modificar duración"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.services"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que la clínica le compra a proveedores, con su precio de referencia: se usa en presupuestos y facturas de compra.",
+     "id": "go",
+     "route": "/purchases/services",
+     "title": "Menú → Compras → Productos y Servicios de Proveedores"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "purchases.services.filter.search",
+     "title": "Buscá el producto o servicio",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocalo para abrir su ficha.",
+     "id": "pick",
+     "target": "purchases.services.section.first-row",
+     "title": "Elegí el producto o servicio",
+     "until": "purchases.services.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "details",
+     "skipIfMissing": true,
+     "target": "purchases.services.tab.details",
+     "title": "Datos"
+    },
+    {
+     "action": "highlight",
+     "details": "El precio nuevo rige para presupuestos y facturas nuevas; los ya emitidos no cambian.",
+     "id": "price",
+     "target": "purchases.services.field.price",
+     "title": "Precio"
+    },
+    {
+     "action": "highlight",
+     "id": "currency",
+     "skipIfMissing": true,
+     "target": "purchases.services.field.currency",
+     "title": "Moneda"
+    },
+    {
+     "action": "highlight",
+     "details": "Inactivo deja de ofrecerse sin perder el historial.",
+     "id": "active",
+     "skipIfMissing": true,
+     "target": "purchases.services.field.is_active",
+     "title": "Activo"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "purchases.services.btn.submit",
+     "title": "Guardar cambios"
+    }
+   ],
+   "summary": "Ficha del producto o servicio → Datos: se edita directo.",
+   "title": "Cambiar el precio o los datos de un producto o servicio"
+  },
+  {
+   "id": "purchases.services.overview",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "productos de proveedores",
+    "insumos",
+    "lista de compras"
+   ],
+   "module": "Compras",
+   "screens": [
+    "purchases.services"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que la clínica le compra a proveedores, con su precio de referencia: se usa en presupuestos y facturas de compra.",
+     "id": "go",
+     "route": "/purchases/services",
+     "title": "Menú → Compras → Productos y Servicios de Proveedores"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "purchases.services.filter.search",
+     "title": "Buscá el producto o servicio",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocalo para abrir su ficha.",
+     "id": "pick",
+     "target": "purchases.services.section.first-row",
+     "title": "Elegí el producto o servicio",
+     "until": "purchases.services.section.detail"
+    },
+    {
+     "action": "highlight",
+     "details": "Nombre y categoría; con el tacho se elimina.",
+     "id": "detail",
+     "target": "purchases.services.section.detail",
+     "title": "Ficha"
+    },
+    {
+     "action": "click",
+     "details": "Se editan directo y se guardan con «Guardar».",
+     "id": "details",
+     "skipIfMissing": true,
+     "target": "purchases.services.tab.details",
+     "title": "Datos"
+    }
+   ],
+   "summary": "Lo que la clínica le compra a proveedores, con su precio de referencia: se usa en presupuestos y facturas de compra.",
+   "title": "Recorrer productos y servicios de proveedores"
+  },
+  {
+   "id": "roles.create",
+   "inputs": {
+    "name": "Nombre"
+   },
+   "keywords": [
+    "nuevo rol",
+    "crear rol"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "roles"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los perfiles de acceso (Recepción, Doctor, Administración…): cada uno agrupa permisos.",
+     "id": "go",
+     "route": "/roles",
+     "title": "Menú → Sistema → Roles"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "roles.btn.new",
+     "title": "Crear",
+     "until": "roles.field.name"
+    },
+    {
+     "action": "fill",
+     "id": "name",
+     "target": "roles.field.name",
+     "title": "Nombre",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "roles.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Alta de un rol.",
+   "title": "Crear un rol"
+  },
+  {
+   "id": "roles.delete",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "eliminar rol",
+    "borrar rol"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "roles"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los perfiles de acceso (Recepción, Doctor, Administración…): cada uno agrupa permisos.",
+     "id": "go",
+     "route": "/roles",
+     "title": "Menú → Sistema → Roles"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "roles.filter.search",
+     "title": "Buscá el rol",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "click",
+     "id": "row",
+     "target": "roles.btn.row-delete",
+     "title": "Eliminar",
+     "until": "roles.btn.delete-confirm"
+    },
+    {
+     "action": "confirm",
+     "details": "No se puede deshacer.",
+     "id": "ok",
+     "target": "roles.btn.delete-confirm",
+     "title": "Confirmar"
+    }
+   ],
+   "summary": "Desde el listado (pide confirmación).",
+   "title": "Eliminar un rol"
+  },
+  {
+   "id": "roles.edit",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "editar rol",
+    "modificar rol"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "roles"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los perfiles de acceso (Recepción, Doctor, Administración…): cada uno agrupa permisos.",
+     "id": "go",
+     "route": "/roles",
+     "title": "Menú → Sistema → Roles"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "roles.filter.search",
+     "title": "Buscá el rol",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "roles.section.first-row",
+     "title": "Elegí el rol",
+     "until": "roles.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "skipIfMissing": true,
+     "target": "roles.detail.tab.details",
+     "title": "Datos",
+     "until": "roles.detail.field.name"
+    },
+    {
+     "action": "highlight",
+     "id": "name",
+     "target": "roles.detail.field.name",
+     "title": "Nombre"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "roles.detail.btn.submit",
+     "title": "Guardar cambios"
+    }
+   ],
+   "summary": "Pestaña Datos de la ficha.",
+   "title": "Editar un rol"
+  },
+  {
+   "id": "roles.overview",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "roles",
+    "rol",
+    "ver rol"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "roles"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los perfiles de acceso (Recepción, Doctor, Administración…): cada uno agrupa permisos.",
+     "id": "go",
+     "route": "/roles",
+     "title": "Menú → Sistema → Roles"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "roles.filter.search",
+     "title": "Buscá el rol",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "roles.section.first-row",
+     "title": "Elegí el rol",
+     "until": "roles.section.detail"
+    },
+    {
+     "action": "highlight",
+     "id": "detail",
+     "target": "roles.section.detail",
+     "title": "Ficha"
+    },
+    {
+     "action": "click",
+     "id": "tab-details",
+     "skipIfMissing": true,
+     "target": "roles.detail.tab.details",
+     "title": "Datos"
+    },
+    {
+     "action": "click",
+     "details": "Quiénes tienen este rol.",
+     "id": "tab-users",
+     "skipIfMissing": true,
+     "target": "roles.detail.tab.users",
+     "title": "Usuarios"
+    },
+    {
+     "action": "click",
+     "details": "Qué puede ver y hacer quien tenga el rol.",
+     "id": "tab-permissions",
+     "skipIfMissing": true,
+     "target": "roles.detail.tab.permissions",
+     "title": "Permisos"
+    }
+   ],
+   "summary": "Los perfiles de acceso (Recepción, Doctor, Administración…): cada uno agrupa permisos.",
+   "title": "Recorrer Roles"
+  },
+  {
+   "id": "roles.permissions",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "permisos del rol",
+    "dar permiso",
+    "quitar permiso",
+    "acceso a una pantalla"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "roles"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "id": "go",
+     "route": "/roles",
+     "title": "Menú → Sistema → Roles"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "roles.filter.search",
+     "title": "Buscá el rol",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "roles.section.first-row",
+     "title": "Elegí el rol",
+     "until": "roles.section.detail"
+    },
+    {
+     "action": "click",
+     "details": "Marcá o desmarcá los permisos; los usuarios con este rol los toman al volver a entrar.",
+     "id": "tab",
+     "target": "roles.detail.tab.permissions",
+     "title": "Permisos"
+    }
+   ],
+   "summary": "Pestaña Permisos del rol: qué puede ver y hacer quien lo tenga.",
+   "title": "Asignar permisos a un rol"
+  },
+  {
    "id": "sales.invoices.confirm",
    "inputs": {
     "query": "Número de factura"
@@ -26919,6 +29640,15 @@
      "skipIfMissing": true,
      "target": "sales.invoices.field.sede_id",
      "title": "Sede"
+    },
+    {
+     "action": "click",
+     "details": "Agrega una línea con servicio, cantidad y precio.",
+     "id": "add",
+     "skipIfMissing": true,
+     "target": "sales.invoices.btn.add-item",
+     "title": "Agregar ítem",
+     "until": "sales.invoices.field.items.service_id"
     },
     {
      "action": "fill",
@@ -27374,6 +30104,276 @@
    ],
    "summary": "Imprimir la factura o mandarla al paciente en PDF.",
    "title": "Imprimir o enviar una factura por correo"
+  },
+  {
+   "id": "sales.payment-methods.create",
+   "inputs": {
+    "code": "Código",
+    "name": "Nombre"
+   },
+   "keywords": [
+    "nuevo método de pago",
+    "agregar tarjeta",
+    "agregar transferencia"
+   ],
+   "module": "Ventas",
+   "screens": [
+    "sales.payment-methods"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Efectivo, tarjetas, transferencias… con los que se cobra y paga. Los equivalentes a efectivo suman al arqueo de caja.",
+     "id": "go",
+     "route": "/sales/payment-methods",
+     "title": "Menú → Ventas → Métodos de Pago"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "sales.payment-methods.btn.new",
+     "title": "Crear",
+     "until": "sales.payment-methods.field.name"
+    },
+    {
+     "action": "fill",
+     "id": "name",
+     "target": "sales.payment-methods.field.name",
+     "title": "Nombre",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "fill",
+     "details": "Corto, para reportes (EFE, TC, TRF).",
+     "id": "code",
+     "target": "sales.payment-methods.field.code",
+     "title": "Código",
+     "value": "{{values.code}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Si lo marcás, suma al arqueo de caja como el efectivo.",
+     "id": "is_cash_equivalent",
+     "target": "sales.payment-methods.field.is_cash_equivalent",
+     "title": "Equivale a efectivo"
+    },
+    {
+     "action": "highlight",
+     "id": "is_active",
+     "target": "sales.payment-methods.field.is_active",
+     "title": "Activo"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "sales.payment-methods.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Alta de un medio de cobro o pago.",
+   "title": "Crear un método de pago"
+  },
+  {
+   "id": "sales.payment-methods.delete",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "eliminar método de pago",
+    "borrar método de pago"
+   ],
+   "module": "Ventas",
+   "screens": [
+    "sales.payment-methods"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Efectivo, tarjetas, transferencias… con los que se cobra y paga. Los equivalentes a efectivo suman al arqueo de caja.",
+     "id": "go",
+     "route": "/sales/payment-methods",
+     "title": "Menú → Ventas → Métodos de Pago"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "sales.payment-methods.filter.search",
+     "title": "Buscá el método",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "sales.payment-methods.section.first-row",
+     "title": "Elegí el método",
+     "until": "sales.payment-methods.section.detail"
+    },
+    {
+     "action": "click",
+     "details": "Pide confirmación.",
+     "id": "delete",
+     "target": "sales.payment-methods.btn.delete",
+     "title": "Eliminar",
+     "until": "sales.payment-methods.btn.delete-confirm"
+    },
+    {
+     "action": "confirm",
+     "id": "ok",
+     "target": "sales.payment-methods.btn.delete-confirm",
+     "title": "Confirmar"
+    }
+   ],
+   "summary": "Borrarlo (pide confirmación). Si ya tiene pagos, conviene desactivarlo.",
+   "title": "Eliminar un método de pago"
+  },
+  {
+   "id": "sales.payment-methods.edit",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "editar método de pago",
+    "cambiar método"
+   ],
+   "module": "Ventas",
+   "screens": [
+    "sales.payment-methods"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Efectivo, tarjetas, transferencias… con los que se cobra y paga. Los equivalentes a efectivo suman al arqueo de caja.",
+     "id": "go",
+     "route": "/sales/payment-methods",
+     "title": "Menú → Ventas → Métodos de Pago"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "sales.payment-methods.filter.search",
+     "title": "Buscá el método",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "sales.payment-methods.section.first-row",
+     "title": "Elegí el método",
+     "until": "sales.payment-methods.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "sales.payment-methods.btn.edit",
+     "title": "Editar",
+     "until": "sales.payment-methods.btn.submit"
+    },
+    {
+     "action": "highlight",
+     "id": "name",
+     "target": "sales.payment-methods.field.name",
+     "title": "Nombre"
+    },
+    {
+     "action": "highlight",
+     "details": "Corto, para reportes (EFE, TC, TRF).",
+     "id": "code",
+     "target": "sales.payment-methods.field.code",
+     "title": "Código"
+    },
+    {
+     "action": "highlight",
+     "details": "Si lo marcás, suma al arqueo de caja como el efectivo.",
+     "id": "is_cash_equivalent",
+     "target": "sales.payment-methods.field.is_cash_equivalent",
+     "title": "Equivale a efectivo"
+    },
+    {
+     "action": "highlight",
+     "id": "is_active",
+     "target": "sales.payment-methods.field.is_active",
+     "title": "Activo"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "sales.payment-methods.btn.submit",
+     "title": "Guardar cambios"
+    }
+   ],
+   "summary": "Cambiar nombre, código o si cuenta como efectivo.",
+   "title": "Editar un método de pago"
+  },
+  {
+   "id": "sales.payment-methods.overview",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "métodos de pago",
+    "medios de pago",
+    "formas de pago"
+   ],
+   "module": "Ventas",
+   "screens": [
+    "sales.payment-methods"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Efectivo, tarjetas, transferencias… con los que se cobra y paga. Los equivalentes a efectivo suman al arqueo de caja.",
+     "id": "go",
+     "route": "/sales/payment-methods",
+     "title": "Menú → Ventas → Métodos de Pago"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "sales.payment-methods.filter.search",
+     "title": "Buscá el método",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "sales.payment-methods.section.first-row",
+     "title": "Elegí el método",
+     "until": "sales.payment-methods.section.detail"
+    },
+    {
+     "action": "highlight",
+     "id": "detail",
+     "target": "sales.payment-methods.section.detail",
+     "title": "Detalle"
+    },
+    {
+     "action": "highlight",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "sales.payment-methods.btn.edit",
+     "title": "Editar"
+    },
+    {
+     "action": "highlight",
+     "details": "Pide confirmación.",
+     "id": "delete",
+     "skipIfMissing": true,
+     "target": "sales.payment-methods.btn.delete",
+     "title": "Eliminar"
+    }
+   ],
+   "summary": "Lista de medios de cobro y pago y cuáles cuentan como efectivo en la caja.",
+   "title": "Recorrer métodos de pago"
   },
   {
    "id": "sales.payments.edit",
@@ -28510,6 +31510,2294 @@
    "title": "Imprimir o enviar un presupuesto por correo"
   },
   {
+   "id": "sales.services.create",
+   "inputs": {
+    "duration_minutes": "Duración",
+    "name": "Nombre",
+    "price": "Precio"
+   },
+   "keywords": [
+    "nuevo servicio",
+    "crear servicio",
+    "agregar a la lista de precios"
+   ],
+   "module": "Ventas",
+   "screens": [
+    "sales.services"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que la clínica ofrece y cobra: precio, moneda, duración en la agenda, color, categoría y si se reserva en línea. Es la lista de precios de presupuestos, facturas y citas.",
+     "id": "go",
+     "route": "/sales/services",
+     "title": "Menú → Ventas → Servicios"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "sales.services.btn.new",
+     "title": "Crear",
+     "until": "sales.services.field.name"
+    },
+    {
+     "action": "fill",
+     "details": "Como aparece en citas, presupuestos y facturas.",
+     "id": "name",
+     "optional": false,
+     "target": "sales.services.field.name",
+     "title": "Nombre",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Simple o por etapas (tratamiento con varias sesiones: abre la pestaña Etapas).",
+     "id": "service_type",
+     "skipIfMissing": true,
+     "target": "sales.services.field.service_type",
+     "title": "Tipo"
+    },
+    {
+     "action": "highlight",
+     "details": "Agrupa servicios en reportes y en el portal.",
+     "id": "category_id",
+     "skipIfMissing": true,
+     "target": "sales.services.field.category_id",
+     "title": "Categoría"
+    },
+    {
+     "action": "fill",
+     "details": "Precio de lista.",
+     "id": "price",
+     "optional": true,
+     "target": "sales.services.field.price",
+     "title": "Precio",
+     "value": "{{values.price}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Moneda del precio.",
+     "id": "currency",
+     "skipIfMissing": true,
+     "target": "sales.services.field.currency",
+     "title": "Moneda"
+    },
+    {
+     "action": "fill",
+     "details": "Minutos que ocupa en la agenda.",
+     "id": "duration_minutes",
+     "optional": true,
+     "target": "sales.services.field.duration_minutes",
+     "title": "Duración",
+     "value": "{{values.duration_minutes}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Color de la cita en la agenda.",
+     "id": "color",
+     "skipIfMissing": true,
+     "target": "sales.services.field.color",
+     "title": "Color"
+    },
+    {
+     "action": "highlight",
+     "details": "Aparece en el portal del paciente.",
+     "id": "bookable_online",
+     "skipIfMissing": true,
+     "target": "sales.services.field.bookable_online",
+     "title": "Reservable en línea"
+    },
+    {
+     "action": "highlight",
+     "id": "description",
+     "skipIfMissing": true,
+     "target": "sales.services.field.description",
+     "title": "Descripción"
+    },
+    {
+     "action": "highlight",
+     "details": "Lo que se le avisa al paciente antes de la cita.",
+     "id": "indications",
+     "skipIfMissing": true,
+     "target": "sales.services.field.indications",
+     "title": "Indicaciones"
+    },
+    {
+     "action": "highlight",
+     "id": "is_active",
+     "skipIfMissing": true,
+     "target": "sales.services.field.is_active",
+     "title": "Activo"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "sales.services.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Alta de un servicio con precio y moneda.",
+   "title": "Crear un servicio"
+  },
+  {
+   "id": "sales.services.delete",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "eliminar servicio",
+    "borrar servicio"
+   ],
+   "module": "Ventas",
+   "screens": [
+    "sales.services"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que la clínica ofrece y cobra: precio, moneda, duración en la agenda, color, categoría y si se reserva en línea. Es la lista de precios de presupuestos, facturas y citas.",
+     "id": "go",
+     "route": "/sales/services",
+     "title": "Menú → Ventas → Servicios"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "sales.services.filter.search",
+     "title": "Buscá el servicio",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocalo para abrir su ficha.",
+     "id": "pick",
+     "target": "sales.services.section.first-row",
+     "title": "Elegí el servicio",
+     "until": "sales.services.section.detail"
+    },
+    {
+     "action": "click",
+     "details": "Pide confirmación.",
+     "id": "delete",
+     "target": "sales.services.btn.delete",
+     "title": "Eliminar",
+     "until": "sales.services.btn.delete-confirm"
+    },
+    {
+     "action": "confirm",
+     "details": "No se puede deshacer.",
+     "id": "ok",
+     "target": "sales.services.btn.delete-confirm",
+     "title": "Confirmar"
+    }
+   ],
+   "summary": "Borrarlo de la lista (pide confirmación). Si ya se usó, conviene desactivarlo.",
+   "title": "Eliminar un servicio"
+  },
+  {
+   "id": "sales.services.edit",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "editar servicio",
+    "cambiar precio",
+    "actualizar precio",
+    "modificar duración"
+   ],
+   "module": "Ventas",
+   "screens": [
+    "sales.services"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que la clínica ofrece y cobra: precio, moneda, duración en la agenda, color, categoría y si se reserva en línea. Es la lista de precios de presupuestos, facturas y citas.",
+     "id": "go",
+     "route": "/sales/services",
+     "title": "Menú → Ventas → Servicios"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "sales.services.filter.search",
+     "title": "Buscá el servicio",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocalo para abrir su ficha.",
+     "id": "pick",
+     "target": "sales.services.section.first-row",
+     "title": "Elegí el servicio",
+     "until": "sales.services.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "details",
+     "skipIfMissing": true,
+     "target": "sales.services.tab.details",
+     "title": "Datos"
+    },
+    {
+     "action": "highlight",
+     "details": "El precio nuevo rige para presupuestos y facturas nuevas; los ya emitidos no cambian.",
+     "id": "price",
+     "target": "sales.services.field.price",
+     "title": "Precio"
+    },
+    {
+     "action": "highlight",
+     "details": "Moneda del precio.",
+     "id": "currency",
+     "skipIfMissing": true,
+     "target": "sales.services.field.currency",
+     "title": "Moneda"
+    },
+    {
+     "action": "highlight",
+     "details": "Duración del turno en minutos.",
+     "id": "duration",
+     "skipIfMissing": true,
+     "target": "sales.services.field.duration_minutes",
+     "title": "Duración"
+    },
+    {
+     "action": "highlight",
+     "details": "Inactivo deja de ofrecerse sin perder el historial.",
+     "id": "active",
+     "skipIfMissing": true,
+     "target": "sales.services.field.is_active",
+     "title": "Activo"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "sales.services.btn.submit",
+     "title": "Guardar cambios"
+    }
+   ],
+   "summary": "Ficha del servicio → Datos: se edita directo.",
+   "title": "Cambiar el precio o los datos de un servicio"
+  },
+  {
+   "id": "sales.services.overview",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "servicios",
+    "lista de precios",
+    "precios",
+    "catálogo de servicios"
+   ],
+   "module": "Ventas",
+   "screens": [
+    "sales.services"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Lo que la clínica ofrece y cobra: precio, moneda, duración en la agenda, color, categoría y si se reserva en línea. Es la lista de precios de presupuestos, facturas y citas.",
+     "id": "go",
+     "route": "/sales/services",
+     "title": "Menú → Ventas → Servicios"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "sales.services.filter.search",
+     "title": "Buscá el servicio",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocalo para abrir su ficha.",
+     "id": "pick",
+     "target": "sales.services.section.first-row",
+     "title": "Elegí el servicio",
+     "until": "sales.services.section.detail"
+    },
+    {
+     "action": "highlight",
+     "details": "Nombre y categoría; con el tacho se elimina.",
+     "id": "detail",
+     "target": "sales.services.section.detail",
+     "title": "Ficha"
+    },
+    {
+     "action": "click",
+     "details": "Se editan directo y se guardan con «Guardar».",
+     "id": "details",
+     "skipIfMissing": true,
+     "target": "sales.services.tab.details",
+     "title": "Datos"
+    },
+    {
+     "action": "click",
+     "details": "Sólo en servicios por etapas: las sesiones del tratamiento y sus plazos.",
+     "id": "steps",
+     "skipIfMissing": true,
+     "target": "sales.services.tab.steps",
+     "title": "Etapas"
+    }
+   ],
+   "summary": "Lo que la clínica ofrece y cobra: precio, moneda, duración en la agenda, color, categoría y si se reserva en línea. Es la lista de precios de presupuestos, facturas y citas.",
+   "title": "Recorrer servicios"
+  },
+  {
+   "id": "sales.services.steps",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "etapas",
+    "tratamiento por etapas",
+    "plan de tratamiento",
+    "sesiones del tratamiento",
+    "laboratorio"
+   ],
+   "module": "Ventas",
+   "screens": [
+    "sales.services"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "id": "go",
+     "route": "/sales/services",
+     "title": "Menú → Ventas → Servicios"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "sales.services.filter.search",
+     "title": "Buscá el servicio",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "sales.services.section.first-row",
+     "title": "Elegí el servicio",
+     "until": "sales.services.section.detail"
+    },
+    {
+     "action": "highlight",
+     "details": "Elegí «por etapas» y guardá para que aparezca la pestaña Etapas.",
+     "id": "type",
+     "skipIfMissing": true,
+     "target": "sales.services.field.service_type",
+     "title": "Tipo"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "skipIfMissing": true,
+     "target": "sales.services.tab.steps",
+     "title": "Etapas"
+    },
+    {
+     "action": "highlight",
+     "details": "Nombre, días desde la etapa anterior y si depende del laboratorio.",
+     "id": "add",
+     "skipIfMissing": true,
+     "target": "sales.services.btn.add-step",
+     "title": "Agregar etapa"
+    }
+   ],
+   "summary": "Servicio de tipo «por etapas»: sus sesiones, plazos entre una y otra y si dependen del laboratorio. Con él se arman los planes de tratamiento.",
+   "title": "Armar un tratamiento por etapas"
+  },
+  {
+   "id": "subscriptions.overview",
+   "keywords": [
+    "suscripciones",
+    "plan",
+    "facturación del servicio"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "subscriptions"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "id": "go",
+     "route": "/subscriptions",
+     "title": "Menú → Sistema → Suscripciones"
+    },
+    {
+     "action": "highlight",
+     "id": "row",
+     "skipIfMissing": true,
+     "target": "subscriptions.section.first-row",
+     "title": "La más reciente"
+    }
+   ],
+   "summary": "Cada período de suscripción de la clínica con su plan y vigencia.",
+   "title": "Ver el historial de suscripciones"
+  },
+  {
+   "id": "system.access.overview",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "accesos",
+    "quién entró",
+    "inicios de sesión"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.access"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Quién entró al sistema, cuándo y desde dónde.",
+     "id": "go",
+     "route": "/system/access",
+     "title": "Menú → Sistema → Registro de Acceso"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.access.filter.search",
+     "title": "Buscar",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocalo para ver el detalle.",
+     "id": "pick",
+     "skipIfMissing": true,
+     "target": "system.access.section.first-row",
+     "title": "El más reciente",
+     "until": "system.access.section.detail"
+    },
+    {
+     "action": "highlight",
+     "id": "detail",
+     "skipIfMissing": true,
+     "target": "system.access.section.detail",
+     "title": "Detalle"
+    }
+   ],
+   "summary": "Quién entró al sistema, cuándo y desde dónde.",
+   "title": "Consultar Registro de Acceso"
+  },
+  {
+   "id": "system.alert-categories.create",
+   "inputs": {
+    "code": "Código",
+    "name": "Nombre"
+   },
+   "keywords": [
+    "nueva categoría",
+    "nuevo categoría",
+    "crear categoría"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.alert-categories"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Agrupan las alertas en el Centro de Alertas (cobranza, citas, cumpleaños…), con color, ícono y orden.",
+     "id": "go",
+     "route": "/system/alert-categories",
+     "title": "Menú → Sistema → Categorías de Alertas"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "system.alert-categories.btn.new",
+     "title": "Crear",
+     "until": "system.alert-categories.field.name"
+    },
+    {
+     "action": "fill",
+     "id": "name",
+     "target": "system.alert-categories.field.name",
+     "title": "Nombre",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "fill",
+     "details": "Identificador interno, sin espacios.",
+     "id": "code",
+     "target": "system.alert-categories.field.code",
+     "title": "Código",
+     "value": "{{values.code}}"
+    },
+    {
+     "action": "highlight",
+     "id": "color",
+     "skipIfMissing": true,
+     "target": "system.alert-categories.field.color",
+     "title": "Color"
+    },
+    {
+     "action": "highlight",
+     "id": "icon",
+     "skipIfMissing": true,
+     "target": "system.alert-categories.field.icon",
+     "title": "Ícono"
+    },
+    {
+     "action": "highlight",
+     "details": "A qué módulo pertenece.",
+     "id": "internal_category_id",
+     "skipIfMissing": true,
+     "target": "system.alert-categories.field.internal_category_id",
+     "title": "Categoría interna"
+    },
+    {
+     "action": "highlight",
+     "details": "Posición en el Centro de Alertas.",
+     "id": "sort_order",
+     "skipIfMissing": true,
+     "target": "system.alert-categories.field.sort_order",
+     "title": "Orden"
+    },
+    {
+     "action": "highlight",
+     "id": "description",
+     "skipIfMissing": true,
+     "target": "system.alert-categories.field.description",
+     "title": "Descripción"
+    },
+    {
+     "action": "highlight",
+     "id": "is_active",
+     "skipIfMissing": true,
+     "target": "system.alert-categories.field.is_active",
+     "title": "Activa"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "system.alert-categories.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Alta de una categoría.",
+   "title": "Crear una categoría"
+  },
+  {
+   "id": "system.alert-categories.delete",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "eliminar categoría",
+    "borrar categoría"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.alert-categories"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Agrupan las alertas en el Centro de Alertas (cobranza, citas, cumpleaños…), con color, ícono y orden.",
+     "id": "go",
+     "route": "/system/alert-categories",
+     "title": "Menú → Sistema → Categorías de Alertas"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.alert-categories.filter.search",
+     "title": "Buscá la categoría",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "system.alert-categories.section.first-row",
+     "title": "Elegí la categoría",
+     "until": "system.alert-categories.section.detail"
+    },
+    {
+     "action": "click",
+     "details": "Pide confirmación.",
+     "id": "delete",
+     "skipIfMissing": true,
+     "target": "system.alert-categories.btn.delete",
+     "title": "Eliminar",
+     "until": "system.alert-categories.btn.confirm-action"
+    },
+    {
+     "action": "confirm",
+     "details": "No se puede deshacer.",
+     "id": "ok",
+     "skipIfMissing": true,
+     "target": "system.alert-categories.btn.confirm-action",
+     "title": "Confirmar"
+    }
+   ],
+   "summary": "Borrar (pide confirmación).",
+   "title": "Eliminar la categoría"
+  },
+  {
+   "id": "system.alert-categories.edit",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "editar categoría",
+    "modificar categoría"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.alert-categories"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Agrupan las alertas en el Centro de Alertas (cobranza, citas, cumpleaños…), con color, ícono y orden.",
+     "id": "go",
+     "route": "/system/alert-categories",
+     "title": "Menú → Sistema → Categorías de Alertas"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.alert-categories.filter.search",
+     "title": "Buscá la categoría",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "system.alert-categories.section.first-row",
+     "title": "Elegí la categoría",
+     "until": "system.alert-categories.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "system.alert-categories.btn.edit",
+     "title": "Editar",
+     "until": "system.alert-categories.btn.submit"
+    },
+    {
+     "action": "highlight",
+     "id": "name",
+     "skipIfMissing": true,
+     "target": "system.alert-categories.field.name",
+     "title": "Nombre"
+    },
+    {
+     "action": "highlight",
+     "details": "Identificador interno, sin espacios.",
+     "id": "code",
+     "skipIfMissing": true,
+     "target": "system.alert-categories.field.code",
+     "title": "Código"
+    },
+    {
+     "action": "highlight",
+     "id": "color",
+     "skipIfMissing": true,
+     "target": "system.alert-categories.field.color",
+     "title": "Color"
+    },
+    {
+     "action": "highlight",
+     "id": "icon",
+     "skipIfMissing": true,
+     "target": "system.alert-categories.field.icon",
+     "title": "Ícono"
+    },
+    {
+     "action": "highlight",
+     "details": "A qué módulo pertenece.",
+     "id": "internal_category_id",
+     "skipIfMissing": true,
+     "target": "system.alert-categories.field.internal_category_id",
+     "title": "Categoría interna"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "system.alert-categories.btn.submit",
+     "title": "Guardar cambios"
+    }
+   ],
+   "summary": "Cambiar una categoría existente.",
+   "title": "Editar la categoría"
+  },
+  {
+   "id": "system.alert-categories.overview",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "categorías de alertas",
+    "categoría"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.alert-categories"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Agrupan las alertas en el Centro de Alertas (cobranza, citas, cumpleaños…), con color, ícono y orden.",
+     "id": "go",
+     "route": "/system/alert-categories",
+     "title": "Menú → Sistema → Categorías de Alertas"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.alert-categories.filter.search",
+     "title": "Buscá la categoría",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "system.alert-categories.section.first-row",
+     "title": "Elegí la categoría",
+     "until": "system.alert-categories.section.detail"
+    },
+    {
+     "action": "highlight",
+     "id": "detail",
+     "target": "system.alert-categories.section.detail",
+     "title": "Detalle"
+    },
+    {
+     "action": "highlight",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "system.alert-categories.btn.edit",
+     "title": "Editar"
+    },
+    {
+     "action": "highlight",
+     "details": "Pide confirmación.",
+     "id": "delete",
+     "skipIfMissing": true,
+     "target": "system.alert-categories.btn.delete",
+     "title": "Eliminar"
+    }
+   ],
+   "summary": "Agrupan las alertas en el Centro de Alertas (cobranza, citas, cumpleaños…), con color, ícono y orden.",
+   "title": "Recorrer Categorías de Alertas"
+  },
+  {
+   "id": "system.alert-rules.create",
+   "inputs": {
+    "code": "Código",
+    "name": "Nombre"
+   },
+   "keywords": [
+    "nueva regla",
+    "nuevo regla",
+    "crear regla"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.alert-rules"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Qué genera una alerta y cuándo: tabla y fecha del evento, días antes o después, recurrencia, prioridad y las plantillas de correo, WhatsApp o SMS que se mandan.",
+     "id": "go",
+     "route": "/system/alert-rules",
+     "title": "Menú → Sistema → Reglas de Alertas"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "system.alert-rules.btn.new",
+     "title": "Crear",
+     "until": "system.alert-rules.field.name"
+    },
+    {
+     "action": "fill",
+     "id": "name",
+     "target": "system.alert-rules.field.name",
+     "title": "Nombre",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "fill",
+     "id": "code",
+     "target": "system.alert-rules.field.code",
+     "title": "Código",
+     "value": "{{values.code}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Dónde aparece en el Centro de Alertas.",
+     "id": "category_id",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.category_id",
+     "title": "Categoría"
+    },
+    {
+     "action": "highlight",
+     "details": "De dónde salen los casos (citas, facturas, pacientes…).",
+     "id": "source_table",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.source_table",
+     "title": "Origen"
+    },
+    {
+     "action": "highlight",
+     "details": "La fecha contra la que se cuentan los días.",
+     "id": "event_field",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.event_field",
+     "title": "Fecha del evento"
+    },
+    {
+     "action": "highlight",
+     "id": "days_before",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.days_before",
+     "title": "Días antes"
+    },
+    {
+     "action": "highlight",
+     "id": "days_after",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.days_after",
+     "title": "Días después"
+    },
+    {
+     "action": "highlight",
+     "id": "recurrence_type",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.recurrence_type",
+     "title": "Recurrencia"
+    },
+    {
+     "action": "highlight",
+     "id": "priority",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.priority",
+     "title": "Prioridad"
+    },
+    {
+     "action": "highlight",
+     "id": "email_template_id",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.email_template_id",
+     "title": "Plantilla de correo"
+    },
+    {
+     "action": "highlight",
+     "id": "whatsapp_template_id",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.whatsapp_template_id",
+     "title": "Plantilla de WhatsApp"
+    },
+    {
+     "action": "highlight",
+     "details": "Si está marcado, el correo sale solo al generarse la alerta.",
+     "id": "auto_send_email",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.auto_send_email",
+     "title": "Enviar correo automático"
+    },
+    {
+     "action": "highlight",
+     "id": "is_active",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.is_active",
+     "title": "Activa"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "system.alert-rules.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Alta de una regla.",
+   "title": "Crear una regla"
+  },
+  {
+   "id": "system.alert-rules.delete",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "eliminar regla",
+    "borrar regla"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.alert-rules"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Qué genera una alerta y cuándo: tabla y fecha del evento, días antes o después, recurrencia, prioridad y las plantillas de correo, WhatsApp o SMS que se mandan.",
+     "id": "go",
+     "route": "/system/alert-rules",
+     "title": "Menú → Sistema → Reglas de Alertas"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.alert-rules.filter.search",
+     "title": "Buscá la regla",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "system.alert-rules.section.first-row",
+     "title": "Elegí la regla",
+     "until": "system.alert-rules.section.detail"
+    },
+    {
+     "action": "click",
+     "details": "Pide confirmación.",
+     "id": "delete",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.btn.delete",
+     "title": "Eliminar",
+     "until": "system.alert-rules.btn.confirm-action"
+    },
+    {
+     "action": "confirm",
+     "details": "No se puede deshacer.",
+     "id": "ok",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.btn.confirm-action",
+     "title": "Confirmar"
+    }
+   ],
+   "summary": "Borrar (pide confirmación).",
+   "title": "Eliminar la regla"
+  },
+  {
+   "id": "system.alert-rules.edit",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "editar regla",
+    "modificar regla"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.alert-rules"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Qué genera una alerta y cuándo: tabla y fecha del evento, días antes o después, recurrencia, prioridad y las plantillas de correo, WhatsApp o SMS que se mandan.",
+     "id": "go",
+     "route": "/system/alert-rules",
+     "title": "Menú → Sistema → Reglas de Alertas"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.alert-rules.filter.search",
+     "title": "Buscá la regla",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "system.alert-rules.section.first-row",
+     "title": "Elegí la regla",
+     "until": "system.alert-rules.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.btn.edit",
+     "title": "Editar",
+     "until": "system.alert-rules.btn.submit"
+    },
+    {
+     "action": "highlight",
+     "id": "name",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.name",
+     "title": "Nombre"
+    },
+    {
+     "action": "highlight",
+     "id": "code",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.code",
+     "title": "Código"
+    },
+    {
+     "action": "highlight",
+     "details": "Dónde aparece en el Centro de Alertas.",
+     "id": "category_id",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.category_id",
+     "title": "Categoría"
+    },
+    {
+     "action": "highlight",
+     "details": "De dónde salen los casos (citas, facturas, pacientes…).",
+     "id": "source_table",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.source_table",
+     "title": "Origen"
+    },
+    {
+     "action": "highlight",
+     "details": "La fecha contra la que se cuentan los días.",
+     "id": "event_field",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.event_field",
+     "title": "Fecha del evento"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "system.alert-rules.btn.submit",
+     "title": "Guardar cambios"
+    }
+   ],
+   "summary": "Cambiar una regla existente.",
+   "title": "Editar la regla"
+  },
+  {
+   "id": "system.alert-rules.overview",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "reglas de alertas",
+    "regla"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.alert-rules"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Qué genera una alerta y cuándo: tabla y fecha del evento, días antes o después, recurrencia, prioridad y las plantillas de correo, WhatsApp o SMS que se mandan.",
+     "id": "go",
+     "route": "/system/alert-rules",
+     "title": "Menú → Sistema → Reglas de Alertas"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.alert-rules.filter.search",
+     "title": "Buscá la regla",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "system.alert-rules.section.first-row",
+     "title": "Elegí la regla",
+     "until": "system.alert-rules.section.detail"
+    },
+    {
+     "action": "highlight",
+     "id": "detail",
+     "target": "system.alert-rules.section.detail",
+     "title": "Detalle"
+    },
+    {
+     "action": "highlight",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.btn.edit",
+     "title": "Editar"
+    },
+    {
+     "action": "highlight",
+     "details": "Pide confirmación.",
+     "id": "delete",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.btn.delete",
+     "title": "Eliminar"
+    }
+   ],
+   "summary": "Qué genera una alerta y cuándo: tabla y fecha del evento, días antes o después, recurrencia, prioridad y las plantillas de correo, WhatsApp o SMS que se mandan.",
+   "title": "Recorrer Reglas de Alertas"
+  },
+  {
+   "id": "system.alert-rules.test",
+   "keywords": [
+    "probar regla",
+    "duplicar regla",
+    "ver si la regla funciona"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.alert-rules"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "id": "go",
+     "route": "/system/alert-rules",
+     "title": "Menú → Sistema → Reglas de Alertas"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "actions",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.btn.row-actions",
+     "title": "Acciones de la fila",
+     "until": [
+      "system.alert-rules.btn.row-test",
+      "system.alert-rules.btn.row-duplicate"
+     ]
+    },
+    {
+     "action": "highlight",
+     "details": "Abre el alta con los datos de esta regla.",
+     "id": "duplicate",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.btn.row-duplicate",
+     "title": "Duplicar"
+    },
+    {
+     "action": "confirm",
+     "details": "Corre la regla al tocarlo: puede generar alertas reales.",
+     "id": "test",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.btn.row-test",
+     "title": "Probar"
+    }
+   ],
+   "summary": "Desde las acciones de la fila: «Probar» corre la regla ahora y muestra cuántos casos encuentra; «Duplicar» crea una copia para ajustar.",
+   "title": "Probar o duplicar una regla de alertas"
+  },
+  {
+   "id": "system.alerts-config.overview",
+   "keywords": [
+    "configuración de alertas",
+    "cuándo corren las alertas"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.alerts-config"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Ajustes globales del sistema de alertas: cuándo corre el generador y cuánto se guarda el historial.",
+     "id": "go",
+     "route": "/system/alerts-config",
+     "title": "Menú → Sistema → Configuración de Alertas"
+    },
+    {
+     "action": "highlight",
+     "details": "Cada cuánto y a qué hora se generan las alertas.",
+     "id": "scheduler",
+     "skipIfMissing": true,
+     "target": "system.alerts-config.section.scheduler",
+     "title": "Programación"
+    },
+    {
+     "action": "highlight",
+     "details": "Cuántos días se guardan alertas e historial antes de limpiarse.",
+     "id": "retention",
+     "skipIfMissing": true,
+     "target": "system.alerts-config.section.retention",
+     "title": "Retención"
+    },
+    {
+     "action": "confirm",
+     "details": "Los cambios no se aplican hasta guardar.",
+     "id": "save",
+     "target": "system.alerts-config.btn.save",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Ajustes globales del sistema de alertas: cuándo corre el generador y cuánto se guarda el historial.",
+   "title": "Configurar Configuración de Alertas"
+  },
+  {
+   "id": "system.audit.overview",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "auditoría",
+    "quién cambió",
+    "historial de cambios"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.audit"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Qué cambió cada usuario: alta, edición o baja de registros, con el antes y el después.",
+     "id": "go",
+     "route": "/system/audit",
+     "title": "Menú → Sistema → Registro de Auditoría"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.audit.filter.search",
+     "title": "Buscar",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocalo para ver el detalle.",
+     "id": "pick",
+     "skipIfMissing": true,
+     "target": "system.audit.section.first-row",
+     "title": "El más reciente",
+     "until": "system.audit.section.detail"
+    },
+    {
+     "action": "highlight",
+     "id": "detail",
+     "skipIfMissing": true,
+     "target": "system.audit.section.detail",
+     "title": "Detalle"
+    }
+   ],
+   "summary": "Qué cambió cada usuario: alta, edición o baja de registros, con el antes y el después.",
+   "title": "Consultar Registro de Auditoría"
+  },
+  {
+   "id": "system.communication-history.overview",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "comunicaciones enviadas",
+    "historial de mensajes",
+    "correos enviados"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.communication-history"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Cada correo, WhatsApp o SMS enviado: a quién, cuándo, con qué plantilla y si llegó.",
+     "id": "go",
+     "route": "/system/communication-history",
+     "title": "Menú → Sistema → Historial de Alertas"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.communication-history.filter.search",
+     "title": "Buscar",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocalo para ver el detalle.",
+     "id": "pick",
+     "skipIfMissing": true,
+     "target": "system.communication-history.section.first-row",
+     "title": "El más reciente",
+     "until": "system.communication-history.section.detail"
+    },
+    {
+     "action": "highlight",
+     "id": "detail",
+     "skipIfMissing": true,
+     "target": "system.communication-history.section.detail",
+     "title": "Detalle"
+    }
+   ],
+   "summary": "Cada correo, WhatsApp o SMS enviado: a quién, cuándo, con qué plantilla y si llegó.",
+   "title": "Consultar Historial de Alertas"
+  },
+  {
+   "id": "system.communication-templates.create",
+   "inputs": {
+    "code": "Código",
+    "name": "Nombre"
+   },
+   "keywords": [
+    "nueva plantilla",
+    "nuevo plantilla",
+    "crear plantilla"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.communication-templates"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los textos de correo, SMS y WhatsApp que usan las alertas, con variables del paciente y del caso.",
+     "id": "go",
+     "route": "/system/communication-templates",
+     "title": "Menú → Sistema → Plantillas de Alertas"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "system.communication-templates.btn.new",
+     "title": "Crear",
+     "until": "system.communication-templates.field.name"
+    },
+    {
+     "action": "fill",
+     "id": "name",
+     "target": "system.communication-templates.field.name",
+     "title": "Nombre",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "fill",
+     "id": "code",
+     "target": "system.communication-templates.field.code",
+     "title": "Código",
+     "value": "{{values.code}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Correo, SMS o WhatsApp.",
+     "id": "type",
+     "skipIfMissing": true,
+     "target": "system.communication-templates.field.type",
+     "title": "Tipo"
+    },
+    {
+     "action": "highlight",
+     "id": "category_id",
+     "skipIfMissing": true,
+     "target": "system.communication-templates.field.category_id",
+     "title": "Categoría"
+    },
+    {
+     "action": "highlight",
+     "details": "Sólo correo.",
+     "id": "subject",
+     "skipIfMissing": true,
+     "target": "system.communication-templates.field.subject",
+     "title": "Asunto"
+    },
+    {
+     "action": "highlight",
+     "details": "Texto con variables que se completan al enviar.",
+     "id": "body_html",
+     "skipIfMissing": true,
+     "target": "system.communication-templates.field.body_html",
+     "title": "Contenido"
+    },
+    {
+     "action": "highlight",
+     "id": "default_sender",
+     "skipIfMissing": true,
+     "target": "system.communication-templates.field.default_sender",
+     "title": "Remitente"
+    },
+    {
+     "action": "highlight",
+     "id": "is_active",
+     "skipIfMissing": true,
+     "target": "system.communication-templates.field.is_active",
+     "title": "Activa"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "system.communication-templates.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Alta de una plantilla.",
+   "title": "Crear una plantilla"
+  },
+  {
+   "id": "system.communication-templates.delete",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "eliminar plantilla",
+    "borrar plantilla"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.communication-templates"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los textos de correo, SMS y WhatsApp que usan las alertas, con variables del paciente y del caso.",
+     "id": "go",
+     "route": "/system/communication-templates",
+     "title": "Menú → Sistema → Plantillas de Alertas"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.communication-templates.filter.search",
+     "title": "Buscá la plantilla",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "system.communication-templates.section.first-row",
+     "title": "Elegí la plantilla",
+     "until": "system.communication-templates.section.detail"
+    },
+    {
+     "action": "click",
+     "details": "Pide confirmación.",
+     "id": "delete",
+     "skipIfMissing": true,
+     "target": "system.communication-templates.btn.delete",
+     "title": "Eliminar",
+     "until": "system.communication-templates.btn.confirm-action"
+    },
+    {
+     "action": "confirm",
+     "details": "No se puede deshacer.",
+     "id": "ok",
+     "skipIfMissing": true,
+     "target": "system.communication-templates.btn.confirm-action",
+     "title": "Confirmar"
+    }
+   ],
+   "summary": "Borrar (pide confirmación).",
+   "title": "Eliminar la plantilla"
+  },
+  {
+   "id": "system.communication-templates.edit",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "editar plantilla",
+    "modificar plantilla"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.communication-templates"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los textos de correo, SMS y WhatsApp que usan las alertas, con variables del paciente y del caso.",
+     "id": "go",
+     "route": "/system/communication-templates",
+     "title": "Menú → Sistema → Plantillas de Alertas"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.communication-templates.filter.search",
+     "title": "Buscá la plantilla",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "system.communication-templates.section.first-row",
+     "title": "Elegí la plantilla",
+     "until": "system.communication-templates.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "system.communication-templates.btn.edit",
+     "title": "Editar",
+     "until": "system.communication-templates.btn.submit"
+    },
+    {
+     "action": "highlight",
+     "id": "name",
+     "skipIfMissing": true,
+     "target": "system.communication-templates.field.name",
+     "title": "Nombre"
+    },
+    {
+     "action": "highlight",
+     "id": "code",
+     "skipIfMissing": true,
+     "target": "system.communication-templates.field.code",
+     "title": "Código"
+    },
+    {
+     "action": "highlight",
+     "details": "Correo, SMS o WhatsApp.",
+     "id": "type",
+     "skipIfMissing": true,
+     "target": "system.communication-templates.field.type",
+     "title": "Tipo"
+    },
+    {
+     "action": "highlight",
+     "id": "category_id",
+     "skipIfMissing": true,
+     "target": "system.communication-templates.field.category_id",
+     "title": "Categoría"
+    },
+    {
+     "action": "highlight",
+     "details": "Sólo correo.",
+     "id": "subject",
+     "skipIfMissing": true,
+     "target": "system.communication-templates.field.subject",
+     "title": "Asunto"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "system.communication-templates.btn.submit",
+     "title": "Guardar cambios"
+    }
+   ],
+   "summary": "Cambiar una plantilla existente.",
+   "title": "Editar la plantilla"
+  },
+  {
+   "id": "system.communication-templates.overview",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "plantillas de alertas",
+    "plantilla"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.communication-templates"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los textos de correo, SMS y WhatsApp que usan las alertas, con variables del paciente y del caso.",
+     "id": "go",
+     "route": "/system/communication-templates",
+     "title": "Menú → Sistema → Plantillas de Alertas"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.communication-templates.filter.search",
+     "title": "Buscá la plantilla",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "system.communication-templates.section.first-row",
+     "title": "Elegí la plantilla",
+     "until": "system.communication-templates.section.detail"
+    },
+    {
+     "action": "highlight",
+     "id": "detail",
+     "target": "system.communication-templates.section.detail",
+     "title": "Detalle"
+    },
+    {
+     "action": "highlight",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "system.communication-templates.btn.edit",
+     "title": "Editar"
+    },
+    {
+     "action": "highlight",
+     "details": "Pide confirmación.",
+     "id": "delete",
+     "skipIfMissing": true,
+     "target": "system.communication-templates.btn.delete",
+     "title": "Eliminar"
+    }
+   ],
+   "summary": "Los textos de correo, SMS y WhatsApp que usan las alertas, con variables del paciente y del caso.",
+   "title": "Recorrer Plantillas de Alertas"
+  },
+  {
+   "id": "system.config.create",
+   "inputs": {
+    "key": "Clave",
+    "value": "Valor"
+   },
+   "keywords": [
+    "nueva configuración",
+    "nuevo configuración",
+    "crear configuración"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.config"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Parámetros técnicos del sistema (clave y valor). Cambiarlos afecta el funcionamiento: hacelo sólo si sabés qué controla cada clave.",
+     "id": "go",
+     "route": "/system/config",
+     "title": "Menú → Sistema → Configuraciones"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "system.config.btn.new",
+     "title": "Crear",
+     "until": "system.config.field.key"
+    },
+    {
+     "action": "fill",
+     "id": "key",
+     "target": "system.config.field.key",
+     "title": "Clave",
+     "value": "{{values.key}}"
+    },
+    {
+     "action": "fill",
+     "id": "value",
+     "target": "system.config.field.value",
+     "title": "Valor",
+     "value": "{{values.value}}"
+    },
+    {
+     "action": "highlight",
+     "id": "data_type",
+     "skipIfMissing": true,
+     "target": "system.config.field.data_type",
+     "title": "Tipo de dato"
+    },
+    {
+     "action": "highlight",
+     "id": "description",
+     "skipIfMissing": true,
+     "target": "system.config.field.description",
+     "title": "Descripción"
+    },
+    {
+     "action": "highlight",
+     "details": "Visible para la app sin permisos especiales.",
+     "id": "is_public",
+     "skipIfMissing": true,
+     "target": "system.config.field.is_public",
+     "title": "Público"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "system.config.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Alta de una configuración.",
+   "title": "Crear una configuración"
+  },
+  {
+   "id": "system.config.delete",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "eliminar configuración",
+    "borrar configuración"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.config"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Parámetros técnicos del sistema (clave y valor). Cambiarlos afecta el funcionamiento: hacelo sólo si sabés qué controla cada clave.",
+     "id": "go",
+     "route": "/system/config",
+     "title": "Menú → Sistema → Configuraciones"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.config.filter.search",
+     "title": "Buscá la configuración",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "system.config.section.first-row",
+     "title": "Elegí la configuración",
+     "until": "system.config.section.detail"
+    },
+    {
+     "action": "click",
+     "details": "Pide confirmación.",
+     "id": "delete",
+     "skipIfMissing": true,
+     "target": "system.config.btn.delete",
+     "title": "Eliminar",
+     "until": "system.config.btn.confirm-action"
+    },
+    {
+     "action": "confirm",
+     "details": "No se puede deshacer.",
+     "id": "ok",
+     "skipIfMissing": true,
+     "target": "system.config.btn.confirm-action",
+     "title": "Confirmar"
+    }
+   ],
+   "summary": "Borrar (pide confirmación).",
+   "title": "Eliminar la configuración"
+  },
+  {
+   "id": "system.config.edit",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "editar configuración",
+    "modificar configuración"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.config"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Parámetros técnicos del sistema (clave y valor). Cambiarlos afecta el funcionamiento: hacelo sólo si sabés qué controla cada clave.",
+     "id": "go",
+     "route": "/system/config",
+     "title": "Menú → Sistema → Configuraciones"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.config.filter.search",
+     "title": "Buscá la configuración",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "system.config.section.first-row",
+     "title": "Elegí la configuración",
+     "until": "system.config.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "system.config.btn.edit",
+     "title": "Editar",
+     "until": "system.config.btn.submit"
+    },
+    {
+     "action": "highlight",
+     "id": "key",
+     "skipIfMissing": true,
+     "target": "system.config.field.key",
+     "title": "Clave"
+    },
+    {
+     "action": "highlight",
+     "id": "value",
+     "skipIfMissing": true,
+     "target": "system.config.field.value",
+     "title": "Valor"
+    },
+    {
+     "action": "highlight",
+     "id": "data_type",
+     "skipIfMissing": true,
+     "target": "system.config.field.data_type",
+     "title": "Tipo de dato"
+    },
+    {
+     "action": "highlight",
+     "id": "description",
+     "skipIfMissing": true,
+     "target": "system.config.field.description",
+     "title": "Descripción"
+    },
+    {
+     "action": "highlight",
+     "details": "Visible para la app sin permisos especiales.",
+     "id": "is_public",
+     "skipIfMissing": true,
+     "target": "system.config.field.is_public",
+     "title": "Público"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "system.config.btn.submit",
+     "title": "Guardar cambios"
+    }
+   ],
+   "summary": "Cambiar una configuración existente.",
+   "title": "Editar la configuración"
+  },
+  {
+   "id": "system.config.overview",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "configuraciones",
+    "configuración"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.config"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Parámetros técnicos del sistema (clave y valor). Cambiarlos afecta el funcionamiento: hacelo sólo si sabés qué controla cada clave.",
+     "id": "go",
+     "route": "/system/config",
+     "title": "Menú → Sistema → Configuraciones"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.config.filter.search",
+     "title": "Buscá la configuración",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "system.config.section.first-row",
+     "title": "Elegí la configuración",
+     "until": "system.config.section.detail"
+    },
+    {
+     "action": "highlight",
+     "id": "detail",
+     "target": "system.config.section.detail",
+     "title": "Detalle"
+    },
+    {
+     "action": "highlight",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "system.config.btn.edit",
+     "title": "Editar"
+    },
+    {
+     "action": "highlight",
+     "details": "Pide confirmación.",
+     "id": "delete",
+     "skipIfMissing": true,
+     "target": "system.config.btn.delete",
+     "title": "Eliminar"
+    }
+   ],
+   "summary": "Parámetros técnicos del sistema (clave y valor). Cambiarlos afecta el funcionamiento: hacelo sólo si sabés qué controla cada clave.",
+   "title": "Recorrer Configuraciones"
+  },
+  {
+   "id": "system.errors.overview",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "errores",
+    "fallas",
+    "soporte"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.errors"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Errores del sistema, para soporte.",
+     "id": "go",
+     "route": "/system/errors",
+     "title": "Menú → Sistema → Registro de Errores"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.errors.filter.search",
+     "title": "Buscar",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocalo para ver el detalle.",
+     "id": "pick",
+     "skipIfMissing": true,
+     "target": "system.errors.section.first-row",
+     "title": "El más reciente",
+     "until": "system.errors.section.detail"
+    },
+    {
+     "action": "highlight",
+     "id": "detail",
+     "skipIfMissing": true,
+     "target": "system.errors.section.detail",
+     "title": "Detalle"
+    }
+   ],
+   "summary": "Errores del sistema, para soporte.",
+   "title": "Consultar Registro de Errores"
+  },
+  {
+   "id": "system.execution-history.overview",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "ejecuciones",
+    "generador de alertas",
+    "corridas"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.execution-history"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Cada corrida del generador de alertas: cuándo, cuánto tardó, cuántas alertas creó y si falló.",
+     "id": "go",
+     "route": "/system/execution-history",
+     "title": "Menú → Sistema → Ejecuciones de Alertas"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.execution-history.filter.search",
+     "title": "Buscar",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocalo para ver el detalle.",
+     "id": "pick",
+     "skipIfMissing": true,
+     "target": "system.execution-history.section.first-row",
+     "title": "El más reciente",
+     "until": "system.execution-history.section.detail"
+    },
+    {
+     "action": "highlight",
+     "id": "detail",
+     "skipIfMissing": true,
+     "target": "system.execution-history.section.detail",
+     "title": "Detalle"
+    }
+   ],
+   "summary": "Cada corrida del generador de alertas: cuándo, cuánto tardó, cuántas alertas creó y si falló.",
+   "title": "Consultar Ejecuciones de Alertas"
+  },
+  {
+   "id": "system.help-insights.overview",
+   "keywords": [
+    "métricas del asistente",
+    "qué preguntan",
+    "tickets",
+    "preguntas sin respuesta"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.help-insights"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Cuánto resuelve solo el asistente, qué se escala a soporte y dónde se traba la gente.",
+     "id": "go",
+     "route": "/system/help-insights",
+     "title": "Menú → Sistema → Métricas del Asistente"
+    },
+    {
+     "action": "highlight",
+     "details": "Preguntas, guías iniciadas y resueltas.",
+     "id": "by-week",
+     "skipIfMissing": true,
+     "target": "system.help-insights.section.by-week",
+     "title": "Por semana"
+    },
+    {
+     "action": "highlight",
+     "details": "Dónde más se pide ayuda.",
+     "id": "by-screen",
+     "skipIfMissing": true,
+     "target": "system.help-insights.section.by-screen",
+     "title": "Por pantalla"
+    },
+    {
+     "action": "highlight",
+     "details": "Lo que la gente pidió y no le sirvió: candidatos a guía nueva.",
+     "id": "open",
+     "skipIfMissing": true,
+     "target": "system.help-insights.section.open",
+     "title": "Preguntas sin buena respuesta"
+    },
+    {
+     "action": "highlight",
+     "details": "Consultas derivadas a soporte.",
+     "id": "tickets",
+     "skipIfMissing": true,
+     "target": "system.help-insights.section.tickets",
+     "title": "Tickets"
+    },
+    {
+     "action": "highlight",
+     "details": "Versión del mapa del producto publicada.",
+     "id": "catalog",
+     "skipIfMissing": true,
+     "target": "system.help-insights.section.catalog",
+     "title": "Catálogo"
+    },
+    {
+     "action": "highlight",
+     "details": "Pedidos de videos de guías.",
+     "id": "videos",
+     "skipIfMissing": true,
+     "target": "system.help-insights.section.videos",
+     "title": "Videos"
+    },
+    {
+     "action": "highlight",
+     "details": "Avance de las clínicas en el onboarding.",
+     "id": "onboarding",
+     "skipIfMissing": true,
+     "target": "system.help-insights.section.onboarding",
+     "title": "Puesta en marcha"
+    }
+   ],
+   "summary": "Cuánto resuelve solo el asistente, qué se escala a soporte y dónde se traba la gente.",
+   "title": "Ver Métricas del Asistente"
+  },
+  {
+   "id": "system.import.overview",
+   "keywords": [
+    "importar",
+    "csv",
+    "carga masiva",
+    "subir planilla"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.import"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Importá registros en masa desde un archivo CSV.",
+     "id": "go",
+     "route": "/system/import",
+     "title": "Menú → Sistema → Importar Datos"
+    },
+    {
+     "action": "highlight",
+     "details": "Elegí qué importar, subí el archivo, revisá cómo se mapean las columnas y confirmá.",
+     "id": "step",
+     "target": "system.import.section.step",
+     "title": "Paso actual"
+    },
+    {
+     "action": "highlight",
+     "id": "next",
+     "skipIfMissing": true,
+     "target": "system.import.btn.next",
+     "title": "Siguiente"
+    }
+   ],
+   "summary": "Carga en masa (pacientes, servicios…) desde un CSV, paso a paso.",
+   "title": "Importar datos desde un archivo"
+  },
+  {
+   "id": "system.licenses.overview",
+   "keywords": [
+    "licencia",
+    "suscripción",
+    "límite de doctores",
+    "plan"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.licenses"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La licencia de la clínica: tipo de suscripción, vigencia y límites (doctores, usuarios, pacientes nuevos por mes, IA).",
+     "id": "go",
+     "route": "/system/licenses",
+     "title": "Menú → Sistema → Licencias"
+    },
+    {
+     "action": "highlight",
+     "details": "Tipo, fechas, límites y acceso a IA.",
+     "id": "generate-new",
+     "skipIfMissing": true,
+     "target": "system.licenses.section.generate-new",
+     "title": "Generar licencia"
+    },
+    {
+     "action": "highlight",
+     "details": "La clave vigente.",
+     "id": "generated-key",
+     "skipIfMissing": true,
+     "target": "system.licenses.section.generated-key",
+     "title": "Licencia actual"
+    },
+    {
+     "action": "highlight",
+     "id": "type",
+     "skipIfMissing": true,
+     "target": "system.licenses.field.subscriptionType",
+     "title": "Tipo de suscripción"
+    },
+    {
+     "action": "highlight",
+     "id": "end",
+     "skipIfMissing": true,
+     "target": "system.licenses.field.endDate",
+     "title": "Vence"
+    },
+    {
+     "action": "highlight",
+     "id": "patients",
+     "skipIfMissing": true,
+     "target": "system.licenses.field.maxMonthlyNewPatients",
+     "title": "Pacientes nuevos por mes"
+    },
+    {
+     "action": "highlight",
+     "id": "ai",
+     "skipIfMissing": true,
+     "target": "system.licenses.field.aiAccess",
+     "title": "Acceso IA"
+    },
+    {
+     "action": "confirm",
+     "details": "Crea una licencia nueva al tocarlo.",
+     "id": "generate",
+     "skipIfMissing": true,
+     "target": "system.licenses.btn.submit",
+     "title": "Generar"
+    }
+   ],
+   "summary": "La licencia de la clínica: tipo de suscripción, vigencia y límites (doctores, usuarios, pacientes nuevos por mes, IA).",
+   "title": "Ver Licencias"
+  },
+  {
+   "id": "system.notification-settings.overview",
+   "keywords": [
+    "notificaciones",
+    "avisos internos"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.notification-settings"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Los canales y categorías de las notificaciones internas del sistema.",
+     "id": "go",
+     "route": "/system/notification-settings",
+     "title": "Menú → Sistema → Notificaciones"
+    },
+    {
+     "action": "confirm",
+     "details": "Los cambios no se aplican hasta guardar.",
+     "id": "save",
+     "target": "system.notification-settings.btn.save",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Los canales y categorías de las notificaciones internas del sistema.",
+   "title": "Configurar Notificaciones"
+  },
+  {
    "id": "system.staff.create",
    "inputs": {
     "email": "Correo",
@@ -28798,6 +34086,394 @@
    ],
    "summary": "Listado, ficha con pestañas y acceso al sistema.",
    "title": "Recorrer Secretarias y Administración"
+  },
+  {
+   "id": "system.users.create",
+   "inputs": {
+    "email": "Correo",
+    "name": "Nombre"
+   },
+   "keywords": [
+    "nuevo usuario",
+    "crear usuario"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.users"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Todas las personas que entran al sistema (doctores, secretarias, administración) con sus roles.",
+     "id": "go",
+     "route": "/system/users",
+     "title": "Menú → Sistema → Usuarios"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "system.users.btn.new",
+     "title": "Crear",
+     "until": "system.users.field.name"
+    },
+    {
+     "action": "fill",
+     "id": "name",
+     "target": "system.users.field.name",
+     "title": "Nombre",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "fill",
+     "id": "email",
+     "target": "system.users.field.email",
+     "title": "Correo",
+     "value": "{{values.email}}"
+    },
+    {
+     "action": "highlight",
+     "id": "phone",
+     "skipIfMissing": true,
+     "target": "system.users.field.phone",
+     "title": "Teléfono"
+    },
+    {
+     "action": "highlight",
+     "id": "identity_document",
+     "skipIfMissing": true,
+     "target": "system.users.field.identity_document",
+     "title": "Documento"
+    },
+    {
+     "action": "highlight",
+     "id": "active_sede_id",
+     "skipIfMissing": true,
+     "target": "system.users.field.active_sede_id",
+     "title": "Sede por defecto"
+    },
+    {
+     "action": "highlight",
+     "id": "is_active",
+     "skipIfMissing": true,
+     "target": "system.users.field.is_active",
+     "title": "Activo"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "system.users.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Alta de un usuario.",
+   "title": "Crear un usuario"
+  },
+  {
+   "id": "system.users.edit",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "editar usuario",
+    "modificar usuario"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.users"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Todas las personas que entran al sistema (doctores, secretarias, administración) con sus roles.",
+     "id": "go",
+     "route": "/system/users",
+     "title": "Menú → Sistema → Usuarios"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.users.filter.search",
+     "title": "Buscá el usuario",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "system.users.section.first-row",
+     "title": "Elegí el usuario",
+     "until": "system.users.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "skipIfMissing": true,
+     "target": "system.users.detail.tab.details",
+     "title": "Datos",
+     "until": "system.users.detail.field.name"
+    },
+    {
+     "action": "highlight",
+     "id": "name",
+     "target": "system.users.detail.field.name",
+     "title": "Nombre"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "system.users.detail.btn.submit",
+     "title": "Guardar cambios"
+    }
+   ],
+   "summary": "Pestaña Datos de la ficha.",
+   "title": "Editar un usuario"
+  },
+  {
+   "id": "system.users.initial-password",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "contraseña",
+    "no puede entrar",
+    "acceso",
+    "clave"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.users"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "id": "go",
+     "route": "/system/users",
+     "title": "Menú → Sistema → Usuarios"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.users.filter.search",
+     "title": "Buscá el usuario",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "system.users.section.first-row",
+     "title": "Elegí el usuario",
+     "until": "system.users.section.detail"
+    },
+    {
+     "action": "confirm",
+     "details": "Se envía al tocarlo. Sólo aparece si tenés permiso para gestionar contraseñas.",
+     "id": "pw",
+     "skipIfMissing": true,
+     "target": "system.users.btn.initial-password",
+     "title": "Enviar contraseña inicial"
+    }
+   ],
+   "summary": "Le manda por correo una contraseña para su primer ingreso.",
+   "title": "Enviar la contraseña inicial a un usuario"
+  },
+  {
+   "id": "system.users.overview",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "usuarios",
+    "usuario",
+    "ver usuario"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.users"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Todas las personas que entran al sistema (doctores, secretarias, administración) con sus roles.",
+     "id": "go",
+     "route": "/system/users",
+     "title": "Menú → Sistema → Usuarios"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.users.filter.search",
+     "title": "Buscá el usuario",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "system.users.section.first-row",
+     "title": "Elegí el usuario",
+     "until": "system.users.section.detail"
+    },
+    {
+     "action": "highlight",
+     "id": "detail",
+     "target": "system.users.section.detail",
+     "title": "Ficha"
+    },
+    {
+     "action": "click",
+     "id": "tab-details",
+     "skipIfMissing": true,
+     "target": "system.users.detail.tab.details",
+     "title": "Datos"
+    },
+    {
+     "action": "click",
+     "details": "Qué roles tiene: cada rol suma permisos.",
+     "id": "tab-roles",
+     "skipIfMissing": true,
+     "target": "system.users.detail.tab.roles",
+     "title": "Roles"
+    },
+    {
+     "action": "click",
+     "details": "Lo que hizo en el sistema.",
+     "id": "tab-logs",
+     "skipIfMissing": true,
+     "target": "system.users.detail.tab.logs",
+     "title": "Registros"
+    },
+    {
+     "action": "click",
+     "id": "tab-signature",
+     "skipIfMissing": true,
+     "target": "system.users.detail.tab.signature",
+     "title": "Firma"
+    },
+    {
+     "action": "click",
+     "id": "tab-preferences",
+     "skipIfMissing": true,
+     "target": "system.users.detail.tab.preferences",
+     "title": "Preferencias"
+    }
+   ],
+   "summary": "Todas las personas que entran al sistema (doctores, secretarias, administración) con sus roles.",
+   "title": "Recorrer Usuarios"
+  },
+  {
+   "id": "system.users.roles",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "rol del usuario",
+    "dar acceso",
+    "cambiar permisos de un usuario"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.users"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "id": "go",
+     "route": "/system/users",
+     "title": "Menú → Sistema → Usuarios"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "system.users.filter.search",
+     "title": "Buscá el usuario",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "id": "pick",
+     "target": "system.users.section.first-row",
+     "title": "Elegí el usuario",
+     "until": "system.users.section.detail"
+    },
+    {
+     "action": "click",
+     "details": "Agregá o quitá roles; cada uno suma permisos.",
+     "id": "tab",
+     "target": "system.users.detail.tab.roles",
+     "title": "Roles"
+    }
+   ],
+   "summary": "Pestaña Roles del usuario.",
+   "title": "Asignar roles a un usuario"
+  },
+  {
+   "id": "system.whatsapp-agent.overview",
+   "keywords": [
+    "agente de whatsapp",
+    "bot",
+    "respuestas automáticas"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.whatsapp-agent"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "El agente que responde por WhatsApp a los pacientes: si está prendido y en qué horario.",
+     "id": "go",
+     "route": "/system/whatsapp-agent",
+     "title": "Menú → Sistema → Agente WhatsApp"
+    },
+    {
+     "action": "highlight",
+     "id": "agent",
+     "skipIfMissing": true,
+     "target": "system.whatsapp-agent.section.agent",
+     "title": "Agente"
+    },
+    {
+     "action": "highlight",
+     "details": "Fuera de horario responde con el mensaje de ausencia.",
+     "id": "hours",
+     "skipIfMissing": true,
+     "target": "system.whatsapp-agent.section.hours",
+     "title": "Horario"
+    },
+    {
+     "action": "highlight",
+     "id": "enabled",
+     "skipIfMissing": true,
+     "target": "system.whatsapp-agent.field.agent-enabled",
+     "title": "Agente habilitado"
+    },
+    {
+     "action": "highlight",
+     "id": "hours-on",
+     "skipIfMissing": true,
+     "target": "system.whatsapp-agent.field.hours-enabled",
+     "title": "Aplicar horario"
+    },
+    {
+     "action": "confirm",
+     "details": "Los cambios no se aplican hasta guardar.",
+     "id": "save",
+     "target": "system.whatsapp-agent.btn.save",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "El agente que responde por WhatsApp a los pacientes: si está prendido y en qué horario.",
+   "title": "Configurar Agente WhatsApp"
   },
   {
    "id": "workspace.agent",

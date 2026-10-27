@@ -270,6 +270,16 @@ Cobertura por pantalla (todas probadas en la app real, sin guardar en DEV):
   inicial (se envía al tocarla: `confirm`); pantallas de ajustes (preferencias, portal,
   colores, plantillas de impresión, datos de la clínica, tipo de cambio): recorrido por
   sección y guardar. Catálogo de la Clínica va al final, después de Pantalla TV.
+- **Ventas y Compras, resto**: Servicios y Productos de proveedores en paralelo (recorrer,
+  crear, cambiar precio, eliminar; etapas de tratamientos en ventas), Métodos de pago, y
+  Proveedores como la ficha del paciente (13 guías agrupadas: listado y alta, información,
+  compras al proveedor, comunicación y estado).
+- **Sistema** (19 pantallas, 43 guías): usuarios, roles y permisos (ficha con pestañas,
+  alta, edición, baja, asignar roles y permisos, contraseña inicial); categorías, reglas
+  (probar/duplicar) y plantillas de alertas, y configuraciones (CRUD); registros de acceso,
+  auditoría, errores, historial y ejecuciones de alertas (consulta); ajustes de alertas,
+  agente de WhatsApp, notificaciones, licencias, métricas del asistente, suscripciones e
+  importación.
 
 Más reglas de ubicación: un botón que se repite en varias filas (acciones por alerta o
 por cita) se señala en una fila donde esté habilitado; dentro de un diálogo, si la lista

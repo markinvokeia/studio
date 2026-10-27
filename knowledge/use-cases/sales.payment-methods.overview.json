@@ -1,0 +1,63 @@
+{
+  "id": "sales.payment-methods.overview",
+  "title": "Recorrer métodos de pago",
+  "module": "Ventas",
+  "summary": "Lista de medios de cobro y pago y cuáles cuentan como efectivo en la caja.",
+  "screens": [
+    "sales.payment-methods"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "métodos de pago",
+    "medios de pago",
+    "formas de pago"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/payment-methods",
+      "title": "Menú → Ventas → Métodos de Pago",
+      "details": "Efectivo, tarjetas, transferencias… con los que se cobra y paga. Los equivalentes a efectivo suman al arqueo de caja."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "sales.payment-methods.filter.search",
+      "title": "Buscá el método",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "sales.payment-methods.section.first-row",
+      "title": "Elegí el método",
+      "until": "sales.payment-methods.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "detail",
+      "action": "highlight",
+      "target": "sales.payment-methods.section.detail",
+      "title": "Detalle"
+    },
+    {
+      "id": "edit",
+      "action": "highlight",
+      "target": "sales.payment-methods.btn.edit",
+      "title": "Editar",
+      "skipIfMissing": true
+    },
+    {
+      "id": "delete",
+      "action": "highlight",
+      "target": "sales.payment-methods.btn.delete",
+      "title": "Eliminar",
+      "skipIfMissing": true
+    }
+  ]
+}

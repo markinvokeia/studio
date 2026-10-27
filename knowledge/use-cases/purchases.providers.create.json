@@ -1,0 +1,89 @@
+{
+  "id": "purchases.providers.create",
+  "title": "Registrar un proveedor",
+  "module": "Compras",
+  "summary": "Alta con nombre, contacto, RUT y cuenta bancaria.",
+  "screens": [
+    "purchases.providers"
+  ],
+  "group": "Listado y alta",
+  "inputs": {
+    "name": "Nombre",
+    "email": "Correo",
+    "phone": "Teléfono"
+  },
+  "keywords": [
+    "nuevo proveedor",
+    "alta de proveedor",
+    "registrar proveedor"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/purchases/providers",
+      "title": "Menú → Compras → Proveedores",
+      "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "purchases.providers.btn.new",
+      "title": "Crear",
+      "until": "purchases.providers.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "purchases.providers.field.name",
+      "title": "Nombre o razón social",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "email",
+      "action": "fill",
+      "target": "purchases.providers.field.email",
+      "title": "Correo",
+      "details": "Para mandarle presupuestos y órdenes.",
+      "value": "{{values.email}}",
+      "optional": true
+    },
+    {
+      "id": "phone",
+      "action": "fill",
+      "target": "purchases.providers.field.phone",
+      "title": "Teléfono",
+      "value": "{{values.phone}}",
+      "optional": true
+    },
+    {
+      "id": "doc",
+      "action": "highlight",
+      "target": "purchases.providers.field.identity_document",
+      "title": "RUT",
+      "details": "Necesario para registrar sus facturas.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "address",
+      "action": "highlight",
+      "target": "purchases.providers.field.address",
+      "title": "Dirección",
+      "skipIfMissing": true
+    },
+    {
+      "id": "bank",
+      "action": "highlight",
+      "target": "purchases.providers.field.bank_account",
+      "title": "Cuenta bancaria",
+      "details": "Para transferirle los pagos.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "purchases.providers.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

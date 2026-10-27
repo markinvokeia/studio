@@ -5,5 +5,19 @@
   "purpose": "Cada corrida del motor de alertas: cuántas generó y si hubo errores.",
   "prerequisites": [
     "system.alert-rules"
-  ]
+  ],
+  "useCases": [
+    "system.execution-history.overview"
+  ],
+  "elements": {
+    "system.execution-history.section.first-row": {
+      "label": "El más reciente"
+    },
+    "system.execution-history.section.row": {
+      "label": "Registro"
+    },
+    "system.execution-history.section.detail": {
+      "label": "Detalle"
+    }
+  }
 }

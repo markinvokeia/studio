@@ -1,0 +1,135 @@
+{
+  "id": "system.alert-rules.create",
+  "title": "Crear una regla",
+  "module": "Sistema",
+  "summary": "Alta de una regla.",
+  "screens": [
+    "system.alert-rules"
+  ],
+  "inputs": {
+    "name": "Nombre",
+    "code": "Código"
+  },
+  "keywords": [
+    "nueva regla",
+    "nuevo regla",
+    "crear regla"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/alert-rules",
+      "title": "Menú → Sistema → Reglas de Alertas",
+      "details": "Qué genera una alerta y cuándo: tabla y fecha del evento, días antes o después, recurrencia, prioridad y las plantillas de correo, WhatsApp o SMS que se mandan."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "system.alert-rules.btn.new",
+      "title": "Crear",
+      "until": "system.alert-rules.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "system.alert-rules.field.name",
+      "title": "Nombre",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "code",
+      "action": "fill",
+      "target": "system.alert-rules.field.code",
+      "title": "Código",
+      "value": "{{values.code}}"
+    },
+    {
+      "id": "category_id",
+      "action": "highlight",
+      "target": "system.alert-rules.field.category_id",
+      "title": "Categoría",
+      "details": "Dónde aparece en el Centro de Alertas.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "source_table",
+      "action": "highlight",
+      "target": "system.alert-rules.field.source_table",
+      "title": "Origen",
+      "details": "De dónde salen los casos (citas, facturas, pacientes…).",
+      "skipIfMissing": true
+    },
+    {
+      "id": "event_field",
+      "action": "highlight",
+      "target": "system.alert-rules.field.event_field",
+      "title": "Fecha del evento",
+      "details": "La fecha contra la que se cuentan los días.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "days_before",
+      "action": "highlight",
+      "target": "system.alert-rules.field.days_before",
+      "title": "Días antes",
+      "skipIfMissing": true
+    },
+    {
+      "id": "days_after",
+      "action": "highlight",
+      "target": "system.alert-rules.field.days_after",
+      "title": "Días después",
+      "skipIfMissing": true
+    },
+    {
+      "id": "recurrence_type",
+      "action": "highlight",
+      "target": "system.alert-rules.field.recurrence_type",
+      "title": "Recurrencia",
+      "skipIfMissing": true
+    },
+    {
+      "id": "priority",
+      "action": "highlight",
+      "target": "system.alert-rules.field.priority",
+      "title": "Prioridad",
+      "skipIfMissing": true
+    },
+    {
+      "id": "email_template_id",
+      "action": "highlight",
+      "target": "system.alert-rules.field.email_template_id",
+      "title": "Plantilla de correo",
+      "skipIfMissing": true
+    },
+    {
+      "id": "whatsapp_template_id",
+      "action": "highlight",
+      "target": "system.alert-rules.field.whatsapp_template_id",
+      "title": "Plantilla de WhatsApp",
+      "skipIfMissing": true
+    },
+    {
+      "id": "auto_send_email",
+      "action": "highlight",
+      "target": "system.alert-rules.field.auto_send_email",
+      "title": "Enviar correo automático",
+      "details": "Si está marcado, el correo sale solo al generarse la alerta.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "is_active",
+      "action": "highlight",
+      "target": "system.alert-rules.field.is_active",
+      "title": "Activa",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "system.alert-rules.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

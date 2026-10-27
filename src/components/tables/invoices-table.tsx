@@ -610,6 +610,7 @@ interface InvoiceFormDialogProps {
 }
 
 export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSales, invoice, initialUser, initialItems }: InvoiceFormDialogProps) {
+  const helpScope = useHelpScope();
   const t = useTranslations('InvoicesPage.createDialog');
   const tRoot = useTranslations('InvoicesPage');
   const { activeSede } = useAuth();
@@ -1341,7 +1342,7 @@ export function InvoiceFormDialog({ isOpen, onOpenChange, onInvoiceCreated, isSa
                   <div className="flex justify-between items-center">
                     <CardTitle>{t('items.title')}</CardTitle>
                     {invoiceType !== 'credit_note' && (
-                      <Button type="button" size="sm" variant="outline" onClick={handleAddItem}>{t('addItem')}</Button>
+                      <Button data-help-id={composeHelpId(helpScope, 'btn', 'add-item')} type="button" size="sm" variant="outline" onClick={handleAddItem}>{t('addItem')}</Button>
                     )}
                   </div>
                 </CardHeader>

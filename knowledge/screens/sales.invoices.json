@@ -85,6 +85,10 @@
     },
     "sales.invoices.filter.option-Factura": {
       "label": "Sólo facturas"
+    },
+    "sales.invoices.btn.add-item": {
+      "label": "Agregar ítem",
+      "description": "Agrega una línea con servicio, cantidad y precio."
     }
   }
 }
