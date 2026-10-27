@@ -31,6 +31,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/ui/page-header';
@@ -46,7 +47,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
-import type { ClinicAutomationSettings, ClinicPreferences, DiscountScope, GoogleCalendarSyncMode } from '@/lib/types';
+import type { AppointmentStatus, ClinicAutomationSettings, ClinicPreferences, DiscountScope, GoogleCalendarSyncMode } from '@/lib/types';
+import { APPOINTMENT_STATUSES } from '@/constants/appointment-status';
 import {
   DEFAULT_CLINIC_PREFERENCES,
   fetchClinicPreferences,
@@ -67,6 +69,13 @@ const SYNC_MODE_ICONS: Record<GoogleCalendarSyncMode, LucideIcon> = {
   both: ArrowLeftRight,
 };
 
+/**
+ * Estados que pueden exigir documento de identidad. Sin `cancelled`: bloquear
+ * una cancelación no tiene sentido y frenaría al paciente en el portal.
+ */
+const WARNABLE_STATUSES: AppointmentStatus[] = APPOINTMENT_STATUSES.filter((s) => s !== 'cancelled');
+const DEFAULT_WARN_STATUSES: AppointmentStatus[] = ['completed'];
+
 /** Falló el segundo paso del guardado: las preferencias ya quedaron guardadas. */
 class PartialSaveError extends Error {}
 
@@ -85,6 +94,7 @@ class PartialSaveError extends Error {}
 export default function ClinicPrefsConfigPage() {
   const t = useTranslations('ClinicPrefsPage');
   const tCommon = useTranslations('Common');
+  const tStatus = useTranslations('AppointmentStatus');
   const { hasPermission } = usePermissions();
   const canUpdate = hasPermission(CLINIC_PREFS_PERMISSIONS.UPDATE);
   const { toast } = useToast();
@@ -345,6 +355,53 @@ export default function ClinicPrefsConfigPage() {
                   />
                 }
               />
+
+              <div className="space-y-3 border-t pt-5">
+                <SettingRow
+                  label={t('identityDocument.warnOnStatus.label')}
+                  help={t('identityDocument.warnOnStatus.help')}
+                  control={
+                    <Switch
+                      checked={config.identity_document_warn_statuses.length > 0}
+                      disabled={!canEdit}
+                      // Al encender se arranca por el caso habitual: exigirlo al completar.
+                      onCheckedChange={(v) => patch({ identity_document_warn_statuses: v ? DEFAULT_WARN_STATUSES : [] })}
+                    />
+                  }
+                />
+
+                {config.identity_document_warn_statuses.length > 0 && (
+                  <div className="space-y-2 rounded-xl bg-muted/40 p-4">
+                    <p className="text-xs font-medium text-muted-foreground">{t('identityDocument.warnOnStatus.statusesLabel')}</p>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {WARNABLE_STATUSES.map((status) => {
+                        const id = `warn-status-${status}`;
+                        const checked = config.identity_document_warn_statuses.includes(status);
+                        return (
+                          <div key={status} className="flex items-center gap-2">
+                            <Checkbox
+                              id={id}
+                              checked={checked}
+                              disabled={!canEdit}
+                              onCheckedChange={(v) =>
+                                patch({
+                                  // Se mantiene el orden canónico para que el "dirty" no dependa del orden de clic.
+                                  identity_document_warn_statuses: WARNABLE_STATUSES.filter((s) =>
+                                    s === status ? v === true : config.identity_document_warn_statuses.includes(s),
+                                  ),
+                                })
+                              }
+                            />
+                            <Label htmlFor={id} className="text-sm font-normal">
+                              {tStatus(status)}
+                            </Label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
 

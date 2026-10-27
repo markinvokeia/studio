@@ -73,7 +73,7 @@ import { cn, toLocalISOString } from '@/lib/utils';
 import api, { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
 import { getErrorMessage } from '@/lib/error-utils';
 import { getQuoteItems } from '@/services/quotes';
-import { updateAppointmentStatusRequest, fetchFuturePatientAppointments, searchAppointments, type FuturePatientAppointment } from '@/services/appointments';
+import { updateAppointmentStatusWithDocumentCheck, fetchFuturePatientAppointments, searchAppointments, type FuturePatientAppointment } from '@/services/appointments';
 import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
 import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useSlotAvailability } from '@/hooks/use-slot-availability';
@@ -3159,11 +3159,14 @@ export default function AppointmentsPage() {
                 toast({ title: t('toasts.sessionUpdated') });
             } else {
                 await createSession(clinicSessionAppointment.patientId, sessionData, data.archivos_adjuntos);
-                if (clinicSessionAppointment.status !== 'completed') {
-                    await updateAppointmentStatusRequest({
+                // Si el paciente no tiene el documento que exige ese estado, la sesión queda guardada y la cita no cambia.
+                if (
+                    clinicSessionAppointment.status !== 'completed' &&
+                    (await updateAppointmentStatusWithDocumentCheck({
                         appointment: clinicSessionAppointment,
                         newStatus: 'completed',
-                    });
+                    }))
+                ) {
                     setAppointments((prev) =>
                         prev.map((appointment) =>
                             appointment.id === clinicSessionAppointment.id

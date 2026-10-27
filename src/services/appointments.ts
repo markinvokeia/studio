@@ -3,7 +3,8 @@ import { addMonths, format, isValid, parseISO } from 'date-fns';
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
 import type { Appointment, AppointmentStatus, Calendar, CancellationReason, Service, User } from '@/lib/types';
-import { api, REQUEST_TIMEOUT_MS, type ApiRequestOptions } from '@/services/api';
+import { api, REQUEST_TIMEOUT_MS, type ApiRequestError, type ApiRequestOptions } from '@/services/api';
+import { showMissingIdentityDocumentBlock } from '@/stores/missing-identity-document-store';
 
 /**
  * Agendas activas para los formularios de cita. Vive acá y no en una pantalla porque
@@ -115,6 +116,32 @@ export async function updateAppointmentStatusRequest({
   }
 
   return result;
+}
+
+/** Datos del 409 `identity_document_missing` de `update_status`, o null si es otro error. */
+export function getMissingIdentityDocumentError(error: unknown): { patientName: string | null } | null {
+  const apiError = error as ApiRequestError | null;
+  const data = apiError?.data as { error_code?: string; patient_name?: string | null } | undefined;
+  if (apiError?.status !== 409 || data?.error_code !== 'identity_document_missing') return null;
+  return { patientName: data.patient_name ?? null };
+}
+
+/**
+ * `updateAppointmentStatusRequest` con el bloqueo por documento faltante: si el
+ * backend rechaza el estado porque el paciente no tiene documento de identidad
+ * (`identity_document_warn_statuses`), muestra el aviso y devuelve false.
+ * Cualquier otro error se propaga igual que antes.
+ */
+export async function updateAppointmentStatusWithDocumentCheck(params: UpdateAppointmentStatusParams): Promise<boolean> {
+  try {
+    await updateAppointmentStatusRequest(params);
+    return true;
+  } catch (error) {
+    const missing = getMissingIdentityDocumentError(error);
+    if (!missing) throw error;
+    showMissingIdentityDocumentBlock({ patientName: missing.patientName, status: params.newStatus });
+    return false;
+  }
 }
 
 export interface CheckSlotAvailabilityParams {

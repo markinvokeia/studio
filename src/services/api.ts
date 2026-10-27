@@ -1,6 +1,6 @@
 import { getWebhookBaseUrl } from '@/lib/runtime-config';
 
-interface ApiRequestError extends Error {
+export interface ApiRequestError extends Error {
     status?: number;
     data?: unknown;
     isHttpError?: boolean;

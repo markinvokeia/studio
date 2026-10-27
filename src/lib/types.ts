@@ -3318,6 +3318,13 @@ export type ClinicPreferences = {
   /** TRUE ⇒ el formulario de pacientes exige un documento de identidad no vacío. */
   identity_document_required: boolean;
   /**
+   * Estados de cita que exigen que el paciente tenga documento de identidad:
+   * sin él, `update_status` rechaza el cambio (`identity_document_missing`).
+   * Vacío ⇒ sin restricción. Nunca incluye `cancelled`. Independiente de
+   * `identity_document_required`.
+   */
+  identity_document_warn_statuses: AppointmentStatus[];
+  /**
    * TRUE ⇒ un paciente puede compartir teléfono con otro: el alta solo
    * advierte de quién lo tiene y pide confirmación. FALSE ⇒ se bloquea. El
    * correo siempre es único.

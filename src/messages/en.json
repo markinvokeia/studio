@@ -1418,6 +1418,12 @@
     "cancelSubmenu": "Cancel…",
     "otherReason": "Other reason…"
   },
+  "MissingIdentityDocumentDialog": {
+    "title": "Identity document required",
+    "description": "The appointment can't be marked as \"{status}\" because {patient} has no identity document on file. Add it to the patient's record and try again.",
+    "descriptionNoName": "The appointment can't be marked as \"{status}\" because the patient has no identity document on file. Add it to the patient's record and try again.",
+    "close": "Got it"
+  },
   "CancellationReason": {
     "late": "Cancelled late",
     "in_time": "Cancelled in time",
@@ -2060,7 +2066,10 @@
           "email": "Email",
           "phone": "Phone",
           "identity_document": "Identity Document"
-        }
+        },
+        "nameInvalid": "Use only letters, spaces, hyphens, apostrophes and periods (no numbers or symbols).",
+        "nameTooShort": "The name must have at least 2 letters.",
+        "nameTooLong": "The name can't be longer than 120 characters."
       },
       "birth_date": "Birth Date",
       "birth_date_placeholder": "01/01/1999",
@@ -9279,7 +9288,10 @@
       "emailRequired": "Email is required",
       "emailInvalid": "Email is not valid",
       "documentDigits": "ID number can only contain digits",
-      "documentMax": "ID number cannot exceed 10 digits"
+      "documentMax": "ID number cannot exceed 10 digits",
+      "nameInvalid": "Use only letters, spaces, hyphens, apostrophes and periods (no numbers or symbols).",
+      "nameTooShort": "The name must have at least 2 letters.",
+      "nameTooLong": "The name can't be longer than 120 characters."
     },
     "errors": {
       "title": "Error",
@@ -9554,6 +9566,11 @@
       "required": {
         "label": "Require identity document",
         "help": "When on, the patient form won't save without an identity document. Off by default, the document can be left empty."
+      },
+      "warnOnStatus": {
+        "label": "Require it to change an appointment's status",
+        "help": "When on, an appointment can't move to the selected statuses if the patient has no identity document: the change is blocked until the document is added to the patient's record. Cancelling is never blocked. Independent of the setting above.",
+        "statusesLabel": "Require the document for the appointment to move to:"
       }
     },
     "duplicateContact": {

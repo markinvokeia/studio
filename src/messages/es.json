@@ -1418,6 +1418,12 @@
     "cancelSubmenu": "Cancelar…",
     "otherReason": "Otro motivo…"
   },
+  "MissingIdentityDocumentDialog": {
+    "title": "Falta el documento de identidad",
+    "description": "No se puede marcar la cita como \"{status}\" porque {patient} no tiene documento de identidad cargado. Cargalo en su ficha y volvé a intentarlo.",
+    "descriptionNoName": "No se puede marcar la cita como \"{status}\" porque el paciente no tiene documento de identidad cargado. Cargalo en su ficha y volvé a intentarlo.",
+    "close": "Entendido"
+  },
   "CancellationReason": {
     "late": "Cancelada tarde",
     "in_time": "Cancelada con tiempo",
@@ -2060,7 +2066,10 @@
           "email": "Correo Electrónico",
           "phone": "Teléfono",
           "identity_document": "Documento de Identidad"
-        }
+        },
+        "nameInvalid": "Usá solo letras, espacios, guiones, apóstrofos y puntos (sin números ni símbolos).",
+        "nameTooShort": "El nombre debe tener al menos 2 letras.",
+        "nameTooLong": "El nombre no puede superar los 120 caracteres."
       },
       "birth_date": "Fecha de nacimiento",
       "birth_date_placeholder": "01/01/1999",
@@ -9279,7 +9288,10 @@
       "emailRequired": "El correo es obligatorio",
       "emailInvalid": "El correo no es válido",
       "documentDigits": "La cédula sólo puede tener números",
-      "documentMax": "La cédula no puede superar los 10 dígitos"
+      "documentMax": "La cédula no puede superar los 10 dígitos",
+      "nameInvalid": "Usá solo letras, espacios, guiones, apóstrofos y puntos (sin números ni símbolos).",
+      "nameTooShort": "El nombre debe tener al menos 2 letras.",
+      "nameTooLong": "El nombre no puede superar los 120 caracteres."
     },
     "errors": {
       "title": "Error",
@@ -9554,6 +9566,11 @@
       "required": {
         "label": "Exigir documento de identidad",
         "help": "Con esto encendido, el formulario de pacientes no deja guardar sin un documento de identidad. Apagado (por defecto), el documento puede quedar vacío."
+      },
+      "warnOnStatus": {
+        "label": "Exigirlo para cambiar el estado de una cita",
+        "help": "Con esto encendido, una cita no puede pasar a los estados elegidos si el paciente no tiene documento de identidad: el cambio se bloquea hasta que se cargue el documento en su ficha. Cancelar nunca se bloquea. Es independiente de la opción anterior.",
+        "statusesLabel": "Exigir el documento para que la cita pase a:"
       }
     },
     "duplicateContact": {

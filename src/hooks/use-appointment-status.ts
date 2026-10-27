@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { canTransition } from '@/constants/appointment-status';
 import type { Appointment, AppointmentStatus, CancellationReason } from '@/lib/types';
-import { updateAppointmentStatusRequest } from '@/services/appointments';
+import { updateAppointmentStatusWithDocumentCheck } from '@/services/appointments';
 
 const LOCALLY_UPDATED_PREFIX = 'doctor-workspace:locally-updated';
 const LOCALLY_CREATED_PREFIX = 'doctor-workspace:locally-created';
@@ -93,13 +93,15 @@ export function useAppointmentStatus(options: UseAppointmentStatusOptions = {}) 
       inFlightRef.current = true;
       setIsUpdating(true);
       try {
-        await updateAppointmentStatusRequest({
+        const applied = await updateAppointmentStatusWithDocumentCheck({
           appointment,
           newStatus,
           cancellation_reason,
           cancellation_note,
           note,
         });
+        // Bloqueado por documento faltante: el aviso ya se mostró y nada cambió.
+        if (!applied) return false;
 
         if (user?.id) markLocallyUpdated(String(user.id), appointment.id);
         toast({
