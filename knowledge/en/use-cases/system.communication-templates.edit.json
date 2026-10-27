@@ -1,0 +1,58 @@
+{
+  "id": "system.communication-templates.edit",
+  "title": "Edit the template",
+  "summary": "Change an existing template.",
+  "module": "System",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "edit template",
+    "modify template"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Alert Templates",
+      "details": "The email, SMS and WhatsApp texts used by alerts, with patient and case variables."
+    },
+    {
+      "id": "search",
+      "title": "Find the template"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the template"
+    },
+    {
+      "id": "edit",
+      "title": "Edit"
+    },
+    {
+      "id": "name",
+      "title": "Name"
+    },
+    {
+      "id": "code",
+      "title": "Code"
+    },
+    {
+      "id": "type",
+      "title": "Type",
+      "details": "Email, SMS or WhatsApp."
+    },
+    {
+      "id": "category_id",
+      "title": "Category"
+    },
+    {
+      "id": "subject",
+      "title": "Subject",
+      "details": "Email only."
+    },
+    {
+      "id": "save",
+      "title": "Save changes"
+    }
+  ]
+}

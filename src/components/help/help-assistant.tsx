@@ -20,7 +20,7 @@ import { isSpeechSupported, stopAssistantSpeech, useAssistantVoice } from '@/hoo
 import { useMascotOnStage, useMascotPreference } from '@/hooks/use-mascot-preference';
 import { useCurrentHelpRoute } from '@/hooks/use-current-help-route';
 import { usePermissions } from '@/hooks/usePermissions';
-import { findScreen, findUseCase, loadHelpCatalog, screenTour } from '@/lib/help/catalog';
+import { findScreen, findUseCase, helpCatalogLocale, loadHelpCatalog, screenTour } from '@/lib/help/catalog';
 import { configureGuideRunner, nextStep, registerGuideCondition, startGuide } from '@/lib/help/guide-runner';
 import { findHelpTarget } from '@/lib/help/guide-engine';
 import { stripLocale } from '@/lib/help/help-id';
@@ -171,7 +171,10 @@ function HelpAssistantRoot() {
   const mascotRef = React.useRef(mascot);
   React.useLayoutEffect(() => { mascotRef.current = mascot; });
 
-  const [catalog, setCatalog] = React.useState<HelpCatalog | null>(null);
+  // Guías y fichas en el idioma de la app: si cambia, se carga el otro catálogo.
+  const catalogLocale = helpCatalogLocale(locale);
+  const [loadedCatalog, setLoadedCatalog] = React.useState<{ locale: string; catalog: HelpCatalog } | null>(null);
+  const catalog = loadedCatalog?.locale === catalogLocale ? loadedCatalog.catalog : null;
   const [catalogError, setCatalogError] = React.useState(false);
   const [pendingSteps, setPendingSteps] = React.useState(0);
   const windowRef = React.useRef<HTMLDivElement | null>(null);
@@ -194,12 +197,12 @@ function HelpAssistantRoot() {
   React.useEffect(() => {
     if (catalog) return;
     let cancelled = false;
-    const load = () => loadHelpCatalog()
-      .then((c) => { if (!cancelled) setCatalog(c); })
+    const load = () => loadHelpCatalog(catalogLocale)
+      .then((c) => { if (!cancelled) setLoadedCatalog({ locale: catalogLocale, catalog: c }); })
       .catch(() => { if (!cancelled) setCatalogError(true); });
     const timer = setTimeout(load, isOpen || automation ? 0 : CATALOG_IDLE_DELAY_MS);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [catalog, isOpen, automation]);
+  }, [catalog, catalogLocale, isOpen, automation]);
 
   // Fase 3: el grabador maneja la guía real (la mascota señalando) para el video demo.
   React.useEffect(() => {
@@ -233,13 +236,16 @@ function HelpAssistantRoot() {
   }, [automation, catalog, t]);
 
   // Cada deploy trae su catálogo: si la BD del cliente tiene otra versión, se publica.
+  // Siempre el español (la fuente), aunque la app esté en inglés.
   React.useEffect(() => {
-    if (!catalog || !canSync || readStorage('session', SYNCED_KEY) === catalog.version) return;
+    if (!catalog || !canSync) return;
     const controller = new AbortController();
-    getPublishedCatalogVersion(controller.signal)
-      .then(async (published) => {
-        if (published !== catalog.version) await publishCatalog(catalog);
-        writeStorage('session', SYNCED_KEY, catalog.version);
+    loadHelpCatalog('es')
+      .then(async (source) => {
+        if (readStorage('session', SYNCED_KEY) === source.version) return;
+        const published = await getPublishedCatalogVersion(controller.signal);
+        if (published !== source.version) await publishCatalog(source);
+        writeStorage('session', SYNCED_KEY, source.version);
       })
       .catch((error) => console.warn('[help] no se pudo publicar el catálogo de ayuda', error));
     return () => controller.abort();

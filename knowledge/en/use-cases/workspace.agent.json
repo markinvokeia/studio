@@ -1,0 +1,37 @@
+{
+  "id": "workspace.agent",
+  "title": "Ask the AI clinical agent",
+  "summary": "Ask about the last procedure, what's due today or the patient's alerts, and have it prepare the session.",
+  "module": "My Workspace",
+  "keywords": [
+    "agent",
+    "ai",
+    "artificial intelligence",
+    "clinical assistant",
+    "clinical summary",
+    "dictate",
+    "what's due today",
+    "last procedure"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → My Workspace",
+      "details": "The doctor's view: their schedule and the clinical panel of the patient they're seeing."
+    },
+    {
+      "id": "select",
+      "title": "Choose the patient's appointment",
+      "details": "Tap the appointment on the schedule: the patient panel opens on the right. If you don't see appointments, change the day or the period at the top."
+    },
+    {
+      "id": "open",
+      "title": "Ask the agent"
+    },
+    {
+      "id": "chat",
+      "title": "Clinical agent",
+      "details": "It knows the appointment and the patient's history. Use the shortcuts (the last thing done, what's due today, alerts) or type or dictate your question. It can prepare the clinical session or mark the odontogram: you always review it before saving."
+    }
+  ]
+}

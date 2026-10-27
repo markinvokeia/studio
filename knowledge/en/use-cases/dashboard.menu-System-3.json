@@ -1,0 +1,58 @@
+{
+  "id": "dashboard.menu-System-3",
+  "title": "Get to know System: Alert History, Alert Executions and more",
+  "summary": "Tour of Alert History, Alert Executions, WhatsApp Agent and Assistant Insights: what each screen is for.",
+  "module": "Dashboard",
+  "group": "Menu",
+  "keywords": [
+    "system",
+    "what's in system",
+    "alert history",
+    "alert executions",
+    "whatsapp agent",
+    "assistant insights"
+  ],
+  "steps": [
+    {
+      "id": "section",
+      "title": "System",
+      "details": "We'll go through Alert History, Alert Executions, WhatsApp Agent and Assistant Insights."
+    },
+    {
+      "id": "go-system.communication-history",
+      "title": "Menu → System → Alert History"
+    },
+    {
+      "id": "page-system.communication-history",
+      "title": "Alert History",
+      "details": "Messages sent to patients by email and WhatsApp, with their delivery status. It has 1 guide in «Guide me on this screen»."
+    },
+    {
+      "id": "go-system.execution-history",
+      "title": "Menu → System → Alert Executions"
+    },
+    {
+      "id": "page-system.execution-history",
+      "title": "Alert Executions",
+      "details": "Each run of the alerts engine: how many it created and whether there were errors. It has 1 guide in «Guide me on this screen»."
+    },
+    {
+      "id": "go-system.whatsapp-agent",
+      "title": "Menu → System → WhatsApp Agent"
+    },
+    {
+      "id": "page-system.whatsapp-agent",
+      "title": "WhatsApp Agent",
+      "details": "Turns on the agent that serves patients over WhatsApp and sets its office hours. It has 2 guides in «Guide me on this screen»."
+    },
+    {
+      "id": "go-system.help-insights",
+      "title": "Menu → System → Assistant Insights"
+    },
+    {
+      "id": "page-system.help-insights",
+      "title": "Assistant Insights",
+      "details": "Shows how much the assistant resolves on its own, what gets escalated to the team and on which screens people get stuck. From here you work through the queue of unresolved questions and the tickets. It has 1 guide in «Guide me on this screen»."
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "id": "config.sequences.delete",
+  "title": "Delete the sequence",
+  "summary": "Delete a sequence (asks for confirmation).",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "delete sequence",
+    "remove sequence",
+    "clear sequence"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Sequences",
+      "details": "The numbering of invoices, quotes, orders and payments: a pattern with variables and how often the counter resets."
+    },
+    {
+      "id": "pick",
+      "title": "Choose the sequence",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "delete",
+      "title": "Delete"
+    },
+    {
+      "id": "ok",
+      "title": "Confirm",
+      "details": "This can't be undone."
+    }
+  ]
+}

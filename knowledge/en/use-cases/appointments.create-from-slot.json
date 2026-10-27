@@ -1,0 +1,56 @@
+{
+  "id": "appointments.create-from-slot",
+  "title": "Book in a free slot on the calendar",
+  "summary": "Click a free gap on the calendar and fill in the appointment right there.",
+  "module": "Calendar",
+  "inputs": {
+    "patient": "Patient name",
+    "service": "Service name",
+    "doctor": "Doctor name",
+    "notes": "Internal note"
+  },
+  "keywords": [
+    "gap",
+    "free time",
+    "click on the calendar",
+    "quick booking",
+    "slot"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Appointments",
+      "details": "The calendar shows appointments by room and doctor."
+    },
+    {
+      "id": "slot",
+      "title": "Click a free time",
+      "details": "Click the time and the room's column. The appointment opens with that day, time and room already set."
+    },
+    {
+      "id": "patient",
+      "title": "Choose the patient",
+      "details": "Search by name, phone or ID. If the patient has a default doctor, it's suggested automatically."
+    },
+    {
+      "id": "services",
+      "title": "Service",
+      "details": "Optional. Sets the appointment's duration and what will be billed."
+    },
+    {
+      "id": "doctor",
+      "title": "Doctor",
+      "details": "Who sees the patient. Only the times when they're available are offered."
+    },
+    {
+      "id": "notes",
+      "title": "Notes",
+      "details": "Optional. Internal text shown on the appointment."
+    },
+    {
+      "id": "save",
+      "title": "Save the appointment",
+      "details": "Review the details and save. The patient is notified if they have reminders turned on."
+    }
+  ]
+}

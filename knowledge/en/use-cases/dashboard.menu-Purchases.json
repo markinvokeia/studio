@@ -1,0 +1,68 @@
+{
+  "id": "dashboard.menu-Purchases",
+  "title": "Get to know Purchases",
+  "summary": "Tour of Purchase Quotes, Purchase Invoices, Purchase Payments, Providers and Provider Products and Services: what each screen is for.",
+  "module": "Dashboard",
+  "group": "Menu",
+  "keywords": [
+    "purchases",
+    "what's in purchases",
+    "purchase quotes",
+    "purchase invoices",
+    "purchase payments",
+    "providers",
+    "provider products and services"
+  ],
+  "steps": [
+    {
+      "id": "section",
+      "title": "Purchases",
+      "details": "This section has 5 screens; we'll go through them one by one."
+    },
+    {
+      "id": "go-purchases.quotes",
+      "title": "Menu → Purchases → Purchase Quotes"
+    },
+    {
+      "id": "page-purchases.quotes",
+      "title": "Purchase Quotes",
+      "details": "A provider's quote: which products or services, at what price. Once confirmed, it's invoiced when received. It has 9 guides in «Guide me on this screen»."
+    },
+    {
+      "id": "go-purchases.invoices",
+      "title": "Menu → Purchases → Purchase Invoices"
+    },
+    {
+      "id": "page-purchases.invoices",
+      "title": "Purchase Invoices",
+      "details": "What the clinic owes a provider: it comes from a purchase quote or is entered/imported directly. It has 9 guides in «Guide me on this screen»."
+    },
+    {
+      "id": "go-purchases.payments",
+      "title": "Menu → Purchases → Purchase Payments"
+    },
+    {
+      "id": "page-purchases.payments",
+      "title": "Purchase Payments",
+      "details": "What the clinic pays providers: payments of purchase invoices and advances. It has 5 guides in «Guide me on this screen»."
+    },
+    {
+      "id": "go-purchases.providers",
+      "title": "Menu → Purchases → Providers"
+    },
+    {
+      "id": "page-purchases.providers",
+      "title": "Providers",
+      "details": "Contact details, terms and products of each provider. It has 13 guides in «Guide me on this screen»."
+    },
+    {
+      "id": "go-purchases.services",
+      "title": "Menu → Purchases → Provider Products and Services"
+    },
+    {
+      "id": "page-purchases.services",
+      "title": "Provider Products and Services",
+      "details": "Catalog of what is bought from each provider, with its price, to build purchase quotes and invoices. It has 4 guides in «Guide me on this screen»."
+    }
+  ]
+}

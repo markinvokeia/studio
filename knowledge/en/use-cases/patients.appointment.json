@@ -1,0 +1,77 @@
+{
+  "id": "patients.appointment",
+  "title": "Book an appointment from the record",
+  "summary": "Create → Appointment: the appointment card comes with the patient already filled in.",
+  "module": "Patients",
+  "group": "Scheduling and communication",
+  "inputs": {
+    "patient": "Patient's name, email or ID",
+    "services": "Services",
+    "date": "Date YYYY-MM-DD",
+    "time": "Time HH:MM",
+    "notes": "Notes"
+  },
+  "keywords": [
+    "book",
+    "appointment",
+    "slot",
+    "reserve",
+    "new appointment"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or ID."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide continues once their record is open."
+    },
+    {
+      "id": "menu",
+      "title": "Create",
+      "details": "Everything that can be created for this patient: clinical, financial and scheduling."
+    },
+    {
+      "id": "item",
+      "title": "Appointment",
+      "details": "Opens the new appointment card for this patient."
+    },
+    {
+      "id": "services",
+      "title": "Services"
+    },
+    {
+      "id": "doctor",
+      "title": "Doctor"
+    },
+    {
+      "id": "calendar",
+      "title": "Calendar"
+    },
+    {
+      "id": "date",
+      "title": "Date"
+    },
+    {
+      "id": "time",
+      "title": "Time"
+    },
+    {
+      "id": "notes",
+      "title": "Notes"
+    },
+    {
+      "id": "save",
+      "title": "Save the appointment",
+      "details": "You're warned if the time is taken or outside the calendar."
+    }
+  ]
+}

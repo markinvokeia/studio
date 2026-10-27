@@ -1,0 +1,68 @@
+{
+  "id": "dashboard.menu-BusinessSetup-3",
+  "title": "Get to know Business Setup: Doctor Availability, Availability Exceptions and more",
+  "summary": "Tour of Doctor Availability, Availability Exceptions, Currencies & Exchange Rates, Sequences and Mutual Societies: what each screen is for.",
+  "module": "Dashboard",
+  "group": "Menu",
+  "keywords": [
+    "business setup",
+    "what's in business setup",
+    "doctor availability",
+    "availability exceptions",
+    "currencies & exchange rates",
+    "sequences",
+    "mutual societies"
+  ],
+  "steps": [
+    {
+      "id": "section",
+      "title": "Business Setup",
+      "details": "We'll go through Doctor Availability, Availability Exceptions, Currencies & Exchange Rates, Sequences and Mutual Societies."
+    },
+    {
+      "id": "go-config.doctor-availability",
+      "title": "Menu → Business Setup → Doctor Availability"
+    },
+    {
+      "id": "page-config.doctor-availability",
+      "title": "Doctor Availability",
+      "details": "Without availability a doctor offers no slots on the calendar or the patient portal. Exceptions (vacations, leave) are entered separately. It has 5 guides in «Guide me on this screen»."
+    },
+    {
+      "id": "go-config.availability-exceptions",
+      "title": "Menu → Business Setup → Availability Exceptions"
+    },
+    {
+      "id": "page-config.availability-exceptions",
+      "title": "Availability Exceptions",
+      "details": "Vacations, leave or specific days when a doctor doesn't see patients (or works other hours). They override the regular availability. It has 4 guides in «Guide me on this screen»."
+    },
+    {
+      "id": "go-config.currencies",
+      "title": "Menu → Business Setup → Currencies & Exchange Rates"
+    },
+    {
+      "id": "page-config.currencies",
+      "title": "Currencies & Exchange Rates",
+      "details": "The currencies you work with and the rate used to convert between the main and the secondary currency. It has 1 guide in «Guide me on this screen»."
+    },
+    {
+      "id": "go-config.sequences",
+      "title": "Menu → Business Setup → Sequences"
+    },
+    {
+      "id": "page-config.sequences",
+      "title": "Sequences",
+      "details": "Prefixes and next numbers for quotes, invoices and other documents. It has 4 guides in «Guide me on this screen»."
+    },
+    {
+      "id": "go-config.mutual-societies",
+      "title": "Menu → Business Setup → Mutual Societies"
+    },
+    {
+      "id": "page-config.mutual-societies",
+      "title": "Mutual Societies",
+      "details": "The coverage plans patients can have; they're assigned on the patient's record. It has 4 guides in «Guide me on this screen»."
+    }
+  ]
+}

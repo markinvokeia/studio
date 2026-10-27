@@ -27,8 +27,8 @@ este repo y publicado en la BD de cada cliente.
 | Convención de help ids | `src/lib/help/help-id.ts` |
 | IDs automáticos en primitivas | `src/components/ui/{form,button,tabs,data-table-toolbar,vertical-tab-strip}.tsx`, `src/components/sidebar.tsx` |
 | Scope por ruta | `HelpScopeProvider` en `src/components/auth/PrivateRoute.tsx` |
-| Fichas, guías y recorrido | `knowledge/screens/`, `knowledge/use-cases/`, `knowledge/onboarding/journey.json` |
-| Extractor | `scripts/knowledge/build-catalog.mjs` → `src/generated/help-catalog.json` |
+| Fichas, guías y recorrido | `knowledge/screens/`, `knowledge/use-cases/`, `knowledge/onboarding/journey.json` (inglés: `knowledge/en/`, mismos archivos) |
+| Extractor | `scripts/knowledge/build-catalog.mjs` → `src/generated/help-catalog.json` y `help-catalog.en.json` |
 | Asistente (UI) | `src/components/help/` (`help-assistant.tsx` es la raíz) |
 | Motor de guías | `src/lib/help/guide-engine.ts` (DOM) + `guide-runner.ts` (secuencia) |
 | Estado | `src/stores/help-assistant-store.ts` |
@@ -86,9 +86,32 @@ y une todo con las fichas redactadas:
 - `knowledge/onboarding/journey.json`: el recorrido. Cada `id` es una clave de
   `help_onboarding_compute()` (al agregar un paso, agregarlo en las dos partes).
 
+### Idiomas: primero español, después inglés
+
+Las guías y fichas se muestran en el idioma de la app: `en` carga
+`src/generated/help-catalog.en.json`; `es` y `es-ES` cargan el español
+(`loadHelpCatalog(locale)` en `src/lib/help/catalog.ts`). No hay traducción
+automática: el inglés es una copia redactada a mano en `knowledge/en/`, con los
+mismos archivos y los mismos ids que el español.
+
+- `knowledge/en/screens/<scope>.json`: `title?`, `summary`, `purpose`, `tips`
+  (la misma cantidad) y `elements` (`label?` y `description` por help id).
+- `knowledge/en/use-cases/<id>.json`: `title`, `summary`, `module`, `group?`,
+  `inputs`, `keywords` y `steps` con `id`, `title`, `details?` y `description?`.
+- `knowledge/en/onboarding/journey.json`: `steps` con `id`, `title` y `description`.
+
+Del inglés sólo se toman los textos: pasos, targets, rutas y condiciones salen
+siempre del español. Las etiquetas que vienen del código se traducen solas con
+`en.json`; si una etiqueta está escrita a mano en el código, va como `label` en
+la ficha en inglés. **Toda guía o ficha nueva, o cualquier cambio de texto, se
+hace primero en español y enseguida en inglés**: si falta la versión en inglés
+(una guía, un paso, un `details`, un consejo o una descripción), el build falla
+y no escribe ningún catálogo. Al backend (`/help/catalog/sync`) se publica
+siempre el catálogo en español.
+
 Validaciones (`pnpm knowledge:check`, falla el commit): rutas y help ids de cada
-guía existen, casos de uso del journey y de las fichas existen, y el archivo
-generado está al día. `pnpm knowledge:strict` además exige ficha para cada
+guía existen, casos de uso del journey y de las fichas existen, la versión en
+inglés está completa, y los archivos generados están al día. `pnpm knowledge:strict` además exige ficha para cada
 pantalla del menú (para el job nocturno cuando la cobertura llegue al 100%).
 
 ### En cada commit

@@ -1,0 +1,47 @@
+{
+  "id": "alerts.snooze",
+  "title": "Snooze an alert until another date",
+  "summary": "Remove an alert from the inbox until a date, with the reason.",
+  "module": "Alerts Center",
+  "inputs": {
+    "quick": "1d | 3d | 1w",
+    "date": "Date YYYY-MM-DDTHH:MM",
+    "reason": "Reason"
+  },
+  "keywords": [
+    "snooze",
+    "postpone",
+    "later",
+    "remind me later",
+    "snooze"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Alerts Center",
+      "details": "What the system detected with the alert rules and the team needs to work on."
+    },
+    {
+      "id": "open",
+      "title": "Snooze",
+      "details": "Tap the alert's clock. Do it on the alert you want to work on."
+    },
+    {
+      "id": "quick",
+      "title": "Quick option"
+    },
+    {
+      "id": "date",
+      "title": "Until when",
+      "details": "Use 1 day, 3 days or 1 week, or choose the date. It shows up again that day."
+    },
+    {
+      "id": "reason",
+      "title": "Reason"
+    },
+    {
+      "id": "save",
+      "title": "Snooze"
+    }
+  ]
+}

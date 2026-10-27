@@ -30,6 +30,9 @@ const SRC = join(ROOT, 'src');
 const APP_DIR = join(SRC, 'app', '[locale]');
 const KNOWLEDGE = join(ROOT, 'knowledge');
 const OUTPUT = join(SRC, 'generated', 'help-catalog.json');
+/** Mismo catálogo en inglés: textos de knowledge/en/ y etiquetas de src/messages/en.json. */
+const OUTPUT_EN = join(SRC, 'generated', 'help-catalog.en.json');
+const KNOWLEDGE_EN = join(KNOWLEDGE, 'en');
 
 const args = new Set(process.argv.slice(2));
 const CHECK = args.has('--check');
@@ -101,6 +104,14 @@ function stable(value) {
 }
 
 const messagesEs = readJson(join(SRC, 'messages', 'es.json'));
+const messagesEn = readJson(join(SRC, 'messages', 'en.json'));
+/** Etiqueta en español → clave de traducción de donde salió (para resolverla en inglés). */
+const labelKeyOf = new Map();
+const esLabel = (key) => {
+  const value = getPath(messagesEs, key);
+  if (typeof value === 'string' && !labelKeyOf.has(value)) labelKeyOf.set(value, key);
+  return value;
+};
 
 // ─── permisos ────────────────────────────────────────────────────────────────
 
@@ -150,7 +161,7 @@ function extractNav(permissionsByConstant) {
     const href = props.href && ts.isStringLiteral(props.href) ? props.href.text : '';
     const children = props.items && ts.isArrayLiteralExpression(props.items) ? props.items.elements.filter(ts.isObjectLiteralExpression) : [];
     const permissions = [...permOf(props.requiredPermission), ...permOf(props.requiredPermissions), ...permOf(props.requiredAnyPermission)];
-    const label = getPath(messagesEs, `Navigation.${title}`) ?? title;
+    const label = esLabel(`Navigation.${title}`) ?? title;
     if (children.length) {
       items.push({ id: `nav.group.${title}`, title, label, href: '', permissions, group: true, parent });
       for (const child of children) readItem(child, title);
@@ -215,7 +226,7 @@ function firstTranslation(node, sf, namespaces) {
     const arg = n.arguments[0];
     if (ns === undefined || !arg || !ts.isStringLiteralLike(arg)) return;
     const key = ns ? `${ns}.${arg.text}` : arg.text;
-    const value = getPath(messagesEs, key);
+    const value = esLabel(key);
     if (typeof value === 'string') found = value;
   });
   return found;
@@ -245,8 +256,8 @@ function tagName(node) {
 }
 
 const DEFAULT_LABELS = {
-  'btn.new': getPath(messagesEs, 'DataTableToolbar.create'),
-  'btn.refresh': getPath(messagesEs, 'DataTableToolbar.refresh'),
+  'btn.new': esLabel('DataTableToolbar.create'),
+  'btn.refresh': esLabel('DataTableToolbar.refresh'),
 };
 
 function extractElements(file, pageScope) {
@@ -332,7 +343,7 @@ function extractScreens(navItems, permissions) {
       id: scope,
       route: normalized,
       title: nav?.label ?? normalized,
-      module: nav?.parent ? getPath(messagesEs, `Navigation.${nav.parent}`) ?? nav.parent : undefined,
+      module: nav?.parent ? esLabel(`Navigation.${nav.parent}`) ?? nav.parent : undefined,
       permissions: nav?.permissions ?? [],
       inMenu: Boolean(nav),
       status: 'auto',
@@ -489,10 +500,101 @@ console.log(`[knowledge] menú: ${menuScreens.length - undocumented.length}/${me
 for (const w of warnings) console.warn(`[knowledge] aviso: ${w}`);
 for (const e of errors) console.error(`[knowledge] ERROR: ${e}`);
 
+// ─── inglés ──────────────────────────────────────────────────────────────────
+// Se escribe primero en español (knowledge/) y después en inglés (knowledge/en/, mismo
+// archivo y mismos ids de paso). La estructura (pasos, targets, condiciones) sale siempre
+// del español; del inglés sólo se toman los textos. Falta la versión en inglés → error.
+
+const errorsBeforeEn = errors.length;
+const knowledgeElements = new Map(loadDir(join(KNOWLEDGE, 'screens')).map(({ data }) => [data.id, data.elements ?? {}]));
+const enFile = (kind, id) => join(KNOWLEDGE_EN, kind, `${id}.json`);
+const readEn = (kind, id) => (existsSync(enFile(kind, id)) ? readJson(enFile(kind, id)) : null);
+const enLabel = (label) => {
+  if (!label) return label;
+  const key = labelKeyOf.get(label);
+  const value = key ? getPath(messagesEn, key) : undefined;
+  return typeof value === 'string' ? value : label;
+};
+
+const enScreens = body.screens.map((screen) => {
+  const curated = readEn('screens', screen.id);
+  if (screen.status !== 'auto' && !curated) errors.push(`falta la ficha en inglés: knowledge/en/screens/${screen.id}.json`);
+  const els = curated?.elements ?? {};
+  return {
+    ...screen,
+    title: curated?.title ?? enLabel(screen.title),
+    module: enLabel(screen.module),
+    summary: curated?.summary ?? screen.summary,
+    purpose: curated?.purpose ?? screen.purpose,
+    tips: curated?.tips ?? screen.tips,
+    elements: screen.elements.map((e) => ({
+      ...e,
+      label: els[e.id]?.label ?? enLabel(e.label),
+      description: els[e.id]?.description ?? (e.description ? (curated ? undefined : e.description) : undefined),
+    })),
+  };
+});
+for (const screen of body.screens) {
+  const curated = readEn('screens', screen.id);
+  if (!curated) continue;
+  for (const [id, doc] of Object.entries(knowledgeElements.get(screen.id) ?? {})) {
+    if (doc.description && !curated.elements?.[id]?.description) errors.push(`ficha en inglés ${screen.id}: falta la descripción de ${id}`);
+  }
+  for (const k of ['summary', 'purpose']) if (screen[k] && !curated[k]) errors.push(`ficha en inglés ${screen.id}: falta "${k}"`);
+  if ((screen.tips?.length ?? 0) !== (curated.tips?.length ?? 0)) errors.push(`ficha en inglés ${screen.id}: tiene ${curated.tips?.length ?? 0} consejos y en español ${screen.tips?.length ?? 0}`);
+}
+const enDescriptions = new Map(enScreens.flatMap((sc) => sc.elements.filter((e) => e.description).map((e) => [e.id, e.description])));
+const enUseCases = body.useCases.map((uc) => {
+  const curated = readEn('use-cases', uc.id);
+  if (!curated) { errors.push(`falta la guía en inglés: knowledge/en/use-cases/${uc.id}.json`); return uc; }
+  const enSteps = new Map((curated.steps ?? []).map((st) => [st.id, st]));
+  const raw = useCaseFiles.find((f) => f.data.id === uc.id)?.data;
+  return {
+    ...uc,
+    title: curated.title ?? uc.title,
+    summary: curated.summary ?? uc.summary,
+    module: curated.module ?? enLabel(uc.module),
+    group: curated.group ?? uc.group,
+    inputs: curated.inputs ?? uc.inputs,
+    keywords: curated.keywords ?? uc.keywords,
+    steps: uc.steps.map((step, i) => {
+      const en = enSteps.get(step.id);
+      const rawStep = raw?.steps?.[i];
+      if (!en?.title) errors.push(`guía en inglés ${uc.id}: falta el paso "${step.id}"`);
+      const details = en?.details ?? (rawStep?.details ? undefined : (step.target ? enDescriptions.get(step.target) : undefined));
+      if (rawStep?.details && !en?.details) errors.push(`guía en inglés ${uc.id}: falta "details" del paso "${step.id}"`);
+      return { ...step, title: en?.title ?? step.title, details: details ?? (rawStep?.details ? step.details : undefined), description: en?.description ?? (rawStep?.description ? step.description : undefined) };
+    }),
+  };
+});
+const journeyEn = existsSync(join(KNOWLEDGE_EN, 'onboarding', 'journey.json')) ? readJson(join(KNOWLEDGE_EN, 'onboarding', 'journey.json')).steps ?? [] : [];
+if (journey.length && !journeyEn.length) errors.push('falta el recorrido de onboarding en inglés: knowledge/en/onboarding/journey.json');
+const enJourneyById = new Map(journeyEn.map((j) => [j.id, j]));
+const bodyEn = stable({
+  screens: enScreens,
+  useCases: enUseCases,
+  journey: journey.map((j) => ({ ...j, ...(enJourneyById.get(j.id) ? { title: enJourneyById.get(j.id).title, description: enJourneyById.get(j.id).description } : {}) })),
+  permissions: body.permissions,
+});
+const versionEn = createHash('sha256').update(JSON.stringify(bodyEn)).digest('hex').slice(0, 16);
+const outputEn = JSON.stringify({ version: versionEn, locale: 'en', ...bodyEn }, null, 1) + '\n';
+const enErrors = errors.slice(errorsBeforeEn);
+if (enErrors.length) {
+  // Sin la versión en inglés no se publica: primero español, después inglés.
+  const shown = enErrors.slice(0, 40);
+  for (const e of shown) console.error(`[knowledge] ERROR: ${e}`);
+  if (enErrors.length > shown.length) console.error(`[knowledge] ERROR: … y ${enErrors.length - shown.length} más en inglés`);
+}
+
 if (CHECK) {
   const current = existsSync(OUTPUT) ? readFileSync(OUTPUT, 'utf8') : '';
   if (current !== output) {
     console.error('[knowledge] ERROR: src/generated/help-catalog.json está desactualizado. Corré `pnpm knowledge:build`.');
+    process.exit(1);
+  }
+  const currentEn = existsSync(OUTPUT_EN) ? readFileSync(OUTPUT_EN, 'utf8') : '';
+  if (currentEn !== outputEn) {
+    console.error('[knowledge] ERROR: src/generated/help-catalog.en.json está desactualizado. Corré `pnpm knowledge:build`.');
     process.exit(1);
   }
   if (errors.length) process.exit(1);
@@ -502,3 +604,4 @@ if (CHECK) {
 if (errors.length) process.exit(1);
 mkdirSync(dirname(OUTPUT), { recursive: true });
 writeFileSync(OUTPUT, output);
+writeFileSync(OUTPUT_EN, outputEn);

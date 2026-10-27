@@ -1,0 +1,61 @@
+{
+  "id": "config.doctor-availability.create",
+  "title": "Create an availability rule",
+  "summary": "New availability rule.",
+  "module": "Business Setup",
+  "inputs": {
+    "start_time": "From",
+    "end_time": "Until"
+  },
+  "keywords": [
+    "new availability rule",
+    "new availability rule",
+    "create availability rule",
+    "add availability rule"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Doctor Availability",
+      "details": "When each doctor sees patients: days and hours, from and until when. The calendar only offers slots within this availability."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    },
+    {
+      "id": "user_id",
+      "title": "Doctor"
+    },
+    {
+      "id": "recurrence",
+      "title": "Recurrence",
+      "details": "Weekly, biweekly or monthly."
+    },
+    {
+      "id": "days_of_week",
+      "title": "Days"
+    },
+    {
+      "id": "start_time",
+      "title": "From"
+    },
+    {
+      "id": "end_time",
+      "title": "Until"
+    },
+    {
+      "id": "start_date",
+      "title": "Valid from"
+    },
+    {
+      "id": "end_date",
+      "title": "Valid until",
+      "details": "Optional."
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

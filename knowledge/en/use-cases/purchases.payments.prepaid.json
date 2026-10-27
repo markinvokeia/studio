@@ -1,0 +1,64 @@
+{
+  "id": "purchases.payments.prepaid",
+  "title": "Record an advance to a provider",
+  "summary": "Payment on account without an invoice; it stays as a balance to apply later.",
+  "module": "Purchases",
+  "inputs": {
+    "party": "Provider",
+    "amount": "Amount",
+    "notes": "Notes"
+  },
+  "keywords": [
+    "prepayment",
+    "deposit",
+    "payment on account",
+    "advance"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Purchases → Purchase Payments",
+      "details": "What the clinic pays providers: payments of purchase invoices and advances."
+    },
+    {
+      "id": "new",
+      "title": "Create advance",
+      "details": "Money advanced to the provider; later it's applied to invoices."
+    },
+    {
+      "id": "party",
+      "title": "Provider"
+    },
+    {
+      "id": "amount",
+      "title": "Amount"
+    },
+    {
+      "id": "currency",
+      "title": "Currency"
+    },
+    {
+      "id": "method",
+      "title": "Payment method",
+      "details": "Cash payments come out of the open cash register (unless you check «historical»)."
+    },
+    {
+      "id": "date",
+      "title": "Date"
+    },
+    {
+      "id": "notes",
+      "title": "Notes"
+    },
+    {
+      "id": "historical",
+      "title": "Historical",
+      "details": "To record old payments without an open cash register."
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "It needs an open cash register (unless historical)."
+    }
+  ]
+}

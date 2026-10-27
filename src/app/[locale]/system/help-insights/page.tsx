@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertTriangle, BookOpenCheck, Check, CircleDot, LifeBuoy, MessageCircleQuestion, RefreshCw, ThumbsDown, ThumbsUp, Video, X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
@@ -59,6 +59,7 @@ function Kpi({ icon: Icon, label, value, hint, tone }: { icon: React.ElementType
  */
 export default function HelpInsightsPage() {
   const t = useTranslations('HelpInsightsPage');
+  const locale = useLocale();
   const tSteps = useTranslations('HelpInsightsPage.steps');
   const { toast } = useToast();
   const [days, setDays] = React.useState<number>(30);
@@ -66,11 +67,11 @@ export default function HelpInsightsPage() {
   const [screenTitles, setScreenTitles] = React.useState<Record<string, string>>({});
   React.useEffect(() => {
     let cancelled = false;
-    loadHelpCatalog()
+    loadHelpCatalog(locale)
       .then((c) => { if (!cancelled) setScreenTitles(Object.fromEntries(c.screens.map((sc) => [sc.id, sc.title]))); })
       .catch(() => { /* se muestra el scope */ });
     return () => { cancelled = true; };
-  }, []);
+  }, [locale]);
 
   const { data, isLoading, isRefreshing, error, reload } = useDataLoader<HelpInsights | null>(
     (signal) => getHelpInsights(days, signal),

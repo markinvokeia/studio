@@ -1,0 +1,63 @@
+{
+  "id": "patients.history",
+  "title": "View the clinical history",
+  "summary": "Timeline with the patient's clinical sessions, odontograms and appointments; filter and print.",
+  "module": "Patients",
+  "group": "Clinical history",
+  "inputs": {
+    "patient": "Patient's name, email or ID"
+  },
+  "keywords": [
+    "clinical history",
+    "timeline",
+    "previous sessions",
+    "print history",
+    "progress",
+    "timeline"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or ID."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide continues once their record is open."
+    },
+    {
+      "id": "clinical",
+      "title": "Clinical history"
+    },
+    {
+      "id": "tab",
+      "title": "Timeline"
+    },
+    {
+      "id": "timeline",
+      "title": "Events",
+      "details": "Clinical sessions, odontograms and appointments, from newest to oldest. Tap an event to see its details."
+    },
+    {
+      "id": "filters",
+      "title": "Filter",
+      "details": "By event type (clinical, odontogram, appointment) and by doctor."
+    },
+    {
+      "id": "print",
+      "title": "Print history",
+      "details": "Prints the medical history and the clinical sessions."
+    },
+    {
+      "id": "add",
+      "title": "New session",
+      "details": "Adds a clinical or odontogram session."
+    }
+  ]
+}

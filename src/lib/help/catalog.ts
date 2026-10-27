@@ -1,6 +1,7 @@
 /**
- * Acceso al catálogo generado (src/generated/help-catalog.json). Se carga con
- * import dinámico — ~25 KB gzip — sólo cuando el asistente se abre.
+ * Acceso al catálogo generado (src/generated/help-catalog.json, y su versión en
+ * inglés help-catalog.en.json). Se carga con import dinámico — ~25 KB gzip —
+ * sólo cuando el asistente se abre.
  *
  * La búsqueda local es el respaldo cuando el backend no responde: sin IA, pero
  * con la ficha de la pantalla y la guía más parecida, que ya alcanza para
@@ -11,15 +12,26 @@ import { routeToHelpScope } from '@/lib/help/help-id';
 
 import type { HelpAssistantLink, HelpAssistantReply, HelpCatalog, HelpCatalogElement, HelpCatalogScreen, HelpGuideStep, HelpUseCase } from '@/lib/types';
 
-let cached: Promise<HelpCatalog> | null = null;
+type HelpCatalogLocale = 'es' | 'en';
 
-export function loadHelpCatalog(): Promise<HelpCatalog> {
-  if (!cached) {
-    cached = import('@/generated/help-catalog.json')
+const cached = new Map<HelpCatalogLocale, Promise<HelpCatalog>>();
+
+/** Inglés para `en`; español para el resto (`es`, `es-ES`). */
+export function helpCatalogLocale(locale: string | undefined): HelpCatalogLocale {
+  return locale?.toLowerCase().startsWith('en') ? 'en' : 'es';
+}
+
+export function loadHelpCatalog(locale?: string): Promise<HelpCatalog> {
+  const key = helpCatalogLocale(locale);
+  let promise = cached.get(key);
+  if (!promise) {
+    const load = key === 'en' ? import('@/generated/help-catalog.en.json') : import('@/generated/help-catalog.json');
+    promise = load
       .then((m) => (m.default ?? m) as unknown as HelpCatalog)
-      .catch((error) => { cached = null; throw error; });
+      .catch((error) => { cached.delete(key); throw error; });
+    cached.set(key, promise);
   }
-  return cached;
+  return promise;
 }
 
 export function findScreen(catalog: HelpCatalog, scope: string): HelpCatalogScreen | undefined {

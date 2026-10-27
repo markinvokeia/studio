@@ -1,0 +1,40 @@
+{
+  "id": "permissions.edit",
+  "title": "Edit a permission",
+  "summary": "Details tab of the record.",
+  "module": "System",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "edit permission",
+    "modify permission"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Permissions",
+      "details": "Each action that can be enabled (view, create, edit…) on each screen."
+    },
+    {
+      "id": "search",
+      "title": "Find the permission"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the permission"
+    },
+    {
+      "id": "tab",
+      "title": "Details"
+    },
+    {
+      "id": "name",
+      "title": "Name"
+    },
+    {
+      "id": "save",
+      "title": "Save changes"
+    }
+  ]
+}

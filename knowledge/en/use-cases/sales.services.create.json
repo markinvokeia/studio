@@ -1,0 +1,82 @@
+{
+  "id": "sales.services.create",
+  "title": "Create a service",
+  "summary": "New service with price and currency.",
+  "module": "Sales",
+  "inputs": {
+    "name": "Name",
+    "price": "Price",
+    "duration_minutes": "Duration"
+  },
+  "keywords": [
+    "new service",
+    "create service",
+    "add to the price list"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Sales → Services",
+      "details": "What the clinic offers and charges: price, currency, calendar duration, color, category and whether it can be booked online. It's the price list for quotes, invoices and appointments."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    },
+    {
+      "id": "name",
+      "title": "Name",
+      "details": "As it appears on appointments, quotes and invoices."
+    },
+    {
+      "id": "service_type",
+      "title": "Type",
+      "details": "Simple or in stages (treatment with several sessions: opens the Stages tab)."
+    },
+    {
+      "id": "category_id",
+      "title": "Category",
+      "details": "Groups services in reports and on the portal."
+    },
+    {
+      "id": "price",
+      "title": "Price"
+    },
+    {
+      "id": "currency",
+      "title": "Currency"
+    },
+    {
+      "id": "duration_minutes",
+      "title": "Duration",
+      "details": "Minutes it takes on the calendar."
+    },
+    {
+      "id": "color",
+      "title": "Color",
+      "details": "Appointment color on the calendar."
+    },
+    {
+      "id": "bookable_online",
+      "title": "Bookable online",
+      "details": "It shows on the patient portal."
+    },
+    {
+      "id": "description",
+      "title": "Description"
+    },
+    {
+      "id": "indications",
+      "title": "Instructions",
+      "details": "What the patient is told before the appointment."
+    },
+    {
+      "id": "is_active",
+      "title": "Active"
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

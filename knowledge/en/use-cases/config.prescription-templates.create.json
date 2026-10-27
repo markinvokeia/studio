@@ -1,0 +1,46 @@
+{
+  "id": "config.prescription-templates.create",
+  "title": "Create a prescription template",
+  "summary": "New prescription template.",
+  "module": "Business Setup",
+  "inputs": {
+    "name": "Name"
+  },
+  "keywords": [
+    "new prescription template",
+    "new prescription template",
+    "create prescription template",
+    "add prescription template"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Prescription Templates",
+      "details": "Common prescriptions with medications and instructions; they're chosen when prescribing."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    },
+    {
+      "id": "name",
+      "title": "Name"
+    },
+    {
+      "id": "description",
+      "title": "Description"
+    },
+    {
+      "id": "content_html",
+      "title": "Content"
+    },
+    {
+      "id": "is_active",
+      "title": "Active"
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

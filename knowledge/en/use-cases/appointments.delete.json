@@ -1,0 +1,34 @@
+{
+  "id": "appointments.delete",
+  "title": "Delete an appointment",
+  "summary": "Delete an appointment entered by mistake (not the same as canceling it).",
+  "module": "Calendar",
+  "keywords": [
+    "delete",
+    "remove",
+    "remove appointment",
+    "duplicate appointment",
+    "mistake"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Appointments",
+      "details": "The calendar shows appointments by room and doctor."
+    },
+    {
+      "id": "open-menu",
+      "title": "Right-click the appointment",
+      "details": "The appointment menu opens. If you don't see it, change the day with the arrows or use Find appointment."
+    },
+    {
+      "id": "delete",
+      "title": "Delete appointment",
+      "details": "For appointments entered by mistake. If the patient isn't coming, cancel it with its reason: that way it shows in the reports."
+    },
+    {
+      "id": "confirm",
+      "title": "Confirm"
+    }
+  ]
+}

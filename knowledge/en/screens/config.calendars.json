@@ -1,0 +1,48 @@
+{
+  "id": "config.calendars",
+  "summary": "Rooms: each one is a calendar (a calendar column).",
+  "purpose": "Appointments are booked in a room. Optionally it syncs with a Google Calendar.",
+  "tips": [
+    "In the access tab you choose which doctors can use each room."
+  ],
+  "elements": {
+    "config.calendars.field.name": {
+      "description": "Room name (Room 1, Chair A…)."
+    },
+    "config.calendars.field.sede_id": {
+      "description": "Branch where the room is."
+    },
+    "config.calendars.field.color": {
+      "description": "Color it shows with on the calendar."
+    },
+    "config.calendars.field.google_calendar_id": {
+      "description": "Optional: Google Calendar id to sync the appointments."
+    },
+    "config.calendars.tab.access": {
+      "description": "Doctors who can see patients in this room."
+    },
+    "config.calendars.section.first-row": {
+      "label": "First record in the list"
+    },
+    "config.calendars.section.row": {
+      "label": "Record"
+    },
+    "config.calendars.section.detail": {
+      "label": "Details"
+    },
+    "config.calendars.btn.edit": {
+      "label": "Edit"
+    },
+    "config.calendars.btn.delete": {
+      "label": "Delete",
+      "description": "Asks for confirmation."
+    },
+    "config.calendars.btn.confirm-action": {
+      "label": "Confirm",
+      "description": "This can't be undone."
+    },
+    "config.calendars.field.is_active": {
+      "label": "Active"
+    }
+  }
+}

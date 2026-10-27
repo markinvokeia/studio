@@ -1,0 +1,86 @@
+{
+  "id": "system.alert-rules.create",
+  "title": "Create a rule",
+  "summary": "New rule.",
+  "module": "System",
+  "inputs": {
+    "name": "Name",
+    "code": "Code"
+  },
+  "keywords": [
+    "new rule",
+    "new rule",
+    "create rule"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Alert Rules",
+      "details": "What creates an alert and when: the event's table and date, days before or after, recurrence, priority and the email, WhatsApp or SMS templates that are sent."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    },
+    {
+      "id": "name",
+      "title": "Name"
+    },
+    {
+      "id": "code",
+      "title": "Code"
+    },
+    {
+      "id": "category_id",
+      "title": "Category",
+      "details": "Where it shows in the Alerts Center."
+    },
+    {
+      "id": "source_table",
+      "title": "Source",
+      "details": "Where the cases come from (appointments, invoices, patients…)."
+    },
+    {
+      "id": "event_field",
+      "title": "Event date",
+      "details": "The date the days are counted from."
+    },
+    {
+      "id": "days_before",
+      "title": "Days before"
+    },
+    {
+      "id": "days_after",
+      "title": "Days after"
+    },
+    {
+      "id": "recurrence_type",
+      "title": "Recurrence"
+    },
+    {
+      "id": "priority",
+      "title": "Priority"
+    },
+    {
+      "id": "email_template_id",
+      "title": "Email template"
+    },
+    {
+      "id": "whatsapp_template_id",
+      "title": "WhatsApp template"
+    },
+    {
+      "id": "auto_send_email",
+      "title": "Send email automatically",
+      "details": "If checked, the email goes out on its own when the alert is created."
+    },
+    {
+      "id": "is_active",
+      "title": "Active"
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

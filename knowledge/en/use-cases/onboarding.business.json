@@ -1,0 +1,65 @@
+{
+  "id": "onboarding.business",
+  "title": "Enter the clinic details",
+  "summary": "Trade name, contact, tax ID and main currency. The logo shows on quotes, invoices and on the patient portal.",
+  "module": "Business setup",
+  "inputs": {
+    "name": "The clinic's trade name",
+    "email": "Contact email",
+    "phone": "Phone with country code",
+    "rut": "Tax ID"
+  },
+  "keywords": [
+    "clinic",
+    "business",
+    "logo",
+    "currency",
+    "tax id",
+    "company details"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "I'm opening the clinic details"
+    },
+    {
+      "id": "name",
+      "title": "Clinic name",
+      "details": "It shows in reminders, quotes, invoices and on the patient portal. You can change it whenever you want: new documents take the new name.",
+      "description": "It's the name your patients see in messages, quotes and invoices."
+    },
+    {
+      "id": "logo",
+      "title": "Upload the logo",
+      "details": "If you don't upload a logo, documents come out with just the name. A PNG with a transparent background is recommended.",
+      "description": "Choose a square image (PNG or JPG). It's used on printed documents and on the portal."
+    },
+    {
+      "id": "email",
+      "title": "Contact email",
+      "details": "It's the contact email patients see. Notifications go out anyway even if you leave it empty."
+    },
+    {
+      "id": "phone",
+      "title": "Phone",
+      "details": "It shows on the portal and in messages to the patient so they can get in touch with the clinic."
+    },
+    {
+      "id": "rut",
+      "title": "Tax ID",
+      "details": "Needed to issue invoices. Without a tax ID you can still work, but receipts come out without tax identification."
+    },
+    {
+      "id": "currency",
+      "title": "Main currency",
+      "details": "Defines the currency for prices, quotes and the cash register. Changing it later doesn't convert what's already entered; the secondary currency shows the conversion when charging.",
+      "description": "It's the currency prices, quotes and the cash register are issued in. If you also charge in another one, choose it as the secondary currency."
+    },
+    {
+      "id": "save",
+      "title": "Review and save",
+      "details": "Saves the clinic details. Until you save, nothing I filled in is recorded.",
+      "description": "When everything looks right, press Save. I never save for you."
+    }
+  ]
+}

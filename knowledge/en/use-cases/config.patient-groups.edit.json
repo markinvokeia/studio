@@ -1,0 +1,55 @@
+{
+  "id": "config.patient-groups.edit",
+  "title": "Edit the patient group",
+  "summary": "Change the details of an existing patient group.",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "edit patient group",
+    "modify patient group",
+    "change patient group"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Patient Groups",
+      "details": "Groupings of patients (Orthodontics, Agreement X) with their services, to report what's produced and collected per group."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient group"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the patient group",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "edit",
+      "title": "Edit"
+    },
+    {
+      "id": "name",
+      "title": "Name",
+      "details": "E.g.: Orthodontics."
+    },
+    {
+      "id": "description",
+      "title": "Description"
+    },
+    {
+      "id": "user_id",
+      "title": "Responsible doctor"
+    },
+    {
+      "id": "is_active",
+      "title": "Active"
+    },
+    {
+      "id": "save",
+      "title": "Save changes"
+    }
+  ]
+}

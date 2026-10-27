@@ -1,0 +1,36 @@
+{
+  "id": "clinic-catalog.dental-surfaces.create",
+  "title": "Add a dental surface",
+  "summary": "New entry in the dental surfaces catalog.",
+  "module": "Clinic Catalog",
+  "inputs": {
+    "name": "Name"
+  },
+  "keywords": [
+    "new dental surface",
+    "add dental surface"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic Catalog → Dental Surfaces",
+      "details": "The faces of each tooth (occlusal, mesial, distal…) chosen on the odontogram."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    },
+    {
+      "id": "nombre",
+      "title": "Name"
+    },
+    {
+      "id": "codigo",
+      "title": "Code"
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

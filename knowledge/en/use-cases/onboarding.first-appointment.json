@@ -1,0 +1,74 @@
+{
+  "id": "onboarding.first-appointment",
+  "title": "Book a test appointment",
+  "summary": "A test appointment confirms that branches, rooms, doctors, availability and services work together.",
+  "module": "Calendar",
+  "inputs": {
+    "patient": "Patient name",
+    "doctor": "Doctor name",
+    "date": "Date YYYY-MM-DD",
+    "time": "Time HH:MM"
+  },
+  "keywords": [
+    "slot",
+    "appointment",
+    "book",
+    "calendar",
+    "reserve"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "I'm opening the calendar"
+    },
+    {
+      "id": "menu",
+      "title": "Create menu",
+      "details": "From here you create appointments, reminders and notes."
+    },
+    {
+      "id": "new",
+      "title": "New appointment",
+      "details": "Opens the new appointment form."
+    },
+    {
+      "id": "patient",
+      "title": "Choose the patient",
+      "details": "Required. Search for them by name, ID or phone.",
+      "description": "Search for them by name, ID or phone. If they don't exist, you can create them from here."
+    },
+    {
+      "id": "services",
+      "title": "Service",
+      "details": "The service sets the appointment's duration. Without a service the appointment uses the calendar's default duration.",
+      "description": "The service sets the appointment's duration."
+    },
+    {
+      "id": "doctor",
+      "title": "Doctor",
+      "details": "Only doctors with availability at that time are offered."
+    },
+    {
+      "id": "calendar",
+      "title": "Room",
+      "details": "The room where the patient is seen. If the doctor has a default one, it's already chosen."
+    },
+    {
+      "id": "date",
+      "title": "Date",
+      "details": "Appointment date."
+    },
+    {
+      "id": "time",
+      "title": "Time",
+      "details": "If it falls outside the doctor's availability or the branch's hours, the calendar warns you before saving.",
+      "description": "If the time is outside the doctor's or the branch's availability, the calendar warns you."
+    },
+    {
+      "id": "save",
+      "title": "Save the appointment",
+      "details": "Saves the appointment. If the patient has a phone, they get the confirmation and the configured reminders.",
+      "description": "Review the details and press Save. With this the minimum is done."
+    }
+  ]
+}

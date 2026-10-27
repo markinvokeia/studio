@@ -1,0 +1,59 @@
+{
+  "id": "purchases.providers.create",
+  "title": "Register a provider",
+  "summary": "Register them with name, contact, tax ID and bank account.",
+  "module": "Purchases",
+  "group": "List and registration",
+  "inputs": {
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone"
+  },
+  "keywords": [
+    "new provider",
+    "provider registration",
+    "register provider"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Purchases → Providers",
+      "details": "Labs, suppliers and services the clinic buys from; with their account: quotes, invoices and payments."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    },
+    {
+      "id": "name",
+      "title": "Name or company name"
+    },
+    {
+      "id": "email",
+      "title": "Email",
+      "details": "To send them quotes and orders."
+    },
+    {
+      "id": "phone",
+      "title": "Phone"
+    },
+    {
+      "id": "doc",
+      "title": "Tax ID",
+      "details": "Needed to record their invoices."
+    },
+    {
+      "id": "address",
+      "title": "Address"
+    },
+    {
+      "id": "bank",
+      "title": "Bank account",
+      "details": "To transfer their payments."
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

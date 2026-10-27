@@ -1,0 +1,85 @@
+{
+  "id": "purchases.providers",
+  "summary": "The clinic's providers.",
+  "purpose": "Contact details, terms and products of each provider.",
+  "elements": {
+    "purchases.providers.section.first-row": {
+      "label": "First in the list"
+    },
+    "purchases.providers.section.row": {
+      "label": "Provider"
+    },
+    "purchases.providers.section.detail": {
+      "label": "Record header"
+    },
+    "purchases.providers.btn.create-menu": {
+      "label": "Create",
+      "description": "Quote, invoice or advance."
+    },
+    "purchases.providers.btn.new-quote": {
+      "label": "Quote"
+    },
+    "purchases.providers.btn.new-invoice": {
+      "label": "Invoice"
+    },
+    "purchases.providers.btn.new-prepaid": {
+      "label": "Advance"
+    },
+    "purchases.providers.btn.preferences": {
+      "label": "Preferences",
+      "description": "Saved as soon as you tap them."
+    },
+    "purchases.providers.btn.toggle-active": {
+      "label": "Activate / Deactivate",
+      "description": "Applies as soon as you tap it."
+    },
+    "purchases.providers.btn.email": {
+      "label": "Email"
+    },
+    "purchases.providers.btn.whatsapp": {
+      "label": "WhatsApp"
+    },
+    "purchases.providers.btn.notes-edit": {
+      "label": "Edit notes"
+    },
+    "purchases.providers.btn.notes-save": {
+      "label": "Save notes"
+    },
+    "purchases.providers.detail.section.first-row": {
+      "label": "First document"
+    },
+    "purchases.providers.detail.field.name": {
+      "label": "Name"
+    },
+    "purchases.providers.detail.field.email": {
+      "label": "Email"
+    },
+    "purchases.providers.detail.field.identity_document": {
+      "label": "Tax ID"
+    },
+    "purchases.providers.detail.field.bank_account": {
+      "label": "Bank account"
+    },
+    "purchases.providers.detail.btn.submit": {
+      "label": "Save"
+    },
+    "purchases.providers.field.email-to": {
+      "label": "To"
+    },
+    "purchases.providers.field.email-subject": {
+      "label": "Subject"
+    },
+    "purchases.providers.btn.email-send": {
+      "label": "Send"
+    },
+    "purchases.providers.field.whatsapp-message": {
+      "label": "Message"
+    },
+    "purchases.providers.btn.whatsapp-open": {
+      "label": "Open WhatsApp"
+    },
+    "purchases.providers.field.identity_document": {
+      "label": "Tax ID"
+    }
+  }
+}

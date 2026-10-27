@@ -1,0 +1,39 @@
+{
+  "id": "config.prescription-templates.delete",
+  "title": "Delete the prescription template",
+  "summary": "Delete a prescription template (asks for confirmation).",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "delete prescription template",
+    "remove prescription template",
+    "clear prescription template"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Prescription Templates",
+      "details": "Common prescriptions with medications and instructions; they're chosen when prescribing."
+    },
+    {
+      "id": "search",
+      "title": "Find the prescription template"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the prescription template",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "delete",
+      "title": "Delete"
+    },
+    {
+      "id": "ok",
+      "title": "Confirm",
+      "details": "This can't be undone."
+    }
+  ]
+}

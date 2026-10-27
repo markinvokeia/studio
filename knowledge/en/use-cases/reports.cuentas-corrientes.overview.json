@@ -1,0 +1,63 @@
+{
+  "id": "reports.cuentas-corrientes.overview",
+  "title": "Use the Accounts Receivable report",
+  "summary": "Each patient's balance: what was invoiced, what was collected and what they owe.",
+  "module": "Reports",
+  "keywords": [
+    "accounts receivable",
+    "patient balances",
+    "account statement"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Reports → Accounts Receivable",
+      "details": "Each patient's balance: what was invoiced, what was collected and what they owe."
+    },
+    {
+      "id": "currency-filter",
+      "title": "Currency",
+      "details": "Only if the clinic works with two currencies: all or one."
+    },
+    {
+      "id": "filters",
+      "title": "Filters",
+      "details": "Currency and status (owing, up to date, in credit)."
+    },
+    {
+      "id": "generate",
+      "title": "Generate",
+      "details": "Calculates the report with the chosen filters."
+    },
+    {
+      "id": "empty",
+      "title": "No data",
+      "details": "There's no data for those filters: try another period."
+    },
+    {
+      "id": "kpis",
+      "title": "Indicators",
+      "details": "Total invoiced, total collected, net balance and how many patients owe."
+    },
+    {
+      "id": "results",
+      "title": "Results",
+      "details": "One row per patient with their balance; tap the name to go to their record."
+    },
+    {
+      "id": "table",
+      "title": "Details",
+      "details": "Sort by column by tapping the header."
+    },
+    {
+      "id": "export",
+      "title": "Export",
+      "details": "Excel, CSV or PDF with what you're viewing."
+    },
+    {
+      "id": "print",
+      "title": "Print",
+      "details": "With the clinic's letterhead."
+    }
+  ]
+}

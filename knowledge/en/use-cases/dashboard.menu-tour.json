@@ -1,0 +1,81 @@
+{
+  "id": "dashboard.menu-tour",
+  "title": "Tour the menu",
+  "summary": "What's in each section of the left menu.",
+  "module": "Dashboard",
+  "group": "Menu",
+  "keywords": [
+    "menu",
+    "where is it",
+    "sections",
+    "navigate",
+    "tour the system"
+  ],
+  "steps": [
+    {
+      "id": "dashboard",
+      "title": "Dashboard",
+      "details": "The home screen: how the clinic is doing today and this month."
+    },
+    {
+      "id": "workspace",
+      "title": "My Workspace",
+      "details": "My Workspace: the doctor's schedule and the clinical panel of the patient they're seeing."
+    },
+    {
+      "id": "alerts",
+      "title": "Alerts Center",
+      "details": "Alerts Center: what the system detected and the team needs to work on."
+    },
+    {
+      "id": "Cashier",
+      "title": "Cash register",
+      "details": "Hovering opens its submenu: Cashier, Miscellaneous Transactions, Product and Services Categories, Sessions and Physical Cash Registers."
+    },
+    {
+      "id": "appointments",
+      "title": "Appointments",
+      "details": "Appointment schedule by room and doctor."
+    },
+    {
+      "id": "tv-display",
+      "title": "TV Display",
+      "details": "Waiting room screen."
+    },
+    {
+      "id": "Pacientes",
+      "title": "Patients",
+      "details": "Hovering opens its submenu: Patients."
+    },
+    {
+      "id": "Sales",
+      "title": "Sales",
+      "details": "Hovering opens its submenu: Quotes, Invoices, Payments, Payment Methods and Services."
+    },
+    {
+      "id": "Purchases",
+      "title": "Purchases",
+      "details": "Hovering opens its submenu: Purchase Quotes, Purchase Invoices, Purchase Payments, Providers and Provider Products and Services."
+    },
+    {
+      "id": "ClinicCatalog",
+      "title": "Clinic Catalog",
+      "details": "Hovering opens its submenu: Ailments, Medications, Dental Conditions and Dental Surfaces."
+    },
+    {
+      "id": "BusinessSetup",
+      "title": "Business Setup",
+      "details": "Hovering opens its submenu: Clinic Details, Clinic Preferences, Patient Portal, Branches, Schedules, Exception Schedules, Calendars, Calendar Colors, Doctors, Receptionists & Administration, Doctor Availability, Availability Exceptions, Currencies & Exchange Rates, Sequences, Mutual Societies, Patient Groups, Provider Groups, Templates, Medical Instruction Templates and Prescription Templates."
+    },
+    {
+      "id": "System",
+      "title": "System",
+      "details": "Hovering opens its submenu: Users, Roles, Permissions, Alerts Configuration, Alert Categories, Alert Rules, Alert Templates, Alert History, Alert Executions, WhatsApp Agent, Assistant Insights, Configurations, Notifications, Audit Log, Access Log, Error Log, Import Data, Licenses and Subscriptions."
+    },
+    {
+      "id": "Reports",
+      "title": "Reports",
+      "details": "Hovering opens its submenu: Cash Closing, Daily Collections, Accounts Receivable, Quote Status, Production by Doctor, Treatments Performed, Production Comparison, Fees, New Patients, Inactive Patients, Treatments in Progress, Schedule Occupancy, Cancellations, Income by Period, Billing vs Collections, Debtors, Service Performance, Operating Expenses, Income Statement, Clinic KPIs and Monthly Balance."
+    }
+  ]
+}

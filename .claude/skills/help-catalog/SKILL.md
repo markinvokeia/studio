@@ -7,6 +7,25 @@ description: Mantiene al día el mapa del producto que usa el asistente guiado (
 
 Referencia completa: `docs/onboarding-asistente.md`.
 
+## Siempre en dos idiomas: primero español, después inglés
+
+Cada ficha, guía o paso del recorrido existe en español (`knowledge/...`) **y** en
+inglés (`knowledge/en/...`, mismo nombre de archivo y mismos ids). Lo nuevo o
+cualquier cambio de texto se escribe primero en español y enseguida en inglés,
+en el mismo commit. El archivo en inglés lleva sólo textos (la estructura sale
+del español):
+
+- ficha: `id`, `title?`, `summary`, `purpose`, `tips` (misma cantidad), `elements`
+  (`label?`, `description` por help id);
+- guía: `id`, `title`, `summary`, `module`, `group?`, `inputs`, `keywords`, `steps`
+  (`id`, `title`, `details?`, `description?`, uno por cada paso del español);
+- recorrido: `knowledge/en/onboarding/journey.json` → `steps` (`id`, `title`, `description`).
+
+Inglés de EE. UU., con los nombres del menú tal cual están en `en.json`
+(`Navigation`): «Menu → Business Setup → Branches», «Menu → Cashier → Sessions».
+Profesional = doctor; proveedor = provider; consultorio = room; sede = branch.
+Si falta algo en inglés, `pnpm knowledge:build` falla y no escribe ningún catálogo.
+
 ## Al cambiar una pantalla
 
 1. **Help ids**: los formularios de React Hook Form, botones `type="submit"`, toolbar
@@ -21,7 +40,7 @@ Referencia completa: `docs/onboarding-asistente.md`.
 4. Actualizá la ficha `knowledge/screens/<scope>.json` (crea una si la pantalla
    es nueva y está en el menú): `summary`, `purpose`, `prerequisites`, `tips`,
    `elements` con la descripción de los campos nuevos. Dejá `status: "draft"`;
-   `validated` lo pone soporte/QA.
+   `validated` lo pone soporte/QA. Después, lo mismo en `knowledge/en/screens/<scope>.json`.
 5. `pnpm knowledge:build` y revisá avisos y errores. El pre-commit lo corre igual
    y bloquea el commit si una guía quedó rota.
 
@@ -41,6 +60,8 @@ Referencia completa: `docs/onboarding-asistente.md`.
   acción principal de la checklist.
 - Sumá la guía a `useCases` de la ficha de su pantalla y, si es un paso del
   onboarding, a `knowledge/onboarding/journey.json`.
+- Escribí la versión en inglés: `knowledge/en/use-cases/<id>.json` (y
+  `knowledge/en/onboarding/journey.json` si es un paso del onboarding).
 - Agregá datos de ejemplo en `e2e/tests/help/help-guides.spec.ts`.
 
 ## Cubrir una pantalla (de a una, completa antes de pasar a la siguiente)

@@ -1,0 +1,66 @@
+{
+  "id": "purchases.payments.overview",
+  "title": "Tour purchase payments",
+  "summary": "List with a filter by type (prepayment, direct payment, allocations), payment details, credit balance and allocations.",
+  "module": "Purchases",
+  "inputs": {
+    "query": "Payment number"
+  },
+  "keywords": [
+    "purchase payments",
+    "provider payments",
+    "advances"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Purchases → Purchase Payments",
+      "details": "What the clinic pays providers: payments of purchase invoices and advances."
+    },
+    {
+      "id": "search",
+      "title": "Search"
+    },
+    {
+      "id": "filters",
+      "title": "Filter by type"
+    },
+    {
+      "id": "type",
+      "title": "Type",
+      "details": "Prepayment (on account), direct invoice payment, payment or credit note allocation."
+    },
+    {
+      "id": "export",
+      "title": "Export"
+    },
+    {
+      "id": "pick",
+      "title": "Open a payment"
+    },
+    {
+      "id": "header",
+      "title": "Details",
+      "details": "Amount, payment method, currency, invoice and date."
+    },
+    {
+      "id": "actions",
+      "title": "Actions",
+      "details": "Print the receipt or email it. «Historical» marks payments entered without a cash register."
+    },
+    {
+      "id": "credit",
+      "title": "Credit balance",
+      "details": "Prepayments only: how much is left available to apply to invoices."
+    },
+    {
+      "id": "alloc",
+      "title": "Allocations",
+      "details": "Which invoices the prepayment was applied to."
+    },
+    {
+      "id": "notes",
+      "title": "Notes"
+    }
+  ]
+}

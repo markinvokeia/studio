@@ -1,0 +1,41 @@
+{
+  "id": "clinic-catalog.ailments.create",
+  "title": "Add an ailment",
+  "summary": "New entry in the ailments catalog.",
+  "module": "Clinic Catalog",
+  "inputs": {
+    "name": "Name"
+  },
+  "keywords": [
+    "new ailment",
+    "add ailment"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic Catalog → Ailments",
+      "details": "The diseases and conditions entered in the medical history; those with a high alert level show as an alert on the patient's record."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    },
+    {
+      "id": "nombre",
+      "title": "Name"
+    },
+    {
+      "id": "categoria",
+      "title": "Category"
+    },
+    {
+      "id": "nivel_alerta",
+      "title": "Alert level",
+      "details": "High: shown as an alert on the patient's record."
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}
