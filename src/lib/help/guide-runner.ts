@@ -22,6 +22,7 @@ import {
   readTargetValue,
   resolveStepValue,
   waitForHelpTarget,
+  waitForSettled,
   waitForHumanClick,
   waitForPath,
 } from '@/lib/help/guide-engine';
@@ -201,13 +202,13 @@ async function openFromMenu(step: HelpGuideStep, route: string, signal: AbortSig
     const groupEl = groupId ? findHelpTarget(groupId) : null;
     if (!groupId || !groupEl) return false;
     point(groupId);
-    await helpSleep(MENU_POINT_MS, signal);
+    await helpSleep(paced(MENU_POINT_MS), signal);
     hoverElement(groupEl.control);
   }
   const leaf = await waitForHelpTarget(leafId, { signal, timeoutMs: group ? MENU_OPEN_TIMEOUT_MS : 300 });
   if (!leaf) return false;
   point(leafId);
-  await helpSleep(group ? MENU_POINT_MS * 0.7 : MENU_POINT_MS, signal);
+  await helpSleep(paced(group ? MENU_POINT_MS * 0.7 : MENU_POINT_MS), signal);
   pressElement(leaf.control);
   store().setSpotlight(null);
   return true;
@@ -244,6 +245,8 @@ async function execute(rawStep: HelpGuideStep, signal: AbortSignal): Promise<Ste
           : navigateTo(route, signal));
       if (!ok) return { status: 'failed', error: 'navigationFailed' };
       lastNavigationAt = Date.now();
+      // La pantalla nueva termina de cargar antes del paso siguiente.
+      await withNotice('loadingScreen', () => waitForSettled({ signal }));
     }
     await helpSleep(400, signal);
     return { status: 'done' };
@@ -264,9 +267,11 @@ async function execute(rawStep: HelpGuideStep, signal: AbortSignal): Promise<Ste
     case 'click':
       // La mascota señala un momento antes de pulsar, para que se vea qué hace.
       spotlightFor(step, 'action');
-      await helpSleep(1000, signal);
+      await helpSleep(paced(1000), signal);
       pressElement(target.control);
-      await helpSleep(450, signal);
+      await helpSleep(paced(450), signal);
+      // Una pestaña: se espera su contenido (y después la persona sigue con "Siguiente").
+      if (isTabStep(step)) await waitForSettled({ signal });
       return { status: 'done' };
 
     case 'fill': {
@@ -277,12 +282,12 @@ async function execute(rawStep: HelpGuideStep, signal: AbortSignal): Promise<Ste
         return { status: 'waiting' };
       }
       spotlightFor(step, 'action');
-      await helpSleep(250, signal);
+      await helpSleep(paced(250), signal);
       if (!(await fillHelpTarget(target, value, signal, step.target))) {
         spotlightFor(step, 'input');
         return { status: 'waiting' };
       }
-      await helpSleep(350, signal);
+      await helpSleep(paced(350), signal);
       return { status: 'done' };
     }
 
@@ -294,7 +299,7 @@ async function execute(rawStep: HelpGuideStep, signal: AbortSignal): Promise<Ste
       spotlightFor(step, 'info');
       // Con datos dictados (pruebas, videos) la guía elige ella el registro o abre el panel.
       // Con `until`, repite el clic hasta que aparece (un asistente con un "Siguiente" por moneda).
-      if (step.autoClick && Object.keys(values).length > 0) {
+      if (step.autoClick && Object.keys(values).length > 0 && !store().guide?.manualClicks) {
         const untilIds = step.until ? ([] as string[]).concat(step.until) : [];
         for (let attempt = 0; attempt < AUTO_CLICK_MAX; attempt++) {
           await helpSleep(900, signal);
@@ -457,7 +462,8 @@ async function runFrom(start: number, mode: 'single' | 'untilConfirm') {
       }
       // Pasos que sólo preparan la pantalla (navegar, abrir el diálogo, esperar)
       // siguen solos hasta el primero que la persona tiene que mirar.
-      const preparatory = step.action === 'navigate' || step.action === 'wait' || step.action === 'click' || result.status === 'skipped';
+      // Una pestaña no: se queda mostrándola hasta "Siguiente" (no salta de una a otra).
+      const preparatory = step.action === 'navigate' || step.action === 'wait' || (step.action === 'click' && !isTabStep(step)) || result.status === 'skipped';
       if (mode === 'single' && !preparatory && i + 1 < guide.steps.length) {
         // Campo completado por el asistente: queda señalado con su detalle hasta "Siguiente".
         spotlightFor(step, 'filled');
@@ -481,7 +487,16 @@ export interface StartGuideOptions {
   useCaseId?: string;
   /** Al cerrar o terminar la guía, se vuelve a esta vista del asistente. */
   returnTo?: HelpAssistantTab;
+  /** Videos: pausas más largas (1 = normal) y sin autoClick: el grabador hace el clic a la vista. */
+  pace?: number;
+  manualClicks?: boolean;
 }
+
+/** Clic sobre una pestaña (`<scope>.tab.<id>`): abre contenido que se mira antes de seguir. */
+const isTabStep = (step: HelpGuideStep) => step.action === 'click' && !!step.target && /\.tab\./.test(step.target);
+
+/** Pausa escalada por el ritmo de la guía (los videos van más lento). */
+const paced = (ms: number) => ms * (store().guide?.pace ?? 1);
 
 export function startGuide(guide: { title: string; steps: HelpGuideStep[] }, options: StartGuideOptions = {}) {
   abortGuide();
@@ -501,6 +516,8 @@ export function startGuide(guide: { title: string; steps: HelpGuideStep[] }, opt
     values: options.values ?? {},
     finished: false,
     returnTo: options.returnTo,
+    pace: options.pace,
+    manualClicks: options.manualClicks,
   }));
   void runFrom(0, options.autoRun === 'untilConfirm' ? 'untilConfirm' : 'single');
 }

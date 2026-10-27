@@ -1,8 +1,25 @@
 /**
- * Datos sintéticos para los videos demo. Nunca datos reales: los videos se
- * graban sólo contra el tenant demo (HELP_VIDEO_DEMO_TENANT=1).
+ * Datos de los videos: nombres ficticios que parecen reales (nada de "Test 123").
+ * Las guías de pacientes usan a Carlos Delgado; los servicios se eligen al azar de
+ * DEMO_SERVICES. Las ediciones y bajas buscan lo que crearon las guías de alta.
  */
-export const DEMO_VALUES: Record<string, Record<string, unknown>> = {
+
+/** Servicios del catálogo de la clínica; cada video elige uno al azar. */
+/** Servicios que existen en el catálogo de la clínica (ventas) y de proveedores (compras). */
+export const DEMO_SERVICES = ['Masaje Relajante', 'Drenaje linfático', 'Radiofrecuencia corporal', 'Facial hidratante / peeling'];
+export const DEMO_PURCHASE_SERVICES = ['Paquete de Anestesia Odontológica Lidocaína 2%', 'Servicio de Diagnóstico y Reparación de Piezas de Mano', 'Servicio de Recolección y Gestión Certificada de Residuos'];
+const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
+const randomService = () => pick(DEMO_SERVICES);
+/** Jueves de la semana próxima (AAAA-MM-DD): la cita nueva queda a la vista en la agenda. */
+const nextThursday = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + ((4 - d.getDay() + 7) % 7 || 7) + 7);
+  return d.toISOString().slice(0, 10);
+};
+/** Proveedor existente para las compras (las altas de compras lo necesitan antes de crear otro). */
+const DEMO_PROVIDER = 'DentaTech';
+
+const BASE_VALUES: Record<string, Record<string, unknown>> = {
   'onboarding.business': { name: 'Clínica Sonrisas', email: 'hola@clinicasonrisas.demo', phone: '+59829001234', rut: '211234560018' },
   'onboarding.sede': { name: 'Sede Centro', address: 'Av. 18 de Julio 1234', phone: '+59829001234', email: 'centro@clinicasonrisas.demo' },
   'onboarding.schedules': { days_of_week: [1, 2, 3, 4, 5], start_time: '09:00', end_time: '18:00' },
@@ -13,37 +30,37 @@ export const DEMO_VALUES: Record<string, Record<string, unknown>> = {
   'onboarding.staff': { name: 'Martina Gómez', email: 'recepcion@clinicasonrisas.demo', role: 'Recepcionista' },
   'onboarding.payment-method': { name: 'Tarjeta de débito', code: 'DEB' },
   'patients.create': { name: 'Juan Rodríguez', phone: '+59899333444', email: 'juan.rodriguez@paciente.demo' },
-  'patients.search': { patient: 'Juan Rodríguez' },
-  'patients.overview': { patient: 'Juan Rodríguez' },
-  'patients.info-tab': { patient: 'Juan Rodríguez' },
-  'patients.edit': { patient: 'Juan Rodríguez', phone: '+59899333445' },
-  'patients.notes': { patient: 'Juan Rodríguez', notes: 'Prefiere turnos de mañana. Avisar 24 h antes.' },
-  'patients.preferences': { patient: 'Juan Rodríguez' },
-  'patients.clinical-tab': { patient: 'Juan Rodríguez' },
-  'patients.anamnesis': { patient: 'Juan Rodríguez' },
-  'patients.history': { patient: 'Juan Rodríguez' },
-  'patients.clinical-session': { patient: 'Juan Rodríguez', procedure: 'Limpieza y control', diagnosis: 'Gingivitis leve', next_plan: 'Control en 6 meses' },
-  'patients.odontogram': { patient: 'Juan Rodríguez' },
-  'patients.treatment-plans': { patient: 'Juan Rodríguez' },
-  'patients.prescription': { patient: 'Juan Rodríguez', diagnosis: 'Dolor post extracción', medication: 'Ibuprofeno', dosage: '400 mg', frequency: 'cada 8 horas', duration: 3, instructions: 'Tomar con comida' },
-  'patients.medical-instruction': { patient: 'Juan Rodríguez' },
-  'patients.documents': { patient: 'Juan Rodríguez' },
-  'patients.finance': { patient: 'Juan Rodríguez' },
-  'patients.quick-bill': { patient: 'Juan Rodríguez' },
-  'patients.quote': { patient: 'Juan Rodríguez', notes: 'Plan de tratamiento propuesto' },
-  'patients.invoice': { patient: 'Juan Rodríguez' },
-  'patients.prepaid': { patient: 'Juan Rodríguez', amount: 2000 },
-  'patients.appointment': { patient: 'Juan Rodríguez', date: '2030-01-15', time: '10:00', notes: 'Control' },
-  'patients.email': { patient: 'Juan Rodríguez', subject: 'Tu presupuesto' },
-  'patients.whatsapp': { patient: 'Juan Rodríguez', message: 'Hola Juan, te escribimos de la clínica.' },
-  'patients.whatsapp-reminder': { patient: 'Juan Rodríguez' },
-  'patients.discharge': { patient: 'Juan Rodríguez' },
-  'patients.toggle-active': { patient: 'Juan Rodríguez' },
+  'patients.search': { patient: 'Carlos Delgado' },
+  'patients.overview': { patient: 'Carlos Delgado' },
+  'patients.info-tab': { patient: 'Carlos Delgado' },
+  'patients.edit': { patient: 'Carlos Delgado', phone: '+59899333445' },
+  'patients.notes': { patient: 'Carlos Delgado', notes: 'Prefiere turnos de mañana. Avisar 24 h antes.' },
+  'patients.preferences': { patient: 'Carlos Delgado' },
+  'patients.clinical-tab': { patient: 'Carlos Delgado' },
+  'patients.anamnesis': { patient: 'Carlos Delgado' },
+  'patients.history': { patient: 'Carlos Delgado' },
+  'patients.clinical-session': { patient: 'Carlos Delgado', procedure: 'Limpieza y control', diagnosis: 'Gingivitis leve', next_plan: 'Control en 6 meses' },
+  'patients.odontogram': { patient: 'Carlos Delgado' },
+  'patients.treatment-plans': { patient: 'Carlos Delgado' },
+  'patients.prescription': { patient: 'Carlos Delgado', diagnosis: 'Dolor post extracción', medication: 'Ibuprofeno', dosage: '400 mg', frequency: 'cada 8 horas', duration: 3, instructions: 'Tomar con comida' },
+  'patients.medical-instruction': { patient: 'Carlos Delgado' },
+  'patients.documents': { patient: 'Carlos Delgado' },
+  'patients.finance': { patient: 'Carlos Delgado' },
+  'patients.quick-bill': { patient: 'Carlos Delgado' },
+  'patients.quote': { patient: 'Carlos Delgado', notes: 'Plan de tratamiento propuesto' },
+  'patients.invoice': { patient: 'Carlos Delgado' },
+  'patients.prepaid': { patient: 'Carlos Delgado', amount: 2000 },
+  'patients.appointment': { patient: 'Carlos Delgado', date: '2030-01-15', time: '10:00', notes: 'Control' },
+  'patients.email': { patient: 'Carlos Delgado', subject: 'Tu presupuesto' },
+  'patients.whatsapp': { patient: 'Carlos Delgado', message: 'Hola Juan, te escribimos de la clínica.' },
+  'patients.whatsapp-reminder': { patient: 'Carlos Delgado' },
+  'patients.discharge': { patient: 'Carlos Delgado' },
+  'patients.toggle-active': { patient: 'Carlos Delgado' },
   'dashboard.filters': { branch: 'Consolidado', period: 'month', currency: 'USD' },
-  'appointments.create': { patient: 'Juan Rodríguez', service: 'Limpieza dental', doctor: 'Lucía Pereira', calendar: 'Consultorio 1', date: '2030-01-15', time: '10:00', notes: 'Primera consulta' },
-  'appointments.create-from-slot': { patient: 'Juan Rodríguez', service: 'Limpieza dental', doctor: 'Lucía Pereira' },
+  'appointments.create': { patient: 'Carlos Delgado', service: randomService(), doctor: 'Lucía Pereira', calendar: 'Consultorio 1', date: '2030-01-15', time: '10:00', notes: 'Primera consulta' },
+  'appointments.create-from-slot': { patient: 'Carlos Delgado', service: randomService(), doctor: 'Lucía Pereira' },
   'appointments.edit': { time: '11:30' },
-  'appointments.find-gaps': { patient: 'Juan Rodríguez', service: 'Limpieza dental', doctor: 'Lucía Pereira' },
+  'appointments.find-gaps': { patient: 'Carlos Delgado', service: randomService(), doctor: 'Lucía Pereira' },
   'appointments.search': { query: 'Juan Rodríguez' },
   'appointments.reminder': { title: 'Llamar al laboratorio', date: '2030-01-15', time: '09:00' },
   'appointments.bulk-reassign': { period: 'Esta semana', doctor: 'Lucía Pereira' },
@@ -270,7 +287,7 @@ export const DEMO_VALUES: Record<string, Record<string, unknown>> = {
   'system.staff.initial-password': { demo: true },
   'system.staff.overview': { demo: true },
   'purchases.invoices.confirm': { demo: true },
-  'purchases.invoices.create': { service: 'Guantes de nitrilo (caja x100)', party: 'Laboratorio Dental Sur', quantity: 1, demo: true },
+  'purchases.invoices.create': { service: randomService(), party: 'Laboratorio Dental Sur', quantity: 1, demo: true },
   'purchases.invoices.credit-notes': { demo: true },
   'purchases.invoices.export': { demo: true },
   'purchases.invoices.import': { demo: true },
@@ -284,7 +301,7 @@ export const DEMO_VALUES: Record<string, Record<string, unknown>> = {
   'purchases.payments.prepaid': { amount: 2000, party: 'Laboratorio Dental Sur', notes: 'Pedido mensual de insumos', demo: true },
   'purchases.payments.send': { demo: true },
   'purchases.quotes.confirm': { demo: true },
-  'purchases.quotes.create': { service: 'Guantes de nitrilo (caja x100)', party: 'Laboratorio Dental Sur', quantity: 1, notes: 'Pedido mensual de insumos', demo: true },
+  'purchases.quotes.create': { service: randomService(), party: 'Laboratorio Dental Sur', quantity: 1, notes: 'Pedido mensual de insumos', demo: true },
   'purchases.quotes.delete': { demo: true },
   'purchases.quotes.edit': { demo: true },
   'purchases.quotes.export': { demo: true },
@@ -293,7 +310,7 @@ export const DEMO_VALUES: Record<string, Record<string, unknown>> = {
   'purchases.quotes.overview': { demo: true },
   'purchases.quotes.send': { demo: true },
   'sales.invoices.confirm': { demo: true },
-  'sales.invoices.create': { service: 'Limpieza dental', party: 'Juan Rodríguez', quantity: 1, demo: true },
+  'sales.invoices.create': { service: randomService(), party: 'Carlos Delgado', quantity: 1, demo: true },
   'sales.invoices.credit-notes': { demo: true },
   'sales.invoices.export': { demo: true },
   'sales.invoices.items': { demo: true },
@@ -303,10 +320,10 @@ export const DEMO_VALUES: Record<string, Record<string, unknown>> = {
   'sales.payments.edit': { demo: true },
   'sales.payments.export': { demo: true },
   'sales.payments.overview': { demo: true },
-  'sales.payments.prepaid': { amount: 2000, party: 'Juan Rodríguez', notes: 'Plan acordado en consulta', demo: true },
+  'sales.payments.prepaid': { amount: 2000, party: 'Carlos Delgado', notes: 'Plan acordado en consulta', demo: true },
   'sales.payments.send': { demo: true },
   'sales.quotes.confirm': { demo: true },
-  'sales.quotes.create': { service: 'Limpieza dental', party: 'Juan Rodríguez', quantity: 1, notes: 'Plan acordado en consulta', demo: true },
+  'sales.quotes.create': { service: randomService(), party: 'Carlos Delgado', quantity: 1, notes: 'Plan acordado en consulta', demo: true },
   'sales.quotes.delete': { demo: true },
   'sales.quotes.edit': { demo: true },
   'sales.quotes.export': { demo: true },
@@ -315,3 +332,75 @@ export const DEMO_VALUES: Record<string, Record<string, unknown>> = {
   'sales.quotes.overview': { demo: true },
   'sales.quotes.send': { demo: true },
 };
+
+/**
+ * Nombres de las altas: ficticios pero con aspecto real y únicos, para que editar y
+ * eliminar encuentren exactamente lo que creó la guía (y nunca un registro existente).
+ */
+const CREATED: Record<string, Record<string, unknown>> = {
+  'appointments.create': { patient: 'Carlos Delgado', doctor: 'Dra. Lucía Fernández', calendar: 'Consultorio Centro', date: nextThursday(), time: '10:30', notes: 'Control de rutina' },
+  'onboarding.sede': { name: 'Sede Malvín', address: 'Av. Italia 4520', phone: '+59826140000', email: 'malvin@clinicademo.uy' },
+  'onboarding.calendar': { name: 'Sillón Implantes 2' },
+  'onboarding.doctor': { name: 'Dr. Ignacio Varela', email: 'ignacio.varela@clinicademo.uy', phone: '+59899303344' },
+  'onboarding.availability': { doctor: 'Dra. Lucía Fernández' },
+  'onboarding.service': { name: 'Control de ortodoncia invisible', price: 2400, duration_minutes: 30 },
+  'onboarding.staff': { name: 'Sofía Medina', email: 'sofia.medina@clinicademo.uy' },
+  'onboarding.payment-method': { name: 'Pago QR Handy', code: 'HANDY' },
+  'patients.create': { name: 'Lucía Fernández Sosa', phone: '+59899234567', email: 'lucia.fernandez@correo.uy', identity_document: '4.512.338-7', birth_date: '1988-04-12' },
+  'config.sedes.create': { name: 'Sede Punta Carretas', address: 'Ellauri 350', phone: '+59827120000', email: 'puntacarretas@clinicademo.uy' },
+  'config.calendars.create': { name: 'Sillón Ortodoncia 3' },
+  'config.mutual-societies.create': { name: 'Mutualista Médica del Este' },
+  'config.patient-groups.create': { name: 'Ortodoncia Invisible' },
+  'config.provider-groups.create': { name: 'Insumos de Ortodoncia' },
+  'config.medical-instruction-templates.create': { name: 'Cuidados post implante' },
+  'config.prescription-templates.create': { name: 'Antibiótico post cirugía' },
+  'config.sequences.create': { name: 'Recibos Sede Este' },
+  'config.doctors.create': { name: 'Dra. Valentina Ferreyra', email: 'valentina.ferreyra@clinicademo.uy', phone: '+59899301122' },
+  'system.staff.create': { name: 'Florencia Acosta', email: 'florencia.acosta@clinicademo.uy', phone: '+59899302233' },
+  'system.users.create': { name: 'Joaquín Benítez', email: 'joaquin.benitez@clinicademo.uy' },
+  'roles.create': { name: 'Recepción Sede Este' },
+  'permissions.create': { name: 'Exportar agenda' },
+  'system.alert-categories.create': { name: 'Seguimiento de ortodoncia', code: 'SEG_ORTO' },
+  'system.alert-rules.create': { name: 'Control anual de ortodoncia', code: 'CTRL_ORTO' },
+  'system.communication-templates.create': { name: 'Recordatorio control de ortodoncia', code: 'REC_ORTO' },
+  'system.config.create': { key: 'agenda.recordatorio_horas', value: '24' },
+  'clinic-catalog.ailments.create': { name: 'Bruxismo nocturno' },
+  'clinic-catalog.medications.create': { name: 'Clorhexidina 0,12 %' },
+  'clinic-catalog.dental-conditions.create': { name: 'Fisura de esmalte' },
+  'clinic-catalog.dental-surfaces.create': { name: 'Cervical vestibular' },
+  'sales.services.create': { name: 'Blanqueamiento LED en consultorio', price: 9500, duration_minutes: 60 },
+  'purchases.services.create': { name: 'Kit de fresas diamantadas', price: 3200 },
+  'sales.payment-methods.create': { name: 'Transferencia Prex', code: 'PREX' },
+  'purchases.providers.create': { name: 'Ortodental Insumos', email: 'ventas@ortodental.uy', phone: '+59899456123' },
+  'cashier.misc-category': { name: 'Insumos de cafetería', code: 'CAFE', description: 'Café, azúcar y vasos para la sala de espera', type: 'Gasto' },
+  'cashier.misc-expense': { category: 'Insumos de cafetería', beneficiary: 'Café Sorocabana', payment_method: 'Efectivo', amount: 1450, currency: 'UYU', description: 'Café y vasos para la sala de espera', reference: 'Ticket 8831' },
+  'cashier.cash-point-create': { name: 'Caja Recepción Planta Alta' },
+};
+
+/** Compras: siempre con un proveedor y productos que existen. */
+const PURCHASES: Record<string, Record<string, unknown>> = Object.fromEntries(
+  Object.entries(BASE_VALUES)
+    .filter(([id]) => id.startsWith('purchases.') && !id.startsWith('purchases.providers.') && !id.startsWith('purchases.services.'))
+    .map(([id, v]) => [id, { ...v, ...('party' in v ? { party: DEMO_PROVIDER } : {}), ...('service' in v ? { service: pick(DEMO_PURCHASE_SERVICES) } : {}) }]),
+);
+
+/** Editar y eliminar buscan lo que creó la guía de alta de la misma pantalla. */
+const QUERIES: Record<string, Record<string, unknown>> = {
+  'cashier.misc-review': { query: 'Café Sorocabana' },
+  'cashier.misc-category-edit': { query: 'Insumos de cafetería' },
+  'cashier.cash-point-edit': { query: 'Caja Recepción Planta Alta' },
+  'patients.edit': { patient: 'Carlos Delgado' },
+};
+for (const [id, created] of Object.entries(CREATED)) {
+  const screen = id.replace(/\.create$/, '');
+  const name = (created.name ?? created.key) as string | undefined;
+  if (!name || screen === id) continue;
+  for (const action of ['edit', 'delete']) QUERIES[`${screen}.${action}`] = { query: name };
+}
+
+export const DEMO_VALUES: Record<string, Record<string, unknown>> = Object.fromEntries(
+  [...new Set([...Object.keys(BASE_VALUES), ...Object.keys(CREATED), ...Object.keys(QUERIES)])].map((id) => [
+    id,
+    { ...BASE_VALUES[id], ...PURCHASES[id], ...CREATED[id], ...QUERIES[id] },
+  ]),
+);

@@ -53,13 +53,6 @@
       "details": "El período cambia Sucursales, Servicios más vendidos y Pacientes por día. Hoy, el mes acumulado y la evolución no dependen de él."
     },
     {
-      "id": "period-pick",
-      "action": "click",
-      "target": "dashboard.filter.period-{{values.period}}",
-      "title": "Período elegido",
-      "optional": true
-    },
-    {
       "id": "period-options",
       "action": "highlight",
       "target": "dashboard.section.period-options",
@@ -67,6 +60,13 @@
       "skipIfMissing": true,
       "doneOnClose": true,
       "details": "Hoy, esta semana, este mes, el mes pasado, este año o un rango personalizado con Desde y Hasta."
+    },
+    {
+      "id": "period-pick",
+      "action": "click",
+      "target": "dashboard.filter.period-{{values.period}}",
+      "title": "Período elegido",
+      "optional": true
     },
     {
       "id": "currency-pick",

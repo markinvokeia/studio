@@ -76,6 +76,60 @@ export async function waitForHelpTarget(id: string, { timeoutMs = 8000, signal }
   }
 }
 
+/** Indicadores de carga dentro del contenido: skeletons, spinners y regiones ocupadas. */
+const LOADING_SELECTOR = '.animate-pulse, .animate-spin, [aria-busy="true"]';
+/** Los puntitos "en vivo" (animate-pulse de 8 px) no son carga. */
+const LOADING_MIN_SIDE_PX = 14;
+
+/**
+ * Requests de datos en curso (sin las del asistente): una lista que carga sin skeleton
+ * también cuenta como "cargando". Se envuelve `fetch` una sola vez, al cargar el módulo.
+ */
+let inflight = 0;
+if (typeof window !== 'undefined' && !(window as unknown as { __helpFetchTracked?: boolean }).__helpFetchTracked) {
+  (window as unknown as { __helpFetchTracked?: boolean }).__helpFetchTracked = true;
+  const original = window.fetch.bind(window);
+  window.fetch = async (...args: Parameters<typeof fetch>) => {
+    const input = args[0];
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    const counted = !/\/help\//.test(url);
+    if (counted) inflight += 1;
+    try {
+      return await original(...args);
+    } finally {
+      if (counted) inflight -= 1;
+    }
+  };
+}
+
+function isLoadingNow(): boolean {
+  if (inflight > 0) return true;
+  const root = document.querySelector('[data-help-id="app.section.page"]') ?? document.body;
+  return Array.from(root.querySelectorAll<HTMLElement>(LOADING_SELECTOR)).some((el) => {
+    if (el.closest('[data-help-ignore]')) return false;
+    const r = el.getBoundingClientRect();
+    return r.width >= LOADING_MIN_SIDE_PX && r.height >= LOADING_MIN_SIDE_PX && isElementVisible(el);
+  });
+}
+
+/**
+ * Espera a que la pantalla termine de cargar (sin skeletons ni spinners a la vista un
+ * momento seguido): después de entrar a una página por el menú o de tocar una pestaña,
+ * el paso siguiente no se muestra sobre contenido a medio cargar.
+ */
+export async function waitForSettled({ timeoutMs = 10_000, quietMs = 500, signal }: { timeoutMs?: number; quietMs?: number; signal?: AbortSignal } = {}): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  let quietSince = 0;
+  for (;;) {
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    if (isLoadingNow()) quietSince = 0;
+    else if (!quietSince) quietSince = Date.now();
+    else if (Date.now() - quietSince >= quietMs) return;
+    if (Date.now() > deadline) return;
+    await sleep(POLL_MS, signal);
+  }
+}
+
 export async function waitForPath(path: string, stripPath: () => string, { timeoutMs = 8000, signal }: { timeoutMs?: number; signal?: AbortSignal } = {}): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {

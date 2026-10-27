@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronRight, Eye, Info, Lightbulb, ListChecks, PlayCircle, Route } from 'lucide-react';
+import { ChevronRight, Eye, Info, Lightbulb, ListChecks, ListTree, PlayCircle, Route } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -35,6 +35,9 @@ export function ScreenHelp({ catalog }: { catalog: HelpCatalog }) {
     return () => clearInterval(interval);
   }, [screen]);
 
+  // Las guías se ven de entrada (sus grupos, colapsados); los campos y botones, a pedido.
+  const [guidesOpen, setGuidesOpen] = React.useState(true);
+  const [elementsOpen, setElementsOpen] = React.useState(false);
   // Los grupos de guías arrancan colapsados: con muchas guías (la ficha del paciente) la lista no se hace eterna.
   const [openGroups, setOpenGroups] = React.useState<Set<string>>(new Set());
   const toggleGroup = (name: string) =>
@@ -91,7 +94,8 @@ export function ScreenHelp({ catalog }: { catalog: HelpCatalog }) {
 
       {useCases.length > 0 && (
         <section>
-          <p className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold"><PlayCircle className="h-3.5 w-3.5" />{t('guides')}</p>
+          <SectionToggle icon={PlayCircle} label={t('guides')} count={useCases.length} open={guidesOpen} onToggle={() => setGuidesOpen((v) => !v)} />
+          {guidesOpen && (
           <div className="flex flex-col gap-1.5">
             {useCaseGroups.map((group, i) => {
               const isOpen = !group.name || openGroups.has(group.name);
@@ -123,6 +127,7 @@ export function ScreenHelp({ catalog }: { catalog: HelpCatalog }) {
               );
             })}
           </div>
+          )}
         </section>
       )}
 
@@ -150,7 +155,8 @@ export function ScreenHelp({ catalog }: { catalog: HelpCatalog }) {
 
       {documented.length > 0 && (
         <section>
-          <p className="mb-1.5 text-xs font-semibold">{t('elements')}</p>
+          <SectionToggle icon={ListTree} label={t('elements')} count={documented.length} open={elementsOpen} onToggle={() => setElementsOpen((v) => !v)} />
+          {elementsOpen && (
           <ul className="divide-y rounded-lg border">
             {documented.map((el) => (
               <li key={el.id} className="flex items-start gap-2 px-2.5 py-2">
@@ -167,8 +173,26 @@ export function ScreenHelp({ catalog }: { catalog: HelpCatalog }) {
               </li>
             ))}
           </ul>
+          )}
         </section>
       )}
     </div>
+  );
+}
+
+/** Título de una sección que se abre y cierra (Guías de esta pantalla, Campos y botones). */
+function SectionToggle({ icon: Icon, label, count, open, onToggle }: { icon: React.ComponentType<{ className?: string }>; label: string; count: number; open: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      onClick={onToggle}
+      className="mb-1.5 flex w-full items-center gap-1.5 rounded-md px-1 py-1 text-left text-xs font-semibold transition-colors hover:bg-muted"
+    >
+      <ChevronRight className={cn('h-3.5 w-3.5 flex-none text-muted-foreground transition-transform', open && 'rotate-90')} />
+      <Icon className="h-3.5 w-3.5 flex-none" />
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      <span className="flex-none rounded-full bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">{count}</span>
+    </button>
   );
 }

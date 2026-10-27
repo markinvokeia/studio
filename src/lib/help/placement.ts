@@ -128,7 +128,19 @@ export function placeGuideMascot(
   const gap = -Math.round(size * 0.18);
   const anchorX = box.width > size * 2 ? box.left + box.width - size - 12 : box.left + box.width / 2 - size / 2;
   const midY = box.top + box.height / 2 - size / 2;
+  // Lo señalado ocupa casi toda la pantalla (el contenido de una página): afuera no hay
+  // lugar, así que la mascota se pone adentro, abajo a la derecha, y el globo se ve.
+  const vw = typeof window === 'undefined' ? 1280 : window.innerWidth;
+  const vh = typeof window === 'undefined' ? 720 : window.innerHeight;
+  const huge = box.width * box.height > vw * vh * 0.45;
+  const inside = {
+    width: size,
+    height: size,
+    top: Math.min(box.top + box.height, vh) - size - 24,
+    left: Math.min(box.left + box.width, vw) - size - 24,
+  };
   const candidates = [
+    ...(huge ? [{ rect: inside }] : []),
     { rect: { width: size, height: size, top: box.top - size - gap, left: anchorX } },
     { rect: { width: size, height: size, top: midY, left: box.left + box.width + gap } },
     { rect: { width: size, height: size, top: midY, left: box.left - size - gap } },

@@ -1,5 +1,5 @@
 {
- "version": "e18589d11e39fc96",
+ "version": "01c2fbcad874e923",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -8820,7 +8820,13 @@
    ]
   },
   {
-   "elements": [],
+   "elements": [
+    {
+     "id": "preferences.btn.alert-style-0",
+     "kind": "btn",
+     "source": "src/app/[locale]/preferences/page.tsx"
+    }
+   ],
    "id": "preferences",
    "inMenu": false,
    "permissions": [],
@@ -26127,13 +26133,6 @@
      "title": "Abrí el período"
     },
     {
-     "action": "click",
-     "id": "period-pick",
-     "optional": true,
-     "target": "dashboard.filter.period-{{values.period}}",
-     "title": "Período elegido"
-    },
-    {
      "action": "highlight",
      "details": "Hoy, esta semana, este mes, el mes pasado, este año o un rango personalizado con Desde y Hasta.",
      "doneOnClose": true,
@@ -26141,6 +26140,13 @@
      "skipIfMissing": true,
      "target": "dashboard.section.period-options",
      "title": "Elegí el período"
+    },
+    {
+     "action": "click",
+     "id": "period-pick",
+     "optional": true,
+     "target": "dashboard.filter.period-{{values.period}}",
+     "title": "Período elegido"
     },
     {
      "action": "click",

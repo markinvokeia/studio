@@ -1,10 +1,23 @@
+import { expect } from '@playwright/test';
+
 import { test } from '../../fixtures/test.fixture';
-import { HELP_USE_CASES, runUseCase } from '../../utils/help';
+import { HELP_USE_CASES, confirmsInRuns, driveGuide, openForGuide, runOrder, trackWrites, useCaseRoute } from '../../utils/help';
+import { DEMO_VALUES } from '../../videos/demo-values';
 
 /**
- * Regresión de las guías del asistente: cada caso de uso del catálogo se recorre
- * hasta el botón de confirmar (sin pulsarlo, no crea datos). Si una pantalla
- * cambia y un help id desaparece, falla acá y en `pnpm knowledge:check`.
+ * Regresión de las guías del asistente: cada caso de uso del catálogo se corre con
+ * el asistente real (window.__invokeHelp) desde su pantalla y pulsa los OK, o sea
+ * que CREA, EDITA Y BORRA datos con los valores de abajo (nombres ficticios que
+ * parecen reales). Las ediciones y bajas buscan lo que creó la guía de alta, nunca
+ * el primer registro cualquiera. Falla si un paso no encuentra su elemento o si la
+ * guía escribe algo antes de su OK.
+ *
+ *   pnpm exec playwright test e2e/tests/help                 (todas)
+ *   HELP_GUIDES=patients.,sales.quotes. pnpm exec playwright test e2e/tests/help
+ *   HELP_GUIDES_NO_CONFIRM=1  frena en el OK sin pulsarlo (no escribe nada)
+ *
+ * Los gestos que sólo hace la persona (clic derecho sobre una cita, arrastrar)
+ * se marcan como `human` y el test pasa hasta ahí.
  */
 
 const SAMPLE_VALUES: Record<string, Record<string, unknown>> = {
@@ -320,11 +333,27 @@ const SAMPLE_VALUES: Record<string, Record<string, unknown>> = {
   'sales.quotes.send': { demo: true },
 };
 
+const CONFIRM = process.env.HELP_GUIDES_NO_CONFIRM !== '1';
+const FILTER = (process.env.HELP_GUIDES ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+const USE_CASES = runOrder(HELP_USE_CASES).filter((u) => !FILTER.length || FILTER.some((f) => u.id.startsWith(f)));
+
 test.describe('Guías del asistente', () => {
-  for (const useCase of HELP_USE_CASES) {
-    test(`${useCase.id} — ${useCase.title}`, async ({ page }) => {
-      await runUseCase(page, useCase.id, { values: SAMPLE_VALUES[useCase.id] });
-      await page.keyboard.press('Escape');
+  // En orden: el alta antes de editar y eliminar lo que creó (sin cortar si una falla).
+  test.describe.configure({ mode: 'default' });
+  for (const useCase of USE_CASES) {
+    test(`${useCase.id} — ${useCase.title}`, async ({ page }, testInfo) => {
+      test.setTimeout(180_000);
+      const writes = trackWrites(page);
+      let beforeOk: string[] | null = null;
+      await openForGuide(page, useCaseRoute(useCase));
+      const result = await driveGuide(page, useCase.id, {
+        // Los mismos datos que los videos (nombres ficticios que parecen reales).
+        values: { ...SAMPLE_VALUES[useCase.id], ...DEMO_VALUES[useCase.id] },
+        confirm: CONFIRM && confirmsInRuns(useCase.id),
+        onConfirm: () => { if (!beforeOk) beforeOk = [...writes]; },
+      });
+      testInfo.annotations.push({ type: 'guide', description: `${result.outcome}${result.stoppedAt ? ` (${result.stoppedAt})` : ''} · saltados: ${result.skipped.join(', ') || '—'}` });
+      expect(beforeOk ?? writes, 'la guía no escribe datos antes de su OK').toEqual([]);
     });
   }
 });

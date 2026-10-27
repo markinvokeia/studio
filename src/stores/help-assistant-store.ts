@@ -22,6 +22,9 @@ export interface GuideRun {
   finished: boolean;
   /** Desde dónde se abrió: al cerrar la guía se vuelve ahí (el chat donde quedó). */
   returnTo?: HelpAssistantTab;
+  /** Grabación de videos: multiplica las pausas (más lento) y deja los clics al grabador. */
+  pace?: number;
+  manualClicks?: boolean;
 }
 
 /** Qué se está resaltando. El spotlight resuelve el elemento por help id. */

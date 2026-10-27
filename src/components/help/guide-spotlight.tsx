@@ -292,8 +292,12 @@ export function GuideSpotlight() {
   const [dialogBox, setDialogBox] = React.useState<Rect | null>(null);
   const [alert, setAlert] = React.useState(false);
   const [level, setLevel] = React.useState(1);
+  // Globo de la mascota: si la lista de pasos lo tapa, la lista se esconde en ese paso.
+  const [bubbleBox, setBubbleBox] = React.useState<Rect | null>(null);
+  const [listYields, setListYields] = React.useState(false);
 
   const targetId = spotlight?.targetId;
+  React.useEffect(() => { setListYields(false); }, [targetId]);
 
   // Sigue al elemento (scroll, layout, diálogos que se animan) y revisa si falta o está mal.
   React.useEffect(() => {
@@ -324,6 +328,13 @@ export function GuideSpotlight() {
         if (!sameBox(last, next)) { last = next; setBox(next); }
         const nextMenu = menuRectOf(target.highlight);
         if (!sameBox(lastMenu, nextMenu)) { lastMenu = nextMenu; setMenuBox(nextMenu); }
+        const bubble = document.querySelector<HTMLElement>('.ivm-bubble')?.getBoundingClientRect();
+        const nextBubble = bubble && bubble.width > 0 && bubble.height > 0 ? { top: bubble.top, left: bubble.left, width: bubble.width, height: bubble.height } : null;
+        setBubbleBox((prev) => (sameBox(prev, nextBubble) ? prev : nextBubble));
+        // La lista dibujada tapa el globo: se esconde hasta el próximo paso (no vuelve a aparecer
+        // cuando el globo se acomoda, así no titila).
+        const steps = document.querySelector<HTMLElement>('[data-help-steps]')?.getBoundingClientRect();
+        if (steps && nextBubble && steps.width > 0 && intersects({ top: steps.top, left: steps.left, width: steps.width, height: steps.height }, nextBubble, 2)) setListYields(true);
         const dlg = target.highlight.closest('[role="dialog"], [role="alertdialog"]')?.getBoundingClientRect();
         const nextDialog = dlg && !nextMenu ? { top: dlg.top, left: dlg.left, width: dlg.width, height: dlg.height } : null;
         if (!sameBox(lastDialog, nextDialog)) { lastDialog = nextDialog; setDialogBox(nextDialog); }
@@ -404,8 +415,10 @@ export function GuideSpotlight() {
   const waitingConfirm = spotlight.mode === 'confirm';
   const position = guide ? stepPosition(guide, shown) : { current: 0, total: 0 };
   const list = guide && listOpen && total > 1 ? placeList(toolbar, listHeight, mascot ? [anchor, mascot] : [anchor], dialogBox) : null;
-  // Si la lista no entra sin pisar el elemento (o su menú), no se muestra (queda el botón para abrirla otra vez).
-  const showList = !!list && !intersects(list, anchor, 2);
+  // Si la lista no entra sin pisar el elemento (o su menú), o taparía el globo con la
+  // descripción, no se muestra en este paso (queda el botón para abrirla otra vez).
+  const coversBubble = !!list && !!bubbleBox && intersects(list, bubbleBox, 2);
+  const showList = !!list && !intersects(list, anchor, 2) && !coversBubble && !listYields;
 
   return createPortal(
     <div data-help-ignore onPointerDown={stopPointer}>

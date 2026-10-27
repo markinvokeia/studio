@@ -222,6 +222,8 @@ export default function UserPreferencesPage() {
                             <button
                                 key={style}
                                 type="button"
+                                data-help-id={`preferences.btn.alert-style-${style}`}
+                                aria-pressed={alertStyle === style}
                                 onClick={() => setAlertStyle(style)}
                                 className={cn(
                                     'flex flex-1 flex-col items-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-medium transition-all',

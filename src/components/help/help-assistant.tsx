@@ -20,7 +20,7 @@ import { isSpeechSupported, stopAssistantSpeech, useAssistantVoice } from '@/hoo
 import { useMascotOnStage, useMascotPreference } from '@/hooks/use-mascot-preference';
 import { useCurrentHelpRoute } from '@/hooks/use-current-help-route';
 import { usePermissions } from '@/hooks/usePermissions';
-import { findScreen, findUseCase, loadHelpCatalog } from '@/lib/help/catalog';
+import { findScreen, findUseCase, loadHelpCatalog, screenTour } from '@/lib/help/catalog';
 import { configureGuideRunner, nextStep, registerGuideCondition, startGuide } from '@/lib/help/guide-runner';
 import { findHelpTarget } from '@/lib/help/guide-engine';
 import { stripLocale } from '@/lib/help/help-id';
@@ -207,10 +207,19 @@ function HelpAssistantRoot() {
     const w = window as unknown as Record<string, unknown>;
     w.__invokeHelp = {
       ready: true,
-      startUseCase: (id: string, values?: Record<string, unknown>) => {
+      startUseCase: (id: string, values?: Record<string, unknown>, options?: { pace?: number; manualClicks?: boolean }) => {
         const useCase = findUseCase(catalog, id);
         if (!useCase) return false;
-        startGuide({ title: useCase.title, steps: useCase.steps }, { useCaseId: useCase.id, values: values ?? {} });
+        startGuide({ title: useCase.title, steps: useCase.steps }, { useCaseId: useCase.id, values: values ?? {}, pace: options?.pace, manualClicks: options?.manualClicks });
+        return true;
+      },
+      // "Guiarme por esta pantalla" de la ayuda de pantalla: recorrido por lo que se ve ahora.
+      startScreenTour: (screenId: string, options?: { pace?: number; manualClicks?: boolean }) => {
+        const screen = findScreen(catalog, screenId);
+        if (!screen) return false;
+        const tour = screenTour(screen, t('screen.tourTitle', { screen: screen.title }), (id) => !!findHelpTarget(id));
+        if (!tour) return false;
+        startGuide(tour, { pace: options?.pace, manualClicks: options?.manualClicks });
         return true;
       },
       next: () => nextStep('single'),
@@ -221,7 +230,7 @@ function HelpAssistantRoot() {
       catalogVersion: catalog.version,
     };
     return () => { delete w.__invokeHelp; };
-  }, [automation, catalog]);
+  }, [automation, catalog, t]);
 
   // Cada deploy trae su catálogo: si la BD del cliente tiene otra versión, se publica.
   React.useEffect(() => {
