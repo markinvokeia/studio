@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { Camera, ChevronLeft, ChevronRight, FileSignature, History, Pencil, PersonStanding, Plus, ScanFace, Sparkles } from 'lucide-react';
+import { CalendarDays, Camera, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, FileSignature, History, MapPin, MousePointerClick, Pencil, PersonStanding, Plus, ScanFace, Sparkles, Stethoscope } from 'lucide-react';
 
 import {
   AlertDialog,
@@ -67,16 +67,18 @@ const DEFAULT_PRESET: PointPreset = { productName: '', quantity: null, unit: 'U'
 
 const draftKey = (draft: Draft) => JSON.stringify(draft);
 
-function Segmented<T extends string>({ value, options, onChange, ariaLabel, disabled, title }: {
+function Segmented<T extends string>({ value, options, onChange, ariaLabel, disabled, title, stretch }: {
   value: T;
   options: { id: T; label: string; icon?: React.ElementType }[];
   onChange: (value: T) => void;
   ariaLabel: string;
   disabled?: boolean;
   title?: string;
+  /** Fill the row, with equal-width options */
+  stretch?: boolean;
 }) {
   return (
-    <div role="tablist" aria-label={ariaLabel} title={title} className="inline-flex max-w-full overflow-x-auto rounded-lg border bg-muted/30 p-0.5 [scrollbar-width:none]">
+    <div role="tablist" aria-label={ariaLabel} title={title} className={cn('max-w-full overflow-x-auto rounded-lg border bg-muted/40 p-0.5 [scrollbar-width:none]', stretch ? 'grid auto-cols-fr grid-flow-col' : 'inline-flex')}>
       {options.map(({ id, label, icon: Icon }) => (
         <button
           key={id}
@@ -86,7 +88,7 @@ function Segmented<T extends string>({ value, options, onChange, ariaLabel, disa
           disabled={disabled && value !== id}
           onClick={() => onChange(id)}
           className={cn(
-            'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+            'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
             value === id ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
           )}
         >
@@ -96,6 +98,41 @@ function Segmented<T extends string>({ value, options, onChange, ariaLabel, disa
       ))}
     </div>
   );
+}
+
+function TabBar<T extends string>({ value, options, onChange, ariaLabel }: {
+  value: T;
+  options: { id: T; label: string; icon: React.ElementType; badge?: React.ReactNode }[];
+  onChange: (value: T) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <div role="tablist" aria-label={ariaLabel} className="flex max-w-full gap-1 overflow-x-auto border-b [scrollbar-width:none]">
+      {options.map(({ id, label, icon: Icon, badge }) => (
+        <button
+          key={id}
+          type="button"
+          role="tab"
+          aria-selected={value === id}
+          onClick={() => onChange(id)}
+          className={cn(
+            '-mb-px inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors',
+            // The dark theme's primary is a dark grey: fall back to the foreground there
+            value === id ? 'border-primary text-primary dark:border-foreground dark:text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground',
+          )}
+        >
+          <Icon className="h-4 w-4" />
+          {label}
+          {badge}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Small count shown next to a tab label */
+function TabCount({ count }: { count: number }) {
+  return <span className="rounded-full bg-muted px-1.5 text-[10px] font-semibold leading-4 text-muted-foreground">{count}</span>;
 }
 
 export interface AestheticRecordViewerProps {
@@ -383,10 +420,19 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
     );
   }
 
-  const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
-    { id: 'map', label: t('tabs.map'), icon: ScanFace },
-    { id: 'photos', label: t('tabs.photos'), icon: Camera },
-    { id: 'consent', label: t('tabs.consent'), icon: FileSignature },
+  const photoCount = shownPhotos.length + pendingPhotos.length;
+  const shownConsent = isEditing && !draft.sessionId ? null : current?.consent ?? null;
+  const tabs: { id: Tab; label: string; icon: React.ElementType; badge?: React.ReactNode }[] = [
+    { id: 'map', label: t('tabs.map'), icon: ScanFace, badge: points.length ? <TabCount count={points.length} /> : undefined },
+    { id: 'photos', label: t('tabs.photos'), icon: Camera, badge: photoCount ? <TabCount count={photoCount} /> : undefined },
+    {
+      id: 'consent',
+      label: t('tabs.consent'),
+      icon: FileSignature,
+      badge: shownConsent
+        ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" aria-label={t('consent.signedBadge')} />
+        : current || isEditing ? <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-label={t('consent.missingBadge')} /> : undefined,
+    },
     { id: 'zones', label: t('tabs.zones'), icon: History },
   ];
   const regionIcons: Record<AestheticMapRegion, React.ElementType> = { face: ScanFace, body: PersonStanding };
@@ -405,46 +451,75 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
     if (target) setView(target);
   }
 
+  const headerDate = draft?.date ?? current?.date;
+  const headerDoctor = draft ? draft.doctorName : current?.doctorName;
   const header = (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => goTo(Math.max(0, index - 1))} disabled={isEditing || index <= 0} aria-label={t('prevSession')} title={t('prevSession')}>
-        <ChevronLeft className="h-4 w-4" />
-      </Button>
-      <div className="min-w-0 flex-1">
+    <div className="flex flex-wrap items-center gap-3 rounded-2xl border bg-card px-4 py-3 shadow-sm">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary dark:bg-muted dark:text-foreground">
+        <Sparkles className="h-5 w-5" />
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-base font-semibold text-foreground">
+            {isEditing ? (draft.sessionId ? draft.title : t('session.new')) : current?.title}
+          </span>
+          {isEditing && <Badge className="shrink-0">{t('editing')}</Badge>}
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+          {headerDate && (
+            <span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />{formatDisplayDate(headerDate)}</span>
+          )}
+          {headerDoctor && (
+            <span className="inline-flex min-w-0 items-center gap-1"><Stethoscope className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{headerDoctor}</span></span>
+          )}
+          <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{t('map.pointsTitle', { count: points.length })}</span>
+          {!isEditing && current && (
+            current.consent ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 font-medium text-emerald-700 dark:text-emerald-400">
+                <CheckCircle2 className="h-3 w-3" />{t('consent.signedBadge')}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 font-medium text-amber-700 dark:text-amber-400">
+                <CircleAlert className="h-3 w-3" />{t('consent.missingBadge')}
+              </span>
+            )
+          )}
+        </div>
+      </div>
+      <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
+        {!isEditing && sessions.length > 1 && (
+          <div className="flex items-center rounded-lg border bg-background">
+            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-r-none" onClick={() => goTo(Math.max(0, index - 1))} disabled={index <= 0} aria-label={t('prevSession')} title={t('prevSession')}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="min-w-[56px] px-1 text-center text-xs font-medium tabular-nums text-muted-foreground">
+              {t('sessionCounter', { current: index + 1, total: sessions.length })}
+            </span>
+            <Button size="icon" variant="ghost" className="h-8 w-8 rounded-l-none" onClick={() => goTo(Math.min(sessions.length - 1, index + 1))} disabled={index >= sessions.length - 1} aria-label={t('nextSession')} title={t('nextSession')}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         {isEditing ? (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="truncate text-sm font-semibold text-foreground">{draft.sessionId ? draft.title : t('session.new')}</span>
-            <Badge className="shrink-0">{t('editing')}</Badge>
-          </div>
-        ) : current ? (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="max-w-[260px] truncate text-sm font-semibold text-foreground">{current.title}</span>
-            <Badge variant="outline" className="shrink-0 text-xs">{formatDisplayDate(current.date)}</Badge>
-            {current.doctorName && <span className="truncate text-xs text-muted-foreground">{current.doctorName}</span>}
-            {current.consent && <Badge variant="secondary" className="shrink-0 gap-1 text-xs"><FileSignature className="h-3 w-3" />{t('consent.badge')}</Badge>}
-            <span className="text-xs text-muted-foreground">{t('sessionCounter', { current: index + 1, total: sessions.length })}</span>
-          </div>
-        ) : (
-          <span className="text-sm text-muted-foreground">{t('noSessions')}</span>
+          <>
+            <Button type="button" size="sm" variant="outline" onClick={cancelEditing} disabled={save.isPending}>{t('cancel')}</Button>
+            <Button type="button" size="sm" onClick={handleSave} loading={save.isPending}>{t('save')}</Button>
+          </>
+        ) : canRegister && (
+          <>
+            {current && (
+              <Button size="sm" variant="outline" onClick={() => startEditing(current)}>
+                <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                {t('editSession')}
+              </Button>
+            )}
+            <Button size="sm" onClick={startNewSession}>
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              {t('newSession')}
+            </Button>
+          </>
         )}
       </div>
-      <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => goTo(Math.min(sessions.length - 1, index + 1))} disabled={isEditing || index >= sessions.length - 1} aria-label={t('nextSession')} title={t('nextSession')}>
-        <ChevronRight className="h-4 w-4" />
-      </Button>
-      {canRegister && !isEditing && (
-        <>
-          {current && (
-            <Button size="sm" variant="outline" onClick={() => startEditing(current)}>
-              <Pencil className="mr-1.5 h-3.5 w-3.5" />
-              {t('editSession')}
-            </Button>
-          )}
-          <Button size="sm" onClick={startNewSession}>
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            {t('newSession')}
-          </Button>
-        </>
-      )}
     </div>
   );
 
@@ -453,6 +528,7 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
 
   const sessionFields = draft && (
     <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm">
+      <span className="text-sm font-semibold text-foreground">{t('session.fieldsTitle')}</span>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="aes-session-date" className={cn('text-xs', dateInvalid && 'text-destructive')}>{t('session.date')}</Label>
@@ -490,7 +566,6 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
         <Label htmlFor="aes-session-notes" className="text-xs">{t('session.notes')}</Label>
         <Textarea id="aes-session-notes" value={draft.notes} onChange={(e) => updateDraft({ notes: e.target.value })} disabled={save.isPending} rows={3} placeholder={t('session.notesPlaceholder')} className="resize-none text-sm" />
       </div>
-      {saveError && <Alert variant="destructive"><AlertDescription>{saveError}</AlertDescription></Alert>}
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={cancelEditing} disabled={save.isPending}>{t('cancel')}</Button>
         <Button type="button" onClick={handleSave} loading={save.isPending}>{t('save')}</Button>
@@ -499,14 +574,15 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
   );
 
   const mapColumn = (
-    <div className={cn('flex w-full flex-col gap-2', sideBySide && 'max-w-[420px] shrink-0')}>
-      <Segmented
-        value={region}
-        options={regionOptions}
-        onChange={(r) => setView(lastViewByRegionRef.current[r])}
-        ariaLabel={t('map.regionsLabel')}
-      />
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className={cn('flex w-full flex-col gap-3 rounded-2xl border bg-card p-3 shadow-sm', sideBySide && 'max-w-[440px] shrink-0')}>
+      <div className="flex flex-col gap-2">
+        <Segmented
+          value={region}
+          options={regionOptions}
+          onChange={(r) => setView(lastViewByRegionRef.current[r])}
+          ariaLabel={t('map.regionsLabel')}
+          stretch
+        />
         <div className="flex flex-wrap items-center gap-2">
           <Segmented value={view} options={viewOptions} onChange={setView} ariaLabel={t('map.viewsLabel')} />
           {region === 'body' && (
@@ -519,10 +595,6 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
               title={isEditing && !canChangeFigure ? t('map.figureLocked') : undefined}
             />
           )}
-        </div>
-        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: UNIT_COLORS.U }} />{t('map.legendToxin')}</span>
-          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: UNIT_COLORS.mL }} />{t('map.legendFiller')}</span>
         </div>
       </div>
       <AestheticMap
@@ -538,10 +610,21 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
         onMovePoint={isEditing ? (id, x, y, zone) => updatePoint(id, { x, y, zone }) : undefined}
         onSelectPoint={setSelectedPointId}
         onDeletePoint={isEditing ? deletePoint : undefined}
-        className={cn('mx-auto', region === 'body' ? 'max-w-[260px]' : 'max-w-[420px]')}
+        className={cn('mx-auto w-full', region === 'body' ? 'max-w-[260px]' : 'max-w-[400px]')}
       />
-      {isEditing && tab === 'map' && <p className="text-center text-[11px] text-muted-foreground">{t('map.hint')}</p>}
-      {region === 'body' && <p className="text-center text-[10px] text-muted-foreground/70">{t('credits')}</p>}
+      <div className="flex flex-col gap-1.5 border-t pt-2.5">
+        <div className="flex items-center justify-center gap-4 text-[11px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-card" style={{ backgroundColor: UNIT_COLORS.U }} />{t('map.legendToxin')}</span>
+          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-card" style={{ backgroundColor: UNIT_COLORS.mL }} />{t('map.legendFiller')}</span>
+        </div>
+        {isEditing && tab === 'map' && (
+          <p className="flex items-start justify-center gap-1.5 text-center text-[11px] leading-snug text-muted-foreground">
+            <MousePointerClick className="mt-px h-3.5 w-3.5 shrink-0" />
+            {t('map.hint')}
+          </p>
+        )}
+        {region === 'body' && <p className="text-center text-[10px] text-muted-foreground/70">{t('credits')}</p>}
+      </div>
     </div>
   );
 
@@ -571,8 +654,10 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
   );
 
   const noSessionsState = !isEditing && !current && (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed p-8 text-center">
-      <Sparkles className="h-8 w-8 text-muted-foreground/60" />
+    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed bg-card/50 px-6 py-10 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary dark:bg-muted dark:text-foreground">
+        <Sparkles className="h-6 w-6" />
+      </div>
       <div className="space-y-1">
         <p className="text-sm font-semibold text-foreground">{t('emptyTitle')}</p>
         <p className="text-xs text-muted-foreground">{t('emptyDescription')}</p>
@@ -588,11 +673,11 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
 
   return (
     <div ref={setRootEl} className="flex flex-col gap-3">
-      {header}
-
       {noSessionsState || (
         <>
-          <Segmented value={tab} options={tabs} onChange={setTab} ariaLabel={t('tabs.label')} />
+          {header}
+          {saveError && <Alert variant="destructive"><AlertDescription>{saveError}</AlertDescription></Alert>}
+          <TabBar value={tab} options={tabs} onChange={setTab} ariaLabel={t('tabs.label')} />
 
           {(tab === 'map' || tab === 'zones') && (
             <div className={cn('flex gap-4', sideBySide ? 'flex-row items-start' : 'flex-col')}>

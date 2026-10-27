@@ -10217,7 +10217,7 @@
     },
     "map": {
       "pointLabel": "Point {number}: {product}, {zone}",
-      "viewsLabel": "Face view",
+      "viewsLabel": "View",
       "legendToxin": "Toxin (U)",
       "legendFiller": "Filler (mL)",
       "hint": "Click the map to add a point (it copies the last one's product). Drag to move it; Delete removes the selected one.",
@@ -10312,7 +10312,9 @@
         "procedureRequired": "Enter the procedure.",
         "risksRequired": "Confirm that the risks were explained.",
         "signatureRequired": "The signature is missing."
-      }
+      },
+      "signedBadge": "Consent signed",
+      "missingBadge": "No consent"
     },
     "zoneHistory": {
       "title": "Accumulated history by zone",
@@ -10342,7 +10344,8 @@
       "notes": "Session notes",
       "notesPlaceholder": "Assessment, patient feedback, post-treatment instructions...",
       "dateRequired": "Enter the session date.",
-      "incompletePoints": "{count, plural, one {# point is missing product or quantity.} other {# points are missing product or quantity.}}"
+      "incompletePoints": "{count, plural, one {# point is missing product or quantity.} other {# points are missing product or quantity.}}",
+      "fieldsTitle": "Session details"
     },
     "toast": {
       "created": "Aesthetic session created",

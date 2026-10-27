@@ -10128,7 +10128,7 @@
       "body": "Cuerpo"
     },
     "views": {
-      "front": "Frente",
+      "front": "Frontal",
       "left": "Perfil izquierdo",
       "right": "Perfil derecho",
       "bodyFront": "Anterior",
@@ -10217,7 +10217,7 @@
     },
     "map": {
       "pointLabel": "Punto {number}: {product}, {zone}",
-      "viewsLabel": "Vista de la cara",
+      "viewsLabel": "Vista",
       "legendToxin": "Toxina (U)",
       "legendFiller": "Relleno (mL)",
       "hint": "Haz clic en el mapa para añadir un punto (copia el producto del último). Arrástralo para moverlo; Supr borra el seleccionado.",
@@ -10312,7 +10312,9 @@
         "procedureRequired": "Indica el procedimiento.",
         "risksRequired": "Confirma que se han explicado los riesgos.",
         "signatureRequired": "Falta la firma."
-      }
+      },
+      "signedBadge": "Consentimiento firmado",
+      "missingBadge": "Sin consentimiento"
     },
     "zoneHistory": {
       "title": "Historial acumulado por zona",
@@ -10342,7 +10344,8 @@
       "notes": "Notas de la sesión",
       "notesPlaceholder": "Valoración, comentarios del paciente, indicaciones postratamiento...",
       "dateRequired": "Indica la fecha de la sesión.",
-      "incompletePoints": "{count, plural, one {A # punto le falta producto o cantidad.} other {A # puntos les falta producto o cantidad.}}"
+      "incompletePoints": "{count, plural, one {A # punto le falta producto o cantidad.} other {A # puntos les falta producto o cantidad.}}",
+      "fieldsTitle": "Datos de la sesión"
     },
     "toast": {
       "created": "Sesión estética creada",

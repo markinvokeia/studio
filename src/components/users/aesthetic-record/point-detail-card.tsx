@@ -154,7 +154,7 @@ export function PointDetailCard({ point, number, readOnly = false, showErrors = 
         {quantityInvalid && <p id={`${idPrefix}-qty-error`} className="col-span-2 text-xs font-medium text-destructive">{t('point.quantityRequired')}</p>}
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={`${idPrefix}-lot`} className="text-xs">{t('point.lot')}</Label>
           <Input id={`${idPrefix}-lot`} value={point.lot ?? ''} onChange={(e) => onChange({ lot: e.target.value })} className="h-9" />
@@ -165,7 +165,7 @@ export function PointDetailCard({ point, number, readOnly = false, showErrors = 
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2">
         <div className="flex flex-col gap-1.5">
           <Label className="text-xs">{t('point.depth')}</Label>
           <Select value={point.depth ?? NOT_SET} onValueChange={(v) => onChange({ depth: v === NOT_SET ? undefined : (v as AestheticDepth) })}>
