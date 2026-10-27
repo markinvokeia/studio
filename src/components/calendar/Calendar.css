@@ -1334,6 +1334,18 @@ body[data-calendar-drag-edge='right']::after {
   inset: -4px 0 -6px;
 }
 
+/* El de arriba (ahora también en cards cortas) hace lo mismo hacia arriba, y es más
+   fino por dentro para dejar un tramo central desde donde mover la cita. */
+.event-in-day-view[data-density='compact'] .event-resize-grip--top,
+.event-in-day-view[data-density='tiny'] .event-resize-grip--top {
+  height: 3px;
+}
+
+.event-in-day-view[data-density='compact'] .event-resize-grip--top::after,
+.event-in-day-view[data-density='tiny'] .event-resize-grip--top::after {
+  inset: -6px 0 -2px;
+}
+
 /* El `overflow: hidden` de la card recortaba el `::after` del tirador, así que su
    área de agarre real era solo lo que medía el tirador por dentro —4 o 5px—. Con
    `clip` + margen ese `::after` puede asomar por debajo del borde y sumar unos px

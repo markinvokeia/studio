@@ -91,9 +91,11 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   // 108 px o más. Por debajo del piso no queda card de la que agarrar para mover, y
   // ahí la duración se sigue cambiando por doble clic (edición inline).
   const showResizeGrips = isDraggable && pxHeight >= EVENT_RESIZE_MIN_PX;
-  // El de arriba solo cuando sobra alto: dos tiradores en una card de 13 px no
-  // dejarían dónde empezar un arrastre.
-  const showTopGrip = isDraggable && density === 'normal';
+  // El de arriba, igual que el de abajo, también en las cards cortas: sin él una cita
+  // de 10 min solo se podía alargar hacia abajo. En esos tramos cada tirador ocupa
+  // pocos px por dentro y gana el resto por fuera (ver Calendar.css), así que queda
+  // card de donde agarrar para mover.
+  const showTopGrip = showResizeGrips;
   const rawStatus = event.data?.status as string | undefined;
   const isReminder = event.data?.kind === 'reminder';
   const isNote = isReminder && event.data?.type === 'note';
