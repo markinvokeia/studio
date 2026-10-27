@@ -26,11 +26,19 @@
       "until": "rail.btn.collapse"
     },
     {
+      "id": "alerts-icon",
+      "action": "highlight",
+      "target": "rail.section.alerts",
+      "title": "Alertas",
+      "details": "El número es lo pendiente. En el celular este botón lleva directo al Centro de Alertas."
+    },
+    {
       "id": "alerts",
       "action": "click",
       "target": "rail.btn.alerts",
-      "title": "Alertas",
-      "until": "rail.section.alerts-panel"
+      "title": "Abrí las alertas",
+      "until": "rail.section.alerts-panel",
+      "skipIfMissing": true
     },
     {
       "id": "alerts-panel",
@@ -38,7 +46,8 @@
       "target": "rail.section.alerts-panel",
       "title": "Alertas pendientes",
       "details": "Por categoría; «Ver todas» lleva al Centro de Alertas para trabajarlas.",
-      "doneOnClose": true
+      "doneOnClose": true,
+      "skipIfMissing": true
     },
     {
       "id": "exchange",

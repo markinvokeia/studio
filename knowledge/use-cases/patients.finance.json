@@ -108,21 +108,29 @@
     },
     {
       "id": "quotes",
-      "action": "highlight",
+      "action": "click",
       "target": "patients.tab.quotes",
       "title": "Presupuestos",
       "skipIfMissing": true
     },
     {
-      "id": "invoices",
+      "id": "quote-row",
       "action": "highlight",
+      "target": "patients.detail.section.first-row",
+      "title": "Un presupuesto",
+      "details": "Tocalo para ver sus ítems, facturarlo o cobrarlo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "invoices",
+      "action": "click",
       "target": "patients.tab.invoices",
       "title": "Facturas",
       "skipIfMissing": true
     },
     {
       "id": "payments",
-      "action": "highlight",
+      "action": "click",
       "target": "patients.tab.payments",
       "title": "Pagos",
       "skipIfMissing": true

@@ -264,6 +264,12 @@
     "patients.tab.payments": {
       "label": "Pagos"
     },
+    "patients.detail.section.first-row": {
+      "label": "Primer documento de la pestaña"
+    },
+    "patients.detail.section.row": {
+      "label": "Documento"
+    },
     "patients.section.notes": {
       "label": "Notas"
     },

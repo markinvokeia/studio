@@ -1,5 +1,5 @@
 {
- "version": "2601b8d5b72f0efc",
+ "version": "e18589d11e39fc96",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -7889,6 +7889,18 @@
      "id": "patients.btn.whatsapp-template-send",
      "kind": "btn",
      "label": "Enviar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.detail.section.first-row",
+     "kind": "section",
+     "label": "Primer documento de la pestaña",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "patients.detail.section.row",
+     "kind": "section",
+     "label": "Documento",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -27921,10 +27933,18 @@
      "until": "rail.btn.collapse"
     },
     {
+     "action": "highlight",
+     "details": "El número es lo pendiente. En el celular este botón lleva directo al Centro de Alertas.",
+     "id": "alerts-icon",
+     "target": "rail.section.alerts",
+     "title": "Alertas"
+    },
+    {
      "action": "click",
      "id": "alerts",
+     "skipIfMissing": true,
      "target": "rail.btn.alerts",
-     "title": "Alertas",
+     "title": "Abrí las alertas",
      "until": "rail.section.alerts-panel"
     },
     {
@@ -27932,6 +27952,7 @@
      "details": "Por categoría; «Ver todas» lleva al Centro de Alertas para trabajarlas.",
      "doneOnClose": true,
      "id": "alerts-panel",
+     "skipIfMissing": true,
      "target": "rail.section.alerts-panel",
      "title": "Alertas pendientes"
     },
@@ -28105,7 +28126,7 @@
      "details": "Cobro rápido.",
      "id": "bill",
      "skipIfMissing": true,
-     "target": "rail.section.bill",
+     "target": "rail.btn.bill",
      "title": "Cobrar"
     },
     {
@@ -28135,7 +28156,7 @@
      "details": "Tus notas adhesivas.",
      "id": "notes",
      "skipIfMissing": true,
-     "target": "rail.section.notes",
+     "target": "rail.btn.notes",
      "title": "Notas"
     },
     {
@@ -30248,7 +30269,7 @@
      "title": "Resumen"
     },
     {
-     "action": "highlight",
+     "action": "click",
      "id": "quotes",
      "skipIfMissing": true,
      "target": "patients.tab.quotes",
@@ -30256,13 +30277,21 @@
     },
     {
      "action": "highlight",
+     "details": "Tocalo para ver sus ítems, facturarlo o cobrarlo.",
+     "id": "quote-row",
+     "skipIfMissing": true,
+     "target": "patients.detail.section.first-row",
+     "title": "Un presupuesto"
+    },
+    {
+     "action": "click",
      "id": "invoices",
      "skipIfMissing": true,
      "target": "patients.tab.invoices",
      "title": "Facturas"
     },
     {
-     "action": "highlight",
+     "action": "click",
      "id": "payments",
      "skipIfMissing": true,
      "target": "patients.tab.payments",

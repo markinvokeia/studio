@@ -397,6 +397,7 @@ export function Header() {
                 {!isMobileExpanded ? (
                     <button
                         type="button"
+                        data-help-id="rail.btn.expand"
                         onClick={() => setIsMobileExpanded(true)}
                         className={cn(
                             "h-12 w-12 flex items-center justify-center border-l border-b border-[var(--nav-border)] bg-[var(--nav-active-bg)] hover:bg-[var(--nav-hover-bg)] transition-colors",
@@ -407,18 +408,20 @@ export function Header() {
                         <ChevronLeft className="h-4 w-4 text-foreground" />
                     </button>
                 ) : (
-                    <div className={cn(
+                    <div data-help-id="rail.section.rail" className={cn(
                         'flex flex-row flex-wrap items-center justify-evenly px-1.5 py-2 gap-0.5',
                         'bg-[hsl(var(--floating-header-bg)/0.95)] backdrop-blur-md border-b border-border shadow-md w-full',
                         'animate-in fade-in slide-in-from-top-2 duration-200',
                     )}>
-                        {hasPermission(PATIENTS_PERMISSIONS.VIEW_LIST) && <QuickPatientSearch />}
-                        {sedes.length > 1 && <WorkingSedeSelector />}
-                        <OpenCashSessionWidget />
-                        {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && <TVDisplayWidget />}
+                        {/* Mismos help ids que el riel de escritorio (rail.section.*): las guías de la barra sirven igual en el celular. */}
+                        {hasPermission(PATIENTS_PERMISSIONS.VIEW_LIST) && <span data-help-id="rail.section.patient" className="inline-flex"><QuickPatientSearch /></span>}
+                        {sedes.length > 1 && <span data-help-id="rail.section.sede" className="inline-flex"><WorkingSedeSelector /></span>}
+                        <span data-help-id="rail.section.cash" className="inline-flex"><OpenCashSessionWidget /></span>
+                        {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && <span data-help-id="rail.section.tv" className="inline-flex"><TVDisplayWidget /></span>}
 
                         {hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) && (
                             <Button
+                                data-help-id="rail.btn.bill"
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => openBillingWizard({})}
@@ -431,7 +434,9 @@ export function Header() {
 
                         {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_NOTIFICATIONS_BADGE) && (
                             <Link href={`/${locale}/alerts`} passHref>
+                                {/* En el celular lleva al Centro de Alertas (no abre panel): sólo el id de sección. */}
                                 <Button
+                                    data-help-id="rail.section.alerts"
                                     variant="ghost"
                                     size="icon"
                                     className={cn('relative rounded-xl h-10 w-10', alertCount > 0 && 'bg-red-500/10 text-red-600')}
@@ -446,10 +451,11 @@ export function Header() {
                             </Link>
                         )}
 
-                        <NotificationsBell variant="square" />
+                        <span data-help-id="rail.section.inbox" className="inline-flex"><NotificationsBell variant="square" /></span>
 
                         {hasPermission(STICKY_NOTES_PERMISSIONS.VIEW) && (
                             <Button
+                                data-help-id="rail.btn.notes"
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => setIsStickyNotesOpen(true)}
@@ -468,6 +474,7 @@ export function Header() {
                         <MascotWakeButton compact />
 
                         <Button
+                            data-help-id="rail.btn.collapse"
                             variant="ghost"
                             size="icon"
                             onClick={() => setIsMobileExpanded(false)}
