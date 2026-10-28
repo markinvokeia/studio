@@ -1312,54 +1312,86 @@ body[data-calendar-drag-edge='right']::after {
   inset: -4px 0;
 }
 
+/* -1px: el tirador cubre también el borde de 1px de la card. Sin eso, entre el fin
+   de una cita y el inicio de la de abajo quedaban 2px (los dos bordes) de "mover". */
 .event-resize-grip--top { top: -1px; }
 .event-resize-grip--bottom { bottom: -1px; }
 
-/* Con la card compacta solo queda el tirador de abajo, y más finito. */
-.event-in-day-view[data-density='compact'] .event-resize-grip {
-  height: 5px;
+/* `hidden` recorta en el borde interior (padding box) y se comería ese píxel; `clip`
+   con 1px de margen lo deja ver sin que nada asome fuera de la card. */
+.event-in-day-view[data-draggable='true'] {
+  overflow: clip;
+  overflow-clip-margin: 1px;
 }
 
-/* Y más finito todavía cuando la card baja de 18px: una cita de 10 min mide 13px
-   con la altura de hora por defecto, así que 4px es lo máximo que puede ocupar sin
-   comerse el lugar por donde se la agarra para moverla. */
-.event-in-day-view[data-density='tiny'] .event-resize-grip {
+/* Marcador de resize: una línea de 3px pegada al borde mientras el puntero está sobre
+   el tirador. Es el mismo en todas las cards, sea cual sea el alto del tirador.
+   `currentColor` es el texto legible que la card ya calculó sobre su propio fondo,
+   así que la línea se ve sobre cualquier color de calendario. */
+.event-resize-grip::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  pointer-events: none;
+}
+
+.event-resize-grip--top::before { top: 0; }
+.event-resize-grip--bottom::before { bottom: 0; }
+
+.event-resize-grip:hover::before {
+  background-color: color-mix(in srgb, currentColor 55%, transparent);
+}
+
+/* Cards cortas (`compact`/`tiny`, `data-grips="on-active"`): en 13–34px no caben dos
+   franjas de resize y además un lugar de donde agarrar para mover — con franjas por
+   dentro siempre activas, la zona de mover de una cita de 15 min quedaba en ~3px.
+
+   Acá los tiradores solo existen en la card activa: bajo el mouse, o la última tocada
+   en táctil (`data-grips-active`, lo marca calendar-event-day). Fuera de ella la card
+   entera es para mover.
+
+   El área de agarre no asoma por fuera del borde, a propósito. Entre dos citas
+   pegadas, el borde es a la vez el fin de una y el inicio de la otra; si el tirador de
+   la card activa invade a la vecina, al bajar el cursor de una a otra se pasa del
+   "estirar hacia abajo" de la de arriba directo al cuerpo de la de abajo, y su
+   "estirar hacia arriba" no aparece nunca (y al subir, al revés). Con cada tirador
+   dentro de su card, el borde se reparte: el cursor que baja pasa por el fin de la de
+   arriba y luego por el inicio de la de abajo. Es como ya se comportan las cards
+   grandes, cuyo recorte (`overflow: clip` + 1px) deja afuera lo que el `::after` de
+   su tirador asoma. */
+.event-in-day-view[data-grips='on-active'] .event-resize-grip {
   height: 4px;
+  pointer-events: none;
 }
 
-/* Lo que la card no puede dar por dentro se compensa por fuera: en estos tramos el
-   área de agarre se estira hacia abajo. */
-.event-in-day-view[data-density='compact'] .event-resize-grip--bottom::after,
-.event-in-day-view[data-density='tiny'] .event-resize-grip--bottom::after {
-  inset: -4px 0 -6px;
+.event-in-day-view[data-grips='on-active'] .event-resize-grip::after {
+  content: none;
 }
 
-/* El de arriba (ahora también en cards cortas) hace lo mismo hacia arriba, y es más
-   fino por dentro para dejar un tramo central desde donde mover la cita. */
-.event-in-day-view[data-density='compact'] .event-resize-grip--top,
-.event-in-day-view[data-density='tiny'] .event-resize-grip--top {
+/* Una cita de 15 min en `tiny` mide 14px: con 3px por borde le quedan 6px de mover. */
+.event-in-day-view[data-grips='on-active'][data-density='tiny'] .event-resize-grip {
   height: 3px;
 }
 
-.event-in-day-view[data-density='compact'] .event-resize-grip--top::after,
-.event-in-day-view[data-density='tiny'] .event-resize-grip--top::after {
-  inset: -6px 0 -2px;
+.event-in-day-view[data-grips='on-active'][data-grips-active='true'] .event-resize-grip {
+  pointer-events: auto;
 }
 
-/* El `overflow: hidden` de la card recortaba el `::after` del tirador, así que su
-   área de agarre real era solo lo que medía el tirador por dentro —4 o 5px—. Con
-   `clip` + margen ese `::after` puede asomar por debajo del borde y sumar unos px
-   agarrables sin que la card crezca ni un píxel: su alto sigue siendo exactamente
-   proporcional a la duración. El contenido no se derrama porque lo que podría
-   hacerlo, el título, recorta por su cuenta (overflow + line-clamp propios), y el
-   resto —hora, círculo de estado, punto de origen— ya está oculto en estos tramos. */
-.event-in-day-view[data-density='compact'],
-.event-in-day-view[data-density='tiny'] {
-  overflow: clip;
-  /* Holgado a propósito: el margen solo levanta el recorte, quien fija cuánto
-     asoma es el `::after` del tirador. Con 8 aquí y -6px abajo, el área agarrable
-     termina ~5px por debajo de la card. */
-  overflow-clip-margin: 8px;
+/* Hover solo donde lo hay de verdad: en táctil `:hover` queda pegado tras el toque y
+   competiría con `data-grips-active`. */
+@media (hover: hover) {
+  .event-in-day-view[data-grips='on-active']:hover .event-resize-grip {
+    pointer-events: auto;
+  }
+}
+
+/* Mientras hay un arrastre, el `pointer-events: none` de las cards es lo que deja que
+   `elementFromPoint` devuelva la columna. Un tirador con `pointer-events: auto` lo
+   anularía, porque la propiedad se hereda pero un hijo puede volver a prenderla. */
+.calendar-dragging .event-in-day-view .event-resize-grip {
+  pointer-events: none !important;
 }
 
 /* Fantasma del destino. `absolute` dentro de la columna, nunca `fixed`: ver la

@@ -23,6 +23,29 @@ import type { CalendarDragMode, CalendarDragPhase, CalendarEvent } from './calen
 import { formatEventTime, getContrastingIconColor, getReadableTextColor } from './calendar-utils';
 import { getReminderCardStyle, getReminderPriorityColor, isPersonalReminder, isReminderDone } from './reminder-visuals';
 
+/**
+ * Card con los tiradores de resize activos en táctil. Es una sola en toda la página y
+ * se marca por `dataset`, sin estado de React: tocar una card no re-renderiza nada.
+ * Un toque fuera de ella (otra card, la columna, cualquier cosa) la desactiva; el
+ * listener va en captura para correr antes del `pointerdown` de la card nueva.
+ */
+let touchGripsCard: HTMLElement | null = null;
+
+const deactivateTouchGrips = (e: PointerEvent) => {
+  if (touchGripsCard?.contains(e.target as Node)) return;
+  if (touchGripsCard) delete touchGripsCard.dataset.gripsActive;
+  touchGripsCard = null;
+  document.removeEventListener('pointerdown', deactivateTouchGrips, true);
+};
+
+const activateTouchGrips = (card: HTMLElement) => {
+  if (touchGripsCard === card) return;
+  if (touchGripsCard) delete touchGripsCard.dataset.gripsActive;
+  touchGripsCard = card;
+  card.dataset.gripsActive = 'true';
+  document.addEventListener('pointerdown', deactivateTouchGrips, true);
+};
+
 interface CalendarEventDayProps {
   event: CalendarEvent;
   style: React.CSSProperties;
@@ -85,17 +108,17 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
     pxHeight >= EVENT_DENSITY_NORMAL_PX ? 'normal' : pxHeight >= EVENT_DENSITY_COMPACT_PX ? 'compact' : 'tiny';
   const stackLevel = event.stackLevel ?? 0;
   const isDraggable = draggable && !event.locked && !!onDragPointerDown;
-  // El tirador de abajo se ofrece desde EVENT_RESIZE_MIN_PX y no desde el tramo
-  // `compact`: una cita de 10 min mide 13 px con la altura de hora por defecto, así
-  // que atarlo a la densidad la dejaba sin forma de alargarse salvo con la hora en
-  // 108 px o más. Por debajo del piso no queda card de la que agarrar para mover, y
-  // ahí la duración se sigue cambiando por doble clic (edición inline).
+  // Los tiradores se ofrecen desde EVENT_RESIZE_MIN_PX y no desde el tramo `compact`:
+  // una cita de 10 min mide 13 px con la altura de hora por defecto. Por debajo del
+  // piso los dos tiradores se pisarían entre sí, y ahí la duración se sigue cambiando
+  // por doble clic (edición inline).
+  //
+  // En las cards cortas (`compact`/`tiny`) los tiradores solo existen en la card
+  // activa —bajo el mouse, o la última tocada en táctil— y ganan su área de agarre
+  // por fuera del borde. Así la card entera queda para mover y los tiradores no
+  // compiten con los de las citas vecinas (ver Calendar.css).
   const showResizeGrips = isDraggable && pxHeight >= EVENT_RESIZE_MIN_PX;
-  // El de arriba, igual que el de abajo, también en las cards cortas: sin él una cita
-  // de 10 min solo se podía alargar hacia abajo. En esos tramos cada tirador ocupa
-  // pocos px por dentro y gana el resto por fuera (ver Calendar.css), así que queda
-  // card de donde agarrar para mover.
-  const showTopGrip = showResizeGrips;
+  const gripsOnActive = showResizeGrips && density !== 'normal';
   const rawStatus = event.data?.status as string | undefined;
   const isReminder = event.data?.kind === 'reminder';
   const isNote = isReminder && event.data?.type === 'note';
@@ -122,6 +145,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
           data-testid="calendar-day-event"
           data-event-id={event.id}
           data-draggable={isDraggable ? 'true' : undefined}
+          data-grips={gripsOnActive ? 'on-active' : undefined}
           data-density={density}
           data-stack-level={stackLevel}
           data-stacked={stackLevel > 0 ? 'true' : undefined}
@@ -152,6 +176,9 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
           }}
           onPointerDown={(e) => {
             e.stopPropagation();
+            // Táctil no tiene hover: el toque marca la card como activa y le prende
+            // los tiradores, para que el siguiente long-press pueda redimensionarla.
+            if (gripsOnActive && e.pointerType !== 'mouse') activateTouchGrips(e.currentTarget);
             if (!isDraggable) return;
             // Un arrastre que arranca dentro de los 220 ms del timer dejaría salir
             // el quick-view a mitad del gesto.
@@ -191,7 +218,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
             onEventDoubleClick(event.data);
           }}
         >
-          {showTopGrip && (
+          {showResizeGrips && (
             <div
               data-testid="calendar-resize-grip-top"
               className="event-resize-grip event-resize-grip--top"
