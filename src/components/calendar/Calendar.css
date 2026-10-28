@@ -1340,50 +1340,62 @@ body[data-calendar-drag-edge='right']::after {
 .event-resize-grip--top::before { top: 0; }
 .event-resize-grip--bottom::before { bottom: 0; }
 
-.event-resize-grip:hover::before {
-  background-color: color-mix(in srgb, currentColor 55%, transparent);
-}
+/* --------------------------------------------------------------------------
+   Tiradores de las cards cortas (`compact`/`tiny`, `data-grips="on-active"`).
 
-/* Cards cortas (`compact`/`tiny`, `data-grips="on-active"`): en 13–34px no caben dos
-   franjas de resize y además un lugar de donde agarrar para mover — con franjas por
-   dentro siempre activas, la zona de mover de una cita de 15 min quedaba en ~3px.
+   Hay dos modelos y los separa el tipo de puntero, no el ancho de pantalla: una
+   tablet con mouse se comporta como desktop, y una laptop táctil también.
 
-   Acá los tiradores solo existen en la card activa: bajo el mouse, o la última tocada
-   en táctil (`data-grips-active`, lo marca calendar-event-day). Fuera de ella la card
-   entera es para mover.
+   - Con hover (mouse/trackpad): los tiradores solo existen en la card bajo el
+     puntero, y no asoman fuera de ella.
+   - Sin hover (táctil): no hay tiradores; la card entera es para mover. Un dedo no
+     distingue tres zonas en 13–34px (con tiradores que asomaban por fuera, a una
+     cita de 15 min le quedaba 1px para mover), y el modelo de hover no tiene
+     equivalente: el toque que podría "activar" la card es el mismo que abre su
+     sheet o su ventana de detalle. La duración se cambia desde ahí: "Duración" en el
+     sheet de móvil, o en el menú contextual (long-press quieto) en tablet.
+   -------------------------------------------------------------------------- */
 
-   El área de agarre no asoma por fuera del borde, a propósito. Entre dos citas
-   pegadas, el borde es a la vez el fin de una y el inicio de la otra; si el tirador de
-   la card activa invade a la vecina, al bajar el cursor de una a otra se pasa del
-   "estirar hacia abajo" de la de arriba directo al cuerpo de la de abajo, y su
-   "estirar hacia arriba" no aparece nunca (y al subir, al revés). Con cada tirador
-   dentro de su card, el borde se reparte: el cursor que baja pasa por el fin de la de
-   arriba y luego por el inicio de la de abajo. Es como ya se comportan las cards
-   grandes, cuyo recorte (`overflow: clip` + 1px) deja afuera lo que el `::after` de
-   su tirador asoma. */
-.event-in-day-view[data-grips='on-active'] .event-resize-grip {
-  height: 4px;
-  pointer-events: none;
-}
-
-.event-in-day-view[data-grips='on-active'] .event-resize-grip::after {
-  content: none;
-}
-
-/* Una cita de 15 min en `tiny` mide 14px: con 3px por borde le quedan 6px de mover. */
-.event-in-day-view[data-grips='on-active'][data-density='tiny'] .event-resize-grip {
-  height: 3px;
-}
-
-.event-in-day-view[data-grips='on-active'][data-grips-active='true'] .event-resize-grip {
-  pointer-events: auto;
-}
-
-/* Hover solo donde lo hay de verdad: en táctil `:hover` queda pegado tras el toque y
-   competiría con `data-grips-active`. */
 @media (hover: hover) {
+  .event-resize-grip:hover::before {
+    background-color: color-mix(in srgb, currentColor 55%, transparent);
+  }
+
+  /* En 13–34px no caben dos franjas de resize siempre activas y además un lugar de
+     donde agarrar para mover: la zona de mover de una cita de 15 min quedaba en ~3px.
+     Fuera de la card bajo el puntero, la card entera es para mover.
+
+     El área de agarre no asoma por fuera del borde, a propósito. Entre dos citas
+     pegadas, el borde es a la vez el fin de una y el inicio de la otra; si el tirador
+     de la card activa invade a la vecina, al bajar el cursor de una a otra se pasa del
+     "estirar hacia abajo" de la de arriba directo al cuerpo de la de abajo, y su
+     "estirar hacia arriba" no aparece nunca (y al subir, al revés). Con cada tirador
+     dentro de su card, el borde se reparte: el cursor que baja pasa por el fin de la
+     de arriba y luego por el inicio de la de abajo. Es como ya se comportan las cards
+     grandes, cuyo recorte (`overflow: clip` + 1px) deja afuera lo que el `::after` de
+     su tirador asoma. */
+  .event-in-day-view[data-grips='on-active'] .event-resize-grip {
+    height: 4px;
+    pointer-events: none;
+  }
+
+  .event-in-day-view[data-grips='on-active'] .event-resize-grip::after {
+    content: none;
+  }
+
+  /* Una cita de 15 min en `tiny` mide 14px: con 3px por borde le quedan 8px de mover. */
+  .event-in-day-view[data-grips='on-active'][data-density='tiny'] .event-resize-grip {
+    height: 3px;
+  }
+
   .event-in-day-view[data-grips='on-active']:hover .event-resize-grip {
     pointer-events: auto;
+  }
+}
+
+@media (hover: none) {
+  .event-in-day-view[data-grips='on-active'] .event-resize-grip {
+    display: none;
   }
 }
 
