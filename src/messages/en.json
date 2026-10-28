@@ -10134,6 +10134,13 @@
       "bodyFront": "Front",
       "bodyBack": "Back"
     },
+    "viewsShort": {
+      "front": "Front",
+      "left": "Left",
+      "right": "Right",
+      "bodyFront": "Front",
+      "bodyBack": "Back"
+    },
     "figures": {
       "female": "Female",
       "male": "Male"
@@ -10247,7 +10254,8 @@
         "mirror": "Mirror",
         "reset": "Reset",
         "saveAlignment": "Save alignment",
-        "saveError": "Could not save the alignment"
+        "saveError": "Could not save the alignment",
+        "settings": "Photo settings"
       }
     },
     "point": {

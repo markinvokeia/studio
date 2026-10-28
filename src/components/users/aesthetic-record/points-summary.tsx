@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, ChevronDown } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
@@ -21,11 +21,19 @@ interface PointsSummaryProps {
   /** Mark the incomplete points as errors (after a blocked save) */
   showErrors?: boolean;
   onSelectPoint: (point: AestheticPoint) => void;
+  /** Detail shown under the selected row, so a point is picked and edited in the same place */
+  renderDetail?: (point: AestheticPoint) => React.ReactNode;
 }
 
-export function PointsSummary({ points, pointNumbers, selectedPointId, isEditing, showErrors = false, onSelectPoint }: PointsSummaryProps) {
+export function PointsSummary({ points, pointNumbers, selectedPointId, isEditing, showErrors = false, onSelectPoint, renderDetail }: PointsSummaryProps) {
   const t = useTranslations('AestheticRecord');
   const zoneLabel = useZoneLabel();
+  const selectedRowRef = React.useRef<HTMLLIElement>(null);
+
+  // A point picked on the map (or just added) opens below the fold otherwise
+  React.useEffect(() => {
+    if (selectedPointId) selectedRowRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }, [selectedPointId]);
 
   const totals = React.useMemo(() => {
     const map = new Map<string, { name: string; unit: AestheticDoseUnit; quantity: number }>();
@@ -67,15 +75,17 @@ export function PointsSummary({ points, pointNumbers, selectedPointId, isEditing
         <ul className="flex flex-col divide-y overflow-hidden rounded-xl border">
           {points.map((point) => {
             const incomplete = isPointIncomplete(point);
+            const isSelected = selectedPointId === point.id;
             return (
-              <li key={point.id}>
+              <li key={point.id} ref={isSelected ? selectedRowRef : undefined} className="scroll-my-3">
                 <button
                   type="button"
                   onClick={() => onSelectPoint(point)}
-                  aria-pressed={selectedPointId === point.id}
+                  aria-expanded={renderDetail ? isSelected : undefined}
+                  aria-pressed={renderDetail ? undefined : isSelected}
                   className={cn(
                     'flex w-full items-center gap-2.5 px-3 py-2 text-left text-xs transition-colors hover:bg-muted/50',
-                    selectedPointId === point.id && 'bg-primary/5',
+                    isSelected && 'bg-primary/5',
                     incomplete && showErrors && 'bg-destructive/5 hover:bg-destructive/10',
                   )}
                 >
@@ -100,7 +110,11 @@ export function PointsSummary({ points, pointNumbers, selectedPointId, isEditing
                       {point.quantity != null ? `${formatQuantity(point.quantity)} ${point.unit}` : '—'}
                     </span>
                   )}
+                  {renderDetail && (
+                    <ChevronDown className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', isSelected && 'rotate-180')} aria-hidden />
+                  )}
                 </button>
+                {isSelected && renderDetail?.(point)}
               </li>
             );
           })}

@@ -4,7 +4,6 @@ import React from 'react';
 import { useTranslations } from 'next-intl';
 import { ArrowLeftRight, ChevronsLeftRight, Columns2, ImageOff, SplitSquareHorizontal } from 'lucide-react';
 
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -18,6 +17,9 @@ import { useAestheticFileUrl } from './use-aesthetic-file-url';
 export const KIND_DOT: Record<AestheticPhotoKind, string> = { before: 'bg-slate-500', after: 'bg-emerald-500' };
 
 type CompareMode = 'sideBySide' | 'slider';
+
+/** Tallest a compared photo gets, so the comparison fits on screen under the sheet header */
+const COMPARE_MAX_HEIGHT = 'max(16rem, calc(100dvh - 24rem))';
 
 export interface PhotoRef {
   photo: AestheticPhoto;
@@ -52,9 +54,11 @@ function CompareImage({ fileId, alt }: { fileId: string | undefined; alt: string
 interface PhotoCompareProps {
   /** Every photo of the patient, oldest first */
   photos: PhotoRef[];
+  /** Section title; the comparison mode switch sits next to it */
+  title: string;
 }
 
-export function PhotoCompare({ photos }: PhotoCompareProps) {
+export function PhotoCompare({ photos, title }: PhotoCompareProps) {
   const t = useTranslations('AestheticRecord');
   const [defaultA, defaultB] = React.useMemo(() => pickDefaultPair(photos), [photos]);
   const [leftId, setLeftId] = React.useState<string | undefined>(defaultA);
@@ -69,7 +73,12 @@ export function PhotoCompare({ photos }: PhotoCompareProps) {
   }, [photos, leftId, rightId, defaultA, defaultB]);
 
   if (photos.length < 2) {
-    return <p className="rounded-xl border border-dashed p-4 text-center text-xs text-muted-foreground">{t('photos.compareNeedsTwo')}</p>;
+    return (
+      <>
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <p className="rounded-xl border border-dashed p-4 text-center text-xs text-muted-foreground">{t('photos.compareNeedsTwo')}</p>
+      </>
+    );
   }
 
   const describe = (ref: PhotoRef) =>
@@ -90,26 +99,19 @@ export function PhotoCompare({ photos }: PhotoCompareProps) {
   );
 
   const picker = (id: string | undefined, onChange: (id: string) => void, label: string) => (
-    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-      <Label className="text-xs">{label}</Label>
-      <Select value={id} onValueChange={onChange}>
-        <SelectTrigger className="h-9" aria-label={label}><SelectValue /></SelectTrigger>
-        <SelectContent>
-          {photos.map((ref) => <SelectItem key={ref.photo.id} value={ref.photo.id}>{describe(ref)}</SelectItem>)}
-        </SelectContent>
-      </Select>
-    </div>
+    <Select value={id} onValueChange={onChange}>
+      <SelectTrigger className="h-9 min-w-0 flex-1 text-xs" aria-label={label} title={label}><SelectValue /></SelectTrigger>
+      <SelectContent>
+        {photos.map((ref) => <SelectItem key={ref.photo.id} value={ref.photo.id}>{describe(ref)}</SelectItem>)}
+      </SelectContent>
+    </Select>
   );
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        {picker(leftId, setLeftId, t('photos.compareLeft'))}
-        <ArrowLeftRight className="hidden h-4 w-4 shrink-0 self-center text-muted-foreground sm:mb-2.5 sm:block" aria-hidden />
-        {picker(rightId, setRightId, t('photos.compareRight'))}
-      </div>
-
-      <div role="tablist" aria-label={t('photos.compareModeLabel')} className="inline-flex self-start rounded-lg border bg-muted/40 p-0.5">
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+        <div role="tablist" aria-label={t('photos.compareModeLabel')} className="inline-flex rounded-lg border bg-muted/40 p-0.5">
         {([['sideBySide', Columns2], ['slider', SplitSquareHorizontal]] as const).map(([id, Icon]) => (
           <button
             key={id}
@@ -117,21 +119,30 @@ export function PhotoCompare({ photos }: PhotoCompareProps) {
             role="tab"
             aria-selected={mode === id}
             onClick={() => setMode(id)}
+            aria-label={t(`photos.compareModes.${id}`)}
+            title={t(`photos.compareModes.${id}`)}
             className={cn(
-              'inline-flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+              'inline-flex items-center rounded-md p-1.5 transition-colors',
               mode === id
                 ? 'bg-primary text-primary-foreground shadow-sm dark:bg-foreground dark:text-background'
                 : 'text-muted-foreground hover:bg-background/60 hover:text-foreground',
             )}
           >
             <Icon className="h-3.5 w-3.5" />
-            {t(`photos.compareModes.${id}`)}
           </button>
         ))}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {picker(leftId, setLeftId, t('photos.compareLeft'))}
+        <ArrowLeftRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        {picker(rightId, setRightId, t('photos.compareRight'))}
       </div>
 
       {mode === 'sideBySide' ? (
-        <div className="grid w-full max-w-2xl grid-cols-2 gap-2 self-center">
+        // Two 3:4 photos side by side are 1.5 times as wide as they are tall
+        <div className="grid w-full grid-cols-2 gap-2 self-center" style={{ maxWidth: `min(42rem, calc(${COMPARE_MAX_HEIGHT} * 1.5))` }}>
           {[left, right].map((ref, i) => (
             <div key={i} className="relative aspect-[3/4] overflow-hidden rounded-2xl border bg-muted">
               <CompareImage fileId={ref?.photo.id} alt={ref ? describe(ref) : ''} />
@@ -140,7 +151,7 @@ export function PhotoCompare({ photos }: PhotoCompareProps) {
           ))}
         </div>
       ) : (
-        <div className="relative mx-auto aspect-[3/4] w-full max-w-md select-none overflow-hidden rounded-2xl border bg-muted">
+        <div className="relative mx-auto aspect-[3/4] w-full select-none overflow-hidden rounded-2xl border bg-muted" style={{ maxWidth: `min(28rem, calc(${COMPARE_MAX_HEIGHT} * 0.75))` }}>
           <CompareImage fileId={right?.photo.id} alt={right ? describe(right) : ''} />
           <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}>
             <CompareImage fileId={left?.photo.id} alt={left ? describe(left) : ''} />
@@ -163,6 +174,6 @@ export function PhotoCompare({ photos }: PhotoCompareProps) {
           />
         </div>
       )}
-    </div>
+    </>
   );
 }

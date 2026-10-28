@@ -10134,6 +10134,13 @@
       "bodyFront": "Anterior",
       "bodyBack": "Posterior"
     },
+    "viewsShort": {
+      "front": "Frontal",
+      "left": "Perfil izq.",
+      "right": "Perfil der.",
+      "bodyFront": "Anterior",
+      "bodyBack": "Posterior"
+    },
     "figures": {
       "female": "Mujer",
       "male": "Hombre"
@@ -10247,7 +10254,8 @@
         "mirror": "Espejo",
         "reset": "Restablecer",
         "saveAlignment": "Guardar alineación",
-        "saveError": "No se ha podido guardar la alineación"
+        "saveError": "No se ha podido guardar la alineación",
+        "settings": "Ajustes de la foto"
       }
     },
     "point": {

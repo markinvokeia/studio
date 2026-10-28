@@ -241,8 +241,7 @@ export function PhotosPanel({ photos, pending, isEditing, consent, allPhotos, on
       </section>
 
       <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm">
-        <h3 className="text-sm font-semibold text-foreground">{t('photos.compareTitle')}</h3>
-        <PhotoCompare photos={allPhotos} />
+        <PhotoCompare photos={allPhotos} title={t('photos.compareTitle')} />
       </section>
 
       {lightbox && <ImageLightbox src={lightbox.src} alt={lightbox.alt} open onClose={() => setLightbox(null)} />}

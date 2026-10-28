@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { CalendarDays, Camera, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, FileSignature, History, Loader2, MapPin, MousePointerClick, Pencil, PersonStanding, Plus, ScanFace, Sparkles, Stethoscope, Trash2 } from 'lucide-react';
+import { CalendarDays, Camera, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, FileSignature, History, Loader2, Mars, MapPin, MousePointerClick, Pencil, PersonStanding, Plus, ScanFace, Sparkles, Stethoscope, Trash2, Venus } from 'lucide-react';
 
 import {
   AlertDialog,
@@ -46,7 +46,7 @@ import { ConsentDialog } from './consent-dialog';
 import { ConsentPanel } from './consent-panel';
 import { AestheticMap } from './aesthetic-map';
 import { BODY_FIGURES, getViewZoneIds, MAP_REGIONS, MAP_VIEWS, REGION_VIEWS, UNIT_COLORS, VIEW_REGION } from './map-templates';
-import { DEFAULT_PHOTO_ALIGNMENT, PhotoBackdropControls } from './photo-backdrop-controls';
+import { DEFAULT_PHOTO_ALIGNMENT, PhotoBackdropAdjust, PhotoBackdropToolbar } from './photo-backdrop-controls';
 import type { PhotoRef } from './photo-compare';
 import { PhotosPanel, type PendingPhoto } from './photos-panel';
 import { PointDetailCard } from './point-detail-card';
@@ -58,6 +58,8 @@ type Tab = 'map' | 'photos' | 'consent' | 'zones';
 
 /** Width from which the map and its side panel sit side by side */
 const SIDE_BY_SIDE_MIN_WIDTH = 760;
+/** Room left for the map drawing once the sheet header, the tabs and the map controls are on screen */
+const MAP_MAX_HEIGHT = 'max(20rem, calc(100dvh - 21rem))';
 
 interface Draft {
   sessionId?: string;
@@ -95,20 +97,23 @@ interface StashedEdit {
 // In memory only: it survives navigation inside the app, a reload is guarded by `beforeunload`
 const stashedEdits = new Map<string, StashedEdit>();
 
-function Segmented<T extends string>({ value, options, onChange, ariaLabel, disabled, title, stretch, className }: {
+function Segmented<T extends string>({ value, options, onChange, ariaLabel, disabled, title, stretch, iconOnly, className }: {
   value: T;
-  options: { id: T; label: string; icon?: React.ElementType }[];
+  /** `title` is the option's tooltip (defaults to the label when `iconOnly`); `badge` follows the icon */
+  options: { id: T; label: string; title?: string; icon?: React.ElementType; badge?: React.ReactNode }[];
   onChange: (value: T) => void;
   ariaLabel: string;
   disabled?: boolean;
   title?: string;
   /** Fill the row, with equal-width options */
   stretch?: boolean;
+  /** Show only the icons (and badges); the label becomes the accessible name and tooltip */
+  iconOnly?: boolean;
   className?: string;
 }) {
   return (
     <div role="tablist" aria-label={ariaLabel} title={title} className={cn('max-w-full overflow-x-auto rounded-lg border bg-muted/40 p-0.5 [scrollbar-width:none]', stretch ? 'grid auto-cols-fr grid-flow-col' : 'inline-flex', className)}>
-      {options.map(({ id, label, icon: Icon }) => (
+      {options.map(({ id, label, title: optionTitle, icon: Icon, badge }) => (
         <button
           key={id}
           type="button"
@@ -116,8 +121,11 @@ function Segmented<T extends string>({ value, options, onChange, ariaLabel, disa
           aria-selected={value === id}
           disabled={disabled && value !== id}
           onClick={() => onChange(id)}
+          aria-label={iconOnly ? label : undefined}
+          title={optionTitle ?? (iconOnly ? label : undefined)}
           className={cn(
-            'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+            'inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-md py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
+            iconOnly ? 'px-2' : 'px-3',
             // The dark theme's primary is a dark grey: fall back to the foreground there
             value === id
               ? 'bg-primary text-primary-foreground shadow-sm dark:bg-foreground dark:text-background'
@@ -125,7 +133,8 @@ function Segmented<T extends string>({ value, options, onChange, ariaLabel, disa
           )}
         >
           {Icon && <Icon className="h-3.5 w-3.5" />}
-          {label}
+          {!iconOnly && label}
+          {badge}
         </button>
       ))}
     </div>
@@ -543,7 +552,12 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
     },
   );
 
+  /** Opens the point's row (switching to its view), or closes it when already open */
   function selectFromList(point: AestheticPoint) {
+    if (selectedPointId === point.id) {
+      setSelectedPointId(null);
+      return;
+    }
     setView(point.view);
     setSelectedPointId(point.id);
   }
@@ -593,9 +607,15 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
   const regionIcons: Record<AestheticMapRegion, React.ElementType> = { face: ScanFace, body: PersonStanding };
   const regionOptions = MAP_REGIONS.map((r) => {
     const count = points.filter((p) => VIEW_REGION[p.view] === r).length;
-    return { id: r, icon: regionIcons[r], label: count ? t('map.regionWithCount', { region: t(`regions.${r}`), count }) : t(`regions.${r}`) };
+    return {
+      id: r,
+      icon: regionIcons[r],
+      label: count ? t('map.regionWithCount', { region: t(`regions.${r}`), count }) : t(`regions.${r}`),
+      badge: count ? <span className="text-[10px] font-semibold tabular-nums">{count}</span> : undefined,
+    };
   });
-  const viewOptions = REGION_VIEWS[region].map((v) => ({ id: v, label: t(`views.${v}`) }));
+  const viewOptions = REGION_VIEWS[region].map((v) => ({ id: v, label: t(`viewsShort.${v}`), title: t(`views.${v}`) }));
+  const figureIcons: Record<AestheticBodyFigure, React.ElementType> = { female: Venus, male: Mars };
   const zoneHighlight = hoveredZone ?? pinnedZone;
 
   /** Shows a zone picked in the history: switches to the first view that draws it */
@@ -741,29 +761,36 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
   );
 
   const mapColumn = (
-    <div className={cn('flex w-full flex-col gap-3 rounded-2xl border bg-card p-3 shadow-sm', sideBySide && 'max-w-[440px] shrink-0')}>
-      <div className="flex flex-col gap-2">
+    // Side by side the map stays in view while the points list scrolls; its height is capped
+    // so the whole column fits on screen
+    <div
+      className={cn('flex w-full flex-col gap-3 rounded-2xl border bg-card p-3 shadow-sm', sideBySide && 'sticky top-2 max-w-[440px] shrink-0 self-start')}
+      style={{ '--aes-map-max-h': MAP_MAX_HEIGHT } as React.CSSProperties}
+    >
+      {/* Region, view, figure and backdrop share one row so the map starts high on screen */}
+      <div className="flex items-center gap-1.5">
         <Segmented
           value={region}
           options={regionOptions}
           onChange={(r) => setView(lastViewByRegionRef.current[r])}
           ariaLabel={t('map.regionsLabel')}
-          stretch
+          iconOnly
+          className="shrink-0"
         />
-        <div className="flex flex-wrap items-center gap-2">
-          <Segmented value={view} options={viewOptions} onChange={setView} ariaLabel={t('map.viewsLabel')} stretch className="min-w-0 flex-1" />
-          {region === 'body' && (
-            <Segmented
-              value={figure}
-              options={BODY_FIGURES.map((f) => ({ id: f, label: t(`figures.${f}`) }))}
-              onChange={(f) => updateDraft({ bodyFigure: f })}
-              ariaLabel={t('map.figureLabel')}
-              disabled={!canChangeFigure}
-              title={isEditing && !canChangeFigure ? t('map.figureLocked') : undefined}
-            />
-          )}
-        </div>
-        <PhotoBackdropControls
+        <Segmented value={view} options={viewOptions} onChange={setView} ariaLabel={t('map.viewsLabel')} stretch className="min-w-0 flex-1" />
+        {region === 'body' && (
+          <Segmented
+            value={figure}
+            options={BODY_FIGURES.map((f) => ({ id: f, label: t(`figures.${f}`), icon: figureIcons[f] }))}
+            onChange={(f) => updateDraft({ bodyFigure: f })}
+            ariaLabel={t('map.figureLabel')}
+            disabled={!canChangeFigure}
+            title={isEditing && !canChangeFigure ? t('map.figureLocked') : undefined}
+            iconOnly
+            className="shrink-0"
+          />
+        )}
+        <PhotoBackdropToolbar
           candidates={backdropCandidates}
           enabled={backdropEnabled}
           onEnabledChange={setBackdropEnabled}
@@ -775,14 +802,19 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
           hideArt={backdropHideArt}
           onHideArtChange={setBackdropHideArt}
           canAdjust={canRegister && tab === 'map'}
-          adjusting={editingAlignment}
+          isAdjusting={!!editingAlignment}
           onStartAdjust={() => backdropRef && setAlignmentEdit({ photoId: backdropRef.photo.id, alignment: backdropRef.photo.alignment ?? DEFAULT_PHOTO_ALIGNMENT })}
-          onAdjustChange={(alignment) => setAlignmentEdit((prev) => (prev ? { ...prev, alignment } : prev))}
-          onCancelAdjust={() => setAlignmentEdit(null)}
-          onSaveAdjust={() => saveAlignment.run()}
-          isSaving={saveAlignment.isPending}
         />
       </div>
+      {editingAlignment && (
+        <PhotoBackdropAdjust
+          alignment={editingAlignment}
+          onChange={(alignment) => setAlignmentEdit((prev) => (prev ? { ...prev, alignment } : prev))}
+          onCancel={() => setAlignmentEdit(null)}
+          onSave={() => saveAlignment.run()}
+          isSaving={saveAlignment.isPending}
+        />
+      )}
       <AestheticMap
         view={view}
         figure={figure}
@@ -824,19 +856,26 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
 
   const mapSide = (
     <div className="flex min-w-0 flex-1 flex-col gap-3">
-      {selectedPoint && (
-        <PointDetailCard
-          key={selectedPoint.id}
-          point={selectedPoint}
-          number={pointNumbers.get(selectedPoint.id)}
-          readOnly={!isEditing}
-          showErrors={showValidation}
-          onChange={(patch) => updatePoint(selectedPoint.id, patch)}
-          onDelete={() => deletePoint(selectedPoint.id)}
-        />
-      )}
       {(isEditing || current) && (
-        <PointsSummary points={points} pointNumbers={pointNumbers} selectedPointId={selectedPointId} isEditing={isEditing} showErrors={showValidation} onSelectPoint={selectFromList} />
+        <PointsSummary
+          points={points}
+          pointNumbers={pointNumbers}
+          selectedPointId={selectedPointId}
+          isEditing={isEditing}
+          showErrors={showValidation}
+          onSelectPoint={selectFromList}
+          renderDetail={(point) => (
+            <PointDetailCard
+              point={point}
+              number={pointNumbers.get(point.id)}
+              readOnly={!isEditing}
+              showErrors={showValidation}
+              onChange={(patch) => updatePoint(point.id, patch)}
+              onDelete={() => deletePoint(point.id)}
+              embedded
+            />
+          )}
+        />
       )}
       {!isEditing && current?.notes && (
         <div className="flex flex-col gap-1 rounded-xl border bg-muted/20 p-3">

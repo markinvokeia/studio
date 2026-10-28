@@ -28,9 +28,11 @@ interface PointDetailCardProps {
   showErrors?: boolean;
   onChange: (patch: Partial<AestheticPoint>) => void;
   onDelete: () => void;
+  /** Rendered inside its row of the points list: no card chrome nor header (the row shows it) */
+  embedded?: boolean;
 }
 
-export function PointDetailCard({ point, number, readOnly = false, showErrors = false, onChange, onDelete }: PointDetailCardProps) {
+export function PointDetailCard({ point, number, readOnly = false, showErrors = false, onChange, onDelete, embedded = false }: PointDetailCardProps) {
   const t = useTranslations('AestheticRecord');
   const zoneLabel = useZoneLabel();
   const zones = React.useMemo(() => getViewZoneIds(point.view), [point.view]);
@@ -62,6 +64,8 @@ export function PointDetailCard({ point, number, readOnly = false, showErrors = 
     </div>
   );
 
+  const shell = embedded ? 'flex flex-col gap-3 border-t bg-muted/20 p-3' : 'flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm';
+
   if (readOnly) {
     const rows: [string, string | undefined][] = [
       [t('point.quantity'), point.quantity != null ? `${point.quantity} ${point.unit}` : undefined],
@@ -72,8 +76,8 @@ export function PointDetailCard({ point, number, readOnly = false, showErrors = 
       [t('point.notes'), point.notes],
     ];
     return (
-      <div className="flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm">
-        {header}
+      <div className={shell}>
+        {!embedded && header}
         <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-xs">
           {rows.map(([label, value]) => (
             <React.Fragment key={label}>
@@ -87,8 +91,8 @@ export function PointDetailCard({ point, number, readOnly = false, showErrors = 
   }
 
   return (
-    <div className={cn('flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm', (productInvalid || quantityInvalid) && 'border-destructive/60')}>
-      {header}
+    <div className={cn(shell, !embedded && (productInvalid || quantityInvalid) && 'border-destructive/60')}>
+      {!embedded && header}
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={`${idPrefix}-name`} className={cn('text-xs', productInvalid && 'text-destructive')}>{t('point.product')}</Label>
@@ -203,6 +207,13 @@ export function PointDetailCard({ point, number, readOnly = false, showErrors = 
         <Label htmlFor={`${idPrefix}-notes`} className="text-xs">{t('point.notes')}</Label>
         <Textarea id={`${idPrefix}-notes`} value={point.notes ?? ''} onChange={(e) => onChange({ notes: e.target.value })} rows={2} className="resize-none text-sm" />
       </div>
+
+      {embedded && (
+        <Button type="button" size="sm" variant="ghost" className="h-8 self-end text-destructive hover:text-destructive" onClick={onDelete}>
+          <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+          {t('point.delete')}
+        </Button>
+      )}
     </div>
   );
 }

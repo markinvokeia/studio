@@ -389,7 +389,7 @@ function MapCanvas({
         aria-label={t(`views.${view}`)}
         tabIndex={adjusting ? 0 : undefined}
         className={cn(
-          'h-auto w-full touch-none select-none rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'h-auto max-h-[var(--aes-map-max-h,none)] w-full touch-none select-none rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring',
           adjusting ? 'cursor-move' : !readOnly && 'cursor-crosshair',
         )}
         onClick={handleBackgroundClick}
