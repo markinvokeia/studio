@@ -7,7 +7,8 @@
     "config.calendars"
   ],
   "inputs": {
-    "name": "Nombre"
+    "name": "Nombre",
+    "sede": "Nombre de la sede"
   },
   "keywords": [
     "nuevo calendario",
@@ -40,10 +41,11 @@
     },
     {
       "id": "sede_id",
-      "action": "highlight",
+      "action": "fill",
       "target": "config.calendars.field.sede_id",
       "title": "Sede",
-      "details": "Sede donde está."
+      "details": "Obligatoria: el consultorio sólo se ofrece en el horario de su sede.",
+      "value": "{{values.sede}}"
     },
     {
       "id": "color",

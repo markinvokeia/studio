@@ -5,7 +5,9 @@
   "module": "Purchases",
   "group": "Purchases from the provider",
   "inputs": {
-    "query": "Name, email or tax ID"
+    "query": "Name, email or tax ID",
+    "amount": "Amount (number)",
+    "payment_method": "Payment method (e.g. Cash)"
   },
   "keywords": [
     "record an advance to the provider",
@@ -34,6 +36,16 @@
       "id": "item",
       "title": "Record an advance to the provider",
       "details": "Create → Prepayment: money advanced that's applied to their invoices."
+    },
+    {
+      "id": "amount",
+      "title": "Amount",
+      "details": "Required: how much is advanced; it's later applied to their invoices."
+    },
+    {
+      "id": "method",
+      "title": "Payment method",
+      "details": "Required. Cash payments come out of the open cash register."
     },
     {
       "id": "save",

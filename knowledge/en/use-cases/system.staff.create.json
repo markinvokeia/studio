@@ -6,7 +6,8 @@
   "inputs": {
     "name": "Name",
     "email": "Email",
-    "phone": "Phone"
+    "phone": "Phone",
+    "role": "Role name (receptionist, administrator…)"
   },
   "keywords": [
     "new team member",
@@ -39,7 +40,7 @@
     {
       "id": "role_id",
       "title": "Role",
-      "details": "Defines what they can see and do."
+      "details": "Required: the role defines what they can see and do."
     },
     {
       "id": "identity_document",

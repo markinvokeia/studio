@@ -5,7 +5,8 @@
   "module": "Purchases",
   "inputs": {
     "name": "Name",
-    "price": "Reference price"
+    "price": "Reference price",
+    "category": "Expense category (e.g. Clinical Supply)"
   },
   "keywords": [
     "new product or service",
@@ -28,7 +29,8 @@
     },
     {
       "id": "category_id",
-      "title": "Category"
+      "title": "Category",
+      "details": "Required: the expense category it's grouped under in reports."
     },
     {
       "id": "price",

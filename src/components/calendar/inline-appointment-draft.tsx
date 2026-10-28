@@ -249,7 +249,8 @@ function TimeScrollSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-        <div className="max-h-48 overflow-y-auto py-1">
+        {/* Lista accesible: también la usa el asistente para elegir la hora que se le dicta. */}
+        <div role="listbox" className="max-h-48 overflow-y-auto py-1">
           {options.map((option) => {
             const isSelected = option.value === value;
             return (
@@ -257,6 +258,8 @@ function TimeScrollSelect({
                 key={option.value}
                 ref={isSelected ? selectedRef : undefined}
                 type="button"
+                role="option"
+                aria-selected={isSelected}
                 className={cn(
                   'flex h-7 w-full items-center gap-1.5 px-2 text-left text-xs hover:bg-accent',
                   isSelected && 'bg-accent font-semibold',

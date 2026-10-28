@@ -8,7 +8,8 @@
   ],
   "inputs": {
     "start_time": "Desde",
-    "end_time": "Hasta"
+    "end_time": "Hasta",
+    "days_of_week": "Lista de días, 0=domingo, 1=lunes … 6=sábado (ej. [1,2,3,4,5])"
   },
   "keywords": [
     "nuevo horario",
@@ -33,10 +34,11 @@
     },
     {
       "id": "days_of_week",
-      "action": "highlight",
+      "action": "fill",
       "target": "config.schedules.field.days_of_week",
       "title": "Días",
-      "details": "Elegí todos los días que comparten el mismo horario; al editar se edita de a un día."
+      "details": "Obligatorio: marcá todos los días con el mismo horario; se crea una franja por día.",
+      "value": "{{values.days_of_week}}"
     },
     {
       "id": "start_time",

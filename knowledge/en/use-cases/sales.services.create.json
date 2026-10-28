@@ -6,7 +6,8 @@
   "inputs": {
     "name": "Name",
     "price": "Price",
-    "duration_minutes": "Duration"
+    "duration_minutes": "Duration",
+    "category": "Category (e.g. Other services)"
   },
   "keywords": [
     "new service",
@@ -36,7 +37,7 @@
     {
       "id": "category_id",
       "title": "Category",
-      "details": "Groups services in reports and on the portal."
+      "details": "Required: groups services in lists, reports and on the portal."
     },
     {
       "id": "price",

@@ -5,7 +5,8 @@
   "module": "Purchases",
   "group": "Information",
   "inputs": {
-    "query": "Name, email or tax ID"
+    "query": "Name, email or tax ID",
+    "identity_document": "Document (numbers only, up to 10)"
   },
   "keywords": [
     "edit provider",
@@ -41,7 +42,8 @@
     },
     {
       "id": "doc",
-      "title": "Tax ID"
+      "title": "Tax ID",
+      "details": "Required: numbers only, up to 10 digits."
     },
     {
       "id": "bank",

@@ -28,7 +28,7 @@
     {
       "id": "date",
       "title": "Date and time",
-      "details": "When the call was made."
+      "details": "Required: when the call was made. Without a date and time it can't be recorded."
     },
     {
       "id": "notes",

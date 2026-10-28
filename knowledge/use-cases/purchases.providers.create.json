@@ -10,7 +10,8 @@
   "inputs": {
     "name": "Nombre",
     "email": "Correo",
-    "phone": "Teléfono"
+    "phone": "Teléfono",
+    "identity_document": "Documento (sólo números, hasta 10)"
   },
   "keywords": [
     "nuevo proveedor",
@@ -58,11 +59,11 @@
     },
     {
       "id": "doc",
-      "action": "highlight",
+      "action": "fill",
       "target": "purchases.providers.field.identity_document",
       "title": "RUT",
-      "details": "Necesario para registrar sus facturas.",
-      "skipIfMissing": true
+      "details": "Obligatorio: sólo números, hasta 10 dígitos. Se usa para registrar sus facturas.",
+      "value": "{{values.identity_document}}"
     },
     {
       "id": "address",

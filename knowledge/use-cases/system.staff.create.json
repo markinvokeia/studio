@@ -9,7 +9,8 @@
   "inputs": {
     "name": "Nombre",
     "email": "Correo",
-    "phone": "Teléfono"
+    "phone": "Teléfono",
+    "role": "Nombre del rol (recepcionista, administrador…)"
   },
   "keywords": [
     "nuevo persona del equipo",
@@ -56,11 +57,11 @@
     },
     {
       "id": "role_id",
-      "action": "highlight",
+      "action": "fill",
       "target": "system.staff.field.role_id",
       "title": "Rol",
-      "details": "Define qué puede ver y hacer.",
-      "skipIfMissing": true
+      "details": "Obligatorio: el rol define qué puede ver y hacer.",
+      "value": "{{values.role}}"
     },
     {
       "id": "identity_document",

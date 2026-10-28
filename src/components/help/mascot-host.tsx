@@ -38,8 +38,6 @@ const FINISHED_CLOSE_MS = 3200;
 const CHAT_NUDGE_MS = 11_000;
 /** Id de la locución de la guía (para cortarla sin cortar la lectura del chat). */
 const GUIDE_SPEECH_ID = 'guide-step';
-/** Parte de la mascota encima de lo señalado a partir de la cual deja pasar los clics. */
-const OVER_TARGET_RATIO = 0.35;
 /** Lo señalado desapareció (mismo plazo que la barra en GuideSpotlight): deja de señalar y avisa. */
 const LOST_AFTER_MS = 1200;
 
@@ -122,8 +120,8 @@ export function MascotHost({ children }: { children: React.ReactNode }) {
       onHomeChange={setHome}
       // El globo de cada paso no tapa la barra de pasos.
       bubbleAvoid="[data-help-bubble],[data-help-steps],[data-mascot-controls]"
-      // Tocarla durante una guía la vuelve a mostrar. Sólo si está parada encima de lo que
-      // señala deja pasar el clic (y el clic derecho o el arrastre) a la pantalla.
+      // Tocarla durante una guía la vuelve a mostrar. Con el puntero sobre lo que señala deja
+      // pasar el clic (y el clic derecho o el arrastre) a la pantalla.
       interactive={!guiding || !overTarget}
       canTalk={canSpeak && !voiceMuted}
     >
@@ -186,8 +184,21 @@ function MascotBridge({ onOverTargetChange }: { onOverTargetChange: (over: boole
   }, [isOpen, guideActive]);
 
   // Guías: viaja junto al elemento señalado y lo señala mientras el paso siga ahí.
+  // La mascota se arrima a lo que señala y a veces queda encima (el botón Guardar, un
+  // calendario entero). Con el puntero sobre lo señalado deja pasar el clic, el clic derecho
+  // y el arrastre a la pantalla; en el resto de su cuerpo se la puede tocar para ver la guía.
   React.useEffect(() => {
     if (!spotlight) { onOverTargetChange(false); return; }
+    const onMove = (e: PointerEvent) => {
+      const r = findHelpTarget(spotlight.targetId)?.highlight.getBoundingClientRect();
+      onOverTargetChange(!!r && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom);
+    };
+    document.addEventListener('pointermove', onMove, { capture: true, passive: true });
+    return () => { document.removeEventListener('pointermove', onMove, { capture: true }); onOverTargetChange(false); };
+  }, [spotlight, onOverTargetChange]);
+
+  React.useEffect(() => {
+    if (!spotlight) return;
     const controller = new AbortController();
     const { signal } = controller;
     (async () => {
@@ -202,11 +213,6 @@ function MascotBridge({ onOverTargetChange }: { onOverTargetChange: (over: boole
       const spot = menu
         ? placeGuideMascotBesideMenu(rect, menu, MASCOT_SIZE, [rectOf('[data-help-bubble]'), rectOf('[data-help-steps]')].filter((r): r is NonNullable<typeof r> => !!r))
         : placeGuideMascot(rect, MASCOT_SIZE);
-      const half = MASCOT_SIZE / 2;
-      // Se arrima al borde para que la mano llegue: sólo cuenta si queda bien encima (calendarios, páginas enteras).
-      const overlapX = Math.min(spot.x + half, rect.right) - Math.max(spot.x - half, rect.left);
-      const overlapY = Math.min(spot.y + half, rect.bottom) - Math.max(spot.y - half, rect.top);
-      onOverTargetChange(overlapX > 0 && overlapY > 0 && (overlapX * overlapY) / (MASCOT_SIZE * MASCOT_SIZE) > OVER_TARGET_RATIO);
       await mRef.current.travelTo(spot, { animation: 'auto', speed: spotlight.mode === 'action' ? 2 : 1.4 });
       if (signal.aborted) return;
       // El texto del paso sale del globo de la propia mascota mientras señala y, con la voz
@@ -235,7 +241,7 @@ function MascotBridge({ onOverTargetChange }: { onOverTargetChange: (over: boole
       controller.abort();
       if (useAssistantVoice.getState().speakingId === GUIDE_SPEECH_ID) stopAssistantSpeech();
     };
-  }, [spotlight, locale, onOverTargetChange, t]);
+  }, [spotlight, locale, t]);
 
   // Mientras algo carga, cara de "cargando": la guía esperando una pantalla o un
   // elemento, o una navegación del menú que tarda (en desarrollo, compila la página).

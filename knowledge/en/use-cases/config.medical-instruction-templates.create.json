@@ -4,7 +4,8 @@
   "summary": "New instruction template.",
   "module": "Business Setup",
   "inputs": {
-    "name": "Name"
+    "name": "Name",
+    "content": "Instruction content (text, variables allowed)"
   },
   "keywords": [
     "new instruction template",
@@ -33,7 +34,7 @@
     {
       "id": "content_html",
       "title": "Content",
-      "details": "Text with variables ({paciente}, {fecha}…) that fill in on their own."
+      "details": "Required: the text given to the patient. Variables ({paciente}, {fecha}…) fill in on their own."
     },
     {
       "id": "is_active",

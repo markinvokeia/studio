@@ -10,7 +10,8 @@
   "inputs": {
     "patient": "Nombre, correo o documento del paciente",
     "amount": "Monto",
-    "notes": "Notas"
+    "notes": "Notas",
+    "payment_method": "Medio de pago (ej. Efectivo)"
   },
   "keywords": [
     "prepago",
@@ -78,10 +79,11 @@
     },
     {
       "id": "method",
-      "action": "highlight",
+      "action": "fill",
       "target": "patients.field.payment_method_id",
       "title": "Medio de pago",
-      "details": "Efectivo suma al arqueo de caja."
+      "details": "Obligatorio. Efectivo suma al arqueo de la caja abierta.",
+      "value": "{{values.payment_method}}"
     },
     {
       "id": "notes",

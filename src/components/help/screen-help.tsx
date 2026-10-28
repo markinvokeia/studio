@@ -1,11 +1,13 @@
 'use client';
 
-import { ChevronRight, Eye, Info, Lightbulb, ListChecks, ListTree, PlayCircle, Route } from 'lucide-react';
+import { ChevronRight, Eye, Info, Lightbulb, ListChecks, ListTree, PlayCircle, Route, Video } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
+
+import { HelpVideoThumb } from '@/components/help/help-video-thumb';
 
 import { useCurrentHelpRoute } from '@/hooks/use-current-help-route';
 import { findScreen, findUseCase, screenTour } from '@/lib/help/catalog';
@@ -13,17 +15,24 @@ import { findHelpTarget } from '@/lib/help/guide-engine';
 import { startGuide } from '@/lib/help/guide-runner';
 import { cn } from '@/lib/utils';
 import { useHelpAssistant } from '@/stores/help-assistant-store';
+import { useHelpVideo, useHelpVideoList } from '@/stores/help-video-store';
 
-import type { HelpCatalog, HelpCatalogElement } from '@/lib/types';
+import type { HelpCatalog, HelpCatalogElement, HelpVideo } from '@/lib/types';
 
 /** "¿Qué es esto?": la ficha de la pantalla actual, desde el catálogo. */
 export function ScreenHelp({ catalog }: { catalog: HelpCatalog }) {
   const t = useTranslations('HelpAssistant.screen');
+  const tChat = useTranslations('HelpAssistant.chat');
   const router = useRouter();
   const locale = useLocale();
   const { scope } = useCurrentHelpRoute();
   const setSpotlight = useHelpAssistant((s) => s.setSpotlight);
   const screen = findScreen(catalog, scope);
+  // Videos grabados (uno por guía, en el idioma de la app o el español): "Ver video" junto a "Guiarme".
+  const videos = useHelpVideoList((s) => s.byLocale[locale]);
+  const loadVideos = useHelpVideoList((s) => s.load);
+  React.useEffect(() => { loadVideos(locale); }, [loadVideos, locale]);
+  const openVideo = useHelpVideo((s) => s.open);
 
   // Sólo se ofrece "Mostrar" para lo que está en pantalla ahora (un diálogo cerrado no se puede resaltar).
   const [visibleIds, setVisibleIds] = React.useState<Set<string>>(new Set());
@@ -66,6 +75,7 @@ export function ScreenHelp({ catalog }: { catalog: HelpCatalog }) {
     else groups.push({ name: u.group, items: [u] });
     return groups;
   }, []);
+  const tourVideo = videos?.[`tour.${screen.id}`];
   const prerequisites = (screen.prerequisites ?? []).map((id) => findScreen(catalog, id)).filter((s) => !!s);
 
   return (
@@ -85,10 +95,18 @@ export function ScreenHelp({ catalog }: { catalog: HelpCatalog }) {
 
       <div className="flex flex-col gap-1.5">
         {tour && (
-          <Button size="sm" className="h-8 justify-start gap-1.5 text-xs" onClick={() => startGuide(tour, { returnTo: 'screen' })}>
-            <Route className="h-3.5 w-3.5" />
-            {t('tourCta')}
-          </Button>
+          <div className="flex gap-1.5">
+            <Button size="sm" className="h-8 flex-1 justify-start gap-1.5 text-xs" onClick={() => startGuide(tour, { returnTo: 'screen' })}>
+              <Route className="h-3.5 w-3.5" />
+              {t('tourCta')}
+            </Button>
+            {tourVideo && (
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => openVideo({ ...tourVideo, title: tour.title })}>
+                <Video className="h-3.5 w-3.5" />
+                {tChat('watchVideo')}
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
@@ -116,10 +134,17 @@ export function ScreenHelp({ catalog }: { catalog: HelpCatalog }) {
                   {isOpen && (
                     <div className={cn('flex flex-col gap-1', group.name && 'pl-2')}>
                       {group.items.map((u) => (
-                        <Button key={u.id} variant="outline" size="sm" className="h-auto justify-start whitespace-normal py-1.5 text-left text-xs"
-                          onClick={() => startGuide({ title: u.title, steps: u.steps }, { useCaseId: u.id, returnTo: 'screen' })}>
-                          {u.title}
-                        </Button>
+                        <GuideRow
+                          key={u.id}
+                          title={u.title}
+                          video={videos?.[u.id]}
+                          guideLabel={tChat('guideMe')}
+                          videoLabel={tChat('watchVideo')}
+                          videoOfLabel={tChat('watchVideoOf', { title: u.title })}
+                          locale={locale}
+                          onGuide={() => startGuide({ title: u.title, steps: u.steps }, { useCaseId: u.id, returnTo: 'screen' })}
+                          onVideo={(v) => openVideo({ ...v, title: u.title })}
+                        />
                       ))}
                     </div>
                   )}
@@ -181,6 +206,42 @@ export function ScreenHelp({ catalog }: { catalog: HelpCatalog }) {
 }
 
 /** Título de una sección que se abre y cierra (Guías de esta pantalla, Campos y botones). */
+/** Una guía de la pantalla: Guiarme y, si está grabada, su miniatura y Ver video (como en el chat). */
+function GuideRow({ title, video, guideLabel, videoLabel, videoOfLabel, locale, onGuide, onVideo }: {
+  title: string;
+  video?: HelpVideo;
+  guideLabel: string;
+  videoLabel: string;
+  videoOfLabel: string;
+  locale: string;
+  onGuide: () => void;
+  onVideo: (video: HelpVideo) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border p-1.5">
+      {video && <HelpVideoThumb video={video} label={videoOfLabel} onPlay={() => onVideo(video)} />}
+      <div className="min-w-0 flex-1 space-y-1 px-0.5">
+        <p className="text-xs font-medium leading-snug">{title}</p>
+        <div className="flex flex-wrap gap-1">
+          <Button size="sm" className="h-6 gap-1 rounded-full px-2 text-[11px]" onClick={onGuide}>
+            <PlayCircle className="h-3 w-3" />
+            {guideLabel}
+          </Button>
+          {video && (
+            <Button size="sm" variant="outline" className="h-6 gap-1 rounded-full px-2 text-[11px]" onClick={() => onVideo(video)}>
+              <Video className="h-3 w-3" />
+              {videoLabel}
+              {video.locale && video.locale.slice(0, 2) !== locale.slice(0, 2) && (
+                <span className="rounded bg-muted px-1 text-[9px] font-semibold uppercase text-muted-foreground">{video.locale.slice(0, 2)}</span>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SectionToggle({ icon: Icon, label, count, open, onToggle }: { icon: React.ComponentType<{ className?: string }>; label: string; count: number; open: boolean; onToggle: () => void }) {
   return (
     <button

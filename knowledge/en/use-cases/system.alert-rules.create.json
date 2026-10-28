@@ -5,7 +5,10 @@
   "module": "System",
   "inputs": {
     "name": "Name",
-    "code": "Code"
+    "code": "Code",
+    "category": "Category name (e.g. Appointments)",
+    "source_table": "Source table (e.g. appointments)",
+    "table_id_field": "Table ID field (e.g. id)"
   },
   "keywords": [
     "new rule",
@@ -33,12 +36,17 @@
     {
       "id": "category_id",
       "title": "Category",
-      "details": "Where it shows in the Alerts Center."
+      "details": "Required: which group of the Alerts Center its alerts show in."
     },
     {
       "id": "source_table",
       "title": "Source",
-      "details": "Where the cases come from (appointments, invoices, patients…)."
+      "details": "Required: where the cases come from (appointments, invoices, patients…)."
+    },
+    {
+      "id": "table_id_field",
+      "title": "ID field",
+      "details": "Required: the column that identifies each case in the table (almost always «id»)."
     },
     {
       "id": "event_field",

@@ -383,6 +383,8 @@ export default function AlertRulesPage() {
             whatsapp_template_id: rule.whatsapp_template_id ? parseInt(rule.whatsapp_template_id) : undefined,
             user_id_field: (rule as any).user_id_field || '',
             event_field: rule.event_field || '',
+            // El backend manda null cuando la regla no tiene recurrencia: el esquema sólo acepta un valor o nada.
+            recurrence_type: rule.recurrence_type ?? undefined,
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -415,6 +417,8 @@ export default function AlertRulesPage() {
             whatsapp_template_id: rule.whatsapp_template_id ? parseInt(rule.whatsapp_template_id) : undefined,
             user_id_field: (rule as any).user_id_field || '',
             event_field: rule.event_field || '',
+            // El backend manda null cuando la regla no tiene recurrencia: el esquema sólo acepta un valor o nada.
+            recurrence_type: rule.recurrence_type ?? undefined,
         });
         setSubmissionError(null);
         setIsDialogOpen(true);

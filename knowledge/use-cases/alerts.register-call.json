@@ -39,10 +39,9 @@
       "action": "fill",
       "target": "alerts.field.call-date",
       "value": "{{values.date}}",
-      "optional": true,
       "ask": true,
       "title": "Fecha y hora",
-      "details": "Cuándo se hizo la llamada."
+      "details": "Obligatorio: cuándo se hizo la llamada. Sin fecha y hora no se puede registrar."
     },
     {
       "id": "notes",

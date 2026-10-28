@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { test, type Browser, type Page } from '@playwright/test';
 
 import { confirmsInRuns, driveGuide, helpCatalogTexts, openForGuide, runOrder, useCaseRoute, type HelpLocale } from '../utils/help';
-import { DEMO_VALUES } from './demo-values';
+import { demoValuesFor } from './demo-values';
 
 /**
  * Graba cada guía ejecutada por el asistente real: la mascota señalando, la burbuja
@@ -45,6 +45,7 @@ const VIDEO_TEXT = {
 /** Sufijo de los archivos de la grabación: el español sin sufijo (como siempre), el inglés `.en`. */
 const FILE_SUFFIX = LOCALE === 'es' ? '' : `.${LOCALE}`;
 const { useCases: USE_CASES, menuScreens: MENU_SCREENS } = helpCatalogTexts(LOCALE);
+const DEMO_VALUES = demoValuesFor(LOCALE);
 
 interface Segment { index: number; title: string; description?: string; details?: string; action: string; t: number }
 interface Outro { title: string; summary?: string; purpose?: string; tips: string[] }
@@ -203,8 +204,11 @@ async function record(browser: Browser, baseURL: string, rec: Recording) {
   const result = await driveGuide(page, rec.id, {
     mode: 'video',
     values: rec.values ?? {},
-    confirm: CONFIRM && confirmsInRuns(rec.id),
+    // Editar o eliminar sólo se confirma sobre lo que creó la corrida (su nombre único, `query`).
+    confirm: CONFIRM && confirmsInRuns(rec.id) && (!/\.(edit|delete)$/.test(rec.id) || typeof rec.values?.query === 'string'),
     screenTour: rec.screenTour,
+    // Editar y eliminar sólo sobre lo que creó la guía de alta (valor `query` de demo-values).
+    expectRow: /\.(edit|delete)$/.test(rec.id) && typeof rec.values?.query === 'string' ? rec.values.query : undefined,
     beforeClick: showClick,
     onStep: (step, index) => segments.push({ index, title: step.title, description: step.description, details: step.details, action: step.action, t: Date.now() - t0 + INTRO_MS }),
   });

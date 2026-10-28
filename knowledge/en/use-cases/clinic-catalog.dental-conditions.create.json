@@ -4,7 +4,8 @@
   "summary": "New entry in the dental conditions catalog.",
   "module": "Clinic Catalog",
   "inputs": {
-    "name": "Name"
+    "name": "Name",
+    "visual_code": "Visual code (short, e.g. CAV)"
   },
   "keywords": [
     "new dental condition",
@@ -27,7 +28,7 @@
     {
       "id": "codigo_visual",
       "title": "Visual code",
-      "details": "How it's drawn on the tooth."
+      "details": "Required: the short code it's drawn with on the odontogram."
     },
     {
       "id": "color_hex",

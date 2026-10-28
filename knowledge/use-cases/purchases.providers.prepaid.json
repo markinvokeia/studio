@@ -8,7 +8,9 @@
   ],
   "group": "Compras al proveedor",
   "inputs": {
-    "query": "Nombre, correo o RUT"
+    "query": "Nombre, correo o RUT",
+    "amount": "Monto (número)",
+    "payment_method": "Medio de pago (ej. Efectivo)"
   },
   "keywords": [
     "registrar un anticipo al proveedor",
@@ -54,6 +56,22 @@
       "title": "Registrar un anticipo al proveedor",
       "details": "Crear → Prepago: dinero adelantado que se aplica a sus facturas.",
       "until": "purchases.providers.btn.submit"
+    },
+    {
+      "id": "amount",
+      "action": "fill",
+      "target": "purchases.providers.field.payment_amount",
+      "value": "{{values.amount}}",
+      "title": "Monto",
+      "details": "Obligatorio: cuánto se le adelanta; después se aplica a sus facturas."
+    },
+    {
+      "id": "method",
+      "action": "fill",
+      "target": "purchases.providers.field.payment_method_id",
+      "value": "{{values.payment_method}}",
+      "title": "Medio de pago",
+      "details": "Obligatorio. Los pagos en efectivo salen de la caja abierta."
     },
     {
       "id": "save",

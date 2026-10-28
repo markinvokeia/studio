@@ -7,7 +7,8 @@
     "clinic-catalog.dental-surfaces"
   ],
   "inputs": {
-    "name": "Nombre"
+    "name": "Nombre",
+    "code": "Código (ej. O, M, D)"
   },
   "keywords": [
     "nuevo superficie dental",
@@ -37,10 +38,11 @@
     },
     {
       "id": "codigo",
-      "action": "highlight",
+      "action": "fill",
       "target": "clinic-catalog.dental-surfaces.field.codigo",
       "title": "Código",
-      "skipIfMissing": true
+      "value": "{{values.code}}",
+      "details": "Obligatorio: el código corto de la cara de la pieza."
     },
     {
       "id": "save",

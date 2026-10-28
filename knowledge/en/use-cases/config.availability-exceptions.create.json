@@ -21,7 +21,8 @@
     },
     {
       "id": "user_id",
-      "title": "Doctor"
+      "title": "Doctor",
+      "details": "Required: the exception only applies to this doctor."
     },
     {
       "id": "dates",
@@ -46,5 +47,8 @@
       "id": "save",
       "title": "Save"
     }
-  ]
+  ],
+  "inputs": {
+    "doctor": "Doctor name"
+  }
 }

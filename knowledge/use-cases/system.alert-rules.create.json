@@ -8,7 +8,10 @@
   ],
   "inputs": {
     "name": "Nombre",
-    "code": "Código"
+    "code": "Código",
+    "category": "Nombre de la categoría (ej. Citas)",
+    "source_table": "Tabla de origen (ej. appointments)",
+    "table_id_field": "Campo de ID de la tabla (ej. id)"
   },
   "keywords": [
     "nueva regla",
@@ -46,19 +49,27 @@
     },
     {
       "id": "category_id",
-      "action": "highlight",
+      "action": "fill",
       "target": "system.alert-rules.field.category_id",
       "title": "Categoría",
-      "details": "Dónde aparece en el Centro de Alertas.",
-      "skipIfMissing": true
+      "details": "Obligatoria: en qué grupo del Centro de Alertas aparecen sus alertas.",
+      "value": "{{values.category}}"
     },
     {
       "id": "source_table",
-      "action": "highlight",
+      "action": "fill",
       "target": "system.alert-rules.field.source_table",
       "title": "Origen",
-      "details": "De dónde salen los casos (citas, facturas, pacientes…).",
-      "skipIfMissing": true
+      "details": "Obligatoria: de dónde salen los casos (citas, facturas, pacientes…).",
+      "value": "{{values.source_table}}"
+    },
+    {
+      "id": "table_id_field",
+      "action": "fill",
+      "target": "system.alert-rules.field.table_id_field",
+      "value": "{{values.table_id_field}}",
+      "title": "Campo de ID",
+      "details": "Obligatorio: la columna que identifica cada caso de la tabla (casi siempre «id»)."
     },
     {
       "id": "event_field",

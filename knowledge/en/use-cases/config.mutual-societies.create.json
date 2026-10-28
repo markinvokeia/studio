@@ -4,7 +4,8 @@
   "summary": "New mutual society.",
   "module": "Business Setup",
   "inputs": {
-    "name": "Name"
+    "name": "Name",
+    "code": "Short code (e.g. MDE)"
   },
   "keywords": [
     "new mutual society",
@@ -28,7 +29,8 @@
     },
     {
       "id": "code",
-      "title": "Code"
+      "title": "Code",
+      "details": "Required: a unique abbreviation for reports and billing."
     },
     {
       "id": "description",

@@ -5,7 +5,8 @@
   "module": "Business Setup",
   "inputs": {
     "start_time": "From",
-    "end_time": "Until"
+    "end_time": "Until",
+    "days_of_week": "List of days, 0=Sunday, 1=Monday … 6=Saturday (e.g. [1,2,3,4,5])"
   },
   "keywords": [
     "new schedule",
@@ -26,7 +27,7 @@
     {
       "id": "days_of_week",
       "title": "Days",
-      "details": "Choose all the days that share the same hours; when editing, one day is edited at a time."
+      "details": "Required: check all the days with the same hours; one time range is created per day."
     },
     {
       "id": "start_time",

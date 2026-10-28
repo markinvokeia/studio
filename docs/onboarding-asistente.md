@@ -197,7 +197,9 @@ tiene la base de conocimiento de *su* versión del frontend, sin secretos de CI.
   - **Guíame en esta pantalla**: siempre presente, destacado si llegaste a una
     pantalla nueva desde la última vez que abriste el chat. Abre la ficha de la
     ruta actual: recorrido completo (`screenTour`), sus guías y cada elemento con
-    "Mostrar".
+    "Mostrar". Cada guía (y el recorrido) tiene **Guiarme** y, si está grabada, su
+    miniatura y **Ver video**: los videos salen de `GET help/videos` (`useHelpVideoList`,
+    una vez por idioma), así están a mano desde cualquier pantalla sin preguntar en el chat.
   - Preguntas con dictado por voz (Web Speech API). Las guías son **predefinidas**:
     el agente nunca arma pasos, devuelve hasta 3 `useCaseIds` (la más parecida
     primero, preferentemente de la pantalla actual) y la respuesta las ofrece cada
@@ -398,6 +400,7 @@ Generados por `pnpm n8n:help` (no editar los JSON):
 | `POST help/videos/request` | `help-video-request.json` |
 | `POST help/videos/queue` | `help-video-queue.json` (worker) |
 | `POST help/videos/register` | `help-video-register.json` (publicar / fallido / desactualizado) |
+| `GET help/videos?locale=` | `help-videos.json` (un video por guía, del idioma pedido o el español; lo usa la ficha de la pantalla) |
 | `GET help/insights` | `help-insights.json` |
 | `POST help/support/update` | `help-support-update.json` |
 

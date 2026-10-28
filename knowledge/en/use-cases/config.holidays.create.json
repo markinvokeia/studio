@@ -4,7 +4,8 @@
   "summary": "New exception schedule.",
   "module": "Business Setup",
   "inputs": {
-    "notes": "Notes"
+    "notes": "Notes",
+    "dates": "List of dates YYYY-MM-DD (e.g. [\"2027-01-06\"])"
   },
   "keywords": [
     "new exception schedule",
@@ -35,7 +36,7 @@
     {
       "id": "dates",
       "title": "Dates",
-      "details": "For a one-off exception, you can mark several days."
+      "details": "Required: the day of the holiday or closure. For a one-off exception you can mark several days."
     },
     {
       "id": "sede_id",

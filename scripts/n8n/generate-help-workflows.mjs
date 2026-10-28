@@ -264,6 +264,33 @@ return [{ json: { body: { mascot_visible } } }];`),
   ],
 );
 
+// ─── GET help/videos ─────────────────────────────────────────────────────────
+
+const videosList = workflow(
+  'Help - Videos',
+  `${REQUIRED_SETUP()}
+
+RUTA: GET /webhook/help/videos?locale=es|es-ES|en (Authorization: Bearer <JWT>)
+RESPUESTA: { videos: [{ useCaseId, url, title, durationSeconds, locale }] }
+Un video por guía (o recorrido tour.<pantalla>): el del idioma pedido y, si no hay,
+el español. Lo usa la ficha de la pantalla ("Guías de esta pantalla") para ofrecer
+"Ver video" junto a "Guiarme" sin pasar por el chat.`,
+  [
+    webhook('help/videos', 'GET'),
+    code('node-auth', 'Extraer User ID', `${JWT_DECODE}
+const locale = ['es', 'es-ES', 'en'].includes(input.query?.locale) ? input.query.locale : 'es';
+return [{ json: { user_id: String(userId), locale } }];`),
+    pg('node-pg-videos', 'Leer Videos', `SELECT COALESCE(jsonb_agg(jsonb_build_object('useCaseId', use_case_id, 'url', url, 'title', title, 'durationSeconds', duration_seconds, 'locale', locale) ORDER BY use_case_id), '[]'::jsonb) AS videos
+  FROM (SELECT DISTINCT ON (use_case_id) use_case_id, url, title, duration_seconds, locale FROM public.help_videos
+         WHERE status = 'ready'
+         ORDER BY use_case_id, (locale = $1) DESC, (left(locale, 2) = left($1, 2)) DESC, (locale = 'es') DESC, recorded_at DESC) v;`, "={{ [ $json.locale ] }}"),
+    code('node-format', 'Formatear Respuesta', `const row = $input.first()?.json || {};
+if (row.error) throw new Error('Error en base de datos: ' + (row.error?.message || String(row.error)));
+return [{ json: { body: { videos: Array.isArray(row.videos) ? row.videos : [] } } }];`),
+    respond(),
+  ],
+);
+
 // ─── POST help/catalog/sync ──────────────────────────────────────────────────
 
 const catalogSync = workflow(
@@ -945,6 +972,7 @@ const files = {
   'help-onboarding-progress.json': onboardingProgress,
   'help-catalog-version.json': catalogVersion,
   'help-settings.json': settings,
+  'help-videos.json': videosList,
   'help-catalog-sync.json': catalogSync,
   'help-assistant-chat.json': assistantChat,
   'help-assistant-feedback.json': assistantFeedback,

@@ -7,7 +7,8 @@
     "config.prescription-templates"
   ],
   "inputs": {
-    "name": "Nombre"
+    "name": "Nombre",
+    "content": "Contenido de la receta (texto, admite variables)"
   },
   "keywords": [
     "nuevo plantilla de receta",
@@ -46,9 +47,11 @@
     },
     {
       "id": "content_html",
-      "action": "highlight",
+      "action": "fill",
       "target": "config.prescription-templates.field.content_html",
-      "title": "Contenido"
+      "title": "Contenido",
+      "value": "{{values.content}}",
+      "details": "Obligatorio: el cuerpo de la receta. Las variables ({paciente}, {fecha}…) se completan solas al recetar."
     },
     {
       "id": "is_active",

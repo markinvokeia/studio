@@ -7,7 +7,8 @@
     "config.holidays"
   ],
   "inputs": {
-    "notes": "Notas"
+    "notes": "Notas",
+    "dates": "Lista de fechas AAAA-MM-DD (ej. [\"2027-01-06\"])"
   },
   "keywords": [
     "nuevo horario de excepción",
@@ -47,11 +48,11 @@
     },
     {
       "id": "dates",
-      "action": "highlight",
+      "action": "fill",
       "target": "config.holidays.field.dates",
       "title": "Fechas",
-      "details": "Para una excepción que no se repite, se pueden marcar varios días.",
-      "skipIfMissing": true
+      "details": "Obligatorio: el día del feriado o cierre. Para una excepción puntual podés marcar varios días.",
+      "value": "{{values.dates}}"
     },
     {
       "id": "sede_id",

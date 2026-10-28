@@ -7,7 +7,8 @@
   "inputs": {
     "name": "Name",
     "email": "Email",
-    "phone": "Phone"
+    "phone": "Phone",
+    "identity_document": "Document (numbers only, up to 10)"
   },
   "keywords": [
     "new provider",
@@ -40,7 +41,7 @@
     {
       "id": "doc",
       "title": "Tax ID",
-      "details": "Needed to record their invoices."
+      "details": "Required: numbers only, up to 10 digits. It's used to record their invoices."
     },
     {
       "id": "address",

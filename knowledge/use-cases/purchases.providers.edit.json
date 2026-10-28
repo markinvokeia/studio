@@ -8,7 +8,8 @@
   ],
   "group": "Información",
   "inputs": {
-    "query": "Nombre, correo o RUT"
+    "query": "Nombre, correo o RUT",
+    "identity_document": "Documento (sólo números, hasta 10)"
   },
   "keywords": [
     "editar proveedor",
@@ -62,10 +63,11 @@
     },
     {
       "id": "doc",
-      "action": "highlight",
+      "action": "fill",
       "target": "purchases.providers.detail.field.identity_document",
       "title": "RUT",
-      "skipIfMissing": true
+      "value": "{{values.identity_document}}",
+      "details": "Obligatorio: sólo números, hasta 10 dígitos."
     },
     {
       "id": "bank",

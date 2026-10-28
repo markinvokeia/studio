@@ -4,7 +4,8 @@
   "summary": "New entry in the dental surfaces catalog.",
   "module": "Clinic Catalog",
   "inputs": {
-    "name": "Name"
+    "name": "Name",
+    "code": "Code (e.g. O, M, D)"
   },
   "keywords": [
     "new dental surface",
@@ -26,7 +27,8 @@
     },
     {
       "id": "codigo",
-      "title": "Code"
+      "title": "Code",
+      "details": "Required: the short code of the tooth surface."
     },
     {
       "id": "save",

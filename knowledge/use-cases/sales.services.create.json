@@ -9,7 +9,8 @@
   "inputs": {
     "name": "Nombre",
     "price": "Precio",
-    "duration_minutes": "Duración"
+    "duration_minutes": "Duración",
+    "category": "Categoría (ej. Otros servicios)"
   },
   "keywords": [
     "nuevo servicio",
@@ -50,11 +51,11 @@
     },
     {
       "id": "category_id",
-      "action": "highlight",
+      "action": "fill",
       "target": "sales.services.field.category_id",
       "title": "Categoría",
-      "details": "Agrupa servicios en reportes y en el portal.",
-      "skipIfMissing": true
+      "details": "Obligatoria: agrupa los servicios en las listas, en los reportes y en el portal.",
+      "value": "{{values.category}}"
     },
     {
       "id": "price",

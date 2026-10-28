@@ -4,7 +4,9 @@
   "summary": "New permission.",
   "module": "System",
   "inputs": {
-    "name": "Name"
+    "name": "Name",
+    "action": "Action: Create | Read | Save | Delete | Manage",
+    "resource": "Resource (e.g. reports)"
   },
   "keywords": [
     "new permission",
@@ -26,11 +28,13 @@
     },
     {
       "id": "action",
-      "title": "Action"
+      "title": "Action",
+      "details": "Required: what is enabled on the resource (view, create, edit, delete or everything)."
     },
     {
       "id": "resource",
-      "title": "Resource"
+      "title": "Resource",
+      "details": "Required: the screen or data the action is enabled on."
     },
     {
       "id": "description",

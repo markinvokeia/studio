@@ -7,7 +7,9 @@
     "permissions"
   ],
   "inputs": {
-    "name": "Nombre"
+    "name": "Nombre",
+    "action": "Acción: Crear | Leer | Guardar | Eliminar | Gestionar",
+    "resource": "Recurso (ej. reports)"
   },
   "keywords": [
     "nuevo permiso",
@@ -37,17 +39,19 @@
     },
     {
       "id": "action",
-      "action": "highlight",
+      "action": "fill",
       "target": "permissions.field.action",
       "title": "Acción",
-      "skipIfMissing": true
+      "value": "{{values.action}}",
+      "details": "Obligatoria: qué se habilita sobre el recurso (ver, crear, editar, borrar o todo)."
     },
     {
       "id": "resource",
-      "action": "highlight",
+      "action": "fill",
       "target": "permissions.field.resource",
       "title": "Recurso",
-      "skipIfMissing": true
+      "value": "{{values.resource}}",
+      "details": "Obligatorio: la pantalla o el dato sobre el que se habilita la acción."
     },
     {
       "id": "description",

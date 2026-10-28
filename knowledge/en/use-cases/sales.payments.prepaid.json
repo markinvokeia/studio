@@ -6,7 +6,8 @@
   "inputs": {
     "party": "Patient",
     "amount": "Amount",
-    "notes": "Notes"
+    "notes": "Notes",
+    "payment_method": "Payment method (e.g. Cash)"
   },
   "keywords": [
     "prepayment",
@@ -40,7 +41,7 @@
     {
       "id": "method",
       "title": "Payment method",
-      "details": "Cash payments add to the open cash register's cash count."
+      "details": "Required. Cash adds to the open cash register's cash count."
     },
     {
       "id": "date",

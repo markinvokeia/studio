@@ -29,9 +29,11 @@
     },
     {
       "id": "user_id",
-      "action": "highlight",
+      "action": "fill",
       "target": "config.availability-exceptions.field.user_id",
-      "title": "Profesional"
+      "title": "Profesional",
+      "value": "{{values.doctor}}",
+      "details": "Obligatorio: la excepción aplica sólo a este profesional."
     },
     {
       "id": "dates",
@@ -69,5 +71,8 @@
       "target": "config.availability-exceptions.btn.submit",
       "title": "Guardar"
     }
-  ]
+  ],
+  "inputs": {
+    "doctor": "Nombre del profesional"
+  }
 }

@@ -571,6 +571,8 @@ export const API_ROUTES = {
         CATALOG_SYNC:        '/help/catalog/sync',
         /** Pide el video de un caso de uso (lo genera el worker de scripts/videos). */
         VIDEO_REQUEST:       '/help/videos/request',
+        /** Videos publicados, uno por guía, en el idioma pedido (o el español). */
+        VIDEOS:              '/help/videos',
         /** Panel de métricas del asistente (HELP_INSIGHTS_VIEW). */
         INSIGHTS:            '/help/insights',
         /** Resolver/ignorar una pregunta o cambiar el estado de un ticket. */

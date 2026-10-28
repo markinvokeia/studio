@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart2, Calendar, ChevronRight, Compass, ListChecks, Mic, Play, PlayCircle, Plug, Route, SendHorizontal, Square, ThumbsDown, ThumbsUp, Users, Video, Volume2, Wallet } from 'lucide-react';
+import { BarChart2, Calendar, ChevronRight, Compass, ListChecks, Mic, PlayCircle, Plug, Route, SendHorizontal, Square, ThumbsDown, ThumbsUp, Users, Video, Volume2, Wallet } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 
 import { useMascot } from '@/components/invoke-mascot';
 
+import { HelpVideoThumb } from '@/components/help/help-video-thumb';
+
 import { isSpeechSupported, speakAssistant, stopAssistantSpeech, useAssistantVoice } from '@/hooks/use-assistant-voice';
 import { useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useCurrentHelpRoute } from '@/hooks/use-current-help-route';
@@ -16,12 +18,11 @@ import { useSpeechDictation } from '@/hooks/use-speech-dictation';
 import { resolveReplyActions, searchCatalogLocally, videoKeyOf, type ResolvedGuide } from '@/lib/help/catalog';
 import { collectVisibleTargets } from '@/lib/help/guide-engine';
 import { startGuide } from '@/lib/help/guide-runner';
-import { formatVideoTime, helpVideoSource } from '@/lib/help/video-source';
 import { cn } from '@/lib/utils';
 import { isAbortError } from '@/services/api';
 import { askAssistant, sendAssistantFeedback } from '@/services/help-assistant';
 import { useHelpAssistant, type HelpChatMessage } from '@/stores/help-assistant-store';
-import { useHelpVideo } from '@/stores/help-video-store';
+import { useHelpVideo, useHelpVideoList } from '@/stores/help-video-store';
 
 import type { HelpAssistantReply, HelpCatalog, HelpVideo } from '@/lib/types';
 
@@ -60,40 +61,13 @@ function hasValues(reply: HelpAssistantReply) {
 }
 
 /** El video grabado de una guía propuesta (los manda el agente en `videos`). */
-function videoFor(reply: HelpAssistantReply, guide: ResolvedGuide): HelpVideo | undefined {
+function videoFor(reply: HelpAssistantReply, guide: ResolvedGuide, listed?: Record<string, HelpVideo>): HelpVideo | undefined {
   const key = videoKeyOf(guide);
   if (!key) return undefined;
-  const video = reply.videos?.find((v) => v.useCaseId === key);
+  // Los que manda el agente; si no, la lista de videos publicados (GET help/videos).
+  const video = reply.videos?.find((v) => v.useCaseId === key) ?? listed?.[key];
   if (video) return video;
   return key === reply.useCaseId && reply.videoUrl ? { useCaseId: key, url: reply.videoUrl, title: guide.title } : undefined;
-}
-
-/** Miniatura del video: al tocarla se abre el reproductor flotante de Invoke. */
-function VideoThumb({ video, label, onPlay }: { video: HelpVideo; label: string; onPlay: () => void }) {
-  const [broken, setBroken] = React.useState(false);
-  const poster = helpVideoSource(video.url).poster;
-  return (
-    <button
-      type="button"
-      onClick={onPlay}
-      aria-label={label}
-      title={label}
-      className="group relative aspect-video w-24 flex-none overflow-hidden rounded-lg bg-gradient-to-br from-[#5B21B6] to-[#A855F7] shadow-sm"
-    >
-      {!broken && (
-        // eslint-disable-next-line @next/next/no-img-element -- miniatura externa (Drive / bucket), sin optimizar
-        <img src={poster} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} className="h-full w-full object-cover" />
-      )}
-      <span className="absolute inset-0 flex items-center justify-center bg-black/15 transition-colors group-hover:bg-black/30">
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-[#7C3AED] shadow">
-          <Play className="ml-0.5 h-3.5 w-3.5 fill-current" />
-        </span>
-      </span>
-      {video.durationSeconds ? (
-        <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1 text-[9px] font-medium tabular-nums text-white">{formatVideoTime(video.durationSeconds)}</span>
-      ) : null}
-    </button>
-  );
 }
 
 interface HelpChatProps {
@@ -123,6 +97,9 @@ export function HelpChat({ catalog, pendingSteps, screenTitle, highlightScreen, 
   const [isSending, setIsSending] = React.useState(false);
   const [rated, setRated] = React.useState<Record<string, 1 | -1>>({});
   const openVideo = useHelpVideo((s) => s.open);
+  const listedVideos = useHelpVideoList((s) => s.byLocale[locale]);
+  const loadVideos = useHelpVideoList((s) => s.load);
+  React.useEffect(() => { loadVideos(locale); }, [loadVideos, locale]);
   // La mascota acompaña el chat: piensa mientras espera, se pone contenta o triste con la respuesta.
   const mascot = useMascot();
   const mascotRef = React.useRef(mascot);
@@ -344,14 +321,15 @@ export function HelpChat({ catalog, pendingSteps, screenTitle, highlightScreen, 
                 <div className="space-y-1.5">
                   {/* Cada guía propuesta: guiarme y, si está grabada, su video (miniatura + ver video). */}
                   {(actions.suggestions.length ? actions.suggestions : actions.guide ? [actions.guide] : []).map((g, i) => {
-                    const video = videoFor(reply!, g);
+                    // El título en el idioma de la app aunque el video sea el de respaldo en español.
+                    const video = videoFor(reply!, g, listedVideos);
                     const primary = i === 0;
                     return (
                       <div
                         key={videoKeyOf(g) ?? g.title}
                         className={cn('flex items-center gap-2 rounded-xl border p-1.5', primary ? 'border-[#7C3AED]/50 bg-[#7C3AED]/5' : 'border-[#7C3AED]/20 bg-white dark:bg-card')}
                       >
-                        {video && <VideoThumb video={video} label={t('watchVideoOf', { title: g.title })} onPlay={() => openVideo(video)} />}
+                        {video && <HelpVideoThumb video={video} label={t('watchVideoOf', { title: g.title })} onPlay={() => openVideo({ ...video, title: g.title })} />}
                         <div className="min-w-0 flex-1 space-y-1 px-0.5">
                           <p className="flex items-baseline gap-1.5 text-xs font-semibold text-[#5B21B6] dark:text-violet-300">
                             <span className="min-w-0 truncate" title={g.title}>{g.title}</span>
@@ -363,7 +341,7 @@ export function HelpChat({ catalog, pendingSteps, screenTitle, highlightScreen, 
                               {primary && hasValues(reply!) ? t('fillForMe') : t('guideMe')}
                             </Button>
                             {video && (
-                              <Button size="sm" variant="outline" className="h-6 gap-1 rounded-full border-[#7C3AED]/30 px-2 text-[11px] text-[#5B21B6] dark:text-violet-300" onClick={() => openVideo(video)}>
+                              <Button size="sm" variant="outline" className="h-6 gap-1 rounded-full border-[#7C3AED]/30 px-2 text-[11px] text-[#5B21B6] dark:text-violet-300" onClick={() => openVideo({ ...video, title: g.title })}>
                                 <Video className="h-3 w-3" />
                                 {t('watchVideo')}
                                 {video.locale && video.locale.slice(0, 2) !== locale.slice(0, 2) && (

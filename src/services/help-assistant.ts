@@ -5,6 +5,7 @@ import type {
   HelpAssistantReply,
   HelpInsights,
   HelpTicketStatus,
+  HelpVideo,
   HelpCatalog,
   HelpVisibleTarget,
   OnboardingStatusResponse,
@@ -60,6 +61,13 @@ export async function getHelpSettings(signal?: AbortSignal): Promise<{ mascotVis
   const data = await api.get(API_ROUTES.HELP.SETTINGS, undefined, undefined, { signal, timeoutMs: READ_TIMEOUT_MS });
   const body = Array.isArray(data) ? data[0] : data;
   return { mascotVisible: body?.mascot_visible !== false };
+}
+
+/** Videos de las guías (help_videos), uno por guía, en el idioma de la app o el español. */
+export async function getHelpVideos(locale: string, signal?: AbortSignal): Promise<HelpVideo[]> {
+  const data = await api.get(API_ROUTES.HELP.VIDEOS, { locale }, undefined, { signal, timeoutMs: READ_TIMEOUT_MS });
+  const body = Array.isArray(data) ? data[0] : data;
+  return Array.isArray(body?.videos) ? body.videos : [];
 }
 
 export function publishCatalog(catalog: HelpCatalog) {

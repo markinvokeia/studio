@@ -89,7 +89,7 @@ export const sendsToPeople = (id: string) => SENDS_TO_PEOPLE.test(id);
  * hasta el OK pero no lo pulsan. Las demás altas, ediciones y bajas sí confirman,
  * siempre sobre lo que creó la guía de alta de esa pantalla.
  */
-const KEEPS_EXISTING = /^(onboarding\.(business|whatsapp|patients-import)|appointments\.(edit|cancel|delete|move|reassign|change-status|bulk-reassign)|patients\.(toggle-active|discharge)|purchases\.providers\.toggle-active|config\.(clinics|clinic-prefs|patients-portal|calendar-colors|templates)\.overview|config\.clinic-prefs\.mascot|config\.(schedules|holidays|doctor-availability|availability-exceptions)\.(edit|delete)|tv-display\.(control|next-patient|setup)|system\.(alerts-config|whatsapp-agent|notification-settings|licenses)\.overview)$/;
+const KEEPS_EXISTING = /^(onboarding\.(business|whatsapp|patients-import)|appointments\.(edit|cancel|delete|move|reassign|change-status|bulk-reassign)|patients\.(toggle-active|discharge)|purchases\.providers\.toggle-active|config\.(clinics|clinic-prefs|patients-portal|calendar-colors|templates)\.overview|config\.clinic-prefs\.mascot|config\.(schedules|holidays|doctor-availability|availability-exceptions)\.(edit|delete)|tv-display\.(control|next-patient|setup)|system\.(alerts-config|whatsapp-agent|notification-settings|licenses)\.overview|(sales|purchases)\.quotes\.(edit|delete)|(sales|purchases)\.payments\.edit|purchases\.invoices\.import)$/;
 /** ¿Esta guía pulsa su OK en tests y videos? */
 export const confirmsInRuns = (id: string) => !SENDS_TO_PEOPLE.test(id) && !KEEPS_EXISTING.test(id);
 
@@ -102,6 +102,9 @@ export function runOrder<T extends { id: string }>(items: T[]): T[] {
   const rank = (id: string) => {
     const action = id.split('.').pop() ?? '';
     if (/^(create|misc-category|cash-point-create|open)$/.test(action)) return 0;
+    // Presupuestos: editar y eliminar (sin pulsar el OK) mientras el borrador recién creado existe,
+    // antes de confirmarlo y facturarlo.
+    if (/^(sales|purchases)\.quotes\.(edit|delete)$/.test(id)) return 0.5;
     if (/(^|-)edit$|^misc-review$/.test(action)) return 2;
     if (/(^|-)delete$|^close$/.test(action)) return 3;
     return 1;
@@ -141,6 +144,12 @@ export interface DriveOptions {
   onConfirm?: (step: Step) => void;
   /** Recorrido "Guiarme por esta pantalla" de esa pantalla en vez de una guía del catálogo. */
   screenTour?: string;
+  /**
+   * Editar o eliminar: el registro que creó la guía de alta. Si la fila elegida no lo es
+   * (la búsqueda no lo encontró), falla antes de tocar nada: nunca se edita ni se borra
+   * un registro que no creó la corrida.
+   */
+  expectRow?: string;
 }
 
 export interface DriveResult {
@@ -158,7 +167,10 @@ const state = (page: Page) => page.evaluate(() => window.__invokeHelp!.state());
 
 /** Corre una guía con el asistente real y devuelve cómo terminó. Falla si un paso falla. */
 export async function driveGuide(page: Page, id: string, options: DriveOptions = {}): Promise<DriveResult> {
-  const { values = {}, mode = 'test', confirm = false, beforeClick, onStep, onConfirm, screenTour } = options;
+  const { values = {}, mode = 'test', confirm = false, beforeClick, onStep, onConfirm, screenTour, expectRow } = options;
+  const normalizeRow = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  let rowChecked = false;
+  const filesSet = new Set<number>();
   const video = mode === 'video';
   const started = await page.evaluate(
     ({ id: useCaseId, values: v, video: isVideo, tour }) => {
@@ -214,17 +226,72 @@ export async function driveGuide(page: Page, id: string, options: DriveOptions =
       if (beforeClick && step.target) await beforeClick(page, step.target);
       await clickTarget(page, step.target!);
       await page.waitForTimeout(video ? 2500 : 800);
+      // Mientras guarda (el botón con el indicador de carga) todavía no se sabe si salió bien.
+      await page.locator(`[data-help-id="${step.target}"][aria-busy="true"], [data-help-id="${step.target}"]:disabled`).first().waitFor({ state: 'detached', timeout: 20_000 }).catch(() => {});
+      // La guía da el OK por hecho al pulsarlo; si el formulario quedó con campos en rojo,
+      // no se guardó nada: falla (y el video no termina mostrando un error de validación).
+      // Campos en rojo o mensajes de validación a la vista (un editor de texto enriquecido no marca aria-invalid).
+      const invalid = await page.evaluate(() => [...document.querySelectorAll('[role="dialog"] [aria-invalid="true"], form [aria-invalid="true"], [role="dialog"] [id$="-form-item-message"], form [id$="-form-item-message"]')]
+        .filter((el) => (el as HTMLElement).offsetParent !== null && (el.getAttribute('aria-invalid') === 'true' || (el.textContent ?? '').trim() !== ''))
+        .map((el) => el.closest('[data-help-item]')?.getAttribute('data-help-item') ?? el.getAttribute('data-help-id') ?? el.getAttribute('name') ?? (el.textContent ?? '?').trim().slice(0, 60))
+        .filter((v, i, all) => all.indexOf(v) === i));
+      if (invalid.length) throw new Error(`${id}: el OK «${step.title}» dejó campos inválidos: ${invalid.join(', ')}`);
+      // El backend rechazó el guardado (aviso rojo) o el diálogo muestra un error (límite de la
+      // licencia, por ejemplo): tampoco se guardó nada.
+      // (Sólo mensajes con texto: el asterisco rojo de los obligatorios usa el mismo color.)
+      const backendError = await page.evaluate((target) => [...document.querySelectorAll('[data-state="open"].destructive, [role="dialog"] [role="alert"], [role="dialog"] .text-destructive')]
+        .filter((el) => (el as HTMLElement).offsetParent !== null)
+        .map((el) => (el.textContent ?? '').replace(/\s+/g, ' ').trim())
+        .find((text) => text.length >= 8)
+        // Formularios que no son diálogo (la tarjeta de la cita): el botón sigue ahí y hay un aviso rojo cerca.
+        ?? (() => {
+          const button = document.querySelector(`[data-help-id="${target}"]`) as HTMLElement | null;
+          let box: HTMLElement | null = button?.offsetParent ? button : null;
+          for (let i = 0; box && i < 5; i++) box = box.parentElement;
+          // Un importe en rojo (el saldo del paciente) no es un error.
+          const warning = box ? [...box.querySelectorAll('.text-destructive, [role="alert"]')].map((el) => (el.textContent ?? '').replace(/\s+/g, ' ').trim()).find((text) => text.length >= 8 && !/^[A-Z]{3} ?[\d.,]+$/.test(text)) : undefined;
+          return warning;
+        })()
+        ?? '', step.target!);
+      if (backendError.trim()) throw new Error(`${id}: el OK «${step.title}» dio error: ${backendError.replace(/\s+/g, ' ').trim().slice(0, 160)}`);
       continue;
     }
 
     // Lo tiene que hacer la persona (elegir el registro, abrir un menú): se hace el clic por ella.
+    // La fila a editar o borrar tiene que ser la que creó la guía de alta.
+    // También los botones de la fila (eliminar, editar, acciones) cuando la guía va directo a ellos.
+    const rowTarget = !!step.target && (step.target.endsWith('.section.first-row') || /\.btn\.row-(delete|edit|actions)$/.test(step.target));
+    if (expectRow && !rowChecked && rowTarget && (status === 'waiting' || status === 'running')) {
+      const el = page.locator(`[data-help-id="${step.target}"]:visible, [data-help-item="${step.target}"]:visible`).first();
+      const text = normalizeRow(await el.evaluate((node) => (node.closest('tr, [role="row"], [data-help-id$=".section.first-row"]') ?? node).textContent ?? '').catch(() => ''));
+      if (!text.includes(normalizeRow(expectRow))) {
+        throw new Error(`${id}: la primera fila no es «${expectRow}» (la búsqueda no lo encontró): no se toca un registro que no creó la corrida`);
+      }
+      rowChecked = true;
+    }
+
+    // Un archivo que elige la persona (subir un documento): se adjunta el de demo-values (`file`).
+    if (status === 'waiting' && step.target && typeof values.file === 'string' && !filesSet.has(index)) {
+      const input = page.locator(`[data-help-id="${step.target}"] input[type=file], input[type=file][data-help-id="${step.target}"]`).first();
+      if (await input.count()) {
+        filesSet.add(index);
+        await input.setInputFiles(values.file);
+        await page.waitForTimeout(video ? 1500 : 400);
+        await page.evaluate(() => window.__invokeHelp!.next());
+        continue;
+      }
+    }
+
     const needsPerson = status === 'waiting' && (!!step.until || step.blocking) && step.target;
     if (needsPerson) {
+      // El paso dice qué gesto es ("Clic derecho sobre la cita"): ese primero. Un clic izquierdo
+      // ahí abre otra cosa (la tarjeta de la cita) y la guía creería que ya se abrió el menú.
+      const rightFirst = /clic derecho|right-click/i.test(`${step.title} ${step.details ?? ''}`);
       if (sameKeyFor === 0) {
         if (beforeClick) await beforeClick(page, step.target!);
-        await clickTarget(page, step.target!);
+        await clickTarget(page, step.target!, rightFirst ? 'right' : 'left');
       } else if (sameKeyFor === 8) {
-        await clickTarget(page, step.target!, 'right');
+        await clickTarget(page, step.target!, rightFirst ? 'left' : 'right');
       } else if (sameKeyFor > 20) {
         outcome = 'human'; stoppedAt = step.id; break;
       }
@@ -244,6 +311,14 @@ export async function driveGuide(page: Page, id: string, options: DriveOptions =
 async function clickTarget(page: Page, target: string, button: 'left' | 'right' = 'left') {
   const el = page.locator(`[data-help-id="${target}"]:visible, [data-help-item="${target}"]:visible`).last();
   await el.scrollIntoViewIfNeeded().catch(() => {});
+  // Como una persona: primero el mouse sobre el elemento. Si la mascota quedó encima de lo
+  // que señala, al pasar el puntero deja pasar el clic (sin el movimiento, Playwright ve
+  // que algo tapa el botón y no lo pulsa).
+  const box = await el.boundingBox().catch(() => null);
+  if (box) {
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 });
+    await page.waitForTimeout(150);
+  }
   await el.click({ button, timeout: 5000 }).catch(() => {});
 }
 

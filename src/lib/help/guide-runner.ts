@@ -254,7 +254,10 @@ async function execute(rawStep: HelpGuideStep, signal: AbortSignal): Promise<Ste
 
   if (!step.target) return { status: 'failed', error: 'targetNotFound' };
   const canSkip = step.skipIfMissing || step.optional;
-  if (step.action !== 'fill' && step.action !== 'wait') closeListHiding(step.target);
+  // Un menú abierto que tapa lo que se busca se cierra. Salvo en un paso que se puede saltar:
+  // si no está (el submenú "Cambiar estado" que ya no existe), el paso siguiente seguramente
+  // está en ese mismo menú (el estado a elegir) y cerrarlo lo haría fallar.
+  if (step.action !== 'fill' && step.action !== 'wait' && !canSkip) closeListHiding(step.target);
   const settled = Date.now() - lastNavigationAt > SETTLE_AFTER_NAVIGATION_MS;
   const timeoutMs = step.action === 'wait' ? WAIT_TIMEOUT_MS : canSkip && settled ? OPTIONAL_TIMEOUT_MS : TARGET_TIMEOUT_MS;
   // Un paso que se puede saltar no avisa "cargando": si el elemento no aparece (otro modo de

@@ -8,7 +8,8 @@
   ],
   "inputs": {
     "name": "Nombre",
-    "price": "Precio de referencia"
+    "price": "Precio de referencia",
+    "category": "Categoría de gasto (ej. Insumo Clínico)"
   },
   "keywords": [
     "nuevo producto o servicio",
@@ -40,10 +41,11 @@
     },
     {
       "id": "category_id",
-      "action": "highlight",
+      "action": "fill",
       "target": "purchases.services.field.category_id",
       "title": "Categoría",
-      "skipIfMissing": true
+      "value": "{{values.category}}",
+      "details": "Obligatoria: la categoría de gasto con que se agrupa en los reportes."
     },
     {
       "id": "price",

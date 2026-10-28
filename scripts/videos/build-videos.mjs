@@ -10,6 +10,7 @@
  *   ELEVENLABS_VOICE_ID  voz rioplatense de los videos actuales de Invoke
  *   ELEVENLABS_MODEL     por defecto eleven_multilingual_v2
  *   HELP_VIDEO_USE_CASES lista separada por comas (por defecto, todo lo grabado)
+ *   HELP_VIDEO_LOCALE    sólo las grabaciones de ese idioma (es | en)
  *
  * Requiere ffmpeg/ffprobe. Si el ffmpeg tiene libass, además quema los
  * subtítulos en la imagen; si no, quedan como pista y como .vtt (los muestra
@@ -30,6 +31,7 @@ const CACHE = join(ROOT, 'videos', 'cache');
 const API_KEY = process.env.ELEVENLABS_API_KEY ?? '';
 const VOICE_ID = process.env.ELEVENLABS_VOICE_ID ?? '';
 const MODEL = process.env.ELEVENLABS_MODEL ?? 'eleven_multilingual_v2';
+const ONLY_LOCALE = process.env.HELP_VIDEO_LOCALE ?? '';
 const SELECTED = (process.env.HELP_VIDEO_USE_CASES ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 const NARRATION_GAP_S = 0.25;
 /** Segundo de la intro que se usa como miniatura. */
@@ -166,6 +168,7 @@ async function buildOne(key) {
 const ids = (existsSync(RAW) ? readdirSync(RAW) : [])
   .filter((f) => f.endsWith('.json'))
   .map((f) => f.replace(/\.json$/, ''))
+  .filter((key) => !ONLY_LOCALE || (ONLY_LOCALE === 'es' ? !/\.(en|es-ES)$/.test(key) : key.endsWith(`.${ONLY_LOCALE}`)))
   .filter((key) => existsSync(join(RAW, `${key}.webm`)) && (!SELECTED.length || SELECTED.includes(key) || SELECTED.includes(key.replace(/\.(en|es-ES)$/, ''))));
 
 if (!ids.length) {

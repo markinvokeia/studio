@@ -1,5 +1,5 @@
 {
- "version": "01c2fbcad874e923",
+ "version": "98a06b57da4517a9",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -17680,9 +17680,8 @@
     {
      "action": "fill",
      "ask": true,
-     "details": "Cuándo se hizo la llamada.",
+     "details": "Obligatorio: cuándo se hizo la llamada. Sin fecha y hora no se puede registrar.",
      "id": "date",
-     "optional": true,
      "target": "alerts.field.call-date",
      "title": "Fecha y hora",
      "value": "{{values.date}}"
@@ -20575,6 +20574,8 @@
   {
    "id": "clinic-catalog.ailments.create",
    "inputs": {
+    "alert_level": "Nivel de alerta: 1 (Normal) | 2 (Advertencia) | 3 (Crítico)",
+    "category": "Categoría (ej. Cardiovascular)",
     "name": "Nombre"
    },
    "keywords": [
@@ -20608,19 +20609,20 @@
      "value": "{{values.name}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Obligatoria: agrupa los padecimientos en la anamnesis y en los reportes.",
      "id": "categoria",
-     "skipIfMissing": true,
      "target": "clinic-catalog.ailments.field.categoria",
-     "title": "Categoría"
+     "title": "Categoría",
+     "value": "{{values.category}}"
     },
     {
-     "action": "highlight",
-     "details": "Alto: se muestra como alerta en la ficha del paciente.",
+     "action": "fill",
+     "details": "Obligatorio. 3 (Crítico): se muestra como alerta en la ficha del paciente.",
      "id": "nivel_alerta",
-     "skipIfMissing": true,
      "target": "clinic-catalog.ailments.field.nivel_alerta",
-     "title": "Nivel de alerta"
+     "title": "Nivel de alerta",
+     "value": "{{values.alert_level}}"
     },
     {
      "action": "confirm",
@@ -20841,7 +20843,8 @@
   {
    "id": "clinic-catalog.dental-conditions.create",
    "inputs": {
-    "name": "Nombre"
+    "name": "Nombre",
+    "visual_code": "Código visual (corto, ej. CAR)"
    },
    "keywords": [
     "nuevo condición dental",
@@ -20874,12 +20877,12 @@
      "value": "{{values.name}}"
     },
     {
-     "action": "highlight",
-     "details": "Cómo se dibuja en la pieza.",
+     "action": "fill",
+     "details": "Obligatorio: el código corto con que se dibuja en el odontograma.",
      "id": "codigo_visual",
-     "skipIfMissing": true,
      "target": "clinic-catalog.dental-conditions.field.codigo_visual",
-     "title": "Código visual"
+     "title": "Código visual",
+     "value": "{{values.visual_code}}"
     },
     {
      "action": "highlight",
@@ -21107,6 +21110,7 @@
   {
    "id": "clinic-catalog.dental-surfaces.create",
    "inputs": {
+    "code": "Código (ej. O, M, D)",
     "name": "Nombre"
    },
    "keywords": [
@@ -21140,11 +21144,12 @@
      "value": "{{values.name}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Obligatorio: el código corto de la cara de la pieza.",
      "id": "codigo",
-     "skipIfMissing": true,
      "target": "clinic-catalog.dental-surfaces.field.codigo",
-     "title": "Código"
+     "title": "Código",
+     "value": "{{values.code}}"
     },
     {
      "action": "confirm",
@@ -21606,6 +21611,9 @@
   },
   {
    "id": "config.availability-exceptions.create",
+   "inputs": {
+    "doctor": "Nombre del profesional"
+   },
    "keywords": [
     "nuevo excepción",
     "nueva excepción",
@@ -21632,10 +21640,12 @@
      "until": "config.availability-exceptions.field.user_id"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Obligatorio: la excepción aplica sólo a este profesional.",
      "id": "user_id",
      "target": "config.availability-exceptions.field.user_id",
-     "title": "Profesional"
+     "title": "Profesional",
+     "value": "{{values.doctor}}"
     },
     {
      "action": "highlight",
@@ -21957,7 +21967,8 @@
   {
    "id": "config.calendars.create",
    "inputs": {
-    "name": "Nombre"
+    "name": "Nombre",
+    "sede": "Nombre de la sede"
    },
    "keywords": [
     "nuevo calendario",
@@ -21993,11 +22004,12 @@
      "value": "{{values.name}}"
     },
     {
-     "action": "highlight",
-     "details": "Sede donde está.",
+     "action": "fill",
+     "details": "Obligatoria: el consultorio sólo se ofrece en el horario de su sede.",
      "id": "sede_id",
      "target": "config.calendars.field.sede_id",
-     "title": "Sede"
+     "title": "Sede",
+     "value": "{{values.sede}}"
     },
     {
      "action": "highlight",
@@ -22512,6 +22524,8 @@
   {
    "id": "config.doctor-availability.create",
    "inputs": {
+    "days_of_week": "Lista de días ISO, 1=lunes … 7=domingo (ej. [1,3,5])",
+    "doctor": "Nombre del profesional",
     "end_time": "Hasta",
     "start_time": "Desde"
    },
@@ -22541,11 +22555,12 @@
      "until": "config.doctor-availability.field.user_id"
     },
     {
-     "action": "highlight",
-     "details": "Profesional al que aplica la regla.",
+     "action": "fill",
+     "details": "Obligatorio: la regla aplica sólo a este profesional.",
      "id": "user_id",
      "target": "config.doctor-availability.field.user_id",
-     "title": "Profesional"
+     "title": "Profesional",
+     "value": "{{values.doctor}}"
     },
     {
      "action": "highlight",
@@ -22555,11 +22570,12 @@
      "title": "Recurrencia"
     },
     {
-     "action": "highlight",
-     "details": "Días de la semana (lunes=1 … domingo=7).",
+     "action": "fill",
+     "details": "Obligatorio: los días que atiende con este mismo horario. Para horarios distintos según el día, creá otra regla.",
      "id": "days_of_week",
      "target": "config.doctor-availability.field.days_of_week",
-     "title": "Días"
+     "title": "Días",
+     "value": "{{values.days_of_week}}"
     },
     {
      "action": "fill",
@@ -23162,6 +23178,7 @@
   {
    "id": "config.holidays.create",
    "inputs": {
+    "dates": "Lista de fechas AAAA-MM-DD (ej. [\"2027-01-06\"])",
     "notes": "Notas"
    },
    "keywords": [
@@ -23205,12 +23222,12 @@
      "title": "Fecha"
     },
     {
-     "action": "highlight",
-     "details": "Para una excepción que no se repite, se pueden marcar varios días.",
+     "action": "fill",
+     "details": "Obligatorio: el día del feriado o cierre. Para una excepción puntual podés marcar varios días.",
      "id": "dates",
-     "skipIfMissing": true,
      "target": "config.holidays.field.dates",
-     "title": "Fechas"
+     "title": "Fechas",
+     "value": "{{values.dates}}"
     },
     {
      "action": "highlight",
@@ -23538,6 +23555,7 @@
   {
    "id": "config.medical-instruction-templates.create",
    "inputs": {
+    "content": "Contenido de la indicación (texto, admite variables)",
     "name": "Nombre"
    },
    "keywords": [
@@ -23580,11 +23598,12 @@
      "title": "Descripción"
     },
     {
-     "action": "highlight",
-     "details": "Texto con variables ({paciente}, {fecha}…) que se completan solas.",
+     "action": "fill",
+     "details": "Obligatorio: el texto que se le entrega al paciente. Las variables ({paciente}, {fecha}…) se completan solas.",
      "id": "content_html",
      "target": "config.medical-instruction-templates.field.content_html",
-     "title": "Contenido"
+     "title": "Contenido",
+     "value": "{{values.content}}"
     },
     {
      "action": "highlight",
@@ -23828,6 +23847,7 @@
   {
    "id": "config.mutual-societies.create",
    "inputs": {
+    "code": "Código corto (ej. MDE)",
     "name": "Nombre"
    },
    "keywords": [
@@ -23863,11 +23883,12 @@
      "value": "{{values.name}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Obligatorio: abreviatura única para reportes y facturación.",
      "id": "code",
-     "skipIfMissing": true,
      "target": "config.mutual-societies.field.code",
-     "title": "Código"
+     "title": "Código",
+     "value": "{{values.code}}"
     },
     {
      "action": "highlight",
@@ -24514,6 +24535,7 @@
   {
    "id": "config.prescription-templates.create",
    "inputs": {
+    "content": "Contenido de la receta (texto, admite variables)",
     "name": "Nombre"
    },
    "keywords": [
@@ -24556,10 +24578,12 @@
      "title": "Descripción"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Obligatorio: el cuerpo de la receta. Las variables ({paciente}, {fecha}…) se completan solas al recetar.",
      "id": "content_html",
      "target": "config.prescription-templates.field.content_html",
-     "title": "Contenido"
+     "title": "Contenido",
+     "value": "{{values.content}}"
     },
     {
      "action": "highlight",
@@ -25120,6 +25144,7 @@
   {
    "id": "config.schedules.create",
    "inputs": {
+    "days_of_week": "Lista de días, 0=domingo, 1=lunes … 6=sábado (ej. [1,2,3,4,5])",
     "end_time": "Hasta",
     "start_time": "Desde"
    },
@@ -25149,11 +25174,12 @@
      "until": "config.schedules.field.days_of_week"
     },
     {
-     "action": "highlight",
-     "details": "Elegí todos los días que comparten el mismo horario; al editar se edita de a un día.",
+     "action": "fill",
+     "details": "Obligatorio: marcá todos los días con el mismo horario; se crea una franja por día.",
      "id": "days_of_week",
      "target": "config.schedules.field.days_of_week",
-     "title": "Días"
+     "title": "Días",
+     "value": "{{values.days_of_week}}"
     },
     {
      "action": "fill",
@@ -31064,7 +31090,8 @@
    "inputs": {
     "amount": "Monto",
     "notes": "Notas",
-    "patient": "Nombre, correo o documento del paciente"
+    "patient": "Nombre, correo o documento del paciente",
+    "payment_method": "Medio de pago (ej. Efectivo)"
    },
    "keywords": [
     "prepago",
@@ -31135,11 +31162,12 @@
      "title": "Moneda"
     },
     {
-     "action": "highlight",
-     "details": "Efectivo suma al arqueo de caja.",
+     "action": "fill",
+     "details": "Obligatorio. Efectivo suma al arqueo de la caja abierta.",
      "id": "method",
      "target": "patients.field.payment_method_id",
-     "title": "Medio de pago"
+     "title": "Medio de pago",
+     "value": "{{values.payment_method}}"
     },
     {
      "action": "fill",
@@ -31870,7 +31898,9 @@
   {
    "id": "permissions.create",
    "inputs": {
-    "name": "Nombre"
+    "action": "Acción: Crear | Leer | Guardar | Eliminar | Gestionar",
+    "name": "Nombre",
+    "resource": "Recurso (ej. reports)"
    },
    "keywords": [
     "nuevo permiso",
@@ -31903,18 +31933,20 @@
      "value": "{{values.name}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Obligatoria: qué se habilita sobre el recurso (ver, crear, editar, borrar o todo).",
      "id": "action",
-     "skipIfMissing": true,
      "target": "permissions.field.action",
-     "title": "Acción"
+     "title": "Acción",
+     "value": "{{values.action}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Obligatorio: la pantalla o el dato sobre el que se habilita la acción.",
      "id": "resource",
-     "skipIfMissing": true,
      "target": "permissions.field.resource",
-     "title": "Recurso"
+     "title": "Recurso",
+     "value": "{{values.resource}}"
     },
     {
      "action": "highlight",
@@ -32976,7 +33008,8 @@
    "inputs": {
     "amount": "Monto",
     "notes": "Notas",
-    "party": "Proveedor"
+    "party": "Proveedor",
+    "payment_method": "Medio de pago (ej. Efectivo)"
    },
    "keywords": [
     "prepago",
@@ -33026,11 +33059,12 @@
      "title": "Moneda"
     },
     {
-     "action": "highlight",
-     "details": "Los pagos en efectivo salen de la caja abierta (salvo que marques «histórico»).",
+     "action": "fill",
+     "details": "Obligatorio. Los pagos en efectivo salen de la caja abierta.",
      "id": "method",
      "target": "purchases.payments.field.payment_method_id",
-     "title": "Medio de pago"
+     "title": "Medio de pago",
+     "value": "{{values.payment_method}}"
     },
     {
      "action": "highlight",
@@ -33217,6 +33251,7 @@
    "id": "purchases.providers.create",
    "inputs": {
     "email": "Correo",
+    "identity_document": "Documento (sólo números, hasta 10)",
     "name": "Nombre",
     "phone": "Teléfono"
    },
@@ -33269,12 +33304,12 @@
      "value": "{{values.phone}}"
     },
     {
-     "action": "highlight",
-     "details": "Necesario para registrar sus facturas.",
+     "action": "fill",
+     "details": "Obligatorio: sólo números, hasta 10 dígitos. Se usa para registrar sus facturas.",
      "id": "doc",
-     "skipIfMissing": true,
      "target": "purchases.providers.field.identity_document",
-     "title": "RUT"
+     "title": "RUT",
+     "value": "{{values.identity_document}}"
     },
     {
      "action": "highlight",
@@ -33305,6 +33340,7 @@
    "group": "Información",
    "id": "purchases.providers.edit",
    "inputs": {
+    "identity_document": "Documento (sólo números, hasta 10)",
     "query": "Nombre, correo o RUT"
    },
    "keywords": [
@@ -33362,11 +33398,12 @@
      "title": "Correo"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Obligatorio: sólo números, hasta 10 dígitos.",
      "id": "doc",
-     "skipIfMissing": true,
      "target": "purchases.providers.detail.field.identity_document",
-     "title": "RUT"
+     "title": "RUT",
+     "value": "{{values.identity_document}}"
     },
     {
      "action": "highlight",
@@ -33767,6 +33804,8 @@
    "group": "Compras al proveedor",
    "id": "purchases.providers.prepaid",
    "inputs": {
+    "amount": "Monto (número)",
+    "payment_method": "Medio de pago (ej. Efectivo)",
     "query": "Nombre, correo o RUT"
    },
    "keywords": [
@@ -33818,6 +33857,22 @@
      "target": "purchases.providers.btn.new-prepaid",
      "title": "Registrar un anticipo al proveedor",
      "until": "purchases.providers.btn.submit"
+    },
+    {
+     "action": "fill",
+     "details": "Obligatorio: cuánto se le adelanta; después se aplica a sus facturas.",
+     "id": "amount",
+     "target": "purchases.providers.field.payment_amount",
+     "title": "Monto",
+     "value": "{{values.amount}}"
+    },
+    {
+     "action": "fill",
+     "details": "Obligatorio. Los pagos en efectivo salen de la caja abierta.",
+     "id": "method",
+     "target": "purchases.providers.field.payment_method_id",
+     "title": "Medio de pago",
+     "value": "{{values.payment_method}}"
     },
     {
      "action": "confirm",
@@ -34756,6 +34811,7 @@
   {
    "id": "purchases.services.create",
    "inputs": {
+    "category": "Categoría de gasto (ej. Insumo Clínico)",
     "name": "Nombre",
     "price": "Precio de referencia"
    },
@@ -34792,11 +34848,12 @@
      "value": "{{values.name}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Obligatoria: la categoría de gasto con que se agrupa en los reportes.",
      "id": "category_id",
-     "skipIfMissing": true,
      "target": "purchases.services.field.category_id",
-     "title": "Categoría"
+     "title": "Categoría",
+     "value": "{{values.category}}"
     },
     {
      "action": "fill",
@@ -38611,7 +38668,8 @@
    "inputs": {
     "amount": "Monto",
     "notes": "Notas",
-    "party": "Paciente"
+    "party": "Paciente",
+    "payment_method": "Medio de pago (ej. Efectivo)"
    },
    "keywords": [
     "prepago",
@@ -38661,11 +38719,12 @@
      "title": "Moneda"
     },
     {
-     "action": "highlight",
-     "details": "Los cobros en efectivo suman al arqueo de la caja abierta.",
+     "action": "fill",
+     "details": "Obligatorio. Efectivo suma al arqueo de la caja abierta.",
      "id": "method",
      "target": "sales.payments.field.payment_method_id",
-     "title": "Medio de pago"
+     "title": "Medio de pago",
+     "value": "{{values.payment_method}}"
     },
     {
      "action": "highlight",
@@ -39520,6 +39579,7 @@
   {
    "id": "sales.services.create",
    "inputs": {
+    "category": "Categoría (ej. Otros servicios)",
     "duration_minutes": "Duración",
     "name": "Nombre",
     "price": "Precio"
@@ -39566,12 +39626,12 @@
      "title": "Tipo"
     },
     {
-     "action": "highlight",
-     "details": "Agrupa servicios en reportes y en el portal.",
+     "action": "fill",
+     "details": "Obligatoria: agrupa los servicios en las listas, en los reportes y en el portal.",
      "id": "category_id",
-     "skipIfMissing": true,
      "target": "sales.services.field.category_id",
-     "title": "Categoría"
+     "title": "Categoría",
+     "value": "{{values.category}}"
     },
     {
      "action": "fill",
@@ -40327,8 +40387,11 @@
   {
    "id": "system.alert-rules.create",
    "inputs": {
+    "category": "Nombre de la categoría (ej. Citas)",
     "code": "Código",
-    "name": "Nombre"
+    "name": "Nombre",
+    "source_table": "Tabla de origen (ej. appointments)",
+    "table_id_field": "Campo de ID de la tabla (ej. id)"
    },
    "keywords": [
     "nueva regla",
@@ -40369,20 +40432,28 @@
      "value": "{{values.code}}"
     },
     {
-     "action": "highlight",
-     "details": "Dónde aparece en el Centro de Alertas.",
+     "action": "fill",
+     "details": "Obligatoria: en qué grupo del Centro de Alertas aparecen sus alertas.",
      "id": "category_id",
-     "skipIfMissing": true,
      "target": "system.alert-rules.field.category_id",
-     "title": "Categoría"
+     "title": "Categoría",
+     "value": "{{values.category}}"
     },
     {
-     "action": "highlight",
-     "details": "De dónde salen los casos (citas, facturas, pacientes…).",
+     "action": "fill",
+     "details": "Obligatoria: de dónde salen los casos (citas, facturas, pacientes…).",
      "id": "source_table",
-     "skipIfMissing": true,
      "target": "system.alert-rules.field.source_table",
-     "title": "Origen"
+     "title": "Origen",
+     "value": "{{values.source_table}}"
+    },
+    {
+     "action": "fill",
+     "details": "Obligatorio: la columna que identifica cada caso de la tabla (casi siempre «id»).",
+     "id": "table_id_field",
+     "target": "system.alert-rules.field.table_id_field",
+     "title": "Campo de ID",
+     "value": "{{values.table_id_field}}"
     },
     {
      "action": "highlight",
@@ -41810,7 +41881,8 @@
    "inputs": {
     "email": "Correo",
     "name": "Nombre",
-    "phone": "Teléfono"
+    "phone": "Teléfono",
+    "role": "Nombre del rol (recepcionista, administrador…)"
    },
    "keywords": [
     "nuevo persona del equipo",
@@ -41860,12 +41932,12 @@
      "value": "{{values.phone}}"
     },
     {
-     "action": "highlight",
-     "details": "Define qué puede ver y hacer.",
+     "action": "fill",
+     "details": "Obligatorio: el rol define qué puede ver y hacer.",
      "id": "role_id",
-     "skipIfMissing": true,
      "target": "system.staff.field.role_id",
-     "title": "Rol"
+     "title": "Rol",
+     "value": "{{values.role}}"
     },
     {
      "action": "highlight",

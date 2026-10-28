@@ -6,7 +6,8 @@
   "inputs": {
     "party": "Provider",
     "amount": "Amount",
-    "notes": "Notes"
+    "notes": "Notes",
+    "payment_method": "Payment method (e.g. Cash)"
   },
   "keywords": [
     "prepayment",
@@ -40,7 +41,7 @@
     {
       "id": "method",
       "title": "Payment method",
-      "details": "Cash payments come out of the open cash register (unless you check «historical»)."
+      "details": "Required. Cash payments come out of the open cash register."
     },
     {
       "id": "date",

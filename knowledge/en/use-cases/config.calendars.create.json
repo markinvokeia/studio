@@ -4,7 +4,8 @@
   "summary": "New calendar.",
   "module": "Business Setup",
   "inputs": {
-    "name": "Name"
+    "name": "Name",
+    "sede": "Branch name"
   },
   "keywords": [
     "new calendar",
@@ -30,7 +31,7 @@
     {
       "id": "sede_id",
       "title": "Branch",
-      "details": "Branch where it is."
+      "details": "Required: the room is only offered during its branch's hours."
     },
     {
       "id": "color",

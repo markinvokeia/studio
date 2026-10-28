@@ -4,7 +4,9 @@
   "summary": "New entry in the ailments catalog.",
   "module": "Clinic Catalog",
   "inputs": {
-    "name": "Name"
+    "name": "Name",
+    "category": "Category (e.g. Cardiovascular)",
+    "alert_level": "Alert level: 1 (Normal) | 2 (Warning) | 3 (Critical)"
   },
   "keywords": [
     "new ailment",
@@ -26,12 +28,13 @@
     },
     {
       "id": "categoria",
-      "title": "Category"
+      "title": "Category",
+      "details": "Required: groups ailments in the medical history and in reports."
     },
     {
       "id": "nivel_alerta",
       "title": "Alert level",
-      "details": "High: shown as an alert on the patient's record."
+      "details": "Required. 3 (Critical): shown as an alert on the patient's record."
     },
     {
       "id": "save",

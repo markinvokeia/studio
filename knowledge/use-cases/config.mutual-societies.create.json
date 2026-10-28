@@ -7,7 +7,8 @@
     "config.mutual-societies"
   ],
   "inputs": {
-    "name": "Nombre"
+    "name": "Nombre",
+    "code": "Código corto (ej. MDE)"
   },
   "keywords": [
     "nuevo sociedad mutual",
@@ -39,10 +40,11 @@
     },
     {
       "id": "code",
-      "action": "highlight",
+      "action": "fill",
       "target": "config.mutual-societies.field.code",
       "title": "Código",
-      "skipIfMissing": true
+      "value": "{{values.code}}",
+      "details": "Obligatorio: abreviatura única para reportes y facturación."
     },
     {
       "id": "description",

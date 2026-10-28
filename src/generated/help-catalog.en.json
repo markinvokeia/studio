@@ -1,5 +1,5 @@
 {
- "version": "fe4084e224c3ba50",
+ "version": "9f50a9b5bb9466ea",
  "locale": "en",
  "journey": [
   {
@@ -17594,9 +17594,8 @@
     {
      "action": "fill",
      "ask": true,
-     "details": "When the call was made.",
+     "details": "Required: when the call was made. Without a date and time it can't be recorded.",
      "id": "date",
-     "optional": true,
      "target": "alerts.field.call-date",
      "title": "Date and time",
      "value": "{{values.date}}"
@@ -20489,6 +20488,8 @@
   {
    "id": "clinic-catalog.ailments.create",
    "inputs": {
+    "alert_level": "Alert level: 1 (Normal) | 2 (Warning) | 3 (Critical)",
+    "category": "Category (e.g. Cardiovascular)",
     "name": "Name"
    },
    "keywords": [
@@ -20522,19 +20523,20 @@
      "value": "{{values.name}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Required: groups ailments in the medical history and in reports.",
      "id": "categoria",
-     "skipIfMissing": true,
      "target": "clinic-catalog.ailments.field.categoria",
-     "title": "Category"
+     "title": "Category",
+     "value": "{{values.category}}"
     },
     {
-     "action": "highlight",
-     "details": "High: shown as an alert on the patient's record.",
+     "action": "fill",
+     "details": "Required. 3 (Critical): shown as an alert on the patient's record.",
      "id": "nivel_alerta",
-     "skipIfMissing": true,
      "target": "clinic-catalog.ailments.field.nivel_alerta",
-     "title": "Alert level"
+     "title": "Alert level",
+     "value": "{{values.alert_level}}"
     },
     {
      "action": "confirm",
@@ -20755,7 +20757,8 @@
   {
    "id": "clinic-catalog.dental-conditions.create",
    "inputs": {
-    "name": "Name"
+    "name": "Name",
+    "visual_code": "Visual code (short, e.g. CAV)"
    },
    "keywords": [
     "new dental condition",
@@ -20788,12 +20791,12 @@
      "value": "{{values.name}}"
     },
     {
-     "action": "highlight",
-     "details": "How it's drawn on the tooth.",
+     "action": "fill",
+     "details": "Required: the short code it's drawn with on the odontogram.",
      "id": "codigo_visual",
-     "skipIfMissing": true,
      "target": "clinic-catalog.dental-conditions.field.codigo_visual",
-     "title": "Visual code"
+     "title": "Visual code",
+     "value": "{{values.visual_code}}"
     },
     {
      "action": "highlight",
@@ -21021,6 +21024,7 @@
   {
    "id": "clinic-catalog.dental-surfaces.create",
    "inputs": {
+    "code": "Code (e.g. O, M, D)",
     "name": "Name"
    },
    "keywords": [
@@ -21054,11 +21058,12 @@
      "value": "{{values.name}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Required: the short code of the tooth surface.",
      "id": "codigo",
-     "skipIfMissing": true,
      "target": "clinic-catalog.dental-surfaces.field.codigo",
-     "title": "Code"
+     "title": "Code",
+     "value": "{{values.code}}"
     },
     {
      "action": "confirm",
@@ -21520,6 +21525,9 @@
   },
   {
    "id": "config.availability-exceptions.create",
+   "inputs": {
+    "doctor": "Doctor name"
+   },
    "keywords": [
     "new exception",
     "new exception",
@@ -21546,10 +21554,12 @@
      "until": "config.availability-exceptions.field.user_id"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Required: the exception only applies to this doctor.",
      "id": "user_id",
      "target": "config.availability-exceptions.field.user_id",
-     "title": "Doctor"
+     "title": "Doctor",
+     "value": "{{values.doctor}}"
     },
     {
      "action": "highlight",
@@ -21871,7 +21881,8 @@
   {
    "id": "config.calendars.create",
    "inputs": {
-    "name": "Name"
+    "name": "Name",
+    "sede": "Branch name"
    },
    "keywords": [
     "new calendar",
@@ -21907,11 +21918,12 @@
      "value": "{{values.name}}"
     },
     {
-     "action": "highlight",
-     "details": "Branch where it is.",
+     "action": "fill",
+     "details": "Required: the room is only offered during its branch's hours.",
      "id": "sede_id",
      "target": "config.calendars.field.sede_id",
-     "title": "Branch"
+     "title": "Branch",
+     "value": "{{values.sede}}"
     },
     {
      "action": "highlight",
@@ -22426,6 +22438,8 @@
   {
    "id": "config.doctor-availability.create",
    "inputs": {
+    "days_of_week": "List of ISO days, 1=Monday … 7=Sunday (e.g. [1,3,5])",
+    "doctor": "Doctor name",
     "end_time": "Until",
     "start_time": "From"
    },
@@ -22455,11 +22469,12 @@
      "until": "config.doctor-availability.field.user_id"
     },
     {
-     "action": "highlight",
-     "details": "Doctor the rule applies to.",
+     "action": "fill",
+     "details": "Required: the rule only applies to this doctor.",
      "id": "user_id",
      "target": "config.doctor-availability.field.user_id",
-     "title": "Doctor"
+     "title": "Doctor",
+     "value": "{{values.doctor}}"
     },
     {
      "action": "highlight",
@@ -22469,11 +22484,12 @@
      "title": "Recurrence"
     },
     {
-     "action": "highlight",
-     "details": "Days of the week (Monday=1 … Sunday=7).",
+     "action": "fill",
+     "details": "Required: the days they see patients with these same hours. For different hours depending on the day, create another rule.",
      "id": "days_of_week",
      "target": "config.doctor-availability.field.days_of_week",
-     "title": "Days"
+     "title": "Days",
+     "value": "{{values.days_of_week}}"
     },
     {
      "action": "fill",
@@ -23076,6 +23092,7 @@
   {
    "id": "config.holidays.create",
    "inputs": {
+    "dates": "List of dates YYYY-MM-DD (e.g. [\"2027-01-06\"])",
     "notes": "Notes"
    },
    "keywords": [
@@ -23119,12 +23136,12 @@
      "title": "Date"
     },
     {
-     "action": "highlight",
-     "details": "For a one-off exception, you can mark several days.",
+     "action": "fill",
+     "details": "Required: the day of the holiday or closure. For a one-off exception you can mark several days.",
      "id": "dates",
-     "skipIfMissing": true,
      "target": "config.holidays.field.dates",
-     "title": "Dates"
+     "title": "Dates",
+     "value": "{{values.dates}}"
     },
     {
      "action": "highlight",
@@ -23452,6 +23469,7 @@
   {
    "id": "config.medical-instruction-templates.create",
    "inputs": {
+    "content": "Instruction content (text, variables allowed)",
     "name": "Name"
    },
    "keywords": [
@@ -23494,11 +23512,12 @@
      "title": "Description"
     },
     {
-     "action": "highlight",
-     "details": "Text with variables ({paciente}, {fecha}…) that fill in on their own.",
+     "action": "fill",
+     "details": "Required: the text given to the patient. Variables ({paciente}, {fecha}…) fill in on their own.",
      "id": "content_html",
      "target": "config.medical-instruction-templates.field.content_html",
-     "title": "Content"
+     "title": "Content",
+     "value": "{{values.content}}"
     },
     {
      "action": "highlight",
@@ -23742,6 +23761,7 @@
   {
    "id": "config.mutual-societies.create",
    "inputs": {
+    "code": "Short code (e.g. MDE)",
     "name": "Name"
    },
    "keywords": [
@@ -23777,11 +23797,12 @@
      "value": "{{values.name}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Required: a unique abbreviation for reports and billing.",
      "id": "code",
-     "skipIfMissing": true,
      "target": "config.mutual-societies.field.code",
-     "title": "Code"
+     "title": "Code",
+     "value": "{{values.code}}"
     },
     {
      "action": "highlight",
@@ -24428,6 +24449,7 @@
   {
    "id": "config.prescription-templates.create",
    "inputs": {
+    "content": "Prescription content (text, variables allowed)",
     "name": "Name"
    },
    "keywords": [
@@ -24470,10 +24492,12 @@
      "title": "Description"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Required: the body of the prescription. Variables ({paciente}, {fecha}…) fill in on their own when prescribing.",
      "id": "content_html",
      "target": "config.prescription-templates.field.content_html",
-     "title": "Content"
+     "title": "Content",
+     "value": "{{values.content}}"
     },
     {
      "action": "highlight",
@@ -25034,6 +25058,7 @@
   {
    "id": "config.schedules.create",
    "inputs": {
+    "days_of_week": "List of days, 0=Sunday, 1=Monday … 6=Saturday (e.g. [1,2,3,4,5])",
     "end_time": "Until",
     "start_time": "From"
    },
@@ -25063,11 +25088,12 @@
      "until": "config.schedules.field.days_of_week"
     },
     {
-     "action": "highlight",
-     "details": "Choose all the days that share the same hours; when editing, one day is edited at a time.",
+     "action": "fill",
+     "details": "Required: check all the days with the same hours; one time range is created per day.",
      "id": "days_of_week",
      "target": "config.schedules.field.days_of_week",
-     "title": "Days"
+     "title": "Days",
+     "value": "{{values.days_of_week}}"
     },
     {
      "action": "fill",
@@ -30978,7 +31004,8 @@
    "inputs": {
     "amount": "Amount",
     "notes": "Notes",
-    "patient": "Patient's name, email or ID"
+    "patient": "Patient's name, email or ID",
+    "payment_method": "Payment method (e.g. Cash)"
    },
    "keywords": [
     "prepayment",
@@ -31049,11 +31076,12 @@
      "title": "Currency"
     },
     {
-     "action": "highlight",
-     "details": "Cash adds to the cash count.",
+     "action": "fill",
+     "details": "Required. Cash adds to the open cash register's cash count.",
      "id": "method",
      "target": "patients.field.payment_method_id",
-     "title": "Payment method"
+     "title": "Payment method",
+     "value": "{{values.payment_method}}"
     },
     {
      "action": "fill",
@@ -31784,7 +31812,9 @@
   {
    "id": "permissions.create",
    "inputs": {
-    "name": "Name"
+    "action": "Action: Create | Read | Save | Delete | Manage",
+    "name": "Name",
+    "resource": "Resource (e.g. reports)"
    },
    "keywords": [
     "new permission",
@@ -31817,18 +31847,20 @@
      "value": "{{values.name}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Required: what is enabled on the resource (view, create, edit, delete or everything).",
      "id": "action",
-     "skipIfMissing": true,
      "target": "permissions.field.action",
-     "title": "Action"
+     "title": "Action",
+     "value": "{{values.action}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Required: the screen or data the action is enabled on.",
      "id": "resource",
-     "skipIfMissing": true,
      "target": "permissions.field.resource",
-     "title": "Resource"
+     "title": "Resource",
+     "value": "{{values.resource}}"
     },
     {
      "action": "highlight",
@@ -32890,7 +32922,8 @@
    "inputs": {
     "amount": "Amount",
     "notes": "Notes",
-    "party": "Provider"
+    "party": "Provider",
+    "payment_method": "Payment method (e.g. Cash)"
    },
    "keywords": [
     "prepayment",
@@ -32940,11 +32973,12 @@
      "title": "Currency"
     },
     {
-     "action": "highlight",
-     "details": "Cash payments come out of the open cash register (unless you check «historical»).",
+     "action": "fill",
+     "details": "Required. Cash payments come out of the open cash register.",
      "id": "method",
      "target": "purchases.payments.field.payment_method_id",
-     "title": "Payment method"
+     "title": "Payment method",
+     "value": "{{values.payment_method}}"
     },
     {
      "action": "highlight",
@@ -33131,6 +33165,7 @@
    "id": "purchases.providers.create",
    "inputs": {
     "email": "Email",
+    "identity_document": "Document (numbers only, up to 10)",
     "name": "Name",
     "phone": "Phone"
    },
@@ -33183,12 +33218,12 @@
      "value": "{{values.phone}}"
     },
     {
-     "action": "highlight",
-     "details": "Needed to record their invoices.",
+     "action": "fill",
+     "details": "Required: numbers only, up to 10 digits. It's used to record their invoices.",
      "id": "doc",
-     "skipIfMissing": true,
      "target": "purchases.providers.field.identity_document",
-     "title": "Tax ID"
+     "title": "Tax ID",
+     "value": "{{values.identity_document}}"
     },
     {
      "action": "highlight",
@@ -33219,6 +33254,7 @@
    "group": "Information",
    "id": "purchases.providers.edit",
    "inputs": {
+    "identity_document": "Document (numbers only, up to 10)",
     "query": "Name, email or tax ID"
    },
    "keywords": [
@@ -33276,11 +33312,12 @@
      "title": "Email"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Required: numbers only, up to 10 digits.",
      "id": "doc",
-     "skipIfMissing": true,
      "target": "purchases.providers.detail.field.identity_document",
-     "title": "Tax ID"
+     "title": "Tax ID",
+     "value": "{{values.identity_document}}"
     },
     {
      "action": "highlight",
@@ -33681,6 +33718,8 @@
    "group": "Purchases from the provider",
    "id": "purchases.providers.prepaid",
    "inputs": {
+    "amount": "Amount (number)",
+    "payment_method": "Payment method (e.g. Cash)",
     "query": "Name, email or tax ID"
    },
    "keywords": [
@@ -33732,6 +33771,22 @@
      "target": "purchases.providers.btn.new-prepaid",
      "title": "Record an advance to the provider",
      "until": "purchases.providers.btn.submit"
+    },
+    {
+     "action": "fill",
+     "details": "Required: how much is advanced; it's later applied to their invoices.",
+     "id": "amount",
+     "target": "purchases.providers.field.payment_amount",
+     "title": "Amount",
+     "value": "{{values.amount}}"
+    },
+    {
+     "action": "fill",
+     "details": "Required. Cash payments come out of the open cash register.",
+     "id": "method",
+     "target": "purchases.providers.field.payment_method_id",
+     "title": "Payment method",
+     "value": "{{values.payment_method}}"
     },
     {
      "action": "confirm",
@@ -34670,6 +34725,7 @@
   {
    "id": "purchases.services.create",
    "inputs": {
+    "category": "Expense category (e.g. Clinical Supply)",
     "name": "Name",
     "price": "Reference price"
    },
@@ -34706,11 +34762,12 @@
      "value": "{{values.name}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "details": "Required: the expense category it's grouped under in reports.",
      "id": "category_id",
-     "skipIfMissing": true,
      "target": "purchases.services.field.category_id",
-     "title": "Category"
+     "title": "Category",
+     "value": "{{values.category}}"
     },
     {
      "action": "fill",
@@ -38525,7 +38582,8 @@
    "inputs": {
     "amount": "Amount",
     "notes": "Notes",
-    "party": "Patient"
+    "party": "Patient",
+    "payment_method": "Payment method (e.g. Cash)"
    },
    "keywords": [
     "prepayment",
@@ -38575,11 +38633,12 @@
      "title": "Currency"
     },
     {
-     "action": "highlight",
-     "details": "Cash payments add to the open cash register's cash count.",
+     "action": "fill",
+     "details": "Required. Cash adds to the open cash register's cash count.",
      "id": "method",
      "target": "sales.payments.field.payment_method_id",
-     "title": "Payment method"
+     "title": "Payment method",
+     "value": "{{values.payment_method}}"
     },
     {
      "action": "highlight",
@@ -39434,6 +39493,7 @@
   {
    "id": "sales.services.create",
    "inputs": {
+    "category": "Category (e.g. Other services)",
     "duration_minutes": "Duration",
     "name": "Name",
     "price": "Price"
@@ -39480,12 +39540,12 @@
      "title": "Type"
     },
     {
-     "action": "highlight",
-     "details": "Groups services in reports and on the portal.",
+     "action": "fill",
+     "details": "Required: groups services in lists, reports and on the portal.",
      "id": "category_id",
-     "skipIfMissing": true,
      "target": "sales.services.field.category_id",
-     "title": "Category"
+     "title": "Category",
+     "value": "{{values.category}}"
     },
     {
      "action": "fill",
@@ -40241,8 +40301,11 @@
   {
    "id": "system.alert-rules.create",
    "inputs": {
+    "category": "Category name (e.g. Appointments)",
     "code": "Code",
-    "name": "Name"
+    "name": "Name",
+    "source_table": "Source table (e.g. appointments)",
+    "table_id_field": "Table ID field (e.g. id)"
    },
    "keywords": [
     "new rule",
@@ -40283,20 +40346,28 @@
      "value": "{{values.code}}"
     },
     {
-     "action": "highlight",
-     "details": "Where it shows in the Alerts Center.",
+     "action": "fill",
+     "details": "Required: which group of the Alerts Center its alerts show in.",
      "id": "category_id",
-     "skipIfMissing": true,
      "target": "system.alert-rules.field.category_id",
-     "title": "Category"
+     "title": "Category",
+     "value": "{{values.category}}"
     },
     {
-     "action": "highlight",
-     "details": "Where the cases come from (appointments, invoices, patients…).",
+     "action": "fill",
+     "details": "Required: where the cases come from (appointments, invoices, patients…).",
      "id": "source_table",
-     "skipIfMissing": true,
      "target": "system.alert-rules.field.source_table",
-     "title": "Source"
+     "title": "Source",
+     "value": "{{values.source_table}}"
+    },
+    {
+     "action": "fill",
+     "details": "Required: the column that identifies each case in the table (almost always «id»).",
+     "id": "table_id_field",
+     "target": "system.alert-rules.field.table_id_field",
+     "title": "ID field",
+     "value": "{{values.table_id_field}}"
     },
     {
      "action": "highlight",
@@ -41724,7 +41795,8 @@
    "inputs": {
     "email": "Email",
     "name": "Name",
-    "phone": "Phone"
+    "phone": "Phone",
+    "role": "Role name (receptionist, administrator…)"
    },
    "keywords": [
     "new team member",
@@ -41774,12 +41846,12 @@
      "value": "{{values.phone}}"
     },
     {
-     "action": "highlight",
-     "details": "Defines what they can see and do.",
+     "action": "fill",
+     "details": "Required: the role defines what they can see and do.",
      "id": "role_id",
-     "skipIfMissing": true,
      "target": "system.staff.field.role_id",
-     "title": "Role"
+     "title": "Role",
+     "value": "{{values.role}}"
     },
     {
      "action": "highlight",
