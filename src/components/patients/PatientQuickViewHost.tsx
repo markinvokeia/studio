@@ -52,7 +52,12 @@ export function PatientQuickViewHost() {
               userId={userId}
               showCancelAction={showCancelAction}
               onDirtyChange={setIsPatientFormDirty}
-              onSaved={notifyPatientUpdated}
+              // The quick dialog is a one-shot edit (opened from the appointment's
+              // pencil), so a successful save closes it.
+              onSaved={(updated) => {
+                notifyPatientUpdated(updated);
+                close();
+              }}
             />
           </DialogBody>
         </DialogContent>
