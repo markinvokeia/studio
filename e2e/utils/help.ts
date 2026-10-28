@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 
 import catalog from '../../src/generated/help-catalog.json';
+import catalogEn from '../../src/generated/help-catalog.en.json';
 
 /**
  * Las guías del catálogo (knowledge/use-cases) como tests E2E y como videos.
@@ -30,6 +31,18 @@ const SCREENS = (catalog as unknown as { screens: Screen[] }).screens;
 
 /** Pantallas del menú (las que tienen "Guiarme por esta pantalla" y ficha). */
 export const HELP_MENU_SCREENS = SCREENS.filter((s) => s.inMenu);
+
+/** Idiomas en que se graban los videos (la app muestra el del usuario; si no hay, el español). */
+export type HelpLocale = 'es' | 'en';
+
+/** Guías y pantallas con los textos del idioma (los mismos ids y pasos en los dos). */
+export function helpCatalogTexts(locale: HelpLocale): { useCases: UseCase[]; menuScreens: Screen[] } {
+  const source = (locale === 'en' ? catalogEn : catalog) as unknown as { useCases: UseCase[]; screens: Screen[] };
+  return { useCases: source.useCases, menuScreens: source.screens.filter((s) => s.inMenu) };
+}
+
+/** Botón de los avisos que se abren solos (recordatorios vencidos), por idioma. */
+const DISMISS_ALL: Record<string, string> = { es: 'Cerrar todas', en: 'Dismiss all' };
 
 export function getUseCase(id: string): UseCase {
   const useCase = HELP_USE_CASES.find((u) => u.id === id);
@@ -110,7 +123,7 @@ export async function openForGuide(page: Page, route: string, locale = 'es') {
   await page.waitForFunction(() => window.__invokeHelp?.ready === true, null, { timeout: 180_000 });
   await page.waitForTimeout(1500);
   // Avisos que se abren solos (recordatorios vencidos) tapan la pantalla.
-  const closeAll = page.getByRole('button', { name: 'Cerrar todas' });
+  const closeAll = page.getByRole('button', { name: DISMISS_ALL[locale] ?? DISMISS_ALL.es });
   if (await closeAll.isVisible().catch(() => false)) { await closeAll.click(); await page.waitForTimeout(500); }
 }
 

@@ -79,6 +79,13 @@ export interface ResolvedGuide {
   title: string;
   steps: HelpGuideStep[];
   useCaseId?: string;
+  /** Recorrido de una pantalla (sin guía propia): su video es `tour.<screenId>`. */
+  screenId?: string;
+}
+
+/** Clave del video de una guía en `help_videos`. */
+export function videoKeyOf(guide: ResolvedGuide): string | undefined {
+  return guide.useCaseId ?? (guide.screenId ? `tour.${guide.screenId}` : undefined);
 }
 
 /** Ruta a la que lleva un caso de uso (su primer paso `navigate`). */
@@ -120,7 +127,7 @@ export function screenTour(screen: HelpCatalogScreen, title: string, isVisible?:
       skipIfMissing: true,
     })),
   ];
-  return elements.length ? { title, steps } : null;
+  return elements.length ? { title, steps, screenId: screen.id } : null;
 }
 
 const SUGGESTIONS_MAX = 3;

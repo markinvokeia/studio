@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, EyeOff, Volume2, VolumeX, X } from 'lucide-react';
+import { ArrowLeft, EyeOff, Square, Volume2, VolumeX, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -11,6 +11,7 @@ import { useMascot } from '@/components/invoke-mascot';
 
 import { GuideSpotlight } from '@/components/help/guide-spotlight';
 import { HelpChat } from '@/components/help/help-chat';
+import { HelpVideoPlayer } from '@/components/help/help-video-player';
 import { HelpScopeProvider } from '@/components/help/help-scope';
 import { OnboardingChecklist } from '@/components/help/onboarding-checklist';
 import { ScreenHelp } from '@/components/help/screen-help';
@@ -21,7 +22,7 @@ import { useMascotOnStage, useMascotPreference } from '@/hooks/use-mascot-prefer
 import { useCurrentHelpRoute } from '@/hooks/use-current-help-route';
 import { usePermissions } from '@/hooks/usePermissions';
 import { findScreen, findUseCase, helpCatalogLocale, loadHelpCatalog, screenTour } from '@/lib/help/catalog';
-import { configureGuideRunner, nextStep, registerGuideCondition, startGuide } from '@/lib/help/guide-runner';
+import { cancelGuide, configureGuideRunner, nextStep, registerGuideCondition, startGuide } from '@/lib/help/guide-runner';
 import { findHelpTarget } from '@/lib/help/guide-engine';
 import { stripLocale } from '@/lib/help/help-id';
 import { pickPlacement, rectOf, type Rect } from '@/lib/help/placement';
@@ -30,7 +31,7 @@ import { getHelpSettings, getOnboardingStatus, getPublishedCatalogVersion, publi
 import { useHelpAssistant } from '@/stores/help-assistant-store';
 
 import { HELP_PERMISSIONS } from '@/constants/permissions';
-import type { HelpCatalog } from '@/lib/types';
+import type { HelpCatalog, HelpVideo } from '@/lib/types';
 
 /** La mascota avisa una vez por sesión cuántos pasos obligatorios faltan. */
 const PENDING_SAID_KEY = 'invoke-help:pending-said';
@@ -115,32 +116,71 @@ function placeAwayFrom(avoid: (Rect | null)[]): React.CSSProperties {
 }
 
 const QUICK_ACTION_PX = 36;
+/** Encima de la mascota (z 45, o 2147483601 mientras guía) y de la ventana del chat. */
+const CONTROLS_Z = 9986;
+const CONTROLS_Z_GUIDING = 2147483603;
+/** Margen alrededor de la mascota que cuenta como "pasar el mouse por encima". */
+const HOVER_SLACK_PX = 8;
 const QUICK_ACTION_GAP = 8;
 
-/** Columna de iconos al costado de la mascota, del lado que da al centro de la pantalla. */
-function quickActionsStyle(anchor: Anchor, count: number): React.CSSProperties {
+/**
+ * Columna de iconos al costado de la mascota, del lado que da al centro de la pantalla;
+ * mientras guía, del lado opuesto a lo que señala (no lo tapa).
+ */
+function quickActionsStyle(anchor: Anchor, count: number, avoid?: DOMRect | null): React.CSSProperties {
   const height = count * QUICK_ACTION_PX + (count - 1) * QUICK_ACTION_GAP;
-  const onRightHalf = anchor.left + anchor.width / 2 > window.innerWidth / 2;
+  const center = anchor.left + anchor.width / 2;
+  const leftSide = avoid ? avoid.left + avoid.width / 2 > center : center > window.innerWidth / 2;
+  const left = anchor.left - QUICK_ACTION_PX - QUICK_ACTION_GAP;
+  const right = anchor.left + anchor.width + QUICK_ACTION_GAP;
+  // Del lado elegido si entra en pantalla; si no, del otro.
+  const fitsLeft = left >= 8;
+  const fitsRight = right + QUICK_ACTION_PX <= window.innerWidth - 8;
   return {
-    top: Math.max(8, anchor.top + anchor.width / 2 - height / 2),
-    left: onRightHalf ? anchor.left - QUICK_ACTION_PX - QUICK_ACTION_GAP : anchor.left + anchor.width + QUICK_ACTION_GAP,
+    // Centrada con la mascota, pero siempre entera en pantalla (abajo de todo no se corta).
+    top: Math.max(8, Math.min(window.innerHeight - height - 8, anchor.top + anchor.width / 2 - height / 2)),
+    left: (leftSide ? fitsLeft || !fitsRight : !fitsRight && fitsLeft) ? left : right,
   };
 }
 
-function QuickAction({ label, onClick, pressed, delay, children }: { label: string; onClick: () => void; pressed?: boolean; delay: number; children: React.ReactNode }) {
+function QuickAction({ label, onClick, pressed, disabled, children }: { label: string; onClick: () => void; pressed?: boolean; disabled?: boolean; children: React.ReactNode }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-label={label}
       aria-pressed={pressed}
       title={label}
-      style={{ animationDelay: `${delay}ms`, animationFillMode: 'both', width: QUICK_ACTION_PX, height: QUICK_ACTION_PX }}
-      className="flex items-center justify-center rounded-full border border-[#7C3AED]/25 bg-white text-[#5B21B6] shadow-[0_6px_16px_rgba(60,20,90,0.22)] transition-colors animate-in fade-in zoom-in-50 duration-300 hover:bg-[#7C3AED] hover:text-white dark:bg-card dark:text-violet-300"
+      // Que no se robe el foco: un diálogo abierto debajo lo atraparía.
+      onMouseDown={(e) => e.preventDefault()}
+      style={{ width: QUICK_ACTION_PX, height: QUICK_ACTION_PX }}
+      className="flex items-center justify-center rounded-full border border-[#7C3AED]/25 bg-white text-[#5B21B6] shadow-[0_6px_16px_rgba(60,20,90,0.22)] transition-colors hover:bg-[#7C3AED] hover:text-white disabled:pointer-events-none disabled:opacity-40 dark:bg-card dark:text-violet-300"
     >
       {children}
     </button>
   );
+}
+
+/**
+ * Mouse sobre la mascota: se mide con su caja (no con eventos), así funciona aunque
+ * mientras guía deje pasar los clics a la pantalla.
+ */
+function useMascotControlsHover(active: boolean): boolean {
+  const [hovered, setHovered] = React.useState(false);
+  React.useEffect(() => {
+    if (!active) { setHovered(false); return; }
+    const onMove = (e: PointerEvent) => {
+      const r = document.querySelector('.ivm-actor:not(.ivm-hidden)')?.getBoundingClientRect();
+      const inside = !!r && r.width > 0
+        && e.clientX >= r.left - HOVER_SLACK_PX && e.clientX <= r.right + HOVER_SLACK_PX
+        && e.clientY >= r.top - HOVER_SLACK_PX && e.clientY <= r.bottom + HOVER_SLACK_PX;
+      setHovered((prev) => (prev === inside ? prev : inside));
+    };
+    document.addEventListener('pointermove', onMove, { passive: true });
+    return () => document.removeEventListener('pointermove', onMove);
+  }, [active]);
+  return hovered;
 }
 
 function readStorage(storage: 'local' | 'session', key: string): string | null {
@@ -288,6 +328,12 @@ function HelpAssistantRoot() {
   // Mientras guía, lo primario es la guía (la mascota y la barra de pasos): la ventana se oculta.
   const showWindow = isOpen && !guide;
   const anchor = useMascotAnchor(showWindow);
+  // Los controles de la mascota (voz, esconder, detener) están siempre junto a ella mientras se ve.
+  const mascotOnStage = useMascotOnStage();
+  // En las grabaciones (videos) no salen: son de la persona, no de la guía.
+  const controlsVisible = mascotOnStage && mascot.phase === 'active' && !automation;
+  const controlsAnchor = useMascotAnchor(controlsVisible);
+  const controlsHovered = useMascotControlsHover(controlsVisible);
   const spotlightId = useHelpAssistant((s) => s.spotlight?.targetId ?? null);
   const pointing = usePointedRects(showWindow ? spotlightId : null);
   const voiceMuted = useAssistantVoice((s) => s.muted);
@@ -305,15 +351,25 @@ function HelpAssistantRoot() {
     return () => { offOpen(); offClosed(); };
   }, []);
   const [, setShowMascot] = useMascotPreference(user?.id);
-  const mascotOnStage = useMascotOnStage();
 
-  // Esconderla: se despide y queda dormida en el riel (MascotWakeButton) hasta que la despierten.
+  // Esconderla: corta la guía, se despide y queda dormida en el riel (MascotWakeButton) hasta que la despierten.
   const hideMascot = React.useCallback(async () => {
+    cancelGuide();
     close();
     stopAssistantSpeech();
     await mascotRef.current.gesture('wave', 900);
     setShowMascot(false);
   }, [close, setShowMascot]);
+
+  // Detener: corta la guía (o cierra el chat) y la mascota queda a la vista, esperando.
+  const speaking = useAssistantVoice((s) => s.speakingId !== null);
+  const canStop = !!guide || isOpen || speaking;
+  const stopAll = React.useCallback(() => {
+    cancelGuide();
+    close();
+    stopAssistantSpeech();
+    void mascotRef.current.setMood('neutral');
+  }, [close]);
 
   // "Guiame en esta pantalla" se destaca si llegó a una pantalla nueva desde la última vez que la abrió.
   const lastSeenRoute = React.useRef<string | null>(null);
@@ -337,6 +393,19 @@ function HelpAssistantRoot() {
     el.addEventListener('pointerdown', stop);
     return () => el.removeEventListener('pointerdown', stop);
   }, [showWindow]);
+
+  // "Guiarme" desde el reproductor: arranca la guía del video y el video sigue flotando.
+  const guideFromVideo = React.useCallback((video: HelpVideo) => {
+    if (!catalog) return;
+    if (video.useCaseId.startsWith('tour.')) {
+      const screen = findScreen(catalog, video.useCaseId.slice('tour.'.length));
+      const tour = screen ? screenTour(screen, t('screen.tourTitle', { screen: screen.title })) : null;
+      if (tour) startGuide(tour);
+      return;
+    }
+    const useCase = findUseCase(catalog, video.useCaseId);
+    if (useCase) startGuide({ title: useCase.title, steps: useCase.steps }, { useCaseId: useCase.id });
+  }, [catalog, t]);
 
   const view = tab === 'onboarding' && (!canSeeOnboarding || !catalog) ? 'chat' : tab;
   const screenTitle = catalog ? findScreen(catalog, scope)?.title : undefined;
@@ -372,6 +441,7 @@ function HelpAssistantRoot() {
     <HelpScopeProvider scope="help-assistant">
       <div data-help-ignore>
         <GuideSpotlight />
+        <HelpVideoPlayer onGuide={catalog ? guideFromVideo : undefined} />
 
         {/* El lanzador es la mascota (MascotHost): al hacerle clic se abre esta ventana arriba de ella. */}
         {showWindow && anchor && (
@@ -453,27 +523,30 @@ function HelpAssistantRoot() {
           </div>
         )}
 
-        {/* Iconos que salen al lado de la mascota al tocarla: silenciar la voz y esconderla. */}
-        {showWindow && anchor && !detached && mascotOnStage && (
+        {/* Controles junto a la mascota, siempre: voz, esconder (corta la guía) y detener. Tenues
+            hasta que se pasa el mouse por ellos o por la mascota. */}
+        {controlsVisible && controlsAnchor && (
           <div
             role="toolbar"
             aria-label={t('mascotActions')}
+            data-mascot-controls
             onPointerDown={(e) => e.stopPropagation()}
-            className="fixed z-[9986] flex flex-col gap-2"
-            style={quickActionsStyle(anchor, canSpeak ? 2 : 1)}
+            className={cn(
+              'fixed flex flex-col gap-2 transition-opacity duration-200 [@media(hover:none)]:opacity-100',
+              controlsHovered ? 'opacity-100' : 'opacity-35 hover:opacity-100 focus-within:opacity-100',
+            )}
+            style={{ ...quickActionsStyle(controlsAnchor, canSpeak ? 3 : 2, spotlightId ? findHelpTarget(spotlightId)?.highlight.getBoundingClientRect() : null), zIndex: guide ? CONTROLS_Z_GUIDING : CONTROLS_Z, pointerEvents: 'auto' }}
           >
             {canSpeak && (
-              <QuickAction
-                label={voiceMuted ? t('voiceOn') : t('voiceOff')}
-                pressed={voiceMuted}
-                onClick={() => setVoiceMuted(!voiceMuted)}
-                delay={0}
-              >
+              <QuickAction label={voiceMuted ? t('voiceOn') : t('voiceOff')} pressed={voiceMuted} onClick={() => setVoiceMuted(!voiceMuted)}>
                 {voiceMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
               </QuickAction>
             )}
-            <QuickAction label={t('hideMascot')} onClick={() => void hideMascot()} delay={canSpeak ? 70 : 0}>
+            <QuickAction label={t('hideMascot')} onClick={() => void hideMascot()}>
               <EyeOff className="h-4 w-4" />
+            </QuickAction>
+            <QuickAction label={guide ? t('stopGuide') : t('stop')} onClick={stopAll} disabled={!canStop}>
+              {guide ? <Square className="h-3.5 w-3.5 fill-current" /> : <X className="h-4 w-4" />}
             </QuickAction>
           </div>
         )}

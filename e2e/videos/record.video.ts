@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { test, type Browser, type Page } from '@playwright/test';
 
-import { HELP_MENU_SCREENS, HELP_USE_CASES, confirmsInRuns, driveGuide, openForGuide, runOrder, useCaseRoute } from '../utils/help';
+import { confirmsInRuns, driveGuide, helpCatalogTexts, openForGuide, runOrder, useCaseRoute, type HelpLocale } from '../utils/help';
 import { DEMO_VALUES } from './demo-values';
 
 /**
@@ -19,10 +19,13 @@ import { DEMO_VALUES } from './demo-values';
  *   Pulsa los OK: las guías de alta, edición y baja crean y cambian datos de verdad
  *   (valores de demo-values.ts, nombres ficticios que parecen reales).
  *   HELP_VIDEO_NO_CONFIRM=1  frena en el OK sin pulsarlo.
+ *   HELP_VIDEO_LOCALE=en     graba con la app en inglés (por defecto español). El chat
+ *   muestra el video del idioma del usuario y, si no hay, el español.
  *   Grabar contra el build de producción (pnpm build && pnpm start).
  *
  * Salida: videos/raw/<caso>.webm (desde la intro) + <caso>.json (línea de tiempo,
  * para narrar y subtitular con `pnpm videos:build`) + <caso>.full.webm (sin recortar).
+ * En inglés: <caso>.en.webm / <caso>.en.json (build-videos arma <caso>-en.mp4).
  */
 
 const OUT_DIR = join(process.cwd(), 'videos', 'raw');
@@ -33,16 +36,25 @@ const INTRO_MS = 2500;
 const VIEWPORT = { width: 1280, height: 720 };
 /** Pantallas sin recorrido grabado (fuera de alcance por ahora). */
 const SKIP_TOURS = new Set(['studies', 'shared-studies']);
+const LOCALE: HelpLocale = process.env.HELP_VIDEO_LOCALE === 'en' ? 'en' : 'es';
+/** Textos propios del video (intro y placa final), por idioma. */
+const VIDEO_TEXT = {
+  es: { tagline: 'Invoke IA · Guía paso a paso', tour: (screen: string) => `Recorrido por ${screen}`, tips: 'Consejos', dismissAll: 'Cerrar todas' },
+  en: { tagline: 'Invoke IA · Step-by-step guide', tour: (screen: string) => `Tour of ${screen}`, tips: 'Tips', dismissAll: 'Dismiss all' },
+}[LOCALE];
+/** Sufijo de los archivos de la grabación: el español sin sufijo (como siempre), el inglés `.en`. */
+const FILE_SUFFIX = LOCALE === 'es' ? '' : `.${LOCALE}`;
+const { useCases: USE_CASES, menuScreens: MENU_SCREENS } = helpCatalogTexts(LOCALE);
 
 interface Segment { index: number; title: string; description?: string; details?: string; action: string; t: number }
 interface Outro { title: string; summary?: string; purpose?: string; tips: string[] }
 interface Recording { id: string; title: string; module?: string; route: string; values?: Record<string, unknown>; screenTour?: string; outro?: Outro }
 
 const RECORDINGS: Recording[] = [
-  ...runOrder(HELP_USE_CASES).map((u) => ({ id: u.id, title: u.title, module: u.module, route: useCaseRoute(u), values: DEMO_VALUES[u.id] })),
-  ...HELP_MENU_SCREENS.filter((s) => !SKIP_TOURS.has(s.id)).map((s) => ({
+  ...runOrder(USE_CASES).map((u) => ({ id: u.id, title: u.title, module: u.module, route: useCaseRoute(u), values: DEMO_VALUES[u.id] })),
+  ...MENU_SCREENS.filter((s) => !SKIP_TOURS.has(s.id)).map((s) => ({
     id: `tour.${s.id}`,
-    title: `Recorrido por ${s.title ?? s.id}`,
+    title: VIDEO_TEXT.tour(s.title ?? s.id),
     module: s.module,
     route: s.route,
     screenTour: s.id,
@@ -62,7 +74,7 @@ test.beforeAll(() => {
  * y las preferencias, no se ve) y se va cuando el grabador la despide. Así el video
  * siempre empieza en la intro, aunque el recorte no caiga justo.
  */
-function introScript({ title, module }: { title: string; module?: string }) {
+function introScript({ title, module, tagline }: { title: string; module?: string; tagline: string }) {
   if (sessionStorage.getItem('video-intro-done') === '1') return;
   const mount = () => {
     if (document.getElementById('video-intro')) return;
@@ -75,7 +87,7 @@ function introScript({ title, module }: { title: string; module?: string }) {
     el.innerHTML = '<img id="video-intro-logo" alt="" style="width:84px;height:84px;border-radius:20px;background:#fff;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.25);opacity:0;transition:opacity 300ms" />'
       + (module ? `<div style="font-size:18px;letter-spacing:.18em;text-transform:uppercase;opacity:.75">${module}</div>` : '')
       + `<div style="font-size:44px;font-weight:800;line-height:1.15">${title}</div>`
-      + '<div style="margin-top:6px;font-size:16px;opacity:.75">Invoke IA · Guía paso a paso</div>';
+      + `<div style="margin-top:6px;font-size:16px;opacity:.75">${tagline}</div>`;
     document.documentElement.appendChild(el);
     // El logo es el de la app (barra izquierda): se toma apenas aparece.
     const takeLogo = setInterval(() => {
@@ -95,10 +107,10 @@ function introScript({ title, module }: { title: string; module?: string }) {
 }
 
 /** Placa final del recorrido de una pantalla: su ficha (nombre, para qué sirve, consejos). */
-async function showOutro(page: Page, outro: Outro) {
+async function showOutro(page: Page, outro: Outro, tipsLabel: string) {
   const text = [outro.summary, outro.purpose, ...outro.tips].filter(Boolean).join(' ');
   const ms = Math.min(14_000, Math.max(5000, 2500 + text.length * 40));
-  await page.evaluate(({ o, ms: dur }) => {
+  await page.evaluate(({ o, ms: dur, tipsLabel: tips }) => {
     const esc = (s: string) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] as string));
     const el = document.createElement('div');
     el.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;'
@@ -110,13 +122,13 @@ async function showOutro(page: Page, outro: Outro) {
       + `<div style="font-size:36px;font-weight:800;line-height:1.15">${esc(o.title)}</div></div>`
       + (o.summary ? `<div style="font-size:20px;font-weight:600;opacity:.95;margin-bottom:8px">${esc(o.summary)}</div>` : '')
       + (o.purpose ? `<div style="font-size:16px;line-height:1.5;opacity:.85;margin-bottom:18px">${esc(o.purpose)}</div>` : '')
-      + (o.tips.length ? '<div style="font-size:14px;letter-spacing:.14em;text-transform:uppercase;opacity:.7;margin-bottom:8px">Consejos</div>'
+      + (o.tips.length ? `<div style="font-size:14px;letter-spacing:.14em;text-transform:uppercase;opacity:.7;margin-bottom:8px">${esc(tips)}</div>`
         + `<ul style="margin:0;padding-left:22px;font-size:16px;line-height:1.55;list-style:disc outside">${o.tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : '')
       + '</div>';
     document.documentElement.appendChild(el);
     requestAnimationFrame(() => { el.style.opacity = '1'; });
     setTimeout(() => { el.style.opacity = '0'; }, dur - 450);
-  }, { o: outro, ms });
+  }, { o: outro, ms, tipsLabel });
   await page.waitForTimeout(ms + 100);
 }
 
@@ -144,11 +156,11 @@ let alertsAsToast = false;
 /** Avisos de alertas en modo Notificación (no Modal): un modal en el medio arruina la grabación. */
 async function ensureToastAlerts(page: Page) {
   if (alertsAsToast) return;
-  await page.goto('/es/preferences');
+  await page.goto(`/${LOCALE}/preferences`);
   const toast = page.locator('[data-help-id="preferences.btn.alert-style-toast"]');
   await toast.waitFor({ timeout: 60_000 });
   // Los recordatorios vencidos salen como modal (justamente lo que se quiere apagar): primero se cierran.
-  const closeAll = page.getByRole('button', { name: 'Cerrar todas' });
+  const closeAll = page.getByRole('button', { name: VIDEO_TEXT.dismissAll });
   for (let i = 0; i < 10 && (await closeAll.isVisible().catch(() => false)); i++) {
     await closeAll.click().catch(() => {});
     await page.waitForTimeout(600);
@@ -174,12 +186,12 @@ function trimFrom(file: string, startMs: number) {
 async function record(browser: Browser, baseURL: string, rec: Recording) {
   // Contexto propio: el video empieza al crear la página, así el recorte cae en el lugar justo.
   const context = await browser.newContext({ baseURL, viewport: VIEWPORT, storageState: 'e2e/.auth/user.json', recordVideo: { dir: join(OUT_DIR, '.tmp'), size: VIEWPORT } });
-  await context.addInitScript(introScript, { title: rec.title, module: rec.module });
+  await context.addInitScript(introScript, { title: rec.title, module: rec.module, tagline: VIDEO_TEXT.tagline });
   const page = await context.newPage();
   const videoStart = Date.now();
 
   await ensureToastAlerts(page);
-  await openForGuide(page, rec.route);
+  await openForGuide(page, rec.route, LOCALE);
   // La página ya cargó del todo: desde acá empieza el video (la intro, 2,5 s).
   const introAt = Date.now() - videoStart;
   await page.waitForTimeout(INTRO_MS);
@@ -203,19 +215,19 @@ async function record(browser: Browser, baseURL: string, rec: Recording) {
     if (target) await showClick(page, target);
   }
   await page.waitForTimeout(1000);
-  if (rec.outro) await showOutro(page, rec.outro);
+  if (rec.outro) await showOutro(page, rec.outro, VIDEO_TEXT.tips);
 
   const catalogVersion = await page.evaluate(() => window.__invokeHelp!.catalogVersion);
   const video = page.video();
   await context.close();
-  const file = join(OUT_DIR, `${rec.id}.webm`);
+  const file = join(OUT_DIR, `${rec.id}${FILE_SUFFIX}.webm`);
   await video?.saveAs(file);
   await video?.delete();
   if (existsSync(file)) trimFrom(file, introAt);
-  writeFileSync(join(OUT_DIR, `${rec.id}.json`), JSON.stringify({
+  writeFileSync(join(OUT_DIR, `${rec.id}${FILE_SUFFIX}.json`), JSON.stringify({
     useCaseId: rec.id,
     title: rec.title,
-    locale: 'es',
+    locale: LOCALE,
     catalogVersion,
     recordedAt: new Date().toISOString(),
     outcome: result.outcome,
@@ -226,7 +238,7 @@ async function record(browser: Browser, baseURL: string, rec: Recording) {
 }
 
 for (const rec of RECORDINGS) {
-  test(`video · ${rec.id}`, async ({ browser }, testInfo) => {
+  test(`video · ${rec.id}${FILE_SUFFIX}`, async ({ browser }, testInfo) => {
     test.setTimeout(420_000);
     await record(browser, String(testInfo.project.use.baseURL), rec);
   });

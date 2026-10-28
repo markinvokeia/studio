@@ -32,7 +32,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "parameters": {
-        "jsCode": "// Usuario autenticado: el Webhook ya verificó el JWT (credencial JWT Auth account)\nconst input = $input.first().json;\nconst userId = input.jwtPayload?.userId ?? input.jwtPayload?.sub;\nif (!userId) throw new Error('userId no encontrado en el token');\n\nconst body = input.body || {};\nconst useCaseId = String(body.use_case_id || '');\nif (!/^[a-z0-9_.-]{3,80}$/.test(useCaseId)) throw new Error('use_case_id inválido');\nconst locale = ['es', 'es-ES', 'en'].includes(body.locale) ? body.locale : 'es';\nconst questionId = /^[0-9a-f-]{36}$/i.test(String(body.question_id || '')) ? body.question_id : '';\nreturn [{ json: { user_id: String(userId), use_case_id: useCaseId, locale, question_id: questionId } }];"
+        "jsCode": "// Usuario autenticado: el Webhook ya verificó el JWT (credencial JWT Auth account)\nconst input = $input.first().json;\nconst userId = input.jwtPayload?.userId ?? input.jwtPayload?.sub;\nif (!userId) throw new Error('userId no encontrado en el token');\n\nconst body = input.body || {};\nconst useCaseId = String(body.use_case_id || '');\nif (!/^[a-zA-Z0-9_.-]{3,80}$/.test(useCaseId)) throw new Error('use_case_id inválido');\nconst locale = ['es', 'es-ES', 'en'].includes(body.locale) ? body.locale : 'es';\nconst questionId = /^[0-9a-f-]{36}$/i.test(String(body.question_id || '')) ? body.question_id : '';\nreturn [{ json: { user_id: String(userId), use_case_id: useCaseId, locale, question_id: questionId } }];"
       },
       "position": [
         330,

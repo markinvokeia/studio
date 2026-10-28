@@ -93,6 +93,11 @@ export interface PointAtOptions {
    * mientras el paso espera a la persona.
    */
   signal?: AbortSignal;
+  /**
+   * Con `say`: mueve la boca hasta que esta promesa se resuelve (la voz que lee el
+   * globo terminó) en vez del tiempo de lectura calculado.
+   */
+  talkUntil?: Promise<unknown>;
 }
 
 export interface TravelOptions {

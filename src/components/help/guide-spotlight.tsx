@@ -1,13 +1,13 @@
 'use client';
 
-import { AlertCircle, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Circle, CircleDot, ListOrdered, RotateCcw, SkipForward, X } from 'lucide-react';
+import { AlertCircle, Check, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Circle, CircleDot, ListOrdered, LocateFixed, RotateCcw, SkipForward, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 
 import { useMascotOnStage } from '@/hooks/use-mascot-preference';
 import { findHelpTarget, isMissingOrInvalid } from '@/lib/help/guide-engine';
-import { goToStep, isBlockingStep, lastStep, nextStep, previousStep, retryStep, skipStep, stopGuide } from '@/lib/help/guide-runner';
+import { goToStep, isBlockingStep, lastStep, nextStep, previousStep, retryStep, revealGuide, skipStep, stopGuide } from '@/lib/help/guide-runner';
 import { intersects, MASCOT_SIZE, menuRectOf, pickPlacement, placeGuideMascot, placeGuideMascotBesideMenu, revealElement, VIEWPORT_MARGIN, type Rect } from '@/lib/help/placement';
 import { cn } from '@/lib/utils';
 import { useHelpAssistant, type GuideRun, type GuideStepStatus } from '@/stores/help-assistant-store';
@@ -28,6 +28,8 @@ const MAX_LEVEL = 5;
 const ALERT_CHECK_MS = 400;
 /** Globo propio (sin mascota): ancho máximo. */
 const BUBBLE_MAX_WIDTH = 280;
+/** Lo señalado desapareció (se cerró el diálogo, otra pantalla): tras esto la barra queda abajo al centro. */
+const LOST_AFTER_MS = 1200;
 
 function sameBox(a: Rect | null, b: Rect | null) {
   if (!a || !b) return a === b;
@@ -295,6 +297,7 @@ export function GuideSpotlight() {
   // Globo de la mascota: si la lista de pasos lo tapa, la lista se esconde en ese paso.
   const [bubbleBox, setBubbleBox] = React.useState<Rect | null>(null);
   const [listYields, setListYields] = React.useState(false);
+  const [lost, setLost] = React.useState(false);
 
   const targetId = spotlight?.targetId;
   React.useEffect(() => { setListYields(false); }, [targetId]);
@@ -348,6 +351,15 @@ export function GuideSpotlight() {
     return () => { cancelAnimationFrame(frame); setAlert(false); };
   }, [targetId, spotlight?.required, spotlight?.mode]);
 
+  // Si lo señalado ya no está, la guía no puede quedar invisible: la barra pasa abajo al centro
+  // con "Mostrar de nuevo" (y la mascota, al tocarla, repite el paso).
+  React.useEffect(() => {
+    setLost(false);
+    if (!spotlight || box) return;
+    const timer = setTimeout(() => setLost(true), LOST_AFTER_MS);
+    return () => clearTimeout(timer);
+  }, [spotlight, box]);
+
   // Cuanto más tiempo sin atención, más fuerte titila.
   React.useEffect(() => {
     setLevel(1);
@@ -374,7 +386,7 @@ export function GuideSpotlight() {
   // Sin nada que resaltar (cambiando de pantalla, o un paso que no se pudo hacer): la
   // barra queda abajo al centro, con reintentar y saltar si falló; la mascota explica por qué.
   const failed = !!guide && !guide.finished && guide.statuses[guide.current] === 'failed';
-  if (guide && !guide.finished && !spotlight) {
+  if (guide && !guide.finished && (!spotlight || lost)) {
     const vw = window.innerWidth;
     const toolbar = { width: TOOLBAR_WIDTH, height: TOOLBAR_HEIGHT, top: window.innerHeight - TOOLBAR_HEIGHT - 20, left: vw / 2 - TOOLBAR_WIDTH / 2 };
     return createPortal(
@@ -390,6 +402,7 @@ export function GuideSpotlight() {
             {t('step', { current: stepPosition(guide, guide.current).current, total })}
           </span>
           {listToggle}
+          {!failed && lost && <ToolbarButton label={t('showAgain')} onClick={() => { revealGuide(); }} primary><LocateFixed className="h-4 w-4" /></ToolbarButton>}
           {failed && <ToolbarButton label={t('retry')} onClick={retryStep} primary><RotateCcw className="h-4 w-4" /></ToolbarButton>}
           {failed && <ToolbarButton label={t('skip')} onClick={() => nextStep('single')}><SkipForward className="h-4 w-4" /></ToolbarButton>}
           <ToolbarButton label={t('close')} onClick={stopGuide}><X className="h-4 w-4" /></ToolbarButton>

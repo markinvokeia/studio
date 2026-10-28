@@ -184,6 +184,10 @@ Para incorporar en la próxima versión del paquete:
 8. `useMascotRouteTravel(…, { disabled })`: no cruza de lado (con un lugar elegido).
 9. `interactive={false}`: la mascota y su globo dejan pasar clics, clic derecho y arrastres
    (mientras guía se para sobre el elemento que señala).
+10. `canTalk={false}` (`MascotProvider`): nunca pone la cara de hablar (`talking` → `happy`);
+    el globo se sigue mostrando. Invoke lo apaga cuando la voz está silenciada.
+11. `pointAt(…, { talkUntil })`: con `say`, mueve la boca hasta que la promesa se resuelve
+    (la voz que lee el globo terminó) en vez del tiempo de lectura calculado.
 
 El ESLint del proyecto apaga `react-hooks/refs` y `react-hooks/purity` sólo para esta
 carpeta (el dibujo usa refs y `Date.now()` en render a propósito).

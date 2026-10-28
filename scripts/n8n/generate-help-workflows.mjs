@@ -409,7 +409,11 @@ OpenAI (${OPENAI_MODEL}) → validación contra la lista cerrada (rutas, casos d
 del catálogo o visibles) → registro en help_questions.
 
 RESPUESTA (HelpAssistantReply en src/lib/types.ts):
-{ answer, confidence, links, useCaseId, useCaseIds, values, autoStart, videoUrl, questionId, escalated }`,
+{ answer, confidence, links, useCaseId, useCaseIds, values, autoStart, videoUrl, videos, questionId, escalated }
+
+videos: los videos publicados (help_videos, en el idioma del usuario si hay; si no, en
+el que exista) de las guías propuestas, de las guías de la pantalla actual y de su
+recorrido (tour.<pantalla>): [{ useCaseId, url, title, durationSeconds, locale }].`,
   [
     webhook('help/assistant/chat', 'POST'),
     code('node-prepare', 'Preparar Consulta', `${JWT_DECODE}
@@ -454,12 +458,13 @@ return [{ json: {
      FROM public.help_catalog_items WHERE kind = 'use_case' AND status <> 'stale') AS use_cases,
   (SELECT COALESCE(jsonb_agg(data ->> 'id'), '[]'::jsonb)
      FROM public.help_catalog_items WHERE kind = 'element' AND status <> 'stale') AS element_ids,
-  (SELECT COALESCE(jsonb_object_agg(use_case_id, url), '{}'::jsonb)
-     FROM (SELECT DISTINCT ON (use_case_id) use_case_id, url FROM public.help_videos
-            WHERE status = 'ready' ORDER BY use_case_id, recorded_at DESC) v) AS videos,
+  (SELECT COALESCE(jsonb_object_agg(use_case_id, jsonb_build_object('url', url, 'title', title, 'duration', duration_seconds, 'locale', locale)), '{}'::jsonb)
+     FROM (SELECT DISTINCT ON (use_case_id) use_case_id, url, title, duration_seconds, locale FROM public.help_videos
+            WHERE status = 'ready'
+            ORDER BY use_case_id, (locale = $1) DESC, (left(locale, 2) = left($1, 2)) DESC, recorded_at DESC) v) AS videos,
   (SELECT COALESCE(jsonb_agg(step_id), '[]'::jsonb)
      FROM public.help_onboarding_compute() WHERE NOT done) AS pending_steps,
-  (SELECT catalog_version FROM public.help_catalog_syncs ORDER BY synced_at DESC LIMIT 1) AS catalog_version;`, '={{ [] }}', { executeOnce: true }),
+  (SELECT catalog_version FROM public.help_catalog_syncs ORDER BY synced_at DESC LIMIT 1) AS catalog_version;`, "={{ [ $('Preparar Consulta').first().json.locale ] }}", { executeOnce: true }),
     code('node-prompt', 'Armar Prompt', `const q = $('Preparar Consulta').first().json;
 const found = $('Buscar en Catálogo').all().map(i => i.json).filter(r => r.id);
 const allowed = $input.first().json;
@@ -530,6 +535,15 @@ const suggested = [...(Array.isArray(parsed.useCaseIds) ? parsed.useCaseIds : []
   .slice(0, 3);
 const useCaseId = suggested[0] || null;
 
+// Videos grabados: de las guías propuestas, de las de esta pantalla y de su recorrido
+// (el chat ofrece "Ver video" debajo de cada guía que tenga uno).
+const videosById = allowed.videos || {};
+const screenUseCases = (allowed.use_cases || []).filter(u => Array.isArray(u.screens) && q.screen_id && u.screens.includes(q.screen_id)).map(u => u.id);
+const videos = [...suggested, ...screenUseCases, q.screen_id ? 'tour.' + q.screen_id : '']
+  .filter((id, i, all) => id && all.indexOf(id) === i && videosById[id] && videosById[id].url)
+  .slice(0, 12)
+  .map(id => ({ useCaseId: id, url: videosById[id].url, title: videosById[id].title || id, durationSeconds: videosById[id].duration ?? null, locale: videosById[id].locale || null }));
+
 const values = {};
 if (parsed.values && typeof parsed.values === 'object') {
   for (const [k, v] of Object.entries(parsed.values).slice(0, 20)) {
@@ -553,7 +567,8 @@ return [{ json: {
     useCaseIds: suggested,
     values,
     autoStart: parsed.autoStart === true && Boolean(useCaseId),
-    videoUrl: (useCaseId && (allowed.videos || {})[useCaseId]) || null,
+    videoUrl: (useCaseId && videosById[useCaseId] && videosById[useCaseId].url) || null,
+    videos,
     escalated,
   },
   log: {
@@ -662,7 +677,7 @@ Lo toma el worker de scripts/videos (pnpm videos:worker).`,
     code('node-auth', 'Validar Entrada', `${JWT_DECODE}
 const body = input.body || {};
 const useCaseId = String(body.use_case_id || '');
-if (!/^[a-z0-9_.-]{3,80}$/.test(useCaseId)) throw new Error('use_case_id inválido');
+if (!/^[a-zA-Z0-9_.-]{3,80}$/.test(useCaseId)) throw new Error('use_case_id inválido');
 const locale = ['es', 'es-ES', 'en'].includes(body.locale) ? body.locale : 'es';
 const questionId = /^[0-9a-f-]{36}$/i.test(String(body.question_id || '')) ? body.question_id : '';
 return [{ json: { user_id: String(userId), use_case_id: useCaseId, locale, question_id: questionId } }];`),
@@ -742,7 +757,7 @@ como desactualizado (lo usa el job nocturno cuando falla la guía).`,
     code('node-auth', 'Validar Entrada', `${JWT_DECODE}
 const b = input.body || {};
 const useCaseId = String(b.use_case_id || '');
-if (!/^[a-z0-9_.-]{3,80}$/.test(useCaseId)) throw new Error('use_case_id inválido');
+if (!/^[a-zA-Z0-9_.-]{3,80}$/.test(useCaseId)) throw new Error('use_case_id inválido');
 const locale = ['es', 'es-ES', 'en'].includes(b.locale) ? b.locale : 'es';
 const error = b.error ? String(b.error).slice(0, 2000) : '';
 const stale = b.stale === true ? '1' : '';

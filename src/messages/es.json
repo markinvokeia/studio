@@ -10155,6 +10155,7 @@
       "fillForMe": "Completarlo por mí",
       "takeMeTo": "Llevarme a {label}",
       "watchVideo": "Ver video",
+      "watchVideoOf": "Ver el video de «{title}»",
       "escalated": "Si no te sirvió, dejé registrada la consulta para que el equipo de Invoke la revise.",
       "helpful": "Me sirvió",
       "notHelpful": "No me sirvió",
@@ -10162,9 +10163,6 @@
       "fallbackFound": "Ahora no puedo consultar al asistente, pero esto es lo que encontré en la ayuda:",
       "fallbackNone": "Ahora no puedo consultar al asistente y no encontré nada sobre eso en la ayuda. Probá con otras palabras o mirá la pestaña «Esta pantalla».",
       "tourTitle": "Recorrido por {screen}",
-      "requestVideo": "Pedir video",
-      "videoRequested": "Pedí el video: aparece acá cuando esté listo.",
-      "videoRequestError": "No se pudo pedir el video",
       "ticketCreated": "Abrí el ticket #{id} para el equipo de soporte.",
       "subtitles": "Subtítulos",
       "mascotError": "Uy, algo falló. ¿Probamos de nuevo?",
@@ -10175,13 +10173,13 @@
       "guideThisScreen": "Guiame en esta pantalla",
       "readAloud": "Escuchar",
       "stopReading": "Dejar de leer",
-      "suggestedGuides": "Guías para esto",
       "stepsCount": "{count, plural, one {# paso} other {# pasos}}"
     },
     "mascot": {
       "label": "Asistente de Invoke",
       "pendingSteps": "¡Hola! Te {count, plural, one {falta # paso} other {faltan # pasos}} para arrancar. ¿Te guío?",
       "guideFinished": "¡Listo! Terminamos «{title}».",
+      "guideLost": "Se cerró lo que te estaba mostrando. Tocame y retomamos la guía.",
       "guideError": {
         "targetNotFound": "Uy, no encuentro ese elemento en la pantalla. Puede que falte un permiso. ¿Reintentamos o lo salteamos?",
         "navigationFailed": "Uy, no pude abrir la pantalla. Puede que no tengas permiso para verla."
@@ -10208,6 +10206,7 @@
       "close": "Cerrar la guía",
       "required": "Obligatorio",
       "retry": "Reintentar",
+      "showAgain": "Mostrar de nuevo",
       "hideSteps": "Ocultar los pasos",
       "showSteps": "Ver los pasos",
       "stepsLabel": "Pasos de la guía",
@@ -10219,7 +10218,29 @@
     "voiceOn": "Activar la voz",
     "voiceOff": "Silenciar la voz",
     "hideMascot": "Esconder al asistente",
-    "mascotActions": "Opciones del asistente"
+    "stopGuide": "Detener la guía",
+    "stop": "Detener",
+    "mascotActions": "Opciones del asistente",
+    "video": {
+      "label": "Video: {title}",
+      "move": "Arrastrá para moverlo",
+      "guideMe": "Guiarme mientras lo veo",
+      "guideMeShort": "Guiarme",
+      "enlarge": "Agrandar",
+      "shrink": "Achicar",
+      "close": "Cerrar el video",
+      "play": "Reproducir",
+      "pause": "Pausar",
+      "mute": "Silenciar",
+      "unmute": "Activar el sonido",
+      "speed": "Velocidad {rate}x",
+      "fullscreen": "Pantalla completa",
+      "exitFullscreen": "Salir de pantalla completa",
+      "seek": "Posición del video",
+      "loading": "Cargando el video…",
+      "error": "No se pudo cargar el video.",
+      "openExternal": "Abrirlo en otra pestaña"
+    }
   },
   "HelpInsightsPage": {
     "title": "Métricas del asistente",

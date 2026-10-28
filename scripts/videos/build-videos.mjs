@@ -2,9 +2,9 @@
 /**
  * Fase 3 — arma el video demo de cada guía grabada por `pnpm videos:record`.
  *
- *   videos/raw/<caso>.webm + <caso>.json (línea de tiempo de los pasos)
- *     → narración (ElevenLabs) + subtítulos (.vtt y pista mov_text) + logo
- *     → videos/out/<caso>-<locale>.mp4, .vtt y .json (metadatos para publicar)
+ *   videos/raw/<caso>.webm + <caso>.json (línea de tiempo de los pasos; en inglés <caso>.en.*)
+ *     → narración (ElevenLabs) + subtítulos (.vtt y pista mov_text)
+ *     → videos/out/<caso>-<locale>.mp4, .jpg (miniatura), .vtt y .json (metadatos para publicar)
  *
  *   ELEVENLABS_API_KEY   sin clave se arma sin narración (sólo subtítulos)
  *   ELEVENLABS_VOICE_ID  voz rioplatense de los videos actuales de Invoke
@@ -26,13 +26,14 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const RAW = join(ROOT, 'videos', 'raw');
 const OUT = join(ROOT, 'videos', 'out');
 const CACHE = join(ROOT, 'videos', 'cache');
-const LOGO_SVG = join(ROOT, 'src', 'components', 'icons', 'logo.tsx');
 
 const API_KEY = process.env.ELEVENLABS_API_KEY ?? '';
 const VOICE_ID = process.env.ELEVENLABS_VOICE_ID ?? '';
 const MODEL = process.env.ELEVENLABS_MODEL ?? 'eleven_multilingual_v2';
 const SELECTED = (process.env.HELP_VIDEO_USE_CASES ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 const NARRATION_GAP_S = 0.25;
+/** Segundo de la intro que se usa como miniatura. */
+const POSTER_AT_S = '1.2';
 
 const run = (cmd, args) => execFileSync(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] }).toString();
 
@@ -63,27 +64,6 @@ async function tts(text) {
   return file;
 }
 
-/** Logo de Invoke en PNG (desde el SVG del repo) para superponer en la esquina. */
-async function logoPng() {
-  const file = join(CACHE, 'logo.png');
-  if (existsSync(file)) return file;
-  const source = readFileSync(LOGO_SVG, 'utf8');
-  const blob = source.match(/id="a"\s*d="([^"]+)"/)?.[1];
-  const letters = source.match(/<path\s+d="(M392[^"]+)"/)?.[1];
-  if (!blob || !letters) throw new Error('No se pudo leer el logo de src/components/icons/logo.tsx');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="160" height="160">
-    <defs><radialGradient id="g" cx="0" cy="0" r="1" gradientTransform="matrix(-507.03 147.2 -146.7 -505.47 508.03 521.82)" gradientUnits="userSpaceOnUse"><stop stop-color="#FFF200"/><stop offset="1" stop-color="#00AEEF"/></radialGradient></defs>
-    <path d="${blob}" fill="url(#g)"/><path d="${letters}" fill="#fff"/></svg>`;
-  const { chromium } = await import('@playwright/test');
-  const browser = await chromium.launch(process.env.HELP_VIDEO_CHROME ? { executablePath: process.env.HELP_VIDEO_CHROME } : {});
-  const page = await browser.newPage({ viewport: { width: 160, height: 160 } });
-  await page.setContent(`<html><body style="margin:0;background:transparent">${svg}</body></html>`);
-  mkdirSync(dirname(file), { recursive: true });
-  await page.screenshot({ path: file, omitBackground: true });
-  await browser.close();
-  return file;
-}
-
 const vttTime = (s) => {
   const ms = Math.max(0, Math.round(s * 1000));
   const h = String(Math.floor(ms / 3_600_000)).padStart(2, '0');
@@ -103,9 +83,11 @@ function wrap(text, width = 56) {
   return lines.slice(0, 3).join('\n');
 }
 
-async function buildOne(id) {
-  const timeline = JSON.parse(readFileSync(join(RAW, `${id}.json`), 'utf8'));
-  const video = join(RAW, `${id}.webm`);
+/** `key`: nombre de la grabación (`<caso>` en español, `<caso>.en` en inglés). */
+async function buildOne(key) {
+  const timeline = JSON.parse(readFileSync(join(RAW, `${key}.json`), 'utf8'));
+  const id = timeline.useCaseId ?? key;
+  const video = join(RAW, `${key}.webm`);
   const videoDuration = mediaDuration(video);
   const locale = timeline.locale ?? 'es';
   const base = join(OUT, `${id}-${locale}`);
@@ -137,16 +119,15 @@ async function buildOne(id) {
   const srt = cues.map((c, i) => `${i + 1}\n${vttTime(c.start).replace('.', ',')} --> ${vttTime(c.end).replace('.', ',')}\n${wrap(c.text)}\n`).join('\n');
   writeFileSync(`${base}.srt`, srt);
 
-  const logo = await logoPng();
-  const args = ['-y', '-hide_banner', '-loglevel', 'error', '-i', video, '-i', logo, '-i', `${base}.srt`];
+  const args = ['-y', '-hide_banner', '-loglevel', 'error', '-i', video, '-i', `${base}.srt`];
   const audioCues = cues.filter((c) => c.audio);
   for (const c of audioCues) args.push('-i', c.audio);
 
   const burn = ffmpegHas('subtitles');
   const filters = [
-    `[1:v]scale=88:-1,format=rgba,colorchannelmixer=aa=0.9[logo]`,
     `[0:v]${freeze > 0.05 ? `tpad=stop_mode=clone:stop_duration=${freeze.toFixed(2)},` : ''}null[v0]`,
-    `[v0][logo]overlay=W-w-80:16[v1]`,
+    // La intro de la grabación ya trae el título y el logo de Invoke: no se superpone otro.
+    `[v0]null[v1]`,
   ];
   filters.push(burn
     ? `[v1]subtitles='${base}.srt':force_style='FontName=Plus Jakarta Sans,FontSize=18,PrimaryColour=&H00FFFFFF,BackColour=&H99000000,BorderStyle=4,MarginV=28'[vout]`
@@ -154,15 +135,17 @@ async function buildOne(id) {
   if (audioCues.length) {
     audioCues.forEach((c, i) => {
       const ms = Math.round(c.start * 1000);
-      filters.push(`[${3 + i}:a]adelay=${ms}|${ms}[a${i}]`);
+      filters.push(`[${2 + i}:a]adelay=${ms}|${ms}[a${i}]`);
     });
     filters.push(`${audioCues.map((_, i) => `[a${i}]`).join('')}amix=inputs=${audioCues.length}:normalize=0:duration=longest[aout]`);
   }
   args.push('-filter_complex', filters.join(';'), '-map', '[vout]');
   if (audioCues.length) args.push('-map', '[aout]', '-c:a', 'aac', '-b:a', '128k');
-  args.push('-map', '2:s', '-c:s', 'mov_text', '-metadata:s:s:0', `language=${locale === 'en' ? 'eng' : 'spa'}`);
+  args.push('-map', '1:s', '-c:s', 'mov_text', '-metadata:s:s:0', `language=${locale === 'en' ? 'eng' : 'spa'}`);
   args.push('-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-t', totalDuration.toFixed(2), `${base}.mp4`);
   run('ffmpeg', args);
+  // Miniatura del chat: un cuadro de la intro (título de la guía y logo).
+  run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-ss', POSTER_AT_S, '-i', `${base}.mp4`, '-frames:v', '1', '-vf', 'scale=640:-2', '-q:v', '3', `${base}.jpg`]);
 
   const meta = {
     useCaseId: id,
@@ -174,6 +157,7 @@ async function buildOne(id) {
     burnedSubtitles: burn,
     file: `${id}-${locale}.mp4`,
     subtitles: `${id}-${locale}.vtt`,
+    poster: `${id}-${locale}.jpg`,
   };
   writeFileSync(`${base}.json`, JSON.stringify(meta, null, 2));
   return meta;
@@ -182,7 +166,7 @@ async function buildOne(id) {
 const ids = (existsSync(RAW) ? readdirSync(RAW) : [])
   .filter((f) => f.endsWith('.json'))
   .map((f) => f.replace(/\.json$/, ''))
-  .filter((id) => existsSync(join(RAW, `${id}.webm`)) && (!SELECTED.length || SELECTED.includes(id)));
+  .filter((key) => existsSync(join(RAW, `${key}.webm`)) && (!SELECTED.length || SELECTED.includes(key) || SELECTED.includes(key.replace(/\.(en|es-ES)$/, ''))));
 
 if (!ids.length) {
   console.error('[videos] no hay grabaciones en videos/raw (corré pnpm videos:record)');

@@ -3563,6 +3563,19 @@ export interface HelpAssistantLink {
 }
 
 /** Respuesta de POST /help/assistant/chat (ya validada por el workflow contra el catálogo). */
+/**
+ * Video grabado de una guía (help_videos). `useCaseId` es el id de la guía, o
+ * `tour.<pantalla>` para "Guiarme por esta pantalla". `url`: el mp4 publicado o el
+ * archivo en Google Drive (ver src/lib/help/video-source.ts).
+ */
+export interface HelpVideo {
+  useCaseId: string;
+  url: string;
+  title: string;
+  durationSeconds?: number | null;
+  locale?: string;
+}
+
 export interface HelpAssistantReply {
   answer: string;
   confidence?: number;
@@ -3575,7 +3588,10 @@ export interface HelpAssistantReply {
   values?: Record<string, HelpValue>;
   /** true cuando la persona pidió "guiame": la guía arranca sola. */
   autoStart?: boolean;
+  /** Video de `useCaseId` (compatibilidad: `videos` trae los de todas las guías propuestas). */
   videoUrl?: string | null;
+  /** Videos publicados (help_videos) de las guías propuestas y de la pantalla actual. */
+  videos?: HelpVideo[];
   questionId?: string | null;
   escalated?: boolean;
   /** Ticket de soporte abierto al escalar. */

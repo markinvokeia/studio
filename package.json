@@ -24,6 +24,7 @@
     "videos:record": "playwright test --project=help-videos",
     "videos:build": "node scripts/videos/build-videos.mjs",
     "videos:publish": "node scripts/videos/publish-videos.mjs",
+    "videos:link-drive": "node scripts/videos/link-drive-videos.mjs",
     "videos:worker": "node scripts/videos/worker.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

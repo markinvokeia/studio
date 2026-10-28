@@ -601,6 +601,48 @@ export function retryStep() {
   void runFrom(guide.current, 'single');
 }
 
+/**
+ * Clic en la mascota durante una guía: la vuelve a mostrar. Si lo señalado sigue en
+ * pantalla, la mascota vuelve a señalarlo; si se perdió (la persona cerró el diálogo,
+ * cambió de pantalla o el paso falló), repite el paso actual. Devuelve false si no
+ * hay guía en curso (entonces se abre el chat).
+ */
+export function revealGuide(): boolean {
+  const guide = store().guide;
+  if (!guide) return false;
+  if (guide.finished) { abortGuide(); return false; }
+  store().setStepsListOpen(true);
+  // Mientras ejecuta un paso, la barra ya está a la vista (abajo al centro si no hay nada señalado).
+  if (busy) return true;
+  const spotlight = store().spotlight;
+  if (spotlight && findHelpTarget(spotlight.targetId)) {
+    // Un objeto nuevo: la mascota vuelve junto al elemento y lo señala otra vez.
+    store().setSpotlight({ ...spotlight });
+    return true;
+  }
+  // Lo que esperaba la persona ya no está (cerró el diálogo, se fue de la pantalla): se
+  // rearman las esperas y se repite el paso junto con los que lo preparan (navegar, abrir
+  // el diálogo), así vuelve a aparecer.
+  controller?.abort();
+  controller = new AbortController();
+  store().setSpotlight(null);
+  const index = spotlight?.mode === 'filled' ? Math.max(0, guide.current - 1) : guide.current;
+  let start = index;
+  while (start > 0 && guide.statuses[start - 1] !== 'na' && isPreparatoryStep(guide.steps[start - 1])) start -= 1;
+  const statuses = guide.statuses.map((status, i): GuideStepStatus => (i >= start && status !== 'na' ? 'pending' : status));
+  store().setGuide((g) => (g ? { ...g, statuses, current: start, error: undefined } : g));
+  void runFrom(start, 'single');
+  return true;
+}
+
+/** Pasos que sólo preparan la pantalla (navegar, abrir un diálogo o menú, esperar). */
+const isPreparatoryStep = (step: HelpGuideStep) => step.action === 'navigate' || step.action === 'wait' || (step.action === 'click' && !isTabStep(step));
+
+/** La X junto a la mascota: corta la guía y la mascota queda donde está (no vuelve al chat). */
+export function cancelGuide() {
+  abortGuide();
+}
+
 /** Corta la guía sin volver a ningún lado (al arrancar otra). */
 function abortGuide() {
   controller?.abort();

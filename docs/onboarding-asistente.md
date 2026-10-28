@@ -134,8 +134,11 @@ tiene la base de conocimiento de *su* versión del frontend, sin secretos de CI.
 - **Mascota** (`src/components/invoke-mascot`, librería de Claude Design: ver su
   README y `CLAUDE_CODE_INTEGRATION.md`). La monta `src/components/help/mascot-host.tsx`
   en el layout autenticado (sólo con `HELP_ASSISTANT_USE`) y la conecta:
-  - **Lanzador**: hacerle clic abre el chat justo encima de ella (si duerme, se
-    despierta; si está escondida, sale) y saluda; con el chat abierto y sin que nadie
+  - **Lanzador**: hacerle clic **nunca queda sin respuesta**. Con una guía en curso la
+    vuelve a mostrar (`revealGuide()`): si lo señalado sigue ahí, vuelve a señalarlo; si
+    se perdió (la persona cerró el diálogo, cambió de pantalla, un paso falló) repite el
+    paso junto con los que lo preparan (navegar, abrir el diálogo). Sin guía abre el chat
+    justo encima de ella (si duerme, se despierta; si está escondida, sale) y saluda; con el chat abierto y sin que nadie
     escriba, cada 11 s hace un gesto invitando a pedirle algo. Avisa una vez por sesión
     cuántos pasos obligatorios faltan (sin abrir nada).
   - **Escondite**: tras 45 s sin uso se mete detrás del riel derecho del header
@@ -150,15 +153,29 @@ tiene la base de conocimiento de *su* versión del frontend, sin secretos de CI.
     detrás del riel; en el izquierdo, detrás del menú (`sidebar.tsx`); si no, arriba o
     abajo, detrás del panel del contenido (`PrivateRoute`, `MascotPeekZone name="content"
     edge="auto"`). Se asoma justo donde la dejaron.
-  - **Iconos al tocarla**: junto al chat salen silenciar la voz y esconderla. Escondida
-    (o con "Mostrar asistente animado" apagado) no está en pantalla y en el riel queda
-    su ícono dormido (`MascotWakeButton`): un clic y se levanta.
+  - **Controles, siempre a su lado** (`[data-mascot-controls]` en `help-assistant.tsx`):
+    voz (prender/apagar), **esconder** (corta la guía y queda dormida en el riel) y
+    **detener** (corta la guía o cierra el chat; ella queda a la vista, esperando).
+    Tenues (35 %) hasta que se pasa el mouse por ellos o por la mascota (se mide con su
+    caja, así funciona aunque deje pasar los clics); en pantallas táctiles, siempre
+    visibles. Mientras guía van del lado opuesto a lo señalado; no salen en las
+    grabaciones de videos. Escondida (o con "Mostrar asistente animado" apagado) no está
+    en pantalla y en el riel queda su ícono dormido (`MascotWakeButton`): un clic y se
+    levanta.
+  - **Voz en las guías**: con la voz prendida lee el globo de cada paso
+    (`speakAssistant`, también el "¡Listo!" y los errores) y mueve la boca mientras habla
+    (`pointAt(…, { talkUntil })`). Con la voz apagada sólo señala: `canTalk={false}` en
+    `MascotProvider` nunca pone la cara de hablar.
+  - **Lo señalado desaparece**: a los 1,2 s deja de señalar y dice "Tocame y retomamos";
+    la barra de pasos pasa abajo al centro con **Mostrar de nuevo** (`revealGuide`).
+    Durante la guía se la puede tocar; sólo deja pasar los clics a la pantalla si quedó
+    parada encima de lo que señala (más del 35 % de su caja: un calendario, una página).
   - **Globo**: va arriba; si no entra completo (cerca del tope), a un costado o abajo,
     sin tapar el elemento señalado ni la barra de pasos.
   - **Ficha de la pantalla con "Mostrar"**: la ventana deja de seguir a la mascota y va
     a una esquina que no tape el elemento, la mascota ni la barra.
   - **Chat**: "pensando" al enviar, "cargando" si tarda, contenta o una frase corta
-    al responder, triste ante un error o una pregunta sin ayuda, asiente al pedir video.
+    al responder, triste ante un error o una pregunta sin ayuda.
   - **Guías**: viaja junto al elemento (`placeGuideMascot`, sin pisar la barra de
     pasos) y lo señala con `pointAt(…, { duration: Infinity, signal, say })` hasta que
     el paso cambia; el texto del paso (título, descripción, `details`) sale en su
@@ -186,7 +203,10 @@ tiene la base de conocimiento de *su* versión del frontend, sin secretos de CI.
     primero, preferentemente de la pantalla actual) y la respuesta las ofrece cada
     una con su "Guiarme", más "Llevarme" al link. Si el agente no propone ninguna,
     `resolveReplyActions` busca las guías de la pantalla más parecidas a la pregunta
-    (`rankScreenUseCases`). Video (Fase 3) y 👍/👎. Sin backend, búsqueda local.
+    (`rankScreenUseCases`). Cada guía propuesta muestra **Guiarme** y, si está grabada,
+    su miniatura y **Ver video** (los videos los manda el agente en `videos`; ver
+    "Videos en el chat"). 👍/👎. Sin backend, búsqueda local (sin videos). Ya no se
+    piden videos desde el chat: se ofrecen los que existen.
   - Al cerrar una guía (o al terminar) se vuelve a la vista del asistente desde la
     que se abrió (`returnTo`): el chat con la conversación, la ficha de la pantalla
     o la checklist.
@@ -396,7 +416,8 @@ señalando, la burbuja con el detalle), se narra y se publica:
 pnpm videos:record    # e2e/videos/record.video.ts (proyecto help-videos de Playwright)
 pnpm videos:build     # scripts/videos/build-videos.mjs: narración + subtítulos + logo
 pnpm videos:publish   # scripts/videos/publish-videos.mjs: GCS + POST help/videos/register
-pnpm videos:worker    # video a demanda: procesa los pedidos del chat ("Pedir video")
+pnpm videos:link-drive # scripts/videos/link-drive-videos.mjs: enlaza los mp4 de una carpeta pública de Drive
+pnpm videos:worker    # video a demanda (el chat ya no los pide; queda para pedidos de soporte)
 ```
 
 | Variable | Para qué |
@@ -412,6 +433,47 @@ El grabador maneja la guía por `window.__invokeHelp`, que el asistente expone
 sólo con `localStorage['invoke-help:automation'] = '1'`. Los subtítulos siempre
 salen como `.vtt` (los muestra el reproductor del chat) y como pista del mp4; si
 el ffmpeg tiene libass, además se queman en la imagen. `videos/` no se versiona.
+
+### Videos en el chat (prueba de concepto con Google Drive)
+
+El chat ofrece el video de cada guía propuesta y lo reproduce en un reproductor
+propio (`help-video-player.tsx`, abierto con `useHelpVideo().open()`): flota sobre la
+app y se arrastra por el encabezado (para seguirlo mientras se trabaja), se agranda,
+va a pantalla completa, tiene play/pausa, barra de avance, sonido, velocidad
+(1×–2×), teclado (espacio, ←/→ 5 s, M, F, Esc) y **Guiarme**, que arranca la guía del
+video mientras sigue flotando. Si no carga, ofrece abrirlo en otra pestaña.
+
+**Idiomas**: se graba en español (siempre) y en inglés (`HELP_VIDEO_LOCALE=en pnpm videos:record`:
+app, guía, intro y placa final en inglés → `videos/raw/<caso>.en.*` → `<caso>-en.mp4`). El agente
+devuelve el video del idioma del usuario y, si no hay, el español (`ORDER BY (locale = $1),
+(left(locale, 2) = left($1, 2))` en "Lista Cerrada"); el chat marca con "ES" un video que no es
+del idioma de la app.
+
+Formato: **mp4 H.264** con `+faststart` (`pnpm videos:build` → `videos/out/<caso>-<locale>.mp4`
+y su miniatura `.jpg`). El `.webm` de la grabación no anda en Safari de iPhone. El
+nombre es la clave: `<caso>-<locale>.mp4`, con `<caso>` = id de la guía
+(`cashier.open`) o `tour.<pantalla>` para "Guiarme por esta pantalla" (`tour.cashier`).
+
+1. `pnpm videos:build` (sin ElevenLabs sale sin narración; la intro ya trae título y logo).
+2. Subir los `videos/out/*.mp4` (`videos/drive-upload/` tiene sólo esos) a la carpeta de
+   Drive `InvokeIA-Help-Videos`, compartida como "cualquiera con el enlace puede ver".
+   No hace falta renombrar nada.
+3. `HELP_VIDEOS_DRIVE_FOLDER=<id> HELP_API_URL=… HELP_API_TOKEN=… pnpm videos:link-drive`:
+   lee la carpeta pública, toma el id de Drive de cada archivo y lo registra en
+   `help_videos` (`POST help/videos/register`, url `https://drive.google.com/file/d/<id>/view`).
+   `HELP_VIDEO_DRY_RUN=1` sólo lista. Volver a correrlo reemplaza el enlace.
+4. El agente (`help-assistant-chat.json`) devuelve `videos` de las guías propuestas, de
+   las de la pantalla actual y de su recorrido, en el idioma del usuario si hay.
+
+`src/lib/help/video-source.ts` arma lo que usa el reproductor. Con Drive, el mp4 pasa por
+`/api/help-video/<id>` (`src/app/api/help-video/[id]/route.ts`): Drive responde 403 cuando un
+`<video>` (o un `fetch`) de otro sitio pide el archivo (`Sec-Fetch-Dest: video`) y sólo lo
+entrega abierto como página o desde un servidor; la ruta lo pasa tal cual, con `Range` (se
+puede adelantar sin bajarlo entero) y sólo para ids de Drive. La miniatura es la que genera
+Drive (la intro del video). Sin subtítulos: el texto ya está en el globo del video; con cualquier otro
+hosting (bucket, `public/help-videos`), el mp4 con su `.jpg` y su `.vtt` al lado. Drive
+sirve para la prueba; para producción, un bucket (`HELP_VIDEOS_BUCKET` + `pnpm videos:publish`)
+evita los límites de descarga de Drive y no cambia nada en el frontend.
 
 ### Soporte y métricas (Fase 4)
 

@@ -81,6 +81,11 @@ export interface MascotProviderProps {
    * del menú contextual de la pantalla). Por defecto true.
    */
   interactive?: boolean;
+  /**
+   * false: nunca pone la boca de hablar (ánimo `talking` → `happy`). El globo se
+   * sigue mostrando; sirve para cuando la voz está apagada. Por defecto true.
+   */
+  canTalk?: boolean;
 }
 
 interface Zone {
@@ -204,6 +209,7 @@ export function MascotProvider({
   hideZones,
   bubbleAvoid,
   interactive = true,
+  canTalk = true,
 }: MascotProviderProps) {
   // ---------- estado visible ----------
   const [phase, setPhaseS] = React.useState<MascotPhase>('active');
@@ -652,11 +658,13 @@ export function MascotProvider({
           } else {
             setMoodS('happy');
           }
-          // Señalamiento sin fin (guías): habla lo que tarda en leerse y después sigue
-          // señalando contenta, con el globo todavía visible.
+          // Señalamiento sin fin (guías): habla lo que tarda en leerse (o hasta que la voz
+          // termina) y después sigue señalando contenta, con el globo todavía visible.
+          const stopTalking = () => { if (aliveRef.current && messageRef.current === o.say) setMoodS('happy'); };
+          if (o.say && o.talkUntil) void o.talkUntil.then(stopTalking, stopTalking);
           const talkTimer =
-            o.say && o.duration !== undefined && !Number.isFinite(o.duration)
-              ? setTimeout(() => { if (aliveRef.current && messageRef.current === o.say) setMoodS('happy'); }, readDuration(o.say))
+            o.say && !o.talkUntil && o.duration !== undefined && !Number.isFinite(o.duration)
+              ? setTimeout(stopTalking, readDuration(o.say))
               : undefined;
           await holdFor(o.duration ?? (o.say ? readDuration(o.say) : 3500), o.signal);
           if (talkTimer) clearTimeout(talkTimer);
@@ -1062,7 +1070,7 @@ export function MascotProvider({
               >
                 <InvokeMascot
                   size={size}
-                  mood={mood}
+                  mood={!canTalk && mood === 'talking' ? 'happy' : mood}
                   gesture={gesture}
                   pointAngle={pointAngle}
                   look={look}

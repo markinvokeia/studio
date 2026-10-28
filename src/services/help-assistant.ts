@@ -66,12 +66,6 @@ export function publishCatalog(catalog: HelpCatalog) {
   return api.post(API_ROUTES.HELP.CATALOG_SYNC, catalog, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.longRunning });
 }
 
-export function requestHelpVideo(useCaseId: string, locale: string, questionId?: string | null) {
-  return api.post(API_ROUTES.HELP.VIDEO_REQUEST, { use_case_id: useCaseId, locale, question_id: questionId ?? undefined }, undefined, undefined, {
-    timeoutMs: REQUEST_TIMEOUT_MS.mutation,
-  });
-}
-
 export async function getHelpInsights(days: number, signal?: AbortSignal): Promise<HelpInsights> {
   return api.get(API_ROUTES.HELP.INSIGHTS, { days: String(days) }, undefined, { signal, timeoutMs: READ_TIMEOUT_MS });
 }

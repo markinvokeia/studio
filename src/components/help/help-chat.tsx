@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart2, Calendar, ChevronRight, Clapperboard, Compass, ListChecks, Mic, PlayCircle, Plug, Route, SendHorizontal, Square, ThumbsDown, ThumbsUp, Users, Video, Volume2, Wallet } from 'lucide-react';
+import { BarChart2, Calendar, ChevronRight, Compass, ListChecks, Mic, Play, PlayCircle, Plug, Route, SendHorizontal, Square, ThumbsDown, ThumbsUp, Users, Video, Volume2, Wallet } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -11,18 +11,19 @@ import { useMascot } from '@/components/invoke-mascot';
 
 import { isSpeechSupported, speakAssistant, stopAssistantSpeech, useAssistantVoice } from '@/hooks/use-assistant-voice';
 import { useKeyedAsyncAction } from '@/hooks/use-async-action';
-import { useToast } from '@/hooks/use-toast';
 import { useCurrentHelpRoute } from '@/hooks/use-current-help-route';
 import { useSpeechDictation } from '@/hooks/use-speech-dictation';
-import { resolveReplyActions, searchCatalogLocally, type ResolvedGuide } from '@/lib/help/catalog';
+import { resolveReplyActions, searchCatalogLocally, videoKeyOf, type ResolvedGuide } from '@/lib/help/catalog';
 import { collectVisibleTargets } from '@/lib/help/guide-engine';
 import { startGuide } from '@/lib/help/guide-runner';
+import { formatVideoTime, helpVideoSource } from '@/lib/help/video-source';
 import { cn } from '@/lib/utils';
 import { isAbortError } from '@/services/api';
-import { askAssistant, requestHelpVideo, sendAssistantFeedback } from '@/services/help-assistant';
+import { askAssistant, sendAssistantFeedback } from '@/services/help-assistant';
 import { useHelpAssistant, type HelpChatMessage } from '@/stores/help-assistant-store';
+import { useHelpVideo } from '@/stores/help-video-store';
 
-import type { HelpAssistantReply, HelpCatalog } from '@/lib/types';
+import type { HelpAssistantReply, HelpCatalog, HelpVideo } from '@/lib/types';
 
 /** "guiame", "hacelo", "cargalo", "paso a paso"… (también en inglés). */
 const WANTS_GUIDE = /\b(gu[ií]a(me|nos)?|paso a paso|hac[eé]lo|carg[aá](lo|la|me)?|ayud[aá]me a|llev[aá]me|guide me|walk me|do it|show me how)\b/i;
@@ -58,6 +59,43 @@ function hasValues(reply: HelpAssistantReply) {
   return Object.keys(reply.values ?? {}).length > 0;
 }
 
+/** El video grabado de una guía propuesta (los manda el agente en `videos`). */
+function videoFor(reply: HelpAssistantReply, guide: ResolvedGuide): HelpVideo | undefined {
+  const key = videoKeyOf(guide);
+  if (!key) return undefined;
+  const video = reply.videos?.find((v) => v.useCaseId === key);
+  if (video) return video;
+  return key === reply.useCaseId && reply.videoUrl ? { useCaseId: key, url: reply.videoUrl, title: guide.title } : undefined;
+}
+
+/** Miniatura del video: al tocarla se abre el reproductor flotante de Invoke. */
+function VideoThumb({ video, label, onPlay }: { video: HelpVideo; label: string; onPlay: () => void }) {
+  const [broken, setBroken] = React.useState(false);
+  const poster = helpVideoSource(video.url).poster;
+  return (
+    <button
+      type="button"
+      onClick={onPlay}
+      aria-label={label}
+      title={label}
+      className="group relative aspect-video w-24 flex-none overflow-hidden rounded-lg bg-gradient-to-br from-[#5B21B6] to-[#A855F7] shadow-sm"
+    >
+      {!broken && (
+        // eslint-disable-next-line @next/next/no-img-element -- miniatura externa (Drive / bucket), sin optimizar
+        <img src={poster} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} className="h-full w-full object-cover" />
+      )}
+      <span className="absolute inset-0 flex items-center justify-center bg-black/15 transition-colors group-hover:bg-black/30">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-[#7C3AED] shadow">
+          <Play className="ml-0.5 h-3.5 w-3.5 fill-current" />
+        </span>
+      </span>
+      {video.durationSeconds ? (
+        <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1 text-[9px] font-medium tabular-nums text-white">{formatVideoTime(video.durationSeconds)}</span>
+      ) : null}
+    </button>
+  );
+}
+
 interface HelpChatProps {
   catalog: HelpCatalog;
   /** Pasos obligatorios del onboarding que faltan (la opción sólo se muestra si hay). */
@@ -84,9 +122,7 @@ export function HelpChat({ catalog, pendingSteps, screenTitle, highlightScreen, 
   const [input, setInput] = React.useState('');
   const [isSending, setIsSending] = React.useState(false);
   const [rated, setRated] = React.useState<Record<string, 1 | -1>>({});
-  const [videoRequested, setVideoRequested] = React.useState<Record<string, true>>({});
-  const [openVideo, setOpenVideo] = React.useState<string | null>(null);
-  const { toast } = useToast();
+  const openVideo = useHelpVideo((s) => s.open);
   // La mascota acompaña el chat: piensa mientras espera, se pone contenta o triste con la respuesta.
   const mascot = useMascot();
   const mascotRef = React.useRef(mascot);
@@ -212,15 +248,6 @@ export function HelpChat({ catalog, pendingSteps, screenTitle, highlightScreen, 
     { errorTitle: t('feedbackError') },
   );
 
-  // Fase 3: la guía todavía no tiene video → se encola y el worker lo graba y narra.
-  const videoRequest = useKeyedAsyncAction(
-    (useCaseId: string, questionId?: string | null) => requestHelpVideo(useCaseId, locale, questionId),
-    {
-      onSuccess: () => { toast({ title: t('videoRequested') }); void mascotRef.current.gesture('nod'); },
-      errorTitle: t('videoRequestError'),
-    },
-  );
-
   const rate = (msg: HelpChatMessage, rating: 1 | -1) => {
     const questionId = msg.reply?.questionId;
     if (!questionId || rated[msg.id]) return;
@@ -314,69 +341,52 @@ export function HelpChat({ catalog, pendingSteps, screenTitle, highlightScreen, 
             <div key={msg.id} className="space-y-2">
               <div className={cn('max-w-[92%] space-y-0.5 rounded-2xl rounded-bl-md px-3.5 py-2.5 text-sm leading-relaxed shadow-sm', BUBBLE)}>{renderAnswer(msg.content)}</div>
               {actions && (
-                <div className="flex flex-wrap gap-1.5">
-                  {/* Siempre las dos: guiar y llevar. Con varias guías parecidas, se elige cuál. */}
-                  {actions.suggestions.length > 1 ? (
-                    <div className="w-full space-y-1">
-                      <p className="px-0.5 text-[11px] font-medium text-muted-foreground">{t('suggestedGuides')}</p>
-                      {actions.suggestions.map((g, i) => (
-                        <button
-                          key={g.useCaseId ?? g.title}
-                          type="button"
-                          onClick={() => runGuide(reply!, msg.question, g)}
-                          className={cn(
-                            'flex w-full items-center gap-2 rounded-xl border px-2.5 py-1.5 text-left text-xs font-medium transition-colors',
-                            i === 0
-                              ? 'border-[#7C3AED] bg-[#7C3AED] text-white hover:bg-[#6D28D9]'
-                              : 'border-[#7C3AED]/25 bg-white text-[#5B21B6] hover:bg-[#7C3AED]/5 dark:bg-card dark:text-violet-300',
-                          )}
-                        >
-                          <PlayCircle className="h-3.5 w-3.5 shrink-0" />
-                          <span className="min-w-0 flex-1 truncate">{g.title}</span>
-                          <span className="shrink-0 text-[10px] opacity-75">{t('stepsCount', { count: g.steps.length })}</span>
-                        </button>
+                <div className="space-y-1.5">
+                  {/* Cada guía propuesta: guiarme y, si está grabada, su video (miniatura + ver video). */}
+                  {(actions.suggestions.length ? actions.suggestions : actions.guide ? [actions.guide] : []).map((g, i) => {
+                    const video = videoFor(reply!, g);
+                    const primary = i === 0;
+                    return (
+                      <div
+                        key={videoKeyOf(g) ?? g.title}
+                        className={cn('flex items-center gap-2 rounded-xl border p-1.5', primary ? 'border-[#7C3AED]/50 bg-[#7C3AED]/5' : 'border-[#7C3AED]/20 bg-white dark:bg-card')}
+                      >
+                        {video && <VideoThumb video={video} label={t('watchVideoOf', { title: g.title })} onPlay={() => openVideo(video)} />}
+                        <div className="min-w-0 flex-1 space-y-1 px-0.5">
+                          <p className="flex items-baseline gap-1.5 text-xs font-semibold text-[#5B21B6] dark:text-violet-300">
+                            <span className="min-w-0 truncate" title={g.title}>{g.title}</span>
+                            <span className="flex-none text-[10px] font-normal text-muted-foreground">{t('stepsCount', { count: g.steps.length })}</span>
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            <Button size="sm" className="h-6 gap-1 rounded-full bg-[#7C3AED] px-2 text-[11px] hover:bg-[#6D28D9]" onClick={() => runGuide(reply!, msg.question, g)}>
+                              <PlayCircle className="h-3 w-3" />
+                              {primary && hasValues(reply!) ? t('fillForMe') : t('guideMe')}
+                            </Button>
+                            {video && (
+                              <Button size="sm" variant="outline" className="h-6 gap-1 rounded-full border-[#7C3AED]/30 px-2 text-[11px] text-[#5B21B6] dark:text-violet-300" onClick={() => openVideo(video)}>
+                                <Video className="h-3 w-3" />
+                                {t('watchVideo')}
+                                {video.locale && video.locale.slice(0, 2) !== locale.slice(0, 2) && (
+                                  <span className="rounded bg-muted px-1 text-[9px] font-semibold uppercase text-muted-foreground">{video.locale.slice(0, 2)}</span>
+                                )}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {actions.links.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {actions.links.map((link) => (
+                        <Button key={link.route} size="sm" variant="outline" className="h-7 gap-1 rounded-full border-[#7C3AED]/30 px-2.5 text-xs text-[#5B21B6] dark:text-violet-300" onClick={() => go(link.route)}>
+                          <Compass className="h-3.5 w-3.5" />
+                          {t('takeMeTo', { label: link.label })}
+                        </Button>
                       ))}
                     </div>
-                  ) : actions.guide && (
-                    <Button size="sm" className="h-7 gap-1 rounded-full bg-[#7C3AED] px-2.5 text-xs hover:bg-[#6D28D9]" onClick={() => runGuide(reply!, msg.question)}>
-                      <PlayCircle className="h-3.5 w-3.5" />
-                      {hasValues(reply!) ? t('fillForMe') : t('guideMe')}
-                    </Button>
-                  )}
-                  {actions.links.map((link) => (
-                    <Button key={link.route} size="sm" variant="outline" className="h-7 gap-1 rounded-full border-[#7C3AED]/30 px-2.5 text-xs text-[#5B21B6] dark:text-violet-300" onClick={() => go(link.route)}>
-                      <Compass className="h-3.5 w-3.5" />
-                      {t('takeMeTo', { label: link.label })}
-                    </Button>
-                  ))}
-                  {reply!.videoUrl ? (
-                    <Button size="sm" variant="outline" className="h-7 gap-1 rounded-full px-2.5 text-xs" onClick={() => setOpenVideo(openVideo === msg.id ? null : msg.id)} aria-expanded={openVideo === msg.id}>
-                      <Video className="h-3.5 w-3.5" />
-                      {t('watchVideo')}
-                    </Button>
-                  ) : actions.guide?.useCaseId && !videoRequested[actions.guide.useCaseId] && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 gap-1 rounded-full px-2 text-xs"
-                      loading={videoRequest.isPending(actions.guide.useCaseId)}
-                      onClick={async () => {
-                        const id = actions.guide!.useCaseId!;
-                        const ok = await videoRequest.run(id, id, reply!.questionId);
-                        if (ok !== undefined) setVideoRequested((v) => ({ ...v, [id]: true }));
-                      }}
-                    >
-                      <Clapperboard className="h-3.5 w-3.5" />
-                      {t('requestVideo')}
-                    </Button>
                   )}
                 </div>
-              )}
-              {reply?.videoUrl && openVideo === msg.id && (
-                // Subtítulos: el .vtt se publica junto al mp4 (scripts/videos). En GCS el bucket necesita CORS.
-                <video controls autoPlay playsInline crossOrigin="anonymous" className="w-full rounded-xl border bg-black" src={reply.videoUrl}>
-                  <track kind="subtitles" src={reply.videoUrl.replace(/\.mp4(\?.*)?$/, '.vtt')} srcLang={locale.slice(0, 2)} label={t('subtitles')} default />
-                </video>
               )}
               {reply?.escalated && (
                 <p className="text-[11px] text-muted-foreground">{reply.ticketId ? t('ticketCreated', { id: reply.ticketId }) : t('escalated')}</p>

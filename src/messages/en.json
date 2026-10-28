@@ -10155,6 +10155,7 @@
       "fillForMe": "Fill it in for me",
       "takeMeTo": "Take me to {label}",
       "watchVideo": "Watch video",
+      "watchVideoOf": "Watch the video of “{title}”",
       "escalated": "If this didn't help, I logged the question so the Invoke team can review it.",
       "helpful": "Helpful",
       "notHelpful": "Not helpful",
@@ -10162,9 +10163,6 @@
       "fallbackFound": "I can't reach the assistant right now, but this is what I found in the help:",
       "fallbackNone": "I can't reach the assistant right now and found nothing about that in the help. Try other words or check the “This screen” tab.",
       "tourTitle": "Tour of {screen}",
-      "requestVideo": "Request video",
-      "videoRequested": "Video requested: it will show up here when ready.",
-      "videoRequestError": "The video could not be requested",
       "ticketCreated": "I opened ticket #{id} for the support team.",
       "subtitles": "Subtitles",
       "mascotError": "Oops, something failed. Shall we try again?",
@@ -10175,13 +10173,13 @@
       "guideThisScreen": "Guide me on this screen",
       "readAloud": "Listen",
       "stopReading": "Stop reading",
-      "suggestedGuides": "Guides for this",
       "stepsCount": "{count, plural, one {# step} other {# steps}}"
     },
     "mascot": {
       "label": "Invoke assistant",
       "pendingSteps": "Hi! {count, plural, one {# step} other {# steps}} left to get started. Shall I guide you?",
       "guideFinished": "Done! We finished “{title}”.",
+      "guideLost": "What I was showing you closed. Tap me and we’ll pick up the guide again.",
       "guideError": {
         "targetNotFound": "Oops, I can't find that element on the screen. A permission may be missing. Retry or skip it?",
         "navigationFailed": "Oops, I couldn't open the screen. You may not have permission to see it."
@@ -10208,6 +10206,7 @@
       "close": "Close guide",
       "required": "Required",
       "retry": "Retry",
+      "showAgain": "Show again",
       "hideSteps": "Hide the steps",
       "showSteps": "Show the steps",
       "stepsLabel": "Guide steps",
@@ -10219,7 +10218,29 @@
     "voiceOn": "Turn voice on",
     "voiceOff": "Mute voice",
     "hideMascot": "Hide the assistant",
-    "mascotActions": "Assistant options"
+    "stopGuide": "Stop the guide",
+    "stop": "Stop",
+    "mascotActions": "Assistant options",
+    "video": {
+      "label": "Video: {title}",
+      "move": "Drag to move it",
+      "guideMe": "Guide me while I watch",
+      "guideMeShort": "Guide me",
+      "enlarge": "Enlarge",
+      "shrink": "Shrink",
+      "close": "Close the video",
+      "play": "Play",
+      "pause": "Pause",
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "speed": "Speed {rate}x",
+      "fullscreen": "Full screen",
+      "exitFullscreen": "Exit full screen",
+      "seek": "Video position",
+      "loading": "Loading the video…",
+      "error": "The video could not be loaded.",
+      "openExternal": "Open it in another tab"
+    }
   },
   "HelpInsightsPage": {
     "title": "Assistant insights",
