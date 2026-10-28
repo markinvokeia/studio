@@ -194,10 +194,9 @@ export function CalendarDayViewGrouped({
     const target = resolveTimeGridTarget(pointer.x, pointer.y, bodyRef.current);
     if (!target) return null;
 
-    const durationMin = Math.max(
-      slotForSnap,
-      (gesture.originalEnd.getTime() - gesture.originalStart.getTime()) / 60000,
-    );
+    // Mover conserva la duración tal cual: el mínimo de un slot es solo para el
+    // resize, si no una cita de 10 min pasaría a 15 al arrastrarla.
+    const durationMin = (gesture.originalEnd.getTime() - gesture.originalStart.getTime()) / 60000;
     // Un resize no cambia de columna: solo mueve un borde dentro de su día.
     const isResize = gesture.mode !== 'move';
     const day = isResize ? gesture.sourceTarget.day : target.day;
