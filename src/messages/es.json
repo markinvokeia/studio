@@ -3028,6 +3028,8 @@
       "confirmSuccess": "Factura confirmada",
       "confirmError": "Error al confirmar la factura",
       "printError": "Error al descargar la factura",
+      "emailSuccess": "Factura enviada por email",
+      "emailError": "Error al enviar la factura",
       "paymentSuccess": "Pago registrado correctamente",
       "paymentError": "Error al registrar el pago",
       "registerPayment": "Registrar pago",
@@ -10454,7 +10456,8 @@
       "chooseAppointment": "¿Sobre qué cita?",
       "record": "Registrar sesión",
       "recordHint": "Va a quedar registrada a nombre de {name}.",
-      "attachments": "{count, plural, =1 {1 adjunto} other {# adjuntos}}"
+      "attachments": "{count, plural, =1 {1 adjunto} other {# adjuntos}}",
+      "openAttachment": "Abrir archivo"
     },
     "referredByShort": "derivado por {doctor}",
     "whatsapp": {

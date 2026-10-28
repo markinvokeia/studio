@@ -3028,6 +3028,8 @@
       "confirmSuccess": "Invoice confirmed",
       "confirmError": "Error confirming invoice",
       "printError": "Error downloading invoice",
+      "emailSuccess": "Invoice sent by email",
+      "emailError": "Error sending invoice",
       "paymentSuccess": "Payment registered successfully",
       "paymentError": "Error registering payment",
       "registerPayment": "Register Payment",
@@ -10454,7 +10456,8 @@
       "chooseAppointment": "For which appointment?",
       "record": "Record session",
       "recordHint": "It will be recorded under {name}.",
-      "attachments": "{count, plural, =1 {1 attachment} other {# attachments}}"
+      "attachments": "{count, plural, =1 {1 attachment} other {# attachments}}",
+      "openAttachment": "Open file"
     },
     "referredByShort": "referred by {doctor}",
     "whatsapp": {

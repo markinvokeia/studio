@@ -622,6 +622,11 @@
     "studyOrderActionTake": "Tomar",
     "studyOrderActionTaken": "Tomada",
     "studyOrderActionCancel": "Anular",
+    "studyOrderReceivedWhatsapp": "Recibida por WhatsApp",
+    "studyOrderSubmittedChange_cancelled": "La orden se ha anulado",
+    "studyOrderSubmittedChange_patient_booked": "El paciente ha agendado por su cuenta",
+    "handoffOrderDetail": "Orden de estudio",
+    "handoffOrderAction": "Ver derivaciones de WhatsApp",
     "studyOrderActionView": "Ver la orden",
     "studyOrderTakenTitle": "Orden tomada",
     "studyOrderTakeError": "No se pudo tomar la orden",
@@ -632,7 +637,12 @@
     "studyOrderChange_scheduled": "Ya tiene cita agendada.",
     "studyOrderChange_rescheduled": "Se movió la fecha de la cita.",
     "studyOrderSubmittedTitle": "Nueva orden de estudio",
-    "studyOrderStatusTitle": "Tu orden cambió de estado"
+    "studyOrderStatusTitle": "Tu orden cambió de estado",
+    "studyOrderAssignedTitle": "Te han asignado la revisión de una orden",
+    "studyOrderAssignedBy": "{name} te ha asignado la revisión de esta orden.",
+    "studyOrderMessageTitle": "Nuevo mensaje en {number}",
+    "studyOrderMessageFrom": "{name} ha escrito:",
+    "studyOrderMessageAttachments": "{count, plural, one {# adjunto} other {# adjuntos}}"
   },
   "Header": {
     "toggleLanguage": "Cambiar idioma",
@@ -1184,12 +1194,6 @@
       "fetchError": "No se pudieron actualizar las citas. Se muestran los últimos datos cargados.",
       "retry": "Reintentar"
     },
-    "loadErrors": {
-      "title": "No se pudo cargar la agenda",
-      "description": "Hubo un problema al cargar consultorios, servicios o doctores. Revisá la conexión e intentá de nuevo.",
-      "fetchError": "No se pudieron actualizar las citas. Se muestran los últimos datos cargados.",
-      "retry": "Reintentar"
-    },
     "toasts": {
       "appointmentCancelled": "Cita cancelada",
       "appointmentCancelledDesc": "La cita ha sido cancelada.",
@@ -1223,9 +1227,6 @@
       "sessionFailedAppointmentCreated": "Cita creada, pero la sesión no se pudo guardar",
       "sessionFailedAppointmentCreatedDesc": "La cita se ha guardado. Completa la sesión clínica desde el historial del paciente.",
       "createdWithoutSessionId": "La cita se ha creado, pero no se pudo obtener su ID. Crea la sesión manualmente desde el historial del paciente.",
-      "sessionFailedAppointmentCreated": "Cita creada, pero la sesión no se pudo guardar",
-      "sessionFailedAppointmentCreatedDesc": "La cita quedó guardada. Complete la sesión clínica desde el historial del paciente.",
-      "createdWithoutSessionId": "La cita se creó, pero no se pudo obtener su ID. Cree la sesión manualmente desde el historial del paciente.",
       "patientIdRequired": "Se requiere el ID del paciente",
       "errorLoadingQuoteItems": "Error al cargar tratamientos",
       "errorLoadingQuoteItemsDesc": "No se pudieron cargar los tratamientos del presupuesto.",
@@ -1985,7 +1986,9 @@
       "anamnesis": "Anamnesis",
       "summary": "Resumen",
       "history": "Línea de tiempo",
-      "medicalInstructions": "Indicaciones Médicas"
+      "medicalInstructions": "Indicaciones Médicas",
+      "studyOrders": "Órdenes de estudio",
+      "studyOrdersShort": "Órdenes"
     },
     "createDialog": {
       "title": "Crear Nuevo Paciente",
@@ -3091,17 +3094,6 @@
     },
     "fields": {
       "amount": "Importe",
-      "paymentMethod": "Método de pago",
-      "reference": "Referencia",
-      "referencePlaceholder": "Número de referencia"
-    },
-    "paymentMethods": {
-      "cash": "Efectivo",
-      "card": "Tarjeta",
-      "transfer": "Transferencia"
-    },
-    "fields": {
-      "amount": "Monto",
       "paymentMethod": "Método de pago",
       "reference": "Referencia",
       "referencePlaceholder": "Número de referencia"
@@ -4389,7 +4381,8 @@
       "exceptions": "Excepciones",
       "calendars": "Calendarios con acceso",
       "preferences": "Preferencias",
-      "signature": "Firma"
+      "signature": "Firma",
+      "studyOrders": "Órdenes de estudio"
     },
     "calendarAccess": {
       "title": "Calendarios con acceso",
@@ -4712,7 +4705,6 @@
     "initialPasswordSentTitle": "Correo enviado",
     "initialPasswordSentDescription": "Se ha enviado un correo con el enlace para restablecer la contraseña.",
     "initialPasswordError": "Se ha producido un error inesperado. Inténtalo de nuevo.",
-    "initialPasswordPartialError": "El usuario se creó, pero no se pudo enviar el correo para establecer la contraseña. Puede reenviarlo desde el panel de detalles con \"Restablecer Contraseña\".",
     "initialPasswordPartialError": "El usuario se ha creado, pero no se pudo enviar el correo para establecer la contraseña. Puedes reenviarlo desde el panel de detalles con \"Restablecer Contraseña\".",
     "toggleStatus": {
       "successTitle": "Éxito",
@@ -4997,7 +4989,6 @@
       "valueRequired": "El valor es obligatorio.",
       "dataTypeRequired": "El tipo de dato es obligatorio."
     },
-    "noAccess": "No tiene acceso para ver esta sección.",
     "noAccess": "No tienes acceso para ver esta sección."
   },
   "AuditLog": {
@@ -7280,6 +7271,29 @@
     "edit": "Editar",
     "delete": "Eliminar"
   },
+  "FileViewer": {
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "reset": "Restablecer vista",
+    "maximize": "Maximizar",
+    "restore": "Restaurar tamaño",
+    "download": "Descargar",
+    "untitled": "Adjunto",
+    "description": "Visor de archivos",
+    "loading": "Cargando archivo…",
+    "loadError": "No se pudo cargar el archivo.",
+    "thumbnailError": "No se pudo cargar",
+    "noPreview": "Este tipo de archivo no se puede previsualizar. Descárgalo para abrirlo.",
+    "open": "Abrir",
+    "noFiles": "No hay archivos.",
+    "resizeOriginals": "Arrastra para cambiar el ancho de los originales",
+    "focus": {
+      "noFile": "No se sabe en qué archivo está: búscalo por la zona y el texto.",
+      "pdfPage": "Página {page} del PDF: busca el dato en esa página.",
+      "noBox": "Sin ubicación exacta en la imagen: búscalo por la zona y el texto.",
+      "clear": "Dejar de señalar"
+    }
+  },
   "Common": {
     "accessDenied": "Acceso Denegado",
     "noPermission": "No tienes permisos para acceder a esta página.",
@@ -9371,7 +9385,9 @@
       "infoSubtitle": "Tus datos personales y de contacto",
       "appointmentsSubtitle": "Próximas citas y solicitud de nuevas",
       "clinicalSubtitle": "Historia clínica, tratamientos y documentos",
-      "financialSubtitle": "Tu estado de cuenta"
+      "financialSubtitle": "Tu estado de cuenta",
+      "orders": "Mis Órdenes",
+      "ordersSubtitle": "Estudios indicados y su avance"
     },
     "subTabs": {
       "history": "Historia clínica",
@@ -9501,6 +9517,36 @@
       "mailSubject": "Consulta desde el portal — {sede}",
       "collapse": "Ocultar",
       "expand": "Ver datos de contacto"
+    },
+    "orders": {
+      "count": "{count, plural, =0 {No tienes órdenes} one {# orden} other {# órdenes}}",
+      "empty": "Todavía no tienes órdenes de estudio.",
+      "loadError": "No hemos podido cargar tus órdenes.",
+      "retry": "Reintentar",
+      "orderNumber": "Orden {number}",
+      "issuedOn": "Emitida el {date}",
+      "doctor": "Indicada por",
+      "sede": "Sede sugerida",
+      "progress": "{completed} de {total} estudios realizados",
+      "pendingCount": "{count} sin agendar",
+      "studies": "Estudios",
+      "appointments": "Citas",
+      "pendingHint": "Para agendar los estudios pendientes, ponte en contacto con la clínica o usa el enlace que te han enviado.",
+      "itemState": {
+        "completed": "Realizado",
+        "scheduled": "Agendado",
+        "pending": "Sin agendar"
+      },
+      "status": {
+        "draft": "Borrador",
+        "new": "Recibida",
+        "unscheduled": "Pendiente de agendar",
+        "partially_scheduled": "Agendada en parte",
+        "scheduled": "Agendada",
+        "in_progress": "En curso",
+        "completed": "Completada",
+        "cancelled": "Cancelada"
+      }
     }
   },
   "Discounts": {
@@ -10053,13 +10099,90 @@
     "cancel": "Cancelar",
     "use": "Usar esta firma"
   },
+  "WhatsAppOrdersSettings": {
+    "title": "Órdenes de estudio por WhatsApp",
+    "description": "Permite que el asistente lea la orden que el paciente envía como foto o PDF, la registre y agende la cita. Lo que no pueda resolver lo deriva a una persona.",
+    "enable": "Activar órdenes de estudio por WhatsApp",
+    "enableDescription": "Mientras esté desactivado, el asistente ignora las fotos y PDF como siempre. Se recomienda activarlo solo después de probar con la lista de teléfonos del modo de prueba.",
+    "visionModel": "Modelo de lectura",
+    "visionModelHelp": "Modelo de OpenAI que lee la orden. Debe admitir imágenes y PDF.",
+    "minConfidence": "Confianza mínima",
+    "minConfidenceHelp": "De 0,5 a 1. Por debajo, el asistente pide al paciente que confirme esa línea.",
+    "calendarIds": "Calendarios para órdenes",
+    "calendarIdsPlaceholder": "Todos los calendarios activos",
+    "calendarIdsHelp": "IDs de calendario separados por comas donde se pueden agendar órdenes. Vacío significa cualquier calendario activo de la sede elegida.",
+    "ttlHours": "Horas antes de abandonar una orden",
+    "ttlHoursHelp": "Una orden sin actividad durante este tiempo deja de estar en curso.",
+    "mediaDebounce": "Espera al recibir una foto o PDF (segundos)",
+    "mediaDebounceHelp": "Cuánto espera el asistente después del último mensaje cuando ha llegado un archivo, para leer juntos el anverso y el reverso de la orden. Entre 30 y 300.",
+    "save": "Guardar ajustes de órdenes",
+    "descriptions": {
+      "enabled": "Habilita las órdenes de estudio recibidas como foto o PDF por WhatsApp.",
+      "minConfidence": "Confianza mínima (0 a 1) para aceptar una línea de la orden sin consultar al paciente.",
+      "visionModel": "Modelo de OpenAI que lee las órdenes de estudio (imágenes y PDF).",
+      "calendarIds": "IDs de calendarios donde el asistente puede agendar órdenes de estudio. Vacío = cualquier calendario activo de la sede elegida.",
+      "ttlHours": "Horas de inactividad tras las cuales una orden en curso se marca como abandonada.",
+      "mediaDebounce": "Segundos que el asistente espera tras el último mensaje cuando ha llegado una foto o PDF, para juntar anverso y reverso de la orden."
+    },
+    "errors": {
+      "confidence": "Introduce un número entre 0,5 y 1.",
+      "ttl": "Introduce un número entero de horas entre 1 y 168.",
+      "mediaDebounce": "Introduce un número entero de segundos entre 30 y 300.",
+      "model": "Para activar las órdenes hace falta un modelo de lectura.",
+      "calendars": "Usa IDs de calendario separados por comas, por ejemplo 3,7,12."
+    },
+    "toast": {
+      "successTitle": "Ajustes guardados",
+      "saveSuccess": "Se han actualizado los ajustes de órdenes de estudio.",
+      "errorTitle": "No se pudieron guardar los ajustes de órdenes",
+      "loadError": "No se pudieron cargar los ajustes de órdenes de estudio"
+    }
+  },
   "StudyOrdersPage": {
     "titleMine": "Mis Órdenes",
     "titleClinic": "Órdenes de Estudio",
     "descriptionMine": "Las órdenes que derivaste a Clínica Imagen y en qué estado está cada una.",
     "descriptionClinic": "Bandeja de órdenes recibidas. Qué entró, qué falta agendar y qué está atrasado.",
     "filterPlaceholder": "Buscar por paciente...",
+    "importDialog": {
+      "title": "Importar orden",
+      "description": "Sube las fotos o el PDF de una orden en papel (anverso, reverso u hojas de la misma orden). El asistente la lee y queda en borrador para que la revises y la envíes.",
+      "dropzone": "Arrastra los archivos o haz clic para elegirlos",
+      "hint": "JPG, PNG, WEBP o PDF · hasta {max} archivos de 10 MB",
+      "selectedFiles": "Archivos seleccionados",
+      "page": "Hoja {n}",
+      "remove": "Quitar {name}",
+      "submit": "Importar",
+      "cancel": "Cancelar",
+      "close": "Cerrar",
+      "closeWhileReading": "Seguir en segundo plano",
+      "errors": {
+        "format": "{name}: formato no admitido. Usa JPG, PNG, WEBP o PDF.",
+        "size": "{name} supera los 10 MB.",
+        "tooMany": "Una orden admite hasta {max} archivos.",
+        "upload": "No se pudieron subir los archivos."
+      },
+      "reading": {
+        "title": "Leyendo la orden…",
+        "description": "Suele tardar menos de un minuto. Puedes cerrar esta ventana: la orden aparecerá en Borradores cuando termine."
+      },
+      "done": {
+        "title": "Borrador {number} creado",
+        "items": "{count, plural, =0 {Sin estudios leídos} one {1 estudio} other {# estudios}}",
+        "review": "{count, plural, one {1 punto a revisar} other {# puntos a revisar}}",
+        "noReview": "sin puntos a revisar",
+        "open": "Revisar y completar"
+      },
+      "failed": {
+        "description": "No se pudo crear la orden a partir de los archivos. Inténtalo de nuevo o créala a mano con \"Nueva orden\"."
+      },
+      "toast": {
+        "continuesTitle": "La lectura sigue en segundo plano",
+        "continuesDescription": "La orden aparecerá en Borradores cuando termine."
+      }
+    },
     "newOrder": "Nueva orden",
+    "importOrder": "Importar orden",
     "noResults": "No hay órdenes que coincidan con el filtro.",
     "itemsCount": "{scheduled} de {total} agendados",
     "buckets": {
@@ -10069,7 +10192,8 @@
       "overdue": "Atrasadas",
       "scheduled": "Agendadas",
       "completed": "Completadas",
-      "drafts": "Borradores"
+      "drafts": "Borradores",
+      "review": "Por revisar"
     },
     "columns": {
       "orderNumber": "Nº",
@@ -10099,7 +10223,9 @@
       "patient": "Paciente",
       "link": "Link",
       "activity": "Actividad",
-      "sessions": "Sesión"
+      "sessions": "Sesión",
+      "original": "Original",
+      "review": "Revisión"
     },
     "form": {
       "title": "Nueva orden de estudio",
@@ -10115,27 +10241,38 @@
       "clinicalNotes": "Aclaración",
       "clinicalNotesPlaceholder": "Lo que la clínica tenga que saber antes del estudio",
       "regionsLabel": "Piezas",
-      "noServicesSelected": "Seleccioná al menos un estudio.",
+      "noServicesSelected": "Selecciona al menos un estudio.",
       "saveDraft": "Guardar borrador",
+      "saveDraftShort": "Guardar",
+      "submitShort": "Enviar",
       "submit": "Enviar a la clínica",
       "selectedCount": "{count} estudios seleccionados",
-      "textsSection": "Detalles"
+      "textsSection": "Detalles",
+      "referringDoctor": "Doctor derivador",
+      "doctorSearch": "Buscar doctor…",
+      "doctorPick": "Elegir doctor",
+      "withoutDoctor": "Sin doctor del sistema",
+      "referringDoctorHelp": "La orden queda a nombre de este doctor: la ve en \"Mis órdenes\" y recibe los avisos. Si quien la firma no usa el sistema, marca \"Sin doctor del sistema\".",
+      "referringDoctorName": "Doctor según la orden",
+      "referringDoctorNameHelp": "Como figura en el papel. Es solo una referencia: no se vincula a ningún usuario."
     },
     "submitDialog": {
       "title": "¿Enviar la orden a la clínica?",
       "description": "Una vez enviada no podrás editarla. La clínica recibe el aviso en el momento.",
       "confirm": "Enviar",
-      "cancel": "Volver"
+      "cancel": "Volver",
+      "replaces": "Además, la orden {number} se anulará y sus citas pasarán a esta."
     },
     "deleteDialog": {
       "title": "¿Eliminar el borrador?",
       "description": "Se elimina la orden de {patient} y todo lo que cargaste. No se puede deshacer.",
       "confirm": "Eliminar",
-      "cancel": "Cancelar"
+      "cancel": "Cancelar",
+      "whatsappHandoff": "Viene de una derivación de WhatsApp: al eliminarla, la derivación queda resuelta como descartada."
     },
     "cancelDialog": {
       "title": "¿Anular la orden?",
-      "description": "La orden {number} queda anulada. Indicá el motivo.",
+      "description": "La orden {number} queda anulada. Indica el motivo.",
       "reasonLabel": "Motivo",
       "confirm": "Anular",
       "cancel": "Volver"
@@ -10150,7 +10287,18 @@
       "shareLink": "Link paciente",
       "print": "Imprimir",
       "cancelBlocked": "La clínica ya tomó esta orden y no se puede anular desde aquí. Llama a la clínica para darla de baja.",
-      "reschedule": "Reagendar"
+      "reschedule": "Reagendar",
+      "menu": "Acciones",
+      "assign": "Asignar",
+      "reassign": "Reasignar",
+      "reviewedBy": "Revisada por: {name}"
+    },
+    "detail": {
+      "expand": "Pantalla completa",
+      "restore": "Restaurar tamaño",
+      "close": "Cerrar",
+      "back": "Volver",
+      "backToList": "Volver a la lista"
     },
     "toast": {
       "savedTitle": "Orden guardada",
@@ -10160,12 +10308,15 @@
       "acknowledgedTitle": "Orden tomada",
       "cancelledTitle": "Orden anulada",
       "errorTitle": "No se pudo completar la acción",
-      "genericError": "Ocurrió un error inesperado. Intentá de nuevo."
+      "genericError": "Se ha producido un error inesperado. Inténtalo de nuevo.",
+      "handoffResolved": "La derivación de WhatsApp se ha resuelto.",
+      "orderReplaced": "La orden {number} se ha anulado{count, plural, =0 {} =1 { y su cita ha pasado a la nueva} other { y sus # citas han pasado a la nueva}}."
     },
     "validation": {
       "patientNameRequired": "El nombre del paciente es obligatorio",
-      "itemsRequired": "Seleccioná al menos un estudio",
-      "reasonRequired": "El motivo es obligatorio"
+      "itemsRequired": "Selecciona al menos un estudio",
+      "reasonRequired": "El motivo es obligatorio",
+      "doctorRequired": "Elige el doctor derivador o marca \"Sin doctor del sistema\"."
     },
     "noAccess": "No tienes permisos para ver las órdenes de estudio.",
     "wizard": {
@@ -10175,12 +10326,17 @@
       "skipToReview": "Ir al resumen",
       "noCatalog": "El catálogo de estudios todavía no está cargado. Avisa a la clínica para que lo configure.",
       "steps": "Secciones de la orden",
-      "closeSteps": "Cerrar secciones"
+      "closeSteps": "Cerrar secciones",
+      "fromHandoff": "Cargado con lo que ha leído el asistente de WhatsApp. Revísalo con los originales y corrige lo que haga falta antes de enviar.",
+      "replacesOrder": "Esta orden sustituye a la {number}: al enviarla, la {number} se anula y sus citas pasan a esta.",
+      "showOriginals": "Ver originales",
+      "hideOriginals": "Ocultar originales",
+      "originals": "Originales de WhatsApp"
     },
     "itemsCountShort": "{count} estudios",
     "rescheduleDialog": {
       "title": "Reagendar la cita",
-      "description": "Elegí la nueva fecha y hora. La duración se mantiene.",
+      "description": "Elige la nueva fecha y hora. La duración se mantiene.",
       "date": "Fecha",
       "time": "Hora",
       "confirm": "Reagendar",
@@ -10201,9 +10357,9 @@
       "generate": "Generar link",
       "copy": "Copiar link",
       "copied": "Link copiado",
-      "copyFailed": "No se pudo copiar. Seleccionalo y copialo a mano.",
+      "copyFailed": "No se pudo copiar. Selecciónalo y cópialo a mano.",
       "expiresAt": "Vence el {date}",
-      "showOnce": "Copialo ahora: por seguridad no se vuelve a mostrar.",
+      "showOnce": "Cópialo ahora: por seguridad no se vuelve a mostrar.",
       "revokesPrevious": "Generar un link nuevo anula el anterior.",
       "error": "No se pudo generar el link",
       "blockedNotSubmitted": "La orden tiene que estar enviada para poder generar el link.",
@@ -10213,7 +10369,7 @@
       "sendWhatsapp": "Enviar por WhatsApp",
       "sendEmail": "Enviar por email",
       "noContact": "Este paciente no tiene teléfono ni email cargados. Copia el enlace y envíaselo por otra vía.",
-      "shareSubject": "Reservá el horario de tus estudios · {order}",
+      "shareSubject": "Reserva el horario de tus estudios · {order}",
       "shareMessage": "Hola {patient}, ya puedes elegir el día y la hora de tus estudios (orden {order}). Entra aquí: {url}"
     },
     "printTitle": "Orden de Estudio",
@@ -10236,8 +10392,32 @@
         "reopened": "La orden volvió a abrirse",
         "cancelled": "Se anuló la orden",
         "link_created": "Se generó el link para el paciente",
-        "patient_booked": "El paciente reservó su horario"
-      }
+        "patient_booked": "El paciente reservó su horario",
+        "review_updated": "Punto revisado",
+        "assigned": "Se ha asignado la orden",
+        "unassigned": "La orden se ha quedado sin asignar"
+      },
+      "reviewStatus": {
+        "pending": "vuelve a pendiente",
+        "confirmed": "confirmado",
+        "corrected": "corregido",
+        "dismissed": "descartado"
+      },
+      "assignedTo": "Revisa: {name}",
+      "previouslyAssigned": "antes: {name}",
+      "fields": {
+        "patient_name": "Paciente",
+        "patient_document": "Documento",
+        "patient_phone": "Teléfono",
+        "patient_email": "Email",
+        "preferred_sede": "Sede preferida",
+        "referring_doctor_name": "Doctor (según la orden)",
+        "delivery_methods": "Entrega",
+        "clinical_notes": "Notas clínicas",
+        "services_added": "Estudios añadidos",
+        "services_removed": "Estudios quitados"
+      },
+      "emptyValue": "vacío"
     },
     "appointmentCard": {
       "none": "Esta orden todavía no tiene citas.",
@@ -10279,7 +10459,266 @@
       "attachments": "{count, plural, =1 {1 adjunto} other {# adjuntos}}",
       "openAttachment": "Abrir archivo"
     },
-    "referredByShort": "derivado por {doctor}"
+    "referredByShort": "derivado por {doctor}",
+    "whatsapp": {
+      "badge": "WhatsApp",
+      "doctorNotLinked": "solo como figura en el papel, sin vincular a un usuario",
+      "originals": "Archivos originales",
+      "noFiles": "No se ha guardado ningún archivo.",
+      "original": {
+        "receivedVia": "Recibida por WhatsApp el {date}",
+        "importedAt": "Importada desde Invoke el {date}",
+        "importedBy": "Subida por {name}",
+        "from": "Enviada desde {phone}",
+        "readByAssistant": "Lo que ha leído el asistente",
+        "doctorAsWritten": "Doctor en la orden en papel (sin vincular)",
+        "warningsTitle": "Advertencias de la revisión",
+        "noWarnings": "La revisión no ha encontrado advertencias.",
+        "model": "Modelo de lectura: {model}"
+      },
+      "warning": {
+        "no_signature": "Sin firma visible",
+        "old_order": "Orden antigua",
+        "unplaced_details": "Detalles que no encajaron en el formulario",
+        "unreadable_fields": "Campos que no se pudieron leer",
+        "modifier_without_service": "Opción sin su estudio"
+      }
+    },
+    "review": {
+      "title": "Puntos a revisar",
+      "help": "Lo que el asistente de WhatsApp no ha tenido claro al leer la orden. Revísalo con el original.",
+      "blockingHelp": "{count, plural, one {Queda 1 punto por revisar con el original antes de enviar la orden.} other {Quedan # puntos por revisar con el original antes de enviar la orden.}}",
+      "pendingCount": "{count, plural, one {1 pendiente} other {# pendientes}}",
+      "allReviewed": "Todo revisado",
+      "blocking": "Bloquea el envío",
+      "confidence": "Confianza {value} %",
+      "notePlaceholder": "Nota (opcional): qué se ha corregido o por qué se descarta",
+      "banner": "{count, plural, one {El asistente ha dejado 1 punto sin aclarar: revísalo antes de enviar.} other {El asistente ha dejado # puntos sin aclarar: revísalos antes de enviar.}}",
+      "wizardBanner": "{count, plural, one {Hay 1 punto que el asistente no ha tenido claro. Revísalo en el último paso, mirando el original.} other {Hay # puntos que el asistente no ha tenido claros. Revísalos en el último paso, mirando el original.}}",
+      "submitBlocked": "{count, plural, one {Revisa el punto pendiente antes de enviar.} other {Revisa los # puntos pendientes antes de enviar.}}",
+      "code": {
+        "handoff_reason": "Motivo de la derivación",
+        "low_confidence": "Lectura dudosa",
+        "not_in_catalog": "Estudio fuera del catálogo",
+        "unreadable": "Dato ilegible",
+        "unplaced": "No encaja en el formulario",
+        "possibly_incomplete": "Puede faltar el reverso",
+        "no_signature": "Sin firma",
+        "old_order": "Orden antigua",
+        "read_failed": "No se pudo leer",
+        "invalid_document": "Documento no válido",
+        "patient_match": "Paciente por confirmar",
+        "duplicate": "Posible orden repetida"
+      },
+      "status": {
+        "pending": "Pendiente",
+        "confirmed": "Confirmado",
+        "corrected": "Corregido",
+        "dismissed": "Descartado"
+      },
+      "actions": {
+        "confirm": "Está bien",
+        "corrected": "Corregido",
+        "dismiss": "Descartar",
+        "addNote": "Nota",
+        "reopen": "Volver a pendiente"
+      },
+      "toast": {
+        "updated": "Punto actualizado",
+        "pendingBlocking": "{count, plural, one {Queda 1 punto antes de poder enviar.} other {Quedan # puntos antes de poder enviar.}}",
+        "error": "No se pudo actualizar el punto",
+        "bulkUpdated": "{count, plural, one {1 punto actualizado} other {# puntos actualizados}}",
+        "skipped": "{count, plural, one {1 ya lo había revisado otra persona.} other {# ya los había revisado otra persona.}}"
+      },
+      "flag": "El asistente no ha tenido claro este dato",
+      "stepTitle": "{count, plural, one {1 punto a revisar en este paso} other {# puntos a revisar en este paso}}",
+      "bulk": {
+        "selectPending": "{count, plural, other {Seleccionar los # pendientes}}",
+        "selected": "{count, plural, one {1 seleccionado} other {# seleccionados}}",
+        "selectItem": "Seleccionar: {label}",
+        "notePlaceholder": "Nota (opcional), igual para todos los seleccionados"
+      },
+      "locate": "Ver en el original",
+      "locateHint": "Haz clic para verlo en el original.",
+      "sourceWhere": "En el papel:",
+      "focus": {
+        "read": "El asistente ha leído",
+        "noteHint": "Se guarda con la acción que elijas.",
+        "prev": "Punto anterior",
+        "next": "Punto siguiente",
+        "position": "{index}/{total}",
+        "removeTooth": "Quitar la pieza {tooth}",
+        "addTooth": "Añadir piezas (p. ej.: 16 26)",
+        "invalidTooth": "Usa la numeración FDI: 11–48 o 51–85.",
+        "requestService": "Pedir {name}",
+        "serviceNote": "Indicación (opcional)"
+      }
+    },
+    "origin": {
+      "label": "Origen",
+      "all": "Todos los orígenes",
+      "portal": "Portal",
+      "whatsapp": "WhatsApp"
+    },
+    "related": {
+      "count": "{count, plural, =0 {Sin órdenes} one {# orden} other {# órdenes}}",
+      "countPartial": "Últimas {shown} de {total} órdenes",
+      "refresh": "Actualizar",
+      "emptyPatient": "Este paciente no tiene órdenes de estudio.",
+      "emptyDoctor": "Este doctor no ha derivado órdenes de estudio.",
+      "submittedOn": "Enviada el {date}",
+      "createdOn": "Creada el {date}",
+      "forPatient": "para {patient}",
+      "openInbox": "Ver todas en la bandeja de órdenes",
+      "back": "Volver a las órdenes",
+      "manageInInbox": "Gestionar en la bandeja"
+    },
+    "view": {
+      "label": "Vista de la bandeja",
+      "list": "Lista",
+      "board": "Panel de estados"
+    },
+    "assignedFilter": {
+      "label": "Revisada por",
+      "all": "Todos",
+      "me": "Asignadas a mí",
+      "none": "Sin asignar"
+    },
+    "board": {
+      "label": "Órdenes por estado",
+      "loadError": "No se pudo cargar el panel.",
+      "retry": "Reintentar",
+      "emptyColumn": "Sin órdenes en este estado",
+      "loadMore": "Cargar más ({shown} de {total})",
+      "perColumn": "Órdenes por columna",
+      "perColumnOption": "{count} por columna",
+      "summary": "Ver resumen",
+      "openDetail": "Ver detalle",
+      "assign": "Asignar",
+      "unassigned": "Sin asignar",
+      "assignedTo": "Revisada por {name}",
+      "progress": "{scheduled}/{total} agendados",
+      "progressLong": "{scheduled} de {total} agendados · {completed} atendidos",
+      "expandColumn": "Desplegar {status}",
+      "collapseColumn": "Plegar {status}",
+      "notAllowedHere": "No se puede mover aquí",
+      "fields": {
+        "document": "Documento",
+        "phone": "Teléfono",
+        "doctor": "Derivador",
+        "studies": "Estudios",
+        "progress": "Avance",
+        "sede": "Sede",
+        "submitted": "Enviada",
+        "assigned": "Revisada por",
+        "review": "Revisión"
+      },
+      "blocked": {
+        "title": "{order} no puede pasar a «{status}».",
+        "appointments": "Ese estado depende de las citas: la orden pasa sola cuando se atienden.",
+        "backwards": "Una orden no vuelve a un estado anterior.",
+        "permission": "No tienes permiso para esa acción, o la orden no la admite en su estado actual.",
+        "dismiss": "Entendido"
+      },
+      "a11y": {
+        "card": "orden arrastrable",
+        "instructions": "Para mover una orden, pulsa la barra espaciadora, muévela con las flechas hasta otra columna y pulsa la barra espaciadora para soltarla. Escape cancela. Intro abre la orden.",
+        "start": "Moviendo la orden {order}.",
+        "over": "Sobre la columna {status}.",
+        "outside": "Fuera de las columnas.",
+        "drop": "Soltada en {status}.",
+        "cancel": "Movimiento cancelado."
+      },
+      "reviewedByLabel": "Revisada por:",
+      "reassign": "Reasignar",
+      "reassignHint": "Revisada por {name}. Haz clic para reasignar.",
+      "backToBoard": "Volver al panel",
+      "resizeDetail": "Arrastra para cambiar el ancho del detalle",
+      "detailLabel": "Detalle de la orden"
+    },
+    "assign": {
+      "action": "Asignar revisión…",
+      "reassign": "Reasignar revisión…",
+      "title": "Asignar la revisión de {number}",
+      "description": "Elige quién del personal (recepción, gerencia o administración) revisa la orden. Recibirá un aviso.",
+      "loadError": "No se pudo cargar la lista de usuarios.",
+      "retry": "Reintentar",
+      "assignToMe": "Asignármela",
+      "search": "Buscar por nombre o email…",
+      "empty": "Nadie coincide con la búsqueda.",
+      "nobody": "Sin asignar",
+      "me": "tú",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "assignedAt": "Asignada el {date}",
+      "toast": {
+        "assigned": "Orden asignada a {name}",
+        "unassigned": "La orden se ha quedado sin asignar",
+        "error": "No se pudo asignar la orden"
+      }
+    },
+    "chatter": {
+      "title": "Chatter",
+      "show": "Mostrar mensajes y actividad",
+      "hide": "Ocultar mensajes y actividad",
+      "sendMessage": "Enviar mensaje",
+      "logNote": "Registrar nota",
+      "sendMessageSubmit": "Enviar",
+      "logNoteSubmit": "Registrar",
+      "discard": "Descartar",
+      "messagePlaceholder": "Escribe un mensaje para los seguidores de la orden…",
+      "notePlaceholder": "Registra una nota interna…",
+      "messageHint": "Se avisará a {count, plural, one {# seguidor} other {# seguidores}}.",
+      "messageHintNobody": "Nadie más sigue esta orden: el mensaje queda en el historial sin avisar a nadie.",
+      "noteHint": "Nota interna: solo la ve la clínica y no avisa a nadie.",
+      "shortcut": "Ctrl + Intro para enviar",
+      "attachments": {
+        "add": "Adjuntar archivos",
+        "addHint": "Adjunta fotos o PDF (hasta {max}, de 10 MB cada uno). También puedes arrastrarlos aquí o pegar una captura.",
+        "selected": "Archivos para enviar",
+        "remove": "Quitar {name}",
+        "count": "{count, plural, one {# adjunto} other {# adjuntos}}",
+        "errorFormat": "Formato no admitido: {name}. Usa JPG, PNG, WEBP o PDF.",
+        "errorSize": "{name} está vacío o supera los 10 MB.",
+        "errorTooMany": "Un mensaje admite hasta {max} archivos.",
+        "partialTitle": "Algunos archivos no se han adjuntado",
+        "partialDescription": "{count, plural, one {# archivo no se pudo guardar} other {# archivos no se pudieron guardar}}. El mensaje se ha publicado: envíalos de nuevo en otro mensaje."
+      },
+      "follow": "Seguir",
+      "following": "Siguiendo",
+      "unfollow": "Dejar de seguir",
+      "followHint": "Seguir la orden: recibirás un aviso por cada mensaje nuevo",
+      "unfollowHint": "Dejar de seguir la orden: no recibirás más avisos de sus mensajes",
+      "refresh": "Actualizar",
+      "close": "Cerrar",
+      "retry": "Reintentar",
+      "loadError": "No se pudo cargar el chatter de la orden.",
+      "empty": "Todavía no hay mensajes ni actividad en esta orden.",
+      "today": "Hoy",
+      "unknownAuthor": "Usuario eliminado",
+      "noteBadge": "Nota",
+      "postError": "No se pudo publicar",
+      "followersError": "No se pudieron cambiar los seguidores",
+      "followers": {
+        "title": "Seguidores",
+        "count": "{count, plural, =0 {Sin seguidores} one {# seguidor} other {# seguidores}}",
+        "empty": "Nadie sigue esta orden todavía.",
+        "add": "Añadir seguidores",
+        "remove": "Quitar a {name}",
+        "searchPlaceholder": "Buscar usuario…",
+        "noCandidates": "No hay más usuarios para añadir.",
+        "back": "Volver",
+        "loadError": "No se pudo cargar la lista de usuarios."
+      },
+      "demo": {
+        "banner": "Modo demo: los mensajes, notas y seguidores son de prueba y se guardan solo en este navegador. La actividad de la orden es la real.",
+        "reset": "Reiniciar",
+        "resetHint": "Borrar los mensajes y seguidores de prueba de esta orden y volver a empezar",
+        "seedDoctorMessage": "Hola, ¿me avisáis cuando tengáis fecha para el estudio? El paciente prefiere los horarios de tarde. Gracias.",
+        "seedClinicNote": "Hemos llamado al paciente: confirma que puede venir por la tarde. Revisar la disponibilidad del tomógrafo antes de agendar.",
+        "clinicAuthor": "Recepción"
+      }
+    }
   },
   "StudyOrderBooking": {
     "greeting": "Hola {name}",
