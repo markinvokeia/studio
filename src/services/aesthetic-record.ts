@@ -3,6 +3,7 @@ import type {
   AestheticConsent,
   AestheticMapView,
   AestheticPhoto,
+  AestheticPhotoAlignment,
   AestheticPhotoKind,
   AestheticPoint,
   AestheticSession,
@@ -218,6 +219,25 @@ export async function signAestheticConsent(
   writeSessions(patientId, sessions.map((s) => (s.id === sessionId ? session : s)));
 
   if (existing.consent) await dropFiles([existing.consent.signatureFileId]);
+  return session;
+}
+
+/** Stores (or clears, with `null`) how a photo sits behind the map; it is not part of the session edit */
+export async function saveAestheticPhotoAlignment(
+  patientId: string,
+  photoId: string,
+  alignment: AestheticPhotoAlignment | null,
+): Promise<AestheticSession> {
+  const sessions = readSessions(patientId);
+  const existing = sessions.find((s) => s.photos.some((p) => p.id === photoId));
+  if (!existing) throw new Error('Aesthetic photo not found');
+
+  const session: AestheticSession = {
+    ...existing,
+    // An undefined alignment is dropped when serialized
+    photos: existing.photos.map((p) => (p.id === photoId ? { ...p, alignment: alignment ?? undefined } : p)),
+  };
+  writeSessions(patientId, sessions.map((s) => (s.id === session.id ? session : s)));
   return session;
 }
 

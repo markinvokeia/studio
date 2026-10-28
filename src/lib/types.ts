@@ -2420,6 +2420,19 @@ export interface AestheticPoint {
 
 export type AestheticPhotoKind = 'before' | 'after';
 
+/** Placement of a photo under the map template of its view */
+export interface AestheticPhotoAlignment {
+  /** Photo centre, as a fraction (0–1) of the template width and height */
+  x: number;
+  y: number;
+  /** Size relative to the photo fitted inside the template (1 = fully contained) */
+  scale: number;
+  /** Degrees, clockwise */
+  rotation: number;
+  /** Flipped horizontally (front cameras mirror the picture) */
+  mirrored: boolean;
+}
+
 export interface AestheticPhoto {
   id: string;
   kind: AestheticPhotoKind;
@@ -2427,6 +2440,8 @@ export interface AestheticPhoto {
   fileName: string;
   mimeType: string;
   createdAt: string;
+  /** Set once the photo was aligned to be shown behind the map */
+  alignment?: AestheticPhotoAlignment;
 }
 
 export interface AestheticConsent {

@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import { cn } from '@/lib/utils';
 
-import type { AestheticBodyFigure, AestheticMapView, AestheticPoint, AestheticZoneId } from '@/lib/types';
+import type { AestheticBodyFigure, AestheticMapView, AestheticPhotoAlignment, AestheticPoint, AestheticZoneId } from '@/lib/types';
 import { UNIT_COLORS, type MapArtwork } from './map-templates';
 import { useMapArtwork } from './use-map-artwork';
 import { useZoneLabel } from './use-zone-label';
@@ -24,6 +24,23 @@ const KEYBOARD_STEP = 0.01;
 const LINE_WIDTH = 1.5;
 const DETAIL_WIDTH = 1;
 const ZONE_DASH = '3 3';
+
+/** Zoom limits of a backdrop photo, relative to the photo fitted inside the template */
+export const BACKDROP_MIN_SCALE = 0.3;
+export const BACKDROP_MAX_SCALE = 4;
+const WHEEL_ZOOM_SPEED = 0.0015;
+
+/** Photo shown behind the template */
+export interface MapBackdrop {
+  url: string;
+  alignment: AestheticPhotoAlignment;
+  /** 0–1 */
+  opacity: number;
+  /** Hide the line art, keeping zones and points */
+  hideArt: boolean;
+}
+
+export const clampBackdropScale = (scale: number) => Math.min(BACKDROP_MAX_SCALE, Math.max(BACKDROP_MIN_SCALE, scale));
 
 interface AestheticMapProps {
   view: AestheticMapView;
@@ -43,6 +60,10 @@ interface AestheticMapProps {
   onMovePoint?: (id: string, x: number, y: number, zone: AestheticZoneId | null) => void;
   onSelectPoint: (id: string | null) => void;
   onDeletePoint?: (id: string) => void;
+  backdrop?: MapBackdrop | null;
+  /** Dragging and the wheel move and zoom the backdrop instead of touching points */
+  adjustingBackdrop?: boolean;
+  onBackdropChange?: (alignment: AestheticPhotoAlignment) => void;
   className?: string;
 }
 
@@ -60,6 +81,27 @@ export function AestheticMap({ view, figure, className, ...rest }: AestheticMapP
   }
   if (!artwork) return <Skeleton className={cn('aspect-[1/2] w-full rounded-2xl', className)} />;
   return <MapCanvas view={view} artwork={artwork} className={className} {...rest} />;
+}
+
+/** Natural size of an image, `null` until it loads */
+function useImageSize(url: string | undefined): { width: number; height: number } | null {
+  const [size, setSize] = React.useState<{ url: string; width: number; height: number } | null>(null);
+  React.useEffect(() => {
+    if (!url) return;
+    let active = true;
+    const img = new Image();
+    img.onload = () => { if (active) setSize({ url, width: img.naturalWidth, height: img.naturalHeight }); };
+    img.src = url;
+    return () => { active = false; };
+  }, [url]);
+  return size && size.url === url ? size : null;
+}
+
+interface PanState {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  origin: AestheticPhotoAlignment;
 }
 
 interface DragState {
@@ -84,6 +126,9 @@ function MapCanvas({
   onMovePoint,
   onSelectPoint,
   onDeletePoint,
+  backdrop,
+  adjustingBackdrop = false,
+  onBackdropChange,
   className,
 }: Omit<AestheticMapProps, 'figure'> & { artwork: MapArtwork }) {
   const t = useTranslations('AestheticRecord');
@@ -98,6 +143,10 @@ function MapCanvas({
   const scale = W / BASE_WIDTH;
   const viewPoints = points.filter((p) => p.view === view);
   const highlighted = new Set(highlightZones ?? []);
+  const adjusting = adjustingBackdrop && !!backdrop && !!onBackdropChange;
+  const imageSize = useImageSize(backdrop?.url);
+  const panRef = React.useRef<PanState | null>(null);
+  const clipId = `aes-map-clip-${React.useId().replace(/:/g, '')}`;
 
   /** Client coordinates → viewBox coordinates, clamped to the artwork */
   function toSvgPoint(clientX: number, clientY: number): { x: number; y: number } | null {
@@ -130,7 +179,7 @@ function MapCanvas({
       suppressClickRef.current = false;
       return;
     }
-    if ((e.target as Element).closest('[data-point-id]')) return;
+    if ((e.target as Element).closest('[data-point-id]') || adjusting) return;
     if (readOnly || !onAddPoint) {
       onSelectPoint(null);
       return;
@@ -151,7 +200,71 @@ function MapCanvas({
     setDrag({ id: point.id, startX: p.x, startY: p.y, x: at.x, y: at.y, moved: false });
   }
 
+  /** Client coordinates → viewBox coordinates, not clamped */
+  function toSvgPointRaw(clientX: number, clientY: number): { x: number; y: number } | null {
+    const ctm = svgRef.current?.getScreenCTM();
+    if (!ctm) return null;
+    const p = new DOMPoint(clientX, clientY).matrixTransform(ctm.inverse());
+    return { x: p.x, y: p.y };
+  }
+
+  function handleBackdropPointerDown(e: React.PointerEvent<SVGSVGElement>) {
+    if (!adjusting || !backdrop) return;
+    const p = toSvgPointRaw(e.clientX, e.clientY);
+    if (!p) return;
+    svgRef.current?.setPointerCapture(e.pointerId);
+    panRef.current = { pointerId: e.pointerId, startX: p.x, startY: p.y, origin: backdrop.alignment };
+  }
+
+  // Latest values for the native wheel listener
+  const wheelRef = React.useRef({ backdrop, onBackdropChange, X, Y, W, H });
+  React.useEffect(() => { wheelRef.current = { backdrop, onBackdropChange, X, Y, W, H }; });
+
+  // Wheel zoom keeps the point under the pointer still. React's onWheel is passive and
+  // can't stop the panel from scrolling, hence the native listener.
+  React.useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg || !adjusting) return;
+    const onWheel = (e: WheelEvent) => {
+      const { backdrop: current, onBackdropChange: change, X: x0, Y: y0, W: w, H: h } = wheelRef.current;
+      const ctm = svg.getScreenCTM();
+      if (!current || !change || !ctm) return;
+      e.preventDefault();
+      const a = current.alignment;
+      const nextScale = clampBackdropScale(a.scale * Math.exp(-e.deltaY * WHEEL_ZOOM_SPEED));
+      const ratio = nextScale / a.scale;
+      const p = new DOMPoint(e.clientX, e.clientY).matrixTransform(ctm.inverse());
+      const cx = x0 + a.x * w;
+      const cy = y0 + a.y * h;
+      change({ ...a, scale: nextScale, x: (p.x + (cx - p.x) * ratio - x0) / w, y: (p.y + (cy - p.y) * ratio - y0) / h });
+    };
+    svg.addEventListener('wheel', onWheel, { passive: false });
+    return () => svg.removeEventListener('wheel', onWheel);
+  }, [adjusting]);
+
+  function handleBackdropKeyDown(e: React.KeyboardEvent<SVGSVGElement>) {
+    if (!adjusting || !backdrop || !onBackdropChange || e.target !== e.currentTarget) return;
+    const delta: Record<string, [number, number]> = {
+      ArrowLeft: [-KEYBOARD_STEP, 0],
+      ArrowRight: [KEYBOARD_STEP, 0],
+      ArrowUp: [0, -KEYBOARD_STEP * (W / H)],
+      ArrowDown: [0, KEYBOARD_STEP * (W / H)],
+    };
+    const step = delta[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const a = backdrop.alignment;
+    onBackdropChange({ ...a, x: a.x + step[0], y: a.y + step[1] });
+  }
+
   function handlePointerMove(e: React.PointerEvent<SVGSVGElement>) {
+    const pan = panRef.current;
+    if (pan && pan.pointerId === e.pointerId) {
+      const p = toSvgPointRaw(e.clientX, e.clientY);
+      if (!p) return;
+      onBackdropChange?.({ ...pan.origin, x: pan.origin.x + (p.x - pan.startX) / W, y: pan.origin.y + (p.y - pan.startY) / H });
+      return;
+    }
     if (!drag) return;
     const p = toSvgPoint(e.clientX, e.clientY);
     if (!p) return;
@@ -160,6 +273,11 @@ function MapCanvas({
   }
 
   function handlePointerUp(e: React.PointerEvent<SVGSVGElement>) {
+    if (panRef.current?.pointerId === e.pointerId) {
+      svgRef.current?.releasePointerCapture(e.pointerId);
+      panRef.current = null;
+      return;
+    }
     if (!drag) return;
     svgRef.current?.releasePointerCapture(e.pointerId);
     suppressClickRef.current = true;
@@ -221,7 +339,9 @@ function MapCanvas({
             ? 'fill-amber-400/30 stroke-amber-500'
             : isHovered
               ? 'fill-amber-300/20 stroke-amber-500/70'
-              : cn('fill-transparent', shape.inert ? 'stroke-foreground/15 dark:stroke-foreground/25' : 'stroke-foreground/30 dark:stroke-foreground/45'),
+              : backdrop
+                ? cn('fill-transparent', shape.inert ? 'stroke-white/35' : 'stroke-white/70')
+                : cn('fill-transparent', shape.inert ? 'stroke-foreground/15 dark:stroke-foreground/25' : 'stroke-foreground/30 dark:stroke-foreground/45'),
         )}
         strokeWidth={1}
         strokeDasharray={isHighlighted ? undefined : ZONE_DASH}
@@ -236,6 +356,30 @@ function MapCanvas({
   const r = POINT_RADIUS * scale;
   const caption = drag ? null : hoveredZone;
 
+  let backdropImage: React.ReactNode = null;
+  if (backdrop && imageSize) {
+    const a = backdrop.alignment;
+    const aspect = imageSize.height / imageSize.width;
+    const width = Math.min(W, H / aspect) * a.scale;
+    const height = width * aspect;
+    backdropImage = (
+      <image
+        href={backdrop.url}
+        x={-width / 2}
+        y={-height / 2}
+        width={width}
+        height={height}
+        preserveAspectRatio="none"
+        opacity={backdrop.opacity}
+        transform={`translate(${X + a.x * W} ${Y + a.y * H}) rotate(${a.rotation}) scale(${a.mirrored ? -1 : 1} 1)`}
+        pointerEvents="none"
+      />
+    );
+  }
+  // Over a photo the line art turns white with a dark halo so it reads on any skin tone
+  const onPhoto = !!backdrop;
+  const artStyle = onPhoto ? { filter: 'drop-shadow(0 0 1px rgb(0 0 0 / 0.7))' } : undefined;
+
   return (
     <div className={cn('flex flex-col gap-1', className)}>
       <svg
@@ -243,24 +387,39 @@ function MapCanvas({
         viewBox={`${X} ${Y} ${W} ${H}`}
         role="img"
         aria-label={t(`views.${view}`)}
-        className={cn('h-auto w-full touch-none select-none', !readOnly && 'cursor-crosshair')}
+        tabIndex={adjusting ? 0 : undefined}
+        className={cn(
+          'h-auto w-full touch-none select-none rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          adjusting ? 'cursor-move' : !readOnly && 'cursor-crosshair',
+        )}
         onClick={handleBackgroundClick}
+        onPointerDown={handleBackdropPointerDown}
+        onKeyDown={handleBackdropKeyDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerCancel={() => setDrag(null)}
+        onPointerCancel={() => {
+          panRef.current = null;
+          setDrag(null);
+        }}
       >
+        <defs>
+          <clipPath id={clipId}>
+            <rect x={X} y={Y} width={W} height={H} rx={16 * scale} />
+          </clipPath>
+        </defs>
         <rect x={X} y={Y} width={W} height={H} rx={16 * scale} className="fill-muted/30" />
+        {backdropImage && <g clipPath={`url(#${clipId})`}>{backdropImage}</g>}
 
         {/* Same layering for face and body: zones below the line art so its strokes stay crisp */}
-        <g>{zoneShapes}</g>
-        <g pointerEvents="none">
+        <g pointerEvents={adjusting ? 'none' : undefined}>{zoneShapes}</g>
+        <g pointerEvents="none" style={artStyle} display={backdrop?.hideArt ? 'none' : undefined}>
           {artwork.details.map((shape) => (
             <path
               key={shape.key}
               d={shape.d}
               transform={shape.transform}
               fill="none"
-              className="stroke-foreground/35"
+              className={onPhoto ? 'stroke-white/60' : 'stroke-foreground/35'}
               strokeWidth={DETAIL_WIDTH}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -273,7 +432,7 @@ function MapCanvas({
               d={shape.d}
               transform={shape.transform}
               fill="none"
-              className="stroke-foreground/55"
+              className={onPhoto ? 'stroke-white/90' : 'stroke-foreground/55'}
               strokeWidth={LINE_WIDTH}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -281,11 +440,12 @@ function MapCanvas({
             />
           ))}
           {artwork.fills.map((shape) => (
-            <path key={shape.key} d={shape.d} transform={shape.transform} className="fill-foreground/45" />
+            <path key={shape.key} d={shape.d} transform={shape.transform} className={onPhoto ? 'fill-white/70' : 'fill-foreground/45'} />
           ))}
         </g>
 
         {/* Points */}
+        <g pointerEvents={adjusting ? 'none' : undefined} opacity={adjusting ? 0.5 : undefined}>
         {viewPoints.map((point) => {
           const isDragging = drag?.id === point.id;
           const at = isDragging ? { x: drag.x, y: drag.y } : fromNormalized(point.x, point.y);
@@ -332,6 +492,7 @@ function MapCanvas({
             </g>
           );
         })}
+        </g>
       </svg>
       {/* Name of the zone under the pointer: the panels are small and the title tooltip is slow */}
       <p className="min-h-4 truncate text-center text-xs font-medium text-muted-foreground" aria-live="polite">

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { Camera, CircleAlert, ImageOff, Megaphone, X } from 'lucide-react';
+import { CircleAlert, ImageOff, ImagePlus, Megaphone, X } from 'lucide-react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -108,27 +108,50 @@ interface PhotosPanelProps {
   onAddFiles: (files: File[], kind: AestheticPhotoKind, view: AestheticMapView) => void;
   onRemoveStored: (id: string) => void;
   onRemovePending: (key: string) => void;
+  /** Room for the session photos and the comparison side by side */
+  wide?: boolean;
 }
 
-export function PhotosPanel({ photos, pending, isEditing, consent, allPhotos, onAddFiles, onRemoveStored, onRemovePending }: PhotosPanelProps) {
+export function PhotosPanel({ photos, pending, isEditing, consent, allPhotos, onAddFiles, onRemoveStored, onRemovePending, wide = false }: PhotosPanelProps) {
   const t = useTranslations('AestheticRecord');
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const [kind, setKind] = React.useState<AestheticPhotoKind>('before');
+  /** Kind of the column whose "add" tile opened the file picker */
+  const kindRef = React.useRef<AestheticPhotoKind>('before');
   const [view, setView] = React.useState<AestheticMapView>('front');
   const [lightbox, setLightbox] = React.useState<{ src: string; alt: string } | null>(null);
   const isEmpty = photos.length === 0 && pending.length === 0;
   const photosForbidden = consent?.allowsClinicalPhotos === false;
 
+  const canAdd = isEditing && !photosForbidden;
+
+  function openPicker(photoKind: AestheticPhotoKind) {
+    kindRef.current = photoKind;
+    inputRef.current?.click();
+  }
+
   return (
-    <div className="flex flex-col gap-5">
-      <section className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-foreground">{t('photos.sessionTitle')}</h3>
-          {consent && !photosForbidden && (
-            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-              <Megaphone className="h-3.5 w-3.5" />
-              {consent.allowsMarketingPhotos ? t('photos.marketingAllowed') : t('photos.marketingNotAllowed')}
-            </span>
+    <div className={cn('grid items-start gap-4', wide && 'grid-cols-[minmax(0,5fr)_minmax(0,6fr)]')}>
+      <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <h3 className="text-sm font-semibold text-foreground">{t('photos.sessionTitle')}</h3>
+            {consent && !photosForbidden && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                <Megaphone className="h-3.5 w-3.5 shrink-0" />
+                {consent.allowsMarketingPhotos ? t('photos.marketingAllowed') : t('photos.marketingNotAllowed')}
+              </span>
+            )}
+          </div>
+          {canAdd && (
+            <div className="flex items-center gap-2">
+              <Label htmlFor="aes-photo-view" className="text-xs text-muted-foreground">{t('photos.newView')}</Label>
+              <Select value={view} onValueChange={(v) => setView(v as AestheticMapView)}>
+                <SelectTrigger id="aes-photo-view" className="h-8 w-auto min-w-[120px] text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MAP_VIEWS.map((v) => <SelectItem key={v} value={v}>{t(`views.${v}`)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           )}
         </div>
 
@@ -144,63 +167,23 @@ export function PhotosPanel({ photos, pending, isEditing, consent, allPhotos, on
           </Alert>
         )}
 
-        {isEditing && !photosForbidden && (
-          <div className="flex flex-col gap-2 rounded-xl border bg-muted/30 p-3 sm:flex-row sm:items-end">
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label className="text-xs">{t('photos.kind')}</Label>
-              <Select value={kind} onValueChange={(v) => setKind(v as AestheticPhotoKind)}>
-                <SelectTrigger className="h-9" aria-label={t('photos.kind')}><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {PHOTO_KINDS.map((k) => <SelectItem key={k} value={k}>{t(`photos.kinds.${k}`)}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Label className="text-xs">{t('photos.view')}</Label>
-              <Select value={view} onValueChange={(v) => setView(v as AestheticMapView)}>
-                <SelectTrigger className="h-9" aria-label={t('photos.view')}><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {MAP_VIEWS.map((v) => <SelectItem key={v} value={v}>{t(`views.${v}`)}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button type="button" variant="outline" onClick={() => inputRef.current?.click()} className="h-9">
-              <Camera className="mr-2 h-4 w-4" />
-              {t('photos.add')}
-            </Button>
-            <input
-              ref={inputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(e) => {
-                const files = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith('image/'));
-                if (files.length) onAddFiles(files, kind, view);
-                e.target.value = '';
-              }}
-            />
-          </div>
-        )}
-
-        {isEmpty ? (
-          <p className="rounded-xl border border-dashed p-4 text-center text-xs text-muted-foreground">
-            {isEditing ? t('photos.emptyEditing') : t('photos.empty')}
-          </p>
+        {isEmpty && !canAdd ? (
+          !photosForbidden && <p className="rounded-xl border border-dashed p-4 text-center text-xs text-muted-foreground">{t('photos.empty')}</p>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 gap-3">
             {PHOTO_KINDS.map((photoKind) => {
               const stored = photos.filter((photo) => photo.kind === photoKind);
               const unsaved = pending.filter((p) => p.kind === photoKind);
-              if (!stored.length && !unsaved.length) return null;
+              const count = stored.length + unsaved.length;
+              const kindLabel = t(`photos.kinds.${photoKind}`);
               return (
-                <div key={photoKind} className="flex flex-col gap-2">
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <div key={photoKind} className="flex min-w-0 flex-col gap-2 rounded-xl border bg-muted/20 p-2">
+                  <span className="inline-flex items-center gap-1.5 px-0.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                     <span className={cn('h-2 w-2 rounded-full', KIND_DOT[photoKind])} aria-hidden />
-                    {t(`photos.kinds.${photoKind}`)}
-                    <span className="font-normal">({stored.length + unsaved.length})</span>
+                    {kindLabel}
+                    <span className="font-normal">({count})</span>
                   </span>
-                  <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-2 sm:grid-cols-[repeat(auto-fill,minmax(140px,180px))]">
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-2">
                     {stored.map((photo) => (
                       <StoredPhotoThumb
                         key={photo.id}
@@ -220,15 +203,44 @@ export function PhotosPanel({ photos, pending, isEditing, consent, allPhotos, on
                         onRemove={() => onRemovePending(p.key)}
                       />
                     ))}
+                    {canAdd && (
+                      <button
+                        type="button"
+                        onClick={() => openPicker(photoKind)}
+                        aria-label={t('photos.addKind', { kind: kindLabel, view: t(`views.${view}`) })}
+                        title={t('photos.addKind', { kind: kindLabel, view: t(`views.${view}`) })}
+                        className="flex aspect-[3/4] flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed bg-background/60 p-2 text-center text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/60 hover:bg-background hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <ImagePlus className="h-5 w-5" />
+                        {t('photos.add')}
+                        <span className="font-normal">{t(`views.${view}`)}</span>
+                      </button>
+                    )}
+                    {!count && !canAdd && (
+                      <p className="col-span-full py-6 text-center text-[11px] text-muted-foreground">{t('photos.emptyKind')}</p>
+                    )}
                   </div>
                 </div>
               );
             })}
           </div>
         )}
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith('image/'));
+            if (files.length) onAddFiles(files, kindRef.current, view);
+            e.target.value = '';
+          }}
+        />
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm">
         <h3 className="text-sm font-semibold text-foreground">{t('photos.compareTitle')}</h3>
         <PhotoCompare photos={allPhotos} />
       </section>

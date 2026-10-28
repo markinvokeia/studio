@@ -34,21 +34,24 @@ import {
   deleteAestheticSession,
   fetchAestheticSessions,
   newAestheticPointId,
+  saveAestheticPhotoAlignment,
   signAestheticConsent,
   upsertAestheticSession,
   type AestheticConsentInput,
   type AestheticConsentUpload,
 } from '@/services/aesthetic-record';
 
-import type { AestheticBodyFigure, AestheticConsent, AestheticMapRegion, AestheticMapView, AestheticPhotoKind, AestheticPoint, AestheticSession, AestheticZoneId } from '@/lib/types';
+import type { AestheticBodyFigure, AestheticConsent, AestheticMapRegion, AestheticMapView, AestheticPhotoAlignment, AestheticPhotoKind, AestheticPoint, AestheticSession, AestheticZoneId } from '@/lib/types';
 import { ConsentDialog } from './consent-dialog';
 import { ConsentPanel } from './consent-panel';
 import { AestheticMap } from './aesthetic-map';
 import { BODY_FIGURES, getViewZoneIds, MAP_REGIONS, MAP_VIEWS, REGION_VIEWS, UNIT_COLORS, VIEW_REGION } from './map-templates';
+import { DEFAULT_PHOTO_ALIGNMENT, PhotoBackdropControls } from './photo-backdrop-controls';
 import type { PhotoRef } from './photo-compare';
 import { PhotosPanel, type PendingPhoto } from './photos-panel';
 import { PointDetailCard } from './point-detail-card';
 import { isPointIncomplete, PointsSummary } from './points-summary';
+import { useAestheticFileUrl } from './use-aesthetic-file-url';
 import { ZoneHistory } from './zone-history';
 
 type Tab = 'map' | 'photos' | 'consent' | 'zones';
@@ -216,6 +219,14 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
   const [confirmDelete, setConfirmDelete] = React.useState(false);
   const presetRef = React.useRef<PointPreset>(DEFAULT_PRESET);
 
+  // Photo behind the map
+  const [backdropEnabled, setBackdropEnabled] = React.useState(false);
+  /** Photo picked for each view; a view without a pick uses its preferred photo */
+  const [backdropChoice, setBackdropChoice] = React.useState<Partial<Record<AestheticMapView, string>>>({});
+  const [backdropOpacity, setBackdropOpacity] = React.useState(0.85);
+  const [backdropHideArt, setBackdropHideArt] = React.useState(false);
+  const [alignmentEdit, setAlignmentEdit] = React.useState<{ photoId: string; alignment: AestheticPhotoAlignment } | null>(null);
+
   const isEditing = draft !== null;
   const current = index >= 0 ? sessions[index] ?? null : null;
   const isDirty = isEditing && (draftKey(draft) !== initialDraftKey || pendingPhotos.length > 0 || removedPhotoIds.length > 0 || pendingConsent !== null);
@@ -299,6 +310,18 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
   const shownPhotos = (current && (!draft || draft.sessionId === current.id) ? current.photos : [])
     .filter((p) => !removedPhotoIds.includes(p.id));
   const photoCount = shownPhotos.length + pendingPhotos.length;
+
+  /** Saved photos of the view: the current session's first ("before" ahead), then the newest sessions */
+  const backdropCandidates = React.useMemo(() => {
+    const rank = (ref: PhotoRef) => (ref.session.id === current?.id ? (ref.photo.kind === 'before' ? 0 : 1) : 2);
+    return allPhotos
+      .filter((ref) => ref.photo.view === view && !removedPhotoIds.includes(ref.photo.id) && ref.session.consent?.allowsClinicalPhotos !== false)
+      .sort((a, b) => rank(a) - rank(b) || b.session.date.localeCompare(a.session.date) || b.photo.createdAt.localeCompare(a.photo.createdAt));
+  }, [allPhotos, view, removedPhotoIds, current?.id]);
+  const backdropRef = backdropCandidates.find((ref) => ref.photo.id === backdropChoice[view]) ?? backdropCandidates[0] ?? null;
+  const showBackdrop = backdropEnabled && !!backdropRef;
+  const backdropUrl = useAestheticFileUrl(showBackdrop ? backdropRef?.photo.id : undefined);
+  const editingAlignment = alignmentEdit && alignmentEdit.photoId === backdropRef?.photo.id ? alignmentEdit.alignment : null;
   /** Consent that applies to what is on screen: the one signed in this edit, else the stored one (none for a new session) */
   const effectiveConsent: AestheticConsent | null = pendingConsent
     ? { ...pendingConsent.input, signedAt: pendingConsent.signedAt, signatureFileId: '' }
@@ -490,6 +513,21 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
     if (pendingConsent) URL.revokeObjectURL(pendingConsent.previewUrl);
     setPendingConsent(null);
   }
+
+  const saveAlignment = useAsyncAction(
+    async () => {
+      if (!alignmentEdit) return null;
+      return saveAestheticPhotoAlignment(patientId, alignmentEdit.photoId, alignmentEdit.alignment);
+    },
+    {
+      onSuccess: (session) => {
+        if (session) setSessions((prev) => prev.map((s) => (s.id === session.id ? session : s)));
+        setAlignmentEdit(null);
+        toast({ title: t('toast.alignmentSaved') });
+      },
+      errorTitle: t('map.backdrop.saveError'),
+    },
+  );
 
   const remove = useAsyncAction(
     async () => {
@@ -725,6 +763,25 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
             />
           )}
         </div>
+        <PhotoBackdropControls
+          candidates={backdropCandidates}
+          enabled={backdropEnabled}
+          onEnabledChange={setBackdropEnabled}
+          selected={backdropRef}
+          onSelect={(photoId) => setBackdropChoice((prev) => ({ ...prev, [view]: photoId }))}
+          url={backdropUrl}
+          opacity={backdropOpacity}
+          onOpacityChange={setBackdropOpacity}
+          hideArt={backdropHideArt}
+          onHideArtChange={setBackdropHideArt}
+          canAdjust={canRegister && tab === 'map'}
+          adjusting={editingAlignment}
+          onStartAdjust={() => backdropRef && setAlignmentEdit({ photoId: backdropRef.photo.id, alignment: backdropRef.photo.alignment ?? DEFAULT_PHOTO_ALIGNMENT })}
+          onAdjustChange={(alignment) => setAlignmentEdit((prev) => (prev ? { ...prev, alignment } : prev))}
+          onCancelAdjust={() => setAlignmentEdit(null)}
+          onSaveAdjust={() => saveAlignment.run()}
+          isSaving={saveAlignment.isPending}
+        />
       </div>
       <AestheticMap
         view={view}
@@ -739,6 +796,14 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
         onMovePoint={isEditing ? (id, x, y, zone) => updatePoint(id, { x, y, zone }) : undefined}
         onSelectPoint={setSelectedPointId}
         onDeletePoint={isEditing ? deletePoint : undefined}
+        backdrop={showBackdrop && backdropRef && backdropUrl ? {
+          url: backdropUrl,
+          alignment: editingAlignment ?? backdropRef.photo.alignment ?? DEFAULT_PHOTO_ALIGNMENT,
+          opacity: editingAlignment ? Math.min(backdropOpacity, 0.7) : backdropOpacity,
+          hideArt: backdropHideArt && !editingAlignment,
+        } : null}
+        adjustingBackdrop={!!editingAlignment}
+        onBackdropChange={(alignment) => setAlignmentEdit((prev) => (prev ? { ...prev, alignment } : prev))}
         className={cn('mx-auto w-full', region === 'body' ? 'max-w-[260px]' : 'max-w-[400px]')}
       />
       <div className="flex flex-col gap-1.5 border-t pt-2.5">
@@ -822,6 +887,7 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
           {tab === 'photos' && (
             <PhotosPanel
               photos={shownPhotos}
+              wide={sideBySide}
               pending={pendingPhotos}
               isEditing={isEditing}
               consent={effectiveConsent}

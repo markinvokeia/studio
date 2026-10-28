@@ -10230,7 +10230,25 @@
       "regionWithCount": "{region} ({count})",
       "figureLabel": "Figura del cuerpo",
       "figureLocked": "La figura no se puede cambiar cuando la sesión ya tiene puntos en el cuerpo.",
-      "loadError": "No se ha podido cargar el mapa del cuerpo."
+      "loadError": "No se ha podido cargar el mapa del cuerpo.",
+      "backdrop": {
+        "toggle": "Foto de fondo",
+        "noPhotos": "No hay fotos guardadas de esta vista",
+        "photo": "Foto que se muestra detrás del mapa",
+        "option": "{kind} · {date}",
+        "opacity": "Opacidad",
+        "hideArt": "Ocultar dibujo",
+        "align": "Alinear foto",
+        "adjust": "Ajustar alineación",
+        "notAligned": "Esta foto todavía no está alineada: alinéala para que las zonas coincidan con la cara o el cuerpo.",
+        "adjustHint": "Arrastra la foto para moverla y usa la rueda (o el control) para el zoom, hasta que ojos, nariz y boca coincidan con el dibujo.",
+        "zoom": "Zoom",
+        "rotation": "Rotación",
+        "mirror": "Espejo",
+        "reset": "Restablecer",
+        "saveAlignment": "Guardar alineación",
+        "saveError": "No se ha podido guardar la alineación"
+      }
     },
     "point": {
       "noProduct": "Sin producto",
@@ -10256,7 +10274,6 @@
     },
     "photos": {
       "sessionTitle": "Fotos de la sesión",
-      "kind": "Tipo",
       "view": "Vista",
       "kinds": {
         "before": "Antes",
@@ -10264,7 +10281,6 @@
       },
       "add": "Añadir fotos",
       "empty": "Esta sesión no tiene fotos.",
-      "emptyEditing": "Elige el tipo y la vista, y añade las fotos.",
       "pending": "Sin guardar",
       "remove": "Quitar foto {label}",
       "unavailable": "No disponible en este dispositivo",
@@ -10284,7 +10300,10 @@
       "compareModes": {
         "sideBySide": "Lado a lado",
         "slider": "Deslizar"
-      }
+      },
+      "newView": "Vista de las fotos nuevas",
+      "addKind": "Añadir fotos de «{kind}» ({view})",
+      "emptyKind": "Sin fotos"
     },
     "consent": {
       "badge": "Consentimiento",
@@ -10366,7 +10385,8 @@
       "created": "Sesión estética creada",
       "updated": "Sesión estética actualizada",
       "deleted": "Sesión estética eliminada",
-      "draftRestored": "Hemos recuperado los cambios sin guardar de la sesión."
+      "draftRestored": "Hemos recuperado los cambios sin guardar de la sesión.",
+      "alignmentSaved": "Alineación de la foto guardada"
     },
     "discard": {
       "title": "¿Descartar los cambios?",

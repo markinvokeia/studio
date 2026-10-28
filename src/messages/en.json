@@ -10230,7 +10230,25 @@
       "regionWithCount": "{region} ({count})",
       "figureLabel": "Body figure",
       "figureLocked": "The figure can't be changed once the session has body points.",
-      "loadError": "The body map couldn't be loaded."
+      "loadError": "The body map couldn't be loaded.",
+      "backdrop": {
+        "toggle": "Photo behind",
+        "noPhotos": "There are no saved photos of this view",
+        "photo": "Photo shown behind the map",
+        "option": "{kind} · {date}",
+        "opacity": "Opacity",
+        "hideArt": "Hide drawing",
+        "align": "Align photo",
+        "adjust": "Adjust alignment",
+        "notAligned": "This photo is not aligned yet: align it so the zones match the face or body.",
+        "adjustHint": "Drag the photo to move it and use the wheel (or the slider) to zoom, until the eyes, nose and mouth line up with the drawing.",
+        "zoom": "Zoom",
+        "rotation": "Rotation",
+        "mirror": "Mirror",
+        "reset": "Reset",
+        "saveAlignment": "Save alignment",
+        "saveError": "Could not save the alignment"
+      }
     },
     "point": {
       "noProduct": "No product",
@@ -10256,7 +10274,6 @@
     },
     "photos": {
       "sessionTitle": "Session photos",
-      "kind": "Type",
       "view": "View",
       "kinds": {
         "before": "Before",
@@ -10264,7 +10281,6 @@
       },
       "add": "Add photos",
       "empty": "This session has no photos.",
-      "emptyEditing": "Pick the type and view, then add the photos.",
       "pending": "Unsaved",
       "remove": "Remove photo {label}",
       "unavailable": "Not available on this device",
@@ -10284,7 +10300,10 @@
       "compareModes": {
         "sideBySide": "Side by side",
         "slider": "Slider"
-      }
+      },
+      "newView": "View of new photos",
+      "addKind": "Add \"{kind}\" photos ({view})",
+      "emptyKind": "No photos"
     },
     "consent": {
       "badge": "Consent",
@@ -10366,7 +10385,8 @@
       "created": "Aesthetic session created",
       "updated": "Aesthetic session updated",
       "deleted": "Aesthetic session deleted",
-      "draftRestored": "Your unsaved changes to the session were restored."
+      "draftRestored": "Your unsaved changes to the session were restored.",
+      "alignmentSaved": "Photo alignment saved"
     },
     "discard": {
       "title": "Discard changes?",
