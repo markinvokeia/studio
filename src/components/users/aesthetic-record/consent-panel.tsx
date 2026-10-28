@@ -2,29 +2,36 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { CheckCircle2, FileSignature, Printer, XCircle } from 'lucide-react';
+import { CheckCircle2, FileSignature, Printer, Trash2, XCircle } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { formatDateTime } from '@/lib/utils';
 
-import type { AestheticSession } from '@/lib/types';
+import type { AestheticConsent } from '@/lib/types';
 import { printConsent } from './consent-dialog';
 import { useAestheticFileUrl } from './use-aesthetic-file-url';
 
 interface ConsentPanelProps {
-  session: AestheticSession | null;
+  consent: AestheticConsent | null;
+  /** Signed in this edit and not saved yet: its signature is a local preview */
+  pendingSignatureUrl?: string;
+  /** The consent will be saved with the session (shown in the empty state) */
+  isEditing: boolean;
   canSign: boolean;
   /** Why signing is disabled, shown instead of the button */
   signDisabledReason?: string;
   onSign: () => void;
+  onRemovePending?: () => void;
 }
 
-export function ConsentPanel({ session, canSign, signDisabledReason, onSign }: ConsentPanelProps) {
+export function ConsentPanel({ consent, pendingSignatureUrl, isEditing, canSign, signDisabledReason, onSign, onRemovePending }: ConsentPanelProps) {
   const t = useTranslations('AestheticRecord');
-  const consent = session?.consent ?? null;
-  const signatureUrl = useAestheticFileUrl(consent?.signatureFileId);
+  const isPending = pendingSignatureUrl !== undefined;
+  const storedSignatureUrl = useAestheticFileUrl(isPending ? undefined : consent?.signatureFileId);
+  const signatureUrl = isPending ? pendingSignatureUrl : storedSignatureUrl;
 
   if (!consent) {
     return (
@@ -33,6 +40,7 @@ export function ConsentPanel({ session, canSign, signDisabledReason, onSign }: C
         <div className="space-y-1">
           <p className="text-sm font-semibold text-foreground">{t('consent.missingTitle')}</p>
           <p className="text-xs text-muted-foreground">{t('consent.missingDescription')}</p>
+          {isEditing && canSign && <p className="text-xs text-muted-foreground">{t('consent.pendingSaveHint')}</p>}
         </div>
         {canSign ? (
           <Button type="button" onClick={onSign}>
@@ -62,28 +70,38 @@ export function ConsentPanel({ session, canSign, signDisabledReason, onSign }: C
           <CheckCircle2 className="h-5 w-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground">{t('consent.signedTitle')}</p>
+          <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-foreground">
+            {t('consent.signedTitle')}
+            {isPending && <Badge variant="outline">{t('consent.pendingSave')}</Badge>}
+          </div>
           <p className="text-xs text-muted-foreground">{t('consent.signedBy', { name: consent.signerName, date: signedAt })}</p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => session && printConsent(session, signatureUrl ?? null, {
-            title: t('consent.printTitle'),
-            signer: t('consent.signerName'),
-            date: t('consent.signedAt'),
-            procedure: t('consent.procedure'),
-            signature: t('consent.signature'),
-            clinicalPhotos: t('consent.allowsClinicalPhotos'),
-            marketingPhotos: t('consent.allowsMarketingPhotos'),
-            yes: t('consent.yes'),
-            no: t('consent.no'),
-          }, signedAt)}
-        >
-          <Printer className="mr-2 h-4 w-4" />
-          {t('consent.print')}
-        </Button>
+        {isPending ? onRemovePending && (
+          <Button type="button" variant="outline" size="sm" onClick={onRemovePending} className="text-destructive hover:text-destructive">
+            <Trash2 className="mr-2 h-4 w-4" />
+            {t('consent.removePending')}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => printConsent(consent, signatureUrl ?? null, {
+              title: t('consent.printTitle'),
+              signer: t('consent.signerName'),
+              date: t('consent.signedAt'),
+              procedure: t('consent.procedure'),
+              signature: t('consent.signature'),
+              clinicalPhotos: t('consent.allowsClinicalPhotos'),
+              marketingPhotos: t('consent.allowsMarketingPhotos'),
+              yes: t('consent.yes'),
+              no: t('consent.no'),
+            }, signedAt)}
+          >
+            <Printer className="mr-2 h-4 w-4" />
+            {t('consent.print')}
+          </Button>
+        )}
       </div>
 
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-xs">

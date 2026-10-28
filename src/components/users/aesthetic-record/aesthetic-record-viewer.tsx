@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { CalendarDays, Camera, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, FileSignature, History, MapPin, MousePointerClick, Pencil, PersonStanding, Plus, ScanFace, Sparkles, Stethoscope } from 'lucide-react';
+import { CalendarDays, Camera, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, FileSignature, History, Loader2, MapPin, MousePointerClick, Pencil, PersonStanding, Plus, ScanFace, Sparkles, Stethoscope, Trash2 } from 'lucide-react';
 
 import {
   AlertDialog,
@@ -29,10 +29,18 @@ import { usePanelWidth } from '@/hooks/use-panel-width';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/error-utils';
-import { cn, formatDate, formatDisplayDate } from '@/lib/utils';
-import { fetchAestheticSessions, newAestheticPointId, upsertAestheticSession } from '@/services/aesthetic-record';
+import { cn, formatDate, formatDisplayDate, toLocalISOString } from '@/lib/utils';
+import {
+  deleteAestheticSession,
+  fetchAestheticSessions,
+  newAestheticPointId,
+  signAestheticConsent,
+  upsertAestheticSession,
+  type AestheticConsentInput,
+  type AestheticConsentUpload,
+} from '@/services/aesthetic-record';
 
-import type { AestheticBodyFigure, AestheticMapRegion, AestheticMapView, AestheticPhotoKind, AestheticPoint, AestheticSession, AestheticZoneId } from '@/lib/types';
+import type { AestheticBodyFigure, AestheticConsent, AestheticMapRegion, AestheticMapView, AestheticPhotoKind, AestheticPoint, AestheticSession, AestheticZoneId } from '@/lib/types';
 import { ConsentDialog } from './consent-dialog';
 import { ConsentPanel } from './consent-panel';
 import { AestheticMap } from './aesthetic-map';
@@ -67,7 +75,24 @@ const DEFAULT_PRESET: PointPreset = { productName: '', quantity: null, unit: 'U'
 
 const draftKey = (draft: Draft) => JSON.stringify(draft);
 
-function Segmented<T extends string>({ value, options, onChange, ariaLabel, disabled, title, stretch }: {
+/** Consent signed during the edit, saved together with the session */
+interface PendingConsent extends AestheticConsentUpload {
+  previewUrl: string;
+}
+
+/** Unsaved edit kept when the viewer unmounts (tab, patient or page switch) */
+interface StashedEdit {
+  draft: Draft;
+  initialDraftKey: string;
+  pendingPhotos: PendingPhoto[];
+  removedPhotoIds: string[];
+  pendingConsent: PendingConsent | null;
+}
+
+// In memory only: it survives navigation inside the app, a reload is guarded by `beforeunload`
+const stashedEdits = new Map<string, StashedEdit>();
+
+function Segmented<T extends string>({ value, options, onChange, ariaLabel, disabled, title, stretch, className }: {
   value: T;
   options: { id: T; label: string; icon?: React.ElementType }[];
   onChange: (value: T) => void;
@@ -76,9 +101,10 @@ function Segmented<T extends string>({ value, options, onChange, ariaLabel, disa
   title?: string;
   /** Fill the row, with equal-width options */
   stretch?: boolean;
+  className?: string;
 }) {
   return (
-    <div role="tablist" aria-label={ariaLabel} title={title} className={cn('max-w-full overflow-x-auto rounded-lg border bg-muted/40 p-0.5 [scrollbar-width:none]', stretch ? 'grid auto-cols-fr grid-flow-col' : 'inline-flex')}>
+    <div role="tablist" aria-label={ariaLabel} title={title} className={cn('max-w-full overflow-x-auto rounded-lg border bg-muted/40 p-0.5 [scrollbar-width:none]', stretch ? 'grid auto-cols-fr grid-flow-col' : 'inline-flex', className)}>
       {options.map(({ id, label, icon: Icon }) => (
         <button
           key={id}
@@ -89,7 +115,10 @@ function Segmented<T extends string>({ value, options, onChange, ariaLabel, disa
           onClick={() => onChange(id)}
           className={cn(
             'inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-            value === id ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+            // The dark theme's primary is a dark grey: fall back to the foreground there
+            value === id
+              ? 'bg-primary text-primary-foreground shadow-sm dark:bg-foreground dark:text-background'
+              : 'text-muted-foreground hover:bg-background/60 hover:text-foreground',
           )}
         >
           {Icon && <Icon className="h-3.5 w-3.5" />}
@@ -183,11 +212,13 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
   const [showValidation, setShowValidation] = React.useState(false);
   const [confirmDiscard, setConfirmDiscard] = React.useState<null | (() => void)>(null);
   const [consentOpen, setConsentOpen] = React.useState(false);
+  const [pendingConsent, setPendingConsent] = React.useState<PendingConsent | null>(null);
+  const [confirmDelete, setConfirmDelete] = React.useState(false);
   const presetRef = React.useRef<PointPreset>(DEFAULT_PRESET);
 
   const isEditing = draft !== null;
   const current = index >= 0 ? sessions[index] ?? null : null;
-  const isDirty = isEditing && (draftKey(draft) !== initialDraftKey || pendingPhotos.length > 0 || removedPhotoIds.length > 0);
+  const isDirty = isEditing && (draftKey(draft) !== initialDraftKey || pendingPhotos.length > 0 || removedPhotoIds.length > 0 || pendingConsent !== null);
 
   const load = React.useCallback(async (selectId?: string) => {
     setLoadError(null);
@@ -196,23 +227,62 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
       setSessions(list);
       const selected = selectId ? list.findIndex((s) => s.id === selectId) : -1;
       setIndex(selected >= 0 ? selected : list.length - 1);
+      return list;
     } catch (error) {
       setLoadError(getErrorMessage(error));
+      return null;
     } finally {
       setIsLoading(false);
     }
   }, [patientId]);
 
+  // Latest unsaved edit, stashed when the viewer unmounts or switches patient
+  const editRef = React.useRef<StashedEdit | null>(null);
+  const canRegisterRef = React.useRef(canRegister);
   React.useEffect(() => {
+    editRef.current = draft && isDirty ? { draft, initialDraftKey, pendingPhotos, removedPhotoIds, pendingConsent } : null;
+    canRegisterRef.current = canRegister;
+  });
+
+  React.useEffect(() => {
+    let active = true;
     setIsLoading(true);
     setDraft(null);
-    load();
+    setPendingPhotos([]);
+    setRemovedPhotoIds([]);
+    setPendingConsent(null);
+    load().then((list) => {
+      const stashed = stashedEdits.get(patientId);
+      if (!active || !list || !stashed || !canRegisterRef.current) return;
+      stashedEdits.delete(patientId);
+      const sessionIndex = stashed.draft.sessionId ? list.findIndex((s) => s.id === stashed.draft.sessionId) : -1;
+      // The session was deleted meanwhile: its edit has nothing to apply to
+      if (stashed.draft.sessionId && sessionIndex < 0) return;
+      setIndex(sessionIndex);
+      setDraft(stashed.draft);
+      setInitialDraftKey(stashed.initialDraftKey);
+      setPendingPhotos(stashed.pendingPhotos);
+      setRemovedPhotoIds(stashed.removedPhotoIds);
+      setPendingConsent(stashed.pendingConsent);
+      setTab('map');
+      toast({ title: t('toast.draftRestored') });
+    });
+    return () => {
+      active = false;
+      // The object URLs stay alive with the stashed edit; a clean edit has none to release
+      if (editRef.current) stashedEdits.set(patientId, editRef.current);
+      editRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once per patient (`load` changes with it)
   }, [load]);
 
-  // Object URLs of photo previews are released when they leave the draft
-  const pendingRef = React.useRef(pendingPhotos);
-  React.useEffect(() => { pendingRef.current = pendingPhotos; }, [pendingPhotos]);
-  React.useEffect(() => () => pendingRef.current.forEach((p) => URL.revokeObjectURL(p.previewUrl)), []);
+  // Closing or reloading the page loses the in-memory stash: ask first
+  React.useEffect(() => {
+    if (!isDirty) return;
+    const onBeforeUnload = (event: BeforeUnloadEvent) => { event.preventDefault(); };
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [isDirty]);
 
   // ── Derived ──
   const points = React.useMemo(() => draft?.points ?? current?.points ?? [], [draft, current]);
@@ -228,6 +298,11 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
   );
   const shownPhotos = (current && (!draft || draft.sessionId === current.id) ? current.photos : [])
     .filter((p) => !removedPhotoIds.includes(p.id));
+  const photoCount = shownPhotos.length + pendingPhotos.length;
+  /** Consent that applies to what is on screen: the one signed in this edit, else the stored one (none for a new session) */
+  const effectiveConsent: AestheticConsent | null = pendingConsent
+    ? { ...pendingConsent.input, signedAt: pendingConsent.signedAt, signatureFileId: '' }
+    : draft && !draft.sessionId ? null : current?.consent ?? null;
 
   // ── Editing ──
   function beginEditing(next: Draft) {
@@ -236,6 +311,7 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
     setInitialDraftKey(key);
     setPendingPhotos([]);
     setRemovedPhotoIds([]);
+    setPendingConsent(null);
     setSaveError(null);
     setShowValidation(false);
     setSelectedPointId(null);
@@ -274,9 +350,11 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
 
   function endEditing() {
     pendingPhotos.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+    if (pendingConsent) URL.revokeObjectURL(pendingConsent.previewUrl);
     setDraft(null);
     setPendingPhotos([]);
     setRemovedPhotoIds([]);
+    setPendingConsent(null);
     setSaveError(null);
     setShowValidation(false);
     setSelectedPointId(null);
@@ -351,6 +429,7 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
         pendingPhotos.map(({ file, kind, view: photoView }) => ({ file, kind, view: photoView })),
         removedPhotoIds,
         draft.sessionId,
+        pendingConsent ? { input: pendingConsent.input, signature: pendingConsent.signature, signedAt: pendingConsent.signedAt } : undefined,
       );
     },
     {
@@ -382,9 +461,49 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
       setSelectedPointId(incomplete.id);
       return;
     }
+    if (effectiveConsent?.allowsClinicalPhotos === false && photoCount > 0) {
+      setShowValidation(true);
+      setSaveError(t('session.photosNotAllowed'));
+      setTab('photos');
+      return;
+    }
     setSaveError(null);
     save.run();
   }
+
+  /** While editing, the consent waits for the session save; on a saved session it is stored right away */
+  async function submitConsent(input: AestheticConsentInput, signature: File) {
+    const signedAt = toLocalISOString(new Date());
+    if (isEditing) {
+      if (pendingConsent) URL.revokeObjectURL(pendingConsent.previewUrl);
+      setPendingConsent({ input, signature, signedAt, previewUrl: URL.createObjectURL(signature) });
+      toast({ title: t('consent.toastPending') });
+      return;
+    }
+    if (!current) return;
+    const updated = await signAestheticConsent(patientId, current.id, input, signature);
+    setSessions((list) => list.map((s) => (s.id === updated.id ? updated : s)));
+    toast({ title: t('consent.toastSigned') });
+  }
+
+  function removePendingConsent() {
+    if (pendingConsent) URL.revokeObjectURL(pendingConsent.previewUrl);
+    setPendingConsent(null);
+  }
+
+  const remove = useAsyncAction(
+    async () => {
+      if (current) await deleteAestheticSession(patientId, current.id);
+    },
+    {
+      onSuccess: async () => {
+        toast({ title: t('toast.deleted') });
+        setConfirmDelete(false);
+        await load();
+      },
+      errorTitle: t('deleteDialog.errorTitle'),
+    },
+  );
 
   function selectFromList(point: AestheticPoint) {
     setView(point.view);
@@ -397,9 +516,9 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
   }
 
   const defaultProcedure = React.useMemo(() => {
-    const names = [...new Set((current?.points ?? []).map((p) => p.productName.trim()).filter(Boolean))];
+    const names = [...new Set(points.map((p) => p.productName.trim()).filter(Boolean))];
     return names.join(', ');
-  }, [current]);
+  }, [points]);
 
   // ── Render ──
   if (isLoading) {
@@ -420,8 +539,6 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
     );
   }
 
-  const photoCount = shownPhotos.length + pendingPhotos.length;
-  const shownConsent = isEditing && !draft.sessionId ? null : current?.consent ?? null;
   const tabs: { id: Tab; label: string; icon: React.ElementType; badge?: React.ReactNode }[] = [
     { id: 'map', label: t('tabs.map'), icon: ScanFace, badge: points.length ? <TabCount count={points.length} /> : undefined },
     { id: 'photos', label: t('tabs.photos'), icon: Camera, badge: photoCount ? <TabCount count={photoCount} /> : undefined },
@@ -429,7 +546,7 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
       id: 'consent',
       label: t('tabs.consent'),
       icon: FileSignature,
-      badge: shownConsent
+      badge: effectiveConsent
         ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" aria-label={t('consent.signedBadge')} />
         : current || isEditing ? <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-label={t('consent.missingBadge')} /> : undefined,
     },
@@ -508,10 +625,22 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
         ) : canRegister && (
           <>
             {current && (
-              <Button size="sm" variant="outline" onClick={() => startEditing(current)}>
-                <Pencil className="mr-1.5 h-3.5 w-3.5" />
-                {t('editSession')}
-              </Button>
+              <>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8 text-destructive hover:text-destructive"
+                  onClick={() => setConfirmDelete(true)}
+                  aria-label={t('deleteSession')}
+                  title={t('deleteSession')}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => startEditing(current)}>
+                  <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                  {t('editSession')}
+                </Button>
+              </>
             )}
             <Button size="sm" onClick={startNewSession}>
               <Plus className="mr-1.5 h-3.5 w-3.5" />
@@ -584,7 +713,7 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
           stretch
         />
         <div className="flex flex-wrap items-center gap-2">
-          <Segmented value={view} options={viewOptions} onChange={setView} ariaLabel={t('map.viewsLabel')} />
+          <Segmented value={view} options={viewOptions} onChange={setView} ariaLabel={t('map.viewsLabel')} stretch className="min-w-0 flex-1" />
           {region === 'body' && (
             <Segmented
               value={figure}
@@ -695,6 +824,7 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
               photos={shownPhotos}
               pending={pendingPhotos}
               isEditing={isEditing}
+              consent={effectiveConsent}
               allPhotos={allPhotos}
               onAddFiles={addPhotos}
               onRemoveStored={(id) => setRemovedPhotoIds((prev) => [...prev, id])}
@@ -704,10 +834,13 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
 
           {tab === 'consent' && (
             <ConsentPanel
-              session={isEditing && !draft.sessionId ? null : current}
-              canSign={canRegister && !!current && !isEditing}
-              signDisabledReason={isEditing ? t('consent.saveFirst') : !canRegister ? t('consent.noPermission') : undefined}
+              consent={effectiveConsent}
+              pendingSignatureUrl={pendingConsent?.previewUrl}
+              isEditing={isEditing}
+              canSign={canRegister && (isEditing || !!current)}
+              signDisabledReason={!canRegister ? t('consent.noPermission') : undefined}
               onSign={() => setConsentOpen(true)}
+              onRemovePending={save.isPending ? undefined : removePendingConsent}
             />
           )}
 
@@ -715,17 +848,39 @@ export function AestheticRecordViewer({ patientId, patientName, doctorId, doctor
         </>
       )}
 
-      {current && (
+      {(isEditing || current) && (
         <ConsentDialog
           open={consentOpen}
           onOpenChange={setConsentOpen}
-          patientId={patientId}
           patientName={patientName}
-          session={current}
+          doctorName={draft ? draft.doctorName : current?.doctorName}
           defaultProcedure={defaultProcedure}
-          onSigned={(updated) => setSessions((list) => list.map((s) => (s.id === updated.id ? updated : s)))}
+          hasPhotos={photoCount > 0}
+          onSubmit={submitConsent}
         />
       )}
+
+      <AlertDialog open={confirmDelete} onOpenChange={(open) => { if (!remove.isPending) setConfirmDelete(open); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {current && t('deleteDialog.description', { title: current.title, date: formatDisplayDate(current.date) })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={remove.isPending}>{t('cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={remove.isPending}
+              onClick={(e) => { e.preventDefault(); remove.run(); }}
+            >
+              {remove.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {t('deleteDialog.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={confirmDiscard !== null} onOpenChange={(open) => { if (!open) setConfirmDiscard(null); }}>
         <AlertDialogContent>

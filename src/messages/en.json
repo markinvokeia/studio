@@ -10274,14 +10274,23 @@
       "compareRight": "Right photo",
       "compareSlider": "Comparison divider position",
       "optionLabel": "{date} · {kind} · {view}",
-      "optionLabelShort": "{kind} · {view}"
+      "optionLabelShort": "{kind} · {view}",
+      "forbiddenByConsent": "The patient did not allow clinical photos in the consent.",
+      "forbiddenRemove": "The consent does not allow clinical photos: remove the photos from this session.",
+      "noConsentWarning": "No signed consent yet: make sure the patient allows clinical photos.",
+      "marketingAllowed": "Allowed for marketing use",
+      "marketingNotAllowed": "Not allowed for marketing use",
+      "compareModeLabel": "Comparison mode",
+      "compareModes": {
+        "sideBySide": "Side by side",
+        "slider": "Slider"
+      }
     },
     "consent": {
       "badge": "Consent",
       "missingTitle": "No signed consent",
       "missingDescription": "The patient must sign the informed consent for this session's treatment.",
       "open": "Sign consent",
-      "saveFirst": "Save the session to collect the signature.",
       "noPermission": "You don't have permission to collect consents.",
       "dialogTitle": "Informed consent",
       "dialogDescription": "Review the text with the patient and collect their signature.",
@@ -10311,10 +10320,15 @@
         "signerRequired": "Enter who signs.",
         "procedureRequired": "Enter the procedure.",
         "risksRequired": "Confirm that the risks were explained.",
-        "signatureRequired": "The signature is missing."
+        "signatureRequired": "The signature is missing.",
+        "photosNeedConsent": "The session has photos: allow clinical photos or remove the photos."
       },
       "signedBadge": "Consent signed",
-      "missingBadge": "No consent"
+      "missingBadge": "No consent",
+      "pendingSave": "Not saved",
+      "pendingSaveHint": "You can sign it before treating; it is saved together with the session.",
+      "removePending": "Remove signature",
+      "toastPending": "Consent signed. It will be saved with the session."
     },
     "zoneHistory": {
       "title": "Accumulated history by zone",
@@ -10345,11 +10359,14 @@
       "notesPlaceholder": "Assessment, patient feedback, post-treatment instructions...",
       "dateRequired": "Enter the session date.",
       "incompletePoints": "{count, plural, one {# point is missing product or quantity.} other {# points are missing product or quantity.}}",
-      "fieldsTitle": "Session details"
+      "fieldsTitle": "Session details",
+      "photosNotAllowed": "The consent does not allow clinical photos: remove the photos to save."
     },
     "toast": {
       "created": "Aesthetic session created",
-      "updated": "Aesthetic session updated"
+      "updated": "Aesthetic session updated",
+      "deleted": "Aesthetic session deleted",
+      "draftRestored": "Your unsaved changes to the session were restored."
     },
     "discard": {
       "title": "Discard changes?",
@@ -10369,6 +10386,13 @@
     "save": "Save session",
     "cancel": "Cancel",
     "retry": "Retry",
-    "credits": "Body map: Open Muscle Map (MIT)."
+    "credits": "Body map: Open Muscle Map (MIT).",
+    "deleteSession": "Delete session",
+    "deleteDialog": {
+      "title": "Delete the session?",
+      "description": "\"{title}\" from {date} will be deleted along with its points, photos and consent. This cannot be undone.",
+      "confirm": "Delete",
+      "errorTitle": "Could not delete the session"
+    }
   }
 }

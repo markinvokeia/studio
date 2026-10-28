@@ -10274,14 +10274,23 @@
       "compareRight": "Foto derecha",
       "compareSlider": "Posición del divisor de la comparación",
       "optionLabel": "{date} · {kind} · {view}",
-      "optionLabelShort": "{kind} · {view}"
+      "optionLabelShort": "{kind} · {view}",
+      "forbiddenByConsent": "El paciente no autorizó fotos clínicas en el consentimiento.",
+      "forbiddenRemove": "El consentimiento no autoriza fotos clínicas: quitá las fotos de esta sesión.",
+      "noConsentWarning": "Todavía no hay consentimiento firmado: confirmá que el paciente autoriza las fotos clínicas.",
+      "marketingAllowed": "Autorizadas para difusión",
+      "marketingNotAllowed": "No autorizadas para difusión",
+      "compareModeLabel": "Modo de comparación",
+      "compareModes": {
+        "sideBySide": "Lado a lado",
+        "slider": "Deslizar"
+      }
     },
     "consent": {
       "badge": "Consentimiento",
       "missingTitle": "Sin consentimiento firmado",
       "missingDescription": "El paciente debe firmar el consentimiento informado del tratamiento de esta sesión.",
       "open": "Firmar consentimiento",
-      "saveFirst": "Guardá la sesión para tomar la firma.",
       "noPermission": "No tenés permiso para tomar consentimientos.",
       "dialogTitle": "Consentimiento informado",
       "dialogDescription": "Revisá el texto con el paciente y tomá su firma.",
@@ -10311,10 +10320,15 @@
         "signerRequired": "Indicá quién firma.",
         "procedureRequired": "Indicá el procedimiento.",
         "risksRequired": "Confirmá que se explicaron los riesgos.",
-        "signatureRequired": "Falta la firma."
+        "signatureRequired": "Falta la firma.",
+        "photosNeedConsent": "La sesión tiene fotos: autorizá las fotos clínicas o quitá las fotos."
       },
       "signedBadge": "Consentimiento firmado",
-      "missingBadge": "Sin consentimiento"
+      "missingBadge": "Sin consentimiento",
+      "pendingSave": "Sin guardar",
+      "pendingSaveHint": "Podés firmarlo antes de tratar; se guarda junto con la sesión.",
+      "removePending": "Quitar firma",
+      "toastPending": "Consentimiento firmado. Se guarda junto con la sesión."
     },
     "zoneHistory": {
       "title": "Historial acumulado por zona",
@@ -10345,11 +10359,14 @@
       "notesPlaceholder": "Evaluación, comentarios del paciente, indicaciones post tratamiento...",
       "dateRequired": "Indicá la fecha de la sesión.",
       "incompletePoints": "{count, plural, one {A # punto le falta producto o cantidad.} other {A # puntos les falta producto o cantidad.}}",
-      "fieldsTitle": "Datos de la sesión"
+      "fieldsTitle": "Datos de la sesión",
+      "photosNotAllowed": "El consentimiento no autoriza fotos clínicas: quitá las fotos para guardar."
     },
     "toast": {
       "created": "Sesión estética creada",
-      "updated": "Sesión estética actualizada"
+      "updated": "Sesión estética actualizada",
+      "deleted": "Sesión estética eliminada",
+      "draftRestored": "Recuperamos los cambios sin guardar de la sesión."
     },
     "discard": {
       "title": "¿Descartar los cambios?",
@@ -10369,6 +10386,13 @@
     "save": "Guardar sesión",
     "cancel": "Cancelar",
     "retry": "Reintentar",
-    "credits": "Mapa corporal: Open Muscle Map (MIT)."
+    "credits": "Mapa corporal: Open Muscle Map (MIT).",
+    "deleteSession": "Eliminar sesión",
+    "deleteDialog": {
+      "title": "¿Eliminar la sesión?",
+      "description": "Se va a eliminar «{title}» del {date}, con sus puntos, fotos y consentimiento. No se puede deshacer.",
+      "confirm": "Eliminar",
+      "errorTitle": "No se pudo eliminar la sesión"
+    }
   }
 }

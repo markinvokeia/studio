@@ -27,14 +27,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { SignaturePadDialog } from '@/components/users/signature-pad-dialog';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
-import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/error-utils';
 import { cn } from '@/lib/utils';
-import { signAestheticConsent } from '@/services/aesthetic-record';
+import type { AestheticConsentInput } from '@/services/aesthetic-record';
 
-import type { AestheticSession } from '@/lib/types';
+import type { AestheticConsent } from '@/lib/types';
 
-const consentSchema = (t: ReturnType<typeof useTranslations>) =>
+const consentSchema = (t: ReturnType<typeof useTranslations>, hasPhotos: boolean) =>
   z.object({
     signerName: z.string().trim().min(1, t('consent.validation.signerRequired')),
     procedure: z.string().trim().min(1, t('consent.validation.procedureRequired')),
@@ -42,6 +41,9 @@ const consentSchema = (t: ReturnType<typeof useTranslations>) =>
     allowsClinicalPhotos: z.boolean(),
     allowsMarketingPhotos: z.boolean(),
     signature: z.custom<File>((v) => typeof File !== 'undefined' && v instanceof File, t('consent.validation.signatureRequired')),
+  }).refine((v) => !hasPhotos || v.allowsClinicalPhotos, {
+    path: ['allowsClinicalPhotos'],
+    message: t('consent.validation.photosNeedConsent'),
   });
 
 type ConsentFormValues = z.infer<ReturnType<typeof consentSchema>>;
@@ -49,24 +51,25 @@ type ConsentFormValues = z.infer<ReturnType<typeof consentSchema>>;
 interface ConsentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  patientId: string;
   patientName?: string;
-  session: AestheticSession;
+  doctorName?: string;
   /** Prefill for the procedure (products of the session) */
   defaultProcedure: string;
-  onSigned: (session: AestheticSession) => void;
+  /** The session already has photos: clinical photos must be allowed */
+  hasPhotos: boolean;
+  /** Stores the signed consent; the dialog closes when it resolves */
+  onSubmit: (input: AestheticConsentInput, signature: File) => Promise<unknown> | void;
 }
 
-export function ConsentDialog({ open, onOpenChange, patientId, patientName, session, defaultProcedure, onSigned }: ConsentDialogProps) {
+export function ConsentDialog({ open, onOpenChange, patientName, doctorName, defaultProcedure, hasPhotos, onSubmit }: ConsentDialogProps) {
   const t = useTranslations('AestheticRecord');
-  const { toast } = useToast();
   const onInvalidSubmit = useInvalidSubmitToast();
   const [isPadOpen, setIsPadOpen] = React.useState(false);
   const [signaturePreview, setSignaturePreview] = React.useState<string | null>(null);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
   const form = useForm<ConsentFormValues>({
-    resolver: zodResolver(consentSchema(t)),
+    resolver: zodResolver(consentSchema(t, hasPhotos)),
     defaultValues: {
       signerName: patientName ?? '',
       procedure: defaultProcedure,
@@ -98,13 +101,11 @@ export function ConsentDialog({ open, onOpenChange, patientId, patientName, sess
   const consentText = t('consent.template', {
     patient: patientName || signerName || t('consent.patientFallback'),
     procedure: procedure || '—',
-    doctor: session.doctorName || t('consent.doctorFallback'),
+    doctor: doctorName || t('consent.doctorFallback'),
   });
 
   const sign = useAsyncAction(
-    (values: ConsentFormValues) => signAestheticConsent(
-      patientId,
-      session.id,
+    async (values: ConsentFormValues) => onSubmit(
       {
         signerName: values.signerName.trim(),
         procedure: values.procedure.trim(),
@@ -115,11 +116,7 @@ export function ConsentDialog({ open, onOpenChange, patientId, patientName, sess
       values.signature,
     ),
     {
-      onSuccess: (updated) => {
-        toast({ title: t('consent.toastSigned') });
-        onSigned(updated);
-        onOpenChange(false);
-      },
+      onSuccess: () => onOpenChange(false),
       onError: (error) => setSubmissionError(getErrorMessage(error)),
       showErrorToast: false,
     },
@@ -255,13 +252,11 @@ export function ConsentDialog({ open, onOpenChange, patientId, patientName, sess
 
 /** Opens the signed consent in a new window ready to print */
 export function printConsent(
-  session: AestheticSession,
+  consent: AestheticConsent,
   signatureUrl: string | null,
   labels: { title: string; signer: string; date: string; procedure: string; signature: string; clinicalPhotos: string; marketingPhotos: string; yes: string; no: string },
   signedAtLabel: string,
 ): void {
-  const consent = session.consent;
-  if (!consent) return;
   const win = window.open('', '_blank');
   if (!win) return;
   const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));

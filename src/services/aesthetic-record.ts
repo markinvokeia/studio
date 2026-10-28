@@ -117,19 +117,35 @@ export interface AestheticPhotoUpload {
   view: AestheticMapView;
 }
 
-/** Creates the session (no `sessionId`) or replaces its fields, adding/removing photos. */
+export type AestheticConsentInput = Omit<AestheticConsent, 'signatureFileId' | 'signedAt'>;
+
+/** Consent signed while the session was being edited, saved together with it */
+export interface AestheticConsentUpload {
+  input: AestheticConsentInput;
+  signature: File;
+  signedAt: string;
+}
+
+/** Creates the session (no `sessionId`) or replaces its fields, adding/removing photos and attaching a new consent. */
 export async function upsertAestheticSession(
   patientId: string,
   input: AestheticSessionInput,
   newPhotos: AestheticPhotoUpload[],
   removedPhotoIds: string[],
   sessionId?: string,
+  newConsent?: AestheticConsentUpload,
 ): Promise<AestheticSession> {
   const sessions = readSessions(patientId);
   const existing = sessionId ? sessions.find((s) => s.id === sessionId) : undefined;
   if (sessionId && !existing) throw new Error('Aesthetic session not found');
 
   const now = toLocalISOString(new Date());
+  let consent = existing?.consent ?? null;
+  if (newConsent) {
+    const signatureFileId = newId('signature');
+    await putFile(signatureFileId, newConsent.signature);
+    consent = { ...newConsent.input, signatureFileId, signedAt: newConsent.signedAt };
+  }
   const uploaded: AestheticPhoto[] = [];
   for (const upload of newPhotos) {
     const id = newId('photo');
@@ -150,7 +166,7 @@ export async function upsertAestheticSession(
     patientId,
     ...input,
     photos: [...keptPhotos, ...uploaded],
-    consent: existing?.consent ?? null,
+    consent,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
   };
@@ -158,14 +174,29 @@ export async function upsertAestheticSession(
   writeSessions(patientId, existing ? sessions.map((s) => (s.id === session.id ? session : s)) : [...sessions, session]);
 
   // Files are dropped only after the session no longer points at them
-  for (const id of removedPhotoIds) {
-    forgetFile(id);
-    await deleteFile(id).catch(() => undefined);
-  }
+  const replacedSignature = newConsent ? existing?.consent?.signatureFileId : undefined;
+  await dropFiles(replacedSignature ? [...removedPhotoIds, replacedSignature] : removedPhotoIds);
   return session;
 }
 
-export type AestheticConsentInput = Omit<AestheticConsent, 'signatureFileId' | 'signedAt'>;
+async function dropFiles(fileIds: string[]): Promise<void> {
+  for (const id of fileIds) {
+    forgetFile(id);
+    await deleteFile(id).catch(() => undefined);
+  }
+}
+
+/** Deletes the session with its photos and consent signature */
+export async function deleteAestheticSession(patientId: string, sessionId: string): Promise<void> {
+  const sessions = readSessions(patientId);
+  const existing = sessions.find((s) => s.id === sessionId);
+  if (!existing) throw new Error('Aesthetic session not found');
+
+  writeSessions(patientId, sessions.filter((s) => s.id !== sessionId));
+  const fileIds = existing.photos.map((p) => p.id);
+  if (existing.consent) fileIds.push(existing.consent.signatureFileId);
+  await dropFiles(fileIds);
+}
 
 export async function signAestheticConsent(
   patientId: string,
@@ -186,10 +217,7 @@ export async function signAestheticConsent(
   };
   writeSessions(patientId, sessions.map((s) => (s.id === sessionId ? session : s)));
 
-  if (existing.consent) {
-    forgetFile(existing.consent.signatureFileId);
-    await deleteFile(existing.consent.signatureFileId).catch(() => undefined);
-  }
+  if (existing.consent) await dropFiles([existing.consent.signatureFileId]);
   return session;
 }
 
