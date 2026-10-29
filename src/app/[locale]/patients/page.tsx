@@ -735,7 +735,7 @@ export default function UsersPage() {
 
   const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema(t, { identityDocumentRequired })),
+    resolver: zodResolver(userFormSchema(t, { identityDocumentRequired, originalName: editingUser?.name })),
     defaultValues: {
       name: '',
       email: '',

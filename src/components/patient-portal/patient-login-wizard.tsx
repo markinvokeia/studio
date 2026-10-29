@@ -22,6 +22,7 @@ import { PatientBookingPanel } from '@/components/patient-portal/patient-booking
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
+import { getPersonNameIssue, type PersonNameIssue } from '@/lib/person-name';
 import type { PatientSendCodeResponse } from '@/lib/types';
 import {
   identifyPatient,
@@ -48,6 +49,13 @@ interface GuestPatient {
 
 const RESEND_SECONDS = 60;
 
+const PORTAL_NAME_ISSUE_MESSAGES: Record<PersonNameIssue, string> = {
+  required: 'validation.nameRequired',
+  invalid: 'validation.nameInvalid',
+  tooShort: 'validation.nameTooShort',
+  tooLong: 'validation.nameTooLong',
+};
+
 /**
  * Registro mínimo: deliberadamente más corto que `userFormSchema`
  * (patient-form-utils.ts) para que el paciente nuevo no pierda tiempo. Sólo
@@ -55,7 +63,10 @@ const RESEND_SECONDS = 60;
  */
 const registerSchema = (t: (key: string) => string) =>
   z.object({
-    name: z.string().min(1, { message: t('validation.nameRequired') }),
+    name: z.string().superRefine((value, ctx) => {
+      const issue = getPersonNameIssue(value);
+      if (issue) ctx.addIssue({ code: z.ZodIssueCode.custom, message: t(PORTAL_NAME_ISSUE_MESSAGES[issue]) });
+    }),
     phone: z
       .string()
       .optional()

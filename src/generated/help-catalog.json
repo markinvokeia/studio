@@ -1,5 +1,5 @@
 {
- "version": "d80df33a65438b89",
+ "version": "6d19754df386e6bb",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -3502,6 +3502,12 @@
      "source": "src/components/calendar/calendar-settings-popover.tsx"
     },
     {
+     "id": "appointments.btn.slot-enable",
+     "kind": "btn",
+     "label": "Habilitar horario…",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
      "id": "appointments.btn.slot-new-appointment",
      "kind": "btn",
      "label": "Cita en este horario",
@@ -3700,6 +3706,12 @@
      "source": "src/components/tables/invoices-table.tsx"
     },
     {
+     "id": "appointments.field.end_time",
+     "kind": "field",
+     "label": "Hasta",
+     "source": "src/components/appointments/enable-slot-dialog.tsx"
+    },
+    {
      "description": "Define cómo se compone el texto que se ve en cada cita (hora, paciente, tratamiento, notas).",
      "id": "appointments.field.event-label-format",
      "kind": "field",
@@ -3868,6 +3880,12 @@
      "kind": "field",
      "label": "Duración del slot",
      "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "id": "appointments.field.start_time",
+     "kind": "field",
+     "label": "Desde",
+     "source": "src/components/appointments/enable-slot-dialog.tsx"
     },
     {
      "id": "appointments.field.time",

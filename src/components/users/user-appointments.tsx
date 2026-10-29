@@ -18,7 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Appointment, AppointmentStatus, CancellationReason, Invoice, Order, PatientSession, QuoteItem, User, Service, Calendar as CalendarType } from '@/lib/types';
 import { api } from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
-import { updateAppointmentStatusRequest } from '@/services/appointments';
+import { updateAppointmentStatusWithDocumentCheck } from '@/services/appointments';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { FileText } from 'lucide-react';
 import { addMonths, format, parseISO } from 'date-fns';
@@ -492,8 +492,11 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
         toast({ title: tAppointmentsPage('toasts.sessionUpdated') });
       } else {
         await createSession(clinicSessionAppointment.patientId, sessionData, data.archivos_adjuntos);
-        if (clinicSessionAppointment.status !== 'completed') {
-          await updateAppointmentStatusRequest({ appointment: clinicSessionAppointment, newStatus: 'completed' });
+        // Si el paciente no tiene el documento que exige ese estado, la sesión queda guardada y la cita no cambia.
+        if (
+          clinicSessionAppointment.status !== 'completed' &&
+          (await updateAppointmentStatusWithDocumentCheck({ appointment: clinicSessionAppointment, newStatus: 'completed' }))
+        ) {
           const patch = { status: 'completed' as AppointmentStatus };
           setAppointments((prev) => prev.map((a) => a.id === clinicSessionAppointment.id ? { ...a, ...patch } : a));
           setSelectedAppointment((prev) => prev && prev.id === clinicSessionAppointment.id ? { ...prev, ...patch } : prev);

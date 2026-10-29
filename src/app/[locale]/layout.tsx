@@ -14,6 +14,7 @@ import { NotificationsProvider } from '@/context/notifications-context';
 import { EventStreamProvider } from '@/context/event-stream-context';
 import { ClinicPreferencesInitializer } from '@/components/clinic/ClinicPreferencesInitializer';
 import { LicenseInitializer } from '@/components/license/LicenseInitializer';
+import { MissingIdentityDocumentDialog } from '@/components/appointments/MissingIdentityDocumentDialog';
 import type { RuntimeConfig } from '@/lib/runtime-config';
 
 
@@ -74,6 +75,7 @@ export default async function LocaleLayout({
                 <PrivateRoute>
                   <LicenseInitializer />
                   <ClinicPreferencesInitializer />
+                  <MissingIdentityDocumentDialog />
                   {children}
                 </PrivateRoute>
               </NotificationsProvider>

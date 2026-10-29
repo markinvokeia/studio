@@ -85,15 +85,17 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
     pxHeight >= EVENT_DENSITY_NORMAL_PX ? 'normal' : pxHeight >= EVENT_DENSITY_COMPACT_PX ? 'compact' : 'tiny';
   const stackLevel = event.stackLevel ?? 0;
   const isDraggable = draggable && !event.locked && !!onDragPointerDown;
-  // El tirador de abajo se ofrece desde EVENT_RESIZE_MIN_PX y no desde el tramo
-  // `compact`: una cita de 10 min mide 13 px con la altura de hora por defecto, así
-  // que atarlo a la densidad la dejaba sin forma de alargarse salvo con la hora en
-  // 108 px o más. Por debajo del piso no queda card de la que agarrar para mover, y
-  // ahí la duración se sigue cambiando por doble clic (edición inline).
+  // Los tiradores se ofrecen desde EVENT_RESIZE_MIN_PX y no desde el tramo `compact`:
+  // una cita de 10 min mide 13 px con la altura de hora por defecto. Por debajo del
+  // piso los dos tiradores se pisarían entre sí, y ahí la duración se sigue cambiando
+  // por doble clic (edición inline).
+  //
+  // En las cards cortas (`compact`/`tiny`) el CSS decide según el puntero: con
+  // hover, los tiradores solo existen en la card bajo el mouse y la card entera
+  // queda para mover; en táctil no hay tiradores y la card entera mueve, porque un
+  // dedo no distingue tres zonas en tan poco alto (ver Calendar.css).
   const showResizeGrips = isDraggable && pxHeight >= EVENT_RESIZE_MIN_PX;
-  // El de arriba solo cuando sobra alto: dos tiradores en una card de 13 px no
-  // dejarían dónde empezar un arrastre.
-  const showTopGrip = isDraggable && density === 'normal';
+  const gripsOnActive = showResizeGrips && density !== 'normal';
   const rawStatus = event.data?.status as string | undefined;
   const isReminder = event.data?.kind === 'reminder';
   const isNote = isReminder && event.data?.type === 'note';
@@ -121,6 +123,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
           data-event-id={event.id}
           data-help-id="appointments.section.event"
           data-draggable={isDraggable ? 'true' : undefined}
+          data-grips={gripsOnActive ? 'on-active' : undefined}
           data-density={density}
           data-stack-level={stackLevel}
           data-stacked={stackLevel > 0 ? 'true' : undefined}
@@ -190,7 +193,7 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
             onEventDoubleClick(event.data);
           }}
         >
-          {showTopGrip && (
+          {showResizeGrips && (
             <div
               data-testid="calendar-resize-grip-top"
               className="event-resize-grip event-resize-grip--top"

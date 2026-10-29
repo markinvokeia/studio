@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { addMinutes, format, isValid, parseISO, set } from 'date-fns';
 import {
+  Ban,
   BookOpenText,
   Building2,
   Calendar as CalendarIcon,
@@ -234,6 +235,17 @@ export function AppointmentMobileSheet({
     case 'color':
       content = (
         <div className="grid grid-cols-6 gap-3 p-3">
+          {/* "Sin fondo": le saca el color propio y la cita vuelve a heredar. */}
+          <button
+            type="button"
+            disabled={isRowActionPending}
+            aria-label={t('inlineCreate.noBackground')}
+            title={t('inlineCreate.noBackground')}
+            className="grid aspect-square w-full place-items-center rounded-full border border-border bg-background text-muted-foreground disabled:opacity-50"
+            onClick={() => { onColorChange(current, ''); backToMain(); }}
+          >
+            <Ban className="h-4 w-4" />
+          </button>
           {GOOGLE_CALENDAR_COLORS.map((color) => (
             <button
               key={color.id}

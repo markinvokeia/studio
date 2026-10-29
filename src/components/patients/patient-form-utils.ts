@@ -5,15 +5,44 @@ import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
 import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import { IDENTITY_DOCUMENT_TYPES, isValidIdentityDocument } from '@/lib/identity-document';
+import { getPersonNameIssue, normalizePersonName, type PersonNameIssue } from '@/lib/person-name';
 import type { DuplicateContactOwners, MutualSociety, UniqueConflict, User } from '@/lib/types';
 
 // ── Patient form schema ──────────────────────────────────────────────────────
-export const userFormSchema = (t: (key: string) => string, options?: { identityDocumentRequired?: boolean }) => {
+/** Clave de traducción por motivo de `getPersonNameIssue`. La comparte el alta rápida. */
+export const PERSON_NAME_ISSUE_MESSAGES: Record<PersonNameIssue, string> = {
+  required: 'UsersPage.createDialog.validation.nameRequired',
+  invalid: 'UsersPage.createDialog.validation.nameInvalid',
+  tooShort: 'UsersPage.createDialog.validation.nameTooShort',
+  tooLong: 'UsersPage.createDialog.validation.nameTooLong',
+};
+
+export const userFormSchema = (
+  t: (key: string) => string,
+  options?: {
+    identityDocumentRequired?: boolean;
+    /**
+     * Nombre guardado de la ficha que se edita. Si no se toca, no se valida su
+     * formato: hay fichas viejas con el documento en el nombre ("Ana (1234)") y
+     * no deben bloquear, por ejemplo, un cambio de teléfono.
+     */
+    originalName?: string | null;
+  },
+) => {
   const identityDocumentRequired = options?.identityDocumentRequired ?? false;
+  const originalName = options?.originalName ? normalizePersonName(options.originalName) : null;
 
   return z.object({
     id: z.string().optional(),
-    name: z.string().min(1, { message: t('UsersPage.createDialog.validation.nameRequired') }),
+    name: z.string().superRefine((value, ctx) => {
+      if (originalName && normalizePersonName(value) === originalName) return;
+      const issue = getPersonNameIssue(value);
+      if (!issue) return;
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: t(PERSON_NAME_ISSUE_MESSAGES[issue]),
+      });
+    }),
     email: z.string().optional().refine((val) => {
       if (!val || val.trim() === '') return true;
       return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
@@ -87,6 +116,7 @@ export type DependantContactInfo = {
 export async function upsertUser(userData: UserFormValues, options?: { confirmDuplicates?: boolean }) {
   const payload = {
     ...userData,
+    name: normalizePersonName(userData.name),
     mutual_society_id: userData.mutual_society_id && userData.mutual_society_id !== 'none'
       ? userData.mutual_society_id
       : null,
@@ -161,6 +191,10 @@ export function resolveUserUpsertError(
     : typeof backendError?.description === 'string' ? backendError.description
     : undefined;
 
+  // El backend repite la regla de `person-name.ts` por si el formulario se saltea.
+  if (backendError?.code === 'invalid_name') {
+    return t('UsersPage.createDialog.validation.nameInvalid');
+  }
   // El texto crudo de Postgres no le dice nada al usuario: lo que importa es que
   // falta elegir el tutor.
   if (rawMessage?.includes('dependent_has_responsible')) {

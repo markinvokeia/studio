@@ -1,5 +1,5 @@
 {
- "version": "0b6a8d78161101a7",
+ "version": "e76771109bc8afa6",
  "locale": "en",
  "journey": [
   {
@@ -3416,6 +3416,12 @@
      "source": "src/components/calendar/calendar-settings-popover.tsx"
     },
     {
+     "id": "appointments.btn.slot-enable",
+     "kind": "btn",
+     "label": "Enable hours…",
+     "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
      "id": "appointments.btn.slot-new-appointment",
      "kind": "btn",
      "label": "Appointment at this time",
@@ -3614,6 +3620,12 @@
      "source": "src/components/tables/invoices-table.tsx"
     },
     {
+     "id": "appointments.field.end_time",
+     "kind": "field",
+     "label": "To",
+     "source": "src/components/appointments/enable-slot-dialog.tsx"
+    },
+    {
      "description": "Sets how the text shown on each appointment is built (time, patient, treatment, notes).",
      "id": "appointments.field.event-label-format",
      "kind": "field",
@@ -3782,6 +3794,12 @@
      "kind": "field",
      "label": "Slot duration",
      "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "id": "appointments.field.start_time",
+     "kind": "field",
+     "label": "From",
+     "source": "src/components/appointments/enable-slot-dialog.tsx"
     },
     {
      "id": "appointments.field.time",

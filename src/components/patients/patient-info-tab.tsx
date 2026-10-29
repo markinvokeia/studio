@@ -301,7 +301,7 @@ export function PatientInfoTab({
   const identityDocumentRequired = useClinicPreferencesStore((s) => s.preferences.identity_document_required);
   const onInvalidSubmit = useInvalidSubmitToast();
   const infoForm = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema(t, { identityDocumentRequired })),
+    resolver: zodResolver(userFormSchema(t, { identityDocumentRequired, originalName: user?.name })),
     defaultValues: {
       id: '', name: initialName || '', email: '', phone: '', identity_document: '', identity_document_type: 'cedula_uy', birth_date: '', address: '',
       notes: '', is_active: true, mutual_society_id: '', is_dependent: false, responsible_contact_id: null,

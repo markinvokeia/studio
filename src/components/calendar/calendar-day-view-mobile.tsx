@@ -177,10 +177,9 @@ export function CalendarDayViewMobile({
     const target = resolveTimeGridTarget(pointer.x, pointer.y, timeGridScrollRef.current);
     if (!target) return null;
 
-    const durationMin = Math.max(
-      slotForSnap,
-      (gesture.originalEnd.getTime() - gesture.originalStart.getTime()) / 60000,
-    );
+    // Mover conserva la duración tal cual: el mínimo de un slot es solo para el
+    // resize, si no una cita de 10 min pasaría a 15 al arrastrarla.
+    const durationMin = (gesture.originalEnd.getTime() - gesture.originalStart.getTime()) / 60000;
     const isResize = gesture.mode !== 'move';
     const day = isResize ? gesture.sourceTarget.day : target.day;
     const rect = isResize ? gesture.sourceTarget.element.getBoundingClientRect() : target.rect;

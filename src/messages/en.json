@@ -1311,7 +1311,51 @@
       "title": "Treatment Plan",
       "stepRef": "Plan step #{id}"
     },
-    "importedFromGoogle": "Imported from Google Calendar"
+    "importedFromGoogle": "Imported from Google Calendar",
+    "enableSlot": {
+      "menuItem": "Enable hours…",
+      "title": "Enable hours",
+      "description": "{date} · {scope}",
+      "thisBranch": "This branch",
+      "allBranches": "All branches",
+      "startTime": "From",
+      "endTime": "To",
+      "notes": "Reason (optional)",
+      "notesPlaceholder": "E.g. extended hours for a surgery",
+      "defaultNote": "Enabled from the calendar",
+      "resultingHours": "Open hours that day: {hours}",
+      "alreadyOpen": "Those hours are already open. Pick a time outside the schedule.",
+      "hint": "Only this day changes. It's saved as an exception schedule, which you can review or remove in Settings → Exception schedules.",
+      "cancel": "Cancel",
+      "confirm": "Enable",
+      "successTitle": "Hours enabled",
+      "successDescription": "Open hours that day: {hours}",
+      "partialError": "Only {saved} of {total} changes were applied. Check the day in Exception schedules.",
+      "validation": {
+        "time": "Enter a valid time",
+        "endAfterStart": "The end must be after the start"
+      },
+      "unnamedClosure": "Closure without a note",
+      "closedAllDay": "closed all day",
+      "nothingEditable": "Those hours stay closed by closures that can't be changed from here.",
+      "missingPermission": "You don't have permission to make every change on Exception schedules this needs.",
+      "changes": {
+        "title": "What will change",
+        "liftClosure": "The closure “{name}” is removed.",
+        "trimClosure": "The closure “{name}” now covers only {hours}.",
+        "removeDate": "This day is removed from the closure “{name}” (it stays on {count, plural, one {# other date} other {# other dates}}).",
+        "removeDatePartial": "This day is removed from the closure “{name}” (it stays on {count, plural, one {# other date} other {# other dates}}); {hours} stays closed today.",
+        "extendHours": "The day's hours are extended.",
+        "closedOutsideHours": "The closure “{name}” now only covers time outside the day's hours.",
+        "removeDateOutsideHours": "This day is removed from the closure “{name}” (it stays on {count, plural, one {# other date} other {# other dates}}); today it only stays closed outside the day's hours."
+      },
+      "locked": {
+        "title": "These closures can't be changed from the calendar:",
+        "recurring": "“{name}” repeats on other dates.",
+        "otherScope": "“{name}” applies to another branch scope (e.g. all branches).",
+        "link": "Open Exception schedules"
+      }
+    }
   },
   "PrintScheduleDialog": {
     "title": "Export schedule to Excel",
@@ -1374,6 +1418,13 @@
     "errorDesc": "An error occurred while updating the appointment status.",
     "cancelSubmenu": "Cancel…",
     "otherReason": "Other reason…"
+  },
+  "MissingIdentityDocumentDialog": {
+    "title": "Identity document required",
+    "description": "The appointment can't be marked as \"{status}\" because {patient} has no identity document on file. Add it to the patient's record and try again.",
+    "descriptionNoName": "The appointment can't be marked as \"{status}\" because the patient has no identity document on file. Add it to the patient's record and try again.",
+    "close": "Got it",
+    "dismiss": "Close"
   },
   "CancellationReason": {
     "late": "Cancelled late",
@@ -2017,7 +2068,10 @@
           "email": "Email",
           "phone": "Phone",
           "identity_document": "Identity Document"
-        }
+        },
+        "nameInvalid": "Use only letters, spaces, hyphens, apostrophes and periods (no numbers or symbols).",
+        "nameTooShort": "The name must have at least 2 letters.",
+        "nameTooLong": "The name can't be longer than 120 characters."
       },
       "birth_date": "Birth Date",
       "birth_date_placeholder": "01/01/1999",
@@ -9241,7 +9295,10 @@
       "emailRequired": "Email is required",
       "emailInvalid": "Email is not valid",
       "documentDigits": "ID number can only contain digits",
-      "documentMax": "ID number cannot exceed 10 digits"
+      "documentMax": "ID number cannot exceed 10 digits",
+      "nameInvalid": "Use only letters, spaces, hyphens, apostrophes and periods (no numbers or symbols).",
+      "nameTooShort": "The name must have at least 2 letters.",
+      "nameTooLong": "The name can't be longer than 120 characters."
     },
     "errors": {
       "title": "Error",
@@ -9516,6 +9573,11 @@
       "required": {
         "label": "Require identity document",
         "help": "When on, the patient form won't save without an identity document. Off by default, the document can be left empty."
+      },
+      "warnOnStatus": {
+        "label": "Require it to change an appointment's status",
+        "help": "When on, an appointment can't move to the selected statuses if the patient has no identity document: the change is blocked until the document is added to the patient's record. Cancelling is never blocked. Independent of the setting above.",
+        "statusesLabel": "Require the document for the appointment to move to:"
       }
     },
     "duplicateContact": {

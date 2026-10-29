@@ -1311,7 +1311,51 @@
       "title": "Plan de Tratamiento",
       "stepRef": "Paso del plan #{id}"
     },
-    "importedFromGoogle": "Importado de Google Calendar"
+    "importedFromGoogle": "Importado de Google Calendar",
+    "enableSlot": {
+      "menuItem": "Habilitar horario…",
+      "title": "Habilitar horario",
+      "description": "{date} · {scope}",
+      "thisBranch": "Esta sede",
+      "allBranches": "Todas las sedes",
+      "startTime": "Desde",
+      "endTime": "Hasta",
+      "notes": "Motivo (opcional)",
+      "notesPlaceholder": "Ej.: horario extendido por cirugía",
+      "defaultNote": "Habilitado desde el calendario",
+      "resultingHours": "Horario de atención ese día: {hours}",
+      "alreadyOpen": "Ese horario ya está habilitado. Elegí un rango fuera del horario.",
+      "hint": "Solo cambia este día. Se guarda como horario de excepción, que podés revisar o quitar en Configuración → Horarios de excepción.",
+      "cancel": "Cancelar",
+      "confirm": "Habilitar",
+      "successTitle": "Horario habilitado",
+      "successDescription": "Horario de atención ese día: {hours}",
+      "partialError": "Solo se aplicaron {saved} de {total} cambios. Revisá el día en Horarios de excepción.",
+      "validation": {
+        "time": "Ingresá una hora válida",
+        "endAfterStart": "El fin tiene que ser posterior al inicio"
+      },
+      "unnamedClosure": "Cierre sin nota",
+      "closedAllDay": "cerrado todo el día",
+      "nothingEditable": "Ese horario sigue cerrado por cierres que no se pueden cambiar desde acá.",
+      "missingPermission": "No tenés permiso para hacer todos los cambios en Horarios de excepción que hacen falta.",
+      "changes": {
+        "title": "Qué va a cambiar",
+        "liftClosure": "Se quita el cierre «{name}».",
+        "trimClosure": "El cierre «{name}» queda solo en {hours}.",
+        "removeDate": "Se quita este día del cierre «{name}» (sigue en {count, plural, one {# fecha más} other {# fechas más}}).",
+        "removeDatePartial": "Se quita este día del cierre «{name}» (sigue en {count, plural, one {# fecha más} other {# fechas más}}); hoy queda cerrado {hours}.",
+        "extendHours": "Se amplía el horario de atención del día.",
+        "closedOutsideHours": "El cierre «{name}» queda solo fuera del horario de atención.",
+        "removeDateOutsideHours": "Se quita este día del cierre «{name}» (sigue en {count, plural, one {# fecha más} other {# fechas más}}); hoy queda cerrado solo fuera del horario de atención."
+      },
+      "locked": {
+        "title": "Estos cierres no se pueden cambiar desde el calendario:",
+        "recurring": "«{name}» se repite en otras fechas.",
+        "otherScope": "«{name}» aplica a otro alcance de sedes (por ejemplo, todas las sedes).",
+        "link": "Abrir Horarios de excepción"
+      }
+    }
   },
   "PrintScheduleDialog": {
     "title": "Exportar agenda a Excel",
@@ -1374,6 +1418,13 @@
     "errorDesc": "Ocurrió un error al actualizar el estado de la cita.",
     "cancelSubmenu": "Cancelar…",
     "otherReason": "Otro motivo…"
+  },
+  "MissingIdentityDocumentDialog": {
+    "title": "Falta el documento de identidad",
+    "description": "No se puede marcar la cita como \"{status}\" porque {patient} no tiene documento de identidad cargado. Cargalo en su ficha y volvé a intentarlo.",
+    "descriptionNoName": "No se puede marcar la cita como \"{status}\" porque el paciente no tiene documento de identidad cargado. Cargalo en su ficha y volvé a intentarlo.",
+    "close": "Entendido",
+    "dismiss": "Cerrar"
   },
   "CancellationReason": {
     "late": "Cancelada tarde",
@@ -2017,7 +2068,10 @@
           "email": "Correo Electrónico",
           "phone": "Teléfono",
           "identity_document": "Documento de Identidad"
-        }
+        },
+        "nameInvalid": "Usá solo letras, espacios, guiones, apóstrofos y puntos (sin números ni símbolos).",
+        "nameTooShort": "El nombre debe tener al menos 2 letras.",
+        "nameTooLong": "El nombre no puede superar los 120 caracteres."
       },
       "birth_date": "Fecha de nacimiento",
       "birth_date_placeholder": "01/01/1999",
@@ -9241,7 +9295,10 @@
       "emailRequired": "El correo es obligatorio",
       "emailInvalid": "El correo no es válido",
       "documentDigits": "La cédula sólo puede tener números",
-      "documentMax": "La cédula no puede superar los 10 dígitos"
+      "documentMax": "La cédula no puede superar los 10 dígitos",
+      "nameInvalid": "Usá solo letras, espacios, guiones, apóstrofos y puntos (sin números ni símbolos).",
+      "nameTooShort": "El nombre debe tener al menos 2 letras.",
+      "nameTooLong": "El nombre no puede superar los 120 caracteres."
     },
     "errors": {
       "title": "Error",
@@ -9516,6 +9573,11 @@
       "required": {
         "label": "Exigir documento de identidad",
         "help": "Con esto encendido, el formulario de pacientes no deja guardar sin un documento de identidad. Apagado (por defecto), el documento puede quedar vacío."
+      },
+      "warnOnStatus": {
+        "label": "Exigirlo para cambiar el estado de una cita",
+        "help": "Con esto encendido, una cita no puede pasar a los estados elegidos si el paciente no tiene documento de identidad: el cambio se bloquea hasta que se cargue el documento en su ficha. Cancelar nunca se bloquea. Es independiente de la opción anterior.",
+        "statusesLabel": "Exigir el documento para que la cita pase a:"
       }
     },
     "duplicateContact": {

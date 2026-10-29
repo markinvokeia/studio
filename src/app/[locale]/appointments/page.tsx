@@ -13,7 +13,7 @@ import { CalendarSearchPanel, CalendarSearchResultsChip, type CalendarSearchResu
 import { CalendarAgendasPanel } from '@/components/calendar/calendar-agendas-panel';
 import { CalendarViewMenu } from '@/components/calendar/calendar-view-menu';
 import { CalendarZoomMenu } from '@/components/calendar/calendar-zoom-menu';
-import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, filterExceptionsForSede, gapKey, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
+import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, filterExceptionsForSede, gapKey, suggestEnableWindow, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
 import { filterEventsByDayAndGroup } from '@/components/calendar/calendar-utils';
 import { DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, DURATION_PRESET_MINUTES, HOUR_SLOT_HEIGHT, MINUTES_IN_DAY } from '@/components/calendar/calendar-constants';
 import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
@@ -73,14 +73,14 @@ import { cn, toLocalISOString } from '@/lib/utils';
 import api, { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
 import { getErrorMessage } from '@/lib/error-utils';
 import { getQuoteItems } from '@/services/quotes';
-import { updateAppointmentStatusRequest, fetchFuturePatientAppointments, searchAppointments, type FuturePatientAppointment } from '@/services/appointments';
+import { updateAppointmentStatusWithDocumentCheck, fetchFuturePatientAppointments, searchAppointments, type FuturePatientAppointment } from '@/services/appointments';
 import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
 import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useSlotAvailability } from '@/hooks/use-slot-availability';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
-import { AlertTriangle, BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarDays, Clock, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Search, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
+import { AlertTriangle, Ban, BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarClock, CalendarDays, Clock, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Search, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -95,6 +95,7 @@ import { ReminderMobileSheet } from '@/components/calendar/reminder-mobile-sheet
 import { ReminderScopeDialog } from '@/components/appointments/ReminderScopeDialog';
 import { PatientCreateDialog } from '@/components/patients/patient-create-dialog';
 import { BulkReassignDoctorDialog } from '@/components/appointments/BulkReassignDoctorDialog';
+import { EnableSlotDialog, type EnableSlotTarget } from '@/components/appointments/enable-slot-dialog';
 import { PrintScheduleDialog } from '@/components/appointments/PrintScheduleDialog';
 import { reassignAppointmentField, type AppointmentReassignChange } from '@/lib/appointment-reassign';
 import { ContextEntityPicker } from '@/components/appointments/ContextEntityPicker';
@@ -857,6 +858,7 @@ export default function AppointmentsPage() {
     const tCommon = useTranslations('Common');
     const tOrderStatus = useTranslations('OrderStatus');
     const tReminders = useTranslations('Reminders');
+    const tEnableSlot = useTranslations('AppointmentsPage.enableSlot');
     const tPanel = useTranslations('AppointmentPanel');
     const tInline = useTranslations('AppointmentsPage.inlineCreate');
     const tGaps = useTranslations('Calendar.gaps');
@@ -2087,33 +2089,6 @@ export default function AppointmentsPage() {
         setIsReminderFormOpen(true);
     }, []);
 
-    const renderSlotContextMenu = React.useCallback((slot: CalendarSlotContextMenuContext) => (
-        <>
-            <ContextMenuItem
-                disabled={slot.isBlocked}
-                className="flex cursor-pointer items-center gap-2"
-                data-help-id="appointments.btn.slot-new-appointment" onSelect={() => handleCreateAppointmentFromSlot(slot)}
-            >
-                <CalendarPlus className="h-4 w-4" />
-                {tReminders('createType.appointment')}
-            </ContextMenuItem>
-            <ContextMenuItem
-                className="flex cursor-pointer items-center gap-2"
-                data-help-id="appointments.btn.slot-new-reminder" onSelect={() => handleCreateReminderFromSlot(slot)}
-            >
-                <BellRing className="h-4 w-4" />
-                {tReminders('createType.reminder')}
-            </ContextMenuItem>
-            <ContextMenuItem
-                className="flex cursor-pointer items-center gap-2"
-                data-help-id="appointments.btn.slot-new-note" onSelect={() => handleCreateNoteFromSlot(slot)}
-            >
-                <FileText className="h-4 w-4" />
-                {tReminders('createType.note')}
-            </ContextMenuItem>
-        </>
-    ), [handleCreateAppointmentFromSlot, handleCreateNoteFromSlot, handleCreateReminderFromSlot, tReminders]);
-
 
     // Keep grouping in sync with the saved calendar settings whenever the
     // Show/Hide calendar or doctor selection changes. Previously, hiding all
@@ -3184,11 +3159,14 @@ export default function AppointmentsPage() {
                 toast({ title: t('toasts.sessionUpdated') });
             } else {
                 await createSession(clinicSessionAppointment.patientId, sessionData, data.archivos_adjuntos);
-                if (clinicSessionAppointment.status !== 'completed') {
-                    await updateAppointmentStatusRequest({
+                // Si el paciente no tiene el documento que exige ese estado, la sesión queda guardada y la cita no cambia.
+                if (
+                    clinicSessionAppointment.status !== 'completed' &&
+                    (await updateAppointmentStatusWithDocumentCheck({
                         appointment: clinicSessionAppointment,
                         newStatus: 'completed',
-                    });
+                    }))
+                ) {
                     setAppointments((prev) =>
                         prev.map((appointment) =>
                             appointment.id === clinicSessionAppointment.id
@@ -3790,9 +3768,28 @@ export default function AppointmentsPage() {
 
         const appointment = eventData as Appointment;
 
-        // Optimistically update UI. El origen pasa a 'appointment': el usuario acaba de
-        // elegirle una etiqueta de color a esta cita, así que deja de heredar.
-        const colorPatch = { color: colorHex, colorId, colorSource: 'appointment' as const };
+        // Optimistically update UI. Con una etiqueta el origen pasa a 'appointment': el
+        // usuario acaba de elegirle color a esta cita, así que deja de heredar. "Sin
+        // fondo" (colorId vacío) le saca el color propio y la cita vuelve a la cadena
+        // servicio > doctor > calendario, que se resuelve acá igual que en el mapper
+        // para no pintarla sin color hasta que llegue el refresco.
+        const colorPatch = colorId
+            ? { color: colorHex, colorId, colorSource: 'appointment' as const }
+            : (() => {
+                const service = services.find((s) =>
+                    s.name === appointment.summary ||
+                    (appointment.services ?? []).some((as) => String(as.id) === String(s.id)),
+                );
+                const doctor = doctors.find((d) => String(d.id) === String(appointment.doctorId));
+                const calendar = calendars.find((c) => String(c.id) === String(appointment.calendar_source_id));
+                const { color, colorSource } = resolveAppointmentColor({
+                    serviceColor: service?.color,
+                    doctorColor: doctor?.color,
+                    calendarColor: getGoogleCalendarColorHex(calendar?.color),
+                    sources: colorSourcesFor(String(appointment.calendar_source_id ?? '')),
+                });
+                return { color, colorId: '', colorSource };
+            })();
         setAppointments(prev => prev.map(a => a.id === appointment.id ? { ...a, ...colorPatch } : a));
         setSelectedAppointment(prev => (prev && prev.id === appointment.id ? { ...prev, ...colorPatch } : prev));
 
@@ -4056,13 +4053,16 @@ export default function AppointmentsPage() {
     }, [sedes]);
 
     // Clinic exceptions (holidays / one-off openings) for out-of-office blocking.
-    React.useEffect(() => {
+    // A failed reload keeps the previous list: clearing it would lift every closure.
+    const loadClinicExceptions = React.useCallback(() =>
         api.get(API_ROUTES.EXCEPTIONS)
             // Recurrence and its day lists come along: without them calendar-gaps.ts
             // couldn't match weekly/biweekly/monthly or multi-date exceptions.
             .then((data) => setClinicExceptions(parseClinicExceptions(data)))
-            .catch(() => setClinicExceptions([]));
-    }, []);
+            .catch(() => undefined), []);
+    React.useEffect(() => {
+        void loadClinicExceptions();
+    }, [loadClinicExceptions]);
 
     // Schedules scoped to the selected sede (matching sede + rows with no sede).
     const effectiveSchedules = React.useMemo(() => {
@@ -4115,6 +4115,100 @@ export default function AppointmentsPage() {
         if (!sedeId) return effectiveSchedules;
         return clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === String(sedeId));
     }, [clinicSchedules, effectiveSchedules]);
+
+    // ── "Habilitar horario" desde una banda bloqueada ─────────────────────────
+    // Escribe en Horarios de excepción: crear aperturas o tramos de cierre,
+    // recortar y borrar cierres. El diálogo pide el permiso de cada escritura.
+    const enableSlotPermissions = React.useMemo(() => ({
+        create: hasPermission(BUSINESS_CONFIG_PERMISSIONS.HOLIDAYS_CREATE),
+        update: hasPermission(BUSINESS_CONFIG_PERMISSIONS.HOLIDAYS_UPDATE),
+        delete: hasPermission(BUSINESS_CONFIG_PERMISSIONS.HOLIDAYS_DELETE),
+    }), [hasPermission]);
+    const canEnableSlots = enableSlotPermissions.create || enableSlotPermissions.update || enableSlotPermissions.delete;
+    const [enableSlotTarget, setEnableSlotTarget] = React.useState<EnableSlotTarget | null>(null);
+
+    // Sede, horarios y excepciones detrás de una columna de la grilla: el mismo
+    // alcance con el que `blockedRanges` pinta esa columna. Una columna de
+    // consultorio usa su sede; el resto (doctor, sin agrupar, sin sede) la sede
+    // de la línea de tiempo ('' = toda la clínica).
+    const blockingScopeForSlot = React.useCallback((slot: CalendarSlotContextMenuContext) => {
+        const effGroupBy = calendarMode === 'custom' ? 'calendar' : groupBy;
+        const calendarId = effGroupBy === 'calendar' && slot.context?.groupBy === 'calendar' ? slot.context.value : undefined;
+        const cal = calendarId ? calendars.find((c) => String(c.id) === calendarId) : undefined;
+        if (cal?.sede_id) {
+            const sedeId = String(cal.sede_id);
+            return { sedeId, schedules: schedulesForSede(sedeId), exceptions: exceptionsForSede(sedeId) };
+        }
+        return { sedeId: timelineSede, schedules: effectiveSchedules, exceptions: exceptionsForSede(timelineSede) };
+    }, [calendarMode, groupBy, calendars, schedulesForSede, exceptionsForSede, timelineSede, effectiveSchedules]);
+
+    // Bandas grises (fuera de horario) y rojas (cierres): el diálogo decide qué
+    // escribir y avisa de los cierres que no se pueden tocar desde acá.
+    const enableSlotTargetFor = React.useCallback((slot: CalendarSlotContextMenuContext): EnableSlotTarget | null => {
+        if (!slot.isBlocked || !blockUnavailable || effectiveSchedules.length === 0) return null;
+        const { sedeId, schedules, exceptions } = blockingScopeForSlot(slot);
+        const slotMin = slot.date.getHours() * 60 + slot.date.getMinutes();
+        const suggested = suggestEnableWindow(slot.date, schedules, exceptions, slotMin);
+        if (!suggested) return null;
+        return {
+            day: slot.date,
+            sedeId: sedeId || undefined,
+            sedeName: sedeId ? sedes.find((s) => String(s.id) === sedeId)?.name : undefined,
+            singleBranch: sedes.length <= 1,
+            schedules,
+            exceptions,
+            initialStartMin: suggested.startMin,
+            initialEndMin: suggested.endMin,
+        };
+    }, [blockUnavailable, effectiveSchedules, blockingScopeForSlot, sedes]);
+
+    const renderSlotContextMenu = React.useCallback((slot: CalendarSlotContextMenuContext) => {
+        const enableTarget = canEnableSlots ? enableSlotTargetFor(slot) : null;
+        return (
+            <>
+                {enableTarget && (
+                    <>
+                        <ContextMenuItem
+                            className="flex cursor-pointer items-center gap-2"
+                            // Next tick: the menu has to finish unwinding its pointer-events
+                            // lock before the dialog takes its own.
+                            data-help-id="appointments.btn.slot-enable"
+                            onSelect={() => setTimeout(() => setEnableSlotTarget(enableTarget), 0)}
+                        >
+                            <CalendarClock className="h-4 w-4" />
+                            {tEnableSlot('menuItem')}
+                        </ContextMenuItem>
+                        <ContextMenuSeparator />
+                    </>
+                )}
+                <ContextMenuItem
+                    disabled={slot.isBlocked}
+                    className="flex cursor-pointer items-center gap-2"
+                    data-help-id="appointments.btn.slot-new-appointment"
+                    onSelect={() => handleCreateAppointmentFromSlot(slot)}
+                >
+                    <CalendarPlus className="h-4 w-4" />
+                    {tReminders('createType.appointment')}
+                </ContextMenuItem>
+                <ContextMenuItem
+                    className="flex cursor-pointer items-center gap-2"
+                    data-help-id="appointments.btn.slot-new-reminder"
+                    onSelect={() => handleCreateReminderFromSlot(slot)}
+                >
+                    <BellRing className="h-4 w-4" />
+                    {tReminders('createType.reminder')}
+                </ContextMenuItem>
+                <ContextMenuItem
+                    className="flex cursor-pointer items-center gap-2"
+                    data-help-id="appointments.btn.slot-new-note"
+                    onSelect={() => handleCreateNoteFromSlot(slot)}
+                >
+                    <FileText className="h-4 w-4" />
+                    {tReminders('createType.note')}
+                </ContextMenuItem>
+            </>
+        );
+    }, [canEnableSlots, enableSlotTargetFor, handleCreateAppointmentFromSlot, handleCreateNoteFromSlot, handleCreateReminderFromSlot, tReminders, tEnableSlot]);
 
     // Visible days for the blocking overlay (independent of the Huecos toggle).
     const blockVisibleDays = React.useMemo(() => {
@@ -4555,21 +4649,32 @@ export default function AppointmentsPage() {
     const renderEventContextMenu = (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' })) => {
         // Google-color swatch grid. Rendered inline at the top of the menu in the
         // default layout; in custom mode it moves into a "Cambiar color" submenu.
+        // "Sin fondo" solo para citas (como en la tarjeta inline): les saca el color
+        // propio y vuelven a heredar. Los recordatorios siempre llevan un color.
+        // Cada muestra es un ContextMenuItem para que elegir un color cierre el menú
+        // (también desde el submenú) y se pueda navegar con teclado.
+        const colorSwatchClass = 'h-6 w-6 cursor-pointer justify-center rounded-full p-0 focus:ring-2 focus:ring-ring focus:ring-offset-1';
         const colorSwatchGrid = (
             <div className="grid grid-cols-4 gap-2 p-2">
+                {eventData.kind !== 'reminder' && (
+                    <ContextMenuItem
+                        aria-label={t('inlineCreate.noBackground')}
+                        title={t('inlineCreate.noBackground')}
+                        disabled={isColorChangePending(eventData)}
+                        className={cn(colorSwatchClass, 'border border-border bg-background text-muted-foreground hover:bg-muted')}
+                        onSelect={() => handleEventColorChange(eventData, '')}
+                    >
+                        <Ban className="h-3.5 w-3.5" />
+                    </ContextMenuItem>
+                )}
                 {GOOGLE_CALENDAR_COLORS.map((color) => (
-                    <div
+                    <ContextMenuItem
                         key={color.id}
-                        aria-disabled={isColorChangePending(eventData) || undefined}
-                        className={cn(
-                            'w-6 h-6 rounded-full',
-                            isColorChangePending(eventData) ? 'pointer-events-none opacity-50' : 'cursor-pointer hover:opacity-80',
-                        )}
+                        aria-label={color.id}
+                        disabled={isColorChangePending(eventData)}
+                        className={cn(colorSwatchClass, 'hover:opacity-80')}
                         style={{ backgroundColor: color.hex }}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleEventColorChange(eventData, color.id);
-                        }}
+                        onSelect={() => handleEventColorChange(eventData, color.id)}
                     />
                 ))}
             </div>
@@ -6013,6 +6118,13 @@ export default function AppointmentsPage() {
                 selectedCount={bulkSelectedIds.size}
                 onReassign={handleBulkReassign}
                 isLoading={isReassignLoading}
+            />
+
+            <EnableSlotDialog
+                target={enableSlotTarget}
+                permissions={enableSlotPermissions}
+                onOpenChange={(open) => { if (!open) setEnableSlotTarget(null); }}
+                onEnabled={loadClinicExceptions}
             />
 
             <AppointmentFormDialog

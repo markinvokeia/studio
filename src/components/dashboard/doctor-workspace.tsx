@@ -37,7 +37,7 @@ import { canManageDoctorWorkspaceSessions } from '@/lib/permissions';
 import { cn, formatDate } from '@/lib/utils';
 import { normalizeResponsibleContact } from '@/lib/appointment-contact';
 import { api } from '@/services/api';
-import { updateAppointmentStatusRequest } from '@/services/appointments';
+import { updateAppointmentStatusWithDocumentCheck } from '@/services/appointments';
 import { getQuoteItems } from '@/services/quotes';
 import { format, isSameDay, parseISO } from 'date-fns';
 import type { Locale } from 'date-fns';
@@ -1185,11 +1185,13 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
 
     if (selectedAppointment.status !== 'completed') {
       markAppointmentLocallyUpdated(String(user?.id ?? ''), selectedAppointment.id);
-      updateKnownAppointmentStatus(String(user?.id ?? ''), selectedAppointment.id, 'completed');
-      await updateAppointmentStatusRequest({
+      // Si el paciente no tiene el documento que exige ese estado, la sesión queda
+      // guardada y la cita conserva su estado.
+      const completed = await updateAppointmentStatusWithDocumentCheck({
         appointment: selectedAppointment,
         newStatus: 'completed',
       });
+      if (completed) updateKnownAppointmentStatus(String(user?.id ?? ''), selectedAppointment.id, 'completed');
     }
 
     await loadLinkedSession(selectedAppointment);
@@ -1337,11 +1339,11 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     if (!selectedAppointment || isSessionEditingBlockedByDate) return;
     if (selectedAppointment.status !== 'completed') {
       markAppointmentLocallyUpdated(String(user?.id ?? ''), selectedAppointment.id);
-      updateKnownAppointmentStatus(String(user?.id ?? ''), selectedAppointment.id, 'completed');
-      await updateAppointmentStatusRequest({
+      const completed = await updateAppointmentStatusWithDocumentCheck({
         appointment: selectedAppointment,
         newStatus: 'completed',
       });
+      if (completed) updateKnownAppointmentStatus(String(user?.id ?? ''), selectedAppointment.id, 'completed');
     }
     await loadAppointments(true);
   }, [isSessionEditingBlockedByDate, loadAppointments, selectedAppointment, user?.id]);
