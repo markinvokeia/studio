@@ -7,9 +7,11 @@ import { ResizableSheet, SheetTitle, SheetDescription } from '@/components/ui/re
 import {
   PatientDetailSheetMainContent,
   type PatientSheetClinicalSubTab,
+  type PatientSheetInfoSubTab,
   type PatientSheetMacroTab,
 } from '@/components/patients/patient-detail-sheet-main-content';
 import { PatientInfoTab } from '@/components/patients/patient-info-tab';
+import { PatientDependentsTab } from '@/components/patients/patient-dependents-tab';
 import { PatientQuickActions } from '@/components/patients/patient-quick-actions';
 
 import { InlineAppointmentDraftHost } from '@/components/appointments/inline-appointment-draft-host';
@@ -179,6 +181,7 @@ export function PatientDetailSheet({
   }, [initialTab, isDoctorMode, showInfoTab, showFinancialTab]);
 
   const [activeTab, setActiveTab] = React.useState<PatientSheetMacroTab>(resolveInitialTab);
+  const [activeInfoSubTab, setActiveInfoSubTab] = React.useState<PatientSheetInfoSubTab>('details');
   const [activeClinicalSubTab, setActiveClinicalSubTab] = React.useState<PatientSheetClinicalSubTab>(clinicalHistoryDefaultView === 'anamnesis' ? 'anamnesis' : 'clinical-history');
   // Trigger counters for clinical "create" actions launched from the actions menu.
   const [createSessionTrigger, setCreateSessionTrigger] = React.useState(0);
@@ -266,6 +269,7 @@ export function PatientDetailSheet({
   React.useEffect(() => {
     if (open) {
       setActiveTab(resolveInitialTab());
+      setActiveInfoSubTab('details');
       setActiveClinicalSubTab(clinicalHistoryDefaultView === 'anamnesis' ? 'anamnesis' : 'clinical-history');
     }
   }, [clinicalHistoryDefaultView, resolveInitialTab, open, userId]);
@@ -480,6 +484,8 @@ export function PatientDetailSheet({
         <PatientDetailSheetMainContent
           activeTab={activeTab}
           onActiveTabChange={setActiveTab}
+          activeInfoSubTab={activeInfoSubTab}
+          onInfoSubTabChange={setActiveInfoSubTab}
           activeClinicalSubTab={activeClinicalSubTab}
           onClinicalSubTabChange={setActiveClinicalSubTab}
           showFinancial={showFinancialTab}
@@ -490,6 +496,19 @@ export function PatientDetailSheet({
                 onPatientUpdated?.(updated);
                 setDependencyRefreshTrigger((n) => n + 1);
               }}
+            />
+          ) : undefined}
+          // Hasta tener la ficha no se sabe si es tutor o dependiente: la subpestaña
+          // aparece cuando llega `dependencyPatient`.
+          dependentsLabel={showInfoTab && dependencyPatient
+            ? t(dependencyPatient.is_dependent ? 'tabs.responsible' : 'tabs.dependents')
+            : undefined}
+          dependentsContent={showInfoTab && dependencyPatient ? (
+            <PatientDependentsTab
+              patient={dependencyPatient}
+              responsible={dependencyPatient.is_dependent && responsibleContactId
+                ? { id: responsibleContactId, name: responsibleContactName || '' }
+                : null}
             />
           ) : undefined}
           anamnesisContent={<AnamnesisViewer userId={userId} readOnly={isReadOnly} />}

@@ -47,6 +47,8 @@ import {
 } from '@/components/patients/patient-detail-main-content';
 import { PatientDetailHeader } from '@/components/patients/patient-detail-header';
 import { PatientInfoTab, ResponsibleContactField } from '@/components/patients/patient-info-tab';
+import { PatientDependentsTab } from '@/components/patients/patient-dependents-tab';
+import { ResponsibleMatchHint } from '@/components/patients/responsible-match-hint';
 import { PatientActionsMenu } from '@/components/patients/patient-actions-menu';
 import { DuplicateContactDialog, UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
 import {
@@ -173,6 +175,8 @@ function mapApiUser(apiUser: any): User {
     is_dependent: apiUser.is_dependent ?? apiUser.is_dependant ?? false,
     responsible_contact_id: apiUser.responsible_contact_id ? String(apiUser.responsible_contact_id) : undefined,
     responsible_contact_name: apiUser.responsible_contact_name || undefined,
+    responsible_phone_number: apiUser.responsible_phone_number || undefined,
+    matched_by_responsible: apiUser.matched_by_responsible === true,
     doctor_id: apiUser.doctor_id !== undefined && apiUser.doctor_id !== null && apiUser.doctor_id !== ''
       ? String(apiUser.doctor_id)
       : null,
@@ -375,7 +379,12 @@ function UsersTableWithCards({
       renderCard={(user: User, _isSelected: boolean) => (
         <DataCard isSelected={_isSelected}
           title={user.name}
-          subtitle={user.email || user.phone_number || user.identity_document || ''}
+          subtitle={user.matched_by_responsible && user.responsible_contact_name
+            ? t(user.responsible_phone_number ? 'UsersPage.responsibleMatchWithPhone' : 'UsersPage.responsibleMatch', {
+                name: user.responsible_contact_name,
+                phone: user.responsible_phone_number ?? '',
+              })
+            : user.email || user.phone_number || user.identity_document || ''}
           avatar={user.name ? user.name.slice(0, 2).toUpperCase() : '?'}
           showArrow
           onClick={() => handleRowSelectionChange([user])}
@@ -1066,6 +1075,13 @@ export default function UsersPage() {
     {
       accessorKey: 'name',
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.name')} />,
+      // Un dependiente encontrado por el teléfono de su tutor: se aclara por qué aparece.
+      cell: ({ row }) => (
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate">{row.original.name}</span>
+          <ResponsibleMatchHint user={row.original} onlyWhenMatched />
+        </div>
+      ),
     },
     {
       accessorKey: 'email',
@@ -1491,6 +1507,19 @@ export default function UsersPage() {
                         }
                         preferencesContent={
                           <UserPreferencesTab user={selectedUser} showFinanceView />
+                        }
+                        dependentsLabel={t(selectedUser.is_dependent ? 'UsersPage.tabs.responsible' : 'UsersPage.tabs.dependents')}
+                        dependentsContent={
+                          <PatientDependentsTab
+                            patient={selectedUser}
+                            responsible={selectedUser.is_dependent && (dependantContactInfo?.id || selectedUser.responsible_contact_id)
+                              ? {
+                                  id: dependantContactInfo?.id || selectedUser.responsible_contact_id || '',
+                                  name: selectedUser.responsible_contact_name || dependantContactInfo?.name || '',
+                                }
+                              : null}
+                            onDependentsChanged={loadUsers}
+                          />
                         }
                         anamnesisContent={
                           <AnamnesisViewer

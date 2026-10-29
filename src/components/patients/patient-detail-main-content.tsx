@@ -10,7 +10,7 @@ import { PatientSubTabNav } from '@/components/patients/patient-subtab-nav'
 import { cn } from '@/lib/utils'
 
 export type PatientMacroTab = 'info' | 'clinical' | 'financial'
-export type InfoSubTab = 'details' | 'notes' | 'preferences'
+export type InfoSubTab = 'details' | 'notes' | 'preferences' | 'dependents'
 export type ClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'medical-instructions' | 'documents'
 
 interface PatientDetailMainContentProps {
@@ -23,6 +23,8 @@ interface PatientDetailMainContentProps {
   showDocuments: boolean
   showNotes: boolean
   showPreferences: boolean
+  /** Label of the dependents sub-tab; omit to hide it. "Dependientes" for a guardian, "Responsable" for a dependent. */
+  dependentsLabel?: string
   /** Macro-tab visibility, permission-driven by the caller. */
   showInfo: boolean
   showClinical: boolean
@@ -30,6 +32,7 @@ interface PatientDetailMainContentProps {
   infoContent: React.ReactNode
   notesContent: React.ReactNode
   preferencesContent: React.ReactNode
+  dependentsContent?: React.ReactNode
   anamnesisContent: React.ReactNode
   clinicalHistoryContent: React.ReactNode
   treatmentPlansContent: React.ReactNode
@@ -48,12 +51,14 @@ export function PatientDetailMainContent({
   showDocuments,
   showNotes,
   showPreferences,
+  dependentsLabel,
   showInfo,
   showClinical,
   showFinancial,
   infoContent,
   notesContent,
   preferencesContent,
+  dependentsContent,
   anamnesisContent,
   clinicalHistoryContent,
   treatmentPlansContent,
@@ -72,8 +77,9 @@ export function PatientDetailMainContent({
   const infoTabs = React.useMemo(() => [
     { id: 'details', label: t('tabs.details') },
     ...(showNotes ? [{ id: 'notes', label: t('tabs.notes') }] : []),
+    ...(dependentsLabel ? [{ id: 'dependents', label: dependentsLabel }] : []),
     ...(showPreferences ? [{ id: 'preferences', label: t('tabs.preferences') }] : []),
-  ], [showNotes, showPreferences, t])
+  ], [showNotes, showPreferences, dependentsLabel, t])
 
   const clinicalTabs = React.useMemo(() => [
     { id: 'anamnesis', label: t('tabs.anamnesis') },
@@ -111,6 +117,7 @@ export function PatientDetailMainContent({
             {activeInfoSubTab === 'details' && <div className="min-h-0 flex-1">{infoContent}</div>}
             {activeInfoSubTab === 'notes' && notesContent}
             {activeInfoSubTab === 'preferences' && preferencesContent}
+            {activeInfoSubTab === 'dependents' && dependentsLabel && dependentsContent}
           </div>
         )}
 
