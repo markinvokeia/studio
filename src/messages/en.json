@@ -1422,7 +1422,8 @@
     "title": "Identity document required",
     "description": "The appointment can't be marked as \"{status}\" because {patient} has no identity document on file. Add it to the patient's record and try again.",
     "descriptionNoName": "The appointment can't be marked as \"{status}\" because the patient has no identity document on file. Add it to the patient's record and try again.",
-    "close": "Got it"
+    "close": "Got it",
+    "dismiss": "Close"
   },
   "CancellationReason": {
     "late": "Cancelled late",

@@ -1422,7 +1422,8 @@
     "title": "Falta el documento de identidad",
     "description": "No se puede marcar la cita como «{status}» porque {patient} no tiene documento de identidad registrado. Regístralo en su ficha e inténtalo de nuevo.",
     "descriptionNoName": "No se puede marcar la cita como «{status}» porque el paciente no tiene documento de identidad registrado. Regístralo en su ficha e inténtalo de nuevo.",
-    "close": "Entendido"
+    "close": "Entendido",
+    "dismiss": "Cerrar"
   },
   "CancellationReason": {
     "late": "Cancelada tarde",

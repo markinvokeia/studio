@@ -15,6 +15,13 @@ import type { AppointmentStatus } from '@/lib/types';
 export interface MissingIdentityDocumentNotice {
   patientName: string | null;
   status: AppointmentStatus;
+  /** Paciente de la cita, para abrir sus datos desde el aviso y cargar el documento. */
+  patient?: {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+  };
 }
 
 interface MissingIdentityDocumentStore {
