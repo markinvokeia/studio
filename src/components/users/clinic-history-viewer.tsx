@@ -2,6 +2,8 @@
 
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
+import { AestheticSessionSheet } from '@/components/users/aesthetic-record/aesthetic-session-sheet';
+import { AestheticSessionDetails, aestheticSessionPreview, useAestheticSessions } from '@/components/users/aesthetic-record/aesthetic-timeline';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { getProcedure } from '@/components/users/dental-record/odontogram-catalog';
 import { groupTeethByCondition } from '@/components/users/dental-record/odontogram-state';
@@ -57,10 +59,11 @@ import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useReadOnly } from '@/components/patient-portal/read-only-context';
-import { BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS } from '@/constants/permissions';
+import { AESTHETIC_RECORD_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS } from '@/constants/permissions';
 import { AllergyItem, ClinicDocument, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, SessionAttachmentDocument, useClinicHistory } from '@/hooks/useClinicHistory';
-import { Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSession, SessionPrefillData } from '@/lib/types';
+import { AestheticBodyFigure, AestheticSession, Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSession, SessionPrefillData } from '@/lib/types';
 import { cn, formatDisplayDateWithWeekday } from '@/lib/utils';
+import { deleteAestheticSession } from '@/services/aesthetic-record';
 import { api } from '@/services/api';
 import { addYears, format, isBefore, isValid, parseISO } from 'date-fns';
 import { getDateFnsLocale } from '@/lib/locale';
@@ -89,6 +92,7 @@ import {
     RotateCcw,
     SlidersHorizontal,
     Smile,
+    Sparkles,
     Stethoscope,
     Trash2,
     Upload,
@@ -128,6 +132,9 @@ interface ClinicHistoryViewerProps {
     userName?: string;
     createSessionTrigger?: number;
     createOdontogramTrigger?: number;
+    createAestheticTrigger?: number;
+    /** Patient's sex, for the body figure of their first aesthetic session */
+    patientSex?: AestheticBodyFigure | null;
     sessionPrefill?: SessionPrefillData | null;
     isDoctorMode?: boolean;
     onSessionCreated?: (sesionId: number, stepId?: string) => void;
@@ -140,7 +147,7 @@ interface ClinicHistoryViewerProps {
     readOnly?: boolean;
 }
 
-export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, onEditAppointment, refreshAppointmentsTrigger = 0, isDoctorMode = false, readOnly = false }: ClinicHistoryViewerProps) {
+export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, createAestheticTrigger = 0, patientSex, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, onEditAppointment, refreshAppointmentsTrigger = 0, isDoctorMode = false, readOnly = false }: ClinicHistoryViewerProps) {
     const {
         patientSessions,
         isLoadingPatientSessions,
@@ -282,6 +289,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
 
     const [localSessionTrigger, setLocalSessionTrigger] = React.useState(0);
     const [localOdontogramTrigger, setLocalOdontogramTrigger] = React.useState(0);
+    const [localAestheticTrigger, setLocalAestheticTrigger] = React.useState(0);
 
     React.useEffect(() => {
         if (createSessionTrigger > 0) {
@@ -301,6 +309,12 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
             setLocalOdontogramTrigger(t => t + 1);
         }
     }, [createOdontogramTrigger]);
+
+    React.useEffect(() => {
+        if (createAestheticTrigger > 0) {
+            setLocalAestheticTrigger(t => t + 1);
+        }
+    }, [createAestheticTrigger]);
 
     return (
         <div className="pt-1">
@@ -324,6 +338,9 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                             onTriggerConsumed={() => setLocalSessionTrigger(0)}
                             createOdontogramTrigger={localOdontogramTrigger}
                             onOdontogramTriggerConsumed={() => setLocalOdontogramTrigger(0)}
+                            createAestheticTrigger={localAestheticTrigger}
+                            onAestheticTriggerConsumed={() => setLocalAestheticTrigger(0)}
+                            patientSex={patientSex}
                             sessionPrefill={sessionPrefill}
                             onSessionCreated={onSessionCreated}
                             editSessionId={editSessionId}
@@ -1854,7 +1871,7 @@ function TimelineRow({ icon, summary, trailing, actions, expanded, onToggle, hig
 }
 
 // Treatment Timeline Component with CRUD
-export type TimelineFilter = 'all' | 'clinica' | 'odontograma' | 'appointment';
+export type TimelineFilter = 'all' | 'clinica' | 'odontograma' | 'estetica' | 'appointment';
 
 interface TreatmentTimelineProps {
     sessions: PatientSession[];
@@ -1878,6 +1895,13 @@ interface TreatmentTimelineProps {
     onTriggerConsumed?: () => void;
     createOdontogramTrigger?: number;
     onOdontogramTriggerConsumed?: () => void;
+    /** Bump to open the sheet of a new aesthetic session */
+    createAestheticTrigger?: number;
+    onAestheticTriggerConsumed?: () => void;
+    /** Context of new aesthetic sessions (e.g. Mi Consultorio's appointment and doctor) */
+    aestheticDefaults?: { doctorId?: string; doctorName?: string; appointmentId?: string };
+    /** Patient's sex, for the body figure of their first aesthetic session */
+    patientSex?: AestheticBodyFigure | null;
     sessionPrefill?: SessionPrefillData | null;
     onRefreshAppointments?: () => void;
     onAppointmentStatusUpdated?: (
@@ -1900,12 +1924,13 @@ interface TreatmentTimelineProps {
     linkedAppointmentId?: string;
 }
 
-export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false, hideToolbar = false, forcedTypeFilter, showSessionColor = false, readOnly = false, linkedAppointmentId }: TreatmentTimelineProps) {
+export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, createAestheticTrigger = 0, onAestheticTriggerConsumed, aestheticDefaults, patientSex, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false, hideToolbar = false, forcedTypeFilter, showSessionColor = false, readOnly = false, linkedAppointmentId }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
     const tDental = useTranslations('DentalRecord');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
     const tPatientHistory = useTranslations('PatientHistorySheet');
+    const tAesthetic = useTranslations('AestheticRecord');
     const tStatus = useTranslations('AppointmentStatus');
     const tReason = useTranslations('CancellationReason');
     const locale = useLocale();
@@ -1926,6 +1951,10 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
      * clínicos y necesita poder mover el estado de la cita igual.
      */
     const canChangeApptStatus = canUpdateAppointment && !isPortalReadOnly;
+    // Sesiones estéticas: mockup local (sin backend todavía); el portal del paciente no las ve.
+    const canViewAesthetic = hasPermission(AESTHETIC_RECORD_PERMISSIONS.VIEW) && !isPortalReadOnly;
+    const canManageAesthetic = canViewAesthetic && !readOnly && hasPermission(AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION);
+    const { sessions: aestheticSessions, reload: reloadAestheticSessions } = useAestheticSessions(userId, canViewAesthetic);
     const [isPrintingHistory, setIsPrintingHistory] = React.useState(false);
 
     const handlePrintHistory = React.useCallback(async () => {
@@ -1949,6 +1978,9 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     const [isSessionDialogOpen, setIsSessionDialogOpen] = React.useState(false);
     const [isOdontogramDialogOpen, setIsOdontogramDialogOpen] = React.useState(false);
     const [isOdontogramViewerOpen, setIsOdontogramViewerOpen] = React.useState(false);
+    /** Sheet of an aesthetic session: `sessionId` null creates one */
+    const [aestheticSheet, setAestheticSheet] = React.useState<{ sessionId: string | null; edit: boolean } | null>(null);
+    const [deletingAesthetic, setDeletingAesthetic] = React.useState<AestheticSession | null>(null);
     const [editingSession, setEditingSession] = React.useState<PatientSession | null>(null);
     const [deletingSession, setDeletingSession] = React.useState<PatientSession | null>(null);
 
@@ -2088,6 +2120,14 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
         }
     }, [createOdontogramTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    React.useEffect(() => {
+        if (!canManageAesthetic) return;
+        if (createAestheticTrigger > 0) {
+            setAestheticSheet({ sessionId: null, edit: true });
+            onAestheticTriggerConsumed?.();
+        }
+    }, [createAestheticTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // Attachment viewer state
     const [viewingAttachment, setViewingAttachment] = React.useState<{ id: string; name: string; mimeType?: string } | null>(null);
     const [attachmentContent, setAttachmentContent] = React.useState<string | null>(null);
@@ -2204,6 +2244,20 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
         }
     );
 
+    const deleteAestheticAction = useAsyncAction(
+        async () => {
+            if (deletingAesthetic) await deleteAestheticSession(userId, deletingAesthetic.id);
+        },
+        {
+            onSuccess: async () => {
+                toast({ title: tAesthetic('toast.deleted') });
+                setDeletingAesthetic(null);
+                await reloadAestheticSessions();
+            },
+            errorTitle: tAesthetic('deleteDialog.errorTitle'),
+        }
+    );
+
     const handleSaveViaDialog = async (data: ClinicSessionFormData) => {
         if (editingSession?.sesion_id) {
             const existingAtts = editingSession.archivos_adjuntos || [];
@@ -2255,7 +2309,17 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
 
     type TimelineItem =
         | { kind: 'session'; date: Date; data: PatientSession }
+        | { kind: 'aesthetic'; date: Date; data: AestheticSession }
         | { kind: 'appointment'; date: Date; data: Appointment };
+
+    const timelineDoctorName = (item: TimelineItem): string | undefined =>
+        item.kind === 'session' ? item.data.nombre_doctor || item.data.doctor_name : item.data.doctorName;
+
+    const timelineType = (item: TimelineItem): Exclude<TimelineFilter, 'all'> => {
+        if (item.kind === 'appointment') return 'appointment';
+        if (item.kind === 'aesthetic') return 'estetica';
+        return item.data.tipo_sesion === 'odontograma' ? 'odontograma' : 'clinica';
+    };
 
     const allItems = React.useMemo((): TimelineItem[] => {
         const sessionItems: TimelineItem[] = sessions.map(s => ({
@@ -2269,48 +2333,37 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
             const dt = parseISO(dtStr.replace(/Z$/, ''));
             return { kind: 'appointment' as const, date: isNaN(dt.getTime()) ? new Date(0) : dt, data: a };
         });
-        return [...sessionItems, ...appointmentItems].sort(
+        const aestheticItems: TimelineItem[] = aestheticSessions.map(s => ({
+            kind: 'aesthetic' as const,
+            date: s.date ? parseISO(s.date) : new Date(0),
+            data: s,
+        }));
+        return [...sessionItems, ...aestheticItems, ...appointmentItems].sort(
             (a, b) => b.date.getTime() - a.date.getTime()
         );
-    }, [sessions, appointments]);
+    }, [sessions, aestheticSessions, appointments]);
 
     const doctorOptions = React.useMemo(() => {
         const map = new Map<string, string>();
         for (const item of allItems) {
-            if (item.kind === 'session') {
-                const name = item.data.nombre_doctor || item.data.doctor_name;
-                if (name) map.set(name, name);
-            } else {
-                if (item.data.doctorName) map.set(item.data.doctorName, item.data.doctorName);
-            }
+            const name = timelineDoctorName(item);
+            if (name) map.set(name, name);
         }
         return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
-    }, [allItems]);
+    }, [allItems]); // eslint-disable-line react-hooks/exhaustive-deps -- `timelineDoctorName` only reads `item`
 
     const effectiveTypeFilter = forcedTypeFilter ?? typeFilter;
 
     const filteredItems = React.useMemo(() => {
         return allItems.filter(item => {
-            if (effectiveTypeFilter !== 'all') {
-                if (item.kind === 'appointment' && effectiveTypeFilter !== 'appointment') return false;
-                if (item.kind === 'session' && effectiveTypeFilter === 'appointment') return false;
-                if (item.kind === 'session' && effectiveTypeFilter === 'clinica' && item.data.tipo_sesion === 'odontograma') return false;
-                if (item.kind === 'session' && effectiveTypeFilter === 'odontograma' && item.data.tipo_sesion !== 'odontograma') return false;
-            }
-            if (doctorFilter !== 'all') {
-                if (item.kind === 'session') {
-                    const name = item.data.nombre_doctor || item.data.doctor_name;
-                    if (name !== doctorFilter) return false;
-                } else {
-                    if (item.data.doctorName !== doctorFilter) return false;
-                }
-            }
+            if (effectiveTypeFilter !== 'all' && timelineType(item) !== effectiveTypeFilter) return false;
+            if (doctorFilter !== 'all' && timelineDoctorName(item) !== doctorFilter) return false;
             return true;
         });
-    }, [allItems, effectiveTypeFilter, doctorFilter]);
+    }, [allItems, effectiveTypeFilter, doctorFilter]); // eslint-disable-line react-hooks/exhaustive-deps -- the helpers only read `item`
 
     const getItemKey = (item: { kind: string; data: any }, index: number) =>
-        item.kind === 'appointment' ? `appt-${item.data.id}-${index}` : `session-${item.data.sesion_id}`;
+        item.kind === 'appointment' ? `appt-${item.data.id}-${index}` : item.kind === 'aesthetic' ? `aesthetic-${item.data.id}` : `session-${item.data.sesion_id}`;
 
     // Sesión más reciente de la lista. No es `filteredItems[0]`: la lista está ordenada
     // por fecha y puede arrancar con una cita.
@@ -2399,6 +2452,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                         { value: 'all', label: 'Todos' },
                                         { value: 'clinica', label: t('sessionTypeClinical') },
                                         { value: 'odontograma', label: t('sessionTypeOdontogram') },
+                                        ...(canViewAesthetic ? [{ value: 'estetica', label: t('sessionTypeAesthetic') }] : []),
                                         { value: 'appointment', label: t('sessionTypeAppointment') },
                                     ] as { value: TimelineFilter; label: string }[]).map(opt => (
                                         <DropdownMenuItem
@@ -2467,6 +2521,12 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                     <Smile className="h-4 w-4 mr-2" />
                                     {t('sessionTypeOdontogram')}
                                 </DropdownMenuItem>
+                                {canManageAesthetic && (
+                                    <DropdownMenuItem onClick={() => setAestheticSheet({ sessionId: null, edit: true })}>
+                                        <Sparkles className="h-4 w-4 mr-2" />
+                                        {t('sessionTypeAesthetic')}
+                                    </DropdownMenuItem>
+                                )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                         )}
@@ -2482,7 +2542,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                 className="gap-1 text-xs cursor-pointer hover:bg-muted-foreground/20 transition-colors"
                                 onClick={() => setTypeFilter('all')}
                             >
-                                {typeFilter === 'clinica' ? t('sessionTypeClinical') : typeFilter === 'odontograma' ? t('sessionTypeOdontogram') : t('sessionTypeAppointment')}
+                                {typeFilter === 'clinica' ? t('sessionTypeClinical') : typeFilter === 'odontograma' ? t('sessionTypeOdontogram') : typeFilter === 'estetica' ? t('sessionTypeAesthetic') : t('sessionTypeAppointment')}
                                 <X className="h-3 w-3 ml-0.5" />
                             </Badge>
                         )}
@@ -2666,6 +2726,83 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                             {t('openAppointment')}
                                                         </Button>
                                                     )}
+                                                </TimelineRow>
+                                            );
+                                        }
+                                        if (item.kind === 'aesthetic') {
+                                            const aesthetic = item.data;
+                                            const isLinkedToAppointment = Boolean(linkedAppointmentId && aesthetic.appointmentId === linkedAppointmentId);
+                                            const canExpandAesthetic = !isPortalReadOnly;
+                                            const isExpanded = canExpandAesthetic && expandedKey === key;
+                                            const preview = aestheticSessionPreview(aesthetic) || aesthetic.title;
+                                            return (
+                                                <TimelineRow
+                                                    key={key}
+                                                    icon={(
+                                                        <div className="w-5 h-5 rounded-full border-2 border-background shadow-sm bg-card flex items-center justify-center shrink-0 mt-0.5">
+                                                            <Sparkles className="h-3 w-3 text-rose-500 dark:text-rose-400" />
+                                                        </div>
+                                                    )}
+                                                    expanded={isExpanded}
+                                                    onToggle={canExpandAesthetic ? () => toggleExpanded(key) : undefined}
+                                                    highlighted={isLinkedToAppointment}
+                                                    summary={
+                                                        <>
+                                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                                <Badge variant="secondary" className="text-xs px-1.5 py-0 leading-relaxed bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400">
+                                                                    {t('sessionTypeAesthetic')}
+                                                                </Badge>
+                                                                <span className="text-xs font-medium text-foreground">{formatDate(aesthetic.date)}</span>
+                                                                {isLinkedToAppointment && (
+                                                                    <Badge variant="default" className="rounded-full text-[10px] shadow-sm dark:border-link/40 dark:bg-link/20 dark:text-link">
+                                                                        {t('currentAppointmentBadge')}
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                            {!isExpanded && (
+                                                                <p className="mt-0.5 truncate text-xs text-muted-foreground">{preview}</p>
+                                                            )}
+                                                        </>
+                                                    }
+                                                >
+                                                    <p className="break-words font-medium text-foreground">{aesthetic.title}</p>
+                                                    <AestheticSessionDetails session={aesthetic} />
+                                                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="h-7 gap-1.5 text-xs"
+                                                            onClick={() => setAestheticSheet({ sessionId: aesthetic.id, edit: false })}
+                                                        >
+                                                            <Eye className="h-3.5 w-3.5" />
+                                                            {t('viewAestheticSession')}
+                                                        </Button>
+                                                        {canManageAesthetic && (
+                                                            <>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="h-7 gap-1.5 text-xs"
+                                                                    onClick={() => setAestheticSheet({ sessionId: aesthetic.id, edit: true })}
+                                                                >
+                                                                    <Edit3 className="h-3.5 w-3.5" />
+                                                                    {tPage('common.edit')}
+                                                                </Button>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-7 gap-1.5 text-xs text-destructive hover:text-destructive"
+                                                                    onClick={() => setDeletingAesthetic(aesthetic)}
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    {tPage('common.delete')}
+                                                                </Button>
+                                                            </>
+                                                        )}
+                                                    </div>
                                                 </TimelineRow>
                                             );
                                         }
@@ -2937,6 +3074,52 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                         <Button variant="destructive" onClick={() => deleteSessionAction.run()} disabled={deleteSessionAction.isPending} className="px-8">
                             {deleteSessionAction.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {tPage('common.delete')}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Aesthetic session sheet (create / view / edit) */}
+            {canViewAesthetic && (
+                <AestheticSessionSheet
+                    open={aestheticSheet !== null}
+                    onOpenChange={(open) => { if (!open) setAestheticSheet(null); }}
+                    patientId={userId}
+                    patientName={userName}
+                    patientSex={patientSex}
+                    sessionId={aestheticSheet?.sessionId ?? null}
+                    startEditing={aestheticSheet?.edit}
+                    doctorId={aestheticDefaults?.doctorId}
+                    doctorName={aestheticDefaults?.doctorName}
+                    appointmentId={aestheticDefaults?.appointmentId}
+                    readOnly={!canManageAesthetic}
+                    onChanged={reloadAestheticSessions}
+                />
+            )}
+
+            <Dialog
+                open={!!deletingAesthetic}
+                onOpenChange={(next) => {
+                    if (!next && deleteAestheticAction.isPending) return;
+                    if (!next) setDeletingAesthetic(null);
+                }}
+            >
+                <DialogContent maxWidth="sm">
+                    <DialogHeader>
+                        <DialogTitle>{tAesthetic('deleteDialog.title')}</DialogTitle>
+                    </DialogHeader>
+                    <DialogBody className="py-6 px-6">
+                        <p className="text-muted-foreground">
+                            {deletingAesthetic && tAesthetic('deleteDialog.description', { title: deletingAesthetic.title, date: formatDate(deletingAesthetic.date) })}
+                        </p>
+                    </DialogBody>
+                    <DialogFooter className="px-6 py-4 border-t gap-2">
+                        <Button variant="outline" onClick={() => setDeletingAesthetic(null)} disabled={deleteAestheticAction.isPending}>
+                            {tDialog('cancel')}
+                        </Button>
+                        <Button variant="destructive" onClick={() => deleteAestheticAction.run()} disabled={deleteAestheticAction.isPending} className="px-8">
+                            {deleteAestheticAction.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {tAesthetic('deleteDialog.confirm')}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

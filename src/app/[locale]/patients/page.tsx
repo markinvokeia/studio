@@ -75,7 +75,6 @@ import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { QuickTreatmentDialog } from '@/components/financial/quick-treatment-dialog';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { PatientIndicationsTab } from '@/components/medical-instructions/patient-indications-tab';
-import { AestheticRecordViewer } from '@/components/users/aesthetic-record/aesthetic-record-viewer';
 import { UserPreferencesTab } from '@/components/users/user-preferences-tab';
 import { PatientFinanceSection } from '@/components/users/patient-finance-section';
 import type { VisibleLedger } from '@/components/users/patient-ledger';
@@ -516,7 +515,7 @@ export default function UsersPage() {
     CLINICAL_HISTORY_PERMISSIONS.ODONTOGRAM_REGISTER_SESSION,
   ]);
   const isClinicalReadOnly = !canWriteClinical;
-  const canViewAesthetic = hasPermission(AESTHETIC_RECORD_PERMISSIONS.VIEW);
+  const canCreateAesthetic = canWriteClinical && hasPermission(AESTHETIC_RECORD_PERMISSIONS.VIEW) && hasPermission(AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION);
 
   // Header actions that were previously ungated.
   const canQuickBill = hasAnyPermission([SALES_PERMISSIONS.INVOICES_CREATE, SALES_PERMISSIONS.PAYMENTS_CREATE]);
@@ -551,6 +550,7 @@ export default function UsersPage() {
   const [patientAllergies, setPatientAllergies] = React.useState<Array<{ id?: number; alergeno: string; reaccion_descrita: string }>>([]);
   const [patientConditions, setPatientConditions] = React.useState<Array<{ id?: number; nombre: string; nivel_alerta?: number }>>([]);
   const [createSessionTrigger, setCreateSessionTrigger] = React.useState(0);
+  const [createAestheticTrigger, setCreateAestheticTrigger] = React.useState(0);
   const [createOdontogramTrigger, setCreateOdontogramTrigger] = React.useState(0);
   const [sessionPrefill, setSessionPrefill] = React.useState<SessionPrefillData | null>(null);
   const [createDocumentTrigger, setCreateDocumentTrigger] = React.useState(0);
@@ -1415,6 +1415,7 @@ export default function UsersPage() {
                         showActivate={canToggleStatus}
                         onCreateClinicalSession={canWriteClinical ? () => { openClinicalHistory(); setCreateSessionTrigger(n => n + 1); } : undefined}
                         onCreateOdontogram={canWriteClinical ? () => { openClinicalHistory(); setCreateOdontogramTrigger(n => n + 1); } : undefined}
+                        onCreateAestheticSession={canCreateAesthetic ? () => { openClinicalHistory(); setCreateAestheticTrigger(n => n + 1); } : undefined}
                         onCreateMedicalInstruction={canWriteClinical ? () => { openClinicalMedicalInstructions(); setCreateMedicalInstructionTrigger(n => n + 1); } : undefined}
                         onCreatePrescription={canWriteClinical ? () => { openClinicalMedicalInstructions(); setCreatePrescriptionTrigger(n => n + 1); } : undefined}
                         onCreateDocument={canWriteClinical ? () => { openClinicalDocuments(); setCreateDocumentTrigger(n => n + 1); } : undefined}
@@ -1466,7 +1467,6 @@ export default function UsersPage() {
                         activeClinicalSubTab={activeClinicalSubTab}
                         onClinicalSubTabChange={setActiveClinicalSubTab}
                         showDocuments={canViewHistory}
-                        showAesthetic={canViewAesthetic}
                         showNotes={canViewNotes}
                         showPreferences={canUpdate}
                         showInfo={canViewInfoTab}
@@ -1512,6 +1512,8 @@ export default function UsersPage() {
                             readOnly={isClinicalReadOnly}
                             createSessionTrigger={createSessionTrigger}
                             createOdontogramTrigger={createOdontogramTrigger}
+                            createAestheticTrigger={createAestheticTrigger}
+                            patientSex={selectedUser.sex}
                             sessionPrefill={sessionPrefill}
                             editSessionId={editSessionId}
                             refreshAppointmentsTrigger={apptRefreshTrigger}
@@ -1555,15 +1557,6 @@ export default function UsersPage() {
                             readOnly={isClinicalReadOnly}
                             createTrigger={createMedicalInstructionTrigger}
                             createPrescriptionTrigger={createPrescriptionTrigger}
-                          />
-                        }
-                        aestheticContent={
-                          <AestheticRecordViewer
-                            key={selectedUser.id}
-                            patientId={selectedUser.id}
-                            patientName={selectedUser.name}
-                            patientSex={selectedUser.sex}
-                            readOnly={isClinicalReadOnly}
                           />
                         }
                         documentsContent={<DocumentsViewer userId={selectedUser.id} createTrigger={createDocumentTrigger} readOnly={isClinicalReadOnly} />}

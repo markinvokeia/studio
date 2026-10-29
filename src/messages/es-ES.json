@@ -1716,7 +1716,7 @@
       "readOnly": "Solo lectura",
       "readOnlyOnDate": "Solo lectura · {date}",
       "prescribe": "Recetar",
-      "tabAesthetic": "Estética"
+      "aestheticSession": "Sesión estética"
     },
     "calendarSwitch": {
       "myAppointments": "Mis citas",
@@ -1992,8 +1992,7 @@
       "anamnesis": "Anamnesis",
       "summary": "Resumen",
       "history": "Línea de tiempo",
-      "medicalInstructions": "Indicaciones Médicas",
-      "aesthetic": "Estética"
+      "medicalInstructions": "Indicaciones Médicas"
     },
     "createDialog": {
       "title": "Crear Nuevo Paciente",
@@ -5136,8 +5135,7 @@
       "timeline": "Línea de Tiempo",
       "odontogram": "Odontograma",
       "images": "Imágenes",
-      "documents": "Documentos",
-      "aesthetic": "Estética"
+      "documents": "Documentos"
     },
     "viewer": {
       "maximize": "Ampliar ventana",
@@ -5329,7 +5327,9 @@
         "whole": "Completo"
       },
       "apptTime": "Horario",
-      "apptServices": "Servicios"
+      "apptServices": "Servicios",
+      "sessionTypeAesthetic": "Estética",
+      "viewAestheticSession": "Ver sesión"
     },
     "anamnesis": {
       "personalTitle": "Información Personal",
@@ -7797,7 +7797,8 @@
     }
   },
   "PatientActionsMenu": {
-    "sendReminder": "Enviar recordatorio"
+    "sendReminder": "Enviar recordatorio",
+    "createAestheticSession": "Sesión estética"
   },
   "WhatsAppTemplateSendDialog": {
     "title": "Enviar recordatorio por WhatsApp",
@@ -10118,10 +10119,11 @@
   "AestheticRecord": {
     "tabs": {
       "label": "Secciones de la ficha estética",
-      "map": "Mapa",
       "photos": "Fotos",
       "consent": "Consentimiento",
-      "zones": "Por zona"
+      "zones": "Por zona",
+      "points": "Puntos",
+      "notes": "Notas"
     },
     "regions": {
       "face": "Cara",
@@ -10386,14 +10388,12 @@
       "notesPlaceholder": "Valoración, comentarios del paciente, indicaciones postratamiento...",
       "dateRequired": "Indica la fecha de la sesión.",
       "incompletePoints": "{count, plural, one {A # punto le falta producto o cantidad.} other {A # puntos les falta producto o cantidad.}}",
-      "fieldsTitle": "Datos de la sesión",
       "photosNotAllowed": "El consentimiento no autoriza fotos clínicas: quita las fotos para guardar."
     },
     "toast": {
       "created": "Sesión estética creada",
       "updated": "Sesión estética actualizada",
       "deleted": "Sesión estética eliminada",
-      "draftRestored": "Hemos recuperado los cambios sin guardar de la sesión.",
       "alignmentSaved": "Alineación de la foto guardada"
     },
     "discard": {
@@ -10402,25 +10402,32 @@
       "keep": "Seguir editando",
       "confirm": "Descartar"
     },
-    "emptyTitle": "Sin sesiones estéticas",
-    "emptyDescription": "Registra la primera sesión para mapear puntos de inyección, fotos y consentimiento.",
-    "noSessions": "Sin sesiones registradas",
-    "sessionCounter": "{current} de {total}",
-    "newSession": "Nueva sesión",
     "editSession": "Editar",
     "editing": "Editando",
-    "prevSession": "Sesión anterior",
-    "nextSession": "Sesión siguiente",
     "save": "Guardar sesión",
     "cancel": "Cancelar",
     "retry": "Reintentar",
     "credits": "Mapa corporal: Open Muscle Map (MIT).",
-    "deleteSession": "Eliminar sesión",
     "deleteDialog": {
       "title": "¿Eliminar la sesión?",
       "description": "Se eliminará «{title}» del {date}, con sus puntos, fotos y consentimiento. No se puede deshacer.",
       "confirm": "Eliminar",
       "errorTitle": "No se ha podido eliminar la sesión"
+    },
+    "sheet": {
+      "title": "Sesión estética",
+      "newTitle": "Nueva sesión — Estética",
+      "editTitle": "Editar sesión estética",
+      "notFound": "Esta sesión estética ya no existe.",
+      "noNotes": "Esta sesión no tiene notas.",
+      "close": "Cerrar",
+      "photoCount": "{count, plural, one {# foto} other {# fotos}}"
+    },
+    "timeline": {
+      "points": "Puntos",
+      "products": "Productos",
+      "zones": "Zonas",
+      "notes": "Notas"
     }
   }
 }

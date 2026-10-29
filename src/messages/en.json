@@ -1716,7 +1716,7 @@
       "readOnly": "Read-only",
       "readOnlyOnDate": "Read-only · {date}",
       "prescribe": "Prescribe",
-      "tabAesthetic": "Aesthetics"
+      "aestheticSession": "Aesthetic session"
     },
     "calendarSwitch": {
       "myAppointments": "My appointments",
@@ -1992,8 +1992,7 @@
       "anamnesis": "Anamnesis",
       "summary": "Summary",
       "history": "Timeline",
-      "medicalInstructions": "Medical Instructions",
-      "aesthetic": "Aesthetics"
+      "medicalInstructions": "Medical Instructions"
     },
     "createDialog": {
       "title": "Create New Patient",
@@ -5137,8 +5136,7 @@
       "timeline": "Timeline",
       "odontogram": "Odontogram",
       "images": "Images",
-      "documents": "Documents",
-      "aesthetic": "Aesthetics"
+      "documents": "Documents"
     },
     "viewer": {
       "maximize": "Expand window",
@@ -5330,7 +5328,9 @@
         "whole": "Whole"
       },
       "apptTime": "Time",
-      "apptServices": "Services"
+      "apptServices": "Services",
+      "sessionTypeAesthetic": "Aesthetics",
+      "viewAestheticSession": "View session"
     },
     "anamnesis": {
       "personalTitle": "Personal Information",
@@ -7797,7 +7797,8 @@
     }
   },
   "PatientActionsMenu": {
-    "sendReminder": "Send reminder"
+    "sendReminder": "Send reminder",
+    "createAestheticSession": "Aesthetic session"
   },
   "WhatsAppTemplateSendDialog": {
     "title": "Send WhatsApp reminder",
@@ -10118,10 +10119,11 @@
   "AestheticRecord": {
     "tabs": {
       "label": "Aesthetic record sections",
-      "map": "Map",
       "photos": "Photos",
       "consent": "Consent",
-      "zones": "By zone"
+      "zones": "By zone",
+      "points": "Points",
+      "notes": "Notes"
     },
     "regions": {
       "face": "Face",
@@ -10386,14 +10388,12 @@
       "notesPlaceholder": "Assessment, patient feedback, post-treatment instructions...",
       "dateRequired": "Enter the session date.",
       "incompletePoints": "{count, plural, one {# point is missing product or quantity.} other {# points are missing product or quantity.}}",
-      "fieldsTitle": "Session details",
       "photosNotAllowed": "The consent does not allow clinical photos: remove the photos to save."
     },
     "toast": {
       "created": "Aesthetic session created",
       "updated": "Aesthetic session updated",
       "deleted": "Aesthetic session deleted",
-      "draftRestored": "Your unsaved changes to the session were restored.",
       "alignmentSaved": "Photo alignment saved"
     },
     "discard": {
@@ -10402,25 +10402,32 @@
       "keep": "Keep editing",
       "confirm": "Discard"
     },
-    "emptyTitle": "No aesthetic sessions",
-    "emptyDescription": "Record the first session to map injection points, photos and consent.",
-    "noSessions": "No sessions recorded",
-    "sessionCounter": "{current} of {total}",
-    "newSession": "New session",
     "editSession": "Edit",
     "editing": "Editing",
-    "prevSession": "Previous session",
-    "nextSession": "Next session",
     "save": "Save session",
     "cancel": "Cancel",
     "retry": "Retry",
     "credits": "Body map: Open Muscle Map (MIT).",
-    "deleteSession": "Delete session",
     "deleteDialog": {
       "title": "Delete the session?",
       "description": "\"{title}\" from {date} will be deleted along with its points, photos and consent. This cannot be undone.",
       "confirm": "Delete",
       "errorTitle": "Could not delete the session"
+    },
+    "sheet": {
+      "title": "Aesthetic session",
+      "newTitle": "New session — Aesthetics",
+      "editTitle": "Edit aesthetic session",
+      "notFound": "This aesthetic session no longer exists.",
+      "noNotes": "This session has no notes.",
+      "close": "Close",
+      "photoCount": "{count, plural, one {# photo} other {# photos}}"
+    },
+    "timeline": {
+      "points": "Points",
+      "products": "Products",
+      "zones": "Zones",
+      "notes": "Notes"
     }
   }
 }
