@@ -10032,7 +10032,8 @@
       "createdTo": "Created to",
       "sort": "Sort by",
       "overdueOnly": "Overdue only",
-      "clear": "Clear filters"
+      "clear": "Clear filters",
+      "more": "Filters"
     },
     "sort": {
       "created_desc": "Newest first",
@@ -10078,7 +10079,10 @@
       "created": "Created in",
       "byStageDeactivation": "stage deactivated",
       "delete": "Delete",
-      "edit": "Edit"
+      "edit": "Edit",
+      "expand": "Expand",
+      "restore": "Restore",
+      "close": "Close"
     },
     "deleteDialog": {
       "title": "Delete order",

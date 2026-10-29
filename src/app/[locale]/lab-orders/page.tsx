@@ -2,25 +2,26 @@
 
 import * as React from 'react';
 import { type ColumnDef, type PaginationState } from '@tanstack/react-table';
-import { FlaskConical, LayoutList, Plus, SquareKanban, X } from 'lucide-react';
+import { AlertTriangle, FlaskConical, LayoutList, Plus, Search, SlidersHorizontal, SquareKanban, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataCard } from '@/components/ui/data-card';
 import { DataTable } from '@/components/ui/data-table';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { DoctorSelector } from '@/components/ui/doctor-selector';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PageHeader } from '@/components/ui/page-header';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { UserSelector } from '@/components/ui/user-selector';
 
 import { Can } from '@/components/auth/Can';
+import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { LabOrdersBoard } from '@/components/lab-orders/lab-orders-board';
-import { LabOrderDetailSheet } from '@/components/lab-orders/lab-order-detail-sheet';
+import { LabOrderDetailPanel } from '@/components/lab-orders/lab-order-detail-sheet';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
 import { LabOrderDaysInStage, LabStageBadge, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
 
@@ -113,6 +114,7 @@ export default function LabOrdersPage() {
 
   const [createOpen, setCreateOpen] = React.useState(false);
   const [selectedId, setSelectedId] = React.useState<number | null>(null);
+  const [isRightExpanded, setIsRightExpanded] = React.useState(false);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -183,6 +185,15 @@ export default function LabOrdersPage() {
     reload();
   });
 
+  // Filtros dentro del botón "Filtros" que están aplicados (el tablero ignora etapa, paciente y fechas).
+  const activeFilterCount = [
+    view === 'list' && stageFilter !== 'pending',
+    laboratory,
+    doctor,
+    view === 'list' && patient,
+    view === 'list' && dateFrom,
+    view === 'list' && dateTo,
+  ].filter(Boolean).length;
   const hasExtraFilters = Boolean(laboratory || doctor || patient || dateFrom || dateTo || overdueOnly || search || stageFilter !== 'pending');
   const clearFilters = () => {
     setSearch(''); setStageFilter('pending'); setLaboratory(null); setDoctor(null); setPatient(null);
@@ -245,13 +256,23 @@ export default function LabOrdersPage() {
     },
   ], [t]);
 
-  return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <PageHeader
-        icon={<FlaskConical className="h-5 w-5" />}
-        title={t('title')}
-        description={t('description')}
-        actions={
+  const isRightOpen = selectedId != null;
+  const closeDetail = () => {
+    setSelectedId(null);
+    setIsRightExpanded(false);
+  };
+
+  const leftPanel = (
+    <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
+      <CardHeader className="flex-none p-4">
+        <div className="flex flex-wrap items-start gap-3">
+          <div className="header-icon-circle mt-0.5">
+            <FlaskConical className="h-5 w-5" />
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col text-left">
+            <CardTitle className="text-lg">{t('title')}</CardTitle>
+            <CardDescription className="text-xs">{t('description')}</CardDescription>
+          </div>
           <div className="flex items-center gap-2">
             <div data-help-id="lab-orders.section.view" role="group" aria-label={t('view.label')} className="inline-flex rounded-lg border border-border bg-muted/30 p-0.5">
               {([['list', LayoutList], ['board', SquareKanban]] as const).map(([mode, Icon]) => (
@@ -264,174 +285,237 @@ export default function LabOrdersPage() {
                   onClick={() => changeView(mode)}
                 >
                   <Icon className="h-4 w-4" />
-                  <span className="hidden sm:inline">{t(`view.${mode}`)}</span>
+                  <span className={cn('hidden', !isRightOpen && 'sm:inline')}>{t(`view.${mode}`)}</span>
                 </Button>
               ))}
             </div>
             <Can permission={LAB_ORDERS_PERMISSIONS.CREATE}>
-              <Button data-help-id="lab-orders.btn.new" onClick={() => setCreateOpen(true)} className="gap-1.5">
+              <Button data-help-id="lab-orders.btn.new" size="sm" onClick={() => setCreateOpen(true)} className="h-9 gap-1.5">
                 <Plus className="h-4 w-4" />
-                {t('new')}
+                <span className={cn(isRightOpen && 'sr-only')}>{t('new')}</span>
               </Button>
             </Can>
           </div>
-        }
-      />
-
-      <section data-help-id="lab-orders.section.filters" className="grid gap-3 px-1 pb-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">{t('filters.search')}</Label>
-          <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('filters.searchPlaceholder')} className="h-9" />
         </div>
-        <div className={cn('space-y-1', view === 'board' && 'hidden')}>
-          <Label className="text-xs text-muted-foreground">{t('filters.stage')}</Label>
-          <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as StageFilter)}>
-            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pending">{t('filters.pending')}</SelectItem>
-              <SelectItem value="all">{t('filters.allStages')}</SelectItem>
-              {stages.length > 0 && <SelectSeparator />}
-              {stages.map((stage) => (
-                <SelectItem key={stage.id} value={`stage-${stage.id}`}>
-                  <span className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stage.color }} />
-                    {stage.name}
+      </CardHeader>
+      <CardContent className="flex-1 flex flex-col min-h-0 overflow-hidden p-4 pt-0 bg-card">
+        {/* Barra compacta: búsqueda, "Solo atrasadas" y el resto de los filtros en un popover, para
+            que la lista tenga lugar también con el panel de detalle abierto. */}
+        <div data-help-id="lab-orders.section.filters" className="flex flex-none flex-wrap items-center gap-2 pb-3">
+          <div className="relative min-w-[10rem] flex-1">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('filters.searchPlaceholder')}
+              aria-label={t('filters.search')}
+              className="h-9 pl-8"
+            />
+          </div>
+          <Button
+            data-help-id="lab-orders.field.overdue-only"
+            variant={overdueOnly ? 'destructive' : 'outline'}
+            size="sm"
+            className="h-9 gap-1.5"
+            aria-pressed={overdueOnly}
+            aria-label={t('filters.overdueOnly')}
+            onClick={() => setOverdueOnly((v) => !v)}
+          >
+            <AlertTriangle className="h-4 w-4" />
+            <span className={cn(isRightOpen && 'hidden')}>{t('filters.overdueOnly')}</span>
+          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button data-help-id="lab-orders.btn.filters" variant="outline" size="sm" className="h-9 gap-1.5" aria-label={t('filters.more')}>
+                <SlidersHorizontal className="h-4 w-4" />
+                <span className={cn(isRightOpen && 'hidden')}>{t('filters.more')}</span>
+                {activeFilterCount > 0 && (
+                  <span className="grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                    {activeFilterCount}
                   </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">{t('filters.laboratory')}</Label>
-          <UserSelector
-            filterType="PROVEEDOR"
-            isSales={false}
-            value={laboratory?.id ?? ''}
-            selectedUserName={laboratory?.name}
-            onValueChange={(id, user) => setLaboratory(id ? { id, name: user?.name ?? '' } : null)}
-            placeholder={t('form.searchLaboratory')}
-            triggerText={t('filters.any')}
-          />
-        </div>
-        <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">{t('filters.doctor')}</Label>
-          <DoctorSelector
-            value={doctor?.id ?? ''}
-            selectedDoctorName={doctor?.name}
-            onValueChange={(id, option) => setDoctor(id ? { id, name: option?.name ?? '' } : null)}
-            placeholder={t('form.searchDoctor')}
-            triggerText={t('filters.any')}
-          />
-        </div>
-        <div className={cn('space-y-1', view === 'board' && 'hidden')}>
-          <Label className="text-xs text-muted-foreground">{t('filters.patient')}</Label>
-          <UserSelector
-            filterType="PACIENTE"
-            value={patient?.id ?? ''}
-            selectedUserName={patient?.name}
-            onValueChange={(id, user) => setPatient(id ? { id, name: user?.name ?? '' } : null)}
-            placeholder={t('form.searchPatient')}
-            triggerText={t('filters.any')}
-          />
-        </div>
-        <div className={cn('space-y-1', view === 'board' && 'hidden')}>
-          <Label className="text-xs text-muted-foreground">{t('filters.createdFrom')}</Label>
-          <DatePickerInput value={dateFrom} onChange={setDateFrom} />
-        </div>
-        <div className={cn('space-y-1', view === 'board' && 'hidden')}>
-          <Label className="text-xs text-muted-foreground">{t('filters.createdTo')}</Label>
-          <DatePickerInput value={dateTo} onChange={setDateTo} />
-        </div>
-        <div className={cn('space-y-1', view === 'board' && 'hidden')}>
-          <Label className="text-xs text-muted-foreground">{t('filters.sort')}</Label>
-          <Select value={sort} onValueChange={(v) => setSort(v as LabOrderSort)}>
-            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {(['created_desc', 'created_asc', 'days_desc', 'days_asc'] as LabOrderSort[]).map((value) => (
-                <SelectItem key={value} value={value}>{t(`sort.${value}`)}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex flex-wrap items-center gap-4 sm:col-span-2 lg:col-span-4">
-          <label className="flex cursor-pointer items-center gap-2 text-sm">
-            <Switch data-help-id="lab-orders.field.overdue-only" checked={overdueOnly} onCheckedChange={setOverdueOnly} />
-            {t('filters.overdueOnly')}
-          </label>
-          {view === 'board' && (
-            <div className="flex items-center gap-2 text-sm">
-              <Label className="text-xs text-muted-foreground">{t('board.finalWindowLabel')}</Label>
-              <Select value={String(finalDays)} onValueChange={(v) => setFinalDays(Number(v))}>
-                <SelectTrigger data-help-id="lab-orders.field.final-days" className="h-8 w-[9rem]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {FINAL_DAYS_OPTIONS.map((days) => (
-                    <SelectItem key={days} value={String(days)}>{t('board.lastDays', { days })}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          {hasExtraFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1.5">
-              <X className="h-3.5 w-3.5" />
-              {t('filters.clear')}
-            </Button>
-          )}
-        </div>
-      </section>
-
-      {view === 'board' ? (
-        <LabOrdersBoard
-          stages={stages}
-          filters={{
-            search: debouncedSearch.trim() || undefined,
-            laboratory_id: laboratory?.id,
-            doctor_id: doctor?.id,
-            overdue_only: overdueOnly || undefined,
-          }}
-          finalDays={finalDays}
-          reloadKey={boardKey}
-          canChangeStage={canChangeStage}
-          onOpen={(order) => setSelectedId(order.id)}
-          onMoved={() => setReloadKey((k) => k + 1)}
-        />
-      ) : (
-      <div className="min-h-0 flex-1 overflow-hidden px-1">
-        <DataTable
-          columns={columns}
-          data={orders}
-          isLoading={isLoading}
-          isRefreshing={isRefreshing}
-          onRefresh={reload}
-          loadError={loadError}
-          manualPagination
-          pagination={pagination}
-          onPaginationChange={setPagination}
-          pageCount={Math.max(1, Math.ceil(total / pagination.pageSize))}
-          rowCount={total}
-          getRowId={(row) => String(row.id)}
-          onRowClick={(row) => setSelectedId(row.id)}
-          getRowClassName={(row) => cn(row.is_overdue && 'bg-destructive/5')}
-          isNarrow={isMobile}
-          renderCard={(row) => (
-            <DataCard
-              title={row.patient_name}
-              subtitle={[row.laboratory_name, row.work_description].filter(Boolean).join(' · ')}
-              accentColor={row.stage_color}
-              showArrow
-              onClick={() => setSelectedId(row.id)}
-              actions={(
-                <div className="flex w-full items-center justify-between gap-2">
-                  <LabStageBadge name={row.stage_name} color={row.stage_color} />
-                  <LabOrderDaysInStage order={row} />
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-[min(30rem,calc(100vw-2rem))] p-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {view === 'list' && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">{t('filters.stage')}</Label>
+                    <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as StageFilter)}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">{t('filters.pending')}</SelectItem>
+                        <SelectItem value="all">{t('filters.allStages')}</SelectItem>
+                        {stages.length > 0 && <SelectSeparator />}
+                        {stages.map((stage) => (
+                          <SelectItem key={stage.id} value={`stage-${stage.id}`}>
+                            <span className="flex items-center gap-2">
+                              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: stage.color }} />
+                              {stage.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">{t('filters.laboratory')}</Label>
+                  <UserSelector
+                    filterType="PROVEEDOR"
+                    isSales={false}
+                    value={laboratory?.id ?? ''}
+                    selectedUserName={laboratory?.name}
+                    onValueChange={(id, user) => setLaboratory(id ? { id, name: user?.name ?? '' } : null)}
+                    placeholder={t('form.searchLaboratory')}
+                    triggerText={t('filters.any')}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">{t('filters.doctor')}</Label>
+                  <DoctorSelector
+                    value={doctor?.id ?? ''}
+                    selectedDoctorName={doctor?.name}
+                    onValueChange={(id, option) => setDoctor(id ? { id, name: option?.name ?? '' } : null)}
+                    placeholder={t('form.searchDoctor')}
+                    triggerText={t('filters.any')}
+                  />
+                </div>
+                {view === 'list' && (
+                  <>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">{t('filters.patient')}</Label>
+                      <UserSelector
+                        filterType="PACIENTE"
+                        value={patient?.id ?? ''}
+                        selectedUserName={patient?.name}
+                        onValueChange={(id, user) => setPatient(id ? { id, name: user?.name ?? '' } : null)}
+                        placeholder={t('form.searchPatient')}
+                        triggerText={t('filters.any')}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">{t('filters.createdFrom')}</Label>
+                      <DatePickerInput value={dateFrom} onChange={setDateFrom} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">{t('filters.createdTo')}</Label>
+                      <DatePickerInput value={dateTo} onChange={setDateTo} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">{t('filters.sort')}</Label>
+                      <Select value={sort} onValueChange={(v) => setSort(v as LabOrderSort)}>
+                        <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {(['created_desc', 'created_asc', 'days_desc', 'days_asc'] as LabOrderSort[]).map((value) => (
+                            <SelectItem key={value} value={value}>{t(`sort.${value}`)}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
+                )}
+                {view === 'board' && (
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">{t('board.finalWindowLabel')}</Label>
+                    <Select value={String(finalDays)} onValueChange={(v) => setFinalDays(Number(v))}>
+                      <SelectTrigger data-help-id="lab-orders.field.final-days" className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {FINAL_DAYS_OPTIONS.map((days) => (
+                          <SelectItem key={days} value={String(days)}>{t('board.lastDays', { days })}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              {hasExtraFilters && (
+                <div className="mt-3 flex justify-end border-t pt-3">
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1.5">
+                    <X className="h-3.5 w-3.5" />
+                    {t('filters.clear')}
+                  </Button>
                 </div>
               )}
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        {view === 'board' ? (
+          <LabOrdersBoard
+            stages={stages}
+            filters={{
+              search: debouncedSearch.trim() || undefined,
+              laboratory_id: laboratory?.id,
+              doctor_id: doctor?.id,
+              overdue_only: overdueOnly || undefined,
+            }}
+            finalDays={finalDays}
+            reloadKey={boardKey}
+            canChangeStage={canChangeStage}
+            onOpen={(order) => setSelectedId(order.id)}
+            onMoved={() => setReloadKey((k) => k + 1)}
+            className="px-0"
+          />
+        ) : (
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <DataTable
+              columns={columns}
+              data={orders}
+              isLoading={isLoading}
+              isRefreshing={isRefreshing}
+              onRefresh={reload}
+              loadError={loadError}
+              manualPagination
+              pagination={pagination}
+              onPaginationChange={setPagination}
+              pageCount={Math.max(1, Math.ceil(total / pagination.pageSize))}
+              rowCount={total}
+              getRowId={(row) => String(row.id)}
+              onRowClick={(row) => setSelectedId(row.id)}
+              getRowClassName={(row) => cn(row.is_overdue && 'bg-destructive/5', row.id === selectedId && 'bg-primary/5')}
+              isNarrow={isMobile || isRightOpen}
+              renderCard={(row) => (
+                <DataCard
+                  title={row.patient_name}
+                  subtitle={[row.laboratory_name, row.work_description].filter(Boolean).join(' · ')}
+                  accentColor={row.stage_color}
+                  isSelected={row.id === selectedId}
+                  showArrow
+                  actions={(
+                    <div className="flex w-full items-center justify-between gap-2">
+                      <LabStageBadge name={row.stage_name} color={row.stage_color} />
+                      <LabOrderDaysInStage order={row} />
+                    </div>
+                  )}
+                />
+              )}
             />
-          )}
-        />
-      </div>
-      )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <TwoPanelLayout
+        minLeftSize={20}
+        isRightPanelOpen={isRightOpen}
+        onBack={closeDetail}
+        forceRightOnly={isRightExpanded}
+        leftPanel={leftPanel}
+        rightPanel={isRightOpen && (
+          <LabOrderDetailPanel
+            orderId={selectedId}
+            stages={stages}
+            onClose={closeDetail}
+            onChanged={() => reload()}
+            isExpanded={isRightExpanded}
+            onToggleExpanded={() => setIsRightExpanded((v) => !v)}
+          />
+        )}
+      />
 
       <LabOrderFormDialog
         open={createOpen}
@@ -441,13 +525,6 @@ export default function LabOrdersPage() {
           reload();
           setSelectedId(order.id);
         }}
-      />
-
-      <LabOrderDetailSheet
-        orderId={selectedId}
-        stages={stages}
-        onClose={() => setSelectedId(null)}
-        onChanged={() => reload()}
       />
     </div>
   );

@@ -16,12 +16,12 @@
       "description": "Opens the new order form. The order starts in the initial stage."
     },
     "lab-orders.section.filters": {
-      "label": "Filters",
-      "description": "Search by patient, job, lab or number; stage (pending, all or a specific one), lab, doctor, patient, creation date range, sort order and “Overdue only”."
+      "label": "Search and filters",
+      "description": "Search by patient, job, lab or number; “Overdue only”; and the Filters button with stage (pending, all or a specific one), lab, doctor, patient, creation dates and sort order."
     },
     "lab-orders.field.overdue-only": {
       "label": "Overdue only",
-      "description": "Shows only the orders that went over the days set for their current stage."
+      "description": "Shows only the orders that went over the days set for their current stage. Red when active."
     },
     "lab-orders.section.detail-stage": {
       "label": "Current stage",
@@ -54,6 +54,14 @@
     "lab-orders.field.final-days": {
       "label": "Final columns",
       "description": "Final stages only show orders that arrived in the chosen last days, so they do not grow forever."
+    },
+    "lab-orders.section.detail": {
+      "label": "Order detail",
+      "description": "Panel with the current stage, “Move to…”, the details and the history. From its header you edit, delete, expand or close it."
+    },
+    "lab-orders.btn.filters": {
+      "label": "Filters",
+      "description": "Opens the rest of the filters. The number shows how many are applied."
     }
   }
 }

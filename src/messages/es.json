@@ -10032,7 +10032,8 @@
       "createdTo": "Alta hasta",
       "sort": "Ordenar por",
       "overdueOnly": "Solo atrasadas",
-      "clear": "Limpiar filtros"
+      "clear": "Limpiar filtros",
+      "more": "Filtros"
     },
     "sort": {
       "created_desc": "Más recientes",
@@ -10078,7 +10079,10 @@
       "created": "Alta en",
       "byStageDeactivation": "etapa desactivada",
       "delete": "Eliminar",
-      "edit": "Editar"
+      "edit": "Editar",
+      "expand": "Expandir",
+      "restore": "Restaurar",
+      "close": "Cerrar"
     },
     "deleteDialog": {
       "title": "Eliminar orden",

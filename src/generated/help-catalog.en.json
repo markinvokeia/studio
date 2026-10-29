@@ -1,5 +1,5 @@
 {
- "version": "922e24e5e9aee441",
+ "version": "b49ed9f3a72f6a93",
  "locale": "en",
  "journey": [
   {
@@ -7608,6 +7608,13 @@
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
+     "description": "Opens the rest of the filters. The number shows how many are applied.",
+     "id": "lab-orders.btn.filters",
+     "kind": "btn",
+     "label": "Filters",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
      "description": "Moves the order to another stage. The change is recorded in the history.",
      "id": "lab-orders.btn.move-to",
      "kind": "btn",
@@ -7665,7 +7672,7 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
-     "description": "Shows only the orders that went over the days set for their current stage.",
+     "description": "Shows only the orders that went over the days set for their current stage. Red when active.",
      "id": "lab-orders.field.overdue-only",
      "kind": "field",
      "label": "Overdue only",
@@ -7697,6 +7704,13 @@
      "source": "src/components/lab-orders/lab-orders-board.tsx"
     },
     {
+     "description": "Panel with the current stage, “Move to…”, the details and the history. From its header you edit, delete, expand or close it.",
+     "id": "lab-orders.section.detail",
+     "kind": "section",
+     "label": "Order detail",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
      "description": "The stage the order is in and how many days it has been there; red if overdue.",
      "id": "lab-orders.section.detail-stage",
      "kind": "section",
@@ -7704,10 +7718,10 @@
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
-     "description": "Search by patient, job, lab or number; stage (pending, all or a specific one), lab, doctor, patient, creation date range, sort order and “Overdue only”.",
+     "description": "Search by patient, job, lab or number; “Overdue only”; and the Filters button with stage (pending, all or a specific one), lab, doctor, patient, creation dates and sort order.",
      "id": "lab-orders.section.filters",
      "kind": "section",
-     "label": "Filters",
+     "label": "Search and filters",
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {

@@ -12,6 +12,7 @@ import { useTranslations } from 'next-intl';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
@@ -337,7 +338,7 @@ export default function LabStagesConfigPage() {
           </Alert>
         )}
 
-        <section data-help-id="config.lab-stages.section.active" className="rounded-xl border border-border bg-card">
+        <Card data-help-id="config.lab-stages.section.active">
           <div className="hidden grid-cols-[2rem_3rem_minmax(0,1fr)_10rem_8rem_6rem_8rem] items-center gap-2 border-b px-3 py-2 text-xs font-medium text-muted-foreground md:grid">
             <span />
             <span>{t('columns.color')}</span>
@@ -371,7 +372,7 @@ export default function LabStagesConfigPage() {
           {activeStages.length === 0 && (
             <p className="px-3 py-6 text-center text-sm text-muted-foreground">{t('emptyActive')}</p>
           )}
-        </section>
+        </Card>
 
         {inactiveStages.length > 0 && (
           <section data-help-id="config.lab-stages.section.inactive" className="space-y-2">

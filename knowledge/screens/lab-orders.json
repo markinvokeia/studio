@@ -20,12 +20,12 @@
       "description": "Abre el formulario de alta. La orden entra en la etapa inicial."
     },
     "lab-orders.section.filters": {
-      "label": "Filtros",
-      "description": "Búsqueda por paciente, trabajo, laboratorio o número; etapa (pendientes, todas o una en particular), laboratorio, doctor, paciente, rango de fechas de alta, orden y «Solo atrasadas»."
+      "label": "Búsqueda y filtros",
+      "description": "Búsqueda por paciente, trabajo, laboratorio o número; «Solo atrasadas»; y el botón Filtros con etapa (pendientes, todas o una en particular), laboratorio, doctor, paciente, fechas de alta y orden."
     },
     "lab-orders.field.overdue-only": {
       "label": "Solo atrasadas",
-      "description": "Muestra solo las órdenes que superaron los días configurados en su etapa actual."
+      "description": "Muestra solo las órdenes que superaron los días configurados en su etapa actual. En rojo cuando está activo."
     },
     "lab-orders.section.detail-stage": {
       "label": "Etapa actual",
@@ -58,6 +58,14 @@
     "lab-orders.field.final-days": {
       "label": "Columnas finales",
       "description": "Las etapas finales solo muestran las órdenes que llegaron en los últimos días elegidos, para que no crezcan sin límite."
+    },
+    "lab-orders.section.detail": {
+      "label": "Detalle de la orden",
+      "description": "Panel con la etapa actual, «Mover a…», los datos y el historial. Desde el encabezado se edita, se elimina, se expande o se cierra."
+    },
+    "lab-orders.btn.filters": {
+      "label": "Filtros",
+      "description": "Abre el resto de los filtros. El número indica cuántos están aplicados."
     }
   }
 }

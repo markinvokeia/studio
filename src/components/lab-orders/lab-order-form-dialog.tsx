@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { addDays, format } from 'date-fns';
 import { useForm, useWatch } from 'react-hook-form';
 import { useTranslations } from 'next-intl';
 import { z } from 'zod';
@@ -22,6 +23,9 @@ import { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
 import { saveLabOrder } from '@/services/lab-orders';
 
 import type { LabOrder } from '@/lib/types';
+
+/** Entrega estimada por defecto al crear una orden: días desde hoy. */
+const DEFAULT_DUE_DAYS = 7;
 
 const labOrderSchema = (t: (key: string) => string) => z.object({
   patient_id: z.string().min(1, t('form.validation.patient')),
@@ -48,7 +52,8 @@ function toFormValues(order?: LabOrder | null, patient?: { id: string; name: str
     laboratory_name: order?.laboratory_name ?? '',
     work_description: order?.work_description ?? '',
     teeth: order?.teeth.join(', ') ?? '',
-    due_date: order?.due_date ?? '',
+    // Alta: entrega estimada a una semana (fecha local de hoy + 7). En edición, la guardada.
+    due_date: order ? (order.due_date ?? '') : format(addDays(new Date(), DEFAULT_DUE_DAYS), 'yyyy-MM-dd'),
     notes: order?.notes ?? '',
   };
 }

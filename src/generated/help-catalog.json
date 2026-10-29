@@ -1,5 +1,5 @@
 {
- "version": "23c08eea0bb0cc00",
+ "version": "ec52fc318d328427",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -7696,6 +7696,13 @@
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
+     "description": "Abre el resto de los filtros. El número indica cuántos están aplicados.",
+     "id": "lab-orders.btn.filters",
+     "kind": "btn",
+     "label": "Filtros",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
      "description": "Cambia la orden de etapa. Queda registrado en el historial.",
      "id": "lab-orders.btn.move-to",
      "kind": "btn",
@@ -7753,7 +7760,7 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
-     "description": "Muestra solo las órdenes que superaron los días configurados en su etapa actual.",
+     "description": "Muestra solo las órdenes que superaron los días configurados en su etapa actual. En rojo cuando está activo.",
      "id": "lab-orders.field.overdue-only",
      "kind": "field",
      "label": "Solo atrasadas",
@@ -7785,6 +7792,13 @@
      "source": "src/components/lab-orders/lab-orders-board.tsx"
     },
     {
+     "description": "Panel con la etapa actual, «Mover a…», los datos y el historial. Desde el encabezado se edita, se elimina, se expande o se cierra.",
+     "id": "lab-orders.section.detail",
+     "kind": "section",
+     "label": "Detalle de la orden",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
      "description": "Etapa en la que está la orden y los días que lleva ahí; en rojo si está atrasada.",
      "id": "lab-orders.section.detail-stage",
      "kind": "section",
@@ -7792,10 +7806,10 @@
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
     },
     {
-     "description": "Búsqueda por paciente, trabajo, laboratorio o número; etapa (pendientes, todas o una en particular), laboratorio, doctor, paciente, rango de fechas de alta, orden y «Solo atrasadas».",
+     "description": "Búsqueda por paciente, trabajo, laboratorio o número; «Solo atrasadas»; y el botón Filtros con etapa (pendientes, todas o una en particular), laboratorio, doctor, paciente, fechas de alta y orden.",
      "id": "lab-orders.section.filters",
      "kind": "section",
-     "label": "Filtros",
+     "label": "Búsqueda y filtros",
      "source": "src/app/[locale]/lab-orders/page.tsx"
     },
     {
