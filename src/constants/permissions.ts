@@ -757,6 +757,24 @@ export const CALENDAR_DISPLAY_PERMISSIONS = {
 export type CalendarDisplayPermission =
   (typeof CALENDAR_DISPLAY_PERMISSIONS)[keyof typeof CALENDAR_DISPLAY_PERMISSIONS];
 
+/**
+ * Órdenes de laboratorio: trabajos enviados a laboratorios externos y su etapa.
+ * Ver database/scripts/147_20261029_lab-orders-stages.sql.
+ */
+export const LAB_ORDERS_PERMISSIONS = {
+  VIEW_MENU:     'LAB_ORDERS_VIEW_MENU',
+  VIEW:          'LAB_ORDERS_VIEW',
+  CREATE:        'LAB_ORDERS_CREATE',
+  UPDATE:        'LAB_ORDERS_UPDATE',
+  DELETE:        'LAB_ORDERS_DELETE',
+  /** Mover órdenes entre etapas (arrastre en el tablero y menú "Mover a…"). */
+  CHANGE_STAGE:  'LAB_ORDERS_CHANGE_STAGE',
+  /** Configuración → Etapas de laboratorio (etapas y sus alertas). */
+  STAGES_CONFIG: 'LAB_STAGES_CONFIG',
+} as const;
+
+export type LabOrdersPermission = (typeof LAB_ORDERS_PERMISSIONS)[keyof typeof LAB_ORDERS_PERMISSIONS];
+
 export const PATIENT_PORTAL_PERMISSIONS = {
   ACCESS:              'PATIENT_PORTAL_ACCESS',
   VIEW_INFO:           'PATIENT_PORTAL_VIEW_INFO',

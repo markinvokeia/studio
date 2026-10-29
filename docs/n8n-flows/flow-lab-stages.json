@@ -1,0 +1,247 @@
+{
+  "name": "Lab Stages",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Lab Stages — Configuración → Etapas de laboratorio\n\nGET  /lab-stages        → todas las etapas (activas primero, en orden) con orders_count / in_use (lab_stages_list()).\nPOST /lab-stages/save   → body { stages: [...] } en el orden de la pantalla. Guarda TODO en una transacción con lab_stages_save(stages, usuario del JWT): valida una sola inicial, al menos una final, nombres, umbrales; borra las que no vienen (si nunca se usaron) y mueve órdenes de las desactivadas (move_orders_to).\n\nErrores: la función lanza 'LAB_STAGES:<CODIGO>|<detalle>'. 'Map error' responde 400 { success:false, code, detail, message } y el frontend traduce code.\n\nRequiere database/scripts/147_20261029_lab-orders-stages.sql.",
+        "height": 360,
+        "width": 560
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        -440
+      ],
+      "id": "01ef0a1f-a9ad-4ac6-9560-26e17de06dbb",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "path": "lab-stages",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -288,
+        0
+      ],
+      "id": "728e6157-52b5-46b6-a58f-1a7723ae5933",
+      "name": "GET /lab-stages",
+      "webhookId": "c5acee25-1ee8-4288-9814-39e799e6ca1e",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.lab_stages_list();",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -64,
+        0
+      ],
+      "id": "e811e905-b835-4774-bbd4-ca325e031a21",
+      "name": "Select lab stages",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lab-stages/save",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -288,
+        220
+      ],
+      "id": "e10f7f82-66fd-4e21-acde-93fda789a39f",
+      "name": "POST /lab-stages/save",
+      "webhookId": "11b4c996-69a7-4f0c-945f-f016c2d9bf70",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.lab_stages_save($1::jsonb, NULLIF($2, '')::uuid);",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($json.body.stages ?? []), $json.jwtPayload?.userId ?? ''] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -64,
+        220
+      ],
+      "id": "2c00eb95-3ad0-4a16-bd7d-3ed8851029c0",
+      "name": "Save lab stages",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// lab_stages_save lanza 'LAB_STAGES:<CODIGO>|<detalle>'. Cualquier otro error\n// (conexión, constraint inesperada) sale como UNKNOWN con el mensaje crudo.\nconst raw = $json.error?.message ?? $json.error ?? $json.message ?? '';\nconst text = String(raw);\nconst match = text.match(/LAB_STAGES:([A-Z_]+)(?:\\|(.*))?/);\nreturn [{ json: {\n  success: false,\n  code: match ? match[1] : 'UNKNOWN',\n  detail: match && match[2] ? match[2].trim() : null,\n  message: text || 'Error',\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        320
+      ],
+      "id": "3a102611-b2d1-435f-8040-07c268ea5cbe",
+      "name": "Map error"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        416,
+        80
+      ],
+      "id": "75b351ef-cbd2-4208-8ad8-85e3337f7418",
+      "name": "OK"
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        416,
+        320
+      ],
+      "id": "dc68d5a7-2fc8-4812-902a-892ff50822e9",
+      "name": "Error"
+    }
+  ],
+  "connections": {
+    "GET /lab-stages": {
+      "main": [
+        [
+          {
+            "node": "Select lab stages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select lab stages": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /lab-stages/save": {
+      "main": [
+        [
+          {
+            "node": "Save lab stages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save lab stages": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map error": {
+      "main": [
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}

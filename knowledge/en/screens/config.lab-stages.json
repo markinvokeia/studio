@@ -1,0 +1,36 @@
+{
+  "id": "config.lab-stages",
+  "summary": "Stages of the lab order workflow.",
+  "purpose": "Define which stages every job sent to a lab (prostheses, crowns, aligners…) goes through, in what order, and after how many days in a stage the order is considered overdue.",
+  "tips": [
+    "There must be exactly one initial stage (every new order starts there) and at least one final stage (for example Completed or Cancelled).",
+    "A stage that has or had orders is not deleted: it is deactivated. If it still has orders, you choose which stage they move to.",
+    "Stage names are written by the clinic and are not translated.",
+    "Nothing applies until you press Save."
+  ],
+  "elements": {
+    "config.lab-stages.section.active": {
+      "label": "Active stages",
+      "description": "One row per stage, in workflow order: drag them by the handle on the left. Each has a color, name, type (initial, intermediate or final) and the number of days after which an order in that stage is overdue (empty = no limit; final stages have none)."
+    },
+    "config.lab-stages.section.inactive": {
+      "label": "Deactivated stages",
+      "description": "Stages no longer in use that do not show on the board. They can be reactivated."
+    },
+    "config.lab-stages.section.issues": {
+      "label": "Review the configuration",
+      "description": "What is missing before you can save: a single initial stage, at least one final stage, and complete, unique names."
+    },
+    "config.lab-stages.btn.add": {
+      "label": "Add stage",
+      "description": "Adds an intermediate stage before the final ones."
+    },
+    "config.lab-stages.btn.discard": {
+      "label": "Discard changes"
+    },
+    "config.lab-stages.btn.save": {
+      "label": "Save",
+      "description": "Saves the whole configuration at once. If a stage with orders was deactivated, its orders move to the chosen stage at that moment."
+    }
+  }
+}

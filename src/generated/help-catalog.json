@@ -1,5 +1,5 @@
 {
- "version": "9c69ca6f95468258",
+ "version": "bd39c4abbd6ae76d",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -879,6 +879,36 @@
    "code": "IMPORT_DATA_VIEW_MENU",
    "constant": "SYSTEM_PERMISSIONS.IMPORT_DATA_VIEW_MENU",
    "description": "Data Import"
+  },
+  {
+   "code": "LAB_ORDERS_CHANGE_STAGE",
+   "constant": "LAB_ORDERS_PERMISSIONS.CHANGE_STAGE",
+   "description": "Mover órdenes entre etapas (arrastre en el tablero y menú \"Mover a…\")."
+  },
+  {
+   "code": "LAB_ORDERS_CREATE",
+   "constant": "LAB_ORDERS_PERMISSIONS.CREATE"
+  },
+  {
+   "code": "LAB_ORDERS_DELETE",
+   "constant": "LAB_ORDERS_PERMISSIONS.DELETE"
+  },
+  {
+   "code": "LAB_ORDERS_UPDATE",
+   "constant": "LAB_ORDERS_PERMISSIONS.UPDATE"
+  },
+  {
+   "code": "LAB_ORDERS_VIEW",
+   "constant": "LAB_ORDERS_PERMISSIONS.VIEW"
+  },
+  {
+   "code": "LAB_ORDERS_VIEW_MENU",
+   "constant": "LAB_ORDERS_PERMISSIONS.VIEW_MENU"
+  },
+  {
+   "code": "LAB_STAGES_CONFIG",
+   "constant": "LAB_ORDERS_PERMISSIONS.STAGES_CONFIG",
+   "description": "Configuración → Etapas de laboratorio (etapas y sus alertas)."
   },
   {
    "code": "LICENSING_GENERATE",
@@ -2257,6 +2287,12 @@
      "id": "nav.config.holidays",
      "kind": "nav",
      "label": "Horarios de Excepción"
+    },
+    {
+     "description": "/config/lab-stages",
+     "id": "nav.config.lab-stages",
+     "kind": "nav",
+     "label": "Etapas de Laboratorio"
     },
     {
      "description": "/config/medical-instruction-templates",
@@ -6331,6 +6367,68 @@
     "config.holidays.edit",
     "config.holidays.delete"
    ]
+  },
+  {
+   "elements": [
+    {
+     "description": "Agrega una etapa intermedia antes de las finales.",
+     "id": "config.lab-stages.btn.add",
+     "kind": "btn",
+     "label": "Agregar etapa",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "id": "config.lab-stages.btn.discard",
+     "kind": "btn",
+     "label": "Descartar cambios",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "description": "Guarda toda la configuración junta. Si se desactivó una etapa con órdenes, en ese momento las órdenes pasan a la etapa elegida.",
+     "id": "config.lab-stages.btn.save",
+     "kind": "btn",
+     "label": "Guardar",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "description": "Una fila por etapa, en el orden del circuito: se arrastran por el ícono de la izquierda. Cada una tiene color, nombre, tipo (inicial, intermedia o final) y los días a partir de los cuales una orden en esa etapa queda atrasada (vacío = sin umbral; las finales no llevan).",
+     "id": "config.lab-stages.section.active",
+     "kind": "section",
+     "label": "Etapas activas",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "description": "Etapas que ya no se usan y no aparecen en el tablero. Se pueden reactivar.",
+     "id": "config.lab-stages.section.inactive",
+     "kind": "section",
+     "label": "Etapas desactivadas",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "description": "Lo que falta para poder guardar: una sola etapa inicial, al menos una final, nombres completos y sin repetir.",
+     "id": "config.lab-stages.section.issues",
+     "kind": "section",
+     "label": "Revisar la configuración",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    }
+   ],
+   "id": "config.lab-stages",
+   "inMenu": true,
+   "module": "Configuración de Negocio",
+   "permissions": [
+    "LAB_STAGES_CONFIG"
+   ],
+   "purpose": "Define por qué etapas pasa cada trabajo enviado a un laboratorio (prótesis, coronas, alineadores…), en qué orden, y a partir de cuántos días en una etapa la orden se considera atrasada.",
+   "route": "/config/lab-stages",
+   "status": "draft",
+   "summary": "Etapas del circuito de órdenes de laboratorio.",
+   "tips": [
+    "Tiene que haber exactamente una etapa inicial (ahí entra toda orden nueva) y al menos una final (por ejemplo Completado o Cancelado).",
+    "Una etapa que tiene o tuvo órdenes no se elimina: se desactiva. Si todavía tiene órdenes, se elige a qué etapa pasan.",
+    "Los nombres de las etapas los escribe la clínica y no se traducen.",
+    "Nada se aplica hasta pulsar Guardar."
+   ],
+   "title": "Etapas de Laboratorio"
   },
   {
    "elements": [

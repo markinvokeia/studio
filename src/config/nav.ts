@@ -1,5 +1,5 @@
 
-import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, HELP_PERMISSIONS, CALENDAR_DISPLAY_PERMISSIONS, CLINIC_PREFS_PERMISSIONS, PATIENT_PORTAL_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, LICENSING_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, SUBSCRIPTIONS_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
+import { ALERT_CENTER_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, HELP_PERMISSIONS, CALENDAR_DISPLAY_PERMISSIONS, CLINIC_PREFS_PERMISSIONS, LAB_ORDERS_PERMISSIONS, PATIENT_PORTAL_CONFIG_PERMISSIONS, CASHIER_PERMISSIONS, CLINIC_CATALOG_PERMISSIONS, DASHBOARD_PERMISSIONS, DICOM_PERMISSIONS, LICENSING_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PURCHASES_PERMISSIONS, REPORTS_PERMISSIONS, SALES_PERMISSIONS, SUBSCRIPTIONS_PERMISSIONS, SYSTEM_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
@@ -33,6 +33,7 @@ import {
   DollarSign,
   FileClock,
   FileText,
+  FlaskConical,
   FileWarning,
   Gauge,
   Handshake,
@@ -232,6 +233,7 @@ export const navItems: NavItem[] = [
       PATIENT_PORTAL_CONFIG_PERMISSIONS.VIEW,
       CLINIC_PREFS_PERMISSIONS.VIEW,
       CALENDAR_DISPLAY_PERMISSIONS.VIEW,
+      LAB_ORDERS_PERMISSIONS.STAGES_CONFIG,
     ],
     items: [
       { title: 'ClinicDetails', href: '/config/clinics', icon: Building, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.CLINIC_DETAILS_VIEW },
@@ -251,6 +253,7 @@ export const navItems: NavItem[] = [
       { title: 'MutualSocieties', href: '/config/mutual-societies', icon: Handshake, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.MUTUAL_SOC_VIEW_MENU },
       { title: 'PatientGroups', href: '/config/patient-groups', icon: UsersRound, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.PATIENT_GROUPS_VIEW_MENU },
       { title: 'ProviderGroups', href: '/config/provider-groups', icon: Boxes, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.PROVIDER_GROUPS_VIEW_MENU },
+      { title: 'LabStages', href: '/config/lab-stages', icon: FlaskConical, isChidren: true, requiredPermission: LAB_ORDERS_PERMISSIONS.STAGES_CONFIG },
       { title: 'Templates', href: '/config/templates', icon: FileText, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.PRINT_TEMPLATES_VIEW },
       { title: 'MedicalInstructionTemplates', href: '/config/medical-instruction-templates', icon: ClipboardList, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.MEDICAL_INSTRUCTION_TEMPLATES_VIEW },
       { title: 'PrescriptionTemplates', href: '/config/prescription-templates', icon: Pill, isChidren: true, requiredPermission: BUSINESS_CONFIG_PERMISSIONS.PRESCRIPTION_TEMPLATES_VIEW },

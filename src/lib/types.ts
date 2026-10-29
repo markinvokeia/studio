@@ -718,6 +718,47 @@ export type CalendarColorSettings = CalendarColorSources & {
   highlight: CalendarViewHighlight;
 };
 
+// ── Órdenes de laboratorio ─────────────────────────────────────────────────────
+
+/** initial: exactamente una activa (ahí entra toda orden nueva) · final: al menos una (ya no está pendiente). */
+export type LabStageKind = 'initial' | 'intermediate' | 'final';
+
+/** Etapa del circuito de laboratorio (tabla `lab_stages`, Configuración → Etapas de laboratorio). */
+export interface LabStage {
+  id: number;
+  /** Lo escribe la clínica: no se traduce. */
+  name: string;
+  color: string;
+  sort_order: number;
+  kind: LabStageKind;
+  /** Días en la etapa a partir de los cuales la orden está atrasada. null = sin umbral (siempre null en finales). */
+  overdue_days: number | null;
+  is_active: boolean;
+  /** Órdenes que están hoy en esta etapa. */
+  orders_count: number;
+  /** Tiene órdenes o aparece en el historial: no se puede borrar, solo desactivar. */
+  in_use: boolean;
+}
+
+/** Una etapa tal como se manda a guardar (POST /lab-stages/save), en el orden de la pantalla. */
+export interface LabStageSaveItem {
+  /** null = etapa nueva. */
+  id: number | null;
+  name: string;
+  color: string;
+  kind: LabStageKind;
+  overdue_days: number | null;
+  is_active: boolean;
+  /** Al desactivar una etapa con órdenes: etapa activa a la que pasan. */
+  move_orders_to?: number | null;
+}
+
+/** Códigos de error de lab_stages_save (script 147). */
+export type LabStagesSaveErrorCode =
+  | 'NO_INITIAL' | 'MANY_INITIAL' | 'NO_FINAL' | 'EMPTY_NAME' | 'DUPLICATE_NAME' | 'INVALID_KIND'
+  | 'INVALID_OVERDUE' | 'INITIAL_INACTIVE' | 'UNKNOWN_STAGE' | 'STAGE_IN_USE' | 'STAGE_HAS_ORDERS'
+  | 'INVALID_MOVE_TARGET' | 'UNKNOWN';
+
 /** `calendar_id: null` es la configuración general de la clínica. */
 export type CalendarColorSourceRow = CalendarColorSettings & {
   calendar_id: string | null;

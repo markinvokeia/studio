@@ -1,5 +1,5 @@
 {
- "version": "0dab5c04d65d6b83",
+ "version": "894732785bd115ee",
  "locale": "en",
  "journey": [
   {
@@ -880,6 +880,36 @@
    "code": "IMPORT_DATA_VIEW_MENU",
    "constant": "SYSTEM_PERMISSIONS.IMPORT_DATA_VIEW_MENU",
    "description": "Data Import"
+  },
+  {
+   "code": "LAB_ORDERS_CHANGE_STAGE",
+   "constant": "LAB_ORDERS_PERMISSIONS.CHANGE_STAGE",
+   "description": "Mover órdenes entre etapas (arrastre en el tablero y menú \"Mover a…\")."
+  },
+  {
+   "code": "LAB_ORDERS_CREATE",
+   "constant": "LAB_ORDERS_PERMISSIONS.CREATE"
+  },
+  {
+   "code": "LAB_ORDERS_DELETE",
+   "constant": "LAB_ORDERS_PERMISSIONS.DELETE"
+  },
+  {
+   "code": "LAB_ORDERS_UPDATE",
+   "constant": "LAB_ORDERS_PERMISSIONS.UPDATE"
+  },
+  {
+   "code": "LAB_ORDERS_VIEW",
+   "constant": "LAB_ORDERS_PERMISSIONS.VIEW"
+  },
+  {
+   "code": "LAB_ORDERS_VIEW_MENU",
+   "constant": "LAB_ORDERS_PERMISSIONS.VIEW_MENU"
+  },
+  {
+   "code": "LAB_STAGES_CONFIG",
+   "constant": "LAB_ORDERS_PERMISSIONS.STAGES_CONFIG",
+   "description": "Configuración → Etapas de laboratorio (etapas y sus alertas)."
   },
   {
    "code": "LICENSING_GENERATE",
@@ -2238,6 +2268,11 @@
      "id": "nav.config.holidays",
      "kind": "nav",
      "label": "Exception Schedules"
+    },
+    {
+     "id": "nav.config.lab-stages",
+     "kind": "nav",
+     "label": "Lab Stages"
     },
     {
      "id": "nav.config.medical-instruction-templates",
@@ -6245,6 +6280,68 @@
     "config.holidays.edit",
     "config.holidays.delete"
    ]
+  },
+  {
+   "elements": [
+    {
+     "description": "Adds an intermediate stage before the final ones.",
+     "id": "config.lab-stages.btn.add",
+     "kind": "btn",
+     "label": "Add stage",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "id": "config.lab-stages.btn.discard",
+     "kind": "btn",
+     "label": "Discard changes",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "description": "Saves the whole configuration at once. If a stage with orders was deactivated, its orders move to the chosen stage at that moment.",
+     "id": "config.lab-stages.btn.save",
+     "kind": "btn",
+     "label": "Save",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "description": "One row per stage, in workflow order: drag them by the handle on the left. Each has a color, name, type (initial, intermediate or final) and the number of days after which an order in that stage is overdue (empty = no limit; final stages have none).",
+     "id": "config.lab-stages.section.active",
+     "kind": "section",
+     "label": "Active stages",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "description": "Stages no longer in use that do not show on the board. They can be reactivated.",
+     "id": "config.lab-stages.section.inactive",
+     "kind": "section",
+     "label": "Deactivated stages",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "description": "What is missing before you can save: a single initial stage, at least one final stage, and complete, unique names.",
+     "id": "config.lab-stages.section.issues",
+     "kind": "section",
+     "label": "Review the configuration",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    }
+   ],
+   "id": "config.lab-stages",
+   "inMenu": true,
+   "module": "Business Setup",
+   "permissions": [
+    "LAB_STAGES_CONFIG"
+   ],
+   "purpose": "Define which stages every job sent to a lab (prostheses, crowns, aligners…) goes through, in what order, and after how many days in a stage the order is considered overdue.",
+   "route": "/config/lab-stages",
+   "status": "draft",
+   "summary": "Stages of the lab order workflow.",
+   "tips": [
+    "There must be exactly one initial stage (every new order starts there) and at least one final stage (for example Completed or Cancelled).",
+    "A stage that has or had orders is not deleted: it is deactivated. If it still has orders, you choose which stage they move to.",
+    "Stage names are written by the clinic and are not translated.",
+    "Nothing applies until you press Save."
+   ],
+   "title": "Lab Stages"
   },
   {
    "elements": [

@@ -1,0 +1,37 @@
+{
+  "id": "config.lab-stages",
+  "status": "draft",
+  "summary": "Etapas del circuito de órdenes de laboratorio.",
+  "purpose": "Define por qué etapas pasa cada trabajo enviado a un laboratorio (prótesis, coronas, alineadores…), en qué orden, y a partir de cuántos días en una etapa la orden se considera atrasada.",
+  "tips": [
+    "Tiene que haber exactamente una etapa inicial (ahí entra toda orden nueva) y al menos una final (por ejemplo Completado o Cancelado).",
+    "Una etapa que tiene o tuvo órdenes no se elimina: se desactiva. Si todavía tiene órdenes, se elige a qué etapa pasan.",
+    "Los nombres de las etapas los escribe la clínica y no se traducen.",
+    "Nada se aplica hasta pulsar Guardar."
+  ],
+  "elements": {
+    "config.lab-stages.section.active": {
+      "label": "Etapas activas",
+      "description": "Una fila por etapa, en el orden del circuito: se arrastran por el ícono de la izquierda. Cada una tiene color, nombre, tipo (inicial, intermedia o final) y los días a partir de los cuales una orden en esa etapa queda atrasada (vacío = sin umbral; las finales no llevan)."
+    },
+    "config.lab-stages.section.inactive": {
+      "label": "Etapas desactivadas",
+      "description": "Etapas que ya no se usan y no aparecen en el tablero. Se pueden reactivar."
+    },
+    "config.lab-stages.section.issues": {
+      "label": "Revisar la configuración",
+      "description": "Lo que falta para poder guardar: una sola etapa inicial, al menos una final, nombres completos y sin repetir."
+    },
+    "config.lab-stages.btn.add": {
+      "label": "Agregar etapa",
+      "description": "Agrega una etapa intermedia antes de las finales."
+    },
+    "config.lab-stages.btn.discard": {
+      "label": "Descartar cambios"
+    },
+    "config.lab-stages.btn.save": {
+      "label": "Guardar",
+      "description": "Guarda toda la configuración junta. Si se desactivó una etapa con órdenes, en ese momento las órdenes pasan a la etapa elegida."
+    }
+  }
+}

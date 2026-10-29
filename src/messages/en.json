@@ -373,6 +373,7 @@
     "MutualSocieties": "Mutual Societies",
     "PatientGroups": "Patient Groups",
     "ProviderGroups": "Provider Groups",
+    "LabStages": "Lab Stages",
     "PrintTemplates": "Document Templates",
     "Templates": "Templates",
     "MedicalInstructionTemplates": "Medical Instruction Templates",
@@ -9829,6 +9830,77 @@
       "confirm": "Copy",
       "success": "Configuration copied",
       "error": "We couldn't copy the configuration"
+    }
+  },
+  "LabStagesPage": {
+    "title": "Lab stages",
+    "description": "Define the workflow every order sent to a lab goes through.",
+    "hint": "Drag stages to reorder them. Every new order starts in the initial stage; in a final stage the order is no longer pending and can never be overdue. Changes apply when you save.",
+    "loadError": "Could not load the stages",
+    "save": "Save",
+    "saved": "Stages saved",
+    "saveError": "Could not save the stages",
+    "discard": "Discard changes",
+    "discardConfirm": "Discard unsaved changes?",
+    "add": "Add stage",
+    "columns": {
+      "color": "Color",
+      "name": "Name",
+      "kind": "Type",
+      "overdueDays": "Overdue after",
+      "orders": "Orders"
+    },
+    "kinds": {
+      "initial": "Initial",
+      "intermediate": "Intermediate",
+      "final": "Final"
+    },
+    "namePlaceholder": "Stage name",
+    "overduePlaceholder": "No limit",
+    "overdueNotApplicable": "N/A",
+    "daysSuffix": "days",
+    "ordersCount": "{count, plural, one {# order} other {# orders}}",
+    "newBadge": "New",
+    "dragHandle": "Move stage {name}",
+    "deactivate": "Deactivate",
+    "deactivateInitialHint": "The initial stage cannot be deactivated: mark another one as initial first.",
+    "remove": "Delete",
+    "removeInUseHint": "It has or had orders: it cannot be deleted, only deactivated.",
+    "reactivate": "Reactivate",
+    "inactiveTitle": "Deactivated stages",
+    "emptyActive": "There are no active stages. Add at least an initial and a final one.",
+    "movesTo": "{count, plural, one {# order moves} other {# orders move}} to \"{name}\" on save",
+    "issues": {
+      "title": "Review the configuration before saving",
+      "noInitial": "There must be an initial stage.",
+      "manyInitial": "There can only be one initial stage.",
+      "noFinal": "There must be at least one final stage.",
+      "emptyName": "Every stage needs a name.",
+      "duplicateName": "Some active stages have the same name.",
+      "invalidOverdue": "Overdue days must be a whole number greater than 0."
+    },
+    "errors": {
+      "NO_INITIAL": "There must be an initial stage.",
+      "MANY_INITIAL": "There can only be one initial stage.",
+      "NO_FINAL": "There must be at least one final stage.",
+      "EMPTY_NAME": "Every stage needs a name.",
+      "DUPLICATE_NAME": "There is already an active stage named \"{name}\".",
+      "INVALID_KIND": "Stage \"{name}\" has an invalid type.",
+      "INVALID_OVERDUE": "The overdue days of \"{name}\" are not valid (final stages have no limit).",
+      "INITIAL_INACTIVE": "The initial stage \"{name}\" cannot be deactivated.",
+      "UNKNOWN_STAGE": "Stage \"{name}\" no longer exists. Reload the page.",
+      "STAGE_IN_USE": "\"{name}\" has or had orders: it cannot be deleted, deactivate it instead.",
+      "STAGE_HAS_ORDERS": "\"{name}\" still has orders: choose where they go before deactivating it.",
+      "INVALID_MOVE_TARGET": "The orders in \"{name}\" must move to an active stage.",
+      "UNKNOWN": "Something went wrong while saving. Please try again."
+    },
+    "moveDialog": {
+      "title": "Deactivate \"{name}\"",
+      "description": "{count, plural, one {There is # order} other {There are # orders}} in \"{name}\". Choose which stage they move to: the change is recorded in the history of each order.",
+      "target": "Target stage",
+      "appliedOnSave": "Applied when you save the configuration.",
+      "cancel": "Cancel",
+      "confirm": "Deactivate and move"
     }
   },
   "PatientPortalConfigPage": {

@@ -267,6 +267,15 @@ export const API_ROUTES = {
         UPSERT: '/calendar_color_source/upsert',
         DELETE: '/calendar_color_source/delete',
     },
+    /**
+     * Configuración → Etapas de laboratorio. LIST trae todas (activas primero, con
+     * orders_count / in_use); SAVE guarda la configuración completa en una
+     * transacción (lab_stages_save, script 147).
+     */
+    LAB_STAGES: {
+        LIST: '/lab-stages',
+        SAVE: '/lab-stages/save',
+    },
     ORDERS: '/orders',
     PERMISSIONS: '/permissions',
     PERMISSION_USERS: '/permission_users',

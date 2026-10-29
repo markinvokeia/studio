@@ -373,6 +373,7 @@
     "MutualSocieties": "Sociedades Mutuales",
     "PatientGroups": "Grupos de Pacientes",
     "ProviderGroups": "Grupos de Proveedores",
+    "LabStages": "Etapas de Laboratorio",
     "PrintTemplates": "Plantillas de Documentos",
     "Templates": "Plantillas",
     "MedicalInstructionTemplates": "Plantillas de Indicaciones Médicas",
@@ -9829,6 +9830,77 @@
       "confirm": "Copiar",
       "success": "Configuración copiada",
       "error": "No se pudo copiar la configuración"
+    }
+  },
+  "LabStagesPage": {
+    "title": "Etapas de laboratorio",
+    "description": "Define el circuito por el que pasa cada orden enviada a un laboratorio.",
+    "hint": "Arrastra las etapas para ordenarlas. Toda orden nueva entra en la etapa inicial; en una etapa final la orden ya no está pendiente ni puede quedar atrasada. Los cambios se aplican al guardar.",
+    "loadError": "No se han podido cargar las etapas",
+    "save": "Guardar",
+    "saved": "Etapas guardadas",
+    "saveError": "No se han podido guardar las etapas",
+    "discard": "Descartar cambios",
+    "discardConfirm": "¿Seguro que quieres descartar los cambios sin guardar?",
+    "add": "Añadir etapa",
+    "columns": {
+      "color": "Color",
+      "name": "Nombre",
+      "kind": "Tipo",
+      "overdueDays": "Retraso a los",
+      "orders": "Órdenes"
+    },
+    "kinds": {
+      "initial": "Inicial",
+      "intermediate": "Intermedia",
+      "final": "Final"
+    },
+    "namePlaceholder": "Nombre de la etapa",
+    "overduePlaceholder": "Sin umbral",
+    "overdueNotApplicable": "No aplica",
+    "daysSuffix": "días",
+    "ordersCount": "{count, plural, one {# orden} other {# órdenes}}",
+    "newBadge": "Nueva",
+    "dragHandle": "Mover la etapa {name}",
+    "deactivate": "Desactivar",
+    "deactivateInitialHint": "La etapa inicial no se puede desactivar: marca otra como inicial primero.",
+    "remove": "Eliminar",
+    "removeInUseHint": "Tiene o ha tenido órdenes: no se puede eliminar, solo desactivar.",
+    "reactivate": "Reactivar",
+    "inactiveTitle": "Etapas desactivadas",
+    "emptyActive": "No hay etapas activas. Añade al menos una inicial y una final.",
+    "movesTo": "{count, plural, one {# orden pasa} other {# órdenes pasan}} a «{name}» al guardar",
+    "issues": {
+      "title": "Revisa la configuración antes de guardar",
+      "noInitial": "Tiene que haber una etapa inicial.",
+      "manyInitial": "Solo puede haber una etapa inicial.",
+      "noFinal": "Tiene que haber al menos una etapa final.",
+      "emptyName": "Todas las etapas necesitan un nombre.",
+      "duplicateName": "Hay etapas activas con el mismo nombre.",
+      "invalidOverdue": "Los días de retraso tienen que ser un número entero mayor que 0."
+    },
+    "errors": {
+      "NO_INITIAL": "Tiene que haber una etapa inicial.",
+      "MANY_INITIAL": "Solo puede haber una etapa inicial.",
+      "NO_FINAL": "Tiene que haber al menos una etapa final.",
+      "EMPTY_NAME": "Todas las etapas necesitan un nombre.",
+      "DUPLICATE_NAME": "Ya hay una etapa activa llamada «{name}».",
+      "INVALID_KIND": "La etapa «{name}» tiene un tipo no válido.",
+      "INVALID_OVERDUE": "Los días de retraso de «{name}» no son válidos (las etapas finales no llevan umbral).",
+      "INITIAL_INACTIVE": "La etapa inicial «{name}» no se puede desactivar.",
+      "UNKNOWN_STAGE": "La etapa «{name}» ya no existe. Recarga la página.",
+      "STAGE_IN_USE": "«{name}» tiene o ha tenido órdenes: no se puede eliminar, desactívala.",
+      "STAGE_HAS_ORDERS": "«{name}» todavía tiene órdenes: elige a qué etapa pasan antes de desactivarla.",
+      "INVALID_MOVE_TARGET": "Las órdenes de «{name}» tienen que pasar a una etapa activa.",
+      "UNKNOWN": "Se ha producido un error al guardar. Inténtalo de nuevo."
+    },
+    "moveDialog": {
+      "title": "Desactivar «{name}»",
+      "description": "{count, plural, one {Hay # orden} other {Hay # órdenes}} en «{name}». Elige a qué etapa pasan: el cambio queda en el historial de cada orden.",
+      "target": "Etapa de destino",
+      "appliedOnSave": "Se aplica al guardar la configuración.",
+      "cancel": "Cancelar",
+      "confirm": "Desactivar y mover"
     }
   },
   "PatientPortalConfigPage": {
