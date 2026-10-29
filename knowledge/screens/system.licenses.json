@@ -10,6 +10,10 @@
     "system.licenses.overview"
   ],
   "elements": {
+    "system.licenses.section.master-key": {
+      "label": "Clave maestra",
+      "description": "La gestión de licencias está protegida: primero se ingresa la clave maestra de Invoke IA. Sin ella no se ven ni se generan licencias."
+    },
     "system.licenses.section.generate-new": {
       "label": "Generar licencia",
       "description": "Tipo, fechas, límites y acceso a IA."

@@ -354,6 +354,10 @@
     "appointments.field.inline-draft-live-preview": {
       "label": "Preview the appointment",
       "description": "The inline appointment card opens next to the appointment, which shows on the calendar while you fill it in, so you can see how it fits in the gaps. Changing the date moves the calendar to that day. Tablet and desktop only."
+    },
+    "appointments.btn.future-confirm": {
+      "label": "Yes (confirm the new time)",
+      "description": "Warning about the patient's existing appointments: \"Yes\" saves the new appointment anyway; \"No\" goes back to the form."
     }
   }
 }

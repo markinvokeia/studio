@@ -9075,7 +9075,9 @@
       "promptDescription": "Introduce la clave maestra para acceder a la gestión de licencias.",
       "placeholder": "Clave maestra...",
       "invalid": "Clave maestra inválida. No se pudo descifrar la licencia actual.",
-      "submit": "Verificar"
+      "submit": "Verificar",
+      "notConfigured": "NEXT_PUBLIC_MASTER_SEC no está configurado en el servidor.",
+      "wrong": "Clave incorrecta. Inténtalo de nuevo."
     },
     "management": {
       "title": "Gestión de Licencia",

@@ -562,6 +562,14 @@
     },
     "patients.btn.discharge-save": {
       "label": "Guardar alta"
+    },
+    "patients.btn.add-item": {
+      "label": "Agregar artículo",
+      "description": "En la factura o el presupuesto: agrega una línea con servicio, cantidad y precio. Sin al menos una línea no se puede guardar."
+    },
+    "patients.btn.prepaid-confirm": {
+      "label": "Confirmar pago anticipado",
+      "description": "Segunda confirmación del pago anticipado: al aceptarla se registra el saldo a favor."
     }
   }
 }

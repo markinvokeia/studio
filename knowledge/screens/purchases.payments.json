@@ -87,6 +87,10 @@
     },
     "purchases.payments.filter.option-credit_note_allocation": {
       "label": "Asignación de nota de crédito"
+    },
+    "purchases.payments.btn.prepaid-confirm": {
+      "label": "Confirmar pago anticipado",
+      "description": "Segunda confirmación del pago anticipado: al aceptarla se registra el saldo a favor."
     }
   }
 }

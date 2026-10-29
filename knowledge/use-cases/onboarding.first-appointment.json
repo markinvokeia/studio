@@ -10,7 +10,8 @@
     "patient": "Nombre del paciente",
     "doctor": "Nombre del profesional",
     "date": "Fecha AAAA-MM-DD",
-    "time": "Hora HH:MM"
+    "time": "Hora HH:MM",
+    "calendar": "Consultorio"
   },
   "keywords": [
     "turno",
@@ -42,11 +43,13 @@
     },
     {
       "id": "patient",
-      "action": "highlight",
+      "action": "fill",
       "target": "appointments.field.patient",
       "title": "Elegí el paciente",
       "description": "Buscalo por nombre, documento o teléfono. Si no existe, lo podés crear desde acá.",
-      "details": "Obligatorio. Buscalo por nombre, documento o teléfono."
+      "details": "Obligatorio. Buscalo por nombre, documento o teléfono.",
+      "value": "{{values.patient}}",
+      "ask": true
     },
     {
       "id": "services",
@@ -59,32 +62,40 @@
     },
     {
       "id": "doctor",
-      "action": "highlight",
+      "action": "fill",
       "target": "appointments.field.doctor",
       "title": "Profesional",
-      "details": "Sólo se ofrecen los profesionales con disponibilidad en ese horario."
+      "details": "Sólo se ofrecen los profesionales con disponibilidad en ese horario.",
+      "value": "{{values.doctor}}",
+      "ask": true
     },
     {
       "id": "calendar",
-      "action": "highlight",
+      "action": "fill",
       "target": "appointments.field.calendar",
       "title": "Consultorio",
-      "details": "El consultorio donde se atiende. Si el profesional tiene uno por defecto, ya viene elegido."
+      "details": "El consultorio donde se atiende. Si el profesional tiene uno por defecto, ya viene elegido.",
+      "value": "{{values.calendar}}",
+      "ask": true
     },
     {
       "id": "date",
-      "action": "highlight",
+      "action": "fill",
       "target": "appointments.field.date",
       "title": "Fecha",
-      "details": "Fecha del turno."
+      "details": "Fecha del turno.",
+      "value": "{{values.date}}",
+      "ask": true
     },
     {
       "id": "time",
-      "action": "highlight",
+      "action": "fill",
       "target": "appointments.field.time",
       "title": "Hora",
       "description": "Si el horario está fuera de la disponibilidad del profesional o de la sede, la agenda te avisa.",
-      "details": "Si queda fuera de la disponibilidad del profesional o del horario de la sede, la agenda te avisa antes de guardar."
+      "details": "Si queda fuera de la disponibilidad del profesional o del horario de la sede, la agenda te avisa antes de guardar.",
+      "value": "{{values.time}}",
+      "ask": true
     },
     {
       "id": "save",
@@ -93,6 +104,14 @@
       "title": "Guardar el turno",
       "description": "Revisá los datos y pulsá Guardar. Con esto ya está lo mínimo.",
       "details": "Guarda el turno. Si el paciente tiene teléfono, recibe la confirmación y los recordatorios configurados."
+    },
+    {
+      "id": "future-confirm",
+      "action": "confirm",
+      "target": "appointments.btn.future-confirm",
+      "title": "Confirmar la nueva hora",
+      "details": "Sólo aparece si el paciente ya tiene citas marcadas: las lista y pregunta si le das esta hora igual. «Sí» guarda la cita nueva.",
+      "skipIfMissing": true
     }
   ]
 }

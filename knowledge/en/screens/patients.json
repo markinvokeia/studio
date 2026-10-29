@@ -531,6 +531,14 @@
     },
     "patients.btn.discharge-save": {
       "label": "Save discharge"
+    },
+    "patients.btn.add-item": {
+      "label": "Add item",
+      "description": "In the invoice or quote: adds a line with service, quantity and price. It can't be saved without at least one line."
+    },
+    "patients.btn.prepaid-confirm": {
+      "label": "Confirm pre-payment",
+      "description": "Second confirmation of the pre-payment: accepting it records the credit balance."
     }
   }
 }

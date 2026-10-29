@@ -202,7 +202,7 @@ export default function PrescriptionTemplatesPage() {
 
     const handleEdit = (template: PrescriptionTemplate) => {
         setEditingTemplate(template);
-        form.reset({ ...template });
+        form.reset({ ...template, description: template.description ?? '', content_html: template.content_html ?? '' });
         setSubmissionError(null);
         setIsDialogOpen(true);
     };

@@ -9,7 +9,8 @@
     "procedure": "Procedure performed",
     "diagnosis": "Diagnosis",
     "notes": "Notes",
-    "next_plan": "Next session plan"
+    "next_plan": "Next session plan",
+    "doctor": "Practitioner (e.g. Dra. Lucía Fernández)"
   },
   "keywords": [
     "clinical session",

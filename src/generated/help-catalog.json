@@ -1,5 +1,5 @@
 {
- "version": "98a06b57da4517a9",
+ "version": "d80df33a65438b89",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -3353,6 +3353,13 @@
      "kind": "btn",
      "label": "Editar cita",
      "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "description": "Aviso de citas ya marcadas del paciente: «Sí» guarda la cita nueva igual; «No» vuelve al formulario.",
+     "id": "appointments.btn.future-confirm",
+     "kind": "btn",
+     "label": "Sí (confirmar la nueva hora)",
+     "source": "src/components/appointments/future-appointments-confirm-dialog.tsx"
     },
     {
      "description": "Horarios libres de los días visibles.",
@@ -7516,6 +7523,13 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "En la factura o el presupuesto: agrega una línea con servicio, cantidad y precio. Sin al menos una línea no se puede guardar.",
+     "id": "patients.btn.add-item",
+     "kind": "btn",
+     "label": "Agregar artículo",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "description": "Alergias y padecimientos de la anamnesis.",
      "id": "patients.btn.alerts",
      "kind": "btn",
@@ -7790,6 +7804,13 @@
      "id": "patients.btn.preferences",
      "kind": "btn",
      "label": "Preferencias",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Segunda confirmación del pago anticipado: al aceptarla se registra el saldo a favor.",
+     "id": "patients.btn.prepaid-confirm",
+     "kind": "btn",
+     "label": "Confirmar pago anticipado",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -9429,6 +9450,13 @@
      "source": "knowledge/screens/purchases.payments.json"
     },
     {
+     "description": "Segunda confirmación del pago anticipado: al aceptarla se registra el saldo a favor.",
+     "id": "purchases.payments.btn.prepaid-confirm",
+     "kind": "btn",
+     "label": "Confirmar pago anticipado",
+     "source": "knowledge/screens/purchases.payments.json"
+    },
+    {
      "id": "purchases.payments.btn.print",
      "kind": "btn",
      "label": "Imprimir",
@@ -9658,6 +9686,13 @@
   {
    "elements": [
     {
+     "description": "En la factura o el presupuesto: agrega una línea con servicio, cantidad y precio. Sin al menos una línea no se puede guardar.",
+     "id": "purchases.providers.btn.add-item",
+     "kind": "btn",
+     "label": "Agregar artículo",
+     "source": "knowledge/screens/purchases.providers.json"
+    },
+    {
      "description": "Presupuesto, factura o anticipo.",
      "id": "purchases.providers.btn.create-menu",
      "kind": "btn",
@@ -9718,6 +9753,13 @@
      "kind": "btn",
      "label": "Preferencias",
      "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "description": "Segunda confirmación del pago anticipado: al aceptarla se registra el saldo a favor.",
+     "id": "purchases.providers.btn.prepaid-confirm",
+     "kind": "btn",
+     "label": "Confirmar pago anticipado",
+     "source": "knowledge/screens/purchases.providers.json"
     },
     {
      "id": "purchases.providers.btn.refresh",
@@ -16217,7 +16259,7 @@
     {
      "id": "system.licenses.btn.submit",
      "kind": "btn",
-     "label": "Generando...",
+     "label": "Verificar",
      "source": "src/app/[locale]/system/licenses/page.tsx"
     },
     {
@@ -16268,6 +16310,13 @@
      "id": "system.licenses.section.generated-key",
      "kind": "section",
      "label": "Licencia actual",
+     "source": "src/app/[locale]/system/licenses/page.tsx"
+    },
+    {
+     "description": "La gestión de licencias está protegida: primero se ingresa la clave maestra de Invoke IA. Sin ella no se ven ni se generan licencias.",
+     "id": "system.licenses.section.master-key",
+     "kind": "section",
+     "label": "Clave maestra",
      "source": "src/app/[locale]/system/licenses/page.tsx"
     }
    ],
@@ -18280,6 +18329,14 @@
      "id": "save",
      "target": "appointments.btn.save",
      "title": "Guardar la cita"
+    },
+    {
+     "action": "confirm",
+     "details": "Sólo aparece si el paciente ya tiene citas marcadas: las lista y pregunta si le das esta hora igual. «Sí» guarda la cita nueva.",
+     "id": "future-confirm",
+     "skipIfMissing": true,
+     "target": "appointments.btn.future-confirm",
+     "title": "Confirmar la nueva hora"
     }
    ],
    "summary": "Crear una cita desde el botón Crear: paciente, servicio, profesional, consultorio, fecha y hora.",
@@ -18363,6 +18420,14 @@
      "id": "save",
      "target": "appointments.btn.save",
      "title": "Guardar la cita"
+    },
+    {
+     "action": "confirm",
+     "details": "Sólo aparece si el paciente ya tiene citas marcadas: las lista y pregunta si le das esta hora igual. «Sí» guarda la cita nueva.",
+     "id": "future-confirm",
+     "skipIfMissing": true,
+     "target": "appointments.btn.future-confirm",
+     "title": "Confirmar la nueva hora"
     }
    ],
    "summary": "Hacer clic en un hueco libre de la agenda y completar la cita ahí mismo.",
@@ -18735,6 +18800,14 @@
      "id": "save",
      "target": "appointments.btn.save",
      "title": "Guardar la cita"
+    },
+    {
+     "action": "confirm",
+     "details": "Sólo aparece si el paciente ya tiene citas marcadas: las lista y pregunta si le das esta hora igual. «Sí» guarda la cita nueva.",
+     "id": "future-confirm",
+     "skipIfMissing": true,
+     "target": "appointments.btn.future-confirm",
+     "title": "Confirmar la nueva hora"
     }
    ],
    "summary": "Ver los huecos libres de los días visibles y agendar en uno.",
@@ -28597,6 +28670,7 @@
   {
    "id": "onboarding.first-appointment",
    "inputs": {
+    "calendar": "Consultorio",
     "date": "Fecha AAAA-MM-DD",
     "doctor": "Nombre del profesional",
     "patient": "Nombre del paciente",
@@ -28635,12 +28709,14 @@
      "title": "Nueva cita"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "description": "Buscalo por nombre, documento o teléfono. Si no existe, lo podés crear desde acá.",
      "details": "Obligatorio. Buscalo por nombre, documento o teléfono.",
      "id": "patient",
      "target": "appointments.field.patient",
-     "title": "Elegí el paciente"
+     "title": "Elegí el paciente",
+     "value": "{{values.patient}}"
     },
     {
      "action": "highlight",
@@ -28652,33 +28728,41 @@
      "title": "Servicio"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "details": "Sólo se ofrecen los profesionales con disponibilidad en ese horario.",
      "id": "doctor",
      "target": "appointments.field.doctor",
-     "title": "Profesional"
+     "title": "Profesional",
+     "value": "{{values.doctor}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "details": "El consultorio donde se atiende. Si el profesional tiene uno por defecto, ya viene elegido.",
      "id": "calendar",
      "target": "appointments.field.calendar",
-     "title": "Consultorio"
+     "title": "Consultorio",
+     "value": "{{values.calendar}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "details": "Fecha del turno.",
      "id": "date",
      "target": "appointments.field.date",
-     "title": "Fecha"
+     "title": "Fecha",
+     "value": "{{values.date}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "description": "Si el horario está fuera de la disponibilidad del profesional o de la sede, la agenda te avisa.",
      "details": "Si queda fuera de la disponibilidad del profesional o del horario de la sede, la agenda te avisa antes de guardar.",
      "id": "time",
      "target": "appointments.field.time",
-     "title": "Hora"
+     "title": "Hora",
+     "value": "{{values.time}}"
     },
     {
      "action": "confirm",
@@ -28687,6 +28771,14 @@
      "id": "save",
      "target": "appointments.btn.save",
      "title": "Guardar el turno"
+    },
+    {
+     "action": "confirm",
+     "details": "Sólo aparece si el paciente ya tiene citas marcadas: las lista y pregunta si le das esta hora igual. «Sí» guarda la cita nueva.",
+     "id": "future-confirm",
+     "skipIfMissing": true,
+     "target": "appointments.btn.future-confirm",
+     "title": "Confirmar la nueva hora"
     }
    ],
    "summary": "Un turno de prueba confirma que sedes, consultorios, profesionales, disponibilidad y servicios funcionan juntos.",
@@ -28960,6 +29052,7 @@
   {
    "id": "onboarding.service",
    "inputs": {
+    "category": "Categoría (ej. Otros servicios)",
     "duration_minutes": "Duración en minutos (número)",
     "name": "Nombre del servicio (ej. Limpieza)",
     "price": "Precio (número)"
@@ -28996,6 +29089,15 @@
      "target": "sales.services.field.name",
      "title": "Nombre del servicio",
      "value": "{{values.name}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Obligatoria: agrupa los servicios en las listas, en los reportes y en el portal.",
+     "id": "category",
+     "target": "sales.services.field.category_id",
+     "title": "Categoría",
+     "value": "{{values.category}}"
     },
     {
      "action": "fill",
@@ -29265,7 +29367,9 @@
    "group": "Agenda y comunicación",
    "id": "patients.appointment",
    "inputs": {
+    "calendar": "Consultorio",
     "date": "Fecha AAAA-MM-DD",
+    "doctor": "Profesional (ej. Dra. Lucía Fernández)",
     "notes": "Notas",
     "patient": "Nombre, correo o documento del paciente",
     "services": "Servicios",
@@ -29336,18 +29440,22 @@
      "value": "{{values.services}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "id": "doctor",
      "skipIfMissing": true,
      "target": "appointments.field.doctor",
-     "title": "Doctor"
+     "title": "Doctor",
+     "value": "{{values.doctor}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "id": "calendar",
      "skipIfMissing": true,
      "target": "appointments.field.calendar",
-     "title": "Calendario"
+     "title": "Calendario",
+     "value": "{{values.calendar}}"
     },
     {
      "action": "fill",
@@ -29382,6 +29490,14 @@
      "id": "save",
      "target": "appointments.btn.save",
      "title": "Guardar la cita"
+    },
+    {
+     "action": "confirm",
+     "details": "Sólo aparece si el paciente ya tiene citas marcadas: las lista y pregunta si le das esta hora igual. «Sí» guarda la cita nueva.",
+     "id": "future-confirm",
+     "skipIfMissing": true,
+     "target": "appointments.btn.future-confirm",
+     "title": "Confirmar la nueva hora"
     }
    ],
    "summary": "Crear → Cita: la tarjeta de cita sale con el paciente ya cargado.",
@@ -29392,6 +29508,7 @@
    "id": "patients.clinical-session",
    "inputs": {
     "diagnosis": "Diagnóstico",
+    "doctor": "Profesional (ej. Dra. Lucía Fernández)",
     "next_plan": "Plan de la próxima sesión",
     "notes": "Notas",
     "patient": "Nombre, correo o documento del paciente",
@@ -29460,12 +29577,14 @@
      "title": "Fecha de la sesión"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "details": "Quien atendió.",
      "id": "doctor",
      "skipIfMissing": true,
      "target": "patients.field.session-doctor",
-     "title": "Profesional"
+     "title": "Profesional",
+     "value": "{{values.doctor}}"
     },
     {
      "action": "fill",
@@ -30534,7 +30653,9 @@
    "group": "Finanzas",
    "id": "patients.invoice",
    "inputs": {
-    "patient": "Nombre, correo o documento del paciente"
+    "patient": "Nombre, correo o documento del paciente",
+    "quantity": "Cantidad",
+    "service": "Servicio o producto"
    },
    "keywords": [
     "factura",
@@ -30616,6 +30737,33 @@
      "title": "Sede"
     },
     {
+     "action": "click",
+     "details": "Suma una línea a la factura; sin al menos una no se puede guardar.",
+     "id": "add-item",
+     "target": "patients.btn.add-item",
+     "title": "Agregar artículo",
+     "until": "patients.field.items.service_id"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Elegí el servicio o producto; el precio unitario se completa solo desde el catálogo.",
+     "id": "service",
+     "target": "patients.field.items.service_id",
+     "title": "Servicio",
+     "value": "{{values.service}}"
+    },
+    {
+     "action": "fill",
+     "details": "El total de la línea se recalcula con la cantidad.",
+     "id": "qty",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "patients.field.items.quantity",
+     "title": "Cantidad",
+     "value": "{{values.quantity}}"
+    },
+    {
      "action": "confirm",
      "details": "Queda pendiente de pago en la cuenta del paciente.",
      "id": "save",
@@ -30630,6 +30778,7 @@
    "group": "Historia clínica",
    "id": "patients.medical-instruction",
    "inputs": {
+    "doctor": "Profesional (ej. Dra. Lucía Fernández)",
     "patient": "Nombre, correo o documento del paciente",
     "template": "Plantilla de indicación"
    },
@@ -30701,10 +30850,12 @@
      "title": "Pieza"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "id": "doctor",
      "target": "patients.field.mi-doctor",
-     "title": "Profesional"
+     "title": "Profesional",
+     "value": "{{values.doctor}}"
     },
     {
      "action": "fill",
@@ -31184,6 +31335,14 @@
      "id": "save",
      "target": "patients.btn.submit",
      "title": "Guardar el prepago"
+    },
+    {
+     "action": "confirm",
+     "details": "Pide una confirmación más antes de registrarlo: el importe queda como saldo a favor.",
+     "id": "ok",
+     "skipIfMissing": true,
+     "target": "patients.btn.prepaid-confirm",
+     "title": "Confirmar el pago anticipado"
     }
    ],
    "summary": "Crear → Prepago: dinero que el paciente deja a cuenta; se usa después para pagar facturas.",
@@ -31194,6 +31353,7 @@
    "id": "patients.prescription",
    "inputs": {
     "diagnosis": "Diagnóstico",
+    "doctor": "Profesional (ej. Dra. Lucía Fernández)",
     "dosage": "Dosis",
     "duration": "Duración en días",
     "frequency": "Frecuencia",
@@ -31265,6 +31425,16 @@
      "target": "patients.field.rx-template",
      "title": "Plantilla",
      "value": "{{values.template}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Obligatorio: quien firma la receta. Si entraste como profesional ya viene puesto.",
+     "id": "doctor",
+     "skipIfMissing": true,
+     "target": "patients.field.rx-doctor",
+     "title": "Profesional",
+     "value": "{{values.doctor}}"
     },
     {
      "action": "fill",
@@ -31405,7 +31575,9 @@
    "id": "patients.quote",
    "inputs": {
     "notes": "Notas del presupuesto",
-    "patient": "Nombre, correo o documento del paciente"
+    "patient": "Nombre, correo o documento del paciente",
+    "quantity": "Cantidad",
+    "service": "Servicio o producto"
    },
    "keywords": [
     "presupuesto",
@@ -31487,6 +31659,33 @@
      "skipIfMissing": true,
      "target": "patients.field.sede_id",
      "title": "Sede"
+    },
+    {
+     "action": "click",
+     "details": "Suma una línea a el presupuesto; sin al menos una no se puede guardar.",
+     "id": "add-item",
+     "target": "patients.btn.add-item",
+     "title": "Agregar artículo",
+     "until": "patients.field.items.service_id"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Elegí el servicio o producto; el precio unitario se completa solo desde el catálogo.",
+     "id": "service",
+     "target": "patients.field.items.service_id",
+     "title": "Servicio",
+     "value": "{{values.service}}"
+    },
+    {
+     "action": "fill",
+     "details": "El total de la línea se recalcula con la cantidad.",
+     "id": "qty",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "patients.field.items.quantity",
+     "title": "Cantidad",
+     "value": "{{values.quantity}}"
     },
     {
      "action": "fill",
@@ -33095,6 +33294,14 @@
      "id": "save",
      "target": "purchases.payments.btn.submit",
      "title": "Guardar"
+    },
+    {
+     "action": "confirm",
+     "details": "Pide una confirmación más antes de registrarlo: el importe queda como saldo a favor.",
+     "id": "ok",
+     "skipIfMissing": true,
+     "target": "purchases.payments.btn.prepaid-confirm",
+     "title": "Confirmar el pago anticipado"
     }
    ],
    "summary": "Pago a cuenta sin factura; queda como saldo para aplicar después.",
@@ -33502,7 +33709,9 @@
    "group": "Compras al proveedor",
    "id": "purchases.providers.invoice",
    "inputs": {
-    "query": "Nombre, correo o RUT"
+    "quantity": "Cantidad",
+    "query": "Nombre, correo o RUT",
+    "service": "Producto o servicio"
    },
    "keywords": [
     "registrar una factura del proveedor",
@@ -33553,6 +33762,33 @@
      "target": "purchases.providers.btn.new-invoice",
      "title": "Registrar una factura del proveedor",
      "until": "purchases.providers.btn.submit"
+    },
+    {
+     "action": "click",
+     "details": "Suma una línea a la factura; sin al menos una no se puede guardar.",
+     "id": "add-item",
+     "target": "purchases.providers.btn.add-item",
+     "title": "Agregar artículo",
+     "until": "purchases.providers.field.items.service_id"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Elegí el producto o servicio comprado; el precio unitario se completa solo desde el catálogo.",
+     "id": "service",
+     "target": "purchases.providers.field.items.service_id",
+     "title": "Producto o servicio",
+     "value": "{{values.service}}"
+    },
+    {
+     "action": "fill",
+     "details": "El total de la línea se recalcula con la cantidad.",
+     "id": "qty",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "purchases.providers.field.items.quantity",
+     "title": "Cantidad",
+     "value": "{{values.quantity}}"
     },
     {
      "action": "confirm",
@@ -33880,6 +34116,14 @@
      "id": "save",
      "target": "purchases.providers.btn.submit",
      "title": "Guardar"
+    },
+    {
+     "action": "confirm",
+     "details": "Pide una confirmación más antes de registrarlo: el importe queda como saldo a favor.",
+     "id": "ok",
+     "skipIfMissing": true,
+     "target": "purchases.providers.btn.prepaid-confirm",
+     "title": "Confirmar el pago anticipado"
     }
    ],
    "summary": "Crear → Prepago: dinero adelantado que se aplica a sus facturas.",
@@ -33889,7 +34133,9 @@
    "group": "Compras al proveedor",
    "id": "purchases.providers.quote",
    "inputs": {
-    "query": "Nombre, correo o RUT"
+    "quantity": "Cantidad",
+    "query": "Nombre, correo o RUT",
+    "service": "Producto o servicio"
    },
    "keywords": [
     "pedir un presupuesto al proveedor",
@@ -33940,6 +34186,33 @@
      "target": "purchases.providers.btn.new-quote",
      "title": "Pedir un presupuesto al proveedor",
      "until": "purchases.providers.btn.submit"
+    },
+    {
+     "action": "click",
+     "details": "Suma una línea a el presupuesto; sin al menos una no se puede guardar.",
+     "id": "add-item",
+     "target": "purchases.providers.btn.add-item",
+     "title": "Agregar artículo",
+     "until": "purchases.providers.field.items.service_id"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Elegí el producto o servicio comprado; el precio unitario se completa solo desde el catálogo.",
+     "id": "service",
+     "target": "purchases.providers.field.items.service_id",
+     "title": "Producto o servicio",
+     "value": "{{values.service}}"
+    },
+    {
+     "action": "fill",
+     "details": "El total de la línea se recalcula con la cantidad.",
+     "id": "qty",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "purchases.providers.field.items.quantity",
+     "title": "Cantidad",
+     "value": "{{values.quantity}}"
     },
     {
      "action": "confirm",

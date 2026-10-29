@@ -227,11 +227,11 @@ export default function LicensesPage() {
     e.preventDefault();
     if (!secInput.trim()) return;
     if (!masterSec) {
-      setSecError('NEXT_PUBLIC_MASTER_SEC no está configurado en el servidor.');
+      setSecError(t('masterKey.notConfigured'));
       return;
     }
     if (secInput.trim() !== masterSec) {
-      setSecError('Clave incorrecta. Intente nuevamente.');
+      setSecError(t('masterKey.wrong'));
       return;
     }
     setIsUnlocked(true);
@@ -325,28 +325,28 @@ export default function LicensesPage() {
 
       {!isUnlocked ? (
         <div>
-          <Card className="w-full max-w-md shadow-sm">
+          <Card data-help-id="system.licenses.section.master-key" className="w-full max-w-md shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <KeyRound className="h-4 w-4" />
-                Clave maestra
+                {t('masterKey.prompt')}
               </CardTitle>
               <CardDescription>
-                Ingresa la clave maestra para acceder a la gestión de licencias.
+                {t('masterKey.promptDescription')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleUnlock} className="flex flex-col gap-3">
                 <Input
                   type="password"
-                  placeholder="Clave maestra..."
+                  placeholder={t('masterKey.placeholder')}
                   value={secInput}
                   onChange={e => { setSecInput(e.target.value); setSecError(''); }}
                   autoFocus
                 />
                 {secError && <p className="text-xs text-destructive">{secError}</p>}
                 <Button type="submit" disabled={!secInput.trim()} className="w-full">
-                  Verificar
+                  {t('masterKey.submit')}
                 </Button>
               </form>
             </CardContent>

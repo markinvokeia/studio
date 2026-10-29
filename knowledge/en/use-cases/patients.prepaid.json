@@ -64,6 +64,11 @@
       "id": "save",
       "title": "Save the prepayment",
       "details": "It stays as the patient's credit balance."
+    },
+    {
+      "id": "ok",
+      "title": "Confirm the pre-payment",
+      "details": "It asks for one more confirmation before recording it: the amount stays as a credit balance."
     }
   ]
 }

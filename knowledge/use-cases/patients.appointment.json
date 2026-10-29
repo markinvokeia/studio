@@ -12,7 +12,9 @@
     "services": "Servicios",
     "date": "Fecha AAAA-MM-DD",
     "time": "Hora HH:MM",
-    "notes": "Notas"
+    "notes": "Notas",
+    "doctor": "Profesional (ej. Dra. Lucía Fernández)",
+    "calendar": "Consultorio"
   },
   "keywords": [
     "agendar",
@@ -75,17 +77,21 @@
     },
     {
       "id": "doctor",
-      "action": "highlight",
+      "action": "fill",
       "target": "appointments.field.doctor",
       "title": "Doctor",
-      "skipIfMissing": true
+      "skipIfMissing": true,
+      "value": "{{values.doctor}}",
+      "ask": true
     },
     {
       "id": "calendar",
-      "action": "highlight",
+      "action": "fill",
       "target": "appointments.field.calendar",
       "title": "Calendario",
-      "skipIfMissing": true
+      "skipIfMissing": true,
+      "value": "{{values.calendar}}",
+      "ask": true
     },
     {
       "id": "date",
@@ -120,6 +126,14 @@
       "target": "appointments.btn.save",
       "title": "Guardar la cita",
       "details": "Se avisa si el horario está ocupado o fuera de la agenda."
+    },
+    {
+      "id": "future-confirm",
+      "action": "confirm",
+      "target": "appointments.btn.future-confirm",
+      "title": "Confirmar la nueva hora",
+      "details": "Sólo aparece si el paciente ya tiene citas marcadas: las lista y pregunta si le das esta hora igual. «Sí» guarda la cita nueva.",
+      "skipIfMissing": true
     }
   ]
 }

@@ -9,7 +9,8 @@
   "group": "Historia clínica",
   "inputs": {
     "patient": "Nombre, correo o documento del paciente",
-    "template": "Plantilla de indicación"
+    "template": "Plantilla de indicación",
+    "doctor": "Profesional (ej. Dra. Lucía Fernández)"
   },
   "keywords": [
     "indicación",
@@ -76,9 +77,11 @@
     },
     {
       "id": "doctor",
-      "action": "highlight",
+      "action": "fill",
       "target": "patients.field.mi-doctor",
-      "title": "Profesional"
+      "title": "Profesional",
+      "value": "{{values.doctor}}",
+      "ask": true
     },
     {
       "id": "template",

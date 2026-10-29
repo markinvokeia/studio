@@ -76,6 +76,10 @@
     },
     "purchases.payments.filter.option-credit_note_allocation": {
       "label": "Credit note allocation"
+    },
+    "purchases.payments.btn.prepaid-confirm": {
+      "label": "Confirm pre-payment",
+      "description": "Second confirmation of the pre-payment: accepting it records the credit balance."
     }
   }
 }

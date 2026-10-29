@@ -79,6 +79,14 @@
       "target": "purchases.providers.btn.submit",
       "title": "Guardar",
       "details": "Completá los datos del formulario y guardá."
+    },
+    {
+      "id": "ok",
+      "target": "purchases.providers.btn.prepaid-confirm",
+      "action": "confirm",
+      "title": "Confirmar el pago anticipado",
+      "details": "Pide una confirmación más antes de registrarlo: el importe queda como saldo a favor.",
+      "skipIfMissing": true
     }
   ]
 }

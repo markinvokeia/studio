@@ -6,7 +6,9 @@
   "group": "Finance",
   "inputs": {
     "patient": "Patient's name, email or ID",
-    "notes": "Quote notes"
+    "notes": "Quote notes",
+    "service": "Service or product",
+    "quantity": "Quantity"
   },
   "keywords": [
     "quote",
@@ -55,6 +57,21 @@
     {
       "id": "sede",
       "title": "Branch"
+    },
+    {
+      "id": "add-item",
+      "title": "Add item",
+      "details": "Adds a line to the quote; it can't be saved without at least one."
+    },
+    {
+      "id": "service",
+      "title": "Service",
+      "details": "Choose the service or product; the unit price comes from the catalog."
+    },
+    {
+      "id": "qty",
+      "title": "Quantity",
+      "details": "The line total is recalculated with the quantity."
     },
     {
       "id": "notes",

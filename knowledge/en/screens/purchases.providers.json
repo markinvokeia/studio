@@ -80,6 +80,14 @@
     },
     "purchases.providers.field.identity_document": {
       "label": "Tax ID"
+    },
+    "purchases.providers.btn.add-item": {
+      "label": "Add item",
+      "description": "In the invoice or quote: adds a line with service, quantity and price. It can't be saved without at least one line."
+    },
+    "purchases.providers.btn.prepaid-confirm": {
+      "label": "Confirm pre-payment",
+      "description": "Second confirmation of the pre-payment: accepting it records the credit balance."
     }
   }
 }

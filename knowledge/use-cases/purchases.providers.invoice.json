@@ -8,7 +8,9 @@
   ],
   "group": "Compras al proveedor",
   "inputs": {
-    "query": "Nombre, correo o RUT"
+    "query": "Nombre, correo o RUT",
+    "service": "Producto o servicio",
+    "quantity": "Cantidad"
   },
   "keywords": [
     "registrar una factura del proveedor",
@@ -54,6 +56,33 @@
       "title": "Registrar una factura del proveedor",
       "details": "Crear → Factura: lo que le debemos.",
       "until": "purchases.providers.btn.submit"
+    },
+    {
+      "id": "add-item",
+      "action": "click",
+      "target": "purchases.providers.btn.add-item",
+      "title": "Agregar artículo",
+      "details": "Suma una línea a la factura; sin al menos una no se puede guardar.",
+      "until": "purchases.providers.field.items.service_id"
+    },
+    {
+      "id": "service",
+      "action": "fill",
+      "target": "purchases.providers.field.items.service_id",
+      "title": "Producto o servicio",
+      "details": "Elegí el producto o servicio comprado; el precio unitario se completa solo desde el catálogo.",
+      "value": "{{values.service}}",
+      "ask": true
+    },
+    {
+      "id": "qty",
+      "action": "fill",
+      "target": "purchases.providers.field.items.quantity",
+      "title": "Cantidad",
+      "details": "El total de la línea se recalcula con la cantidad.",
+      "value": "{{values.quantity}}",
+      "optional": true,
+      "skipIfMissing": true
     },
     {
       "id": "save",

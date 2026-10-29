@@ -1,5 +1,5 @@
 {
- "version": "9f50a9b5bb9466ea",
+ "version": "0b6a8d78161101a7",
  "locale": "en",
  "journey": [
   {
@@ -3267,6 +3267,13 @@
      "kind": "btn",
      "label": "Edit appointment",
      "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "description": "Warning about the patient's existing appointments: \"Yes\" saves the new appointment anyway; \"No\" goes back to the form.",
+     "id": "appointments.btn.future-confirm",
+     "kind": "btn",
+     "label": "Yes (confirm the new time)",
+     "source": "src/components/appointments/future-appointments-confirm-dialog.tsx"
     },
     {
      "description": "Free times on the visible days.",
@@ -7430,6 +7437,13 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "In the invoice or quote: adds a line with service, quantity and price. It can't be saved without at least one line.",
+     "id": "patients.btn.add-item",
+     "kind": "btn",
+     "label": "Add item",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "description": "Allergies and ailments from the medical history.",
      "id": "patients.btn.alerts",
      "kind": "btn",
@@ -7704,6 +7718,13 @@
      "id": "patients.btn.preferences",
      "kind": "btn",
      "label": "Preferences",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Second confirmation of the pre-payment: accepting it records the credit balance.",
+     "id": "patients.btn.prepaid-confirm",
+     "kind": "btn",
+     "label": "Confirm pre-payment",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -9343,6 +9364,13 @@
      "source": "knowledge/screens/purchases.payments.json"
     },
     {
+     "description": "Second confirmation of the pre-payment: accepting it records the credit balance.",
+     "id": "purchases.payments.btn.prepaid-confirm",
+     "kind": "btn",
+     "label": "Confirm pre-payment",
+     "source": "knowledge/screens/purchases.payments.json"
+    },
+    {
      "id": "purchases.payments.btn.print",
      "kind": "btn",
      "label": "Print",
@@ -9572,6 +9600,13 @@
   {
    "elements": [
     {
+     "description": "In the invoice or quote: adds a line with service, quantity and price. It can't be saved without at least one line.",
+     "id": "purchases.providers.btn.add-item",
+     "kind": "btn",
+     "label": "Add item",
+     "source": "knowledge/screens/purchases.providers.json"
+    },
+    {
      "description": "Quote, invoice or advance.",
      "id": "purchases.providers.btn.create-menu",
      "kind": "btn",
@@ -9632,6 +9667,13 @@
      "kind": "btn",
      "label": "Preferences",
      "source": "src/app/[locale]/purchases/providers/page.tsx"
+    },
+    {
+     "description": "Second confirmation of the pre-payment: accepting it records the credit balance.",
+     "id": "purchases.providers.btn.prepaid-confirm",
+     "kind": "btn",
+     "label": "Confirm pre-payment",
+     "source": "knowledge/screens/purchases.providers.json"
     },
     {
      "id": "purchases.providers.btn.refresh",
@@ -16131,7 +16173,7 @@
     {
      "id": "system.licenses.btn.submit",
      "kind": "btn",
-     "label": "Generating...",
+     "label": "Verify",
      "source": "src/app/[locale]/system/licenses/page.tsx"
     },
     {
@@ -16182,6 +16224,13 @@
      "id": "system.licenses.section.generated-key",
      "kind": "section",
      "label": "Current license",
+     "source": "src/app/[locale]/system/licenses/page.tsx"
+    },
+    {
+     "description": "License management is protected: first you enter the Invoke IA master key. Without it you can't see or generate licenses.",
+     "id": "system.licenses.section.master-key",
+     "kind": "section",
+     "label": "Master key",
      "source": "src/app/[locale]/system/licenses/page.tsx"
     }
    ],
@@ -18194,6 +18243,14 @@
      "id": "save",
      "target": "appointments.btn.save",
      "title": "Save the appointment"
+    },
+    {
+     "action": "confirm",
+     "details": "Only shows up if the patient already has appointments: it lists them and asks whether to give this time anyway. \"Yes\" saves the new appointment.",
+     "id": "future-confirm",
+     "skipIfMissing": true,
+     "target": "appointments.btn.future-confirm",
+     "title": "Confirm the new time"
     }
    ],
    "summary": "Create an appointment from the Create button: patient, service, doctor, room, date and time.",
@@ -18277,6 +18334,14 @@
      "id": "save",
      "target": "appointments.btn.save",
      "title": "Save the appointment"
+    },
+    {
+     "action": "confirm",
+     "details": "Only shows up if the patient already has appointments: it lists them and asks whether to give this time anyway. \"Yes\" saves the new appointment.",
+     "id": "future-confirm",
+     "skipIfMissing": true,
+     "target": "appointments.btn.future-confirm",
+     "title": "Confirm the new time"
     }
    ],
    "summary": "Click a free gap on the calendar and fill in the appointment right there.",
@@ -18649,6 +18714,14 @@
      "id": "save",
      "target": "appointments.btn.save",
      "title": "Save the appointment"
+    },
+    {
+     "action": "confirm",
+     "details": "Only shows up if the patient already has appointments: it lists them and asks whether to give this time anyway. \"Yes\" saves the new appointment.",
+     "id": "future-confirm",
+     "skipIfMissing": true,
+     "target": "appointments.btn.future-confirm",
+     "title": "Confirm the new time"
     }
    ],
    "summary": "See the free gaps on the visible days and book in one.",
@@ -28511,9 +28584,10 @@
   {
    "id": "onboarding.first-appointment",
    "inputs": {
+    "calendar": "Room",
     "date": "Date YYYY-MM-DD",
-    "doctor": "Doctor name",
-    "patient": "Patient name",
+    "doctor": "Practitioner's name",
+    "patient": "Patient's name",
     "time": "Time HH:MM"
    },
    "keywords": [
@@ -28549,12 +28623,14 @@
      "title": "New appointment"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "description": "Search for them by name, ID or phone. If they don't exist, you can create them from here.",
      "details": "Required. Search for them by name, ID or phone.",
      "id": "patient",
      "target": "appointments.field.patient",
-     "title": "Choose the patient"
+     "title": "Choose the patient",
+     "value": "{{values.patient}}"
     },
     {
      "action": "highlight",
@@ -28566,33 +28642,41 @@
      "title": "Service"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "details": "Only doctors with availability at that time are offered.",
      "id": "doctor",
      "target": "appointments.field.doctor",
-     "title": "Doctor"
+     "title": "Doctor",
+     "value": "{{values.doctor}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "details": "The room where the patient is seen. If the doctor has a default one, it's already chosen.",
      "id": "calendar",
      "target": "appointments.field.calendar",
-     "title": "Room"
+     "title": "Room",
+     "value": "{{values.calendar}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "details": "Appointment date.",
      "id": "date",
      "target": "appointments.field.date",
-     "title": "Date"
+     "title": "Date",
+     "value": "{{values.date}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "description": "If the time is outside the doctor's or the branch's availability, the calendar warns you.",
      "details": "If it falls outside the doctor's availability or the branch's hours, the calendar warns you before saving.",
      "id": "time",
      "target": "appointments.field.time",
-     "title": "Time"
+     "title": "Time",
+     "value": "{{values.time}}"
     },
     {
      "action": "confirm",
@@ -28601,6 +28685,14 @@
      "id": "save",
      "target": "appointments.btn.save",
      "title": "Save the appointment"
+    },
+    {
+     "action": "confirm",
+     "details": "Only shows up if the patient already has appointments: it lists them and asks whether to give this time anyway. \"Yes\" saves the new appointment.",
+     "id": "future-confirm",
+     "skipIfMissing": true,
+     "target": "appointments.btn.future-confirm",
+     "title": "Confirm the new time"
     }
    ],
    "summary": "A test appointment confirms that branches, rooms, doctors, availability and services work together.",
@@ -28874,6 +28966,7 @@
   {
    "id": "onboarding.service",
    "inputs": {
+    "category": "Category (e.g. Other services)",
     "duration_minutes": "Duration in minutes (number)",
     "name": "Service name (e.g. Cleaning)",
     "price": "Price (number)"
@@ -28910,6 +29003,15 @@
      "target": "sales.services.field.name",
      "title": "Service name",
      "value": "{{values.name}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Required: groups services in lists, reports and the portal.",
+     "id": "category",
+     "target": "sales.services.field.category_id",
+     "title": "Category",
+     "value": "{{values.category}}"
     },
     {
      "action": "fill",
@@ -29179,7 +29281,9 @@
    "group": "Scheduling and communication",
    "id": "patients.appointment",
    "inputs": {
+    "calendar": "Room",
     "date": "Date YYYY-MM-DD",
+    "doctor": "Practitioner (e.g. Dra. Lucía Fernández)",
     "notes": "Notes",
     "patient": "Patient's name, email or ID",
     "services": "Services",
@@ -29250,18 +29354,22 @@
      "value": "{{values.services}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "id": "doctor",
      "skipIfMissing": true,
      "target": "appointments.field.doctor",
-     "title": "Doctor"
+     "title": "Doctor",
+     "value": "{{values.doctor}}"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "id": "calendar",
      "skipIfMissing": true,
      "target": "appointments.field.calendar",
-     "title": "Calendar"
+     "title": "Calendar",
+     "value": "{{values.calendar}}"
     },
     {
      "action": "fill",
@@ -29296,6 +29404,14 @@
      "id": "save",
      "target": "appointments.btn.save",
      "title": "Save the appointment"
+    },
+    {
+     "action": "confirm",
+     "details": "Only shows up if the patient already has appointments: it lists them and asks whether to give this time anyway. \"Yes\" saves the new appointment.",
+     "id": "future-confirm",
+     "skipIfMissing": true,
+     "target": "appointments.btn.future-confirm",
+     "title": "Confirm the new time"
     }
    ],
    "summary": "Create → Appointment: the appointment card comes with the patient already filled in.",
@@ -29306,6 +29422,7 @@
    "id": "patients.clinical-session",
    "inputs": {
     "diagnosis": "Diagnosis",
+    "doctor": "Practitioner (e.g. Dra. Lucía Fernández)",
     "next_plan": "Next session plan",
     "notes": "Notes",
     "patient": "Patient's name, email or ID",
@@ -29374,12 +29491,14 @@
      "title": "Session date"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "details": "Who saw the patient.",
      "id": "doctor",
      "skipIfMissing": true,
      "target": "patients.field.session-doctor",
-     "title": "Doctor"
+     "title": "Doctor",
+     "value": "{{values.doctor}}"
     },
     {
      "action": "fill",
@@ -30448,7 +30567,9 @@
    "group": "Finance",
    "id": "patients.invoice",
    "inputs": {
-    "patient": "Patient's name, email or ID"
+    "patient": "Patient's name, email or ID",
+    "quantity": "Quantity",
+    "service": "Service or product"
    },
    "keywords": [
     "invoice",
@@ -30530,6 +30651,33 @@
      "title": "Branch"
     },
     {
+     "action": "click",
+     "details": "Adds a line to the invoice; it can't be saved without at least one.",
+     "id": "add-item",
+     "target": "patients.btn.add-item",
+     "title": "Add item",
+     "until": "patients.field.items.service_id"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Choose the service or product; the unit price comes from the catalog.",
+     "id": "service",
+     "target": "patients.field.items.service_id",
+     "title": "Service",
+     "value": "{{values.service}}"
+    },
+    {
+     "action": "fill",
+     "details": "The line total is recalculated with the quantity.",
+     "id": "qty",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "patients.field.items.quantity",
+     "title": "Quantity",
+     "value": "{{values.quantity}}"
+    },
+    {
      "action": "confirm",
      "details": "It stays pending payment on the patient's account.",
      "id": "save",
@@ -30544,6 +30692,7 @@
    "group": "Clinical history",
    "id": "patients.medical-instruction",
    "inputs": {
+    "doctor": "Practitioner (e.g. Dra. Lucía Fernández)",
     "patient": "Patient's name, email or ID",
     "template": "Instruction template"
    },
@@ -30615,10 +30764,12 @@
      "title": "Tooth"
     },
     {
-     "action": "highlight",
+     "action": "fill",
+     "ask": true,
      "id": "doctor",
      "target": "patients.field.mi-doctor",
-     "title": "Doctor"
+     "title": "Doctor",
+     "value": "{{values.doctor}}"
     },
     {
      "action": "fill",
@@ -31098,6 +31249,14 @@
      "id": "save",
      "target": "patients.btn.submit",
      "title": "Save the prepayment"
+    },
+    {
+     "action": "confirm",
+     "details": "It asks for one more confirmation before recording it: the amount stays as a credit balance.",
+     "id": "ok",
+     "skipIfMissing": true,
+     "target": "patients.btn.prepaid-confirm",
+     "title": "Confirm the pre-payment"
     }
    ],
    "summary": "Create → Prepayment: money the patient leaves on account; it's used later to pay invoices.",
@@ -31108,6 +31267,7 @@
    "id": "patients.prescription",
    "inputs": {
     "diagnosis": "Diagnosis",
+    "doctor": "Practitioner (e.g. Dra. Lucía Fernández)",
     "dosage": "Dose",
     "duration": "Duration in days",
     "frequency": "Frequency",
@@ -31179,6 +31339,16 @@
      "target": "patients.field.rx-template",
      "title": "Template",
      "value": "{{values.template}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Required: who signs the prescription. If you signed in as a practitioner it is already set.",
+     "id": "doctor",
+     "skipIfMissing": true,
+     "target": "patients.field.rx-doctor",
+     "title": "Practitioner",
+     "value": "{{values.doctor}}"
     },
     {
      "action": "fill",
@@ -31319,7 +31489,9 @@
    "id": "patients.quote",
    "inputs": {
     "notes": "Quote notes",
-    "patient": "Patient's name, email or ID"
+    "patient": "Patient's name, email or ID",
+    "quantity": "Quantity",
+    "service": "Service or product"
    },
    "keywords": [
     "quote",
@@ -31401,6 +31573,33 @@
      "skipIfMissing": true,
      "target": "patients.field.sede_id",
      "title": "Branch"
+    },
+    {
+     "action": "click",
+     "details": "Adds a line to the quote; it can't be saved without at least one.",
+     "id": "add-item",
+     "target": "patients.btn.add-item",
+     "title": "Add item",
+     "until": "patients.field.items.service_id"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Choose the service or product; the unit price comes from the catalog.",
+     "id": "service",
+     "target": "patients.field.items.service_id",
+     "title": "Service",
+     "value": "{{values.service}}"
+    },
+    {
+     "action": "fill",
+     "details": "The line total is recalculated with the quantity.",
+     "id": "qty",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "patients.field.items.quantity",
+     "title": "Quantity",
+     "value": "{{values.quantity}}"
     },
     {
      "action": "fill",
@@ -33009,6 +33208,14 @@
      "id": "save",
      "target": "purchases.payments.btn.submit",
      "title": "Save"
+    },
+    {
+     "action": "confirm",
+     "details": "It asks for one more confirmation before recording it: the amount stays as a credit balance.",
+     "id": "ok",
+     "skipIfMissing": true,
+     "target": "purchases.payments.btn.prepaid-confirm",
+     "title": "Confirm the pre-payment"
     }
    ],
    "summary": "Payment on account without an invoice; it stays as a balance to apply later.",
@@ -33416,7 +33623,9 @@
    "group": "Purchases from the provider",
    "id": "purchases.providers.invoice",
    "inputs": {
-    "query": "Name, email or tax ID"
+    "quantity": "Quantity",
+    "query": "Name, email or tax ID",
+    "service": "Product or service"
    },
    "keywords": [
     "record a provider invoice",
@@ -33467,6 +33676,33 @@
      "target": "purchases.providers.btn.new-invoice",
      "title": "Record a provider invoice",
      "until": "purchases.providers.btn.submit"
+    },
+    {
+     "action": "click",
+     "details": "Adds a line to the invoice; it can't be saved without at least one.",
+     "id": "add-item",
+     "target": "purchases.providers.btn.add-item",
+     "title": "Add item",
+     "until": "purchases.providers.field.items.service_id"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Choose the purchased product or service; the unit price comes from the catalog.",
+     "id": "service",
+     "target": "purchases.providers.field.items.service_id",
+     "title": "Product or service",
+     "value": "{{values.service}}"
+    },
+    {
+     "action": "fill",
+     "details": "The line total is recalculated with the quantity.",
+     "id": "qty",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "purchases.providers.field.items.quantity",
+     "title": "Quantity",
+     "value": "{{values.quantity}}"
     },
     {
      "action": "confirm",
@@ -33794,6 +34030,14 @@
      "id": "save",
      "target": "purchases.providers.btn.submit",
      "title": "Save"
+    },
+    {
+     "action": "confirm",
+     "details": "It asks for one more confirmation before recording it: the amount stays as a credit balance.",
+     "id": "ok",
+     "skipIfMissing": true,
+     "target": "purchases.providers.btn.prepaid-confirm",
+     "title": "Confirm the pre-payment"
     }
    ],
    "summary": "Create → Prepayment: money advanced that's applied to their invoices.",
@@ -33803,7 +34047,9 @@
    "group": "Purchases from the provider",
    "id": "purchases.providers.quote",
    "inputs": {
-    "query": "Name, email or tax ID"
+    "quantity": "Quantity",
+    "query": "Name, email or tax ID",
+    "service": "Product or service"
    },
    "keywords": [
     "ask the provider for a quote",
@@ -33854,6 +34100,33 @@
      "target": "purchases.providers.btn.new-quote",
      "title": "Ask the provider for a quote",
      "until": "purchases.providers.btn.submit"
+    },
+    {
+     "action": "click",
+     "details": "Adds a line to the quote; it can't be saved without at least one.",
+     "id": "add-item",
+     "target": "purchases.providers.btn.add-item",
+     "title": "Add item",
+     "until": "purchases.providers.field.items.service_id"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Choose the purchased product or service; the unit price comes from the catalog.",
+     "id": "service",
+     "target": "purchases.providers.field.items.service_id",
+     "title": "Product or service",
+     "value": "{{values.service}}"
+    },
+    {
+     "action": "fill",
+     "details": "The line total is recalculated with the quantity.",
+     "id": "qty",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "purchases.providers.field.items.quantity",
+     "title": "Quantity",
+     "value": "{{values.quantity}}"
     },
     {
      "action": "confirm",

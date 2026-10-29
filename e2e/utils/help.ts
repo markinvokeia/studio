@@ -114,6 +114,28 @@ export function runOrder<T extends { id: string }>(items: T[]): T[] {
 }
 
 /** Abre la pantalla con el asistente en modo automatización y sin ruido encima. */
+/** Textos en rojo a la vista: avisos destructivos, alertas del diálogo y, en formularios que no son diálogo, cerca del botón. */
+async function redTexts(page: Page, target: string): Promise<string[]> {
+  return page.evaluate((target) => {
+    const text = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const inDialog = [...document.querySelectorAll('[data-state="open"].destructive, [role="dialog"] [role="alert"], [role="dialog"] .text-destructive')]
+      .filter((el) => (el as HTMLElement).offsetParent !== null)
+      .map(text);
+    // Formularios que no son diálogo (la tarjeta de la cita): el botón sigue ahí y hay un aviso rojo cerca.
+    const button = document.querySelector(`[data-help-id="${target}"]`) as HTMLElement | null;
+    let box: HTMLElement | null = button?.offsetParent ? button : null;
+    for (let i = 0; box && i < 5; i++) box = box.parentElement;
+    // Un importe en rojo (el saldo del paciente) no es un error.
+    const near = box ? [...box.querySelectorAll('.text-destructive, [role="alert"]')].map(text).filter((t) => !/^[A-Z]{3} ?[\d.,]+$/.test(t)) : [];
+    return [...inDialog, ...near].filter((t) => t.length >= 8);
+  }, target);
+}
+
+/** Título del diálogo donde está el botón (vacío si no está en un diálogo). */
+async function dialogTitle(page: Page, target: string): Promise<string> {
+  return page.evaluate((target) => document.querySelector(`[data-help-id="${target}"]`)?.closest('[role="dialog"]')?.querySelector('h2, [id$="-title"]')?.textContent?.trim() ?? '', target);
+}
+
 export async function openForGuide(page: Page, route: string, locale = 'es') {
   await page.addInitScript(() => {
     try {
@@ -188,6 +210,8 @@ export async function driveGuide(page: Page, id: string, options: DriveOptions =
   let sameKeyFor = 0;
   let outcome: DriveResult['outcome'] = 'finished';
   let stoppedAt: string | undefined;
+  let lastConfirmed: { title: string; target?: string } | undefined;
+  let confirmedTitle = '';
 
   for (let guard = 0; guard < 400; guard++) {
     const s = await state(page);
@@ -223,6 +247,9 @@ export async function driveGuide(page: Page, id: string, options: DriveOptions =
       confirmClicks.set(index, clicks);
       if (clicks > 2) throw new Error(`${id}: el OK «${step.title}» no avanzó después de pulsarlo (¿error de validación o del backend?)`);
       onConfirm?.(step);
+      // Avisos que ya estaban antes del OK (el doctor sin firma, por ejemplo) no son el resultado del guardado.
+      const redBefore = await redTexts(page, step.target!);
+      confirmedTitle = await dialogTitle(page, step.target!);
       if (beforeClick && step.target) await beforeClick(page, step.target);
       await clickTarget(page, step.target!);
       await page.waitForTimeout(video ? 2500 : 800);
@@ -239,21 +266,9 @@ export async function driveGuide(page: Page, id: string, options: DriveOptions =
       // El backend rechazó el guardado (aviso rojo) o el diálogo muestra un error (límite de la
       // licencia, por ejemplo): tampoco se guardó nada.
       // (Sólo mensajes con texto: el asterisco rojo de los obligatorios usa el mismo color.)
-      const backendError = await page.evaluate((target) => [...document.querySelectorAll('[data-state="open"].destructive, [role="dialog"] [role="alert"], [role="dialog"] .text-destructive')]
-        .filter((el) => (el as HTMLElement).offsetParent !== null)
-        .map((el) => (el.textContent ?? '').replace(/\s+/g, ' ').trim())
-        .find((text) => text.length >= 8)
-        // Formularios que no son diálogo (la tarjeta de la cita): el botón sigue ahí y hay un aviso rojo cerca.
-        ?? (() => {
-          const button = document.querySelector(`[data-help-id="${target}"]`) as HTMLElement | null;
-          let box: HTMLElement | null = button?.offsetParent ? button : null;
-          for (let i = 0; box && i < 5; i++) box = box.parentElement;
-          // Un importe en rojo (el saldo del paciente) no es un error.
-          const warning = box ? [...box.querySelectorAll('.text-destructive, [role="alert"]')].map((el) => (el.textContent ?? '').replace(/\s+/g, ' ').trim()).find((text) => text.length >= 8 && !/^[A-Z]{3} ?[\d.,]+$/.test(text)) : undefined;
-          return warning;
-        })()
-        ?? '', step.target!);
+      const backendError = (await redTexts(page, step.target!)).find((text) => !redBefore.includes(text)) ?? '';
       if (backendError.trim()) throw new Error(`${id}: el OK «${step.title}» dio error: ${backendError.replace(/\s+/g, ' ').trim().slice(0, 160)}`);
+      lastConfirmed = step;
       continue;
     }
 
@@ -301,6 +316,27 @@ export async function driveGuide(page: Page, id: string, options: DriveOptions =
 
     await page.evaluate(() => window.__invokeHelp!.next());
     await page.waitForTimeout(250);
+  }
+
+  // Al terminar después de pulsar un OK no puede quedar nada a medias: ni una confirmación o aviso
+  // que la guía no cubre (¿Está seguro?, «ya existe», la cita que ya tiene el paciente), ni el
+  // diálogo del formulario abierto sin aviso de éxito. En los dos casos no se guardó nada.
+  if (outcome === 'finished' && lastConfirmed?.target) {
+    await page.waitForTimeout(video ? 1000 : 500);
+    const leftOpen = await page.evaluate(({ target, before }) => {
+      const visible = (el: Element) => (el as HTMLElement).offsetParent !== null || el.getBoundingClientRect().width > 0;
+      const text = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+      const pending = [...document.querySelectorAll('[role="alertdialog"]')].filter(visible).map(text).find((t) => t.length >= 8);
+      if (pending) return `quedó abierto «${pending.slice(0, 140)}»`;
+      const toast = [...document.querySelectorAll('ol > li[data-state="open"]')].some((el) => !el.classList.contains('destructive'));
+      const button = document.querySelector(`[data-help-id="${target}"]`);
+      const dialog = button && visible(button) ? button.closest('[role="dialog"]') : null;
+      // Algunos diálogos quedan abiertos al guardar, en modo edición (Nueva receta → Editar receta).
+      const title = dialog?.querySelector('h2, [id$="-title"]')?.textContent?.trim() ?? '';
+      if (!toast && dialog && title === before) return 'el formulario quedó abierto sin aviso de éxito';
+      return '';
+    }, { target: lastConfirmed.target, before: confirmedTitle });
+    if (leftOpen) throw new Error(`${id}: el OK «${lastConfirmed.title}» no guardó: ${leftOpen}`);
   }
 
   const final = (await state(page)).guide;

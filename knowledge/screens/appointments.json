@@ -379,6 +379,10 @@
     "appointments.field.inline-draft-live-preview": {
       "label": "Previsualizar la cita",
       "description": "La tarjeta de cita inline se abre al lado de la cita, que se ve en el calendario mientras la completás, para ver cómo entra en los huecos. Al cambiar la fecha el calendario se mueve a ese día. Solo en tablet y escritorio."
+    },
+    "appointments.btn.future-confirm": {
+      "label": "Sí (confirmar la nueva hora)",
+      "description": "Aviso de citas ya marcadas del paciente: «Sí» guarda la cita nueva igual; «No» vuelve al formulario."
     }
   }
 }

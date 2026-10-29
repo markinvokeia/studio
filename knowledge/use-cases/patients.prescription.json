@@ -15,7 +15,8 @@
     "dosage": "Dosis",
     "frequency": "Frecuencia",
     "duration": "Duración en días",
-    "instructions": "Indicaciones"
+    "instructions": "Indicaciones",
+    "doctor": "Profesional (ej. Dra. Lucía Fernández)"
   },
   "keywords": [
     "receta",
@@ -75,6 +76,16 @@
       "details": "Carga medicamentos e indicaciones habituales.",
       "value": "{{values.template}}",
       "optional": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "doctor",
+      "action": "fill",
+      "target": "patients.field.rx-doctor",
+      "title": "Profesional",
+      "details": "Obligatorio: quien firma la receta. Si entraste como profesional ya viene puesto.",
+      "value": "{{values.doctor}}",
+      "ask": true,
       "skipIfMissing": true
     },
     {

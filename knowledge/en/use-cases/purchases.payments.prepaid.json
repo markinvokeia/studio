@@ -60,6 +60,11 @@
       "id": "save",
       "title": "Save",
       "details": "It needs an open cash register (unless historical)."
+    },
+    {
+      "id": "ok",
+      "title": "Confirm the pre-payment",
+      "details": "It asks for one more confirmation before recording it: the amount stays as a credit balance."
     }
   ]
 }

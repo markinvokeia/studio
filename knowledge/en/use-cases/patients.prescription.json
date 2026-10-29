@@ -12,7 +12,8 @@
     "dosage": "Dose",
     "frequency": "Frequency",
     "duration": "Duration in days",
-    "instructions": "Instructions"
+    "instructions": "Instructions",
+    "doctor": "Practitioner (e.g. Dra. Lucía Fernández)"
   },
   "keywords": [
     "prescription",
@@ -51,6 +52,11 @@
       "id": "template",
       "title": "Template",
       "details": "Loads the usual medications and instructions."
+    },
+    {
+      "id": "doctor",
+      "title": "Practitioner",
+      "details": "Required: who signs the prescription. If you signed in as a practitioner it is already set."
     },
     {
       "id": "diagnosis",

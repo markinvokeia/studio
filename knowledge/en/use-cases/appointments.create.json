@@ -75,6 +75,11 @@
       "id": "save",
       "title": "Save the appointment",
       "details": "Review the details and save. The patient is notified if they have reminders turned on."
+    },
+    {
+      "id": "future-confirm",
+      "title": "Confirm the new time",
+      "details": "Only shows up if the patient already has appointments: it lists them and asks whether to give this time anyway. \"Yes\" saves the new appointment."
     }
   ]
 }

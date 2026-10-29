@@ -6,7 +6,8 @@
   "group": "Clinical history",
   "inputs": {
     "patient": "Patient's name, email or ID",
-    "template": "Instruction template"
+    "template": "Instruction template",
+    "doctor": "Practitioner (e.g. Dra. Lucía Fernández)"
   },
   "keywords": [
     "instruction",

@@ -12,7 +12,8 @@
     "procedure": "Procedimiento realizado",
     "diagnosis": "Diagnóstico",
     "notes": "Notas",
-    "next_plan": "Plan de la próxima sesión"
+    "next_plan": "Plan de la próxima sesión",
+    "doctor": "Profesional (ej. Dra. Lucía Fernández)"
   },
   "keywords": [
     "sesión clínica",
@@ -74,11 +75,13 @@
     },
     {
       "id": "doctor",
-      "action": "highlight",
+      "action": "fill",
       "target": "patients.field.session-doctor",
       "title": "Profesional",
       "details": "Quien atendió.",
-      "skipIfMissing": true
+      "skipIfMissing": true,
+      "value": "{{values.doctor}}",
+      "ask": true
     },
     {
       "id": "procedure",

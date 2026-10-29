@@ -92,6 +92,14 @@
       "target": "purchases.payments.btn.submit",
       "title": "Guardar",
       "details": "Necesita la caja abierta (salvo histórico)."
+    },
+    {
+      "id": "ok",
+      "target": "purchases.payments.btn.prepaid-confirm",
+      "action": "confirm",
+      "title": "Confirmar el pago anticipado",
+      "details": "Pide una confirmación más antes de registrarlo: el importe queda como saldo a favor.",
+      "skipIfMissing": true
     }
   ]
 }

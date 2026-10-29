@@ -9,7 +9,8 @@
   "inputs": {
     "name": "Nombre del servicio (ej. Limpieza)",
     "price": "Precio (número)",
-    "duration_minutes": "Duración en minutos (número)"
+    "duration_minutes": "Duración en minutos (número)",
+    "category": "Categoría (ej. Otros servicios)"
   },
   "keywords": [
     "servicio",
@@ -39,6 +40,15 @@
       "value": "{{values.name}}",
       "title": "Nombre del servicio",
       "details": "Es lo que se elige al agendar, presupuestar y facturar."
+    },
+    {
+      "id": "category",
+      "action": "fill",
+      "target": "sales.services.field.category_id",
+      "value": "{{values.category}}",
+      "title": "Categoría",
+      "details": "Obligatoria: agrupa los servicios en las listas, en los reportes y en el portal.",
+      "ask": true
     },
     {
       "id": "price",

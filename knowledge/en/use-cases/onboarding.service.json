@@ -6,7 +6,8 @@
   "inputs": {
     "name": "Service name (e.g. Cleaning)",
     "price": "Price (number)",
-    "duration_minutes": "Duration in minutes (number)"
+    "duration_minutes": "Duration in minutes (number)",
+    "category": "Category (e.g. Other services)"
   },
   "keywords": [
     "service",
@@ -29,6 +30,11 @@
       "id": "name",
       "title": "Service name",
       "details": "It's what's chosen when booking, quoting and invoicing."
+    },
+    {
+      "id": "category",
+      "title": "Category",
+      "details": "Required: groups services in lists, reports and the portal."
     },
     {
       "id": "price",

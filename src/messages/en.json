@@ -9075,7 +9075,9 @@
       "promptDescription": "Enter the master key to access license management.",
       "placeholder": "Master key...",
       "invalid": "Invalid master key. Could not decrypt the current license.",
-      "submit": "Verify"
+      "submit": "Verify",
+      "notConfigured": "NEXT_PUBLIC_MASTER_SEC is not configured on the server.",
+      "wrong": "Wrong key. Please try again."
     },
     "management": {
       "title": "License Management",

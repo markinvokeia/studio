@@ -78,6 +78,14 @@
       "target": "appointments.btn.save",
       "title": "Guardar la cita",
       "details": "Revisá los datos y guardá. Se avisa al paciente si tiene recordatorios activos."
+    },
+    {
+      "id": "future-confirm",
+      "action": "confirm",
+      "target": "appointments.btn.future-confirm",
+      "title": "Confirmar la nueva hora",
+      "details": "Sólo aparece si el paciente ya tiene citas marcadas: las lista y pregunta si le das esta hora igual. «Sí» guarda la cita nueva.",
+      "skipIfMissing": true
     }
   ]
 }

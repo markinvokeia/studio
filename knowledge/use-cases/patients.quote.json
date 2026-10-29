@@ -9,7 +9,9 @@
   "group": "Finanzas",
   "inputs": {
     "patient": "Nombre, correo o documento del paciente",
-    "notes": "Notas del presupuesto"
+    "notes": "Notas del presupuesto",
+    "service": "Servicio o producto",
+    "quantity": "Cantidad"
   },
   "keywords": [
     "presupuesto",
@@ -85,6 +87,33 @@
       "action": "highlight",
       "target": "patients.field.sede_id",
       "title": "Sede",
+      "skipIfMissing": true
+    },
+    {
+      "id": "add-item",
+      "action": "click",
+      "target": "patients.btn.add-item",
+      "title": "Agregar artículo",
+      "details": "Suma una línea a el presupuesto; sin al menos una no se puede guardar.",
+      "until": "patients.field.items.service_id"
+    },
+    {
+      "id": "service",
+      "action": "fill",
+      "target": "patients.field.items.service_id",
+      "title": "Servicio",
+      "details": "Elegí el servicio o producto; el precio unitario se completa solo desde el catálogo.",
+      "value": "{{values.service}}",
+      "ask": true
+    },
+    {
+      "id": "qty",
+      "action": "fill",
+      "target": "patients.field.items.quantity",
+      "title": "Cantidad",
+      "details": "El total de la línea se recalcula con la cantidad.",
+      "value": "{{values.quantity}}",
+      "optional": true,
       "skipIfMissing": true
     },
     {

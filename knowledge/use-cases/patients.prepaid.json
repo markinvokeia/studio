@@ -100,6 +100,14 @@
       "target": "patients.btn.submit",
       "title": "Guardar el prepago",
       "details": "Queda como saldo a favor del paciente."
+    },
+    {
+      "id": "ok",
+      "target": "patients.btn.prepaid-confirm",
+      "action": "confirm",
+      "title": "Confirmar el pago anticipado",
+      "details": "Pide una confirmación más antes de registrarlo: el importe queda como saldo a favor.",
+      "skipIfMissing": true
     }
   ]
 }
