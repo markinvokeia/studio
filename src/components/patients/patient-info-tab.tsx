@@ -29,6 +29,7 @@ import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { cn } from '@/lib/utils';
 import { IDENTITY_DOCUMENT_TYPES } from '@/lib/identity-document';
+import { normalizePersonName } from '@/lib/person-name';
 import { useClinicPreferencesStore } from '@/stores/clinic-preferences-store';
 import type { DuplicateContactOwners, MutualSociety, UniqueConflict, User } from '@/lib/types';
 import {
@@ -395,9 +396,16 @@ export function PatientInfoTab({
     try {
       if (isCreateMode) {
         await upsertUser({ ...data, id: undefined }, { confirmDuplicates });
-        toast({ title: t('UsersPage.createDialog.createSuccessTitle'), description: t('UsersPage.createDialog.createSuccessDescription') });
         // The upsert response doesn't return the record — resolve the new id by name.
         const created = await findPatientByName(data.name);
+        // Sin id, quien abrió el alta (p. ej. la cita) no puede seleccionarlo: se avisa
+        // en vez de dejar el selector vacío sin explicación.
+        toast({
+          title: t('UsersPage.createDialog.createSuccessTitle'),
+          description: created?.id
+            ? t('UsersPage.createDialog.createSuccessDescription')
+            : t('UsersPage.createDialog.createdNotResolvedDescription'),
+        });
         if (created?.id && pendingGroupIds.length > 0) {
           try {
             await savePatientGroups(created.id, pendingGroupIds);
@@ -407,7 +415,7 @@ export function PatientInfoTab({
         }
         onSaved?.(created ?? {
           id: '',
-          name: data.name,
+          name: normalizePersonName(data.name),
           email: data.email || '',
           phone_number: data.phone || '',
           is_active: data.is_active,

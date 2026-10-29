@@ -2057,6 +2057,7 @@
       "editDescription": "Actualice los detalles de este paciente.",
       "createSuccessTitle": "Paciente Creado",
       "createSuccessDescription": "El nuevo paciente ha sido agregado exitosamente.",
+      "createdNotResolvedDescription": "El paciente se ha creado pero no se ha podido seleccionar automáticamente. Búscalo en la lista.",
       "editSuccessTitle": "Paciente Actualizado",
       "editSuccessDescription": "El paciente ha sido actualizado exitosamente.",
       "name": "Nombre",
