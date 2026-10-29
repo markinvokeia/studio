@@ -89,7 +89,7 @@ export const sendsToPeople = (id: string) => SENDS_TO_PEOPLE.test(id);
  * hasta el OK pero no lo pulsan. Las demás altas, ediciones y bajas sí confirman,
  * siempre sobre lo que creó la guía de alta de esa pantalla.
  */
-const KEEPS_EXISTING = /^(onboarding\.(business|whatsapp|patients-import)|appointments\.(edit|cancel|delete|move|reassign|change-status|bulk-reassign|enable-slot|missing-identity-document)|patients\.(toggle-active|discharge)|purchases\.providers\.toggle-active|config\.(clinics|clinic-prefs|patients-portal|calendar-colors|templates)\.overview|config\.clinic-prefs\.mascot|config\.(schedules|holidays|doctor-availability|availability-exceptions)\.(edit|delete)|tv-display\.(control|next-patient|setup)|system\.(alerts-config|whatsapp-agent|notification-settings|licenses)\.overview|(sales|purchases)\.quotes\.(edit|delete)|(sales|purchases)\.payments\.edit|purchases\.invoices\.import)$/;
+const KEEPS_EXISTING = /^(onboarding\.(business|whatsapp|patients-import)|appointments\.(edit|cancel|delete|move|reassign|change-status|bulk-reassign|enable-slot|missing-identity-document)|patients\.(toggle-active|discharge)|purchases\.providers\.toggle-active|config\.(clinics|clinic-prefs|patients-portal|calendar-colors|templates)\.overview|config\.clinic-prefs\.(mascot|identity-document)|config\.(schedules|holidays|doctor-availability|availability-exceptions)\.(edit|delete)|tv-display\.(control|next-patient|setup)|system\.(alerts-config|whatsapp-agent|notification-settings|licenses)\.overview|(sales|purchases)\.quotes\.(edit|delete)|(sales|purchases)\.payments\.edit|purchases\.invoices\.import)$/;
 /** ¿Esta guía pulsa su OK en tests y videos? */
 export const confirmsInRuns = (id: string) => !SENDS_TO_PEOPLE.test(id) && !KEEPS_EXISTING.test(id);
 
