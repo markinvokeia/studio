@@ -198,7 +198,8 @@
       "label": "Confirm deletion"
     },
     "appointments.btn.change-color": {
-      "label": "Change color"
+      "label": "Change color",
+      "description": "Background colour of the appointment in the calendar; \"No background\" leaves it without its own colour (it shows the room or practitioner colour)."
     },
     "appointments.btn.change-doctor": {
       "label": "Change doctor"
@@ -358,6 +359,42 @@
     "appointments.btn.future-confirm": {
       "label": "Yes (confirm the new time)",
       "description": "Warning about the patient's existing appointments: \"Yes\" saves the new appointment anyway; \"No\" goes back to the form."
+    },
+    "appointments.btn.slot-enable": {
+      "label": "Enable hours…",
+      "description": "In the right-click menu of a closed time: opens those hours for that day only, as an exception schedule."
+    },
+    "appointments.enable-slot.field.start_time": {
+      "label": "From",
+      "description": "Start of the hours to enable."
+    },
+    "appointments.enable-slot.field.end_time": {
+      "label": "To",
+      "description": "End of the hours to enable; it must be after the start."
+    },
+    "appointments.enable-slot.field.notes": {
+      "label": "Reason",
+      "description": "Optional: the exception schedule's note."
+    },
+    "appointments.enable-slot.btn.submit": {
+      "label": "Enable",
+      "description": "Saves that day's exception schedule."
+    },
+    "appointments.btn.missing-document-open": {
+      "label": "Got it (missing document)",
+      "description": "Notice when the appointment can't move to a status because the patient has no document: opens their details to add it."
+    },
+    "appointments.btn.missing-document-dismiss": {
+      "label": "Close",
+      "description": "Dismisses the missing document notice without opening the patient's details."
+    },
+    "appointments.field.identity_document": {
+      "label": "ID document",
+      "description": "In the patient's details opened from the appointment."
     }
-  }
+  },
+  "useCases": [
+    "appointments.enable-slot",
+    "appointments.missing-identity-document"
+  ]
 }

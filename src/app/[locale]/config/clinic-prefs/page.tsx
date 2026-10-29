@@ -353,6 +353,7 @@ export default function ClinicPrefsConfigPage() {
                 help={t('identityDocument.required.help')}
                 control={
                   <Switch
+                    data-help-id="config.clinic-prefs.field.identity_document_required"
                     checked={config.identity_document_required}
                     disabled={!canEdit}
                     onCheckedChange={(v) => patch({ identity_document_required: v })}
@@ -366,6 +367,7 @@ export default function ClinicPrefsConfigPage() {
                   help={t('identityDocument.warnOnStatus.help')}
                   control={
                     <Switch
+                      data-help-id="config.clinic-prefs.field.identity_document_warn"
                       checked={config.identity_document_warn_statuses.length > 0}
                       disabled={!canEdit}
                       // Al encender se arranca por el caso habitual: exigirlo al completar.
@@ -375,7 +377,7 @@ export default function ClinicPrefsConfigPage() {
                 />
 
                 {config.identity_document_warn_statuses.length > 0 && (
-                  <div className="space-y-2 rounded-xl bg-muted/40 p-4">
+                  <div data-help-id="config.clinic-prefs.field.identity_document_warn_statuses" className="space-y-2 rounded-xl bg-muted/40 p-4">
                     <p className="text-xs font-medium text-muted-foreground">{t('identityDocument.warnOnStatus.statusesLabel')}</p>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                       {WARNABLE_STATUSES.map((status) => {

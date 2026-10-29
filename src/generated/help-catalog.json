@@ -1,5 +1,5 @@
 {
- "version": "6d19754df386e6bb",
+ "version": "9c69ca6f95468258",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -3292,6 +3292,7 @@
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Color de fondo de la cita en la agenda; «Sin fondo» la deja sin color propio (se ve con el del consultorio o profesional).",
      "id": "appointments.btn.change-color",
      "kind": "btn",
      "label": "Cambiar color",
@@ -3367,6 +3368,20 @@
      "kind": "btn",
      "label": "Buscar huecos",
      "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "description": "Descarta el aviso de documento faltante sin abrir los datos del paciente.",
+     "id": "appointments.btn.missing-document-dismiss",
+     "kind": "btn",
+     "label": "Cerrar",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Aviso cuando la cita no puede pasar a un estado porque el paciente no tiene documento: abre sus datos para cargarlo.",
+     "id": "appointments.btn.missing-document-open",
+     "kind": "btn",
+     "label": "Entendido (falta el documento)",
+     "source": "knowledge/screens/appointments.json"
     },
     {
      "description": "Otro día con la misma hora y duración.",
@@ -3502,6 +3517,7 @@
      "source": "src/components/calendar/calendar-settings-popover.tsx"
     },
     {
+     "description": "En el menú de clic derecho de un horario cerrado: abre esas horas sólo ese día, como horario de excepción.",
      "id": "appointments.btn.slot-enable",
      "kind": "btn",
      "label": "Habilitar horario…",
@@ -3602,6 +3618,34 @@
      "kind": "btn",
      "label": "Zoom",
      "source": "src/components/calendar/calendar-zoom-menu.tsx"
+    },
+    {
+     "description": "Guarda el horario de excepción de ese día.",
+     "id": "appointments.enable-slot.btn.submit",
+     "kind": "btn",
+     "label": "Habilitar",
+     "source": "src/components/appointments/enable-slot-dialog.tsx"
+    },
+    {
+     "description": "Fin del horario a habilitar; tiene que ser posterior al inicio.",
+     "id": "appointments.enable-slot.field.end_time",
+     "kind": "field",
+     "label": "Hasta",
+     "source": "src/components/appointments/enable-slot-dialog.tsx"
+    },
+    {
+     "description": "Opcional: nota del horario de excepción.",
+     "id": "appointments.enable-slot.field.notes",
+     "kind": "field",
+     "label": "Motivo",
+     "source": "src/components/appointments/enable-slot-dialog.tsx"
+    },
+    {
+     "description": "Inicio del horario a habilitar.",
+     "id": "appointments.enable-slot.field.start_time",
+     "kind": "field",
+     "label": "Desde",
+     "source": "src/components/appointments/enable-slot-dialog.tsx"
     },
     {
      "description": "Atenúa y bloquea en el calendario los horarios fuera de atención (según horarios y excepciones), impidiendo crear citas ahí.",
@@ -3706,12 +3750,6 @@
      "source": "src/components/tables/invoices-table.tsx"
     },
     {
-     "id": "appointments.field.end_time",
-     "kind": "field",
-     "label": "Hasta",
-     "source": "src/components/appointments/enable-slot-dialog.tsx"
-    },
-    {
      "description": "Define cómo se compone el texto que se ve en cada cita (hora, paciente, tratamiento, notas).",
      "id": "appointments.field.event-label-format",
      "kind": "field",
@@ -3750,6 +3788,13 @@
      "id": "appointments.field.hour-height",
      "kind": "field",
      "label": "Altura de la hora",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "En los datos del paciente que se abren desde la cita.",
+     "id": "appointments.field.identity_document",
+     "kind": "field",
+     "label": "Documento de identidad",
      "source": "knowledge/screens/appointments.json"
     },
     {
@@ -3880,12 +3925,6 @@
      "kind": "field",
      "label": "Duración del slot",
      "source": "knowledge/screens/appointments.json"
-    },
-    {
-     "id": "appointments.field.start_time",
-     "kind": "field",
-     "label": "Desde",
-     "source": "src/components/appointments/enable-slot-dialog.tsx"
     },
     {
      "id": "appointments.field.time",
@@ -4025,7 +4064,9 @@
     "appointments.bulk-reassign",
     "onboarding.first-appointment",
     "appointments.default-view",
-    "appointments.booking-rules"
+    "appointments.booking-rules",
+    "appointments.enable-slot",
+    "appointments.missing-identity-document"
    ]
   },
   {
@@ -5468,6 +5509,27 @@
      "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
     },
     {
+     "description": "La ficha del paciente no se guarda sin documento.",
+     "id": "config.clinic-prefs.field.identity_document_required",
+     "kind": "field",
+     "label": "Exigir documento de identidad",
+     "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
+    },
+    {
+     "description": "La cita no pasa a los estados elegidos si el paciente no tiene documento; cancelar nunca se bloquea.",
+     "id": "config.clinic-prefs.field.identity_document_warn",
+     "kind": "field",
+     "label": "Exigirlo para cambiar el estado de una cita",
+     "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
+    },
+    {
+     "description": "En qué estados se pide (por defecto, Completada).",
+     "id": "config.clinic-prefs.field.identity_document_warn_statuses",
+     "kind": "field",
+     "label": "Estados que exigen el documento",
+     "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
+    },
+    {
      "description": "Si las alertas envían su correo solas al paciente.",
      "id": "config.clinic-prefs.section.alert-email",
      "kind": "section",
@@ -5536,7 +5598,8 @@
    "title": "Preferencias de Clínica",
    "useCases": [
     "config.clinic-prefs.overview",
-    "config.clinic-prefs.mascot"
+    "config.clinic-prefs.mascot",
+    "config.clinic-prefs.identity-document"
    ]
   },
   {
@@ -18734,6 +18797,89 @@
    "title": "Editar una cita: fecha, hora, profesional o consultorio"
   },
   {
+   "id": "appointments.enable-slot",
+   "inputs": {
+    "end_time": "Hasta (HH:MM)",
+    "notes": "Motivo",
+    "start_time": "Desde (HH:MM)"
+   },
+   "keywords": [
+    "habilitar horario",
+    "abrir horario",
+    "horario extendido",
+    "fuera de horario",
+    "excepción",
+    "atender un sábado"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La agenda muestra en gris lo que está fuera del horario de atención.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "Sobre una franja gris (fuera de horario o con un cierre). En un horario abierto la opción no aparece.",
+     "id": "slot",
+     "target": "appointments.section.calendar",
+     "title": "Clic derecho en un horario cerrado",
+     "until": "appointments.btn.slot-enable"
+    },
+    {
+     "action": "click",
+     "details": "Abre el horario de ese día con la hora en la que hiciste clic.",
+     "id": "enable",
+     "target": "appointments.btn.slot-enable",
+     "title": "Habilitar horario…",
+     "until": "appointments.enable-slot.field.start_time"
+    },
+    {
+     "action": "fill",
+     "details": "Hora en la que empieza el horario habilitado.",
+     "id": "start",
+     "optional": true,
+     "target": "appointments.enable-slot.field.start_time",
+     "title": "Desde",
+     "value": "{{values.start_time}}"
+    },
+    {
+     "action": "fill",
+     "details": "Tiene que ser posterior a «Desde». Abajo se ve qué cambia y cómo queda el horario del día.",
+     "id": "end",
+     "optional": true,
+     "target": "appointments.enable-slot.field.end_time",
+     "title": "Hasta",
+     "value": "{{values.end_time}}"
+    },
+    {
+     "action": "fill",
+     "details": "Opcional. Se guarda como nota del horario de excepción (ej.: horario extendido por cirugía).",
+     "id": "notes",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "appointments.enable-slot.field.notes",
+     "title": "Motivo",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Sólo cambia ese día. Queda en Configuración → Horarios de excepción, donde se puede revisar o quitar.",
+     "id": "save",
+     "target": "appointments.enable-slot.btn.submit",
+     "title": "Habilitar"
+    }
+   ],
+   "summary": "Clic derecho en un horario cerrado → Habilitar horario: abre esas horas sólo ese día, como horario de excepción.",
+   "title": "Habilitar un horario fuera de atención"
+  },
+  {
    "id": "appointments.find-gaps",
    "inputs": {
     "doctor": "Nombre del profesional",
@@ -18830,6 +18976,89 @@
    ],
    "summary": "Ver los huecos libres de los días visibles y agendar en uno.",
    "title": "Buscar un horario libre"
+  },
+  {
+   "id": "appointments.missing-identity-document",
+   "inputs": {
+    "identity_document": "Documento de identidad"
+   },
+   "keywords": [
+    "falta el documento",
+    "no puedo completar la cita",
+    "documento de identidad",
+    "cédula",
+    "bloqueo de estado"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "Se abre el menú de la cita.",
+     "id": "open-menu",
+     "target": "appointments.section.event",
+     "title": "Clic derecho sobre la cita",
+     "until": [
+      "appointments.btn.status-confirmed",
+      "appointments.btn.change-status"
+     ]
+    },
+    {
+     "action": "highlight",
+     "id": "status-menu",
+     "skipIfMissing": true,
+     "target": "appointments.btn.change-status",
+     "title": "Cambiar estado",
+     "until": "appointments.btn.status-confirmed"
+    },
+    {
+     "action": "highlight",
+     "details": "Si el paciente no tiene documento y la clínica lo exige para ese estado, el cambio no se hace y aparece el aviso.",
+     "id": "status",
+     "skipIfMissing": true,
+     "target": "appointments.btn.status-completed",
+     "title": "Elegí el estado",
+     "until": "appointments.btn.missing-document-open"
+    },
+    {
+     "action": "click",
+     "details": "Abre los datos del paciente (el mismo lápiz de la cita). «Cerrar» sólo descarta el aviso.",
+     "id": "notice",
+     "skipIfMissing": true,
+     "target": "appointments.btn.missing-document-open",
+     "title": "Entendido",
+     "until": "appointments.field.identity_document"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Cargá el documento del paciente.",
+     "id": "document",
+     "skipIfMissing": true,
+     "target": "appointments.field.identity_document",
+     "title": "Documento de identidad",
+     "value": "{{values.identity_document}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Después volvé a cambiar el estado de la cita: ya no se bloquea.",
+     "id": "save",
+     "skipIfMissing": true,
+     "target": "appointments.btn.submit",
+     "title": "Guardar los datos del paciente"
+    }
+   ],
+   "summary": "Si la clínica exige documento para ese estado, el cambio se bloquea: «Entendido» abre los datos del paciente para cargarlo y volver a intentar.",
+   "title": "Cargar el documento que falta para cambiar el estado de una cita"
   },
   {
    "id": "appointments.move",
@@ -22366,6 +22595,67 @@
    ],
    "summary": "Los consultorios o sillones: cada uno es una columna de la agenda, con su sede, color y quién atiende ahí.",
    "title": "Recorrer Calendarios"
+  },
+  {
+   "id": "config.clinic-prefs.identity-document",
+   "keywords": [
+    "documento de identidad",
+    "cédula",
+    "exigir documento",
+    "documento obligatorio",
+    "completar cita",
+    "bloquear estado"
+   ],
+   "module": "Configuración de Negocio",
+   "screens": [
+    "config.clinic-prefs"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "id": "go",
+     "route": "/config/clinic-prefs",
+     "title": "Menú → Configuración de Negocio → Preferencias de Clínica"
+    },
+    {
+     "action": "highlight",
+     "details": "Dos opciones independientes: una para la ficha del paciente y otra para los estados de las citas.",
+     "id": "section",
+     "target": "config.clinic-prefs.section.identity-document",
+     "title": "Documento de identidad"
+    },
+    {
+     "action": "highlight",
+     "details": "Encendido: la ficha del paciente no se guarda sin documento. Apagado (por defecto) puede quedar vacío.",
+     "id": "required",
+     "target": "config.clinic-prefs.field.identity_document_required",
+     "title": "Exigir documento de identidad"
+    },
+    {
+     "action": "highlight",
+     "details": "Encendido: la cita no pasa a los estados elegidos si el paciente no tiene documento. Al encenderlo arranca con «Completada». Cancelar nunca se bloquea.",
+     "id": "warn",
+     "target": "config.clinic-prefs.field.identity_document_warn",
+     "title": "Exigirlo para cambiar el estado de una cita"
+    },
+    {
+     "action": "highlight",
+     "details": "Marcá en qué estados se pide. Si se bloquea, aparece un aviso con acceso directo a los datos del paciente para cargarlo.",
+     "id": "statuses",
+     "skipIfMissing": true,
+     "target": "config.clinic-prefs.field.identity_document_warn_statuses",
+     "title": "Estados que lo exigen"
+    },
+    {
+     "action": "confirm",
+     "details": "Aplica a toda la clínica: agenda, Mi Consultorio y portal del paciente.",
+     "id": "save",
+     "target": "config.clinic-prefs.btn.save",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Preferencias de Clínica → Documento de identidad: obligatorio en la ficha y/o para que una cita pase a ciertos estados.",
+   "title": "Exigir el documento de identidad del paciente"
   },
   {
    "id": "config.clinic-prefs.mascot",

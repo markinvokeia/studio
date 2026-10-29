@@ -33,7 +33,9 @@
     "appointments.bulk-reassign",
     "onboarding.first-appointment",
     "appointments.default-view",
-    "appointments.booking-rules"
+    "appointments.booking-rules",
+    "appointments.enable-slot",
+    "appointments.missing-identity-document"
   ],
   "elements": {
     "appointments.btn.create-menu": {
@@ -223,7 +225,8 @@
       "label": "Confirmar eliminación"
     },
     "appointments.btn.change-color": {
-      "label": "Cambiar color"
+      "label": "Cambiar color",
+      "description": "Color de fondo de la cita en la agenda; «Sin fondo» la deja sin color propio (se ve con el del consultorio o profesional)."
     },
     "appointments.btn.change-doctor": {
       "label": "Cambiar profesional"
@@ -383,6 +386,38 @@
     "appointments.btn.future-confirm": {
       "label": "Sí (confirmar la nueva hora)",
       "description": "Aviso de citas ya marcadas del paciente: «Sí» guarda la cita nueva igual; «No» vuelve al formulario."
+    },
+    "appointments.btn.slot-enable": {
+      "label": "Habilitar horario…",
+      "description": "En el menú de clic derecho de un horario cerrado: abre esas horas sólo ese día, como horario de excepción."
+    },
+    "appointments.enable-slot.field.start_time": {
+      "label": "Desde",
+      "description": "Inicio del horario a habilitar."
+    },
+    "appointments.enable-slot.field.end_time": {
+      "label": "Hasta",
+      "description": "Fin del horario a habilitar; tiene que ser posterior al inicio."
+    },
+    "appointments.enable-slot.field.notes": {
+      "label": "Motivo",
+      "description": "Opcional: nota del horario de excepción."
+    },
+    "appointments.enable-slot.btn.submit": {
+      "label": "Habilitar",
+      "description": "Guarda el horario de excepción de ese día."
+    },
+    "appointments.btn.missing-document-open": {
+      "label": "Entendido (falta el documento)",
+      "description": "Aviso cuando la cita no puede pasar a un estado porque el paciente no tiene documento: abre sus datos para cargarlo."
+    },
+    "appointments.btn.missing-document-dismiss": {
+      "label": "Cerrar",
+      "description": "Descarta el aviso de documento faltante sin abrir los datos del paciente."
+    },
+    "appointments.field.identity_document": {
+      "label": "Documento de identidad",
+      "description": "En los datos del paciente que se abren desde la cita."
     }
   }
 }

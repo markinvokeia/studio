@@ -36,6 +36,21 @@
     },
     "config.clinic-prefs.btn.save": {
       "label": "Save"
+    },
+    "config.clinic-prefs.field.identity_document_required": {
+      "label": "Require ID document",
+      "description": "The patient record can't be saved without a document."
+    },
+    "config.clinic-prefs.field.identity_document_warn": {
+      "label": "Require it to change an appointment's status",
+      "description": "The appointment can't move to the chosen statuses if the patient has no document; cancelling is never blocked."
+    },
+    "config.clinic-prefs.field.identity_document_warn_statuses": {
+      "label": "Statuses that require the document",
+      "description": "Which statuses ask for it (Completed by default)."
     }
-  }
+  },
+  "useCases": [
+    "config.clinic-prefs.identity-document"
+  ]
 }

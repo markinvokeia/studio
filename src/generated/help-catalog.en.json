@@ -1,5 +1,5 @@
 {
- "version": "e76771109bc8afa6",
+ "version": "0dab5c04d65d6b83",
  "locale": "en",
  "journey": [
   {
@@ -3206,6 +3206,7 @@
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Background colour of the appointment in the calendar; \"No background\" leaves it without its own colour (it shows the room or practitioner colour).",
      "id": "appointments.btn.change-color",
      "kind": "btn",
      "label": "Change color",
@@ -3281,6 +3282,20 @@
      "kind": "btn",
      "label": "Find free slots",
      "source": "src/app/[locale]/appointments/page.tsx"
+    },
+    {
+     "description": "Dismisses the missing document notice without opening the patient's details.",
+     "id": "appointments.btn.missing-document-dismiss",
+     "kind": "btn",
+     "label": "Close",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Notice when the appointment can't move to a status because the patient has no document: opens their details to add it.",
+     "id": "appointments.btn.missing-document-open",
+     "kind": "btn",
+     "label": "Got it (missing document)",
+     "source": "knowledge/screens/appointments.json"
     },
     {
      "description": "Another day with the same time and duration.",
@@ -3416,6 +3431,7 @@
      "source": "src/components/calendar/calendar-settings-popover.tsx"
     },
     {
+     "description": "In the right-click menu of a closed time: opens those hours for that day only, as an exception schedule.",
      "id": "appointments.btn.slot-enable",
      "kind": "btn",
      "label": "Enable hours…",
@@ -3516,6 +3532,34 @@
      "kind": "btn",
      "label": "Zoom",
      "source": "src/components/calendar/calendar-zoom-menu.tsx"
+    },
+    {
+     "description": "Saves that day's exception schedule.",
+     "id": "appointments.enable-slot.btn.submit",
+     "kind": "btn",
+     "label": "Enable",
+     "source": "src/components/appointments/enable-slot-dialog.tsx"
+    },
+    {
+     "description": "End of the hours to enable; it must be after the start.",
+     "id": "appointments.enable-slot.field.end_time",
+     "kind": "field",
+     "label": "To",
+     "source": "src/components/appointments/enable-slot-dialog.tsx"
+    },
+    {
+     "description": "Optional: the exception schedule's note.",
+     "id": "appointments.enable-slot.field.notes",
+     "kind": "field",
+     "label": "Reason",
+     "source": "src/components/appointments/enable-slot-dialog.tsx"
+    },
+    {
+     "description": "Start of the hours to enable.",
+     "id": "appointments.enable-slot.field.start_time",
+     "kind": "field",
+     "label": "From",
+     "source": "src/components/appointments/enable-slot-dialog.tsx"
     },
     {
      "description": "Dims and blocks the times outside office hours on the calendar (according to schedules and exceptions), so appointments can't be created there.",
@@ -3620,12 +3664,6 @@
      "source": "src/components/tables/invoices-table.tsx"
     },
     {
-     "id": "appointments.field.end_time",
-     "kind": "field",
-     "label": "To",
-     "source": "src/components/appointments/enable-slot-dialog.tsx"
-    },
-    {
      "description": "Sets how the text shown on each appointment is built (time, patient, treatment, notes).",
      "id": "appointments.field.event-label-format",
      "kind": "field",
@@ -3664,6 +3702,13 @@
      "id": "appointments.field.hour-height",
      "kind": "field",
      "label": "Hour height",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "In the patient's details opened from the appointment.",
+     "id": "appointments.field.identity_document",
+     "kind": "field",
+     "label": "ID document",
      "source": "knowledge/screens/appointments.json"
     },
     {
@@ -3794,12 +3839,6 @@
      "kind": "field",
      "label": "Slot duration",
      "source": "knowledge/screens/appointments.json"
-    },
-    {
-     "id": "appointments.field.start_time",
-     "kind": "field",
-     "label": "From",
-     "source": "src/components/appointments/enable-slot-dialog.tsx"
     },
     {
      "id": "appointments.field.time",
@@ -3939,7 +3978,9 @@
     "appointments.bulk-reassign",
     "onboarding.first-appointment",
     "appointments.default-view",
-    "appointments.booking-rules"
+    "appointments.booking-rules",
+    "appointments.enable-slot",
+    "appointments.missing-identity-document"
    ]
   },
   {
@@ -5382,6 +5423,27 @@
      "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
     },
     {
+     "description": "The patient record can't be saved without a document.",
+     "id": "config.clinic-prefs.field.identity_document_required",
+     "kind": "field",
+     "label": "Require ID document",
+     "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
+    },
+    {
+     "description": "The appointment can't move to the chosen statuses if the patient has no document; cancelling is never blocked.",
+     "id": "config.clinic-prefs.field.identity_document_warn",
+     "kind": "field",
+     "label": "Require it to change an appointment's status",
+     "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
+    },
+    {
+     "description": "Which statuses ask for it (Completed by default).",
+     "id": "config.clinic-prefs.field.identity_document_warn_statuses",
+     "kind": "field",
+     "label": "Statuses that require the document",
+     "source": "src/app/[locale]/config/clinic-prefs/page.tsx"
+    },
+    {
      "description": "Whether alerts send their email to the patient on their own.",
      "id": "config.clinic-prefs.section.alert-email",
      "kind": "section",
@@ -5450,7 +5512,8 @@
    "title": "Clinic Preferences",
    "useCases": [
     "config.clinic-prefs.overview",
-    "config.clinic-prefs.mascot"
+    "config.clinic-prefs.mascot",
+    "config.clinic-prefs.identity-document"
    ]
   },
   {
@@ -18648,6 +18711,89 @@
    "title": "Edit an appointment: date, time, doctor or room"
   },
   {
+   "id": "appointments.enable-slot",
+   "inputs": {
+    "end_time": "To (HH:MM)",
+    "notes": "Reason",
+    "start_time": "From (HH:MM)"
+   },
+   "keywords": [
+    "enable hours",
+    "open hours",
+    "extended hours",
+    "outside opening hours",
+    "exception",
+    "open on a saturday"
+   ],
+   "module": "Calendar",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "The calendar shows in grey what is outside opening hours.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menu → Appointments"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "On a grey band (outside opening hours or a closure). On an open time the option does not show up.",
+     "id": "slot",
+     "target": "appointments.section.calendar",
+     "title": "Right-click a closed time",
+     "until": "appointments.btn.slot-enable"
+    },
+    {
+     "action": "click",
+     "details": "Opens that day's hours starting at the time you clicked.",
+     "id": "enable",
+     "target": "appointments.btn.slot-enable",
+     "title": "Enable hours…",
+     "until": "appointments.enable-slot.field.start_time"
+    },
+    {
+     "action": "fill",
+     "details": "Time the enabled hours start.",
+     "id": "start",
+     "optional": true,
+     "target": "appointments.enable-slot.field.start_time",
+     "title": "From",
+     "value": "{{values.start_time}}"
+    },
+    {
+     "action": "fill",
+     "details": "It must be after \"From\". Below you can see what changes and the resulting hours for the day.",
+     "id": "end",
+     "optional": true,
+     "target": "appointments.enable-slot.field.end_time",
+     "title": "To",
+     "value": "{{values.end_time}}"
+    },
+    {
+     "action": "fill",
+     "details": "Optional. Saved as the exception schedule's note (e.g. extended hours for surgery).",
+     "id": "notes",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "appointments.enable-slot.field.notes",
+     "title": "Reason",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "confirm",
+     "details": "It only changes that day. It shows up in Business Setup → Exception schedules, where it can be reviewed or removed.",
+     "id": "save",
+     "target": "appointments.enable-slot.btn.submit",
+     "title": "Enable"
+    }
+   ],
+   "summary": "Right-click a closed time → Enable hours: opens those hours for that day only, as an exception schedule.",
+   "title": "Open up hours outside opening times"
+  },
+  {
    "id": "appointments.find-gaps",
    "inputs": {
     "doctor": "Doctor name",
@@ -18744,6 +18890,89 @@
    ],
    "summary": "See the free gaps on the visible days and book in one.",
    "title": "Find a free time"
+  },
+  {
+   "id": "appointments.missing-identity-document",
+   "inputs": {
+    "identity_document": "ID document"
+   },
+   "keywords": [
+    "missing document",
+    "can't complete the appointment",
+    "id document",
+    "identity card",
+    "status blocked"
+   ],
+   "module": "Calendar",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menu → Appointments"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "The appointment's menu opens.",
+     "id": "open-menu",
+     "target": "appointments.section.event",
+     "title": "Right-click the appointment",
+     "until": [
+      "appointments.btn.status-confirmed",
+      "appointments.btn.change-status"
+     ]
+    },
+    {
+     "action": "highlight",
+     "id": "status-menu",
+     "skipIfMissing": true,
+     "target": "appointments.btn.change-status",
+     "title": "Change status",
+     "until": "appointments.btn.status-confirmed"
+    },
+    {
+     "action": "highlight",
+     "details": "If the patient has no document and the clinic requires it for that status, the change is not made and the notice shows up.",
+     "id": "status",
+     "skipIfMissing": true,
+     "target": "appointments.btn.status-completed",
+     "title": "Choose the status",
+     "until": "appointments.btn.missing-document-open"
+    },
+    {
+     "action": "click",
+     "details": "Opens the patient's details (the same pencil as the appointment). \"Close\" only dismisses the notice.",
+     "id": "notice",
+     "skipIfMissing": true,
+     "target": "appointments.btn.missing-document-open",
+     "title": "Got it",
+     "until": "appointments.field.identity_document"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Enter the patient's document.",
+     "id": "document",
+     "skipIfMissing": true,
+     "target": "appointments.field.identity_document",
+     "title": "ID document",
+     "value": "{{values.identity_document}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Then change the appointment status again: it is no longer blocked.",
+     "id": "save",
+     "skipIfMissing": true,
+     "target": "appointments.btn.submit",
+     "title": "Save the patient's details"
+    }
+   ],
+   "summary": "If the clinic requires a document for that status, the change is blocked: \"Got it\" opens the patient's details to add it and try again.",
+   "title": "Add the missing document to change an appointment's status"
   },
   {
    "id": "appointments.move",
@@ -22280,6 +22509,67 @@
    ],
    "summary": "The rooms or chairs: each one is a column on the calendar, with its branch, color and who works there.",
    "title": "Tour Calendars"
+  },
+  {
+   "id": "config.clinic-prefs.identity-document",
+   "keywords": [
+    "id document",
+    "identity document",
+    "require document",
+    "mandatory document",
+    "complete appointment",
+    "block status"
+   ],
+   "module": "Business Setup",
+   "screens": [
+    "config.clinic-prefs"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "id": "go",
+     "route": "/config/clinic-prefs",
+     "title": "Menu → Business Setup → Clinic Preferences"
+    },
+    {
+     "action": "highlight",
+     "details": "Two independent options: one for the patient record and one for appointment statuses.",
+     "id": "section",
+     "target": "config.clinic-prefs.section.identity-document",
+     "title": "ID document"
+    },
+    {
+     "action": "highlight",
+     "details": "On: the patient record can't be saved without a document. Off (default) it can stay empty.",
+     "id": "required",
+     "target": "config.clinic-prefs.field.identity_document_required",
+     "title": "Require ID document"
+    },
+    {
+     "action": "highlight",
+     "details": "On: the appointment can't move to the chosen statuses if the patient has no document. When turned on it starts with \"Completed\". Cancelling is never blocked.",
+     "id": "warn",
+     "target": "config.clinic-prefs.field.identity_document_warn",
+     "title": "Require it to change an appointment's status"
+    },
+    {
+     "action": "highlight",
+     "details": "Tick the statuses that ask for it. When it's blocked, a notice shows up with a shortcut to the patient's details to add it.",
+     "id": "statuses",
+     "skipIfMissing": true,
+     "target": "config.clinic-prefs.field.identity_document_warn_statuses",
+     "title": "Statuses that require it"
+    },
+    {
+     "action": "confirm",
+     "details": "It applies to the whole clinic: calendar, My Workspace and the patient portal.",
+     "id": "save",
+     "target": "config.clinic-prefs.btn.save",
+     "title": "Save"
+    }
+   ],
+   "summary": "Clinic Preferences → ID document: required in the patient record and/or for an appointment to move to certain statuses.",
+   "title": "Require the patient's ID document"
   },
   {
    "id": "config.clinic-prefs.mascot",
