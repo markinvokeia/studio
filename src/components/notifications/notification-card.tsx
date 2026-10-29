@@ -20,6 +20,7 @@ import {
   Users,
   X,
   Zap,
+  FlaskConical,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -49,6 +50,7 @@ import type {
   TreatmentDetail,
   UnifiedNotification,
   WhatsappHandoffRequestedNotification,
+  LabOrderAlertNotification,
 } from '@/lib/types';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
@@ -902,6 +904,54 @@ function WhatsappHandoffCard({ notification }: { notification: WhatsappHandoffRe
   );
 }
 
+function LabOrderAlertCard({ notification }: { notification: LabOrderAlertNotification }) {
+  const { dismissNotification, closePanel } = useNotifications();
+  const t = useTranslations('Notifications');
+  const locale = useLocale();
+  const router = useRouter();
+  const isOverdue = notification.trigger === 'dwell';
+
+  const handleView = () => {
+    closePanel();
+    dismissNotification(notification.id);
+    router.push(`/${locale}/lab-orders?order=${notification.labOrderId}`);
+  };
+
+  return (
+    <CardWrapper
+      onDismiss={() => dismissNotification(notification.id)}
+      accent={isOverdue ? 'border-l-[3px] border-l-destructive/60' : 'border-l-[3px] border-l-sky-500/60'}
+    >
+      <div className="flex items-start gap-3 pr-6">
+        <div className={cn('mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full', isOverdue ? 'bg-destructive/10' : 'bg-sky-500/10')}>
+          <FlaskConical className={cn('h-3.5 w-3.5', isOverdue ? 'text-destructive' : 'text-sky-600')} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-semibold text-foreground truncate">{notification.patientName || t('unknownPatient')}</span>
+            <RelativeTime iso={notification.createdAt} />
+          </div>
+          <p className={cn('mt-0.5 text-[11px] font-medium', isOverdue ? 'text-destructive' : 'text-sky-700 dark:text-sky-400')}>
+            {isOverdue
+              ? t('labOrderOverdueTitle', { stage: notification.stageName })
+              : t('labOrderEnteredTitle', { stage: notification.stageName })}
+          </p>
+          <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+            #{notification.labOrderId} · {[notification.workDescription, notification.laboratoryName].filter(Boolean).join(' · ')}
+          </p>
+          {isOverdue && (
+            <p className="mt-0.5 text-[11px] text-muted-foreground">{t('labOrderDaysInStage', { count: notification.daysInStage })}</p>
+          )}
+          <Button variant="outline" size="sm" className="mt-3 h-7 w-full justify-start gap-2 text-[11px]" onClick={handleView}>
+            <ExternalLink className="h-3.5 w-3.5" />
+            {t('actionViewLabOrder')}
+          </Button>
+        </div>
+      </div>
+    </CardWrapper>
+  );
+}
+
 // ── Dispatcher ────────────────────────────────────────────────────────────────
 
 export function NotificationCard({ notification }: { notification: UnifiedNotification }) {
@@ -922,5 +972,7 @@ export function NotificationCard({ notification }: { notification: UnifiedNotifi
       return <ReminderCard notification={notification} />;
     case 'whatsapp_handoff_requested':
       return <WhatsappHandoffCard notification={notification} />;
+    case 'lab_order_alert':
+      return <LabOrderAlertCard notification={notification} />;
   }
 }

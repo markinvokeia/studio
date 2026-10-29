@@ -275,6 +275,7 @@ export const API_ROUTES = {
     /** Órdenes de laboratorio (flujo n8n "Lab Orders", script 148). */
     LAB_ORDERS: {
         SEARCH: '/lab-orders/search',
+        BOARD: '/lab-orders/board',
         DETAIL: '/lab-orders/detail',
         SAVE: '/lab-orders/save',
         CHANGE_STAGE: '/lab-orders/change-stage',

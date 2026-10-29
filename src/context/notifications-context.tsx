@@ -26,6 +26,7 @@ import type {
   SessionCompletedNotification,
   UnifiedNotification,
   WhatsappHandoffRequestedNotification,
+  LabOrderAlertNotification,
 } from '@/lib/types';
 import { normalizeTratamiento } from '@/lib/utils';
 
@@ -86,7 +87,8 @@ interface BackendNotification {
     | 'appointment_rescheduled'
     | 'appointment_reassigned'
     | 'appointment_updated'
-    | 'whatsapp_handoff_requested';
+    | 'whatsapp_handoff_requested'
+    | 'lab_order_alert';
   reminder_id?: string | null;
   status: 'pending' | 'read' | 'dismissed';
   appointment_id?: string | null;
@@ -236,6 +238,20 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
         lastMessage: m.last_message ?? m.message_text ?? '',
         reason: m.reason ?? '',
       } satisfies WhatsappHandoffRequestedNotification;
+
+    case 'lab_order_alert':
+      return {
+        ...base,
+        type: 'lab_order_alert',
+        trigger: m.trigger === 'dwell' ? 'dwell' : 'enter',
+        labOrderId: Number(m.lab_order_id) || 0,
+        patientName: m.patient_name ?? patientName,
+        workDescription: m.work_description ?? '',
+        laboratoryName: m.laboratory_name ?? '',
+        stageName: m.stage_name ?? '',
+        stageColor: m.stage_color ?? '#64748b',
+        daysInStage: Number(m.days_in_stage) || 0,
+      } satisfies LabOrderAlertNotification;
 
     case 'reminder':
       return {
@@ -428,6 +444,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     // los campos que esa forma necesita (p. ej. `created_at`), rompiendo `RelativeTime`.
     const eventType = _eventType || (data as { event_type?: string } | null)?.event_type;
     if (eventType === 'calendar_changed') return;
+    // Cambios de órdenes de laboratorio / etapas: los consume `useLabOrdersLive`.
+    if (eventType === 'lab_order_changed' || eventType === 'lab_stages_changed') return;
     try {
       const normalized = normalizeBackendNotification(data as BackendNotification);
       if (!normalized) return;
@@ -469,6 +487,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     const reassigns = novel.filter((n): n is AppointmentReassignedNotification => n.type === 'appointment_reassigned');
     const edits = novel.filter((n): n is AppointmentUpdatedNotification => n.type === 'appointment_updated');
     const handoffs = novel.filter((n): n is WhatsappHandoffRequestedNotification => n.type === 'whatsapp_handoff_requested');
+    const labAlerts = novel.filter((n): n is LabOrderAlertNotification => n.type === 'lab_order_alert');
 
     if (alertStyleRef.current === 'toast') {
       newAppts.forEach((n) => {
@@ -522,6 +541,12 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
         toast({
           title: tN('handoffRequestedTitle'),
           description: n.patientName || n.phone || tN('unknownPatient'),
+        });
+      });
+      labAlerts.forEach((n) => {
+        toast({
+          title: n.trigger === 'dwell' ? tN('labOrderOverdueTitle', { stage: n.stageName }) : tN('labOrderEnteredTitle', { stage: n.stageName }),
+          description: [n.patientName, n.workDescription].filter(Boolean).join(' · '),
         });
       });
       const novelIds = new Set(novel.map((n) => n.id));

@@ -618,7 +618,11 @@
     "appointmentRescheduledTitle": "Cita reagendada",
     "appointmentReassignedTitle": "Cita reasignada",
     "appointmentUpdatedTitle": "Cita editada",
-    "reminderDueTitle": "Recordatorio vencido"
+    "reminderDueTitle": "Recordatorio vencido",
+    "labOrderEnteredTitle": "Orden de laboratorio en «{stage}»",
+    "labOrderOverdueTitle": "Orden de laboratorio retrasada en «{stage}»",
+    "labOrderDaysInStage": "{count, plural, one {# día} other {# días}} en la etapa",
+    "actionViewLabOrder": "Ver orden"
   },
   "Header": {
     "toggleLanguage": "Cambiar idioma",
@@ -6372,7 +6376,8 @@
         "entityTypes": {
           "patient": "Paciente",
           "appointment": "Cita",
-          "invoice": "Factura"
+          "invoice": "Factura",
+          "lab_order": "Orden de laboratorio (aviso al equipo)"
         },
         "searchLabel": "Template de Meta/YCloud",
         "searchPlaceholder": "Buscar por nombre de template...",
@@ -6402,7 +6407,16 @@
           "appointmentProfessionalName": "Nombre del profesional",
           "invoiceDocNo": "Número de factura",
           "invoiceAmount": "Monto de la factura",
-          "invoiceDueDate": "Fecha de vencimiento de la factura"
+          "invoiceDueDate": "Fecha de vencimiento de la factura",
+          "recipientName": "Nombre de quien recibe el aviso",
+          "labOrderNumber": "Número de la orden",
+          "labOrderWork": "Trabajo",
+          "labOrderLaboratory": "Laboratorio",
+          "labOrderStage": "Etapa actual",
+          "labOrderDaysInStage": "Días en la etapa",
+          "labOrderDoctor": "Doctor de la orden",
+          "labOrderTeeth": "Piezas",
+          "labOrderDueDate": "Entrega estimada"
         }
       }
     },
@@ -9879,7 +9893,9 @@
       "noFinal": "Tiene que haber al menos una etapa final.",
       "emptyName": "Todas las etapas necesitan un nombre.",
       "duplicateName": "Hay etapas activas con el mismo nombre.",
-      "invalidOverdue": "Los días de retraso tienen que ser un número entero mayor que 0."
+      "invalidOverdue": "Los días de retraso tienen que ser un número entero mayor que 0.",
+      "dwellWithoutThreshold": "Hay etapas con alerta por permanencia y sin días de retraso: indica el umbral o quita la alerta.",
+      "invalidAlerts": "Hay alertas incompletas: revisa destinatarios, canales y plantillas."
     },
     "errors": {
       "NO_INITIAL": "Tiene que haber una etapa inicial.",
@@ -9894,7 +9910,11 @@
       "STAGE_IN_USE": "«{name}» tiene o ha tenido órdenes: no se puede eliminar, desactívala.",
       "STAGE_HAS_ORDERS": "«{name}» todavía tiene órdenes: elige a qué etapa pasan antes de desactivarla.",
       "INVALID_MOVE_TARGET": "Las órdenes de «{name}» tienen que pasar a una etapa activa.",
-      "UNKNOWN": "Se ha producido un error al guardar. Inténtalo de nuevo."
+      "UNKNOWN": "Se ha producido un error al guardar. Inténtalo de nuevo.",
+      "DWELL_WITHOUT_THRESHOLD": "«{name}» tiene alerta por permanencia pero no tiene días de retraso.",
+      "NO_RECIPIENTS": "Una alerta de «{name}» no tiene destinatarios.",
+      "NO_CHANNEL": "Una alerta de «{name}» no tiene ningún canal.",
+      "WHATSAPP_TEMPLATE_REQUIRED": "Una alerta de «{name}» usa WhatsApp sin plantilla."
     },
     "moveDialog": {
       "title": "Desactivar «{name}»",
@@ -9903,6 +9923,59 @@
       "appliedOnSave": "Se aplica al guardar la configuración.",
       "cancel": "Cancelar",
       "confirm": "Desactivar y mover"
+    },
+    "alerts": {
+      "open": "{count, plural, =0 {Configurar alertas} one {# alerta configurada} other {# alertas configuradas}}",
+      "title": "Alertas de «{stage}»",
+      "description": "Los avisos también aparecen en el Centro de alertas, donde se pueden completar, posponer o ignorar. Se aplican al guardar la configuración.",
+      "retry": "Reintentar",
+      "cancel": "Cancelar",
+      "apply": "Aplicar",
+      "enter": {
+        "title": "Al entrar a la etapa",
+        "hint": "Avisa cada vez que una orden pasa a esta etapa (por ejemplo, para agendar la colocación)."
+      },
+      "dwell": {
+        "title": "Por permanencia",
+        "hint": "Avisa cuando una orden lleva más de {days, plural, one {# día} other {# días}} en esta etapa (el umbral de retraso).",
+        "notForFinal": "Las etapas finales no tienen retraso, así que no llevan alerta por permanencia.",
+        "needsThreshold": "Indica los días de retraso de la etapa para poder avisar por permanencia."
+      },
+      "repeat": {
+        "label": "Frecuencia",
+        "once": "Una sola vez",
+        "every": "Repetir mientras siga",
+        "days": "Cada cuántos días",
+        "daysSuffix": "días"
+      },
+      "recipients": {
+        "title": "A quién se avisa",
+        "orderDoctor": "Doctor de la orden",
+        "orderCreator": "Quien creó la orden",
+        "roles": "Roles",
+        "users": "Usuarios puntuales",
+        "selected": "{count, plural, one {# elegido} other {# elegidos}}",
+        "searchUsers": "Buscar…",
+        "noUsers": "Sin resultados"
+      },
+      "channels": {
+        "title": "Por qué canal",
+        "inApp": "En el sistema",
+        "email": "Email",
+        "whatsapp": "WhatsApp",
+        "emailTemplate": "Plantilla de email",
+        "defaultEmail": "Texto por defecto",
+        "whatsappTemplate": "Plantilla de WhatsApp",
+        "chooseTemplate": "Elige una plantilla",
+        "otherEntity": "otro tipo",
+        "whatsappHint": "Usa una plantilla aprobada de tipo «Orden de laboratorio» (Sistema → Plantillas de comunicación). Se envía al teléfono de cada destinatario."
+      },
+      "issues": {
+        "noRecipients": "Elige al menos un destinatario.",
+        "noChannel": "Elige al menos un canal.",
+        "whatsappTemplate": "Elige la plantilla de WhatsApp.",
+        "invalidRepeat": "Los días de repetición tienen que ser mayores que 0."
+      }
     }
   },
   "LabOrdersPage": {
@@ -10017,6 +10090,31 @@
       "showFinished": "Mostrar finalizadas",
       "empty": "Este paciente no tiene órdenes de laboratorio.",
       "emptyPending": "Este paciente no tiene órdenes de laboratorio pendientes."
+    },
+    "loadMoreError": "No se han podido cargar más órdenes",
+    "view": {
+      "label": "Vista",
+      "list": "Lista",
+      "board": "Tablero"
+    },
+    "board": {
+      "finalWindow": "Llegadas en los últimos {days} días",
+      "finalWindowLabel": "Columnas finales",
+      "lastDays": "Últimos {days} días",
+      "emptyColumn": "Sin órdenes",
+      "loadMore": "Cargar más ({count})",
+      "expand": "Expandir «{stage}»",
+      "collapse": "Colapsar «{stage}»",
+      "cardMenu": "Acciones de la orden #{id}",
+      "a11y": {
+        "instructions": "Para mover una orden, pulsa la barra espaciadora, usa las flechas para elegir la columna y vuelve a pulsar la barra espaciadora. Escape cancela. Intro abre la orden.",
+        "card": "orden que se puede arrastrar",
+        "start": "Moviendo la orden {order}.",
+        "over": "La orden {order} está sobre «{stage}».",
+        "outside": "La orden {order} no está sobre ninguna columna.",
+        "end": "La orden {order} se movió a «{stage}».",
+        "cancel": "Se canceló el movimiento de la orden {order}."
+      }
     }
   },
   "PatientPortalConfigPage": {

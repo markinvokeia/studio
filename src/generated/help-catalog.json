@@ -1,5 +1,5 @@
 {
- "version": "c5eb195f2a6d5b48",
+ "version": "23c08eea0bb0cc00",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -6384,6 +6384,13 @@
      "source": "src/app/[locale]/config/lab-stages/page.tsx"
     },
     {
+     "description": "Abre las alertas de la etapa. El número indica cuántas tiene configuradas.",
+     "id": "config.lab-stages.btn.alerts",
+     "kind": "btn",
+     "label": "Alertas",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
      "id": "config.lab-stages.btn.discard",
      "kind": "btn",
      "label": "Descartar cambios",
@@ -6402,6 +6409,26 @@
      "kind": "section",
      "label": "Etapas activas",
      "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "id": "config.lab-stages.section.alert-0",
+     "kind": "section",
+     "label": "Avisa cuando una orden lleva más de {days, plural, one {# día} other {# días}} en esta etapa (el umbral de atraso).",
+     "source": "src/components/lab-orders/lab-stage-alerts-dialog.tsx"
+    },
+    {
+     "description": "Avisa cuando la orden supera los días de atraso de la etapa; una vez o repetido cada X días mientras siga. Solo en etapas no finales con umbral.",
+     "id": "config.lab-stages.section.alert-dwell",
+     "kind": "section",
+     "label": "Por permanencia",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "Avisa cada vez que una orden pasa a esta etapa. Se elige a quién (roles, usuarios, el doctor de la orden o quien la creó) y por qué canal.",
+     "id": "config.lab-stages.section.alert-enter",
+     "kind": "section",
+     "label": "Al entrar a la etapa",
+     "source": "knowledge/screens/config.lab-stages.json"
     },
     {
      "description": "Etapas que ya no se usan y no aparecen en el tablero. Se pueden reactivar.",
@@ -6432,7 +6459,8 @@
     "Tiene que haber exactamente una etapa inicial (ahí entra toda orden nueva) y al menos una final (por ejemplo Completado o Cancelado).",
     "Una etapa que tiene o tuvo órdenes no se elimina: se desactiva. Si todavía tiene órdenes, se elige a qué etapa pasan.",
     "Los nombres de las etapas los escribe la clínica y no se traducen.",
-    "Nada se aplica hasta pulsar Guardar."
+    "Nada se aplica hasta pulsar Guardar.",
+    "Cada etapa puede avisar al entrar una orden y por permanencia (cuando supera sus días de atraso), en el sistema, por email o por WhatsApp. Los avisos también quedan en el Centro de alertas."
    ],
    "title": "Etapas de Laboratorio"
   },
@@ -7706,6 +7734,13 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
+     "description": "Las etapas finales solo muestran las órdenes que llegaron en los últimos días elegidos, para que no crezcan sin límite.",
+     "id": "lab-orders.field.final-days",
+     "kind": "field",
+     "label": "Columnas finales",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
      "id": "lab-orders.field.laboratory_id",
      "kind": "field",
      "label": "Laboratorio",
@@ -7743,6 +7778,13 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
+     "description": "Una columna por etapa. Las tarjetas muestran paciente, trabajo, laboratorio y días en la etapa, en rojo si están atrasadas. Las columnas se pueden colapsar.",
+     "id": "lab-orders.section.board",
+     "kind": "section",
+     "label": "Tablero",
+     "source": "src/components/lab-orders/lab-orders-board.tsx"
+    },
+    {
      "description": "Etapa en la que está la orden y los días que lleva ahí; en rojo si está atrasada.",
      "id": "lab-orders.section.detail-stage",
      "kind": "section",
@@ -7762,6 +7804,13 @@
      "kind": "section",
      "label": "Historial de etapas",
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "La lista tiene todos los filtros; el tablero muestra una columna por etapa activa, en el orden configurado.",
+     "id": "lab-orders.section.view",
+     "kind": "section",
+     "label": "Lista o tablero",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
     }
    ],
    "id": "lab-orders",
@@ -7781,7 +7830,9 @@
     "Por defecto la lista muestra solo las órdenes pendientes (las que no están en una etapa final).",
     "Una orden está atrasada cuando lleva más días en su etapa que el umbral configurado para esa etapa; en una etapa final nunca está atrasada.",
     "El laboratorio se elige entre los proveedores.",
-    "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha."
+    "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha.",
+    "En el tablero se arrastra una tarjeta a otra columna para cambiar la etapa; se guarda al soltar y, si falla, la tarjeta vuelve a su lugar. En celular o con teclado se usa «Mover a…» del menú de la tarjeta.",
+    "Los cambios que hacen otros usuarios aparecen solos, sin recargar."
    ],
    "title": "Órdenes de Laboratorio"
   },

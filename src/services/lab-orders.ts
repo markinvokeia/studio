@@ -1,6 +1,7 @@
 import { API_ROUTES } from '@/constants/routes';
 import type {
-  LabOrder, LabOrderDetail, LabOrderFilters, LabOrderHistoryEntry, LabOrderSavePayload, LabOrdersErrorCode, LabStageKind,
+  LabOrder, LabOrderBoardColumn, LabOrderBoardFilters, LabOrderDetail, LabOrderFilters, LabOrderHistoryEntry,
+  LabOrderSavePayload, LabOrdersErrorCode, LabStageKind,
 } from '@/lib/types';
 import { api, type ApiRequestOptions } from '@/services/api';
 
@@ -114,6 +115,18 @@ export async function searchLabOrders(filters: LabOrderFilters, options?: ApiReq
     items: rows.map((row) => toOrder(row.row_data)).filter((o): o is LabOrder => o !== null),
     total: rows.length > 0 ? Number(rows[0].total_count) || 0 : 0,
   };
+}
+
+/** Tablero: una columna por etapa activa, en el orden configurado. */
+export async function fetchLabOrdersBoard(filters: LabOrderBoardFilters, options?: ApiRequestOptions): Promise<LabOrderBoardColumn[]> {
+  const data = await call(() => api.post(API_ROUTES.LAB_ORDERS.BOARD, filters, undefined, undefined, options));
+  return unwrapRows(data)
+    .filter((row) => row?.stage_id != null)
+    .map((row) => ({
+      stage_id: Number(row.stage_id),
+      total: Number(row.total) || 0,
+      items: (Array.isArray(row.items) ? row.items : []).map(toOrder).filter((o: LabOrder | null): o is LabOrder => o !== null),
+    }));
 }
 
 export async function fetchLabOrderDetail(id: number, options?: ApiRequestOptions): Promise<LabOrderDetail> {

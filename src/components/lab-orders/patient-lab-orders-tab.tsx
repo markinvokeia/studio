@@ -13,6 +13,7 @@ import { LabOrderDetailSheet } from '@/components/lab-orders/lab-order-detail-sh
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
 import { LabOrderDaysInStage, LabStageBadge, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
 
+import { useLabOrdersLive } from '@/hooks/use-lab-orders-live';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { isAbortError } from '@/services/api';
@@ -59,6 +60,9 @@ export function PatientLabOrdersTab({ patientId, patientName, readOnly = false }
   }, [patientId, showFinished, reloadKey, errorText]);
 
   const reload = () => setReloadKey((k) => k + 1);
+
+  // Otro usuario creó, movió o editó una orden: se relee (la lista es corta).
+  useLabOrdersLive(reload);
 
   return (
     <div data-help-id="patients.section.lab-orders" className="space-y-3">

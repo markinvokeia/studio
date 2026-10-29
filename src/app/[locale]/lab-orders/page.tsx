@@ -2,8 +2,9 @@
 
 import * as React from 'react';
 import { type ColumnDef, type PaginationState } from '@tanstack/react-table';
-import { FlaskConical, Plus, X } from 'lucide-react';
+import { FlaskConical, LayoutList, Plus, SquareKanban, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { DataCard } from '@/components/ui/data-card';
@@ -18,11 +19,14 @@ import { Switch } from '@/components/ui/switch';
 import { UserSelector } from '@/components/ui/user-selector';
 
 import { Can } from '@/components/auth/Can';
+import { LabOrdersBoard } from '@/components/lab-orders/lab-orders-board';
 import { LabOrderDetailSheet } from '@/components/lab-orders/lab-order-detail-sheet';
 import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialog';
 import { LabOrderDaysInStage, LabStageBadge, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
 
 import { useDebounce } from '@/hooks/use-debounce';
+import { useLabOrdersLive } from '@/hooks/use-lab-orders-live';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatDisplayDate, formatUtcDateTime } from '@/lib/utils';
 import { isAbortError } from '@/services/api';
@@ -34,6 +38,11 @@ import type { LabOrder, LabOrderFilters, LabOrderSort, LabStage } from '@/lib/ty
 
 /** Filtro de etapa: 'pending' (default) = todas las que no están en etapa final. */
 type StageFilter = 'pending' | 'all' | `stage-${number}`;
+
+type ViewMode = 'list' | 'board';
+
+const VIEW_STORAGE = 'lab-orders-view';
+const FINAL_DAYS_OPTIONS = [7, 30, 90] as const;
 
 interface PickedEntity {
   id: string;
@@ -53,14 +62,35 @@ function useIsMobile() {
 }
 
 /**
- * Órdenes de laboratorio → Lista. Por defecto solo las pendientes (fuera de etapa final),
- * más recientes primero. Las atrasadas se marcan en rojo.
+ * Órdenes de laboratorio. Dos vistas:
+ *  - Lista: por defecto solo las pendientes (fuera de etapa final), con todos los filtros.
+ *  - Tablero: una columna por etapa activa; arrastrar cambia la etapa.
+ * Las atrasadas se marcan en rojo en las dos. Los cambios de otros usuarios llegan en vivo.
  */
 export default function LabOrdersPage() {
   const t = useTranslations('LabOrdersPage');
   const { toast } = useToast();
   const errorText = useLabOrderErrorText();
   const isMobile = useIsMobile();
+  const { hasPermission } = usePermissions();
+  const canChangeStage = hasPermission(LAB_ORDERS_PERMISSIONS.CHANGE_STAGE);
+
+  const [view, setView] = React.useState<ViewMode>('list');
+  const [finalDays, setFinalDays] = React.useState<number>(30);
+  const [stagesKey, setStagesKey] = React.useState(0);
+  const [boardKey, setBoardKey] = React.useState(0);
+
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem(VIEW_STORAGE);
+      if (stored === 'board' || stored === 'list') setView(stored);
+    } catch { /* sin storage */ }
+  }, []);
+
+  const changeView = (next: ViewMode) => {
+    setView(next);
+    try { localStorage.setItem(VIEW_STORAGE, next); } catch { /* sin storage */ }
+  };
 
   const [stages, setStages] = React.useState<LabStage[]>([]);
   const [orders, setOrders] = React.useState<LabOrder[]>([]);
@@ -86,13 +116,21 @@ export default function LabOrdersPage() {
 
   const debouncedSearch = useDebounce(search, 300);
 
+  // Desde una notificación: /lab-orders?order=<id> abre el detalle.
+  const searchParams = useSearchParams();
+  const orderParam = searchParams.get('order');
+  React.useEffect(() => {
+    const id = Number(orderParam);
+    if (Number.isInteger(id) && id > 0) setSelectedId(id);
+  }, [orderParam]);
+
   React.useEffect(() => {
     const controller = new AbortController();
     fetchLabStages({ signal: controller.signal })
       .then((data) => setStages(data.filter((s) => s.is_active)))
       .catch((error) => { if (!isAbortError(error)) toast({ variant: 'destructive', title: t('stagesLoadError'), description: errorText(error) }); });
     return () => controller.abort();
-  }, [t, toast, errorText]);
+  }, [t, toast, errorText, stagesKey]);
 
   const filters = React.useMemo<LabOrderFilters>(() => ({
     search: debouncedSearch.trim() || undefined,
@@ -134,7 +172,16 @@ export default function LabOrdersPage() {
     return () => controller.abort();
   }, [filters, pagination, reloadKey, errorText]);
 
-  const reload = () => setReloadKey((k) => k + 1);
+  const reload = () => {
+    setReloadKey((k) => k + 1);
+    setBoardKey((k) => k + 1);
+  };
+
+  // Cambios de otros usuarios (y el eco de los propios): se recarga lo que se ve.
+  useLabOrdersLive(({ stagesChanged }) => {
+    if (stagesChanged) setStagesKey((k) => k + 1);
+    reload();
+  });
 
   const hasExtraFilters = Boolean(laboratory || doctor || patient || dateFrom || dateTo || overdueOnly || search || stageFilter !== 'pending');
   const clearFilters = () => {
@@ -205,12 +252,29 @@ export default function LabOrdersPage() {
         title={t('title')}
         description={t('description')}
         actions={
-          <Can permission={LAB_ORDERS_PERMISSIONS.CREATE}>
-            <Button data-help-id="lab-orders.btn.new" onClick={() => setCreateOpen(true)} className="gap-1.5">
-              <Plus className="h-4 w-4" />
-              {t('new')}
-            </Button>
-          </Can>
+          <div className="flex items-center gap-2">
+            <div data-help-id="lab-orders.section.view" role="group" aria-label={t('view.label')} className="inline-flex rounded-lg border border-border bg-muted/30 p-0.5">
+              {([['list', LayoutList], ['board', SquareKanban]] as const).map(([mode, Icon]) => (
+                <Button
+                  key={mode}
+                  size="sm"
+                  variant={view === mode ? 'secondary' : 'ghost'}
+                  className="h-8 gap-1.5"
+                  aria-pressed={view === mode}
+                  onClick={() => changeView(mode)}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="hidden sm:inline">{t(`view.${mode}`)}</span>
+                </Button>
+              ))}
+            </div>
+            <Can permission={LAB_ORDERS_PERMISSIONS.CREATE}>
+              <Button data-help-id="lab-orders.btn.new" onClick={() => setCreateOpen(true)} className="gap-1.5">
+                <Plus className="h-4 w-4" />
+                {t('new')}
+              </Button>
+            </Can>
+          </div>
         }
       />
 
@@ -219,7 +283,7 @@ export default function LabOrdersPage() {
           <Label className="text-xs text-muted-foreground">{t('filters.search')}</Label>
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('filters.searchPlaceholder')} className="h-9" />
         </div>
-        <div className="space-y-1">
+        <div className={cn('space-y-1', view === 'board' && 'hidden')}>
           <Label className="text-xs text-muted-foreground">{t('filters.stage')}</Label>
           <Select value={stageFilter} onValueChange={(v) => setStageFilter(v as StageFilter)}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
@@ -260,7 +324,7 @@ export default function LabOrdersPage() {
             triggerText={t('filters.any')}
           />
         </div>
-        <div className="space-y-1">
+        <div className={cn('space-y-1', view === 'board' && 'hidden')}>
           <Label className="text-xs text-muted-foreground">{t('filters.patient')}</Label>
           <UserSelector
             filterType="PACIENTE"
@@ -271,15 +335,15 @@ export default function LabOrdersPage() {
             triggerText={t('filters.any')}
           />
         </div>
-        <div className="space-y-1">
+        <div className={cn('space-y-1', view === 'board' && 'hidden')}>
           <Label className="text-xs text-muted-foreground">{t('filters.createdFrom')}</Label>
           <DatePickerInput value={dateFrom} onChange={setDateFrom} />
         </div>
-        <div className="space-y-1">
+        <div className={cn('space-y-1', view === 'board' && 'hidden')}>
           <Label className="text-xs text-muted-foreground">{t('filters.createdTo')}</Label>
           <DatePickerInput value={dateTo} onChange={setDateTo} />
         </div>
-        <div className="space-y-1">
+        <div className={cn('space-y-1', view === 'board' && 'hidden')}>
           <Label className="text-xs text-muted-foreground">{t('filters.sort')}</Label>
           <Select value={sort} onValueChange={(v) => setSort(v as LabOrderSort)}>
             <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
@@ -295,6 +359,19 @@ export default function LabOrdersPage() {
             <Switch data-help-id="lab-orders.field.overdue-only" checked={overdueOnly} onCheckedChange={setOverdueOnly} />
             {t('filters.overdueOnly')}
           </label>
+          {view === 'board' && (
+            <div className="flex items-center gap-2 text-sm">
+              <Label className="text-xs text-muted-foreground">{t('board.finalWindowLabel')}</Label>
+              <Select value={String(finalDays)} onValueChange={(v) => setFinalDays(Number(v))}>
+                <SelectTrigger data-help-id="lab-orders.field.final-days" className="h-8 w-[9rem]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FINAL_DAYS_OPTIONS.map((days) => (
+                    <SelectItem key={days} value={String(days)}>{t('board.lastDays', { days })}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           {hasExtraFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1.5">
               <X className="h-3.5 w-3.5" />
@@ -304,6 +381,22 @@ export default function LabOrdersPage() {
         </div>
       </section>
 
+      {view === 'board' ? (
+        <LabOrdersBoard
+          stages={stages}
+          filters={{
+            search: debouncedSearch.trim() || undefined,
+            laboratory_id: laboratory?.id,
+            doctor_id: doctor?.id,
+            overdue_only: overdueOnly || undefined,
+          }}
+          finalDays={finalDays}
+          reloadKey={boardKey}
+          canChangeStage={canChangeStage}
+          onOpen={(order) => setSelectedId(order.id)}
+          onMoved={() => setReloadKey((k) => k + 1)}
+        />
+      ) : (
       <div className="min-h-0 flex-1 overflow-hidden px-1">
         <DataTable
           columns={columns}
@@ -338,6 +431,7 @@ export default function LabOrdersPage() {
           )}
         />
       </div>
+      )}
 
       <LabOrderFormDialog
         open={createOpen}

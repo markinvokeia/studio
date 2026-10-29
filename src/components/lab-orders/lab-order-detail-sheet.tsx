@@ -16,6 +16,7 @@ import { LabOrderFormDialog } from '@/components/lab-orders/lab-order-form-dialo
 import { LabOrderDaysInStage, LabStageBadge, useLabOrderErrorText } from '@/components/lab-orders/lab-order-shared';
 
 import { useAsyncAction } from '@/hooks/use-async-action';
+import { useLabOrdersLive } from '@/hooks/use-lab-orders-live';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { formatDisplayDate, formatUtcDateTime } from '@/lib/utils';
@@ -63,6 +64,9 @@ export function LabOrderDetailSheet({ orderId, stages, onClose, onChanged }: Lab
   }, [orderId, reloadKey, errorText]);
 
   const reload = () => setReloadKey((k) => k + 1);
+
+  // Si otro usuario la mueve o la edita mientras está abierta, se ve sin cerrar el panel.
+  useLabOrdersLive(() => { if (orderId != null) reload(); });
 
   const move = useAsyncAction(
     (toStageId: number) => changeLabOrderStage(detail!.id, toStageId, detail!.current_stage_id, { timeoutMs: REQUEST_TIMEOUT_MS.mutation }),

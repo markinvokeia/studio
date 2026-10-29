@@ -1,5 +1,5 @@
 {
- "version": "5ee29ed06df2b1fb",
+ "version": "922e24e5e9aee441",
  "locale": "en",
  "journey": [
   {
@@ -6296,6 +6296,13 @@
      "source": "src/app/[locale]/config/lab-stages/page.tsx"
     },
     {
+     "description": "Opens the stage alerts. The number shows how many are set up.",
+     "id": "config.lab-stages.btn.alerts",
+     "kind": "btn",
+     "label": "Alerts",
+     "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
      "id": "config.lab-stages.btn.discard",
      "kind": "btn",
      "label": "Discard changes",
@@ -6314,6 +6321,26 @@
      "kind": "section",
      "label": "Active stages",
      "source": "src/app/[locale]/config/lab-stages/page.tsx"
+    },
+    {
+     "id": "config.lab-stages.section.alert-0",
+     "kind": "section",
+     "label": "Notifies when an order has been in this stage for more than {days, plural, one {# day} other {# days}} (the overdue limit).",
+     "source": "src/components/lab-orders/lab-stage-alerts-dialog.tsx"
+    },
+    {
+     "description": "Notifies when the order goes over the stage overdue days; once or every X days while it stays. Only for non-final stages with a limit.",
+     "id": "config.lab-stages.section.alert-dwell",
+     "kind": "section",
+     "label": "Time in stage",
+     "source": "knowledge/screens/config.lab-stages.json"
+    },
+    {
+     "description": "Notifies every time an order moves into this stage. Choose who (roles, users, the order doctor or its creator) and which channel.",
+     "id": "config.lab-stages.section.alert-enter",
+     "kind": "section",
+     "label": "On entering the stage",
+     "source": "knowledge/screens/config.lab-stages.json"
     },
     {
      "description": "Stages no longer in use that do not show on the board. They can be reactivated.",
@@ -6344,7 +6371,8 @@
     "There must be exactly one initial stage (every new order starts there) and at least one final stage (for example Completed or Cancelled).",
     "A stage that has or had orders is not deleted: it is deactivated. If it still has orders, you choose which stage they move to.",
     "Stage names are written by the clinic and are not translated.",
-    "Nothing applies until you press Save."
+    "Nothing applies until you press Save.",
+    "Each stage can notify when an order enters it and on time in stage (when it goes over its overdue days), in the app, by email or by WhatsApp. Alerts also go to the Alert Center."
    ],
    "title": "Lab Stages"
   },
@@ -7618,6 +7646,13 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
+     "description": "Final stages only show orders that arrived in the chosen last days, so they do not grow forever.",
+     "id": "lab-orders.field.final-days",
+     "kind": "field",
+     "label": "Final columns",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
      "id": "lab-orders.field.laboratory_id",
      "kind": "field",
      "label": "Lab",
@@ -7655,6 +7690,13 @@
      "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
     },
     {
+     "description": "One column per stage. Cards show patient, job, lab and days in stage, in red when overdue. Columns can be collapsed.",
+     "id": "lab-orders.section.board",
+     "kind": "section",
+     "label": "Board",
+     "source": "src/components/lab-orders/lab-orders-board.tsx"
+    },
+    {
      "description": "The stage the order is in and how many days it has been there; red if overdue.",
      "id": "lab-orders.section.detail-stage",
      "kind": "section",
@@ -7674,6 +7716,13 @@
      "kind": "section",
      "label": "Stage history",
      "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "The list has every filter; the board shows one column per active stage, in the configured order.",
+     "id": "lab-orders.section.view",
+     "kind": "section",
+     "label": "List or board",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
     }
    ],
    "id": "lab-orders",
@@ -7693,7 +7742,9 @@
     "By default the list shows only pending orders (those not in a final stage).",
     "An order is overdue when it has spent more days in its stage than the limit set for that stage; in a final stage it is never overdue.",
     "The lab is chosen from the providers.",
-    "Every stage change is recorded in the order history, with the user and the date."
+    "Every stage change is recorded in the order history, with the user and the date.",
+    "On the board, drag a card to another column to change its stage; it saves on drop and, if saving fails, the card goes back. On a phone or with the keyboard use “Move to…” in the card menu.",
+    "Changes made by other users show up on their own, without reloading."
    ],
    "title": "Lab Orders"
   },

@@ -10,7 +10,9 @@
     "Por defecto la lista muestra solo las órdenes pendientes (las que no están en una etapa final).",
     "Una orden está atrasada cuando lleva más días en su etapa que el umbral configurado para esa etapa; en una etapa final nunca está atrasada.",
     "El laboratorio se elige entre los proveedores.",
-    "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha."
+    "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha.",
+    "En el tablero se arrastra una tarjeta a otra columna para cambiar la etapa; se guarda al soltar y, si falla, la tarjeta vuelve a su lugar. En celular o con teclado se usa «Mover a…» del menú de la tarjeta.",
+    "Los cambios que hacen otros usuarios aparecen solos, sin recargar."
   ],
   "elements": {
     "lab-orders.btn.new": {
@@ -44,6 +46,18 @@
     "lab-orders.btn.delete": {
       "label": "Eliminar",
       "description": "Quita la orden de la lista y del tablero."
+    },
+    "lab-orders.section.view": {
+      "label": "Lista o tablero",
+      "description": "La lista tiene todos los filtros; el tablero muestra una columna por etapa activa, en el orden configurado."
+    },
+    "lab-orders.section.board": {
+      "label": "Tablero",
+      "description": "Una columna por etapa. Las tarjetas muestran paciente, trabajo, laboratorio y días en la etapa, en rojo si están atrasadas. Las columnas se pueden colapsar."
+    },
+    "lab-orders.field.final-days": {
+      "label": "Columnas finales",
+      "description": "Las etapas finales solo muestran las órdenes que llegaron en los últimos días elegidos, para que no crezcan sin límite."
     }
   }
 }

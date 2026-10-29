@@ -6,7 +6,8 @@
     "There must be exactly one initial stage (every new order starts there) and at least one final stage (for example Completed or Cancelled).",
     "A stage that has or had orders is not deleted: it is deactivated. If it still has orders, you choose which stage they move to.",
     "Stage names are written by the clinic and are not translated.",
-    "Nothing applies until you press Save."
+    "Nothing applies until you press Save.",
+    "Each stage can notify when an order enters it and on time in stage (when it goes over its overdue days), in the app, by email or by WhatsApp. Alerts also go to the Alert Center."
   ],
   "elements": {
     "config.lab-stages.section.active": {
@@ -31,6 +32,18 @@
     "config.lab-stages.btn.save": {
       "label": "Save",
       "description": "Saves the whole configuration at once. If a stage with orders was deactivated, its orders move to the chosen stage at that moment."
+    },
+    "config.lab-stages.btn.alerts": {
+      "label": "Alerts",
+      "description": "Opens the stage alerts. The number shows how many are set up."
+    },
+    "config.lab-stages.section.alert-enter": {
+      "label": "On entering the stage",
+      "description": "Notifies every time an order moves into this stage. Choose who (roles, users, the order doctor or its creator) and which channel."
+    },
+    "config.lab-stages.section.alert-dwell": {
+      "label": "Time in stage",
+      "description": "Notifies when the order goes over the stage overdue days; once or every X days while it stays. Only for non-final stages with a limit."
     }
   }
 }

@@ -7,7 +7,8 @@
     "Tiene que haber exactamente una etapa inicial (ahí entra toda orden nueva) y al menos una final (por ejemplo Completado o Cancelado).",
     "Una etapa que tiene o tuvo órdenes no se elimina: se desactiva. Si todavía tiene órdenes, se elige a qué etapa pasan.",
     "Los nombres de las etapas los escribe la clínica y no se traducen.",
-    "Nada se aplica hasta pulsar Guardar."
+    "Nada se aplica hasta pulsar Guardar.",
+    "Cada etapa puede avisar al entrar una orden y por permanencia (cuando supera sus días de atraso), en el sistema, por email o por WhatsApp. Los avisos también quedan en el Centro de alertas."
   ],
   "elements": {
     "config.lab-stages.section.active": {
@@ -32,6 +33,18 @@
     "config.lab-stages.btn.save": {
       "label": "Guardar",
       "description": "Guarda toda la configuración junta. Si se desactivó una etapa con órdenes, en ese momento las órdenes pasan a la etapa elegida."
+    },
+    "config.lab-stages.btn.alerts": {
+      "label": "Alertas",
+      "description": "Abre las alertas de la etapa. El número indica cuántas tiene configuradas."
+    },
+    "config.lab-stages.section.alert-enter": {
+      "label": "Al entrar a la etapa",
+      "description": "Avisa cada vez que una orden pasa a esta etapa. Se elige a quién (roles, usuarios, el doctor de la orden o quien la creó) y por qué canal."
+    },
+    "config.lab-stages.section.alert-dwell": {
+      "label": "Por permanencia",
+      "description": "Avisa cuando la orden supera los días de atraso de la etapa; una vez o repetido cada X días mientras siga. Solo en etapas no finales con umbral."
     }
   }
 }

@@ -1,5 +1,5 @@
 import { API_ROUTES } from '@/constants/routes';
-import type { LabStage, LabStageKind, LabStageSaveItem, LabStagesSaveErrorCode } from '@/lib/types';
+import type { LabStage, LabStageAlertConfig, LabStageAlerts, LabStageKind, LabStageSaveItem, LabStagesSaveErrorCode } from '@/lib/types';
 import { api, type ApiRequestOptions } from '@/services/api';
 
 /**
@@ -16,6 +16,27 @@ function unwrapRows(data: unknown): unknown[] {
   return Array.isArray(wrapped) ? wrapped : wrapped ? [wrapped] : [];
 }
 
+function toAlert(raw: any): LabStageAlertConfig | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const ids = (value: unknown) => (Array.isArray(value) ? value : []);
+  return {
+    repeat_every_days: raw.repeat_every_days != null ? Number(raw.repeat_every_days) : null,
+    recipient_role_ids: ids(raw.recipient_role_ids).map(Number),
+    recipient_user_ids: ids(raw.recipient_user_ids).map(String),
+    notify_order_doctor: raw.notify_order_doctor === true,
+    notify_order_creator: raw.notify_order_creator === true,
+    channel_in_app: raw.channel_in_app === true,
+    channel_email: raw.channel_email === true,
+    channel_whatsapp: raw.channel_whatsapp === true,
+    email_template_id: raw.email_template_id != null ? Number(raw.email_template_id) : null,
+    whatsapp_template_id: raw.whatsapp_template_id != null ? Number(raw.whatsapp_template_id) : null,
+  };
+}
+
+function toAlerts(raw: any): LabStageAlerts {
+  return { enter: toAlert(raw?.enter), dwell: toAlert(raw?.dwell) };
+}
+
 function toStage(raw: any): LabStage | null {
   // alwaysOutputData: sin etapas n8n responde [{}].
   if (!raw || raw.id == null || typeof raw.name !== 'string') return null;
@@ -29,6 +50,7 @@ function toStage(raw: any): LabStage | null {
     is_active: raw.is_active !== false,
     orders_count: Number(raw.orders_count) || 0,
     in_use: raw.in_use === true,
+    alerts: toAlerts(raw.alerts),
   };
 }
 

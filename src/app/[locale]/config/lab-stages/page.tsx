@@ -6,7 +6,7 @@ import {
 } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { AlertTriangle, Ban, FlaskConical, GripVertical, Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
+import { AlertTriangle, Ban, Bell, BellRing, FlaskConical, GripVertical, Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -20,17 +20,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 import { Can } from '@/components/auth/Can';
+import { LabStageAlertsDialog, labStageAlertIssues } from '@/components/lab-orders/lab-stage-alerts-dialog';
 
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/error-utils';
 import { cn } from '@/lib/utils';
-import { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
+import { REQUEST_TIMEOUT_MS, isAbortError, isTimeoutError } from '@/services/api';
+import { fetchLabStageAlertOptions, type LabStageAlertOptions } from '@/services/lab-stage-alert-options';
 import { LabStagesSaveError, fetchLabStages, saveLabStages } from '@/services/lab-stages';
 
 import { LAB_ORDERS_PERMISSIONS } from '@/constants/permissions';
-import type { LabStage, LabStageKind, LabStageSaveItem } from '@/lib/types';
+import type { LabStage, LabStageAlerts, LabStageKind, LabStageSaveItem } from '@/lib/types';
 
 const KINDS: LabStageKind[] = ['initial', 'intermediate', 'final'];
 const DEFAULT_COLOR = '#64748b';
@@ -49,7 +51,10 @@ interface DraftStage {
   inUse: boolean;
   /** Al desactivar una etapa con órdenes: a qué etapa pasan (se aplica al guardar). */
   moveOrdersTo: number | null;
+  alerts: LabStageAlerts;
 }
+
+const NO_ALERTS: LabStageAlerts = { enter: null, dwell: null };
 
 function toDraft(stage: LabStage): DraftStage {
   return {
@@ -63,6 +68,7 @@ function toDraft(stage: LabStage): DraftStage {
     ordersCount: stage.orders_count,
     inUse: stage.in_use,
     moveOrdersTo: null,
+    alerts: stage.alerts ?? NO_ALERTS,
   };
 }
 
@@ -76,10 +82,15 @@ function toSaveItem(stage: DraftStage): LabStageSaveItem {
     overdue_days: stage.kind !== 'final' && overdue > 0 ? overdue : null,
     is_active: stage.isActive,
     move_orders_to: stage.isActive ? null : stage.moveOrdersTo,
+    // Una final (o sin umbral) no tiene alerta por permanencia.
+    alerts: {
+      enter: stage.alerts.enter,
+      dwell: stage.kind !== 'final' && overdue > 0 ? stage.alerts.dwell : null,
+    },
   };
 }
 
-type ValidationIssue = 'noInitial' | 'manyInitial' | 'noFinal' | 'emptyName' | 'duplicateName' | 'invalidOverdue';
+type ValidationIssue = 'noInitial' | 'manyInitial' | 'noFinal' | 'emptyName' | 'duplicateName' | 'invalidOverdue' | 'dwellWithoutThreshold' | 'invalidAlerts';
 
 /** Lo mismo que valida lab_stages_save: se muestra antes de guardar para no ir al servidor a fallar. */
 function validate(stages: DraftStage[]): ValidationIssue[] {
@@ -93,6 +104,9 @@ function validate(stages: DraftStage[]): ValidationIssue[] {
   const names = active.map((s) => s.name.trim().toLowerCase()).filter(Boolean);
   if (new Set(names).size !== names.length) issues.push('duplicateName');
   if (stages.some((s) => s.overdueDays !== '' && !(Number.parseInt(s.overdueDays, 10) > 0))) issues.push('invalidOverdue');
+  // Se borró el umbral de una etapa que tenía alerta por permanencia: al guardar se perdería.
+  if (stages.some((s) => s.alerts.dwell && s.kind !== 'final' && !(Number.parseInt(s.overdueDays, 10) > 0))) issues.push('dwellWithoutThreshold');
+  if (stages.some((s) => labStageAlertIssues(s.alerts.enter).length > 0 || labStageAlertIssues(s.alerts.dwell).length > 0)) issues.push('invalidAlerts');
   return issues;
 }
 
@@ -109,6 +123,10 @@ export default function LabStagesConfigPage() {
   const [stages, setStages] = React.useState<DraftStage[]>([]);
   const [initialJson, setInitialJson] = React.useState('[]');
   const [moveDialogKey, setMoveDialogKey] = React.useState<string | null>(null);
+  const [alertsDialogKey, setAlertsDialogKey] = React.useState<string | null>(null);
+  const [alertOptions, setAlertOptions] = React.useState<LabStageAlertOptions | null>(null);
+  const [alertOptionsError, setAlertOptionsError] = React.useState<string | null>(null);
+  const [alertOptionsKey, setAlertOptionsKey] = React.useState(0);
   const newKeyRef = React.useRef(0);
 
   const { data: loaded, setData, isLoading, isRefreshing, error: loadError, reload } = useDataLoader(
@@ -163,14 +181,28 @@ export default function LabStagesConfigPage() {
   };
 
   const changeKind = (key: string, kind: LabStageKind) => {
-    update(key, kind === 'final' ? { kind, overdueDays: '' } : { kind });
+    const stage = stages.find((s) => s.key === key);
+    // Una etapa final no tiene atraso ni, por lo tanto, alerta por permanencia.
+    update(key, kind === 'final' ? { kind, overdueDays: '', alerts: { enter: stage?.alerts.enter ?? null, dwell: null } } : { kind });
   };
+
+  // Opciones de las alertas (roles, personal, plantillas): se piden al abrir el diálogo por primera vez.
+  const needsAlertOptions = alertsDialogKey !== null && alertOptions === null;
+  React.useEffect(() => {
+    if (!needsAlertOptions) return;
+    const controller = new AbortController();
+    setAlertOptionsError(null);
+    fetchLabStageAlertOptions({ signal: controller.signal })
+      .then((opts) => { if (!controller.signal.aborted) setAlertOptions(opts); })
+      .catch((error) => { if (!isAbortError(error)) setAlertOptionsError(getErrorMessage(error) || tCommon('genericError')); });
+    return () => controller.abort();
+  }, [needsAlertOptions, alertOptionsKey, tCommon]);
 
   const addStage = () => {
     newKeyRef.current += 1;
     const draft: DraftStage = {
       key: `new-${newKeyRef.current}`, id: null, name: '', color: DEFAULT_COLOR, kind: 'intermediate',
-      overdueDays: '', isActive: true, ordersCount: 0, inUse: false, moveOrdersTo: null,
+      overdueDays: '', isActive: true, ordersCount: 0, inUse: false, moveOrdersTo: null, alerts: NO_ALERTS,
     };
     // Antes de la primera final: el circuito suele terminar en las finales.
     setStages((prev) => {
@@ -227,6 +259,8 @@ export default function LabStagesConfigPage() {
   };
 
   const moveDialogStage = stages.find((s) => s.key === moveDialogKey) ?? null;
+  const alertsDialogStage = stages.find((s) => s.key === alertsDialogKey) ?? null;
+  const alertsDialogOverdue = alertsDialogStage ? Number.parseInt(alertsDialogStage.overdueDays, 10) : NaN;
 
   if (isLoading) {
     return (
@@ -304,7 +338,7 @@ export default function LabStagesConfigPage() {
         )}
 
         <section data-help-id="config.lab-stages.section.active" className="rounded-xl border border-border bg-card">
-          <div className="hidden grid-cols-[2rem_3rem_minmax(0,1fr)_10rem_8rem_6rem_5.5rem] items-center gap-2 border-b px-3 py-2 text-xs font-medium text-muted-foreground md:grid">
+          <div className="hidden grid-cols-[2rem_3rem_minmax(0,1fr)_10rem_8rem_6rem_8rem] items-center gap-2 border-b px-3 py-2 text-xs font-medium text-muted-foreground md:grid">
             <span />
             <span>{t('columns.color')}</span>
             <span>{t('columns.name')}</span>
@@ -327,6 +361,7 @@ export default function LabStagesConfigPage() {
                       onKindChange={(kind) => changeKind(stage.key, kind)}
                       onDeactivate={() => deactivate(stage)}
                       onRemove={() => removeStage(stage.key)}
+                      onEditAlerts={() => setAlertsDialogKey(stage.key)}
                     />
                   ))}
                 </ul>
@@ -366,6 +401,20 @@ export default function LabStagesConfigPage() {
         )}
       </div>
 
+      <LabStageAlertsDialog
+        open={alertsDialogStage !== null}
+        onOpenChange={(open) => { if (!open) setAlertsDialogKey(null); }}
+        stageName={alertsDialogStage?.name || t('newBadge')}
+        stageKind={alertsDialogStage?.kind ?? 'intermediate'}
+        overdueDays={alertsDialogOverdue > 0 ? alertsDialogOverdue : null}
+        value={alertsDialogStage?.alerts ?? NO_ALERTS}
+        options={alertOptions}
+        optionsError={alertOptionsError}
+        onRetryOptions={() => setAlertOptionsKey((k) => k + 1)}
+        disabled={busy}
+        onApply={(alerts) => { if (alertsDialogKey) update(alertsDialogKey, { alerts }); }}
+      />
+
       <MoveOrdersDialog
         stage={moveDialogStage}
         targets={activeStages.filter((s) => s.key !== moveDialogKey && s.id != null)}
@@ -387,9 +436,10 @@ interface SortableStageRowProps {
   onKindChange: (kind: LabStageKind) => void;
   onDeactivate: () => void;
   onRemove: () => void;
+  onEditAlerts: () => void;
 }
 
-function SortableStageRow({ stage, position, disabled, onChange, onKindChange, onDeactivate, onRemove }: SortableStageRowProps) {
+function SortableStageRow({ stage, position, disabled, onChange, onKindChange, onDeactivate, onRemove, onEditAlerts }: SortableStageRowProps) {
   const t = useTranslations('LabStagesPage');
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({
     id: stage.key,
@@ -398,13 +448,14 @@ function SortableStageRow({ stage, position, disabled, onChange, onKindChange, o
   // Una etapa nueva o sin uso se puede borrar; con órdenes o historial solo se desactiva.
   const canRemove = !stage.inUse;
   const isFinal = stage.kind === 'final';
+  const alertCount = (stage.alerts.enter ? 1 : 0) + (stage.alerts.dwell ? 1 : 0);
 
   return (
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        'grid grid-cols-[2rem_3rem_minmax(0,1fr)] items-center gap-2 bg-card px-3 py-2.5 md:grid-cols-[2rem_3rem_minmax(0,1fr)_10rem_8rem_6rem_5.5rem]',
+        'grid grid-cols-[2rem_3rem_minmax(0,1fr)] items-center gap-2 bg-card px-3 py-2.5 md:grid-cols-[2rem_3rem_minmax(0,1fr)_10rem_8rem_6rem_8rem]',
         isDragging && 'relative z-10 rounded-lg shadow-lg ring-1 ring-primary/30',
       )}
     >
@@ -469,6 +520,27 @@ function SortableStageRow({ stage, position, disabled, onChange, onKindChange, o
 
         <Can permission={LAB_ORDERS_PERMISSIONS.STAGES_CONFIG}>
           <div className="flex justify-end gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  data-help-id="config.lab-stages.btn.alerts"
+                  size="icon"
+                  variant="ghost"
+                  onClick={onEditAlerts}
+                  disabled={disabled}
+                  aria-label={t('alerts.open', { count: alertCount })}
+                  className={cn('relative', alertCount > 0 && 'text-primary')}
+                >
+                  {alertCount > 0 ? <BellRing className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                  {alertCount > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-semibold text-primary-foreground">
+                      {alertCount}
+                    </span>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t('alerts.open', { count: alertCount })}</TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <span>

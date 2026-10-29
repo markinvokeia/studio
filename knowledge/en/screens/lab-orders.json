@@ -6,7 +6,9 @@
     "By default the list shows only pending orders (those not in a final stage).",
     "An order is overdue when it has spent more days in its stage than the limit set for that stage; in a final stage it is never overdue.",
     "The lab is chosen from the providers.",
-    "Every stage change is recorded in the order history, with the user and the date."
+    "Every stage change is recorded in the order history, with the user and the date.",
+    "On the board, drag a card to another column to change its stage; it saves on drop and, if saving fails, the card goes back. On a phone or with the keyboard use “Move to…” in the card menu.",
+    "Changes made by other users show up on their own, without reloading."
   ],
   "elements": {
     "lab-orders.btn.new": {
@@ -40,6 +42,18 @@
     "lab-orders.btn.delete": {
       "label": "Delete",
       "description": "Removes the order from the list and the board."
+    },
+    "lab-orders.section.view": {
+      "label": "List or board",
+      "description": "The list has every filter; the board shows one column per active stage, in the configured order."
+    },
+    "lab-orders.section.board": {
+      "label": "Board",
+      "description": "One column per stage. Cards show patient, job, lab and days in stage, in red when overdue. Columns can be collapsed."
+    },
+    "lab-orders.field.final-days": {
+      "label": "Final columns",
+      "description": "Final stages only show orders that arrived in the chosen last days, so they do not grow forever."
     }
   }
 }

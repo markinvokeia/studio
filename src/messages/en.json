@@ -618,7 +618,11 @@
     "appointmentRescheduledTitle": "Appointment rescheduled",
     "appointmentReassignedTitle": "Appointment reassigned",
     "appointmentUpdatedTitle": "Appointment updated",
-    "reminderDueTitle": "Reminder due"
+    "reminderDueTitle": "Reminder due",
+    "labOrderEnteredTitle": "Lab order in \"{stage}\"",
+    "labOrderOverdueTitle": "Lab order overdue in \"{stage}\"",
+    "labOrderDaysInStage": "{count, plural, one {# day} other {# days}} in stage",
+    "actionViewLabOrder": "View order"
   },
   "Header": {
     "toggleLanguage": "Toggle language",
@@ -6372,7 +6376,8 @@
         "entityTypes": {
           "patient": "Patient",
           "appointment": "Appointment",
-          "invoice": "Invoice"
+          "invoice": "Invoice",
+          "lab_order": "Lab order (team alert)"
         },
         "searchLabel": "Meta/YCloud template",
         "searchPlaceholder": "Search by template name...",
@@ -6402,7 +6407,16 @@
           "appointmentProfessionalName": "Professional name",
           "invoiceDocNo": "Invoice number",
           "invoiceAmount": "Invoice amount",
-          "invoiceDueDate": "Invoice due date"
+          "invoiceDueDate": "Invoice due date",
+          "recipientName": "Alert recipient name",
+          "labOrderNumber": "Order number",
+          "labOrderWork": "Job",
+          "labOrderLaboratory": "Lab",
+          "labOrderStage": "Current stage",
+          "labOrderDaysInStage": "Days in stage",
+          "labOrderDoctor": "Order doctor",
+          "labOrderTeeth": "Teeth",
+          "labOrderDueDate": "Expected delivery"
         }
       }
     },
@@ -9879,7 +9893,9 @@
       "noFinal": "There must be at least one final stage.",
       "emptyName": "Every stage needs a name.",
       "duplicateName": "Some active stages have the same name.",
-      "invalidOverdue": "Overdue days must be a whole number greater than 0."
+      "invalidOverdue": "Overdue days must be a whole number greater than 0.",
+      "dwellWithoutThreshold": "Some stages have a time-in-stage alert but no overdue days: set the limit or remove the alert.",
+      "invalidAlerts": "Some alerts are incomplete: check recipients, channels and templates."
     },
     "errors": {
       "NO_INITIAL": "There must be an initial stage.",
@@ -9894,7 +9910,11 @@
       "STAGE_IN_USE": "\"{name}\" has or had orders: it cannot be deleted, deactivate it instead.",
       "STAGE_HAS_ORDERS": "\"{name}\" still has orders: choose where they go before deactivating it.",
       "INVALID_MOVE_TARGET": "The orders in \"{name}\" must move to an active stage.",
-      "UNKNOWN": "Something went wrong while saving. Please try again."
+      "UNKNOWN": "Something went wrong while saving. Please try again.",
+      "DWELL_WITHOUT_THRESHOLD": "\"{name}\" has a time-in-stage alert but no overdue days.",
+      "NO_RECIPIENTS": "An alert of \"{name}\" has no recipients.",
+      "NO_CHANNEL": "An alert of \"{name}\" has no channel.",
+      "WHATSAPP_TEMPLATE_REQUIRED": "An alert of \"{name}\" uses WhatsApp without a template."
     },
     "moveDialog": {
       "title": "Deactivate \"{name}\"",
@@ -9903,6 +9923,59 @@
       "appliedOnSave": "Applied when you save the configuration.",
       "cancel": "Cancel",
       "confirm": "Deactivate and move"
+    },
+    "alerts": {
+      "open": "{count, plural, =0 {Set up alerts} one {# alert set up} other {# alerts set up}}",
+      "title": "Alerts for \"{stage}\"",
+      "description": "Alerts also show in the Alert Center, where they can be completed, snoozed or ignored. They apply when you save the configuration.",
+      "retry": "Retry",
+      "cancel": "Cancel",
+      "apply": "Apply",
+      "enter": {
+        "title": "On entering the stage",
+        "hint": "Notifies every time an order moves into this stage (for example, to book the fitting)."
+      },
+      "dwell": {
+        "title": "Time in stage",
+        "hint": "Notifies when an order has been in this stage for more than {days, plural, one {# day} other {# days}} (the overdue limit).",
+        "notForFinal": "Final stages are never overdue, so they have no time-in-stage alert.",
+        "needsThreshold": "Set the stage overdue days to notify on time in stage."
+      },
+      "repeat": {
+        "label": "Frequency",
+        "once": "Only once",
+        "every": "Repeat while it stays",
+        "days": "Every how many days",
+        "daysSuffix": "days"
+      },
+      "recipients": {
+        "title": "Who is notified",
+        "orderDoctor": "Order doctor",
+        "orderCreator": "Order creator",
+        "roles": "Roles",
+        "users": "Specific users",
+        "selected": "{count} selected",
+        "searchUsers": "Search…",
+        "noUsers": "No results"
+      },
+      "channels": {
+        "title": "Channel",
+        "inApp": "In the app",
+        "email": "Email",
+        "whatsapp": "WhatsApp",
+        "emailTemplate": "Email template",
+        "defaultEmail": "Default text",
+        "whatsappTemplate": "WhatsApp template",
+        "chooseTemplate": "Choose a template",
+        "otherEntity": "other type",
+        "whatsappHint": "Use an approved template of type \"Lab order\" (System → Communication templates). It is sent to each recipient's phone."
+      },
+      "issues": {
+        "noRecipients": "Choose at least one recipient.",
+        "noChannel": "Choose at least one channel.",
+        "whatsappTemplate": "Choose the WhatsApp template.",
+        "invalidRepeat": "Repeat days must be greater than 0."
+      }
     }
   },
   "LabOrdersPage": {
@@ -10017,6 +10090,31 @@
       "showFinished": "Show finished",
       "empty": "This patient has no lab orders.",
       "emptyPending": "This patient has no pending lab orders."
+    },
+    "loadMoreError": "Could not load more orders",
+    "view": {
+      "label": "View",
+      "list": "List",
+      "board": "Board"
+    },
+    "board": {
+      "finalWindow": "Arrived in the last {days} days",
+      "finalWindowLabel": "Final columns",
+      "lastDays": "Last {days} days",
+      "emptyColumn": "No orders",
+      "loadMore": "Load more ({count})",
+      "expand": "Expand \"{stage}\"",
+      "collapse": "Collapse \"{stage}\"",
+      "cardMenu": "Actions for order #{id}",
+      "a11y": {
+        "instructions": "To move an order, press space, use the arrow keys to pick a column and press space again. Escape cancels. Enter opens the order.",
+        "card": "draggable order",
+        "start": "Moving order {order}.",
+        "over": "Order {order} is over \"{stage}\".",
+        "outside": "Order {order} is not over any column.",
+        "end": "Order {order} was moved to \"{stage}\".",
+        "cancel": "Moving order {order} was cancelled."
+      }
     }
   },
   "PatientPortalConfigPage": {

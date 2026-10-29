@@ -723,6 +723,31 @@ export type CalendarColorSettings = CalendarColorSources & {
 /** initial: exactamente una activa (ahí entra toda orden nueva) · final: al menos una (ya no está pendiente). */
 export type LabStageKind = 'initial' | 'intermediate' | 'final';
 
+/** Disparador de una alerta de etapa: al entrar a la etapa, o por permanencia (más de overdue_days). */
+export type LabStageAlertTrigger = 'enter' | 'dwell';
+
+/** Alerta de una etapa (tabla `lab_stage_alerts`, script 150). */
+export interface LabStageAlertConfig {
+  /** Solo permanencia: repetir cada N días mientras siga en la etapa. null = una sola vez. */
+  repeat_every_days: number | null;
+  recipient_role_ids: number[];
+  recipient_user_ids: string[];
+  notify_order_doctor: boolean;
+  notify_order_creator: boolean;
+  channel_in_app: boolean;
+  channel_email: boolean;
+  channel_whatsapp: boolean;
+  /** Plantilla EMAIL; sin ella se manda un texto por defecto. */
+  email_template_id: number | null;
+  /** Plantilla WHATSAPP aprobada en Meta/YCloud (obligatoria para el canal). */
+  whatsapp_template_id: number | null;
+}
+
+export interface LabStageAlerts {
+  enter: LabStageAlertConfig | null;
+  dwell: LabStageAlertConfig | null;
+}
+
 /** Etapa del circuito de laboratorio (tabla `lab_stages`, Configuración → Etapas de laboratorio). */
 export interface LabStage {
   id: number;
@@ -738,6 +763,7 @@ export interface LabStage {
   orders_count: number;
   /** Tiene órdenes o aparece en el historial: no se puede borrar, solo desactivar. */
   in_use: boolean;
+  alerts: LabStageAlerts;
 }
 
 /** Una etapa tal como se manda a guardar (POST /lab-stages/save), en el orden de la pantalla. */
@@ -751,6 +777,8 @@ export interface LabStageSaveItem {
   is_active: boolean;
   /** Al desactivar una etapa con órdenes: etapa activa a la que pasan. */
   move_orders_to?: number | null;
+  /** Alertas de la etapa (se reemplazan las dos). */
+  alerts: LabStageAlerts;
 }
 
 /** Orden de laboratorio tal como la devuelve v_lab_orders (script 148). */
@@ -823,9 +851,30 @@ export interface LabOrderFilters {
   /** Default true: solo órdenes que no están en etapa final. Se ignora si se filtra por etapa. */
   pending_only?: boolean;
   overdue_only?: boolean;
+  /** Solo las que entraron a su etapa actual en los últimos N días ("Cargar más" de una columna final). */
+  entered_within_days?: number;
   sort?: LabOrderSort;
   limit?: number;
   offset?: number;
+}
+
+/** Filtros de POST /lab-orders/board. */
+export interface LabOrderBoardFilters {
+  search?: string;
+  laboratory_id?: string;
+  doctor_id?: string;
+  overdue_only?: boolean;
+  /** Tarjetas por columna (default 30). */
+  per_column?: number;
+  /** Las columnas finales muestran solo lo que llegó en los últimos N días (default 30). */
+  final_days?: number;
+}
+
+/** Una columna del tablero: la etapa (activa) con su total y las primeras tarjetas. */
+export interface LabOrderBoardColumn {
+  stage_id: number;
+  total: number;
+  items: LabOrder[];
 }
 
 /** Alta (sin id) o edición. La etapa no se cambia acá: ver changeLabOrderStage. */
@@ -849,7 +898,8 @@ export type LabOrdersErrorCode =
 export type LabStagesSaveErrorCode =
   | 'NO_INITIAL' | 'MANY_INITIAL' | 'NO_FINAL' | 'EMPTY_NAME' | 'DUPLICATE_NAME' | 'INVALID_KIND'
   | 'INVALID_OVERDUE' | 'INITIAL_INACTIVE' | 'UNKNOWN_STAGE' | 'STAGE_IN_USE' | 'STAGE_HAS_ORDERS'
-  | 'INVALID_MOVE_TARGET' | 'UNKNOWN';
+  | 'INVALID_MOVE_TARGET' | 'DWELL_WITHOUT_THRESHOLD' | 'NO_RECIPIENTS' | 'NO_CHANNEL'
+  | 'WHATSAPP_TEMPLATE_REQUIRED' | 'UNKNOWN';
 
 /** `calendar_id: null` es la configuración general de la clínica. */
 export type CalendarColorSourceRow = CalendarColorSettings & {
@@ -1120,6 +1170,22 @@ export type WhatsappHandoffRequestedNotification = {
   reason: string;
 };
 
+/** Aviso de una alerta de etapa de laboratorio (notifications.type 'lab_order_alert', script 150). */
+export type LabOrderAlertNotification = {
+  id: string;
+  type: 'lab_order_alert';
+  createdAt: string;
+  seen?: boolean;
+  trigger: LabStageAlertTrigger;
+  labOrderId: number;
+  patientName: string;
+  workDescription: string;
+  laboratoryName: string;
+  stageName: string;
+  stageColor: string;
+  daysInStage: number;
+};
+
 export type UnifiedNotification =
   | AppointmentStatusChangeNotification
   | SessionCompletedNotification
@@ -1128,7 +1194,8 @@ export type UnifiedNotification =
   | AppointmentRescheduledNotification
   | AppointmentReassignedNotification
   | AppointmentUpdatedNotification
-  | WhatsappHandoffRequestedNotification;
+  | WhatsappHandoffRequestedNotification
+  | LabOrderAlertNotification;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -2053,7 +2120,8 @@ export type AlertInstance = {
 };
 
 /** Business entity a WHATSAPP template's variables are resolved from — see docs/whatsapp-templates-alerts-design.md */
-export type WhatsAppTemplateEntityType = 'patient' | 'appointment' | 'invoice';
+/** 'lab_order': avisos de etapas de laboratorio al equipo (script 150, flujo Lab Orders). */
+export type WhatsAppTemplateEntityType = 'patient' | 'appointment' | 'invoice' | 'lab_order';
 
 /** Maps each variable name as it appears in the Meta/YCloud template to a resolver field key (e.g. "patient.name", "invoice.due_date_formatted") */
 export type WhatsAppVariablesSchema = Record<string, string>;

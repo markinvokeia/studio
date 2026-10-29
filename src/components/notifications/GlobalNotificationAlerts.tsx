@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Clock, Headset, Pencil, UserCog } from 'lucide-react';
+import { ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Clock, FlaskConical, Headset, Pencil, UserCog } from 'lucide-react';
 import { format, isValid, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 
@@ -23,6 +23,7 @@ import type {
   SessionCompletedNotification,
   UnifiedNotification,
   WhatsappHandoffRequestedNotification,
+  LabOrderAlertNotification,
 } from '@/lib/types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -306,6 +307,32 @@ function HandoffBody({ item }: { item: WhatsappHandoffRequestedNotification }) {
   );
 }
 
+function LabOrderAlertBody({ item }: { item: LabOrderAlertNotification }) {
+  const t = useTranslations('Notifications');
+  const isOverdue = item.trigger === 'dwell';
+
+  return (
+    <div className="flex flex-col items-center gap-5 px-2 py-4">
+      <div
+        className="grid h-16 w-16 place-items-center rounded-full text-white shadow-lg"
+        style={{ backgroundColor: isOverdue ? '#dc2626' : '#0284c7', animation: 'global-alert-sway 1.4s ease-in-out infinite' }}
+      >
+        <FlaskConical className="h-8 w-8" />
+      </div>
+      <div className="space-y-1 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {isOverdue ? t('labOrderOverdueTitle', { stage: item.stageName }) : t('labOrderEnteredTitle', { stage: item.stageName })}
+        </p>
+        <p className="text-xl font-bold leading-tight text-foreground">{item.patientName || t('unknownPatient')}</p>
+        <p className="text-sm text-muted-foreground">
+          #{item.labOrderId} · {[item.workDescription, item.laboratoryName].filter(Boolean).join(' · ')}
+        </p>
+        {isOverdue && <p className="text-sm font-medium text-destructive">{t('labOrderDaysInStage', { count: item.daysInStage })}</p>}
+      </div>
+    </div>
+  );
+}
+
 function NotificationBody({ item }: { item: UnifiedNotification }) {
   if (item.type === 'new_appointment') return <NewAppointmentBody item={item} />;
   if (item.type === 'appointment_status_change') return <StatusChangeBody item={item} />;
@@ -314,6 +341,7 @@ function NotificationBody({ item }: { item: UnifiedNotification }) {
   if (item.type === 'appointment_updated') return <UpdatedBody item={item} />;
   if (item.type === 'session_completed') return <SessionCompletedBody item={item} />;
   if (item.type === 'whatsapp_handoff_requested') return <HandoffBody item={item} />;
+  if (item.type === 'lab_order_alert') return <LabOrderAlertBody item={item} />;
   return <ReminderBody item={item as ReminderPanelNotification} />;
 }
 
@@ -347,6 +375,11 @@ export function GlobalNotificationAlerts({ items, onDismissAll }: GlobalNotifica
     if (current.type === 'appointment_updated') return tN('appointmentUpdatedTitle');
     if (current.type === 'session_completed') return tN('sessionCompletedAlertTitle');
     if (current.type === 'whatsapp_handoff_requested') return tN('handoffRequestedTitle');
+    if (current.type === 'lab_order_alert') {
+      return current.trigger === 'dwell'
+        ? tN('labOrderOverdueTitle', { stage: current.stageName })
+        : tN('labOrderEnteredTitle', { stage: current.stageName });
+    }
     return tN('reminderDueTitle');
   }
 
