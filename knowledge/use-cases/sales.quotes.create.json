@@ -1,0 +1,134 @@
+{
+  "id": "sales.quotes.create",
+  "title": "Crear un presupuesto",
+  "module": "Ventas",
+  "summary": "Alta de un presupuesto: paciente, fecha, moneda, sede y los ítems con cantidad y precio. Queda en borrador.",
+  "screens": [
+    "sales.quotes"
+  ],
+  "inputs": {
+    "party": "Paciente",
+    "service": "Servicio o producto",
+    "quantity": "Cantidad",
+    "notes": "Notas"
+  },
+  "keywords": [
+    "nuevo presupuesto",
+    "crear presupuesto",
+    "presupuestar",
+    "cotizar"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/quotes",
+      "title": "Menú → Ventas → Presupuestos",
+      "details": "El plan de tratamiento con precios para que el paciente lo apruebe; confirmado se factura, se agenda y se cobra."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "sales.quotes.btn.new",
+      "title": "Crear",
+      "details": "Abre el formulario del presupuesto.",
+      "until": "sales.quotes.field.user_id"
+    },
+    {
+      "id": "party",
+      "action": "fill",
+      "target": "sales.quotes.field.user_id",
+      "title": "Paciente",
+      "details": "Elegí al paciente. Si no aparece, primero registralo.",
+      "value": "{{values.party}}"
+    },
+    {
+      "id": "date",
+      "action": "highlight",
+      "target": "sales.quotes.field.created_at",
+      "title": "Fecha",
+      "skipIfMissing": true
+    },
+    {
+      "id": "currency",
+      "action": "highlight",
+      "target": "sales.quotes.field.currency",
+      "title": "Moneda",
+      "details": "Si elegís otra moneda distinta a la de la clínica, aparece el tipo de cambio."
+    },
+    {
+      "id": "rate",
+      "action": "highlight",
+      "target": "sales.quotes.field.exchange_rate",
+      "title": "Tipo de cambio",
+      "skipIfMissing": true
+    },
+    {
+      "id": "sede",
+      "action": "highlight",
+      "target": "sales.quotes.field.sede_id",
+      "title": "Sede",
+      "skipIfMissing": true
+    },
+    {
+      "id": "items",
+      "action": "highlight",
+      "target": "sales.quotes.section.quote-items",
+      "title": "Ítems",
+      "details": "Cada línea es un servicio o producto con cantidad, precio y total."
+    },
+    {
+      "id": "add",
+      "action": "click",
+      "target": "sales.quotes.btn.add-item",
+      "title": "Agregar ítem",
+      "until": "sales.quotes.field.items.service_id"
+    },
+    {
+      "id": "service",
+      "action": "fill",
+      "target": "sales.quotes.field.items.service_id",
+      "title": "Servicio",
+      "details": "El precio se completa con el de la lista; lo podés cambiar.",
+      "value": "{{values.service}}",
+      "optional": true
+    },
+    {
+      "id": "qty",
+      "action": "fill",
+      "target": "sales.quotes.field.items.quantity",
+      "title": "Cantidad",
+      "value": "{{values.quantity}}",
+      "optional": true
+    },
+    {
+      "id": "price",
+      "action": "highlight",
+      "target": "sales.quotes.field.items.unit_price",
+      "title": "Precio unitario"
+    },
+    {
+      "id": "tooth",
+      "action": "highlight",
+      "target": "sales.quotes.field.items.tooth_number",
+      "title": "Pieza",
+      "details": "Opcional: la pieza dental del tratamiento.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "notes",
+      "action": "fill",
+      "target": "sales.quotes.field.notes",
+      "title": "Notas",
+      "value": "{{values.notes}}",
+      "optional": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "sales.quotes.btn.submit",
+      "title": "Guardar",
+      "details": "Queda en borrador: lo podés revisar, enviar y confirmar después."
+    }
+  ]
+}

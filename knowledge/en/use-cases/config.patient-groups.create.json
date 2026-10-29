@@ -1,0 +1,47 @@
+{
+  "id": "config.patient-groups.create",
+  "title": "Create a patient group",
+  "summary": "New patient group.",
+  "module": "Business Setup",
+  "inputs": {
+    "name": "Name"
+  },
+  "keywords": [
+    "new patient group",
+    "new patient group",
+    "create patient group",
+    "add patient group"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Patient Groups",
+      "details": "Groupings of patients (Orthodontics, Agreement X) with their services, to report what's produced and collected per group."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    },
+    {
+      "id": "name",
+      "title": "Name",
+      "details": "E.g.: Orthodontics."
+    },
+    {
+      "id": "description",
+      "title": "Description"
+    },
+    {
+      "id": "user_id",
+      "title": "Responsible doctor"
+    },
+    {
+      "id": "is_active",
+      "title": "Active"
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

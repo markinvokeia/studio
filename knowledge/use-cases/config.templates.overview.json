@@ -1,0 +1,78 @@
+{
+  "id": "config.templates.overview",
+  "title": "Configurar Plantillas",
+  "module": "Configuración de Negocio",
+  "summary": "Plantillas de impresión y de correo de presupuestos, facturas, recibos y mensajes.",
+  "screens": [
+    "config.templates"
+  ],
+  "keywords": [
+    "plantillas",
+    "formato de factura",
+    "formato de presupuesto",
+    "diseño del pdf"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/templates",
+      "title": "Menú → Configuración de Negocio → Plantillas",
+      "details": "Plantillas de impresión y de correo de presupuestos, facturas, recibos y mensajes."
+    },
+    {
+      "id": "types",
+      "action": "highlight",
+      "target": "config.templates.section.types",
+      "title": "Plantillas",
+      "details": "Elegí qué documento o correo editar.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "actions",
+      "action": "highlight",
+      "target": "config.templates.section.actions",
+      "title": "Acciones",
+      "details": "Insertar variable, guardar o volver al original.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "editor",
+      "action": "highlight",
+      "target": "config.templates.section.editor",
+      "title": "Editor",
+      "details": "HTML de la plantilla; las variables se completan con los datos reales.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "preview",
+      "action": "highlight",
+      "target": "config.templates.section.preview",
+      "title": "Vista previa",
+      "details": "Cómo queda con datos de ejemplo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "var",
+      "action": "highlight",
+      "target": "config.templates.btn.insert-variable",
+      "title": "Insertar variable",
+      "details": "Paciente, clínica, documento, ítems…",
+      "skipIfMissing": true
+    },
+    {
+      "id": "reset",
+      "action": "highlight",
+      "target": "config.templates.btn.reset-default",
+      "title": "Restaurar original",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.templates.btn.save",
+      "title": "Guardar",
+      "details": "Los cambios no se aplican hasta guardar."
+    }
+  ]
+}

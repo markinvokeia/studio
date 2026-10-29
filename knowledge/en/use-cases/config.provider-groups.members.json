@@ -1,0 +1,29 @@
+{
+  "id": "config.provider-groups.members",
+  "title": "Add providers to a group",
+  "summary": "The group's Providers tab.",
+  "module": "Business Setup",
+  "keywords": [
+    "group providers",
+    "add provider to group"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Provider Groups"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the group"
+    },
+    {
+      "id": "providers",
+      "title": "Providers",
+      "details": "Add or remove providers."
+    },
+    {
+      "id": "info",
+      "title": "Information"
+    }
+  ]
+}

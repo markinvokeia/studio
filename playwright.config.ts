@@ -42,6 +42,21 @@ export default defineConfig({
       testMatch: /tests\/.*\.spec\.ts/,
     },
 
+    // Videos demo del asistente (Fase 3): graba las guías del catálogo en el tenant demo.
+    // pnpm videos:record — ver docs/onboarding-asistente.md
+    {
+      name: 'help-videos',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'e2e/.auth/user.json',
+        viewport: { width: 1280, height: 720 },
+        video: { mode: 'on', size: { width: 1280, height: 720 } },
+      },
+      dependencies: ['setup'],
+      retries: 0,
+      testMatch: /videos\/.*\.video\.ts/,
+    },
+
     // Mobile — tests responsive
     {
       name: 'mobile-chrome',

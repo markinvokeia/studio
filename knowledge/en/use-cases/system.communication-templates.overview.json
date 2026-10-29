@@ -1,0 +1,41 @@
+{
+  "id": "system.communication-templates.overview",
+  "title": "Tour Alert Templates",
+  "summary": "The email, SMS and WhatsApp texts used by alerts, with patient and case variables.",
+  "module": "System",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "alert templates",
+    "template"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Alert Templates",
+      "details": "The email, SMS and WhatsApp texts used by alerts, with patient and case variables."
+    },
+    {
+      "id": "search",
+      "title": "Find the template"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the template"
+    },
+    {
+      "id": "detail",
+      "title": "Details"
+    },
+    {
+      "id": "edit",
+      "title": "Edit"
+    },
+    {
+      "id": "delete",
+      "title": "Delete",
+      "details": "Asks for confirmation."
+    }
+  ]
+}

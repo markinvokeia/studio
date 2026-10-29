@@ -1,0 +1,66 @@
+{
+  "id": "system.staff",
+  "status": "draft",
+  "summary": "Usuarios del equipo administrativo (recepción, administración, gerencia).",
+  "purpose": "Da acceso a Invoke al equipo que no es profesional de la salud. El rol define los permisos.",
+  "prerequisites": [
+    "config.sedes"
+  ],
+  "tips": [
+    "El límite de usuarios depende de la licencia.",
+    "Los permisos de cada rol se ven en Sistema → Roles."
+  ],
+  "useCases": [
+    "onboarding.staff",
+    "system.staff.overview",
+    "system.staff.create",
+    "system.staff.edit",
+    "system.staff.initial-password"
+  ],
+  "elements": {
+    "system.staff.field.role_id": {
+      "description": "Rol: define qué puede ver y hacer."
+    },
+    "system.staff.field.email": {
+      "description": "Correo: es su usuario."
+    },
+    "system.staff.field.active_sede_id": {
+      "description": "Sede con la que trabaja por defecto."
+    },
+    "system.staff.section.first-row": {
+      "label": "Primero de la lista"
+    },
+    "system.staff.section.row": {
+      "label": "Registro"
+    },
+    "system.staff.section.detail": {
+      "label": "Ficha"
+    },
+    "system.staff.btn.initial-password": {
+      "label": "Contraseña inicial"
+    },
+    "system.staff.detail.field.name": {
+      "label": "Nombre"
+    },
+    "system.staff.detail.field.email": {
+      "label": "Correo"
+    },
+    "system.staff.detail.btn.submit": {
+      "label": "Guardar"
+    },
+    "system.staff.detail.tab.details": {
+      "label": "Datos"
+    },
+    "system.staff.detail.tab.roles": {
+      "label": "Roles",
+      "description": "Los roles asignados: cada uno suma permisos."
+    },
+    "system.staff.detail.tab.logs": {
+      "label": "Actividad",
+      "description": "Lo que hizo en el sistema."
+    },
+    "system.staff.detail.tab.preferences": {
+      "label": "Preferencias"
+    }
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "id": "appointments.navigate",
+  "title": "Get around the calendar: days, view, calendars and settings",
+  "summary": "Change the day, jump to a date, choose the view, the zoom and the visible calendars.",
+  "module": "Calendar",
+  "keywords": [
+    "change day",
+    "week",
+    "view",
+    "zoom",
+    "today",
+    "go to date",
+    "calendars",
+    "see another room",
+    "calendar settings",
+    "export",
+    "excel",
+    "refresh"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Appointments",
+      "details": "The calendar shows appointments by room and doctor."
+    },
+    {
+      "id": "today",
+      "title": "Today",
+      "details": "Goes back to today."
+    },
+    {
+      "id": "arrows",
+      "title": "Previous and next",
+      "details": "Go forward or back a day, a week or a month depending on the view."
+    },
+    {
+      "id": "date",
+      "title": "Go to a date",
+      "details": "Click the date to pick a day on the calendar."
+    },
+    {
+      "id": "agendas",
+      "title": "Calendars",
+      "details": "Shows or hides the calendars panel: choose which room to view."
+    },
+    {
+      "id": "view",
+      "title": "View",
+      "details": "Day, several days, week, month or list, and which calendars are shown."
+    },
+    {
+      "id": "zoom",
+      "title": "Zoom",
+      "details": "Makes the time slots bigger or smaller."
+    },
+    {
+      "id": "refresh",
+      "title": "Refresh",
+      "details": "Reloads the appointments (in case someone booked from somewhere else)."
+    },
+    {
+      "id": "print",
+      "title": "Export calendar to Excel",
+      "details": "Downloads a period's appointments to Excel."
+    },
+    {
+      "id": "settings",
+      "title": "Calendar settings",
+      "details": "Visible hours, slot duration, how an appointment is created (dialog or card) and grouping."
+    }
+  ]
+}

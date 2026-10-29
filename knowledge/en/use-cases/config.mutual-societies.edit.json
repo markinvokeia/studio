@@ -1,0 +1,54 @@
+{
+  "id": "config.mutual-societies.edit",
+  "title": "Edit the mutual society",
+  "summary": "Change the details of an existing mutual society.",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "edit mutual society",
+    "modify mutual society",
+    "change mutual society"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Mutual Societies",
+      "details": "Mutual societies, insurers or agreements patients belong to (chosen on the patient's record)."
+    },
+    {
+      "id": "search",
+      "title": "Find the mutual society"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the mutual society",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "edit",
+      "title": "Edit"
+    },
+    {
+      "id": "name",
+      "title": "Name"
+    },
+    {
+      "id": "code",
+      "title": "Code"
+    },
+    {
+      "id": "description",
+      "title": "Description"
+    },
+    {
+      "id": "is_active",
+      "title": "Active"
+    },
+    {
+      "id": "save",
+      "title": "Save changes"
+    }
+  ]
+}

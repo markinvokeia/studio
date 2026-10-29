@@ -1,0 +1,39 @@
+{
+  "id": "config.templates",
+  "status": "draft",
+  "summary": "Plantillas de impresión.",
+  "purpose": "El diseño de los documentos que se imprimen o se envían: presupuestos, facturas, pagos y notas de crédito.",
+  "prerequisites": [
+    "config.clinics"
+  ],
+  "useCases": [
+    "config.templates.overview"
+  ],
+  "elements": {
+    "config.templates.section.types": {
+      "label": "Plantillas",
+      "description": "Elegí qué documento o correo editar."
+    },
+    "config.templates.section.actions": {
+      "label": "Acciones",
+      "description": "Insertar variable, guardar o volver al original."
+    },
+    "config.templates.section.editor": {
+      "label": "Editor",
+      "description": "HTML de la plantilla; las variables se completan con los datos reales."
+    },
+    "config.templates.section.preview": {
+      "label": "Vista previa",
+      "description": "Cómo queda con datos de ejemplo."
+    },
+    "config.templates.btn.save": {
+      "label": "Guardar"
+    },
+    "config.templates.btn.insert-variable": {
+      "label": "Insertar variable"
+    },
+    "config.templates.btn.reset-default": {
+      "label": "Restaurar original"
+    }
+  }
+}

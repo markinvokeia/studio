@@ -1,0 +1,76 @@
+{
+  "id": "system.licenses.overview",
+  "title": "Ver Licencias",
+  "module": "Sistema",
+  "summary": "La licencia de la clínica: tipo de suscripción, vigencia y límites (doctores, usuarios, pacientes nuevos por mes, IA).",
+  "screens": [
+    "system.licenses"
+  ],
+  "keywords": [
+    "licencia",
+    "suscripción",
+    "límite de doctores",
+    "plan"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/licenses",
+      "title": "Menú → Sistema → Licencias",
+      "details": "La licencia de la clínica: tipo de suscripción, vigencia y límites (doctores, usuarios, pacientes nuevos por mes, IA)."
+    },
+    {
+      "id": "generate-new",
+      "action": "highlight",
+      "target": "system.licenses.section.generate-new",
+      "title": "Generar licencia",
+      "details": "Tipo, fechas, límites y acceso a IA.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "generated-key",
+      "action": "highlight",
+      "target": "system.licenses.section.generated-key",
+      "title": "Licencia actual",
+      "details": "La clave vigente.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "type",
+      "action": "highlight",
+      "target": "system.licenses.field.subscriptionType",
+      "title": "Tipo de suscripción",
+      "skipIfMissing": true
+    },
+    {
+      "id": "end",
+      "action": "highlight",
+      "target": "system.licenses.field.endDate",
+      "title": "Vence",
+      "skipIfMissing": true
+    },
+    {
+      "id": "patients",
+      "action": "highlight",
+      "target": "system.licenses.field.maxMonthlyNewPatients",
+      "title": "Pacientes nuevos por mes",
+      "skipIfMissing": true
+    },
+    {
+      "id": "ai",
+      "action": "highlight",
+      "target": "system.licenses.field.aiAccess",
+      "title": "Acceso IA",
+      "skipIfMissing": true
+    },
+    {
+      "id": "generate",
+      "action": "confirm",
+      "target": "system.licenses.btn.submit",
+      "title": "Generar",
+      "details": "Crea una licencia nueva al tocarlo.",
+      "skipIfMissing": true
+    }
+  ]
+}

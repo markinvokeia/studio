@@ -1,0 +1,151 @@
+{
+  "id": "patients.prescription",
+  "title": "Hacer una receta",
+  "module": "Pacientes",
+  "summary": "Desde la ficha: Crear → Receta médica. Plantilla, diagnóstico y medicamentos con dosis, frecuencia y duración.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Historia clínica",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente",
+    "template": "Plantilla",
+    "diagnosis": "Diagnóstico",
+    "medication": "Medicamento",
+    "dosage": "Dosis",
+    "frequency": "Frecuencia",
+    "duration": "Duración en días",
+    "instructions": "Indicaciones",
+    "doctor": "Profesional (ej. Dra. Lucía Fernández)"
+  },
+  "keywords": [
+    "receta",
+    "recetar",
+    "prescripción",
+    "medicamento",
+    "indicar medicación"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.create-menu",
+      "title": "Crear",
+      "details": "Todo lo que se puede crear para este paciente: clínico, financiero y agenda.",
+      "until": "patients.btn.new-prescription"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "patients.btn.new-prescription",
+      "title": "Receta médica",
+      "details": "Abre Indicaciones → Recetas y el formulario de receta.",
+      "until": "patients.field.rx-diagnosis"
+    },
+    {
+      "id": "template",
+      "action": "fill",
+      "target": "patients.field.rx-template",
+      "title": "Plantilla",
+      "details": "Carga medicamentos e indicaciones habituales.",
+      "value": "{{values.template}}",
+      "optional": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "doctor",
+      "action": "fill",
+      "target": "patients.field.rx-doctor",
+      "title": "Profesional",
+      "details": "Obligatorio: quien firma la receta. Si entraste como profesional ya viene puesto.",
+      "value": "{{values.doctor}}",
+      "ask": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "diagnosis",
+      "action": "fill",
+      "target": "patients.field.rx-diagnosis",
+      "title": "Diagnóstico",
+      "value": "{{values.diagnosis}}",
+      "optional": true
+    },
+    {
+      "id": "add",
+      "action": "highlight",
+      "target": "patients.btn.rx-add-medication",
+      "title": "Agregar medicamento",
+      "until": "patients.field.rx-medication"
+    },
+    {
+      "id": "medication",
+      "action": "fill",
+      "target": "patients.field.rx-medication",
+      "title": "Medicamento",
+      "value": "{{values.medication}}"
+    },
+    {
+      "id": "dosage",
+      "action": "fill",
+      "target": "patients.field.rx-dosage",
+      "title": "Dosis",
+      "value": "{{values.dosage}}"
+    },
+    {
+      "id": "frequency",
+      "action": "fill",
+      "target": "patients.field.rx-frequency",
+      "title": "Frecuencia",
+      "value": "{{values.frequency}}"
+    },
+    {
+      "id": "duration",
+      "action": "fill",
+      "target": "patients.field.rx-duration",
+      "title": "Duración (días)",
+      "value": "{{values.duration}}",
+      "optional": true
+    },
+    {
+      "id": "instructions",
+      "action": "fill",
+      "target": "patients.field.rx-instructions",
+      "title": "Indicaciones",
+      "value": "{{values.instructions}}",
+      "optional": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "patients.btn.submit",
+      "title": "Guardar la receta",
+      "details": "Después la podés imprimir desde la lista de recetas."
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "id": "sales.invoices.export",
+  "title": "Exportar facturas",
+  "module": "Ventas",
+  "summary": "Bajar el listado de facturas a Excel o CSV.",
+  "screens": [
+    "sales.invoices"
+  ],
+  "keywords": [
+    "exportar facturas",
+    "excel",
+    "csv"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/invoices",
+      "title": "Menú → Ventas → Facturas",
+      "details": "Lo que se le cobra al paciente: sale de un presupuesto confirmado, de un cobro rápido o se carga directo."
+    },
+    {
+      "id": "export",
+      "action": "click",
+      "target": "sales.invoices.btn.export",
+      "title": "Exportar",
+      "until": "sales.invoices.section.export"
+    },
+    {
+      "id": "format",
+      "action": "highlight",
+      "target": "sales.invoices.section.export",
+      "title": "Formato",
+      "details": "Excel o CSV."
+    },
+    {
+      "id": "run",
+      "action": "confirm",
+      "target": "sales.invoices.btn.export-run",
+      "title": "Descargar"
+    }
+  ]
+}

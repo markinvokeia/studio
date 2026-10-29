@@ -1,0 +1,9 @@
+{
+  "id": "system.import",
+  "summary": "Data import from spreadsheets.",
+  "purpose": "Wizard to import patients and other data from Excel or CSV: it maps columns, validates and only then imports.",
+  "tips": [
+    "Try with a few rows first."
+  ],
+  "elements": {}
+}

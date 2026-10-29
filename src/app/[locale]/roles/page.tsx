@@ -22,6 +22,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { HelpScopeProvider } from '@/components/help/help-scope';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
@@ -303,7 +304,7 @@ export default function RolesPage() {
         rightPanel={
           selectedRole && (
             <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-              <CardHeader className="flex flex-row items-start justify-between flex-none p-4 pb-2">
+              <CardHeader data-help-id="roles.section.detail" className="flex flex-row items-start justify-between flex-none p-4 pb-2">
                 <div className="flex items-start gap-3 min-w-0 flex-1">
                   <div className="header-icon-circle mt-0.5">
                     <KeyRound className="h-5 w-5" />
@@ -318,6 +319,7 @@ export default function RolesPage() {
                   <span className="sr-only">{t('close')}</span>
                 </Button>
               </CardHeader>
+              <HelpScopeProvider scope="roles.detail">
               <CardContent className="flex-1 overflow-auto p-4 pt-0">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full h-full flex flex-col">
                   <TabsList>
@@ -372,6 +374,7 @@ export default function RolesPage() {
                   </div>
                 </Tabs>
               </CardContent>
+              </HelpScopeProvider>
             </Card>
           )
         }
@@ -426,7 +429,7 @@ export default function RolesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+            <AlertDialogAction data-help-id="roles.btn.delete-confirm" onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
             <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>

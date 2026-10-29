@@ -7,14 +7,11 @@ import { QuickPatientSearch } from '@/components/patients/QuickPatientSearch';
 import { NotificationsBell } from '@/components/notifications/notifications-bell';
 import { NotificationsPanel } from '@/components/notifications/notifications-panel';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CASHIER_PERMISSIONS, GLOBAL_PERMISSIONS, PATIENTS_PERMISSIONS, SALES_PERMISSIONS, STICKY_NOTES_PERMISSIONS, TV_DISPLAY_PERMISSIONS } from '@/constants/permissions';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { useNotifications } from '@/context/notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useToast } from '@/hooks/use-toast';
-import { getApiUrl } from '@/lib/runtime-config';
 import { cn } from '@/lib/utils';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import {
@@ -22,11 +19,7 @@ import {
     ChevronLeft,
     ChevronRight,
     Inbox,
-    MessageSquare,
     StickyNote as StickyNoteIcon,
-    Volume2,
-    VolumeX,
-    X,
     Zap,
 } from 'lucide-react';
 import { useStickyNotes } from '@/hooks/use-sticky-notes';
@@ -34,75 +27,14 @@ import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import type { StickyNote } from '@/lib/types';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { AlertsWidget } from './alerts-widget';
 import { ExchangeRate } from './exchange-rate';
 import { StickyNotesOverlay } from './sticky-notes-overlay';
-import { VoiceAssistant } from './voice-assistant';
-import { VoiceChat, type ChatMessage } from './voice-chat';
-
-// ── Webhook URL ───────────────────────────────────────────────────────────────
-
-const CHAT_WEBHOOK_URL =
-    getApiUrl() +
-    '/webhook/a8ad846b-de6a-4d89-8e02-01072101cfe6/chat';
-
-// ── TTS ───────────────────────────────────────────────────────────────────────
-
-const PREFERRED_VOICE_NAMES = [
-    'Google español',
-    'Microsoft Sabina',
-    'Microsoft Helena',
-    'Paulina',
-    'Monica',
-    'Jorge',
-    'Diego',
-];
-
-function pickSpanishVoice(): Promise<SpeechSynthesisVoice | null> {
-    return new Promise((resolve) => {
-        const synth = window.speechSynthesis;
-
-        const find = () => {
-            const voices = synth.getVoices();
-            if (voices.length === 0) return null;
-            for (const name of PREFERRED_VOICE_NAMES) {
-                const v = voices.find((v) => v.name.includes(name));
-                if (v) return v;
-            }
-            const local = voices.find((v) => v.lang.startsWith('es') && v.localService);
-            if (local) return local;
-            return voices.find((v) => v.lang.startsWith('es')) ?? null;
-        };
-
-        const result = find();
-        if (result) { resolve(result); return; }
-
-        const onLoaded = () => {
-            synth.removeEventListener('voiceschanged', onLoaded);
-            resolve(find());
-        };
-        synth.addEventListener('voiceschanged', onLoaded);
-        setTimeout(() => { synth.removeEventListener('voiceschanged', onLoaded); resolve(null); }, 2000);
-    });
-}
-
-async function speakText(text: string, enabled: boolean) {
-    if (!enabled || typeof window === 'undefined' || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'es-ES';
-    utterance.rate = 0.92;
-    utterance.pitch = 1;
-
-    const voice = await pickSpanishVoice();
-    if (voice) utterance.voice = voice;
-
-    window.speechSynthesis.speak(utterance);
-}
+import { MascotPeekZone } from '@/components/invoke-mascot';
+import { MascotWakeButton } from '@/components/help/mascot-wake-button';
 
 // ── Deep-link helper ──────────────────────────────────────────────────────────
 
@@ -116,9 +48,9 @@ function StickyNotesDeepLink({ onOpen }: { onOpen: () => void }) {
 
 // ── Panel item: icon + label ──────────────────────────────────────────────────
 
-function PanelItem({ label, children }: { label: string; children: React.ReactNode }) {
+function PanelItem({ label, helpId, children }: { label: string; helpId?: string; children: React.ReactNode }) {
     return (
-        <div className="flex flex-col items-center gap-1 w-full px-1">
+        <div data-help-id={helpId} className="flex flex-col items-center gap-1 w-full px-1">
             {children}
             <span className="text-[7.5px] font-medium text-muted-foreground leading-none text-center tracking-tight select-none">
                 {label}
@@ -144,17 +76,14 @@ const PEEK_ICON: Record<PeekItem, React.ReactNode> = {
 export function Header() {
     const pathname = usePathname();
     const tFloating = useTranslations('FloatingActions');
-    const tChat = useTranslations('VoiceChat');
     const tStickyNotes = useTranslations('StickyNotes');
     const locale = useLocale();
-    const router = useRouter();
     const { activeCashSession, user, sedes } = useAuth();
     const { pendingCount: alertCount, highestPriority } = useAlertNotifications();
     const { pendingCount: inboxCount, notifications } = useNotifications();
     const { hasPermission } = usePermissions();
-    const { toast } = useToast();
 
-    const { notes, isLoading: isLoadingNotes, fetchNotes, createNote, updateNote, deleteNote, prependNote } = useStickyNotes();
+    const { notes, isLoading: isLoadingNotes, fetchNotes, createNote, updateNote, deleteNote } = useStickyNotes();
     const { open: openBillingWizard } = useBillingWizard();
 
     const [isExpanded, setIsExpanded] = React.useState(true);
@@ -166,11 +95,6 @@ export function Header() {
     // marcar las novedades como vistas y hacer pulsar la pestaña colapsada.
     const isNarrowViewport = useViewportNarrow(640);
     const isPanelOpen = isNarrowViewport ? isMobileExpanded : isExpanded;
-    const [isChatOpen, setIsChatOpen] = React.useState(false);
-    const [isChatMinimized, setIsChatMinimized] = React.useState(false);
-    const [chatMessages, setChatMessages] = React.useState<ChatMessage[]>([]);
-    const [isSending, setIsSending] = React.useState(false);
-    const [ttsEnabled, setTtsEnabled] = React.useState(false);
     const [isClient, setIsClient] = React.useState(false);
     const [isStickyNotesOpen, setIsStickyNotesOpen] = React.useState(false);
     const [peekItem, setPeekItem] = React.useState<PeekItem | null>(null);
@@ -184,7 +108,6 @@ export function Header() {
     } | null>(null);
     const [panelHintLeaving, setPanelHintLeaving] = React.useState(false);
 
-    const sessionId = React.useRef(`sid-${Date.now()}`);
     // Tracks count at the previous render (to detect increases)
     const prevCountsRef = React.useRef({ alerts: 0, inbox: 0, notes: 0 });
     // Tracks what the user last saw when they opened the panel (persisted)
@@ -315,103 +238,7 @@ export function Header() {
         return () => { panelHintTimerRef.current.forEach(clearTimeout); };
     }, []);
 
-    const openChatPanel = React.useCallback(() => {
-        setIsChatOpen(true);
-        setIsChatMinimized(false);
-    }, []);
-
     const openStickyNotes = React.useCallback(() => { setIsStickyNotesOpen(true); }, []);
-    const closeChatPanel = React.useCallback(() => { setIsChatOpen(false); setIsChatMinimized(false); }, []);
-
-    const sendToWebhook = React.useCallback(
-        async (chatInput: string, audioBlob?: Blob) => {
-            setIsSending(true);
-            try {
-                let body: BodyInit;
-
-                if (audioBlob) {
-                    const fd = new FormData();
-                    fd.append('action', 'sendMessage');
-                    fd.append('sessionId', sessionId.current);
-                    fd.append('chatInput', chatInput);
-                    if (user?.id) fd.append('user_id', String(user.id));
-                    fd.append('files', audioBlob, 'voice-message.webm');
-                    body = fd;
-                } else {
-                    body = JSON.stringify({
-                        action: 'sendMessage',
-                        sessionId: sessionId.current,
-                        chatInput,
-                        ...(user?.id ? { user_id: user.id } : {}),
-                    });
-                }
-
-                const response = await fetch(CHAT_WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: audioBlob ? undefined : { 'Content-Type': 'application/json' },
-                    body,
-                });
-
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                let reply = '';
-                let redirect: string | null = null;
-                try {
-                    const data = await response.json() as Record<string, unknown>;
-                    reply =
-                        (data.output as string) ??
-                        (data.text as string) ??
-                        (data.message as string) ??
-                        (data.response as string) ??
-                        '';
-                    if (typeof data.redirect === 'string' && data.redirect) redirect = data.redirect;
-                    if (data.openStickyNotes === true) setIsStickyNotesOpen(true);
-                    if (data.note && typeof (data.note as Record<string, unknown>).id === 'string') {
-                        prependNote(data.note as StickyNote);
-                    }
-                } catch {
-                    reply = await response.text();
-                }
-
-                if (reply) {
-                    setChatMessages((prev) => [
-                        ...prev,
-                        { id: `${Date.now()}-ai`, role: 'assistant', content: reply, timestamp: new Date() },
-                    ]);
-                    speakText(reply, ttsEnabled);
-                    if (redirect) router.push(`/${locale}${redirect}`);
-                }
-            } catch {
-                toast({ title: tChat('sendError'), variant: 'destructive' });
-            } finally {
-                setIsSending(false);
-            }
-        },
-        [tChat, toast, ttsEnabled, locale, router, user, prependNote],
-    );
-
-    const handleAudioReady = React.useCallback(
-        (blob: Blob) => {
-            openChatPanel();
-            setChatMessages((prev) => [
-                ...prev,
-                { id: `${Date.now()}-user`, role: 'user', content: tChat('voiceMessage'), isVoice: true, timestamp: new Date() },
-            ]);
-            sendToWebhook(tChat('voiceMessage'), blob);
-        },
-        [openChatPanel, sendToWebhook, tChat],
-    );
-
-    const handleSendText = React.useCallback(
-        (text: string) => {
-            setChatMessages((prev) => [
-                ...prev,
-                { id: `${Date.now()}-user`, role: 'user', content: text, timestamp: new Date() },
-            ]);
-            sendToWebhook(text);
-        },
-        [sendToWebhook],
-    );
 
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -424,6 +251,7 @@ export function Header() {
                     <button
                         ref={toggleBtnRef}
                         type="button"
+                        data-help-id="rail.btn.expand"
                         onClick={() => { setIsExpanded(true); setShouldPulse(false); setPeekItem(null); }}
                         className={cn(
                             'fixed top-3 right-0 z-[50]',
@@ -444,139 +272,118 @@ export function Header() {
                     </button>
                 ) : (
                     /* Expanded: vertical strip */
-                    <div className="fixed inset-y-0 right-0 z-[50] flex flex-col items-center gap-2 pt-3 pb-3 w-14 bg-[hsl(var(--floating-header-bg)/0.97)] backdrop-blur-md border-l border-border shadow-[-2px_0_16px_rgba(0,0,0,0.08)] animate-in fade-in slide-in-from-right-4 duration-200 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <MascotPeekZone
+                        edge="left"
+                        name="right"
+                        className="help-rail-zone"
+                        // Escondite de la mascota: el riel tiene fondo opaco y nada lo recorta. El
+                        // posicionamiento va acá (inline: el CSS de la mascota se carga después de Tailwind).
+                        style={{ position: 'fixed', top: 0, bottom: 0, right: 0, width: '3.5rem', zIndex: 50 }}
+                    >
+                    <div data-help-rail data-help-id="rail.section.rail" className="flex h-full w-full flex-col items-center gap-2 pt-3 pb-3 bg-[hsl(var(--floating-header-bg))] border-l border-border shadow-[-2px_0_16px_rgba(0,0,0,0.08)] animate-in fade-in slide-in-from-right-4 duration-200 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
-                        <Button
-                            ref={toggleBtnRef}
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setIsExpanded(false)}
-                            className="rounded-xl h-9 w-9 bg-muted/60 hover:bg-muted text-muted-foreground shrink-0"
-                        >
-                            <ChevronRight className="h-4 w-4" />
-                        </Button>
+                            <Button
+                                ref={toggleBtnRef}
+                                variant="ghost"
+                                size="icon"
+                                data-help-id="rail.btn.collapse"
+                                onClick={() => setIsExpanded(false)}
+                                className="rounded-xl h-9 w-9 bg-muted/60 hover:bg-muted text-muted-foreground shrink-0"
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
 
-                        {hasPermission(PATIENTS_PERMISSIONS.VIEW_LIST) && (
-                            <PanelItem label="Paciente">
-                                <QuickPatientSearch />
-                            </PanelItem>
-                        )}
+                            {hasPermission(PATIENTS_PERMISSIONS.VIEW_LIST) && (
+                                <PanelItem label="Paciente" helpId="rail.section.patient">
+                                    <QuickPatientSearch />
+                                </PanelItem>
+                            )}
 
-                        {sedes.length > 1 && (
-                            <PanelItem label="Sede">
-                                <WorkingSedeSelector />
-                            </PanelItem>
-                        )}
+                            {sedes.length > 1 && (
+                                <PanelItem label="Sede" helpId="rail.section.sede">
+                                    <WorkingSedeSelector />
+                                </PanelItem>
+                            )}
 
-                        {hasPermission(CASHIER_PERMISSIONS.VIEW_WIDGET) && (
-                            <PanelItem label="Caja">
-                                <OpenCashSessionWidget />
-                            </PanelItem>
-                        )}
+                            {hasPermission(CASHIER_PERMISSIONS.VIEW_WIDGET) && (
+                                <PanelItem label="Caja" helpId="rail.section.cash">
+                                    <OpenCashSessionWidget />
+                                </PanelItem>
+                            )}
 
-                        {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && (
-                            <PanelItem label="TV">
-                                <TVDisplayWidget />
-                            </PanelItem>
-                        )}
+                            {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && (
+                                <PanelItem label="TV" helpId="rail.section.tv">
+                                    <TVDisplayWidget />
+                                </PanelItem>
+                            )}
 
-                        {hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) && (
-                            <PanelItem label="Cobrar">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => openBillingWizard({})}
-                                    className="rounded-xl h-10 w-10 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
-                                    title="Cobro Rápido"
-                                >
-                                    <Zap className="h-5 w-5" />
-                                </Button>
-                            </PanelItem>
-                        )}
-
-                        <div className="w-8 h-px bg-border/50 my-1.5 shrink-0" />
-
-                        <div ref={alertsIconRef} className="w-full">
-                            <PanelItem label="Alertas">
-                                <AlertsWidget />
-                            </PanelItem>
-                        </div>
-
-                        {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_EXCHANGE_RATE) && activeCashSession && (
-                            <PanelItem label="Cambio">
-                                <ExchangeRate activeCashSession={activeCashSession} />
-                            </PanelItem>
-                        )}
-
-                        <div ref={inboxIconRef} className="w-full">
-                            <PanelItem label="Inbox">
-                                <NotificationsBell variant="round" />
-                            </PanelItem>
-                        </div>
-
-                        {hasPermission(STICKY_NOTES_PERMISSIONS.VIEW) && (
-                            <div ref={notesIconRef} className="w-full">
-                            <PanelItem label="Notas">
+                            {hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) && (
+                                <PanelItem label="Cobrar" helpId="rail.section.bill">
                                     <Button
+                                        data-help-id="rail.btn.bill"
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() => setIsStickyNotesOpen(true)}
-                                        className={cn(
-                                            'relative rounded-xl h-10 w-10',
-                                            notes.length > 0
-                                                ? 'bg-yellow-400/20 text-yellow-500'
-                                                : 'bg-muted/60 text-muted-foreground',
-                                        )}
-                                        title={tStickyNotes('openNotes')}
+                                        onClick={() => openBillingWizard({})}
+                                        className="rounded-xl h-10 w-10 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
+                                        title="Cobro Rápido"
                                     >
-                                        <StickyNoteIcon className={cn('h-5 w-5', notes.length > 0 ? 'text-yellow-500' : 'text-muted-foreground')} />
-                                        {notes.length > 0 && (
-                                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-yellow-500 ring-2 ring-background">
-                                                {notes.length > 99 ? '99+' : notes.length}
-                                            </span>
-                                        )}
+                                        <Zap className="h-5 w-5" />
                                     </Button>
                                 </PanelItem>
+                            )}
+
+                            <div className="w-8 h-px bg-border/50 my-1.5 shrink-0" />
+
+                            <div ref={alertsIconRef} className="w-full">
+                                <PanelItem label="Alertas" helpId="rail.section.alerts">
+                                    <AlertsWidget />
+                                </PanelItem>
                             </div>
-                        )}
 
-                        <div className="w-8 h-px bg-border/50 my-1.5 shrink-0" />
+                            {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_EXCHANGE_RATE) && activeCashSession && (
+                                <PanelItem label="Cambio" helpId="rail.section.exchange">
+                                    <ExchangeRate activeCashSession={activeCashSession} />
+                                </PanelItem>
+                            )}
 
-                        <PanelItem label="Chat">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={openChatPanel}
-                                className={cn(
-                                    'rounded-xl h-10 w-10',
-                                    isChatOpen ? 'bg-primary/10 text-primary' : 'bg-muted/60 text-muted-foreground',
-                                )}
-                                title={tFloating('openChat')}
-                            >
-                                <MessageSquare className="h-5 w-5" />
-                            </Button>
-                        </PanelItem>
+                            <div ref={inboxIconRef} className="w-full">
+                                <PanelItem label="Inbox" helpId="rail.section.inbox">
+                                    <NotificationsBell variant="round" />
+                                </PanelItem>
+                            </div>
 
-                        <PanelItem label="Voz">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setTtsEnabled((v) => !v)}
-                                className={cn(
-                                    'rounded-xl h-10 w-10',
-                                    ttsEnabled ? 'bg-primary/10 text-primary' : 'bg-muted/60 text-muted-foreground',
-                                )}
-                                title={ttsEnabled ? tChat('ttsDisable') : tChat('ttsEnable')}
-                            >
-                                {ttsEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-                            </Button>
-                        </PanelItem>
+                            {hasPermission(STICKY_NOTES_PERMISSIONS.VIEW) && (
+                                <div ref={notesIconRef} className="w-full">
+                                <PanelItem label="Notas" helpId="rail.section.notes">
+                                        <Button
+                                            data-help-id="rail.btn.notes"
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => setIsStickyNotesOpen(true)}
+                                            className={cn(
+                                                'relative rounded-xl h-10 w-10',
+                                                notes.length > 0
+                                                    ? 'bg-yellow-400/20 text-yellow-500'
+                                                    : 'bg-muted/60 text-muted-foreground',
+                                            )}
+                                            title={tStickyNotes('openNotes')}
+                                        >
+                                            <StickyNoteIcon className={cn('h-5 w-5', notes.length > 0 ? 'text-yellow-500' : 'text-muted-foreground')} />
+                                            {notes.length > 0 && (
+                                                <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white bg-yellow-500 ring-2 ring-background">
+                                                    {notes.length > 99 ? '99+' : notes.length}
+                                                </span>
+                                            )}
+                                        </Button>
+                                    </PanelItem>
+                                </div>
+                            )}
 
-                        <PanelItem label="Mic">
-                            <VoiceAssistant onAudioReady={handleAudioReady} isProcessing={isSending} />
-                        </PanelItem>
+                            {/* Asistente escondido: la mascota dormida, un clic y se levanta. */}
+                            <MascotWakeButton withDivider />
 
-                    </div>
+                        </div>
+                    </MascotPeekZone>
                 )}
             </div>
 
@@ -590,6 +397,7 @@ export function Header() {
                 {!isMobileExpanded ? (
                     <button
                         type="button"
+                        data-help-id="rail.btn.expand"
                         onClick={() => setIsMobileExpanded(true)}
                         className={cn(
                             "h-12 w-12 flex items-center justify-center border-l border-b border-[var(--nav-border)] bg-[var(--nav-active-bg)] hover:bg-[var(--nav-hover-bg)] transition-colors",
@@ -600,18 +408,20 @@ export function Header() {
                         <ChevronLeft className="h-4 w-4 text-foreground" />
                     </button>
                 ) : (
-                    <div className={cn(
+                    <div data-help-id="rail.section.rail" className={cn(
                         'flex flex-row flex-wrap items-center justify-evenly px-1.5 py-2 gap-0.5',
                         'bg-[hsl(var(--floating-header-bg)/0.95)] backdrop-blur-md border-b border-border shadow-md w-full',
                         'animate-in fade-in slide-in-from-top-2 duration-200',
                     )}>
-                        {hasPermission(PATIENTS_PERMISSIONS.VIEW_LIST) && <QuickPatientSearch />}
-                        {sedes.length > 1 && <WorkingSedeSelector />}
-                        <OpenCashSessionWidget />
-                        {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && <TVDisplayWidget />}
+                        {/* Mismos help ids que el riel de escritorio (rail.section.*): las guías de la barra sirven igual en el celular. */}
+                        {hasPermission(PATIENTS_PERMISSIONS.VIEW_LIST) && <span data-help-id="rail.section.patient" className="inline-flex"><QuickPatientSearch /></span>}
+                        {sedes.length > 1 && <span data-help-id="rail.section.sede" className="inline-flex"><WorkingSedeSelector /></span>}
+                        <span data-help-id="rail.section.cash" className="inline-flex"><OpenCashSessionWidget /></span>
+                        {hasPermission(TV_DISPLAY_PERMISSIONS.VIEW_MENU) && <span data-help-id="rail.section.tv" className="inline-flex"><TVDisplayWidget /></span>}
 
                         {hasPermission(SALES_PERMISSIONS.INVOICES_CREATE) && (
                             <Button
+                                data-help-id="rail.btn.bill"
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => openBillingWizard({})}
@@ -624,7 +434,9 @@ export function Header() {
 
                         {hasPermission(GLOBAL_PERMISSIONS.GLOBAL_VIEW_NOTIFICATIONS_BADGE) && (
                             <Link href={`/${locale}/alerts`} passHref>
+                                {/* En el celular lleva al Centro de Alertas (no abre panel): sólo el id de sección. */}
                                 <Button
+                                    data-help-id="rail.section.alerts"
                                     variant="ghost"
                                     size="icon"
                                     className={cn('relative rounded-xl h-10 w-10', alertCount > 0 && 'bg-red-500/10 text-red-600')}
@@ -639,10 +451,11 @@ export function Header() {
                             </Link>
                         )}
 
-                        <NotificationsBell variant="square" />
+                        <span data-help-id="rail.section.inbox" className="inline-flex"><NotificationsBell variant="square" /></span>
 
                         {hasPermission(STICKY_NOTES_PERMISSIONS.VIEW) && (
                             <Button
+                                data-help-id="rail.btn.notes"
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => setIsStickyNotesOpen(true)}
@@ -658,18 +471,10 @@ export function Header() {
                             </Button>
                         )}
 
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={openChatPanel}
-                            className="rounded-xl h-10 w-10"
-                        >
-                            <MessageSquare className="h-5 w-5 text-muted-foreground" />
-                        </Button>
-
-                        <VoiceAssistant onAudioReady={handleAudioReady} isProcessing={isSending} />
+                        <MascotWakeButton compact />
 
                         <Button
+                            data-help-id="rail.btn.collapse"
                             variant="ghost"
                             size="icon"
                             onClick={() => setIsMobileExpanded(false)}
@@ -680,64 +485,6 @@ export function Header() {
                     </div>
                 )}
             </div>
-
-            {/* ── Chat panel ─────────────────────────────────────────────── */}
-            {isClient && isChatOpen && createPortal(
-                <div className="fixed bottom-0 right-0 z-[9990] flex w-full justify-end p-0 sm:bottom-4 sm:right-16 sm:w-auto sm:p-0 pointer-events-none">
-                    {isChatMinimized ? (
-                        <div className="pointer-events-auto px-3 pb-3 sm:px-0 sm:pb-0">
-                            <Button
-                                type="button"
-                                onClick={() => setIsChatMinimized(false)}
-                                className="h-12 rounded-full px-4 shadow-2xl"
-                                title={tFloating('restoreChat')}
-                            >
-                                <MessageSquare className="mr-2 h-4 w-4" />
-                                {tFloating('chatbotTitle')}
-                            </Button>
-                        </div>
-                    ) : (
-                        <div className="pointer-events-auto w-full px-0 md:w-[24rem] lg:w-[26rem]">
-                            <Card className="h-[60vh] w-full rounded-none border-primary/20 shadow-2xl overflow-hidden sm:rounded-2xl">
-                                <CardHeader className="flex flex-row items-center justify-between p-4 border-b bg-primary text-primary-foreground shrink-0">
-                                    <CardTitle className="text-sm font-bold flex items-center gap-2">
-                                        <MessageSquare className="h-4 w-4" />
-                                        {tFloating('chatbotTitle')}
-                                    </CardTitle>
-                                    <div className="flex items-center gap-1">
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => setIsChatMinimized(true)}
-                                            className="h-7 w-7 text-primary-foreground hover:bg-white/20"
-                                            title={tFloating('minimizeChat')}
-                                        >
-                                            <ChevronRight className="h-4 w-4 rotate-90" />
-                                        </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={closeChatPanel}
-                                            className="h-7 w-7 text-primary-foreground hover:bg-white/20"
-                                            title={tFloating('closeChat')}
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className="p-0 flex-1 overflow-hidden">
-                                    <VoiceChat
-                                        messages={chatMessages}
-                                        onSendText={handleSendText}
-                                        isSending={isSending}
-                                    />
-                                </CardContent>
-                            </Card>
-                        </div>
-                    )}
-                </div>,
-                document.body
-            )}
 
             {/* ── Sticky notes overlay ────────────────────────────────────── */}
             {isClient && (

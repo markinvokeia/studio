@@ -1,0 +1,42 @@
+{
+  "id": "clinic-catalog.dental-conditions.create",
+  "title": "Add a dental condition",
+  "summary": "New entry in the dental conditions catalog.",
+  "module": "Clinic Catalog",
+  "inputs": {
+    "name": "Name",
+    "visual_code": "Visual code (short, e.g. CAV)"
+  },
+  "keywords": [
+    "new dental condition",
+    "add dental condition"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic Catalog → Dental Conditions",
+      "details": "What's marked on the odontogram (cavity, crown, missing…), with its color and visual code."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    },
+    {
+      "id": "nombre",
+      "title": "Name"
+    },
+    {
+      "id": "codigo_visual",
+      "title": "Visual code",
+      "details": "Required: the short code it's drawn with on the odontogram."
+    },
+    {
+      "id": "color_hex",
+      "title": "Color"
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

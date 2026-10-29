@@ -1,0 +1,63 @@
+{
+  "id": "dashboard.filters",
+  "title": "Filter the dashboard by branch, period and currency",
+  "summary": "See the Dashboard for a single branch, for another period or in another currency.",
+  "module": "Home",
+  "group": "Dashboard",
+  "inputs": {
+    "branch": "Branch name, or Consolidated for all",
+    "period": "today | week | month | prevMonth | year",
+    "currency": "Currency code (UYU, USD…)"
+  },
+  "keywords": [
+    "filter",
+    "filters",
+    "branch",
+    "branch",
+    "consolidated",
+    "period",
+    "dates",
+    "range",
+    "month",
+    "week",
+    "year",
+    "currency",
+    "dollars",
+    "pesos"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Dashboard",
+      "details": "The Dashboard is the clinic's home screen."
+    },
+    {
+      "id": "branch",
+      "title": "Choose the branch",
+      "details": "Consolidated adds up every branch. With a branch chosen, the whole dashboard shows only that one; collections stay consolidated because payments don't record a branch."
+    },
+    {
+      "id": "period",
+      "title": "Open the period",
+      "details": "The period changes Branches, Best-selling services and Patients per day. Today, month to date and the trend don't depend on it."
+    },
+    {
+      "id": "period-options",
+      "title": "Choose the period",
+      "details": "Today, this week, this month, last month, this year or a custom range with From and To."
+    },
+    {
+      "id": "period-pick",
+      "title": "Chosen period"
+    },
+    {
+      "id": "currency-pick",
+      "title": "Chosen currency"
+    },
+    {
+      "id": "currency",
+      "title": "Currency",
+      "details": "Shows every amount in the chosen currency. Only appears if the clinic works with more than one currency."
+    }
+  ]
+}

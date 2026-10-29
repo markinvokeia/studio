@@ -68,8 +68,8 @@ export function MissingIdentityDocumentDialog() {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          {patient && <AlertDialogCancel>{t('dismiss')}</AlertDialogCancel>}
-          <AlertDialogAction onClick={handleAcknowledge}>{t('close')}</AlertDialogAction>
+          {patient && <AlertDialogCancel data-help-id="appointments.btn.missing-document-dismiss">{t('dismiss')}</AlertDialogCancel>}
+          <AlertDialogAction data-help-id="appointments.btn.missing-document-open" onClick={handleAcknowledge}>{t('close')}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

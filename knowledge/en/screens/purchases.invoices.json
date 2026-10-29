@@ -1,0 +1,76 @@
+{
+  "id": "purchases.invoices",
+  "summary": "Purchase invoices from providers.",
+  "purpose": "What the clinic owes a provider: it comes from a purchase quote or is entered/imported directly.",
+  "elements": {
+    "purchases.invoices.section.detail-header": {
+      "label": "Document summary"
+    },
+    "purchases.invoices.section.first-row": {
+      "label": "First document in the list"
+    },
+    "purchases.invoices.section.row": {
+      "label": "ID"
+    },
+    "purchases.invoices.btn.row-actions": {
+      "label": "Row actions"
+    },
+    "purchases.invoices.btn.export": {
+      "label": "Export",
+      "description": "Excel or CSV."
+    },
+    "purchases.invoices.section.export": {
+      "label": "Export format"
+    },
+    "purchases.invoices.btn.export-run": {
+      "label": "Download"
+    },
+    "purchases.invoices.field.doc-email-to": {
+      "label": "Recipients",
+      "description": "Emails separated by commas."
+    },
+    "purchases.invoices.btn.doc-email-send": {
+      "label": "Send by email"
+    },
+    "purchases.invoices.detail.section.first-row": {
+      "label": "First line"
+    },
+    "purchases.invoices.detail.section.row": {
+      "label": "Line"
+    },
+    "purchases.invoices.detail.btn.new": {
+      "label": "Add"
+    },
+    "purchases.invoices.btn.filters": {
+      "label": "Filters"
+    },
+    "purchases.invoices.section.filters": {
+      "label": "Filter options"
+    },
+    "purchases.invoices.btn.row-add-payment": {
+      "label": "Add payment"
+    },
+    "purchases.invoices.btn.row-confirm": {
+      "label": "Confirm"
+    },
+    "purchases.invoices.btn.row-edit": {
+      "label": "Edit"
+    },
+    "purchases.invoices.btn.row-print": {
+      "label": "Print"
+    },
+    "purchases.invoices.btn.row-email": {
+      "label": "Send by email"
+    },
+    "purchases.invoices.btn.import": {
+      "label": "Import"
+    },
+    "purchases.invoices.filter.option-Factura": {
+      "label": "Invoices only"
+    },
+    "purchases.invoices.btn.add-item": {
+      "label": "Add item",
+      "description": "Adds a line with service, quantity and price."
+    }
+  }
+}

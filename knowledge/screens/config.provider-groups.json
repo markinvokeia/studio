@@ -1,0 +1,47 @@
+{
+  "id": "config.provider-groups",
+  "status": "draft",
+  "summary": "Grupos de proveedores.",
+  "purpose": "Agrupan proveedores para ordenar compras y reportes de gastos.",
+  "prerequisites": [
+    "purchases.providers"
+  ],
+  "useCases": [
+    "config.provider-groups.overview",
+    "config.provider-groups.create",
+    "config.provider-groups.edit",
+    "config.provider-groups.delete",
+    "config.provider-groups.members"
+  ],
+  "elements": {
+    "config.provider-groups.section.first-row": {
+      "label": "Primer registro de la lista"
+    },
+    "config.provider-groups.section.row": {
+      "label": "Registro"
+    },
+    "config.provider-groups.section.detail": {
+      "label": "Detalle"
+    },
+    "config.provider-groups.btn.edit": {
+      "label": "Editar"
+    },
+    "config.provider-groups.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "config.provider-groups.btn.confirm-action": {
+      "label": "Confirmar",
+      "description": "No se puede deshacer."
+    },
+    "config.provider-groups.field.name": {
+      "label": "Nombre"
+    },
+    "config.provider-groups.field.description": {
+      "label": "Descripción"
+    },
+    "config.provider-groups.field.is_active": {
+      "label": "Activo"
+    }
+  }
+}

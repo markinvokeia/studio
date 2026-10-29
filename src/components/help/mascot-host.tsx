@@ -1,0 +1,311 @@
+'use client';
+
+import { useLocale, useTranslations } from 'next-intl';
+import { usePathname } from 'next/navigation';
+import * as React from 'react';
+
+import { MascotProvider, useMascot, useMascotRouteTravel, type MascotController } from '@/components/invoke-mascot';
+
+import { stepSpeechText } from '@/components/help/guide-spotlight';
+
+import { useAuth } from '@/context/AuthContext';
+import { isSpeechSupported, speakAssistant, stopAssistantSpeech, useAssistantVoice } from '@/hooks/use-assistant-voice';
+import { useMascotHome, useMascotPreference } from '@/hooks/use-mascot-preference';
+import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
+import { findHelpTarget, waitForHelpTarget } from '@/lib/help/guide-engine';
+import { revealGuide, stopGuide } from '@/lib/help/guide-runner';
+import { MASCOT_SIZE, menuRectOf, placeGuideMascot, placeGuideMascotBesideMenu, rectOf } from '@/lib/help/placement';
+import { useHelpAssistant } from '@/stores/help-assistant-store';
+
+import { HELP_PERMISSIONS } from '@/constants/permissions';
+
+/** Por encima del contenido y del sidebar, por debajo del riel (z-50) y de los diálogos de Radix (z-50). */
+const MASCOT_Z = 45;
+/** Durante una guía señala por encima de diálogos, del oscurecido y de la barra de pasos. */
+const MASCOT_Z_GUIDING = 2147483601;
+const IDLE_AFTER_MS = 45_000;
+const SLEEP_AFTER_MS = 3 * 60 * 60 * 1000;
+const SIDEBAR_PX = 80;
+const MOBILE_TOPBAR_PX = 48;
+const MOBILE_FOOTER_PX = 24;
+const MOBILE_BREAKPOINT_PX = 640;
+/** Navegación que tarda más que esto (en desarrollo, Next compila la pantalla): "cargando". */
+const SLOW_NAVIGATION_MS = 500;
+/** Tras festejar el final de una guía, se cierra sola. */
+const FINISHED_CLOSE_MS = 3200;
+/** Con el chat abierto y sin actividad, cada cuánto hace un gesto invitando a escribir. */
+const CHAT_NUDGE_MS = 11_000;
+/** Id de la locución de la guía (para cortarla sin cortar la lectura del chat). */
+const GUIDE_SPEECH_ID = 'guide-step';
+/** Lo señalado desapareció (mismo plazo que la barra en GuideSpotlight): deja de señalar y avisa. */
+const LOST_AFTER_MS = 1200;
+
+
+/** Márgenes para el anclaje: el riel derecho (si está expandido) y el sidebar. */
+function useMascotInsets() {
+  const [insets, setInsets] = React.useState({ top: 0, right: 0, bottom: 0, left: 0 });
+  React.useEffect(() => {
+    const measure = () => {
+      const mobile = window.innerWidth < MOBILE_BREAKPOINT_PX;
+      const rail = document.querySelector('[data-help-rail]')?.getBoundingClientRect();
+      const next = mobile
+        ? { top: MOBILE_TOPBAR_PX, right: 0, bottom: MOBILE_FOOTER_PX, left: 0 }
+        : { top: 0, right: rail && rail.width > 0 ? rail.width : 0, bottom: 0, left: SIDEBAR_PX };
+      setInsets((prev) => (prev.top === next.top && prev.right === next.right && prev.bottom === next.bottom && prev.left === next.left ? prev : next));
+    };
+    measure();
+    // El riel se colapsa/expande sin evento propio: se mide cada tanto.
+    const interval = setInterval(measure, 1000);
+    window.addEventListener('resize', measure);
+    return () => { clearInterval(interval); window.removeEventListener('resize', measure); };
+  }, []);
+  return insets;
+}
+
+/**
+ * Monta la mascota de Invoke (src/components/invoke-mascot) para el staff con
+ * acceso al asistente y la conecta con el asistente guiado. Va en el layout
+ * autenticado, envolviendo el header (su riel es el escondite) y el asistente.
+ */
+export function MascotHost({ children }: { children: React.ReactNode }) {
+  const t = useTranslations('HelpAssistant.mascot');
+  const { user } = useAuth();
+  const { hasPermission, isLoading } = usePermissions();
+  const [showMascot] = useMascotPreference(user?.id);
+  // La clínica puede no querer la mascota (Preferencias de Clínica): las guías siguen sin ella.
+  const clinicVisible = useHelpAssistant((s) => s.clinicMascotVisible);
+  const guiding = useHelpAssistant((s) => !!s.spotlight);
+  // Se arrastra sólo en reposo: sin guía ni chat abierto.
+  const idle = useHelpAssistant((s) => !s.guide && !s.isOpen);
+  const home = useMascotHome((s) => s.home);
+  const setHome = useMascotHome((s) => s.setHome);
+  const insets = useMascotInsets();
+  const canUse = !isLoading && hasPermission(HELP_PERMISSIONS.ASSISTANT_USE);
+  // Sólo mueve la boca si la voz está prendida (control junto a la mascota); si no, señala callada.
+  const voiceMuted = useAssistantVoice((s) => s.muted);
+  const [canSpeak, setCanSpeak] = React.useState(false);
+  React.useEffect(() => { setCanSpeak(isSpeechSupported()); }, []);
+  // Parada encima de lo que señala (un calendario entero): deja pasar los clics a la pantalla.
+  const [overTarget, setOverTarget] = React.useState(false);
+
+  // La mascota es la puerta de entrada al asistente: despierta o sale del escondite y, con
+  // una guía en curso, la vuelve a mostrar (la repite si se perdió); si no, abre el chat.
+  // Nunca queda un clic sin respuesta.
+  const handleClick = React.useCallback((m: MascotController) => {
+    m.notifyRequest();
+    if (m.enabled && m.phase === 'sleeping') void m.wake();
+    else if (m.phase === 'peeking') void m.show();
+    if (revealGuide()) return;
+    useHelpAssistant.getState().open();
+  }, []);
+
+  return (
+    <MascotProvider
+      size={MASCOT_SIZE}
+      dock="bottom-right"
+      insets={insets}
+      idleAfterMs={IDLE_AFTER_MS}
+      sleepAfterMs={SLEEP_AFTER_MS}
+      enabled={showMascot}
+      // Escondida desde sus iconos (o apagada en Preferencias): queda dormida en el riel.
+      hidden={!canUse || !showMascot || !clinicVisible}
+      zIndex={guiding ? MASCOT_Z_GUIDING : MASCOT_Z}
+      onMascotClick={handleClick}
+      label={t('label')}
+      // Arrastrándola elige su lugar: a la derecha se esconde tras el riel, a la izquierda
+      // tras el menú, arriba o abajo tras el panel del contenido (zonas en header, sidebar y layout).
+      home={home}
+      draggable={idle}
+      onHomeChange={setHome}
+      // El globo de cada paso no tapa la barra de pasos.
+      bubbleAvoid="[data-help-bubble],[data-help-steps],[data-mascot-controls]"
+      // Tocarla durante una guía la vuelve a mostrar. Con el puntero sobre lo que señala deja
+      // pasar el clic (y el clic derecho o el arrastre) a la pantalla.
+      interactive={!guiding || !overTarget}
+      canTalk={canSpeak && !voiceMuted}
+    >
+      {children}
+      {canUse && <MascotBridge onOverTargetChange={setOverTarget} />}
+    </MascotProvider>
+  );
+}
+
+/** Conecta la mascota con el asistente: rutas, panel, guías y resultados. */
+function MascotBridge({ onOverTargetChange }: { onOverTargetChange: (over: boolean) => void }) {
+  const t = useTranslations('HelpAssistant.mascot');
+  const locale = useLocale();
+  const { toasts } = useToast();
+  const m = useMascot();
+  const mRef = React.useRef(m);
+  React.useLayoutEffect(() => { mRef.current = m; });
+  const pathname = usePathname() ?? '/';
+  const hasHome = useMascotHome((s) => !!s.home);
+  const spotlight = useHelpAssistant((s) => s.spotlight);
+  const guideActive = useHelpAssistant((s) => !!s.guide && !s.guide.finished);
+  const hasGuide = useHelpAssistant((s) => !!s.guide);
+  const guideFinishedKey = useHelpAssistant((s) => (s.guide?.finished ? s.guide.key : null));
+  const guideFailedError = useHelpAssistant((s) => (s.guide && s.guide.statuses[s.guide.current] === 'failed' ? s.guide.error ?? 'targetNotFound' : null));
+  const guideTitle = useHelpAssistant((s) => s.guide?.title ?? '');
+  const isOpen = useHelpAssistant((s) => s.isOpen);
+  const guideLoading = useHelpAssistant((s) => s.guide?.notice ?? null);
+
+  // Al cambiar de página cruza al otro lado, salvo mientras guía (hasta que termina de
+  // festejar) o acompaña al chat: ahí la ruta la maneja la guía o el panel.
+  const busy = hasGuide || isOpen;
+  const [routeKey, setRouteKey] = React.useState(pathname);
+  // Con un lugar elegido no cruza de lado: se queda donde la dejaron.
+  useMascotRouteTravel(routeKey, { animation: 'teleport', disabled: hasHome });
+
+  // La clave de ruta sólo avanza cuando la mascota está libre. Al terminar de guiar o
+  // cerrar el chat: si cambió la página, el hook la cruza; si no, vuelve a su lugar.
+  const wasBusy = React.useRef(busy);
+  React.useEffect(() => {
+    if (!busy) {
+      if (wasBusy.current && (routeKey === pathname || hasHome)) void mRef.current.travelTo('home', { animation: 'hop' });
+      setRouteKey(pathname);
+    }
+    wasBusy.current = busy;
+  }, [busy, pathname, routeKey, hasHome]);
+
+  // Chat abierto (sin guía): el chat sale arriba de la mascota; ella saluda y, si nadie
+  // escribe, cada tanto hace un gesto invitando a pedirle algo.
+  React.useEffect(() => {
+    if (!isOpen || guideActive) return;
+    void mRef.current.gesture('wave', 1400);
+    let turn = 0;
+    const interval = setInterval(() => {
+      const typing = document.activeElement?.closest('[data-help-panel]');
+      if (typing || mRef.current.phase !== 'active') return;
+      turn += 1;
+      void mRef.current.gesture(turn % 2 ? 'nod' : 'wave', 1200);
+    }, CHAT_NUDGE_MS);
+    return () => clearInterval(interval);
+  }, [isOpen, guideActive]);
+
+  // Guías: viaja junto al elemento señalado y lo señala mientras el paso siga ahí.
+  // La mascota se arrima a lo que señala y a veces queda encima (el botón Guardar, un
+  // calendario entero). Con el puntero sobre lo señalado deja pasar el clic, el clic derecho
+  // y el arrastre a la pantalla; en el resto de su cuerpo se la puede tocar para ver la guía.
+  React.useEffect(() => {
+    if (!spotlight) { onOverTargetChange(false); return; }
+    const onMove = (e: PointerEvent) => {
+      const r = findHelpTarget(spotlight.targetId)?.highlight.getBoundingClientRect();
+      onOverTargetChange(!!r && e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom);
+    };
+    document.addEventListener('pointermove', onMove, { capture: true, passive: true });
+    return () => { document.removeEventListener('pointermove', onMove, { capture: true }); onOverTargetChange(false); };
+  }, [spotlight, onOverTargetChange]);
+
+  React.useEffect(() => {
+    if (!spotlight) return;
+    const controller = new AbortController();
+    const { signal } = controller;
+    (async () => {
+      const target = await waitForHelpTarget(spotlight.targetId, { signal, timeoutMs: 30_000 }).catch(() => null);
+      if (!target || signal.aborted) return;
+      // Un frame para que la barra de pasos ya estén ubicados (son obstáculos).
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      if (signal.aborted) return;
+      const rect = target.highlight.getBoundingClientRect();
+      const menu = menuRectOf(target.highlight);
+      // Una opción de un menú se señala desde afuera del menú, sin tapar las otras opciones.
+      const spot = menu
+        ? placeGuideMascotBesideMenu(rect, menu, MASCOT_SIZE, [rectOf('[data-help-bubble]'), rectOf('[data-help-steps]')].filter((r): r is NonNullable<typeof r> => !!r))
+        : placeGuideMascot(rect, MASCOT_SIZE);
+      await mRef.current.travelTo(spot, { animation: 'auto', speed: spotlight.mode === 'action' ? 2 : 1.4 });
+      if (signal.aborted) return;
+      // El texto del paso sale del globo de la propia mascota mientras señala y, con la voz
+      // prendida, lo lee en voz alta (mueve la boca mientras habla).
+      const say = stepSpeechText(spotlight);
+      const speech = speakAssistant(GUIDE_SPEECH_ID, say, locale);
+      // Si la persona cierra el diálogo o cambia de pantalla, no queda señalando al vacío:
+      // corta y avisa que tocándola se retoma (GuideSpotlight deja la barra abajo al centro).
+      const pointing = new AbortController();
+      signal.addEventListener('abort', () => pointing.abort(), { once: true });
+      let goneSince = 0;
+      const watch = setInterval(() => {
+        if (findHelpTarget(spotlight.targetId)) { goneSince = 0; return; }
+        if (!goneSince) { goneSince = Date.now(); return; }
+        if (Date.now() - goneSince < LOST_AFTER_MS) return;
+        clearInterval(watch);
+        pointing.abort();
+        if (useAssistantVoice.getState().speakingId === GUIDE_SPEECH_ID) stopAssistantSpeech();
+        if (!signal.aborted) void mRef.current.say(t('guideLost'), { mood: 'surprised', duration: 4500 });
+      }, 300);
+      signal.addEventListener('abort', () => clearInterval(watch), { once: true });
+      await mRef.current.pointAt(target.highlight, { highlight: false, duration: Infinity, signal: pointing.signal, say, talkUntil: speech });
+      clearInterval(watch);
+    })();
+    return () => {
+      controller.abort();
+      if (useAssistantVoice.getState().speakingId === GUIDE_SPEECH_ID) stopAssistantSpeech();
+    };
+  }, [spotlight, locale, t]);
+
+  // Mientras algo carga, cara de "cargando": la guía esperando una pantalla o un
+  // elemento, o una navegación del menú que tarda (en desarrollo, compila la página).
+  React.useEffect(() => {
+    if (!guideLoading) return;
+    // Lo dice en su globo ("Abriendo la pantalla…") con cara de cargando.
+    void mRef.current.say(t(`loading.${guideLoading}`), { mood: 'loading', duration: 3500 });
+    return () => { void mRef.current.setMood('neutral'); };
+  }, [guideLoading, t]);
+
+  const [navigatingTo, setNavigatingTo] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const link = e.target instanceof Element ? e.target.closest<HTMLAnchorElement>('a[href]') : null;
+      if (!link || link.target === '_blank' || link.hasAttribute('download')) return;
+      const url = new URL(link.href, window.location.href);
+      if (url.origin === window.location.origin && url.pathname !== window.location.pathname) setNavigatingTo(url.pathname);
+    };
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
+  }, []);
+  React.useEffect(() => { setNavigatingTo(null); }, [pathname]);
+  React.useEffect(() => {
+    if (!navigatingTo) return;
+    let slow = false;
+    const timer = setTimeout(() => { slow = true; void mRef.current.setMood('loading'); }, SLOW_NAVIGATION_MS);
+    return () => {
+      clearTimeout(timer);
+      if (slow) void mRef.current.setMood('neutral');
+    };
+  }, [navigatingTo]);
+
+  // Último paso: festeja, lo dice y la guía se cierra sola.
+  React.useEffect(() => {
+    if (guideFinishedKey === null) return;
+    const finished = t('guideFinished', { title: guideTitle });
+    void speakAssistant(GUIDE_SPEECH_ID, finished, locale);
+    void mRef.current.say(finished, { mood: 'happy', gesture: 'celebrate', duration: 2600 });
+    const timer = setTimeout(() => {
+      if (useHelpAssistant.getState().guide?.key === guideFinishedKey) stopGuide();
+    }, FINISHED_CLOSE_MS);
+    return () => clearTimeout(timer);
+  }, [guideFinishedKey, guideTitle, t, locale]);
+
+  // Un paso que no se pudo hacer: triste y explica por qué (la barra queda para reintentar o saltar).
+  React.useEffect(() => {
+    if (!guideFailedError) return;
+    const why = t(`guideError.${guideFailedError}`);
+    void speakAssistant(GUIDE_SPEECH_ID, why, locale);
+    void mRef.current.say(why, { mood: 'sad', duration: 6000 });
+  }, [guideFailedError, t, locale]);
+
+  // Cualquier error de la app (un guardado que falló, un timeout): triste, con una frase corta.
+  const seenToasts = React.useRef(new Set<string>());
+  React.useEffect(() => {
+    for (const toast of toasts) {
+      if (seenToasts.current.has(toast.id)) continue;
+      seenToasts.current.add(toast.id);
+      if (toast.variant === 'destructive' && mRef.current.phase !== 'sleeping') {
+        void mRef.current.say(t('appError'), { mood: 'sad', duration: 3500 });
+      }
+    }
+  }, [toasts, t]);
+
+  return null;
+}

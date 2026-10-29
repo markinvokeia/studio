@@ -1,0 +1,73 @@
+{
+  "id": "patients.anamnesis",
+  "title": "Enter the medical history",
+  "summary": "Personal history, medication, family history, allergies and habits. Allergies and ailments show as an alert on the record.",
+  "module": "Patients",
+  "group": "Clinical history",
+  "inputs": {
+    "patient": "Patient's name, email or ID"
+  },
+  "keywords": [
+    "medical history",
+    "allergies",
+    "history",
+    "medication",
+    "habits",
+    "medical history",
+    "ailments"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or ID."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide continues once their record is open."
+    },
+    {
+      "id": "clinical",
+      "title": "Clinical history"
+    },
+    {
+      "id": "tab",
+      "title": "Medical history"
+    },
+    {
+      "id": "personal",
+      "title": "Personal history",
+      "details": "The patient's diseases and conditions. Add one with +."
+    },
+    {
+      "id": "meds",
+      "title": "Medication",
+      "details": "What they regularly take: it's checked when prescribing."
+    },
+    {
+      "id": "family",
+      "title": "Family history"
+    },
+    {
+      "id": "allergies",
+      "title": "Allergies",
+      "details": "They show as a red alert in the record's header."
+    },
+    {
+      "id": "add",
+      "title": "Add allergy",
+      "details": "Choose the allergy from the catalog and its severity."
+    },
+    {
+      "id": "habits",
+      "title": "Habits",
+      "details": "Tobacco, alcohol, bruxism and others."
+    }
+  ]
+}

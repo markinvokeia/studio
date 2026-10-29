@@ -1,0 +1,57 @@
+{
+  "id": "cashier.misc-category",
+  "title": "Create an expense or income category",
+  "summary": "Categories organize miscellaneous movements and define whether they're income or expense.",
+  "module": "Cash register",
+  "inputs": {
+    "name": "Name",
+    "code": "Code",
+    "description": "Description",
+    "type": "Income | Expense"
+  },
+  "keywords": [
+    "category",
+    "expense type",
+    "line item",
+    "classify expenses",
+    "new category"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Cashier → Product and Services Categories"
+    },
+    {
+      "id": "new",
+      "title": "New category"
+    },
+    {
+      "id": "name",
+      "title": "Name",
+      "details": "Expense examples: Cleaning, Stationery, Shipping. Income: Partner contribution, Refunds."
+    },
+    {
+      "id": "code",
+      "title": "Code",
+      "details": "Short and unique, for reports (e.g. CLEAN)."
+    },
+    {
+      "id": "description",
+      "title": "Description"
+    },
+    {
+      "id": "type",
+      "title": "Type",
+      "details": "Expense: money goes out of the cash register. Income: it comes in. It can't be changed later if it already has movements."
+    },
+    {
+      "id": "active",
+      "title": "Active",
+      "details": "Only active ones are offered when recording a movement."
+    },
+    {
+      "id": "save",
+      "title": "Create"
+    }
+  ]
+}

@@ -74,7 +74,7 @@ export const PermissionsColumnsWrapper = ({ onDelete, canDelete = true }: Permis
         const permission = row.original;
         return (
           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-            {canDelete && <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" onClick={() => onDelete(permission)}>
+            {canDelete && <button data-help-id="permissions.btn.row-delete" type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" onClick={() => onDelete(permission)}>
               <Trash2 className="h-3.5 w-3.5" />
               <span className="text-[9px] font-medium leading-tight">{t('delete')}</span>
             </button>}

@@ -1,0 +1,43 @@
+{
+  "id": "sales.payments.export",
+  "title": "Exportar pagos",
+  "module": "Ventas",
+  "summary": "Bajar el listado de pagos a Excel o CSV.",
+  "screens": [
+    "sales.payments"
+  ],
+  "keywords": [
+    "exportar pagos",
+    "excel",
+    "csv"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/payments",
+      "title": "Menú → Ventas → Pagos",
+      "details": "Los cobros a pacientes: pagos de facturas y prepagos (dinero a cuenta que después se aplica a facturas)."
+    },
+    {
+      "id": "export",
+      "action": "click",
+      "target": "sales.payments.btn.export",
+      "title": "Exportar",
+      "until": "sales.payments.section.export"
+    },
+    {
+      "id": "format",
+      "action": "highlight",
+      "target": "sales.payments.section.export",
+      "title": "Formato",
+      "details": "Excel o CSV."
+    },
+    {
+      "id": "run",
+      "action": "confirm",
+      "target": "sales.payments.btn.export-run",
+      "title": "Descargar"
+    }
+  ]
+}

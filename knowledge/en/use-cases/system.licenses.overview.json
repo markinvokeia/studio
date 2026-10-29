@@ -1,0 +1,50 @@
+{
+  "id": "system.licenses.overview",
+  "title": "View Licenses",
+  "summary": "The clinic's license: subscription type, validity and limits (doctors, users, new patients per month, AI).",
+  "module": "System",
+  "keywords": [
+    "leave",
+    "subscription",
+    "doctor limit",
+    "plan"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Licenses",
+      "details": "The clinic's license: subscription type, validity and limits (doctors, users, new patients per month, AI)."
+    },
+    {
+      "id": "generate-new",
+      "title": "Generate license",
+      "details": "Type, dates, limits and AI access."
+    },
+    {
+      "id": "generated-key",
+      "title": "Current license",
+      "details": "The current key."
+    },
+    {
+      "id": "type",
+      "title": "Subscription type"
+    },
+    {
+      "id": "end",
+      "title": "Expires"
+    },
+    {
+      "id": "patients",
+      "title": "New patients per month"
+    },
+    {
+      "id": "ai",
+      "title": "AI access"
+    },
+    {
+      "id": "generate",
+      "title": "Generate",
+      "details": "Creates a new license as soon as you tap it."
+    }
+  ]
+}

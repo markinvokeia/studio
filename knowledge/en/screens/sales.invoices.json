@@ -1,0 +1,79 @@
+{
+  "id": "sales.invoices",
+  "summary": "Patient invoices.",
+  "purpose": "What the patient is charged: it comes from a confirmed quote, a quick payment or is entered directly.",
+  "tips": [
+    "An invoice can be generated from an accepted quote."
+  ],
+  "elements": {
+    "sales.invoices.section.detail-header": {
+      "label": "Document summary"
+    },
+    "sales.invoices.section.first-row": {
+      "label": "First document in the list"
+    },
+    "sales.invoices.section.row": {
+      "label": "ID"
+    },
+    "sales.invoices.btn.row-actions": {
+      "label": "Row actions"
+    },
+    "sales.invoices.btn.export": {
+      "label": "Export",
+      "description": "Excel or CSV."
+    },
+    "sales.invoices.section.export": {
+      "label": "Export format"
+    },
+    "sales.invoices.btn.export-run": {
+      "label": "Download"
+    },
+    "sales.invoices.field.doc-email-to": {
+      "label": "Recipients",
+      "description": "Emails separated by commas."
+    },
+    "sales.invoices.btn.doc-email-send": {
+      "label": "Send by email"
+    },
+    "sales.invoices.detail.section.first-row": {
+      "label": "First line"
+    },
+    "sales.invoices.detail.section.row": {
+      "label": "Line"
+    },
+    "sales.invoices.detail.btn.new": {
+      "label": "Add"
+    },
+    "sales.invoices.btn.filters": {
+      "label": "Filters"
+    },
+    "sales.invoices.section.filters": {
+      "label": "Filter options"
+    },
+    "sales.invoices.btn.row-add-payment": {
+      "label": "Add payment"
+    },
+    "sales.invoices.btn.row-confirm": {
+      "label": "Confirm"
+    },
+    "sales.invoices.btn.row-edit": {
+      "label": "Edit"
+    },
+    "sales.invoices.btn.row-print": {
+      "label": "Print"
+    },
+    "sales.invoices.btn.row-email": {
+      "label": "Send by email"
+    },
+    "sales.invoices.btn.import": {
+      "label": "Import"
+    },
+    "sales.invoices.filter.option-Factura": {
+      "label": "Invoices only"
+    },
+    "sales.invoices.btn.add-item": {
+      "label": "Add item",
+      "description": "Adds a line with service, quantity and price."
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "id": "cashier.misc-category-edit",
+  "title": "Editar o eliminar una categoría",
+  "module": "Caja",
+  "summary": "Cambiar el nombre o desactivar una categoría, o eliminarla si no tiene movimientos.",
+  "screens": [
+    "cashier.miscellaneous-categories"
+  ],
+  "keywords": [
+    "editar categoria",
+    "desactivar categoria",
+    "eliminar categoria"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/cashier/miscellaneous-categories",
+      "title": "Menú → Caja → Categorías"
+    },
+    {
+      "id": "row",
+      "action": "highlight",
+      "target": "cashier.miscellaneous-categories.section.first-row",
+      "title": "Una categoría",
+      "details": "Las categorías de la lista con su tipo y estado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "edit",
+      "action": "highlight",
+      "target": "cashier.miscellaneous-categories.btn.row-edit",
+      "title": "Editar",
+      "details": "Cambiá el nombre, la descripción o desactivala para que no se ofrezca más.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "delete",
+      "action": "highlight",
+      "target": "cashier.miscellaneous-categories.btn.row-delete",
+      "title": "Eliminar",
+      "details": "Pide confirmación. Si ya tiene movimientos, mejor desactivarla.",
+      "skipIfMissing": true
+    }
+  ]
+}

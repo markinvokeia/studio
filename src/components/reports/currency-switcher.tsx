@@ -1,6 +1,9 @@
 'use client';
 
+import { useHelpScope } from '@/components/help/help-scope';
+
 import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { composeHelpId } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 
 interface CurrencySwitcherProps {
@@ -22,15 +25,17 @@ interface CurrencySwitcherProps {
 export function CurrencySwitcher({ value, onChange, options }: CurrencySwitcherProps) {
   const { options: clinicOptions } = useCurrencySettings();
   const codes = options ?? clinicOptions;
+  const helpScope = useHelpScope();
 
   if (codes.length < 2) return null;
 
   return (
-    <div className="flex items-center gap-0.5 rounded border bg-muted/50 p-0.5">
+    <div data-help-id={composeHelpId(helpScope, 'filter', 'currency')} className="flex items-center gap-0.5 rounded border bg-muted/50 p-0.5">
       {codes.map((c) => (
         <button
           key={c}
           type="button"
+          data-help-id={composeHelpId(helpScope, 'filter', `currency-${c}`)}
           onClick={() => onChange(c)}
           className={cn(
             'rounded px-2 py-0.5 text-xs font-medium transition-colors',

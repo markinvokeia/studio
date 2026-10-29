@@ -1,0 +1,106 @@
+{
+  "id": "purchases.providers",
+  "status": "draft",
+  "summary": "Proveedores de la clínica.",
+  "purpose": "Datos de contacto, condiciones y productos de cada proveedor.",
+  "useCases": [
+    "purchases.providers.overview",
+    "purchases.providers.search",
+    "purchases.providers.create",
+    "purchases.providers.edit",
+    "purchases.providers.notes",
+    "purchases.providers.preferences",
+    "purchases.providers.quote",
+    "purchases.providers.invoice",
+    "purchases.providers.prepaid",
+    "purchases.providers.account",
+    "purchases.providers.email",
+    "purchases.providers.whatsapp",
+    "purchases.providers.toggle-active"
+  ],
+  "elements": {
+    "purchases.providers.section.first-row": {
+      "label": "Primero de la lista"
+    },
+    "purchases.providers.section.row": {
+      "label": "Proveedor"
+    },
+    "purchases.providers.section.detail": {
+      "label": "Encabezado de la ficha"
+    },
+    "purchases.providers.btn.create-menu": {
+      "label": "Crear",
+      "description": "Presupuesto, factura o anticipo."
+    },
+    "purchases.providers.btn.new-quote": {
+      "label": "Presupuesto"
+    },
+    "purchases.providers.btn.new-invoice": {
+      "label": "Factura"
+    },
+    "purchases.providers.btn.new-prepaid": {
+      "label": "Anticipo"
+    },
+    "purchases.providers.btn.preferences": {
+      "label": "Preferencias",
+      "description": "Se guardan al tocarlas."
+    },
+    "purchases.providers.btn.toggle-active": {
+      "label": "Activar / Desactivar",
+      "description": "Se aplica al tocarlo."
+    },
+    "purchases.providers.btn.email": {
+      "label": "Email"
+    },
+    "purchases.providers.btn.whatsapp": {
+      "label": "WhatsApp"
+    },
+    "purchases.providers.btn.notes-edit": {
+      "label": "Editar notas"
+    },
+    "purchases.providers.btn.notes-save": {
+      "label": "Guardar notas"
+    },
+    "purchases.providers.detail.section.first-row": {
+      "label": "Primer documento"
+    },
+    "purchases.providers.detail.field.name": {
+      "label": "Nombre"
+    },
+    "purchases.providers.detail.field.email": {
+      "label": "Correo"
+    },
+    "purchases.providers.detail.field.identity_document": {
+      "label": "RUT"
+    },
+    "purchases.providers.detail.field.bank_account": {
+      "label": "Cuenta bancaria"
+    },
+    "purchases.providers.detail.btn.submit": {
+      "label": "Guardar"
+    },
+    "purchases.providers.field.email-to": {
+      "label": "Para"
+    },
+    "purchases.providers.field.email-subject": {
+      "label": "Asunto"
+    },
+    "purchases.providers.btn.email-send": {
+      "label": "Enviar"
+    },
+    "purchases.providers.field.whatsapp-message": {
+      "label": "Mensaje"
+    },
+    "purchases.providers.btn.whatsapp-open": {
+      "label": "Abrir WhatsApp"
+    },
+    "purchases.providers.btn.add-item": {
+      "label": "Agregar artículo",
+      "description": "En la factura o el presupuesto: agrega una línea con servicio, cantidad y precio. Sin al menos una línea no se puede guardar."
+    },
+    "purchases.providers.btn.prepaid-confirm": {
+      "label": "Confirmar pago anticipado",
+      "description": "Segunda confirmación del pago anticipado: al aceptarla se registra el saldo a favor."
+    }
+  }
+}

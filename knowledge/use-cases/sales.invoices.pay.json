@@ -1,0 +1,64 @@
+{
+  "id": "sales.invoices.pay",
+  "title": "Cobrar una factura",
+  "module": "Ventas",
+  "summary": "Agregar pago a una factura confirmada con saldo: abre el asistente de cobro con la factura ya elegida.",
+  "screens": [
+    "sales.invoices"
+  ],
+  "inputs": {
+    "query": "Número de factura"
+  },
+  "keywords": [
+    "cobrar factura",
+    "registrar pago",
+    "pagar factura",
+    "saldo de factura"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/sales/invoices",
+      "title": "Menú → Ventas → Facturas",
+      "details": "Lo que se le cobra al paciente: sale de un presupuesto confirmado, de un cobro rápido o se carga directo."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "sales.invoices.filter.search",
+      "title": "Buscá la factura",
+      "details": "Por número de documento.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "sales.invoices.section.first-row",
+      "title": "Abrí la factura",
+      "details": "Tocala en la lista. La guía sigue cuando se abre su detalle.",
+      "until": "sales.invoices.section.summary",
+      "autoClick": true
+    },
+    {
+      "id": "add",
+      "action": "click",
+      "target": "sales.invoices.btn.add-payment",
+      "title": "Agregar pago",
+      "details": "Aparece si la factura está confirmada y le queda saldo.",
+      "until": "billing-wizard.section.wizard",
+      "skipIfMissing": true
+    },
+    {
+      "id": "wizard",
+      "action": "highlight",
+      "target": "billing-wizard.section.wizard",
+      "title": "Asistente de pago",
+      "details": "Monto, medio de pago y moneda. Los cobros en efectivo suman al arqueo de la caja abierta.",
+      "doneOnClose": true,
+      "skipIfMissing": true
+    }
+  ]
+}

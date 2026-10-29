@@ -1,0 +1,81 @@
+{
+  "id": "system.users.create",
+  "title": "Crear un usuario",
+  "module": "Sistema",
+  "summary": "Alta de un usuario.",
+  "screens": [
+    "system.users"
+  ],
+  "inputs": {
+    "name": "Nombre",
+    "email": "Correo"
+  },
+  "keywords": [
+    "nuevo usuario",
+    "crear usuario"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/users",
+      "title": "Menú → Sistema → Usuarios",
+      "details": "Todas las personas que entran al sistema (doctores, secretarias, administración) con sus roles."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "system.users.btn.new",
+      "title": "Crear",
+      "until": "system.users.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "system.users.field.name",
+      "title": "Nombre",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "email",
+      "action": "fill",
+      "target": "system.users.field.email",
+      "title": "Correo",
+      "value": "{{values.email}}"
+    },
+    {
+      "id": "phone",
+      "action": "highlight",
+      "target": "system.users.field.phone",
+      "title": "Teléfono",
+      "skipIfMissing": true
+    },
+    {
+      "id": "identity_document",
+      "action": "highlight",
+      "target": "system.users.field.identity_document",
+      "title": "Documento",
+      "skipIfMissing": true
+    },
+    {
+      "id": "active_sede_id",
+      "action": "highlight",
+      "target": "system.users.field.active_sede_id",
+      "title": "Sede por defecto",
+      "skipIfMissing": true
+    },
+    {
+      "id": "is_active",
+      "action": "highlight",
+      "target": "system.users.field.is_active",
+      "title": "Activo",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "system.users.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

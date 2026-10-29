@@ -1,0 +1,16 @@
+{
+  "id": "system.access",
+  "summary": "Access log.",
+  "purpose": "Who signed in to the system, when and from where.",
+  "elements": {
+    "system.access.section.first-row": {
+      "label": "The most recent"
+    },
+    "system.access.section.row": {
+      "label": "Record"
+    },
+    "system.access.section.detail": {
+      "label": "Details"
+    }
+  }
+}

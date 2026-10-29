@@ -1,0 +1,81 @@
+{
+  "id": "alerts.bulk",
+  "title": "Trabajar varias alertas a la vez",
+  "module": "Centro de Alertas",
+  "summary": "Seleccionar alertas (o una categoría entera) y completarlas, pausarlas o mandarles WhatsApp juntas.",
+  "screens": [
+    "alerts"
+  ],
+  "keywords": [
+    "varias alertas",
+    "todas",
+    "masivo",
+    "en lote",
+    "seleccionar todas",
+    "categoria completa"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/alerts",
+      "title": "Menú → Centro de Alertas",
+      "details": "Lo que el sistema detectó con las reglas de alertas y el equipo tiene que trabajar."
+    },
+    {
+      "id": "select",
+      "action": "highlight",
+      "target": "alerts.field.select-category",
+      "title": "Seleccioná una categoría",
+      "until": "alerts.section.bulk-bar",
+      "autoClick": true,
+      "details": "El check de la categoría marca todas sus alertas; también podés marcarlas de a una."
+    },
+    {
+      "id": "bar",
+      "action": "highlight",
+      "target": "alerts.section.bulk-bar",
+      "title": "Barra de acciones",
+      "details": "Cuántas hay seleccionadas y qué se puede hacer con todas juntas."
+    },
+    {
+      "id": "whatsapp",
+      "action": "highlight",
+      "target": "alerts.btn.bulk-whatsapp",
+      "title": "WhatsApp a todas",
+      "details": "Manda la plantilla a las que tienen teléfono; avisa cuántas se enviaron y cuántas se saltaron.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "snooze",
+      "action": "highlight",
+      "target": "alerts.btn.bulk-snooze",
+      "title": "Pausar todas",
+      "details": "Las pausa hasta la fecha que elijas.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "email",
+      "action": "highlight",
+      "target": "alerts.btn.bulk-email",
+      "title": "Correo",
+      "details": "Sólo con una alerta seleccionada.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "complete",
+      "action": "highlight",
+      "target": "alerts.btn.bulk-complete",
+      "title": "Completar todas",
+      "details": "Las da por resueltas.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "deselect",
+      "action": "highlight",
+      "target": "alerts.btn.bulk-deselect",
+      "title": "Deseleccionar",
+      "details": "Limpia la selección."
+    }
+  ]
+}

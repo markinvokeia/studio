@@ -1,0 +1,66 @@
+{
+  "id": "alerts.send-email",
+  "title": "Mandar un correo al paciente desde una alerta",
+  "module": "Centro de Alertas",
+  "summary": "Abrir el correo con el texto de la regla, revisarlo y enviarlo.",
+  "screens": [
+    "alerts"
+  ],
+  "inputs": {
+    "subject": "Asunto del correo"
+  },
+  "keywords": [
+    "correo",
+    "email",
+    "mail",
+    "enviar correo",
+    "avisar por mail"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/alerts",
+      "title": "Menú → Centro de Alertas",
+      "details": "Lo que el sistema detectó con las reglas de alertas y el equipo tiene que trabajar."
+    },
+    {
+      "id": "open",
+      "action": "highlight",
+      "target": "alerts.btn.send-email",
+      "title": "Enviar correo",
+      "until": "alerts.field.email-subject",
+      "autoClick": true,
+      "details": "Tocá el sobre de la alerta (deshabilitado si el paciente no tiene correo). Hacelo en la alerta que quieras trabajar."
+    },
+    {
+      "id": "to",
+      "action": "highlight",
+      "target": "alerts.field.email-to",
+      "title": "Para",
+      "details": "El correo del paciente; si falta, se carga en su ficha."
+    },
+    {
+      "id": "subject",
+      "action": "fill",
+      "target": "alerts.field.email-subject",
+      "value": "{{values.subject}}",
+      "optional": true,
+      "ask": true,
+      "title": "Asunto"
+    },
+    {
+      "id": "body",
+      "action": "highlight",
+      "target": "alerts.field.email-body",
+      "title": "Mensaje",
+      "details": "Viene armado con la plantilla de la regla; podés editarlo antes de enviar."
+    },
+    {
+      "id": "send",
+      "action": "confirm",
+      "target": "alerts.btn.email-send",
+      "title": "Enviar"
+    }
+  ]
+}
