@@ -30,6 +30,10 @@ export type User = {
   is_dependent?: boolean;
   responsible_contact_id?: string;
   responsible_contact_name?: string;
+  /** Teléfono del tutor (propio o alternativo); lo trae la búsqueda de `/users`. */
+  responsible_phone_number?: string;
+  /** La búsqueda lo encontró solo por los datos de su tutor, no por los suyos. */
+  matched_by_responsible?: boolean;
   calendar_source_id?: string;
   /** Default doctor assigned to this patient. Nullable. */
   doctor_id?: string | null;
@@ -751,6 +755,20 @@ export type ResponsibleContact = {
   phone_number?: string | null;
   address?: string | null;
 };
+
+/** Paciente a cargo de un tutor, tal como lo lista `/users/dependents`. */
+export interface PatientDependent {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone_number?: string | null;
+  identity_document?: string | null;
+  identity_document_type?: string | null;
+  birth_date?: string | null;
+  is_active: boolean;
+  /** Sin teléfono propio: alertas y recordatorios le escriben al tutor. */
+  uses_responsible_phone: boolean;
+}
 
 export type Appointment = {
   id: string; // appointmentId in backend

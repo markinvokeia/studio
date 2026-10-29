@@ -246,6 +246,11 @@ interface PatientInfoTabProps {
    * se puede volver a abrir a sí mismo.
    */
   showDependentField?: boolean;
+  /**
+   * Alta de un dependiente desde la ficha del tutor: el formulario arranca marcado
+   * como dependiente y con ese tutor elegido. Solo aplica en modo alta.
+   */
+  initialResponsible?: { id: string; name: string };
 }
 
 /** Padding del área de campos y del pie de guardado, por host. */
@@ -271,6 +276,7 @@ export function PatientInfoTab({
   onDirtyChange,
   variant = 'tab',
   showDependentField = true,
+  initialResponsible,
 }: PatientInfoTabProps) {
   const padding = VARIANT_PADDING[variant];
   const isCreateMode = !userId && !userProp;
@@ -288,7 +294,8 @@ export function PatientInfoTab({
   const [isLoading, setIsLoading] = React.useState(!userProp);
   const [isSaving, setIsSaving] = React.useState(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
-  const [responsibleContactName, setResponsibleContactName] = React.useState('');
+  const presetResponsible = isCreateMode ? initialResponsible : undefined;
+  const [responsibleContactName, setResponsibleContactName] = React.useState(presetResponsible?.name ?? '');
   const [doctorDisplayName, setDoctorDisplayName] = React.useState('');
   const [groupsDirty, setGroupsDirty] = React.useState(false);
   // Create mode: groups picked before the patient exists, assigned right after the upsert.
@@ -304,7 +311,8 @@ export function PatientInfoTab({
     resolver: zodResolver(userFormSchema(t, { identityDocumentRequired, originalName: user?.name })),
     defaultValues: {
       id: '', name: initialName || '', email: '', phone: '', identity_document: '', identity_document_type: 'cedula_uy', birth_date: '', address: '',
-      notes: '', is_active: true, mutual_society_id: '', is_dependent: false, responsible_contact_id: null,
+      notes: '', is_active: true, mutual_society_id: '',
+      is_dependent: !!presetResponsible, responsible_contact_id: presetResponsible?.id ?? null,
       doctor_id: null, sex: null,
     },
   });

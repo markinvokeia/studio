@@ -440,6 +440,10 @@ export const API_ROUTES = {
     },
     ORDER_INVOICE: '/order/invoice',
     USER_DEPENDANT: '/user_dependant',
+    /** Pacientes a cargo de un tutor (`?user_id=` del tutor). */
+    USERS_DEPENDENTS: '/users/dependents',
+    /** Vincula/desvincula un dependiente: solo toca `is_dependant` y `responsible_contact_id`. */
+    USERS_RESPONSIBLE: '/users/responsible',
     USERS_UPSERT: '/users/upsert',
     USER_NOTES: '/user/notes',
     USERS_ACTIVATE: '/users/activate',

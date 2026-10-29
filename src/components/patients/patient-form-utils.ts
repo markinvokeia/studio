@@ -2,11 +2,11 @@ import { isValidPhoneNumber } from 'libphonenumber-js';
 import * as z from 'zod';
 
 import { API_ROUTES } from '@/constants/routes';
-import { api } from '@/services/api';
+import { api, REQUEST_TIMEOUT_MS, type ApiRequestOptions } from '@/services/api';
 import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import { IDENTITY_DOCUMENT_TYPES, isValidIdentityDocument } from '@/lib/identity-document';
 import { getPersonNameIssue, normalizePersonName, type PersonNameIssue } from '@/lib/person-name';
-import type { DuplicateContactOwners, MutualSociety, UniqueConflict, User } from '@/lib/types';
+import type { DuplicateContactOwners, MutualSociety, PatientDependent, UniqueConflict, User } from '@/lib/types';
 
 // ── Patient form schema ──────────────────────────────────────────────────────
 /** Clave de traducción por motivo de `getPersonNameIssue`. La comparte el alta rápida. */
@@ -195,6 +195,8 @@ export function resolveUserUpsertError(
   if (backendError?.code === 'invalid_name') {
     return t('UsersPage.createDialog.validation.nameInvalid');
   }
+  const dependencyError = resolveDependencyErrorCode(backendError?.code, t);
+  if (dependencyError) return dependencyError;
   // El texto crudo de Postgres no le dice nada al usuario: lo que importa es que
   // falta elegir el tutor.
   if (rawMessage?.includes('dependent_has_responsible')) {
@@ -204,6 +206,72 @@ export function resolveUserUpsertError(
     return t('UsersPage.createDialog.validation.serverError');
   }
   return rawMessage ?? null;
+}
+
+/**
+ * Reglas tutor/dependiente que validan `/users/upsert` y `/users/responsible`: sin
+ * cadenas (el tutor no es dependiente y quien tiene dependientes no pasa a serlo).
+ */
+const DEPENDENCY_ERROR_KEYS: Record<string, string> = {
+  self_responsible: 'UsersPage.dependents.errors.selfResponsible',
+  responsible_is_dependent: 'UsersPage.dependents.errors.responsibleIsDependent',
+  guardian_has_dependents: 'UsersPage.dependents.errors.guardianHasDependents',
+  user_not_found: 'UsersPage.dependents.errors.notFound',
+  responsible_not_found: 'UsersPage.dependents.errors.notFound',
+};
+
+export function resolveDependencyErrorCode(
+  code: unknown,
+  t: (key: string, values?: any) => string,
+): string | null {
+  const key = typeof code === 'string' ? DEPENDENCY_ERROR_KEYS[code] : undefined;
+  return key ? t(key) : null;
+}
+
+function mapDependent(raw: any): PatientDependent {
+  return {
+    id: String(raw.id),
+    name: raw.name || '',
+    email: raw.email ?? null,
+    phone_number: raw.phone_number ?? null,
+    identity_document: raw.identity_document ?? null,
+    identity_document_type: raw.identity_document_type ?? null,
+    birth_date: normalizeBirthDate(raw.birth_date ?? raw.birthday) || null,
+    is_active: raw.is_active ?? true,
+    uses_responsible_phone: raw.uses_responsible_phone === true,
+  };
+}
+
+/** Pacientes a cargo del tutor `responsibleId`. Lanza el error para que la vista distinga error de vacío. */
+export async function fetchPatientDependents(responsibleId: string, signal?: AbortSignal): Promise<PatientDependent[]> {
+  const responseData = await api.get(API_ROUTES.USERS_DEPENDENTS, { user_id: responsibleId }, undefined, { signal });
+  const envelope = Array.isArray(responseData) ? responseData[0] : responseData;
+  const list = envelope?.json?.data ?? envelope?.data ?? [];
+  return Array.isArray(list) ? list.map(mapDependent).filter((d) => d.id) : [];
+}
+
+/**
+ * Vincula (`responsibleId`) o desvincula (`null`) a un paciente de su tutor. Va por
+ * `/users/responsible` y no por el upsert: este reescribe la ficha entera y desde la
+ * pestaña del tutor no se tiene la del dependiente completa. El error trae `code`.
+ */
+export async function setPatientResponsible(
+  userId: string,
+  responsibleId: string | null,
+  options?: ApiRequestOptions,
+): Promise<void> {
+  const responseData = await api.post(
+    API_ROUTES.USERS_RESPONSIBLE,
+    { user_id: userId, responsible_contact_id: responsibleId },
+    undefined,
+    undefined,
+    { timeoutMs: REQUEST_TIMEOUT_MS.mutation, ...options },
+  );
+  const result = Array.isArray(responseData) ? responseData[0] : responseData;
+  if (result?.success === true) return;
+  const error = new Error(result?.error?.code || 'responsible_update_failed') as Error & { code?: string };
+  error.code = result?.error?.code;
+  throw error;
 }
 
 export async function getDependantContactInfo(userId: string): Promise<DependantContactInfo | null> {
@@ -309,6 +377,8 @@ function mapSearchUser(apiUser: any): User {
     is_dependent: apiUser.is_dependent ?? apiUser.is_dependant ?? false,
     responsible_contact_id: apiUser.responsible_contact_id || undefined,
     responsible_contact_name: apiUser.responsible_contact_name || undefined,
+    responsible_phone_number: apiUser.responsible_phone_number || undefined,
+    matched_by_responsible: apiUser.matched_by_responsible === true,
     doctor_id: apiUser.doctor_id !== undefined && apiUser.doctor_id !== null && apiUser.doctor_id !== ''
       ? String(apiUser.doctor_id)
       : null,
@@ -365,6 +435,21 @@ export async function findPatientByName(name: string): Promise<User | null> {
     console.error('Failed to find patient by name:', error);
     return null;
   }
+}
+
+/**
+ * Pacientes que se pueden poner a cargo de `guardianId`: todos menos él mismo. Los que ya
+ * dependen de otro tutor se devuelven igual (con `is_dependent`) para pedir confirmación
+ * de la reasignación; los que tienen dependientes los rechaza el backend.
+ */
+export async function searchDependentCandidates(searchQuery: string, guardianId: string, signal?: AbortSignal): Promise<User[]> {
+  const responseData = await api.get(
+    API_ROUTES.USERS,
+    { search: searchQuery, filter_type: 'PACIENTE', page: '1', limit: '20' },
+    undefined,
+    { signal },
+  );
+  return extractSearchUsers(responseData).map(mapSearchUser).filter((u: User) => u.id && u.id !== guardianId);
 }
 
 /** Searches potential guardian patients (non-dependents) for the responsible-contact picker. */
