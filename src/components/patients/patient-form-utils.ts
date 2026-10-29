@@ -418,10 +418,14 @@ export async function fetchPatientById(userId: string): Promise<User | null> {
 }
 
 /** Finds a patient by exact name — used to resolve a just-created patient's id
- *  (the upsert response doesn't return the record). Falls back to the first match. */
+ *  (the upsert response doesn't return the record). Falls back to the first match.
+ *  Normaliza el nombre como `upsertUser` al guardarlo: con el nombre crudo
+ *  ("Ana  Pérez ") el ILIKE no encuentra la ficha recién creada. */
 export async function findPatientByName(name: string): Promise<User | null> {
+  const normalizedName = normalizePersonName(name);
+  if (!normalizedName) return null;
   try {
-    const responseData = await api.get(API_ROUTES.USERS, { search: name, filter_type: 'PACIENTE' });
+    const responseData = await api.get(API_ROUTES.USERS, { search: normalizedName, filter_type: 'PACIENTE' });
     let usersData: any[] = [];
     if (Array.isArray(responseData) && responseData.length > 0) {
       const first = responseData[0];
@@ -430,7 +434,8 @@ export async function findPatientByName(name: string): Promise<User | null> {
       usersData = responseData.data;
     }
     const users = usersData.map(mapSearchUser);
-    return users.find((u: User) => u.name.toLowerCase() === name.toLowerCase()) || users[0] || null;
+    const target = normalizedName.toLowerCase();
+    return users.find((u: User) => normalizePersonName(u.name).toLowerCase() === target) || users[0] || null;
   } catch (error) {
     console.error('Failed to find patient by name:', error);
     return null;
