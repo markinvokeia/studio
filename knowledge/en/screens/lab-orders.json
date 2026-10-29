@@ -1,0 +1,45 @@
+{
+  "id": "lab-orders",
+  "summary": "Orders sent to external labs.",
+  "purpose": "Records every job the clinic sends to a lab (prostheses, crowns, aligners, splints…) and shows which stage it is in, how many days it has been there and whether it is overdue, so no request gets lost and no fitting is booked before the job arrives.",
+  "tips": [
+    "By default the list shows only pending orders (those not in a final stage).",
+    "An order is overdue when it has spent more days in its stage than the limit set for that stage; in a final stage it is never overdue.",
+    "The lab is chosen from the providers.",
+    "Every stage change is recorded in the order history, with the user and the date."
+  ],
+  "elements": {
+    "lab-orders.btn.new": {
+      "label": "New order",
+      "description": "Opens the new order form. The order starts in the initial stage."
+    },
+    "lab-orders.section.filters": {
+      "label": "Filters",
+      "description": "Search by patient, job, lab or number; stage (pending, all or a specific one), lab, doctor, patient, creation date range, sort order and “Overdue only”."
+    },
+    "lab-orders.field.overdue-only": {
+      "label": "Overdue only",
+      "description": "Shows only the orders that went over the days set for their current stage."
+    },
+    "lab-orders.section.detail-stage": {
+      "label": "Current stage",
+      "description": "The stage the order is in and how many days it has been there; red if overdue."
+    },
+    "lab-orders.btn.move-to": {
+      "label": "Move to…",
+      "description": "Moves the order to another stage. The change is recorded in the history."
+    },
+    "lab-orders.section.history": {
+      "label": "Stage history",
+      "description": "Every stage change with origin, destination, user, date and time."
+    },
+    "lab-orders.btn.edit": {
+      "label": "Edit",
+      "description": "Changes the order details (not the stage)."
+    },
+    "lab-orders.btn.delete": {
+      "label": "Delete",
+      "description": "Removes the order from the list and the board."
+    }
+  }
+}

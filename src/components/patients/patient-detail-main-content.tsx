@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 
 export type PatientMacroTab = 'info' | 'clinical' | 'financial'
 export type InfoSubTab = 'details' | 'notes' | 'preferences' | 'dependents'
-export type ClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'medical-instructions' | 'documents'
+export type ClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'lab-orders' | 'medical-instructions' | 'documents'
 
 interface PatientDetailMainContentProps {
   activeTab: PatientMacroTab
@@ -36,6 +36,8 @@ interface PatientDetailMainContentProps {
   anamnesisContent: React.ReactNode
   clinicalHistoryContent: React.ReactNode
   treatmentPlansContent: React.ReactNode
+  /** Órdenes de laboratorio del paciente; omit to hide the sub-tab (permission-driven by the caller). */
+  labOrdersContent?: React.ReactNode
   medicalInstructionsContent: React.ReactNode
   documentsContent?: React.ReactNode
   ledgerContent: React.ReactNode
@@ -62,6 +64,7 @@ export function PatientDetailMainContent({
   anamnesisContent,
   clinicalHistoryContent,
   treatmentPlansContent,
+  labOrdersContent,
   medicalInstructionsContent,
   documentsContent,
   ledgerContent,
@@ -85,9 +88,10 @@ export function PatientDetailMainContent({
     { id: 'anamnesis', label: t('tabs.anamnesis') },
     { id: 'clinical-history', label: t('tabs.history') },
     { id: 'treatment-plans', label: t('tabs.treatmentPlans'), desktopLabel: 'Planes de Tratamiento' },
+    ...(labOrdersContent ? [{ id: 'lab-orders', label: t('tabs.labOrders') }] : []),
     { id: 'medical-instructions', label: t('tabs.medicalInstructions') },
     ...(showDocuments ? [{ id: 'documents', label: t('tabs.documents') }] : []),
-  ], [showDocuments, t])
+  ], [showDocuments, labOrdersContent, t])
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -131,6 +135,7 @@ export function PatientDetailMainContent({
             {activeClinicalSubTab === 'anamnesis' && anamnesisContent}
             {activeClinicalSubTab === 'clinical-history' && clinicalHistoryContent}
             {activeClinicalSubTab === 'treatment-plans' && treatmentPlansContent}
+            {activeClinicalSubTab === 'lab-orders' && labOrdersContent}
             {activeClinicalSubTab === 'medical-instructions' && medicalInstructionsContent}
             {activeClinicalSubTab === 'documents' && documentsContent}
           </>

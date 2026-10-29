@@ -1,5 +1,5 @@
 {
- "version": "bd39c4abbd6ae76d",
+ "version": "c5eb195f2a6d5b48",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -2399,6 +2399,12 @@
      "id": "nav.group.System",
      "kind": "nav",
      "label": "Sistema"
+    },
+    {
+     "description": "/lab-orders",
+     "id": "nav.lab-orders",
+     "kind": "nav",
+     "label": "Órdenes de Laboratorio"
     },
     {
      "description": "/patients",
@@ -7648,6 +7654,140 @@
   {
    "elements": [
     {
+     "description": "Quita la orden de la lista y del tablero.",
+     "id": "lab-orders.btn.delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Cambia los datos de la orden (no la etapa).",
+     "id": "lab-orders.btn.edit",
+     "kind": "btn",
+     "label": "Editar",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Cambia la orden de etapa. Queda registrado en el historial.",
+     "id": "lab-orders.btn.move-to",
+     "kind": "btn",
+     "label": "Mover a…",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Abre el formulario de alta. La orden entra en la etapa inicial.",
+     "id": "lab-orders.btn.new",
+     "kind": "btn",
+     "label": "Nueva orden",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "id": "lab-orders.btn.refresh",
+     "kind": "btn",
+     "label": "Refrescar",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "id": "lab-orders.btn.submit",
+     "kind": "btn",
+     "label": "Guardar cambios",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "id": "lab-orders.field.doctor_id",
+     "kind": "field",
+     "label": "Doctor",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "id": "lab-orders.field.due_date",
+     "kind": "field",
+     "label": "Entrega estimada",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "id": "lab-orders.field.laboratory_id",
+     "kind": "field",
+     "label": "Laboratorio",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "id": "lab-orders.field.notes",
+     "kind": "field",
+     "label": "Notas",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Muestra solo las órdenes que superaron los días configurados en su etapa actual.",
+     "id": "lab-orders.field.overdue-only",
+     "kind": "field",
+     "label": "Solo atrasadas",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "id": "lab-orders.field.patient_id",
+     "kind": "field",
+     "label": "Paciente",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "id": "lab-orders.field.teeth",
+     "kind": "field",
+     "label": "Piezas",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "id": "lab-orders.field.work_description",
+     "kind": "field",
+     "label": "Trabajo",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Etapa en la que está la orden y los días que lleva ahí; en rojo si está atrasada.",
+     "id": "lab-orders.section.detail-stage",
+     "kind": "section",
+     "label": "Etapa actual",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Búsqueda por paciente, trabajo, laboratorio o número; etapa (pendientes, todas o una en particular), laboratorio, doctor, paciente, rango de fechas de alta, orden y «Solo atrasadas».",
+     "id": "lab-orders.section.filters",
+     "kind": "section",
+     "label": "Filtros",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Cada cambio de etapa con origen, destino, usuario, fecha y hora.",
+     "id": "lab-orders.section.history",
+     "kind": "section",
+     "label": "Historial de etapas",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    }
+   ],
+   "id": "lab-orders",
+   "inMenu": true,
+   "module": "Pacientes",
+   "permissions": [
+    "LAB_ORDERS_VIEW_MENU"
+   ],
+   "prerequisites": [
+    "config.lab-stages"
+   ],
+   "purpose": "Registra cada trabajo que la clínica envía a un laboratorio (prótesis, coronas, alineadores, placas…) y muestra en qué etapa está, cuántos días lleva ahí y si está atrasado, para no perder solicitudes ni agendar una colocación antes de que llegue el trabajo.",
+   "route": "/lab-orders",
+   "status": "draft",
+   "summary": "Órdenes enviadas a laboratorios externos.",
+   "tips": [
+    "Por defecto la lista muestra solo las órdenes pendientes (las que no están en una etapa final).",
+    "Una orden está atrasada cuando lleva más días en su etapa que el umbral configurado para esa etapa; en una etapa final nunca está atrasada.",
+    "El laboratorio se elige entre los proveedores.",
+    "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha."
+   ],
+   "title": "Órdenes de Laboratorio"
+  },
+  {
+   "elements": [
+    {
      "id": "appointments.btn.save",
      "kind": "btn",
      "label": "Reagendar",
@@ -7923,6 +8063,13 @@
      "kind": "btn",
      "label": "Factura",
      "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Registra un trabajo enviado al laboratorio para este paciente. Entra en la etapa inicial.",
+     "id": "patients.btn.new-lab-order",
+     "kind": "btn",
+     "label": "Nueva orden",
+     "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
     },
     {
      "id": "patients.btn.new-odontogram",
@@ -8679,6 +8826,13 @@
      "source": "src/components/patients/patient-detail-header.tsx"
     },
     {
+     "description": "Por defecto solo las pendientes; «Mostrar finalizadas» suma las que llegaron a una etapa final. Un clic abre el detalle con «Mover a…» y el historial.",
+     "id": "patients.section.lab-orders",
+     "kind": "section",
+     "label": "Órdenes de laboratorio",
+     "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
+    },
+    {
      "description": "Presupuestos, tratamientos y pagos con su saldo.",
      "id": "patients.section.ledger",
      "kind": "section",
@@ -8775,6 +8929,13 @@
      "id": "patients.tab.invoices",
      "kind": "tab",
      "label": "Facturas",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Órdenes de laboratorio del paciente y la etapa en que está cada una. Las atrasadas se marcan en rojo.",
+     "id": "patients.tab.lab-orders",
+     "kind": "tab",
+     "label": "Laboratorio",
      "source": "knowledge/screens/patients.json"
     },
     {

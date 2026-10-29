@@ -1,5 +1,5 @@
 {
- "version": "894732785bd115ee",
+ "version": "5ee29ed06df2b1fb",
  "locale": "en",
  "journey": [
   {
@@ -2368,6 +2368,11 @@
      "id": "nav.group.System",
      "kind": "nav",
      "label": "System"
+    },
+    {
+     "id": "nav.lab-orders",
+     "kind": "nav",
+     "label": "Lab Orders"
     },
     {
      "id": "nav.patients",
@@ -7561,6 +7566,140 @@
   {
    "elements": [
     {
+     "description": "Removes the order from the list and the board.",
+     "id": "lab-orders.btn.delete",
+     "kind": "btn",
+     "label": "Delete",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Changes the order details (not the stage).",
+     "id": "lab-orders.btn.edit",
+     "kind": "btn",
+     "label": "Edit",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Moves the order to another stage. The change is recorded in the history.",
+     "id": "lab-orders.btn.move-to",
+     "kind": "btn",
+     "label": "Move to…",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Opens the new order form. The order starts in the initial stage.",
+     "id": "lab-orders.btn.new",
+     "kind": "btn",
+     "label": "New order",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "id": "lab-orders.btn.refresh",
+     "kind": "btn",
+     "label": "Refresh",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "id": "lab-orders.btn.submit",
+     "kind": "btn",
+     "label": "Save changes",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "id": "lab-orders.field.doctor_id",
+     "kind": "field",
+     "label": "Doctor",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "id": "lab-orders.field.due_date",
+     "kind": "field",
+     "label": "Expected delivery",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "id": "lab-orders.field.laboratory_id",
+     "kind": "field",
+     "label": "Lab",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "id": "lab-orders.field.notes",
+     "kind": "field",
+     "label": "Notes",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "Shows only the orders that went over the days set for their current stage.",
+     "id": "lab-orders.field.overdue-only",
+     "kind": "field",
+     "label": "Overdue only",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "id": "lab-orders.field.patient_id",
+     "kind": "field",
+     "label": "Patient",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "id": "lab-orders.field.teeth",
+     "kind": "field",
+     "label": "Teeth",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "id": "lab-orders.field.work_description",
+     "kind": "field",
+     "label": "Job",
+     "source": "src/components/lab-orders/lab-order-form-dialog.tsx"
+    },
+    {
+     "description": "The stage the order is in and how many days it has been there; red if overdue.",
+     "id": "lab-orders.section.detail-stage",
+     "kind": "section",
+     "label": "Current stage",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    },
+    {
+     "description": "Search by patient, job, lab or number; stage (pending, all or a specific one), lab, doctor, patient, creation date range, sort order and “Overdue only”.",
+     "id": "lab-orders.section.filters",
+     "kind": "section",
+     "label": "Filters",
+     "source": "src/app/[locale]/lab-orders/page.tsx"
+    },
+    {
+     "description": "Every stage change with origin, destination, user, date and time.",
+     "id": "lab-orders.section.history",
+     "kind": "section",
+     "label": "Stage history",
+     "source": "src/components/lab-orders/lab-order-detail-sheet.tsx"
+    }
+   ],
+   "id": "lab-orders",
+   "inMenu": true,
+   "module": "Patients",
+   "permissions": [
+    "LAB_ORDERS_VIEW_MENU"
+   ],
+   "prerequisites": [
+    "config.lab-stages"
+   ],
+   "purpose": "Records every job the clinic sends to a lab (prostheses, crowns, aligners, splints…) and shows which stage it is in, how many days it has been there and whether it is overdue, so no request gets lost and no fitting is booked before the job arrives.",
+   "route": "/lab-orders",
+   "status": "draft",
+   "summary": "Orders sent to external labs.",
+   "tips": [
+    "By default the list shows only pending orders (those not in a final stage).",
+    "An order is overdue when it has spent more days in its stage than the limit set for that stage; in a final stage it is never overdue.",
+    "The lab is chosen from the providers.",
+    "Every stage change is recorded in the order history, with the user and the date."
+   ],
+   "title": "Lab Orders"
+  },
+  {
+   "elements": [
+    {
      "id": "appointments.btn.save",
      "kind": "btn",
      "label": "Reschedule",
@@ -7836,6 +7975,13 @@
      "kind": "btn",
      "label": "Invoice",
      "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Records a job sent to the lab for this patient. It starts in the initial stage.",
+     "id": "patients.btn.new-lab-order",
+     "kind": "btn",
+     "label": "New order",
+     "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
     },
     {
      "id": "patients.btn.new-odontogram",
@@ -8592,6 +8738,13 @@
      "source": "src/components/patients/patient-detail-header.tsx"
     },
     {
+     "description": "Pending ones by default; “Show finished” adds the ones that reached a final stage. Click one to open its detail with “Move to…” and the history.",
+     "id": "patients.section.lab-orders",
+     "kind": "section",
+     "label": "Lab orders",
+     "source": "src/components/lab-orders/patient-lab-orders-tab.tsx"
+    },
+    {
      "description": "Quotes, treatments and payments with their balance.",
      "id": "patients.section.ledger",
      "kind": "section",
@@ -8688,6 +8841,13 @@
      "id": "patients.tab.invoices",
      "kind": "tab",
      "label": "Invoices",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "The patient’s lab orders and the stage each one is in. Overdue ones are shown in red.",
+     "id": "patients.tab.lab-orders",
+     "kind": "tab",
+     "label": "Lab",
      "source": "knowledge/screens/patients.json"
     },
     {

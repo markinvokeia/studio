@@ -1,0 +1,49 @@
+{
+  "id": "lab-orders",
+  "status": "draft",
+  "summary": "Órdenes enviadas a laboratorios externos.",
+  "purpose": "Registra cada trabajo que la clínica envía a un laboratorio (prótesis, coronas, alineadores, placas…) y muestra en qué etapa está, cuántos días lleva ahí y si está atrasado, para no perder solicitudes ni agendar una colocación antes de que llegue el trabajo.",
+  "prerequisites": [
+    "config.lab-stages"
+  ],
+  "tips": [
+    "Por defecto la lista muestra solo las órdenes pendientes (las que no están en una etapa final).",
+    "Una orden está atrasada cuando lleva más días en su etapa que el umbral configurado para esa etapa; en una etapa final nunca está atrasada.",
+    "El laboratorio se elige entre los proveedores.",
+    "Cada cambio de etapa queda en el historial de la orden, con el usuario y la fecha."
+  ],
+  "elements": {
+    "lab-orders.btn.new": {
+      "label": "Nueva orden",
+      "description": "Abre el formulario de alta. La orden entra en la etapa inicial."
+    },
+    "lab-orders.section.filters": {
+      "label": "Filtros",
+      "description": "Búsqueda por paciente, trabajo, laboratorio o número; etapa (pendientes, todas o una en particular), laboratorio, doctor, paciente, rango de fechas de alta, orden y «Solo atrasadas»."
+    },
+    "lab-orders.field.overdue-only": {
+      "label": "Solo atrasadas",
+      "description": "Muestra solo las órdenes que superaron los días configurados en su etapa actual."
+    },
+    "lab-orders.section.detail-stage": {
+      "label": "Etapa actual",
+      "description": "Etapa en la que está la orden y los días que lleva ahí; en rojo si está atrasada."
+    },
+    "lab-orders.btn.move-to": {
+      "label": "Mover a…",
+      "description": "Cambia la orden de etapa. Queda registrado en el historial."
+    },
+    "lab-orders.section.history": {
+      "label": "Historial de etapas",
+      "description": "Cada cambio de etapa con origen, destino, usuario, fecha y hora."
+    },
+    "lab-orders.btn.edit": {
+      "label": "Editar",
+      "description": "Cambia los datos de la orden (no la etapa)."
+    },
+    "lab-orders.btn.delete": {
+      "label": "Eliminar",
+      "description": "Quita la orden de la lista y del tablero."
+    }
+  }
+}

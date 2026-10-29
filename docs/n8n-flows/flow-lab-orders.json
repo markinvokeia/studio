@@ -1,0 +1,489 @@
+{
+  "name": "Lab Orders",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Lab Orders — órdenes de laboratorio\n\nPOST /lab-orders/search        body = filtros (ver lab_orders_search en el script 148) → [{ row_data, total_count }]\nGET  /lab-orders/detail?id=    → [{ detail }] (orden + history)\nPOST /lab-orders/save          body = orden (sin id = alta: entra en la etapa inicial) → fila de v_lab_orders\nPOST /lab-orders/change-stage  { id, to_stage_id, expected_from_stage_id?, note? } → fila de v_lab_orders\nPOST /lab-orders/delete        { id } → baja lógica (is_deleted)\n\nLas funciones lanzan 'LAB_ORDERS:<CODIGO>'. 'Map error' responde 400 { success:false, code, message } y el frontend traduce code.\nEl usuario sale del JWT (jwtPayload.userId).\n\nRequiere database/scripts/147 y 148.",
+        "height": 380,
+        "width": 640
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -420,
+        -520
+      ],
+      "id": "33871723-28fb-4322-9ba6-30d5da64234e",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Las funciones del script 148 lanzan 'LAB_ORDERS:<CODIGO>'. Cualquier otro\n// error (conexión, constraint inesperada) sale como UNKNOWN con el mensaje crudo.\nconst raw = $json.error?.message ?? $json.error ?? $json.message ?? '';\nconst text = String(raw);\nconst match = text.match(/LAB_ORDERS:([A-Z_]+)/);\nreturn [{ json: {\n  success: false,\n  code: match ? match[1] : 'UNKNOWN',\n  message: text || 'Error',\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        820
+      ],
+      "id": "7020c2a8-a803-4324-bb46-90c1b0d8fe10",
+      "name": "Map error"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        480,
+        300
+      ],
+      "id": "607f09f7-b481-467d-b47c-1dfd7fbeddc0",
+      "name": "OK"
+    },
+    {
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        480,
+        820
+      ],
+      "id": "f70500e5-e0ef-40df-b8f1-e2d42861b8ef",
+      "name": "Error"
+    },
+    {
+      "parameters": {
+        "path": "lab-orders/search",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST"
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -320,
+        0
+      ],
+      "id": "cc2cb61b-994c-46bb-8638-18e3caddce44",
+      "name": "POST /lab-orders/search",
+      "webhookId": "d54ab5ec-8e19-478f-9e2f-4fa9ec63e313",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.lab_orders_search($1::jsonb);",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($json.body ?? {})] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -80,
+        0
+      ],
+      "id": "a47ca627-a099-41fa-9e75-998e0e195a28",
+      "name": "Search lab orders",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "lab-orders/detail",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -320,
+        200
+      ],
+      "id": "9bdb6e27-2811-4682-a164-8d1759cf7cd8",
+      "name": "GET /lab-orders/detail",
+      "webhookId": "a32f3c3a-27ee-4afd-aeda-301db9843f4e",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT public.lab_order_detail($1::integer) AS detail;",
+        "options": {
+          "queryReplacement": "={{ [$json.query.id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -80,
+        200
+      ],
+      "id": "e13b3231-969e-48e9-a386-184109d9689a",
+      "name": "Get lab order detail",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "lab-orders/save",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST"
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -320,
+        400
+      ],
+      "id": "bba51fff-43a6-4847-bcd0-763bcfb50d08",
+      "name": "POST /lab-orders/save",
+      "webhookId": "03849f2a-43ca-4ff8-bc3a-da11a5a69496",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.lab_order_save($1::jsonb, NULLIF($2, '')::uuid);",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($json.body ?? {}), $json.jwtPayload?.userId ?? ''] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -80,
+        400
+      ],
+      "id": "b1565bf8-538b-4110-916d-dc7da31fb29a",
+      "name": "Save lab order",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "lab-orders/change-stage",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST"
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -320,
+        600
+      ],
+      "id": "04499aea-8138-4834-80f8-9c5b10318ad8",
+      "name": "POST /lab-orders/change-stage",
+      "webhookId": "3c273f57-f16f-4b8e-8aec-ff136f000a09",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.lab_order_change_stage($1::integer, $2::integer, NULLIF($3, '')::uuid, NULLIF($4, '')::integer, NULLIF($5, ''));",
+        "options": {
+          "queryReplacement": "={{ [$json.body.id, $json.body.to_stage_id, $json.jwtPayload?.userId ?? '', $json.body.expected_from_stage_id ?? '', $json.body.note ?? ''] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -80,
+        600
+      ],
+      "id": "4a7e55d7-dfa9-49c3-9a04-ae7288fc4068",
+      "name": "Change lab order stage",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "lab-orders/delete",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        },
+        "httpMethod": "POST"
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -320,
+        800
+      ],
+      "id": "fcbb2b1f-6f57-4515-94a5-27237c52003b",
+      "name": "POST /lab-orders/delete",
+      "webhookId": "bee00c35-6d6c-4306-9028-2f526ff7057b",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.lab_orders\nSET is_deleted = true, updated_at = now(), updated_by = NULLIF($2, '')::uuid\nWHERE id = $1::integer AND NOT is_deleted\nRETURNING id;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.id, $json.jwtPayload?.userId ?? ''] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -80,
+        800
+      ],
+      "id": "efe96080-c82b-42e4-bfdb-584c35a10819",
+      "name": "Delete lab order",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "connections": {
+    "Map error": {
+      "main": [
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /lab-orders/search": {
+      "main": [
+        [
+          {
+            "node": "Search lab orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search lab orders": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /lab-orders/detail": {
+      "main": [
+        [
+          {
+            "node": "Get lab order detail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get lab order detail": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /lab-orders/save": {
+      "main": [
+        [
+          {
+            "node": "Save lab order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save lab order": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /lab-orders/change-stage": {
+      "main": [
+        [
+          {
+            "node": "Change lab order stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Change lab order stage": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST /lab-orders/delete": {
+      "main": [
+        [
+          {
+            "node": "Delete lab order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete lab order": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}

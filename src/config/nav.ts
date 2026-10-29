@@ -142,11 +142,13 @@ export const navItems: NavItem[] = [
       PATIENTS_PERMISSIONS.VIEW_LIST,
       MEDICAL_HISTORY_PERMISSIONS.VIEW_MENU,
       DICOM_PERMISSIONS.VIEW_MENU,
+      LAB_ORDERS_PERMISSIONS.VIEW_MENU,
     ],
     items: [
       { title: 'Pacientes', href: '/patients', icon: Users, isChidren: true, requiredPermission: PATIENTS_PERMISSIONS.VIEW_LIST },
       { title: 'Studies', href: '/studies', icon: Radiation, isChidren: true, requiredPermission: DICOM_PERMISSIONS.VIEW_STUDIES },
       { title: 'SharedStudies', href: '/shared-studies', icon: Share2, isChidren: true, requiredPermission: DICOM_PERMISSIONS.VIEW_SHARED_STUDIES },
+      { title: 'LabOrders', href: '/lab-orders', icon: FlaskConical, isChidren: true, requiredPermission: LAB_ORDERS_PERMISSIONS.VIEW_MENU },
     ],
   },
   {

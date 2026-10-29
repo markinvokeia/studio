@@ -211,6 +211,18 @@
     "patients.tab.treatment-plans": {
       "label": "Treatment plans"
     },
+    "patients.tab.lab-orders": {
+      "label": "Lab",
+      "description": "The patient’s lab orders and the stage each one is in. Overdue ones are shown in red."
+    },
+    "patients.section.lab-orders": {
+      "label": "Lab orders",
+      "description": "Pending ones by default; “Show finished” adds the ones that reached a final stage. Click one to open its detail with “Move to…” and the history."
+    },
+    "patients.btn.new-lab-order": {
+      "label": "New order",
+      "description": "Records a job sent to the lab for this patient. It starts in the initial stage."
+    },
     "patients.tab.medical-instructions": {
       "label": "Instructions",
       "description": "Medical instructions and prescriptions."

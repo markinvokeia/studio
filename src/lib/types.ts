@@ -753,6 +753,98 @@ export interface LabStageSaveItem {
   move_orders_to?: number | null;
 }
 
+/** Orden de laboratorio tal como la devuelve v_lab_orders (script 148). */
+export interface LabOrder {
+  id: number;
+  patient_id: string;
+  patient_name: string;
+  doctor_id: string | null;
+  doctor_name: string | null;
+  /** Proveedor que hace el trabajo. */
+  laboratory_id: string | null;
+  laboratory_name: string | null;
+  work_description: string;
+  /** Piezas dentales (FDI). */
+  teeth: number[];
+  /** Fecha de entrega prometida ('YYYY-MM-DD'). Solo informativa. */
+  due_date: string | null;
+  notes: string | null;
+  current_stage_id: number;
+  stage_name: string;
+  stage_color: string;
+  stage_kind: LabStageKind;
+  stage_overdue_days: number | null;
+  /** ISO UTC. */
+  stage_entered_at: string;
+  days_in_stage: number;
+  /** La etapa actual no es final. */
+  is_pending: boolean;
+  /** Lleva más de stage_overdue_days en la etapa. Nunca en etapa final. */
+  is_overdue: boolean;
+  /** ISO UTC. */
+  created_at: string;
+  created_by: string | null;
+  created_by_name: string | null;
+}
+
+export interface LabOrderHistoryEntry {
+  id: number;
+  /** null = alta de la orden. */
+  from_stage_id: number | null;
+  from_stage_name: string | null;
+  from_stage_color: string | null;
+  to_stage_id: number;
+  to_stage_name: string;
+  to_stage_color: string;
+  changed_by: string | null;
+  changed_by_name: string | null;
+  /** ISO UTC. */
+  changed_at: string;
+  /** 'stage_deactivated' cuando la movió la configuración de etapas. */
+  note: string | null;
+}
+
+export interface LabOrderDetail extends LabOrder {
+  history: LabOrderHistoryEntry[];
+}
+
+export type LabOrderSort = 'created_desc' | 'created_asc' | 'days_desc' | 'days_asc';
+
+/** Filtros de POST /lab-orders/search. */
+export interface LabOrderFilters {
+  stage_ids?: number[];
+  laboratory_id?: string;
+  doctor_id?: string;
+  patient_id?: string;
+  search?: string;
+  /** 'YYYY-MM-DD', inclusive (fecha de alta). */
+  date_from?: string;
+  date_to?: string;
+  /** Default true: solo órdenes que no están en etapa final. Se ignora si se filtra por etapa. */
+  pending_only?: boolean;
+  overdue_only?: boolean;
+  sort?: LabOrderSort;
+  limit?: number;
+  offset?: number;
+}
+
+/** Alta (sin id) o edición. La etapa no se cambia acá: ver changeLabOrderStage. */
+export interface LabOrderSavePayload {
+  id?: number;
+  patient_id: string;
+  doctor_id: string | null;
+  laboratory_id: string | null;
+  work_description: string;
+  teeth: number[];
+  due_date: string | null;
+  notes: string | null;
+}
+
+/** Códigos de error de las funciones de órdenes (script 148). */
+export type LabOrdersErrorCode =
+  | 'NO_INITIAL_STAGE' | 'NOT_FOUND' | 'MISSING_PATIENT' | 'MISSING_WORK' | 'INVALID_TEETH'
+  | 'INVALID_STAGE' | 'STAGE_CONFLICT' | 'UNKNOWN';
+
 /** Códigos de error de lab_stages_save (script 147). */
 export type LabStagesSaveErrorCode =
   | 'NO_INITIAL' | 'MANY_INITIAL' | 'NO_FINAL' | 'EMPTY_NAME' | 'DUPLICATE_NAME' | 'INVALID_KIND'

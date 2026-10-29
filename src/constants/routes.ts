@@ -272,6 +272,14 @@ export const API_ROUTES = {
      * orders_count / in_use); SAVE guarda la configuración completa en una
      * transacción (lab_stages_save, script 147).
      */
+    /** Órdenes de laboratorio (flujo n8n "Lab Orders", script 148). */
+    LAB_ORDERS: {
+        SEARCH: '/lab-orders/search',
+        DETAIL: '/lab-orders/detail',
+        SAVE: '/lab-orders/save',
+        CHANGE_STAGE: '/lab-orders/change-stage',
+        DELETE: '/lab-orders/delete',
+    },
     LAB_STAGES: {
         LIST: '/lab-stages',
         SAVE: '/lab-stages/save',

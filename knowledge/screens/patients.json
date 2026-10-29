@@ -242,6 +242,18 @@
     "patients.tab.treatment-plans": {
       "label": "Planes de tratamiento"
     },
+    "patients.tab.lab-orders": {
+      "label": "Laboratorio",
+      "description": "Órdenes de laboratorio del paciente y la etapa en que está cada una. Las atrasadas se marcan en rojo."
+    },
+    "patients.section.lab-orders": {
+      "label": "Órdenes de laboratorio",
+      "description": "Por defecto solo las pendientes; «Mostrar finalizadas» suma las que llegaron a una etapa final. Un clic abre el detalle con «Mover a…» y el historial."
+    },
+    "patients.btn.new-lab-order": {
+      "label": "Nueva orden",
+      "description": "Registra un trabajo enviado al laboratorio para este paciente. Entra en la etapa inicial."
+    },
     "patients.tab.medical-instructions": {
       "label": "Indicaciones",
       "description": "Indicaciones médicas y recetas."
