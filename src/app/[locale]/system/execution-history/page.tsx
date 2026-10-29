@@ -135,7 +135,7 @@ export default function ExecutionHistoryPage() {
 
   const rightPanel = selectedRun ? (
     <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-      <CardHeader data-help-id="system.execution-history.section.detail" className="flex-none p-4 pb-2 space-y-0">
+      <CardHeader className="flex-none p-4 pb-2 space-y-0">
         <div className="flex items-center gap-2 min-w-0">
           <div className="header-icon-circle flex-none"><FileClock className="h-5 w-5" /></div>
           <div className="min-w-0 flex-1">

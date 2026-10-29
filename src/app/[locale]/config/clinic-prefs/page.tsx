@@ -12,7 +12,6 @@ import {
   HelpCircle,
   Mail,
   Percent,
-  Sparkles,
   Save,
   SlidersHorizontal,
   type LucideIcon,
@@ -62,7 +61,6 @@ import {
   updateClinicAutomationSettings,
 } from '@/services/system-config';
 import { useClinicPreferencesStore } from '@/stores/clinic-preferences-store';
-import { useHelpAssistant } from '@/stores/help-assistant-store';
 
 const SYNC_MODE_ICONS: Record<GoogleCalendarSyncMode, LucideIcon> = {
   none: CalendarOff,
@@ -173,8 +171,6 @@ export default function ClinicPrefsConfigPage() {
     {
       onSuccess: async (values) => {
         applySavedPreferences(values.prefs);
-        // El asistente toma el cambio de la mascota sin esperar a recargar.
-        useHelpAssistant.getState().setClinicMascotVisible(values.automation.help_mascot_visible);
         await reloadAutomation();
         toast({ title: t('saved') });
       },
@@ -230,7 +226,7 @@ export default function ClinicPrefsConfigPage() {
           description={t('description')}
           actions={
             canUpdate ? (
-              <Button data-help-id="config.clinic-prefs.btn.save" onClick={() => save.run({ prefs: config, automation })} disabled={!canSave} loading={save.isPending} className="gap-1.5">
+              <Button onClick={() => save.run({ prefs: config, automation })} disabled={!canSave} loading={save.isPending} className="gap-1.5">
                 <Save className="h-4 w-4" />
                 {t('save')}
               </Button>
@@ -240,7 +236,7 @@ export default function ClinicPrefsConfigPage() {
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-1 pb-6">
           {/* ── Descuentos ─────────────────────────────────────────────── */}
-          <Card data-help-id="config.clinic-prefs.section.discounts">
+          <Card>
             <CardContent className="space-y-5 p-5">
               <div className="flex items-center gap-2">
                 <Percent className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -341,7 +337,7 @@ export default function ClinicPrefsConfigPage() {
           </Card>
 
           {/* ── Documento de identidad ─────────────────────────────────── */}
-          <Card data-help-id="config.clinic-prefs.section.identity-document">
+          <Card>
             <CardContent className="space-y-5 p-5">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -353,7 +349,6 @@ export default function ClinicPrefsConfigPage() {
                 help={t('identityDocument.required.help')}
                 control={
                   <Switch
-                    data-help-id="config.clinic-prefs.field.identity_document_required"
                     checked={config.identity_document_required}
                     disabled={!canEdit}
                     onCheckedChange={(v) => patch({ identity_document_required: v })}
@@ -367,7 +362,6 @@ export default function ClinicPrefsConfigPage() {
                   help={t('identityDocument.warnOnStatus.help')}
                   control={
                     <Switch
-                      data-help-id="config.clinic-prefs.field.identity_document_warn"
                       checked={config.identity_document_warn_statuses.length > 0}
                       disabled={!canEdit}
                       // Al encender se arranca por el caso habitual: exigirlo al completar.
@@ -377,7 +371,7 @@ export default function ClinicPrefsConfigPage() {
                 />
 
                 {config.identity_document_warn_statuses.length > 0 && (
-                  <div data-help-id="config.clinic-prefs.field.identity_document_warn_statuses" className="space-y-2 rounded-xl bg-muted/40 p-4">
+                  <div className="space-y-2 rounded-xl bg-muted/40 p-4">
                     <p className="text-xs font-medium text-muted-foreground">{t('identityDocument.warnOnStatus.statusesLabel')}</p>
                     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                       {WARNABLE_STATUSES.map((status) => {
@@ -412,7 +406,7 @@ export default function ClinicPrefsConfigPage() {
           </Card>
 
           {/* ── Contacto de pacientes ──────────────────────────────────── */}
-          <Card data-help-id="config.clinic-prefs.section.duplicate-contact">
+          <Card>
             <CardContent className="space-y-5 p-5">
               <div className="flex items-center gap-2">
                 <Copy className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -441,7 +435,7 @@ export default function ClinicPrefsConfigPage() {
 
           {/* ── Automatización (system_configurations) ──────────────────── */}
           {automationError && (
-            <Alert data-help-id="config.clinic-prefs.section.automation" variant="destructive">
+            <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>{t('automation.loadError')}</AlertTitle>
               <AlertDescription className="flex flex-wrap items-center gap-3">
@@ -454,7 +448,7 @@ export default function ClinicPrefsConfigPage() {
           )}
 
           {/* ── Emails automáticos de alertas ──────────────────────────── */}
-          <Card data-help-id="config.clinic-prefs.section.alert-email">
+          <Card>
             <CardContent className="space-y-5 p-5">
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
@@ -491,45 +485,8 @@ export default function ClinicPrefsConfigPage() {
             </CardContent>
           </Card>
 
-          {/* ── Asistente guiado ───────────────────────────────────────── */}
-          <Card data-help-id="config.clinic-prefs.section.assistant">
-            <CardContent className="space-y-5 p-5">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <h2 className="text-sm font-semibold">{t('assistant.sectionTitle')}</h2>
-              </div>
-
-              {isAutomationLoading ? (
-                <Skeleton className="h-8 w-full rounded-lg" />
-              ) : (
-                <SettingRow
-                  label={t('assistant.mascotVisible.label')}
-                  help={t('assistant.mascotVisible.help')}
-                  disabled={!!automationError}
-                  control={
-                    <Switch
-                      data-help-id="config.clinic-prefs.field.help_mascot_visible"
-                      checked={automation.help_mascot_visible}
-                      disabled={!canEdit || !!automationError}
-                      onCheckedChange={(v) => patchAutomation({ help_mascot_visible: v })}
-                    />
-                  }
-                />
-              )}
-
-              <p
-                className={cn(
-                  'rounded-xl px-4 py-3 text-xs leading-relaxed text-muted-foreground',
-                  automation.help_mascot_visible ? 'bg-primary/5' : 'bg-muted/60'
-                )}
-              >
-                {automation.help_mascot_visible ? t('assistant.mascotVisible.notice.on') : t('assistant.mascotVisible.notice.off')}
-              </p>
-            </CardContent>
-          </Card>
-
           {/* ── Google Calendar ────────────────────────────────────────── */}
-          <Card data-help-id="config.clinic-prefs.section.google-calendar">
+          <Card>
             <CardContent className="space-y-5 p-5">
               <div className="flex items-center gap-2">
                 <CalendarSync className="h-4 w-4 shrink-0 text-muted-foreground" />

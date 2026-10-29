@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
-import { useHelpScope } from '@/components/help/help-scope';
 
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
@@ -18,7 +17,6 @@ import { usePrintDocument, type DocumentPdfRequest } from '@/hooks/usePrintDocum
 import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
 
 import { API_ROUTES } from '@/constants/routes';
-import { composeHelpId } from '@/lib/help/help-id';
 
 /** The document to email: what to render to PDF plus how to present it. */
 export interface EmailDocumentTarget {
@@ -53,7 +51,6 @@ function parseEmails(value: string) {
  */
 export function SendDocumentEmailDialog({ document, onClose }: SendDocumentEmailDialogProps) {
   const t = useTranslations('SendDocumentEmailDialog');
-  const helpScope = useHelpScope();
   const { toast } = useToast();
   const { renderDocumentPdf } = usePrintDocument();
   const [recipients, setRecipients] = React.useState('');
@@ -157,7 +154,6 @@ export function SendDocumentEmailDialog({ document, onClose }: SendDocumentEmail
             <DialogBody className="space-y-1.5 px-6 py-4">
               <Label htmlFor="send-document-email-recipients">{t('recipients')}</Label>
               <Input
-                data-help-id={composeHelpId(helpScope, 'field', 'doc-email-to')}
                 id="send-document-email-recipients"
                 value={recipients}
                 onChange={(e) => setRecipients(e.target.value)}
@@ -173,7 +169,7 @@ export function SendDocumentEmailDialog({ document, onClose }: SendDocumentEmail
             </DialogBody>
             <DialogFooter>
               <DialogCancelButton disabled={send.isPending}>{t('cancel')}</DialogCancelButton>
-              <Button data-help-id={composeHelpId(helpScope, 'btn', 'doc-email-send')} type="submit" loading={send.isPending}>
+              <Button type="submit" loading={send.isPending}>
                 {phase === 'pdf' ? t('generatingPdf') : phase === 'sending' ? t('sending') : t('send')}
               </Button>
             </DialogFooter>

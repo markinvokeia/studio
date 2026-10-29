@@ -9,12 +9,9 @@ pnpm dev           # Start dev server on 0.0.0.0:3000
 pnpm build         # Production build
 pnpm lint          # ESLint (Next.js config)
 pnpm typecheck     # TypeScript type check without emit
-pnpm knowledge:build  # Regenerate the assistant's product map (src/generated/help-catalog.json)
-pnpm knowledge:check  # Fail if the map is stale or a guide points to a missing route/help id
-pnpm n8n:help         # Regenerate n8n-workflows/help-*.json (never edit them by hand)
 ```
 
-**Before committing:** Always run `pnpm typecheck && pnpm lint`. The pre-commit hook (`.githooks/pre-commit`, set by `pnpm install`) regenerates the product map and blocks the commit if an assistant guide broke.
+**Before committing:** Always run `pnpm typecheck && pnpm lint`.
 
 ## Architecture
 
@@ -59,10 +56,6 @@ src/
 - Navigation menu in `src/config/nav.ts` is filtered by permissions at runtime
 
 **When adding pages, buttons, or any access-controlled UI:** load and follow the `permissions-protection` skill.
-
-### Guided assistant & product map
-
-An in-app assistant (`src/components/help/`) guides onboarding and runs step-by-step guides that open dialogs and fill forms, always leaving the final OK to the user. UI primitives emit stable `data-help-id`s (`<route-scope>.<kind>.<name>`) automatically; `knowledge/` holds the hand-written screen fichas, guides and onboarding journey. See [`docs/onboarding-asistente.md`](docs/onboarding-asistente.md) and load the `help-catalog` skill when touching screens.
 
 ### Internationalization
 
@@ -118,7 +111,6 @@ React Hook Form + Zod only. Define the schema first, then derive the TypeScript 
 | `tailwind-v4-shadcn` | Tailwind/shadcn issues, dark mode, CSS variables |
 | `date-formatting` | Any time a date or datetime is read, displayed, or sent to the backend |
 | `ux-interaction-patterns` | Any button, form, dialog, row action or fetch that talks to the backend (in-flight locking, timeouts, loading/error/empty states) |
-| `help-catalog` | Adding/changing a page, form, button, tab or menu item, or writing an assistant guide (help ids, screen fichas, use cases, onboarding journey) |
 
 ## Environment variables
 

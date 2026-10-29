@@ -67,7 +67,7 @@ export default function TVDisplayPage() {
 
         {/* ── LEFT: Settings panel ── */}
         {canUpdateSettings && (
-          <Card data-help-id="tv-display.section.settings" className="flex flex-col min-h-0 overflow-hidden">
+          <Card className="flex flex-col min-h-0 overflow-hidden">
             <CardHeader className="shrink-0 pb-3">
               <CardTitle className="text-base">{t('settings.title')}</CardTitle>
             </CardHeader>
@@ -84,7 +84,7 @@ export default function TVDisplayPage() {
         <div className="flex flex-col gap-4 min-h-0 overflow-y-auto overflow-x-hidden pr-0.5 min-w-0">
 
           {/* Preview */}
-          <Card data-help-id="tv-display.section.preview" className="shrink-0 min-w-0">
+          <Card className="shrink-0 min-w-0">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">{t('preview.title')}</CardTitle>
             </CardHeader>
@@ -95,11 +95,11 @@ export default function TVDisplayPage() {
 
           {/* Control bar */}
           <Can anyPermissions={[TV_DISPLAY_PERMISSIONS.VIEW_SCREEN, TV_DISPLAY_PERMISSIONS.CONTROL_DISPLAY]}>
-            <Card data-help-id="tv-display.section.controls" className="shrink-0 min-w-0">
+            <Card className="shrink-0 min-w-0">
               <CardContent className="pt-4">
                 <div className="flex flex-wrap gap-2">
                   <Can permission={TV_DISPLAY_PERMISSIONS.VIEW_SCREEN}>
-                    <Button data-help-id="tv-display.btn.open-screen" onClick={() => openTVScreen(locale)} className="gap-2">
+                    <Button onClick={() => openTVScreen(locale)} className="gap-2">
                       <ExternalLink className="h-4 w-4" />
                       {t('controls.openScreen')}
                     </Button>
@@ -107,12 +107,12 @@ export default function TVDisplayPage() {
 
                   <Can permission={TV_DISPLAY_PERMISSIONS.CONTROL_DISPLAY}>
                     {status === 'off' ? (
-                      <Button data-help-id="tv-display.btn.turn-on" variant="outline" onClick={() => setStatus('on')} className="gap-2">
+                      <Button variant="outline" onClick={() => setStatus('on')} className="gap-2">
                         <Monitor className="h-4 w-4" />
                         {t('controls.turnOn')}
                       </Button>
                     ) : (
-                      <Button data-help-id="tv-display.btn.turn-off" variant="outline" onClick={() => setStatus('off')} className="gap-2 text-destructive hover:text-destructive">
+                      <Button variant="outline" onClick={() => setStatus('off')} className="gap-2 text-destructive hover:text-destructive">
                         <MonitorOff className="h-4 w-4" />
                         {t('controls.turnOff')}
                       </Button>
@@ -122,12 +122,12 @@ export default function TVDisplayPage() {
                   <Can permission={TV_DISPLAY_PERMISSIONS.CONTROL_DISPLAY}>
                     {status !== 'off' && (
                       status === 'paused' ? (
-                        <Button data-help-id="tv-display.btn.resume" variant="outline" onClick={() => setStatus('on')} className="gap-2">
+                        <Button variant="outline" onClick={() => setStatus('on')} className="gap-2">
                           <Play className="h-4 w-4" />
                           {t('controls.resume')}
                         </Button>
                       ) : (
-                        <Button data-help-id="tv-display.btn.pause" variant="outline" onClick={() => setStatus('paused')} className="gap-2">
+                        <Button variant="outline" onClick={() => setStatus('paused')} className="gap-2">
                           <Pause className="h-4 w-4" />
                           {t('controls.pause')}
                         </Button>
@@ -137,7 +137,7 @@ export default function TVDisplayPage() {
 
                   <Can permission={TV_DISPLAY_PERMISSIONS.CONTROL_DISPLAY}>
                     {status !== 'off' && (
-                      <Button data-help-id="tv-display.btn.promo" variant="outline" onClick={() => setStatus('promo')} className="gap-2">
+                      <Button variant="outline" onClick={() => setStatus('promo')} className="gap-2">
                         <Film className="h-4 w-4" />
                         {t('controls.showPromo')}
                       </Button>
@@ -145,7 +145,7 @@ export default function TVDisplayPage() {
                   </Can>
 
                   <Can permission={TV_DISPLAY_PERMISSIONS.CONTROL_DISPLAY}>
-                    <Button data-help-id="tv-display.btn.refresh"
+                    <Button
                       variant="ghost"
                       size="sm"
                       disabled={isLoading}
@@ -164,7 +164,7 @@ export default function TVDisplayPage() {
 
           {/* Quick actions per room */}
           {rooms.length > 0 && status !== 'off' && hasPermission(TV_DISPLAY_PERMISSIONS.CONTROL_DISPLAY) && (
-            <Card data-help-id="tv-display.section.rooms" className="shrink-0 min-w-0">
+            <Card className="shrink-0 min-w-0">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
                   Acciones rápidas
@@ -173,7 +173,7 @@ export default function TVDisplayPage() {
               <CardContent>
                 <div className="flex flex-wrap gap-2">
                   {rooms.map((room) => (
-                    <Button data-help-id="tv-display.btn.next"
+                    <Button
                       key={room.calendarId}
                       size="sm"
                       variant="outline"

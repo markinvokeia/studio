@@ -121,7 +121,7 @@ export function MonthSummaryCards({ data, currency, isBranchFiltered, isLoading 
     : [];
 
   return (
-    <section data-help-id="dashboard.section.month">
+    <section>
       <div className="mb-2.5 flex items-center gap-2.5">
         <h2 className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-muted-foreground">
           {t('monthAccrued', { month: capitalize(monthName) })}

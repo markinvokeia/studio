@@ -127,7 +127,7 @@ export function CalendarAgendasPanel({ sedeGroups, noSede, visibleIds, selectedI
   return (
     // Shares one continuous frame with the calendar: same border + left radius as
     // `.calendar-container` (whose left radius is flattened while the panel is open).
-    <div data-help-id="appointments.section.agendas" className="flex h-full w-48 max-w-[85vw] shrink-0 flex-col rounded-l-lg border border-r-0 border-border bg-muted">
+    <div className="flex h-full w-48 max-w-[85vw] shrink-0 flex-col rounded-l-lg border border-r-0 border-border bg-muted">
       <div className="flex items-center justify-between gap-1.5 px-3 pt-3 pb-2 shrink-0">
         <div className="flex items-center gap-1.5 min-w-0">
           <CalendarDays className="h-4 w-4 shrink-0" />

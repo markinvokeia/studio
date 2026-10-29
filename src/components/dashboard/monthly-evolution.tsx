@@ -69,7 +69,7 @@ export function MonthlyEvolution({ data, currency, isLoading, className }: Month
   const prevMonthLabel = monthLabel(prevMonth?.inicio, dateLocale);
 
   return (
-    <Card data-help-id="dashboard.section.evolution" className={className}>
+    <Card className={className}>
       <CardHeader className="flex-row items-center gap-3 space-y-0 border-b py-3.5">
         <div className="min-w-0 flex-1">
           <CardTitle className="text-sm font-extrabold tracking-tight">{t('evolutionTitle')}</CardTitle>

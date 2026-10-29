@@ -388,7 +388,7 @@ export default function NotificationSettingsPage() {
                     </div>
 
                     <div className="flex justify-end mt-6">
-                        <Button data-help-id="system.notification-settings.btn.save" onClick={() => save.run()} disabled={isRefreshing} loading={save.isPending} className="font-bold uppercase tracking-wider">
+                        <Button onClick={() => save.run()} disabled={isRefreshing} loading={save.isPending} className="font-bold uppercase tracking-wider">
                             {t('save')}
                         </Button>
                     </div>

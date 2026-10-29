@@ -34,8 +34,6 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { getSalesServices } from '@/services/services';
 import { ensureDoctorOption } from '@/services/doctors';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
-import { useHelpScope } from '@/components/help/help-scope';
-import { composeHelpId } from '@/lib/help/help-id';
 import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
@@ -144,9 +142,6 @@ export function ClinicSessionDialog({
     pendingAppointmentData,
 }: ClinicSessionDialogProps) {
     const t = useTranslations('ClinicSessionDialog');
-    // Help ids del asistente con el scope de la pantalla (workspace.field.session-procedure…).
-    const helpScope = useHelpScope();
-    const sessionHelpId = (name: string) => composeHelpId(helpScope, 'field', name);
     const tCommon = useTranslations('ClinicHistoryPage');
     const locale = useLocale();
     const { toast } = useToast();
@@ -826,7 +821,7 @@ export function ClinicSessionDialog({
                                     </div>
                                 )}
                                 {/* Date */}
-                                <div data-help-id={sessionHelpId('session-date')} className="space-y-2">
+                                <div className="space-y-2">
                                     <Label>{t('date')}</Label>
                                     <Popover>
                                         <PopoverTrigger asChild>
@@ -871,7 +866,7 @@ export function ClinicSessionDialog({
                                 )}
 
                                 {/* Doctor */}
-                                <div data-help-id={sessionHelpId('session-doctor')} className="space-y-2">
+                                <div className="space-y-2">
                                     <Label>{t('doctor')}</Label>
                                     <Select
                                         value={form.doctor_id}
@@ -1056,7 +1051,7 @@ export function ClinicSessionDialog({
                                 )}
 
                                 {/* Procedure + current-session treatment badges */}
-                                <div data-help-id={sessionHelpId('session-procedure')} className="space-y-2 md:col-span-2">
+                                <div className="space-y-2 md:col-span-2">
                                     <Label>{annotationMode ? t('annotation.annotationLabel') : t('procedure')}</Label>
                                     <Textarea
                                         value={form.procedimiento_realizado}
@@ -1176,7 +1171,7 @@ export function ClinicSessionDialog({
                                 {/* Diagnosis + Clinical Notes (optional) */}
                                 {showDiagnosticFields && (
                                     <>
-                                        <div data-help-id={sessionHelpId('session-diagnosis')} className="space-y-2 md:col-span-2">
+                                        <div className="space-y-2 md:col-span-2">
                                             <Label>{t('diagnosis')}</Label>
                                             <Textarea
                                                 value={form.diagnostico || ''}
@@ -1185,7 +1180,7 @@ export function ClinicSessionDialog({
                                                 className="min-h-[80px] resize-y"
                                             />
                                         </div>
-                                        <div data-help-id={sessionHelpId('session-notes')} className="space-y-2 md:col-span-2">
+                                        <div className="space-y-2 md:col-span-2">
                                             <Label>{t('notes')}</Label>
                                             <Textarea
                                                 value={form.notas_clinicas || ''}
@@ -1198,7 +1193,7 @@ export function ClinicSessionDialog({
                                 )}
 
                                 {/* Next Appointment Plan + next-session treatment badges */}
-                                <div data-help-id={sessionHelpId('session-next-plan')} className="space-y-2 md:col-span-2">
+                                <div className="space-y-2 md:col-span-2">
                                     <Label>{annotationMode ? t('annotation.nextLabel') : t('nextSessionPlan')}</Label>
                                     <Textarea
                                         value={form.plan_proxima_cita || ''}
@@ -1317,7 +1312,7 @@ export function ClinicSessionDialog({
 
                                 {!annotationMode && (
                                 <div className="space-y-3 md:col-span-2">
-                                    <div data-help-id={sessionHelpId('session-discharge')} className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
+                                    <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-muted/20 px-4 py-3">
                                         <Checkbox
                                             id="discharge-patient"
                                             checked={shouldDischargePatient}
@@ -1423,7 +1418,7 @@ export function ClinicSessionDialog({
 
                                 {/* Inline Treatments panel */}
                                 {showTreatments && (
-                                    <div data-help-id={sessionHelpId('session-treatments')} className="space-y-2 md:col-span-2">
+                                    <div className="space-y-2 md:col-span-2">
                                         <div className="flex items-center justify-between">
                                             <Label className="text-xs font-semibold">{t('treatments.title')}</Label>
                                             <Button type="button" variant="ghost" size="sm" onClick={handleAddTreatment} className="h-7 px-2 text-xs">
@@ -1476,7 +1471,7 @@ export function ClinicSessionDialog({
 
                                 {/* Compact inline attachments section */}
                                 {showAttachments && (
-                                    <div data-help-id={sessionHelpId('session-attachments')} className="space-y-2 md:col-span-2">
+                                    <div className="space-y-2 md:col-span-2">
                                         <Label className="text-xs font-semibold">{t('attachments.title')}</Label>
                                         {/* Compact horizontal dropzone */}
                                         <div

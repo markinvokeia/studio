@@ -8,12 +8,10 @@ import { Button } from '@/components/ui/button';
 
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
-import { useHelpScope } from '@/components/help/help-scope';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/notifications-context';
 import { API_ROUTES } from '@/constants/routes';
 import { useKeyedAsyncAction } from '@/hooks/use-async-action';
-import { composeHelpId } from '@/lib/help/help-id';
 import { getErrorMessage } from '@/lib/error-utils';
 import { api, isAbortError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { cn } from '@/lib/utils';
@@ -46,7 +44,6 @@ function SectionHeading({ icon: Icon, label }: { icon: React.ComponentType<{ cla
  */
 export function UserPreferencesTab({ user, showFinanceView = false, showAlertStyle = false, sedes = [] }: UserPreferencesTabProps) {
   const t = useTranslations('PreferencesPage');
-  const helpScope = useHelpScope();
   const tCommon = useTranslations('Common');
   const { user: authUser } = useAuth();
   // Editing our own alert style? Route through the shared notifications context
@@ -146,7 +143,7 @@ export function UserPreferencesTab({ user, showFinanceView = false, showAlertSty
       </div>
 
       {showFinanceView && (
-        <div data-help-id={composeHelpId(helpScope, 'section', 'finance-view')} className="pt-5">
+        <div className="pt-5">
           <SectionHeading icon={Receipt} label={t('financeViewSection')} />
           <p className="text-xs text-muted-foreground mb-2">{t('financeViewDescription')}</p>
           {loadErrorNotice}
@@ -155,7 +152,6 @@ export function UserPreferencesTab({ user, showFinanceView = false, showAlertSty
               <button
                 key={view}
                 type="button"
-                data-help-id={composeHelpId(helpScope, 'btn', `finance-view-${view}`)}
                 disabled={isLoading || !!loadError || savePreference.isPending('finance_view')}
                 aria-pressed={financeView === view}
                 onClick={() => setFinanceView(view)}
@@ -206,7 +202,7 @@ export function UserPreferencesTab({ user, showFinanceView = false, showAlertSty
         </div>
       )}
 
-      <div data-help-id={composeHelpId(helpScope, 'section', 'calendar-prefs')} className="pt-5">
+      <div className="pt-5">
         <SectionHeading icon={CalendarClock} label={t('calendarSection')} />
         <CalendarSettingsForm userId={user.id} sedes={sedes} />
       </div>

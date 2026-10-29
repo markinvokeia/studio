@@ -10,7 +10,6 @@ import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { CurrencyPicker } from '@/components/ui/currency-picker';
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { HelpScopeProvider } from '@/components/help/help-scope';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
@@ -456,7 +455,7 @@ export default function ClinicsPage() {
 
                         {/* ── Left column: clinic form (native fieldset disables every control while saving) ── */}
                         <fieldset disabled={saveClinic.isPending} className="min-w-0 space-y-6">
-                            <div className="space-y-2" data-help-id="config.clinics.field.clinic-logo">
+                            <div className="space-y-2">
                                 <Label htmlFor="logo">{tc('logoLabel')}</Label>
                                 <div className="flex items-center gap-4">
                                     <div className="relative h-24 w-24 rounded-md border-2 border-dashed border-muted-foreground/50 flex items-center justify-center">
@@ -473,14 +472,14 @@ export default function ClinicsPage() {
                                 </div>
                             </div>
 
-                            <div className="space-y-2" data-help-id="config.clinics.field.clinic-name">
+                            <div className="space-y-2">
                                 <Label htmlFor="name">{tc('nameLabel')}</Label>
                                 <Input id="name" value={clinic.name} onChange={handleInputChange} placeholder={tc('namePlaceholder')} />
                             </div>
 
                             {/* Address field: hidden when clinic has more than 1 sede */}
                             {sedes.length <= 1 ? (
-                                <div className="space-y-2" data-help-id="config.clinics.field.clinic-location">
+                                <div className="space-y-2">
                                     <Label htmlFor="location">{tc('locationLabel')}</Label>
                                     <Input id="location" value={clinic.location} onChange={handleInputChange} placeholder={tc('locationPlaceholder')} />
                                 </div>
@@ -491,23 +490,23 @@ export default function ClinicsPage() {
                                 </p>
                             )}
 
-                            <div className="space-y-2" data-help-id="config.clinics.field.clinic-email">
+                            <div className="space-y-2">
                                 <Label htmlFor="contact_email">{tc('emailLabel')}</Label>
                                 <Input id="contact_email" type="email" value={clinic.contact_email} onChange={handleInputChange} placeholder={tc('emailPlaceholder')} />
                             </div>
 
-                            <div className="space-y-2" data-help-id="config.clinics.field.clinic-phone">
+                            <div className="space-y-2">
                                 <Label htmlFor="phone_number">{tc('phoneLabel')}</Label>
                                 <PhoneInput defaultCountry="UY" value={clinic.phone_number} onChange={handlePhoneChange} placeholder={tc('phonePlaceholder')} />
                                 {phoneError && <p className="text-sm font-medium text-destructive">{phoneError}</p>}
                             </div>
 
-                            <div className="space-y-2" data-help-id="config.clinics.field.clinic-rut">
+                            <div className="space-y-2">
                                 <Label htmlFor="rut">{tc('rutLabel')}</Label>
                                 <Input id="rut" value={clinic.rut ?? ''} onChange={handleInputChange} placeholder={tc('rutPlaceholder')} />
                             </div>
 
-                            <div className="space-y-2" data-help-id="config.clinics.field.clinic-currency">
+                            <div className="space-y-2">
                                 <Label htmlFor="currency">{tc('currencyLabel')}</Label>
                                 <CurrencyPicker
                                     id="currency"
@@ -520,7 +519,7 @@ export default function ClinicsPage() {
                                 <p className="text-xs text-muted-foreground">{tc('currencyHelp')}</p>
                             </div>
 
-                            <div className="space-y-2" data-help-id="config.clinics.field.clinic-secondary-currency">
+                            <div className="space-y-2">
                                 <Label htmlFor="secondary_currency">{tc('secondaryCurrencyLabel')}</Label>
                                 <CurrencyPicker
                                     id="secondary_currency"
@@ -558,7 +557,7 @@ export default function ClinicsPage() {
                                         <p className="text-xs text-muted-foreground">{tc('sedesSectionDesc')}</p>
                                     </div>
                                     {canCreateSede && (
-                                        <Button size="sm" variant="outline" className="h-8 gap-1.5" data-help-id="config.clinics.btn.add-sede" onClick={openCreateSede} disabled={!!sedesError && sedes.length === 0}>
+                                        <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={openCreateSede} disabled={!!sedesError && sedes.length === 0}>
                                             <Plus className="h-3.5 w-3.5" />
                                             {tc('addSede')}
                                         </Button>
@@ -658,7 +657,7 @@ export default function ClinicsPage() {
 
                 <CardFooter className="flex-none justify-between border-t bg-card px-4 py-3">
                     {canUpdate && (
-                        <Button data-help-id="config.clinics.btn.save" onClick={() => saveClinic.run()} loading={saveClinic.isPending}>
+                        <Button onClick={() => saveClinic.run()} loading={saveClinic.isPending}>
                             {tc('save')}
                         </Button>
                     )}
@@ -674,63 +673,60 @@ export default function ClinicsPage() {
                 </CardFooter>
             </Card>
 
-            {/* Los campos de sede tienen su propio scope: no chocan con los de la clínica. */}
-            <HelpScopeProvider scope="config.clinics.sede">
-                {/* ── Create sede dialog ── */}
-                <Dialog open={isCreateSedeOpen} onOpenChange={(open) => {
-                    if (!open && saveSede.isPending) return;
-                    setIsCreateSedeOpen(open);
-                    if (!open) { setSedeError(null); sedeForm.reset(); }
-                }}>
-                    <DialogContent maxWidth="lg" confirmOnClose isDirty={sedeForm.formState.isDirty && !saveSede.isPending}>
-                        <DialogHeader>
-                            <DialogTitle>{tc('sedeCreateTitle')}</DialogTitle>
-                        </DialogHeader>
-                        <Form {...sedeForm}>
-                            <form onSubmit={sedeForm.handleSubmit(saveSede.run, onInvalidSubmit)} className="flex flex-col min-h-0">
-                                <DialogBody className="px-6 py-4">
-                                    {sedeFormFields(saveSede.isPending)}
-                                </DialogBody>
-                                <DialogFooter>
-                                    <DialogCancelButton disabled={saveSede.isPending}>
-                                        {t('SedesPage.form.cancel')}
-                                    </DialogCancelButton>
-                                    <Button type="submit" loading={saveSede.isPending}>
-                                        {t('SedesPage.form.create')}
-                                    </Button>
-                                </DialogFooter>
-                            </form>
-                        </Form>
-                    </DialogContent>
-                </Dialog>
+            {/* ── Create sede dialog ── */}
+            <Dialog open={isCreateSedeOpen} onOpenChange={(open) => {
+                if (!open && saveSede.isPending) return;
+                setIsCreateSedeOpen(open);
+                if (!open) { setSedeError(null); sedeForm.reset(); }
+            }}>
+                <DialogContent maxWidth="lg" confirmOnClose isDirty={sedeForm.formState.isDirty && !saveSede.isPending}>
+                    <DialogHeader>
+                        <DialogTitle>{tc('sedeCreateTitle')}</DialogTitle>
+                    </DialogHeader>
+                    <Form {...sedeForm}>
+                        <form onSubmit={sedeForm.handleSubmit(saveSede.run, onInvalidSubmit)} className="flex flex-col min-h-0">
+                            <DialogBody className="px-6 py-4">
+                                {sedeFormFields(saveSede.isPending)}
+                            </DialogBody>
+                            <DialogFooter>
+                                <DialogCancelButton disabled={saveSede.isPending}>
+                                    {t('SedesPage.form.cancel')}
+                                </DialogCancelButton>
+                                <Button type="submit" loading={saveSede.isPending}>
+                                    {t('SedesPage.form.create')}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
 
-                {/* ── Edit sede dialog ── */}
-                <Dialog open={!!editingSede} onOpenChange={(open) => {
-                    if (!open && saveSede.isPending) return;
-                    if (!open) { setEditingSede(null); setSedeError(null); sedeForm.reset(); }
-                }}>
-                    <DialogContent maxWidth="lg" confirmOnClose isDirty={sedeForm.formState.isDirty && !saveSede.isPending}>
-                        <DialogHeader>
-                            <DialogTitle>{tc('sedeEditTitle')}</DialogTitle>
-                        </DialogHeader>
-                        <Form {...sedeForm}>
-                            <form onSubmit={sedeForm.handleSubmit(saveSede.run, onInvalidSubmit)} className="flex flex-col min-h-0">
-                                <DialogBody className="px-6 py-4">
-                                    {sedeFormFields(saveSede.isPending)}
-                                </DialogBody>
-                                <DialogFooter>
-                                    <DialogCancelButton disabled={saveSede.isPending}>
-                                        {t('SedesPage.form.cancel')}
-                                    </DialogCancelButton>
-                                    <Button type="submit" loading={saveSede.isPending}>
-                                        {t('SedesPage.form.save')}
-                                    </Button>
-                                </DialogFooter>
-                            </form>
-                        </Form>
-                    </DialogContent>
-                </Dialog>
-            </HelpScopeProvider>
+            {/* ── Edit sede dialog ── */}
+            <Dialog open={!!editingSede} onOpenChange={(open) => {
+                if (!open && saveSede.isPending) return;
+                if (!open) { setEditingSede(null); setSedeError(null); sedeForm.reset(); }
+            }}>
+                <DialogContent maxWidth="lg" confirmOnClose isDirty={sedeForm.formState.isDirty && !saveSede.isPending}>
+                    <DialogHeader>
+                        <DialogTitle>{tc('sedeEditTitle')}</DialogTitle>
+                    </DialogHeader>
+                    <Form {...sedeForm}>
+                        <form onSubmit={sedeForm.handleSubmit(saveSede.run, onInvalidSubmit)} className="flex flex-col min-h-0">
+                            <DialogBody className="px-6 py-4">
+                                {sedeFormFields(saveSede.isPending)}
+                            </DialogBody>
+                            <DialogFooter>
+                                <DialogCancelButton disabled={saveSede.isPending}>
+                                    {t('SedesPage.form.cancel')}
+                                </DialogCancelButton>
+                                <Button type="submit" loading={saveSede.isPending}>
+                                    {t('SedesPage.form.save')}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
 
             {/* ── Delete sede dialog ── */}
             <ConfirmActionDialog

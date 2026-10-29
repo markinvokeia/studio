@@ -89,7 +89,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
     <div className="w-full space-y-6">
       {/* Theme */}
       <div className="space-y-3">
-        <div data-help-id="tv-display.field.theme" className="space-y-1.5">
+        <div className="space-y-1.5">
           <Label>{t('theme')}</Label>
           <Select
             value={settings.theme}
@@ -110,7 +110,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
       <Separator />
 
       {/* Consulting rooms */}
-      <div data-help-id="tv-display.section.calendars" className="space-y-2">
+      <div className="space-y-2">
         <Label className="text-sm font-semibold">{t('calendars')}</Label>
         {calendars.filter(c => c.is_active !== false).length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('noCalendars')}</p>
@@ -176,7 +176,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
 
       {/* Intervals */}
       <div className="space-y-3">
-        <div data-help-id="tv-display.field.refresh-interval" className="space-y-1.5">
+        <div className="space-y-1.5">
           <Label htmlFor="refreshInterval">{t('refreshInterval')}</Label>
           <Input
             id="refreshInterval"
@@ -188,7 +188,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
             className="w-full max-w-24"
           />
         </div>
-        <div data-help-id="tv-display.field.promo-interval" className="space-y-1.5">
+        <div className="space-y-1.5">
           <Label htmlFor="promoInterval">{t('promoInterval')}</Label>
           <Input
             id="promoInterval"
@@ -205,7 +205,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
       <Separator />
 
       {/* ── Promo videos (fullscreen) ── */}
-      <div data-help-id="tv-display.section.promo-videos" className="space-y-3">
+      <div className="space-y-3">
         <div>
           <Label className="text-sm font-semibold">{t('promoVideos')}</Label>
           <p className="text-xs text-muted-foreground mt-0.5">{t('promoVideosHint')}</p>
@@ -221,7 +221,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
       <Separator />
 
       {/* ── Video column ── */}
-      <div data-help-id="tv-display.section.video-column" className="space-y-3">
+      <div className="space-y-3">
         <div>
           <Label className="text-sm font-semibold">{t('videoColumnPosition')}</Label>
           <p className="text-xs text-muted-foreground mt-0.5">{t('videoColumnHint')}</p>
@@ -266,7 +266,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
       <Separator />
 
       {/* Music */}
-      <div data-help-id="tv-display.section.music" className="space-y-3">
+      <div className="space-y-3">
         <Label className="text-sm font-semibold">{t('music')}</Label>
         <label
           htmlFor="musicEnabled"
@@ -293,7 +293,7 @@ export function SettingsForm({ calendars }: SettingsFormProps) {
         )}
       </div>
 
-      <Button data-help-id="tv-display.btn.save" onClick={handleSave} className="w-full">
+      <Button onClick={handleSave} className="w-full">
         {t('save')}
       </Button>
     </div>

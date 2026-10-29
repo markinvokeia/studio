@@ -23,7 +23,6 @@ import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
 import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
-import { composeHelpId } from '@/lib/help/help-id';
 import { Quote } from '@/lib/types';
 import { cn, formatDisplayDate, getDocumentFileName } from '@/lib/utils';
 import { getDefaultPageSize } from '@/lib/pagination';
@@ -36,7 +35,6 @@ import { DataTableAdvancedToolbar } from '../ui/data-table-advanced-toolbar';
 import { DataTablePagination } from '../ui/data-table-pagination';
 import { DataTableToolbar } from '../ui/data-table-toolbar';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { useHelpScope } from '@/components/help/help-scope';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 function formatCurrency(amount: number | undefined, currency: string | undefined) {
@@ -76,18 +74,17 @@ function QuoteActions({
   canSendEmail,
 }: QuoteActionsProps) {
   const tQuotes = useTranslations('QuotesPage');
-  const helpScope = useHelpScope();
   const status = (quote.status || '').toLowerCase();
   const isDraft = status === 'draft';
   const isPending = status === 'pending';
 
   const actions = [
-    { key: 'print', icon: Printer, label: tQuotes('print'), onClick: () => onPrint(quote), visible: canPrint },
-    { key: 'email', icon: Send, label: tQuotes('sendEmail'), onClick: () => onSendEmail(quote), visible: canSendEmail },
-    { key: 'edit', icon: Pencil, label: tQuotes('edit'), onClick: () => onEdit(quote), visible: canEdit && isDraft },
-    { key: 'confirm', icon: CheckCircle, label: tQuotes('confirm'), onClick: () => onQuoteActionRequest(quote, 'confirm'), visible: canConfirm && (isDraft || isPending) },
-    { key: 'reject', icon: XCircle, label: tQuotes('reject'), onClick: () => onQuoteActionRequest(quote, 'reject'), visible: canReject && (isDraft || isPending) },
-    { key: 'delete', icon: Trash2, label: tQuotes('delete'), onClick: () => onDelete(quote), visible: canDelete && isDraft },
+    { icon: Printer, label: tQuotes('print'), onClick: () => onPrint(quote), visible: canPrint },
+    { icon: Send, label: tQuotes('sendEmail'), onClick: () => onSendEmail(quote), visible: canSendEmail },
+    { icon: Pencil, label: tQuotes('edit'), onClick: () => onEdit(quote), visible: canEdit && isDraft },
+    { icon: CheckCircle, label: tQuotes('confirm'), onClick: () => onQuoteActionRequest(quote, 'confirm'), visible: canConfirm && (isDraft || isPending) },
+    { icon: XCircle, label: tQuotes('reject'), onClick: () => onQuoteActionRequest(quote, 'reject'), visible: canReject && (isDraft || isPending) },
+    { icon: Trash2, label: tQuotes('delete'), onClick: () => onDelete(quote), visible: canDelete && isDraft },
   ].filter((action) => action.visible);
 
   if (actions.length === 0) return null;
@@ -96,15 +93,15 @@ function QuoteActions({
     <div onClick={(e) => e.stopPropagation()}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button data-help-id={composeHelpId(helpScope, 'btn', 'row-actions')} variant="ghost" className="h-8 w-8 p-0">
+          <Button variant="ghost" className="h-8 w-8 p-0">
             <span className="sr-only">{tQuotes('actions.openMenu')}</span>
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>{tQuotes('actions.title')}</DropdownMenuLabel>
-          {actions.map(({ key, icon: Icon, label, onClick }) => (
-            <DropdownMenuItem key={key} data-help-id={composeHelpId(helpScope, 'btn', `row-${key}`)} onClick={onClick}>
+          {actions.map(({ icon: Icon, label, onClick }) => (
+            <DropdownMenuItem key={label} onClick={onClick}>
               <Icon className="mr-2 h-4 w-4" />
               <span>{label}</span>
             </DropdownMenuItem>
@@ -454,7 +451,6 @@ export function RecentQuotesTable({
   const showToggle = !isCompact && !panelNarrow && !viewportNarrow;
   const useListView = showToggle && viewMode === 'list';
   const isNarrow = isCompact || panelNarrow || viewportNarrow || useListView;
-  const helpScope = useHelpScope();
   const viewToggleEl = showToggle ? <ViewModeToggle value={viewMode} onChange={setViewMode} /> : undefined;
   const t = useTranslations();
   const { toast } = useToast();
@@ -614,7 +610,7 @@ export function RecentQuotesTable({
                 viewControls={viewToggleEl}
                 extraButtons={
                   onExport && hasPermission(isSales ? SALES_PERMISSIONS.QUOTES_EXPORT : PURCHASES_PERMISSIONS.QUOTES_EXPORT) ? (
-                    <Button data-help-id={composeHelpId(helpScope, 'btn', 'export')} variant="outline" size="sm" className="h-9" onClick={onExport}>
+                    <Button variant="outline" size="sm" className="h-9" onClick={onExport}>
                       <Download className="mr-2 h-4 w-4" /> {t('RecentQuotesTable.export')}
                     </Button>
                   ) : undefined
@@ -643,7 +639,7 @@ export function RecentQuotesTable({
                   )}
                 >
                   {table.getRowModel().rows.length > 0
-                    ? table.getRowModel().rows.map((row, rowIndex) => {
+                    ? table.getRowModel().rows.map((row) => {
                       const onRowActivate = () => {
                         const isSelected = row.getIsSelected();
                         table.setRowSelection(isSelected ? {} : { [row.id]: true });
@@ -662,7 +658,7 @@ export function RecentQuotesTable({
                         />
                       ) : undefined;
                       return (
-                      <div key={row.id} data-testid="list-item" data-help-id={composeHelpId(helpScope, 'section', rowIndex === 0 ? 'first-row' : 'row')}>
+                      <div key={row.id} data-testid="list-item">
                         {useListView ? (
                           <DataListRow
                             isSelected={row.getIsSelected()}
@@ -729,10 +725,9 @@ export function RecentQuotesTable({
                     </TableHeader>
                     <TableBody>
                       {table.getRowModel().rows?.length ? (
-                        table.getRowModel().rows.map((row, rowIndex) => (
+                        table.getRowModel().rows.map((row) => (
                           <TableRow
                             key={row.id}
-                            data-help-id={composeHelpId(helpScope, 'section', rowIndex === 0 ? 'first-row' : 'row')}
                             data-state={row.getIsSelected() && 'selected'}
                             onClick={() => {
                               if (onRowSelectionChange) {

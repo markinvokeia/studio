@@ -49,7 +49,7 @@ export function BulkActionsFloatingBar({
     }
 
     return (
-        <div data-help-id="alerts.section.bulk-bar" className={cn(
+        <div className={cn(
             "fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50",
             "bg-background/95 backdrop-blur-sm border border-border rounded-xl shadow-2xl",
             "p-3 flex flex-wrap items-center justify-center gap-2",
@@ -82,7 +82,6 @@ export function BulkActionsFloatingBar({
                 <Button
                     variant={loadingAction === 'complete' ? 'default' : 'ghost'}
                     size="sm"
-                    data-help-id="alerts.btn.bulk-complete"
                     onClick={onMarkAsCompleted}
                     disabled={loadingAction !== null}
                     title="Marcar como completado"
@@ -106,7 +105,6 @@ export function BulkActionsFloatingBar({
                 <Button
                     variant="ghost"
                     size="sm"
-                    data-help-id="alerts.btn.bulk-email"
                     onClick={onSendEmail}
                     disabled={loadingAction !== null || selectedCount !== 1}
                     title={selectedCount !== 1 ? 'Seleccioná exactamente 1 alerta para enviar email' : 'Enviar email'}
@@ -124,7 +122,6 @@ export function BulkActionsFloatingBar({
                 <Button
                     variant={loadingAction === 'snooze' ? 'default' : 'ghost'}
                     size="sm"
-                    data-help-id="alerts.btn.bulk-snooze"
                     onClick={onSnooze}
                     disabled={loadingAction !== null}
                     title="Posponer alertas"
@@ -148,7 +145,6 @@ export function BulkActionsFloatingBar({
                 <Button
                     variant={loadingAction === 'whatsapp' ? 'default' : 'ghost'}
                     size="sm"
-                    data-help-id="alerts.btn.bulk-whatsapp"
                     onClick={onSendWhatsApp}
                     disabled={loadingAction !== null || whatsAppEligibleCount === 0}
                     title={whatsAppEligibleCount === 0 ? 'Ninguna alerta seleccionada tiene WhatsApp disponible' : `Enviar WhatsApp (${whatsAppEligibleCount} disponible${whatsAppEligibleCount === 1 ? '' : 's'})`}
@@ -173,7 +169,6 @@ export function BulkActionsFloatingBar({
                 <Button
                     variant="ghost"
                     size="sm"
-                    data-help-id="alerts.btn.bulk-deselect"
                     onClick={onDeselectAll}
                     disabled={loadingAction !== null}
                     title="Deseleccionar todo"

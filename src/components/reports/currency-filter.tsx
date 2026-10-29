@@ -1,11 +1,9 @@
 'use client';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useHelpScope } from '@/components/help/help-scope';
 
 import { ALL_CURRENCIES } from '@/hooks/useReportCurrency';
 import { useCurrencySettings } from '@/hooks/useCurrencySettings';
-import { composeHelpId } from '@/lib/help/help-id';
 
 interface ReportCurrencyFilterProps {
   value: string;
@@ -31,14 +29,13 @@ export function ReportCurrencyFilter({
   includeAll = true,
   className = 'h-8 w-28 text-xs',
 }: ReportCurrencyFilterProps) {
-  const helpScope = useHelpScope();
   const { options, isDual } = useCurrencySettings();
 
   if (!isDual) return null;
 
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger data-help-id={composeHelpId(helpScope, 'filter', 'currency-filter')} className={className}>
+      <SelectTrigger className={className}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

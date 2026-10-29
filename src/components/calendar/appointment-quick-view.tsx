@@ -118,7 +118,6 @@ export function AppointmentQuickView({
       </PopoverAnchor>
       <PopoverContent
         data-testid="appointment-quick-view"
-        data-help-id="appointments.section.quick-view"
         side={side}
         align="start"
         sideOffset={8}
@@ -133,7 +132,6 @@ export function AppointmentQuickView({
               variant="ghost"
               size="icon"
               className="h-7 w-7"
-              data-help-id="appointments.btn.quick-history"
               title={tPanel('history.title')}
               onClick={() => onViewDetails(appointment)}
             >
@@ -145,7 +143,6 @@ export function AppointmentQuickView({
             variant="ghost"
             size="icon"
             className="h-7 w-7"
-            data-help-id="appointments.btn.quick-edit"
             title={tColumns('edit')}
             onClick={() => onEdit(appointment)}
           >

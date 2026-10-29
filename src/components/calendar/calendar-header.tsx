@@ -73,7 +73,6 @@ export function HeaderDatePicker({
         <button
           type="button"
           data-testid="calendar-header-date-picker"
-          data-help-id="appointments.btn.date-picker"
           className={`flex flex-col items-start whitespace-nowrap rounded-md px-1.5 py-0.5 leading-tight transition-colors hover:bg-muted ${className ?? ''}`}
         >
           <span className="font-semibold">{headerTitle}</span>
@@ -132,13 +131,13 @@ export function CalendarHeader({
             {!hideTitle && <h2 className="text-base font-bold tracking-tight">{t('title')}</h2>}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-1">
-            <Button variant="ghost" size="sm" data-help-id="appointments.btn.today" onClick={onToday} className="text-xs px-2">
+            <Button variant="ghost" size="sm" onClick={onToday} className="text-xs px-2">
               {t('today')}
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" data-help-id="appointments.btn.prev" onClick={onPrev}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" data-help-id="appointments.btn.next" onClick={onNext}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
               <ChevronRight className="h-4 w-4" />
             </Button>
             {/* Buscar huecos / Operaciones en Lotes (extraActions) and settings
@@ -176,23 +175,23 @@ export function CalendarHeader({
         {!hideTitle && <h2 className="text-xl font-bold whitespace-nowrap">{t('title')}</h2>}
         {arrowsBeforeToday && (
           <div className="flex items-center gap-0.5 shrink-0">
-            <Button variant="ghost" size="icon" className="h-8 w-8" data-help-id="appointments.btn.prev" onClick={onPrev}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" data-help-id="appointments.btn.next" onClick={onNext}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         )}
-        <Button variant="outline" size="sm" className="h-10 shrink-0" data-help-id="appointments.btn.today" onClick={onToday}>
+        <Button variant="outline" size="sm" className="h-10 shrink-0" onClick={onToday}>
           {t('today')}
         </Button>
         {!arrowsBeforeToday && (
           <div className="flex items-center gap-0.5 shrink-0">
-            <Button variant="ghost" size="icon" className="h-8 w-8" data-help-id="appointments.btn.prev" onClick={onPrev}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" data-help-id="appointments.btn.next" onClick={onNext}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

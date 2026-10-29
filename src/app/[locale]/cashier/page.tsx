@@ -409,7 +409,7 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
 
 
     return (
-        <div data-help-id="cashier.section.cash-points" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
             {cashPoints.map(cp => {
                 const isThisUsersSession = cp.status === 'OPEN' && cp.session?.usuarioId === user?.id;
                 const isAnotherUsersSession = cp.status === 'OPEN' && !isThisUsersSession;
@@ -431,7 +431,6 @@ function OpenSessionDashboard({ cashPoints, onStartOpening, onViewSession }: { c
                         </CardHeader>
                         <CardContent>
                             <Button
-                                data-help-id={isThisUsersSession ? 'cashier.btn.view-session' : 'cashier.btn.open-session'}
                                 className="w-full"
                                 onClick={() => handleSessionClick(cp)}
                                 disabled={isAnotherUsersSession || (cp.status === 'CLOSED' && userHasActiveSession)}
@@ -629,7 +628,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
 
 
     return (
-        <Card data-help-id="cashier.section.active-session">
+        <Card>
             <CardHeader className="flex flex-row items-start justify-between">
                 <div>
                     <CardTitle>{t('activeSession.title')}</CardTitle>
@@ -735,7 +734,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button data-help-id="cashier.btn.all-cash-points" variant="outline" size="icon" onClick={onViewAllCashPoints}>
+                            <Button variant="outline" size="icon" onClick={onViewAllCashPoints}>
                                 <Box className="h-4 w-4" />
                             </Button>
                         </TooltipTrigger>
@@ -743,7 +742,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button data-help-id="cashier.btn.print-opening" variant="outline" size="icon" onClick={handlePrintOpening} disabled={isPrinting}>
+                            <Button variant="outline" size="icon" onClick={handlePrintOpening} disabled={isPrinting}>
                                 {isPrinting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
                             </Button>
                         </TooltipTrigger>
@@ -751,7 +750,7 @@ function ActiveSessionDashboard({ session, movements, onCloseSession, isWizardOp
                     </Tooltip>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Button data-help-id="cashier.btn.start-closing" size="icon" onClick={onCloseSession}>
+                            <Button size="icon" onClick={onCloseSession}>
                                 <ArrowRight className="h-4 w-4" />
                             </Button>
                         </TooltipTrigger>
@@ -895,7 +894,7 @@ function CloseSessionWizard({
                     />
                 ))}
                 {currentStep === 'BANK_DEPOSIT' && (
-                    <div data-help-id="cashier.section.bank-deposit" className="space-y-6">
+                    <div className="space-y-6">
                         <div>
                             <h3 className="font-medium text-base">{t('bankDeposit.title')}</h3>
                             <p className="text-sm text-muted-foreground mt-0.5">{t('bankDeposit.description')}</p>
@@ -975,11 +974,11 @@ function CloseSessionWizard({
             {currentStep !== 'REVIEW' && currentStep !== 'DECLARE' && currentStep !== 'REPORT' && (
                 <div className="flex-none px-4 py-3 border-t bg-card">
                     <div className="flex gap-3">
-                        <Button data-help-id="cashier.btn.close-back" variant="outline" onClick={handlePreviousStep} className="flex-1 sm:flex-none gap-1.5">
+                        <Button variant="outline" onClick={handlePreviousStep} className="flex-1 sm:flex-none gap-1.5">
                             <ChevronLeft className="h-4 w-4" />
                             {t('wizard.back')}
                         </Button>
-                        <Button data-help-id="cashier.btn.close-next" onClick={handleNextStep} className="flex-1 sm:flex-none gap-1.5">
+                        <Button onClick={handleNextStep} className="flex-1 sm:flex-none gap-1.5">
                             {t('wizard.next')}
                             <ChevronRight className="h-4 w-4" />
                         </Button>
@@ -1031,7 +1030,7 @@ function CurrencyDenominationCounter({ code, quantities, onQuantitiesChange, las
 
     if (!def.denominations?.length) {
         return (
-            <div data-help-id="cashier.section.count" className="space-y-2 max-w-sm">
+            <div className="space-y-2 max-w-sm">
                 <h3 className="text-lg font-semibold">{title}</h3>
                 <p className="text-sm text-muted-foreground">{t('wizard.count.noDenominations', { currency: code })}</p>
                 <Input
@@ -1164,14 +1163,14 @@ const DenominationCounter = ({ title, denominations, coins, currency, quantities
 
 
     return (
-        <div data-help-id="cashier.section.count" className="space-y-4">
+        <div className="space-y-4">
             <div className="flex justify-between items-center">
                 <h3 className="font-medium text-lg">{title}</h3>
                 <div className="text-xl font-bold">{new Intl.NumberFormat('es-UY', { style: 'currency', currency }).format(total)}</div>
             </div>
             <div className="flex gap-2">
-                <Button data-help-id="cashier.btn.prefill-zero" type="button" variant="outline" size="sm" onClick={() => setAllTo(0)}>{t('wizard.prefillZero')}</Button>
-                <Button data-help-id="cashier.btn.prefill-last" type="button" variant="secondary" size="sm" onClick={loadLastClosing} disabled={!lastClosingDetails}>{t('wizard.prefillLast')}</Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setAllTo(0)}>{t('wizard.prefillZero')}</Button>
+                <Button type="button" variant="secondary" size="sm" onClick={loadLastClosing} disabled={!lastClosingDetails}>{t('wizard.prefillLast')}</Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
                 {denominations.map((den, denIndex) => {
@@ -1374,7 +1373,7 @@ const DeclareCashup = ({ activeSession, currencies, declaredTotals, denomination
     }
 
     return (
-        <div data-help-id="cashier.section.declare" className="space-y-6">
+        <div className="space-y-6">
             <div>
                 <h3 className="font-semibold text-base">{t('title')}</h3>
                 <p className="text-sm text-muted-foreground mt-0.5">{t('description')}</p>
@@ -1387,14 +1386,14 @@ const DeclareCashup = ({ activeSession, currencies, declaredTotals, denomination
             ))}
             <div className="space-y-2">
                 <Label htmlFor="notes">{t('notes')}</Label>
-                <Textarea id="notes" data-help-id="cashier.field.closing-notes" placeholder={t('notesPlaceholder')} value={notes} onChange={(e) => setNotes(e.target.value)} />
+                <Textarea id="notes" placeholder={t('notesPlaceholder')} value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
             <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t">
                 <Button variant="outline" onClick={onBack} className="flex-1 sm:flex-none gap-1.5">
                     <ChevronLeft className="h-4 w-4" />
                     {t('wizard.back')}
                 </Button>
-                <Button data-help-id="cashier.btn.close-confirm" onClick={handleCloseSession} className="flex-1 sm:flex-none gap-1.5">
+                <Button onClick={handleCloseSession} className="flex-1 sm:flex-none gap-1.5">
                     {t('closeSessionButton')}
                     <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -1476,7 +1475,7 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
     };
 
     return (
-        <div data-help-id="cashier.section.report" className="space-y-6">
+        <div className="space-y-6">
             <div>
                 <h3 className="font-semibold text-base">{t('sessionClosedTitle', { id: session.id })}</h3>
                 <p className="text-sm text-muted-foreground mt-0.5">
@@ -1494,11 +1493,11 @@ const SessionReport = ({ reportData, onFinish }: { reportData: any, onFinish: ()
                 {session.closing_notes && <p><strong>{t('notes')}</strong> {session.closing_notes}</p>}
             </div>
             <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t">
-                <Button data-help-id="cashier.btn.print-closing" variant="outline" onClick={handlePrintClose} disabled={isPrinting} className="flex-1 sm:flex-none gap-1.5">
+                <Button variant="outline" onClick={handlePrintClose} disabled={isPrinting} className="flex-1 sm:flex-none gap-1.5">
                     {isPrinting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4" />}
                     {t('printClosing')}
                 </Button>
-                <Button data-help-id="cashier.btn.report-finish" onClick={onFinish} className="flex-1 sm:flex-none">{t('finishReturn')}</Button>
+                <Button onClick={onFinish} className="flex-1 sm:flex-none">{t('finishReturn')}</Button>
             </div>
         </div>
     );
@@ -1754,11 +1753,11 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
                             )}
                             <div className="space-y-1">
                                 <Label htmlFor="date_rate">{t('openSession.exchangeRate')}</Label>
-                                <Input id="date_rate" data-help-id="cashier.field.date-rate" type="number" step="0.01" value={sessionData.date_rate || ''} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: Math.round((parseFloat(e.target.value) || 0) * 100) / 100 }))} disabled={disabled} />
+                                <Input id="date_rate" type="number" step="0.01" value={sessionData.date_rate || ''} onChange={(e) => setSessionData(prev => ({ ...prev, date_rate: Math.round((parseFloat(e.target.value) || 0) * 100) / 100 }))} disabled={disabled} />
                             </div>
                         </>
                     )}
-                    <div data-help-id="cashier.field.open-currency" className="space-y-1">
+                    <div className="space-y-1">
                         <Label>{t('openSession.currency')}</Label>
                         <CurrencySelect
                             value={sessionData.currency}
@@ -1798,7 +1797,7 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             />,
         ])),
         'CONFIRM': (
-            <div data-help-id="cashier.section.open-summary" className="space-y-6">
+            <div className="space-y-6">
                 <Card>
                     <CardHeader><CardTitle>{t('confirmation.sessionInfo')}</CardTitle></CardHeader>
                     <CardContent className="grid grid-cols-2 gap-4 text-sm">
@@ -1904,12 +1903,11 @@ function OpenSessionWizard({ currentStep, setCurrentStep, onExitWizard, sessionD
             {/* Footer nav — always visible */}
             <div className="flex-none px-4 py-3 border-t bg-card">
                 <div className="flex gap-3">
-                    <Button data-help-id="cashier.btn.open-back" variant="outline" onClick={handlePreviousStep} disabled={isSubmitting} className="flex-1 sm:flex-none gap-1.5">
+                    <Button variant="outline" onClick={handlePreviousStep} disabled={isSubmitting} className="flex-1 sm:flex-none gap-1.5">
                         <ChevronLeft className="h-4 w-4" />
                         {t('wizard.back')}
                     </Button>
                     <Button
-                        data-help-id={currentStep === 'CONFIRM' ? 'cashier.btn.open-confirm' : 'cashier.btn.open-next'}
                         onClick={currentStep === 'CONFIRM' ? handleConfirmAndOpen : handleNextStep}
                         disabled={isSubmitting || exchangeRateStatus === 'loading'}
                         className="flex-1 sm:flex-none gap-1.5"

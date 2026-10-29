@@ -441,8 +441,7 @@
     "ReportBalanceMensual": "Balance Mensual",
     "Sedes": "Sedes",
     "PatientsPortal": "Portal del Paciente",
-    "PrescriptionTemplates": "Plantillas de Receta",
-    "HelpInsights": "Métricas del Asistente"
+    "PrescriptionTemplates": "Plantillas de Receta"
   },
   "TVDisplayPage": {
     "title": "Pantalla TV",
@@ -6964,10 +6963,7 @@
       "tabs": "Normal"
     },
     "calendarSection": "Calendario",
-    "signatureSection": "Firma",
-    "assistantSection": "Asistente",
-    "showMascotLabel": "Mostrar asistente animado",
-    "showMascotDescription": "La mascota de Invoke te acompaña, señala en pantalla lo que te explica y se esconde detrás de la barra cuando no la usas. Desactivada, se queda dormida y no reacciona."
+    "signatureSection": "Firma"
   },
   "UserCommunicationPreferences": {
     "title": "Preferencias",
@@ -9178,9 +9174,7 @@
       "promptDescription": "Introduce la clave maestra para acceder a la gestión de licencias.",
       "placeholder": "Clave maestra...",
       "invalid": "Clave maestra inválida. No se pudo descifrar la licencia actual.",
-      "submit": "Verificar",
-      "notConfigured": "NEXT_PUBLIC_MASTER_SEC no está configurado en el servidor.",
-      "wrong": "Clave incorrecta. Inténtalo de nuevo."
+      "submit": "Verificar"
     },
     "management": {
       "title": "Gestión de Licencia",
@@ -9689,17 +9683,6 @@
           "description": "Combina las dos direcciones."
         }
       }
-    },
-    "assistant": {
-      "sectionTitle": "Asistente guiado",
-      "mascotVisible": {
-        "label": "Mascota visible",
-        "help": "La mascota de Invoke acompaña las guías señalando cada paso y se esconde detrás de la barra cuando no la usas.",
-        "notice": {
-          "on": "La mascota se ve: guía señalando cada paso y, en reposo, se asoma detrás de la barra flotante.",
-          "off": "Sin mascota: las guías muestran igualmente el resaltado, la descripción del paso, la barra de navegación y la lista de pasos. Al asistente se entra con el icono de ayuda de la barra flotante."
-        }
-      }
     }
   },
   "DuplicateContact": {
@@ -10195,264 +10178,5 @@
     "back": "Volver",
     "close": "Cerrar",
     "patientHint": "Cuentas, historia y datos del paciente"
-  },
-  "HelpAssistant": {
-    "title": "Asistente Invoke",
-    "close": "Cerrar asistente",
-    "catalogError": "No se ha podido cargar la ayuda. Recarga la página para intentarlo de nuevo.",
-    "tabs": {
-      "onboarding": "Puesta en marcha",
-      "chat": "Ayuda",
-      "screen": "Esta pantalla"
-    },
-    "onboarding": {
-      "title": "Puesta en marcha de tu clínica",
-      "readyTitle": "¡Ya está lo mínimo!",
-      "progress": "{done}/{total}",
-      "description": "Completa estos pasos y la clínica quedará lista para reservar citas. Cada paso se marca solo cuando lo haces.",
-      "readyDescription": "Tu clínica ya puede reservar citas. Abajo tienes pasos opcionales para sacarle más partido.",
-      "loadError": "No he podido ver tu avance.",
-      "retry": "Inténtalo de nuevo",
-      "optionalHeader": "Opcionales",
-      "next": "Siguiente",
-      "guideMe": "Llévame y guíame",
-      "takeMeThere": "Solo llévame",
-      "skip": "Omitir",
-      "unskip": "Reactivar",
-      "skipError": "No se ha podido actualizar el paso",
-      "guideAgain": "Guíame para añadir otro"
-    },
-    "screen": {
-      "noScreen": "Todavía no hay ayuda para esta pantalla.",
-      "autoOnly": "Esta pantalla todavía no tiene una ficha redactada: te muestro lo que he detectado.",
-      "guides": "Guías de esta pantalla",
-      "prerequisites": "Antes conviene tener",
-      "tips": "Consejos",
-      "elements": "Campos y botones",
-      "show": "Mostrar",
-      "tourCta": "Guíame por esta pantalla",
-      "tourTitle": "Recorrido por {screen}"
-    },
-    "chat": {
-      "welcomeTitle": "¡Hola! ¿Qué quieres hacer ahora?",
-      "welcomeDescription": "Pregúntame lo que necesites o díctame los datos y los introduzco por ti. Siempre confirmarás tú antes de guardar.",
-      "quick": {
-        "patients": {
-          "label": "Gestionar pacientes",
-          "prompt": "¿Cómo registro un paciente nuevo?"
-        },
-        "agenda": {
-          "label": "Gestionar la agenda",
-          "prompt": "¿Cómo funciona la agenda y cómo reservo una cita?"
-        },
-        "sales": {
-          "label": "Gestionar ventas y caja",
-          "prompt": "¿Cómo cobro un tratamiento y cierro la caja?"
-        },
-        "reports": {
-          "label": "Ver informes",
-          "prompt": "¿Qué informes tengo y dónde los veo?"
-        },
-        "integrations": {
-          "label": "Configurar integraciones",
-          "prompt": "¿Cómo conecto WhatsApp para confirmar citas?"
-        }
-      },
-      "placeholder": "Escribe tu pregunta o pídeme «guíame»…",
-      "listening": "Te escucho… pulsa el micrófono para terminar",
-      "dictate": "Dictar",
-      "stopDictation": "Terminar dictado",
-      "send": "Enviar",
-      "thinking": "Pensando…",
-      "guideMe": "Guíame",
-      "fillForMe": "Complétalo por mí",
-      "takeMeTo": "Llévame a {label}",
-      "watchVideo": "Ver video",
-      "watchVideoOf": "Ver el vídeo de «{title}»",
-      "escalated": "Si no te ha servido, he registrado la consulta para que el equipo de Invoke la revise.",
-      "helpful": "Me ha servido",
-      "notHelpful": "No me ha servido",
-      "feedbackError": "No se ha podido guardar tu opinión",
-      "fallbackFound": "Ahora no puedo consultar al asistente, pero esto es lo que he encontrado en la ayuda:",
-      "fallbackNone": "Ahora no puedo consultar al asistente y no he encontrado nada sobre eso en la ayuda. Prueba con otras palabras o mira la pestaña «Esta pantalla».",
-      "tourTitle": "Recorrido por {screen}",
-      "ticketCreated": "He abierto el ticket #{id} para el equipo de soporte.",
-      "subtitles": "Subtítulos",
-      "mascotError": "Uy, algo ha fallado. ¿Lo intentamos de nuevo?",
-      "mascotSorry": "Vaya, no he encontrado eso. He avisado al equipo.",
-      "mascotLetsGo": "¡Vamos! Te llevo.",
-      "onboardingTitle": "Puesta en marcha",
-      "onboardingPending": "{count, plural, one {Falta # paso} other {Faltan # pasos}} para empezar",
-      "guideThisScreen": "Guíame en esta pantalla",
-      "readAloud": "Escuchar",
-      "stopReading": "Dejar de leer",
-      "stepsCount": "{count, plural, one {# paso} other {# pasos}}"
-    },
-    "mascot": {
-      "label": "Asistente de Invoke",
-      "pendingSteps": "¡Hola! Te {count, plural, one {falta # paso} other {faltan # pasos}} para empezar. ¿Te guío?",
-      "guideFinished": "¡Listo! Hemos terminado «{title}».",
-      "guideLost": "Se ha cerrado lo que te estaba enseñando. Tócame y retomamos la guía.",
-      "guideError": {
-        "targetNotFound": "Vaya, no encuentro ese elemento en la pantalla. Puede que falte un permiso. ¿Lo intentamos de nuevo o lo saltamos?",
-        "navigationFailed": "Vaya, no he podido abrir la pantalla. Puede que no tengas permiso para verla."
-      },
-      "appError": "Vaya, algo no ha salido bien. Revisa el mensaje.",
-      "loading": {
-        "loadingScreen": "Abriendo la pantalla… la primera vez puede tardar.",
-        "loadingElement": "Esperando a que la pantalla termine de cargar…"
-      },
-      "wake": "Despertar al asistente",
-      "railLabel": "Asistente",
-      "openHelp": "Abrir la ayuda",
-      "helpLabel": "Ayuda"
-    },
-    "toolbar": {
-      "label": "Guía: paso {current} de {total}",
-      "step": "Paso {current}/{total}",
-      "first": "Ir al primer paso",
-      "previous": "Paso anterior",
-      "next": "Siguiente paso",
-      "alreadyDone": "Ya lo he hecho",
-      "skip": "Saltar este paso",
-      "last": "Ir al último paso",
-      "close": "Cerrar la guía",
-      "required": "Obligatorio",
-      "retry": "Inténtalo de nuevo",
-      "showAgain": "Mostrar de nuevo",
-      "hideSteps": "Ocultar los pasos",
-      "showSteps": "Ver los pasos",
-      "stepsLabel": "Pasos de la guía",
-      "goTo": "Ir a: {title}",
-      "yourTurn": "te toca",
-      "waitingForYou": "Esperando a que lo hagas"
-    },
-    "back": "Volver",
-    "voiceOn": "Activar la voz",
-    "voiceOff": "Silenciar la voz",
-    "hideMascot": "Esconder al asistente",
-    "stopGuide": "Detener la guía",
-    "stop": "Detener",
-    "mascotActions": "Opciones del asistente",
-    "video": {
-      "label": "Vídeo: {title}",
-      "move": "Arrastra para moverlo",
-      "guideMe": "Guíame mientras lo veo",
-      "guideMeShort": "Guíame",
-      "enlarge": "Ampliar",
-      "shrink": "Reducir",
-      "close": "Cerrar el vídeo",
-      "play": "Reproducir",
-      "pause": "Pausar",
-      "mute": "Silenciar",
-      "unmute": "Activar el sonido",
-      "speed": "Velocidad {rate}x",
-      "fullscreen": "Pantalla completa",
-      "exitFullscreen": "Salir de pantalla completa",
-      "seek": "Posición del vídeo",
-      "loading": "Cargando el vídeo…",
-      "error": "No se ha podido cargar el vídeo.",
-      "openExternal": "Abrirlo en otra pestaña"
-    }
-  },
-  "HelpInsightsPage": {
-    "title": "Métricas del asistente",
-    "description": "Cuánto resuelve solo el asistente, qué se escala y dónde se atasca la gente.",
-    "range": "Últimos {days} días",
-    "refresh": "Actualizar",
-    "retry": "Inténtalo de nuevo",
-    "empty": "Todavía no hay datos en este período.",
-    "kpi": {
-      "questions": "Preguntas",
-      "resolved": "Resueltas por el asistente",
-      "resolvedGoal": "Meta: 85% o más",
-      "escalated": "Escaladas",
-      "feedback": "👍 / 👎",
-      "confidence": "Confianza media",
-      "weekend": "Escaladas en fin de semana",
-      "weekendGoal": "Meta: solo incidentes críticos"
-    },
-    "byWeek": {
-      "title": "Preguntas por semana",
-      "description": "Total y escaladas al equipo de soporte."
-    },
-    "byScreen": {
-      "title": "Pantallas con más dudas",
-      "description": "En rojo, las que el asistente no pudo resolver.",
-      "none": "Sin pantalla"
-    },
-    "open": {
-      "title": "Preguntas sin resolver ({count})",
-      "description": "Escaladas o con 👎. Completa la ficha o la guía de esa pantalla y márcala como resuelta.",
-      "empty": "No hay preguntas pendientes.",
-      "confidence": "confianza {value}%",
-      "resolve": "Resuelta",
-      "ignore": "Ignorar"
-    },
-    "tickets": {
-      "title": "Tickets abiertos ({count})",
-      "description": "Lo que el asistente le pasó al equipo, con la pantalla y el contexto.",
-      "empty": "No hay tickets abiertos.",
-      "take": "Tomar",
-      "resolve": "Resolver",
-      "priority": {
-        "low": "Baja",
-        "normal": "Normal",
-        "high": "Alta",
-        "critical": "Crítica"
-      },
-      "status": {
-        "open": "Abierto",
-        "in_progress": "En curso",
-        "resolved": "Resuelto",
-        "closed": "Cerrado"
-      }
-    },
-    "catalog": {
-      "title": "Mapa del producto",
-      "screens": "{validated} de {total} pantallas validadas",
-      "tables": "{count} tablas de la BD documentadas",
-      "version": "Versión {version} · publicada {date}"
-    },
-    "videos": {
-      "title": "Videos demo",
-      "ready": "{count} videos publicados",
-      "requests": "{count} pedidos en curso",
-      "stale": "{count} videos desactualizados",
-      "failed": "{count} pedidos fallidos"
-    },
-    "onboarding": {
-      "title": "Onboarding",
-      "done": "Cumplido",
-      "pending": "Pendiente",
-      "skipped": "Omitido"
-    },
-    "steps": {
-      "business": "Datos de la clínica",
-      "sedes": "Sedes",
-      "schedules": "Horario de atención",
-      "calendars": "Consultorios",
-      "doctors": "Profesionales",
-      "availability": "Disponibilidad",
-      "services": "Servicios",
-      "first_appointment": "Cita de prueba",
-      "staff": "Equipo administrativo",
-      "payment_methods": "Medios de pago",
-      "whatsapp": "WhatsApp",
-      "patients_import": "Importar pacientes"
-    },
-    "toast": {
-      "questionUpdated": "Pregunta actualizada",
-      "ticketUpdated": "Ticket actualizado",
-      "error": "No se ha podido actualizar"
-    }
-  },
-  "RouteError": {
-    "title": "Algo no ha salido bien",
-    "description": "No hemos podido mostrar esta pantalla. Inténtalo de nuevo.",
-    "chunkDescription": "Hay una versión nueva de esta pantalla. Recarga la página para continuar.",
-    "retry": "Reintentar",
-    "reload": "Recargar la página",
-    "reloading": "Recargando la página…"
   }
 }

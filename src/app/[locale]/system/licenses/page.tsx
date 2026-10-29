@@ -227,11 +227,11 @@ export default function LicensesPage() {
     e.preventDefault();
     if (!secInput.trim()) return;
     if (!masterSec) {
-      setSecError(t('masterKey.notConfigured'));
+      setSecError('NEXT_PUBLIC_MASTER_SEC no está configurado en el servidor.');
       return;
     }
     if (secInput.trim() !== masterSec) {
-      setSecError(t('masterKey.wrong'));
+      setSecError('Clave incorrecta. Intente nuevamente.');
       return;
     }
     setIsUnlocked(true);
@@ -325,28 +325,28 @@ export default function LicensesPage() {
 
       {!isUnlocked ? (
         <div>
-          <Card data-help-id="system.licenses.section.master-key" className="w-full max-w-md shadow-sm">
+          <Card className="w-full max-w-md shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
                 <KeyRound className="h-4 w-4" />
-                {t('masterKey.prompt')}
+                Clave maestra
               </CardTitle>
               <CardDescription>
-                {t('masterKey.promptDescription')}
+                Ingresa la clave maestra para acceder a la gestión de licencias.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleUnlock} className="flex flex-col gap-3">
                 <Input
                   type="password"
-                  placeholder={t('masterKey.placeholder')}
+                  placeholder="Clave maestra..."
                   value={secInput}
                   onChange={e => { setSecInput(e.target.value); setSecError(''); }}
                   autoFocus
                 />
                 {secError && <p className="text-xs text-destructive">{secError}</p>}
                 <Button type="submit" disabled={!secInput.trim()} className="w-full">
-                  {t('masterKey.submit')}
+                  Verificar
                 </Button>
               </form>
             </CardContent>
@@ -384,7 +384,7 @@ export default function LicensesPage() {
           )}
 
           {canGenerate && !isFetchingLicense && !fetchError && (
-            <Card data-help-id="system.licenses.section.generate-new">
+            <Card>
               <CardHeader>
                 <CardTitle>{t('management.generateNew')}</CardTitle>
                 <CardDescription>
@@ -545,7 +545,7 @@ export default function LicensesPage() {
           )}
 
           {licenseKey && !generatedKey && (
-            <Card data-help-id="system.licenses.section.generated-key">
+            <Card>
               <CardHeader>
                 <CardTitle>{t('management.generatedKey')} (actual)</CardTitle>
                 <CardDescription>Clave activa actualmente en el sistema.</CardDescription>

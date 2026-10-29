@@ -1,9 +1,0 @@
-{
-  "id": "studies",
-  "status": "draft",
-  "summary": "Estudios de imágenes (DICOM).",
-  "purpose": "Radiografías y estudios del paciente, con visor.",
-  "prerequisites": [
-    "patients"
-  ]
-}

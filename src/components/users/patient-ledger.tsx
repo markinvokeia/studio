@@ -9,7 +9,6 @@ import { Banknote, Calendar, CalendarClock, Check, ChevronDown, CreditCard, File
 import { useTranslations } from 'next-intl';
 import { AppliedDiscountNote, DiscountControl } from '@/components/ui/discount-control';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
-import { composeHelpId } from '@/lib/help/help-id';
 import { buildLineDiscountFields, computeGrossTotal, computeLineTotals, isDiscountWithinLimit } from '@/lib/discounts';
 import type { DateRange } from 'react-day-picker';
 
@@ -39,7 +38,6 @@ import { DateRangePresets } from '@/components/reports/date-range-presets';
 import { QuoteBillingDialog } from '@/components/sales/quotes/quote-billing-dialog';
 import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
 import { FinanceSortOrderToggle } from '@/components/users/finance-sort-order-toggle';
-import { useHelpScope } from '@/components/help/help-scope';
 import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
@@ -1703,7 +1701,6 @@ function CreditNoteInlineEditor({ row, userId, parentInvoiceId, sedeId, maxCredi
 
 export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedgerProps>(function PatientLedger({ userId, patientName, patientEmail, refreshTrigger, onPrintSummary, onViewStatement, hideToolbarActions, searchTerm: searchTermProp, dateRange: dateRangeProp, onDateRangeChange }: PatientLedgerProps, ref) {
   const t = useTranslations('PatientLedger');
-  const helpScope = useHelpScope();
   const { toast } = useToast();
   const { user: operator } = useAuth();
   const clinicInfo = useClinicInfo();
@@ -2520,7 +2517,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
   }, [isLoading, displayRows, sortOrder]);
 
   const toolbar = (
-    <div data-help-id={composeHelpId(helpScope, 'section', 'ledger-toolbar')} className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {!isDateRangeControlled && <DateRangePresets value={dateRange} onChange={setDateRange} allowAllTime />}
       {!isSearchControlled && (
         <div className="flex items-center">
@@ -2548,7 +2545,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
         </div>
       )}
       {onViewStatement && (
-        <Button data-help-id={composeHelpId(helpScope, 'btn', 'ledger-statement')} size="sm" variant="ghost" className="gap-1.5 text-xs" onClick={onViewStatement}>
+        <Button size="sm" variant="ghost" className="gap-1.5 text-xs" onClick={onViewStatement}>
           <ScrollText className="h-3.5 w-3.5" />{t('viewStatement')}
         </Button>
       )}
@@ -2564,7 +2561,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
           {onPrintSummary && (
             /* Hand the host the on-screen snapshot so the PDF honours the active period
                filter instead of re-fetching the whole statement. */
-            <Button data-help-id={composeHelpId(helpScope, 'btn', 'ledger-print')} size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => onPrintSummary(visibleLedger)}>
+            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => onPrintSummary(visibleLedger)}>
               <Printer className="h-3.5 w-3.5" />
             </Button>
           )}
@@ -2599,7 +2596,7 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
               header and the columns' fixed min-width only kick in above that. While the
               create editor is open the list keeps a minimum height, so the editor (which
               scrolls instead) can't squeeze it out of view on a short panel. */}
-          <div ref={scrollContainerRef} data-help-id={composeHelpId(helpScope, 'section', 'ledger')} className={cn('min-h-0 flex-1 overflow-auto', createDoc !== null && 'min-h-[7.5rem]')}>
+          <div ref={scrollContainerRef} className={cn('min-h-0 flex-1 overflow-auto', createDoc !== null && 'min-h-[7.5rem]')}>
             {/* px-2 gives the selected-row ring room so it isn't clipped by the scroll
                 container's edges; header and rows share the padding so columns stay aligned. */}
             <div className="patient-ledger-row-min-w w-full px-2">
@@ -2837,17 +2834,17 @@ export const PatientLedger = React.forwardRef<PatientLedgerHandle, PatientLedger
           <div className="patient-ledger-footer flex shrink-0 gap-3 border-t pl-1 pr-5 pt-3">
             <div className="flex flex-1 flex-wrap items-center gap-2">
               {canCreateQuote && (
-                <Button data-help-id={composeHelpId(helpScope, 'btn', 'ledger-add-quote')} size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setCreateDoc('quote'); }}>
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setCreateDoc('quote'); }}>
                   <Plus className="h-3.5 w-3.5" /><FileText className="h-3.5 w-3.5" />{t('inline.addQuote')}
                 </Button>
               )}
               {canCreateTreatment && (
-                <Button data-help-id={composeHelpId(helpScope, 'btn', 'ledger-add-treatment')} size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setCreateDoc('invoice'); }}>
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setCreateDoc('invoice'); }}>
                   <Plus className="h-3.5 w-3.5" /><Receipt className="h-3.5 w-3.5" />{t('inline.addTreatment')}
                 </Button>
               )}
               {canCreatePaymentPerm && (
-                <Button data-help-id={composeHelpId(helpScope, 'btn', 'ledger-add-payment')} size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setCreateDoc('payment'); }}>
+                <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setSelectedRowId(null); setEditingItemRowId(null); setEditingPaymentRowId(null); setEditingCreditNoteRow(null); setCreateDoc('payment'); }}>
                   <Plus className="h-3.5 w-3.5" /><Banknote className="h-3.5 w-3.5" />{t('inline.addPayment')}
                 </Button>
               )}

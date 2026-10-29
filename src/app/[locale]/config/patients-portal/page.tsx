@@ -183,7 +183,7 @@ export default function PatientsPortalConfigPage() {
           description={t('description')}
           actions={
             canUpdate ? (
-              <Button data-help-id="config.patients-portal.btn.save" onClick={() => save.run(config)} disabled={!isDirty || isRefreshing} loading={save.isPending} className="gap-1.5">
+              <Button onClick={() => save.run(config)} disabled={!isDirty || isRefreshing} loading={save.isPending} className="gap-1.5">
                 <Save className="h-4 w-4" />
                 {t('save')}
               </Button>
@@ -193,7 +193,7 @@ export default function PatientsPortalConfigPage() {
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-1 pb-6">
           {/* ── Acceso ─────────────────────────────────────────────────── */}
-          <Card data-help-id="config.patients-portal.section.access">
+          <Card>
             <CardContent className="p-5">
               <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
                 <div className="space-y-4">
@@ -301,7 +301,7 @@ export default function PatientsPortalConfigPage() {
           </Card>
 
           {/* ── Servicios de la reserva ────────────────────────────────── */}
-          <Card data-help-id="config.patients-portal.section.booking-services">
+          <Card>
             <CardContent className="space-y-4 p-5">
               <SettingRow
                 label={t('fields.serviceSelection.label')}
@@ -365,7 +365,7 @@ export default function PatientsPortalConfigPage() {
           </Card>
 
           {/* ── Presentación ───────────────────────────────────────────── */}
-          <Card data-help-id="config.patients-portal.section.presentation">
+          <Card>
             <CardContent className="space-y-5 p-5">
               <div className="space-y-2">
                 <FieldLabel

@@ -42,7 +42,7 @@ export function CalendarZoomMenu({ zoom, onZoomChange, min = 0.3, max = 2.5, ste
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>
-                <Button data-help-id="appointments.btn.zoom" variant="outline" size="icon" className="h-10 w-10">
+                <Button variant="outline" size="icon" className="h-10 w-10">
                   <Search className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -52,7 +52,7 @@ export function CalendarZoomMenu({ zoom, onZoomChange, min = 0.3, max = 2.5, ste
         </TooltipProvider>
       ) : (
         <DropdownMenuTrigger asChild>
-          <Button data-help-id="appointments.btn.zoom" variant="outline" size="sm" className="h-10 gap-1.5">
+          <Button variant="outline" size="sm" className="h-10 gap-1.5">
             <Search className="h-4 w-4" />
             {t('zoom')}
             <ChevronDown className="h-3.5 w-3.5 opacity-80" />

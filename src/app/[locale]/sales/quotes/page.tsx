@@ -83,7 +83,6 @@ import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
 import { currencySchema } from '@/lib/currency';
 import { CurrencySelect } from '@/components/ui/currency-select';
-import { HelpScopeProvider } from '@/components/help/help-scope';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 import { createDefaultPagination } from '@/lib/pagination';
 
@@ -1493,13 +1492,13 @@ export default function QuotesPage() {
     const quoteItemToolbarActions = selectedQuoteItem && canEditQuote && (canUpdateItem || canDeleteItem) ? (
         <div className="flex items-center gap-1.5">
             {canUpdateItem && (
-                <Button data-help-id="sales.quotes.btn.item-edit" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleEditQuoteItem(selectedQuoteItem)}>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleEditQuoteItem(selectedQuoteItem)}>
                     <Pencil className="h-3.5 w-3.5" />
                     {t('edit')}
                 </Button>
             )}
             {canDeleteItem && (
-                <Button data-help-id="sales.quotes.btn.item-delete" variant="destructive" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleDeleteQuoteItem(selectedQuoteItem)}>
+                <Button variant="destructive" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleDeleteQuoteItem(selectedQuoteItem)}>
                     <Trash2 className="h-3.5 w-3.5" />
                     {t('delete')}
                 </Button>
@@ -1667,9 +1666,9 @@ export default function QuotesPage() {
                                         onClose={handleCloseDetails}
                                     />
                                 </CardHeader>
-                                <div data-help-id="sales.quotes.section.actions" className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
+                                <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
                                     {canUpdateQuote && selectedQuote.status.toLowerCase() === 'draft' && (
-                                        <Button data-help-id="sales.quotes.btn.edit" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleEditQuote(selectedQuote)}>
+                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleEditQuote(selectedQuote)}>
                                             <Pencil className="h-3.5 w-3.5" />
                                             {t('edit')}
                                         </Button>
@@ -1681,7 +1680,6 @@ export default function QuotesPage() {
                                                     variant="default"
                                                     size="sm"
                                                     className="h-8 gap-1.5 bg-green-600 text-xs text-white hover:bg-green-700"
-                                                    data-help-id="sales.quotes.btn.confirm"
                                                     onClick={() => handleQuoteActionRequest(selectedQuote, 'confirm')}
                                                 >
                                                     <CheckCircle className="h-3.5 w-3.5" />
@@ -1693,7 +1691,6 @@ export default function QuotesPage() {
                                                     variant="destructive"
                                                     size="sm"
                                                     className="h-8 gap-1.5 text-xs text-white"
-                                                    data-help-id="sales.quotes.btn.reject"
                                                     onClick={() => handleQuoteActionRequest(selectedQuote, 'reject')}
                                                 >
                                                     <XCircle className="h-3.5 w-3.5" />
@@ -1707,7 +1704,6 @@ export default function QuotesPage() {
                                             variant="destructive"
                                             size="sm"
                                             className="h-8 gap-1.5 text-xs text-white"
-                                            data-help-id="sales.quotes.btn.delete"
                                             onClick={() => handleDeleteQuote(selectedQuote)}
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />
@@ -1715,19 +1711,19 @@ export default function QuotesPage() {
                                         </Button>
                                     )}
                                     {canPrint && (
-                                        <Button data-help-id="sales.quotes.btn.print" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintQuote(selectedQuote)}>
+                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintQuote(selectedQuote)}>
                                             <Printer className="h-3.5 w-3.5" />
                                             {t('print')}
                                         </Button>
                                     )}
                                     {canSendEmail && (
-                                        <Button data-help-id="sales.quotes.btn.email" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedQuote)}>
+                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedQuote)}>
                                             <Send className="h-3.5 w-3.5" />
                                             {t('sendEmail')}
                                         </Button>
                                     )}
                                     {canInvoice && isQuoteReadyToInvoice && pendingInvoiceAmount > 0.009 && (
-                                        <Button data-help-id="sales.quotes.btn.invoice" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleOpenBillingDialog}>
+                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleOpenBillingDialog}>
                                             <Receipt className="h-3.5 w-3.5" />
                                             {t('actions.invoice')}
                                         </Button>
@@ -1748,7 +1744,6 @@ export default function QuotesPage() {
                                         activeTabId={activeTab}
                                         onTabClick={(tab) => setActiveTab(tab.id)}
                                     />
-                                    <HelpScopeProvider scope="sales.quotes.detail">
                                     <div className="flex-1 min-w-0 overflow-y-auto flex flex-col min-h-0 px-0 pt-4 pb-8 sm:py-3 sm:px-3">
                                             {activeTab === 'items' && (
                                             <div className="m-0 h-full flex flex-col">
@@ -2038,7 +2033,6 @@ export default function QuotesPage() {
                                             </div>
                                             )}
                                     </div>
-                                    </HelpScopeProvider>
                                 </CardContent>
                             </Card>
                         )
@@ -2163,11 +2157,11 @@ export default function QuotesPage() {
                                         />
                                     </div>
                                 )}
-                                <Card data-help-id="sales.quotes.section.quote-items">
+                                <Card>
                                     <CardHeader>
                                         <div className="flex justify-between items-center">
                                             <CardTitle>{t('quoteDialog.items.title')}</CardTitle>
-                                            <Button data-help-id="sales.quotes.btn.add-item" type="button" size="sm" variant="outline" onClick={handleAddQuoteItem}>{t('quoteDialog.addItem')}</Button>
+                                            <Button type="button" size="sm" variant="outline" onClick={handleAddQuoteItem}>{t('quoteDialog.addItem')}</Button>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="bg-card">
@@ -2480,7 +2474,7 @@ export default function QuotesPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>{t('deleteQuoteDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction data-help-id="sales.quotes.btn.delete-confirm" onClick={confirmDeleteQuote} className="bg-destructive hover:bg-destructive/90">{t('deleteQuoteDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogAction onClick={confirmDeleteQuote} className="bg-destructive hover:bg-destructive/90">{t('deleteQuoteDialog.confirm')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
@@ -2679,7 +2673,7 @@ export default function QuotesPage() {
                         <AlertDialogDescription>{t('deleteItemDialog.description')}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogAction data-help-id="sales.quotes.btn.item-delete-confirm" onClick={confirmDeleteQuoteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogAction onClick={confirmDeleteQuoteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
                         <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -2702,7 +2696,7 @@ export default function QuotesPage() {
                     </div>
                     <DialogFooter className="px-6 pb-4">
                         <Button variant="outline" onClick={() => setIsConfirmQuoteDialogOpen(false)}>{t('confirmDialog.cancel')}</Button>
-                        <Button data-help-id="sales.quotes.btn.quote-action-confirm" onClick={handleConfirmQuoteAction}>{confirmingAction === 'confirm' ? t('confirmDialog.confirm') : t('confirmDialog.reject')}</Button>
+                        <Button onClick={handleConfirmQuoteAction}>{confirmingAction === 'confirm' ? t('confirmDialog.confirm') : t('confirmDialog.reject')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

@@ -1,9 +1,0 @@
-{
-  "id": "shared-studies",
-  "status": "draft",
-  "summary": "Estudios compartidos.",
-  "purpose": "Estudios de imágenes compartidos con otros profesionales o con el paciente.",
-  "prerequisites": [
-    "studies"
-  ]
-}

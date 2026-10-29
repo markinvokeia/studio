@@ -97,7 +97,7 @@ export function CalendarViewMenu({
           <Tooltip>
             <TooltipTrigger asChild>
               <DropdownMenuTrigger asChild>
-                <Button data-help-id="appointments.btn.view" variant="outline" size="icon" className="h-10 w-10">
+                <Button variant="outline" size="icon" className="h-10 w-10">
                   <Eye className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -107,7 +107,7 @@ export function CalendarViewMenu({
         </TooltipProvider>
       ) : (
         <DropdownMenuTrigger asChild>
-          <Button data-help-id="appointments.btn.view" variant="outline" size="sm" className="h-10 gap-1.5">
+          <Button variant="outline" size="sm" className="h-10 gap-1.5">
             <Eye className="h-4 w-4" />
             {t('view')}
             <ChevronDown className="h-3.5 w-3.5 opacity-80" />

@@ -42,11 +42,11 @@ export const MiscellaneousCategoriesColumnsWrapper = ({ onEdit, onDelete }: Misc
         const category = row.original;
         return (
           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-          <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" data-help-id="cashier.miscellaneous-categories.btn.row-edit" onClick={() => onEdit(category)}>
+          <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => onEdit(category)}>
             <Pencil className="h-3.5 w-3.5" />
             <span className="text-[9px] font-medium leading-tight">{t('edit')}</span>
           </button>
-          <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" data-help-id="cashier.miscellaneous-categories.btn.row-delete" onClick={() => onDelete(category)}>
+          <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" onClick={() => onDelete(category)}>
             <Trash2 className="h-3.5 w-3.5" />
             <span className="text-[9px] font-medium leading-tight">{t('delete')}</span>
           </button>

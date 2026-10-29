@@ -536,12 +536,12 @@ export default function CommunicationTemplatesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                            {canUpdate && <><DropdownMenuItem data-help-id="system.communication-templates.btn.row-edit" onClick={() => handleEdit(template)}>{t('columns.edit')}</DropdownMenuItem>
-                                <DropdownMenuItem data-help-id="system.communication-templates.btn.row-duplicate" onClick={() => handleDuplicate(template)}>{t('columns.duplicate')}</DropdownMenuItem></>}
+                            {canUpdate && <><DropdownMenuItem onClick={() => handleEdit(template)}>{t('columns.edit')}</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDuplicate(template)}>{t('columns.duplicate')}</DropdownMenuItem></>}
                             <DropdownMenuItem onClick={() => handlePreview(template)}>{t('columns.preview')}</DropdownMenuItem>
                             {/* <DropdownMenuItem>{t('columns.history')}</DropdownMenuItem> */}
                             <DropdownMenuSeparator />
-                            {canDelete && <DropdownMenuItem data-help-id="system.communication-templates.btn.row-delete" onClick={() => handleDelete(template)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
+                            {canDelete && <DropdownMenuItem onClick={() => handleDelete(template)} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
                         </DropdownMenuContent>
                     </DropdownMenu>
                     </div>
@@ -605,7 +605,7 @@ export default function CommunicationTemplatesPage() {
 
     const rightPanel = selectedTemplate ? (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader data-help-id="system.communication-templates.section.detail" className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="header-icon-circle flex-none"><BookCopy className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
@@ -614,12 +614,12 @@ export default function CommunicationTemplatesPage() {
                     </div>
                     <div className="flex gap-1 flex-none">
                         {canUpdate && (
-                            <Button data-help-id="system.communication-templates.btn.edit" size="sm" variant="outline" onClick={() => handleEdit(selectedTemplate)}>
+                            <Button size="sm" variant="outline" onClick={() => handleEdit(selectedTemplate)}>
                                 <Pencil className="h-4 w-4 mr-1" />Editar
                             </Button>
                         )}
                         {canDelete && (
-                            <Button data-help-id="system.communication-templates.btn.delete" size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('columns.delete')} onClick={() => handleDelete(selectedTemplate)}>
+                            <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('columns.delete')} onClick={() => handleDelete(selectedTemplate)}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}

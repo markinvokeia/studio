@@ -16,7 +16,6 @@ import { downloadCSV, downloadExcel, type ExportColumn } from '@/lib/export-util
 import { format } from 'date-fns';
 import { API_ROUTES } from '@/constants/routes';
 import { PurchasePrepaidFormDialog } from '@/components/purchases/payments/PurchasePrepaidFormDialog';
-import { HelpScopeProvider } from '@/components/help/help-scope';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
@@ -321,17 +320,17 @@ function PaymentsPageContent() {
                                     onClose={handleCloseDetails}
                                 />
                             </CardHeader>
-                            <div data-help-id="purchases.payments.section.actions" className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
+                            <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
                                 {selectedPayment.is_historical && (
                                     <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
                                         {t('columns.isHistorical')}
                                     </Badge>
                                 )}
-                                <Button data-help-id="purchases.payments.btn.print" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintPayment(selectedPayment)}>
+                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintPayment(selectedPayment)}>
                                     <Printer className="h-3.5 w-3.5" />
                                     {t('actions.print')}
                                 </Button>
-                                <Button data-help-id="purchases.payments.btn.email" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedPayment)}>
+                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedPayment)}>
                                     <Send className="h-3.5 w-3.5" />
                                     {t('actions.sendEmail')}
                                 </Button>
@@ -339,7 +338,7 @@ function PaymentsPageContent() {
 
                             {/* Credit balance summary — only for prepaid payments (no invoice attached) */}
                             {!selectedPayment.invoice_id && (
-                                <div data-help-id="purchases.payments.section.credit-balance" className="px-6 py-3 border-b">
+                                <div className="px-6 py-3 border-b">
                                     {isLoadingAllocations ? (
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                             <Loader2 className="h-3 w-3 animate-spin" />
@@ -431,7 +430,6 @@ function PaymentsPageContent() {
                                     activeTabId={activeTab}
                                     onTabClick={(tab) => setActiveTab(tab.id)}
                                 />
-                                <HelpScopeProvider scope="purchases.payments.detail">
                                 <div className="flex-1 min-w-0 overflow-y-auto flex flex-col min-h-0 px-0 pt-4 pb-8 sm:py-3 sm:px-3">
                                     {activeTab === 'allocations' && (
                                         <div className="m-0 h-full flex flex-col px-3">
@@ -459,7 +457,6 @@ function PaymentsPageContent() {
                                         </div>
                                     )}
                                 </div>
-                                </HelpScopeProvider>
                             </CardContent>
                         </Card>
                     )

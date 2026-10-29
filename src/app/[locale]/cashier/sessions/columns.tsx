@@ -63,11 +63,11 @@ export const CashSessionsColumnsWrapper = ({ onView, onPrint }: CashSessionsColu
                 const session = row.original;
             return (
               <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-              <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" data-help-id="cashier.sessions.btn.row-view" onClick={() => onView(session)}>
+              <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => onView(session)}>
                 <Eye className="h-3.5 w-3.5" />
                 <span className="text-[9px] font-medium leading-tight">{t('viewDetails')}</span>
               </button>
-              <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" data-help-id="cashier.sessions.btn.row-print" onClick={() => onPrint(session)}>
+              <button type="button" className="flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" onClick={() => onPrint(session)}>
                 <Printer className="h-3.5 w-3.5" />
                 <span className="text-[9px] font-medium leading-tight">{t('print')}</span>
               </button>

@@ -587,7 +587,7 @@ function TreatmentStepsTab({ serviceId, t }: { serviceId: string; t: (key: strin
     <div className="space-y-0">
       <div className="flex items-center justify-between mb-3">
         <p className="text-xs text-muted-foreground">{t('serviceType.stepsTabDescription')}</p>
-        <Button data-help-id="sales.services.btn.add-step" type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={addNew}>
+        <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={addNew}>
           <PlusCircle className="h-3.5 w-3.5 mr-1" />
           {t('serviceType.addStep')}
         </Button>
@@ -1076,7 +1076,7 @@ export default function ServicesPage() {
         rightPanel={
           selectedService && (
             <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-              <CardHeader data-help-id="sales.services.section.detail" className="flex-none p-4 pb-2">
+              <CardHeader className="flex-none p-4 pb-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     {selectedService.color
@@ -1090,7 +1090,7 @@ export default function ServicesPage() {
                   </div>
                   <div className="flex items-center gap-0.5 ml-2 flex-none">
                     {canDelete && (
-                      <button data-help-id="sales.services.btn.delete" type="button" title={tColumns('delete')} onClick={() => handleDelete(selectedService)} className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
+                      <button type="button" title={tColumns('delete')} onClick={() => handleDelete(selectedService)} className="flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors">
                         <Trash2 className="h-4 w-4" />
                       </button>
                     )}
@@ -1202,7 +1202,7 @@ export default function ServicesPage() {
             <AlertDialogDescription>{t('deleteDialog.description', { name: deletingService?.name })}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction data-help-id="sales.services.btn.delete-confirm" onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
             <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>

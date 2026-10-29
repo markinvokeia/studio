@@ -20,7 +20,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { InstructionRichTextEditor } from '@/components/medical-instructions/instruction-rich-text-editor';
 import { usePatientInstructionPrint } from '@/components/medical-instructions/patient-instruction-print-view';
-import { useHelpScope } from '@/components/help/help-scope';
 
 import { API_ROUTES } from '@/constants/routes';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
@@ -29,7 +28,6 @@ import {
     MEDICAL_INSTRUCTION_TEMPLATE_VARIABLES,
     MEDICAL_INSTRUCTION_TEMPLATE_VARIABLE_GROUP_ORDER,
 } from '@/lib/medical-instruction-template-variables';
-import { composeHelpId } from '@/lib/help/help-id';
 import { MedicalInstructionTemplate, PatientMedicalInstruction } from '@/lib/types';
 import { cn, formatDate } from '@/lib/utils';
 import { getDateFnsLocale } from '@/lib/locale';
@@ -83,7 +81,6 @@ export function PatientInstructionDialog({
     onSaved,
 }: PatientInstructionDialogProps) {
     const t = useTranslations('PatientInstructionDialog');
-    const helpScope = useHelpScope();
     const locale = useLocale();
     const dateLocale = getDateFnsLocale(locale);
     const { toast } = useToast();
@@ -247,7 +244,7 @@ export function PatientInstructionDialog({
                 <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
                     <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-4">
                         <div className="grid gap-4 md:grid-cols-3">
-                            <div data-help-id={composeHelpId(helpScope, 'field', 'mi-date')} className="space-y-2">
+                            <div className="space-y-2">
                                 <Label>{t('date')}</Label>
                                 <Popover>
                                     <PopoverTrigger asChild>
@@ -270,7 +267,7 @@ export function PatientInstructionDialog({
                                     </PopoverContent>
                                 </Popover>
                             </div>
-                            <div data-help-id={composeHelpId(helpScope, 'field', 'mi-tooth')} className="space-y-2">
+                            <div className="space-y-2">
                                 <Label>{t('tooth')}</Label>
                                 <Input
                                     type="number"
@@ -281,7 +278,7 @@ export function PatientInstructionDialog({
                                     onChange={(e) => setToothNumber(e.target.value)}
                                 />
                             </div>
-                            <div data-help-id={composeHelpId(helpScope, 'field', 'mi-doctor')} className="space-y-2">
+                            <div className="space-y-2">
                                 <Label>{t('doctor')}</Label>
                                 <DoctorSelector
                                     value={doctorId}
@@ -297,7 +294,7 @@ export function PatientInstructionDialog({
                             </div>
                         </div>
 
-                        <div data-help-id={composeHelpId(helpScope, 'field', 'mi-template')} className="space-y-2">
+                        <div className="space-y-2">
                             <Label>{t('template')}</Label>
                             <Select value={templateId} onValueChange={handleSelectTemplate}>
                                 <SelectTrigger className="w-full">
@@ -317,7 +314,7 @@ export function PatientInstructionDialog({
                             </Select>
                         </div>
 
-                        <div data-help-id={composeHelpId(helpScope, 'field', 'mi-content')} className="space-y-2">
+                        <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <Label>{t('content')}</Label>
                                 <div className="flex items-center gap-1">
@@ -350,7 +347,7 @@ export function PatientInstructionDialog({
                     </div>
                     <DialogFooter className="px-6 py-4 border-t shrink-0">
                         <DialogCancelButton variant="outline">{t('close')}</DialogCancelButton>
-                        <Button data-help-id={composeHelpId(helpScope, 'btn', 'mi-save')} type="submit" disabled={isSubmitting}>
+                        <Button type="submit" disabled={isSubmitting}>
                             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {isSubmitting ? t('saving') : t('save')}
                         </Button>
