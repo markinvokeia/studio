@@ -1319,7 +1319,7 @@ export function AppointmentFormDialog({
                         )}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-6 py-4">
                             <div className="space-y-4">
-                                <div className="space-y-2" data-help-id="appointments.field.patient">
+                                <div className="space-y-2">
                                     <Label className={errors.includes('user') ? "text-destructive" : ""}>{t('createDialog.userName')}</Label>
                                     <UserSelector
                                         filterType="PACIENTE"
@@ -1501,7 +1501,7 @@ export function AppointmentFormDialog({
                                 </div>
                                 )}
 
-                                <div className="space-y-2" data-help-id="appointments.field.services">
+                                <div className="space-y-2">
                                     <Label>{t('createDialog.serviceName')}</Label>
                                     <Popover open={isServiceSearchOpen} onOpenChange={(o) => { if (!o) { setIsCreatingService(false); setServiceSearchQuery(''); } setServiceSearchOpen(o); }}>
                                         <PopoverTrigger asChild>
@@ -1623,7 +1623,7 @@ export function AppointmentFormDialog({
                                         </Alert>
                                     )}
                                 </div>
-                                <div className="space-y-2" data-help-id="appointments.field.doctor">
+                                <div className="space-y-2">
                                     <Label>{tColumns('doctor')}</Label>
                                     <Popover open={isDoctorSearchOpen} onOpenChange={(open) => { setDoctorSearchOpen(open); if (!open) setDoctorSearchQuery(''); }}>
                                         <PopoverTrigger asChild>
@@ -1665,7 +1665,7 @@ export function AppointmentFormDialog({
                                         </PopoverContent>
                                     </Popover>
                                 </div>
-                                <div className="space-y-2" data-help-id="appointments.field.calendar">
+                                <div className="space-y-2">
                                     <Label className={errors.includes('calendar') ? "text-destructive" : ""}>{t('createDialog.calendar')}</Label>
                                     <Popover open={isCalendarSearchOpen} onOpenChange={setCalendarSearchOpen}>
                                         <PopoverTrigger asChild>
@@ -1696,11 +1696,11 @@ export function AppointmentFormDialog({
                                 </div>
                             </div>
                             <div className="space-y-4">
-                                <div className="space-y-2" data-help-id="appointments.field.date">
+                                <div className="space-y-2">
                                     <Label htmlFor="date" className={errors.includes('date') ? "text-destructive" : ""}>{t('createDialog.date')}</Label>
                                     <DatePickerInput value={appointment.date} onChange={value => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, date: value })); setErrors(prev => prev.filter(err => err !== 'date')); }} className={errors.includes('date') ? "border-destructive" : ""} />
                                 </div>
-                                <div className="space-y-2" data-help-id="appointments.field.time">
+                                <div className="space-y-2">
                                     <Label htmlFor="time" className={errors.includes('time') ? "text-destructive" : ""}>{t('createDialog.time')}</Label>
                                     <Input id="time" type="time" value={appointment.time} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, time: e.target.value })); setErrors(prev => prev.filter(err => err !== 'time')); }} className={errors.includes('time') ? "border-destructive" : ""} />
                                 </div>
@@ -1723,7 +1723,7 @@ export function AppointmentFormDialog({
                                     <Label htmlFor="endTime">{t('createDialog.endTime')}</Label>
                                     <Input id="endTime" type="time" value={appointment.endTime} readOnly tabIndex={-1} className="bg-muted/50 text-muted-foreground cursor-default" />
                                 </div>
-                                <div className="space-y-2" data-help-id="appointments.field.notes">
+                                <div className="space-y-2">
                                     <Label htmlFor="notes">{t('createDialog.notes')}</Label>
                                     <Textarea id="notes" value={appointment.notes} onChange={e => { setHasBeenEdited(true); setAppointment(prev => ({ ...prev, notes: e.target.value })); }} />
                                 </div>
@@ -1839,7 +1839,6 @@ export function AppointmentFormDialog({
                         <DialogCancelButton variant="outline" disabled={isSavingAppointment}>{t('createDialog.cancel')}</DialogCancelButton>
                         <Button
                             type="button"
-                            data-help-id="appointments.btn.save"
                             onClick={() => { void handleSave(); }}
                             loading={isSavingAppointment}
                             disabled={isSessionDialogOpen || isSavingAppointment}

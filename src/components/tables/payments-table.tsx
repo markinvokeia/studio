@@ -15,7 +15,6 @@ import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
-import { composeHelpId } from '@/lib/help/help-id';
 import { Payment } from '@/lib/types';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { isPaymentEditable, type PaymentTypeFilter } from '@/services/payments-service';
@@ -25,7 +24,6 @@ import { useTranslations } from 'next-intl';
 import React from 'react';
 import { Button } from '../ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { useHelpScope } from '@/components/help/help-scope';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 const PAYMENT_TYPE_FILTER_OPTIONS: Exclude<PaymentTypeFilter, 'all'>[] = ['prepaid', 'direct_payment', 'payment_allocation', 'credit_note_allocation'];
@@ -52,10 +50,8 @@ const getColumns = (
   onPrint?: (payment: Payment) => void,
   onSendEmail?: (payment: Payment) => void,
   onEdit?: (payment: Payment) => void,
-  onAllocate?: (payment: Payment) => void,
-  helpScope = 'app'
+  onAllocate?: (payment: Payment) => void
 ): ColumnDef<Payment>[] => {
-  const hid = (name: string) => composeHelpId(helpScope, 'btn', name);
 
 
   const columns: ColumnDef<Payment>[] = [
@@ -219,11 +215,9 @@ const getColumns = (
         const payment = row.original;
         const isPrepaid = getPaymentType(payment).type === 'prepaid';
         return (
-          // El clic en el menú no debe seleccionar la fila (abre el detalle y desmonta el menú).
-          <div onClick={(e) => e.stopPropagation()}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button data-help-id={hid('row-actions')} variant="ghost" className="h-8 w-8 p-0">
+              <Button variant="ghost" className="h-8 w-8 p-0">
                 <span className="sr-only">{tActions('openMenu')}</span>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
@@ -231,34 +225,33 @@ const getColumns = (
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>{tActions('title')}</DropdownMenuLabel>
               {onPrint && (
-                <DropdownMenuItem data-help-id={hid('row-print')} onClick={() => onPrint(payment)}>
+                <DropdownMenuItem onClick={() => onPrint(payment)}>
                   <Printer className="mr-2 h-4 w-4" />
                   {tActions('print')}
                 </DropdownMenuItem>
               )}
               {onAllocate && isPrepaid && (
-                <DropdownMenuItem data-help-id={hid('row-allocations')} onClick={() => onAllocate(payment)}>
+                <DropdownMenuItem onClick={() => onAllocate(payment)}>
                   <CreditCard className="mr-2 h-4 w-4" />
                   <span>{tActions('viewAllocations')}</span>
                 </DropdownMenuItem>
               )}
               {onEdit && (
                 isPaymentEditable(payment) ? (
-                  <DropdownMenuItem data-help-id={hid('row-edit')} onClick={() => onEdit(payment)}>
+                  <DropdownMenuItem onClick={() => onEdit(payment)}>
                     <Pencil className="mr-2 h-4 w-4" />
                     <span>{tActions('edit')}</span>
                   </DropdownMenuItem>
                 ) : null
               )}
               {onSendEmail && (
-                <DropdownMenuItem data-help-id={hid('row-email')} onClick={() => onSendEmail(payment)}>
+                <DropdownMenuItem onClick={() => onSendEmail(payment)}>
                   <Send className="mr-2 h-4 w-4" />
                   <span>{tActions('sendEmail')}</span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-          </div>
         );
       },
     });
@@ -314,8 +307,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
   const showToggle = !viewportNarrow;
   const useListView = showToggle && viewMode === 'list';
   const isNarrow = panelNarrow || viewportNarrow || useListView;
-  const helpScope = useHelpScope();
-  const columns = React.useMemo(() => getColumns(t, tActions, tPaymentMethods, onPrint, onSendEmail, onEdit, onAllocate, helpScope), [t, tActions, tPaymentMethods, onPrint, onSendEmail, onEdit, onAllocate, helpScope]);
+  const columns = React.useMemo(() => getColumns(t, tActions, tPaymentMethods, onPrint, onSendEmail, onEdit, onAllocate), [t, tActions, tPaymentMethods, onPrint, onSendEmail, onEdit, onAllocate]);
 
   const filteredColumns = columns.filter(col => !columnsToHide.includes((col as any).accessorKey));
 
@@ -335,7 +327,7 @@ export function PaymentsTable({ payments, isLoading = false, onRefresh, isRefres
   };
 
   const exportButton = onExport && hasPermission(isSales ? SALES_PERMISSIONS.PAYMENTS_EXPORT : PURCHASES_PERMISSIONS.PAYMENTS_EXPORT) ? (
-    <Button data-help-id={composeHelpId(helpScope, 'btn', 'export')} variant="outline" size="sm" className="h-9" onClick={onExport}>
+    <Button variant="outline" size="sm" className="h-9" onClick={onExport}>
       <Download className="mr-2 h-4 w-4" /> {tPage('export')}
     </Button>
   ) : undefined;

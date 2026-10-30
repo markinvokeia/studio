@@ -14,11 +14,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useHelpScope } from '@/components/help/help-scope';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { composeHelpId } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 import { getDateFnsLocale } from '@/lib/locale';
 import { useToast } from '@/hooks/use-toast';
@@ -58,7 +56,6 @@ export function WhatsAppTemplateSendDialog({
   patientPhone,
 }: WhatsAppTemplateSendDialogProps) {
   const t = useTranslations('WhatsAppTemplateSendDialog');
-  const helpScope = useHelpScope();
   const locale = useLocale();
   const dateLocale = getDateFnsLocale(locale);
   const { toast } = useToast();
@@ -167,7 +164,7 @@ export function WhatsAppTemplateSendDialog({
 
           <div className="space-y-2">
             <Label>{t('templateLabel')}</Label>
-            <RadioGroup data-help-id={composeHelpId(helpScope, 'field', 'whatsapp-template')} value={templateCode} onValueChange={(v) => setTemplateCode(v as WhatsAppTemplateCode)}>
+            <RadioGroup value={templateCode} onValueChange={(v) => setTemplateCode(v as WhatsAppTemplateCode)}>
               {templates.map((code) => {
                 const Icon = TEMPLATE_ICONS[code];
                 return (
@@ -271,7 +268,7 @@ export function WhatsAppTemplateSendDialog({
             <X className="h-4 w-4 mr-1" />
             {t('cancel')}
           </DialogCancelButton>
-          <Button data-help-id={composeHelpId(helpScope, 'btn', 'whatsapp-template-send')} onClick={handleSend} disabled={!canSend}>
+          <Button onClick={handleSend} disabled={!canSend}>
             {isSending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Send className="h-4 w-4 mr-1" />}
             {isSending ? t('sending') : t('send')}
           </Button>

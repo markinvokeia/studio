@@ -392,7 +392,6 @@ function DoctorAgendaTimeline({
                 {/* Card */}
                 <button
                   type="button"
-                  data-help-id="workspace.section.appointment"
                   onClick={() => onSelect(layout.appointment.id)}
                   className={cn(
                     'absolute left-9 right-0 h-full rounded-xl text-left transition-all duration-300',
@@ -1387,7 +1386,6 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     <Button
       variant="outline"
       size="sm"
-      data-help-id="workspace.btn.patient-file"
       className={cn('shrink-0', isMobile ? 'h-8' : 'self-start')}
       onClick={() => setPatientFichaOpen(true)}
     >
@@ -1397,7 +1395,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   );
 
   const renderDetailPanel = selectedAppointment ? (
-    <Card data-help-id="workspace.section.focus" className="flex h-full flex-col overflow-hidden">
+    <Card className="flex h-full flex-col overflow-hidden">
       <CardContent className="flex flex-col flex-1 min-h-0 overflow-hidden gap-3 p-3 sm:p-4">
         {isMobile && (
           <div className="flex shrink-0 items-center justify-between gap-2">
@@ -1417,7 +1415,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <PopoverTrigger asChild>
-                          <button type="button" data-help-id="workspace.btn.patient-alerts" className="flex-none cursor-pointer">
+                          <button type="button" className="flex-none cursor-pointer">
                             <div className="relative flex-none">
                               <span
                                 className={cn(
@@ -1536,7 +1534,6 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
               <div className="flex overflow-hidden rounded-md border text-xs">
                 <button
                   type="button"
-                  data-help-id="workspace.tab.sessions"
                   onClick={() => { setActivePanel('sessions'); setOdontogramPrefill(null); }}
                   className={cn(
                     'whitespace-nowrap px-3 py-1.5 font-medium transition-colors',
@@ -1549,7 +1546,6 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                 </button>
                 <button
                   type="button"
-                  data-help-id="workspace.tab.odontogram"
                   onClick={() => setActivePanel('odontogram')}
                   className={cn(
                     'whitespace-nowrap px-3 py-1.5 font-medium transition-colors',
@@ -1563,13 +1559,13 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
               </div>
 
               {activePanel === 'sessions' && (
-                <Button size="sm" data-help-id="workspace.btn.session" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession || isSessionEditingBlockedByDate} className="hidden shrink-0 sm:inline-flex" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
+                <Button size="sm" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession || isSessionEditingBlockedByDate} className="hidden shrink-0 sm:inline-flex" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
                   <ClipboardCheck className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">{nextActionLabel}</span>
                 </Button>
               )}
               {activePanel === 'sessions' && canPrescribe && (
-                <Button size="sm" variant="outline" data-help-id="workspace.btn.prescribe" onClick={() => setPrescriptionOpen(true)} className="hidden shrink-0 sm:inline-flex">
+                <Button size="sm" variant="outline" onClick={() => setPrescriptionOpen(true)} className="hidden shrink-0 sm:inline-flex">
                   <Pill className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">{t('focus.prescribe')}</span>
                 </Button>
@@ -1579,7 +1575,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
             {/* Content */}
             {activePanel === 'sessions' ? (
               <>
-                <div data-help-id="workspace.section.timeline" className="flex-1 min-h-0 overflow-y-auto pr-1 pb-2">
+                <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-2">
                   {/* Misma línea de tiempo que la historia clínica, en modo doctor y sin
                       citas: acordeón con la sesión más reciente desplegada, sin truncar. */}
                   <TreatmentTimeline
@@ -1604,12 +1600,12 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   />
                 </div>
                 <div className="mt-2 flex shrink-0 gap-2 border-t pt-3 sm:hidden">
-                  <Button data-help-id="workspace.btn.session" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession || isSessionEditingBlockedByDate} className="flex-1" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
+                  <Button onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession || isSessionEditingBlockedByDate} className="flex-1" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
                     <ClipboardCheck className="mr-2 h-4 w-4" />
                     {nextActionLabel}
                   </Button>
                   {canPrescribe && (
-                    <Button variant="outline" data-help-id="workspace.btn.prescribe" onClick={() => setPrescriptionOpen(true)} className="flex-1">
+                    <Button variant="outline" onClick={() => setPrescriptionOpen(true)} className="flex-1">
                       <Pill className="mr-2 h-4 w-4" />
                       {t('focus.prescribe')}
                     </Button>
@@ -1617,7 +1613,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                 </div>
               </>
             ) : (
-              <div data-help-id="workspace.section.odontogram" className="flex-1 min-h-0 overflow-y-auto pb-6">
+              <div className="flex-1 min-h-0 overflow-y-auto pb-6">
                 <DentalRecordViewer
                   patientId={selectedAppointment.patientId}
                   patientName={selectedAppointment.patientName}
@@ -1660,7 +1656,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           renderDetailPanel
         ) : (
           <div className="grid h-full min-h-0 gap-4 xl:grid-cols-[minmax(320px,30%)_minmax(0,70%)]">
-            <Card data-help-id="workspace.section.agenda" className="flex h-full flex-col overflow-hidden xl:sticky xl:top-4">
+            <Card className="flex h-full flex-col overflow-hidden xl:sticky xl:top-4">
               <CardHeader className="shrink-0 flex-row items-center justify-between gap-3 space-y-0 border-b pb-3">
                 <div className="flex items-start gap-2.5">
                   <div className="header-icon-circle mt-0.5">
@@ -1673,7 +1669,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                     <CardDescription className="text-xs">{t('agenda.description')}</CardDescription>
                   </div>
                 </div>
-                <Button data-help-id="workspace.btn.refresh" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => loadAppointments(true)} disabled={isRefreshing}>
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => loadAppointments(true)} disabled={isRefreshing}>
                   <RefreshCw className={cn('h-4 w-4', isRefreshing && 'animate-spin')} />
                 </Button>
               </CardHeader>
@@ -1690,7 +1686,6 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   <Button
                     variant="outline"
                     size="sm"
-                    data-help-id="workspace.btn.today"
                     className="h-8 shrink-0 text-xs font-medium"
                     onClick={goToToday}
                   >
@@ -1704,7 +1699,6 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                   <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-0.5">
                     <button
                       type="button"
-                      data-help-id="workspace.tab.assigned"
                       onClick={() => setViewMode('mine')}
                       className={cn(
                         'rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
@@ -1715,7 +1709,6 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                     </button>
                     <button
                       type="button"
-                      data-help-id="workspace.tab.calendars"
                       onClick={() => setViewMode('calendar')}
                       className={cn(
                         'rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
@@ -1728,7 +1721,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
 
                   {viewMode === 'calendar' && (
                     <Select value={selectedCalendarId} onValueChange={setSelectedCalendarId}>
-                      <SelectTrigger data-help-id="workspace.filter.calendar" className="h-8 w-full text-xs" aria-label={t('calendarSwitch.selectCalendar')}>
+                      <SelectTrigger className="h-8 w-full text-xs" aria-label={t('calendarSwitch.selectCalendar')}>
                         <SelectValue placeholder={t('calendarSwitch.selectCalendar')} />
                       </SelectTrigger>
                       <SelectContent>
@@ -1748,7 +1741,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                 </div>
               )}
 
-              <CardContent data-help-id="workspace.section.appointments" className="flex-1 min-h-0 overflow-y-auto p-4">
+              <CardContent className="flex-1 min-h-0 overflow-y-auto p-4">
                 <DoctorAgendaPanel
                   appointments={appointments}
                   dateLocale={dateFnsLocale}

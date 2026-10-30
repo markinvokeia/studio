@@ -3,8 +3,6 @@
 import { Button } from '@/components/ui/button';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { useHelpScope } from '@/components/help/help-scope';
-import { composeHelpId } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 import {
   endOfMonth,
@@ -34,8 +32,6 @@ type Preset = 'all' | 'today' | 'week' | 'month' | 'prevMonth' | 'year' | 'custo
 
 export function DateRangePresets({ onChange, className, allowAllTime = false }: DateRangePresetsProps) {
   const t = useTranslations('DateRangePresets');
-  // Help ids con el scope de la pantalla (dashboard.filter.period, reports.kpis.filter.period…).
-  const helpScope = useHelpScope();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<Preset>(allowAllTime ? 'all' : 'month');
   const [customFrom, setCustomFrom] = useState<string>('');
@@ -122,7 +118,6 @@ export function DateRangePresets({ onChange, className, allowAllTime = false }: 
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          data-help-id={composeHelpId(helpScope, 'filter', 'period')}
           variant="outline"
           size="sm"
           className={cn('h-8 gap-1.5 text-xs font-normal', className)}
@@ -133,13 +128,12 @@ export function DateRangePresets({ onChange, className, allowAllTime = false }: 
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent data-help-id={composeHelpId(helpScope, 'section', 'period-options')} className="w-52 p-1" align="start">
+      <PopoverContent className="w-52 p-1" align="start">
         {/* Presets list */}
         {presets.map(({ key, label }) => (
           <button
             key={key}
             type="button"
-            data-help-id={composeHelpId(helpScope, 'filter', `period-${key}`)}
             onClick={() => applyPreset(key)}
             className={cn(
               'flex w-full items-center rounded px-3 py-1.5 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground',
@@ -157,7 +151,6 @@ export function DateRangePresets({ onChange, className, allowAllTime = false }: 
             inputs keep their own foreground so their text/icon stay visible on the white
             field background (accent-foreground is white in the light theme). */}
         <div
-          data-help-id={composeHelpId(helpScope, 'filter', 'period-custom')}
           className={cn(
             'rounded px-3 py-2 space-y-2',
             active === 'custom' && 'bg-accent'

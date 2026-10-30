@@ -1,10 +1,6 @@
 'use client';
 
 import { Header } from '@/components/header';
-import { HelpAssistant } from '@/components/help/help-assistant';
-import { HelpScopeProvider } from '@/components/help/help-scope';
-import { MascotHost } from '@/components/help/mascot-host';
-import { MascotPeekZone } from '@/components/invoke-mascot';
 import { LicenseExpirationBanner, LicenseExpiredBanner } from '@/components/license/LicenseExpirationBanner';
 import { LicenseExpiredScreen } from '@/components/license/LicenseExpiredScreen';
 import { PatientPortalLayout } from '@/components/patient-portal/patient-portal-layout';
@@ -19,7 +15,6 @@ import { SedeSelectionModal } from '@/components/sede-selection-modal';
 import { useAuth } from '@/context/AuthContext';
 import { usePatientPortal } from '@/hooks/usePatientPortal';
 import { usePermissions } from '@/hooks/usePermissions';
-import { routeToHelpScope } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 import { navItems, type NavItem } from '@/config/nav';
 import { DASHBOARD_PERMISSIONS } from '@/constants/permissions';
@@ -212,9 +207,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const effectivePathname = getEffectivePathname(pathname, locale);
 
   return (
-    // La mascota del asistente (escondite en el riel del header, guías, chat). Sólo en el
-    // dashboard del staff: no se monta en login, portal del paciente ni pantalla de TV.
-    <MascotHost>
+    <>
     {/* Overlays/sheets del staff, disparados por stores globales desde
         cualquier punto del dashboard. Viven acá — y no en el layout raíz —
         para que nunca se monten en la landing pública ni en el portal del
@@ -228,9 +221,6 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
     <PatientHistorySheet />
     <PatientAppointmentsHistorySheet />
     <PatientDocumentsSheet />
-    <div className="print:hidden">
-      <HelpAssistant />
-    </div>
     <div className="flex h-[100dvh] print:h-auto print:block bg-[var(--page-tint,hsl(var(--background)))] overflow-hidden print:overflow-visible text-foreground">
       <SedeSelectionModal />
       <div className="print:hidden">
@@ -244,19 +234,11 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         {isExpiringSoon && !isExpired && (
           <LicenseExpirationBanner daysLeft={daysLeft} />
         )}
-        {/* overflow visible: la mascota escondida detrás del panel se asoma por el margen de arriba o de abajo. */}
-        <main className="flex-1 flex flex-col min-h-0 bg-[var(--page-tint,hsl(var(--background)))] px-0 sm:px-4 lg:px-6 pb-0 sm:pb-6 lg:pb-6 pt-0 overflow-visible print:block print:h-auto print:overflow-visible print:px-0 relative">
-          {/* Escondite de la mascota cuando la dejan arriba o abajo: detrás del panel del contenido. */}
-          <MascotPeekZone edge="auto" name="content" className="help-content-zone flex-1 flex flex-col min-h-0 print:block">
-          {/* app.section.page: el contenido de la pantalla, para las guías que recorren el menú. */}
-          <div data-help-id="app.section.page" className="flex-1 flex flex-col min-h-0 print:block print:h-auto overflow-hidden print:overflow-visible relative">
-            {/* Scope de help ids de la pantalla: lo usan las primitivas de ui para los data-help-id. */}
-            <HelpScopeProvider scope={routeToHelpScope(effectivePathname)}>
-              {children}
-            </HelpScopeProvider>
+        <main className="flex-1 flex flex-col min-h-0 bg-[var(--page-tint,hsl(var(--background)))] px-0 sm:px-4 lg:px-6 pb-0 sm:pb-6 lg:pb-6 pt-0 overflow-hidden print:block print:h-auto print:overflow-visible print:px-0 relative">
+          <div className="flex-1 flex flex-col min-h-0 print:block print:h-auto overflow-hidden print:overflow-visible relative">
+            {children}
             {isExpired && !isInvokeUser && <LicenseExpiredScreen />}
           </div>
-          </MascotPeekZone>
         </main>
         <footer className="sm:hidden print:hidden flex-none h-6 flex items-center justify-center bg-[var(--nav-bg)] px-4">
           <p className="text-[10px] text-white/70 select-none">
@@ -273,6 +255,6 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         </footer>
       </div>
     </div>
-    </MascotHost>
+    </>
   );
 }

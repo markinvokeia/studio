@@ -410,7 +410,7 @@ export default function SchedulesPage() {
 
     const rightPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader data-help-id="config.schedules.section.detail" className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                         <div className="header-icon-circle flex-none"><CalendarClock className="h-5 w-5" /></div>
@@ -430,13 +430,13 @@ export default function SchedulesPage() {
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-none">
                         {selectedSchedule && !isEditing && canUpdate && (
-                            <Button data-help-id="config.schedules.btn.edit" variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
+                            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
                                 <Pencil className="h-3.5 w-3.5" />
                                 <span className="hidden sm:inline">{t('columns.edit')}</span>
                             </Button>
                         )}
                         {selectedSchedule && !isEditing && canDelete && (
-                            <Button data-help-id="config.schedules.btn.delete" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingSchedule(selectedSchedule); setIsDeleteDialogOpen(true); }}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingSchedule(selectedSchedule); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}

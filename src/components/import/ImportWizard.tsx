@@ -317,7 +317,7 @@ export function ImportWizard() {
       </div>
 
       {/* Step content — scrollable */}
-      <div className="flex-1 overflow-y-auto px-4 py-4" data-help-id="system.import.section.step">
+      <div className="flex-1 overflow-y-auto px-4 py-4">
         {currentStep === 0 && (
           <StepSelectType
             selected={selectedType}
@@ -408,7 +408,6 @@ export function ImportWizard() {
                 <button
                   type="button"
                   onClick={handleNext}
-                  data-help-id="system.import.btn.next"
                   disabled={!canGoNext()}
                   className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:pointer-events-none disabled:opacity-40"
                 >

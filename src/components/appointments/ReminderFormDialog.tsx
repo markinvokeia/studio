@@ -356,7 +356,7 @@ export function ReminderFormDialog({
               </div>
             )}
 
-            <div data-help-id="appointments.field.reminder-title" className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="reminder-title">{t('titleLabel')}</Label>
               <Input
                 id="reminder-title"
@@ -366,7 +366,7 @@ export function ReminderFormDialog({
               />
             </div>
 
-            <div data-help-id="appointments.field.reminder-description" className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="reminder-description">{t('descriptionLabel')}</Label>
               <Textarea
                 id="reminder-description"
@@ -377,13 +377,13 @@ export function ReminderFormDialog({
             </div>
 
             <div className={cn('grid gap-4', isAllDay ? 'sm:grid-cols-1' : 'sm:grid-cols-3')}>
-              <div data-help-id="appointments.field.reminder-date" className="space-y-2">
+              <div className="space-y-2">
                 <Label htmlFor="reminder-date">{t('dateLabel')}</Label>
                 <DatePickerInput value={date} onChange={setDate} />
               </div>
               {!isAllDay && (
                 <>
-                  <div data-help-id="appointments.field.reminder-time" className="space-y-2">
+                  <div className="space-y-2">
                     <Label htmlFor="reminder-time">{t('timeLabel')}</Label>
                     <Input
                       id="reminder-time"
@@ -409,7 +409,7 @@ export function ReminderFormDialog({
 
             {/* Todo el día. Al marcarlo, las horas las fija la convención de la tabla, así
                 que los dos inputs de hora se ocultan en vez de quedar inertes. */}
-            <div data-help-id="appointments.field.reminder-all-day" className="flex items-start gap-3 rounded-lg border p-3">
+            <div className="flex items-start gap-3 rounded-lg border p-3">
               <Checkbox
                 id="reminder-all-day"
                 data-testid="reminder-all-day"
@@ -428,7 +428,7 @@ export function ReminderFormDialog({
                 el formulario de disponibilidad del doctor. */}
             {!isSingleOccurrenceEdit && (
             <div className="space-y-3 rounded-lg border p-3">
-              <div data-help-id="appointments.field.reminder-repeat" className="flex items-start gap-3">
+              <div className="flex items-start gap-3">
                 <Checkbox
                   id="reminder-repeat"
                   data-testid="reminder-repeat"

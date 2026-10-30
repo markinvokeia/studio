@@ -2,8 +2,6 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useHelpScope } from '@/components/help/help-scope';
-import { composeHelpId } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -37,7 +35,6 @@ export function ReportKPICard({
   isLoading = false,
   className,
 }: ReportKPICardProps) {
-  const helpScope = useHelpScope();
   if (isLoading) {
     return (
       <Card className={cn('flex-1 min-w-[160px]', className)}>
@@ -51,7 +48,7 @@ export function ReportKPICard({
   }
 
   return (
-    <Card data-help-id={composeHelpId(helpScope, 'section', 'kpi')} className={cn('flex-1 min-w-[160px] print:min-w-0 print:w-full', className)}>
+    <Card className={cn('flex-1 min-w-[160px] print:min-w-0 print:w-full', className)}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-2">
           <p className="text-sm text-muted-foreground leading-tight">{title}</p>

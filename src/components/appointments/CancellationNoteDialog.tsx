@@ -45,7 +45,6 @@ export function CancellationNoteDialog({ open, onOpenChange, onConfirm }: Cancel
           <DialogDescription>{t('description')}</DialogDescription>
         </DialogHeader>
         <Textarea
-          data-help-id="appointments.field.cancellation-note"
           value={note}
           onChange={(e) => setNote(e.target.value)}
           placeholder={t('placeholder')}
@@ -57,7 +56,7 @@ export function CancellationNoteDialog({ open, onOpenChange, onConfirm }: Cancel
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t('back')}
           </Button>
-          <Button data-help-id="appointments.btn.cancellation-confirm" variant="destructive" disabled={disabled} onClick={handleConfirm}>
+          <Button variant="destructive" disabled={disabled} onClick={handleConfirm}>
             {t('save')}
           </Button>
         </DialogFooter>

@@ -1033,7 +1033,7 @@ export function BillingWizardModal() {
           </div>
         </DialogHeader>
 
-        <DialogBody data-help-id="billing-wizard.section.wizard" className="flex flex-col overflow-hidden p-0">
+        <DialogBody className="flex flex-col overflow-hidden p-0">
           {/* Fixed top: stepper + error */}
           {(!isConfirmationStep || error) && (
             <div className="px-6 pt-5 pb-3 shrink-0 space-y-3">

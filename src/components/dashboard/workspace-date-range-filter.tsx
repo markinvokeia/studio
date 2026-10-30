@@ -204,7 +204,6 @@ export function WorkspaceDateRangeFilter({
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
-          data-help-id="workspace.filter.date"
           variant="outline"
           size="sm"
           className={cn('h-8 min-w-0 justify-start gap-2 text-xs font-normal capitalize', className)}
@@ -215,13 +214,12 @@ export function WorkspaceDateRangeFilter({
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent data-help-id="workspace.section.date-options" className="w-[19rem] p-2" align="start">
+      <PopoverContent className="w-[19rem] p-2" align="start">
         <div className="grid grid-cols-2 gap-1">
           {PRESET_KEYS.map((key) => (
             <button
               key={key}
               type="button"
-              data-help-id={`workspace.filter.date-${key}`}
               onClick={() => applyPreset(key)}
               className={cn(
                 'rounded px-2 py-1.5 text-left text-xs transition-colors hover:bg-accent hover:text-accent-foreground',

@@ -100,7 +100,7 @@ export function AlertsWidget() {
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button data-help-id="rail.btn.alerts"
+                <Button
                     variant="ghost"
                     size="icon"
                     className={cn(
@@ -120,7 +120,7 @@ export function AlertsWidget() {
                 </Button>
             </PopoverTrigger>
 
-            <PopoverContent data-help-id="rail.section.alerts-panel" side="left" align="center" className="w-60 p-3 rounded-xl">
+            <PopoverContent side="left" align="center" className="w-60 p-3 rounded-xl">
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
                     {t('title')}
                 </p>

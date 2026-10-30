@@ -11,13 +11,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PrescriptionDialog } from '@/components/medical-instructions/prescription-dialog';
 import { usePrescriptionPrint } from '@/components/medical-instructions/prescription-print-view';
 import { fetchPatientById } from '@/components/patients/patient-form-utils';
-import { useHelpScope } from '@/components/help/help-scope';
 
 import { TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
-import { composeHelpId } from '@/lib/help/help-id';
 import type { PrescriptionPatientInfo } from '@/lib/prescription-render';
 import { PatientPrescription, PrescriptionItem } from '@/lib/types';
 import { getDateFnsLocale } from '@/lib/locale';
@@ -52,7 +50,6 @@ interface PatientPrescriptionsSectionProps {
 
 export function PatientPrescriptionsSection({ userId, userName, createTrigger = 0, readOnly = false, lockDoctor = false }: PatientPrescriptionsSectionProps) {
     const t = useTranslations('PatientPrescriptionsSection');
-    const helpScope = useHelpScope();
     const locale = useLocale();
     const dateLocale = getDateFnsLocale(locale);
     const { toast } = useToast();
@@ -157,7 +154,7 @@ export function PatientPrescriptionsSection({ userId, userName, createTrigger = 
                         <CardTitle className="text-base font-semibold">{t('title')}</CardTitle>
                     </div>
                     {canCreate && (
-                        <Button data-help-id={composeHelpId(helpScope, 'btn', 'rx-new')} variant="default" size="sm" onClick={handleCreate}>
+                        <Button variant="default" size="sm" onClick={handleCreate}>
                             <Plus className="mr-1 h-4 w-4" />
                             {t('newPrescription')}
                         </Button>

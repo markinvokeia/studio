@@ -21,8 +21,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useHelpScope } from '@/components/help/help-scope';
-import { composeHelpId } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 import {
   ALLOWED_STATUS_TRANSITIONS,
@@ -105,9 +103,6 @@ function StatusMenuEntries({
   // cancelación (todos terminan la cita en el mismo estado). Scope de
   // componente: la matriz solo se conoce en render, no a nivel de módulo.
   const CANCELLATION_REASON_COLOR = colorOf('cancelled');
-  // Help ids del asistente con el scope de la pantalla (en la agenda: appointments.btn.status-confirmed…).
-  const helpScope = useHelpScope();
-  const helpId = (name: string) => composeHelpId(helpScope, 'btn', name);
 
   // Fire the action using the host menu's interaction API.
   const fire = (fn: () => void) =>
@@ -123,7 +118,6 @@ function StatusMenuEntries({
     return (
       <Item
         key={`status-${status}`}
-        data-help-id={helpId(`status-${status}`)}
         disabled={!enabled}
         {...fire(() => { if (enabled) onChange(status); })}
         className="flex items-center gap-2 cursor-pointer"
@@ -143,7 +137,6 @@ function StatusMenuEntries({
     return (
       <Item
         key={`reason-${reason}`}
-        data-help-id={helpId(`cancel-${reason}`)}
         disabled={!enabled}
         {...fire(() => { if (enabled) onChange('cancelled', { cancellation_reason: reason }); })}
         className="flex items-center gap-2 cursor-pointer"
@@ -166,7 +159,7 @@ function StatusMenuEntries({
           <React.Fragment key="cancel-submenu">
             <Separator />
             <Sub>
-              <SubTrigger data-help-id={helpId('cancel-menu')} disabled={!canCancel || isUpdating} className="flex items-center gap-2 cursor-pointer">
+              <SubTrigger disabled={!canCancel || isUpdating} className="flex items-center gap-2 cursor-pointer">
                 <ColorDot color={CANCELLATION_REASON_COLOR} />
                 <CancelIcon className="h-4 w-4 shrink-0" style={{ color: CANCELLATION_REASON_COLOR }} />
                 <span className="capitalize">{tMenu('cancelSubmenu')}</span>
@@ -177,7 +170,6 @@ function StatusMenuEntries({
                   <>
                     <Separator />
                     <Item
-                      data-help-id={helpId('cancel-other')}
                       {...fire(() => onRequestCustomCancellation())}
                       className="flex items-center gap-2 cursor-pointer"
                     >

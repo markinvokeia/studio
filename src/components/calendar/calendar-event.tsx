@@ -86,7 +86,6 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
         <div
           data-testid="calendar-event"
           data-event-id={event.id}
-          data-help-id="appointments.section.event"
           data-draggable={isChipDraggable ? 'true' : undefined}
           title={event.label ?? event.title}
           className={cn(

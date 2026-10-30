@@ -3,7 +3,6 @@
 import { Button } from '@/components/ui/button';
 import { DataTable } from '@/components/ui/data-table';
 import { Input } from '@/components/ui/input';
-import { useHelpScope } from '@/components/help/help-scope';
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -16,7 +15,6 @@ import {
 } from '@tanstack/react-table';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { type Dispatch, type SetStateAction, useState } from 'react';
-import { composeHelpId } from '@/lib/help/help-id';
 
 interface ReportDataTableProps<TData> {
   columns: ColumnDef<TData, unknown>[];
@@ -45,7 +43,6 @@ export function ReportDataTable<TData>({
   onColumnVisibilityChange,
   columnFilters,
 }: ReportDataTableProps<TData>) {
-  const helpScope = useHelpScope();
   const [globalFilter, setGlobalFilter] = useState('');
   const [pageIndex, setPageIndex] = useState(0);
 
@@ -79,7 +76,7 @@ export function ReportDataTable<TData>({
   return (
     <>
       {/* ── Mobile card list (< md, never printed) ─────────────────────── */}
-      <div data-help-id={composeHelpId(helpScope, 'section', 'table')} className="md:hidden print:hidden space-y-2">
+      <div className="md:hidden print:hidden space-y-2">
         {useGlobalFilter && (
           <Input
             value={globalFilter}
@@ -151,7 +148,7 @@ export function ReportDataTable<TData>({
       </div>
 
       {/* ── Desktop table (≥ md, always printed) ───────────────────────── */}
-      <div data-help-id={composeHelpId(helpScope, 'section', 'table')} className="hidden md:block print:block">
+      <div className="hidden md:block print:block">
         <DataTable
           columns={columns}
           data={data}

@@ -2,8 +2,6 @@
 
 import * as React from 'react'
 
-import { useHelpScope } from '@/components/help/help-scope'
-import { composeHelpId } from '@/lib/help/help-id'
 import { cn } from '@/lib/utils'
 
 export interface PatientSubTabItem {
@@ -20,8 +18,6 @@ interface PatientSubTabNavProps {
 }
 
 export function PatientSubTabNav({ tabs, activeTab, onChange }: PatientSubTabNavProps) {
-  // Help ids con el scope de la pantalla: patients.tab.anamnesis, patients.tab.notes…
-  const helpScope = useHelpScope()
   return (
     <div className="mb-4 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <div className="inline-flex min-w-full gap-1 rounded-xl border border-border bg-muted/30 p-1">
@@ -29,7 +25,6 @@ export function PatientSubTabNav({ tabs, activeTab, onChange }: PatientSubTabNav
           <button
             key={tab.id}
             type="button"
-            data-help-id={composeHelpId(helpScope, 'tab', tab.id)}
             onClick={() => onChange(tab.id)}
             className={cn(
               'rounded-lg border px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors',

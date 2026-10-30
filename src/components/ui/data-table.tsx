@@ -34,8 +34,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
-import { useHelpScope } from '@/components/help/help-scope';
-import { composeHelpId } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 import { getDefaultPageSize } from '@/lib/pagination';
 import { AlertTriangle, ArrowUp, ArrowDown, ArrowUpDown, RefreshCw } from 'lucide-react';
@@ -195,7 +193,6 @@ export function DataTable<TData, TValue>({
   startAtEnd = false,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
-  const helpScope = useHelpScope();
   // Resolve the page size once at mount: an explicit prop wins; otherwise
   // 10 on mobile and 25 on tablet/desktop.
   const [resolvedInitialPageSize] = React.useState(() => initialPageSize ?? getDefaultPageSize());
@@ -408,8 +405,8 @@ export function DataTable<TData, TValue>({
               <Skeleton key={i} className="h-16 w-full rounded-md" />
             ))
           ) : table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row, rowIndex) => (
-              <div key={row.id} data-testid="list-item" data-help-id={composeHelpId(helpScope, 'section', rowIndex === 0 ? 'first-row' : 'row')} onClick={() => {
+            table.getRowModel().rows.map((row) => (
+              <div key={row.id} data-testid="list-item" onClick={() => {
                 if (enableSingleRowSelection) {
                   // Single selection: clicking the selected item deselects it,
                   // clicking another one replaces the selection. Row ids are
@@ -474,11 +471,9 @@ export function DataTable<TData, TValue>({
                 </TableRow>
               ))
             ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row, rowIndex) => (
+              table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
-                  // Guías: la primera fila (la más reciente o la primera del orden) y el resto.
-                  data-help-id={composeHelpId(helpScope, 'section', rowIndex === 0 ? 'first-row' : 'row')}
                   data-state={row.getIsSelected() && 'selected'}
                   onClick={() => {
                     if (enableSingleRowSelection) {

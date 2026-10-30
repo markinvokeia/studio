@@ -30,7 +30,6 @@ import { SedeSelector } from '@/components/ui/sede-selector';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { UserSelector } from '@/components/ui/user-selector';
 import { Textarea } from '@/components/ui/textarea';
-import { useHelpScope } from '@/components/help/help-scope';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useDiscountSettings } from '@/hooks/useDiscountSettings';
@@ -45,7 +44,6 @@ import {
     roundCurrency,
 } from '@/lib/discounts';
 import { Clinic, DiscountMode, Quote, TreatmentDetail, User } from '@/lib/types';
-import { composeHelpId } from '@/lib/help/help-id';
 import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -169,7 +167,6 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
     const t = useTranslations('QuotesPage');
     const { toast } = useToast();
     const { activeCashSession, activeSede } = useAuth();
-    const helpScope = useHelpScope();
 
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
@@ -598,7 +595,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                 <CardHeader>
                                     <div className="flex justify-between items-center">
                                         <CardTitle>{t('quoteDialog.items.title')}</CardTitle>
-                                        <Button data-help-id={composeHelpId(helpScope, 'btn', 'add-item')} type="button" size="sm" variant="outline" onClick={handleAddItem}>
+                                        <Button type="button" size="sm" variant="outline" onClick={handleAddItem}>
                                             {t('quoteDialog.addItem')}
                                         </Button>
                                     </div>

@@ -96,7 +96,7 @@ export function TodayHero({ data, currency, isBranchFiltered, isLoading }: Today
     : [];
 
   return (
-    <div data-help-id="dashboard.section.today" className="relative overflow-hidden rounded-xl bg-primary px-6 py-5 text-primary-foreground shadow-lg">
+    <div className="relative overflow-hidden rounded-xl bg-primary px-6 py-5 text-primary-foreground shadow-lg">
       {/* Halos decorativos: dan profundidad a la banda sin depender de un gradiente que
           cambia de legibilidad entre los temas claro, oscuro y "claro". */}
       <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-primary-foreground/5" />

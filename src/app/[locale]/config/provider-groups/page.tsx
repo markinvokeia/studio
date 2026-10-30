@@ -17,7 +17,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { ProviderGroupProvidersTab } from '@/components/providers/provider-group-providers-tab';
-import { HelpScopeProvider } from '@/components/help/help-scope';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
@@ -312,7 +311,7 @@ export default function ProviderGroupsPage() {
 
     const rightPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader data-help-id="config.provider-groups.section.detail" className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="header-icon-circle flex-none"><Boxes className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
@@ -329,7 +328,7 @@ export default function ProviderGroupsPage() {
                     </div>
                     {selectedProviderGroup && canDelete && (
                         <div className="flex gap-1 flex-none">
-                            <Button data-help-id="config.provider-groups.btn.delete" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingProviderGroup(selectedProviderGroup); setIsDeleteDialogOpen(true); }}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingProviderGroup(selectedProviderGroup); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         </div>
@@ -395,13 +394,11 @@ export default function ProviderGroupsPage() {
                 </form>
             </Form>
                 </TabsContent>
-                <HelpScopeProvider scope="config.provider-groups.detail">
                 <TabsContent value="providers" className="mt-0 min-h-0 flex-1 flex-col p-4 data-[state=active]:flex">
                     {selectedProviderGroup && (
                         <ProviderGroupProvidersTab groupId={String(selectedProviderGroup.id)} canManage={canUpdate} />
                     )}
                 </TabsContent>
-                </HelpScopeProvider>
             </Tabs>
         </Card>
     );

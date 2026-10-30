@@ -5,7 +5,6 @@ import { CancellationNoteDialog } from '@/components/appointments/CancellationNo
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { getProcedure } from '@/components/users/dental-record/odontogram-catalog';
 import { groupTeethByCondition } from '@/components/users/dental-record/odontogram-state';
-import { useHelpScope } from '@/components/help/help-scope';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -49,7 +48,6 @@ import { API_ROUTES } from '@/constants/routes';
 import { normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
 import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { useAsyncAction } from '@/hooks/use-async-action';
-import { composeHelpId } from '@/lib/help/help-id';
 import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
@@ -525,8 +523,6 @@ function AnamnesisSection({
 }: AnamnesisSectionProps) {
     const t = useTranslations('ClinicHistoryPage.anamnesis');
     const tHabits = useTranslations('ClinicHistoryPage.habits');
-    // Help ids con el scope de la pantalla (patients.btn.anamnesis-add-allergy, clinic-history…).
-    const helpScope = useHelpScope();
     const locale = useLocale();
     const { toast } = useToast();
 
@@ -1013,14 +1009,14 @@ function AnamnesisSection({
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Personal History */}
-            <div data-help-id={composeHelpId(helpScope, 'section', 'anamnesis-personal')} className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                         <User className="w-5 h-5 text-primary mr-2" />
                         <h3 className="text-base font-semibold text-card-foreground">{t('personalTitle')}</h3>
                     </div>
                     {!readOnly && (
-                        <Button data-help-id={composeHelpId(helpScope, 'btn', 'anamnesis-add-personal')} variant="default" size="icon" onClick={() => handleOpenPersonalDialog()}>
+                        <Button variant="default" size="icon" onClick={() => handleOpenPersonalDialog()}>
                             <Plus className="h-4 w-4" />
                         </Button>
                     )}
@@ -1052,14 +1048,14 @@ function AnamnesisSection({
             </div>
 
             {/* Medications */}
-            <div data-help-id={composeHelpId(helpScope, 'section', 'anamnesis-medications')} className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                         <Pill className="w-5 h-5 text-green-500 mr-2" />
                         <h3 className="text-base font-semibold text-card-foreground">{t('medicationsTitle')}</h3>
                     </div>
                     {!readOnly && (
-                        <Button data-help-id={composeHelpId(helpScope, 'btn', 'anamnesis-add-medication')} variant="default" size="icon" onClick={() => handleOpenMedicationDialog()}>
+                        <Button variant="default" size="icon" onClick={() => handleOpenMedicationDialog()}>
                             <Plus className="h-4 w-4" />
                         </Button>
                     )}
@@ -1101,14 +1097,14 @@ function AnamnesisSection({
             </div>
 
             {/* Family History */}
-            <div data-help-id={composeHelpId(helpScope, 'section', 'anamnesis-family')} className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                         <Heart className="w-5 h-5 text-red-500 mr-2" />
                         <h3 className="text-base font-semibold text-card-foreground">{t('familyTitle')}</h3>
                     </div>
                     {!readOnly && (
-                        <Button data-help-id={composeHelpId(helpScope, 'btn', 'anamnesis-add-family')} variant="default" size="icon" onClick={() => handleOpenFamilyDialog()}>
+                        <Button variant="default" size="icon" onClick={() => handleOpenFamilyDialog()}>
                             <Plus className="h-4 w-4" />
                         </Button>
                     )}
@@ -1141,14 +1137,14 @@ function AnamnesisSection({
             </div>
 
             {/* Allergies */}
-            <div data-help-id={composeHelpId(helpScope, 'section', 'anamnesis-allergies')} className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm p-6 border-0">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                         <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
                         <h3 className="text-base font-semibold text-card-foreground">{t('allergiesTitle')}</h3>
                     </div>
                     {!readOnly && (
-                        <Button data-help-id={composeHelpId(helpScope, 'btn', 'anamnesis-add-allergy')} variant="default" size="icon" onClick={() => handleOpenAllergyDialog()}>
+                        <Button variant="default" size="icon" onClick={() => handleOpenAllergyDialog()}>
                             <Plus className="h-4 w-4" />
                         </Button>
                     )}
@@ -1180,7 +1176,7 @@ function AnamnesisSection({
             </div>
 
             {/* Habits - Full Width */}
-            <Card data-help-id={composeHelpId(helpScope, 'section', 'anamnesis-habits')} className="md:col-span-2 shadow-sm border">
+            <Card className="md:col-span-2 shadow-sm border">
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center">
@@ -1906,7 +1902,6 @@ interface TreatmentTimelineProps {
 
 export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false, hideToolbar = false, forcedTypeFilter, showSessionColor = false, readOnly = false, linkedAppointmentId }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
-    const helpScope = useHelpScope();
     const tDental = useTranslations('DentalRecord');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
@@ -2349,7 +2344,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
 
     return (
         <div>
-            <div data-help-id={composeHelpId(helpScope, 'section', 'timeline')} className="bg-card text-card-foreground rounded-xl shadow-sm border overflow-hidden flex flex-col">
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm border overflow-hidden flex flex-col">
                 {!hideToolbar && (
                 <>
                 <div className="flex items-center justify-between px-3 py-3 border-b shrink-0 gap-2">
@@ -2368,7 +2363,6 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                         {/* Print full clinic history (anamnesis + clinical sessions) */}
                         {canPrintHistory && (
                             <Button
-                                data-help-id={composeHelpId(helpScope, 'btn', 'timeline-print')}
                                 variant="outline"
                                 size="icon"
                                 className="h-9 w-9"
@@ -2387,7 +2381,6 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
-                                        data-help-id={composeHelpId(helpScope, 'btn', 'timeline-filters')}
                                         variant="outline"
                                         size="icon"
                                         className="h-9 w-9 relative"
@@ -2460,17 +2453,17 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                         {!isDoctorMode && !readOnly && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button data-help-id={composeHelpId(helpScope, 'btn', 'timeline-add')} size="sm" className="h-8 gap-1.5">
+                                <Button size="sm" className="h-8 gap-1.5">
                                     <Plus className="h-3.5 w-3.5" />
                                     <span className="hidden sm:inline">{t('addSession')}</span>
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                                <DropdownMenuItem data-help-id={composeHelpId(helpScope, 'btn', 'timeline-add-clinical')} onClick={() => handleAddSession('clinica')}>
+                                <DropdownMenuItem onClick={() => handleAddSession('clinica')}>
                                     <Stethoscope className="h-4 w-4 mr-2" />
                                     {t('sessionTypeClinical')}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem data-help-id={composeHelpId(helpScope, 'btn', 'timeline-add-odontogram')} onClick={() => setIsOdontogramDialogOpen(true)}>
+                                <DropdownMenuItem onClick={() => setIsOdontogramDialogOpen(true)}>
                                     <Smile className="h-4 w-4 mr-2" />
                                     {t('sessionTypeOdontogram')}
                                 </DropdownMenuItem>
@@ -2957,7 +2950,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                 minWidth={600}
                 storageKey="odontogram-create-sheet-width"
             >
-                <div data-help-id={composeHelpId(helpScope, 'section', 'odontogram-create')} className="flex flex-col h-full">
+                <div className="flex flex-col h-full">
                     <div className="px-6 py-4 border-b shrink-0">
                         <SheetTitle className="flex items-center gap-2 text-base font-semibold">
                             <Smile className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
@@ -3198,7 +3191,6 @@ interface EnhancedDocumentsGalleryProps {
 
 function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument, deleteDocument, getDocumentContent, getSessionAttachment, createTrigger = 0, readOnly = false }: EnhancedDocumentsGalleryProps) {
     const t = useTranslations('ClinicHistoryPage');
-    const helpScope = useHelpScope();
     const { toast } = useToast();
     const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
     const [uploadFile, setUploadFile] = React.useState<File | null>(null);
@@ -3296,11 +3288,11 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
 
     return (
         <>
-            <div data-help-id={composeHelpId(helpScope, 'section', 'documents')} className="bg-card text-card-foreground rounded-xl shadow-sm p-3 sm:p-6 border-0 w-full min-w-0">
+            <div className="bg-card text-card-foreground rounded-xl shadow-sm p-3 sm:p-6 border-0 w-full min-w-0">
                 <div className="flex items-center justify-between mb-4 gap-2">
                     <h3 className="text-xl font-bold text-card-foreground">{t('tabs.documents')}</h3>
                     {!readOnly && (
-                        <Button data-help-id={composeHelpId(helpScope, 'btn', 'documents-add')} onClick={() => setIsUploadDialogOpen(true)} variant="outline" size="sm">
+                        <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" size="sm">
                             <Upload className="h-4 w-4 sm:mr-2" />
                             <span className="hidden sm:inline">{t('documents.add')}</span>
                         </Button>
@@ -3403,7 +3395,6 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
                     </DialogHeader>
                     <DialogBody className="space-y-6 px-6 py-6">
                         <div
-                            data-help-id={composeHelpId(helpScope, 'field', 'documents-file')}
                             className={cn(
                                 "flex flex-col items-center justify-center h-48 border-2 border-dashed rounded-lg cursor-pointer transition-all hover:border-primary/50 hover:bg-accent/30",
                                 isDragOver ? "border-primary bg-primary/10" : "border-muted-foreground/25"
@@ -3456,7 +3447,7 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
                         <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
                             {t('common.cancel')}
                         </Button>
-                        <Button data-help-id={composeHelpId(helpScope, 'btn', 'documents-upload')} onClick={handleUpload} disabled={!uploadFile || isUploading} className="px-8">
+                        <Button onClick={handleUpload} disabled={!uploadFile || isUploading} className="px-8">
                             {isUploading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                             {t('common.save')}
                         </Button>

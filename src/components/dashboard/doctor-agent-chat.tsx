@@ -543,7 +543,7 @@ export function DoctorAgentChat({
   if (!appointmentId) return null;
 
   const chatCard = (
-    <Card data-help-id="workspace.section.agent-chat" className={cn(
+    <Card className={cn(
       'flex h-full min-h-0 w-full flex-col overflow-hidden border-primary/20',
       isFloating
         ? 'h-[68vh] rounded-none shadow-2xl sm:rounded-2xl'
@@ -657,7 +657,6 @@ export function DoctorAgentChat({
                 <span className="absolute inset-0 animate-ping rounded-full bg-primary/30" />
                 <Button
                   type="button"
-                  data-help-id="workspace.btn.agent-chat"
                   onClick={openChat}
                   size="icon"
                   className="relative h-14 w-14 rounded-full shadow-2xl bg-primary text-primary-foreground hover:bg-primary/90"

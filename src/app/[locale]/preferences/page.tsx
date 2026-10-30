@@ -1,14 +1,11 @@
 'use client';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { InvokeMascot } from '@/components/invoke-mascot';
 import { SignatureUploader } from '@/components/users/signature-uploader';
 import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/notifications-context';
 import { useFinanceViewPreference } from '@/hooks/use-finance-view-preference';
-import { useMascotPreference } from '@/hooks/use-mascot-preference';
 import { TOAST_POSITIONS, useToastPosition } from '@/hooks/use-toast-position';
 import { toast } from '@/hooks/use-toast';
 import type { DoctorAlertStyle, PatientFinanceView, ToastPosition } from '@/lib/types';
@@ -31,7 +28,6 @@ export default function UserPreferencesPage() {
     const { alertStyle, setAlertStyle, refreshAlertStyle } = useNotifications();
     const [financeView, setFinanceView] = useFinanceViewPreference(user?.id);
     const [toastPosition, setToastPosition, refreshToastPosition] = useToastPosition(user?.id);
-    const [showMascot, setShowMascot] = useMascotPreference(user?.id);
 
     // The alert-style value in context is only as fresh as its last fetch
     // (usually app login). An admin may have changed it from another session
@@ -162,27 +158,6 @@ export default function UserPreferencesPage() {
                 </CardContent>
             </Card>
 
-            {/* Assistant — the animated mascot (src/components/invoke-mascot) */}
-            <Card className="shadow-sm border-0">
-                <CardHeader className="p-4">
-                    <div className="flex items-start gap-3">
-                        <InvokeMascot size={40} mood={showMascot ? 'happy' : 'sleeping'} animated={false} className="flex-none" title="" />
-                        <div className="flex flex-col">
-                            <CardTitle className="text-lg">{t('assistantSection')}</CardTitle>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                    <div className="flex items-start justify-between gap-4">
-                        <div>
-                            <label htmlFor="show-mascot" className="text-sm font-medium text-foreground">{t('showMascotLabel')}</label>
-                            <p className="text-xs text-muted-foreground mt-0.5">{t('showMascotDescription')}</p>
-                        </div>
-                        <Switch id="show-mascot" checked={showMascot} onCheckedChange={setShowMascot} />
-                    </div>
-                </CardContent>
-            </Card>
-
             {/* Signature — used on printed prescriptions */}
             <Card className="shadow-sm border-0">
                 <CardHeader className="p-4">
@@ -222,8 +197,6 @@ export default function UserPreferencesPage() {
                             <button
                                 key={style}
                                 type="button"
-                                data-help-id={`preferences.btn.alert-style-${style}`}
-                                aria-pressed={alertStyle === style}
                                 onClick={() => setAlertStyle(style)}
                                 className={cn(
                                     'flex flex-1 flex-col items-center gap-2 rounded-xl border-2 px-3 py-3 text-sm font-medium transition-all',

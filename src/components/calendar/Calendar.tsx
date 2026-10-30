@@ -568,7 +568,7 @@ const Calendar: React.FC<CalendarProps> = ({
   };
 
   return (
-    <div className="calendar-container" data-help-id="appointments.section.calendar">
+    <div className="calendar-container">
       {/* Mobile: date subtitle under header */}
       <CalendarHeader
         headerTitle={headerTitle}

@@ -121,7 +121,6 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
         <div
           data-testid="calendar-day-event"
           data-event-id={event.id}
-          data-help-id="appointments.section.event"
           data-draggable={isDraggable ? 'true' : undefined}
           data-grips={gripsOnActive ? 'on-active' : undefined}
           data-density={density}

@@ -2,8 +2,6 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
-import { useHelpScope } from '@/components/help/help-scope';
-import { composeHelpId } from '@/lib/help/help-id';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -32,7 +30,6 @@ interface VerticalTabStripProps {
  */
 export function VerticalTabStrip({ tabs, activeTabId, onTabClick, className }: VerticalTabStripProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null);
-  const helpScope = useHelpScope();
   const [canScrollLeft, setCanScrollLeft] = React.useState(false);
   const [canScrollRight, setCanScrollRight] = React.useState(false);
 
@@ -104,7 +101,6 @@ export function VerticalTabStrip({ tabs, activeTabId, onTabClick, className }: V
                   <button
                     type="button"
                     onClick={() => onTabClick(tab)}
-                    data-help-id={composeHelpId(helpScope, 'tab', tab.id)}
                     className={cn(
                       'relative flex items-center justify-center gap-1 h-10 px-2.5 sm:px-3 transition-all duration-150 whitespace-nowrap shrink-0',
                       isActive

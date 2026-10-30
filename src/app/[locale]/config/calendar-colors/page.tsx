@@ -357,7 +357,7 @@ export default function CalendarColorsConfigPage() {
           <Can permission={CALENDAR_DISPLAY_PERMISSIONS.UPDATE}>
             <div className="flex items-center gap-2">
               {scope === GENERAL_SCOPE ? (
-                <Button data-help-id="config.calendar-colors.btn.restore-defaults" variant="outline" onClick={handleRestoreDefaults} disabled={!canUpdate || isBusy} className="gap-1.5">
+                <Button variant="outline" onClick={handleRestoreDefaults} disabled={!canUpdate || isBusy} className="gap-1.5">
                   <RotateCcw className="h-4 w-4" />
                   {t('restoreDefaults')}
                 </Button>
@@ -381,7 +381,7 @@ export default function CalendarColorsConfigPage() {
                 <Share2 className="h-4 w-4" />
                 {t('replicateDialog.trigger')}
               </Button>
-              <Button data-help-id="config.calendar-colors.btn.save" onClick={() => save.run()} disabled={!canSave} loading={save.isPending} className="gap-1.5">
+              <Button onClick={() => save.run()} disabled={!canSave} loading={save.isPending} className="gap-1.5">
                 <Save className="h-4 w-4" />
                 {t('save')}
               </Button>
@@ -391,7 +391,7 @@ export default function CalendarColorsConfigPage() {
       />
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-1 pb-6">
-        <Tabs data-help-id="config.calendar-colors.section.scopes" value={scope} onValueChange={handleScopeChange}>
+        <Tabs value={scope} onValueChange={handleScopeChange}>
           <TabsList className="h-auto justify-start overflow-x-auto">
             <TabsTrigger value={GENERAL_SCOPE} className="gap-1.5">
               {t('scope.general')}

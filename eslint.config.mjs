@@ -10,16 +10,6 @@ const eslintConfig = [
       'react/no-unescaped-entities': 'off',
     },
   },
-  {
-    // Mascota de Invoke: librería entregada por Claude Design (dibujo y animaciones con
-    // refs/Date.now en render a propósito). Se integra sin reescribirla; ver su README.
-    files: ['src/components/invoke-mascot/**'],
-    linterOptions: { reportUnusedDisableDirectives: 'off' },
-    rules: {
-      'react-hooks/refs': 'off',
-      'react-hooks/purity': 'off',
-    },
-  },
 ];
 
 export default eslintConfig;
