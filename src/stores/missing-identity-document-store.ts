@@ -22,6 +22,11 @@ export interface MissingIdentityDocumentNotice {
     email?: string;
     phone?: string;
   };
+  /**
+   * Vuelve a intentar el cambio de estado bloqueado. Se ejecuta solo cuando,
+   * desde el aviso, se guardan los datos del paciente con un documento cargado.
+   */
+  retry?: () => void | Promise<void>;
 }
 
 interface MissingIdentityDocumentStore {

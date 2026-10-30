@@ -23,8 +23,9 @@ import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
  * Único aviso de bloqueo por documento faltante. Lo abre
  * `showMissingIdentityDocumentBlock`; se monta una vez en el layout. El cambio
  * de estado ya fue rechazado: "Entendido" abre los datos del paciente (el mismo
- * diálogo simplificado del lápiz de la cita) para que carguen el documento y
- * vuelvan a intentarlo; "Cerrar" solo descarta el aviso.
+ * diálogo simplificado del lápiz de la cita) para que carguen el documento; al
+ * guardarlo con documento se reintenta solo el cambio de estado (`notice.retry`).
+ * "Cerrar" solo descarta el aviso.
  */
 export function MissingIdentityDocumentDialog() {
   const t = useTranslations('MissingIdentityDocumentDialog');
@@ -41,7 +42,14 @@ export function MissingIdentityDocumentDialog() {
   const handleAcknowledge = () => {
     close();
     if (!patient) return;
+    const retry = notice?.retry;
     openPatientView({
+      // Guardar sin documento (p. ej. solo otros datos) no reintenta: volvería a bloquearse.
+      onSaved: retry
+        ? (updated) => {
+            if (updated.identity_document?.trim()) void retry();
+          }
+        : undefined,
       userId: patient.id,
       userName: patient.name,
       userEmail: patient.email,

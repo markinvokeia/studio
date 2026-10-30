@@ -73,7 +73,7 @@ import { cn, toLocalISOString } from '@/lib/utils';
 import api, { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
 import { getErrorMessage } from '@/lib/error-utils';
 import { getQuoteItems } from '@/services/quotes';
-import { updateAppointmentStatusWithDocumentCheck, fetchFuturePatientAppointments, searchAppointments, type FuturePatientAppointment } from '@/services/appointments';
+import { fetchFuturePatientAppointments, searchAppointments, type FuturePatientAppointment } from '@/services/appointments';
 import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
 import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useSlotAvailability } from '@/hooks/use-slot-availability';
@@ -108,7 +108,7 @@ import { usePatientHistorySheet } from '@/stores/patient-history-sheet-store';
 import { usePatientAppointmentsSheet } from '@/stores/patient-appointments-sheet-store';
 import { usePatientDocumentsSheet } from '@/stores/patient-documents-sheet-store';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
-import { useAppointmentStatus } from '@/hooks/use-appointment-status';
+import { useAppointmentStatus, useCompleteAppointmentWithDocumentCheck } from '@/hooks/use-appointment-status';
 import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
 import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { resolveEventStatusColors, resolveStatusDisplay } from '@/lib/appointment-status-display';
@@ -3022,6 +3022,7 @@ export default function AppointmentsPage() {
         setIsDeleteAlertOpen(true);
     };
 
+    const completeAppointmentWithDocumentCheck = useCompleteAppointmentWithDocumentCheck();
     const { updateStatus, isUpdating: isUpdatingAppointmentStatus } = useAppointmentStatus({
         onSuccess: (appt, newStatus, extra) => {
             const patch = {
@@ -3159,14 +3160,7 @@ export default function AppointmentsPage() {
                 toast({ title: t('toasts.sessionUpdated') });
             } else {
                 await createSession(clinicSessionAppointment.patientId, sessionData, data.archivos_adjuntos);
-                // Si el paciente no tiene el documento que exige ese estado, la sesión queda guardada y la cita no cambia.
-                if (
-                    clinicSessionAppointment.status !== 'completed' &&
-                    (await updateAppointmentStatusWithDocumentCheck({
-                        appointment: clinicSessionAppointment,
-                        newStatus: 'completed',
-                    }))
-                ) {
+                const markCompleted = () => {
                     setAppointments((prev) =>
                         prev.map((appointment) =>
                             appointment.id === clinicSessionAppointment.id
@@ -3179,6 +3173,14 @@ export default function AppointmentsPage() {
                             ? { ...prev, status: 'completed' }
                             : prev,
                     );
+                };
+                // Si el paciente no tiene el documento que exige ese estado, la sesión queda guardada y la
+                // cita no cambia hasta que se cargue el documento desde el aviso (ahí se completa sola).
+                if (
+                    clinicSessionAppointment.status !== 'completed' &&
+                    (await completeAppointmentWithDocumentCheck(clinicSessionAppointment, markCompleted))
+                ) {
+                    markCompleted();
                 }
                 toast({ title: t('toasts.sessionCreated'), description: t('toasts.sessionCreatedDesc') });
             }

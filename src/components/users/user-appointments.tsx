@@ -12,13 +12,12 @@ import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStat
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeAppointmentStatus, normalizeCancellationReason, canReschedule } from '@/constants/appointment-status';
-import { useAppointmentStatus } from '@/hooks/use-appointment-status';
+import { useAppointmentStatus, useCompleteAppointmentWithDocumentCheck } from '@/hooks/use-appointment-status';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { useToast } from '@/hooks/use-toast';
 import { Appointment, AppointmentStatus, CancellationReason, Invoice, Order, PatientSession, QuoteItem, User, Service, Calendar as CalendarType } from '@/lib/types';
 import { api } from '@/services/api';
 import { getQuoteItems } from '@/services/quotes';
-import { updateAppointmentStatusWithDocumentCheck } from '@/services/appointments';
 import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { FileText } from 'lucide-react';
 import { addMonths, format, parseISO } from 'date-fns';
@@ -313,6 +312,7 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
   // Cancellation
   const [pendingCancellation, setPendingCancellation] = React.useState<Appointment | null>(null);
 
+  const completeAppointmentWithDocumentCheck = useCompleteAppointmentWithDocumentCheck();
   const { updateStatus } = useAppointmentStatus({
     onSuccess: (appt, newStatus, extra) => {
       const patch = {
@@ -492,14 +492,18 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
         toast({ title: tAppointmentsPage('toasts.sessionUpdated') });
       } else {
         await createSession(clinicSessionAppointment.patientId, sessionData, data.archivos_adjuntos);
-        // Si el paciente no tiene el documento que exige ese estado, la sesión queda guardada y la cita no cambia.
-        if (
-          clinicSessionAppointment.status !== 'completed' &&
-          (await updateAppointmentStatusWithDocumentCheck({ appointment: clinicSessionAppointment, newStatus: 'completed' }))
-        ) {
+        const markCompleted = () => {
           const patch = { status: 'completed' as AppointmentStatus };
           setAppointments((prev) => prev.map((a) => a.id === clinicSessionAppointment.id ? { ...a, ...patch } : a));
           setSelectedAppointment((prev) => prev && prev.id === clinicSessionAppointment.id ? { ...prev, ...patch } : prev);
+        };
+        // Si el paciente no tiene el documento que exige ese estado, la sesión queda guardada y la
+        // cita no cambia hasta que se cargue el documento desde el aviso (ahí se completa sola).
+        if (
+          clinicSessionAppointment.status !== 'completed' &&
+          (await completeAppointmentWithDocumentCheck(clinicSessionAppointment, markCompleted))
+        ) {
+          markCompleted();
         }
         toast({ title: tAppointmentsPage('toasts.sessionCreated'), description: tAppointmentsPage('toasts.sessionCreatedDesc') });
       }
@@ -515,7 +519,7 @@ export function UserAppointments({ user, refreshTrigger }: UserAppointmentsProps
       });
       throw error;
     }
-  }, [clinicSessionAppointment, createSession, updateSession, loadLinkedSession, toast, tAppointmentsPage]);
+  }, [clinicSessionAppointment, createSession, updateSession, loadLinkedSession, toast, tAppointmentsPage, completeAppointmentWithDocumentCheck]);
 
   const handleEdit = React.useCallback((appointment: Appointment) => {
     setEditingAppointment(appointment);

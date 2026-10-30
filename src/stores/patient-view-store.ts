@@ -28,6 +28,12 @@ type PatientViewStore = {
    * `calendar_changed` (SSE) no lo cubre.
    */
   lastUpdatedPatient: User | null;
+  /**
+   * Callback de quien abrió el diálogo `infoOnly`, llamado tras un guardado
+   * exitoso (antes de cerrarlo). Lo usa el aviso de documento faltante para
+   * reintentar el cambio de estado de la cita.
+   */
+  onSaved?: (user: User) => void;
   open: (patient: {
     userId: string;
     userName: string;
@@ -36,6 +42,7 @@ type PatientViewStore = {
     initialTab?: PatientDetailTab;
     infoOnly?: boolean;
     showCancelAction?: boolean;
+    onSaved?: (user: User) => void;
   }) => void;
   close: () => void;
   notifyPatientUpdated: (user: User) => void;
@@ -51,12 +58,13 @@ export const usePatientView = create<PatientViewStore>((set) => ({
   infoOnly: false,
   showCancelAction: false,
   lastUpdatedPatient: null,
+  onSaved: undefined,
   // Deferred: `open` is often called from a ContextMenuItem's onSelect. Radix's
   // menu and this sheet both lock document.body's pointer-events while
   // open/closing; opening the sheet in the same tick the menu starts its
   // (animated) unmount races that lock and can leave the sheet unclosable.
   // Letting the menu finish unwinding first (next tick) avoids the overlap.
-  open: ({ userId, userName, userEmail, userPhone, initialTab, infoOnly, showCancelAction }) =>
+  open: ({ userId, userName, userEmail, userPhone, initialTab, infoOnly, showCancelAction, onSaved }) =>
     setTimeout(() => set({
       isOpen: true,
       userId,
@@ -66,6 +74,7 @@ export const usePatientView = create<PatientViewStore>((set) => ({
       initialTab,
       infoOnly: infoOnly ?? false,
       showCancelAction: showCancelAction ?? false,
+      onSaved,
     }), 0),
   close: () => set({
     isOpen: false,
@@ -74,6 +83,7 @@ export const usePatientView = create<PatientViewStore>((set) => ({
     initialTab: undefined,
     infoOnly: false,
     showCancelAction: false,
+    onSaved: undefined,
   }),
   notifyPatientUpdated: (user) => set({ lastUpdatedPatient: user }),
 }));

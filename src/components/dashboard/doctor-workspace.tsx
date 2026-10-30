@@ -37,7 +37,7 @@ import { canManageDoctorWorkspaceSessions } from '@/lib/permissions';
 import { cn, formatDate } from '@/lib/utils';
 import { normalizeResponsibleContact } from '@/lib/appointment-contact';
 import { api } from '@/services/api';
-import { updateAppointmentStatusWithDocumentCheck } from '@/services/appointments';
+import { useCompleteAppointmentWithDocumentCheck } from '@/hooks/use-appointment-status';
 import { getQuoteItems } from '@/services/quotes';
 import { format, isSameDay, parseISO } from 'date-fns';
 import type { Locale } from 'date-fns';
@@ -1163,6 +1163,22 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     };
   }, [loadAppointments]);
 
+  const completeAppointmentWithDocumentCheck = useCompleteAppointmentWithDocumentCheck();
+
+  // Pasa la cita a "completada" al guardar su sesión. Si el paciente no tiene el
+  // documento que exige ese estado, la sesión queda guardada y la cita conserva su
+  // estado hasta que se cargue el documento desde el aviso (ahí se completa sola).
+  const completeSelectedAppointment = React.useCallback(async (appointment: Appointment) => {
+    const userId = String(user?.id ?? '');
+    markAppointmentLocallyUpdated(userId, appointment.id);
+    const completed = await completeAppointmentWithDocumentCheck(appointment, () => {
+      markAppointmentLocallyUpdated(userId, appointment.id);
+      updateKnownAppointmentStatus(userId, appointment.id, 'completed');
+      void loadAppointments(true);
+    });
+    if (completed) updateKnownAppointmentStatus(userId, appointment.id, 'completed');
+  }, [completeAppointmentWithDocumentCheck, loadAppointments, user?.id]);
+
   const handleSaveClinicSession = React.useCallback(async (data: ClinicSessionFormData) => {
     if (!selectedAppointment?.patientId || isSessionEditingBlockedByDate) return;
 
@@ -1183,23 +1199,16 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     }
 
     if (selectedAppointment.status !== 'completed') {
-      markAppointmentLocallyUpdated(String(user?.id ?? ''), selectedAppointment.id);
-      // Si el paciente no tiene el documento que exige ese estado, la sesión queda
-      // guardada y la cita conserva su estado.
-      const completed = await updateAppointmentStatusWithDocumentCheck({
-        appointment: selectedAppointment,
-        newStatus: 'completed',
-      });
-      if (completed) updateKnownAppointmentStatus(String(user?.id ?? ''), selectedAppointment.id, 'completed');
+      await completeSelectedAppointment(selectedAppointment);
     }
 
     await loadLinkedSession(selectedAppointment);
     await loadAppointments(true);
   }, [
+    completeSelectedAppointment,
     createSession,
     isSessionEditingBlockedByDate,
-    linkedSession?.archivos_adjuntos,
-    linkedSession?.sesion_id,
+    linkedSession,
     loadAppointments,
     loadLinkedSession,
     selectedAppointment,
@@ -1337,15 +1346,10 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const handleOdontogramSessionSaved = React.useCallback(async () => {
     if (!selectedAppointment || isSessionEditingBlockedByDate) return;
     if (selectedAppointment.status !== 'completed') {
-      markAppointmentLocallyUpdated(String(user?.id ?? ''), selectedAppointment.id);
-      const completed = await updateAppointmentStatusWithDocumentCheck({
-        appointment: selectedAppointment,
-        newStatus: 'completed',
-      });
-      if (completed) updateKnownAppointmentStatus(String(user?.id ?? ''), selectedAppointment.id, 'completed');
+      await completeSelectedAppointment(selectedAppointment);
     }
     await loadAppointments(true);
-  }, [isSessionEditingBlockedByDate, loadAppointments, selectedAppointment, user?.id]);
+  }, [completeSelectedAppointment, isSessionEditingBlockedByDate, loadAppointments, selectedAppointment]);
 
   const handleClinicSessionOpenChange = React.useCallback((open: boolean) => {
     setClinicSessionOpen(open);
