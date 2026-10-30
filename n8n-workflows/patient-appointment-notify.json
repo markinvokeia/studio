@@ -1,0 +1,239 @@
+{
+  "name": "Patient Portal — Appointment Notify",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "api/public/appointment-notify",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-prepare",
+      "name": "Preparar Datos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\n// Datos del cambio + destinatarios. La clínica se saca de la BD para no\n// confiar en nada que venga del cliente.\nconst body = $input.first().json.body ?? $input.first().json ?? {};\n\n// El email puede llegar vacío y NO es un error: `/api/auth/patient/identify`\n// es público y sólo devuelve el email enmascarado, así que el cliente no\n// conoce la dirección real de un paciente ya registrado. Se resuelve contra la\n// BD por patient_id en el nodo siguiente.\nconst patientEmail = String(body.patient_email || '').trim();\nconst patientId = body.patient_id || null;\nif (!patientEmail && !patientId) {\n  throw new Error('Se requiere patient_email o patient_id');\n}\n\nconst VALID_EVENTS = ['booked', 'rescheduled', 'cancelled'];\nconst event = VALID_EVENTS.includes(body.event) ? body.event : 'booked';\n\n// Copy por evento. Se arma acá y no en los nodos de email para que el asunto y\n// el encabezado no queden desperdigados en expresiones.\nconst COPY = {\n  booked: {\n    patientSubject: 'Tu cita quedó agendada',\n    patientHeadline: 'Tu cita quedó agendada.',\n    clinicSubject:  'Nueva cita desde el portal',\n    clinicHeadline: 'Un paciente reservó una cita desde el portal.',\n  },\n  rescheduled: {\n    patientSubject: 'Tu cita fue reagendada',\n    patientHeadline: 'Reagendamos tu cita. Este es el nuevo horario.',\n    clinicSubject:  'Cita reagendada desde el portal',\n    clinicHeadline: 'Un paciente reagendó su cita desde el portal.',\n  },\n  cancelled: {\n    patientSubject: 'Tu cita fue cancelada',\n    patientHeadline: 'Cancelamos tu cita. El horario quedó liberado.',\n    clinicSubject:  'Cita cancelada desde el portal',\n    clinicHeadline: 'Un paciente canceló su cita desde el portal.',\n  },\n}[event];\n\nconst previous = body.previous_date\n  ? `${body.previous_date} ${String(body.previous_time || '').trim()}`.trim()\n  : '';\n\nreturn [{ json: {\n  event,\n  ...COPY,\n  previous,\n  is_cancelled:  event === 'cancelled',\n  appointment_id: body.appointment_id || null,\n  patient_id:     patientId,\n  patient_name:   String(body.patient_name || '').trim(),\n  patient_email:  patientEmail,\n  date:           String(body.date || '').trim(),\n  time:           String(body.time || '').trim(),\n  doctor_name:    String(body.doctor_name || '').trim(),\n  sede_name:      String(body.sede_name || '').trim(),\n  reason:         String(body.reason || '').trim(),\n} }];\n"
+      }
+    },
+    {
+      "id": "node-clinic",
+      "name": "Buscar Clínica y Paciente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        500,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Clínica (destinatario del aviso) y el email REAL del paciente en un solo\n-- viaje. El del body puede venir vacío: el cliente público nunca lo conoce.\n-- La BD es además la fuente autoritativa — nadie puede redirigir el correo\n-- mandando otra dirección en el payload.\nSELECT\n    c.name  AS clinic_name,\n    c.email AS clinic_email,\n    c.phone AS clinic_phone,\n    u.email AS db_patient_email,\n    u.name  AS db_patient_name\nFROM (\n    SELECT name, email, phone\n    FROM public.clinic\n    WHERE is_active IS NOT FALSE\n    ORDER BY id\n    LIMIT 1\n) c\nLEFT JOIN public.users u ON u.id = $1::uuid",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.patient_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-merge",
+      "name": "Combinar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\nconst row = $input.first().json || {};\nconst ctx = $('Preparar Datos').first().json;\n\n// La BD manda: es la dirección que la clínica tiene registrada. El valor del\n// body sólo se usa como respaldo (paciente recién creado, cuya fila todavía\n// podría no estar visible para esta consulta).\nconst patientEmail = String(row.db_patient_email || ctx.patient_email || '').trim();\n\nif (!patientEmail) {\n  throw new Error(`No hay email para notificar al paciente ${ctx.patient_id ?? '(sin id)'}`);\n}\n\nreturn [{ json: {\n  ...ctx,\n  patient_email: patientEmail,\n  patient_name:  ctx.patient_name || row.db_patient_name || '',\n  clinic_name:   row.clinic_name  || 'la clínica',\n  clinic_email:  row.clinic_email || null,\n  clinic_phone:  row.clinic_phone || '',\n} }];\n"
+      }
+    },
+    {
+      "id": "node-email-patient",
+      "name": "Email al Paciente",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        900,
+        220
+      ],
+      "parameters": {
+        "fromEmail": "SMTP_FROM_EMAIL",
+        "toEmail": "={{ $json.patient_email }}",
+        "subject": "={{ $json.patientSubject }} — {{ $json.date }} {{ $json.time }}",
+        "emailFormat": "html",
+        "html": "=<div style=\"font-family:system-ui,-apple-system,sans-serif;max-width:520px;margin:0 auto;padding:24px\"><h2 style=\"margin:0 0 8px\">Hola {{ $json.patient_name }}</h2><p style=\"color:#555;margin:0 0 20px\">{{ $json.patientHeadline }}</p>{{ $json.previous ? '<p style=\"color:#999;margin:0 0 12px;text-decoration:line-through\">Antes: ' + $json.previous + '</p>' : '' }}<table style=\"width:100%;border-collapse:collapse;margin:0 0 20px\"><tr><td style=\"padding:6px 0;color:#777\">Fecha</td><td style=\"padding:6px 0;font-weight:600\">{{ $json.date }}</td></tr><tr><td style=\"padding:6px 0;color:#777\">Hora</td><td style=\"padding:6px 0;font-weight:600\">{{ $json.time }}</td></tr><tr><td style=\"padding:6px 0;color:#777\">Profesional</td><td style=\"padding:6px 0;font-weight:600\">{{ $json.doctor_name }}</td></tr><tr><td style=\"padding:6px 0;color:#777\">Lugar</td><td style=\"padding:6px 0;font-weight:600\">{{ $json.sede_name }}</td></tr></table><p style=\"color:#777;font-size:13px;margin:0\">{{ $json.is_cancelled ? 'Podés reservar una nueva cita cuando quieras desde el portal.' : 'La clínica va a confirmarte la cita. Si necesitás cambiarla o cancelarla, comunicate al ' + $json.clinic_phone + '.' }}</p></div>",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": {
+          "id": "SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "node-email-clinic",
+      "name": "Email a la Clínica",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1100,
+        220
+      ],
+      "parameters": {
+        "fromEmail": "SMTP_FROM_EMAIL",
+        "toEmail": "={{ $('Combinar').first().json.clinic_email }}",
+        "subject": "={{ $('Combinar').first().json.clinicSubject }}: {{ $('Combinar').first().json.patient_name }} — {{ $('Combinar').first().json.date }} {{ $('Combinar').first().json.time }}",
+        "emailFormat": "html",
+        "html": "=<div style=\"font-family:system-ui,sans-serif;padding:16px\"><h3>{{ $('Combinar').first().json.clinicHeadline }}</h3><p><b>Paciente:</b> {{ $('Combinar').first().json.patient_name }} ({{ $('Combinar').first().json.patient_email }})<br><b>Fecha:</b> {{ $('Combinar').first().json.date }} {{ $('Combinar').first().json.time }}<br>{{ $('Combinar').first().json.previous ? '<b>Horario anterior:</b> ' + $('Combinar').first().json.previous + '<br>' : '' }}<b>Profesional:</b> {{ $('Combinar').first().json.doctor_name }}<br><b>Lugar:</b> {{ $('Combinar').first().json.sede_name }}<br><b>Motivo:</b> {{ $('Combinar').first().json.reason }}</p>{{ $('Combinar').first().json.is_cancelled ? '<p style=\"color:#a00\">El horario quedó <b>liberado</b>.</p>' : '<p style=\"color:#a00\">La cita está en estado <b>pendiente</b>: hay que confirmarla desde la agenda.</p>' }}</div>",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": {
+          "id": "SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        220
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { statusCode: 200, body: { sent: true } } }];"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1500,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Preparar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Datos": {
+      "main": [
+        [
+          {
+            "node": "Buscar Clínica y Paciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combinar": {
+      "main": [
+        [
+          {
+            "node": "Email al Paciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email al Paciente": {
+      "main": [
+        [
+          {
+            "node": "Email a la Clínica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email a la Clínica": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Clínica y Paciente": {
+      "main": [
+        [
+          {
+            "node": "Combinar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' en 'Buscar Clínica y Paciente' (POSTGRES_CREDENTIAL_ID).\n2. Credencial 'SMTP' en los dos nodos de email + SMTP_FROM_EMAIL.\n3. Webhook PÚBLICO (noauth): lo llama la landing tras reservar sin sesión, y\n   también el portal autenticado tras reservar, reagendar o cancelar.\n\nRUTA: POST https://<tu-n8n>/webhook/api/public/appointment-notify\n\nREQUEST:\n{ \"event\": \"booked\" | \"rescheduled\" | \"cancelled\",\n  \"appointment_id\": \"...\", \"patient_id\": \"...\",\n  \"patient_name\": \"...\", \"patient_email\": \"...\",\n  \"date\": \"2026-08-20\", \"time\": \"14:00\",\n  \"doctor_name\": \"...\", \"sede_name\": \"...\", \"reason\": \"...\",\n  \"previous_date\": \"2026-08-13\", \"previous_time\": \"10:00\" }   // sólo en rescheduled\n\n`event` define el asunto y el copy de ambos correos (nodo 'Preparar Datos').\nUn valor desconocido cae a 'booked'.\n\nEMAIL DEL PACIENTE — puede llegar VACÍO y no es un error:\n/api/auth/patient/identify es público y sólo devuelve el email enmascarado, así\nque el cliente NO conoce la dirección real de un paciente ya registrado. El\nflujo la resuelve contra `users` por `patient_id`, que además es la fuente\nautoritativa: nadie puede redirigir el correo mandando otra dirección.\nSe exige `patient_email` O `patient_id`; si no hay ninguno de los dos, falla.\n\nSE DISPARA EN LOS TRES CAMBIOS QUE HACE EL PACIENTE:\n  · booked      → reservó una cita (con o sin sesión).\n  · rescheduled → movió una cita; el correo muestra el horario anterior tachado.\n  · cancelled   → canceló; a la clínica se le avisa que el horario se liberó.\n\nPOR QUÉ ES UN FLUJO APARTE:\nNo se agregó dentro de /appointments/upsert porque ese endpoint lo usa toda la\napp —incluida la agenda del staff— y mandaría correos en situaciones donde hoy\nno se manda. Este se llama sólo desde el portal.\n\nLos dos nodos de email tienen continueOnFail: si el de la clínica falla, el del\npaciente ya salió y la operación sobre la cita igual se completó.\n\nRATE-LIMIT RECOMENDADO: es un endpoint público que dispara correos. Conviene\nlimitarlo por IP igual que /api/auth/patient/register.\n\nCONTRATO: docs/patient-portal.md §2.8"
+  }
+}

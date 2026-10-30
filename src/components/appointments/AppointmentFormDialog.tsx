@@ -30,21 +30,29 @@ import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { Appointment, Calendar as CalendarType, PatientSession, Quote, QuoteItem, Service, TreatmentSequence, TreatmentSequenceStepStatus, User as UserType } from '@/lib/types';
-import { cn, toLocalISOString } from '@/lib/utils';
+import { cn, formatDisplayDate, toLocalISOString } from '@/lib/utils';
+import { getOwnAppointmentColor } from '@/lib/appointment-color';
 import { useAuth } from '@/context/AuthContext';
-import api from '@/services/api';
+import api, { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
+import { getErrorMessage } from '@/lib/error-utils';
 import { markLocallyCreated } from '@/hooks/use-appointment-status';
+import { useAsyncAction } from '@/hooks/use-async-action';
 import { getSalesServices } from '@/services/services';
 import { TreatmentPlanReviewDialog } from '@/components/appointments/TreatmentPlanReviewDialog';
+import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
+import { fetchFuturePatientAppointments, type FuturePatientAppointment } from '@/services/appointments';
 import { getServicesByQuoteId, getQuoteItems } from '@/services/quotes';
 import { addMinutes, differenceInMinutes, format, isValid, parse, parseISO } from 'date-fns';
 import { AlertTriangle, CalendarDays, Check, ChevronsUpDown, ClipboardList, Clock, FileText, FilePlus, Link2, Loader2, MapPin, Plus, Stethoscope, UserRound, X } from 'lucide-react';
 
-import { useAccountStatement } from '@/stores/account-statement-store';
+import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { usePatientView } from '@/stores/patient-view-store';
+import { usePermissions } from '@/hooks/usePermissions';
+import { PATIENT_FINANCIAL_VIEW_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface WorkflowStep {
     id: number | string;
@@ -93,6 +101,13 @@ interface AppointmentFormDialogProps {
     checkCalendarAvailability?: boolean;
     checkDoctorAvailability?: boolean;
     userQuotes?: Quote[];
+    /** When "block out-of-office hours" is on, returns true if the given start
+     *  time falls outside the calendar's working hours (optionally scoped to a
+     *  calendar). Save is blocked with an error when it returns true. */
+    isDateTimeBlocked?: (start: Date, calendarId?: string) => boolean;
+    /** Refresca los datos de la agenda. Se llama cuando un guardado hace timeout,
+     *  porque el backend pudo haberlo aplicado igual. */
+    onRequestRefresh?: () => void;
 }
 
 export function AppointmentFormDialog({
@@ -110,18 +125,34 @@ export function AppointmentFormDialog({
     checkCalendarAvailability = false,
     checkDoctorAvailability = false,
     userQuotes: externalUserQuotes,
+    isDateTimeBlocked,
+    onRequestRefresh,
 }: AppointmentFormDialogProps) {
     const t = useTranslations('AppointmentsPage');
     const tColumns = useTranslations('AppointmentsColumns');
     const tGeneral = useTranslations('General');
     const tToasts = useTranslations('AppointmentsPage.toasts');
+    const tCommon = useTranslations('Common');
     const tQuotes = useTranslations('QuotesPage');
     const tReschedule = useTranslations('AppointmentReschedule');
     const { user: currentUser } = useAuth();
     const { toast } = useToast();
+    /** Mensaje legible de un error de guardado; traduce el timeout al texto estándar
+     *  (que avisa que el cambio pudo haberse guardado igual). */
+    const describeError = React.useCallback(
+        (error: unknown, fallback: string) => (isTimeoutError(error) ? tCommon('timeoutError') : getErrorMessage(error) || fallback),
+        [tCommon],
+    );
     const { reschedule } = useAppointmentReschedule();
-    const { open: openAccountStatement } = useAccountStatement();
-    const { open: openPatientView } = usePatientView();
+    const { open: openAccountStatement } = usePatientLedgerSheet();
+    const { open: openPatientView, lastUpdatedPatient } = usePatientView();
+    const { hasAnyPermission, hasPermission } = usePermissions();
+    // "Ver estado de cuenta" abre el ledger financiero consolidado del paciente.
+    const canViewStatement = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
+    // La creación al vuelo es un alta de servicio con otra puerta de entrada, así que pide
+    // el mismo permiso que el alta desde el catálogo. Ocultar el botón es UX: quien manda
+    // es el backend, que tiene que rechazar el upsert sin SALES_SERVICES_CREATE.
+    const canCreateService = hasPermission(SALES_PERMISSIONS.SERVICES_CREATE);
     const tAccount = useTranslations('AccountStatement');
     const tPanelAccount = useTranslations('AppointmentPanel');
     const isReschedule = mode === 'reschedule';
@@ -140,12 +171,19 @@ export function AppointmentFormDialog({
         time: format(new Date(), 'HH:mm'),
         endTime: '',
         notes: '',
+        // Título del evento. Solo se muestra y se edita en las citas importadas de
+        // Google Calendar; en el resto se autogenera a partir de paciente + servicios.
+        summary: '',
         quote: null as Quote | null,
     });
 
     const [errors, setErrors] = React.useState<string[]>([]);
 
     const [originalCalendarId, setOriginalCalendarId] = React.useState<string | undefined>(undefined);
+
+    // Citas traídas de Google Calendar: no tienen paciente ni tratamientos, así que su
+    // summary (el título del evento) es el único dato real y se edita a mano.
+    const isImportedFromGoogle = editingAppointment?.imported_from_google === true;
     const [availabilityStatus, setAvailabilityStatus] = React.useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
     const [suggestedTimes, setSuggestedTimes] = React.useState<any[]>([]);
 
@@ -189,6 +227,11 @@ export function AppointmentFormDialog({
     const [isPlanReviewOpen, setIsPlanReviewOpen] = React.useState(false);
     const [pendingWorkflowSaveResult, setPendingWorkflowSaveResult] = React.useState<{ result: any; startDateTime: Date } | null>(null);
     const pendingWorkflowCallbackInvokedRef = React.useRef(false);
+
+    // Future-appointments confirmation: when creating an appointment for a patient
+    // who already has upcoming appointments, ask the user to confirm before saving.
+    const [futureConfirm, setFutureConfirm] = React.useState<{ appointments: FuturePatientAppointment[]; patientName: string } | null>(null);
+    const skipFutureCheckRef = React.useRef(false);
 
     const flushPendingWorkflowSaveSuccess = React.useCallback(() => {
         if (pendingWorkflowCallbackInvokedRef.current) return;
@@ -252,6 +295,15 @@ export function AppointmentFormDialog({
         loadQuoteItems();
     }, [appointment.quote?.id, editingAppointment?.quote_id]);
 
+    // "Ver paciente" (arriba) abre el sheet de datos del paciente apilado sobre este
+    // diálogo. `appointment.user` es una copia local tomada al seleccionar el paciente,
+    // así que sin esto el formulario seguía mostrando el nombre/email/teléfono viejo
+    // tras editar y guardar esos datos, hasta cerrar y reabrir la cita.
+    React.useEffect(() => {
+        if (!lastUpdatedPatient || !appointment.user || appointment.user.id !== lastUpdatedPatient.id) return;
+        setAppointment(prev => (prev.user ? { ...prev, user: { ...prev.user, ...lastUpdatedPatient } } : prev));
+    }, [lastUpdatedPatient]);
+
     // Compute prefillTreatments from quote items, filtered to only the services still in the appointment
     const prefillTreatments = React.useMemo(() => {
         const selectedServiceIds = new Set(appointment.services.map(s => s.id));
@@ -293,7 +345,7 @@ export function AppointmentFormDialog({
                     status: q.status || 'draft',
                     payment_status: q.payment_status || 'unpaid',
                     billing_status: q.billing_status || 'not_invoiced',
-                    currency: q.currency || 'USD',
+                    currency: q.currency || getClinicCurrency(),
                     exchange_rate: q.exchange_rate || 1,
                     notes: q.notes || '',
                     createdAt: q.createdAt || q.created_at || new Date().toISOString().split('T')[0],
@@ -356,13 +408,17 @@ export function AppointmentFormDialog({
                 }
 
                 setAppointment({
-                    user: {
-                        id: editingAppointment.patientId || '',
-                        name: editingAppointment.patientName,
-                        email: editingAppointment.patientEmail || '',
-                        phone_number: editingAppointment.patientPhone || '',
-                        is_active: true, avatar: ''
-                    },
+                    // Sin paciente asignado (típico de las citas importadas de Google) el
+                    // selector tiene que verse vacío, no con el 'N/A' que deja el mapeo.
+                    user: editingAppointment.patientId
+                        ? {
+                            id: editingAppointment.patientId,
+                            name: editingAppointment.patientName,
+                            email: editingAppointment.patientEmail || '',
+                            phone_number: editingAppointment.patientPhone || '',
+                            is_active: true, avatar: ''
+                        }
+                        : null,
                     services: editingAppointment.services || [],
                     doctor: editingAppointment.doctorId ? {
                         id: editingAppointment.doctorId,
@@ -376,6 +432,11 @@ export function AppointmentFormDialog({
                     time: editingAppointment.time || '',
                     endTime: editingAppointment.end ? format(parseISO(editingAppointment.end.dateTime.replace(/Z$/, '')), 'HH:mm') : '',
                     notes: editingAppointment.notes || '',
+                    // El mapper rellena el summary con el placeholder "Ninguno" cuando
+                    // la cita no trae uno; en el campo eso tiene que verse vacío.
+                    summary: editingAppointment.summary && editingAppointment.summary !== t('createDialog.none')
+                        ? editingAppointment.summary
+                        : '',
                     quote: editingAppointment.quote_id ? {
                         id: editingAppointment.quote_id,
                         doc_no: editingAppointment.quote_doc_no || '',
@@ -390,15 +451,30 @@ export function AppointmentFormDialog({
                 setOriginalCalendarId(editingAppointment.calendar_source_id ?? '');
                 loadLinkedSession(editingAppointment);
             } else if (initialData) {
+                const initialUser = initialData.user || null;
+                // Patient's default doctor (e.g. "create appointment" from the
+                // patient view) — only when no doctor was provided explicitly.
+                let initialDoctor = initialData.doctor || null;
+                let initialCalendar = initialData.calendar || null;
+                if (!initialDoctor && initialUser?.doctor_id) {
+                    initialDoctor = allDoctors.find(d => String(d.id) === String(initialUser.doctor_id))
+                        ?? (initialUser.doctor_name
+                            ? { id: String(initialUser.doctor_id), name: initialUser.doctor_name, email: '', phone_number: '', is_active: true, avatar: '' } as UserType
+                            : null);
+                    if (initialDoctor && !initialCalendar && initialDoctor.calendar_source_id) {
+                        initialCalendar = calendars.find(c => String(c.id) === String(initialDoctor!.calendar_source_id)) ?? null;
+                    }
+                }
                 setAppointment({
-                    user: initialData.user || null,
+                    user: initialUser,
                     services: initialData.services || [],
-                    doctor: initialData.doctor || null,
-                    calendar: initialData.calendar || null,
+                    doctor: initialDoctor,
+                    calendar: initialCalendar,
                     date: initialData.date || format(new Date(), 'yyyy-MM-dd'),
                     time: initialData.time || format(new Date(), 'HH:mm'),
                     endTime: '',
                     notes: initialData.notes || '',
+                    summary: initialData.summary || '',
                     quote: initialData.quote || null,
                 });
                 setOriginalCalendarId(undefined);
@@ -412,6 +488,7 @@ export function AppointmentFormDialog({
                     time: format(new Date(), 'HH:mm'),
                     endTime: '',
                     notes: '',
+                    summary: '',
                     quote: null,
                 });
                 setOriginalCalendarId(undefined);
@@ -454,19 +531,19 @@ export function AppointmentFormDialog({
 
     const handleCreateServiceInline = React.useCallback(async () => {
         const name = serviceSearchQuery.trim();
-        if (!name) return;
+        if (!name || !canCreateService) return;
         setIsSavingService(true);
         try {
             await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, {
                 name,
                 price: 0,
-                currency: 'UYU',
+                currency: getClinicCurrency(),
                 is_sales: true,
                 is_active: true,
                 duration_minutes: 60,
                 category: '',
                 description: '',
-            });
+            }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
             const result = await getSalesServices({ search: name, limit: 50 });
             const newServices = result.items.filter((apiService: any) => apiService.name?.trim()).map((apiService: any): Service => ({
                 id: String(apiService.id),
@@ -493,7 +570,7 @@ export function AppointmentFormDialog({
         } finally {
             setIsSavingService(false);
         }
-    }, [serviceSearchQuery]);
+    }, [serviceSearchQuery, canCreateService]);
 
     const checkAvailability = React.useCallback(async (formData: typeof appointment) => {
         console.log(`Evaluating calendar availability check. calendar_settings.check_availability is: ${checkCalendarAvailability}`);
@@ -550,7 +627,11 @@ export function AppointmentFormDialog({
         };
 
         if (doctor?.email) params.doctorEmail = doctor.email;
-        if (editingAppointment) params.eventId = editingAppointment.id;
+        if (editingAppointment) {
+            params.eventId = editingAppointment.id;
+            // The appointment being edited must not count as its own conflict.
+            params.appointment_id = String(editingAppointment.id);
+        }
         if (attendeeEmails.length > 0) params.attendeesEmails = attendeeEmails.join(',');
         if (calendar?.id) params.calendar_source_ids = String(calendar.id);
 
@@ -675,7 +756,10 @@ export function AppointmentFormDialog({
     };
 
 
-    const handleSave = async () => {
+    // Flujo de guardado. Se envuelve más abajo con `useAsyncAction`: el botón
+    // "Guardar" queda bloqueado (ref síncrona) mientras corre, así un doble clic
+    // no crea dos citas.
+    const runSaveFlow = async () => {
         const isEditing = !!editingAppointment;
         if (isEditing) {
             const hasChanges = appointment.date !== editingAppointment?.date || appointment.time !== editingAppointment?.time;
@@ -695,13 +779,23 @@ export function AppointmentFormDialog({
         if (!time) newErrors.push('time');
         if (!calendar) newErrors.push('calendar');
 
-        if (!isEditing) {
-            if (!user) newErrors.push('user');
-        }
+        // A patient is always required, EXCEPT for appointments imported from Google
+        // Calendar: those arrive with no patient assigned and must stay editable
+        // (the same rule the inline card applies).
+        if (!user?.id && !isImportedFromGoogle) newErrors.push('user');
+
+        // El summary de una cita importada no se autogenera: si queda vacío la cita
+        // se quedaría sin título.
+        if (isImportedFromGoogle && !appointment.summary.trim()) newErrors.push('summary');
 
         if (newErrors.length > 0) {
             setErrors(newErrors);
-            toast({ variant: "destructive", title: tToasts('missingInfoTitle'), description: tToasts('fillRequired') });
+            const onlyPatientMissing = newErrors.length === 1 && newErrors[0] === 'user';
+            toast({
+                variant: "destructive",
+                title: tToasts('missingInfoTitle'),
+                description: onlyPatientMissing ? tToasts('patientRequired') : tToasts('fillRequired'),
+            });
             return;
         }
 
@@ -712,6 +806,30 @@ export function AppointmentFormDialog({
         }
 
         setErrors([]);
+
+        // Block save when the chosen date/time falls outside the calendar's working
+        // hours (only when "block out-of-office hours" is enabled on the calendar).
+        if (isDateTimeBlocked) {
+            const start = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
+            if (isValid(start) && isDateTimeBlocked(start, calendar?.id ? String(calendar.id) : undefined)) {
+                toast({ variant: "destructive", title: tToasts('slotBlockedTitle'), description: tToasts('slotBlockedDescription') });
+                return;
+            }
+        }
+
+        // When creating (not editing/rescheduling), warn if the patient already has
+        // upcoming appointments booked, and let the user confirm before saving.
+        if (!isEditing) {
+            if (skipFutureCheckRef.current) {
+                skipFutureCheckRef.current = false;
+            } else if (user?.id) {
+                const future = await fetchFuturePatientAppointments(String(user.id), calendars);
+                if (future.length > 0) {
+                    setFutureConfirm({ appointments: future, patientName: user.name });
+                    return;
+                }
+            }
+        }
 
         const startDateTime = parse(`${date} ${time}`, 'yyyy-MM-dd HH:mm', new Date());
         let endDateTime: Date;
@@ -750,17 +868,27 @@ export function AppointmentFormDialog({
             payload.doctor_id = doctor?.id || editingAppointment!.doctorId;
             payload.doctor_name = doctor?.name || editingAppointment!.doctorName;
             payload.doctor_email = doctor?.email || editingAppointment!.doctorEmail;
-            payload.patient_id = user?.id || editingAppointment!.patientId;
-            payload.patient_name = user?.name || editingAppointment!.patientName;
-            payload.patient_email = user?.email || editingAppointment!.patientEmail;
-            payload.patient_phone = user?.phone_number || editingAppointment!.patientPhone;
+            // Una cita importada puede guardarse sin paciente: en ese caso no se manda
+            // el 'N/A' que el mapeo dejó en patientName.
+            const hasPatient = !!(user?.id || editingAppointment!.patientId);
+            payload.patient_id = user?.id || editingAppointment!.patientId || '';
+            payload.patient_name = hasPatient ? (user?.name || editingAppointment!.patientName) : '';
+            payload.patient_email = hasPatient ? (user?.email || editingAppointment!.patientEmail) : '';
+            payload.patient_phone = hasPatient ? (user?.phone_number || editingAppointment!.patientPhone) : '';
             const patientNameBase = user?.name || editingAppointment!.patientName;
-            payload.summary = services.length > 0 ? `${patientNameBase} - ${services.map(s => s.name).join(', ')}` : editingAppointment!.summary;
+            // En las citas importadas de Google el summary es el título del evento y lo
+            // maneja el usuario: se guarda literal, sin regenerarlo desde los servicios.
+            payload.summary = isImportedFromGoogle
+                ? appointment.summary.trim()
+                : (services.length > 0 ? `${patientNameBase} - ${services.map(s => s.name).join(', ')}` : editingAppointment!.summary);
             payload.service_ids = services.filter(s => s.id).map(s => s.id);
             payload.service_names = services.map(s => s.name).join(', ');
             payload.notes = notes || editingAppointment!.notes || '';
             payload.calendar_source_id = calendar?.id ? String(calendar.id) : originalCalendarId;
             payload.quote_id = appointment.quote?.id || editingAppointment?.quote_id || null;
+            // Este formulario no tiene selector de color, así que guardar desde acá no
+            // puede significar "sacale el color": se reenvía el que la cita ya tenía.
+            payload.color = getOwnAppointmentColor(editingAppointment);
         } else {
             payload.doctor_id = doctor?.id || '';
             payload.doctor_name = doctor?.name || '';
@@ -812,7 +940,9 @@ export function AppointmentFormDialog({
 
         // Original flow: Create appointment immediately (no session)
         try {
-            const responseData = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload);
+            const responseData = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload, undefined, undefined, {
+                timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+            });
             const result = Array.isArray(responseData) ? responseData[0] : responseData;
 
             // Since api.ts already throws for non-2xx codes, a successful return is a success
@@ -888,9 +1018,19 @@ export function AppointmentFormDialog({
                 }
             }
         } catch (error) {
-            toast({ variant: "destructive", title: tToasts('error'), description: error instanceof Error ? error.message : tToasts('unexpectedError') });
+            // Tras un timeout la cita puede haberse creado o actualizado igual: se
+            // refresca la agenda y el mensaje estándar lo advierte antes de reintentar.
+            if (isTimeoutError(error)) onRequestRefresh?.();
+            toast({ variant: "destructive", title: tToasts('error'), description: describeError(error, tToasts('unexpectedError')) });
         }
     };
+
+    // Bloqueo síncrono del guardado: `run` ignora llamadas que lleguen mientras
+    // hay una en vuelo (doble clic, Enter + clic) y expone `isPending` para el
+    // botón. El propio flujo ya muestra sus toasts, así que no se duplica el error.
+    const saveAppointment = useAsyncAction<[], void>(runSaveFlow, { showErrorToast: false });
+    const isSavingAppointment = saveAppointment.isPending;
+    const handleSave = saveAppointment.run;
 
     const loadLinkedSession = React.useCallback(async (appt: Appointment) => {
         const patientId = appt.patientId;
@@ -938,9 +1078,13 @@ export function AppointmentFormDialog({
                 return;
             }
 
+            let appointmentCreated = false;
             try {
                 // 1. Create the appointment first
-                const appointmentResponse = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, pendingAppointmentPayload);
+                const appointmentResponse = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, pendingAppointmentPayload, undefined, undefined, {
+                    timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+                });
+                appointmentCreated = true;
                 console.log('[handleSaveSession] Raw appointment response:', JSON.stringify(appointmentResponse));
 
                 // Extract appointment ID from response: { code, message, data: { id } }
@@ -960,11 +1104,30 @@ export function AppointmentFormDialog({
 
                 if (!appointmentId) {
                     console.error('[handleSaveSession] Could not extract appointment ID. Response keys:', Object.keys(appointmentResult || {}), 'Data keys:', Object.keys(responseData || {}));
-                    toast({ variant: 'destructive', title: tToasts('error'), description: 'No se pudo obtener el ID de la cita creada. Por favor, cree la sesión manualmente desde el historial del paciente.' });
+                    toast({ variant: 'destructive', title: tToasts('error'), description: tToasts('createdWithoutSessionId') });
                     const startDateTime = parseISO(pendingAppointmentPayload.start);
+                    // La cita ya existe: se cierra el flujo para que el usuario no
+                    // reintente y cree otra (sin id no se puede adjuntar la sesión).
+                    setPendingAppointmentPayload(null);
+                    setHasPendingSession(false);
+                    setIsSessionDialogOpen(false);
                     if (onSaveSuccess) onSaveSuccess(appointmentResult || {}, startDateTime);
                     return;
                 }
+
+                // La cita ya quedó creada. Se suelta el payload pendiente para que,
+                // si el paso siguiente (la sesión) falla, el reintento no vuelva a
+                // crear otra cita: el flujo de "sesión suelta" reutiliza el id que
+                // se guarda acá (en la forma que ese flujo sabe leer).
+                setPendingAppointmentPayload(null);
+                setPendingSaveResult({
+                    result: {
+                        ...(appointmentResult && typeof appointmentResult === 'object' ? appointmentResult : {}),
+                        id: appointmentResult?.id ?? appointmentId,
+                        appointment_id: appointmentResult?.appointment_id ?? appointmentId,
+                    },
+                    startDateTime: parseISO(pendingAppointmentPayload.start),
+                });
 
                 // 2. Create the session with the appointment_id
                 const sessionFormData = new FormData();
@@ -984,7 +1147,9 @@ export function AppointmentFormDialog({
                     (sessionData.archivos_adjuntos as File[]).forEach(file => sessionFormData.append('newly_added_files', file));
                 }
 
-                await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, sessionFormData);
+                await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, sessionFormData, undefined, undefined, {
+                    timeoutMs: REQUEST_TIMEOUT_MS.longRunning,
+                });
 
                 toast({
                     title: tToasts('sessionCreated'),
@@ -1001,11 +1166,16 @@ export function AppointmentFormDialog({
                 if (onSaveSuccess) onSaveSuccess(appointmentResult, startDateTime);
             } catch (error: any) {
                 console.error('[handleSaveSession] Error creating appointment/session:', error);
-                const errorMessage = error?.message || error?.data?.error || tToasts('errorCreatingSessionDesc');
+                if (isTimeoutError(error)) onRequestRefresh?.();
+                const errorMessage = isTimeoutError(error)
+                    ? tCommon('timeoutError')
+                    : (error?.message || error?.data?.error || '');
                 toast({
                     variant: 'destructive',
-                    title: tToasts('errorCreatingSession'),
-                    description: errorMessage
+                    title: appointmentCreated ? tToasts('sessionFailedAppointmentCreated') : tToasts('errorCreatingSession'),
+                    description: errorMessage || (appointmentCreated
+                        ? tToasts('sessionFailedAppointmentCreatedDesc')
+                        : tToasts('errorCreatingSessionDesc')),
                 });
                 throw error; // Re-throw so the session dialog knows it failed
             }
@@ -1041,7 +1211,9 @@ export function AppointmentFormDialog({
 
         try {
             const isEditing = !!sessionData.sesion_id;
-            await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, payload);
+            await api.post(API_ROUTES.CLINIC_HISTORY.SESSIONS_UPSERT, payload, undefined, undefined, {
+                timeoutMs: REQUEST_TIMEOUT_MS.longRunning,
+            });
             toast({
                 title: isEditing ? tToasts('sessionUpdated') : tToasts('sessionCreated'),
                 ...(isEditing ? {} : { description: tToasts('sessionCreatedDesc') }),
@@ -1058,7 +1230,8 @@ export function AppointmentFormDialog({
             }
         } catch (error: any) {
             console.error('[handleSaveSession] Error:', error);
-            const errorMessage = error?.message || error?.data?.error || tToasts('errorCreatingSessionDesc');
+            if (isTimeoutError(error)) onRequestRefresh?.();
+            const errorMessage = describeError(error, tToasts('errorCreatingSessionDesc'));
             toast({
                 variant: 'destructive',
                 title: tToasts('errorCreatingSession'),
@@ -1099,7 +1272,15 @@ export function AppointmentFormDialog({
 
     return (
         <>
-            <Dialog open={open} onOpenChange={onOpenChange}>
+            <Dialog
+                open={open}
+                onOpenChange={(next) => {
+                    // No cerrar con una petición en vuelo: reabrir y reenviar
+                    // crearía una segunda cita.
+                    if (!next && isSavingAppointment) return;
+                    onOpenChange(next);
+                }}
+            >
                 <DialogContent maxWidth="4xl" confirmOnClose isDirty={hasBeenEdited}>
                     <DialogHeader>
                         <DialogTitle>
@@ -1112,6 +1293,30 @@ export function AppointmentFormDialog({
                         </DialogDescription>
                     </DialogHeader>
                     <DialogBody>
+                        {isImportedFromGoogle && (
+                            <div className="mx-6 mt-4 space-y-2 rounded-lg border border-[#4285F4]/30 bg-[#4285F4]/5 p-3">
+                                <div className="flex items-center gap-1.5 text-xs font-medium text-[#4285F4]">
+                                    <CalendarDays className="h-3.5 w-3.5" />
+                                    {t('importedFromGoogle')}
+                                </div>
+                                <Label
+                                    htmlFor="summary"
+                                    className={errors.includes('summary') ? 'text-destructive' : undefined}
+                                >
+                                    {t('createDialog.summary')}
+                                </Label>
+                                <Input
+                                    id="summary"
+                                    value={appointment.summary}
+                                    onChange={(e) => {
+                                        setHasBeenEdited(true);
+                                        setAppointment(prev => ({ ...prev, summary: e.target.value }));
+                                        setErrors(prev => prev.filter(err => err !== 'summary'));
+                                    }}
+                                    className={errors.includes('summary') ? 'border-destructive' : undefined}
+                                />
+                            </div>
+                        )}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-6 py-4">
                             <div className="space-y-4">
                                 <div className="space-y-2">
@@ -1124,7 +1329,25 @@ export function AppointmentFormDialog({
                                         onValueChange={(_, user) => {
                                             if (user) {
                                                 setHasBeenEdited(true);
-                                                setAppointment(prev => ({ ...prev, user }));
+                                                setAppointment(prev => {
+                                                    const next = { ...prev, user };
+                                                    // Patient's default doctor — only when no doctor was chosen yet,
+                                                    // so it never overrides a manual selection.
+                                                    if (!prev.doctor && user.doctor_id) {
+                                                        const defaultDoctor = allDoctors.find(d => String(d.id) === String(user.doctor_id))
+                                                            ?? (user.doctor_name
+                                                                ? { id: String(user.doctor_id), name: user.doctor_name, email: '', phone_number: '', is_active: true, avatar: '' } as UserType
+                                                                : null);
+                                                        if (defaultDoctor) {
+                                                            next.doctor = defaultDoctor;
+                                                            if (!prev.calendar && defaultDoctor.calendar_source_id) {
+                                                                const defaultCalendar = calendars.find(c => String(c.id) === String(defaultDoctor.calendar_source_id)) ?? null;
+                                                                if (defaultCalendar) next.calendar = defaultCalendar;
+                                                            }
+                                                        }
+                                                    }
+                                                    return next;
+                                                });
                                                 setErrors(prev => prev.filter(err => err !== 'user'));
                                             }
                                         }}
@@ -1155,16 +1378,18 @@ export function AppointmentFormDialog({
                                                     <UserRound className="h-3.5 w-3.5" />
                                                     {tPanelAccount('openPatient')}
                                                 </Button>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="flex-1 gap-1.5"
-                                                    onClick={() => appointment.user && openAccountStatement(appointment.user.id, appointment.user.name)}
-                                                >
-                                                    <FileText className="h-3.5 w-3.5" />
-                                                    {tAccount('viewStatement')}
-                                                </Button>
+                                                {canViewStatement && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="flex-1 gap-1.5"
+                                                        onClick={() => appointment.user && openAccountStatement(appointment.user.id, appointment.user.name)}
+                                                    >
+                                                        <FileText className="h-3.5 w-3.5" />
+                                                        {tAccount('viewStatement')}
+                                                    </Button>
+                                                )}
                                             </div>
                                         </div>
                                     )}
@@ -1205,10 +1430,10 @@ export function AppointmentFormDialog({
                                                     <span className="flex items-center gap-2">
                                                         <span className="font-medium">{appointment.quote.doc_no}</span>
                                                         <span className="text-muted-foreground">
-                                                            {appointment.quote.createdAt && isValid(parseISO(appointment.quote.createdAt)) ? format(parseISO(appointment.quote.createdAt), 'dd/MM/yyyy') : ''}
+                                                            {appointment.quote.createdAt ? formatDisplayDate(appointment.quote.createdAt) : ''}
                                                         </span>
                                                         <span className="text-muted-foreground">
-                                                            ({new Intl.NumberFormat('en-US', { style: 'currency', currency: appointment.quote.currency || 'USD' }).format(appointment.quote.total)})
+                                                            ({new Intl.NumberFormat('en-US', { style: 'currency', currency: appointment.quote.currency || getClinicCurrency() }).format(appointment.quote.total)})
                                                         </span>
                                                     </span>
                                                 ) : (
@@ -1235,7 +1460,7 @@ export function AppointmentFormDialog({
                                                         {userQuotes.map(quote => (
                                                             <CommandItem
                                                                 key={quote.id}
-                                                                value={`${quote.doc_no} ${quote.createdAt ? format(parseISO(quote.createdAt), 'dd/MM/yyyy') : ''}`}
+                                                                value={`${quote.doc_no} ${quote.createdAt ? formatDisplayDate(quote.createdAt) : ''}`}
                                                                 onSelect={async () => {
                                                                     setQuoteSearchOpen(false);
                                                                     setAppointment(prev => ({ ...prev, quote }));
@@ -1260,7 +1485,7 @@ export function AppointmentFormDialog({
                                                                 <div className="flex flex-col">
                                                                     <span className="font-medium">{quote.doc_no}</span>
                                                                     <span className="text-xs text-muted-foreground">
-                                                                        {quote.createdAt ? format(parseISO(quote.createdAt), 'dd/MM/yyyy') : ''} • {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency || 'USD' }).format(quote.total)} • {tQuotes(`quoteDialog.${quote.status?.toLowerCase()}`)}
+                                                                        {quote.createdAt ? formatDisplayDate(quote.createdAt) : ''} • {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote.currency || getClinicCurrency() }).format(quote.total)} • {tQuotes(`quoteDialog.${quote.status?.toLowerCase()}`)}
                                                                     </span>
                                                                 </div>
                                                             </CommandItem>
@@ -1312,7 +1537,7 @@ export function AppointmentFormDialog({
                                                             </CommandItem>
                                                         ))}
                                                     </CommandGroup>
-                                                    {serviceSearchQuery.trim() && (
+                                                    {canCreateService && serviceSearchQuery.trim() && (
                                                         <div className={cn('border-t', serviceSearchResults.length === 0 && 'border-t-0')}>
                                                             {isCreatingService ? (
                                                                 <div className="p-2 space-y-1.5">
@@ -1611,8 +1836,13 @@ export function AppointmentFormDialog({
                         )}
                     </DialogBody>
                     <DialogFooter className="flex-row justify-end gap-2 space-x-0">
-                        <DialogCancelButton variant="outline">{t('createDialog.cancel')}</DialogCancelButton>
-                        <Button onClick={handleSave} disabled={isSessionDialogOpen}>
+                        <DialogCancelButton variant="outline" disabled={isSavingAppointment}>{t('createDialog.cancel')}</DialogCancelButton>
+                        <Button
+                            type="button"
+                            onClick={() => { void handleSave(); }}
+                            loading={isSavingAppointment}
+                            disabled={isSessionDialogOpen || isSavingAppointment}
+                        >
                             {isReschedule ? tReschedule('submit') : t('createDialog.save')}
                         </Button>
                     </DialogFooter>
@@ -1714,6 +1944,21 @@ export function AppointmentFormDialog({
                         setFirstAppointmentId(undefined);
                         setPendingWorkflowSaveResult(null);
                     }}
+                />
+            )}
+
+            {futureConfirm && (
+                <FutureAppointmentsConfirmDialog
+                    open={!!futureConfirm}
+                    onOpenChange={(open) => { if (!open) setFutureConfirm(null); }}
+                    patientName={futureConfirm.patientName}
+                    appointments={futureConfirm.appointments}
+                    onConfirm={() => {
+                        setFutureConfirm(null);
+                        skipFutureCheckRef.current = true;
+                        void handleSave();
+                    }}
+                    onCancel={() => setFutureConfirm(null)}
                 />
             )}
         </>

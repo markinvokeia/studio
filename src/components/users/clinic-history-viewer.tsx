@@ -3,6 +3,8 @@
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
+import { getProcedure } from '@/components/users/dental-record/odontogram-catalog';
+import { groupTeethByCondition } from '@/components/users/dental-record/odontogram-state';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -38,26 +40,32 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
-import { ResizableSheet, SheetDescription, SheetTitle } from '@/components/ui/resizable-sheet';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ResizableSheet, SheetTitle } from '@/components/ui/resizable-sheet';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
-import { normalizeAppointmentStatus, normalizeCancellationReason, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
+import { normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
+import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStatusMenu';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { AllergyItem, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, useClinicHistory } from '@/hooks/useClinicHistory';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useReadOnly } from '@/components/patient-portal/read-only-context';
+import { BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS } from '@/constants/permissions';
+import { AllergyItem, ClinicDocument, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, SessionAttachmentDocument, useClinicHistory } from '@/hooks/useClinicHistory';
 import { Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSession, SessionPrefillData } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, formatDisplayDateWithWeekday } from '@/lib/utils';
 import { api } from '@/services/api';
-import { addMonths, format, isBefore, isValid, parseISO } from 'date-fns';
-import { es, enUS } from 'date-fns/locale';
+import { addYears, format, isBefore, isValid, parseISO } from 'date-fns';
+import { getDateFnsLocale } from '@/lib/locale';
 import {
     AlertTriangle,
-    Calendar as CalendarIcon,
     CalendarCheck,
     CalendarSync,
     Check,
@@ -73,11 +81,11 @@ import {
     FolderArchive,
     GlassWater,
     Heart,
-    Link2,
     Loader2,
     MoreHorizontal,
     Pill,
     Plus,
+    Printer,
     RotateCcw,
     SlidersHorizontal,
     Smile,
@@ -127,9 +135,12 @@ interface ClinicHistoryViewerProps {
     onClinicalDataChange?: () => void;
     deepLinkView?: string;
     onEditAppointment?: (appointment: Appointment) => void;
+    /** Se incrementa desde afuera para releer las citas (p. ej. tras guardar una). */
+    refreshAppointmentsTrigger?: number;
+    readOnly?: boolean;
 }
 
-export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, onEditAppointment, isDoctorMode = false }: ClinicHistoryViewerProps) {
+export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, onEditAppointment, refreshAppointmentsTrigger = 0, isDoctorMode = false, readOnly = false }: ClinicHistoryViewerProps) {
     const {
         patientSessions,
         isLoadingPatientSessions,
@@ -146,33 +157,32 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
 
     const [patientAppointments, setPatientAppointments] = React.useState<Appointment[]>([]);
     const [isLoadingPatientAppointments, setIsLoadingPatientAppointments] = React.useState(false);
-    const calendarsRef = React.useRef<Calendar[]>([]);
-
-    React.useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const data = await api.get(API_ROUTES.CALENDARS);
-                const list = Array.isArray(data) ? data : (data?.calendars || data?.data || data?.result || []);
-                if (!cancelled) {
-                    calendarsRef.current = list.map((c: any) => ({ id: String(c.id), name: c.name } as Calendar));
-                }
-            } catch {
-                if (!cancelled) calendarsRef.current = [];
-            }
-        })();
-        return () => { cancelled = true; };
+    // Fetched once and awaited by the appointments mapping — a plain ref filled by
+    // a parallel effect could still be empty when the appointments resolve first,
+    // leaving every appointment without its `calendar_name` (room).
+    const calendarsPromiseRef = React.useRef<Promise<Calendar[]> | null>(null);
+    const loadCalendars = React.useCallback(() => {
+        if (!calendarsPromiseRef.current) {
+            calendarsPromiseRef.current = api.get(API_ROUTES.CALENDARS)
+                .then((data: any) => {
+                    const list = Array.isArray(data) ? data : (data?.calendars || data?.data || data?.result || []);
+                    return list.map((c: any) => ({ id: String(c.id), name: c.name } as Calendar));
+                })
+                .catch(() => [] as Calendar[]);
+        }
+        return calendarsPromiseRef.current;
     }, []);
 
     const fetchPatientAppointments = React.useCallback(async (currentUserId: string) => {
         if (!currentUserId) return;
         setIsLoadingPatientAppointments(true);
         try {
+            const calendarList = await loadCalendars();
             const now = new Date();
             const formatDate = (d: Date) => format(d, 'yyyy-MM-dd HH:mm:ss');
             const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, {
-                startingDateAndTime: formatDate(addMonths(now, -12)),
-                endingDateAndTime: formatDate(addMonths(now, 6)),
+                startingDateAndTime: formatDate(addYears(now, -10)),
+                endingDateAndTime: formatDate(addYears(now, 2)),
                 user_id: currentUserId,
             });
             let raw: any[] = [];
@@ -189,7 +199,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                 if (isNaN(dt.getTime())) return null;
                 const endNode = apiAppt.end_time || apiAppt.end;
                 const calendarSourceId = apiAppt.calendar_source_id != null ? String(apiAppt.calendar_source_id) : '';
-                const calendar = calendarsRef.current.find(c => String(c.id) === calendarSourceId);
+                const calendar = calendarList.find((c: Calendar) => String(c.id) === calendarSourceId);
                 return {
                     id: String(apiAppt.appointment_id || apiAppt.appointmentId || apiAppt.appointmentid || apiAppt.id),
                     patientId: currentUserId,
@@ -236,7 +246,7 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
         } finally {
             setIsLoadingPatientAppointments(false);
         }
-    }, [userName]);
+    }, [userName, loadCalendars]);
 
     React.useEffect(() => {
         if (userId) {
@@ -279,6 +289,13 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
         }
     }, [createSessionTrigger]);
 
+    // Releer las citas cuando el consumidor guarda una desde afuera del timeline.
+    React.useEffect(() => {
+        if (refreshAppointmentsTrigger > 0) {
+            fetchPatientAppointments(userId);
+        }
+    }, [refreshAppointmentsTrigger, userId, fetchPatientAppointments]);
+
     React.useEffect(() => {
         if (createOdontogramTrigger > 0) {
             setLocalOdontogramTrigger(t => t + 1);
@@ -314,12 +331,13 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
                             onAppointmentStatusUpdated={handleAppointmentStatusUpdated}
                             onEditAppointment={onEditAppointment}
                             isDoctorMode={isDoctorMode}
+                            readOnly={readOnly}
                         />
         </div>
     );
 }
 
-export function AnamnesisViewer({ userId, onClinicalDataChange }: { userId: string; onClinicalDataChange?: () => void }) {
+export function AnamnesisViewer({ userId, onClinicalDataChange, readOnly = false }: { userId: string; onClinicalDataChange?: () => void; readOnly?: boolean }) {
     const {
         personalHistory, isLoadingPersonalHistory,
         familyHistory, isLoadingFamilyHistory,
@@ -379,26 +397,46 @@ export function AnamnesisViewer({ userId, onClinicalDataChange }: { userId: stri
             onFetchAilmentsCatalog={fetchAilmentsCatalog}
             onFetchMedicationsCatalog={fetchMedicationsCatalog}
             onClinicalDataChange={onClinicalDataChange}
+            readOnly={readOnly}
         />
     );
 }
 
-export function DocumentsViewer({ userId, createTrigger = 0 }: { userId: string; createTrigger?: number }) {
-    const { documents, isLoadingDocuments, uploadDocument, deleteDocument, getDocumentContent, refreshAll } = useClinicHistory();
+export function DocumentsViewer({ userId, createTrigger = 0, documentsOnly = false, readOnly = false }: { userId: string; createTrigger?: number; documentsOnly?: boolean; readOnly?: boolean }) {
+    const {
+        documents, isLoadingDocuments, uploadDocument, deleteDocument, getDocumentContent,
+        sessionAttachments, isLoadingSessionAttachments, getSessionAttachment,
+        refreshAll, fetchDocuments, fetchSessionAttachments,
+    } = useClinicHistory();
 
     React.useEffect(() => {
-        if (userId) refreshAll(userId);
-    }, [userId, refreshAll]);
+        if (!userId) return;
+        // documentsOnly skips the full clinic-history reload (anamnesis, allergies…)
+        // for hosts that only show the documents gallery.
+        if (documentsOnly) {
+            fetchDocuments(userId);
+            fetchSessionAttachments(userId);
+        } else {
+            refreshAll(userId);
+        }
+    }, [userId, refreshAll, fetchDocuments, fetchSessionAttachments, documentsOnly]);
+
+    const galleryItems = React.useMemo<GalleryItem[]>(() => [
+        ...documents.map((doc): GalleryItem => ({ origin: 'document', ...doc })),
+        ...sessionAttachments.map((att): GalleryItem => ({ origin: 'session', ...att })),
+    ], [documents, sessionAttachments]);
 
     return (
         <EnhancedDocumentsGallery
-            documents={documents}
-            isLoading={isLoadingDocuments}
+            documents={galleryItems}
+            isLoading={isLoadingDocuments || isLoadingSessionAttachments}
             userId={userId}
             uploadDocument={uploadDocument}
             deleteDocument={deleteDocument}
             getDocumentContent={getDocumentContent}
+            getSessionAttachment={getSessionAttachment}
             createTrigger={createTrigger}
+            readOnly={readOnly}
         />
     );
 }
@@ -440,6 +478,8 @@ interface AnamnesisSectionProps {
     onFetchAilmentsCatalog: () => Promise<void>;
     onFetchMedicationsCatalog: (search: string) => Promise<void>;
     onClinicalDataChange?: () => void;
+    /** View-only mode: hides every add/edit/delete affordance, data stays visible. */
+    readOnly?: boolean;
 }
 
 function AnamnesisSection({
@@ -479,6 +519,7 @@ function AnamnesisSection({
     onFetchAilmentsCatalog,
     onFetchMedicationsCatalog,
     onClinicalDataChange,
+    readOnly = false,
 }: AnamnesisSectionProps) {
     const t = useTranslations('ClinicHistoryPage.anamnesis');
     const tHabits = useTranslations('ClinicHistoryPage.habits');
@@ -508,7 +549,7 @@ function AnamnesisSection({
     const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return '';
         try {
-            const dateLocale = locale === 'es' ? es : enUS;
+            const dateLocale = getDateFnsLocale(locale);
             const cleanDate = dateString.split('T')[0];
             const [y, m, d] = cleanDate.split('-');
             return format(new Date(Number(y), Number(m) - 1, Number(d)), 'd MMMM yyyy', { locale: dateLocale });
@@ -974,9 +1015,11 @@ function AnamnesisSection({
                         <User className="w-5 h-5 text-primary mr-2" />
                         <h3 className="text-base font-semibold text-card-foreground">{t('personalTitle')}</h3>
                     </div>
-                    <Button variant="default" size="icon" onClick={() => handleOpenPersonalDialog()}>
-                        <Plus className="h-4 w-4" />
-                    </Button>
+                    {!readOnly && (
+                        <Button variant="default" size="icon" onClick={() => handleOpenPersonalDialog()}>
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
                 <div className="space-y-3">
                     {personalHistory.length > 0 ? (
@@ -986,14 +1029,16 @@ function AnamnesisSection({
                                     <div className="text-sm font-semibold text-foreground">{item.nombre}</div>
                                     {item.comentarios && <div className="text-sm text-muted-foreground">{item.comentarios}</div>}
                                 </div>
-                                <div className="flex items-center space-x-1">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenPersonalDialog(item)}>
-                                        <Edit3 className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeletePersonal(item)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
+                                {!readOnly && (
+                                    <div className="flex items-center space-x-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenPersonalDialog(item)}>
+                                            <Edit3 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeletePersonal(item)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         ))
                     ) : (
@@ -1009,9 +1054,11 @@ function AnamnesisSection({
                         <Pill className="w-5 h-5 text-green-500 mr-2" />
                         <h3 className="text-base font-semibold text-card-foreground">{t('medicationsTitle')}</h3>
                     </div>
-                    <Button variant="default" size="icon" onClick={() => handleOpenMedicationDialog()}>
-                        <Plus className="h-4 w-4" />
-                    </Button>
+                    {!readOnly && (
+                        <Button variant="default" size="icon" onClick={() => handleOpenMedicationDialog()}>
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
                 <div className="space-y-3">
                     {medications.length > 0 ? (
@@ -1031,14 +1078,16 @@ function AnamnesisSection({
                                     )}
                                     {item.motivo && <div className="text-sm text-muted-foreground">{item.motivo}</div>}
                                 </div>
-                                <div className="flex items-center space-x-1">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenMedicationDialog(item)}>
-                                        <Edit3 className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteMedication(item)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
+                                {!readOnly && (
+                                    <div className="flex items-center space-x-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenMedicationDialog(item)}>
+                                            <Edit3 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteMedication(item)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         ))
                     ) : (
@@ -1054,9 +1103,11 @@ function AnamnesisSection({
                         <Heart className="w-5 h-5 text-red-500 mr-2" />
                         <h3 className="text-base font-semibold text-card-foreground">{t('familyTitle')}</h3>
                     </div>
-                    <Button variant="default" size="icon" onClick={() => handleOpenFamilyDialog()}>
-                        <Plus className="h-4 w-4" />
-                    </Button>
+                    {!readOnly && (
+                        <Button variant="default" size="icon" onClick={() => handleOpenFamilyDialog()}>
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
                 <div className="space-y-3">
                     {familyHistory.length > 0 ? (
@@ -1067,14 +1118,16 @@ function AnamnesisSection({
                                     <div className="text-sm text-muted-foreground">{t('relative')}: {getRelationshipLabel(item.parentesco)}</div>
                                     {item.comentarios && <div className="text-sm text-muted-foreground">{item.comentarios}</div>}
                                 </div>
-                                <div className="flex items-center space-x-1">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenFamilyDialog(item)}>
-                                        <Edit3 className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteFamily(item)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
+                                {!readOnly && (
+                                    <div className="flex items-center space-x-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenFamilyDialog(item)}>
+                                            <Edit3 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteFamily(item)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         ))
                     ) : (
@@ -1090,9 +1143,11 @@ function AnamnesisSection({
                         <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
                         <h3 className="text-base font-semibold text-card-foreground">{t('allergiesTitle')}</h3>
                     </div>
-                    <Button variant="default" size="icon" onClick={() => handleOpenAllergyDialog()}>
-                        <Plus className="h-4 w-4" />
-                    </Button>
+                    {!readOnly && (
+                        <Button variant="default" size="icon" onClick={() => handleOpenAllergyDialog()}>
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    )}
                 </div>
                 <div className="space-y-3">
                     {allergies.length > 0 ? (
@@ -1102,14 +1157,16 @@ function AnamnesisSection({
                                     <div className="text-sm font-semibold text-destructive">{item.alergeno}</div>
                                     {item.reaccion_descrita && <div className="text-sm text-destructive/80">{item.reaccion_descrita}</div>}
                                 </div>
-                                <div className="flex items-center space-x-1">
-                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenAllergyDialog(item)}>
-                                        <Edit3 className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteAllergy(item)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
+                                {!readOnly && (
+                                    <div className="flex items-center space-x-1">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenAllergyDialog(item)}>
+                                            <Edit3 className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteAllergy(item)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         ))
                     ) : (
@@ -1126,9 +1183,11 @@ function AnamnesisSection({
                             <Wind className="w-5 h-5 text-purple-500 mr-2" />
                             <CardTitle className="text-base font-semibold">{tHabits('title')}</CardTitle>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => setIsHabitsEditing(!isHabitsEditing)}>
-                            <Edit3 className="h-4 w-4" />
-                        </Button>
+                        {!readOnly && (
+                            <Button variant="ghost" size="icon" onClick={() => setIsHabitsEditing(!isHabitsEditing)}>
+                                <Edit3 className="h-4 w-4" />
+                            </Button>
+                        )}
                     </div>
                 </CardHeader>
                 <CardContent>
@@ -1719,7 +1778,84 @@ function parsePlanProximaCita(value: string | null | undefined): string {
     }
 }
 
+interface TimelineRowProps {
+    icon: React.ReactNode;
+    /** Cabecera siempre visible: tipo, fecha y, plegado, una línea de vista previa. */
+    summary: React.ReactNode;
+    /** Queda a la derecha de la cabecera, sin interacción (estado, color...). */
+    trailing?: React.ReactNode;
+    /** Controles interactivos de la cabecera (menú de estado, editar...). No despliegan la fila. */
+    actions?: React.ReactNode;
+    expanded: boolean;
+    /** Sin handler la fila no se despliega (p. ej. sesiones en el portal del paciente). */
+    onToggle?: () => void;
+    /** Resalta el registro ligado a la cita que se está atendiendo. */
+    highlighted?: boolean;
+    /** Detalle completo, sin truncar. Solo se monta desplegado. */
+    children?: React.ReactNode;
+}
+
+/**
+ * Registro de la línea de tiempo: la cabecera se toca para desplegar el detalle
+ * completo. Quién está abierto lo decide el padre (acordeón, uno a la vez).
+ *
+ * El clic se escucha en toda la cabecera; el botón interno está para el teclado y
+ * los lectores de pantalla (su clic sube a la cabecera, no se maneja dos veces).
+ * Las `actions` cortan la propagación, también la de los menús en portal de Radix.
+ */
+function TimelineRow({ icon, summary, trailing, actions, expanded, onToggle, highlighted = false, children }: TimelineRowProps) {
+    const isExpandable = Boolean(onToggle);
+    const isOpen = isExpandable && expanded;
+    const summaryContent = (
+        <>
+            {icon}
+            <div className="min-w-0 flex-1">{summary}</div>
+        </>
+    );
+    return (
+        <div
+            className={cn(
+                'border-b last:border-b-0 border-l-2 transition-colors',
+                highlighted
+                    ? 'border-l-primary bg-primary/5 dark:border-l-link dark:bg-link/10'
+                    : cn('border-l-transparent', isOpen && 'bg-muted/30'),
+            )}
+        >
+            <div
+                className={cn('flex items-start gap-2 px-2.5 py-2', isExpandable && 'cursor-pointer transition-colors hover:bg-muted/50')}
+                onClick={onToggle}
+            >
+                {isExpandable ? (
+                    <button
+                        type="button"
+                        aria-expanded={isOpen}
+                        className="flex min-w-0 flex-1 items-start gap-2 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                        {summaryContent}
+                    </button>
+                ) : summaryContent}
+                {trailing}
+                {actions && (
+                    <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                        {actions}
+                    </div>
+                )}
+                {isExpandable && (
+                    <ChevronDown
+                        aria-hidden
+                        className={cn('mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200', isOpen && 'rotate-180')}
+                    />
+                )}
+            </div>
+            {/* 38px = padding de la fila + ícono + gap: el detalle arranca alineado con el texto de la cabecera. */}
+            {isOpen && <div className="space-y-1 pb-2.5 pl-[38px] pr-2.5 text-xs">{children}</div>}
+        </div>
+    );
+}
+
 // Treatment Timeline Component with CRUD
+export type TimelineFilter = 'all' | 'clinica' | 'odontograma' | 'appointment';
+
 interface TreatmentTimelineProps {
     sessions: PatientSession[];
     appointments?: Appointment[];
@@ -1751,23 +1887,68 @@ interface TreatmentTimelineProps {
     ) => void;
     onEditAppointment?: (appointment: Appointment) => void;
     isDoctorMode?: boolean;
+    /** Hide the header block (title, counter, filters, add-session button, filter chips). */
+    hideToolbar?: boolean;
+    /** Lock the timeline to one event type, overriding the interactive type filter. */
+    forcedTypeFilter?: TimelineFilter;
+    /** Show the clinical session color at the end of each list item. */
+    showSessionColor?: boolean;
+    /** View-only mode: hides session edit/delete and blocks appointment status changes. */
+    readOnly?: boolean;
+    /** Cita cuya sesión se resalta con la badge "Cita actual". Con este prop la sesión
+     *  más reciente de la lista lleva además la badge "Última sesión". */
+    linkedAppointmentId?: string;
 }
 
-function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false }: TreatmentTimelineProps) {
+export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAppointments = false, userId, userName, doctors, isLoadingDoctors, isSubmittingSession, onCreateSession, onUpdateSession, onDeleteSession, onFetchDoctors, onRefreshAll, onLoadSessionAttachment, createTrigger = 0, onTriggerConsumed, createOdontogramTrigger = 0, onOdontogramTriggerConsumed, sessionPrefill, onSessionCreated, editSessionId, onRefreshAppointments, onAppointmentStatusUpdated, onEditAppointment, isDoctorMode = false, hideToolbar = false, forcedTypeFilter, showSessionColor = false, readOnly = false, linkedAppointmentId }: TreatmentTimelineProps) {
     const t = useTranslations('ClinicHistoryPage.timeline');
+    const tDental = useTranslations('DentalRecord');
     const tDialog = useTranslations('ClinicHistoryPage.sessionDialog');
     const tPage = useTranslations('ClinicHistoryPage');
+    const tPatientHistory = useTranslations('PatientHistorySheet');
     const tStatus = useTranslations('AppointmentStatus');
     const tReason = useTranslations('CancellationReason');
+    const locale = useLocale();
     const { toast } = useToast();
+    const tPrint = useTranslations('ClinicHistoryPrint');
+    const { printClinicHistory } = usePrintDocument();
+    const { hasPermission } = usePermissions();
+    const { displayOf } = useAppointmentStatusDisplay();
+    const canPrintHistory = hasPermission(CLINICAL_HISTORY_PERMISSIONS.ANAMNESIS_VIEW);
+    // Mismo gate que usa AppointmentPanel para habilitar el cambio de estado.
+    const canUpdateAppointment = hasPermission(BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_UPDATE);
+    // En el portal del paciente (/my-profile) la línea de tiempo es solo de lectura.
+    const isPortalReadOnly = useReadOnly();
+    /**
+     * Quién puede cambiar el estado de una cita desde la línea de tiempo.
+     * A propósito NO se mira `readOnly`: eso significa "no puede escribir en la
+     * historia clínica", que es otra cosa — la recepcionista no tiene permisos
+     * clínicos y necesita poder mover el estado de la cita igual.
+     */
+    const canChangeApptStatus = canUpdateAppointment && !isPortalReadOnly;
+    const [isPrintingHistory, setIsPrintingHistory] = React.useState(false);
+
+    const handlePrintHistory = React.useCallback(async () => {
+        if (!userId || isPrintingHistory) return;
+        setIsPrintingHistory(true);
+        try {
+            await printClinicHistory(userId, userName);
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: tPrint('errorTitle'),
+                description: error?.message === 'no_data' ? tPrint('noData') : String(error?.message || error),
+            });
+        } finally {
+            setIsPrintingHistory(false);
+        }
+    }, [userId, userName, isPrintingHistory, printClinicHistory, toast, tPrint]);
+
     const [openItems, setOpenItems] = React.useState<string[]>([]);
-    const [selectedItemKey, setSelectedItemKey] = React.useState<string | null>(null);
 
     const [isSessionDialogOpen, setIsSessionDialogOpen] = React.useState(false);
     const [isOdontogramDialogOpen, setIsOdontogramDialogOpen] = React.useState(false);
     const [isOdontogramViewerOpen, setIsOdontogramViewerOpen] = React.useState(false);
-    const [isSessionDetailSheetOpen, setIsSessionDetailSheetOpen] = React.useState(false);
-    const [sessionDetailData, setSessionDetailData] = React.useState<PatientSession | null>(null);
     const [editingSession, setEditingSession] = React.useState<PatientSession | null>(null);
     const [deletingSession, setDeletingSession] = React.useState<PatientSession | null>(null);
 
@@ -1804,9 +1985,10 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
 
     const handleApptStatusChange = React.useCallback(
         (appt: Appointment, newStatus: AppointmentStatus, extra?: { cancellation_reason?: CancellationReason; cancellation_note?: string }) => {
+            if (!canChangeApptStatus) return;
             updateStatus({ appointment: appt, newStatus, ...extra });
         },
-        [updateStatus],
+        [canChangeApptStatus, updateStatus],
     );
 
     const openApptPanel = React.useCallback(async (appt: Appointment) => {
@@ -1855,7 +2037,6 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
         }
     }, [userId]);
 
-    type TimelineFilter = 'all' | 'clinica' | 'odontograma' | 'appointment';
     const [typeFilter, setTypeFilter] = React.useState<TimelineFilter>('all');
     const [doctorFilter, setDoctorFilter] = React.useState<string>('all');
 
@@ -1878,6 +2059,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
     const [sessionStepId, setSessionStepId] = React.useState('');
 
     React.useEffect(() => {
+        if (readOnly) return;
         if (createTrigger > 0) {
             setEditingSession(null);
             setSessionPrefillData({
@@ -1899,6 +2081,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
     }, [createTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
     React.useEffect(() => {
+        if (readOnly) return;
         if (createOdontogramTrigger > 0) {
             setIsOdontogramDialogOpen(true);
             onOdontogramTriggerConsumed?.();
@@ -2007,17 +2190,19 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
         setDeletingSession(session);
     };
 
-    const confirmDeleteSession = async () => {
-        if (!deletingSession) return;
-        try {
+    const deleteSessionAction = useAsyncAction(
+        async () => {
+            if (!deletingSession) return;
             await onDeleteSession(deletingSession.sesion_id, userId);
-            toast({ title: t('toast.success'), description: t('toast.deleteSuccess') });
-        } catch (error) {
-            toast({ title: t('toast.error'), variant: 'destructive' });
-        } finally {
-            setDeletingSession(null);
+        },
+        {
+            onSuccess: () => {
+                toast({ title: t('toast.success'), description: t('toast.deleteSuccess') });
+                setDeletingSession(null);
+            },
+            errorTitle: t('toast.error'),
         }
-    };
+    );
 
     const handleSaveViaDialog = async (data: ClinicSessionFormData) => {
         if (editingSession?.sesion_id) {
@@ -2062,9 +2247,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
     const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return '';
         try {
-            const cleanDate = dateString.split('T')[0];
-            const [y, m, d] = cleanDate.split('-');
-            return format(new Date(Number(y), Number(m) - 1, Number(d)), 'dd/MM/yyyy');
+            return formatDisplayDateWithWeekday(dateString, locale);
         } catch {
             return '';
         }
@@ -2104,13 +2287,15 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
         return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
     }, [allItems]);
 
+    const effectiveTypeFilter = forcedTypeFilter ?? typeFilter;
+
     const filteredItems = React.useMemo(() => {
         return allItems.filter(item => {
-            if (typeFilter !== 'all') {
-                if (item.kind === 'appointment' && typeFilter !== 'appointment') return false;
-                if (item.kind === 'session' && typeFilter === 'appointment') return false;
-                if (item.kind === 'session' && typeFilter === 'clinica' && item.data.tipo_sesion === 'odontograma') return false;
-                if (item.kind === 'session' && typeFilter === 'odontograma' && item.data.tipo_sesion !== 'odontograma') return false;
+            if (effectiveTypeFilter !== 'all') {
+                if (item.kind === 'appointment' && effectiveTypeFilter !== 'appointment') return false;
+                if (item.kind === 'session' && effectiveTypeFilter === 'appointment') return false;
+                if (item.kind === 'session' && effectiveTypeFilter === 'clinica' && item.data.tipo_sesion === 'odontograma') return false;
+                if (item.kind === 'session' && effectiveTypeFilter === 'odontograma' && item.data.tipo_sesion !== 'odontograma') return false;
             }
             if (doctorFilter !== 'all') {
                 if (item.kind === 'session') {
@@ -2122,15 +2307,30 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
             }
             return true;
         });
-    }, [allItems, typeFilter, doctorFilter]);
+    }, [allItems, effectiveTypeFilter, doctorFilter]);
 
     const getItemKey = (item: { kind: string; data: any }, index: number) =>
         item.kind === 'appointment' ? `appt-${item.data.id}-${index}` : `session-${item.data.sesion_id}`;
 
-    const selectedItem = React.useMemo(() => {
-        if (!selectedItemKey) return null;
-        return filteredItems.find((item, i) => getItemKey(item, i) === selectedItemKey) ?? null;
-    }, [filteredItems, selectedItemKey]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Sesión más reciente de la lista. No es `filteredItems[0]`: la lista está ordenada
+    // por fecha y puede arrancar con una cita.
+    const latestSessionId = React.useMemo(() => {
+        const latest = filteredItems.find(item => item.kind === 'session');
+        return latest ? String((latest.data as PatientSession).sesion_id) : null;
+    }, [filteredItems]);
+
+    // Modo doctor: los registros son un acordeón (uno abierto a la vez). Por defecto se
+    // abre el último realizado: las citas futuras encabezan la lista pero todavía no
+    // pasaron. La elección del usuario se ata al paciente, así al cambiar de paciente
+    // (Mi Consultorio reusa el componente) vuelve el default.
+    const [expandedChoice, setExpandedChoice] = React.useState<{ userId: string; key: string | null } | null>(null);
+    // Mismo criterio que la badge "Próxima" de las citas (`item.date > new Date()`).
+    const defaultExpandedIndex = filteredItems.findIndex(item => !(item.date > new Date()));
+    const defaultExpandedKey = filteredItems.length === 0
+        ? null
+        : getItemKey(filteredItems[Math.max(0, defaultExpandedIndex)], Math.max(0, defaultExpandedIndex));
+    const expandedKey = expandedChoice?.userId === userId ? expandedChoice.key : defaultExpandedKey;
+    const toggleExpanded = (key: string) => setExpandedChoice({ userId, key: expandedKey === key ? null : key });
 
     if (isLoading || isLoadingAppointments) {
         return (
@@ -2145,10 +2345,12 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
     return (
         <div>
             <div className="bg-card text-card-foreground rounded-xl shadow-sm border overflow-hidden flex flex-col">
+                {!hideToolbar && (
+                <>
                 <div className="flex items-center justify-between px-3 py-3 border-b shrink-0 gap-2">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Clock className="h-5 w-5 text-primary" />
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 dark:bg-link/15 flex items-center justify-center">
+                            <Clock className="h-5 w-5 text-primary dark:text-link" />
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold">{t('title')}</h3>
@@ -2158,6 +2360,22 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                         </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
+                        {/* Print full clinic history (anamnesis + clinical sessions) */}
+                        {canPrintHistory && (
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-9 w-9"
+                                onClick={handlePrintHistory}
+                                disabled={isPrintingHistory}
+                                aria-label={tPrint('action')}
+                                title={tPrint('action')}
+                            >
+                                {isPrintingHistory
+                                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                                    : <Printer className="h-4 w-4" />}
+                            </Button>
+                        )}
                         {/* Filter button */}
                         {allItems.length > 0 && (
                             <DropdownMenu>
@@ -2170,7 +2388,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                                     >
                                         <SlidersHorizontal className="h-4 w-4" />
                                         {(typeFilter !== 'all' || doctorFilter !== 'all') && (
-                                            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
+                                            <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary dark:bg-link" />
                                         )}
                                     </Button>
                                 </DropdownMenuTrigger>
@@ -2230,8 +2448,9 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         )}
-                        {/* Add session */}
-                        {!isDoctorMode && (
+                        {/* Add session — hidden in doctor mode (the workspace owns
+                            session creation) and whenever the viewer is read-only. */}
+                        {!isDoctorMode && !readOnly && (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button size="sm" className="h-8 gap-1.5">
@@ -2279,6 +2498,8 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                         )}
                     </div>
                 )}
+                </>
+                )}
 
                 <div>
                             {allItems.length === 0 ? (
@@ -2289,114 +2510,387 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                             ) : filteredItems.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-24 text-muted-foreground gap-1 p-4">
                                     <p className="text-xs">Sin resultados</p>
-                                    <button onClick={() => { setTypeFilter('all'); setDoctorFilter('all'); }} className="text-xs text-primary hover:underline">Limpiar filtros</button>
+                                    {!hideToolbar && (
+                                        <button onClick={() => { setTypeFilter('all'); setDoctorFilter('all'); }} className="text-xs text-primary dark:text-link hover:underline">Limpiar filtros</button>
+                                    )}
                                 </div>
                             ) : (
                                 <div>
                                     {filteredItems.map((item, index) => {
                                         const key = getItemKey(item, index);
-                                        const isSelected = selectedItemKey === key;
                                         if (item.kind === 'appointment') {
                                             const appt = item.data;
                                             const isFuture = item.date > new Date();
-                                            return (
-                                                <div key={key}
-                                                    className={cn(
-                                                        'flex items-start gap-2 px-2.5 py-2 cursor-pointer border-b last:border-b-0 transition-colors border-l-2',
-                                                        isSelected ? 'bg-primary/5 border-l-primary' : 'border-l-transparent hover:bg-muted/50',
-                                                    )}
-                                                    onClick={() => { setSelectedItemKey(isSelected ? null : key); openApptPanel(appt); }}
+                                            const parseHM = (s?: string) => (s ? format(parseISO(s.replace(/Z$/, '')), 'HH:mm') : '');
+                                            const startLabel = appt.time || parseHM(appt.start?.dateTime);
+                                            const endLabel = parseHM(appt.end?.dateTime);
+                                            const durationMin = appt.start?.dateTime && appt.end?.dateTime
+                                                ? Math.max(0, Math.round((parseISO(appt.end.dateTime.replace(/Z$/, '')).getTime() - parseISO(appt.start.dateTime.replace(/Z$/, '')).getTime()) / 60000))
+                                                : null;
+                                            const treatmentNames = (appt.services ?? []).map((s) => s.name).filter(Boolean);
+                                            const apptNotes = (appt.notes ?? '').trim();
+                                            const ApptStatusIcon = getStatusIcon(appt.status, appt.cancellation_reason);
+                                            const apptStatusDisplay = displayOf(appt.status);
+                                            const apptStatusBadge = (
+                                                <Badge
+                                                    variant="custom"
+                                                    className={cn('capitalize gap-1 text-xs px-2 py-0.5 self-start shrink-0', statusBadgeClassNames(apptStatusDisplay))}
+                                                    style={statusBadgeInlineStyle(apptStatusDisplay)}
                                                 >
-                                                    <div className={cn('w-5 h-5 rounded-full border-2 border-background shadow-sm flex items-center justify-center shrink-0 mt-0.5', isFuture ? 'bg-violet-50 dark:bg-violet-950' : 'bg-blue-50 dark:bg-blue-950')}>
-                                                        {isFuture
-                                                            ? <CalendarSync className="h-3 w-3 text-violet-500" />
-                                                            : <CalendarCheck className="h-3 w-3 text-blue-500" />
-                                                        }
-                                                    </div>
-                                                    <div className="flex-1 min-w-0 flex flex-row items-start justify-between gap-2">
-                                                        <div className="min-w-0">
-                                                            <div className="flex items-center gap-1 flex-wrap">
-                                                                <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', isFuture ? 'bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400')}>
-                                                                    {t('sessionTypeAppointment')}
-                                                                </Badge>
-                                                                {isFuture && (
-                                                                    <Badge variant="secondary" className="text-xs bg-violet-200 text-violet-800 dark:bg-violet-900/60 dark:text-violet-300 px-1.5 py-0 leading-relaxed font-medium">
-                                                                        {t('upcomingAppointment')}
-                                                                    </Badge>
+                                                    <ApptStatusIcon className="h-3 w-3" />
+                                                    {appt.status === 'cancelled' && appt.cancellation_reason
+                                                        ? tReason(appt.cancellation_reason)
+                                                        : tStatus(appt.status)}
+                                                </Badge>
+                                            );
+                                            // El badge de estado abre el mismo menú de estados que la tabla de
+                                            // citas y el panel lateral; sin permiso queda el badge plano.
+                                            const apptStatusControl = canChangeApptStatus ? (
+                                                <AppointmentStatusMenu
+                                                    appointment={appt}
+                                                    onChange={(newStatus, extra) => handleApptStatusChange(appt, newStatus, extra)}
+                                                    onRequestCustomCancellation={() => setPendingCancellation(appt)}
+                                                    className="self-start shrink-0"
+                                                />
+                                            ) : apptStatusBadge;
+                                            const apptTypeBadge = (
+                                                <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', isFuture ? 'bg-violet-100 text-violet-700 dark:bg-violet-950/40 dark:text-violet-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400')}>
+                                                    {t('sessionTypeAppointment')}
+                                                </Badge>
+                                            );
+                                            const apptUpcomingBadge = isFuture ? (
+                                                <Badge variant="secondary" className="text-xs bg-violet-200 text-violet-800 dark:bg-violet-900/60 dark:text-violet-300 px-1.5 py-0 leading-relaxed font-medium">
+                                                    {t('upcomingAppointment')}
+                                                </Badge>
+                                            ) : null;
+                                            const apptIcon = (
+                                                <div className={cn('w-5 h-5 rounded-full border-2 border-background shadow-sm flex items-center justify-center shrink-0 mt-0.5', isFuture ? 'bg-violet-50 dark:bg-violet-950' : 'bg-blue-50 dark:bg-blue-950')}>
+                                                    {isFuture ? <CalendarSync className="h-3 w-3 text-violet-500 dark:text-violet-400" /> : <CalendarCheck className="h-3 w-3 text-blue-500 dark:text-blue-400" />}
+                                                </div>
+                                            );
+                                            // Plegada: tipo, fecha/horas y una línea de vista previa. Desplegada: todo,
+                                            // sin truncar (la etiqueta va inline para que el texto largo envuelva).
+                                            // Fuera del modo doctor la cabecera suma presupuesto/factura, el menú de
+                                            // estado y editar; el panel completo de la cita queda como acción del detalle.
+                                            const isExpanded = expandedKey === key;
+                                            const apptPreview = treatmentNames.length > 0 ? treatmentNames.join(', ') : apptNotes;
+                                            return (
+                                                <TimelineRow
+                                                    key={key}
+                                                    icon={apptIcon}
+                                                    expanded={isExpanded}
+                                                    onToggle={() => toggleExpanded(key)}
+                                                    trailing={isDoctorMode ? apptStatusBadge : undefined}
+                                                    actions={isDoctorMode ? undefined : (
+                                                        <>
+                                                            {apptStatusControl}
+                                                            {/* Editar la cita (fecha, hora, agenda, doctor, tratamientos) en la
+                                                                tarjeta inline. El gate vive en el consumidor: sin el permiso
+                                                                correspondiente no pasa el handler y el botón no existe, así queda
+                                                                fuera del alcance del rol médico.
+                                                                A propósito NO se mira `readOnly`: eso significa "no puede escribir
+                                                                en la historia clínica", que es otra cosa. La recepcionista no tiene
+                                                                permisos clínicos y necesita poder reagendar igual. */}
+                                                            {onEditAppointment && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="h-6 w-6"
+                                                                    title={t('edit')}
+                                                                    onClick={() => onEditAppointment(appt)}
+                                                                >
+                                                                    <Edit3 className="h-3.5 w-3.5" />
+                                                                </Button>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                    summary={
+                                                        <>
+                                                            <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                                                {apptTypeBadge}
+                                                                {apptUpcomingBadge}
+                                                                <span className="text-xs font-medium text-foreground">
+                                                                    {formatDisplayDateWithWeekday(item.date, locale)}{startLabel && ` · ${startLabel}`}{endLabel && ` → ${endLabel}`}
+                                                                </span>
+                                                                {durationMin != null && (
+                                                                    <span className="text-xs text-muted-foreground">({t('apptDurationMin', { min: durationMin })})</span>
                                                                 )}
-                                                                <span className="text-xs text-muted-foreground">{format(item.date, 'dd/MM/yy')}</span>
-                                                                {appt.quote_doc_no && (
+                                                                {!isDoctorMode && appt.quote_doc_no && (
                                                                     <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
                                                                         {appt.quote_doc_no}
                                                                     </Badge>
                                                                 )}
-                                                                {appt.invoice_id && (
+                                                                {!isDoctorMode && appt.invoice_id && (
                                                                     <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0 leading-relaxed font-mono">
                                                                         <FileText className="h-2.5 w-2.5 mr-0.5" />#{appt.invoice_id}
                                                                     </Badge>
                                                                 )}
                                                             </div>
-                                                            <p className="text-xs font-medium truncate mt-0.5">{appt.summary}</p>
-                                                            {appt.doctorName && <p className="text-xs text-muted-foreground truncate">{appt.doctorName}</p>}
-                                                        </div>
-                                                        {(() => {
-                                                            const StatusIcon = getStatusIcon(appt.status, appt.cancellation_reason);
-                                                            const statusVariant = (STATUS_BADGE_VARIANT[appt.status] ?? 'default') as
-                                                                'default' | 'success' | 'destructive' | 'info' | 'warning' | 'secondary' | 'outline';
-                                                            return (
-                                                                <Badge variant={statusVariant} className="capitalize gap-1 text-xs px-2 py-0.5 self-start shrink-0 mt-0.5">
-                                                                    <StatusIcon className="h-3 w-3" />
-                                                                    {appt.status === 'cancelled' && appt.cancellation_reason
-                                                                        ? tReason(appt.cancellation_reason)
-                                                                        : tStatus(appt.status)}
-                                                                </Badge>
-                                                            );
-                                                        })()}
-                                                    </div>
-                                                </div>
+                                                            {!isExpanded && apptPreview && (
+                                                                <p className="mt-0.5 truncate text-xs text-muted-foreground">{apptPreview}</p>
+                                                            )}
+                                                        </>
+                                                    }
+                                                >
+                                                    <p className="break-words text-foreground">
+                                                        <span className="text-muted-foreground">{t('apptCalendar')}:</span>{' '}
+                                                        {appt.calendar_name || t('apptUnassigned')}
+                                                    </p>
+                                                    <p className="break-words text-foreground">
+                                                        <span className="text-muted-foreground">{t('apptDoctor')}:</span>{' '}
+                                                        {appt.doctorName || t('apptUnassigned')}
+                                                    </p>
+                                                    {treatmentNames.length > 0 && (
+                                                        <p className="break-words text-foreground">
+                                                            <span className="text-muted-foreground">{t('treatments')}:</span>{' '}
+                                                            {treatmentNames.join(', ')}
+                                                        </p>
+                                                    )}
+                                                    {apptNotes && (
+                                                        <p className="whitespace-pre-wrap break-words text-foreground">
+                                                            <span className="text-muted-foreground">{t('notes')}:</span>{' '}
+                                                            {apptNotes}
+                                                        </p>
+                                                    )}
+                                                    {/* Panel completo (cobro, sesión vinculada...). El modo doctor no lo usa y en
+                                                        solo lectura (portal del paciente) solo se ve el registro. */}
+                                                    {!isDoctorMode && !readOnly && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="mt-1 h-7 gap-1.5 text-xs"
+                                                            onClick={() => openApptPanel(appt)}
+                                                        >
+                                                            <Eye className="h-3.5 w-3.5" />
+                                                            {t('openAppointment')}
+                                                        </Button>
+                                                    )}
+                                                </TimelineRow>
                                             );
                                         }
                                         const session = item.data as PatientSession;
-                                        const Icon = session.tipo_sesion === 'odontograma' ? Smile : Stethoscope;
+                                        const isOdontogramSession = session.tipo_sesion === 'odontograma';
+                                        const Icon = isOdontogramSession ? Smile : Stethoscope;
+                                        const isLinkedToAppointment = Boolean(
+                                            linkedAppointmentId && String(session.appointment_id ?? '') === linkedAppointmentId
+                                        );
+                                        const isLatestSession = Boolean(
+                                            linkedAppointmentId && !isLinkedToAppointment && latestSessionId === String(session.sesion_id)
+                                        );
+                                        const sessionIcon = (
+                                            <div className="w-5 h-5 rounded-full border-2 border-background shadow-sm bg-card flex items-center justify-center shrink-0 mt-0.5">
+                                                <Icon className={cn('h-3 w-3', isOdontogramSession ? 'text-purple-500 dark:text-purple-400' : 'text-primary dark:text-link')} />
+                                            </div>
+                                        );
+                                        const sessionTypeBadge = (
+                                            <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', isOdontogramSession ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400' : 'bg-primary/10 text-primary dark:bg-link/15 dark:text-link')}>
+                                                {isOdontogramSession ? t('sessionTypeOdontogram') : t('sessionTypeClinical')}
+                                            </Badge>
+                                        );
+                                        // En oscuro `--primary` es un gris de relleno, así que la badge de la cita
+                                        // actual perdería el sentido de realce: pasa a la pastilla de `--link`.
+                                        const contextBadges = (
+                                            <>
+                                                {isLinkedToAppointment && (
+                                                    <Badge variant="default" className="rounded-full text-[10px] shadow-sm dark:border-link/40 dark:bg-link/20 dark:text-link">
+                                                        {t('currentAppointmentBadge')}
+                                                    </Badge>
+                                                )}
+                                                {isLatestSession && (
+                                                    <Badge variant="secondary" className="rounded-full border border-sky-200/80 bg-sky-50 text-[10px] font-medium text-sky-700 hover:bg-sky-50 dark:border-sky-900/60 dark:bg-sky-950/40 dark:text-sky-400">
+                                                        {t('latestSessionBadge')}
+                                                    </Badge>
+                                                )}
+                                            </>
+                                        );
+                                        const sessionColorDot = showSessionColor && session.color ? (
+                                            <span
+                                                className="mt-1 block h-3 w-3 shrink-0 rounded-full border"
+                                                style={{ backgroundColor: session.color }}
+                                                aria-label={`${tPatientHistory('columns.color')}: ${session.color}`}
+                                                title={session.color}
+                                            />
+                                        ) : null;
+                                        // Plegada: tipo, fecha y el procedimiento en una línea. Desplegada: el resto
+                                        // (Próxima cita al final si hay). En el portal del paciente se ve el registro,
+                                        // no el detalle clínico, así que la sesión no se despliega.
+                                        const canExpandSession = !isPortalReadOnly;
+                                        const isExpanded = canExpandSession && expandedKey === key;
+                                        // Editar/eliminar: no en modo doctor (Mi Consultorio gestiona sus sesiones)
+                                        // ni en solo lectura. El odontograma se edita desde su propio visor.
+                                        const canManageSession = !isDoctorMode && !readOnly && !isOdontogramSession;
+                                        const sessionDoctorName = session.nombre_doctor || session.doctor_name;
+                                        const planProximaCita = parsePlanProximaCita(session.plan_proxima_cita);
+                                        const treatmentLabels = (session.tratamientos ?? [])
+                                            .map((tr: any) => [tr.numero_diente ? `${tr.numero_diente}:` : '', tr.descripcion].filter(Boolean).join(' '))
+                                            .filter(Boolean);
+                                        const hasNextPlan = (!!planProximaCita && planProximaCita.trim() !== '') || !!session.fecha_proxima_cita;
+                                        const attachments = (session.archivos_adjuntos ?? [])
+                                            .filter((file: any) => file.file_name || file.ruta);
+                                        // Resumen del odontograma: se agrupan las piezas por condición para que la
+                                        // sesión informe qué se marcó sin tener que abrir el odontograma completo.
+                                        const odontogramGroups = isOdontogramSession
+                                            ? groupTeethByCondition(session.estado_odontograma)
+                                            : [];
+                                        const sessionPreview = session.procedimiento_realizado?.trim()
+                                            || (isOdontogramSession ? t('odontogramUpdate') : t('noTitle'));
                                         return (
-                                            <div key={key}
-                                                className={cn('flex items-start gap-2 px-2.5 py-2 cursor-pointer border-b last:border-b-0 transition-colors border-l-2', isSelected ? 'bg-primary/5 border-l-primary' : 'border-l-transparent hover:bg-muted/50')}
-                                                onClick={() => {
-                                                    setSelectedItemKey(isSelected ? null : key);
-                                                    setSessionDetailData(session);
-                                                    if (session.tipo_sesion === 'odontograma') {
-                                                        setIsOdontogramViewerOpen(true);
-                                                    } else {
-                                                        setIsSessionDetailSheetOpen(true);
-                                                    }
-                                                }}
-                                            >
-                                                <div className="w-5 h-5 rounded-full border-2 border-background shadow-sm bg-card flex items-center justify-center shrink-0 mt-0.5">
-                                                    <Icon className={cn('h-3 w-3', session.tipo_sesion === 'odontograma' ? 'text-purple-500' : 'text-primary')} />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-1 flex-wrap">
-                                                        <Badge variant="secondary" className={cn('text-xs px-1.5 py-0 leading-relaxed', session.tipo_sesion === 'odontograma' ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400' : 'bg-primary/10 text-primary')}>
-                                                            {session.tipo_sesion === 'odontograma' ? t('sessionTypeOdontogram') : t('sessionTypeClinical')}
-                                                        </Badge>
-                                                        <span className="text-xs text-muted-foreground">{formatDate(session.fecha_sesion)}</span>
-                                                        {session.quote_doc_no && (
-                                                            <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
-                                                                {session.quote_doc_no}
-                                                            </Badge>
+                                            <TimelineRow
+                                                key={key}
+                                                icon={sessionIcon}
+                                                expanded={isExpanded}
+                                                onToggle={canExpandSession ? () => toggleExpanded(key) : undefined}
+                                                highlighted={isLinkedToAppointment}
+                                                trailing={sessionColorDot}
+                                                summary={
+                                                    <>
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            {sessionTypeBadge}
+                                                            <span className="text-xs font-medium text-foreground">{formatDate(session.fecha_sesion)}</span>
+                                                            {contextBadges}
+                                                            {!isDoctorMode && session.quote_doc_no && (
+                                                                <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
+                                                                    {session.quote_doc_no}
+                                                                </Badge>
+                                                            )}
+                                                            {!isDoctorMode && session.invoice_id && (
+                                                                <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0 leading-relaxed font-mono">
+                                                                    <FileText className="h-2.5 w-2.5 mr-0.5" />#{session.invoice_id}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                        {!isExpanded && (
+                                                            <p className="mt-0.5 truncate text-xs text-muted-foreground">{sessionPreview}</p>
                                                         )}
-                                                        {session.invoice_id && (
-                                                            <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0 leading-relaxed font-mono">
-                                                                <FileText className="h-2.5 w-2.5 mr-0.5" />#{session.invoice_id}
-                                                            </Badge>
+                                                        {/* Sin despliegue (portal) el doctor queda visible en la cabecera. */}
+                                                        {!canExpandSession && sessionDoctorName && (
+                                                            <p className="truncate text-xs text-muted-foreground">{sessionDoctorName}</p>
+                                                        )}
+                                                    </>
+                                                }
+                                            >
+                                                {odontogramGroups.length > 0 && (
+                                                    <div className="space-y-0.5">
+                                                        <p className="text-muted-foreground">{t('odontogramUpdate')}:</p>
+                                                        <div className="space-y-0.5">
+                                                            {odontogramGroups.map(([condition, teeth]) => {
+                                                                const def = getProcedure(condition);
+                                                                const label = def ? tDental(`procedures.${condition}.label`) : condition;
+                                                                return (
+                                                                    <div key={condition} className="flex min-w-0 flex-wrap items-center gap-x-1.5">
+                                                                        {def && (
+                                                                            <span
+                                                                                className="inline-flex items-center rounded px-1 py-0.5 font-mono text-[10px] font-bold text-white"
+                                                                                style={{ backgroundColor: def.color }}
+                                                                            >
+                                                                                {def.code}
+                                                                            </span>
+                                                                        )}
+                                                                        <span className="text-foreground">{label}:</span>
+                                                                        <span className="text-muted-foreground tabular-nums">
+                                                                            {teeth.sort((a, b) => Number(a) - Number(b)).join(', ')}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {session.procedimiento_realizado && (
+                                                    <p className="whitespace-pre-wrap break-words text-foreground">
+                                                        <span className="text-muted-foreground">{t('procedure')}:</span>{' '}
+                                                        {session.procedimiento_realizado}
+                                                    </p>
+                                                )}
+                                                {sessionDoctorName && (
+                                                    <p className="break-words text-foreground">
+                                                        <span className="text-muted-foreground">{t('apptDoctor')}:</span>{' '}
+                                                        {sessionDoctorName}
+                                                    </p>
+                                                )}
+                                                {session.diagnostico && session.diagnostico.trim() !== '' && (
+                                                    <p className="whitespace-pre-wrap break-words text-foreground">
+                                                        <span className="text-muted-foreground">{t('diagnosis')}:</span>{' '}
+                                                        {session.diagnostico}
+                                                    </p>
+                                                )}
+                                                {session.notas_clinicas && session.notas_clinicas.trim() !== '' && (
+                                                    <p className="whitespace-pre-wrap break-words text-foreground">
+                                                        <span className="text-muted-foreground">{t('notes')}:</span>{' '}
+                                                        {session.notas_clinicas}
+                                                    </p>
+                                                )}
+                                                {treatmentLabels.length > 0 && (
+                                                    <p className="break-words text-foreground">
+                                                        <span className="text-muted-foreground">{t('treatments')}:</span>{' '}
+                                                        {treatmentLabels.join(', ')}
+                                                    </p>
+                                                )}
+                                                {attachments.length > 0 && (
+                                                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                                                        <span className="text-muted-foreground">{t('attachments')}:</span>
+                                                        {attachments.map((file: any, fileIndex: number) => (
+                                                            <button
+                                                                key={`${session.sesion_id}-attachment-${fileIndex}`}
+                                                                type="button"
+                                                                onClick={() => handleViewTimelineAttachment(file, session.sesion_id)}
+                                                                className="flex min-w-0 max-w-full items-center gap-1 rounded border bg-background px-1.5 py-0.5 text-left text-foreground transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                                            >
+                                                                <FileText className="h-3 w-3 shrink-0 text-amber-500 dark:text-amber-400" />
+                                                                <span className="break-all">{file.file_name || file.ruta}</span>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {hasNextPlan && (
+                                                    <p className="whitespace-pre-wrap break-words text-foreground">
+                                                        <span className="text-muted-foreground">{t('nextPlan')}:</span>{' '}
+                                                        {planProximaCita}
+                                                        {session.fecha_proxima_cita && ` (${formatDate(session.fecha_proxima_cita)})`}
+                                                    </p>
+                                                )}
+                                                {(isOdontogramSession || canManageSession) && (
+                                                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                                                        {isOdontogramSession && (
+                                                            <Button
+                                                                type="button"
+                                                                variant="outline"
+                                                                size="sm"
+                                                                className="h-7 gap-1.5 text-xs"
+                                                                onClick={() => setIsOdontogramViewerOpen(true)}
+                                                            >
+                                                                <Smile className="h-3.5 w-3.5" />
+                                                                {t('viewOdontogram')}
+                                                            </Button>
+                                                        )}
+                                                        {canManageSession && (
+                                                            <>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="h-7 gap-1.5 text-xs"
+                                                                    onClick={() => handleEditSession(session)}
+                                                                >
+                                                                    <Edit3 className="h-3.5 w-3.5" />
+                                                                    {tPage('common.edit')}
+                                                                </Button>
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-7 gap-1.5 text-xs text-destructive hover:text-destructive"
+                                                                    onClick={() => handleDeleteSession(session)}
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    {tPage('common.delete')}
+                                                                </Button>
+                                                            </>
                                                         )}
                                                     </div>
-                                                    <p className="text-xs font-medium truncate mt-0.5">{session.procedimiento_realizado || t('noTitle')}</p>
-                                                    {(session.nombre_doctor || session.doctor_name) && (
-                                                        <p className="text-xs text-muted-foreground truncate">{session.nombre_doctor || session.doctor_name}</p>
-                                                    )}
-                                                </div>
-                                            </div>
+                                                )}
+                                            </TimelineRow>
                                         );
                                     })}
                                 </div>
@@ -2422,7 +2916,13 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
             />
 
             {/* Delete Confirmation Dialog */}
-            <Dialog open={!!deletingSession} onOpenChange={() => setDeletingSession(null)}>
+            <Dialog
+                open={!!deletingSession}
+                onOpenChange={(next) => {
+                    if (!next && deleteSessionAction.isPending) return;
+                    if (!next) setDeletingSession(null);
+                }}
+            >
                 <DialogContent maxWidth="sm">
                     <DialogHeader>
                         <DialogTitle>{tPage('common.delete')}</DialogTitle>
@@ -2431,10 +2931,11 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                         <p className="text-muted-foreground">{tDialog('deleteConfirm')}</p>
                     </DialogBody>
                     <DialogFooter className="px-6 py-4 border-t gap-2">
-                        <Button variant="outline" onClick={() => setDeletingSession(null)}>
+                        <Button variant="outline" onClick={() => setDeletingSession(null)} disabled={deleteSessionAction.isPending}>
                             {tDialog('cancel')}
                         </Button>
-                        <Button variant="destructive" onClick={confirmDeleteSession} className="px-8">
+                        <Button variant="destructive" onClick={() => deleteSessionAction.run()} disabled={deleteSessionAction.isPending} className="px-8">
+                            {deleteSessionAction.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {tPage('common.delete')}
                         </Button>
                     </DialogFooter>
@@ -2452,7 +2953,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                 <div className="flex flex-col h-full">
                     <div className="px-6 py-4 border-b shrink-0">
                         <SheetTitle className="flex items-center gap-2 text-base font-semibold">
-                            <Smile className="h-4 w-4 text-purple-600 shrink-0" />
+                            <Smile className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
                             Nueva sesión — Odontograma
                         </SheetTitle>
                     </div>
@@ -2474,7 +2975,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
             </ResizableSheet>
 
             {/* Appointment Panel */}
-            <AppointmentPanel
+            {!readOnly && <AppointmentPanel
                 open={isApptPanelOpen}
                 onOpenChange={(open) => { setIsApptPanelOpen(open); if (!open) setApptPanelAppointment(null); }}
                 appointment={apptPanelAppointment}
@@ -2487,8 +2988,9 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                 onRequestCustomCancellation={(appt) => setPendingCancellation(appt)}
                 onBillingSuccess={handleBillingSuccess}
                 hideBillingAction={isDoctorMode}
-                onEdit={onEditAppointment ? (appt) => { setIsApptPanelOpen(false); onEditAppointment(appt); } : undefined}
-            />
+                hidePatientActions
+                onEdit={onEditAppointment && !readOnly ? (appt) => { setIsApptPanelOpen(false); onEditAppointment(appt); } : undefined}
+            />}
             <CancellationNoteDialog
                 open={!!pendingCancellation}
                 onOpenChange={(open) => { if (!open) setPendingCancellation(null); }}
@@ -2498,150 +3000,6 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                     setPendingCancellation(null);
                 }}
             />
-
-            {/* Clinical Session Detail Sheet */}
-            <ResizableSheet
-                open={isSessionDetailSheetOpen}
-                onOpenChange={(open) => { setIsSessionDetailSheetOpen(open); if (!open) setSessionDetailData(null); }}
-                defaultWidth={600}
-                minWidth={380}
-                storageKey="session-detail-sheet-width"
-            >
-                {sessionDetailData && (() => {
-                    const session = sessionDetailData;
-                    const planProximaCita = parsePlanProximaCita(session.plan_proxima_cita);
-                    return (
-                        <div className="flex flex-col h-full">
-                            <div className="px-6 py-4 border-b shrink-0">
-                                <SheetTitle className="flex items-center gap-2 text-base font-semibold">
-                                    <Stethoscope className="h-4 w-4 text-primary shrink-0" />
-                                    {session.procedimiento_realizado || t('noTitle')}
-                                </SheetTitle>
-                                <SheetDescription className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-muted-foreground">
-                                    <span className="flex items-center gap-1"><CalendarIcon className="h-3 w-3" />{formatDate(session.fecha_sesion)}</span>
-                                    {(session.nombre_doctor || session.doctor_name) && (
-                                        <span className="flex items-center gap-1"><User className="h-3 w-3" />{session.nombre_doctor || session.doctor_name}</span>
-                                    )}
-                                    {session.quote_id && (
-                                        <span className="flex items-center gap-1"><Link2 className="h-3 w-3" />{t('quote')}: {(session as any).quote_doc_no || session.quote_id}</span>
-                                    )}
-                                </SheetDescription>
-                            </div>
-                            <ScrollArea className="flex-1">
-                                <div className="p-6 space-y-3">
-                                    {session.procedimiento_realizado && (
-                                        <div className="border-l-2 border-primary/50 pl-3 py-1.5 bg-muted/30 rounded-r-md">
-                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">{t('procedure')}</p>
-                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.procedimiento_realizado}</p>
-                                        </div>
-                                    )}
-                                    {session.diagnostico && session.diagnostico.trim() !== '' && (
-                                        <div className="border-l-2 border-red-400/50 pl-3 py-1.5 bg-red-50/60 dark:bg-red-950/20 rounded-r-md">
-                                            <p className="text-xs font-semibold text-red-600 dark:text-red-400 uppercase tracking-wide mb-1">{t('diagnosis')}</p>
-                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.diagnostico}</p>
-                                        </div>
-                                    )}
-                                    {session.notas_clinicas && session.notas_clinicas.trim() !== '' && (
-                                        <div className="border-l-2 border-cyan-400/50 pl-3 py-1.5 bg-cyan-50/50 dark:bg-cyan-950/20 rounded-r-md">
-                                            <p className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wide mb-1">{t('notes')}</p>
-                                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{session.notas_clinicas}</p>
-                                        </div>
-                                    )}
-                                    {(planProximaCita || session.fecha_proxima_cita) && (
-                                        <div className="border-l-2 border-blue-400/50 pl-3 py-1.5 bg-blue-50/60 dark:bg-blue-950/20 rounded-r-md">
-                                            <div className="flex items-center justify-between gap-4 flex-wrap">
-                                                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">{t('nextPlan') || 'Plan próxima cita'}</p>
-                                                {session.fecha_proxima_cita && (
-                                                    <span className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400">
-                                                        <CalendarIcon className="h-3 w-3" />
-                                                        <span className="font-semibold">{t('nextSessionDate') || 'Fecha'}:</span>
-                                                        {format(parseISO(session.fecha_proxima_cita), 'dd/MM/yyyy')}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            {planProximaCita && <p className="text-sm whitespace-pre-wrap leading-relaxed mt-1">{planProximaCita}</p>}
-                                        </div>
-                                    )}
-                                    {session.tratamientos && session.tratamientos.length > 0 && (
-                                        <div className="border-l-2 border-green-500/50 pl-3 py-1.5 bg-green-50/60 dark:bg-green-950/20 rounded-r-md">
-                                            <p className="text-xs font-semibold text-green-600 dark:text-green-400 uppercase tracking-wide mb-2">{t('treatments') || 'Tratamientos'}</p>
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
-                                                {session.tratamientos.map((tr: any, i: number) => (
-                                                    <div key={i} className="flex items-baseline gap-2 min-w-0">
-                                                        {tr.numero_diente && (
-                                                            <span className="shrink-0 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded font-mono font-medium">{t('tooth') || 'Diente'} {tr.numero_diente}</span>
-                                                        )}
-                                                        <p className="text-sm leading-relaxed text-muted-foreground break-words">{tr.descripcion}</p>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {session.estado_odontograma && Object.keys(session.estado_odontograma).length > 0 && (
-                                        <div className="border-l-2 border-purple-500/50 pl-3 py-1.5 bg-purple-50/60 dark:bg-purple-950/20 rounded-r-md">
-                                            <p className="text-xs font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide mb-2">{t('odontogramUpdate')}</p>
-                                            <div className="flex flex-wrap gap-1.5">
-                                                {Object.entries(session.estado_odontograma).map(([tooth, data]: [string, any]) => {
-                                                    const surfaces = Object.keys(data).filter(k => k !== 'condition' && k !== 'notes' && k !== 'lastModified');
-                                                    const surfaceText = surfaces.length > 0 ? surfaces.map(s => t(`surfaces.${s}`) || s).join(', ') : '';
-                                                    const extractCondition = (d: any): string => {
-                                                        if (typeof d === 'string') return d;
-                                                        if (Array.isArray(d)) return d[0] || '';
-                                                        for (const key of Object.keys(d)) {
-                                                            const val = d[key];
-                                                            if (typeof val === 'string') return val;
-                                                            if (Array.isArray(val) && val.length > 0) return val[0];
-                                                        }
-                                                        return '';
-                                                    };
-                                                    const condition = data.condition || extractCondition(data);
-                                                    const conditionLabel = condition ? t(`conditions.${condition}`) || condition : '';
-                                                    return (
-                                                        <span key={tooth} className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded font-medium">
-                                                            <span className="font-mono">#{tooth}</span>
-                                                            <span className="text-primary/70">-</span>
-                                                            <span>{conditionLabel}</span>
-                                                            {surfaceText && <span className="text-primary/60">({surfaceText})</span>}
-                                                        </span>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {(session as any).archivos_adjuntos && (session as any).archivos_adjuntos.length > 0 && (
-                                        <div className="border-l-2 border-amber-500/50 pl-3 py-1.5 bg-amber-50/50 dark:bg-amber-950/20 rounded-r-md">
-                                            <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-2">{t('attachments') || 'Adjuntos'}</p>
-                                            <div className="flex flex-wrap gap-1">
-                                                {(session as any).archivos_adjuntos.map((att: any, i: number) => (
-                                                    <button key={i} type="button"
-                                                        className="flex items-center gap-1 text-xs bg-background border border-muted px-2 py-1 rounded hover:bg-muted/50 transition-colors cursor-pointer"
-                                                        onClick={() => handleViewTimelineAttachment(att, session.sesion_id)}>
-                                                        <FileText className="h-3 w-3 text-amber-500" />
-                                                        <span className="truncate max-w-[160px]">{att.file_name || att.nombre || att.name || 'File'}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </ScrollArea>
-                            <div className="flex items-center gap-2 px-6 py-4 border-t shrink-0 bg-background">
-                                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive gap-1.5"
-                                    onClick={() => { handleDeleteSession(session); setIsSessionDetailSheetOpen(false); }}>
-                                    <Trash2 className="h-3.5 w-3.5" />
-                                    {tPage('common.delete')}
-                                </Button>
-                                <div className="flex-1" />
-                                <Button size="sm" variant="outline" className="gap-1.5"
-                                    onClick={() => { handleEditSession(session); setIsSessionDetailSheetOpen(false); }}>
-                                    <Edit3 className="h-3.5 w-3.5" />
-                                    {tPage('common.edit')}
-                                </Button>
-                            </div>
-                        </div>
-                    );
-                })()}
-            </ResizableSheet>
 
             {/* Odontogram View Sheet */}
             <ResizableSheet
@@ -2654,7 +3012,7 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                 <div className="flex flex-col h-full">
                     <div className="px-6 py-4 border-b shrink-0 flex items-center gap-3">
                         <SheetTitle className="flex items-center gap-2 text-base font-semibold flex-1">
-                            <Smile className="h-4 w-4 text-purple-600 shrink-0" />
+                            <Smile className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
                             Odontograma
                         </SheetTitle>
                     </div>
@@ -2667,6 +3025,8 @@ function TreatmentTimeline({ sessions, appointments = [], isLoading, isLoadingAp
                                     setIsOdontogramViewerOpen(false);
                                     onRefreshAll?.(userId);
                                 }}
+                                blockNewSession={readOnly}
+                                blockNewSessionMessage={readOnly ? t('readOnlyMessage') : undefined}
                             />
                         )}
                     </div>
@@ -2815,17 +3175,21 @@ function DocumentViewerModal({ isOpen, onOpenChange, document, documentContent, 
 }
 
 // Enhanced Documents Gallery with thumbnails and viewer
+type GalleryItem = ({ origin: 'document' } & ClinicDocument) | ({ origin: 'session' } & SessionAttachmentDocument);
+
 interface EnhancedDocumentsGalleryProps {
-    documents: any[];
+    documents: GalleryItem[];
     isLoading: boolean;
     userId: string;
     uploadDocument: (userId: string, file: File) => Promise<void>;
     deleteDocument: (userId: string, docId: string) => Promise<void>;
     getDocumentContent: (userId: string, docId: string) => Promise<Blob>;
+    getSessionAttachment: (sessionId: string, attachmentId: string) => Promise<Blob>;
     createTrigger?: number;
+    readOnly?: boolean;
 }
 
-function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument, deleteDocument, getDocumentContent, createTrigger = 0 }: EnhancedDocumentsGalleryProps) {
+function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument, deleteDocument, getDocumentContent, getSessionAttachment, createTrigger = 0, readOnly = false }: EnhancedDocumentsGalleryProps) {
     const t = useTranslations('ClinicHistoryPage');
     const { toast } = useToast();
     const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
@@ -2875,17 +3239,19 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
         }
     };
 
-    const handleViewDocument = async (doc: any) => {
+    const handleViewDocument = async (doc: GalleryItem) => {
         setSelectedDocument({
             id: doc.id,
-            name: doc.nombre || doc.name || 'Document',
-            mimeType: doc.mimeType || doc.tipo || ''
+            name: doc.nombre || 'Document',
+            mimeType: doc.mimeType || ''
         });
         setIsViewerOpen(true);
         setDocumentContent(null);
         setIsLoadingDocument(true);
         try {
-            const blob = await getDocumentContent(userId, doc.id);
+            const blob = doc.origin === 'session'
+                ? await getSessionAttachment(doc.sesion_id, doc.id)
+                : await getDocumentContent(userId, doc.id);
             const url = URL.createObjectURL(blob);
             setDocumentContent(url);
         } catch (error) {
@@ -2899,7 +3265,7 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
     const formatDate = (dateString: string | null | undefined) => {
         if (!dateString) return '';
         try {
-            const [y, m, d] = dateString.split('-');
+            const [y, m, d] = dateString.split('T')[0].split('-');
             return format(new Date(Number(y), Number(m) - 1, Number(d)), 'PP');
         } catch {
             return '';
@@ -2925,10 +3291,12 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
             <div className="bg-card text-card-foreground rounded-xl shadow-sm p-3 sm:p-6 border-0 w-full min-w-0">
                 <div className="flex items-center justify-between mb-4 gap-2">
                     <h3 className="text-xl font-bold text-card-foreground">{t('tabs.documents')}</h3>
-                    <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" size="sm">
-                        <Upload className="h-4 w-4 sm:mr-2" />
-                        <span className="hidden sm:inline">{t('documents.add')}</span>
-                    </Button>
+                    {!readOnly && (
+                        <Button onClick={() => setIsUploadDialogOpen(true)} variant="outline" size="sm">
+                            <Upload className="h-4 w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">{t('documents.add')}</span>
+                        </Button>
+                    )}
                 </div>
 
                 {isLoading ? (
@@ -2938,10 +3306,10 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
                 ) : documents.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {documents.map((doc, idx) => {
-                            const isImage = isImageFile(doc.nombre || doc.name || '');
-                            const docName = doc.nombre || doc.name || 'Document';
+                            const docName = doc.nombre || 'Document';
+                            const isSession = doc.origin === 'session';
                             return (
-                                <Card key={idx} className="overflow-hidden">
+                                <Card key={`${doc.origin}-${doc.id}-${idx}`} className="overflow-hidden">
                                     <CardContent className="p-0 flex flex-col justify-between h-full">
                                         <div className="relative aspect-video w-full bg-muted cursor-pointer group" onClick={() => handleViewDocument(doc)}>
                                             {doc.thumbnail_url ? (
@@ -2960,13 +3328,21 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
                                                     <FileText className="h-10 w-10 text-muted-foreground" />
                                                 </div>
                                             )}
+                                            <Badge
+                                                variant={isSession ? 'secondary' : 'outline'}
+                                                className="absolute left-2 top-2 pointer-events-none bg-background/90"
+                                            >
+                                                {isSession
+                                                    ? t('documents.sessionBadge', { date: formatDate(doc.fecha_sesion) })
+                                                    : t('documents.documentBadge')}
+                                            </Badge>
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                 <Eye className="h-6 w-6 text-white" />
                                             </div>
                                         </div>
                                         <div className="p-3">
                                             <p className="font-semibold text-sm truncate leading-tight" title={docName}>{docName}</p>
-                                            <p className="text-xs text-muted-foreground mt-1">{doc.mimeType || doc.tipo || ''}</p>
+                                            <p className="text-xs text-muted-foreground mt-1">{doc.mimeType || ''}</p>
                                         </div>
                                         <div className="flex justify-end p-1 pt-0">
                                             <DropdownMenu>
@@ -2976,10 +3352,17 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent>
-                                                    <DropdownMenuItem onClick={() => handleDelete(doc)} className="text-destructive">
-                                                        <Trash2 className="mr-2 h-4 w-4" />
-                                                        {t('documents.delete') || 'Delete'}
-                                                    </DropdownMenuItem>
+                                                    {isSession || readOnly ? (
+                                                        <DropdownMenuItem onClick={() => handleViewDocument(doc)}>
+                                                            <Eye className="mr-2 h-4 w-4" />
+                                                            {t('documents.view')}
+                                                        </DropdownMenuItem>
+                                                    ) : (
+                                                        <DropdownMenuItem onClick={() => handleDelete(doc)} className="text-destructive">
+                                                            <Trash2 className="mr-2 h-4 w-4" />
+                                                            {t('documents.delete') || 'Delete'}
+                                                        </DropdownMenuItem>
+                                                    )}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </div>
@@ -2994,10 +3377,12 @@ function EnhancedDocumentsGallery({ documents, isLoading, userId, uploadDocument
                             <FolderArchive className="w-7 h-7 text-muted-foreground" />
                         </div>
                         <p className="text-sm">{t('documents.noDocuments')}</p>
-                        <Button size="sm" variant="outline" onClick={() => setIsUploadDialogOpen(true)}>
-                            <Plus className="w-3 h-3 mr-1" />
-                            {t('documents.add')}
-                        </Button>
+                        {!readOnly && (
+                            <Button size="sm" variant="outline" onClick={() => setIsUploadDialogOpen(true)}>
+                                <Plus className="w-3 h-3 mr-1" />
+                                {t('documents.add')}
+                            </Button>
+                        )}
                     </div>
                 )}
             </div>

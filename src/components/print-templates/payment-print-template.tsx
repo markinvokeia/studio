@@ -1,8 +1,10 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { translateStatus } from '@/components/print-templates/translate-status';
 import { formatDisplayDate } from '@/lib/utils';
 import type { PaymentPrintData } from '@/stores/print-document-store';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface PaymentPrintTemplateProps {
   data: PaymentPrintData;
@@ -13,7 +15,7 @@ export function PaymentPrintTemplate({ data }: PaymentPrintTemplateProps) {
   const { payment } = data;
 
   const docNo = payment.doc_no || payment.payment_doc_no || payment.id;
-  const currency = payment.source_currency || payment.currency || 'UYU';
+  const currency = payment.source_currency || payment.currency || getClinicCurrency();
 
   return (
     <div>
@@ -40,7 +42,7 @@ export function PaymentPrintTemplate({ data }: PaymentPrintTemplateProps) {
         <div>
           <span className="text-gray-500">{t('status')}: </span>
           <span className="font-medium">
-            {t(`transactionType.${payment.transaction_type}` as any) || payment.transaction_type}
+            {translateStatus(t, 'transactionType', payment.transaction_type)}
           </span>
         </div>
         {payment.invoice_doc_no && (

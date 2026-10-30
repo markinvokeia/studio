@@ -1,0 +1,1077 @@
+{
+  "name": "Prescriptions — Templates & Patient Prescriptions",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Prescription Templates — List\n\n**GET** `/webhook/prescription-templates`\n\n**Query params:**\n- `search`: opcional, filtra por nombre (ILIKE)\n- `page` / `limit`: opcionales, paginación\n\n**Response 200:** array de `PrescriptionTemplate`.\n\nRequiere `database/scripts/068_20260819_prescriptions-and-doctor-signature.sql`.",
+        "height": 280,
+        "width": 440,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "485f30fd-517f-4bcb-9f0f-b4b8c5f67f76",
+      "name": "RXT List — Docs"
+    },
+    {
+      "parameters": {
+        "path": "prescription-templates",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        512,
+        240
+      ],
+      "id": "9d44fdc3-439e-4730-977b-be611036bf27",
+      "name": "RXT List — Webhook",
+      "webhookId": "rxt-list"
+    },
+    {
+      "parameters": {
+        "jsCode": "const esc = (value) => String(value).replace(/'/g, `''`);\nconst sqlText = (value) => (value == null || value === '' ? 'NULL' : `'${esc(value)}'`);\nconst sqlInt = (value) => {\n  if (value == null || value === '') return 'NULL';\n  const parsed = parseInt(value, 10);\n  return Number.isNaN(parsed) ? 'NULL' : String(parsed);\n};\nconst sqlDate = (value) => (value == null || value === '' ? 'NULL' : `'${esc(value)}'::date`);\nconst sqlBool = (value) => (value === false ? 'false' : 'true');\nconst assertUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {\n    throw new Error(`Invalid ${field}: ${value}`);\n  }\n  return text;\n};\nconst sqlUuid = (value, field) => (value ? `'${esc(assertUuid(value, field))}'` : 'NULL');\nconst makeUuid = () => {\n  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {\n    const rand = (Math.random() * 16) | 0;\n    const value = char === 'x' ? rand : (rand & 0x3) | 0x8;\n    return value.toString(16);\n  });\n};\n\nconst input = $input.first().json;\nconst query = input.query ?? input;\n\nconst search = String(query.search ?? '').trim();\nconst limit = Math.min(Math.max(parseInt(query.limit ?? '100', 10) || 100, 1), 500);\nconst page = Math.max(parseInt(query.page ?? '1', 10) || 1, 1);\n\nreturn [{ json: {\n  search_sql: search ? `'%${esc(search)}%'` : 'NULL',\n  limit,\n  offset: (page - 1) * limit,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        240
+      ],
+      "id": "37339474-c681-4f54-908f-bb7e6f0e3dbd",
+      "name": "RXT List — Parse Query"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  id::text AS id,\n  name,\n  description,\n  content_html,\n  is_active,\n  created_at::text AS created_at,\n  updated_at::text AS updated_at\nFROM prescription_templates\nWHERE ({{ $json.search_sql }}::text IS NULL OR name ILIKE {{ $json.search_sql }}::text)\nORDER BY name ASC\nLIMIT {{ $json.limit }} OFFSET {{ $json.offset }};",
+        "options": {
+          "queryReplacement": ""
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        992,
+        240
+      ],
+      "id": "d73dbe7c-bbd3-453e-9c9f-d541dc5b9a3f",
+      "name": "RXT List — Query",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(i => i.json);\n//return [{ json: rows }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        240
+      ],
+      "id": "d6e334bc-5015-4245-9d2c-b1b2eca3be77",
+      "name": "RXT List — Format Array"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1472,
+        240
+      ],
+      "id": "1cdf3ac5-88a6-4cd9-94eb-4fefb28342d7",
+      "name": "RXT List — Respond 200"
+    },
+    {
+      "parameters": {
+        "content": "## Prescription Templates — Upsert\n\n**POST** `/webhook/prescription-templates/upsert`\n\n**Body:** `{ id?, name, description?, content_html, is_active }`\n\nSi no llega `id` se genera uno nuevo (uuid v4).\n\n**Response 200:** el `PrescriptionTemplate` guardado.",
+        "height": 280,
+        "width": 440,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        512
+      ],
+      "typeVersion": 1,
+      "id": "378b0ea7-9020-430e-b3e5-17d06c97ddd8",
+      "name": "RXT Upsert — Docs"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "prescription-templates/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        512,
+        752
+      ],
+      "id": "df567568-6b33-4b2f-a7e0-6dee56b85913",
+      "name": "RXT Upsert — Webhook",
+      "webhookId": "rxt-upsert"
+    },
+    {
+      "parameters": {
+        "jsCode": "const esc = (value) => String(value).replace(/'/g, `''`);\nconst sqlText = (value) => (value == null || value === '' ? 'NULL' : `'${esc(value)}'`);\nconst sqlInt = (value) => {\n  if (value == null || value === '') return 'NULL';\n  const parsed = parseInt(value, 10);\n  return Number.isNaN(parsed) ? 'NULL' : String(parsed);\n};\nconst sqlDate = (value) => (value == null || value === '' ? 'NULL' : `'${esc(value)}'::date`);\nconst sqlBool = (value) => (value === false ? 'false' : 'true');\nconst assertUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {\n    throw new Error(`Invalid ${field}: ${value}`);\n  }\n  return text;\n};\nconst sqlUuid = (value, field) => (value ? `'${esc(assertUuid(value, field))}'` : 'NULL');\nconst makeUuid = () => {\n  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {\n    const rand = (Math.random() * 16) | 0;\n    const value = char === 'x' ? rand : (rand & 0x3) | 0x8;\n    return value.toString(16);\n  });\n};\n\nconst body = $input.first().json.body ?? $input.first().json;\n\nconst name = String(body.name ?? '').trim();\nif (!name) throw new Error('name is required');\nconst contentHtml = String(body.content_html ?? '').trim();\nif (!contentHtml) throw new Error('content_html is required');\n\nconst id = body.id ? assertUuid(body.id, 'id') : makeUuid();\n\nreturn [{ json: {\n  id,\n  id_sql: `'${esc(id)}'::uuid`,\n  name_sql: sqlText(name),\n  description_sql: sqlText(body.description),\n  content_html_sql: sqlText(contentHtml),\n  is_active_sql: sqlBool(body.is_active),\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        752
+      ],
+      "id": "258eaef8-1e6c-46cb-90de-e2f6c32b654f",
+      "name": "RXT Upsert — Parse Input"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO prescription_templates (\n  id, name, description, content_html, is_active, created_at, updated_at\n) VALUES (\n  {{ $json.id_sql }},\n  {{ $json.name_sql }},\n  {{ $json.description_sql }},\n  {{ $json.content_html_sql }},\n  {{ $json.is_active_sql }},\n  NOW(),\n  NOW()\n)\nON CONFLICT (id) DO UPDATE\nSET name         = EXCLUDED.name,\n    description  = EXCLUDED.description,\n    content_html = EXCLUDED.content_html,\n    is_active    = EXCLUDED.is_active,\n    updated_at   = NOW();",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        992,
+        752
+      ],
+      "id": "89c86f2d-add6-48a8-9e4b-90450441ec28",
+      "name": "RXT Upsert — Save",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  id::text AS id,\n  name,\n  description,\n  content_html,\n  is_active,\n  created_at::text AS created_at,\n  updated_at::text AS updated_at\nFROM prescription_templates\nWHERE id = '{{ $node[\"RXT Upsert — Parse Input\"].json[\"id\"] }}'::uuid\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1232,
+        752
+      ],
+      "id": "049ca67d-7000-4ad2-abc8-a1ddc0df8fcd",
+      "name": "RXT Upsert — Fetch",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1472,
+        752
+      ],
+      "id": "393f9c20-4ebb-4c9b-919c-8abea15aed32",
+      "name": "RXT Upsert — Respond 200"
+    },
+    {
+      "parameters": {
+        "content": "## Prescription Templates — Delete\n\n**DELETE** `/webhook/prescription-templates/delete`\n\n**Body:** `{ id }` (uuid)\n\nLas recetas ya emitidas conservan `template_name` y su `content_html`:\nla FK `patient_prescriptions.template_id` es `ON DELETE SET NULL`.\n\n**Response 200:** `{ success: true, code: 200, id }`.",
+        "height": 280,
+        "width": 440,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        1008
+      ],
+      "typeVersion": 1,
+      "id": "cdc4146c-1aa7-4f67-bdfb-b7bfdc443a7e",
+      "name": "RXT Delete — Docs"
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "prescription-templates/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        512,
+        1248
+      ],
+      "id": "bc0a0bc6-b95b-4012-a94f-aa5222c069e0",
+      "name": "RXT Delete — Webhook",
+      "webhookId": "rxt-delete"
+    },
+    {
+      "parameters": {
+        "jsCode": "const esc = (value) => String(value).replace(/'/g, `''`);\nconst sqlText = (value) => (value == null || value === '' ? 'NULL' : `'${esc(value)}'`);\nconst sqlInt = (value) => {\n  if (value == null || value === '') return 'NULL';\n  const parsed = parseInt(value, 10);\n  return Number.isNaN(parsed) ? 'NULL' : String(parsed);\n};\nconst sqlDate = (value) => (value == null || value === '' ? 'NULL' : `'${esc(value)}'::date`);\nconst sqlBool = (value) => (value === false ? 'false' : 'true');\nconst assertUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {\n    throw new Error(`Invalid ${field}: ${value}`);\n  }\n  return text;\n};\nconst sqlUuid = (value, field) => (value ? `'${esc(assertUuid(value, field))}'` : 'NULL');\nconst makeUuid = () => {\n  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {\n    const rand = (Math.random() * 16) | 0;\n    const value = char === 'x' ? rand : (rand & 0x3) | 0x8;\n    return value.toString(16);\n  });\n};\n\nconst body = $input.first().json.body ?? $input.first().json;\nconst id = assertUuid(body.id, 'id');\nreturn [{ json: { id } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        1248
+      ],
+      "id": "b5fccf1f-3e1e-4c7e-92fc-19651ec092a7",
+      "name": "RXT Delete — Parse Input"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM prescription_templates\nWHERE id = '{{ $json.id }}'::uuid\nRETURNING id::text AS id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        992,
+        1248
+      ],
+      "id": "b862bb6d-991b-4870-a086-9e77bbf94762",
+      "name": "RXT Delete — Delete",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(item => item.json).filter(row => row.id);\nconst parsedId = $('RXT Delete — Parse Input').first().json.id;\nreturn [{ json: { success: true, code: 200, id: rows[0]?.id || parsedId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        1248
+      ],
+      "id": "b2ad8907-aa78-4dca-aa69-73dd2835fe07",
+      "name": "RXT Delete — Build Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1472,
+        1248
+      ],
+      "id": "d3245299-2b29-4dd7-bada-91f07ff90051",
+      "name": "RXT Delete — Respond"
+    },
+    {
+      "parameters": {
+        "content": "## Patient Prescriptions — List\n\n**GET** `/webhook/patient-prescriptions`\n\n**Query params:**\n- `patient_id`: obligatorio (uuid)\n\n**Response 200:** array de `PatientPrescription`, más recientes primero.\nCada receta trae `items[]` agregado con `json_agg` (array vacío si no hay líneas).",
+        "height": 300,
+        "width": 440,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        1600
+      ],
+      "typeVersion": 1,
+      "id": "8e39858a-38ec-42ad-9f34-70309da90428",
+      "name": "RX List — Docs"
+    },
+    {
+      "parameters": {
+        "path": "patient-prescriptions",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        512,
+        1840
+      ],
+      "id": "e5fe9e17-0934-45e4-9308-0ba6e562f57d",
+      "name": "RX List — Webhook",
+      "webhookId": "rx-list"
+    },
+    {
+      "parameters": {
+        "jsCode": "const esc = (value) => String(value).replace(/'/g, `''`);\nconst sqlText = (value) => (value == null || value === '' ? 'NULL' : `'${esc(value)}'`);\nconst sqlInt = (value) => {\n  if (value == null || value === '') return 'NULL';\n  const parsed = parseInt(value, 10);\n  return Number.isNaN(parsed) ? 'NULL' : String(parsed);\n};\nconst sqlDate = (value) => (value == null || value === '' ? 'NULL' : `'${esc(value)}'::date`);\nconst sqlBool = (value) => (value === false ? 'false' : 'true');\nconst assertUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {\n    throw new Error(`Invalid ${field}: ${value}`);\n  }\n  return text;\n};\nconst sqlUuid = (value, field) => (value ? `'${esc(assertUuid(value, field))}'` : 'NULL');\nconst makeUuid = () => {\n  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {\n    const rand = (Math.random() * 16) | 0;\n    const value = char === 'x' ? rand : (rand & 0x3) | 0x8;\n    return value.toString(16);\n  });\n};\n\nconst input = $input.first().json;\nconst query = input.query ?? input;\n\nif (!query.patient_id) throw new Error('patient_id is required');\nconst patientId = assertUuid(query.patient_id, 'patient_id');\n\nreturn [{ json: { patient_id_sql: `'${esc(patientId)}'::uuid` } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        1840
+      ],
+      "id": "f42e633a-1f75-4c42-b193-ba2967733886",
+      "name": "RX List — Parse Query"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  p.id::text          AS id,\n  p.patient_id::text  AS patient_id,\n  p.doctor_id::text   AS doctor_id,\n  p.doctor_name,\n  p.fecha::text       AS fecha,\n  p.template_id::text AS template_id,\n  p.template_name,\n  p.diagnostico,\n  p.notas,\n  p.content_html,\n  p.created_at::text  AS created_at,\n  p.updated_at::text  AS updated_at,\n  COALESCE((\n    SELECT json_agg(item ORDER BY item.orden)\n    FROM (\n      SELECT\n        i.id::text             AS id,\n        i.orden,\n        i.medicamento_id::text AS medicamento_id,\n        i.medicamento_texto,\n        i.presentacion,\n        i.dosis,\n        i.via_administracion,\n        i.frecuencia,\n        i.duracion_dias,\n        i.cantidad,\n        i.fecha_inicio::text   AS fecha_inicio,\n        i.fecha_fin::text      AS fecha_fin,\n        i.indicaciones,\n        i.registrar_en_anamnesis\n      FROM patient_prescription_items i\n      WHERE i.prescription_id = p.id\n    ) AS item\n  ), '[]'::json) AS items\nFROM patient_prescriptions p\nWHERE p.patient_id = {{ $json.patient_id_sql }}\nORDER BY p.fecha DESC, p.created_at DESC;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        992,
+        1840
+      ],
+      "id": "2e24b438-9e71-44f4-ab42-e3146ec45352",
+      "name": "RX List — Query",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all()\n  //.map(i => i.json);\n//return [{ json: rows }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        1840
+      ],
+      "id": "fb9c1f32-3082-4e48-9b33-95c0cb11071b",
+      "name": "RX List — Format Array"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1472,
+        1840
+      ],
+      "id": "53858179-8b11-4449-a754-550746db3f66",
+      "name": "RX List — Respond 200"
+    },
+    {
+      "parameters": {
+        "content": "## Patient Prescriptions — Upsert\n\n**POST** `/webhook/patient-prescriptions/upsert`\n\n**Body:** `{ id?, patient_id, doctor_id, doctor_name?, fecha,\ntemplate_id?, template_name?, diagnostico?, notas?, content_html, items[] }`\n\nCada `item`: `{ medicamento_id?, medicamento_texto, presentacion?, dosis?,\nvia_administracion?, frecuencia?, duracion_dias?, cantidad?, fecha_inicio?,\nfecha_fin?, indicaciones?, registrar_en_anamnesis }`\n\n**Sincronización con la anamnesis (importante):**\n`RX Upsert — Save` reemplaza por completo las líneas de la receta. Como\n`historial_medicamentos_paciente.prescription_item_id` es\n`ON DELETE CASCADE`, borrar las líneas viejas se lleva por delante las\nfilas de anamnesis que habían generado, sin ningún paso extra.\n\n`RX Upsert — Sync Anamnesis` vuelve a insertarlas para los ítems con\n`registrar_en_anamnesis = true`, con `fecha_inicio`/`fecha_fin`. Así la\ntarjeta \"Medicamentos\" de la anamnesis muestra lo recetado con su período.\n\nLos medicamentos cargados a mano en la anamnesis tienen\n`prescription_item_id NULL` y no los toca nadie.\n\n**Response 200:** la receta guardada con sus `items[]`.",
+        "height": 520,
+        "width": 520,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        2144
+      ],
+      "typeVersion": 1,
+      "id": "b0a4bc81-22e3-4bec-8528-2582f2b17eaf",
+      "name": "RX Upsert — Docs"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "patient-prescriptions/upsert",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        512,
+        2448
+      ],
+      "id": "efeab373-5979-42e9-b58d-d4313d683f87",
+      "name": "RX Upsert — Webhook",
+      "webhookId": "rx-upsert"
+    },
+    {
+      "parameters": {
+        "jsCode": "const esc = (value) => String(value).replace(/'/g, `''`);\nconst sqlText = (value) => (value == null || value === '' ? 'NULL' : `'${esc(value)}'`);\nconst sqlInt = (value) => {\n  if (value == null || value === '') return 'NULL';\n  const parsed = parseInt(value, 10);\n  return Number.isNaN(parsed) ? 'NULL' : String(parsed);\n};\nconst sqlDate = (value) => (value == null || value === '' ? 'NULL' : `'${esc(value)}'::date`);\nconst sqlBool = (value) => (value === false ? 'false' : 'true');\nconst assertUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {\n    throw new Error(`Invalid ${field}: ${value}`);\n  }\n  return text;\n};\nconst sqlUuid = (value, field) => (value ? `'${esc(assertUuid(value, field))}'` : 'NULL');\nconst makeUuid = () => {\n  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {\n    const rand = (Math.random() * 16) | 0;\n    const value = char === 'x' ? rand : (rand & 0x3) | 0x8;\n    return value.toString(16);\n  });\n};\n\nconst body = $input.first().json.body ?? $input.first().json;\n\nconst patientId = assertUuid(body.patient_id, 'patient_id');\nconst doctorId = assertUuid(body.doctor_id, 'doctor_id');\nconst contentHtml = String(body.content_html ?? '').trim();\nif (!contentHtml) throw new Error('content_html is required');\nif (!body.fecha) throw new Error('fecha is required');\n\nconst items = Array.isArray(body.items) ? body.items : [];\nconst usable = items.filter((item) => String(item?.medicamento_texto ?? '').trim());\nif (usable.length === 0) throw new Error('at least one medication is required');\n\nconst id = body.id ? assertUuid(body.id, 'id') : makeUuid();\nconst fecha = String(body.fecha).split('T')[0];\n\n// Una fila VALUES por ítem. El orden de las columnas debe coincidir con el\n// INSERT de \"RX Upsert — Save\".\nconst itemsValues = usable.map((item, index) => [\n  `'${esc(id)}'::uuid`,\n  String(index),\n  sqlInt(item.medicamento_id),\n  sqlText(String(item.medicamento_texto).trim()),\n  sqlText(item.presentacion),\n  sqlText(item.dosis),\n  sqlText(item.via_administracion),\n  sqlText(item.frecuencia),\n  sqlInt(item.duracion_dias),\n  sqlText(item.cantidad),\n  sqlDate(item.fecha_inicio ? String(item.fecha_inicio).split('T')[0] : fecha),\n  sqlDate(item.fecha_fin ? String(item.fecha_fin).split('T')[0] : null),\n  sqlText(item.indicaciones),\n  sqlBool(item.registrar_en_anamnesis),\n].join(', ')).map((row) => `(${row})`).join(',\\n  ');\n\nreturn [{ json: {\n  id,\n  id_sql: `'${esc(id)}'::uuid`,\n  patient_id_sql: `'${esc(patientId)}'::uuid`,\n  doctor_id_sql: `'${esc(doctorId)}'::uuid`,\n  doctor_name_sql: sqlText(body.doctor_name),\n  fecha_sql: `'${esc(fecha)}'::date`,\n  template_id_sql: sqlUuid(body.template_id, 'template_id'),\n  template_name_sql: sqlText(body.template_name),\n  diagnostico_sql: sqlText(body.diagnostico),\n  notas_sql: sqlText(body.notas),\n  content_html_sql: sqlText(contentHtml),\n  items_values_sql: itemsValues,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        2448
+      ],
+      "id": "01338c3c-28e1-4f8a-9165-cc70a0072ccf",
+      "name": "RX Upsert — Parse Input"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- 1. Cabecera\nINSERT INTO patient_prescriptions (\n  id, patient_id, doctor_id, doctor_name, fecha,\n  template_id, template_name, diagnostico, notas, content_html,\n  created_at, updated_at\n) VALUES (\n  {{ $json.id_sql }},\n  {{ $json.patient_id_sql }},\n  {{ $json.doctor_id_sql }},\n  {{ $json.doctor_name_sql }},\n  {{ $json.fecha_sql }},\n  {{ $json.template_id_sql }},\n  {{ $json.template_name_sql }},\n  {{ $json.diagnostico_sql }},\n  {{ $json.notas_sql }},\n  {{ $json.content_html_sql }},\n  NOW(),\n  NOW()\n)\nON CONFLICT (id) DO UPDATE\nSET doctor_id     = EXCLUDED.doctor_id,\n    doctor_name   = EXCLUDED.doctor_name,\n    fecha         = EXCLUDED.fecha,\n    template_id   = EXCLUDED.template_id,\n    template_name = EXCLUDED.template_name,\n    diagnostico   = EXCLUDED.diagnostico,\n    notas         = EXCLUDED.notas,\n    content_html  = EXCLUDED.content_html,\n    updated_at    = NOW();\n\n-- 2. Líneas: se reemplazan por completo. El DELETE arrastra en cascada las\n--    filas de anamnesis que estas líneas habían generado\n--    (historial_medicamentos_paciente.prescription_item_id ON DELETE CASCADE).\nDELETE FROM patient_prescription_items\nWHERE prescription_id = {{ $json.id_sql }};\n\nINSERT INTO patient_prescription_items (\n  prescription_id, orden, medicamento_id, medicamento_texto, presentacion,\n  dosis, via_administracion, frecuencia, duracion_dias, cantidad,\n  fecha_inicio, fecha_fin, indicaciones, registrar_en_anamnesis\n) VALUES\n  {{ $json.items_values_sql }};",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        992,
+        2448
+      ],
+      "id": "0c145718-4cb3-4662-b208-1959d667da57",
+      "name": "RX Upsert — Save",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Refleja en la anamnesis los medicamentos marcados, con su período.\n-- El enlace va en prescription_item_id: no hay que emparejar filas a mano y\n-- la cascada se encarga de limpiarlas al reeditar o borrar la receta.\nINSERT INTO historial_medicamentos_paciente (\n  paciente_id, medicamento_id, medicamento_texto, dosis, frecuencia,\n  fecha_inicio, fecha_fin, motivo, prescription_item_id\n)\nSELECT\n  p.patient_id,\n  i.medicamento_id,\n  i.medicamento_texto,\n  i.dosis,\n  i.frecuencia,\n  COALESCE(i.fecha_inicio, p.fecha),\n  i.fecha_fin,\n  COALESCE(NULLIF(p.diagnostico, ''), i.indicaciones),\n  i.id\nFROM patient_prescription_items i\nJOIN patient_prescriptions p ON p.id = i.prescription_id\nWHERE i.prescription_id = {{ $('RX Upsert — Parse Input').first().json.id_sql }}\n  AND i.registrar_en_anamnesis;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1232,
+        2448
+      ],
+      "id": "fad70c35-71f2-4cd6-8e5a-eafbe2931b4b",
+      "name": "RX Upsert — Sync Anamnesis",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  p.id::text          AS id,\n  p.patient_id::text  AS patient_id,\n  p.doctor_id::text   AS doctor_id,\n  p.doctor_name,\n  p.fecha::text       AS fecha,\n  p.template_id::text AS template_id,\n  p.template_name,\n  p.diagnostico,\n  p.notas,\n  p.content_html,\n  p.created_at::text  AS created_at,\n  p.updated_at::text  AS updated_at,\n  COALESCE((\n    SELECT json_agg(item ORDER BY item.orden)\n    FROM (\n      SELECT\n        i.id::text             AS id,\n        i.orden,\n        i.medicamento_id::text AS medicamento_id,\n        i.medicamento_texto,\n        i.presentacion,\n        i.dosis,\n        i.via_administracion,\n        i.frecuencia,\n        i.duracion_dias,\n        i.cantidad,\n        i.fecha_inicio::text   AS fecha_inicio,\n        i.fecha_fin::text      AS fecha_fin,\n        i.indicaciones,\n        i.registrar_en_anamnesis\n      FROM patient_prescription_items i\n      WHERE i.prescription_id = p.id\n    ) AS item\n  ), '[]'::json) AS items\nFROM patient_prescriptions p\nWHERE p.id = '{{ $node[\"RX Upsert — Parse Input\"].json[\"id\"] }}'::uuid\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1472,
+        2448
+      ],
+      "id": "2c84957c-763f-4bdb-87a0-b819b126b3c1",
+      "name": "RX Upsert — Fetch",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1712,
+        2448
+      ],
+      "id": "d20ca792-b225-4628-ab7e-a7d3e8673ad4",
+      "name": "RX Upsert — Respond 200"
+    },
+    {
+      "parameters": {
+        "content": "## Patient Prescriptions — Delete\n\n**DELETE** `/webhook/patient-prescriptions/delete`\n\n**Body:** `{ id }` (uuid)\n\nUna sola sentencia: los ítems se van por `ON DELETE CASCADE` y con\nellos las filas de anamnesis que habían generado.\n\n**Response 200:** `{ success: true, code: 200, id }`.",
+        "height": 300,
+        "width": 440,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        2880
+      ],
+      "typeVersion": 1,
+      "id": "eaacd0fe-1c0f-4460-8aa9-f98eb438e02b",
+      "name": "RX Delete — Docs"
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "patient-prescriptions/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        512,
+        3152
+      ],
+      "id": "10b9a949-bbbf-4573-b568-62897cc599b0",
+      "name": "RX Delete — Webhook",
+      "webhookId": "rx-delete"
+    },
+    {
+      "parameters": {
+        "jsCode": "const esc = (value) => String(value).replace(/'/g, `''`);\nconst sqlText = (value) => (value == null || value === '' ? 'NULL' : `'${esc(value)}'`);\nconst sqlInt = (value) => {\n  if (value == null || value === '') return 'NULL';\n  const parsed = parseInt(value, 10);\n  return Number.isNaN(parsed) ? 'NULL' : String(parsed);\n};\nconst sqlDate = (value) => (value == null || value === '' ? 'NULL' : `'${esc(value)}'::date`);\nconst sqlBool = (value) => (value === false ? 'false' : 'true');\nconst assertUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {\n    throw new Error(`Invalid ${field}: ${value}`);\n  }\n  return text;\n};\nconst sqlUuid = (value, field) => (value ? `'${esc(assertUuid(value, field))}'` : 'NULL');\nconst makeUuid = () => {\n  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (char) => {\n    const rand = (Math.random() * 16) | 0;\n    const value = char === 'x' ? rand : (rand & 0x3) | 0x8;\n    return value.toString(16);\n  });\n};\n\nconst body = $input.first().json.body ?? $input.first().json;\nconst id = assertUuid(body.id, 'id');\nreturn [{ json: { id } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        3152
+      ],
+      "id": "004aa599-ba42-4ec3-abb6-2b21ca2f0c57",
+      "name": "RX Delete — Parse Input"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM patient_prescriptions\nWHERE id = '{{ $json.id }}'::uuid\nRETURNING id::text AS id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        992,
+        3152
+      ],
+      "id": "60b46092-8893-4145-a74f-4fd4d6ff2ff5",
+      "name": "RX Delete — Delete",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(item => item.json).filter(row => row.id);\nconst parsedId = $('RX Delete — Parse Input').first().json.id;\nreturn [{ json: { success: true, code: 200, id: rows[0]?.id || parsedId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1232,
+        3152
+      ],
+      "id": "2402d286-5afc-4492-8216-39a071fd8395",
+      "name": "RX Delete — Build Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1472,
+        3152
+      ],
+      "id": "73c565fa-52e1-4ab0-a65e-74871a9c4d27",
+      "name": "RX Delete — Respond"
+    }
+  ],
+  "pinData": {
+    "RXT List — Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODY2MzgyOTF9.86hnrJnvYvIZB4LDv-bNmEL670Ey-kkhiX_p5JOPHHc",
+            "cache-control": "no-cache",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es",
+            "sec-ch-ua": "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Google Chrome\";v=\"150\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "179.25.97.57",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "d4e738525fe6",
+            "x-real-ip": "179.25.97.57"
+          },
+          "params": {},
+          "query": {},
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/prescription-templates",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "RX List — Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODY2MzgyOTF9.86hnrJnvYvIZB4LDv-bNmEL670Ey-kkhiX_p5JOPHHc",
+            "cache-control": "no-cache",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es",
+            "sec-ch-ua": "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Google Chrome\";v=\"150\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "179.25.97.57",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "d4e738525fe6",
+            "x-real-ip": "179.25.97.57"
+          },
+          "params": {},
+          "query": {
+            "patient_id": "8e43a7e9-838d-4e08-941d-a4ffcaac2fdd"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/patient-prescriptions",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ],
+    "RX Upsert — Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+            "content-length": "5692",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODY2MzgyOTF9.86hnrJnvYvIZB4LDv-bNmEL670Ey-kkhiX_p5JOPHHc",
+            "cache-control": "no-cache",
+            "content-type": "application/json",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es",
+            "sec-ch-ua": "\"Not;A=Brand\";v=\"8\", \"Chromium\";v=\"150\", \"Google Chrome\";v=\"150\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "179.25.97.57",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "d4e738525fe6",
+            "x-real-ip": "179.25.97.57"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "patient_id": "8e43a7e9-838d-4e08-941d-a4ffcaac2fdd",
+            "fecha": "2026-08-19",
+            "doctor_id": "57233abc-341a-4a90-bf7d-21c2d589ee0e",
+            "doctor_name": "Dr Manuel Vilano",
+            "template_id": "a7f3c1d2-5b8e-4a91-9c3d-6e2f8b4a1c70",
+            "template_name": "Receta médica estándar",
+            "diagnostico": "Dolor de muela",
+            "items": [
+              {
+                "medicamento_id": "41",
+                "medicamento_texto": "Ibuprofeno",
+                "presentacion": "Advil",
+                "dosis": "1 comprimido",
+                "via_administracion": "Oral",
+                "frecuencia": "Cada 12 horas",
+                "duracion_dias": 10,
+                "cantidad": "20",
+                "fecha_inicio": "2026-08-19",
+                "fecha_fin": "2026-08-28",
+                "indicaciones": "",
+                "registrar_en_anamnesis": true,
+                "orden": 0
+              },
+              {
+                "medicamento_id": "48",
+                "medicamento_texto": "Morfina",
+                "presentacion": "100mg",
+                "dosis": "1",
+                "via_administracion": "Oral",
+                "frecuencia": "Diario",
+                "duracion_dias": 3,
+                "cantidad": "10",
+                "fecha_inicio": "2026-08-19",
+                "fecha_fin": "2026-08-21",
+                "indicaciones": "Solo si mucho dolor",
+                "registrar_en_anamnesis": true,
+                "orden": 1
+              }
+            ],
+            "content_html": "\n<div style=\"font-family:Helvetica,Arial,sans-serif;color:#111827;max-width:720px;margin:0 auto;\">\n\n  <!-- ── Membrete ─────────────────────────────────────────────────── -->\n  <div style=\"display:flex;align-items:center;gap:1rem;padding-bottom:0.75rem;border-bottom:3px solid #1f2937;\">\n    <img src=\"{{clinic_logo}}\" alt=\"\" style=\"height:4rem;max-width:130px;object-fit:contain;flex-shrink:0;\" onerror=\"this.style.display='none'\" />\n    <div style=\"flex:1;min-width:0;\">\n      <p style=\"margin:0;font-size:1.25rem;font-weight:700;letter-spacing:-0.01em;\">{{clinic_name}}</p>\n      <p style=\"margin:0.1rem 0 0;font-size:0.75rem;color:#4b5563;\">{{clinic_address}}</p>\n      <p style=\"margin:0;font-size:0.75rem;color:#4b5563;\">Tel. {{clinic_phone}} · {{clinic_email}}</p>\n      <p style=\"margin:0;font-size:0.7rem;color:#6b7280;\">RUT {{clinic_rut}}</p>\n    </div>\n  </div>\n\n  <!-- ── Título ───────────────────────────────────────────────────── -->\n  <div style=\"background:#1f2937;color:#ffffff;padding:0.4rem 0.75rem;margin-top:0;\">\n    <p style=\"margin:0;font-size:0.95rem;font-weight:700;letter-spacing:0.12em;text-align:center;\">RECETA MÉDICA</p>\n  </div>\n\n  <!-- ── Identificación del paciente ──────────────────────────────── -->\n  <table style=\"width:100%;border-collapse:collapse;margin-top:0.9rem;font-size:0.8125rem;\">\n    <tr>\n      <td style=\"padding:2px 0;width:50%;\"><span style=\"color:#6b7280;\">Paciente:</span> <strong>{{patient_name}}</strong></td>\n      <td style=\"padding:2px 0;width:50%;\"><span style=\"color:#6b7280;\">C.I.:</span> <strong>{{patient_document}}</strong></td>\n    </tr>\n    <tr>\n      <td style=\"padding:2px 0;\"><span style=\"color:#6b7280;\">Edad:</span> {{patient_age}} años</td>\n      <td style=\"padding:2px 0;\"><span style=\"color:#6b7280;\">Fecha de nac.:</span> {{patient_birthday}}</td>\n    </tr>\n    <tr>\n      <td style=\"padding:2px 0;\"><span style=\"color:#6b7280;\">Mutualista:</span> {{patient_mutual_society}}</td>\n      <td style=\"padding:2px 0;\"><span style=\"color:#6b7280;\">Fecha:</span> <strong>{{date}}</strong></td>\n    </tr>\n    <tr>\n      <td colspan=\"2\" style=\"padding:2px 0;\"><span style=\"color:#6b7280;\">Domicilio:</span> {{patient_address}}</td>\n    </tr>\n  </table>\n\n  <!-- ── Diagnóstico ──────────────────────────────────────────────── -->\n  <div style=\"margin-top:0.9rem;padding:0.5rem 0.7rem;background:#f3f4f6;border-left:3px solid #9ca3af;\">\n    <p style=\"margin:0;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:#6b7280;\">Diagnóstico</p>\n    <p style=\"margin:0.15rem 0 0;font-size:0.8125rem;\">{{diagnosis}}</p>\n  </div>\n\n  <!-- ── Rp. ──────────────────────────────────────────────────────── -->\n  <div style=\"margin-top:1.1rem;min-height:15rem;\">\n    <p style=\"margin:0 0 0.4rem;font-size:1.5rem;font-weight:700;font-style:italic;line-height:1;\">Rp.</p>\n    {{medications_list}}\n  </div>\n\n  <!-- ── Indicaciones generales ───────────────────────────────────── -->\n  <div style=\"margin-top:0.9rem;\">\n    <p style=\"margin:0;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;color:#6b7280;\">Indicaciones</p>\n    <p style=\"margin:0.15rem 0 0;font-size:0.8125rem;white-space:pre-wrap;\">{{notes}}</p>\n  </div>\n\n  <!-- ── Firma ────────────────────────────────────────────────────── -->\n  {{doctor_signature}}\n\n  <!-- ── Pie ──────────────────────────────────────────────────────── -->\n  <div style=\"margin-top:2rem;padding-top:0.5rem;border-top:1px solid #d1d5db;text-align:center;\">\n    <p style=\"margin:0;font-size:0.7rem;color:#6b7280;\">\n      {{clinic_name}} · {{clinic_address}} · Tel. {{clinic_phone}}\n    </p>\n    <p style=\"margin:0.15rem 0 0;font-size:0.65rem;color:#9ca3af;\">\n      Esta receta es personal e intransferible. Consulte a su médico ante cualquier efecto adverso.\n    </p>\n  </div>\n\n</div>\n"
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/patient-prescriptions/upsert",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "RXT List — Webhook": {
+      "main": [
+        [
+          {
+            "node": "RXT List — Parse Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RXT List — Parse Query": {
+      "main": [
+        [
+          {
+            "node": "RXT List — Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RXT List — Query": {
+      "main": [
+        [
+          {
+            "node": "RXT List — Format Array",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RXT List — Format Array": {
+      "main": [
+        [
+          {
+            "node": "RXT List — Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RXT Upsert — Webhook": {
+      "main": [
+        [
+          {
+            "node": "RXT Upsert — Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RXT Upsert — Parse Input": {
+      "main": [
+        [
+          {
+            "node": "RXT Upsert — Save",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RXT Upsert — Save": {
+      "main": [
+        [
+          {
+            "node": "RXT Upsert — Fetch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RXT Upsert — Fetch": {
+      "main": [
+        [
+          {
+            "node": "RXT Upsert — Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RXT Delete — Webhook": {
+      "main": [
+        [
+          {
+            "node": "RXT Delete — Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RXT Delete — Parse Input": {
+      "main": [
+        [
+          {
+            "node": "RXT Delete — Delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RXT Delete — Delete": {
+      "main": [
+        [
+          {
+            "node": "RXT Delete — Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RXT Delete — Build Response": {
+      "main": [
+        [
+          {
+            "node": "RXT Delete — Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RX List — Webhook": {
+      "main": [
+        [
+          {
+            "node": "RX List — Parse Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RX List — Parse Query": {
+      "main": [
+        [
+          {
+            "node": "RX List — Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RX List — Query": {
+      "main": [
+        [
+          {
+            "node": "RX List — Format Array",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RX List — Format Array": {
+      "main": [
+        [
+          {
+            "node": "RX List — Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RX Upsert — Webhook": {
+      "main": [
+        [
+          {
+            "node": "RX Upsert — Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RX Upsert — Parse Input": {
+      "main": [
+        [
+          {
+            "node": "RX Upsert — Save",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RX Upsert — Save": {
+      "main": [
+        [
+          {
+            "node": "RX Upsert — Sync Anamnesis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RX Upsert — Sync Anamnesis": {
+      "main": [
+        [
+          {
+            "node": "RX Upsert — Fetch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RX Upsert — Fetch": {
+      "main": [
+        [
+          {
+            "node": "RX Upsert — Respond 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RX Delete — Webhook": {
+      "main": [
+        [
+          {
+            "node": "RX Delete — Parse Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RX Delete — Parse Input": {
+      "main": [
+        [
+          {
+            "node": "RX Delete — Delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RX Delete — Delete": {
+      "main": [
+        [
+          {
+            "node": "RX Delete — Build Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RX Delete — Build Response": {
+      "main": [
+        [
+          {
+            "node": "RX Delete — Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "68d4bf76-07b7-47eb-9838-e49640479f45",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "gcOD3BHAeB8hCnhF",
+  "tags": []
+}

@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { api } from '@/services/api';
 import { sortQuoteItems, toLocalISOString } from '@/lib/utils';
@@ -33,9 +34,13 @@ import { BillingWizardStepper, type WizardStep } from './wizard-stepper';
 import { StepPatientSelect } from './steps/step-patient-select';
 import { StepInvoiceSelect } from './steps/step-invoice-select';
 import { StepItemsEditor, type EditableItem } from './steps/step-items-editor';
+import { useDiscountSettings } from '@/hooks/useDiscountSettings';
+import { buildDiscountedDocument, type BuildDiscountedDocumentOptions } from '@/lib/discounts';
+import type { DiscountMode } from '@/lib/types';
 import { StepPayment, type PaymentResult, type CreatedPayment } from './steps/step-payment';
 import { StepConfirmation } from './steps/step-confirmation';
 import { StepQuoteItems, type QuoteBillingLine } from './steps/step-quote-items';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -78,7 +83,7 @@ async function loadQuoteById(quoteId: string, patientId: string | undefined): Pr
       doc_no: found.doc_no || found.quote_doc_no || '',
       user_id: String(found.user_id || patientId),
       total: Number(found.total || 0),
-      currency: found.currency || 'UYU',
+      currency: found.currency || getClinicCurrency(),
       status: found.status || 'confirmed',
     } as Quote;
   } catch {
@@ -122,8 +127,10 @@ async function createInvoiceFromOrder(
   const billingQuery = {
     quote_id: Number(quote.id),
     user_id: quote.user_id,
-    currency: quote.currency || 'UYU',
+    currency: quote.currency || getClinicCurrency(),
     invoice_date: toLocalISOString(new Date()),
+    // Same 30-day default as the direct invoice below (`createDirectInvoice`).
+    due_date: toLocalISOString(addDays(new Date(), 30)),
     notes: '',
     items: billingItems,
   };
@@ -160,7 +167,7 @@ async function fetchInvoiceById(invoiceId: string, userId: string): Promise<Invo
       user_name: found.user_name || '',
       userEmail: found.user_email || found.userEmail || '',
       total: Number(found.total || 0),
-      currency: found.currency || 'USD',
+      currency: found.currency || getClinicCurrency(),
       status: found.status || 'draft',
       payment_status: found.payment_state || found.payment_status || 'unpaid',
       paid_amount: Number(found.paid_amount || 0),
@@ -197,28 +204,36 @@ async function createDirectInvoice(
   items: EditableItem[],
   isSales: boolean,
   currency: string,
+  sedeId: string,
+  discountOptions: BuildDiscountedDocumentOptions,
 ): Promise<Invoice> {
   const endpoint = isSales ? API_ROUTES.SALES.INVOICES_UPSERT : API_ROUTES.PURCHASES.INVOICES_UPSERT;
   const now = new Date();
   const dueDate = new Date(now);
   dueDate.setDate(dueDate.getDate() + 30);
-  const total = items.reduce((s, i) => s + i.total, 0);
+  // Los importes finales y el reparto del descuento del total salen de aqui.
+  const { items: itemsToSubmit, document } = buildDiscountedDocument(
+    items.map((i) => ({
+      service_id: i.service_id,
+      quantity: i.quantity,
+      unit_price: i.unit_price,
+      discount_mode: i.discount_mode,
+      discount_value: i.discount_value,
+    })),
+    discountOptions,
+  );
   const payload = {
     user_id: patientId,
     type: 'invoice',
     currency,
-    total,
+    sede_id: Number(sedeId),
     is_sales: isSales,
     is_historical: false,
     created_at: toLocalISOString(now),
     due_date: toLocalISOString(dueDate),
     notes: '',
-    items: items.map((i) => ({
-      service_id: i.service_id,
-      quantity: i.quantity,
-      unit_price: i.unit_price,
-      total: i.total,
-    })),
+    items: itemsToSubmit,
+    ...document,
   };
   const response = await api.post(endpoint, payload);
   const raw = Array.isArray(response)
@@ -248,8 +263,9 @@ async function createDirectInvoice(
     quote_id: '',
     user_id: patientId,
     user_name: '',
-    total,
-    currency: currency as 'USD' | 'UYU',
+    // Neto ya calculado por buildDiscountedDocument, no la suma cruda de líneas.
+    total: document.total,
+    currency: currency,
     status: raw.status || 'draft',
     payment_status: raw.payment_status || 'unpaid',
     paid_amount: 0,
@@ -383,14 +399,19 @@ const STEPS_FREEFORM_WITH_PATIENT: WizardStep[] = [
 
 export function BillingWizardModal() {
   const { isOpen, context, onSuccess, close } = useBillingWizard();
+  const { activeSede } = useAuth();
   const isSales = context?.isSales ?? true;
 
   // Determine base flow type
   const startFromInvoice = !!(context?.invoiceId || context?.invoice);
 
   // Freeform state (no quoteId, no invoiceId — direct items editor)
+  const discounts = useDiscountSettings();
   const [editableItems, setEditableItems] = React.useState<EditableItem[]>([]);
-  const [freeformCurrency, setFreeformCurrency] = React.useState<string>('UYU');
+  /** Descuento sobre el total de la factura libre. Solo con ambito 'total'. */
+  const [freeformDiscount, setFreeformDiscount] = React.useState<{ mode: DiscountMode | null; value: number | null }>({ mode: null, value: null });
+  const [freeformCurrency, setFreeformCurrency] = React.useState<string>(getClinicCurrency);
+  const [freeformSedeId, setFreeformSedeId] = React.useState<string>('');
   // Patient selected in patient-selection step (freeform flow without context.patientId)
   const [selectedPatient, setSelectedPatient] = React.useState<User | null>(null);
 
@@ -482,7 +503,8 @@ export function BillingWizardModal() {
       setError(null);
       setTreatmentLoadError(null);
       setEditableItems([]);
-      setFreeformCurrency('UYU');
+      setFreeformCurrency(getClinicCurrency());
+      setFreeformSedeId('');
       setSelectedPatient(null);
       setPaymentSubStep(0);
       return;
@@ -539,7 +561,8 @@ export function BillingWizardModal() {
         })
         .finally(() => setIsLoadingTreatment(false));
     } else {
-      setFreeformCurrency(context.currency || 'UYU');
+      setFreeformCurrency(context.currency || getClinicCurrency());
+      setFreeformSedeId(activeSede?.id || '');
       if (context.preloadedItems && context.preloadedItems.length > 0) {
         // Caller already prepared items (e.g. AppointmentPanel) — use them directly
         setEditableItems(context.preloadedItems);
@@ -559,7 +582,7 @@ export function BillingWizardModal() {
         setEditableItems([]);
       }
     }
-  }, [isOpen, context, startFromInvoice, isSales]);
+  }, [isOpen, context, startFromInvoice, isSales, activeSede]);
 
   const handleClose = React.useCallback(() => {
     close();
@@ -687,6 +710,10 @@ export function BillingWizardModal() {
       setError('Agrega al menos un servicio con ID válido.');
       return;
     }
+    if (!freeformSedeId) {
+      setError('Selecciona la sede antes de continuar.');
+      return;
+    }
 
     setIsProcessing(true);
     setError(null);
@@ -697,6 +724,8 @@ export function BillingWizardModal() {
         editableItems,
         isSales,
         freeformCurrency,
+        freeformSedeId,
+        { enabled: discounts.enabled, scope: discounts.scope, documentDiscount: freeformDiscount },
       );
       setResolvedInvoice(invoice);
       linkInvoiceToContext(invoice.id);
@@ -720,13 +749,14 @@ export function BillingWizardModal() {
     } finally {
       setIsProcessing(false);
     }
-  }, [effectivePatientId, editableItems, freeformCurrency, isSales, steps.length, onSuccess, linkInvoiceToContext]);
+  }, [effectivePatientId, editableItems, freeformCurrency, freeformSedeId, isSales, steps.length, onSuccess, linkInvoiceToContext,
+      discounts.enabled, discounts.scope, freeformDiscount]);
 
   const handlePaymentSuccess = React.useCallback(
     async (result: PaymentResult) => {
       const primaryInvoice = pendingInvoicesForPayment[0] || resolvedInvoice;
       const targetInvoiceId = result.invoiceId || primaryInvoice?.id;
-      const targetCurrency = result.currency || primaryInvoice?.currency || 'USD';
+      const targetCurrency = result.currency || primaryInvoice?.currency || getClinicCurrency();
 
       const sessionIds = new Set(result.payments.map((p) => p.transactionId).filter(Boolean));
       let payments = result.payments.map((p) => ({ ...p, isNew: true }));
@@ -798,7 +828,7 @@ export function BillingWizardModal() {
     async (invoiceDocNo?: string) => {
       const targetInvoice = resolvedInvoice || pendingInvoicesForPayment[0] || null;
       const targetId = targetInvoice?.id;
-      const targetCurrency = targetInvoice?.currency || 'USD';
+      const targetCurrency = targetInvoice?.currency || getClinicCurrency();
 
       let payments: CreatedPayment[] = [];
       if (targetId) {
@@ -867,7 +897,11 @@ export function BillingWizardModal() {
             onItemsChange={setEditableItems}
             currency={freeformCurrency}
             onCurrencyChange={setFreeformCurrency}
+            sedeId={freeformSedeId}
+            onSedeChange={setFreeformSedeId}
             isSales={isSales}
+            documentDiscount={freeformDiscount}
+            onDocumentDiscountChange={setFreeformDiscount}
           />
         );
       }
@@ -1087,7 +1121,7 @@ export function BillingWizardModal() {
                 <button
                   type="button"
                   onClick={() => handleItemsEditorNext('invoice-only')}
-                  disabled={isProcessing || isLoadingTreatment || editableItems.length === 0 || !effectivePatientId}
+                  disabled={isProcessing || isLoadingTreatment || editableItems.length === 0 || !effectivePatientId || !freeformSedeId}
                   className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isProcessing && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -1096,7 +1130,7 @@ export function BillingWizardModal() {
                 <button
                   type="button"
                   onClick={() => handleItemsEditorNext('invoice-and-pay')}
-                  disabled={isProcessing || isLoadingTreatment || editableItems.length === 0 || !effectivePatientId}
+                  disabled={isProcessing || isLoadingTreatment || editableItems.length === 0 || !effectivePatientId || !freeformSedeId}
                   className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isProcessing && <Loader2 className="h-4 w-4 animate-spin" />}

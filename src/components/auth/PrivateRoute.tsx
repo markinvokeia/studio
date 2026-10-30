@@ -3,7 +3,17 @@
 import { Header } from '@/components/header';
 import { LicenseExpirationBanner, LicenseExpiredBanner } from '@/components/license/LicenseExpirationBanner';
 import { LicenseExpiredScreen } from '@/components/license/LicenseExpiredScreen';
+import { PatientPortalLayout } from '@/components/patient-portal/patient-portal-layout';
+import { PatientAppointmentsHistorySheet } from '@/components/appointments/PatientAppointmentsHistorySheet';
+import { BillingWizardModal } from '@/components/billing-wizard';
+import { PatientHistorySheet } from '@/components/clinic-history/PatientHistorySheet';
+import { PatientLedgerSheet } from '@/components/financial/PatientLedgerSheet';
+import { PatientDocumentsSheet } from '@/components/patients/PatientDocumentsSheet';
+import { PatientQuickViewHost } from '@/components/patients/PatientQuickViewHost';
+import { PrintDocumentContainer } from '@/components/print-templates';
+import { SedeSelectionModal } from '@/components/sede-selection-modal';
 import { useAuth } from '@/context/AuthContext';
+import { usePatientPortal } from '@/hooks/usePatientPortal';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn } from '@/lib/utils';
 import { navItems, type NavItem } from '@/config/nav';
@@ -20,12 +30,24 @@ function getFirstAccessibleHref(
   hasAnyPermission: (codes: string[]) => boolean,
 ): string | null {
   for (const item of items) {
-    if (!item.href || item.isSeparator) continue;
+    if (item.isSeparator) continue;
     const ok =
       (!item.requiredPermission || hasPermission(item.requiredPermission)) &&
       (!item.requiredPermissions || item.requiredPermissions.every(p => hasPermission(p))) &&
       (!item.requiredAnyPermission || hasAnyPermission(item.requiredAnyPermission));
-    if (ok) return item.href;
+    if (!ok) continue;
+
+    // A group item's own permission check (e.g. "any Sales permission") is
+    // looser than each child's specific one, so its `href` (a fixed default
+    // child) isn't necessarily reachable. Drill into the already-narrower
+    // children instead of trusting the parent's href.
+    if (item.items && item.items.length > 0) {
+      const childHref = getFirstAccessibleHref(item.items, hasPermission, hasAnyPermission);
+      if (childHref) return childHref;
+      continue;
+    }
+
+    if (item.href) return item.href;
   }
   return null;
 }
@@ -47,18 +69,35 @@ export function PrivateRoute({
 }: PrivateRouteProps) {
   const { user, isLoading } = useAuth();
   const { hasPermission, hasAllPermissions, hasAnyPermission } = usePermissions();
+  const { hasPatientRole, isPatientOnly } = usePatientPortal();
   const pathname = usePathname();
   const router = useRouter();
   const locale = useLocale();
 
-  const isPublicPage = pathname === `/${locale}/login` || pathname.startsWith(`/${locale}/reset-password`) || pathname.startsWith(`/${locale}/set-first-password`);
+  const isPublicPage = pathname === `/${locale}/login` || pathname === `/${locale}/patient-login` || pathname.startsWith(`/${locale}/reset-password`) || pathname.startsWith(`/${locale}/set-first-password`);
   const isTVScreenPage = pathname === `/${locale}/tv-display/screen`;
+  const isPatientPortalPage = pathname.startsWith(`/${locale}/my-profile`);
 
   React.useEffect(() => {
     if (!isLoading) {
       if (!user && !isPublicPage) {
-        router.replace(`/${locale}/login`);
+        // Un paciente que pierde la sesión vuelve a SU login, no al del staff.
+        router.replace(`/${locale}/${isPatientPortalPage ? 'patient-login' : 'login'}`);
       } else if (user && isPublicPage && !pathname.startsWith(`/${locale}/reset-password`) && !pathname.startsWith(`/${locale}/set-first-password`)) {
+        // Quien se autenticó por la landing de pacientes va al portal, aunque
+        // además sea staff: es la puerta por la que decidió entrar.
+        //
+        // Sin este `||` había una carrera: el wizard navega a /my-profile y este
+        // efecto, disparado por el mismo cambio de `user`, mandaba a `/`. El
+        // ganador era impredecible y por eso el paciente caía en la raíz.
+        const cameFromPatientLogin = pathname === `/${locale}/patient-login`;
+        router.replace(cameFromPatientLogin || isPatientOnly ? `/${locale}/my-profile` : `/${locale}`);
+      } else if (user && isPatientOnly && !isPatientPortalPage) {
+        // Confinamiento duro, sólo para quien no tiene ningún rol de staff: no
+        // accede a ninguna página del dashboard aunque escriba la URL a mano.
+        router.replace(`/${locale}/my-profile`);
+      } else if (user && !hasPatientRole && isPatientPortalPage) {
+        // Sin rol de paciente no hay perfil que mostrar: vuelve al dashboard.
         router.replace(`/${locale}`);
       } else if (user && !isPublicPage) {
         const effectivePath = pathname.startsWith(`/${locale}`)
@@ -72,7 +111,7 @@ export function PrivateRoute({
         }
       }
     }
-  }, [user, isLoading, isPublicPage, pathname, router, locale, hasPermission, hasAnyPermission]);
+  }, [user, isLoading, isPublicPage, hasPatientRole, isPatientOnly, isPatientPortalPage, pathname, router, locale, hasPermission, hasAnyPermission]);
 
   if (isLoading && !isPublicPage) {
     return (
@@ -98,6 +137,17 @@ export function PrivateRoute({
     // TV screen page renders without nav/sidebar layout
     if (isTVScreenPage) {
       return <>{children}</>;
+    }
+
+    // Evita el flash de UI mientras corre alguno de los redirects de arriba:
+    // el paciente puro fuera del portal, o alguien sin rol de paciente dentro.
+    if ((isPatientOnly && !isPatientPortalPage) || (!hasPatientRole && isPatientPortalPage)) {
+      return null;
+    }
+
+    // Portal del paciente: shell propio (sin sidebar ni header) y modo solo lectura.
+    if (isPatientPortalPage) {
+      return <PatientPortalLayout>{children}</PatientPortalLayout>;
     }
 
     // Prevent flash: if on root and user has no dashboard access, wait for the redirect
@@ -157,11 +207,26 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const effectivePathname = getEffectivePathname(pathname, locale);
 
   return (
-    <div className="flex h-[100dvh] print:h-auto print:block bg-background overflow-hidden print:overflow-visible text-foreground">
+    <>
+    {/* Overlays/sheets del staff, disparados por stores globales desde
+        cualquier punto del dashboard. Viven acá — y no en el layout raíz —
+        para que nunca se monten en la landing pública ni en el portal del
+        paciente: ninguno de los dos los usa, y montarlos ahí disparaba
+        llamadas 401 a endpoints protegidos (/clinic, /print-templates) antes
+        de que hubiera token. */}
+    <BillingWizardModal />
+    <PrintDocumentContainer />
+    <PatientLedgerSheet />
+    <PatientQuickViewHost />
+    <PatientHistorySheet />
+    <PatientAppointmentsHistorySheet />
+    <PatientDocumentsSheet />
+    <div className="flex h-[100dvh] print:h-auto print:block bg-[var(--page-tint,hsl(var(--background)))] overflow-hidden print:overflow-visible text-foreground">
+      <SedeSelectionModal />
       <div className="print:hidden">
         <Sidebar />
       </div>
-      <div className={cn("widget-content-area flex flex-col flex-1 transition-all duration-300 ml-0 sm:ml-20 print:ml-0 print:block min-w-0 h-full print:h-auto overflow-hidden print:overflow-visible")}>
+      <div className={cn("widget-content-area flex flex-col flex-1 transition-all duration-300 ml-0 sm:ml-20 print:ml-0 print:block min-w-0 h-full print:h-auto overflow-hidden print:overflow-visible pt-12 sm:pt-4 lg:pt-6 print:pt-0")}>
         <div className="print:hidden">
           <Header />
         </div>
@@ -169,8 +234,8 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         {isExpiringSoon && !isExpired && (
           <LicenseExpirationBanner daysLeft={daysLeft} />
         )}
-        <main className="flex-1 flex flex-col min-h-0 bg-background px-0 sm:px-4 lg:px-6 pb-0 sm:pb-6 lg:pb-6 pt-0 overflow-hidden print:block print:h-auto print:overflow-visible print:px-0 relative">
-          <div className="flex-1 flex flex-col min-h-0 pt-12 sm:pt-4 lg:pt-6 print:pt-0 print:block print:h-auto overflow-hidden print:overflow-visible relative">
+        <main className="flex-1 flex flex-col min-h-0 bg-[var(--page-tint,hsl(var(--background)))] px-0 sm:px-4 lg:px-6 pb-0 sm:pb-6 lg:pb-6 pt-0 overflow-hidden print:block print:h-auto print:overflow-visible print:px-0 relative">
+          <div className="flex-1 flex flex-col min-h-0 print:block print:h-auto overflow-hidden print:overflow-visible relative">
             {children}
             {isExpired && !isInvokeUser && <LicenseExpiredScreen />}
           </div>
@@ -190,5 +255,6 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         </footer>
       </div>
     </div>
+    </>
   );
 }

@@ -25,8 +25,10 @@ import { cn, formatDate, sortQuoteItems, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { calculateQuoteFinancialSummary, fetchQuoteInvoicesForFinancials } from '@/services/quote-financials';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { addDays, parseISO } from 'date-fns';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 type ServiceStepOption = {
   id: string;
@@ -85,7 +87,7 @@ async function fetchOrderForQuoteBilling(quoteId: string, isSales: boolean): Pro
       status: firstOrder.status || 'draft',
       createdAt: firstOrder.created_at || firstOrder.createdAt || '',
       updatedAt: firstOrder.updated_at || firstOrder.updatedAt || '',
-      currency: firstOrder.currency || 'UYU',
+      currency: firstOrder.currency || getClinicCurrency(),
     };
   } catch {
     return null;
@@ -112,6 +114,8 @@ interface QuoteBillingDialogProps {
   orderId?: string | null;
   isSales?: boolean;
   onSuccess?: () => void | Promise<void>;
+  /** When set, restricts the dialog to billing only this quote item instead of every pending item. */
+  onlyQuoteItemId?: string;
 }
 
 function roundCurrency(value: number): number {
@@ -178,12 +182,14 @@ export function QuoteBillingDialog({
   orderId,
   isSales = true,
   onSuccess,
+  onlyQuoteItemId,
 }: QuoteBillingDialogProps) {
   const t = useTranslations('QuoteBillingDialog');
   const tQuotes = useTranslations('QuotesPage');
   const { toast } = useToast();
 
   const schema = React.useMemo(() => getSchema(t), [t]);
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<QuoteBillingFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -252,20 +258,22 @@ export function QuoteBillingDialog({
         }
       });
 
-      const options = sourceQuoteItems.map((item) => {
-        const billedByItem = billedAmountByQuoteItem.get(String(item.id));
-        const billedFallback = billedByItem == null ? billedAmountByService.get(String(item.service_id)) || 0 : billedByItem;
-        const pendingAmount = roundCurrency(Math.max(Number(item.total || 0) - billedFallback, 0));
+      const options = sourceQuoteItems
+        .filter((item) => !onlyQuoteItemId || String(item.id) === onlyQuoteItemId)
+        .map((item) => {
+          const billedByItem = billedAmountByQuoteItem.get(String(item.id));
+          const billedFallback = billedByItem == null ? billedAmountByService.get(String(item.service_id)) || 0 : billedByItem;
+          const pendingAmount = roundCurrency(Math.max(Number(item.total || 0) - billedFallback, 0));
 
-        return {
-          quote_item_id: String(item.id),
-          service_id: String(item.service_id),
-          service_name: item.service_name,
-          quote_item_total: Number(item.total || 0),
-          billed_amount: roundCurrency(billedFallback),
-          pending_amount: pendingAmount,
-        };
-      });
+          return {
+            quote_item_id: String(item.id),
+            service_id: String(item.service_id),
+            service_name: item.service_name,
+            quote_item_total: Number(item.total || 0),
+            billed_amount: roundCurrency(billedFallback),
+            pending_amount: pendingAmount,
+          };
+        });
 
       const summary = calculateQuoteFinancialSummary(Number(quote.total || 0), invoices);
       const defaultItems = options
@@ -301,7 +309,7 @@ export function QuoteBillingDialog({
     return () => {
       isCurrent = false;
     };
-  }, [open, orderId, quote, quoteItems, isSales, form, replace]);
+  }, [open, orderId, quote, quoteItems, isSales, form, replace, onlyQuoteItemId]);
 
   React.useEffect(() => {
     selectedItems.forEach((item, index) => {
@@ -412,7 +420,8 @@ export function QuoteBillingDialog({
       const billingQuery = {
         quote_id: Number(quote.id),
         user_id: quote.user_id,
-        currency: quote.currency || 'UYU',
+        doctor_id: quote.doctor_id,
+        currency: quote.currency || getClinicCurrency(),
         invoice_date: toLocalISOString(new Date()),
         due_date: values.due_date ? toLocalISOString(values.due_date) : undefined,
         notes: values.notes || '',
@@ -462,7 +471,7 @@ export function QuoteBillingDialog({
   };
 
   const fmtCurrency = React.useCallback(
-    (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || 'USD' }).format(amount),
+    (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || getClinicCurrency() }).format(amount),
     [quote?.currency],
   );
 
@@ -470,7 +479,7 @@ export function QuoteBillingDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent maxWidth="4xl" confirmOnClose isDirty={form.formState.isDirty}>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col flex-1 overflow-hidden">
+          <form onSubmit={form.handleSubmit(handleSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
             <DialogHeader>
               <div className="flex items-start gap-3">
                 <div className="header-icon-circle mt-0.5">
@@ -767,7 +776,7 @@ export function QuoteBillingDialog({
                           <div>
                             <p className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground/70">total</p>
                             <p className="text-2xl font-semibold leading-none text-foreground">
-                              {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || 'USD' }).format(invoiceTotal)}
+                              {new Intl.NumberFormat('en-US', { style: 'currency', currency: quote?.currency || getClinicCurrency() }).format(invoiceTotal)}
                             </p>
                           </div>
                         </div>

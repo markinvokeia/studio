@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BellRing, CheckCircle2 } from 'lucide-react';
+import { BellRing, CheckCircle2, FileText, Lock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
@@ -9,20 +9,27 @@ import type { Locale } from 'date-fns';
 import { addDays, format, getDaysInMonth, isSameDay, parseISO, startOfWeek } from 'date-fns';
 
 import { STATUS_ICONS } from '@/components/appointments/status-icons';
-import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus } from '@/lib/types';
 
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/components/ui/context-menu';
+
+import { GOOGLE_IMPORT_BADGE_COLOR } from './calendar-constants';
 import type { CalendarEvent, CalendarSlotClickHandler } from './calendar-types';
-import { formatEventTime } from './calendar-utils';
+import { formatEventTime, getContrastingIconColor } from './calendar-utils';
 import { type Gap, gapKey } from './calendar-gaps';
-import { getReminderCardStyle, getReminderPriorityColor, isReminderDone } from './reminder-visuals';
+import { getReminderCardStyle, getReminderPriorityColor, isPersonalReminder, isReminderDone } from './reminder-visuals';
 
 interface CalendarMonthViewMobileProps {
   currentDate: Date;
   events: CalendarEvent[];
   dateLocale: Locale;
   collapsed?: boolean;
-  onEventClick: (data: any) => void;
+  onEventClick: (data: any, anchorRect?: DOMRect) => void;
+  /** Menú de la fila de agenda. En esta vista no hay rejilla sobre la cual
+   *  arrastrar, así que es por acá que se mueve una cita de día ("Mover a…"). */
+  onEventContextMenu?: (data: any) => React.ReactNode;
+  onEventContextMenuOpen?: (data: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
   gaps?: Gap[];
   selectedGapKey?: string;
@@ -36,6 +43,8 @@ export function CalendarMonthViewMobile({
   dateLocale,
   collapsed = false,
   onEventClick,
+  onEventContextMenu,
+  onEventContextMenuOpen,
   onSlotClick,
   gaps,
   selectedGapKey,
@@ -43,6 +52,8 @@ export function CalendarMonthViewMobile({
   blockedFullDays,
 }: CalendarMonthViewMobileProps) {
   const t = useTranslations('Calendar');
+  const tAppointments = useTranslations('AppointmentsPage');
+  const { colorOf } = useAppointmentStatusDisplay();
   // Initialize stable for SSR; set real "today" after mount.
   const [selectedDay, setSelectedDay] = React.useState<Date>(() => new Date(2000, 0, 1));
   React.useEffect(() => { setSelectedDay(new Date()); }, []);
@@ -222,26 +233,33 @@ export function CalendarMonthViewMobile({
               const startTime = formatEventTime(event.start, dateLocale);
               const rawStatus = event.data?.status as string | undefined;
               const isReminder = event.data?.kind === 'reminder';
+              const isNote = isReminder && event.data?.type === 'note';
               const reminderStatus = event.data?.status as CalendarReminderStatus | undefined;
               const reminderPriority = event.data?.priority as CalendarReminderPriority | undefined;
               const reminderIsDone = isReminderDone(reminderStatus);
-              const ReminderIcon = reminderIsDone ? CheckCircle2 : BellRing;
+              const reminderIsPersonal = isReminder && isPersonalReminder(event.data);
+              const reminderIsRecurring = isReminder && Boolean(event.data?.series_id);
+              const ReminderIcon = isNote ? FileText : reminderIsDone ? CheckCircle2 : reminderIsPersonal ? Lock : BellRing;
               const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
               const StatusIcon = status ? STATUS_ICONS[status] : null;
-              const statusColor = status ? STATUS_ACCENT_COLOR[status] : undefined;
+              const statusColor = status ? colorOf(status) : undefined;
               const reminderColor = getReminderPriorityColor(reminderPriority);
               const reminderCardStyle = isReminder ? getReminderCardStyle(event.color, reminderIsDone) : {};
               return (
-                <div
+                <ContextMenu
                   key={event.id}
+                  onOpenChange={(o) => { if (o) onEventContextMenuOpen?.(event.data); }}
+                >
+                  <ContextMenuTrigger asChild disabled={!onEventContextMenu}>
+                <div
                   data-testid="calendar-month-agenda-event"
                   className={cn(
                     'flex items-start gap-3 rounded-lg border p-3 cursor-pointer active:bg-muted/50 transition-colors',
                     isReminder ? 'border-[var(--reminder-border)] bg-[var(--reminder-bg)]' : 'border-border/50',
-                    reminderIsDone && 'border-slate-200 bg-slate-50/80 opacity-80',
+                    reminderIsDone && 'border-slate-200 bg-slate-50',
                   )}
                   style={reminderCardStyle}
-                  onClick={() => onEventClick(event.data)}
+                  onClick={(e) => onEventClick(event.data, e.currentTarget.getBoundingClientRect())}
                 >
                   {/* Color bar */}
                   <div
@@ -251,7 +269,9 @@ export function CalendarMonthViewMobile({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className={cn('font-semibold text-sm truncate', reminderIsDone && 'text-muted-foreground line-through')}>
-                        {event.title}
+                        {/* El glifo se toma del dato y no de `label`: acá el horario se
+                            renderiza en su propio span, y `label` ya lo incluye. */}
+                        {reminderIsRecurring ? `↻ ${event.title}` : event.title}
                       </span>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className="text-xs text-muted-foreground whitespace-nowrap">{startTime}</span>
@@ -262,17 +282,29 @@ export function CalendarMonthViewMobile({
                             className="inline-flex items-center justify-center rounded-full p-1 text-white"
                             style={{ backgroundColor: reminderColor }}
                           >
-                            <ReminderIcon className="h-3 w-3" strokeWidth={2} />
+                            <ReminderIcon className="h-3.5 w-3.5" strokeWidth={2} />
                           </span>
-                        ) : StatusIcon && statusColor && (
-                          <span
-                            aria-hidden
-                            title={status}
-                            className="inline-flex items-center justify-center rounded-full p-1 text-white"
-                            style={{ backgroundColor: statusColor }}
-                          >
-                            <StatusIcon className="h-3 w-3" strokeWidth={2} />
-                          </span>
+                        ) : (
+                          <>
+                            {StatusIcon && statusColor && (
+                              <span
+                                aria-hidden
+                                title={status}
+                                className="inline-flex items-center justify-center rounded-full p-1"
+                                style={{ backgroundColor: statusColor, color: getContrastingIconColor(statusColor) }}
+                              >
+                                <StatusIcon className="h-3.5 w-3.5" strokeWidth={2} />
+                              </span>
+                            )}
+                            {event.data?.imported_from_google === true && (
+                              <span
+                                aria-hidden
+                                title={tAppointments('importedFromGoogle')}
+                                className="h-1.5 w-1.5 shrink-0 rounded-full ring-1 ring-white/65"
+                                style={{ backgroundColor: GOOGLE_IMPORT_BADGE_COLOR }}
+                              />
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
@@ -288,6 +320,11 @@ export function CalendarMonthViewMobile({
                     )}
                   </div>
                 </div>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="max-h-[70vh] w-64 overflow-y-auto">
+                    {onEventContextMenu?.(event.data)}
+                  </ContextMenuContent>
+                </ContextMenu>
               );
             })}
           </div>

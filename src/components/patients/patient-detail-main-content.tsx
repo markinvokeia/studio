@@ -7,11 +7,11 @@ import { useTranslations } from 'next-intl'
 import { VerticalTabStrip } from '@/components/ui/vertical-tab-strip'
 import type { VerticalTab } from '@/components/ui/vertical-tab-strip'
 import { PatientSubTabNav } from '@/components/patients/patient-subtab-nav'
+import { cn } from '@/lib/utils'
 
 export type PatientMacroTab = 'info' | 'clinical' | 'financial'
-export type InfoSubTab = 'details' | 'notes'
-export type ClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'documents'
-export type FinancialSubTab = 'quotes' | 'invoices' | 'payments'
+export type InfoSubTab = 'details' | 'notes' | 'preferences' | 'dependents'
+export type ClinicalSubTab = 'anamnesis' | 'clinical-history' | 'treatment-plans' | 'medical-instructions' | 'documents'
 
 interface PatientDetailMainContentProps {
   activeTab: PatientMacroTab
@@ -20,20 +20,25 @@ interface PatientDetailMainContentProps {
   onInfoSubTabChange: (tab: InfoSubTab) => void
   activeClinicalSubTab: ClinicalSubTab
   onClinicalSubTabChange: (tab: ClinicalSubTab) => void
-  activeFinancialSubTab: FinancialSubTab
-  onFinancialSubTabChange: (tab: FinancialSubTab) => void
   showDocuments: boolean
   showNotes: boolean
+  showPreferences: boolean
+  /** Label of the dependents sub-tab; omit to hide it. "Dependientes" for a guardian, "Responsable" for a dependent. */
+  dependentsLabel?: string
+  /** Macro-tab visibility, permission-driven by the caller. */
+  showInfo: boolean
+  showClinical: boolean
+  showFinancial: boolean
   infoContent: React.ReactNode
   notesContent: React.ReactNode
+  preferencesContent: React.ReactNode
+  dependentsContent?: React.ReactNode
   anamnesisContent: React.ReactNode
   clinicalHistoryContent: React.ReactNode
   treatmentPlansContent: React.ReactNode
+  medicalInstructionsContent: React.ReactNode
   documentsContent?: React.ReactNode
-  financialSummaryContent: React.ReactNode
-  quotesContent: React.ReactNode
-  invoicesContent: React.ReactNode
-  paymentsContent: React.ReactNode
+  ledgerContent: React.ReactNode
 }
 
 export function PatientDetailMainContent({
@@ -43,46 +48,46 @@ export function PatientDetailMainContent({
   onInfoSubTabChange,
   activeClinicalSubTab,
   onClinicalSubTabChange,
-  activeFinancialSubTab,
-  onFinancialSubTabChange,
   showDocuments,
   showNotes,
+  showPreferences,
+  dependentsLabel,
+  showInfo,
+  showClinical,
+  showFinancial,
   infoContent,
   notesContent,
+  preferencesContent,
+  dependentsContent,
   anamnesisContent,
   clinicalHistoryContent,
   treatmentPlansContent,
+  medicalInstructionsContent,
   documentsContent,
-  financialSummaryContent,
-  quotesContent,
-  invoicesContent,
-  paymentsContent,
+  ledgerContent,
 }: PatientDetailMainContentProps) {
   const t = useTranslations('UsersPage')
 
   const macroTabs = React.useMemo<VerticalTab[]>(() => [
-    { id: 'info', icon: Users, label: t('tabs.info') },
-    { id: 'clinical', icon: Stethoscope, label: t('tabs.clinical'), shortLabel: 'Clínica' },
-    { id: 'financial', icon: CreditCard, label: t('tabs.financial'), shortLabel: 'Finanzas' },
-  ], [t])
+    ...(showInfo ? [{ id: 'info', icon: Users, label: t('tabs.info') }] : []),
+    ...(showClinical ? [{ id: 'clinical', icon: Stethoscope, label: t('tabs.clinical'), shortLabel: 'Clínica' }] : []),
+    ...(showFinancial ? [{ id: 'financial', icon: CreditCard, label: t('tabs.financial'), shortLabel: 'Finanzas' }] : []),
+  ], [showInfo, showClinical, showFinancial, t])
 
   const infoTabs = React.useMemo(() => [
     { id: 'details', label: t('tabs.details') },
     ...(showNotes ? [{ id: 'notes', label: t('tabs.notes') }] : []),
-  ], [showNotes, t])
+    ...(dependentsLabel ? [{ id: 'dependents', label: dependentsLabel }] : []),
+    ...(showPreferences ? [{ id: 'preferences', label: t('tabs.preferences') }] : []),
+  ], [showNotes, showPreferences, dependentsLabel, t])
 
   const clinicalTabs = React.useMemo(() => [
     { id: 'anamnesis', label: t('tabs.anamnesis') },
     { id: 'clinical-history', label: t('tabs.history') },
     { id: 'treatment-plans', label: t('tabs.treatmentPlans'), desktopLabel: 'Planes de Tratamiento' },
+    { id: 'medical-instructions', label: t('tabs.medicalInstructions') },
     ...(showDocuments ? [{ id: 'documents', label: t('tabs.documents') }] : []),
   ], [showDocuments, t])
-
-  const financialTabs = React.useMemo(() => [
-    { id: 'quotes', label: t('tabs.quotes') },
-    { id: 'invoices', label: t('tabs.invoices') },
-    { id: 'payments', label: t('tabs.payments') },
-  ], [t])
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -91,20 +96,32 @@ export function PatientDetailMainContent({
         activeTabId={activeTab}
         onTabClick={(tab) => onActiveTabChange(tab.id as PatientMacroTab)}
       />
-      <div className="flex-1 overflow-y-auto px-0 pt-4 pb-8 sm:px-3 sm:py-3">
-        {activeTab === 'info' && (
-          <>
+      <div
+        className={cn(
+          'flex-1 overflow-y-auto px-0 pt-4 pb-8 sm:px-3 sm:py-3',
+          // "details" hosts a full-height form whose save footer should reach
+          // the real bottom of the panel — drop the bottom padding there.
+          activeTab === 'info' && activeInfoSubTab === 'details' && 'pb-0 sm:pb-0',
+        )}
+      >
+        {activeTab === 'info' && showInfo && (
+          // "details" hosts a full-height form with its own scroll + fixed save
+          // footer, so it needs the full container height instead of flowing in
+          // the outer scroll.
+          <div className={activeInfoSubTab === 'details' ? 'flex h-full min-h-0 flex-col' : undefined}>
             <PatientSubTabNav
               tabs={infoTabs}
               activeTab={activeInfoSubTab}
               onChange={(id) => onInfoSubTabChange(id as InfoSubTab)}
             />
-            {activeInfoSubTab === 'details' && infoContent}
+            {activeInfoSubTab === 'details' && <div className="min-h-0 flex-1">{infoContent}</div>}
             {activeInfoSubTab === 'notes' && notesContent}
-          </>
+            {activeInfoSubTab === 'preferences' && preferencesContent}
+            {activeInfoSubTab === 'dependents' && dependentsLabel && dependentsContent}
+          </div>
         )}
 
-        {activeTab === 'clinical' && (
+        {activeTab === 'clinical' && showClinical && (
           <>
             <PatientSubTabNav
               tabs={clinicalTabs}
@@ -114,23 +131,12 @@ export function PatientDetailMainContent({
             {activeClinicalSubTab === 'anamnesis' && anamnesisContent}
             {activeClinicalSubTab === 'clinical-history' && clinicalHistoryContent}
             {activeClinicalSubTab === 'treatment-plans' && treatmentPlansContent}
+            {activeClinicalSubTab === 'medical-instructions' && medicalInstructionsContent}
             {activeClinicalSubTab === 'documents' && documentsContent}
           </>
         )}
 
-        {activeTab === 'financial' && (
-          <div className="space-y-4">
-            {financialSummaryContent}
-            <PatientSubTabNav
-              tabs={financialTabs}
-              activeTab={activeFinancialSubTab}
-              onChange={(id) => onFinancialSubTabChange(id as FinancialSubTab)}
-            />
-            {activeFinancialSubTab === 'quotes' && quotesContent}
-            {activeFinancialSubTab === 'invoices' && invoicesContent}
-            {activeFinancialSubTab === 'payments' && paymentsContent}
-          </div>
-        )}
+        {activeTab === 'financial' && showFinancial && ledgerContent}
       </div>
     </div>
   )

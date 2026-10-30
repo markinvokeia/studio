@@ -33,43 +33,52 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
+import { useAsyncAction } from '@/hooks/use-async-action';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { normalizeApiResponse } from '@/lib/api-utils';
+import { getErrorMessage } from '@/lib/error-utils';
 import { MiscellaneousCategory, MiscellaneousTransaction, PaymentMethod, User } from '@/lib/types';
 import { cn, formatDate } from '@/lib/utils';
-import { api } from '@/services/api';
+import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, VisibilityState } from '@tanstack/react-table';
 import { format } from 'date-fns';
-import { AlertTriangle, Check, ChevronsUpDown, Coins, MoreHorizontal } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, Coins, Loader2, MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { createDefaultPagination } from '@/lib/pagination';
 
 const transactionFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
-    category_id: z.string().min(1, t('validation.categoryRequired')),
-    transaction_date: z.string().min(1, t('validation.dateRequired')),
+    // `required_error` cubre el campo `undefined` (el reset de alta no trae el
+    // método de pago): sin él zod responde el "Required" en inglés.
+    category_id: z.string({ required_error: t('validation.categoryRequired') }).min(1, t('validation.categoryRequired')),
+    transaction_date: z.string({ required_error: t('validation.dateRequired') }).min(1, t('validation.dateRequired')),
     amount: z.coerce.number().positive(t('validation.amountPositive')),
-    description: z.string().min(1, t('validation.descriptionRequired')),
+    description: z.string({ required_error: t('validation.descriptionRequired') }).min(1, t('validation.descriptionRequired')),
     beneficiary_name: z.string().optional(),
-    currency: z.enum(['UYU', 'USD', 'EUR']).default('UYU'),
+    currency: currencySchema,
     exchange_rate: z.coerce.number().optional().default(1),
     external_reference: z.string().optional(),
     tags: z.string().optional(),
-    payment_method_id: z.string().min(1, t('validation.paymentMethodRequired')),
+    payment_method_id: z.string({ required_error: t('validation.paymentMethodRequired') }).min(1, t('validation.paymentMethodRequired')),
 });
 
 type TransactionFormValues = z.infer<ReturnType<typeof transactionFormSchema>>;
 
 const completeTransactionSchema = (t: (key: string) => string) => z.object({
-    cash_session_id: z.string().min(1, t('validation.sessionRequired')),
-    payment_method_id: z.string().min(1, t('validation.paymentMethodRequired')),
+    cash_session_id: z.string({ required_error: t('validation.sessionRequired') }).min(1, t('validation.sessionRequired')),
+    payment_method_id: z.string({ required_error: t('validation.paymentMethodRequired') }).min(1, t('validation.paymentMethodRequired')),
 });
 
 type CompleteTransactionFormValues = z.infer<ReturnType<typeof completeTransactionSchema>>;
@@ -199,7 +208,9 @@ async function upsertMiscellaneousTransaction(transactionData: TransactionFormVa
         category_id: parseInt(transactionData.category_id, 10),
     };
 
-    const response = await api.post(API_ROUTES.CASHIER.MISCELLANEOUS_TRANSACTIONS_UPSERT, payload);
+    const response = await api.post(API_ROUTES.CASHIER.MISCELLANEOUS_TRANSACTIONS_UPSERT, payload, undefined, undefined, {
+        timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+    });
     if (Array.isArray(response) && response[0]?.code >= 400) {
         const message = response[0]?.message || 'Failed to save transaction';
         throw new Error(message);
@@ -211,7 +222,9 @@ async function upsertMiscellaneousTransaction(transactionData: TransactionFormVa
 }
 
 async function deleteMiscellaneousTransaction(id: string) {
-    const response = await api.delete(API_ROUTES.CASHIER.MISCELLANEOUS_TRANSACTIONS_DELETE, { id });
+    const response = await api.delete(API_ROUTES.CASHIER.MISCELLANEOUS_TRANSACTIONS_DELETE, { id }, undefined, undefined, {
+        timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+    });
     if (Array.isArray(response) && response[0]?.code >= 400) {
         const message = response[0]?.message || 'Failed to delete transaction';
         throw new Error(message);
@@ -225,6 +238,7 @@ async function deleteMiscellaneousTransaction(id: string) {
 
 export default function MiscellaneousTransactionsPage() {
     const t = useTranslations('MiscellaneousTransactionsPage');
+    const tCommon = useTranslations('Common');
     // const tValidation = useTranslations('MiscellaneousTransactionsPage.validation'); // No longer needed as separate namespace if accessing via full path or if t covers it
     const { toast } = useToast();
     const isNarrow = useViewportNarrow();
@@ -242,7 +256,7 @@ export default function MiscellaneousTransactionsPage() {
     const [deletingTransaction, setDeletingTransaction] = React.useState<MiscellaneousTransaction | null>(null);
 
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [visibility, setVisibility] = React.useState<VisibilityState>({ id: false });
     const [quickFilter, setQuickFilter] = React.useState('pending');
@@ -258,6 +272,7 @@ export default function MiscellaneousTransactionsPage() {
     const [isCategoryOpen, setIsCategoryOpen] = React.useState(false);
 
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<TransactionFormValues>({
         resolver: zodResolver(transactionFormSchema(t)),
     });
@@ -293,14 +308,14 @@ export default function MiscellaneousTransactionsPage() {
                     beneficiary_name: editingTransaction.beneficiary_name || '',
                     currency: editingTransaction.currency as any,
                     exchange_rate: editingTransaction.exchange_rate,
-                    external_reference: editingTransaction.external_reference,
+                    external_reference: cleanValue(editingTransaction.external_reference),
                     tags: Array.isArray(editingTransaction.tags) ? editingTransaction.tags.join(', ') : '',
                     payment_method_id: editingTransaction.payment_method_id?.toString(),
                 });
             } else {
                 form.reset({
                     transaction_date: format(new Date(), 'yyyy-MM-dd'),
-                    currency: clinicInfo?.currency ?? 'UYU',
+                    currency: clinicInfo?.currency ?? getClinicCurrency(),
                     exchange_rate: 1,
                     description: '',
                     beneficiary_name: '',
@@ -319,33 +334,58 @@ export default function MiscellaneousTransactionsPage() {
         setIsDialogOpen(true);
     };
 
+    // A transaction can only be edited or deleted while its cash movement can still be changed:
+    // either it never hit a cash session (still pending) or its session is the one currently open.
+    const isTransactionModifiable = React.useCallback((transaction: MiscellaneousTransaction) => {
+        if (!transaction.cash_session_id) return true;
+        const activeSessionId = activeCashSession?.data?.id;
+        return activeSessionId != null && String(transaction.cash_session_id) === String(activeSessionId);
+    }, [activeCashSession]);
+
     const handleEdit = (transaction: MiscellaneousTransaction) => {
+        if (!isTransactionModifiable(transaction)) {
+            toast({
+                variant: 'destructive',
+                title: t('toasts.errorTitle'),
+                description: t('actions.editDisabledClosedSession'),
+            });
+            return;
+        }
         setEditingTransaction(transaction);
         setSubmissionError(null);
         setIsDialogOpen(true);
     };
 
     const handleDelete = (transaction: MiscellaneousTransaction) => {
+        if (!isTransactionModifiable(transaction)) {
+            toast({
+                variant: 'destructive',
+                title: t('toasts.errorTitle'),
+                description: t('actions.deleteDisabledClosedSession'),
+            });
+            return;
+        }
         setDeletingTransaction(transaction);
         setIsDeleteDialogOpen(true);
     };
 
-    const confirmDelete = async () => {
-        if (!deletingTransaction) return;
-        try {
-            await deleteMiscellaneousTransaction(deletingTransaction.id);
-            toast({ title: t('toasts.deletedTitle'), description: t('toasts.deletedDesc', { number: deletingTransaction.doc_no }) });
-            setIsDeleteDialogOpen(false);
-            setDeletingTransaction(null);
-            loadTransactions();
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: t('toast.errorTitle'),
-                description: error instanceof Error ? error.message : t('toasts.deleteError'),
-            });
+    const deleteAction = useAsyncAction(
+        async (transaction: MiscellaneousTransaction) => {
+            await deleteMiscellaneousTransaction(transaction.id);
+            return transaction;
+        },
+        {
+            onSuccess: (transaction) => {
+                toast({ title: t('toasts.deletedTitle'), description: t('toasts.deletedDesc', { number: transaction.doc_no }) });
+                setIsDeleteDialogOpen(false);
+                setDeletingTransaction(null);
+                loadTransactions();
+            },
+            // The backend may have deleted it before the timeout hit: show the real state.
+            onError: (error) => { if (isTimeoutError(error)) loadTransactions(); },
+            errorTitle: t('toasts.errorTitle'),
         }
-    };
+    );
 
     const getColumns = (t: (key: string) => string): ColumnDef<MiscellaneousTransaction>[] => [
         { accessorKey: 'id', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.id')} /> },
@@ -380,30 +420,53 @@ export default function MiscellaneousTransactionsPage() {
             id: 'actions',
             cell: ({ row }) => {
                 const transaction = row.original;
+                const canModify = isTransactionModifiable(transaction);
                 return (
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">{t('actions.openMenu')}</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEdit(transaction)}>{t('actions.edit')}</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDelete(transaction)} className="text-destructive">{t('actions.delete')}</DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
+                    // The menu is portaled but still a React child of the row: without this, clicks on
+                    // the trigger or its items bubble up to onRowClick and also open the edit dialog.
+                    <div onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <span className="sr-only">{t('actions.openMenu')}</span>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
+                                <DropdownMenuItem
+                                    onClick={() => canModify && handleEdit(transaction)}
+                                    disabled={!canModify}
+                                    title={canModify ? undefined : t('actions.editDisabledClosedSession')}
+                                >
+                                    {t('actions.edit')}
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                    onClick={() => canModify && handleDelete(transaction)}
+                                    disabled={!canModify}
+                                    title={canModify ? undefined : t('actions.deleteDisabledClosedSession')}
+                                    className="text-destructive"
+                                >
+                                    {t('actions.delete')}
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
                 );
             },
         },
     ];
     const columns = getColumns(t);
 
+    // Only the latest load may write state; an older, slower response must not overwrite fresh data.
+    const loadRequestRef = React.useRef(0);
+
     const loadTransactions = React.useCallback(async () => {
+        const requestId = ++loadRequestRef.current;
         setIsRefreshing(true);
         const searchQuery = (columnFilters.find(f => f.id === 'beneficiary_name')?.value as string) || '';
         const { transactions, total } = await getMiscellaneousTransactions(pagination, searchQuery);
+        if (requestId !== loadRequestRef.current) return;
         setTransactions(transactions);
         setTransactionCount(total);
         setTotalIncome(transactions.filter(t => t.category_type === 'income').reduce((sum, t) => sum + t.amount, 0));
@@ -422,27 +485,41 @@ export default function MiscellaneousTransactionsPage() {
         return () => clearTimeout(debounce);
     }, [loadTransactions]);
 
-    const onSubmit = async (values: TransactionFormValues) => {
-        if (!user) return;
-        setSubmissionError(null);
+    const saveAction = useAsyncAction(
+        async (values: TransactionFormValues) => {
+            if (!user) return false;
+            setSubmissionError(null);
 
-        try {
             // Check if there's an active cash session
             const sessionValidation = await validateActiveSession();
             if (!sessionValidation.isValid) {
                 showCashSessionError(sessionValidation.error);
-                return;
+                return false;
             }
 
             await upsertMiscellaneousTransaction(values, user.id);
-            toast({ title: editingTransaction ? t('toasts.updatedTitle') : t('toasts.createdTitle'), description: t('toasts.savedDesc') });
-            setIsDialogOpen(false);
-            loadTransactions();
-            await checkActiveSession();
-        } catch (error) {
-            setSubmissionError(error instanceof Error ? error.message : t('toasts.genericError'));
+            return true;
+        },
+        {
+            onSuccess: async (saved) => {
+                if (!saved) return;
+                toast({ title: editingTransaction ? t('toasts.updatedTitle') : t('toasts.createdTitle'), description: t('toasts.savedDesc') });
+                setIsDialogOpen(false);
+                loadTransactions();
+                await checkActiveSession();
+            },
+            onError: (error) => {
+                if (isTimeoutError(error)) {
+                    // The transaction may have been saved anyway: refresh so the user can check before retrying.
+                    setSubmissionError(tCommon('timeoutError'));
+                    loadTransactions();
+                    return;
+                }
+                setSubmissionError(getErrorMessage(error) || t('toasts.genericError'));
+            },
+            showErrorToast: false,
         }
-    };
+    );
 
 
     const QuickFilterButton = ({ filter, label }: { filter: string, label: string }) => (
@@ -493,6 +570,7 @@ export default function MiscellaneousTransactionsPage() {
                             status: t('columns.status'),
                         }}
                         isNarrow={isNarrow}
+                        onRowClick={handleEdit}
                         renderCard={(row: MiscellaneousTransaction, _isSelected: boolean) => (
                             <DataCard isSelected={_isSelected}
                                 title={row.doc_no}
@@ -508,8 +586,14 @@ export default function MiscellaneousTransactionsPage() {
                     />
                 </CardContent>
             </Card>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-xl" confirmOnClose isDirty={form.formState.isDirty}>
+            <Dialog
+                open={isDialogOpen}
+                onOpenChange={(open) => {
+                    if (!open && saveAction.isPending) return;
+                    setIsDialogOpen(open);
+                }}
+            >
+                <DialogContent className="sm:max-w-xl" confirmOnClose isDirty={form.formState.isDirty && !saveAction.isPending}>
                     <DialogHeader>
                         <div className="flex items-start gap-3">
                             <div className="header-icon-circle mt-0.5">
@@ -521,8 +605,10 @@ export default function MiscellaneousTransactionsPage() {
                         </div>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4 px-6">
+                        <form onSubmit={form.handleSubmit(saveAction.run, onInvalidSubmit)} className="space-y-4 py-4 px-6">
                             {submissionError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertTitle>{t('toasts.errorTitle')}</AlertTitle><AlertDescription>{submissionError}</AlertDescription></Alert>}
+                            {/* Native fieldset disables every control while the request is in flight */}
+                            <fieldset disabled={saveAction.isPending} className="min-w-0 space-y-4">
                             <FormField control={form.control} name="category_id" render={({ field }) => (
                                 <FormItem><FormLabel>{t('dialog.category')}</FormLabel>
                                     <Popover open={isCategoryOpen} onOpenChange={setIsCategoryOpen}><PopoverTrigger asChild><FormControl>
@@ -580,22 +666,28 @@ export default function MiscellaneousTransactionsPage() {
                                         <FormMessage />
                                     </FormItem>
                                 )} />
-                                <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>{t('dialog.currency')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                                <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>{t('dialog.currency')}</FormLabel><FormControl><CurrencySelect value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
                             </div>
                             <FormField control={form.control} name="description" render={({ field }) => (<FormItem><FormLabel>{t('dialog.description')}</FormLabel><FormControl><Textarea {...field} /></FormControl><FormMessage /></FormItem>)} />
                             <div className="grid grid-cols-2 gap-4">
                                 <FormField control={form.control} name="external_reference" render={({ field }) => (<FormItem><FormLabel>{t('dialog.reference')}</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
                                 <FormField control={form.control} name="tags" render={({ field }) => (<FormItem><FormLabel>{t('dialog.tags')}</FormLabel><FormControl><Input placeholder="tag1, tag2, tag3" {...field} /></FormControl><FormMessage /></FormItem>)} />
                             </div>
+                            </fieldset>
                             <DialogFooter>
-                                <Button type="submit">{editingTransaction ? t('dialog.save') : t('dialog.create')}</Button>
-                                <DialogCancelButton>{t('dialog.cancel')}</DialogCancelButton>
+                                <Button type="submit" loading={saveAction.isPending}>{editingTransaction ? t('dialog.save') : t('dialog.create')}</Button>
+                                <DialogCancelButton disabled={saveAction.isPending}>{t('dialog.cancel')}</DialogCancelButton>
                             </DialogFooter>
                         </form>
                     </Form>
                 </DialogContent>
             </Dialog>
-            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+            <AlertDialog
+                open={isDeleteDialogOpen}
+                onOpenChange={(open) => {
+                    if (!deleteAction.isPending) setIsDeleteDialogOpen(open);
+                }}
+            >
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('dialog.areYouSure')}</AlertDialogTitle>
@@ -604,8 +696,20 @@ export default function MiscellaneousTransactionsPage() {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('dialog.deleteAction')}</AlertDialogAction>
-                        <AlertDialogCancel>{t('dialog.cancel')}</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => {
+                                // Keep the dialog open until the request settles
+                                e.preventDefault();
+                                if (deletingTransaction) deleteAction.run(deletingTransaction);
+                            }}
+                            disabled={deleteAction.isPending}
+                            aria-busy={deleteAction.isPending || undefined}
+                            className="bg-destructive hover:bg-destructive/90"
+                        >
+                            {deleteAction.isPending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                            {t('dialog.deleteAction')}
+                        </AlertDialogAction>
+                        <AlertDialogCancel disabled={deleteAction.isPending}>{t('dialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

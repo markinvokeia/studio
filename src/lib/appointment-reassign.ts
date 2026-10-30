@@ -1,5 +1,6 @@
-import { api } from '@/services/api';
+import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
+import { getOwnAppointmentColor } from '@/lib/appointment-color';
 import type { Appointment, Calendar as CalendarType, Service, User } from '@/lib/types';
 
 const CALENDAR_COLORS = [
@@ -60,6 +61,9 @@ export function buildReassignPayload(appointment: Appointment, change: Appointme
     service_ids: (change.services ?? appointment.services ?? []).filter((s) => s.id).map((s) => s.id),
     service_names: (change.services ?? appointment.services ?? []).map((s) => s.name).join(', '),
     notes: change.notes !== undefined ? change.notes : (appointment.notes ?? ''),
+    // Se reenvía tal cual: el upsert reescribe la fila y sin esto mover o reasignar
+    // una cita le borra la etiqueta de color que alguien le había puesto.
+    color: getOwnAppointmentColor(appointment),
     quote_id: change.quote !== undefined
       ? (change.quote ? String(change.quote.id) : null)
       : (appointment.quote_id ?? null),
@@ -75,7 +79,9 @@ export async function reassignAppointmentField(
   change: AppointmentReassignChange,
 ): Promise<Appointment> {
   const payload = buildReassignPayload(appointment, change);
-  const response = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload);
+  const response = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload, undefined, undefined, {
+    timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+  });
   const result = Array.isArray(response) ? response[0] : response;
   if (result?.error || (result?.code && result.code >= 400)) {
     throw new Error(result?.message || 'Failed to update appointment');

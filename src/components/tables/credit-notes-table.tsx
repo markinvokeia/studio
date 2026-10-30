@@ -19,6 +19,7 @@ import React from 'react';
 import { Button } from '../ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '../ui/dropdown-menu';
 import { Skeleton } from '../ui/skeleton';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 const getColumns = (
   t: (key: string) => string,
@@ -201,7 +202,7 @@ export function CreditNotesTable({ creditNotes, isLoading = false, onRefresh, is
           cardListClassName={useListView ? 'gap-0 px-0 py-0 rounded-md border' : undefined}
           renderCard={(creditNote: CreditNote) => {
             const totalStr = creditNote.total != null
-              ? new Intl.NumberFormat('en-US', { style: 'currency', currency: creditNote.currency || 'USD' }).format(Math.abs(Number(creditNote.total)))
+              ? new Intl.NumberFormat('en-US', { style: 'currency', currency: creditNote.currency || getClinicCurrency() }).format(Math.abs(Number(creditNote.total)))
               : undefined;
             const statusBadge = creditNote.status ? (
               <Badge variant="outline" className="text-[10px] font-normal capitalize">{t(`statuses.${creditNote.status}`)}</Badge>

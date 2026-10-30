@@ -13,6 +13,7 @@ import {
   getMinutes,
   isSameDay,
   parseISO,
+  set,
   startOfDay,
   startOfMonth,
   startOfWeek,
@@ -20,7 +21,15 @@ import {
 } from 'date-fns';
 
 import type { CalendarEvent, CalendarGroupBy, CalendarView } from './calendar-types';
-import { HOUR_SLOT_HEIGHT } from './calendar-constants';
+import {
+  EVENT_STACK_BASE_Z_INDEX,
+  EVENT_STACK_LAP_RATIO,
+  EVENT_STACK_MAX_Z_BOOST,
+  HOUR_SLOT_HEIGHT,
+  HOURS_IN_DAY,
+  DEFAULT_SLOT_DURATION,
+  MINUTES_IN_DAY,
+} from './calendar-constants';
 
 // ---------------------------------------------------------------------------
 // Date range computation
@@ -30,16 +39,24 @@ export function computeDateRange(
   currentDate: Date,
   view: CalendarView
 ): { start: Date; end: Date } | null {
+  const viewStart = startOfDay(currentDate);
+
   switch (view) {
     case 'day':
       return { start: startOfDay(currentDate), end: endOfDay(currentDate) };
     case '2-day':
-      return { start: startOfDay(currentDate), end: endOfDay(addDays(currentDate, 1)) };
+      return { start: viewStart, end: endOfDay(addDays(viewStart, 1)) };
     case '3-day':
-      return { start: startOfDay(currentDate), end: endOfDay(addDays(currentDate, 2)) };
+      return { start: viewStart, end: endOfDay(addDays(viewStart, 2)) };
+    case '4-day':
+      return { start: viewStart, end: endOfDay(addDays(viewStart, 3)) };
+    case '5-day':
+      return { start: viewStart, end: endOfDay(addDays(viewStart, 4)) };
+    case '6-day':
+      return { start: viewStart, end: endOfDay(addDays(viewStart, 5)) };
     case 'week':
       return {
-        start: startOfWeek(currentDate, { weekStartsOn: 1 }),
+        start: getCalendarViewStartDate(currentDate, view),
         end: endOfWeek(currentDate, { weekStartsOn: 1 }),
       };
     case 'month':
@@ -57,16 +74,84 @@ export function computeDateRange(
 // Navigation helpers
 // ---------------------------------------------------------------------------
 
+const MULTI_DAY_VIEW_LENGTHS: Partial<Record<CalendarView, number>> = {
+  '2-day': 2,
+  '3-day': 3,
+  '4-day': 4,
+  '5-day': 5,
+  '6-day': 6,
+};
+
+function getMultiDayBlockOffsets(numberOfDays: number): number[] {
+  const offsets: number[] = [];
+
+  for (let offset = 0; offset + numberOfDays <= 7; offset += numberOfDays) {
+    offsets.push(offset);
+  }
+
+  const finalOffset = 7 - numberOfDays;
+  if (offsets[offsets.length - 1] !== finalOffset) {
+    offsets.push(finalOffset);
+  }
+
+  return offsets;
+}
+
+/**
+ * Returns the first visible date for a calendar view.
+ *
+ * Multi-day views are split into blocks anchored to Monday. The final block is
+ * shifted back when needed so it stays inside the same Monday-Sunday week.
+ */
+export function getCalendarViewStartDate(currentDate: Date, view: CalendarView): Date {
+  if (view === 'week') {
+    return startOfWeek(currentDate, { weekStartsOn: 1 });
+  }
+
+  const numberOfDays = MULTI_DAY_VIEW_LENGTHS[view];
+  if (!numberOfDays) {
+    return startOfDay(currentDate);
+  }
+
+  const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+  const dayOffset = currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1;
+  const blockOffset = Math.min(
+    Math.floor(dayOffset / numberOfDays) * numberOfDays,
+    7 - numberOfDays
+  );
+
+  return addDays(weekStart, blockOffset);
+}
+
 export function navigateDate(
   currentDate: Date,
   view: CalendarView,
   direction: 1 | -1
 ): Date {
   const delta = direction;
+  const viewStart = startOfDay(currentDate);
+  const numberOfDays = MULTI_DAY_VIEW_LENGTHS[view];
+
+  if (numberOfDays) {
+    const weekStart = startOfWeek(viewStart, { weekStartsOn: 1 });
+    const blockOffsets = getMultiDayBlockOffsets(numberOfDays);
+    const currentOffset = viewStart.getDay() === 0 ? 6 : viewStart.getDay() - 1;
+    const currentBlockIndex = blockOffsets.indexOf(currentOffset);
+    const nextBlockIndex = currentBlockIndex + direction;
+
+    if (nextBlockIndex < 0) {
+      return addDays(addWeeks(weekStart, -1), blockOffsets[blockOffsets.length - 1]);
+    }
+
+    if (nextBlockIndex >= blockOffsets.length) {
+      return addWeeks(weekStart, 1);
+    }
+
+    return addDays(weekStart, blockOffsets[nextBlockIndex]);
+  }
+
   switch (view) {
     case 'day': return addDays(currentDate, delta);
-    case '2-day': return addDays(currentDate, 2 * delta);
-    case '3-day': return addDays(currentDate, 3 * delta);
     case 'week': return addWeeks(currentDate, delta);
     case 'year': return addYears(currentDate, delta);
     case 'month':
@@ -80,7 +165,9 @@ export function computeHeaderTitle(
   view: CalendarView,
   dateLocale: Locale
 ): string {
-  const start = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
+  const start = view === 'week'
+    ? getCalendarViewStartDate(currentDate, view)
+    : currentDate;
   switch (view) {
     case 'day':
       return format(currentDate, 'MMMM d, yyyy', { locale: dateLocale });
@@ -88,6 +175,12 @@ export function computeHeaderTitle(
       return `${format(start, 'MMMM d', { locale: dateLocale })} - ${format(addDays(start, 1), 'd, yyyy', { locale: dateLocale })}`;
     case '3-day':
       return `${format(start, 'MMMM d', { locale: dateLocale })} - ${format(addDays(start, 2), 'd, yyyy', { locale: dateLocale })}`;
+    case '4-day':
+      return `${format(start, 'MMMM d', { locale: dateLocale })} - ${format(addDays(start, 3), 'd, yyyy', { locale: dateLocale })}`;
+    case '5-day':
+      return `${format(start, 'MMMM d', { locale: dateLocale })} - ${format(addDays(start, 4), 'd, yyyy', { locale: dateLocale })}`;
+    case '6-day':
+      return `${format(start, 'MMMM d', { locale: dateLocale })} - ${format(addDays(start, 5), 'd, yyyy', { locale: dateLocale })}`;
     case 'week': {
       const end = endOfWeek(currentDate, { weekStartsOn: 1 });
       return `${format(start, 'MMMM d', { locale: dateLocale })} - ${format(end, 'd, yyyy', { locale: dateLocale })}`;
@@ -148,6 +241,45 @@ export function getReadableTextColor(bg?: string | null): string {
   return lum > 0.6 ? '#111' : '#fff';
 }
 
+/** Luminancia relativa WCAG de un color hex. `null` si no se puede parsear. */
+function relativeLuminance(color?: string | null): number | null {
+  if (!color) return null;
+  const hex = color.startsWith('#') ? color.slice(1) : '';
+  if (hex.length !== 6 && hex.length !== 8) return null;
+  const channels = [0, 2, 4].map((i) => parseInt(hex.substring(i, i + 2), 16));
+  if (channels.some(Number.isNaN)) return null;
+
+  const [r, g, b] = channels.map((value) => {
+    const v = value / 255;
+    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/** Contraste mínimo WCAG para un elemento no textual, como este ícono de 14px. */
+const MIN_ICON_CONTRAST = 3;
+
+/**
+ * Color del ícono de estado (`#111` o `#fff`) sobre el círculo pintado con el
+ * color del estado.
+ *
+ * Se queda en blanco —que es el lenguaje visual del calendario— y solo cambia a
+ * oscuro cuando el blanco no llega al mínimo legible. Con la paleta actual eso
+ * pasa en tres estados: "Llegó" (#f59e0b, 2.15:1), "Pendiente" (#9ca3af, 2.54:1)
+ * y "En curso" (#f97316, 2.80:1). El resto se ve exactamente igual que antes.
+ *
+ * A propósito no se elige "el que más contraste dé": eso daría ícono oscuro en
+ * casi toda la paleta y cambiaría el aspecto de todo el calendario para arreglar
+ * tres casos.
+ */
+export function getContrastingIconColor(bg?: string | null): string {
+  const lum = relativeLuminance(bg);
+  if (lum === null) return '#fff';
+
+  const contrastWithWhite = 1.05 / (lum + 0.05);
+  return contrastWithWhite < MIN_ICON_CONTRAST ? '#111' : '#fff';
+}
+
 // ---------------------------------------------------------------------------
 // Event group value
 // ---------------------------------------------------------------------------
@@ -165,30 +297,105 @@ export function getEventGroupValue(
 // Event overlap layout algorithm
 // ---------------------------------------------------------------------------
 
+/** Milisegundos de un `start`/`end`, que puede venir como Date o como ISO. */
+function toMs(value: Date | string): number {
+  return (typeof value === 'string' ? parseISO(value) : value).getTime();
+}
+
+/**
+ * Momento de creación del evento en ms, o `null` si no se puede determinar.
+ * Se le saca la `Z` final como en el resto de la app: acá solo importa que el orden
+ * entre eventos sea consistente, no el huso. `data` puede ser una cita (`created_at`
+ * opcional), un recordatorio (obligatorio) o cualquier otra cosa: no se asume nada.
+ */
+function getCreationTime(event: CalendarEvent): number | null {
+  const raw = event.data?.created_at ?? event.data?.createdat ?? event.data?.createdAt;
+  if (typeof raw !== 'string' || raw.length === 0) return null;
+  const ms = parseISO(raw.replace(/Z$/, '')).getTime();
+  return Number.isNaN(ms) ? null : ms;
+}
+
+/**
+ * Id numérico del registro, respaldo del `created_at`: la PK de `appointments` es un
+ * autoincremental, o sea monótona por creación. Los recordatorios llegan con el id
+ * prefijado (`reminder-42`), así que se toma la primera corrida de dígitos.
+ */
+function getNumericId(event: CalendarEvent): number | null {
+  const digits = String(event.data?.id ?? event.id ?? '').match(/\d+/);
+  return digits ? Number(digits[0]) : null;
+}
+
+/**
+ * Desempate por antigüedad: primero la creada antes, que es la que queda al fondo.
+ *
+ * Los timestamps se comparan solo si los dos eventos los tienen — mezclar un timestamp
+ * (~1.7e12) con un id (~1e3) le daría siempre la ventaja al que tiene fecha, que es un
+ * orden arbitrario disfrazado. Si no, se comparan ids numéricos; y como último recurso
+ * el id textual, para que el layout sea función del CONJUNTO de eventos y no del orden
+ * en que los devolvió la API (que no está garantizado).
+ */
+function compareByCreation(a: CalendarEvent, b: CalendarEvent): number {
+  const createdA = getCreationTime(a);
+  const createdB = getCreationTime(b);
+  if (createdA !== null && createdB !== null && createdA !== createdB) {
+    return createdA - createdB;
+  }
+
+  const idA = getNumericId(a);
+  const idB = getNumericId(b);
+  if (idA !== null && idB !== null && idA !== idB) return idA - idB;
+
+  return String(a.id).localeCompare(String(b.id));
+}
+
+/**
+ * Reparte las citas solapadas de un día en una cascada estilo Google Calendar.
+ *
+ * El reparto se hace en dos pasos, como en Google Calendar. Primero cada cita cae en
+ * un nivel (columna) del grupo de solapadas, que le fija el borde izquierdo. Después
+ * cada card SE ESTIRA hacia la derecha hasta que choca con otra que se le solapa en el
+ * tiempo; si no hay ninguna, hasta el borde derecho de la columna.
+ *
+ * Ese segundo paso es el que hace la diferencia: repartir a ciegas dejaba a las tres
+ * citas de un grupo en un tercio del ancho aunque no se pisaran entre sí, y estirar
+ * todas hasta el borde derecho tapaba por completo a la de atrás. Así, la de atrás
+ * conserva su franja legible y las que no tienen nada al lado ocupan todo lo que hay.
+ *
+ * Devuelve COPIAS en orden de dibujado (la de más atrás primero) con la geometría ya
+ * resuelta. No muta la entrada: los eventos vienen memoizados desde la página y el
+ * layout se recalcula en cada render.
+ */
 export function getEventsWithLayout(dayEvents: CalendarEvent[]): CalendarEvent[] {
   if (dayEvents.length === 0) return [];
 
+  // Por hora de inicio (el agrupado de abajo lo necesita ascendente); a igual inicio,
+  // primero la más larga, que es la que queda atrás y a la izquierda; y a igual
+  // duración, la creada primero.
   const sortedEvents = [...dayEvents].sort((a, b) => {
-    const startA = (typeof a.start === 'string' ? parseISO(a.start) : a.start).getTime();
-    const startB = (typeof b.start === 'string' ? parseISO(b.start) : b.start).getTime();
+    const startA = toMs(a.start);
+    const startB = toMs(b.start);
     if (startA !== startB) return startA - startB;
-    const endA = (typeof a.end === 'string' ? parseISO(a.end) : a.end).getTime();
-    const endB = (typeof b.end === 'string' ? parseISO(b.end) : b.end).getTime();
-    return endA - endB;
+
+    const endA = toMs(a.end);
+    const endB = toMs(b.end);
+    if (endA !== endB) return endB - endA;
+
+    return compareByCreation(a, b);
   });
 
+  // Grupos de citas encadenadas por solapamiento. `clusterEnd` es el máximo `end`
+  // visto: una cita que arranca justo cuando termina la anterior (back-to-back) no
+  // solapa, abre un grupo nuevo y se dibuja a ancho completo.
   const clusters: CalendarEvent[][] = [];
   let currentCluster: CalendarEvent[] = [];
   let clusterEnd = 0;
 
   sortedEvents.forEach((event) => {
-    const start = (typeof event.start === 'string' ? parseISO(event.start) : event.start).getTime();
-    const end = (typeof event.end === 'string' ? parseISO(event.end) : event.end).getTime();
+    const start = toMs(event.start);
+    const end = toMs(event.end);
 
     if (start >= clusterEnd) {
-      if (currentCluster.length > 0) {
-        clusters.push(currentCluster);
-      }
+      if (currentCluster.length > 0) clusters.push(currentCluster);
       currentCluster = [event];
       clusterEnd = end;
     } else {
@@ -196,43 +403,75 @@ export function getEventsWithLayout(dayEvents: CalendarEvent[]): CalendarEvent[]
       clusterEnd = Math.max(clusterEnd, end);
     }
   });
-  if (currentCluster.length > 0) {
-    clusters.push(currentCluster);
-  }
+  if (currentCluster.length > 0) clusters.push(currentCluster);
 
   const positionedEvents: CalendarEvent[] = [];
 
   clusters.forEach((cluster) => {
-    const columns: CalendarEvent[][] = [];
+    // Packing greedy: cada cita ocupa el primer nivel cuyo último evento ya terminó.
+    // Reusar niveles mantiene la cascada lo más corta posible y, por lo tanto, las
+    // cards lo más anchas posible; dos citas del mismo nivel nunca se solapan en el
+    // tiempo, así que compartir corrimiento no las tapa.
+    const levelLastEnd: number[] = [];
+    const levels: number[] = [];
 
-    cluster.forEach((event) => {
-      let placed = false;
-      const eventStart = (typeof event.start === 'string' ? parseISO(event.start) : event.start).getTime();
-
-      for (let i = 0; i < columns.length; i++) {
-        const lastEventInColumn = columns[i][columns[i].length - 1];
-        const lastEventEnd = (typeof lastEventInColumn.end === 'string'
-          ? parseISO(lastEventInColumn.end)
-          : lastEventInColumn.end
-        ).getTime();
-
-        if (eventStart >= lastEventEnd) {
-          columns[i].push(event);
-          event.column = i;
-          placed = true;
-          break;
-        }
-      }
-
-      if (!placed) {
-        event.column = columns.length;
-        columns.push([event]);
-      }
+    cluster.forEach((event, index) => {
+      const start = toMs(event.start);
+      let level = levelLastEnd.findIndex((lastEnd) => lastEnd <= start);
+      if (level === -1) level = levelLastEnd.length;
+      levelLastEnd[level] = toMs(event.end);
+      levels[index] = level;
     });
 
-    cluster.forEach((event) => {
-      event.totalColumns = columns.length;
-      positionedEvents.push(event);
+    // Las citas de cada nivel, para poder preguntar si un nivel bloquea a una card.
+    const byLevel: CalendarEvent[][] = [];
+    cluster.forEach((event, index) => {
+      const level = levels[index];
+      if (!byLevel[level]) byLevel[level] = [];
+      byLevel[level].push(event);
+    });
+
+    // El corrimiento sale de la cantidad de niveles del grupo, así que se adapta solo
+    // a su densidad: con 2 niveles el escalón es del 50%, con 8 del 12,5%. No hace
+    // falta ningún tope artificial.
+    const totalLevels = levelLastEnd.length;
+    const levelWidth = 100 / totalLevels;
+    const lap = levelWidth * EVENT_STACK_LAP_RATIO;
+
+    cluster.forEach((event, index) => {
+      const level = levels[index];
+      const start = toMs(event.start);
+      const end = toMs(event.end);
+
+      // Hasta dónde puede estirarse: avanza por los niveles de la derecha mientras
+      // ninguno tenga una cita que se le solape en el tiempo.
+      let span = 1;
+      for (let next = level + 1; next < totalLevels; next += 1) {
+        const blocked = (byLevel[next] ?? []).some(
+          (other) => toMs(other.start) < end && toMs(other.end) > start,
+        );
+        if (blocked) break;
+        span += 1;
+      }
+
+      const left = level * levelWidth;
+      // Sin nada que la bloquee llega al borde derecho; si algo la bloquea se queda en
+      // los niveles que alcanzó más un pedacito por debajo de la de adelante.
+      const width = level + span >= totalLevels
+        ? 100 - left
+        : Math.min(span * levelWidth + lap, 100 - left);
+
+      positionedEvents.push({
+        ...event,
+        stackLevel: level,
+        stackLeftPercent: left,
+        stackWidthPercent: width,
+        // Derivado del NIVEL, no de la posición en el grupo: al reusar niveles, una
+        // cita de nivel bajo puede dibujarse después de una de nivel alto y, siendo
+        // más ancha, taparla. El z-index tiene que ser coherente con el corrimiento
+        // horizontal — a más corrida, más arriba.
+        stackZIndex: EVENT_STACK_BASE_Z_INDEX + Math.min(level, EVENT_STACK_MAX_Z_BOOST),
+      });
     });
   });
 
@@ -278,6 +517,11 @@ export function generateTimeSlots(count = 24): string[] {
  * the slot it falls in, based on the configured slot duration. With 10-min slots
  * (6 per hour) clicking the 13:00 hour yields 13:00/13:10/.../13:50; with 20-min
  * slots (3 per hour) it yields 13:00/13:20/13:40.
+ *
+ * `y` se acota al día antes de convertir. Con un clic nunca se sale de la caja,
+ * pero al arrastrar el puntero sí: sin la cota, una `y` negativa da `hour = -1` y
+ * `set(day, { hours: -1 })` cae callado en el día anterior a las 23:00, y una `y`
+ * mayor al alto de la columna hace roll-over al día siguiente.
  */
 export function slotTimeFromOffset(
   y: number,
@@ -286,10 +530,100 @@ export function slotTimeFromOffset(
 ): { hour: number; minute: number } {
   const safeSlot = slotMinutes > 0 ? slotMinutes : 15;
   const slotsPerHour = Math.max(1, Math.round(60 / safeSlot));
-  const hour = Math.floor(y / hourSlotHeight);
+  const safeY = Math.max(0, Math.min(y, HOURS_IN_DAY * hourSlotHeight - 1));
+  const hour = Math.min(HOURS_IN_DAY - 1, Math.floor(safeY / hourSlotHeight));
   const slotPx = hourSlotHeight / slotsPerHour;
-  const idx = Math.max(0, Math.min(slotsPerHour - 1, Math.floor((y % hourSlotHeight) / slotPx)));
+  const idx = Math.max(0, Math.min(slotsPerHour - 1, Math.floor((safeY % hourSlotHeight) / slotPx)));
   return { hour, minute: idx * safeSlot };
+}
+
+// ---------------------------------------------------------------------------
+// Geometría inversa para el arrastre (px <-> tiempo)
+// ---------------------------------------------------------------------------
+
+/** Inversa del `top` de `getEventStyle`: px desde medianoche para una hora de pared. */
+export function offsetFromTime(date: Date, hourSlotHeight: number): number {
+  return (getHours(date) + getMinutes(date) / 60) * hourSlotHeight;
+}
+
+/**
+ * px desde el tope de la columna -> minutos desde medianoche, snappeado al slot y
+ * acotado al día.
+ *
+ * Se separa de `slotTimeFromOffset` porque el arrastre necesita redondear al slot
+ * MÁS CERCANO (que es como se comporta Google Calendar y evita que la card se
+ * quede sistemáticamente un slot arriba del cursor), mientras que el clic en un
+ * slot vacío necesita el inicio del slot en el que se hizo clic.
+ */
+export function snapMinutesFromOffset(
+  y: number,
+  hourSlotHeight: number,
+  slotMinutes: number = DEFAULT_SLOT_DURATION,
+  round: 'floor' | 'nearest' = 'nearest',
+): number {
+  const safeSlot = slotMinutes > 0 ? slotMinutes : DEFAULT_SLOT_DURATION;
+  const raw = (y / hourSlotHeight) * 60;
+  const snapped = round === 'nearest'
+    ? Math.round(raw / safeSlot) * safeSlot
+    : Math.floor(raw / safeSlot) * safeSlot;
+  return Math.max(0, Math.min(MINUTES_IN_DAY, snapped));
+}
+
+/** `yyyy-MM-dd` -> medianoche local. */
+export function dayFromKey(key: string): Date {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+}
+
+/**
+ * Minutos desde medianoche -> Date sobre el día dado.
+ *
+ * El tope del día se representa como 23:59 y no como 24:00: ningún evento puede
+ * cruzar medianoche (`filterEventsByDay` los agrupa por el día del inicio y
+ * `.day-block` recorta lo que sobresale), así que el minuto 1440 tiene que caer
+ * dentro del mismo día. Sin esto, `1440 % 60 === 0` con la hora acotada a 23 daría
+ * las 23:00, o sea un fin ANTERIOR al inicio en una cita arrastrada al fondo.
+ */
+export function dateFromDayMinutes(day: Date, minutes: number): Date {
+  const clamped = Math.max(0, Math.min(MINUTES_IN_DAY, minutes));
+  if (clamped >= MINUTES_IN_DAY) {
+    return set(day, { hours: HOURS_IN_DAY - 1, minutes: 59, seconds: 0, milliseconds: 0 });
+  }
+  return set(day, {
+    hours: Math.floor(clamped / 60),
+    minutes: clamped % 60,
+    seconds: 0,
+    milliseconds: 0,
+  });
+}
+
+/**
+ * Hit-test de la rejilla: qué `.day-column-content` hay bajo el puntero.
+ *
+ * Va por `elementFromPoint` + `closest` y no por los rects de las columnas porque
+ * los overlays de bloqueo (`.calendar-blocked`, z-index 3 y sin `pointer-events:
+ * none`) y las propias cards se interponen; `closest` los resuelve en un paso.
+ * Durante el arrastre las cards llevan `pointer-events: none` por CSS, así que lo
+ * que devuelve es la columna o uno de sus overlays.
+ */
+export function resolveTimeGridTarget(
+  x: number,
+  y: number,
+  root?: HTMLElement | null,
+): { dayKey: string; day: Date; groupValue?: string; element: HTMLElement; rect: DOMRect } | null {
+  const hit = document.elementFromPoint(x, y) as HTMLElement | null;
+  const el = hit?.closest<HTMLElement>('.day-column-content');
+  if (!el) return null;
+  if (root && !root.contains(el)) return null;
+  const dayKey = el.dataset.day;
+  if (!dayKey) return null;
+  return {
+    dayKey,
+    day: dayFromKey(dayKey),
+    groupValue: el.dataset.groupCol || undefined,
+    element: el,
+    rect: el.getBoundingClientRect(),
+  };
 }
 
 // ---------------------------------------------------------------------------

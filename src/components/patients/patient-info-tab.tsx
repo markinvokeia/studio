@@ -3,26 +3,44 @@
 import * as React from 'react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, Check, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, Loader2, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { DatePickerInput } from '@/components/ui/date-picker';
+import { DialogCancelButton } from '@/components/ui/dialog';
+import { DoctorSelector } from '@/components/ui/doctor-selector';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { DuplicateContactDialog, UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
+import { PatientFormDialogShell } from '@/components/patients/patient-form-dialog-shell';
+import { PatientGroupsField, savePatientGroups } from '@/components/patients/patient-groups-field';
+import { useReadOnly } from '@/components/patient-portal/read-only-context';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
+import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { cn } from '@/lib/utils';
-import type { MutualSociety, User } from '@/lib/types';
+import { IDENTITY_DOCUMENT_TYPES } from '@/lib/identity-document';
+import { normalizePersonName } from '@/lib/person-name';
+import { useClinicPreferencesStore } from '@/stores/clinic-preferences-store';
+import type { DuplicateContactOwners, MutualSociety, UniqueConflict, User } from '@/lib/types';
 import {
   fetchPatientById,
+  findPatientByName,
+  getDependantContactInfo,
+  getDuplicateContactWarning,
   getMutualSocietiesList,
+  getUniqueConflict,
+  getUpsertErrorPayload,
+  resolveUserUpsertError,
   searchGuardianPatients,
   upsertUser,
   userFormSchema,
@@ -35,18 +53,26 @@ export function ResponsibleContactField({
   currentUserId,
   initialDisplayName,
   onDisplayNameChange,
+  showCancelAction = false,
 }: {
   form: UseFormReturn<UserFormValues>;
   currentUserId?: string;
   initialDisplayName?: string;
   onDisplayNameChange?: (name: string) => void;
+  /** Se propaga a la ventana de alta del tutor, igual que en el resto de los hosts. */
+  showCancelAction?: boolean;
 }) {
   const t = useTranslations();
+  const { hasPermission } = usePermissions();
+  const canCreatePatient = hasPermission(PATIENTS_PERMISSIONS.CREATE);
   const [query, setQuery] = React.useState('');
   const [results, setResults] = React.useState<User[]>([]);
   const [isSearching, setIsSearching] = React.useState(false);
   const [isOpen, setIsOpen] = React.useState(false);
   const [displayName, setDisplayName] = React.useState(initialDisplayName || '');
+  const [isCreateOpen, setIsCreateOpen] = React.useState(false);
+  const [isGuardianFormDirty, setIsGuardianFormDirty] = React.useState(false);
+  const guardianName = query.trim();
 
   React.useEffect(() => { setDisplayName(initialDisplayName || ''); }, [initialDisplayName, currentUserId]);
   React.useEffect(() => { onDisplayNameChange?.(displayName); }, [displayName, onDisplayNameChange]);
@@ -84,11 +110,43 @@ export function ResponsibleContactField({
                 </Button>
               </FormControl>
             </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+            {/* `collisionPadding` para que Radix lo dé vuelta hacia arriba cuando el
+                campo queda al fondo de la ventana: si no, el popover se salía de la
+                pantalla y el pie con la acción de alta quedaba fuera de la vista. */}
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start" collisionPadding={12}>
               <Command shouldFilter={false}>
                 <CommandInput placeholder={t('UsersPage.createDialog.searchGuardianPlaceholder')} value={query} onValueChange={setQuery} />
-                <CommandList>
-                  <CommandEmpty>{t('UsersPage.createDialog.noGuardianResults')}</CommandEmpty>
+                {/* Arriba y fuera de `CommandList`: el popover se abre hacia abajo y con
+                    la lista llena su pie puede quedar fuera de la pantalla, así que la
+                    salida "el tutor no existe" tiene que estar donde siempre se ve.
+                    Aparece con cualquier texto escrito y no sólo cuando no hay
+                    resultados: la búsqueda del backend matchea por palabra suelta, así
+                    que un tutor inexistente igual devuelve homónimos parciales. */}
+                {guardianName && canCreatePatient && (
+                  <div className="border-b p-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start gap-2 font-normal"
+                      onClick={() => { setIsOpen(false); setIsCreateOpen(true); }}
+                    >
+                      <UserPlus className="h-4 w-4 shrink-0" />
+                      <span className="truncate">{t('UsersPage.createDialog.createGuardian', { name: guardianName })}</span>
+                    </Button>
+                  </div>
+                )}
+                {/* Con tope de alto: sin él la lista crecía hasta pasarse del alto de
+                    la ventana y empujaba la acción de alta fuera de la pantalla. */}
+                <CommandList className="max-h-48">
+                  {/* El vacío se arma a mano en vez de con `CommandEmpty` para poder
+                      distinguir "todavía no escribiste" de "no hay nadie con ese
+                      nombre". */}
+                  {!isSearching && results.length === 0 && (
+                    <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+                      {guardianName ? t('UsersPage.createDialog.noGuardianResults') : t('UsersPage.createDialog.searchGuardianHint')}
+                    </p>
+                  )}
                   <CommandGroup>
                     {isSearching && (
                       <div className="flex items-center gap-2 px-2 py-3 text-sm text-muted-foreground">
@@ -114,6 +172,38 @@ export function ResponsibleContactField({
               </Command>
             </PopoverContent>
           </Popover>
+
+          {/* Fuera del `Popover`: al abrir la ventana el popover se cierra, y si el
+              diálogo colgara de su contenido se desmontaría con él. Al tutor no se le
+              ofrece la casilla de dependiente —sería un tutor a cargo de otro tutor—,
+              y eso además corta la recursión: sin esa casilla no hay otro picker. */}
+          <PatientFormDialogShell
+            open={isCreateOpen}
+            onOpenChange={setIsCreateOpen}
+            title={t('UsersPage.createDialog.createGuardianTitle')}
+            description={t('UsersPage.createDialog.createGuardianDescription')}
+            confirmOnClose={showCancelAction}
+            isDirty={isGuardianFormDirty}
+          >
+            {isCreateOpen && (
+              <PatientInfoTab
+                variant="dialog"
+                initialName={guardianName}
+                showDependentField={false}
+                showCancelAction={showCancelAction}
+                onDirtyChange={setIsGuardianFormDirty}
+                onSaved={(created) => {
+                  setIsCreateOpen(false);
+                  // El alta resuelve el id buscando por nombre; si no lo encuentra
+                  // llega un `User` armado con id vacío, que no sirve para vincular.
+                  if (!created.id) return;
+                  field.onChange(String(created.id));
+                  setDisplayName(created.name);
+                  setQuery('');
+                }}
+              />
+            )}
+          </PatientFormDialogShell>
           <FormMessage />
         </FormItem>
       )}
@@ -122,23 +212,82 @@ export function ResponsibleContactField({
 }
 
 interface PatientInfoTabProps {
-  userId: string;
+  /** Patient to edit. Omit to run in create mode (empty form, upsert creates a new patient). */
+  userId?: string;
   /** Preloaded patient — when given, the form skips fetching it (used by the patients page). */
   user?: User;
   /** Preloaded mutual societies — when given, skips fetching them. */
   mutualSocieties?: MutualSociety[];
   /** Show the notes field inline. Disable when the host has a separate notes tab. Default true. */
   showNotes?: boolean;
-  /** Called after a successful save with the updated patient. */
+  /** Prefill for the name field in create mode (e.g. the search query typed by the user). */
+  initialName?: string;
+  /** Called after a successful save with the updated (or newly created) patient. */
   onSaved?: (updated: User) => void;
+  /** Show the guarded Cancel action supplied by dialog hosts in custom calendar mode. */
+  showCancelAction?: boolean;
+  /**
+   * Habilita la edición aun dentro del portal de sólo lectura. El email queda
+   * bloqueado igual: es la credencial con la que el paciente recibe su código.
+   */
+  allowEdit?: boolean;
+  /** Reports whether this form or its embedded group selector has unsaved changes. */
+  onDirtyChange?: (isDirty: boolean) => void;
+  /**
+   * De dónde cuelga el formulario, que es lo único que cambia entre hosts: el
+   * padding. `tab` (default) es el panel de pestañas del paciente, que ya trae su
+   * propio `p-3`; `dialog` es una ventana modal, donde los campos tienen que
+   * alinearse con el `px-6` de la cabecera en vez de pegarse al borde.
+   */
+  variant?: 'tab' | 'dialog';
+  /**
+   * Muestra la casilla "paciente dependiente" y, con ella, el picker de tutor.
+   * Se apaga cuando el paciente que se está creando *es* el tutor de otro: un
+   * tutor a cargo de un tutor no tiene sentido, y sin la casilla el formulario no
+   * se puede volver a abrir a sí mismo.
+   */
+  showDependentField?: boolean;
+  /**
+   * Alta de un dependiente desde la ficha del tutor: el formulario arranca marcado
+   * como dependiente y con ese tutor elegido. Solo aplica en modo alta.
+   */
+  initialResponsible?: { id: string; name: string };
 }
+
+/** Padding del área de campos y del pie de guardado, por host. */
+const VARIANT_PADDING = {
+  tab: { body: 'p-2', footer: 'px-3 py-2' },
+  dialog: { body: 'px-6 py-4', footer: 'px-6 py-3' },
+} as const;
 
 /**
  * Self-contained patient details form (demographics + notes) with edit/save.
  * Fetches the patient and mutual societies by id when not preloaded, so it can be
  * embedded anywhere (patient quick view, patients page) with only a user_id.
  */
-export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutualSocietiesProp, showNotes = true, onSaved }: PatientInfoTabProps) {
+export function PatientInfoTab({
+  userId,
+  user: userProp,
+  mutualSocieties: mutualSocietiesProp,
+  showNotes = true,
+  initialName,
+  onSaved,
+  showCancelAction = false,
+  allowEdit = false,
+  onDirtyChange,
+  variant = 'tab',
+  showDependentField = true,
+  initialResponsible,
+}: PatientInfoTabProps) {
+  const padding = VARIANT_PADDING[variant];
+  const isCreateMode = !userId && !userProp;
+  // Portal del paciente. Con `allowEdit` el paciente sí puede actualizar sus
+  // propios datos: sólo se bloquea el email.
+  const isPortal = useReadOnly();
+  const readOnly = isPortal && !allowEdit;
+  // El email identifica al paciente y es a donde llega el código de acceso:
+  // cambiarlo desde el portal lo dejaría afuera de su propia cuenta.
+  const lockEmail = isPortal;
   const t = useTranslations();
   const { toast } = useToast();
   const [user, setUser] = React.useState<User | null>(userProp ?? null);
@@ -146,16 +295,38 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
   const [isLoading, setIsLoading] = React.useState(!userProp);
   const [isSaving, setIsSaving] = React.useState(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
-  const [responsibleContactName, setResponsibleContactName] = React.useState('');
+  const presetResponsible = isCreateMode ? initialResponsible : undefined;
+  const [responsibleContactName, setResponsibleContactName] = React.useState(presetResponsible?.name ?? '');
+  const [doctorDisplayName, setDoctorDisplayName] = React.useState('');
+  const [groupsDirty, setGroupsDirty] = React.useState(false);
+  // Create mode: groups picked before the patient exists, assigned right after the upsert.
+  const [pendingGroupIds, setPendingGroupIds] = React.useState<string[]>([]);
+  // Otro paciente ya usa este teléfono/correo: se pide confirmación antes de guardar.
+  const [duplicateWarning, setDuplicateWarning] = React.useState<{ owners: DuplicateContactOwners; data: UserFormValues } | null>(null);
+  // Dato que no se puede repetir: modal en vez de texto inline, que no se ve con el form scrolleado.
+  const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
 
+  const identityDocumentRequired = useClinicPreferencesStore((s) => s.preferences.identity_document_required);
+  const onInvalidSubmit = useInvalidSubmitToast();
   const infoForm = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema(t)),
+    resolver: zodResolver(userFormSchema(t, { identityDocumentRequired, originalName: user?.name })),
     defaultValues: {
-      id: '', name: '', email: '', phone: '', identity_document: '', birth_date: '',
-      notes: '', is_active: true, mutual_society_id: '', is_dependent: false, responsible_contact_id: null,
+      id: '', name: initialName || '', email: '', phone: '', identity_document: '', identity_document_type: 'cedula_uy', birth_date: '', address: '',
+      notes: '', is_active: true, mutual_society_id: '',
+      is_dependent: !!presetResponsible, responsible_contact_id: presetResponsible?.id ?? null,
+      doctor_id: null, sex: null,
     },
   });
   const isDependent = infoForm.watch('is_dependent');
+  const isDirty = infoForm.formState.isDirty || groupsDirty;
+
+  React.useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
+
+  React.useEffect(() => () => {
+    onDirtyChange?.(false);
+  }, [onDirtyChange]);
 
   React.useEffect(() => {
     let active = true;
@@ -165,18 +336,23 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
       if (u) {
         setUser(u);
         setResponsibleContactName(u.responsible_contact_name || '');
+        setDoctorDisplayName(u.doctor_name || '');
         infoForm.reset({
           id: u.id,
           name: u.name,
           email: u.email || '',
           phone: u.phone_number || '',
           identity_document: u.identity_document || '',
+          identity_document_type: u.identity_document_type || 'cedula_uy',
           birth_date: u.birth_date || '',
+          address: u.address || '',
           notes: u.notes || '',
           is_active: u.is_active,
           mutual_society_id: u.mutual_society_id ? String(u.mutual_society_id) : '',
           is_dependent: u.is_dependent ?? false,
           responsible_contact_id: u.responsible_contact_id || null,
+          doctor_id: u.doctor_id || null,
+          sex: u.sex ?? null,
         });
       }
       setIsLoading(false);
@@ -184,8 +360,12 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
 
     if (userProp) {
       // Preloaded: only fetch societies if they weren't provided.
-      if (mutualSocietiesProp) applyUser(userProp, mutualSocietiesProp);
-      else getMutualSocietiesList().then((soc) => applyUser(userProp, soc));
+      const societiesPromise = mutualSocietiesProp ? Promise.resolve(mutualSocietiesProp) : getMutualSocietiesList();
+      societiesPromise.then((soc) => applyUser(userProp, soc));
+    } else if (!userId) {
+      // Create mode: empty form, only the societies list is needed.
+      const societiesPromise = mutualSocietiesProp ? Promise.resolve(mutualSocietiesProp) : getMutualSocietiesList();
+      societiesPromise.then((soc) => applyUser(null, soc));
     } else {
       setIsLoading(true);
       Promise.all([fetchPatientById(userId), getMutualSocietiesList()]).then(([fetchedUser, soc]) => applyUser(fetchedUser, soc));
@@ -199,11 +379,59 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
     }
   }, [infoForm, isDependent]);
 
-  const handleSave = async (data: UserFormValues) => {
+  // The /users list endpoint returns `responsible_contact_id` but not its name, so a dependent
+  // patient's guardian picker would render empty. Resolve the name via /user_dependant.
+  React.useEffect(() => {
+    let cancelled = false;
+    if (!user?.is_dependent || !user.responsible_contact_id || user.responsible_contact_name) return;
+    getDependantContactInfo(user.id).then((info) => {
+      if (!cancelled && info?.name) setResponsibleContactName(info.name);
+    });
+    return () => { cancelled = true; };
+  }, [user]);
+
+  const handleSave = async (data: UserFormValues, confirmDuplicates = false) => {
     setIsSaving(true);
     setSaveError(null);
     try {
-      await upsertUser(data);
+      if (isCreateMode) {
+        await upsertUser({ ...data, id: undefined }, { confirmDuplicates });
+        // The upsert response doesn't return the record — resolve the new id by name.
+        const created = await findPatientByName(data.name);
+        // Sin id, quien abrió el alta (p. ej. la cita) no puede seleccionarlo: se avisa
+        // en vez de dejar el selector vacío sin explicación.
+        toast({
+          title: t('UsersPage.createDialog.createSuccessTitle'),
+          description: created?.id
+            ? t('UsersPage.createDialog.createSuccessDescription')
+            : t('UsersPage.createDialog.createdNotResolvedDescription'),
+        });
+        if (created?.id && pendingGroupIds.length > 0) {
+          try {
+            await savePatientGroups(created.id, pendingGroupIds);
+          } catch (groupsError) {
+            console.error('Failed to assign groups to the new patient:', groupsError);
+          }
+        }
+        onSaved?.(created ?? {
+          id: '',
+          name: normalizePersonName(data.name),
+          email: data.email || '',
+          phone_number: data.phone || '',
+          is_active: data.is_active,
+          avatar: '',
+          identity_document: data.identity_document,
+          identity_document_type: data.identity_document_type as User['identity_document_type'],
+          birth_date: data.birth_date,
+          address: data.address,
+          notes: data.notes,
+          doctor_id: data.doctor_id || null,
+          doctor_name: doctorDisplayName || undefined,
+          sex: data.sex ?? null,
+        });
+        return;
+      }
+      await upsertUser(data, { confirmDuplicates });
       toast({ title: t('UsersPage.createDialog.editSuccessTitle'), description: t('UsersPage.createDialog.editSuccessDescription') });
       const updated: User = {
         ...(user as User),
@@ -211,18 +439,35 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
         email: data.email || '',
         phone_number: data.phone || '',
         identity_document: data.identity_document,
+        identity_document_type: data.identity_document_type as User['identity_document_type'],
         birth_date: data.birth_date,
+        address: data.address,
         notes: data.notes,
         is_active: data.is_active,
         mutual_society_id: data.mutual_society_id,
         is_dependent: data.is_dependent,
         responsible_contact_id: data.responsible_contact_id || undefined,
         responsible_contact_name: data.is_dependent ? responsibleContactName || undefined : undefined,
+        doctor_id: data.doctor_id || null,
+        doctor_name: doctorDisplayName || undefined,
+        sex: data.sex ?? null,
       };
       setUser(updated);
+      infoForm.reset(data);
       onSaved?.(updated);
     } catch (e: any) {
-      setSaveError(e instanceof Error ? e.message : t('UsersPage.createDialog.validation.genericError'));
+      const duplicateOwners = getDuplicateContactWarning(e);
+      const conflict = getUniqueConflict(getUpsertErrorPayload(e));
+      if (duplicateOwners) {
+        setDuplicateWarning({ owners: duplicateOwners, data });
+      } else if (conflict) {
+        setUniqueConflict(conflict);
+      } else {
+        setSaveError(
+          resolveUserUpsertError(e, t)
+            || (e instanceof Error ? e.message : t('UsersPage.createDialog.validation.genericError')),
+        );
+      }
     } finally {
       setIsSaving(false);
     }
@@ -237,107 +482,226 @@ export function PatientInfoTab({ userId, user: userProp, mutualSocieties: mutual
   }
 
   return (
-    <div className="pr-1">
-      <Form {...infoForm}>
-        <form onSubmit={infoForm.handleSubmit(handleSave)} className="space-y-4 p-2">
-          {saveError && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>{saveError}</AlertDescription>
-            </Alert>
-          )}
-          <FormField control={infoForm.control} name="name" render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('UsersPage.createDialog.name')}</FormLabel>
-              <FormControl><Input placeholder={t('UsersPage.createDialog.namePlaceholder')} {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={infoForm.control} name="email" render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('UsersPage.createDialog.email')}</FormLabel>
-              <FormControl><Input type="email" placeholder={t('UsersPage.createDialog.emailPlaceholder')} {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={infoForm.control} name="phone" render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('UsersPage.createDialog.phone')}</FormLabel>
-              <FormControl>
-                <PhoneInput {...field} defaultCountry="UY" placeholder={t('UsersPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={infoForm.control} name="identity_document" render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
-              <FormControl><Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={infoForm.control} name="birth_date" render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('UsersPage.createDialog.birth_date')}</FormLabel>
-              <FormControl>
-                <DatePickerInput value={field.value} onChange={field.onChange} placeholder={t('UsersPage.createDialog.birth_date_placeholder')} disabledDays={(date: Date) => date > new Date() || date < new Date('1900-01-01')} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={infoForm.control} name="mutual_society_id" render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('UsersPage.mutualSociety.select')}</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value || ''}>
-                <FormControl>
-                  <SelectTrigger><SelectValue placeholder={t('UsersPage.mutualSociety.select')} /></SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="none">{t('UsersPage.mutualSociety.none')}</SelectItem>
-                  {mutualSocieties.map((ms) => (
-                    <SelectItem key={ms.id} value={String(ms.id)}>{ms.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={infoForm.control} name="is_dependent" render={({ field }) => (
-            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-              <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-              <FormLabel>{t('UsersPage.createDialog.isDependent')}</FormLabel>
-            </FormItem>
-          )} />
-          {isDependent ? (
-            <ResponsibleContactField
-              form={infoForm}
-              currentUserId={userId}
-              initialDisplayName={responsibleContactName}
-              onDisplayNameChange={setResponsibleContactName}
-            />
-          ) : null}
-          {showNotes && (
-            <FormField control={infoForm.control} name="notes" render={({ field }) => (
+    <Form {...infoForm}>
+      {/* Column capped at the host height: the fields scroll internally and the
+          save footer sits right below them — hugging the form when it's short,
+          pinned to the bottom edge when the form overflows. No content shows
+          through the footer. */}
+      <form onSubmit={infoForm.handleSubmit((data) => handleSave(data), onInvalidSubmit)} className="flex max-h-full min-h-0 flex-col">
+        {/* El scroll va en este div y no en el `fieldset`: Chrome no hace scrollable
+            la caja de un fieldset —renderiza su contenido en una caja anónima—, así
+            que con `overflow-y-auto` sobre el fieldset la rueda no hacía nada y su
+            `scrollTop` se quedaba en 0 aunque `scrollHeight` superara al alto
+            visible. Resultado: los campos de abajo quedaban recortados y sin forma
+            de llegar a ellos. */}
+        <div className={cn('min-h-0 overflow-y-auto', padding.body)}>
+          {/* `fieldset disabled` desactiva de una sola vez todos los controles del
+              portal del paciente. `min-w-0` neutraliza el `min-inline-size: min-content`
+              que el navegador aplica a los fieldset y que rompería el flex. */}
+          <fieldset disabled={readOnly} className="min-w-0 space-y-4">
+            {saveError && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{saveError}</AlertDescription>
+              </Alert>
+            )}
+            <FormField control={infoForm.control} name="name" render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('UsersPage.notes.title')}</FormLabel>
+                <FormLabel>{t('UsersPage.createDialog.name')}</FormLabel>
+                <FormControl><Input placeholder={t('UsersPage.createDialog.namePlaceholder')} {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+            <FormField control={infoForm.control} name="identity_document_type" render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('UsersPage.createDialog.identity_document_type')}</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {IDENTITY_DOCUMENT_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {t(`UsersPage.createDialog.identityDocumentTypes.${type}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )} />
+            <FormField control={infoForm.control} name="identity_document" render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
+                <FormControl><Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField control={infoForm.control} name="birth_date" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('UsersPage.createDialog.birth_date')}</FormLabel>
+                  <FormControl>
+                    <DatePickerInput value={field.value} onChange={field.onChange} placeholder={t('UsersPage.createDialog.birth_date_placeholder')} disabledDays={(date: Date) => date > new Date() || date < new Date('1900-01-01')} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={infoForm.control} name="sex" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('UsersPage.createDialog.sex')}</FormLabel>
+                  <Select onValueChange={(value) => field.onChange(value === 'none' ? null : value)} value={field.value || 'none'}>
+                    <FormControl>
+                      <SelectTrigger><SelectValue placeholder={t('UsersPage.createDialog.sex')} /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">{t('UsersPage.createDialog.sexNone')}</SelectItem>
+                      <SelectItem value="male">{t('UsersPage.createDialog.sexMale')}</SelectItem>
+                      <SelectItem value="female">{t('UsersPage.createDialog.sexFemale')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            </div>
+            <FormField control={infoForm.control} name="phone" render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('UsersPage.createDialog.phone')}</FormLabel>
                 <FormControl>
-                  <Textarea {...field} placeholder={t('UsersPage.notes.placeholder')} className="min-h-[100px] resize-none" />
+                  <PhoneInput {...field} defaultCountry="UY" placeholder={t('UsersPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )} />
-          )}
-          <FormField control={infoForm.control} name="is_active" render={({ field }) => (
-            <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-              <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-              <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
-            </FormItem>
-          )} />
-          <Button type="submit" disabled={isSaving} className="w-full">
-            {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('UsersPage.notes.saving')}</> : t('UsersPage.notes.save')}
-          </Button>
-        </form>
-      </Form>
-    </div>
+            <FormField control={infoForm.control} name="email" render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('UsersPage.createDialog.email')}</FormLabel>
+                <FormControl>
+                  <Input type="email" placeholder={t('UsersPage.createDialog.emailPlaceholder')} {...field} disabled={lockEmail} />
+                </FormControl>
+                {lockEmail && (
+                  <p className="text-xs text-muted-foreground">{t('PatientPortal.info.emailLocked')}</p>
+                )}
+                <FormMessage />
+              </FormItem>
+            )} />
+            <FormField control={infoForm.control} name="address" render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('UsersPage.createDialog.address')}</FormLabel>
+                <FormControl><Input placeholder={t('UsersPage.createDialog.addressPlaceholder')} {...field} /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+            {/* Grupos, doctor asignado, dependencia y estado son campos de gestión
+                interna: el paciente no los ve ni los edita en su portal. */}
+            {!isPortal && (userId
+              ? <PatientGroupsField patientId={userId} onDirtyChange={setGroupsDirty} />
+              : <PatientGroupsField value={pendingGroupIds} onChange={setPendingGroupIds} onDirtyChange={setGroupsDirty} />)}
+            {!isPortal && <FormField control={infoForm.control} name="doctor_id" render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('UsersPage.createDialog.doctor')}</FormLabel>
+                <FormControl>
+                  <DoctorSelector
+                    value={field.value || undefined}
+                    selectedDoctorName={doctorDisplayName}
+                    onValueChange={(doctorId, doctor) => {
+                      field.onChange(doctorId || null);
+                      setDoctorDisplayName(doctor?.name || '');
+                    }}
+                    placeholder={t('UsersPage.createDialog.searchDoctor')}
+                    triggerText={t('UsersPage.createDialog.selectDoctor')}
+                  />
+                </FormControl>
+                {field.value && (
+                  <Button type="button" variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs" onClick={() => { field.onChange(null); setDoctorDisplayName(''); }}>
+                    {t('UsersPage.createDialog.clearDoctor')}
+                  </Button>
+                )}
+                <FormMessage />
+              </FormItem>
+            )} />}
+            <FormField control={infoForm.control} name="mutual_society_id" render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('UsersPage.mutualSociety.select')}</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value || ''}>
+                  <FormControl>
+                    <SelectTrigger><SelectValue placeholder={t('UsersPage.mutualSociety.select')} /></SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="none">{t('UsersPage.mutualSociety.none')}</SelectItem>
+                    {mutualSocieties.map((ms) => (
+                      <SelectItem key={ms.id} value={String(ms.id)}>{ms.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )} />
+            {!isPortal && showDependentField && (
+              <FormField control={infoForm.control} name="is_dependent" render={({ field }) => (
+                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                  <FormLabel>{t('UsersPage.createDialog.isDependent')}</FormLabel>
+                </FormItem>
+              )} />
+            )}
+            {!isPortal && showDependentField && isDependent ? (
+              <ResponsibleContactField
+                form={infoForm}
+                currentUserId={userId}
+                initialDisplayName={responsibleContactName}
+                onDisplayNameChange={setResponsibleContactName}
+                showCancelAction={showCancelAction}
+              />
+            ) : null}
+            {showNotes && (
+              <FormField control={infoForm.control} name="notes" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('UsersPage.notes.title')}</FormLabel>
+                  <FormControl>
+                    <Textarea {...field} placeholder={t('UsersPage.notes.placeholder')} className="min-h-[100px] resize-none" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+            )}
+            {/* Estado administrativo — no tiene sentido para el paciente en su propio portal */}
+            {!isPortal && (
+              <FormField control={infoForm.control} name="is_active" render={({ field }) => (
+                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                  <FormLabel>{t('UsersPage.createDialog.isActive')}</FormLabel>
+                </FormItem>
+              )} />
+            )}
+          </fieldset>
+        </div>
+        {/* Status-bar footer, outside the scroll area */}
+        {!readOnly && (
+          <div className={cn('flex flex-none justify-end gap-2 border-t bg-card', padding.footer)}>
+            {showCancelAction && (
+              <DialogCancelButton size="sm" disabled={isSaving}>
+                {t('UsersPage.createDialog.cancel')}
+              </DialogCancelButton>
+            )}
+            <Button type="submit" size="sm" disabled={isSaving || (isPortal && !isDirty)}>
+              {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('UsersPage.notes.saving')}</> : t('UsersPage.notes.save')}
+            </Button>
+          </div>
+        )}
+      </form>
+      <DuplicateContactDialog
+        owners={duplicateWarning?.owners ?? null}
+        onCancel={() => setDuplicateWarning(null)}
+        onConfirm={() => {
+          const pending = duplicateWarning;
+          setDuplicateWarning(null);
+          if (pending) void handleSave(pending.data, true);
+        }}
+      />
+      <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
+    </Form>
   );
 }

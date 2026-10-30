@@ -28,6 +28,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { ReportCurrencyFilter } from '@/components/reports/currency-filter';
+import { useReportCurrency } from '@/hooks/useReportCurrency';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 }).format(n);
@@ -48,7 +50,7 @@ export default function ServiciosPage() {
     to: endOfMonth(new Date()),
   });
   const [tipo,     setTipo]     = useState('all');
-  const [currency, setCurrency] = useState('UYU');
+  const { currency, setCurrency, isDual } = useReportCurrency({ includeAll: false });
 
   const [data, setData]           = useState<ReportServiciosResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -197,15 +199,7 @@ export default function ServiciosPage() {
           <SelectItem value="flow">{t('filter_tipo_flow')}</SelectItem>
         </SelectContent>
       </Select>
-      <Select value={currency} onValueChange={setCurrency}>
-        <SelectTrigger className="h-8 w-28 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="UYU">UYU</SelectItem>
-          <SelectItem value="USD">USD</SelectItem>
-        </SelectContent>
-      </Select>
+      <ReportCurrencyFilter value={currency} onChange={setCurrency} includeAll={false} />
     </div>
   );
 

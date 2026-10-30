@@ -1,0 +1,14 @@
+{
+  "AppointmentStatus": {
+    "completed": "Vino a la Cita",
+    "arrived": "Llegó a la sala de espera",
+    "no_show": "Faltó"
+  },
+  "CancellationReason": {
+    "late": "Canceló Tarde",
+    "in_time": "Canceló con Tiempo",
+    "no_notice": "Canceló sin aviso",
+    "by_doctor": "Canceló el Doctor",
+    "by_clinic": "Canceló la clínica"
+  }
+}

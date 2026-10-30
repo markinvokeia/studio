@@ -12,6 +12,8 @@ import { cn } from '@/lib/utils';
 import type { Invoice, Quote, QuoteItem } from '@/lib/types';
 import type { QuoteFinancialSummary } from '@/services/quote-financials';
 import { StepInvoiceSelect } from './step-invoice-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { formatMoney } from '@/lib/currency';
 
 export interface QuoteBillingLine {
   quoteItemId: string;
@@ -43,8 +45,8 @@ interface StepQuoteItemsProps {
   onToggleInvoice?: (id: string) => void;
 }
 
-function fmtCurrency(amount: number, currency = 'USD') {
-  return new Intl.NumberFormat('es-UY', { style: 'currency', currency }).format(amount);
+function fmtCurrency(amount: number, currency?: string) {
+  return formatMoney(amount, currency ?? getClinicCurrency());
 }
 
 async function fetchPerItemInvoicedAmounts(
@@ -106,7 +108,7 @@ export function StepQuoteItems({
   selectedInvoiceIds,
   onToggleInvoice,
 }: StepQuoteItemsProps) {
-  const currency = quote?.currency || 'USD';
+  const currency = quote?.currency || getClinicCurrency();
   const [isFetchingInvoiced, setIsFetchingInvoiced] = React.useState(false);
   // Stores the last computed per-item invoiced amounts so restoreLine can use correct values
   const [invoicedByItemMap, setInvoicedByItemMap] = React.useState<Map<string, number>>(new Map());

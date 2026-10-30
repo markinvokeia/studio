@@ -1,0 +1,226 @@
+{
+  "name": "Services — Image Get",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "services/image",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-validate",
+      "name": "Validar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\nconst assertServiceId = (value) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9]+$/.test(text)) {\n    throw new Error(`Invalid service_id: ${value}`);\n  }\n  return text;\n};\n\nconst input = $input.first().json;\nconst query = input.query ?? input;\nreturn [{ json: { service_id: assertServiceId(query.service_id) } }];\n"
+      }
+    },
+    {
+      "id": "node-lookup",
+      "name": "Leer Imagen",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        540,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT image_drive_file_id,\n       image_mimetype\nFROM public.service_catalog\nWHERE id = $1::integer\n  AND is_active IS NOT FALSE",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.service_id ] }}"
+        }
+      }
+    },
+    {
+      "id": "node-has-image",
+      "name": "¿Tiene Imagen?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "has-file",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.image_drive_file_id }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-download",
+      "name": "Descargar de Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        980,
+        220
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GOOGLE_DRIVE_CREDENTIAL_ID",
+          "name": "Google Drive"
+        }
+      },
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.image_drive_file_id }}"
+        },
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      }
+    },
+    {
+      "id": "node-respond-file",
+      "name": "Responder Binario",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        220
+      ],
+      "parameters": {
+        "respondWith": "binary",
+        "responseDataSource": "set",
+        "inputFieldName": "data",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "node-respond-empty",
+      "name": "Responder Sin Imagen",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        980,
+        400
+      ],
+      "parameters": {
+        "respondWith": "noData",
+        "options": {
+          "responseCode": 204
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada": {
+      "main": [
+        [
+          {
+            "node": "Leer Imagen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer Imagen": {
+      "main": [
+        [
+          {
+            "node": "¿Tiene Imagen?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Tiene Imagen?": {
+      "main": [
+        [
+          {
+            "node": "Descargar de Drive",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder Sin Imagen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Descargar de Drive": {
+      "main": [
+        [
+          {
+            "node": "Responder Binario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' (POSTGRES_CREDENTIAL_ID).\n2. Credencial 'Google Drive' (GOOGLE_DRIVE_CREDENTIAL_ID).\n3. Webhook SIN autenticación — igual que /clinic/logo.\n\n   ⚠️ Es deliberado: la imagen de un servicio la muestra la landing del portal\n   (/patient-login), donde el visitante todavía no tiene token. No hay nada\n   sensible acá — es material que la clínica publica— y se sirve sólo si el\n   servicio está activo.\n\nRUTA: GET https://<tu-n8n>/webhook/services/image?service_id=<entero>\n\nDevuelve el binario con su Content-Type. El front nunca pide la URL de Drive\ndirectamente: la auth de Drive la resuelve n8n.\n\nRESPONSE 200: la imagen (image/png | image/jpeg | image/webp)\nRESPONSE 204: el servicio no tiene imagen cargada. El front lo trata como\n              \"sin imagen\" y muestra el placeholder, no como error.\n\nREQUISITOS: database/scripts/122_20260930_service-booking-and-images.sql\nCONTRATO:   src/constants/routes.ts → SERVICE_IMAGE\nCONSUMIDORES:\n  - src/components/services/service-image-uploader.tsx (api.getBlob)\n  - src/components/patient-portal/service-picker.tsx (<img src>, vía\n    serviceImageUrl() en src/services/patient-services.ts)\n"
+  }
+}

@@ -4,7 +4,6 @@ import * as React from 'react'
 
 import type {
   ClinicalSubTab,
-  FinancialSubTab,
   InfoSubTab,
   PatientMacroTab,
 } from '@/components/patients/patient-detail-main-content'
@@ -12,21 +11,21 @@ import type {
 interface UsePatientDetailNavigationOptions {
   deepLinkView?: string
   selectedUserId?: string
+  /** First macro tab to land on. Callers without access to "info" pass 'clinical'. */
+  defaultTab?: PatientMacroTab
 }
 
-export function usePatientDetailNavigation({ deepLinkView, selectedUserId }: UsePatientDetailNavigationOptions) {
-  const [activeTab, setActiveTab] = React.useState<PatientMacroTab>('info')
+export function usePatientDetailNavigation({ deepLinkView, selectedUserId, defaultTab = 'info' }: UsePatientDetailNavigationOptions) {
+  const [activeTab, setActiveTab] = React.useState<PatientMacroTab>(defaultTab)
   const [activeInfoSubTab, setActiveInfoSubTab] = React.useState<InfoSubTab>('details')
   const [activeClinicalSubTab, setActiveClinicalSubTab] = React.useState<ClinicalSubTab>('clinical-history')
-  const [activeFinancialSubTab, setActiveFinancialSubTab] = React.useState<FinancialSubTab>('quotes')
 
   React.useEffect(() => {
     if (!selectedUserId) return
-    setActiveTab('info')
+    setActiveTab(defaultTab)
     setActiveInfoSubTab('details')
     setActiveClinicalSubTab('clinical-history')
-    setActiveFinancialSubTab('quotes')
-  }, [selectedUserId])
+  }, [selectedUserId, defaultTab])
 
   React.useEffect(() => {
     if (deepLinkView === 'anamnesis') {
@@ -68,19 +67,13 @@ export function usePatientDetailNavigation({ deepLinkView, selectedUserId }: Use
     setActiveClinicalSubTab('documents')
   }, [])
 
-  const openFinancialQuotes = React.useCallback(() => {
-    setActiveTab('financial')
-    setActiveFinancialSubTab('quotes')
+  const openClinicalMedicalInstructions = React.useCallback(() => {
+    setActiveTab('clinical')
+    setActiveClinicalSubTab('medical-instructions')
   }, [])
 
-  const openFinancialInvoices = React.useCallback(() => {
+  const openFinancial = React.useCallback(() => {
     setActiveTab('financial')
-    setActiveFinancialSubTab('invoices')
-  }, [])
-
-  const openFinancialPayments = React.useCallback(() => {
-    setActiveTab('financial')
-    setActiveFinancialSubTab('payments')
   }, [])
 
   return {
@@ -90,15 +83,12 @@ export function usePatientDetailNavigation({ deepLinkView, selectedUserId }: Use
     setActiveInfoSubTab,
     activeClinicalSubTab,
     setActiveClinicalSubTab,
-    activeFinancialSubTab,
-    setActiveFinancialSubTab,
     openInfo,
     openClinicalAnamnesis,
     openClinicalHistory,
     openClinicalTreatmentPlans,
     openClinicalDocuments,
-    openFinancialQuotes,
-    openFinancialInvoices,
-    openFinancialPayments,
+    openClinicalMedicalInstructions,
+    openFinancial,
   }
 }

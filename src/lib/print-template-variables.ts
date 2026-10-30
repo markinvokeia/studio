@@ -47,6 +47,8 @@ export const PRINT_TEMPLATE_VARIABLES: Record<PrintDocumentType, PrintTemplateVa
     { key: '{{payment_status}}', label: 'Estado de pago', group: 'document' },
     { key: '{{reference}}',      label: 'Referencia',     group: 'document' },
     { key: '{{total}}',          label: 'Total',          group: 'document' },
+    { key: '{{subtotal}}',       label: 'Subtotal (sin dto.)', group: 'document' },
+    { key: '{{discount}}',       label: 'Descuento',       group: 'document' },
     { key: '{{paid}}',           label: 'Pagado',         group: 'document' },
     { key: '{{pending}}',        label: 'Pendiente',      group: 'document' },
     ...SHARED_PATIENT,
@@ -58,6 +60,8 @@ export const PRINT_TEMPLATE_VARIABLES: Record<PrintDocumentType, PrintTemplateVa
     ...SHARED_DOCUMENT,
     { key: '{{payment_status}}',   label: 'Estado de pago',      group: 'document' },
     { key: '{{total}}',            label: 'Total',               group: 'document' },
+    { key: '{{subtotal}}',         label: 'Subtotal (sin dto.)', group: 'document' },
+    { key: '{{discount}}',         label: 'Descuento',           group: 'document' },
     { key: '{{amount_invoiced}}',  label: 'Facturado',           group: 'document' },
     { key: '{{pending_invoice}}',  label: 'Pend. Factura',       group: 'document' },
     { key: '{{amount_paid}}',      label: 'Pagado',              group: 'document' },
@@ -78,6 +82,8 @@ export const PRINT_TEMPLATE_VARIABLES: Record<PrintDocumentType, PrintTemplateVa
     { key: '{{original_invoice}}', label: 'Factura original', group: 'document' },
     { key: '{{reference}}',        label: 'Referencia',       group: 'document' },
     { key: '{{total}}',            label: 'Total acreditado', group: 'document' },
+    { key: '{{subtotal}}',         label: 'Subtotal (sin dto.)', group: 'document' },
+    { key: '{{discount}}',         label: 'Descuento',        group: 'document' },
     ...SHARED_PATIENT,
     { key: '{{items_table}}',      label: 'Tabla de ítems',   group: 'tables' },
   ],
@@ -130,4 +136,8 @@ export const PRINT_TEMPLATE_VARIABLES: Record<PrintDocumentType, PrintTemplateVa
     { key: '{{generated_at}}',     label: 'Fecha generación',      group: 'document' },
     { key: '{{movements_table}}',  label: 'Tablas de movimientos', group: 'tables' },
   ],
+  // The patient ledger is a React-only print (not a customizable HTML template).
+  ledger: [],
+  // The clinic history is a React-only print (not a customizable HTML template).
+  clinic_history: [],
 };

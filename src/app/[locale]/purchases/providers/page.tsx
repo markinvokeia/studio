@@ -1,5 +1,8 @@
 'use client';
 
+import { UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
+import { getUniqueConflict } from '@/components/patients/patient-form-utils';
+import type { UniqueConflict } from '@/lib/types';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { DataCard } from '@/components/ui/data-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -45,13 +48,16 @@ import { UserOrders } from '@/components/users/user-orders';
 import { UserPayments } from '@/components/users/user-payments';
 import { UserQuotes } from '@/components/users/user-quotes';
 import { UserServices } from '@/components/users/user-services';
+import { ProviderGroupsField, saveProviderGroups } from '@/components/providers/provider-groups-field';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { User, UserFinancial } from '@/lib/types';
 import { cn, isValidString } from '@/lib/utils';
+import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
@@ -68,6 +74,7 @@ import * as z from 'zod';
 import { ProviderColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
+import { createDefaultPagination } from '@/lib/pagination';
 
 const providerFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
@@ -78,11 +85,11 @@ const providerFormSchema = (t: (key: string) => string) => z.object({
   }, { message: t('ProvidersPage.createDialog.validation.emailInvalid') }),
   phone: z.string().optional().refine(val => {
     if (!val || val.trim() === '') return true;
-    return isValidPhoneNumber(val);
+    return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
   }, { message: t('ProvidersPage.createDialog.validation.phoneInvalid') }),
   alternative_phone: z.string().optional().refine(val => {
     if (!val || val.trim() === '') return true;
-    return isValidPhoneNumber(val);
+    return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
   }, { message: t('ProvidersPage.createDialog.validation.alternativePhoneInvalid') }),
   identity_document: z.string()
     .min(1, { message: t('ProvidersPage.createDialog.validation.identityRequired') })
@@ -169,6 +176,18 @@ async function upsertProvider(providerData: ProviderFormValues) {
   }
 
   return responseData;
+}
+
+/** Resolve a newly-created provider's id by name (the upsert response omits it). */
+async function findProviderByName(name: string): Promise<string | null> {
+  try {
+    const { users } = await getProviders({ pageIndex: 0, pageSize: 25 }, name);
+    const match = users.find((u) => u.name === name) ?? users[0];
+    return match?.id ? String(match.id) : null;
+  } catch (error) {
+    console.error('Failed to resolve new provider id:', error);
+    return null;
+  }
 }
 
 const NotesTab = ({ user, onUpdate }: { user: User, onUpdate: (notes: string) => void }) => {
@@ -337,6 +356,8 @@ export default function ProvidersPage() {
 
 function ProvidersPageContent() {
   const t = useTranslations();
+  // Dato que no se puede repetir: modal en vez de texto inline, que no se ve con el form scrolleado.
+  const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
   const { toast } = useToast();
   const { hasPermission } = usePermissions();
   const isViewportNarrow = useViewportNarrow();
@@ -362,6 +383,7 @@ function ProvidersPageContent() {
   const [providerCount, setProviderCount] = React.useState(0);
   const [selectedProvider, setSelectedProvider] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [pendingGroupIds, setPendingGroupIds] = React.useState<string[]>([]);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
   const [detailError, setDetailError] = React.useState<string | null>(null);
   const [isSavingDetail, setIsSavingDetail] = React.useState(false);
@@ -369,10 +391,7 @@ function ProvidersPageContent() {
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
-  const [pagination, setPagination] = React.useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 25,
-  });
+  const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [activeTab, setActiveTab] = React.useState('info');
   const [providerFinancialData, setProviderFinancialData] = React.useState<UserFinancial | null>(null);
@@ -399,6 +418,7 @@ function ProvidersPageContent() {
   const [refreshPaymentsTrigger, setRefreshPaymentsTrigger] = React.useState(0);
   const [refreshOrdersTrigger, setRefreshOrdersTrigger] = React.useState(0);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<ProviderFormValues>({
     resolver: zodResolver(providerFormSchema(t)),
     defaultValues: {
@@ -498,6 +518,7 @@ function ProvidersPageContent() {
       bank_account: '',
       is_active: true,
     });
+    setPendingGroupIds([]);
     setSubmissionError(null);
     setIsDialogOpen(true);
   };
@@ -625,7 +646,28 @@ function ProvidersPageContent() {
       setProviders(prev => prev.map(p => p.id === updated.id ? updated : p));
     } catch (error: any) {
       const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-      setDetailError(errorData?.message || (error instanceof Error ? error.message : t('ProvidersPage.createDialog.validation.genericError')));
+      const conflict = getUniqueConflict(errorData);
+      if (conflict) {
+        setUniqueConflict(conflict);
+      } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
+        const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
+        if (errors.length > 0) {
+          errors.forEach((err: { field: any; message: string }) => {
+            if (err.field) {
+              detailForm.setError(err.field as keyof ProviderFormValues, {
+                type: 'manual',
+                message: err.message,
+              });
+            }
+          });
+        } else {
+          setDetailError(errorData?.message || t('ProvidersPage.createDialog.validation.genericError'));
+        }
+      } else if (error.status >= 500) {
+        setDetailError(t('ProvidersPage.createDialog.validation.serverError'));
+      } else {
+        setDetailError(errorData?.message || (error instanceof Error ? error.message : t('ProvidersPage.createDialog.validation.genericError')));
+      }
     } finally {
       setIsSavingDetail(false);
     }
@@ -637,6 +679,17 @@ function ProvidersPageContent() {
 
     try {
       await upsertProvider(data);
+      // The upsert response doesn't return the record — resolve the new id by name to assign groups.
+      if (pendingGroupIds.length > 0) {
+        const newId = await findProviderByName(data.name);
+        if (newId) {
+          try {
+            await saveProviderGroups(newId, pendingGroupIds);
+          } catch (groupsError) {
+            console.error('Failed to assign groups to the new provider:', groupsError);
+          }
+        }
+      }
       toast({
         title: t('ProvidersPage.createDialog.createSuccessTitle'),
         description: t('ProvidersPage.createDialog.createSuccessDescription'),
@@ -646,9 +699,9 @@ function ProvidersPageContent() {
 
     } catch (error: any) {
       const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-      if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
-        const fields = errorData.conflictedFields.map((f: string) => t(`ProvidersPage.createDialog.validation.fields.${f}`)).join(', ');
-        setSubmissionError(t('ProvidersPage.createDialog.validation.uniqueConflict', { fields }));
+      const conflict = getUniqueConflict(errorData);
+      if (conflict) {
+        setUniqueConflict(conflict);
       } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
         const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
         if (errors.length > 0) {
@@ -702,6 +755,7 @@ function ProvidersPageContent() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
       <TwoPanelLayout
         minLeftSize={20}
         isRightPanelOpen={!!selectedProvider && canViewDetail}
@@ -940,7 +994,7 @@ function ProvidersPageContent() {
                       <Card className="h-full flex flex-col shadow-none border-0">
                         <CardContent className="flex-1 overflow-auto p-4 bg-card">
                           <Form {...detailForm}>
-                            <form onSubmit={detailForm.handleSubmit(onDetailSubmit)} className="space-y-4">
+                            <form onSubmit={detailForm.handleSubmit(onDetailSubmit, onInvalidSubmit)} className="space-y-4">
                               {detailError && (
                                 <Alert variant="destructive">
                                   <AlertTriangle className="h-4 w-4" />
@@ -979,6 +1033,7 @@ function ProvidersPageContent() {
                                   <FormLabel>{t('ProvidersPage.createDialog.isActive')}</FormLabel>
                                 </FormItem>
                               )} />
+                              <ProviderGroupsField providerId={selectedProvider.id} />
                               {canUpdateSupplier && (
                                 <div className="flex gap-2 pt-2">
                                   <Button type="submit" disabled={isSavingDetail}>
@@ -1099,7 +1154,7 @@ function ProvidersPageContent() {
             <DialogDescription>{t('ProvidersPage.createDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 px-6 py-4">
                 {submissionError && (
                   <Alert variant="destructive">
@@ -1236,6 +1291,7 @@ function ProvidersPageContent() {
                     </FormItem>
                   )}
                 />
+                <ProviderGroupsField value={pendingGroupIds} onChange={setPendingGroupIds} />
               </DialogBody>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{t('ProvidersPage.createDialog.cancel')}</Button>

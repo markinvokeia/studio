@@ -1,7 +1,16 @@
 import { create } from 'zustand';
-import type { Quote, QuoteItem, Invoice, InvoiceItem, CreditNote, Payment, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails } from '@/lib/types';
+import type { Quote, QuoteItem, Invoice, InvoiceItem, CreditNote, Payment, DocPrintTemplate, FinancialSummaryReport, CajaSessionDetails, PatientSession } from '@/lib/types';
+import type { LedgerRow } from '@/lib/patient-ledger';
+import type {
+  AllergyItem,
+  FamilyHistoryItem,
+  MedicationItem,
+  PatientHabits,
+  PersonalHistoryItem,
+} from '@/hooks/useClinicHistory';
+import type { ClinicHistoryPatientInfo } from '@/services/clinic-history-print-data';
 
-export type PrintDocumentType = 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion';
+export type PrintDocumentType = 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'ledger' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion' | 'clinic_history';
 
 export type PrintInvoiceRow = Invoice & { items: InvoiceItem[]; payments: Payment[] };
 
@@ -42,6 +51,16 @@ export type FinancialSummaryPrintData = {
   dateRange?: { from?: string; to?: string };
 };
 
+/** The "Clásico" (unified) patient ledger, printed exactly as shown on screen — the
+ *  same rows `buildPatientLedger` produces, grouped by currency. */
+export type LedgerPrintData = {
+  patientName?: string;
+  rowsByCurrency: Record<string, LedgerRow[]>;
+  /** Human-readable active period (e.g. "01/07/2026 – 31/07/2026"), shown in the print
+   *  header so it's clear the table isn't the full historical account. */
+  periodLabel?: string;
+};
+
 export type CajaAperturaPrintData = {
   details: CajaSessionDetails;
 };
@@ -54,6 +73,19 @@ export type CajaSesionPrintData = {
   details: CajaSessionDetails;
 };
 
+/** Full printable clinic history: patient demographics, anamnesis and every clinical session. */
+export type ClinicHistoryPrintData = {
+  patient: ClinicHistoryPatientInfo;
+  personalHistory: PersonalHistoryItem[];
+  familyHistory: FamilyHistoryItem[];
+  allergies: AllergyItem[];
+  medications: MedicationItem[];
+  habits: PatientHabits | null;
+  sessions: PatientSession[];
+  /** ISO timestamp the document was generated at, shown in the header. */
+  emittedAt: string;
+};
+
 export type PrintData =
   | QuotePrintData
   | InvoicePrintData
@@ -61,15 +93,22 @@ export type PrintData =
   | CreditNotePrintData
   | PrepaymentPrintData
   | FinancialSummaryPrintData
+  | LedgerPrintData
   | CajaAperturaPrintData
   | CajaCierrePrintData
-  | CajaSesionPrintData;
+  | CajaSesionPrintData
+  | ClinicHistoryPrintData;
+
+/** 'print' renders for the browser print dialog; 'capture' renders the same document
+ *  for `renderDocumentPdf` (html2pdf), which needs it without the print-dialog setup. */
+export type PrintDocumentMode = 'print' | 'capture';
 
 interface PrintDocumentStore {
   isActive: boolean;
+  mode: PrintDocumentMode;
   type: PrintDocumentType | null;
   data: PrintData | null;
-  activate: (type: PrintDocumentType, data: PrintData) => void;
+  activate: (type: PrintDocumentType, data: PrintData, mode?: PrintDocumentMode) => void;
   deactivate: () => void;
   customTemplates: Partial<Record<PrintDocumentType, string>>;
   customTemplatesLoaded: boolean;
@@ -78,10 +117,11 @@ interface PrintDocumentStore {
 
 export const usePrintDocumentStore = create<PrintDocumentStore>((set) => ({
   isActive: false,
+  mode: 'print',
   type: null,
   data: null,
-  activate: (type, data) => set({ isActive: true, type, data }),
-  deactivate: () => set({ isActive: false, type: null, data: null }),
+  activate: (type, data, mode = 'print') => set({ isActive: true, mode, type, data }),
+  deactivate: () => set({ isActive: false, mode: 'print', type: null, data: null }),
   customTemplates: {},
   customTemplatesLoaded: false,
   setCustomTemplates: (templates) =>

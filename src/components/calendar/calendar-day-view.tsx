@@ -1,16 +1,22 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
-import type { Locale } from 'date-fns';
-import { addDays, format, isSameDay, set, startOfWeek } from 'date-fns';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/components/ui/context-menu';
 
+import type { Locale } from 'date-fns';
+import { addDays, format, isSameDay, set } from 'date-fns';
+
+import { CalendarAllDayBand } from './calendar-all-day-band';
 import { DEFAULT_SCROLL_HOUR, HOUR_SLOT_HEIGHT } from './calendar-constants';
-import type { CalendarEvent, CalendarSlotClickHandler, CalendarView } from './calendar-types';
+import type { CalendarEvent, CalendarSlotClickHandler, CalendarSlotContextMenuContext, CalendarSlotContextMenuRenderer, CalendarView } from './calendar-types';
 import {
   filterEventsByDay,
   generateTimeSlots,
+  getCalendarViewStartDate,
   getEventStyle,
   getEventsWithLayout,
   slotTimeFromOffset,
@@ -18,7 +24,9 @@ import {
 import { CalendarEventDay } from './calendar-event-day';
 import { CalendarTimeColumn } from './calendar-time-column';
 import { TimeSlotDividers } from './calendar-time-column';
+import { CalendarHourRail } from './calendar-hour-rail';
 import { CalendarGapOverlays } from './calendar-gap-overlay';
+import { CalendarDraftPreviewBand } from './calendar-draft-preview';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isSlotBlocked } from './calendar-gaps';
 import type { Gap, BlockedRange } from './calendar-gaps';
@@ -28,6 +36,8 @@ interface CalendarDayViewProps {
   view: CalendarView;
   numDays: number;
   events: CalendarEvent[];
+  /** Ítems de todo el día, para la banda fija bajo el nombre del día. */
+  allDayEvents?: CalendarEvent[];
   currentTime: Date;
   dateLocale: Locale;
   timeZoneLabel: string;
@@ -37,15 +47,18 @@ interface CalendarDayViewProps {
   onEventContextMenu?: (data: any) => React.ReactNode;
   onEventContextMenuOpen?: (data: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
-  onSlotContextMenu?: CalendarSlotClickHandler;
-  inlineDraft?: import('./calendar-types').InlineDraft | null;
-  renderInlineDraft?: () => React.ReactNode;
+  renderSlotContextMenu?: CalendarSlotContextMenuRenderer;
   hourSlotHeight?: number;
   slotMinutes?: number;
   gaps?: Gap[];
   selectedGapKey?: string;
   onGapClick?: (gap: Gap) => void;
   blockedRanges?: BlockedRange[];
+  /** Whether the main hour gutter shows the hour labels (toggled via GMT checkbox). */
+  showTimeColumn?: boolean;
+  onToggleTimeColumn?: (value: boolean) => void;
+  /** Days of week (0=Sunday…6=Saturday) to hide as columns. Default []. */
+  hiddenWeekdays?: number[];
 }
 
 export function CalendarDayView({
@@ -53,6 +66,7 @@ export function CalendarDayView({
   view,
   numDays,
   events,
+  allDayEvents = [],
   currentTime,
   dateLocale,
   timeZoneLabel,
@@ -62,19 +76,31 @@ export function CalendarDayView({
   onEventContextMenu,
   onEventContextMenuOpen,
   onSlotClick,
-  onSlotContextMenu,
-  inlineDraft,
-  renderInlineDraft,
+  renderSlotContextMenu,
   hourSlotHeight = HOUR_SLOT_HEIGHT,
   slotMinutes,
   gaps,
   selectedGapKey,
   onGapClick,
   blockedRanges,
+  showTimeColumn = false,
+  onToggleTimeColumn,
+  hiddenWeekdays,
 }: CalendarDayViewProps) {
-  const startDay = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
-  const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
+  const t = useTranslations('Calendar');
+  const startDay = view === 'week'
+    ? getCalendarViewStartDate(currentDate, view)
+    : currentDate;
+  const allDays = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
+  // Si el filtro se come todos los días del rango (p.ej. vista "Día" parada
+  // justo en un día oculto), se muestran igual: no tiene sentido una grilla
+  // vacía, y el usuario llegó a esa fecha a propósito (navegación o clic).
+  const filteredDays = hiddenWeekdays?.length
+    ? allDays.filter((day) => !hiddenWeekdays.includes(day.getDay()))
+    : allDays;
+  const days = filteredDays.length > 0 ? filteredDays : allDays;
   const timeSlots = generateTimeSlots();
+  const [contextSlot, setContextSlot] = React.useState<CalendarSlotContextMenuContext | null>(null);
 
   const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * hourSlotHeight;
   const showTimeIndicator = days.some((day) => isSameDay(day, currentTime));
@@ -96,25 +122,6 @@ export function CalendarDayView({
     prevHourRef.current = hourSlotHeight;
   }, [hourSlotHeight]);
 
-  // Center the clicked point when an inline draft opens; restore the previous
-  // scroll position (zoom-independent, time-based) when it closes.
-  const draftKey = inlineDraft ? inlineDraft.date.getTime() : null;
-  const savedScrollMinRef = React.useRef<number | null>(null);
-  React.useEffect(() => {
-    const c = scrollContainerRef.current;
-    if (!c) return;
-    if (draftKey !== null) {
-      if (savedScrollMinRef.current === null) savedScrollMinRef.current = (c.scrollTop / hourSlotHeight) * 60;
-      const d = new Date(draftKey);
-      const clickMin = d.getHours() * 60 + d.getMinutes();
-      const top = (clickMin / 60) * hourSlotHeight;
-      c.scrollTo({ top: Math.max(0, top - c.clientHeight / 2), behavior: 'smooth' });
-    } else if (savedScrollMinRef.current !== null) {
-      c.scrollTo({ top: Math.max(0, (savedScrollMinRef.current / 60) * hourSlotHeight), behavior: 'smooth' });
-      savedScrollMinRef.current = null;
-    }
-  }, [draftKey, hourSlotHeight]);
-
   const slotDateFromEvent = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const y = e.clientY - rect.top;
@@ -134,16 +141,14 @@ export function CalendarDayView({
   };
 
   const handleSlotContextMenu = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
-    if (!onSlotContextMenu) return;
+    if (!renderSlotContextMenu) return;
     // An event's own context menu (radix ContextMenuTrigger) already handled and
     // preventDefault'd the right-click — don't also open the slot menu over it.
     if (e.defaultPrevented) return;
     if ((e.target as HTMLElement).closest('.event-in-day-view, .event')) return;
     if (!e.currentTarget.contains(e.target as Node)) return;
     const date = slotDateFromEvent(day, e);
-    if (isSlotBlocked(blockedRanges, date)) { e.preventDefault(); return; } // disable create/reminder on blocked slots
-    e.preventDefault();
-    onSlotContextMenu(date);
+    setContextSlot({ date, isBlocked: isSlotBlocked(blockedRanges, date) });
   };
 
   return (
@@ -154,7 +159,16 @@ export function CalendarDayView({
             className="day-view-header-dates"
             style={{ gridTemplateColumns: `60px repeat(${days.length}, 1fr)` }}
           >
-            <div className="time-zone-label">{timeZoneLabel}</div>
+            <div className="time-zone-label">
+              <Checkbox
+                className="time-zone-toggle"
+                checked={showTimeColumn}
+                onCheckedChange={(v) => onToggleTimeColumn?.(v === true)}
+                aria-label={t('showHours')}
+                title={t('showHours')}
+              />
+              <span>{timeZoneLabel}</span>
+            </div>
             {days.map((day) => (
               <div key={`date-${format(day, 'yyyy-MM-dd')}`} className="day-view-date-cell">
                 <span className="day-name">{format(day, 'EEE', { locale: dateLocale }).toUpperCase()}</span>
@@ -164,60 +178,70 @@ export function CalendarDayView({
               </div>
             ))}
           </div>
+          <CalendarAllDayBand
+            days={days}
+            events={allDayEvents}
+            gridTemplateColumns={`60px repeat(${days.length}, 1fr)`}
+            onEventClick={onEventClick}
+          />
         </div>
         <div className="day-view-body" style={{ '--num-days': days.length, '--hour-slot-height': `${hourSlotHeight}px` } as any}>
-          <CalendarTimeColumn />
+          <CalendarTimeColumn visible={showTimeColumn} />
           {days.map((day) => (
-            <div
-              key={format(day, 'yyyy-MM-dd')}
-              className="day-column"
-              onClick={(e) => handleSlotClick(day, e)}
-              onContextMenu={(e) => handleSlotContextMenu(day, e)}
-            >
-              <TimeSlotDividers />
-              <CalendarBlockedOverlays
-                ranges={blockedRanges}
-                dayKey={format(day, 'yyyy-MM-dd')}
-                hourSlotHeight={hourSlotHeight}
-              />
-              <CalendarGapOverlays
-                gaps={gaps}
-                dayKey={format(day, 'yyyy-MM-dd')}
-                hourSlotHeight={hourSlotHeight}
-                selectedGapKey={selectedGapKey}
-                onGapClick={onGapClick}
-              />
-              {getEventsWithLayout(filterEventsByDay(events, day)).map((event) => (
-                <CalendarEventDay
-                  key={event.id}
-                  event={event}
-                  style={getEventStyle(event, hourSlotHeight)}
-                  dateLocale={dateLocale}
-                  onEventClick={onEventClick}
-                  onEventColorChange={onEventColorChange}
-                  onEventDoubleClick={onEventDoubleClick}
-                  onEventContextMenu={onEventContextMenu}
-                  onEventContextMenuOpen={onEventContextMenuOpen}
-                />
-              ))}
-              {inlineDraft && renderInlineDraft && isSameDay(day, inlineDraft.date) && (
-                <div
-                  className="absolute left-0.5 z-[12] w-[300px] max-w-[calc(100vw-2rem)]"
-                  style={{
-                    top: `${((inlineDraft.date.getHours() + inlineDraft.date.getMinutes() / 60) / 1) * hourSlotHeight}px`,
-                    minHeight: `${Math.max((inlineDraft.durationMin / 60) * hourSlotHeight, 96)}px`,
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  onContextMenu={(e) => e.stopPropagation()}
-                >
-                  {renderInlineDraft()}
+            <ContextMenu key={format(day, 'yyyy-MM-dd')}>
+              <ContextMenuTrigger asChild disabled={!renderSlotContextMenu}>
+                <div className="day-column">
+                  <CalendarHourRail
+                    ariaLabel={t('createAppointment')}
+                    onClick={(e) => handleSlotClick(day, e)}
+                    onContextMenu={(e) => handleSlotContextMenu(day, e)}
+                  />
+                  <div
+                    className="day-column-content"
+                    onClick={(e) => handleSlotClick(day, e)}
+                    onContextMenu={(e) => handleSlotContextMenu(day, e)}
+                  >
+                    <TimeSlotDividers />
+                    <CalendarBlockedOverlays
+                      ranges={blockedRanges}
+                      dayKey={format(day, 'yyyy-MM-dd')}
+                      hourSlotHeight={hourSlotHeight}
+                    />
+                    <CalendarGapOverlays
+                      gaps={gaps}
+                      dayKey={format(day, 'yyyy-MM-dd')}
+                      hourSlotHeight={hourSlotHeight}
+                      selectedGapKey={selectedGapKey}
+                      onGapClick={onGapClick}
+                    />
+                    {getEventsWithLayout(filterEventsByDay(events, day)).map((event) => (
+                      <CalendarEventDay
+                        key={event.id}
+                        event={event}
+                        style={getEventStyle(event, hourSlotHeight)}
+                        hourSlotHeight={hourSlotHeight}
+                        dateLocale={dateLocale}
+                        onEventClick={onEventClick}
+                        onEventColorChange={onEventColorChange}
+                        onEventDoubleClick={onEventDoubleClick}
+                        onEventContextMenu={onEventContextMenu}
+                        onEventContextMenuOpen={onEventContextMenuOpen}
+                      />
+                    ))}
+                    <CalendarDraftPreviewBand
+                      dayKey={format(day, 'yyyy-MM-dd')}
+                      hourSlotHeight={hourSlotHeight}
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                {contextSlot && renderSlotContextMenu?.(contextSlot)}
+              </ContextMenuContent>
+            </ContextMenu>
           ))}
           {showTimeIndicator && (
             <div className="current-time-indicator" style={{ top: `${currentTimePosition}px` }}>
-              <div className="current-time-dot" />
               <div className="current-time-line" />
             </div>
           )}

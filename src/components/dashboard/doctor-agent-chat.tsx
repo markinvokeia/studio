@@ -240,7 +240,8 @@ function normalizeDoctorAction(rawAction: any): DoctorAgentAction | null {
       type: 'open_odontogram',
       payload: {
         procedimiento_realizado: rawAction.procedimiento_realizado || '',
-        notas_clinicas: rawAction.notas_clinicas || rawAction.notas || '',
+        // The model does not always use the documented field name for the dictated procedures
+        notas_clinicas: rawAction.notas_clinicas || rawAction.notas || rawAction.procedimientos || rawAction.observaciones || '',
         plan_proxima_cita: rawAction.plan_proxima_cita || '',
         marcaciones: Array.isArray(rawAction.marcaciones) ? rawAction.marcaciones : [],
       },
@@ -340,6 +341,10 @@ export function DoctorAgentChat({
     const div = document.createElement('div');
     // Mount outside <body> so Radix's aria-hidden/inert sweep (hideOthers) never
     // targets this container — it only operates on document.body children.
+    // Being a sibling of <body>, it also escapes every print rule that hides the
+    // app shell (`print:hidden` wrappers, `body > *:not([data-print-container])`),
+    // so it has to hide itself or the floating button lands on the printed PDF.
+    div.className = 'print:hidden';
     document.documentElement.appendChild(div);
     portalContainerRef.current = div;
     setIsClient(true);
@@ -642,7 +647,9 @@ export function DoctorAgentChat({
               </Button>
             </div>
           ) : !isOpen ? (
-            <div className="fixed bottom-24 left-1/2 z-[9990] -translate-x-1/2 flex flex-col items-center gap-2.5 sm:bottom-10">
+            // En mobile va a la esquina inferior derecha para no quedar sobre el texto que
+            // el doctor está leyendo; desde `sm` sigue centrado abajo como hasta ahora.
+            <div className="fixed bottom-24 right-4 z-[9990] flex flex-col items-end gap-2.5 sm:bottom-10 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:items-center">
               <span className="rounded-full border border-border/50 bg-background/90 px-3.5 py-1.5 text-xs font-medium text-foreground shadow-sm backdrop-blur-sm">
                 {t('openAgentChat')}
               </span>

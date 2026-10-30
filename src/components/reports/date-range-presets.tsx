@@ -30,7 +30,7 @@ interface DateRangePresetsProps {
 
 type Preset = 'all' | 'today' | 'week' | 'month' | 'prevMonth' | 'year' | 'custom';
 
-export function DateRangePresets({ value, onChange, className, allowAllTime = false }: DateRangePresetsProps) {
+export function DateRangePresets({ onChange, className, allowAllTime = false }: DateRangePresetsProps) {
   const t = useTranslations('DateRangePresets');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<Preset>(allowAllTime ? 'all' : 'month');
@@ -64,21 +64,33 @@ export function DateRangePresets({ value, onChange, className, allowAllTime = fa
     // 'custom' stays open so user can fill the date inputs
   };
 
+  // "All time" sentinels used when only one side of a custom range is picked.
+  const MIN_DATE = new Date(1900, 0, 1);
+  const MAX_DATE = new Date(9999, 11, 31);
+
+  /** Apply the custom range live on every change. With `allowAllTime`, a missing side is
+   *  filled with an all-time sentinel (open-ended start when only "hasta" is set, open-
+   *  ended future when only "desde" is set); otherwise we wait until both are present. */
+  const emitCustom = (fromIso: string, toIso: string) => {
+    if (fromIso && toIso) {
+      onChange({ from: parseISO(fromIso), to: parseISO(toIso) });
+    } else if (allowAllTime && (fromIso || toIso)) {
+      onChange({ from: fromIso ? parseISO(fromIso) : MIN_DATE, to: toIso ? parseISO(toIso) : MAX_DATE });
+    } else if (allowAllTime) {
+      onChange(undefined);
+    }
+  };
+
   const handleCustomFrom = (iso: string) => {
     setCustomFrom(iso);
     setActive('custom');
-    if (iso && customTo) {
-      onChange({ from: parseISO(iso), to: parseISO(customTo) });
-    }
+    emitCustom(iso, customTo);
   };
 
   const handleCustomTo = (iso: string) => {
     setCustomTo(iso);
     setActive('custom');
-    if (customFrom && iso) {
-      onChange({ from: parseISO(customFrom), to: parseISO(iso) });
-      setOpen(false);
-    }
+    emitCustom(customFrom, iso);
   };
 
   const presets: { key: Preset; label: string }[] = [
@@ -90,10 +102,17 @@ export function DateRangePresets({ value, onChange, className, allowAllTime = fa
     { key: 'year',      label: t('year')       },
   ];
 
-  const triggerLabel =
-    active === 'custom' && value?.from && value?.to
-      ? `${format(value.from, 'dd/MM/yy')} – ${format(value.to, 'dd/MM/yy')}`
-      : presets.find((p) => p.key === active)?.label ?? t('month');
+  const customLabel = () => {
+    const f = customFrom ? format(parseISO(customFrom), 'dd/MM/yy') : null;
+    const tt = customTo ? format(parseISO(customTo), 'dd/MM/yy') : null;
+    if (f && tt) return `${f} – ${tt}`;
+    if (f) return `${t('fromPrefix')} ${f}`;
+    if (tt) return `${t('toPrefix')} ${tt}`;
+    return t('custom');
+  };
+  const triggerLabel = active === 'custom'
+    ? customLabel()
+    : presets.find((p) => p.key === active)?.label ?? t('month');
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -128,25 +147,29 @@ export function DateRangePresets({ value, onChange, className, allowAllTime = fa
         {/* Separator */}
         <div className="my-1 h-px bg-border" />
 
-        {/* Custom date range */}
+        {/* Custom date range. Only the label follows the accent foreground — the date
+            inputs keep their own foreground so their text/icon stay visible on the white
+            field background (accent-foreground is white in the light theme). */}
         <div
           className={cn(
             'rounded px-3 py-2 space-y-2',
-            active === 'custom' && 'bg-accent text-accent-foreground'
+            active === 'custom' && 'bg-accent'
           )}
           onClick={() => setActive('custom')}
         >
-          <p className="text-xs font-medium text-muted-foreground">{t('custom')}</p>
+          <p className={cn('text-xs font-medium', active === 'custom' ? 'text-accent-foreground' : 'text-muted-foreground')}>{t('custom')}</p>
           <div className="space-y-1.5" onClick={(e) => e.stopPropagation()}>
             <DatePickerInput
               value={customFrom}
               onChange={handleCustomFrom}
               placeholder="Desde dd/mm/aaaa"
+              iconClassName="text-foreground"
             />
             <DatePickerInput
               value={customTo}
               onChange={handleCustomTo}
               placeholder="Hasta dd/mm/aaaa"
+              iconClassName="text-foreground"
             />
           </div>
         </div>

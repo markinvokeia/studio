@@ -114,8 +114,10 @@ export function CajaAperturaPrintTemplate({ data }: CajaAperturaPrintTemplatePro
       {/* Denominaciones de apertura */}
       <div className="print-template-section">
         <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">Denominaciones de Apertura</h2>
-        {renderDenominationTable('UYU')}
-        {renderDenominationTable('USD')}
+        {/* Una tabla por moneda con conteo en la apertura. */}
+        {Object.keys(openingDetails as Record<string, any>)
+          .filter((k) => /^[a-z]{3}$/.test(k))
+          .map((k) => renderDenominationTable(k.toUpperCase()))}
       </div>
     </div>
   );

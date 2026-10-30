@@ -27,6 +27,9 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { ReportCurrencyFilter } from '@/components/reports/currency-filter';
+import { useReportCurrency } from '@/hooks/useReportCurrency';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 }).format(n);
@@ -38,7 +41,7 @@ export default function CierreCajaPage() {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
-  const [currency, setCurrency] = useState<string>('all');
+  const { currency, setCurrency, isDual } = useReportCurrency();
   const [cashPointId, setCashPointId] = useState<string>('all');
   const [paymentMethodId, setPaymentMethodId] = useState<string>('all');
   const [movementType, setMovementType] = useState<string>('all');
@@ -154,16 +157,7 @@ export default function CierreCajaPage() {
           ))}
         </SelectContent>
       </Select>
-      <Select value={currency} onValueChange={setCurrency}>
-        <SelectTrigger className="h-8 w-28 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas</SelectItem>
-          <SelectItem value="UYU">UYU</SelectItem>
-          <SelectItem value="USD">USD</SelectItem>
-        </SelectContent>
-      </Select>
+      <ReportCurrencyFilter value={currency} onChange={setCurrency} allLabel="Todas" />
       <Select value={movementType} onValueChange={setMovementType}>
         <SelectTrigger className="h-8 w-32 text-xs">
           <SelectValue />
@@ -181,7 +175,7 @@ export default function CierreCajaPage() {
 
   // Compute per-currency totals from rows for multi-currency display
   const byCur = (data?.rows ?? []).reduce<Record<string, { ingresos: number; egresos: number }>>((acc, r) => {
-    const c = r.currency ?? 'UYU';
+    const c = r.currency ?? getClinicCurrency();
     if (!acc[c]) acc[c] = { ingresos: 0, egresos: 0 };
     acc[c].ingresos += Number(r.total_ingresos ?? 0);
     acc[c].egresos  += Number(r.total_egresos  ?? 0);

@@ -2,39 +2,105 @@ import { isValidPhoneNumber } from 'libphonenumber-js';
 import * as z from 'zod';
 
 import { API_ROUTES } from '@/constants/routes';
-import { api } from '@/services/api';
-import type { MutualSociety, User } from '@/lib/types';
+import { api, REQUEST_TIMEOUT_MS, type ApiRequestOptions } from '@/services/api';
+import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
+import { IDENTITY_DOCUMENT_TYPES, isValidIdentityDocument } from '@/lib/identity-document';
+import { getPersonNameIssue, normalizePersonName, type PersonNameIssue } from '@/lib/person-name';
+import type { DuplicateContactOwners, MutualSociety, PatientDependent, UniqueConflict, User } from '@/lib/types';
 
 // ── Patient form schema ──────────────────────────────────────────────────────
-export const userFormSchema = (t: (key: string) => string) => z.object({
-  id: z.string().optional(),
-  name: z.string().min(1, { message: t('UsersPage.createDialog.validation.nameRequired') }),
-  email: z.string().optional().refine((val) => {
-    if (!val || val.trim() === '') return true;
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
-  }, { message: t('UsersPage.createDialog.validation.emailInvalid') }),
-  phone: z.string().optional().refine((val) => {
-    if (!val || val.trim() === '') return true;
-    return isValidPhoneNumber(val);
-  }, { message: t('UsersPage.createDialog.validation.phoneInvalid') }),
-  identity_document: z.string()
-    .regex(/^\d*$/, { message: t('UsersPage.createDialog.validation.identityInvalid') })
-    .max(10, { message: t('UsersPage.createDialog.validation.identityMaxLength') }),
-  birth_date: z.string().optional(),
-  notes: z.string().optional(),
-  is_active: z.boolean().default(false),
-  mutual_society_id: z.string().optional(),
-  is_dependent: z.boolean().default(false),
-  responsible_contact_id: z.string().nullable().optional(),
-}).refine((data) => {
-  if (data.is_dependent) return true;
-  const hasEmail = data.email && data.email.trim() !== '';
-  const hasPhone = data.phone && data.phone.trim() !== '';
-  return hasEmail || hasPhone;
-}, {
-  message: t('UsersPage.createDialog.validation.emailOrPhoneRequired'),
-  path: ['email'],
-});
+/** Clave de traducción por motivo de `getPersonNameIssue`. La comparte el alta rápida. */
+export const PERSON_NAME_ISSUE_MESSAGES: Record<PersonNameIssue, string> = {
+  required: 'UsersPage.createDialog.validation.nameRequired',
+  invalid: 'UsersPage.createDialog.validation.nameInvalid',
+  tooShort: 'UsersPage.createDialog.validation.nameTooShort',
+  tooLong: 'UsersPage.createDialog.validation.nameTooLong',
+};
+
+export const userFormSchema = (
+  t: (key: string) => string,
+  options?: {
+    identityDocumentRequired?: boolean;
+    /**
+     * Nombre guardado de la ficha que se edita. Si no se toca, no se valida su
+     * formato: hay fichas viejas con el documento en el nombre ("Ana (1234)") y
+     * no deben bloquear, por ejemplo, un cambio de teléfono.
+     */
+    originalName?: string | null;
+  },
+) => {
+  const identityDocumentRequired = options?.identityDocumentRequired ?? false;
+  const originalName = options?.originalName ? normalizePersonName(options.originalName) : null;
+
+  return z.object({
+    id: z.string().optional(),
+    name: z.string().superRefine((value, ctx) => {
+      if (originalName && normalizePersonName(value) === originalName) return;
+      const issue = getPersonNameIssue(value);
+      if (!issue) return;
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: t(PERSON_NAME_ISSUE_MESSAGES[issue]),
+      });
+    }),
+    email: z.string().optional().refine((val) => {
+      if (!val || val.trim() === '') return true;
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+    }, { message: t('UsersPage.createDialog.validation.emailInvalid') }),
+    phone: z.string().optional().refine((val) => {
+      if (!val || val.trim() === '') return true;
+      return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
+    }, { message: t('UsersPage.createDialog.validation.phoneInvalid') }),
+    identity_document: z.string().optional().default(''),
+    identity_document_type: z.enum(
+      IDENTITY_DOCUMENT_TYPES as [string, ...string[]]
+    ).default('cedula_uy'),
+    birth_date: z.string().optional(),
+    address: z.string().optional(),
+    notes: z.string().optional(),
+    is_active: z.boolean().default(false),
+    mutual_society_id: z.string().optional(),
+    is_dependent: z.boolean().default(false),
+    responsible_contact_id: z.string().nullable().optional(),
+    doctor_id: z.string().nullable().optional(),
+    sex: z.enum(['male', 'female']).nullable().optional(),
+  }).superRefine((data, ctx) => {
+    const value = (data.identity_document || '').trim();
+    if (!value) {
+      if (identityDocumentRequired) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: t('UsersPage.createDialog.validation.identityRequired'),
+          path: ['identity_document'],
+        });
+      }
+      return;
+    }
+    if (!isValidIdentityDocument(value, data.identity_document_type as any)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: t('UsersPage.createDialog.validation.identityInvalid'),
+        path: ['identity_document'],
+      });
+    }
+  }).refine((data) => {
+    if (data.is_dependent) return true;
+    const hasEmail = data.email && data.email.trim() !== '';
+    const hasPhone = data.phone && data.phone.trim() !== '';
+    return hasEmail || hasPhone;
+  }, {
+    message: t('UsersPage.createDialog.validation.emailOrPhoneRequired'),
+    path: ['email'],
+  }).refine((data) => {
+    // Espejo del constraint `check_dependent_has_responsible` de la tabla `users`:
+    // un dependiente sin tutor hace fallar el INSERT del backend con un 500 opaco.
+    if (!data.is_dependent) return true;
+    return !!data.responsible_contact_id;
+  }, {
+    message: t('UsersPage.createDialog.validation.responsibleContactRequired'),
+    path: ['responsible_contact_id'],
+  });
+};
 
 export type UserFormValues = z.infer<ReturnType<typeof userFormSchema>>;
 
@@ -47,15 +113,20 @@ export type DependantContactInfo = {
 };
 
 // ── Data helpers ─────────────────────────────────────────────────────────────
-export async function upsertUser(userData: UserFormValues) {
+export async function upsertUser(userData: UserFormValues, options?: { confirmDuplicates?: boolean }) {
   const payload = {
     ...userData,
+    name: normalizePersonName(userData.name),
     mutual_society_id: userData.mutual_society_id && userData.mutual_society_id !== 'none'
       ? userData.mutual_society_id
       : null,
     responsible_contact_id: userData.responsible_contact_id || null,
+    doctor_id: userData.doctor_id || null,
+    sex: userData.sex || null,
     filter_type: 'PACIENTE',
     is_sales: true,
+    // Segundo envío tras la advertencia de contacto repetido (`duplicate_contact`).
+    ...(options?.confirmDuplicates ? { confirm_duplicates: true } : {}),
   };
   const responseData = await api.post(API_ROUTES.USERS_UPSERT, payload);
 
@@ -67,6 +138,140 @@ export async function upsertUser(userData: UserFormValues) {
   }
 
   return responseData;
+}
+
+/** Cuerpo `error` que devuelve `/users/upsert` (n8n lo envía como objeto o dentro de un array). */
+export function getUpsertErrorPayload(error: any): any {
+  return error?.data?.error || (Array.isArray(error?.data) && error.data[0]?.error) || undefined;
+}
+
+/**
+ * Con `clinic_preferences.allow_duplicate_phone` activo, el backend no guarda un
+ * teléfono ya usado por otro paciente: responde `duplicate_contact` con los
+ * dueños para que recepción confirme. Devuelve esos dueños, o `null` si el error es otro.
+ */
+export function getDuplicateContactWarning(error: any): DuplicateContactOwners | null {
+  const payload = getUpsertErrorPayload(error);
+  if (payload?.code !== 'duplicate_contact' || !payload.owners) return null;
+  return payload.owners as DuplicateContactOwners;
+}
+
+/**
+ * Datos de un `unique_conflict` (campos repetidos y quién los tiene) para mostrarlos en un
+ * modal, o `null` si el error es otro. Un texto inline pasa desapercibido cuando el formulario
+ * está scrolleado hacia abajo.
+ */
+export function getUniqueConflict(payload: any): UniqueConflict | null {
+  if (payload?.code !== 'unique_conflict' || !Array.isArray(payload.conflictedFields)) return null;
+  return { conflictedFields: payload.conflictedFields, owners: payload.owners ?? {} };
+}
+
+/**
+ * Traduce el error de `/users/upsert` a un mensaje mostrable.
+ *
+ * El backend contesta con formatos distintos: el envelope de validación
+ * (`{ error: { code, ... } }`) y el de un nodo de n8n caído
+ * (`[{ message, error: { description, ... } }]`), que es el que dispara el
+ * constraint `check_dependent_has_responsible`. Devuelve `null` cuando no hay
+ * nada útil, para que el llamador caiga a su mensaje genérico.
+ */
+export function resolveUserUpsertError(
+  error: any,
+  t: (key: string, values?: any) => string,
+): string | null {
+  const data = error?.data;
+  const payload = Array.isArray(data) ? data[0] : data;
+  const backendError = payload && typeof payload === 'object' ? payload.error : undefined;
+
+  const rawMessage =
+    typeof data === 'string' ? data
+    : typeof payload?.message === 'string' ? payload.message
+    : typeof backendError === 'string' ? backendError
+    : typeof backendError?.message === 'string' ? backendError.message
+    : typeof backendError?.description === 'string' ? backendError.description
+    : undefined;
+
+  // El backend repite la regla de `person-name.ts` por si el formulario se saltea.
+  if (backendError?.code === 'invalid_name') {
+    return t('UsersPage.createDialog.validation.nameInvalid');
+  }
+  const dependencyError = resolveDependencyErrorCode(backendError?.code, t);
+  if (dependencyError) return dependencyError;
+  // El texto crudo de Postgres no le dice nada al usuario: lo que importa es que
+  // falta elegir el tutor.
+  if (rawMessage?.includes('dependent_has_responsible')) {
+    return t('UsersPage.createDialog.validation.responsibleContactRequired');
+  }
+  if (error?.status >= 500) {
+    return t('UsersPage.createDialog.validation.serverError');
+  }
+  return rawMessage ?? null;
+}
+
+/**
+ * Reglas tutor/dependiente que validan `/users/upsert` y `/users/responsible`: sin
+ * cadenas (el tutor no es dependiente y quien tiene dependientes no pasa a serlo).
+ */
+const DEPENDENCY_ERROR_KEYS: Record<string, string> = {
+  self_responsible: 'UsersPage.dependents.errors.selfResponsible',
+  responsible_is_dependent: 'UsersPage.dependents.errors.responsibleIsDependent',
+  guardian_has_dependents: 'UsersPage.dependents.errors.guardianHasDependents',
+  user_not_found: 'UsersPage.dependents.errors.notFound',
+  responsible_not_found: 'UsersPage.dependents.errors.notFound',
+};
+
+export function resolveDependencyErrorCode(
+  code: unknown,
+  t: (key: string, values?: any) => string,
+): string | null {
+  const key = typeof code === 'string' ? DEPENDENCY_ERROR_KEYS[code] : undefined;
+  return key ? t(key) : null;
+}
+
+function mapDependent(raw: any): PatientDependent {
+  return {
+    id: String(raw.id),
+    name: raw.name || '',
+    email: raw.email ?? null,
+    phone_number: raw.phone_number ?? null,
+    identity_document: raw.identity_document ?? null,
+    identity_document_type: raw.identity_document_type ?? null,
+    birth_date: normalizeBirthDate(raw.birth_date ?? raw.birthday) || null,
+    is_active: raw.is_active ?? true,
+    uses_responsible_phone: raw.uses_responsible_phone === true,
+  };
+}
+
+/** Pacientes a cargo del tutor `responsibleId`. Lanza el error para que la vista distinga error de vacío. */
+export async function fetchPatientDependents(responsibleId: string, signal?: AbortSignal): Promise<PatientDependent[]> {
+  const responseData = await api.get(API_ROUTES.USERS_DEPENDENTS, { user_id: responsibleId }, undefined, { signal });
+  const envelope = Array.isArray(responseData) ? responseData[0] : responseData;
+  const list = envelope?.json?.data ?? envelope?.data ?? [];
+  return Array.isArray(list) ? list.map(mapDependent).filter((d) => d.id) : [];
+}
+
+/**
+ * Vincula (`responsibleId`) o desvincula (`null`) a un paciente de su tutor. Va por
+ * `/users/responsible` y no por el upsert: este reescribe la ficha entera y desde la
+ * pestaña del tutor no se tiene la del dependiente completa. El error trae `code`.
+ */
+export async function setPatientResponsible(
+  userId: string,
+  responsibleId: string | null,
+  options?: ApiRequestOptions,
+): Promise<void> {
+  const responseData = await api.post(
+    API_ROUTES.USERS_RESPONSIBLE,
+    { user_id: userId, responsible_contact_id: responsibleId },
+    undefined,
+    undefined,
+    { timeoutMs: REQUEST_TIMEOUT_MS.mutation, ...options },
+  );
+  const result = Array.isArray(responseData) ? responseData[0] : responseData;
+  if (result?.success === true) return;
+  const error = new Error(result?.error?.code || 'responsible_update_failed') as Error & { code?: string };
+  error.code = result?.error?.code;
+  throw error;
 }
 
 export async function getDependantContactInfo(userId: string): Promise<DependantContactInfo | null> {
@@ -131,6 +336,27 @@ export async function getMutualSocietiesList(): Promise<MutualSociety[]> {
 }
 
 // Maps a user from the FILTER_USERS / USERS search response into a partial User.
+/**
+ * Normalizes an API birth date to the `YYYY-MM-DD` string the form/date picker
+ * expects. The users endpoint returns the field as `birthday` in ISO timestamp
+ * form (e.g. "2006-07-23T00:00:00.000Z"); we take the calendar-date portion so
+ * no timezone conversion can shift the day.
+ */
+function normalizeBirthDate(value: unknown): string {
+  if (typeof value !== 'string' || value.trim() === '') return '';
+  const trimmed = value.trim();
+  // ISO timestamp or plain YYYY-MM-DD: take the date portion as-is.
+  const isoMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})(?:[T ]|$)/);
+  if (isoMatch) return isoMatch[1];
+  // DD/MM/YYYY → YYYY-MM-DD.
+  const dmy = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (dmy) {
+    const [, day, month, year] = dmy;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+  return trimmed;
+}
+
 function mapSearchUser(apiUser: any): User {
   return {
     id: String(apiUser.user_id ?? apiUser.id ?? ''),
@@ -140,27 +366,95 @@ function mapSearchUser(apiUser: any): User {
     is_active: apiUser.is_active ?? true,
     avatar: '',
     identity_document: apiUser.identity_document || '',
-    birth_date: apiUser.birth_date || '',
+    identity_document_type: apiUser.identity_document_type || 'cedula_uy',
+    birth_date: normalizeBirthDate(apiUser.birth_date ?? apiUser.birthday),
+    address: apiUser.address || '',
     notes: apiUser.notes || '',
     mutual_society_id: apiUser.mutual_society_id ?? undefined,
     mutual_society_name: apiUser.mutual_society_name ?? undefined,
-    is_dependent: apiUser.is_dependent ?? false,
+    // El backend devuelve la columna como `is_dependant` (ver patients/page.tsx); se
+    // acepta también `is_dependent` por si algún endpoint la manda bien escrita.
+    is_dependent: apiUser.is_dependent ?? apiUser.is_dependant ?? false,
     responsible_contact_id: apiUser.responsible_contact_id || undefined,
     responsible_contact_name: apiUser.responsible_contact_name || undefined,
+    responsible_phone_number: apiUser.responsible_phone_number || undefined,
+    matched_by_responsible: apiUser.matched_by_responsible === true,
+    doctor_id: apiUser.doctor_id !== undefined && apiUser.doctor_id !== null && apiUser.doctor_id !== ''
+      ? String(apiUser.doctor_id)
+      : null,
+    doctor_name: apiUser.doctor_name || undefined,
+    sex: apiUser.sex ?? null,
   };
+}
+
+function extractSearchUsers(data: any): any[] {
+  if (Array.isArray(data)) {
+    return data.flatMap((item) => {
+      const nested = item?.json?.data ?? item?.data;
+      if (Array.isArray(nested)) return nested;
+      if (nested && typeof nested === 'object') return [nested];
+      if (item?.json && typeof item.json === 'object') return [item.json];
+      return item && typeof item === 'object' ? [item] : [];
+    });
+  }
+
+  const nested = data?.data ?? data?.users ?? data?.result;
+  if (Array.isArray(nested)) return nested;
+  if (nested && typeof nested === 'object') return [nested];
+  return data && typeof data === 'object' ? [data] : [];
 }
 
 /** Fetches a single patient's full record by id (used to prefill the form). */
 export async function fetchPatientById(userId: string): Promise<User | null> {
   try {
-    const data = await api.get(API_ROUTES.FILTER_USERS, { search: userId });
-    const usersData = (Array.isArray(data) && data.length > 0) ? (data[0].data ?? data[0].json?.data ?? []) : (data?.data ?? []);
+    const data = await api.get(API_ROUTES.USERS, { search: userId, filter_type: 'PACIENTE' });
+    const usersData = extractSearchUsers(data);
     const match = usersData.find((u: any) => String(u.user_id ?? u.id) === String(userId)) ?? usersData[0];
     return match ? mapSearchUser(match) : null;
   } catch (error) {
     console.error('Failed to fetch patient:', error);
     return null;
   }
+}
+
+/** Finds a patient by exact name — used to resolve a just-created patient's id
+ *  (the upsert response doesn't return the record). Falls back to the first match.
+ *  Normaliza el nombre como `upsertUser` al guardarlo: con el nombre crudo
+ *  ("Ana  Pérez ") el ILIKE no encuentra la ficha recién creada. */
+export async function findPatientByName(name: string): Promise<User | null> {
+  const normalizedName = normalizePersonName(name);
+  if (!normalizedName) return null;
+  try {
+    const responseData = await api.get(API_ROUTES.USERS, { search: normalizedName, filter_type: 'PACIENTE' });
+    let usersData: any[] = [];
+    if (Array.isArray(responseData) && responseData.length > 0) {
+      const first = responseData[0];
+      usersData = first.json?.data || first.data || [];
+    } else if (responseData?.data) {
+      usersData = responseData.data;
+    }
+    const users = usersData.map(mapSearchUser);
+    const target = normalizedName.toLowerCase();
+    return users.find((u: User) => normalizePersonName(u.name).toLowerCase() === target) || users[0] || null;
+  } catch (error) {
+    console.error('Failed to find patient by name:', error);
+    return null;
+  }
+}
+
+/**
+ * Pacientes que se pueden poner a cargo de `guardianId`: todos menos él mismo. Los que ya
+ * dependen de otro tutor se devuelven igual (con `is_dependent`) para pedir confirmación
+ * de la reasignación; los que tienen dependientes los rechaza el backend.
+ */
+export async function searchDependentCandidates(searchQuery: string, guardianId: string, signal?: AbortSignal): Promise<User[]> {
+  const responseData = await api.get(
+    API_ROUTES.USERS,
+    { search: searchQuery, filter_type: 'PACIENTE', page: '1', limit: '20' },
+    undefined,
+    { signal },
+  );
+  return extractSearchUsers(responseData).map(mapSearchUser).filter((u: User) => u.id && u.id !== guardianId);
 }
 
 /** Searches potential guardian patients (non-dependents) for the responsible-contact picker. */

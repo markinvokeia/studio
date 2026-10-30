@@ -1,488 +1,197 @@
 'use client';
 
-import { Stats } from '@/components/dashboard/stats';
-import { SalesSummaryChart } from '@/components/charts/sales-summary-chart';
-import { SalesByServiceChart } from '@/components/charts/sales-by-service-chart';
-import { InvoiceStatusChart } from '@/components/charts/invoice-status-chart';
-import { ReportFilters } from '@/components/dashboard/report-filters';
-import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
-import { NewPatientsTable } from '@/components/tables/new-patients-table';
-import { Quote, User, Stat, SalesChartData, SalesByServiceChartData, InvoiceStatusData, AverageBilling, AppointmentAttendanceRate, PatientDemographics, CajaSesion } from '@/lib/types';
-import { ColumnFiltersState, PaginationState } from '@tanstack/react-table';
 import * as React from 'react';
-import { DateRange } from 'react-day-picker';
-import { subMonths, format } from 'date-fns';
-import { KpiRow } from '@/components/dashboard/kpi-row';
-import { useTranslations } from 'next-intl';
+
+import { Button } from '@/components/ui/button';
+
+import { Can } from '@/components/auth/Can';
+import { PatientsPerDayChart } from '@/components/charts/patients-per-day-chart';
+import { SalesByServiceChart } from '@/components/charts/sales-by-service-chart';
+import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar';
+import { formatAmount } from '@/components/dashboard/dashboard-format';
+import { MonthlyEvolution } from '@/components/dashboard/monthly-evolution';
+import { MonthSummaryCards } from '@/components/dashboard/month-summary-cards';
+import { ProductionByBranch } from '@/components/dashboard/production-by-branch';
+import { TodayHero } from '@/components/dashboard/today-hero';
+
+import { DashboardFiltersProvider, useDashboardFilters } from '@/context/DashboardFiltersContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { api } from '@/services/api';
+
 import { API_ROUTES } from '@/constants/routes';
 import { DASHBOARD_PERMISSIONS } from '@/constants/permissions';
-import { usePermissions } from '@/hooks/usePermissions';
-import { Can } from '@/components/auth/Can';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Badge } from '@/components/ui/badge';
-import { formatDateTime } from '@/lib/utils';
+import type {
+  DashboardExecutiveSummary,
+  EvolucionMensualResponse,
+  PacientesPorDiaResponse,
+  ProduccionSucursalResponse,
+  VentasPorServicioResponse,
+} from '@/lib/types';
+import { cn } from '@/lib/utils';
 
-type DashboardSummary = {
-    stats: Stat[],
-    salesTrend: number,
-    averageBilling: AverageBilling | null,
-    appointmentAttendance: AppointmentAttendanceRate | null,
-}
+import { format } from 'date-fns';
+import { useTranslations } from 'next-intl';
 
-const INVOICE_CHART_COLORS: { [key: string]: string } = {
-    Paid: 'hsl(var(--chart-2))',    // Verde
-    Overdue: 'hsl(var(--chart-1))', // Rojo
-    Draft: 'hsl(var(--muted-foreground))',
-    Sent: 'hsl(var(--chart-3))',    // Azul
-    Pending: 'hsl(var(--chart-3))', // Azul
-};
+const TOP_SERVICES = 6;
+const EVOLUTION_MONTHS = 6;
 
-async function getDashboardData(dateRange: DateRange | undefined, t: (key: string) => string): Promise<DashboardSummary> {
-    const defaultSummary: DashboardSummary = { stats: [], salesTrend: 0, averageBilling: null, appointmentAttendance: null };
-    if (!dateRange || !dateRange.from || !dateRange.to) {
-        return defaultSummary;
-    }
-
-    try {
-        const data = await api.get(API_ROUTES.DASHBOARD.SUMMARY, {
-            start_date: format(dateRange.from, 'yyyy-MM-dd'),
-            end_date: format(dateRange.to, 'yyyy-MM-dd'),
-        });
-        const summaryData = (Array.isArray(data) && data.length > 0) ? data[0] : data;
-
-        const formatCurrency = (value: number) => {
-            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
-        }
-
-        const formatPercentage = (value: number) => {
-            const sign = value > 0 ? '+' : '';
-            return `${sign}${value.toFixed(1)}% ${t('fromLastMonth')}`;
-        }
-
-        const getChangeType = (value: number): 'positive' | 'negative' | 'neutral' => {
-            if (value > 0) return 'positive';
-            if (value < 0) return 'negative';
-            return 'neutral';
-        }
-
-        const avgRevenueChange = Number(summaryData.avg_revenue_change_vs_previous || 0);
-        const showRateChange = Number(summaryData.show_rate_change_vs_previous || 0);
-
-        return {
-            stats: [
-                {
-                    title: t('totalRevenue'),
-                    value: formatCurrency(Number(summaryData.current_period_revenue || 0)),
-                    change: formatPercentage(Number(summaryData.revenue_growth_percentage || 0)),
-                    changeType: getChangeType(Number(summaryData.revenue_growth_percentage || 0)),
-                    icon: 'currency-dollar',
-                },
-                {
-                    title: t('newPatients'),
-                    value: `+${summaryData.current_period_new_patients || 0}`,
-                    change: `+${Number(summaryData.new_patients_growth_percentage || 0).toFixed(1)}% ${t('fromLastMonth')}`,
-                    changeType: getChangeType(Number(summaryData.new_patients_growth_percentage || 0)),
-                    icon: 'user-plus',
-                },
-                {
-                    title: t('sales'),
-                    value: `+${summaryData.current_period_sales || 0}`,
-                    change: formatPercentage(Number(summaryData.sales_growth_percentage || 0)),
-                    changeType: getChangeType(Number(summaryData.sales_growth_percentage) || 0),
-                    icon: 'arrow-trending-up',
-                },
-                {
-                    title: t('quoteConversionRate'),
-                    value: `${(Number(summaryData.quote_conversion_rate) || 0).toFixed(1)}%`,
-                    change: formatPercentage(Number(summaryData.quote_conversion_rate_growth) || 0),
-                    changeType: getChangeType(Number(summaryData.quote_conversion_rate_growth) || 0),
-                    icon: 'chart-pie',
-                },
-            ],
-            salesTrend: summaryData.sales_trend_percentage || 0,
-            averageBilling: {
-                value: Number(summaryData.average_revenue_per_patient || 0),
-                change: avgRevenueChange,
-                changeType: getChangeType(avgRevenueChange),
-            },
-            appointmentAttendance: {
-                value: Number(summaryData.show_rate_percentage || 0),
-                change: showRateChange,
-                changeType: getChangeType(showRateChange),
-            }
-        };
-
-    } catch (error) {
-        console.error("Failed to fetch dashboard summary:", error);
-        return defaultSummary;
-    }
-}
-
-
-async function getSalesSummaryChartData(dateRange: DateRange | undefined): Promise<SalesChartData[]> {
-    if (!dateRange || !dateRange.from) {
-        return [];
-    }
-
-    try {
-        const data = await api.get(API_ROUTES.DASHBOARD.SALES_SUMMARY, {
-            target_date: format(dateRange.from, 'yyyy-MM-dd'),
-        });
-        const salesData = Array.isArray(data) ? data : (data.sales_summary || data.data || []);
-
-        return salesData.map((item: any) => ({
-            month: item.month,
-            revenue: Number(item.revenue) || 0,
-        }));
-
-    } catch (error) {
-        console.error("Failed to fetch sales summary chart data:", error);
-        return [];
-    }
-}
-
-const CHART_COLORS = [
-    'hsl(var(--chart-3))', // Azul
-    'hsl(var(--chart-2))', // Verde
-    'hsl(var(--chart-1))', // Rojo
-    'hsl(var(--chart-4))', // Amarillo
-    'hsl(var(--chart-5))', // Púrpura
-];
-
-async function getSalesByServiceChartData(dateRange: DateRange | undefined): Promise<SalesByServiceChartData[]> {
-    if (!dateRange || !dateRange.from || !dateRange.to) {
-        return [];
-    }
-
-    try {
-        const data = await api.get(API_ROUTES.DASHBOARD.SALES_BY_SERVICE, {
-            start_date: format(dateRange.from, 'yyyy-MM-dd'),
-            end_date: format(dateRange.to, 'yyyy-MM-dd'),
-        });
-        const serviceSalesData = Array.isArray(data) ? data : (data.sales_by_service || data.data || []);
-
-        const totalSales = serviceSalesData.reduce((acc: number, item: any) => acc + (Number(item.sales) || 0), 0);
-
-        if (totalSales === 0) {
-            return serviceSalesData.map((item: any, index: number) => ({
-                name: item.name,
-                sales: 0,
-                percentage: 0,
-                color: CHART_COLORS[index % CHART_COLORS.length],
-            }));
-        }
-
-        return serviceSalesData.map((item: any, index: number) => ({
-            name: item.name,
-            sales: Number(item.sales) || 0,
-            percentage: (Number(item.sales) / totalSales) * 100,
-            color: CHART_COLORS[index % CHART_COLORS.length],
-        }));
-
-    } catch (error) {
-        console.error("Failed to fetch sales by service chart data:", error);
-        return [];
-    }
-}
-
-async function getInvoiceStatusChartData(): Promise<InvoiceStatusData[]> {
-    try {
-        const data = await api.get(API_ROUTES.DASHBOARD.INVOICE_STATUS);
-        const statusData = Array.isArray(data) ? data : (data.invoice_status || data.data || []);
-
-        return statusData.map((item: any) => ({
-            name: item.name,
-            value: Number(item.value) || 0,
-            fill: item.fill || INVOICE_CHART_COLORS[item.name] || 'hsl(var(--muted-foreground))',
-        }));
-
-    } catch (error) {
-        console.error("Failed to fetch invoice status chart data:", error);
-        return [];
-    }
-}
-
-async function getPatientDemographicsData(dateRange: DateRange | undefined, t: (key: string) => string): Promise<PatientDemographics | null> {
-    if (!dateRange || !dateRange.from || !dateRange.to) {
-        return null;
-    }
-
-    try {
-        const data = await api.get(API_ROUTES.DASHBOARD.NEW_VS_RECURRING_PATIENTS, {
-            start_date: format(dateRange.from, 'yyyy-MM-dd'),
-            end_date: format(dateRange.to, 'yyyy-MM-dd'),
-        });
-        const apiData = Array.isArray(data) && data.length > 0 ? data[0] : data;
-
-        const newPatients = Number(apiData.new_patients) || 0;
-        const recurringPatients = Number(apiData.recurring_patients) || 0;
-
-        return {
-            total: newPatients + recurringPatients,
-            data: [
-                { type: 'New', count: newPatients, fill: 'hsl(var(--chart-3))' }, // Azul
-                { type: 'Recurrent', count: recurringPatients, fill: 'hsl(var(--chart-2))' }, // Verde
-            ]
-        };
-    } catch (error) {
-        console.error("Failed to fetch patient demographics data:", error);
-        return null;
-    }
-}
-
-
-async function getQuotes(): Promise<Quote[]> {
-    try {
-        const data = await api.get(API_ROUTES.QUOTES);
-        const quotesData = Array.isArray(data) ? data : (data.quotes || data.data || data.result || []);
-
-        return quotesData.map((apiQuote: any) => ({
-            id: apiQuote.id ? String(apiQuote.id) : `qt_${Math.random().toString(36).substr(2, 9)}`,
-            doc_no: apiQuote.doc_no || 'N/A',
-            user_id: apiQuote.user_id || 'N/A',
-            total: Number(apiQuote.total) || 0,
-            status: apiQuote.status || 'draft',
-            payment_status: apiQuote.payment_status || 'unpaid',
-            billing_status: apiQuote.billing_status || 'not invoiced',
-            user_name: apiQuote.user_name || apiQuote.name || 'No Name',
-            userEmail: apiQuote.userEmail || apiQuote.email || 'no-email@example.com',
-            currency: apiQuote.currency || 'USD',
-            exchange_rate: apiQuote.exchange_rate ? Number(apiQuote.exchange_rate) : undefined,
-            createdAt: apiQuote.created_at || apiQuote.createdAt || new Date().toISOString().split('T')[0],
-        }));
-    } catch (error) {
-        console.error("Failed to fetch quotes:", error);
-        return [];
-    }
-}
-
-async function getPatientsData(pagination: PaginationState, columnFilters: ColumnFiltersState): Promise<{ patients: User[], total: number }> {
-    try {
-        const searchQuery = (columnFilters.find(f => f.id === 'name')?.value as string) || '';
-        const responseData = await api.get(API_ROUTES.USERS, {
-            page: (pagination.pageIndex + 1).toString(),
-            limit: pagination.pageSize.toString(),
-            search: searchQuery,
-            filter_type: 'PACIENTE',
-            only_debtors: 'false',
-            only_active: 'true'
-        });
-        const data = (Array.isArray(responseData) && responseData.length > 0) ? responseData[0] : { data: [], total: 0 };
-        const usersData = Array.isArray(data.data) ? data.data : [];
-        const patients = usersData.map((apiUser: any) => ({
-            id: apiUser.id ? String(apiUser.id) : `usr_${Math.random().toString(36).substr(2, 9)}`,
-            name: apiUser.name || 'No Name',
-            email: apiUser.email || 'no-email@example.com',
-            phone_number: apiUser.phone_number || '000-000-0000',
-            is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
-            avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
-        }));
-
-        const total = Number(data.total) || patients.length;
-
-        return { patients, total };
-    } catch (error) {
-        console.error("Failed to fetch patients:", error);
-        return { patients: [], total: 0 };
-    }
+/**
+ * Los webhooks de n8n responden `{ data: … }`, pero algunos flujos devuelven el objeto
+ * envuelto en un array de un elemento. Se aceptan las dos formas.
+ */
+function unwrap<T>(response: unknown): T | null {
+  const payload = Array.isArray(response) ? response[0] : response;
+  if (!payload || typeof payload !== 'object') return null;
+  const data = (payload as { data?: unknown }).data;
+  return ((data ?? payload) as T) ?? null;
 }
 
 export default function DashboardPage() {
-    return <LegacyDashboardPage />;
+  return (
+    <DashboardFiltersProvider>
+      <ManagerialDashboard />
+    </DashboardFiltersProvider>
+  );
 }
 
-function LegacyDashboardPage() {
-    const tStats = useTranslations('Stats');
-    const tKpi = useTranslations('KpiRow');
-    const t = useTranslations();
-    const { hasPermission } = usePermissions();
+function ManagerialDashboard() {
+  const t = useTranslations('DashboardGerencial');
+  const { hasPermission } = usePermissions();
+  const { sedeId, dateRange, currency } = useDashboardFilters();
 
-    const canViewKpis = hasPermission(DASHBOARD_PERMISSIONS.VIEW_KPIS);
-    const canViewCharts = hasPermission(DASHBOARD_PERMISSIONS.VIEW_CHARTS);
-    const canViewOperationalKpis = hasPermission(DASHBOARD_PERMISSIONS.VIEW_OPERATIONAL_KPIS);
-    const canViewRecentQuotes = hasPermission(DASHBOARD_PERMISSIONS.VIEW_RECENT_QUOTES);
-    const canViewNewPatients = hasPermission(DASHBOARD_PERMISSIONS.VIEW_NEW_PATIENTS);
-    const canApplyFilters = hasPermission(DASHBOARD_PERMISSIONS.APPLY_FILTERS);
+  const canViewByBranch = hasPermission(DASHBOARD_PERMISSIONS.VIEW_BY_BRANCH);
 
-    const [stats, setStats] = React.useState<Stat[]>([]);
-    const [salesTrend, setSalesTrend] = React.useState(0);
-    const [averageBilling, setAverageBilling] = React.useState<AverageBilling | null>(null);
-    const [appointmentAttendance, setAppointmentAttendance] = React.useState<AppointmentAttendanceRate | null>(null);
-    const [patientDemographics, setPatientDemographics] = React.useState<PatientDemographics | null>(null);
-    const [isKpiLoading, setIsKpiLoading] = React.useState(true);
+  const [summary, setSummary] = React.useState<DashboardExecutiveSummary | null>(null);
+  const [branches, setBranches] = React.useState<ProduccionSucursalResponse | null>(null);
+  const [patientsPerDay, setPatientsPerDay] = React.useState<PacientesPorDiaResponse | null>(null);
+  const [salesByService, setSalesByService] = React.useState<VentasPorServicioResponse | null>(null);
+  const [evolution, setEvolution] = React.useState<EvolucionMensualResponse | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [hasError, setHasError] = React.useState(false);
+  const [reloadToken, setReloadToken] = React.useState(0);
 
-    const [salesChartData, setSalesChartData] = React.useState<SalesChartData[]>([]);
-    const [isChartLoading, setIsChartLoading] = React.useState(true);
-    const [salesByServiceData, setSalesByServiceData] = React.useState<SalesByServiceChartData[]>([]);
-    const [isSalesByServiceLoading, setIsSalesByServiceLoading] = React.useState(true);
-    const [invoiceStatusData, setInvoiceStatusData] = React.useState<InvoiceStatusData[]>([]);
-    const [isInvoiceStatusLoading, setIsInvoiceStatusLoading] = React.useState(true);
+  // El cliente de API no acepta un AbortSignal, así que se descartan las respuestas de
+  // cargas que ya quedaron viejas: sin esto, cambiar de filtro rápido puede dejar en
+  // pantalla el resultado de la consulta anterior.
+  const runIdRef = React.useRef(0);
 
-    const [quotes, setQuotes] = React.useState<Quote[]>([]);
+  React.useEffect(() => {
+    if (!dateRange?.from || !dateRange?.to) return;
 
-    const [patients, setPatients] = React.useState<User[]>([]);
-    const [patientTotal, setPatientTotal] = React.useState(0);
-    const [patientPagination, setPatientPagination] = React.useState<PaginationState>({
-        pageIndex: 0,
-        pageSize: 25,
+    const runId = ++runIdRef.current;
+    const isStale = () => runIdRef.current !== runId;
+
+    const range = {
+      date_from: format(dateRange.from, 'yyyy-MM-dd'),
+      date_to: format(dateRange.to, 'yyyy-MM-dd'),
+    };
+    const sedeQuery: Record<string, string> = sedeId ? { sede_id: sedeId } : {};
+
+    setIsLoading(true);
+    setHasError(false);
+
+    // allSettled y no all: los flujos de n8n se despliegan a mano y por fuera del frontend,
+    // así que un endpoint que todavía no existe debe vaciar su propia tarjeta y no tumbar
+    // el panel entero. El aviso de error aparece solo si falla todo.
+    Promise.allSettled([
+      api.get(API_ROUTES.DASHBOARD.EXECUTIVE_SUMMARY, { ...sedeQuery, currency }),
+      canViewByBranch
+        ? api.get(API_ROUTES.DASHBOARD.PRODUCCION_SUCURSAL, { ...range, currency })
+        : Promise.resolve(null),
+      api.get(API_ROUTES.DASHBOARD.PACIENTES_POR_DIA, { ...range, ...sedeQuery }),
+      api.get(API_ROUTES.DASHBOARD.VENTAS_POR_SERVICIO, {
+        ...range,
+        ...sedeQuery,
+        currency,
+        limit: String(TOP_SERVICES),
+      }),
+      // La evolución mensual no depende del período elegido: siempre mira los últimos
+      // meses cerrados, que es lo que responde "cómo venimos de un mes a otro".
+      api.get(API_ROUTES.DASHBOARD.EVOLUCION_MENSUAL, {
+        ...sedeQuery,
+        currency,
+        meses: String(EVOLUTION_MONTHS),
+      }),
+    ]).then((results) => {
+      if (isStale()) return;
+
+      const value = <T,>(i: number): T | null => {
+        const r = results[i];
+        if (r.status === 'rejected') {
+          console.error(`Dashboard endpoint ${i} failed:`, r.reason);
+          return null;
+        }
+        return r.value === null ? null : unwrap<T>(r.value);
+      };
+
+      setSummary(value<DashboardExecutiveSummary>(0));
+      setBranches(value<ProduccionSucursalResponse>(1));
+      setPatientsPerDay(value<PacientesPorDiaResponse>(2));
+      setSalesByService(value<VentasPorServicioResponse>(3));
+      setEvolution(value<EvolucionMensualResponse>(4));
+
+      setHasError(results.every((r) => r.status === 'rejected'));
+      setIsLoading(false);
     });
-    const [patientColumnFilters, setPatientColumnFilters] = React.useState<ColumnFiltersState>([]);
+  }, [dateRange, sedeId, currency, canViewByBranch, reloadToken]);
 
-    // Initialize as undefined so SSR and first client render match; the real date range
-    // is set in useEffect below after mount (prevents hydration mismatch from new Date()).
-    const [date, setDate] = React.useState<DateRange | undefined>(undefined);
+  // Sin permiso de sucursal, esa tarjeta desaparece y la fila queda con una sola:
+  // dejarla en dos columnas abriría un hueco vacío.
+  const rowColumns = canViewByBranch ? 'lg:grid-cols-2' : 'lg:grid-cols-1';
 
-    React.useEffect(() => {
-        const now = new Date();
-        setDate({ from: subMonths(now, 1), to: now });
-    }, []);
+  return (
+    <div className="flex-1 space-y-4 overflow-y-auto p-4 pr-2">
+      <Can permission={DASHBOARD_PERMISSIONS.APPLY_FILTERS}>
+        <DashboardFilterBar serverDate={summary?.fecha_servidor} />
+      </Can>
 
-    const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
-    const [selectedPatient, setSelectedPatient] = React.useState<User | null>(null);
-
-    React.useEffect(() => {
-        setIsKpiLoading(true);
-        getDashboardData(date, tStats).then(({ stats, salesTrend, averageBilling, appointmentAttendance }) => {
-            setStats(stats);
-            setSalesTrend(salesTrend);
-            setAverageBilling(averageBilling);
-            setAppointmentAttendance(appointmentAttendance);
-            setIsKpiLoading(false);
-        });
-
-        getPatientDemographicsData(date, tKpi).then(data => {
-            setPatientDemographics(data);
-        });
-
-        setIsChartLoading(true);
-        getSalesSummaryChartData(date).then(data => {
-            setSalesChartData(data);
-            setIsChartLoading(false);
-        });
-
-        setIsSalesByServiceLoading(true);
-        getSalesByServiceChartData(date).then(data => {
-            setSalesByServiceData(data);
-            setIsSalesByServiceLoading(false);
-        });
-
-        setIsInvoiceStatusLoading(true);
-        getInvoiceStatusChartData().then(data => {
-            setInvoiceStatusData(data);
-            setIsInvoiceStatusLoading(false);
-        });
-
-    }, [date, tStats, tKpi]);
-
-    const [isRefreshingPatients, setIsRefreshingPatients] = React.useState(false);
-
-    const loadPatients = React.useCallback(async () => {
-        setIsRefreshingPatients(true);
-        const { patients: fetchedPatients, total } = await getPatientsData(patientPagination, patientColumnFilters);
-        setPatients(fetchedPatients || []);
-        setPatientTotal(total);
-        setIsRefreshingPatients(false);
-    }, [patientPagination, patientColumnFilters]);
-
-    React.useEffect(() => {
-        getQuotes().then(setQuotes);
-    }, []);
-
-    React.useEffect(() => {
-        const debounce = setTimeout(() => {
-            loadPatients();
-        }, 500);
-        return () => clearTimeout(debounce);
-    }, [loadPatients]);
-
-    return (
-        <div className="flex-1 overflow-y-auto p-4 pr-2 space-y-4 min-h-0">
-            <Can permission={DASHBOARD_PERMISSIONS.APPLY_FILTERS}>
-                <ReportFilters date={date} setDate={setDate} />
-            </Can>
-            <Can permission={DASHBOARD_PERMISSIONS.VIEW_KPIS}>
-                <Stats data={stats} />
-            </Can>
-            <Can permission={DASHBOARD_PERMISSIONS.VIEW_CHARTS}>
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <SalesSummaryChart
-                        salesTrend={salesTrend}
-                        date={date}
-                        chartData={salesChartData}
-                        isLoading={isChartLoading}
-                    />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <SalesByServiceChart chartData={salesByServiceData} isLoading={isSalesByServiceLoading} />
-                        <InvoiceStatusChart chartData={invoiceStatusData} isLoading={isInvoiceStatusLoading} />
-                    </div>
-                </div>
-            </Can>
-            <Can permission={DASHBOARD_PERMISSIONS.VIEW_OPERATIONAL_KPIS}>
-                <KpiRow
-                    averageBillingData={averageBilling}
-                    appointmentAttendanceData={appointmentAttendance}
-                    patientDemographicsData={patientDemographics}
-                    isLoading={isKpiLoading}
-                />
-            </Can>
-            <Can permission={DASHBOARD_PERMISSIONS.VIEW_RECENT_QUOTES}>
-                <RecentQuotesTable
-                    quotes={quotes}
-                    title={t('RecentQuotesTable.title')}
-                    description={t('RecentQuotesTable.description')}
-                    onRowClick={setSelectedQuote}
-                />
-            </Can>
-            <Can permission={DASHBOARD_PERMISSIONS.VIEW_NEW_PATIENTS}>
-                <NewPatientsTable
-                    patients={patients}
-                    onRefresh={loadPatients}
-                    isRefreshing={isRefreshingPatients}
-                    pageCount={Math.ceil(patientTotal / patientPagination.pageSize)}
-                    rowCount={patientTotal}
-                    pagination={patientPagination}
-                    onPaginationChange={setPatientPagination}
-                    columnFilters={patientColumnFilters}
-                    onColumnFiltersChange={setPatientColumnFilters}
-                    className="lg:h-[500px]"
-                    onRowClick={setSelectedPatient}
-                />
-            </Can>
-
-            {/* Detail Sheets */}
-            <Sheet open={!!selectedQuote} onOpenChange={(open) => { if (!open) setSelectedQuote(null); }}>
-                <SheetContent side="bottom" className="rounded-t-xl max-h-[80vh] overflow-y-auto">
-                    <SheetHeader className="mb-4">
-                        <SheetTitle>{t('RecentQuotesTable.title')} — {selectedQuote?.doc_no}</SheetTitle>
-                    </SheetHeader>
-                    {selectedQuote && (
-                        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-                            <div><dt className="text-xs text-muted-foreground">{t('UserColumns.name')}</dt><dd className="font-medium mt-0.5">{selectedQuote.user_name}</dd></div>
-                            <div><dt className="text-xs text-muted-foreground">{t('QuoteColumns.createdAt')}</dt><dd className="font-medium mt-0.5">{formatDateTime(selectedQuote.createdAt)}</dd></div>
-                            <div><dt className="text-xs text-muted-foreground">{t('QuoteColumns.total')}</dt><dd className="font-medium mt-0.5">{selectedQuote.total?.toFixed(2)} {selectedQuote.currency}</dd></div>
-                            <div><dt className="text-xs text-muted-foreground">{t('UserColumns.status')}</dt><dd className="mt-0.5"><Badge variant="outline" className="capitalize">{selectedQuote.status}</Badge></dd></div>
-                            <div><dt className="text-xs text-muted-foreground">{t('QuoteColumns.billingStatus')}</dt><dd className="mt-0.5"><Badge variant="outline" className="capitalize">{selectedQuote.billing_status}</Badge></dd></div>
-                            <div><dt className="text-xs text-muted-foreground">{t('Navigation.Payments')}</dt><dd className="mt-0.5"><Badge variant="outline" className="capitalize">{selectedQuote.payment_status}</Badge></dd></div>
-                        </dl>
-                    )}
-                </SheetContent>
-            </Sheet>
-
-            <Sheet open={!!selectedPatient} onOpenChange={(open) => { if (!open) setSelectedPatient(null); }}>
-                <SheetContent side="bottom" className="rounded-t-xl max-h-[80vh] overflow-y-auto">
-                    <SheetHeader className="mb-4">
-                        <SheetTitle>{t('NewPatientsTable.title')} — {selectedPatient?.name}</SheetTitle>
-                    </SheetHeader>
-                    {selectedPatient && (
-                        <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-                            <div><dt className="text-xs text-muted-foreground">{t('UserColumns.email')}</dt><dd className="font-medium mt-0.5 break-all">{selectedPatient.email}</dd></div>
-                            <div><dt className="text-xs text-muted-foreground">{t('UserColumns.phone')}</dt><dd className="font-medium mt-0.5">{selectedPatient.phone_number || '—'}</dd></div>
-                            <div><dt className="text-xs text-muted-foreground">{t('UserColumns.status')}</dt><dd className="mt-0.5"><Badge variant={selectedPatient.is_active ? 'default' : 'outline'}>{selectedPatient.is_active ? t('UserColumns.active') : t('UserColumns.inactive')}</Badge></dd></div>
-                        </dl>
-                    )}
-                </SheetContent>
-            </Sheet>
+      {hasError && (
+        <div className="flex items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3">
+          <p className="text-sm font-medium text-destructive">{t('loadError')}</p>
+          <Button size="sm" variant="outline" onClick={() => setReloadToken((n) => n + 1)}>
+            {t('retry')}
+          </Button>
         </div>
-    );
+      )}
+
+      <Can permission={DASHBOARD_PERMISSIONS.VIEW_EXECUTIVE_SUMMARY}>
+        <TodayHero
+          data={summary}
+          currency={currency}
+          isBranchFiltered={!!sedeId}
+          isLoading={isLoading}
+        />
+        <MonthSummaryCards
+          data={summary}
+          currency={currency}
+          isBranchFiltered={!!sedeId}
+          isLoading={isLoading}
+        />
+      </Can>
+
+      <Can permission={DASHBOARD_PERMISSIONS.VIEW_CHARTS}>
+        <div className={cn('grid grid-cols-1 gap-3', rowColumns)}>
+          <Can permission={DASHBOARD_PERMISSIONS.VIEW_BY_BRANCH}>
+            <ProductionByBranch data={branches} currency={currency} isLoading={isLoading} />
+          </Can>
+
+          <SalesByServiceChart
+            chartData={salesByService?.rows ?? []}
+            isLoading={isLoading}
+            formatAmount={(sales) => formatAmount(sales, currency)}
+          />
+        </div>
+
+        {/* Fila propia y a todo el ancho: la serie diaria necesita espacio horizontal para que
+            se lean las etiquetas de fecha, que en una columna angosta no entran. */}
+        <PatientsPerDayChart data={patientsPerDay} isLoading={isLoading} />
+      </Can>
+
+      {/* La comparativa entre meses es lectura de resumen ejecutivo, no un gráfico más:
+          va con el mismo permiso y no se crea uno nuevo. */}
+      <Can permission={DASHBOARD_PERMISSIONS.VIEW_EXECUTIVE_SUMMARY}>
+        <MonthlyEvolution data={evolution} currency={currency} isLoading={isLoading} />
+      </Can>
+    </div>
+  );
 }

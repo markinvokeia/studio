@@ -1,5 +1,6 @@
 'use client';
 
+import { EsFlagIcon } from '@/components/icons/es-flag-icon';
 import { UsFlagIcon } from '@/components/icons/us-flag-icon';
 import { UyFlagIcon } from '@/components/icons/uy-flag-icon';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -11,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { INVOKEIA_LOGO } from '@/lib/brand';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Check, Globe, Loader2, Moon, Sun } from 'lucide-react';
@@ -94,14 +96,21 @@ export default function ResetPasswordPage() {
 
         } catch (err: any) {
             let errorMessage = t('errors.generic');
-            if (err.message.includes('400')) {
-                errorMessage = t('errors.invalidPassword');
-            } else if (err.message.includes('401')) {
+            const errText: string | undefined = err.data?.error;
+            if (err.status === 400) {
+                if (errText === 'Invalid token') {
+                    errorMessage = t('errors.invalidToken');
+                } else if (errText?.toLowerCase().includes('password')) {
+                    errorMessage = t('errors.invalidPassword');
+                } else {
+                    errorMessage = t('errors.generic');
+                }
+            } else if (err.status === 401) {
                 errorMessage = t('errors.invalidToken');
-            } else if (err.message.includes('500')) {
+            } else if (err.status === 404) {
+                errorMessage = t('errors.invalidToken');
+            } else if (err.status === 500) {
                 errorMessage = t('errors.serverError');
-            } else {
-                errorMessage = err.message;
             }
             setError(errorMessage);
         } finally {
@@ -136,6 +145,15 @@ export default function ResetPasswordPage() {
                                     {tHeader('english')}
                                 </div>
                                 {locale === 'en' && <Check className="h-4 w-4 ml-2" />}
+                            </span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => onSelectLocale('es-ES')} disabled={locale === 'es-ES'}>
+                            <span className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-2">
+                                    <EsFlagIcon className="h-4 w-4" />
+                                    {tHeader('spanishSpain')}
+                                </div>
+                                {locale === 'es-ES' && <Check className="h-4 w-4 ml-2" />}
                             </span>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -173,7 +191,7 @@ export default function ResetPasswordPage() {
             <Card className="w-full max-w-sm">
                 <CardHeader className="text-center">
                     <Image
-                        src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp"
+                        src={INVOKEIA_LOGO}
                         width={80}
                         height={80}
                         alt="InvokeIA Logo"

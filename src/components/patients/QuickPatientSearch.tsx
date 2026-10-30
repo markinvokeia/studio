@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Loader2, UserRound, UserSearch } from 'lucide-react';
+import { Loader2, UserPlus, UserRound, UserSearch } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -13,16 +13,34 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { PatientCreateDialog } from '@/components/patients/patient-create-dialog';
+import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { usePermissions } from '@/hooks/usePermissions';
+import { ResponsibleMatchHint } from '@/components/patients/responsible-match-hint';
 import { usePatientView } from '@/stores/patient-view-store';
 import { api } from '@/services/api';
 import { cn } from '@/lib/utils';
+
+/** Title-cases the typed query so the new patient is prefilled with capitalized words. */
+function toTitleCase(value: string): string {
+  return value
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+}
 
 interface QuickPatientResult {
   id: string;
   name: string;
   phone_number: string;
   email: string;
+  is_dependent: boolean;
+  responsible_contact_name?: string;
+  responsible_phone_number?: string;
+  matched_by_responsible: boolean;
 }
 
 /**
@@ -32,11 +50,17 @@ interface QuickPatientResult {
 export function QuickPatientSearch() {
   const t = useTranslations('QuickPatientSearch');
   const { open: openPatient } = usePatientView();
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission(PATIENTS_PERMISSIONS.CREATE);
 
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState('');
   const [results, setResults] = React.useState<QuickPatientResult[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [createOpen, setCreateOpen] = React.useState(false);
+
+  const trimmedQuery = query.trim();
+  const titleCasedName = toTitleCase(trimmedQuery);
 
   // Debounced search mirroring the Patients page / UserSelector behavior.
   React.useEffect(() => {
@@ -59,6 +83,10 @@ export function QuickPatientSearch() {
           name: u.name || 'Sin nombre',
           phone_number: u.phone_number || '',
           email: u.email || '',
+          is_dependent: u.is_dependent ?? u.is_dependant ?? false,
+          responsible_contact_name: u.responsible_contact_name || undefined,
+          responsible_phone_number: u.responsible_phone_number || undefined,
+          matched_by_responsible: u.matched_by_responsible === true,
         })));
       } catch {
         setResults([]);
@@ -81,6 +109,7 @@ export function QuickPatientSearch() {
   };
 
   return (
+    <>
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
@@ -113,9 +142,22 @@ export function QuickPatientSearch() {
                 {t('searching')}
               </div>
             ) : results.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                {query.trim() ? t('noResults') : t('hint')}
-              </p>
+              <div className="px-3 py-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {trimmedQuery ? t('noResults') : t('hint')}
+                </p>
+                {trimmedQuery && canCreate && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3 w-full gap-1.5"
+                    onClick={() => { setOpen(false); setCreateOpen(true); }}
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    <span className="truncate">{t('createPatient', { name: titleCasedName })}</span>
+                  </Button>
+                )}
+              </div>
             ) : (
               <CommandGroup>
                 {results.map((patient) => (
@@ -135,6 +177,7 @@ export function QuickPatientSearch() {
                           {patient.phone_number || patient.email}
                         </span>
                       )}
+                      <ResponsibleMatchHint user={patient} />
                     </span>
                   </CommandItem>
                 ))}
@@ -144,5 +187,23 @@ export function QuickPatientSearch() {
         </Command>
       </PopoverContent>
     </Popover>
+
+    <PatientCreateDialog
+      open={createOpen}
+      onOpenChange={setCreateOpen}
+      initialName={titleCasedName}
+      onCreated={(created) => {
+        setCreateOpen(false);
+        setQuery('');
+        setResults([]);
+        openPatient({
+          userId: String(created.id),
+          userName: created.name,
+          userEmail: created.email || undefined,
+          userPhone: created.phone_number || undefined,
+        });
+      }}
+    />
+    </>
   );
 }

@@ -15,10 +15,10 @@ export function LicenseExpirationBanner({ daysLeft }: LicenseExpirationBannerPro
       <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
       <span>{t('expiringSoon.message', { days: daysLeft })}</span>
       <a
-        href="mailto:contacto@invokeia.com"
+        href="mailto:info@invokeia.com"
         className="ml-1 underline underline-offset-2 font-medium hover:opacity-80"
       >
-        contacto@invokeia.com
+        info@invokeia.com
       </a>
     </div>
   );
@@ -32,10 +32,10 @@ export function LicenseExpiredBanner() {
       <ShieldX className="h-4 w-4 shrink-0" />
       <span>{t('expired.banner')}</span>
       <a
-        href="mailto:contacto@invokeia.com"
+        href="mailto:info@invokeia.com"
         className="ml-1 underline underline-offset-2 hover:opacity-80"
       >
-        contacto@invokeia.com
+        info@invokeia.com
       </a>
     </div>
   );

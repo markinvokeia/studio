@@ -1,0 +1,669 @@
+{
+  "name": "Attachements CRUD",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "action"
+            },
+            {
+              "name": "source_name"
+            },
+            {
+              "name": "source_id"
+            },
+            {
+              "name": "attachment_id"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -336,
+        -16
+      ],
+      "id": "b65ab200-ab8b-4d26-852f-2db6329a9fdc",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "UPLOAD",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "f4fedfa8-39f7-47f9-875d-08aac351b64d"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "7e6d22c8-fde4-4042-9c83-e79b5d72bfe7",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "GET",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "6cf1316e-6103-46fa-b3ba-25f9b3898f70",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "DELETE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "92d269e7-7634-4766-af77-f71d82e72ec4",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "UPDATE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -128,
+        -64
+      ],
+      "id": "2e74a7e1-fa7e-4a49-916b-50c6595b46ac",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "name": "={{ $('When Executed by Another Workflow').item.binary.data.fileName }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1V-BRJoUtyNPbGwJa8-NSH4CXz7zQ9jXH",
+          "mode": "list",
+          "cachedResultName": "ClinicHistory",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1V-BRJoUtyNPbGwJa8-NSH4CXz7zQ9jXH"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        112,
+        -176
+      ],
+      "id": "7bc7a5e2-b1cb-446c-811f-6bd5daaa86e2",
+      "name": "Upload file1",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "k3vQaAkau21se8nC",
+          "name": "Google Drive account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "attachments",
+          "mode": "list",
+          "cachedResultName": "attachments"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "drive_file_id": "={{ $json.id }}",
+            "file_name": "={{ $json.name }}",
+            "mime_type": "={{ $json.mimeType }}",
+            "web_view_link": "={{ $json.webViewLink }}",
+            "thumbnail_link": "={{ $json.thumbnailLink }}",
+            "created_at": "={{ $now }}",
+            "source_id": "={{ $('When Executed by Another Workflow').item.json.source_id }}",
+            "source_name": "={{ $('When Executed by Another Workflow').item.json.source_name }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "drive_file_id",
+              "displayName": "drive_file_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "file_name",
+              "displayName": "file_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "mime_type",
+              "displayName": "mime_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "web_view_link",
+              "displayName": "web_view_link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "thumbnail_link",
+              "displayName": "thumbnail_link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_id",
+              "displayName": "source_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "source_name",
+              "displayName": "source_name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        352,
+        -240
+      ],
+      "id": "a9551349-2aab-4dab-bef7-2e10184d77d5",
+      "name": "Insert image1",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.attachments \nWHERE source_name = $1 \n  AND source_id = $2\n  AND id = $3",
+        "options": {
+          "queryReplacement": "={{ [$('When Executed by Another Workflow').item.json.source_name, $('When Executed by Another Workflow').item.json.source_id, $('When Executed by Another Workflow').item.json.attachment_id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        112,
+        -16
+      ],
+      "id": "763ae5ff-0052-47cb-96aa-33bc0bc76c10",
+      "name": "Select attachment",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a3bdaea2-55ad-4c64-9225-acd00cb07268",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "411ef8a7-8233-469d-a7ae-a3876f00973d",
+              "name": "data",
+              "value": "={{ $json }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        -144
+      ],
+      "id": "e82e722d-28a2-4fc0-bd54-8e3f28ee52da",
+      "name": "OK: Success"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a3bdaea2-55ad-4c64-9225-acd00cb07268",
+              "name": "success",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "411ef8a7-8233-469d-a7ae-a3876f00973d",
+              "name": "data",
+              "value": "={{ $json }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        64
+      ],
+      "id": "5ea450f8-c3d8-4d74-b325-dad9d91f2255",
+      "name": "Error: Not success"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.attachments \nWHERE id = $1",
+        "options": {
+          "queryReplacement": "={{ $('When Executed by Another Workflow').item.json.attachment_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        112,
+        160
+      ],
+      "id": "a44a6905-12c4-43eb-9563-3d22d4fd692e",
+      "name": "Select attachment1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.drive_file_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        336,
+        144
+      ],
+      "id": "825b31e2-44a8-481a-9145-35f614a5d2b8",
+      "name": "Delete a file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "k3vQaAkau21se8nC",
+          "name": "Google Drive account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "deleteTable",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "attachments",
+          "mode": "list",
+          "cachedResultName": "attachments"
+        },
+        "deleteCommand": "delete",
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "={{ $('When Executed by Another Workflow').item.json.attachment_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        560,
+        128
+      ],
+      "id": "057b85d6-d5fb-40e2-ae6d-ecb5ca2d8e0d",
+      "name": "Delete table or rows",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "action": "DELETE",
+          "source_name": null,
+          "source_id": null,
+          "attachment_id": "7"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload file1": {
+      "main": [
+        [
+          {
+            "node": "Insert image1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Not success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Upload file1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Select attachment",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Select attachment1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OK: Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Not success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert image1": {
+      "main": [
+        [
+          {
+            "node": "OK: Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Not success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select attachment": {
+      "main": [
+        [
+          {
+            "node": "OK: Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Not success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select attachment1": {
+      "main": [
+        [
+          {
+            "node": "Delete a file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Not success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete a file": {
+      "main": [
+        [
+          {
+            "node": "Delete table or rows",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Not success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete table or rows": {
+      "main": [
+        [
+          {
+            "node": "OK: Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: Not success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2f1fc336-9386-45e3-a831-5ca7e7b41bae",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "TTwyLGp8Gg9qDKdn",
+  "tags": []
+}

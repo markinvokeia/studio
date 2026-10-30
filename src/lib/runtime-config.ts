@@ -4,6 +4,7 @@ export interface RuntimeConfig {
   masterSec: string;
   clientId: string;
   eventPusherKey: string;
+  eventPusherUrl: string;
 }
 
 declare global {
@@ -25,6 +26,7 @@ function getRuntimeConfig(): Partial<RuntimeConfig> {
     masterSec: process.env.NEXT_PUBLIC_MASTER_SEC,
     clientId: process.env.NEXT_PUBLIC_CLIENT_ID,
     eventPusherKey: process.env.NEXT_PUBLIC_EVENT_PUSHER_KEY,
+    eventPusherUrl: process.env.NEXT_PUBLIC_EVENT_PUSHER_URL,
   };
 }
 
@@ -50,5 +52,15 @@ export function getClientId(): string {
 
 export function getEventPusherKey(): string {
   return getRuntimeConfig().eventPusherKey || process.env.NEXT_PUBLIC_EVENT_PUSHER_KEY || '';
+}
+
+/**
+ * Base URL (origin) del servidor de eventos SSE. Si no se define, el stream usa
+ * una ruta relativa (`/events/stream`) contra el mismo origen del frontend,
+ * resuelta por el reverse proxy. Si se define, debe ser solo el origen
+ * (ej. `https://events.invokeia.com`), sin el path `/events/stream`.
+ */
+export function getEventPusherUrl(): string {
+  return getRuntimeConfig().eventPusherUrl || process.env.NEXT_PUBLIC_EVENT_PUSHER_URL || '';
 }
 

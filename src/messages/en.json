@@ -1,7 +1,266 @@
 {
+  "FormValidation": {
+    "title": "Missing required information",
+    "description": "Fill in the fields marked in red."
+  },
+  "FinanceSortOrder": {
+    "label": "Order",
+    "newestFirst": "Most recent at the top",
+    "newestLast": "Most recent at the end"
+  },
+  "PatientLedger": {
+    "newQuote": "New Quote",
+    "newTreatment": "New Treatment",
+    "newPayment": "New Payment",
+    "viewStatement": "Statement",
+    "inline": {
+      "addQuote": "Quote",
+      "addTreatment": "Treatment",
+      "addPayment": "Payment",
+      "editPayment": "Edit payment",
+      "new": "New",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "save": "Save",
+      "delete": "Delete",
+      "edit": "Edit",
+      "selectPending": "Select pending treatments"
+    },
+    "allocations": {
+      "title": "Pending treatments",
+      "pending": "Pending",
+      "allocated": "Allocated",
+      "difference": "Difference: {amount}",
+      "exceedsPending": "Cannot exceed pending",
+      "exceeds": "Exceeds the amount by {amount}",
+      "leftoverCredit": "The remainder ({amount}) will be added as patient credit",
+      "noPending": "No pending treatments in this currency",
+      "noneSelected": "Select at least one treatment or turn off this option",
+      "mismatch": "Allocated sum can't exceed the payment amount. Excess: {amount}"
+    },
+    "docLine": {
+      "quote": "Quote",
+      "invoice": "Invoice",
+      "treatment": "Treatment",
+      "payment": "Payment",
+      "creditNote": "Credit note",
+      "dueDate": "Due date"
+    },
+    "openingBalance": {
+      "label": "Opening balance",
+      "hint": "Account balance before this period"
+    },
+    "allocationsPopover": {
+      "paidTreatments": "Treatments paid",
+      "paidBy": "Paid with",
+      "loading": "Loading…",
+      "empty": "No data"
+    },
+    "footer": {
+      "totalDebit": "Total debit",
+      "totalCredit": "Total credit",
+      "finalBalance": "Final balance",
+      "notCounted": "not counted"
+    },
+    "fields": {
+      "date": "Date",
+      "currency": "Currency",
+      "service": "Treatment",
+      "searchService": "Search treatment...",
+      "selectService": "Select treatment",
+      "tooth": "Tooth",
+      "quantity": "Qty",
+      "doctor": "Doctor",
+      "searchDoctor": "Search doctor...",
+      "selectDoctor": "Select doctor",
+      "searchSede": "Search location...",
+      "selectSede": "Select location",
+      "description": "Description",
+      "price": "Price",
+      "amount": "Amount",
+      "method": "Payment method",
+      "selectMethod": "Select method",
+      "notes": "Notes",
+      "historical": "Historical",
+      "dueDate": "Due date"
+    },
+    "errors": {
+      "dueDateBeforeIssue": "The due date must be after the issue date",
+      "negativeTooth": "The tooth number cannot be negative",
+      "sedeRequired": "Location is required",
+      "methodRequired": "You must select a payment method",
+      "amountRequired": "The amount must be greater than zero",
+      "requiredFields": "Fill in the fields marked in red"
+    },
+    "columns": {
+      "date": "Date",
+      "treatment": "Treatment",
+      "debit": "Debit",
+      "credit": "Credit",
+      "balance": "Balance",
+      "status": "Status"
+    },
+    "status": {
+      "presupuestado": "Quoted",
+      "facturado": "Invoiced",
+      "parcial": "Partially paid",
+      "pagado": "Paid",
+      "pago": "Payment",
+      "notaCredito": "Credit note"
+    },
+    "empty": "This patient has no quotes, invoices, or payments yet.",
+    "search": "Search...",
+    "finalBalance": "Final balance:",
+    "loading": "Loading account…",
+    "noPendingInvoices": "No pending invoices to pay",
+    "actions": {
+      "openMenu": "Open menu",
+      "edit": "Edit",
+      "invoiceCustom": "Custom / partial invoice…",
+      "creditNote": "Create credit note",
+      "deleteQuote": "Delete quote",
+      "deletePayment": "Delete payment",
+      "deleteCreditNote": "Delete credit note",
+      "deleteInvoice": "Delete treatment",
+      "print": "Print",
+      "sendEmail": "Send"
+    },
+    "statusControl": {
+      "presupuesto": "Quoted",
+      "enCurso": "In progress",
+      "finalizado": "Finalized"
+    },
+    "dialogs": {
+      "editItem": {
+        "title": "Edit item",
+        "description": "Update the service, quantity, or price of this quote line.",
+        "service": "Service",
+        "quantity": "Quantity",
+        "unitPrice": "Unit price",
+        "save": "Save",
+        "cancel": "Cancel"
+      },
+      "creditNote": {
+        "title": "Create credit note",
+        "description": "For \"{service}\". This creates a credit note against the invoice for this line.",
+        "maxCreditable": "Maximum creditable amount for this invoice: {max}",
+        "exceedsMax": "The credit note total cannot exceed {max}, the invoice's remaining creditable amount.",
+        "quantity": "Quantity",
+        "unitPrice": "Unit price",
+        "notes": "Notes",
+        "save": "Create",
+        "cancel": "Cancel"
+      },
+      "revertInvoice": {
+        "title": "Revert invoice to quote",
+        "description": "This will revert the invoice back to a quote. This action cannot be undone.",
+        "confirm": "Revert"
+      },
+      "deleteInvoice": {
+        "title": "Delete treatment",
+        "description": "This treatment was billed directly, with no quote behind it, so it can't be reverted to a quote: it will be permanently deleted. This action cannot be undone."
+      },
+      "deleteInvoiceAndQuote": {
+        "title": "Delete document",
+        "description": "This will permanently delete the invoice along with the quote it was billed from. This action cannot be undone."
+      },
+      "deleteQuote": {
+        "title": "Delete quote",
+        "description": "This will permanently delete the quote and all its items. This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "deletePayment": {
+        "title": "Delete payment",
+        "description": "This will permanently delete the payment and reverse any invoices it was applied to. This action cannot be undone."
+      },
+      "deleteCreditNote": {
+        "title": "Delete credit note",
+        "description": "This will permanently delete the credit note along with its allocations. This action cannot be undone."
+      }
+    },
+    "toasts": {
+      "quoteCreated": "Quote created",
+      "quoteCreateError": "Could not create the quote",
+      "treatmentCreated": "Treatment created",
+      "treatmentCreateError": "Could not create the treatment",
+      "paymentCreated": "Payment registered",
+      "paymentCreateError": "Could not register the payment",
+      "itemUpdated": "Item updated",
+      "itemUpdateError": "Could not update the item",
+      "creditNoteCreated": "Credit note created",
+      "creditNoteError": "Could not create the credit note",
+      "markedEnCurso": "Quote confirmed and billed",
+      "markEnCursoError": "Could not confirm and bill the quote",
+      "itemFinalized": "Treatment paid",
+      "itemFinalizedManualDesc": "{pending} was left uncollected — marked as Finalized manually anyway",
+      "itemFinalizeError": "Could not pay the treatment",
+      "itemUnfinalized": "Payment reverted",
+      "itemUnfinalizeError": "Could not revert the payment",
+      "invoiceReverted": "Invoice reverted to quote",
+      "invoiceRevertError": "Could not revert the invoice",
+      "invoiceDeleted": "Treatment deleted",
+      "invoiceDeleteError": "Could not delete the treatment",
+      "quoteDeleted": "Quote deleted",
+      "quoteDeleteError": "Could not delete the quote",
+      "paymentDeleted": "Payment deleted",
+      "paymentDeleteError": "Could not delete the payment",
+      "creditNoteDeleted": "Credit note deleted",
+      "creditNoteDeleteError": "Could not delete the credit note",
+      "paymentUpdated": "Payment updated",
+      "releasedCredit": "{amount} became available as patient credit",
+      "paymentUpdateError": "Could not update the payment",
+      "creditNoteUpdated": "Credit note updated",
+      "creditNoteUpdateError": "Could not update the credit note",
+      "printError": "Could not print the document",
+      "emailNotFound": "Couldn't find the document to send"
+    }
+  },
+  "QuickTreatmentDialog": {
+    "titleQuote": "New Quote",
+    "titleTreatment": "New Treatment",
+    "fields": {
+      "date": "Date",
+      "tooth": "Tooth",
+      "treatment": "Treatment",
+      "searchTreatment": "Search treatment...",
+      "selectTreatment": "Select treatment",
+      "showDescription": "Show description",
+      "hideDescription": "Hide description",
+      "price": "Price",
+      "doctor": "Doctor",
+      "searchDoctor": "Search doctor...",
+      "selectDoctor": "Select doctor",
+      "sede": "Location",
+      "searchSede": "Search location...",
+      "selectSede": "Select location",
+      "keepOpen": "Save and add another"
+    },
+    "validation": {
+      "discountOverLimit": "Above the maximum discount allowed by the clinic",
+      "dateRequired": "Date is required",
+      "toothNumberMin": "Invalid tooth number",
+      "toothNumberMax": "Invalid tooth number",
+      "serviceRequired": "Select a treatment",
+      "pricePositive": "Price must be 0 or greater",
+      "sedeRequired": "Location is required"
+    },
+    "toasts": {
+      "quoteCreated": "Quote created",
+      "treatmentCreated": "Treatment created"
+    },
+    "errors": {
+      "saveQuote": "Could not create the quote",
+      "saveInvoice": "Could not create the treatment"
+    },
+    "cancel": "Cancel",
+    "save": "Save"
+  },
   "AccountStatement": {
     "title": "Account statement",
     "print": "Print",
+    "search": "Search...",
+    "refresh": "Refresh",
     "close": "Close",
     "loading": "Loading account statement…",
     "noData": "This patient has no financial movements.",
@@ -35,6 +294,9 @@
     "docTypePayments": "Payments",
     "docTypeCreditNotes": "Credit notes",
     "noEntriesMatch": "No movements match the filters.",
+    "totalCharged": "Invoiced",
+    "totalPaid": "Paid",
+    "pendingBalance": "Pending",
     "balance": "Balance",
     "invoiced": "Invoiced",
     "paid": "Paid",
@@ -51,7 +313,8 @@
     "placeholder": "Search patient by name or phone…",
     "searching": "Searching…",
     "noResults": "No patients found.",
-    "hint": "Type to search for a patient."
+    "hint": "Type to search for a patient.",
+    "createPatient": "Create patient {name}"
   },
   "ConfirmCloseDialog": {
     "title": "Discard changes?",
@@ -96,9 +359,11 @@
     "PhysicalCashRegisters": "Physical Cash Registers",
     "BusinessSetup": "Business Setup",
     "ClinicDetails": "Clinic Details",
+    "ClinicPrefs": "Clinic Preferences",
     "Schedules": "Schedules",
-    "Holidays": "Holidays",
+    "Holidays": "Exception Schedules",
     "Calendars": "Calendars",
+    "CalendarColors": "Calendar Colors",
     "Doctors": "Doctors",
     "Staff": "Receptionists & Administration",
     "DoctorAvailability": "Doctor Availability",
@@ -106,8 +371,11 @@
     "Currencies": "Currencies & Exchange Rates",
     "Sequences": "Sequences",
     "MutualSocieties": "Mutual Societies",
+    "PatientGroups": "Patient Groups",
+    "ProviderGroups": "Provider Groups",
     "PrintTemplates": "Document Templates",
     "Templates": "Templates",
+    "MedicalInstructionTemplates": "Medical Instruction Templates",
     "System": "System",
     "SystemUsers": "Users",
     "Roles": "Roles",
@@ -127,6 +395,7 @@
     "AlertTemplates": "Alert Templates",
     "AlertHistory": "Alert History",
     "AlertExecutions": "Alert Executions",
+    "WhatsAppAgent": "WhatsApp Agent",
     "Marketing": "Marketing",
     "Campaigns": "Campaigns",
     "Audiences": "Audiences",
@@ -169,7 +438,10 @@
     "ReportGastos": "Operating Expenses",
     "ReportEstadoRes": "Income Statement",
     "ReportKPIs": "Clinic KPIs",
-    "Sedes": "Branches"
+    "ReportBalanceMensual": "Monthly Balance",
+    "Sedes": "Branches",
+    "PatientsPortal": "Patient Portal",
+    "PrescriptionTemplates": "Prescription Templates"
   },
   "TVDisplayPage": {
     "title": "TV Display",
@@ -318,9 +590,15 @@
     "priority_medium": "Medium",
     "priority_high": "High",
     "actionMarkDone": "Mark as done",
+    "markDoneOwnCopyHint": "Marks it as done only for you; the rest of the staff still sees it.",
     "reminderDone": "Marked as done",
     "newAppointmentTime": "Time: {time}",
     "actionViewWorkspace": "View in workspace",
+    "handoffRequestedTitle": "Human assistance requested",
+    "handoffAgentPaused": "The assistant stopped replying to this conversation.",
+    "handoffPhone": "Phone",
+    "handoffLastMessage": "Last message",
+    "actionViewPatient": "View patient",
     "discharged": "Discharged",
     "dischargedUntil": "Until {date}",
     "sessionCompletedAlertTitle": "Session completed",
@@ -334,12 +612,16 @@
     "nextNotification": "Next",
     "newAppointmentTitle": "New appointment",
     "statusChangedTitle": "Status changed",
+    "appointmentRescheduledTitle": "Appointment rescheduled",
+    "appointmentReassignedTitle": "Appointment reassigned",
+    "appointmentUpdatedTitle": "Appointment updated",
     "reminderDueTitle": "Reminder due"
   },
   "Header": {
     "toggleLanguage": "Toggle language",
     "english": "English",
     "spanish": "Español",
+    "spanishSpain": "Castellano",
     "myAccount": "My Account",
     "settings": "Settings",
     "support": "Support",
@@ -397,7 +679,8 @@
     "success": {
       "title": "Success",
       "description": "Your password has been changed successfully."
-    }
+    },
+    "viewAsPatient": "View as patient"
   },
   "OpenCashSessionWidget": {
     "checkingStatus": "Checking cash session status...",
@@ -411,6 +694,15 @@
     "description": "You do not have an active cash session. Please open one to start recording transactions.",
     "button": "Open Cash Session",
     "tooltip": "No active session. Click to open one."
+  },
+  "WorkingSedeSelector": {
+    "title": "Working Location",
+    "selectPrompt": "Select which location you're working at",
+    "noSedes": "No locations available"
+  },
+  "SedeSelectionModal": {
+    "title": "Select a location",
+    "description": "You must choose the location you'll be working at before continuing."
   },
   "DataTableToolbar": {
     "toggleColumns": "Toggle columns",
@@ -541,6 +833,81 @@
     "dateRange": "From {from} to {to}",
     "from": "From {from}"
   },
+  "DashboardGerencial": {
+    "title": "Dashboard",
+    "consolidated": "Consolidated",
+    "branch": "Branch",
+    "today": "Today",
+    "updatedAt": "updated {time}",
+    "monthAccrued": "{month} to date",
+    "production": "Production",
+    "collections": "Collections",
+    "patientsSeen": "Patients seen",
+    "cashResult": "Cash result",
+    "monthExpenses": "Expenses this month",
+    "newPatients": "New patients",
+    "vsSameWeekday": "vs. last {weekday}",
+    "ofScheduled": "of {count} scheduled",
+    "previousMonth": "{month}: {value}",
+    "pctOfProduced": "{pct}% of production",
+    "newThisMonth": "{count} new this month",
+    "noExpensesLoaded": "No expenses recorded",
+    "noData": "no data",
+    "noDataTooltip": "No expense has been recorded in the system yet. The indicator is left empty rather than showing $ 0, which would read as \"there were no expenses\".",
+    "estimated": "estimated",
+    "estimatedTooltip": "An invoice's branch is estimated from the patient's nearest appointment in time, because it is not recorded at billing. 100% coverage, ~1.2% margin of error (patients seen at more than one branch).",
+    "consolidatedOnly": "consolidated only",
+    "collectionsNoBranchTooltip": "Payments record no branch, directly or derived, so collections are always shown consolidated even when a branch is selected.",
+    "branches": "Branches",
+    "compareBranches": "Compare branches",
+    "patientsLabel": "patients",
+    "avgTicket": "avg. ticket",
+    "noShow": "no-show",
+    "patientsPerDay": "Patients per day",
+    "legendThisPeriod": "This period",
+    "legendToday": "Today",
+    "noBranchData": "No activity recorded in the period.",
+    "loadError": "Dashboard data could not be loaded.",
+    "retry": "Retry",
+    "patientsPerWeek": "Patients per week",
+    "patientsPerMonth": "Patients per month",
+    "avgPerDay": "Unique patients seen · {avg}/day average",
+    "avgPerWeek": "Unique patients seen · {avg}/week average",
+    "avgPerMonth": "Unique patients seen · {avg}/month average",
+    "legendCurrentPeriod": "Current period",
+    "granularityNote": "Grouped by {unit} because the period spans {days} days",
+    "unitDay": "day",
+    "unitWeek": "week",
+    "unitMonth": "month",
+    "legendNew": "New",
+    "legendReturning": "Returning",
+    "uniquePatientsNote": "Each bar counts the unique patients of that {unit}. Someone attending on more than one {unit} appears in several bars, so the bars do not add up to the period total.",
+    "tooltipTotal": "Total",
+    "evolutionTitle": "Trend",
+    "evolutionSubtitle": "Last {count} months",
+    "evolutionMetric": "Metric",
+    "evolutionDelta": "Δ vs {month}",
+    "evolutionDeltaGeneric": "Δ vs previous month",
+    "evolutionPartial": "month in progress, through {date}",
+    "evolutionPartialMark": "in progress",
+    "metricProduction": "Production",
+    "metricCollections": "Collections",
+    "metricPatients": "Patients seen",
+    "metricNew": "New patients",
+    "metricExpenses": "Expenses",
+    "newPatientDefinition": "A patient counts as new on the day of their first attended appointment at the clinic. With a branch filter applied, someone who first attended at another branch counts as returning.",
+    "blockUnavailable": "This data could not be loaded.",
+    "metricAttendances": "Visits",
+    "attendancesPerDay": "Visits per day",
+    "attendancesPerWeek": "Visits per week",
+    "attendancesPerMonth": "Visits per month",
+    "avgAttendancesPerDay": "Attended appointments · {avg}/day average",
+    "avgAttendancesPerWeek": "Attended appointments · {avg}/week average",
+    "avgAttendancesPerMonth": "Attended appointments · {avg}/month average",
+    "distinctPatients": "{count} distinct patients",
+    "distinctPatientsTooltip": "Visits count appointments: someone who came more than once counts as many times as they came. Distinct patients count people, so that number cannot be added across periods.",
+    "attendancesLabel": "visits"
+  },
   "SalesByServiceChart": {
     "title": "Sales by Service",
     "description": "Top performing services by percentage",
@@ -586,11 +953,17 @@
   "AppointmentsPage": {
     "title": "Appointments",
     "description": "Manage all appointments.",
+    "responsibleContactHint": "Guardian's contact",
     "settings": {
       "title": "Calendar Settings",
+      "mode": "View (Mode)",
+      "modeOptions": {
+        "invoke": "Invoke",
+        "custom": "Custom"
+      },
       "defaultView": "Default view",
       "hourHeight": "Hour height",
-      "hourHeightOption": "{px} px",
+      "hourHeightOptionWithSlot": "{px} px · {slotPx} px per slot",
       "slotDuration": "Slot duration",
       "slotDurationOption": "{min} min",
       "slotDurationHour": "1 hour",
@@ -599,12 +972,15 @@
       "eventLabel": "Appointment label",
       "eventLabelOptions": {
         "time_patient_notes": "Time - Patient - (Notes)",
-        "patient_treatment_time": "Patient - Treatment - Time"
+        "patient_treatment_time": "Patient - Treatment - Time",
+        "time_patient_notes_treatment": "Time - Patient phone - (Notes, Treatment)",
+        "time_treatment_patient_notes": "Time - Treatment - Patient - Phone - (Notes)"
       },
       "groupBy": "Group by",
       "checkAvailability": "Check availability",
       "filterDoctorsByService": "Filter doctors by service",
       "inlineAppointmentCreation": "Create appointment on the calendar (no modal)",
+      "inlineDraftLivePreview": "Live appointment preview while creating",
       "options": {
         "day": "Day",
         "2_days": "2 Days",
@@ -618,26 +994,43 @@
         "sede": "Branches"
       },
       "blockUnavailable": "Block out-of-office hours",
+      "colorByStatus": "Show appointment status with color",
+      "hiddenWeekdays": "Hide days in day/week view",
+      "weekdayAbbr": {
+        "0": "Sun",
+        "1": "Mon",
+        "2": "Tue",
+        "3": "Wed",
+        "4": "Thu",
+        "5": "Fri",
+        "6": "Sat"
+      },
       "help": {
+        "mode": "Invoke shows the calendar as usual. Custom shows one agenda at a time full-screen; use the 'Agendas' button (top-left) to pick which one to view.",
         "defaultView": "Sets which view opens by default (day, week, month, agenda…). Changing it applies the view immediately.",
         "groupBy": "Splits the calendar into columns per doctor or per consulting room. 'No grouping' shows a single combined column.",
-        "hourHeight": "Pixel height of each hour in the day/week views. Taller = bigger rows and easier-to-read events.",
-        "slotDuration": "Duration of each slot (10, 15, 20, 30 min or 1 h). Sets how many slots fit per hour; tight agendas show more slots and the row grows taller so the appointment title is always readable.",
+        "hourHeight": "Vertical space each hour takes in the day/week views. Taller = more room between appointments and clearer free gaps between them. Zoom multiplies this value and the slot duration divides it up: each option shows how many pixels one slot ends up being.",
+        "slotDuration": "Duration of each slot (10, 15, 20, 30 min or 1 h). Sets how many slots fit per hour: the more slots, the thinner each one is within the configured hour height. If they get too tight, raise the hour height or the zoom.",
         "sede": "Limits the calendar to a branch's consulting rooms. 'All branches' shows every room.",
         "eventLabel": "Sets how the text shown on each appointment is composed (time, patient, treatment, notes).",
         "checkAvailability": "When creating/editing an appointment, validates the slot is free for the chosen doctor or room.",
         "blockUnavailable": "Greys out and blocks out-of-office hours on the calendar (per schedules and exceptions), preventing appointments there.",
         "filterDoctorsByService": "When creating an appointment, filters the doctor list to only those who provide the selected service.",
-        "inlineAppointmentCreation": "Clicking a slot creates the appointment inline on the calendar with a card, without opening the modal. The Create button always opens the modal."
+        "inlineAppointmentCreation": "Clicking a slot creates the appointment inline on the calendar with a card, without opening the modal. The Create button always opens the modal.",
+        "inlineDraftLivePreview": "The inline appointment card floats next to the appointment, which is previewed on the calendar as you fill it in, so you can see how it fits in the free slots. Changing the date moves the calendar to that day. Tablet and desktop only.",
+        "colorByStatus": "Appointments show their status with color. If the appointment has its own color tag or its service has a color, it keeps that color and the status appears as a stripe on the left edge. If it only inherits the doctor's or the consulting room's color, the whole appointment is painted with the status color. Some statuses are configured to always paint the appointment regardless of this switch — see Settings → Calendar Colors.",
+        "hiddenWeekdays": "Hides the selected days as columns in the day/week views. Purely visual to save space — it doesn't affect availability or which days appointments can be booked on."
       }
     },
     "newAppointment": "New Appointment",
     "calendarView": "Calendar View",
     "listView": "List View",
     "refresh": "Refresh",
+    "printSchedule": "Export schedule to Excel",
     "calendars": "Calendars",
     "toggleCalendars": "Show/Hide Calendars",
     "toggleDoctors": "Show/Hide Doctors",
+    "agendas": "Agendas",
     "createSubtitle": "Appointment or reminder",
     "showingAllCalendars": "Showing all calendars",
     "showingAllOfSede": "Showing all from: {sede}",
@@ -646,7 +1039,7 @@
     "showingCountDoctors": "Showing {count} of {total} doctors",
     "selectAll": "Select All",
     "bulk": {
-      "toggleButton": "Bulk selection",
+      "toggleButton": "Batch operations",
       "toggleSubtitle": "Filter and assign in bulk",
       "panelTitle": "Selection filters",
       "datePreset": "Date range",
@@ -734,7 +1127,9 @@
       "workflowServiceTitle": "Workflow Service",
       "workflowServiceDescription": "Scheduling this appointment will create a treatment plan with {steps} steps.",
       "workflowPlanCreated": "Treatment plan created for {name} ({steps} steps)",
-      "workflowStepsLoading": "Loading steps..."
+      "workflowStepsLoading": "Loading steps...",
+      "summary": "Event summary",
+      "summaryRequired": "A summary is required for imported appointments."
     },
     "AppointmentsColumns": {
       "service": "Service",
@@ -766,6 +1161,12 @@
     "noSuggestions": "No suggestions",
     "search": "Search",
     "selectedServices": "Selected Services",
+    "loadErrors": {
+      "title": "The agenda could not be loaded",
+      "description": "There was a problem loading clinics, services or doctors. Check your connection and try again.",
+      "fetchError": "The appointments could not be refreshed. Showing the last loaded data.",
+      "retry": "Retry"
+    },
     "toasts": {
       "appointmentCancelled": "Appointment cancelled",
       "appointmentCancelledDesc": "Appointment has been cancelled.",
@@ -781,10 +1182,13 @@
       "failedCancel": "Failed to cancel",
       "failedDelete": "Failed to delete",
       "fillRequired": "Please fill in the required fields",
+      "patientRequired": "You must assign a patient before saving the appointment",
       "missingInfoTitle": "Missing Information",
       "slotNoLongerAvailable": "Slot no longer available",
       "slotUnavailableDescription": "The selected time slot is no longer available.",
       "slotUnavailableTitle": "Slot Unavailable",
+      "slotBlockedTitle": "Time outside working hours",
+      "slotBlockedDescription": "The selected date and time falls outside the calendar's working hours and cannot be booked.",
       "unexpectedError": "Unexpected error",
       "endTimeInvalid": "End time must be after start time",
       "loadQuoteServicesError": "Failed to load services from quote",
@@ -793,6 +1197,9 @@
       "sessionUpdated": "Clinic session updated",
       "errorCreatingSession": "Error saving session",
       "errorCreatingSessionDesc": "An error occurred while saving the clinic session.",
+      "sessionFailedAppointmentCreated": "Appointment created, but the session could not be saved",
+      "sessionFailedAppointmentCreatedDesc": "The appointment was saved. Complete the clinic session from the patient's clinical history.",
+      "createdWithoutSessionId": "The appointment was created, but its ID could not be read. Create the session manually from the patient's clinical history.",
       "patientIdRequired": "Patient ID is required",
       "errorLoadingQuoteItems": "Error loading treatments",
       "errorLoadingQuoteItemsDesc": "Could not load treatments from quote.",
@@ -802,7 +1209,11 @@
       "calendarReassigned": "Room updated",
       "quoteLinked": "Quote linked",
       "quoteUnlinked": "Quote unlinked",
-      "invoiceLinked": "Invoice linked"
+      "invoiceLinked": "Invoice linked",
+      "appointmentMoved": "Appointment moved",
+      "appointmentMovedDesc": "New time: {date} · {time}",
+      "appointmentResized": "Duration updated",
+      "appointmentResizedDesc": "{start} – {end} ({minutes} min)"
     },
     "inlineCreate": {
       "title": "New appointment",
@@ -811,8 +1222,22 @@
       "cancelledAppointments": "{count} cancelled appointments",
       "createService": "Create \"{name}\"",
       "overlapWarning": "Careful: overlaps another appointment",
+      "slotUnavailable": "Time not available: the room or the doctor is busy",
+      "checkingAvailability": "Checking availability…",
       "cancel": "Cancel",
       "save": "Save",
+      "date": "Date",
+      "background": "Background",
+      "noBackground": "No background",
+      "roomBackground": "Room",
+      "from": "From",
+      "to": "To",
+      "patient": "Patient",
+      "annotation": "Note",
+      "hoursShort": "h",
+      "minutesShort": "min",
+      "addPatient": "Add user",
+      "editPatient": "Edit user",
       "selectPatient": "Who is being seen?",
       "searchPatient": "Search patient…",
       "duration": "Duration",
@@ -828,7 +1253,9 @@
       "selectDoctor": "Doctor",
       "searchDoctor": "Search doctor…",
       "noDoctors": "No doctors",
-      "viewStatement": "View account statement"
+      "viewStatement": "View account statement",
+      "importedFromGoogle": "Imported from Google Calendar",
+      "summaryPlaceholder": "Event title"
     },
     "linkedSession": "Linked Clinic Session",
     "noLinkedSession": "No clinic session linked to this appointment",
@@ -854,7 +1281,13 @@
       "newInvoice": "Create new invoice",
       "searchInvoice": "Search invoice…",
       "noInvoices": "No invoices",
-      "quickBill": "Quick charge"
+      "quickBill": "Quick charge",
+      "accounts": "Accounts",
+      "clinicHistory": "History",
+      "imagesAndFiles": "Images and Files",
+      "appointmentsHistory": "Appointment History",
+      "patientData": "Patient details",
+      "deleteAppointment": "Delete appointment"
     },
     "linkedInvoice": "Invoice",
     "notInvoiced": "Not invoiced",
@@ -876,7 +1309,77 @@
     "treatmentSequence": {
       "title": "Treatment Plan",
       "stepRef": "Plan step #{id}"
+    },
+    "importedFromGoogle": "Imported from Google Calendar",
+    "enableSlot": {
+      "menuItem": "Enable hours…",
+      "title": "Enable hours",
+      "description": "{date} · {scope}",
+      "thisBranch": "This branch",
+      "allBranches": "All branches",
+      "startTime": "From",
+      "endTime": "To",
+      "notes": "Reason (optional)",
+      "notesPlaceholder": "E.g. extended hours for a surgery",
+      "defaultNote": "Enabled from the calendar",
+      "resultingHours": "Open hours that day: {hours}",
+      "alreadyOpen": "Those hours are already open. Pick a time outside the schedule.",
+      "hint": "Only this day changes. It's saved as an exception schedule, which you can review or remove in Settings → Exception schedules.",
+      "cancel": "Cancel",
+      "confirm": "Enable",
+      "successTitle": "Hours enabled",
+      "successDescription": "Open hours that day: {hours}",
+      "partialError": "Only {saved} of {total} changes were applied. Check the day in Exception schedules.",
+      "validation": {
+        "time": "Enter a valid time",
+        "endAfterStart": "The end must be after the start"
+      },
+      "unnamedClosure": "Closure without a note",
+      "closedAllDay": "closed all day",
+      "nothingEditable": "Those hours stay closed by closures that can't be changed from here.",
+      "missingPermission": "You don't have permission to make every change on Exception schedules this needs.",
+      "changes": {
+        "title": "What will change",
+        "liftClosure": "The closure “{name}” is removed.",
+        "trimClosure": "The closure “{name}” now covers only {hours}.",
+        "removeDate": "This day is removed from the closure “{name}” (it stays on {count, plural, one {# other date} other {# other dates}}).",
+        "removeDatePartial": "This day is removed from the closure “{name}” (it stays on {count, plural, one {# other date} other {# other dates}}); {hours} stays closed today.",
+        "extendHours": "The day's hours are extended.",
+        "closedOutsideHours": "The closure “{name}” now only covers time outside the day's hours.",
+        "removeDateOutsideHours": "This day is removed from the closure “{name}” (it stays on {count, plural, one {# other date} other {# other dates}}); today it only stays closed outside the day's hours."
+      },
+      "locked": {
+        "title": "These closures can't be changed from the calendar:",
+        "recurring": "“{name}” repeats on other dates.",
+        "otherScope": "“{name}” applies to another branch scope (e.g. all branches).",
+        "link": "Open Exception schedules"
+      }
     }
+  },
+  "PrintScheduleDialog": {
+    "title": "Export schedule to Excel",
+    "description": "Builds a sheet of a calendar's appointments. Cancelled appointments and no-shows are excluded.",
+    "field_calendar": "Calendar",
+    "no_calendars": "No calendars available",
+    "field_calendar_placeholder": "Pick a calendar",
+    "field_range": "Period",
+    "range_day": "Day",
+    "range_week": "Week",
+    "range_month": "Month",
+    "range_custom": "Range",
+    "field_anchor": "Date",
+    "field_from": "From",
+    "field_to": "To",
+    "summary_single": "Appointments for {date}",
+    "summary_range": "Appointments from {from} to {to}",
+    "cancel": "Cancel",
+    "export": "Download Excel",
+    "col_time": "Time",
+    "col_name": "Full name",
+    "col_phone": "Phone",
+    "toast_success": "{count, plural, one {# appointment exported} other {# appointments exported}}",
+    "toast_empty": "No appointments in the selected period",
+    "toast_error": "Could not generate the Excel file"
   },
   "AppointmentsColumns": {
     "service": "Service",
@@ -888,6 +1391,7 @@
     "cancel": "Cancel",
     "calendar": "Calendar",
     "patient": "Patient",
+    "phone": "Phone",
     "quoteDocNo": "Budget"
   },
   "AppointmentStatus": {
@@ -897,7 +1401,9 @@
     "cancelled": "Cancelled",
     "scheduled": "Scheduled",
     "arrived": "Arrived",
+    "arrived_late": "Arrived late",
     "in_progress": "In progress",
+    "attended_late": "Attended late",
     "no_show": "No-show"
   },
   "AppointmentStatusMenu": {
@@ -911,6 +1417,13 @@
     "errorDesc": "An error occurred while updating the appointment status.",
     "cancelSubmenu": "Cancel…",
     "otherReason": "Other reason…"
+  },
+  "MissingIdentityDocumentDialog": {
+    "title": "Identity document required",
+    "description": "The appointment can't be marked as \"{status}\" because {patient} has no identity document on file. Add it to the patient's record and try again.",
+    "descriptionNoName": "The appointment can't be marked as \"{status}\" because the patient has no identity document on file. Add it to the patient's record and try again.",
+    "close": "Got it",
+    "dismiss": "Close"
   },
   "CancellationReason": {
     "late": "Cancelled late",
@@ -972,7 +1485,26 @@
     "deleteTitle": "Delete appointment",
     "deleteDescription": "This will completely remove the appointment from the system and it can no longer be viewed. Do you want to continue?",
     "deleteConfirm": "Yes, delete",
-    "deleteCancel": "Cancel"
+    "deleteCancel": "Cancel",
+    "history": {
+      "title": "Change history",
+      "empty": "No changes recorded yet.",
+      "fields": {
+        "status": "Status",
+        "notes": "Notes",
+        "description": "Description",
+        "summary": "Summary",
+        "color": "Color",
+        "doctor_id": "Doctor",
+        "calendar_id": "Room",
+        "quote_id": "Quote",
+        "invoice_id": "Invoice",
+        "start_datetime": "Start",
+        "end_datetime": "End",
+        "cancellation_reason": "Cancellation reason",
+        "cancellation_note": "Cancellation note"
+      }
+    }
   },
   "AppointmentReschedule": {
     "action": "Reschedule",
@@ -1013,6 +1545,18 @@
       "dismiss": "Dismiss",
       "openFirst": "View first appointment"
     },
+    "rescheduleAlerts": {
+      "singleTitle": "One of today's appointments was rescheduled",
+      "multipleTitle": "{count} of today's appointments were rescheduled"
+    },
+    "reassignAlerts": {
+      "singleTitle": "An appointment was reassigned to you",
+      "multipleTitle": "{count} appointments were reassigned to you"
+    },
+    "editAlerts": {
+      "singleTitle": "One of today's appointments was edited",
+      "multipleTitle": "{count} of today's appointments were edited"
+    },
     "todayLabel": "Today: {date}",
     "lastUpdated": "Last updated: {time}",
     "lastUpdatedPending": "Loading initial refresh",
@@ -1036,15 +1580,32 @@
       "refresh": "Refresh",
       "openFullAgenda": "Open full schedule",
       "emptyTitle": "No appointments for today",
+      "emptyTitleOtherDay": "No appointments for this day",
       "emptyDescription": "When new appointments are scheduled or a status changes, they will appear here.",
-      "hiddenPastAppointments": "{count} earlier appointments hidden",
-      "historyHidden": "History",
-      "showHistory": "Show history",
-      "hideHistory": "Hide",
       "unknownPatient": "Unnamed patient",
       "viewPatient": "Patient",
       "viewContext": "Context",
-      "startSession": "Session"
+      "startSession": "Session",
+      "today": "Today",
+      "titleRange": "Period agenda",
+      "emptyTitleRange": "No appointments in this period",
+      "rangeSummary": "{appointments, plural, =1 {1 appointment} other {# appointments}} · {days, plural, =1 {1 day} other {# days}}",
+      "dayAppointmentCount": "{count, plural, =1 {1 appointment} other {# appointments}}",
+      "readOnlyDay": "Read-only (not today)",
+      "dateFilter": {
+        "today": "Today",
+        "tomorrow": "Tomorrow",
+        "week": "This week",
+        "next7": "Next 7 days",
+        "month": "This month",
+        "nextMonth": "Next month",
+        "prevMonth": "Last month",
+        "modeDay": "Single day",
+        "modeRange": "Period",
+        "hintDay": "Pick a day to see its agenda.",
+        "hintPickStart": "Mark the first day of the period.",
+        "hintPickEnd": "Start: {date}. Now mark the last day."
+      }
     },
     "focus": {
       "title": "Patient in focus",
@@ -1068,9 +1629,9 @@
       "latestSessionBadge": "Latest session",
       "currentAppointmentBadge": "Current appointment",
       "viewPatientFile": "Patient file",
-      "noClinicalSignals": "No recorded allergies or complications.",
       "moreAlertTags": "+{count} more",
       "sessionExistsToday": "A clinical session already exists for today. Only one session per patient per day is allowed.",
+      "sessionOnlyOnAppointmentDay": "You can't complete or edit the clinical session before the appointment's day.",
       "sessionIsOdontogram": "The session recorded for this appointment is an Odontogram. Edit it from the Odontogram panel.",
       "workspaceLabel": "Clinical workspace",
       "sessionStatusTitle": "Session status",
@@ -1155,8 +1716,13 @@
         "sessionConfirmSaveDirect": "Save directly",
         "sessionConfirmCancel": "Cancel",
         "sessionConfirmSaving": "Saving...",
-        "sessionConfirmSavedOk": "Session saved successfully."
-      }
+        "sessionConfirmSavedOk": "Session saved successfully.",
+        "odontogramNotApplied": "I couldn't apply the marks to the odontogram: this appointment doesn't allow a new session. Open its existing session and ask me again.",
+        "odontogramNotConfirmed": "I opened the odontogram but couldn't confirm the marks were applied. Please check it before saving."
+      },
+      "readOnly": "Read-only",
+      "readOnlyOnDate": "Read-only · {date}",
+      "prescribe": "Prescribe"
     },
     "calendarSwitch": {
       "myAppointments": "My appointments",
@@ -1394,6 +1960,7 @@
     "filterPlaceholder": "Filter patients by email...",
     "filterByPatient": "Filter by patient...",
     "detailsFor": "Details for {name}",
+    "readOnlyBadge": "Read-only",
     "doctorWorkspace": {
       "clinicalAlerts": "Clinical alerts",
       "noAllergies": "No recorded allergies."
@@ -1401,13 +1968,62 @@
     "close": "Close details",
     "dependentPatient": "Dependent patient",
     "dependentOf": "Dependent of {name}",
+    "viewResponsibleProfile": "View responsible contact's profile",
+    "dependents": {
+      "title": "Patients in their care",
+      "refresh": "Refresh",
+      "linkExisting": "Link existing",
+      "addNew": "New dependent",
+      "searchPlaceholder": "Search patient by name, document or phone...",
+      "searchHint": "Type to search a patient.",
+      "noResults": "No patients found.",
+      "alreadyLinked": "Already in their care",
+      "hasOtherResponsible": "In the care of another guardian",
+      "age": "{age} y/o",
+      "inactive": "Inactive",
+      "usesResponsiblePhone": "Uses guardian's phone",
+      "openProfile": "Open profile",
+      "unlink": "Unlink",
+      "retry": "Retry",
+      "empty": "No patients in their care",
+      "emptyHint": "Link an existing patient or register a new one (for example, a child) so this patient appears as their guardian.",
+      "noSiblings": "No other patients in the care of this guardian.",
+      "responsibleTitle": "Guardian",
+      "responsibleUnknown": "Guardian not found",
+      "responsibleHint": "To change the guardian, edit the patient details.",
+      "siblingsTitle": "Also in the care of {name}",
+      "unlinkTitle": "Unlink dependent?",
+      "unlinkDescription": "{name} will no longer be in the care of {responsible} and will become an independent patient.",
+      "unlinkNoPhoneWarning": "{name} has no phone of their own: reminders and alerts will stop reaching them until one is added.",
+      "unlinkConfirm": "Unlink",
+      "cancel": "Cancel",
+      "unlinkSuccess": "{name} is no longer a dependent",
+      "unlinkError": "Couldn't unlink the patient",
+      "linkSuccess": "{name} is now a dependent",
+      "linkError": "Couldn't link the patient",
+      "reassignTitle": "Change guardian?",
+      "reassignDescription": "{name} is already in the care of another guardian. If you continue, they will be in the care of {responsible}.",
+      "reassignDescriptionNamed": "{name} is in the care of {current}. If you continue, they will be in the care of {responsible} instead.",
+      "reassignConfirm": "Change guardian",
+      "createTitle": "New dependent",
+      "createDescription": "The new patient will be registered in the care of {name}.",
+      "errors": {
+        "selfResponsible": "A patient cannot be their own guardian.",
+        "responsibleIsDependent": "The selected guardian is a dependent patient: a dependent cannot be in charge of other patients.",
+        "guardianHasDependents": "This patient has dependents in their care, so they cannot be a dependent. Unlink their dependents first.",
+        "notFound": "The patient no longer exists or couldn't be found."
+      }
+    },
+    "responsibleMatch": "In the care of {name}",
+    "responsibleMatchWithPhone": "In the care of {name} · {phone}",
     "preferencesButton": "Preferences",
     "dischargeButton": "Discharge",
     "readmitButton": "Readmit",
-    "setInitialPassword": "Set Initial Password",
+    "setInitialPassword": "Reset Password",
     "tabs": {
       "roles": "Roles",
       "services": "Services",
+      "ledger": "Account",
       "quotes": "Quotes",
       "appointments": "Appointments",
       "treatmentPlans": "Treat. Plans",
@@ -1428,7 +2044,10 @@
       "info": "Info",
       "anamnesis": "Anamnesis",
       "summary": "Summary",
-      "history": "Timeline"
+      "history": "Timeline",
+      "medicalInstructions": "Medical Instructions",
+      "dependents": "Dependents",
+      "responsible": "Guardian"
     },
     "createDialog": {
       "title": "Create New Patient",
@@ -1438,6 +2057,7 @@
       "editDescription": "Update the details for this patient.",
       "createSuccessTitle": "Patient Created",
       "createSuccessDescription": "The new patient has been added successfully.",
+      "createdNotResolvedDescription": "The patient was created but could not be selected automatically. Search for it in the list.",
       "editSuccessTitle": "Patient Updated",
       "editSuccessDescription": "The patient has been updated successfully.",
       "name": "Name",
@@ -1451,9 +2071,30 @@
       "responsibleContactPlaceholder": "Not assigned",
       "searchGuardianPlaceholder": "Search by name...",
       "noGuardianResults": "No patients found",
+      "searchGuardianHint": "Type to search for the guardian.",
+      "createGuardian": "Create guardian {name}",
+      "createGuardianTitle": "Create Guardian",
+      "createGuardianDescription": "Fill in the guardian's details. Once saved they are assigned as the responsible contact.",
       "clearResponsibleContact": "Clear",
+      "doctor": "Default doctor",
+      "searchDoctor": "Search doctor...",
+      "selectDoctor": "Select doctor",
+      "clearDoctor": "Clear",
+      "sex": "Sex",
+      "sexNone": "Not specified",
+      "sexMale": "Male",
+      "sexFemale": "Female",
       "identity_document": "Identity Document",
       "identity_document_placeholder": "e.g., 12345678",
+      "identity_document_type": "Document Type",
+      "identityDocumentTypes": {
+        "cedula_uy": "Uruguayan National ID",
+        "cedula_ext": "Foreign National ID",
+        "pasaporte_uy": "Uruguayan Passport",
+        "pasaporte_ext": "Foreign Passport",
+        "dni": "Spanish National ID (DNI)",
+        "nie": "Spanish Foreigner ID (NIE)"
+      },
       "isActive": "Is Active",
       "cancel": "Cancel",
       "save": "Create Patient",
@@ -1465,9 +2106,10 @@
         "phoneInvalid": "Invalid phone number",
         "phoneRequired": "Phone is required",
         "identityRequired": "Identity document is required",
-        "identityInvalid": "Identity document must be a number.",
+        "identityInvalid": "Identity document format is not valid for the selected type.",
         "identityMaxLength": "Identity document must be 10 characters or less.",
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
+        "responsibleContactRequired": "The patient is a dependent: a responsible contact must be selected.",
         "genericError": "An unexpected error occurred. Please try again.",
         "serverError": "Server error, please try again later.",
         "uniqueConflict": "The following fields are already registered: {fields}",
@@ -1475,10 +2117,15 @@
           "email": "Email",
           "phone": "Phone",
           "identity_document": "Identity Document"
-        }
+        },
+        "nameInvalid": "Use only letters, spaces, hyphens, apostrophes and periods (no numbers or symbols).",
+        "nameTooShort": "The name must have at least 2 letters.",
+        "nameTooLong": "The name can't be longer than 120 characters."
       },
       "birth_date": "Birth Date",
       "birth_date_placeholder": "01/01/1999",
+      "address": "Address",
+      "addressPlaceholder": "Street, number, city",
       "notes": {
         "title": "Patient Notes",
         "description": "Manage patient notes and observations",
@@ -1505,6 +2152,21 @@
         "success": "Mutual society updated",
         "error": "Error updating mutual society"
       }
+    },
+    "patientGroup": {
+      "select": "Select group",
+      "none": "Not assigned"
+    },
+    "patientGroups": {
+      "label": "Patient groups",
+      "selectPlaceholder": "Select groups...",
+      "search": "Search group...",
+      "noResults": "No groups.",
+      "empty": "This patient does not belong to any group.",
+      "count": "{count} group(s)",
+      "save": "Save groups",
+      "saved": "Patient groups updated",
+      "saveError": "Could not save groups"
     },
     "filters": {
       "type": {
@@ -1847,20 +2509,6 @@
       "invoiceSuccessDesc": "The invoice for order #{orderId} has been created successfully.",
       "invoiceError": "Error creating invoice"
     },
-    "sendEmailDialog": {
-      "title": "Send Quote by Email",
-      "description": "Enter the recipient emails for quote #{id}.",
-      "recipients": "Recipients",
-      "placeholder": "email1@example.com, email2@example.com",
-      "helperText": "Separate multiple emails with commas.",
-      "sending": "Sending...",
-      "cancel": "Cancel",
-      "send": "Send Email",
-      "success": "Quote sent successfully",
-      "error": "Failed to send quote",
-      "errorNoEmail": "Please enter at least one recipient email.",
-      "errorInvalidEmails": "Invalid email addresses: {emails}"
-    },
     "confirmDialog": {
       "title": "Confirm Quote",
       "titleReject": "Reject Quote",
@@ -1880,6 +2528,12 @@
       "user": "User",
       "selectUser": "Select User",
       "searchUser": "Search User",
+      "doctor": "Doctor",
+      "selectDoctor": "Select Doctor",
+      "searchDoctor": "Search doctor...",
+      "sede": "Location",
+      "selectSede": "Select location...",
+      "searchSede": "Search location...",
       "total": "Total",
       "currency": "Currency",
       "exchangeRate": "Exchange Rate",
@@ -1972,12 +2626,6 @@
     "pdfDownloading": "Your PDF for quote #{id} is downloading.",
     "printError": "Print Error",
     "couldNotPrint": "Could not print quote.",
-    "emailError": "Email Error",
-    "invalidEmail": "Invalid Email Address",
-    "atLeastOneEmail": "Please enter at least one recipient email.",
-    "invalidEmails": "The following emails are invalid: {emails}",
-    "emailSent": "Email Sent",
-    "emailSentSuccess": "The quote has been successfully sent to {emails}.",
     "unexpectedError": "An unexpected error occurred.",
     "reject": "Reject",
     "edit": "Edit",
@@ -2051,6 +2699,7 @@
       "saving": "Saving..."
     },
     "validation": {
+      "discountOverLimit": "Above the maximum discount allowed by the clinic",
       "userRequired": "An user is required",
       "serviceRequired": "A service is required",
       "dateRequired": "Date is required",
@@ -2061,7 +2710,8 @@
       "unitPriceTwoDecimals": "Price must have at most 2 decimals",
       "toothNumberMin": "Tooth number must be at least 11",
       "toothNumberMax": "Tooth number must be at most 85",
-      "exchangeRatePositive": "Exchange rate must be greater than 0"
+      "exchangeRatePositive": "Exchange rate must be greater than 0",
+      "sedeRequired": "Location is required"
     },
     "deleteQuoteDialog": {
       "title": "Delete Quote",
@@ -2260,6 +2910,7 @@
     },
     "validation": {
       "amountPositive": "Amount must be a positive number.",
+      "amountNonNegative": "Amount cannot be negative.",
       "methodRequired": "Payment method is required.",
       "dateRequired": "Payment date is required.",
       "userRequired": "An user is required",
@@ -2320,20 +2971,6 @@
         "invoice": "Invoice"
       }
     },
-    "sendEmailDialog": {
-      "title": "Send Invoice by Email",
-      "description": "Enter the recipient emails for invoice #{id}.",
-      "recipients": "Recipients",
-      "placeholder": "email1@example.com, email2@example.com",
-      "helperText": "Separate multiple emails with commas.",
-      "errorNoEmail": "Please enter at least one recipient email.",
-      "send": "Send Email",
-      "sending": "Sending...",
-      "cancel": "Cancel",
-      "success": "Invoice sent successfully",
-      "error": "Failed to send invoice",
-      "errorInvalidEmails": "Invalid email addresses: {emails}"
-    },
     "importDialog": {
       "title": "Import Invoice",
       "description": "Upload a PDF or image file to automatically create an invoice.",
@@ -2376,6 +3013,12 @@
       "description": "Create a new invoice",
       "user": "User",
       "selectUser": "Select User",
+      "doctor": "Doctor",
+      "selectDoctor": "Select Doctor",
+      "searchDoctor": "Search doctor...",
+      "sede": "Location",
+      "selectSede": "Select location...",
+      "searchSede": "Search location...",
       "invoiceRef": "Invoice Reference",
       "addItem": "Add Item",
       "total": "Total",
@@ -2397,7 +3040,9 @@
         "totalNonNegative": "Total must be a non-negative number.",
         "serviceRequired": "Service name is required.",
         "quantityMin": "Quantity must be at least 1.",
-        "unitPriceNonNegative": "Unit price cannot be negative."
+        "unitPriceNonNegative": "Unit price cannot be negative.",
+        "sedeRequired": "Location is required.",
+        "parentInvoiceRequired": "You must select the parent invoice."
       },
       "errors": {
         "title": "Error",
@@ -2446,8 +3091,6 @@
       "confirmSuccess": "Invoice confirmed",
       "confirmError": "Error confirming invoice",
       "printError": "Error downloading invoice",
-      "emailSuccess": "Invoice sent by email",
-      "emailError": "Error sending invoice",
       "paymentSuccess": "Payment registered successfully",
       "paymentError": "Error registering payment",
       "registerPayment": "Register Payment",
@@ -2545,35 +3188,36 @@
       "prefillLast": "Prefill with Last Closing Cashup",
       "cashCountTitle": "Cash Count ({currency})",
       "cashCountDescription": "Enter the physical cash count for each denomination.",
-      "uyuCountTitle": "UYU Count",
-      "usdCountTitle": "USD Count",
       "steps": {
         "config": "Configuration",
-        "countUYU": "Cash Count (UYU)",
-        "countUSD": "Cash Count (USD)",
         "bankDeposit": "Bank Deposit",
         "review": "Review",
         "declare": "Declare",
         "report": "Report",
-        "confirm": "Confirmation"
+        "confirm": "Confirmation",
+        "count": "Count {currency}"
       },
-      "title": "Close Session"
+      "title": "Close Session",
+      "count": {
+        "title": "Cash count ({currency})",
+        "noDenominations": "No banknote breakdown is available for {currency}. Enter the total counted amount."
+      }
     },
     "bankDeposit": {
       "title": "Bank Deposit Declaration",
       "description": "Declare the physical cash denominations to be taken out for banking. This step is optional.",
-      "countUYU": "UYU Bank Deposit",
-      "countUSD": "USD Bank Deposit",
       "attachFiles": "Attach Files",
-      "chooseFiles": "Choose Files"
+      "chooseFiles": "Choose Files",
+      "count": "Deposit {currency}"
     },
     "confirmation": {
       "sessionInfo": "Session Info",
       "cashSummary": "Cash Summary",
-      "totalUYU": "Total UYU",
-      "totalUSD": "Total USD",
       "totalOpening": "Total Opening",
-      "confirmButton": "Confirm"
+      "confirmButton": "Confirm",
+      "total": "Total {currency}",
+      "denomination": "{currency} denomination",
+      "quantity": "Quantity"
     },
     "activeSession": {
       "columns": {
@@ -2594,7 +3238,9 @@
       "quantity": "Quantity",
       "subtotal": "Subtotal",
       "cashOnHand": "Cash on Hand",
+      "cashGenerated": "Generated",
       "totalOutcome": "Total Outcome",
+      "totalPos": "POS",
       "transactions": "Transactions",
       "printOpening": "Print Opening"
     },
@@ -2619,6 +3265,7 @@
         "mobile_payment": "Mobile Payment",
         "mercado_pago": "Mercado Pago",
         "pe": "PE",
+        "ca": "Agile Purchase",
         "card": "Card",
         "transfer": "Transfer",
         "other": "Other"
@@ -2758,7 +3405,9 @@
     "actions": {
       "edit": "Edit",
       "delete": "Delete",
-      "openMenu": "Open menu"
+      "openMenu": "Open menu",
+      "deleteDisabledClosedSession": "Can't delete: this transaction's cash register is already closed",
+      "editDisabledClosedSession": "Can't edit: this transaction's cash register is already closed"
     },
     "dialog": {
       "editTitle": "Edit Transaction",
@@ -2812,6 +3461,7 @@
     "columns": {
       "id": "ID",
       "name": "Name",
+      "sede": "Location",
       "isActive": "Is Active",
       "createdAt": "Created At",
       "updatedAt": "Updated At",
@@ -2826,6 +3476,9 @@
       "createTitle": "Create Cash Register",
       "name": "Name",
       "namePlaceholder": "Name here...",
+      "sede": "Location",
+      "selectSede": "Select location...",
+      "searchSede": "Search location...",
       "isActive": "Is Active",
       "cancel": "Cancel",
       "create": "Create",
@@ -2833,7 +3486,8 @@
       "save": "Save Changes"
     },
     "validation": {
-      "nameRequired": "Name is required"
+      "nameRequired": "Name is required",
+      "sedeRequired": "Location is required"
     },
     "deleteDialog": {
       "title": "Delete Cash Register",
@@ -2932,6 +3586,7 @@
         "MOBILE_PAYMENT": "Mobile Payment",
         "MERCADO_PAGO": "Mercado Pago",
         "PE": "Non-cash",
+        "CA": "Agile Purchase",
         "Cash": "Cash",
         "CN": "Credit Note"
       }
@@ -2986,6 +3641,33 @@
       "isHistoricalDescription": "Check this option if the payment was made on a date prior to today",
       "isHistoricalWarning": "Historical payment registered"
     },
+    "smartPaymentDialog": {
+      "title": "New Payment",
+      "amount": "Amount",
+      "currency": "Currency",
+      "paymentMethod": "Payment Method",
+      "selectMethod": "Select method",
+      "paymentDate": "Payment Date",
+      "useAvailableCredit": "Use available credit",
+      "allocationPreview": "This payment will be applied to",
+      "loadingInvoices": "Checking pending invoices…",
+      "noPendingInvoices": "No pending invoices — this will be registered as a prepayment.",
+      "fromCredit": "from credit",
+      "prepaidRemainder": "Remainder (registered as prepayment)",
+      "notes": "Notes",
+      "notesPlaceholder": "Add any additional notes here...",
+      "isHistorical": "Historical",
+      "isHistoricalDescription": "Check this option if the payment was made on a date prior to today",
+      "isHistoricalWarning": "Historical payment registered",
+      "cancel": "Cancel",
+      "save": "Save",
+      "confirmTitle": "Confirm Payment",
+      "confirmDescription": "This will apply the payment to the patient's pending invoices (oldest first) and register any remainder as a prepayment. Continue?",
+      "confirm": "Confirm",
+      "toasts": {
+        "successDescription": "Payment registered and applied successfully."
+      }
+    },
     "tabs": {
       "allocations": "Allocations",
       "notes": "Notes"
@@ -3008,20 +3690,6 @@
     },
     "notes": {
       "noNotes": "No notes available."
-    },
-    "sendEmailDialog": {
-      "title": "Send Payment Receipt by Email",
-      "description": "Enter the recipient emails for payment #{id}.",
-      "recipients": "Recipients",
-      "placeholder": "email1@example.com, email2@example.com",
-      "helperText": "Separate multiple emails with commas.",
-      "errorNoEmail": "Please enter at least one recipient email.",
-      "errorInvalidEmails": "Invalid email addresses: {emails}",
-      "send": "Send Email",
-      "sending": "Sending...",
-      "cancel": "Cancel",
-      "success": "Payment sent successfully",
-      "error": "Failed to send payment"
     },
     "editDialog": {
       "title": "Edit payment",
@@ -3103,6 +3771,10 @@
     "title": "Services",
     "description": "An overview of services.",
     "filterPlaceholder": "Filter here...",
+    "statusFilter": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
     "createDialog": {
       "title": "Create Service",
       "description": "Create a new service",
@@ -3126,7 +3798,11 @@
       "color": "Color",
       "activeLabel": "Active",
       "activeDescription": "Set service active",
-      "colorLabel": "Color"
+      "colorLabel": "Color",
+      "bookableOnline": {
+        "label": "Patient can book this online",
+        "help": "Shows up in the patient portal for self-booking. Leave it off for anything that has to go through the clinic."
+      }
     },
     "serviceType": {
       "label": "Workflow Service",
@@ -3173,7 +3849,11 @@
       "editSuccessTitle": "Service Updated",
       "errorTitle": "Error",
       "genericError": "An unexpected error occurred.",
-      "successDescription": "Operation completed successfully."
+      "successDescription": "Operation completed successfully.",
+      "imagePendingTitle": "Service created, image was not",
+      "imagePendingDescription": "Open the service from the list and upload the image from there.",
+      "bookableOnlineFailedTitle": "Couldn't change online booking",
+      "bookableOnlineFailedDescription": "The service was saved, but the patient self-booking option stayed as it was. Please try again."
     },
     "validation": {
       "categoryRequired": "Category is required.",
@@ -3202,10 +3882,23 @@
     "inactive": "Inactive",
     "actions": "Actions",
     "edit": "Edit",
-    "delete": "Delete"
+    "delete": "Delete",
+    "bookableOnline": "Online",
+    "bookableOnlineYes": "Bookable"
   },
   "ProvidersPage": {
     "title": "Providers",
+    "providerGroups": {
+      "label": "Provider groups",
+      "selectPlaceholder": "Select groups...",
+      "search": "Search group...",
+      "noResults": "No groups.",
+      "empty": "This provider does not belong to any group.",
+      "count": "{count} group(s)",
+      "save": "Save groups",
+      "saved": "Provider groups updated",
+      "saveError": "Could not save groups"
+    },
     "stats": {
       "title": "Financial Summary",
       "totalInvoiced": "Total Invoiced",
@@ -3252,11 +3945,14 @@
         "identityMaxLength": "Identity document must be 10 characters or less.",
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
         "fields": {
-          "identity_document": "RUT"
+          "identity_document": "RUT",
+          "email": "Email",
+          "phone": "Phone"
         },
         "uniqueConflict": "The following fields are already registered: {fields}",
         "errorTitle": "Error Updating Details",
         "serverError": "Server error, please try again later.",
+        "genericError": "An unexpected error occurred. Please try again.",
         "identityRequired": "Identity document is required"
       },
       "editTitle": "Edit Provider",
@@ -3302,7 +3998,7 @@
       "saveError": "Error saving",
       "saveErrorDescription": "Could not save the notes. Try again."
     },
-    "setInitialPassword": "Set Initial Password",
+    "setInitialPassword": "Reset Password",
     "close": "Close details",
     "quickCreate": {
       "title": "Create",
@@ -3340,7 +4036,8 @@
       "invalidCredentials": "The credentials you entered are incorrect. Please check your email and password and try again.",
       "emailNotFound": "The email address entered does not exist in our system. Please check the email and try again.",
       "unexpected": "An unexpected error occurred. Please try again later."
-    }
+    },
+    "patientPortalLink": "Are you a patient? Go to your portal"
   },
   "ClinicDetailsPage": {
     "title": "Clinic Details",
@@ -3358,7 +4055,7 @@
     "emailPlaceholder": "e.g. john.doe@example.com",
     "save": "Save",
     "logoAlt": "Logo preview",
-    "currencyLabel": "Currency",
+    "currencyLabel": "Primary currency",
     "currencyPlaceholder": "Select a currency",
     "fallbacks": {
       "name": "No name",
@@ -3407,7 +4104,14 @@
     "sedeDeleteConfirmDelete": "Delete",
     "validation": {
       "phoneInvalid": "Invalid phone number"
-    }
+    },
+    "currencySearchPlaceholder": "Search by code or name…",
+    "currencyEmpty": "No matching currency",
+    "currencyHelp": "The currency the clinic works in. It is used by default across quotes, invoices, payments and reports.",
+    "secondaryCurrencyLabel": "Secondary currency (optional)",
+    "secondaryCurrencyPlaceholder": "No secondary currency",
+    "secondaryCurrencyNone": "No secondary currency",
+    "secondaryCurrencyHelp": "Set it only if the clinic also operates in a second currency. Leave it empty to work in a single currency and hide exchange rates."
   },
   "SchedulesPage": {
     "title": "Schedules",
@@ -3442,10 +4146,12 @@
       "cancel": "Cancel",
       "editTitle": "Edit schedule",
       "editDescription": "Edit the schedule for the clinic",
-      "editSave": "Save Changes"
+      "editSave": "Save Changes",
+      "daysOfWeek": "Days of the Week",
+      "daysOfWeekHelp": "One schedule is created for each selected day, with the same hours."
     },
     "validation": {
-      "dayRequired": "Day of week is required.",
+      "dayRequired": "Select at least one day.",
       "startRequired": "Start time is required.",
       "endRequired": "End time is required.",
       "dayOfWeekRequired": "Day of week is required.",
@@ -3454,22 +4160,22 @@
     },
     "deleteDialog": {
       "title": "Delete Schedule",
-      "description": "Are you sure you want to delete this schedule? This action cannot be undone.",
+      "description": "Are you sure you want to delete the schedule {schedule}? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
     },
     "toast": {
       "editSuccessDescription": "Details have been updated successfully",
-      "editSuccessTitle": "Successfully Updated",
+      "editSuccessTitle": "Schedule updated",
       "successDescription": "Details have been updated successfully",
       "successTitle": "Successfully Updated",
       "deleteSuccessDescription": "Details have been deleted successfully",
-      "deleteSuccessTitle": "Successfully Deleted",
-      "errorDesc": "An error occurs and details have been updated successfully",
-      "errorTitle": "Error Updating",
-      "createSuccessTitle": "Successfully Updated",
-      "genericError": "An error occurs and details have been updated successfully",
-      "deleteErrorDescription": "Details have been deleted successfully"
+      "deleteSuccessTitle": "Schedule deleted",
+      "errorDesc": "The schedule changes could not be saved.",
+      "errorTitle": "Error",
+      "createSuccessTitle": "Schedule created",
+      "genericError": "The schedule could not be saved.",
+      "deleteErrorDescription": "The schedule could not be deleted."
     },
     "sede": {
       "general": "General",
@@ -3477,15 +4183,17 @@
     }
   },
   "HolidaysPage": {
-    "title": "Holidays",
-    "description": "All holidays for the clinic",
+    "title": "Exception Schedules",
+    "description": "Exceptional clinic hours: holidays, one-off or recurring closures",
     "filterPlaceholder": "Filter here...",
     "columns": {
       "id": "ID",
       "date": "Date",
+      "recurrence": "Recurrence",
       "status": "Status",
       "startTime": "Start Time",
       "endTime": "End Time",
+      "sede": "Branch",
       "notes": "Notes",
       "open": "Open",
       "closed": "Closed",
@@ -3494,39 +4202,86 @@
       "delete": "Delete"
     },
     "createDialog": {
-      "title": "Create holiday",
-      "description": "Create a new holiday for the clinic",
+      "title": "Create exception schedule",
+      "description": "Create a new exception schedule for the clinic",
       "date": "Date",
+      "recurrence": "Recurrence",
+      "once": "One time",
+      "weekly": "Weekly",
+      "biweekly": "Biweekly",
+      "monthly": "Monthly",
+      "biweeklyReferenceDate": "Reference Date",
+      "biweeklyReferenceDateHelp": "Weeks are counted from the week of this date: it applies that week, two weeks later, and so on.",
+      "endDate": "End Date",
+      "endDateHelp": "Leave empty for the recurrence to apply indefinitely.",
       "isOpen": "Is Open?",
       "startTime": "Start Time",
       "endTime": "End Time",
+      "sede": "Branch",
+      "allSedes": "All branches",
+      "sedeHelp": "Leave it on \"All branches\" to apply the exception clinic-wide.",
+      "timesHelp": "Leave both times empty to close the whole day; set a range to close only those hours.",
       "notes": "Notes",
       "notesPlaceholder": "Enter notes here...",
       "save": "Save",
       "cancel": "Cancel",
-      "editTitle": "Edit holiday",
-      "editDescription": "Edit the holiday for the clinic",
-      "editSave": "Save Changes"
+      "editTitle": "Edit exception schedule",
+      "editDescription": "Edit the exception schedule for the clinic",
+      "edit": "Edit",
+      "editSave": "Save Changes",
+      "dates": "Dates",
+      "startDate": "Start Date",
+      "daysOfWeek": "Days of the Week",
+      "daysOfMonth": "Days of the Month"
     },
     "validation": {
-      "dateRequired": "Date is required."
+      "dateRequired": "The start date is required.",
+      "dayOfWeekRequired": "Select at least one day of the week for weekly or biweekly recurrence.",
+      "dayOfMonthRequired": "Select at least one day of the month for monthly recurrence.",
+      "biweeklyReferenceDateRequired": "Reference date is required for biweekly recurrence.",
+      "datesRequired": "Select at least one date."
     },
     "deleteDialog": {
-      "title": "Delete Holiday",
-      "description": "Are you sure you want to delete this holiday? This action cannot be undone.",
+      "title": "Delete Exception Schedule",
+      "description": "Are you sure you want to delete the exception schedule of {date}? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
     },
     "toast": {
-      "createSuccessTitle": "Holiday Created",
-      "editSuccessTitle": "Holiday Updated",
-      "successDescription": "The holiday has been saved successfully.",
-      "deleteSuccessTitle": "Holiday Deleted",
-      "deleteSuccessDescription": "The holiday has been deleted successfully.",
+      "createSuccessTitle": "Exception Schedule Created",
+      "editSuccessTitle": "Exception Schedule Updated",
+      "successDescription": "The exception schedule has been saved successfully.",
+      "deleteSuccessTitle": "Exception Schedule Deleted",
+      "deleteSuccessDescription": "The exception schedule has been deleted successfully.",
       "errorTitle": "Error",
-      "deleteErrorDescription": "Failed to delete the holiday. Please try again.",
+      "deleteErrorDescription": "Failed to delete the exception schedule. Please try again.",
       "genericError": "An unexpected error occurred."
     }
+  },
+  "DayPickers": {
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "daysShort": {
+      "monday": "Mon",
+      "tuesday": "Tue",
+      "wednesday": "Wed",
+      "thursday": "Thu",
+      "friday": "Fri",
+      "saturday": "Sat",
+      "sunday": "Sun"
+    },
+    "datesHelp": "Click days on the calendar to add or remove them.",
+    "noDatesSelected": "No dates selected",
+    "removeDate": "Remove {date}",
+    "datesCount": "{count, plural, one {# date} other {# dates}}",
+    "shortMonthsHelp": "Days a month doesn’t have (29, 30 or 31) are skipped that month."
   },
   "CalendarsPage": {
     "title": "Calendars",
@@ -3659,7 +4414,15 @@
         "identityInvalid": "Invalid identity document.",
         "identityRequired": "Identity is required.",
         "identityMaxLength": "Identity document must be at most 10 characters long.",
-        "emailOrPhoneRequired": "You must provide at least an email address or a phone number."
+        "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
+        "genericError": "An unexpected error occurred. Please try again.",
+        "serverError": "Server error, please try again later.",
+        "uniqueConflict": "The following fields are already registered: {fields}",
+        "fields": {
+          "email": "Email",
+          "phone": "Phone",
+          "identity_document": "Identity Document"
+        }
       },
       "SuccessActivateDescription": "The doctor has been activated sucessfully",
       "SuccessDeactivateDescription": "The doctor has been deactivated sucessfully",
@@ -3667,8 +4430,8 @@
       "selectCalendar": "Select consultorio...",
       "searchCalendarPlaceholder": "Search consultorio...",
       "noCalendar": "No default consultorio",
-      "canBrowseCalendars": "Can view calendar agendas",
-      "canBrowseCalendarsHint": "Lets this doctor switch in their workspace between their assigned appointments and those of the calendars they have access to."
+      "defaultSede": "Default sede",
+      "defaultSedePlaceholder": "Select sede..."
     },
     "filters": {
       "showOnlyActive": "Show only active"
@@ -3677,7 +4440,9 @@
       "details": "Detalles",
       "availability": "Availability",
       "exceptions": "Exceptions",
-      "calendars": "Calendars with access"
+      "calendars": "Calendars with access",
+      "preferences": "Preferences",
+      "signature": "Signature"
     },
     "calendarAccess": {
       "title": "Calendars with access",
@@ -3689,7 +4454,8 @@
       "count": "{count} with access",
       "save": "Save access",
       "saved": "Access updated",
-      "saveError": "Failed to save access"
+      "saveError": "Failed to save access",
+      "partialSaveError": "{done} of {total} changes were applied before the error. The current saved state is shown; review it and try again."
     }
   },
   "UserLogsPage": {
@@ -3705,14 +4471,12 @@
     "description": "Manage doctor availability for the clinic",
     "filterPlaceholder": "Filter here...",
     "dialog": {
-      "daily": "Daily",
       "weekly": "Weekly",
       "monthly": "Monthly",
       "biweekly": "Biweekly",
       "selectRecurrence": "Select recurrence",
       "searchDoctor": "Search doctor",
       "noDoctorFound": "No doctor found",
-      "selectDay": "Select day",
       "save": "Save Changes",
       "edit": "Edit",
       "createTitle": "Create Availability",
@@ -3722,30 +4486,26 @@
       "doctor": "Doctor",
       "selectDoctor": "Select a doctor",
       "recurrence": "Recurrence",
-      "dayOfWeek": "Day of Week",
       "startTime": "Start Time",
       "endTime": "End Time",
       "startDate": "Start Date",
       "endDate": "End Date",
       "create": "Create",
-      "cancel": "Cancel"
-    },
-    "days": {
-      "monday": "Monday",
-      "tuesday": "Tuesday",
-      "wednesday": "Wednesday",
-      "thursday": "Thursday",
-      "friday": "Friday",
-      "saturday": "Saturday",
-      "sunday": "Sunday"
+      "cancel": "Cancel",
+      "daysOfWeek": "Days of the Week",
+      "daysOfMonth": "Days of the Month",
+      "biweeklyReferenceDate": "Reference Date",
+      "biweeklyStartHelp": "For biweekly rules, weeks are counted from the week of the start date: it applies that week, two weeks later, and so on."
     },
     "validation": {
       "doctorRequired": "Doctor is required.",
       "recurrenceRequired": "Recurrence is required.",
       "startTimeRequired": "Start time is required.",
       "endTimeRequired": "End time is required.",
+      "endTimeAfterStartTime": "End time must be later than start time.",
       "startDateRequired": "Start date is required.",
-      "dayOfWeekRequired": "Day of week is required for weekly or biweekly recurrence."
+      "dayOfWeekRequired": "Select at least one day of the week for weekly or biweekly recurrence.",
+      "dayOfMonthRequired": "Select at least one day of the month for monthly recurrence."
     },
     "toast": {
       "createTitle": "Availability Created",
@@ -3760,7 +4520,7 @@
     },
     "deleteDialog": {
       "title": "Delete Availability",
-      "description": "Are you sure you want to delete this availability? This action cannot be undone.",
+      "description": "Are you sure you want to delete the availability of {doctor} ({schedule})? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
     },
@@ -3805,13 +4565,13 @@
       "selectDoctor": "Select a doctor",
       "searchDoctor": "Search doctor",
       "noDoctorFound": "No doctor found",
-      "date": "Date",
       "isAvailable": "Is Available?",
       "startTime": "Start Time",
       "endTime": "End Time",
       "create": "Create",
       "cancel": "Cancel",
-      "save": "Save Changes"
+      "save": "Save Changes",
+      "dates": "Dates"
     },
     "toast": {
       "createTitle": "Exception Created",
@@ -3826,13 +4586,13 @@
     },
     "deleteDialog": {
       "title": "Delete Exception",
-      "description": "Are you sure you want to delete this exception? This action cannot be undone.",
+      "description": "Are you sure you want to delete the exception for {doctor} on {date}? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
     },
     "validation": {
       "doctorRequired": "Doctor is required.",
-      "dateRequired": "Date is required."
+      "dateRequired": "Select at least one date."
     },
     "empty": "No availability exceptions for this doctor."
   },
@@ -3872,7 +4632,9 @@
       "create": "Create",
       "cancel": "Cancel",
       "save": "Save Changes"
-    }
+    },
+    "secondaryCurrency": "Secondary currency",
+    "noAutoRate": "Automatic exchange-rate history is only available for the UYU/USD pair. With any other pair the rate is entered manually when opening the cash session."
   },
   "ProductCategoriesPage": {
     "title": "Product Categories",
@@ -3964,6 +4726,8 @@
       "phonePlaceholder": "e.g. 123-456-7890",
       "identity_document": "Identity Document",
       "identity_document_placeholder": "e.g. 1234567890",
+      "defaultSede": "Default sede",
+      "defaultSedePlaceholder": "Select sede...",
       "isActive": "Is Active?",
       "save": "Save",
       "cancel": "Cancel",
@@ -3977,7 +4741,17 @@
         "identityMaxLength": "Identity document must be 10 characters or less.",
         "emailOrPhoneRequired": "You must provide at least an email address or a phone number.",
         "genericError": "An unexpected error occurred. Please try again.",
-        "serverError": "Server error, please try again later."
+        "serverError": "Server error, please try again later.",
+        "errorTitle": "Error creating user",
+        "uniqueConflict": "The following fields are already registered: {fields}",
+        "fields": {
+          "email": "Email",
+          "phone": "Phone",
+          "phone_number": "Phone",
+          "identity_document": "Identity document",
+          "internal_id": "Internal ID",
+          "name": "Name"
+        }
       },
       "editSave": "Save",
       "serverError": "Server error, please try again later.",
@@ -3987,10 +4761,18 @@
       "editSuccessTitle": "User updated",
       "editSuccessDescription": "The user has been updated successfully"
     },
-    "setInitialPassword": "Set Initial Password",
+    "setInitialPassword": "Reset Password",
     "initialPasswordSentTitle": "Email sent",
-    "initialPasswordSentDescription": "An email with the password setup link has been sent.",
+    "initialPasswordSentDescription": "An email with the password reset link has been sent.",
     "initialPasswordError": "An unexpected error occurred. Please try again.",
+    "initialPasswordPartialError": "The user was created, but the email to set the password couldn't be sent. You can resend it from the details panel with \"Reset Password\".",
+    "toggleStatus": {
+      "successTitle": "Success",
+      "activatedDescription": "User {name} has been activated.",
+      "deactivatedDescription": "User {name} has been deactivated.",
+      "errorTitle": "Error",
+      "errorDescription": "Could not update user status."
+    },
     "tabs": {
       "roles": "Roles",
       "quotes": "Quotes",
@@ -3999,7 +4781,9 @@
       "logs": "Logs",
       "history": "Clinic History",
       "notes": "Notes",
-      "details": "Details"
+      "details": "Details",
+      "preferences": "Preferences",
+      "signature": "Signature"
     },
     "detailsFor": "Details for {name}",
     "close": "Close details",
@@ -4027,6 +4811,8 @@
       "phonePlaceholder": "e.g. 099 123 456",
       "identity_document": "Identity Document",
       "identity_document_placeholder": "e.g. 12345678",
+      "defaultSede": "Default sede",
+      "defaultSedePlaceholder": "Select sede...",
       "isActive": "Is Active?",
       "save": "Save",
       "cancel": "Cancel",
@@ -4041,7 +4827,8 @@
     "tabs": {
       "details": "Details",
       "roles": "Roles",
-      "logs": "History"
+      "logs": "History",
+      "preferences": "Preferences"
     },
     "noSelection": "Select a user to view their details",
     "columns": {
@@ -4261,7 +5048,8 @@
       "keyRequired": "Key is required.",
       "valueRequired": "Value is required.",
       "dataTypeRequired": "Data type is required."
-    }
+    },
+    "noAccess": "You don't have access to view this section."
   },
   "AuditLog": {
     "title": "Audit Log",
@@ -4279,7 +5067,22 @@
       "viewDetails": "View details",
       "id": "ID",
       "openMenu": "Open Menu"
-    }
+    },
+    "filters": {
+      "entity": "Entity",
+      "allEntities": "All entities",
+      "operation": "Operation",
+      "allOperations": "All operations",
+      "user": "User",
+      "userPlaceholder": "Search user...",
+      "clear": "Clear filters"
+    },
+    "operations": {
+      "INSERT": "Create",
+      "UPDATE": "Update",
+      "DELETE": "Delete"
+    },
+    "noAccess": "You don't have access to view this section."
   },
   "AccessLogPage": {
     "title": "Access Log",
@@ -4299,7 +5102,8 @@
       "openMenu": "Open Menu",
       "yes": "Yes",
       "no": "No"
-    }
+    },
+    "noAccess": "You don't have access to view this section."
   },
   "ErrorLogPage": {
     "title": "Error Log",
@@ -4315,9 +5119,66 @@
       "viewDetails": "View details",
       "id": "ID",
       "openMenu": "Open Menu"
+    },
+    "noAccess": "You don't have access to view this section."
+  },
+  "ClinicHistoryPrint": {
+    "title": "Clinical History",
+    "emittedOn": "Issued on",
+    "anamnesis": "Anamnesis",
+    "sessions": "Clinical session history",
+    "noSessions": "No sessions recorded.",
+    "none": "No records.",
+    "relative": "Relationship",
+    "allergies": "Allergies",
+    "personalHistory": "Personal history",
+    "familyHistory": "Family history",
+    "medication": "Medication",
+    "medicationActive": "Active",
+    "medicationPast": "Discontinued",
+    "doctor": "Dr.",
+    "noDate": "No date",
+    "sessionTypeClinical": "Clinical session",
+    "sessionTypeOdontogram": "Odontogram",
+    "patient": {
+      "name": "Patient",
+      "document": "ID document",
+      "birthDate": "Date of birth",
+      "email": "Email",
+      "phone": "Phone"
+    },
+    "habits": {
+      "title": "Habits",
+      "smoking": "Smoking",
+      "alcohol": "Alcohol",
+      "bruxism": "Bruxism",
+      "other": "Other",
+      "comments": "Comments"
+    },
+    "field": {
+      "procedure": "Procedure performed",
+      "diagnosis": "Diagnosis",
+      "tooth": "Tooth",
+      "notes": "Clinical notes",
+      "nextPlan": "Next-visit plan",
+      "nextDate": "Next-visit date",
+      "treatments": "Treatments",
+      "odontogramUpdate": "Odontogram update",
+      "attachments": "Attachments",
+      "file": "File"
+    },
+    "errorTitle": "Could not print",
+    "noData": "This patient has no clinical history to print.",
+    "action": "Print clinical history",
+    "columns": {
+      "date": "Date",
+      "professional": "Practitioner",
+      "detail": "Details",
+      "next": "Next visit"
     }
   },
   "ClinicHistoryPage": {
+    "upload": "Upload",
     "MedicalHistory": {
       "noHistory": "No medical history available",
       "viewFullHistory": "View Full History",
@@ -4361,7 +5222,9 @@
       "confirmDelete": "Are you sure you want to delete this document?",
       "dragDropBold": "Click to upload",
       "dragDropNormal": "or drag and drop",
-      "dragDropSubtext": "PDF, PNG, JPG or GIF (MAX. 10MB)"
+      "dragDropSubtext": "PDF, PNG, JPG or GIF (MAX. 10MB)",
+      "documentBadge": "Document",
+      "sessionBadge": "Session · {date}"
     },
     "selectPatientTitle": "Select a Patient",
     "selectPatientDescription": "Please select a patient to view their medical history",
@@ -4461,6 +5324,8 @@
       "notes": "Notes",
       "tooth": "Tooth",
       "odontogramUpdate": "Odontogram Update",
+      "viewOdontogram": "View odontogram",
+      "openAppointment": "View appointment",
       "showMore": "Show more",
       "showDetails": "Show details",
       "hideDetails": "Hide details",
@@ -4474,7 +5339,12 @@
       "sessionTypeOdontogram": "Odontogram",
       "sessionTypeClinical": "Clinical Session",
       "sessionTypeAppointment": "Appointment",
+      "currentAppointmentBadge": "Current appointment",
+      "latestSessionBadge": "Latest session",
       "upcomingAppointment": "Upcoming",
+      "apptCalendar": "Calendar",
+      "apptDoctor": "Doctor",
+      "apptDurationMin": "{min} min",
       "quote": "Quote",
       "addFirstSession": "Add first session",
       "toast": {
@@ -4486,6 +5356,7 @@
       "nextSessionPlan": "Next Session Plan",
       "nextSessionDate": "Date",
       "addSession": "Add Session",
+      "readOnlyMessage": "This record is view-only. Editing is unavailable for appointments on a different day.",
       "noSessions": "No sessions recorded",
       "appointmentStatus": {
         "pending": "Pending",
@@ -4498,43 +5369,7 @@
         "rescheduled": "Rescheduled"
       },
       "noTitle": "Untitled",
-      "conditions": {
-        "healthy": "Healthy",
-        "caries": "Caries",
-        "crown": "Crown",
-        "crown-tmp": "Temp Crown",
-        "missing": "Missing",
-        "fracture": "Fracture",
-        "diastema": "Diastema",
-        "filling": "Filling",
-        "rem-prost": "Rem Prost",
-        "drifting": "Drifting",
-        "rotation": "Rotation",
-        "fusion": "Fusion",
-        "root-remnant": "Root Remnant",
-        "eruption": "Eruption",
-        "transposition": "Transposition",
-        "supernumerary": "Supernumerary",
-        "pulp": "Pulp",
-        "prosthesis": "Prosthesis",
-        "bolt": "Bolt",
-        "fixed-ortho": "Fixed Ortho",
-        "fixed-prosth": "Fixed Prosth",
-        "implant": "Implant",
-        "macrodontia": "Macrodontia",
-        "microdontia": "Microdontia",
-        "dyschromic": "Dyschromic",
-        "worn": "Worn",
-        "impacted-semi": "Semi Impacted",
-        "intrusion": "Intrusion",
-        "edentulism": "Edentulism",
-        "ectopic": "Ectopic",
-        "impacted": "Impacted",
-        "rem-orthodo": "Rem Orthodo",
-        "extrusion": "Extrusion",
-        "post": "Post",
-        "endodontics": "Endodontics"
-      },
+      "apptUnassigned": "Unassigned",
       "surfaces": {
         "center": "Center",
         "O": "Occlusal",
@@ -4550,7 +5385,9 @@
         "left": "Left",
         "overlays": "Overlay",
         "whole": "Whole"
-      }
+      },
+      "apptTime": "Time",
+      "apptServices": "Services"
     },
     "anamnesis": {
       "personalTitle": "Personal Information",
@@ -4629,11 +5466,7 @@
         },
         "searchAilment": "Search Ailment",
         "noAilmentFound": "No ailment found",
-        "createAilment": "Create \"{name}\"",
-        "common": {
-          "delete": "Delete",
-          "confirmDelete": "Are you sure you want to delete this item? This action cannot be undone."
-        }
+        "createAilment": "Create \"{name}\""
       },
       "createNew": "Create New",
       "refresh": "Refresh",
@@ -4671,6 +5504,10 @@
         "allergies": "No allergies available",
         "dateFrom": "From",
         "dateTo": "To"
+      },
+      "common": {
+        "delete": "Delete",
+        "confirmDelete": "Are you sure you want to delete this item? This action cannot be undone."
       }
     },
     "habits": {
@@ -4876,7 +5713,7 @@
     "showingForQuote": "Showing payments for quote"
   },
   "SystemUserColumns": {
-    "name": "Nombre",
+    "name": "Name",
     "email": "Email",
     "phone": "Phone",
     "identity_document": "Identity Document",
@@ -4896,12 +5733,30 @@
     "showingView": "Showing view: {view}",
     "collapseMonth": "Collapse month",
     "expandMonth": "Expand month",
+    "showHours": "Show hours column",
+    "createAppointment": "Create appointment",
+    "agendas": "Agendas",
+    "agendasPanelTitle": "Agendas",
+    "agendasPanelPin": "Pin the panel",
+    "agendasPanelUnpin": "Unpin the panel",
+    "agendasEmpty": "No visible agendas.",
+    "back": "Back",
+    "view": "View",
+    "zoom": "Zoom",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "resetZoom": "Reset zoom",
     "timeZone": "GMT-03",
     "views": {
+      "1day": "1 Day",
       "2day": "2 Days",
       "3day": "3 Days",
+      "4day": "4 Days",
+      "5day": "5 Days",
+      "6day": "6 Days",
       "day": "Day",
       "month": "Month",
+      "list": "List",
       "schedule": "Schedule",
       "week": "Week",
       "year": "Year"
@@ -4910,7 +5765,7 @@
     "filterTitle": "Filter Schedule",
     "noAppointments": "No appointments",
     "gaps": {
-      "button": "Find free slots",
+      "button": "Find slots",
       "buttonSubtitle": "Available openings",
       "panelTitle": "Available slots",
       "duration": "{min} min",
@@ -4918,27 +5773,125 @@
       "maxBadge": "Largest",
       "close": "Close"
     },
+    "search": {
+      "button": "Search appointment",
+      "panelTitle": "Search appointments",
+      "placeholder": "Patient or appointment title…",
+      "hint": "Search by appointment title or by patient name, phone, email or ID. Covers every date.",
+      "minChars": "Type at least {count} characters.",
+      "empty": "No appointments match your search.",
+      "error": "The search could not be completed.",
+      "retry": "Retry",
+      "untitled": "Untitled appointment",
+      "clear": "Clear",
+      "close": "Close",
+      "allCalendars": "All calendars",
+      "nCalendars": "{count} calendars",
+      "calendarFilter": "Filter by calendar"
+    },
     "blocked": {
       "label": "Unavailable"
+    },
+    "drag": {
+      "moveTo": "Move to…",
+      "duration": "Duration",
+      "minutes": "{minutes} min"
     }
   },
   "Reminders": {
     "recordatorio": "Reminder",
+    "nota": "Note",
     "createTitle": "Create reminder",
+    "createNoteTitle": "Create note",
     "editTitle": "Edit reminder",
+    "editNoteTitle": "Edit note",
     "dialogDescription": "Add an internal task visible in the clinic calendar.",
+    "noteDialogDescription": "Add a silent internal note to the clinic calendar.",
     "titleLabel": "Title",
     "titlePlaceholder": "E.g. Call the lab",
     "descriptionLabel": "Description",
     "descriptionPlaceholder": "Optional reminder details",
     "dateLabel": "Date",
-    "timeLabel": "Time",
-    "durationLabel": "Duration (min)",
+    "timeLabel": "Start time",
+    "endTimeLabel": "End time",
     "priorityLabel": "Priority",
+    "onlyForMeLabel": "Only for me",
+    "onlyForMeHint": "If left unchecked, the whole team can see, edit and delete it.",
+    "allDayLabel": "All day",
+    "allDayHint": "Takes the whole day and shows pinned at the top, below the day name. It raises no notifications.",
+    "allDayBadge": "All day",
+    "allDayBandLabel": "All day",
+    "repeatLabel": "Repeat",
+    "repeatHint": "Creates a series: the item shows on every matching date.",
+    "recurringBadge": "Repeats",
+    "recurrence": {
+      "freqLabel": "Frequency",
+      "intervalLabel": "Every",
+      "endLabel": "Ends",
+      "untilDateLabel": "Until",
+      "countLabel": "Number of times",
+      "weekdaysLabel": "Days of the week",
+      "monthDayLabel": "Day of the month",
+      "weekdaysRequired": "Pick at least one day of the week.",
+      "intervalInvalid": "The interval must be between 1 and 52.",
+      "countInvalid": "The number of times must be 1 or more.",
+      "untilInvalid": "The end date must be after the item date.",
+      "monthlyClampHint": "If the month has no such day, the last one is used (the 31st falls on the 28th in February).",
+      "freq": {
+        "daily": "Daily",
+        "weekly": "Weekly",
+        "monthly": "Monthly"
+      },
+      "end": {
+        "never": "Never",
+        "until": "On a date",
+        "count": "After N times"
+      },
+      "every": {
+        "daily": "Every day",
+        "weekly": "Every week",
+        "monthly": "Every month"
+      },
+      "everyN": {
+        "daily": "Every {count} days",
+        "weekly": "Every {count} weeks",
+        "monthly": "Every {count} months"
+      },
+      "weekdayShort": {
+        "1": "Mon",
+        "2": "Tue",
+        "3": "Wed",
+        "4": "Thu",
+        "5": "Fri",
+        "6": "Sat",
+        "7": "Sun"
+      },
+      "onDay": "on day {day}",
+      "until": "until {date}",
+      "afterCount": "{count} times"
+    },
+    "scope": {
+      "editTitle": "Edit repeating item",
+      "deleteTitle": "Delete repeating item",
+      "editDescription": "What do you want to edit?",
+      "deleteDescription": "What do you want to delete?",
+      "occurrence": "This occurrence only",
+      "occurrenceHint": "The rest of the series stays as it is.",
+      "series": "The whole series",
+      "seriesHint": "Applies to future pending occurrences. Past ones are left alone.",
+      "confirm": "Continue"
+    },
+    "onlyForMeLockedHint": "Only the author can change the scope.",
+    "personalBadge": "Personal",
+    "generalBadge": "General",
+    "calendarLabel": "Calendar",
+    "noCalendar": "No calendar",
+    "groupedItems": "Notes and reminders",
     "colorLabel": "Color",
     "saveCreate": "Save",
     "saveEdit": "Save",
     "edit": "Edit",
+    "dismiss": "Close",
     "delete": "Delete",
     "markDone": "Mark as done",
     "detailsTitle": "Information",
@@ -4956,7 +5909,7 @@
     "errorDesc": "The reminder action could not be completed.",
     "titleRequired": "Title is required.",
     "dateTimeRequired": "Date and time are required.",
-    "durationInvalid": "Duration must be at least 5 minutes.",
+    "endTimeInvalid": "The end time must be after the start time.",
     "priority": {
       "low": "Low",
       "medium": "Medium",
@@ -4975,7 +5928,9 @@
       "appointment": "Create appointment",
       "appointmentDescription": "Schedule an appointment with patient, doctor and service.",
       "reminder": "Create reminder",
-      "reminderDescription": "Add an internal task for the clinic."
+      "reminderDescription": "Add an internal task for the clinic.",
+      "note": "Create note",
+      "noteDescription": "Add a silent internal note without notifications."
     }
   },
   "AlertCategoriesPage": {
@@ -5076,6 +6031,10 @@
       "medium": "Medium"
     },
     "dailyAlerts": "Daily Alerts",
+    "fieldValues": {
+      "yes": "Yes",
+      "no": "No"
+    },
     "pagination": {
       "showing": "Showing",
       "of": "of",
@@ -5096,9 +6055,9 @@
       },
       "priorityOptions": {
         "low": "Low",
-        "medium": "Media",
-        "high": "Alta",
-        "critical": "Crítica"
+        "medium": "Medium",
+        "high": "High",
+        "critical": "Critical"
       }
     },
     "categories": {
@@ -5120,6 +6079,7 @@
     },
     "actions": {
       "sendEmail": "Send Email",
+      "viewPatient": "View patient profile",
       "sendEmailUnavailable": "Patient has no email",
       "markCompleted": "Mark as Completed",
       "sendSms": "Send SMS",
@@ -5138,6 +6098,11 @@
       "sendEmail": "Send Email",
       "sendSms": "Send SMS",
       "sendWhatsApp": "Send WhatsApp",
+      "complete": "Marked as Completed",
+      "ignore": "Ignored",
+      "note": "Note Added",
+      "call": "Call Registered",
+      "snooze": "Snoozed",
       "performedAt": "Performed at",
       "status": "Status",
       "resultMessage": "Result",
@@ -5212,6 +6177,7 @@
       "smsSendFailedDescription": "An error occurred while sending SMS. Please try again.",
       "whatsappSent": "WhatsApp Sent",
       "whatsappSentDescription": "WhatsApp message sent to {count} alert(s).",
+      "whatsappBulkResultDescription": "{sent} sent, {skipped} skipped, {failed} failed.",
       "whatsappSendFailed": "Failed to send WhatsApp",
       "whatsappSendFailedDescription": "An error occurred while sending WhatsApp message. Please try again.",
       "callRegistered": "Call Registered",
@@ -5266,16 +6232,31 @@
       "save": "Save Changes",
       "conditions": "Conditions",
       "selectSourceTable": "Select Source Table",
+      "sourceTablesGroup": "Tables",
+      "sourceViewsGroup": "Views",
+      "sourceViewHint": "Alerts generated from this view are linked to the \"{table}\" table.",
       "recurrenceType": "Recurrence Type",
       "selectRecurrenceType": "Select Recurrence Type",
+      "recurrenceOptions": {
+        "ONCE": "Once",
+        "DAILY": "Daily",
+        "WEEKLY": "Weekly",
+        "MONTHLY": "Monthly"
+      },
       "emailTemplate": "Email Template",
       "selectEmailTemplate": "Select Email Template",
       "smsTemplate": "SMS Template",
       "selectSmsTemplate": "Select SMS Template",
+      "whatsappTemplate": "WhatsApp Template",
+      "selectWhatsappTemplate": "Select WhatsApp Template",
       "saving": "Saving",
       "userIdField": "User ID Field",
       "selectUserIdField": "Select User ID Field",
       "noUserIdField": "No User ID Field",
+      "eventField": "Event date",
+      "eventFieldAuto": "Automatic (from the conditions)",
+      "eventFieldNone": "No event date",
+      "eventFieldHint": "One alert is created per event date. If the date changes (rescheduled appointment, extended due date), a new alert is created and the previous pending one is replaced. Without an event date, a new alert is only created once the previous one is closed.",
       "tableIdField": "Table ID Field",
       "selectTableIdField": "Select Table ID Field",
       "displayFields": "Fields to Display",
@@ -5284,7 +6265,9 @@
       "fieldSourceColumn": "Column",
       "fieldType": "Data Type",
       "selectFieldColumn": "Select column",
-      "selectFieldType": "Select type"
+      "selectFieldType": "Select type",
+      "conditionColumnPlaceholder": "Column",
+      "conditionOperatorPlaceholder": "Operator"
     },
     "deleteDialog": {
       "title": "Delete Rule",
@@ -5302,7 +6285,8 @@
       "deleteSuccessDescription": "Rule \"{name}\" has been deleted.",
       "testSuccessTitle": "Test Started",
       "testSuccessDescription": "Test for rule \"{name}\" has been started.",
-      "testErrorDescription": "Error executing the rule test."
+      "testErrorDescription": "Error executing the rule test.",
+      "deleteErrorDescription": "Could not delete the rule."
     },
     "validation": {
       "categoryRequired": "Category is required.",
@@ -5318,7 +6302,8 @@
       "medium": "Medium",
       "high": "High",
       "critical": "Critical"
-    }
+    },
+    "noAccess": "You don't have access to view this section."
   },
   "CommunicationTemplatesPage": {
     "title": "Communication Templates",
@@ -5377,7 +6362,46 @@
       },
       "defaultSender": "Default Sender",
       "close": "Close",
-      "namePlaceholder": "e.g. Template name"
+      "namePlaceholder": "e.g. Template name",
+      "whatsapp": {
+        "entityType": "Entity type",
+        "selectEntityType": "Select entity type",
+        "entityTypes": {
+          "patient": "Patient",
+          "appointment": "Appointment",
+          "invoice": "Invoice"
+        },
+        "searchLabel": "Meta/YCloud template",
+        "searchPlaceholder": "Search by template name...",
+        "searchButton": "Search",
+        "loadingTemplates": "Loading templates from YCloud...",
+        "noResults": "No matching templates found.",
+        "selectPrompt": "Select the exact template approved in Meta.",
+        "status": {
+          "APPROVED": "Approved",
+          "PENDING": "Pending",
+          "REJECTED": "Rejected",
+          "unknown": "Unknown status"
+        },
+        "language": "Language",
+        "selectedTemplate": "Selected template",
+        "previewLabel": "Template preview",
+        "variablesTitle": "Variable mapping",
+        "variablesDescription": "Map each variable in the template to where its value comes from.",
+        "selectSourceField": "Select source field",
+        "noVariables": "This template has no variables.",
+        "searchFirst": "Search and select a template from Meta/YCloud to configure its variables.",
+        "fieldLabels": {
+          "patientName": "Patient name",
+          "clinicName": "Clinic name",
+          "appointmentDate": "Appointment date",
+          "appointmentHour": "Appointment time",
+          "appointmentProfessionalName": "Professional name",
+          "invoiceDocNo": "Invoice number",
+          "invoiceAmount": "Invoice amount",
+          "invoiceDueDate": "Invoice due date"
+        }
+      }
     },
     "deleteDialog": {
       "title": "Delete Template",
@@ -5402,7 +6426,128 @@
         "name": "Name"
       },
       "badRequest": "Validation error. Please check the entered data."
+    },
+    "noAccess": "You don't have access to view this section."
+  },
+  "MedicalInstructionTemplatesPage": {
+    "title": "Medical Instruction Templates",
+    "description": "Manage reusable medical instruction templates for patients.",
+    "filterPlaceholder": "Filter by template name...",
+    "noAccess": "You don't have access to view this section.",
+    "columns": {
+      "name": "Name",
+      "description": "Description",
+      "isActive": "Active",
+      "yes": "Yes",
+      "no": "No",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "dialog": {
+      "createTitle": "Create Instruction Template",
+      "editTitle": "Edit Instruction Template",
+      "name": "Name",
+      "namePlaceholder": "e.g. Post-extraction",
+      "descriptionLabel": "Description",
+      "content": "Content",
+      "legend": "Use the \"Variables\" button to insert data that will be filled in automatically when this template is used with a patient, such as patient name, clinic, date, or tooth number.",
+      "preview": "Preview",
+      "isActive": "Is Active",
+      "cancel": "Cancel",
+      "create": "Create Template",
+      "save": "Save Changes"
+    },
+    "variables": {
+      "title": "Variables",
+      "groups": {
+        "patient": "Patient",
+        "clinic": "Clinic",
+        "document": "Document",
+        "tables": "Tables"
+      }
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createSuccessTitle": "Template Created",
+      "editSuccessTitle": "Template Updated",
+      "successDescription": "Template \"{name}\" was saved successfully.",
+      "deleteSuccessTitle": "Template Deleted",
+      "deleteSuccessDescription": "Template \"{name}\" has been deleted."
+    },
+    "deleteDialog": {
+      "title": "Delete Template",
+      "description": "Are you sure you want to delete the template \"{name}\"?",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "contentRequired": "Content is required."
     }
+  },
+  "PatientInstructionDialog": {
+    "createTitle": "New Medical Instruction",
+    "editTitle": "Edit Medical Instruction",
+    "date": "Date",
+    "tooth": "Tooth",
+    "toothPlaceholder": "Optional",
+    "doctor": "Doctor",
+    "selectDoctor": "Select a doctor",
+    "searchDoctor": "Search doctor...",
+    "noDoctor": "No doctors found.",
+    "template": "Template",
+    "selectTemplate": "Select a template",
+    "content": "Content",
+    "refreshVariables": "Refresh variables",
+    "preview": "Preview",
+    "close": "Close",
+    "print": "Print",
+    "save": "Save",
+    "saving": "Saving...",
+    "variables": {
+      "title": "Variables",
+      "groups": {
+        "patient": "Patient",
+        "clinic": "Clinic",
+        "document": "Document",
+        "tables": "Tables"
+      }
+    },
+    "validation": {
+      "doctorRequired": "You must select a doctor.",
+      "contentRequired": "Content is required."
+    },
+    "toast": {
+      "createSuccess": "Medical instruction created.",
+      "editSuccess": "Medical instruction updated.",
+      "error": "An error occurred while saving the medical instruction."
+    }
+  },
+  "PatientInstructionsSection": {
+    "title": "Medical Instructions",
+    "newInstruction": "New instruction",
+    "noData": "No medical instructions recorded.",
+    "tooth": "Tooth",
+    "print": "Print",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteDialog": {
+      "title": "Delete Medical Instruction",
+      "description": "Are you sure you want to delete this medical instruction?",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "deleteSuccess": "Medical instruction deleted.",
+      "error": "An error occurred."
+    }
+  },
+  "PatientInstructionPrint": {
+    "patient": "Patient",
+    "date": "Date",
+    "doctor": "Doctor",
+    "tooth": "Tooth"
   },
   "CommunicationHistoryPage": {
     "title": "Communication History",
@@ -5433,7 +6578,8 @@
       "errorsCount": "Errors",
       "duration": "Duration",
       "openMenu": "Open menu",
-      "viewDetails": "View Details"
+      "viewDetails": "View Details",
+      "rulesProcessed": "Rules Processed"
     },
     "detailDialog": {
       "title": "Execution Details",
@@ -5451,7 +6597,8 @@
       "errorDetails": "Error Details",
       "noErrors": "No error details available",
       "status": "Status"
-    }
+    },
+    "noAccess": "You don't have access to view this section."
   },
   "AlertsConfigPage": {
     "title": "Alerts System Configuration",
@@ -5468,7 +6615,12 @@
       "runNowSuccessTitle": "Scheduler Executed",
       "runNowSuccessDescription": "The alert scheduler has been executed successfully.",
       "runNowErrorTitle": "Execution Error",
-      "runNowErrorDescription": "An error occurred while executing the scheduler. Please try again."
+      "runNowErrorDescription": "An error occurred while executing the scheduler. Please try again.",
+      "runNowConfirm": {
+        "title": "Run the scheduler now?",
+        "description": "All active rules will be evaluated and alerts will be generated; those with automatic actions will send emails or messages to patients. This action cannot be undone.",
+        "cancel": "Cancel"
+      }
     },
     "email": {
       "title": "Email Configuration",
@@ -5505,6 +6657,57 @@
       "saveSuccessDescription": "Your configuration changes have been saved.",
       "saveErrorTitle": "Save Error",
       "saveErrorDescription": "An error occurred while saving changes. Please try again."
+    },
+    "loadError": "The alert configuration could not be loaded"
+  },
+  "WhatsAppAgentConfigPage": {
+    "title": "WhatsApp Agent",
+    "description": "Configure the WhatsApp conversational agent and its service hours.",
+    "saveChanges": "Save Changes",
+    "agent": {
+      "title": "Agent",
+      "description": "Master switch for the WhatsApp conversational agent.",
+      "enable": "Agent enabled",
+      "enableDescription": "When disabled, the agent does not process any incoming message."
+    },
+    "hours": {
+      "title": "Service hours",
+      "description": "The agent only answers queries within the defined ranges. Outside them it does nothing.",
+      "enable": "Apply schedule",
+      "enableDescription": "When off, the agent replies at any time.",
+      "timezone": "Timezone",
+      "rulesHelp": "Each rule applies its time ranges to the selected days. The agent replies within those ranges (local time); use 24:00 as end of day. If two rules share a day, their ranges are combined.",
+      "noDays": "Select at least one day for this rule.",
+      "addRange": "Add range",
+      "addRule": "Add rule",
+      "removeRule": "Remove rule",
+      "removeRange": "Remove range",
+      "offHoursReply": "Off-hours message",
+      "offHoursReplyPlaceholder": "E.g. Thanks for your message. Our service hours are 9am to 8pm. We'll get back to you shortly.",
+      "offHoursReplyHelp": "Optional. If set, the agent sends this text once when it receives a message outside service hours. If left empty, it replies nothing.",
+      "preset": {
+        "weekdays": "Weekdays",
+        "weekend": "Weekend",
+        "all": "All"
+      }
+    },
+    "days": {
+      "mon": "Monday",
+      "tue": "Tuesday",
+      "wed": "Wednesday",
+      "thu": "Thursday",
+      "fri": "Friday",
+      "sat": "Saturday",
+      "sun": "Sunday"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "successTitle": "Saved",
+      "loadError": "Could not load the agent configuration.",
+      "saveSuccess": "The WhatsApp agent configuration was saved successfully.",
+      "saveError": "Could not save the configuration. Please try again.",
+      "validationError": "Check the time ranges: the start time must be earlier than the end time.",
+      "partialSaveError": "The agent on/off setting was saved, but the business hours were not. Review your changes and save again."
     }
   },
   "SequencesPage": {
@@ -5547,7 +6750,7 @@
     },
     "deleteDialog": {
       "title": "Delete Sequence",
-      "description": "Are you sure you want to delete this sequence? This action cannot be undone.",
+      "description": "Are you sure you want to delete the sequence \"{name}\"? This action cannot be undone.",
       "cancel": "Cancel",
       "confirm": "Delete"
     },
@@ -5737,13 +6940,31 @@
     "title": "Preferences",
     "description": "Manage your notification and workspace preferences",
     "notificationsSection": "Notifications",
+    "toastPositionLabel": "Message position",
+    "toastPositionDescription": "Choose where confirmation and error messages appear on screen. On small screens they always show at the top.",
+    "toastPositionPreview": "Messages will appear here",
+    "toastPosition": {
+      "top-center": "Top center",
+      "top-right": "Top right",
+      "bottom-center": "Bottom center",
+      "bottom-right": "Bottom right"
+    },
     "workspaceSection": "Workspace",
     "alertStyleLabel": "Alert notification style",
     "alertStyleDescription": "Choose how new appointment alerts are shown to you.",
     "alertStyle": {
       "modal": "Modal",
       "toast": "Notification"
-    }
+    },
+    "financeViewSection": "Patient finances",
+    "financeViewLabel": "Finance tab layout",
+    "financeViewDescription": "Choose how the patient's finance tab is displayed.",
+    "financeView": {
+      "unified": "Custom",
+      "tabs": "Normal"
+    },
+    "calendarSection": "Calendar",
+    "signatureSection": "Signature"
   },
   "UserCommunicationPreferences": {
     "title": "Preferences",
@@ -5771,6 +6992,14 @@
     "description": "The following email addresses do not have the email channel enabled in their communication preferences. They may not receive this message:",
     "cancel": "Cancel",
     "continueAnyway": "Send Anyway"
+  },
+  "FutureAppointmentsConfirmDialog": {
+    "title": "Attention",
+    "description": "{patient} has the following appointments scheduled:",
+    "appointmentLine": "Date: {date}  Time: {time} - {room}",
+    "question": "Assign this new time?",
+    "confirm": "Yes",
+    "cancel": "No"
   },
   "MutualSocietiesPage": {
     "title": "Mutual Societies",
@@ -5811,6 +7040,183 @@
       "nameRequired": "Name is required.",
       "codeRequired": "Code is required."
     }
+  },
+  "PatientGroupsPage": {
+    "title": "Patient Groups",
+    "description": "Manage the catalog of patient groups.",
+    "filterPlaceholder": "Filter by name...",
+    "createDialog": {
+      "title": "Create Patient Group",
+      "description": "Complete the details below to add a new patient group.",
+      "editTitle": "Edit Patient Group",
+      "editDescription": "Update the details of this patient group.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Orthodontics",
+      "descriptionPlaceholder": "Enter an optional description",
+      "isActive": "Active",
+      "isDoctor": "This group represents a doctor",
+      "doctor": "Doctor",
+      "doctorPlaceholder": "Select a doctor",
+      "cancel": "Cancel",
+      "revert": "Discard changes",
+      "save": "Create Group",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the patient group \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Patient Group Created",
+      "editSuccessTitle": "Patient Group Updated",
+      "successDescription": "The patient group \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Patient Group Deleted",
+      "deleteSuccessDescription": "The patient group \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the patient group."
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "doctorRequired": "You must select a doctor."
+    },
+    "tabs": {
+      "info": "Information",
+      "patients": "Patients",
+      "services": "Services"
+    },
+    "patients": {
+      "title": "Group patients",
+      "description": "Add or remove patients from this group.",
+      "filterPlaceholder": "Search in group...",
+      "addButton": "Add patients",
+      "addConfirm": "Add",
+      "addCancel": "Cancel",
+      "added": "{count} patient(s) added to the group",
+      "addError": "Could not add patients",
+      "search": "Search patient...",
+      "noResults": "No patients found.",
+      "count": "{count} selected",
+      "col_name": "Name",
+      "col_document": "Document",
+      "col_phone": "Phone",
+      "col_email": "Email",
+      "active": "Active",
+      "inactive": "Inactive",
+      "remove": "Remove from group",
+      "removed": "Patient removed from group",
+      "removeError": "Could not remove patient"
+    },
+    "services": {
+      "title": "Group services",
+      "description": "Link the services that belong to this group, so revenue can be reported by group.",
+      "filterPlaceholder": "Search in group...",
+      "addButton": "Add services",
+      "addConfirm": "Add",
+      "addCancel": "Cancel",
+      "added": "{count} service(s) added to the group",
+      "addError": "Could not add services",
+      "search": "Search service...",
+      "noResults": "No services found.",
+      "count": "{count} selected",
+      "col_name": "Name",
+      "col_category": "Category",
+      "col_price": "Price",
+      "active": "Active",
+      "inactive": "Inactive",
+      "remove": "Remove from group",
+      "removed": "Service removed from group",
+      "removeError": "Could not remove service"
+    },
+    "export": {
+      "button": "Export to Excel",
+      "allButton": "Export all",
+      "allFileName": "Patient groups",
+      "col_name": "Name",
+      "col_phone": "Phone",
+      "progress": "Exporting {done}/{total}...",
+      "successSingle": "Excel exported ({count} patients)",
+      "successAll": "Excel exported ({groups} groups, {count} patients)",
+      "empty": "There are no groups to export",
+      "error": "Could not export to Excel"
+    }
+  },
+  "ProviderGroupsPage": {
+    "title": "Provider Groups",
+    "description": "Manage the catalog of provider groups.",
+    "filterPlaceholder": "Filter by name...",
+    "createDialog": {
+      "title": "Create Provider Group",
+      "description": "Complete the details below to add a new provider group.",
+      "editTitle": "Edit Provider Group",
+      "editDescription": "Update the details of this provider group.",
+      "name": "Name",
+      "namePlaceholder": "e.g., Dental supplies",
+      "descriptionPlaceholder": "Enter an optional description",
+      "isActive": "Active",
+      "cancel": "Cancel",
+      "revert": "Discard changes",
+      "save": "Create Group",
+      "editSave": "Save Changes"
+    },
+    "deleteDialog": {
+      "title": "Are you sure?",
+      "description": "This will permanently delete the provider group \"{name}\". This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "An unexpected error occurred.",
+      "createSuccessTitle": "Provider Group Created",
+      "editSuccessTitle": "Provider Group Updated",
+      "successDescription": "The provider group \"{name}\" has been saved successfully.",
+      "deleteSuccessTitle": "Provider Group Deleted",
+      "deleteSuccessDescription": "The provider group \"{name}\" has been deleted.",
+      "deleteErrorDescription": "Could not delete the provider group."
+    },
+    "validation": {
+      "nameRequired": "Name is required."
+    },
+    "tabs": {
+      "info": "Information",
+      "providers": "Providers"
+    },
+    "providers": {
+      "title": "Group providers",
+      "description": "Add or remove providers from this group.",
+      "filterPlaceholder": "Search in group...",
+      "addButton": "Add providers",
+      "addConfirm": "Add",
+      "addCancel": "Cancel",
+      "added": "{count} provider(s) added to the group",
+      "addError": "Could not add providers",
+      "search": "Search provider...",
+      "noResults": "No providers found.",
+      "count": "{count} selected",
+      "col_name": "Name",
+      "col_document": "Document",
+      "col_phone": "Phone",
+      "col_email": "Email",
+      "active": "Active",
+      "inactive": "Inactive",
+      "remove": "Remove from group",
+      "removed": "Provider removed from group",
+      "removeError": "Could not remove provider"
+    }
+  },
+  "ProviderGroupsColumns": {
+    "id": "ID",
+    "name": "Name",
+    "description": "Description",
+    "isActive": "Active",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
   },
   "Config": {
     "PrintTemplates": {
@@ -5890,6 +7296,15 @@
         "alert": "Alert",
         "treatment": "Treatment",
         "cash": "Cash"
+      },
+      "loadError": "The templates could not be loaded",
+      "resetError": "The template could not be restored",
+      "unsavedChanges": "Unsaved changes",
+      "textMode": "Text",
+      "resetConfirm": {
+        "title": "Restore the default template?",
+        "description": "The customized version of \"{name}\" (including unsaved changes) will be deleted and the default one will be used again. This action cannot be undone.",
+        "cancel": "Cancel"
       }
     }
   },
@@ -5905,10 +7320,27 @@
     "edit": "Edit",
     "delete": "Delete"
   },
+  "PatientGroupsColumns": {
+    "id": "ID",
+    "name": "Name",
+    "description": "Description",
+    "isActive": "Active",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete"
+  },
   "Common": {
     "accessDenied": "Access Denied",
     "noPermission": "You do not have permission to access this page.",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "errorTitle": "Something went wrong",
+    "genericError": "The action could not be completed. Please try again.",
+    "timeoutError": "The server took too long to respond. The change may have been saved — refresh before trying again.",
+    "loadError": "The data could not be loaded.",
+    "retry": "Retry",
+    "unsavedChangesConfirm": "You have unsaved changes. Discard them?"
   },
   "ImportPage": {
     "title": "Import Data",
@@ -5981,7 +7413,8 @@
       "error": "Error",
       "importValid": "Import only valid records",
       "fixCsv": "Fix CSV and re-upload",
-      "noErrors": "All records are valid!"
+      "noErrors": "All records are valid!",
+      "importing": "Importing..."
     },
     "result": {
       "inserted": "Inserted",
@@ -5997,6 +7430,51 @@
       "next": "Next",
       "import": "Import",
       "cancel": "Cancel"
+    },
+    "importError": "The import could not be completed",
+    "importTimeout": "The server took too long to respond and the import may have been processed. Do not import the file again: check the records before retrying.",
+    "confirm": {
+      "title": "Import {count} records?",
+      "description": "{count} {type} records will be created or updated from “{file}”. The import cannot be undone from the system.",
+      "cancel": "Cancel"
+    }
+  },
+  "PatientHistorySheet": {
+    "title": "Clinical History",
+    "back": "Back",
+    "newAnnotation": "New annotation",
+    "newInstruction": "New instruction",
+    "searchPlaceholder": "Search...",
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "deleteConfirm": "This annotation will be permanently deleted. Continue?",
+    "deleteSuccess": "Annotation deleted",
+    "deleteError": "Could not delete the annotation",
+    "columns": {
+      "date": "Date",
+      "piece": "Tooth",
+      "description": "Description",
+      "next": "Next",
+      "color": "Color"
+    },
+    "newPrescription": "New prescription"
+  },
+  "PatientDocumentsSheet": {
+    "title": "Images and Files",
+    "back": "Back"
+  },
+  "PatientAppointmentsSheet": {
+    "title": "Appointment History",
+    "back": "Back",
+    "searchPlaceholder": "Search...",
+    "durationMinutes": "{min} min",
+    "columns": {
+      "date": "Date",
+      "time": "Time",
+      "duration": "Duration (min)",
+      "calendar": "Calendar",
+      "attendance": "Attendance"
     }
   },
   "ClinicSessionDialog": {
@@ -6016,6 +7494,19 @@
       "existing": "Existing attachments",
       "new": "New attachments",
       "browseFiles": "browse files"
+    },
+    "annotation": {
+      "createTitle": "New Annotation",
+      "editTitle": "Edit Annotation",
+      "piece": "Tooth",
+      "piecePlaceholder": "Tooth number",
+      "color": "Color",
+      "selectColor": "Select color",
+      "noColor": "No color",
+      "annotationLabel": "Annotation",
+      "annotationPlaceholder": "Write the annotation...",
+      "nextLabel": "Next",
+      "nextPlaceholder": "Notes for the next visit..."
     },
     "createTitle": "Create Session",
     "editTitle": "Edit Session",
@@ -6321,31 +7812,6 @@
       "sendErrorDescription": "Could not send the alert email. Please try again."
     }
   },
-  "AlertWhatsAppComposerDialog": {
-    "title": "Alert WhatsApp message",
-    "description": "Review the message and open it in WhatsApp.",
-    "phone": "Phone",
-    "message": "Message",
-    "messagePlaceholder": "Write your message here...",
-    "missingPhone": "This alert has no patient phone.",
-    "unknownPatient": "patient",
-    "cancel": "Cancel",
-    "open": "Open WhatsApp",
-    "opening": "Opening...",
-    "template": {
-      "greeting": "Hi {name}.",
-      "intro": "We are contacting you about this alert:",
-      "alertTitle": "Alert",
-      "summary": "Summary",
-      "alertDate": "Alert date",
-      "eventDate": "Event date",
-      "closing": "Please contact us if you need more information."
-    },
-    "toast": {
-      "openErrorTitle": "Could not open WhatsApp",
-      "openErrorDescription": "Please allow pop-ups and try again."
-    }
-  },
   "EmailComposerDialog": {
     "title": "New email",
     "to": "To",
@@ -6387,6 +7853,44 @@
       "openErrorDescription": "Please allow pop-ups and try again."
     }
   },
+  "PatientActionsMenu": {
+    "sendReminder": "Send reminder"
+  },
+  "WhatsAppTemplateSendDialog": {
+    "title": "Send WhatsApp reminder",
+    "description": "Select the template to send to the patient.",
+    "missingPhone": "This patient doesn't have a phone number on file.",
+    "templateLabel": "Template",
+    "templates": {
+      "birthday": {
+        "label": "Birthday",
+        "description": "Birthday greeting."
+      },
+      "appointment_reminder": {
+        "label": "Upcoming appointment",
+        "description": "Reminder for the selected appointment."
+      },
+      "invoice_due": {
+        "label": "Invoice due",
+        "description": "Reminder for the pending invoice closest to its due date."
+      }
+    },
+    "appointmentLabel": "Appointment",
+    "loadingAppointments": "Loading upcoming appointments...",
+    "noAppointments": "This patient has no upcoming appointments scheduled.",
+    "invoiceLabel": "Invoice",
+    "loadingInvoices": "Loading pending invoices...",
+    "noInvoices": "This patient has no pending invoices with a due date.",
+    "cancel": "Cancel",
+    "send": "Send",
+    "sending": "Sending...",
+    "toast": {
+      "sendSuccessTitle": "Message sent",
+      "sendSuccessDescription": "The WhatsApp reminder was sent successfully.",
+      "sendErrorTitle": "Error sending message",
+      "sendErrorDescription": "Could not send the reminder. Please try again."
+    }
+  },
   "DentalRecord": {
     "title": "Medical Record",
     "tab": {
@@ -6405,24 +7909,8 @@
     "selectToothHint": "Click a tooth to see details and apply conditions",
     "clearTooth": "Clear tooth",
     "clearAll": "Clear chart",
-    "activeTool": "Active tool",
     "fullscreen": "Fullscreen",
     "exitFullscreen": "Exit fullscreen",
-    "layoutMouth": "Open mouth view",
-    "layoutFlat": "Flat view",
-    "backToMouth": "Back to mouth view",
-    "conditionsPanel": "Conditions",
-    "odontogramSection": "Odontogram",
-    "conditionCategory": {
-      "surface": "Surfaces",
-      "whole": "Whole",
-      "overlay": "Overlays"
-    },
-    "hint": {
-      "surface": "Click a surface zone on the tooth",
-      "whole": "Click the tooth to apply to the whole piece",
-      "overlay": "Click the tooth to add/remove overlay"
-    },
     "conditions": {
       "healthy": "Healthy",
       "caries": "Caries",
@@ -6510,6 +7998,481 @@
         "datePlaceholder": "Select a date",
         "toastSuccess": "Patient discharged successfully",
         "dateRequired": "You must select a discharge date."
+      },
+      "defaultTitle": "Odontogram session {date}",
+      "wholeToothShort": "tooth"
+    },
+    "quickBilling": "Quick Billing",
+    "categories": {
+      "restorations": "Restoration",
+      "fixed-prosthesis": "Prosthesis",
+      "endodontics": "Endodontics",
+      "implants": "Implant",
+      "periodontics": "Periodontics",
+      "oral-surgery": "Surgery",
+      "orthodontics": "Orthodontics",
+      "pathologies": "Pathology"
+    },
+    "surfaces": {
+      "top": "Vestibular (V)",
+      "left": "Mesial (M)",
+      "center": "Occlusal/Incisal (O)",
+      "right": "Distal (D)",
+      "bottom": "Lingual/Palatal (L)"
+    },
+    "toothNames": {
+      "central": "Central incisor",
+      "lateral": "Lateral incisor",
+      "canine": "Canine",
+      "premolar1": "First premolar",
+      "premolar2": "Second premolar",
+      "molar1": "First molar",
+      "molar2": "Second molar",
+      "molar3": "Third molar"
+    },
+    "board": {
+      "surfaceTitle": "Tooth {tooth} - {surface}",
+      "toothLabel": "Tooth {tooth}",
+      "piece": "Tooth {tooth}",
+      "upperPiece": "Upper tooth",
+      "lowerPiece": "Lower tooth",
+      "clickToZoom": "Click a tooth to zoom here",
+      "filter": {
+        "permanent": "Permanent",
+        "temporal": "Primary",
+        "both": "Both"
+      },
+      "layout": {
+        "anatomical": "Anatomical arch",
+        "traditional": "Traditional FDI"
+      },
+      "activeToolBanner": "Active tool: <strong>{tool}</strong>. Click any tooth or surface to apply it.",
+      "deactivateTool": "Turn off tool",
+      "quadrant": {
+        "q1": "Permanent upper right (Q1)",
+        "q2": "Permanent upper left (Q2)",
+        "q3": "Permanent lower left (Q3)",
+        "q4": "Permanent lower right (Q4)",
+        "q5": "Primary upper right (Q5)",
+        "q6": "Primary upper left (Q6)",
+        "q7": "Primary lower left (Q7)",
+        "q8": "Primary lower right (Q8)"
+      }
+    },
+    "palette": {
+      "title": "Symbols",
+      "selectMode": "Select mode",
+      "selectModeHint": "Pointer mode: select a tooth to see its details",
+      "search": "Search",
+      "searchHint": "Search procedures or symbols",
+      "searchPlaceholder": "Search code or name...",
+      "clearSearch": "Clear search",
+      "categoryCount": "{category} ({count, plural, one {# symbol} other {# symbols}})",
+      "results": "Results ({count})",
+      "noResults": "No matches.",
+      "closeCategory": "Close category",
+      "pickCategory": "Tap a category to show its symbols.",
+      "symbol": "Symbol: {symbol}",
+      "appliesTo": {
+        "surface": "Surfaces",
+        "tooth": "Tooth",
+        "both": "Both"
+      },
+      "legendTitle": "FDI symbols:",
+      "legend": {
+        "amalgam": "Amalgam",
+        "resin": "Resin",
+        "required": "Required",
+        "caries": "Caries",
+        "missing": "Missing",
+        "extraction": "Extraction"
+      }
+    },
+    "toothCard": {
+      "removeProcedure": "Remove",
+      "temporal": "Primary tooth",
+      "permanent": "Permanent tooth",
+      "undo": "Undo",
+      "quickAdd": "Condition or procedure for tooth {tooth}",
+      "quickAddPlaceholder": "+ Select a condition or treatment from the FDI list...",
+      "alreadyApplied": "(already recorded)",
+      "summary": "Marked on this tooth",
+      "wholeTooth": "tooth",
+      "noMarks": "Nothing marked on this tooth yet.",
+      "notes": "Tooth notes",
+      "notesPlaceholder": "Diagnosis, observations or notes for this tooth..."
+    },
+    "autoNote": {
+      "surfaceAdded": "D{tooth}({surface}): {label}",
+      "surfaceRemoved": "D{tooth}({surface}): {label} removed",
+      "toothAdded": "D{tooth}: {label} (whole tooth)",
+      "toothRemoved": "D{tooth}: {label} removed",
+      "cleared": "D{tooth}: cleared"
+    },
+    "confirm": {
+      "clearAllTitle": "Clear the whole odontogram?",
+      "clearAllDescription": "All marks in this session will be removed. You can undo it while you keep editing.",
+      "clearAllAction": "Yes, clear everything",
+      "cancelTitle": "Discard changes?",
+      "cancelDescription": "The changes made to this session will be lost.",
+      "cancelAction": "Yes, discard",
+      "keepEditing": "Keep editing"
+    },
+    "procedures": {
+      "caries": {
+        "label": "Dental Caries (Cavitated)",
+        "description": "Shaded red area indicating extensive cavitated caries that needs active restoration.",
+        "symbol": "Solid red on the surface"
+      },
+      "caries-incipient": {
+        "label": "Incipient Caries (Dot)",
+        "description": "Red dot on pits or fissures representing demineralisation or incipient caries.",
+        "symbol": "Red dot on the face"
+      },
+      "amalgam": {
+        "label": "Existing Amalgam",
+        "description": "Existing silver amalgam restoration in good condition.",
+        "symbol": "Solid blue face"
+      },
+      "resin": {
+        "label": "Existing Composite Resin",
+        "description": "Completed, integrated aesthetic composite resin restoration.",
+        "symbol": "Striped blue face"
+      },
+      "restoration-required": {
+        "label": "Restoration Required",
+        "description": "Tooth surface with a lost or leaking restoration, or one required due to caries.",
+        "symbol": "Solid red face"
+      },
+      "filling": {
+        "label": "Existing Filling",
+        "description": "Existing filling in good condition.",
+        "symbol": "Solid blue face"
+      },
+      "sealant": {
+        "label": "Sealant (Protective)",
+        "description": "Preventive sealant applied to deep pits and fissures.",
+        "symbol": "Green seal"
+      },
+      "healthy": {
+        "label": "Healthy",
+        "description": "Healthy surface (condition from earlier sessions).",
+        "symbol": "Green face"
+      },
+      "pulp": {
+        "label": "Pulp Treatment",
+        "description": "Pulp treatment recorded in earlier sessions.",
+        "symbol": "Orange face"
+      },
+      "dyschromic": {
+        "label": "Dyschromia",
+        "description": "Tooth discolouration recorded in earlier sessions.",
+        "symbol": "Yellow face"
+      },
+      "worn": {
+        "label": "Wear",
+        "description": "Surface wear recorded in earlier sessions.",
+        "symbol": "Grey face"
+      },
+      "crown": {
+        "label": "Existing Crown",
+        "description": "Previously placed fixed metal or ceramic crown.",
+        "symbol": "Blue circle"
+      },
+      "crown-indicated": {
+        "label": "Crown Indicated",
+        "description": "Crown rehabilitation indicated due to tooth destruction or endodontics.",
+        "symbol": "Dashed red circle"
+      },
+      "crown-tmp": {
+        "label": "Temporary Crown",
+        "description": "Acrylic or provisional crown while the final one is prepared.",
+        "symbol": "Dashed amber circle"
+      },
+      "bridge-in-progress": {
+        "label": "Fixed Bridge (In Progress)",
+        "description": "Fixed bridge being made or indicated.",
+        "symbol": "Red bar"
+      },
+      "fixed-prosth": {
+        "label": "Fixed Bridge (Completed)",
+        "description": "Existing fixed bridge in good condition.",
+        "symbol": "Blue bar"
+      },
+      "bridge-defective": {
+        "label": "Fixed Bridge (Defective or Recurrent)",
+        "description": "Existing fixed bridge in poor condition, defective or with recurrence.",
+        "symbol": "Blue bar with red border"
+      },
+      "rem-prost": {
+        "label": "Removable Partial Denture",
+        "description": "Supports of a metal or acrylic removable partial denture.",
+        "symbol": "Dashed rectangle"
+      },
+      "post": {
+        "label": "Metal Post",
+        "description": "Cast metal post for intraradicular support.",
+        "symbol": "Grey post"
+      },
+      "post-fiber": {
+        "label": "Fibre Post",
+        "description": "Aesthetic glass or quartz fibre post.",
+        "symbol": "Mustard post"
+      },
+      "prosthesis": {
+        "label": "Prosthesis",
+        "description": "Prosthesis recorded in earlier sessions.",
+        "symbol": "Violet circle"
+      },
+      "endo-done": {
+        "label": "Root Canal Completed",
+        "description": "Satisfactory root canal treatment already performed.",
+        "symbol": "Blue line on the root"
+      },
+      "endo-indicated": {
+        "label": "Root Canal Indicated",
+        "description": "Tooth with pulp necrosis or irreversible pulpitis where a root canal is indicated.",
+        "symbol": "Red line on the root"
+      },
+      "root-post": {
+        "label": "Intraradicular Post",
+        "description": "Intrapulpal retention element such as a fibre or cast post.",
+        "symbol": "Thick canal"
+      },
+      "endodontics": {
+        "label": "Endodontics (Treated)",
+        "description": "General root canal treatment.",
+        "symbol": "Canal on the root"
+      },
+      "implant-osseo": {
+        "label": "Osseointegrated Implant",
+        "description": "Clinically osseointegrated titanium implant.",
+        "symbol": "Screw in the bone"
+      },
+      "implant-planned": {
+        "label": "Planned Implant",
+        "description": "Edentulous site planned for surgical implant placement.",
+        "symbol": "Red screw"
+      },
+      "implant": {
+        "label": "Dental Implant",
+        "description": "General dental implant.",
+        "symbol": "Metal screw"
+      },
+      "perio-pocket": {
+        "label": "Periodontal Pocket",
+        "description": "Periodontal pocket with pathological probing depth over 4 mm.",
+        "symbol": "Vertical red line"
+      },
+      "gingival-recession": {
+        "label": "Gingival Recession (Apical)",
+        "description": "Apical migration of the gingival margin exposing the root.",
+        "symbol": "Apical arrow"
+      },
+      "gingival-enlargement": {
+        "label": "Gingival Enlargement",
+        "description": "Excessive gum growth (gingival hyperplasia or hypertrophy).",
+        "symbol": "Coronal arrow"
+      },
+      "mobility-1": {
+        "label": "Tooth Mobility Grade I",
+        "description": "Mobility above physiological but under 1 mm horizontally.",
+        "symbol": "M1"
+      },
+      "mobility-2": {
+        "label": "Tooth Mobility Grade II",
+        "description": "Horizontal tooth mobility between 1 mm and 2 mm.",
+        "symbol": "M2"
+      },
+      "mobility-3": {
+        "label": "Tooth Mobility Grade III",
+        "description": "Horizontal mobility over 2 mm or vertical mobility.",
+        "symbol": "M3"
+      },
+      "furcation": {
+        "label": "Furcation Involvement",
+        "description": "Bone loss in the inter-radicular area of molars or premolars.",
+        "symbol": "Furcation triangle"
+      },
+      "missing": {
+        "label": "Missing or Extracted Tooth",
+        "description": "Tooth already extracted or missing due to agenesis.",
+        "symbol": "Blue cross"
+      },
+      "extraction-indicated": {
+        "label": "Extraction Indicated",
+        "description": "Extraction indicated due to destructive caries, infection or fracture.",
+        "symbol": "Red cross"
+      },
+      "retained": {
+        "label": "Retained / Impacted Tooth",
+        "description": "Unerupted tooth still lodged in the bone or gum.",
+        "symbol": "Arched semicircle"
+      },
+      "semi-erupted": {
+        "label": "Semi-erupted Tooth",
+        "description": "Tooth that has only partially erupted through the gum.",
+        "symbol": "Translucent shading"
+      },
+      "root-remnant": {
+        "label": "Root Remnant",
+        "description": "Root remnant recorded in earlier sessions.",
+        "symbol": "Dashed red circle"
+      },
+      "edentulism": {
+        "label": "Edentulism",
+        "description": "Edentulous area recorded in earlier sessions.",
+        "symbol": "Grey double line"
+      },
+      "bracket": {
+        "label": "Fixed Appliance (Bracket)",
+        "description": "Fixed appliance present (metal or sapphire brackets).",
+        "symbol": "Square bracket"
+      },
+      "fixed-retainer": {
+        "label": "Fixed Orthodontic Retainer",
+        "description": "Fixed retainer wire bonded on the lingual/palatal side.",
+        "symbol": "Continuous horizontal line"
+      },
+      "ortho-movement": {
+        "label": "Tooth Movement Required",
+        "description": "Active migration, tipping or extrusion of the tooth.",
+        "symbol": "Direction arrows"
+      },
+      "fixed-ortho": {
+        "label": "Fixed Orthodontics",
+        "description": "Active fixed orthodontic appliance (brackets, bands or archwires).",
+        "symbol": "Green bracket with wire"
+      },
+      "rem-orthodo": {
+        "label": "Removable Orthodontics",
+        "description": "Removable orthodontic or orthopaedic appliance (aligners, plates).",
+        "symbol": "Green triangle"
+      },
+      "bolt": {
+        "label": "Mini-screw",
+        "description": "Temporary skeletal anchorage mini-screw.",
+        "symbol": "Grey screw"
+      },
+      "diastema": {
+        "label": "Diastema",
+        "description": "Gap between adjacent teeth.",
+        "symbol": ")( Brackets"
+      },
+      "malposition": {
+        "label": "Tooth Out of Arch (Rotated)",
+        "description": "Rotational malposition, version or intrusion of the crown out of its ideal plane.",
+        "symbol": "Dotted arc"
+      },
+      "ectopic": {
+        "label": "Ectopic",
+        "description": "Ectopic eruption outside the normal arch.",
+        "symbol": "Diagonal arrow"
+      },
+      "eruption": {
+        "label": "Eruption",
+        "description": "Active eruption towards the occlusal plane.",
+        "symbol": "Occlusal arrow"
+      },
+      "extrusion": {
+        "label": "Extrusion",
+        "description": "Vertical displacement of the tooth out of its socket.",
+        "symbol": "Violet occlusal arrow"
+      },
+      "ortho-fracture": {
+        "label": "Fracture (Orthodontics)",
+        "description": "Fracture of the crown or the appliance.",
+        "symbol": "Red zigzag"
+      },
+      "fusion": {
+        "label": "Fusion",
+        "description": "Joining of two separate tooth germs during development.",
+        "symbol": "Infinity symbol"
+      },
+      "intrusion": {
+        "label": "Intrusion",
+        "description": "Displacement of the tooth into the socket.",
+        "symbol": "Apical arrow"
+      },
+      "macrodontia": {
+        "label": "Macrodontia",
+        "description": "Tooth significantly larger than average.",
+        "symbol": "Large dashed circle"
+      },
+      "microdontia": {
+        "label": "Microdontia",
+        "description": "Abnormally small or peg-shaped tooth.",
+        "symbol": "Small dashed circle"
+      },
+      "drifting": {
+        "label": "Drifting",
+        "description": "Mesial or distal displacement of the tooth out of position.",
+        "symbol": "Horizontal arrow"
+      },
+      "impacted": {
+        "label": "Impacted",
+        "description": "Tooth fully retained or impacted in the alveolar bone.",
+        "symbol": "Shaded brown arc"
+      },
+      "rotation": {
+        "label": "Rotation",
+        "description": "Rotation of the tooth around its long axis.",
+        "symbol": "Circular arrow"
+      },
+      "impacted-semi": {
+        "label": "Semi-impacted",
+        "description": "Tooth whose eruption is partially blocked.",
+        "symbol": "Dashed amber arc"
+      },
+      "supernumerary": {
+        "label": "Supernumerary",
+        "description": "Presence of an extra (supernumerary) tooth.",
+        "symbol": "+S"
+      },
+      "transposition": {
+        "label": "Transposition",
+        "description": "Two adjacent teeth have swapped positions in the arch.",
+        "symbol": "Opposite arrows"
+      },
+      "crown-fracture": {
+        "label": "Crown Fracture",
+        "description": "Traumatic fracture involving enamel, dentine or pulp chamber.",
+        "symbol": "Transverse zigzag"
+      },
+      "root-fracture": {
+        "label": "Root Fracture",
+        "description": "Vertical or horizontal fracture along the root.",
+        "symbol": "Vertical zigzag"
+      },
+      "periapical-lesion": {
+        "label": "Periapical Lesion (Abscess)",
+        "description": "Chronic or acute inflammation at the root apex, visible on X-ray.",
+        "symbol": "Circle at the apex"
+      },
+      "root-resorption": {
+        "label": "Root Resorption",
+        "description": "Localised loss of root cementum and dentine.",
+        "symbol": "Wavy line"
+      },
+      "abrasion": {
+        "label": "Cervical Abrasion (Wear)",
+        "description": "Pathological enamel or dentine wear from traumatic brushing or objects.",
+        "symbol": "Cervical wedge"
+      },
+      "abfraction": {
+        "label": "Abfraction",
+        "description": "Non-carious cervical lesion from enamel microfractures due to occlusal overload.",
+        "symbol": "Rounded notch"
+      },
+      "erosion": {
+        "label": "Dental Erosion (Chemical)",
+        "description": "Intrinsic or extrinsic acid demineralisation of tooth tissue.",
+        "symbol": "Smooth wear"
+      },
+      "fracture": {
+        "label": "General Fracture",
+        "description": "General crown fracture.",
+        "symbol": "Yellow zigzag"
       }
     }
   },
@@ -6558,7 +8521,9 @@
     "month": "This month",
     "prevMonth": "Last month",
     "year": "This year",
-    "custom": "Custom"
+    "custom": "Custom",
+    "fromPrefix": "From",
+    "toPrefix": "Until"
   },
   "ReportShell": {
     "generate": "Generate Report",
@@ -6910,6 +8875,49 @@
     "col_pendiente": "Pending",
     "col_pct": "% Collected"
   },
+  "ReportBalanceMensualPage": {
+    "title": "Monthly Balance",
+    "description": "Month close: what was produced and what was collected, by doctor and period",
+    "all_doctors": "All doctors",
+    "all_groups": "All groups",
+    "no_group": "No group",
+    "all_sedes": "All locations",
+    "all_currencies": "All",
+    "doc_type_all": "All",
+    "doc_type_producido": "Produced",
+    "doc_type_cobrado": "Collected",
+    "doc_type_pendiente": "Pending",
+    "kpi_producido": "Produced",
+    "kpi_cobrado": "Collected",
+    "kpi_pendiente": "Pending",
+    "block_producido": "Produced (issued invoices)",
+    "block_cobrado": "Collected (payments received)",
+    "block_pendiente": "Pending by doctor",
+    "empty_block": "No activity in the period",
+    "subtotal_dia": "Day subtotal",
+    "total_periodo": "Period total",
+    "col_bloque": "Block",
+    "col_fecha": "Date",
+    "col_medico": "Doctor",
+    "col_paciente": "Patient",
+    "col_servicio": "Service",
+    "col_factura": "Invoice",
+    "col_forma_pago": "Payment Method",
+    "col_moneda": "Currency",
+    "col_importe": "Amount",
+    "col_detalle": "Detail",
+    "col_facturado": "Invoiced",
+    "col_cobrado": "Collected",
+    "col_saldo": "Balance",
+    "col_total": "Total",
+    "col_grupo": "Group",
+    "total_general": "Grand total",
+    "tab_resumen": "Summary",
+    "resumen_producido_doctor": "Total produced by doctor",
+    "resumen_pago_total": "Total patient payments",
+    "resumen_pago_grupo": "Patient payments by group",
+    "resumen_nota_grupos": "Groups are derived from the invoiced service. A service that belongs to several groups adds its amount to each one, so the sum of the groups may exceed the total; anything not belonging to a group is shown as \"Sin grupo\"."
+  },
   "ReportDeudoresPage": {
     "title": "Debtors",
     "description": "Debt portfolio classified by age — collections tool",
@@ -7119,7 +9127,9 @@
       "unpaid": "Unpaid",
       "paid": "Paid",
       "partial": "Partial",
-      "partially_paid": "Partially Paid"
+      "partially_paid": "Partially Paid",
+      "not_paid": "Unpaid",
+      "not_invoiced": "Unpaid"
     },
     "transactionType": {
       "direct_payment": "Direct Payment",
@@ -7127,7 +9137,6 @@
       "payment_allocation": "Payment Application"
     },
     "financialSummary": {
-      "title": "Financial Summary",
       "to": "to",
       "id": "ID / Tax No.",
       "email": "Email",
@@ -7136,7 +9145,20 @@
       "balance": "Balance",
       "finalBalance": "Final Balance",
       "paysInvoice": "Pays"
-    }
+    },
+    "cajaCierre": {
+      "movements": "Movements",
+      "noMovements": "No movements in {currency}.",
+      "movementDate": "Date",
+      "movementMethod": "Method",
+      "movementDescription": "Description",
+      "registeredBy": "Registered by",
+      "movementAmount": "Amount",
+      "totalIncome": "Total income",
+      "totalExpense": "Total expenses",
+      "net": "Net"
+    },
+    "discount": "Discount"
   },
   "License": {
     "expired": {
@@ -7175,7 +9197,16 @@
       "aiAccess": "AI Access",
       "notes": "Notes",
       "generate": "Generate License",
-      "generating": "Generating..."
+      "generating": "Generating...",
+      "generateSuccess": "License generated and activated",
+      "generateError": "The license could not be generated",
+      "subscriptionPartialError": "The license was saved and is already active, but the subscription could not be registered. Do not generate another one: register the subscription manually or contact support.",
+      "loadError": "The current license could not be loaded",
+      "generateConfirm": {
+        "title": "Generate and activate a new license?",
+        "description": "The new license ({type}, {start} → {end}) will replace the current one immediately and its limits will apply to every user. This action cannot be undone.",
+        "cancel": "Cancel"
+      }
     },
     "enforcement": {
       "limitReachedTitle": "License limit reached",
@@ -7246,5 +9277,907 @@
       "cancel": "Cancel",
       "delete": "Delete"
     }
+  },
+  "PatientLogin": {
+    "toggleTheme": "Toggle theme",
+    "back": "Back",
+    "identify": {
+      "title": "Access your portal",
+      "description": "Enter your email, phone or ID number. We'll send you a code — no password needed.",
+      "label": "Email, phone or ID number",
+      "placeholder": "john@example.com, 099 123 456 or 12345678",
+      "submit": "Continue",
+      "staffLink": "Are you staff? Sign in here",
+      "hint": "Any of the three works.",
+      "newPatient": "I'm new, I'm not registered",
+      "newPatientDisabled": "We couldn't find your record and this clinic doesn't accept online bookings. Please contact them directly to get registered.",
+      "reason": "We use this to check whether you're already a patient here. If you are, we'll load your history, appointments and account balance; if it's your first time, we'll ask for just a few details."
+    },
+    "needEmail": {
+      "title": "We need your email",
+      "description": "We found you, but there's no email on file. Enter one so we can send your code.",
+      "label": "Email address",
+      "submit": "Send code",
+      "reason": "We don't have an email on file for you yet. We need it to send your access code — and to remind you about upcoming appointments."
+    },
+    "register": {
+      "title": "Create your account",
+      "description": "We couldn't find you in the system. These details are enough to get started.",
+      "name": "Full name",
+      "namePlaceholder": "John Smith",
+      "phone": "Phone",
+      "email": "Email address",
+      "optionalToggle": "Optional details (you can fill these in later)",
+      "document": "ID number",
+      "birthDate": "Date of birth",
+      "address": "Address",
+      "submit": "Create account and send my code",
+      "reason": "Your name, phone and email go to the clinic's team so they can reach you directly about your appointment or anything that comes up. We don't share them with anyone else.",
+      "optionalSuffix": "(optional)"
+    },
+    "code": {
+      "title": "Enter your code",
+      "description": "We sent a 6-digit code to {email}. It expires in 10 minutes.",
+      "submit": "Sign in",
+      "resend": "Resend code",
+      "resendIn": "You can resend the code in {seconds}s",
+      "resentTitle": "Code resent",
+      "resentDescription": "Check your inbox, including the spam folder.",
+      "reason": "Only you can access your inbox. That's why we ask for the code: it guarantees nobody else can see your information or act on your behalf without your consent.",
+      "pasteHint": "Check your inbox and copy the 6-digit code we sent you. You can paste it straight into the first box.",
+      "alreadySentTitle": "We already sent you a code",
+      "alreadySentDescription": "Check your inbox and enter the code you received. If it didn't arrive, you'll be able to request another in a few seconds."
+    },
+    "fields": {
+      "email": "Email address",
+      "phone": "Phone",
+      "identity_document": "ID number"
+    },
+    "validation": {
+      "nameRequired": "Name is required",
+      "phoneInvalid": "Phone number is not valid",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Email is not valid",
+      "documentDigits": "ID number can only contain digits",
+      "documentMax": "ID number cannot exceed 10 digits",
+      "nameInvalid": "Use only letters, spaces, hyphens, apostrophes and periods (no numbers or symbols).",
+      "nameTooShort": "The name must have at least 2 letters.",
+      "nameTooLong": "The name can't be longer than 120 characters."
+    },
+    "errors": {
+      "title": "Error",
+      "unexpected": "Something went wrong. Please try again.",
+      "invalidCode": "That code is invalid or has expired. Request a new one.",
+      "alreadyRegistered": "An account already exists with: {fields}. Go back and sign in with it."
+    },
+    "genericClinicName": "our clinic",
+    "or": "or",
+    "header": {
+      "tagline": "Patient portal"
+    },
+    "hero": {
+      "badge": "Book your appointment in a minute",
+      "title": "Welcome to {clinic}",
+      "subtitle": "Book and manage your appointments, check your clinical history and your account balance — anytime, from anywhere.",
+      "cta": "Go to my portal",
+      "staffCta": "I'm staff",
+      "perks": {
+        "appointments": "Book and reschedule appointments",
+        "history": "Check your clinical history",
+        "finance": "See your account balance"
+      },
+      "videoTitle": "Welcome video from {clinic}"
+    },
+    "info": {
+      "title": "Where to find us",
+      "address": "Address",
+      "phone": "Phone",
+      "email": "Email",
+      "hours": "Opening hours"
+    },
+    "weekdays": {
+      "sunday": "Sunday",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday"
+    },
+    "disabled": {
+      "title": "Portal unavailable",
+      "description": "{clinic} hasn't enabled online patient access yet. Get in touch and we'll help you out."
+    },
+    "footer": {
+      "contact": "Contact",
+      "rights": "All rights reserved.",
+      "poweredBy": "Powered by Invoke IA"
+    },
+    "startOver": "Start over",
+    "booking": {
+      "title": "Choose your appointment",
+      "description": "Pick the day and time that suits you best.",
+      "reason": "Only times with real availability are shown. Once you confirm, the clinic receives your request and confirms it by email."
+    },
+    "booked": {
+      "title": "Your appointment is booked!",
+      "description": "See you then.",
+      "reason": "",
+      "when": "{date} at {time}",
+      "emailSent": "We emailed the appointment details to you and to the clinic. If you need to change it, get in touch with us.",
+      "done": "Done"
+    }
+  },
+  "PatientPortal": {
+    "subtitle": "My profile",
+    "logout": "Sign out",
+    "toggleTheme": "Toggle theme",
+    "accessDenied": {
+      "title": "Access denied",
+      "description": "Your account doesn't have access to the patient portal."
+    },
+    "tabs": {
+      "info": "My Information",
+      "appointments": "My Appointments",
+      "appointmentsShort": "Appointments",
+      "clinical": "History",
+      "financial": "Finances",
+      "infoSubtitle": "Your personal and contact details",
+      "appointmentsSubtitle": "Upcoming appointments and new requests",
+      "clinicalSubtitle": "Clinical history, treatments and documents",
+      "financialSubtitle": "Your account statement"
+    },
+    "subTabs": {
+      "history": "Clinical history",
+      "anamnesis": "Anamnesis",
+      "treatmentPlans": "Treatment plans",
+      "treatmentPlansShort": "Plans",
+      "instructions": "Medical instructions",
+      "instructionsShort": "Instructions",
+      "documents": "Documents"
+    },
+    "appointments": {
+      "upcomingCount": "{count, plural, =0 {No upcoming appointments} one {# upcoming appointment} other {# upcoming appointments}}",
+      "book": "Book appointment",
+      "reschedule": "Reschedule",
+      "cancel": "Cancel",
+      "empty": "You have no upcoming appointments. Past ones are in your History.",
+      "loadError": "We couldn't load your appointments. Please try again.",
+      "bookingDisabled": "The clinic doesn't accept online bookings. Please contact them directly to schedule.",
+      "cancelDialog": {
+        "title": "Cancel this appointment?",
+        "description": "You're about to cancel your appointment on {date} at {time}. The clinic will be notified.",
+        "noteLabel": "Reason (optional)",
+        "notePlaceholder": "Briefly tell us why you can't make it",
+        "back": "Back",
+        "confirm": "Yes, cancel appointment",
+        "successTitle": "Appointment cancelled",
+        "successDescription": "We've notified the clinic. You can book a new one anytime.",
+        "errorTitle": "We couldn't cancel the appointment"
+      },
+      "nextOne": "Your next appointment",
+      "doctor": "Practitioner",
+      "room": "Room",
+      "service": "Reason"
+    },
+    "assistant": {
+      "open": "Open assistant",
+      "close": "Close",
+      "title": "Assistant",
+      "subtitle": "Questions about the clinic and your profile",
+      "placeholder": "Type your question…",
+      "noAnswer": "I couldn't find an answer. Try rephrasing your question.",
+      "error": "We couldn't reach the assistant. Please try again.",
+      "suggestions": {
+        "nextAppointment": "When is my next appointment?",
+        "balance": "How much do I owe?",
+        "hours": "What are the clinic's opening hours?"
+      }
+    },
+    "onboarding": {
+      "title": "Hi, {name}",
+      "description": "You have no appointments booked. Request one now and we'll show you your full profile right after.",
+      "skip": "I'll do it later",
+      "bookedTitle": "Request sent!",
+      "bookedDescription": "The clinic will confirm it shortly. You can now view your profile.",
+      "goToProfile": "Go to my profile",
+      "bookAnother": "Book another appointment"
+    },
+    "backToStaff": "Back to staff view",
+    "booking": {
+      "title": "Request an appointment",
+      "description": "Pick the day and time that suits you best. Only available times are shown.",
+      "pickDay": "Which day works for you?",
+      "pickTime": "Pick a time",
+      "previousDays": "Previous days",
+      "nextDays": "Next days",
+      "availableCount": "{count, plural, =0 {No times available} one {# time available} other {# times available}}",
+      "closedDay": "The clinic is closed that day. Try another one.",
+      "noneAvailable": "No times left that day. Try another one.",
+      "slotTaken": "Time unavailable",
+      "reasonLabel": "What's going on?",
+      "reasonPlaceholder": "Briefly tell us the reason: discomfort, check-up, urgent care…",
+      "reasonHint": "It helps us prepare your visit and set aside the right amount of time.",
+      "confirm": "Confirm request",
+      "pendingNotice": "The clinic will confirm your appointment. We'll email you.",
+      "loadError": "We couldn't load the available times. Please try again.",
+      "successTitle": "Request sent!",
+      "successDescription": "The clinic will confirm your appointment shortly.",
+      "errorTitle": "We couldn't create the appointment",
+      "back": "Back",
+      "pickSede": "Which location would you like?",
+      "rescheduleTitle": "Reschedule appointment",
+      "replacing": "You're replacing your appointment on {date} at {time}. Pick the new time and we'll cancel the old one.",
+      "confirmReschedule": "Confirm the change",
+      "rescheduledTitle": "Appointment rescheduled!",
+      "rescheduledDescription": "We cancelled the previous one and the clinic will confirm the new appointment.",
+      "rescheduledPartialTitle": "New one booked, but the old one is still active",
+      "rescheduledPartialDescription": "We couldn't cancel your previous appointment. Please contact the clinic so they can remove it.",
+      "steps": {
+        "sede": "Location",
+        "slot": "Time",
+        "confirm": "Confirm",
+        "services": "Services"
+      },
+      "summary": {
+        "title": "Appointment summary",
+        "when": "When",
+        "who": "You'll be seen by",
+        "where": "Where",
+        "services": "What we'll do",
+        "duration": "Duration",
+        "total": "Estimated total"
+      },
+      "pickServices": "What do you need?",
+      "servicesHint": "Pick everything you want to cover in this visit. You can choose more than one, and we'll book the time it takes.",
+      "selectedServices": "{count, plural, one {# service selected} other {# services selected}}",
+      "selectionSummary": "{minutes} min · {total}",
+      "removeService": "Remove {name}",
+      "continue": "Continue",
+      "continueWithoutServices": "If you don't pick anything, the clinic decides the reason for the visit.",
+      "defaultServiceNotice": "If you don't pick anything, the appointment is booked as {name}.",
+      "noBookableServices": "There are no services available to book online yet. Continue and the clinic will set the reason for the visit.",
+      "servicesLoadError": "We couldn't load the services.",
+      "minutesShort": "{minutes} min",
+      "rescheduleNoServices": "If you don't pick any, the appointment is rescheduled with no services attached."
+    },
+    "info": {
+      "emailLocked": "Your email can't be changed here — it's where your access code is sent. Ask the clinic if you need to update it."
+    },
+    "finance": {
+      "loadError": "We couldn't load your account statement. Please try again.",
+      "empty": "You have no account activity yet."
+    },
+    "footer": {
+      "whatsapp": "Message on WhatsApp",
+      "noSchedules": "Hours to be confirmed",
+      "viewSchedules": "View hours",
+      "mailSubject": "Enquiry from the portal — {sede}",
+      "collapse": "Hide",
+      "expand": "View contact details"
+    }
+  },
+  "Discounts": {
+    "fieldLabel": "Discount",
+    "percentMode": "Discount as a percentage",
+    "amountMode": "Discount in {currency}",
+    "resultingAmount": "Takes off {currency} {amount}",
+    "overLimit": "Above the maximum allowed ({max}%)",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "total": "Total",
+    "applyAction": "Apply discounts",
+    "confirm": "Apply",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "remove": "Remove",
+    "appliedSummary": "Discount {detail} · −{currency} {amount}"
+  },
+  "ClinicPrefsPage": {
+    "title": "Clinic Preferences",
+    "description": "Settings for how your clinic works. Tax and contact details live in Clinic Details, not here.",
+    "save": "Save",
+    "saved": "Preferences saved",
+    "saveError": "We couldn't save the preferences",
+    "loadError": "We couldn't load the preferences",
+    "readOnlyNotice": "Read-only: you don't have permission to change the clinic preferences.",
+    "discounts": {
+      "sectionTitle": "Discounts",
+      "enabled": {
+        "label": "Apply discounts",
+        "help": "When off, no quote or invoice screen shows discount fields and totals are calculated as before."
+      },
+      "scope": {
+        "label": "Where is the discount applied?",
+        "help": "The two options are mutually exclusive: pick one for the whole clinic and that's what shows up when selling.",
+        "line": {
+          "title": "Per service",
+          "description": "Each quote or invoice line carries its own discount."
+        },
+        "total": {
+          "title": "On the total",
+          "description": "A single discount on the document total. Services print at list price and the discount shows as a separate line."
+        }
+      },
+      "defaultPct": {
+        "label": "Default discount (%)",
+        "help": "The value the field starts with when creating a quote or an invoice. It can always be changed on the sale.",
+        "hint": "0 leaves the field empty."
+      },
+      "maxPct": {
+        "label": "Maximum discount (%)",
+        "help": "The cap the form will accept, measured as a percentage of the amount. It also applies to discounts entered as a fixed amount.",
+        "hint": "100 means no cap."
+      },
+      "defaultOverMax": "The default discount can't be higher than the maximum allowed.",
+      "permissionNotice": "Only users with the \"Apply Discounts\" permission can change the discount when selling. Everyone else sees the field read-only."
+    },
+    "identityDocument": {
+      "sectionTitle": "Identity document",
+      "required": {
+        "label": "Require identity document",
+        "help": "When on, the patient form won't save without an identity document. Off by default, the document can be left empty."
+      },
+      "warnOnStatus": {
+        "label": "Require it to change an appointment's status",
+        "help": "When on, an appointment can't move to the selected statuses if the patient has no identity document: the change is blocked until the document is added to the patient's record. Cancelling is never blocked. Independent of the setting above.",
+        "statusesLabel": "Require the document for the appointment to move to:"
+      }
+    },
+    "duplicateContact": {
+      "sectionTitle": "Patient phone",
+      "allow": {
+        "label": "Allow repeated phone numbers",
+        "help": "Off by default: a patient can't be registered with a phone number another patient already has, and the message says who has it. When on, it's allowed (e.g. relatives sharing a phone), but staff are first told who has it and must confirm. Emails can never be repeated.",
+        "notice": "Doctors, operators and providers still can't repeat a phone, and neither can the email or the identity document. When two records share a phone, the patient portal and WhatsApp use the oldest active one."
+      },
+      "warning": {
+        "title": "Before turning this on",
+        "description": "When two records share a phone, the system can't tell them apart if the person identifies themselves only by the number:",
+        "whatsapp": "WhatsApp: the assistant will serve the oldest active record with that phone, even if someone else is writing.",
+        "portal": "Patient portal: whoever signs in with that phone will get into the oldest active record.",
+        "footer": "Emails, identity documents and system users stay unique. You can turn this off at any time; records already sharing a phone are kept.",
+        "cancel": "Cancel",
+        "confirm": "I understand, turn on"
+      }
+    },
+    "automation": {
+      "loadError": "Could not read the automation settings (alert emails and Google Calendar).",
+      "partialSaveError": "The preferences were saved, but the automation settings were not. Check them and save again."
+    },
+    "alertEmail": {
+      "sectionTitle": "Automatic alert emails",
+      "enabled": {
+        "label": "Send alert emails automatically",
+        "help": "Master switch. When off, the scheduler sends no email on its own even if a rule has it checked; alerts are still generated."
+      },
+      "notice": {
+        "on": "Emails are sent only for rules that have \"Send email automatically\" checked (System → Alert rules).",
+        "off": "No automatic email is sent. Alerts stay pending to be handled manually."
+      },
+      "confirm": {
+        "title": "Enable automatic emails?",
+        "description": "From the next scheduler run, patients will be emailed for the rules that have automatic sending checked. The change applies when you save.",
+        "cancel": "Cancel",
+        "confirm": "Enable"
+      }
+    },
+    "googleCalendar": {
+      "sectionTitle": "Google Calendar sync",
+      "help": "Applies to every calendar that has a Google Calendar ID set (Settings → Calendars).",
+      "notice": "From Google only new events and cancellations are imported: time or title changes made in Google are not reflected in the app.",
+      "modes": {
+        "none": {
+          "title": "Don't sync",
+          "description": "Appointments live only in the app."
+        },
+        "from_google": {
+          "title": "From Google Calendar",
+          "description": "New events and cancellations from Google are brought into the app."
+        },
+        "to_google": {
+          "title": "To Google Calendar",
+          "description": "Appointments created, edited or cancelled in the app are reflected in Google."
+        },
+        "both": {
+          "title": "From and to Google Calendar",
+          "description": "Combines both directions."
+        }
+      }
+    }
+  },
+  "DuplicateContact": {
+    "title": "This phone is already registered",
+    "description": "Another patient already uses this phone number. Make sure it isn't the same person before saving.",
+    "fields": {
+      "phone": "Phone",
+      "email": "Email",
+      "identity_document": "Identity document"
+    },
+    "usedBy": "{field} already registered to:",
+    "inactive": "Inactive",
+    "document": "ID: {value}",
+    "birthDate": "Born: {value}",
+    "hint": "If it's the same person, cancel and open their existing record. If it's a relative sharing the phone, you can save anyway.",
+    "cancel": "Review details",
+    "confirm": "Save anyway",
+    "conflictTitle": "Can't save yet",
+    "conflictDescription": "This information already exists and can't be repeated. Check whether the person is already registered.",
+    "conflictNoOwner": "{field} is already registered.",
+    "understood": "Understood"
+  },
+  "CalendarColorsPage": {
+    "title": "Calendar Colors",
+    "description": "Color, calendar behavior and badge style for each appointment status.",
+    "save": "Save",
+    "saved": "Color matrix saved",
+    "saveError": "We couldn't save the color matrix",
+    "loadError": "We couldn't load the color matrix",
+    "readOnlyNotice": "Read-only: you don't have permission to change the calendar colors.",
+    "restoreDefaults": "Restore defaults",
+    "unsavedChangesConfirm": "You have unsaved changes in this view. Discard them and switch calendars?",
+    "colorSource": {
+      "title": "Color source",
+      "description": "Choose which levels are considered when an appointment is colored. The chain goes from the most specific to the most general: appointment color > service > doctor > calendar. Turn off a level to skip it.",
+      "save": "Save color source",
+      "saved": "Color source saved",
+      "saveError": "We couldn't save the color source",
+      "revert": "Use General",
+      "revertSuccess": "The calendar now uses the general color source",
+      "revertError": "We couldn't revert the color source",
+      "alwaysActive": "Always active",
+      "levels": {
+        "appointment": {
+          "label": "Appointment color tag",
+          "help": "The color a user picks on the appointment itself. It always wins."
+        },
+        "service": {
+          "label": "Service color",
+          "help": "Use the color of the appointment's service."
+        },
+        "doctor": {
+          "label": "Doctor color",
+          "help": "Use the color of the assigned doctor."
+        },
+        "calendar": {
+          "label": "Calendar color",
+          "help": "Use the color of the calendar (room) the appointment belongs to."
+        }
+      },
+      "highlight": {
+        "label": "Highlight the view with the calendar color",
+        "help": "When a single calendar is on screen, its color is reflected on the calendar view so you can tell branches apart at a glance (one calendar per branch). \"Top stripe\" and \"Frame and label\" only mark the edges; \"Whole view\" tints almost everything (frame, agendas panel, header and grid) and leaves only the navigation bar with the normal theme. It uses the color set in Settings → Calendars.",
+        "options": {
+          "off": "Off",
+          "subtle": "Top stripe",
+          "strong": "Frame and label",
+          "full": "Whole view"
+        }
+      },
+      "allOffWarning": "With every level off, appointments without their own color tag have no color and use the default look.",
+      "customizedHint": "This calendar has its own color source, which replaces the General one.",
+      "inheritedHint": "This calendar inherits the General color source. Saving creates its own configuration."
+    },
+    "table": {
+      "status": "Status",
+      "scope": "Scope",
+      "color": "Color",
+      "calendarMode": "On the calendar",
+      "badgeStyle": "Badge",
+      "preview": "Preview"
+    },
+    "scope": {
+      "general": "General",
+      "generalHint": "Clinic-wide matrix: applies to every calendar that doesn't have its own configuration.",
+      "calendarHint": "Showing this calendar's configuration. Anything you don't customize still inherits from General.",
+      "customized": "Customized",
+      "inherited": "Inherits from General",
+      "revertStatus": "Revert to inherit from General",
+      "revertStatusSuccess": "That status now inherits from the general matrix again",
+      "revertStatusError": "We couldn't revert that status",
+      "revertAll": "Revert all to General",
+      "revertAllSuccess": "The calendar is back to using the general matrix",
+      "revertAllError": "We couldn't revert that calendar's configuration",
+      "revertAllConfirm": {
+        "title": "Revert to the general matrix?",
+        "description": "All the customizations of \"{name}\" will be deleted and it will use the general matrix again. This can't be undone.",
+        "confirm": "Revert all"
+      }
+    },
+    "calendarMode": {
+      "always": {
+        "label": "Always",
+        "help": "Paints the whole appointment card with this color, regardless of the \"color by status\" preference or the service/doctor/room color. A manually chosen color tag on the appointment still wins."
+      },
+      "preference": {
+        "label": "By preference",
+        "help": "Respects each user's \"color by status\" switch: with an appointment or service color it shows as a side stripe; inheriting only the doctor's or room's color paints the whole card."
+      },
+      "never": {
+        "label": "Never",
+        "help": "This status never adds color to the calendar; the appointment looks the same as with the preference off."
+      }
+    },
+    "badgeStyle": {
+      "solid": "Solid",
+      "soft": "Soft",
+      "outline": "Outline"
+    },
+    "replicateDialog": {
+      "trigger": "Copy to other calendars…",
+      "title": "Copy to other calendars",
+      "description": "Copies the configuration you're currently viewing to the selected calendars.",
+      "selectAll": "Select all",
+      "decoupleNotice": "From this point on, each selected calendar keeps its own copy: changes you make here afterwards won't reach it automatically.",
+      "cancel": "Cancel",
+      "confirm": "Copy",
+      "success": "Configuration copied",
+      "error": "We couldn't copy the configuration"
+    }
+  },
+  "PatientPortalConfigPage": {
+    "title": "Patient Portal",
+    "description": "Control what your patients can do from their self-service portal.",
+    "save": "Save",
+    "saved": "Settings saved",
+    "saveError": "We couldn't save the settings",
+    "loadError": "We couldn't load the settings",
+    "readOnlyNotice": "You don't have permission to change these settings.",
+    "fields": {
+      "enabled": {
+        "label": "Allow patients to access the portal",
+        "help": "Enables the public /patient-login page. With this on, patients can get started and create bookings. When off, they see a notice that the portal is unavailable and cannot identify themselves or book."
+      },
+      "onlineBooking": {
+        "label": "Scheduling and patient profile access",
+        "help": "Lets patients book their appointment, pick a day and time from the free slots in the agenda, and reach their profile. When off, they can only view their information — the clinic keeps booking appointments."
+      },
+      "appointmentsOnly": {
+        "label": "Portal is for booking appointments only",
+        "help": "Patients only book appointments and never reach their information: they stay on the /patient-login screen. No access code is sent, so they book without confirming their identity — the appointment stays pending confirmation by the clinic.",
+        "activeNotice": "With this on, no patient will see their profile: only the booking screen. Access codes aren't sent either, so nobody verifies they own the email they type."
+      },
+      "video": {
+        "label": "Welcome video",
+        "help": "Shown on the /patient-login landing. You can paste a YouTube link, an Instagram reel, a Vimeo video or the URL of an .mp4 file. Leave it empty to use a generic Invoke IA video.",
+        "placeholder": "https://youtube.com/watch?v=… or https://instagram.com/reel/…",
+        "hint": "Accepts YouTube, Instagram, Vimeo or a video file. Leave empty to use the default video.",
+        "unsupported": "We couldn't recognise that link. Check it's from YouTube, Instagram, Vimeo or an .mp4 file."
+      },
+      "message": {
+        "label": "Welcome message",
+        "help": "Replaces the text next to the title on the portal landing. Leave it empty to use the system default.",
+        "placeholder": "Book and manage your appointments anytime…",
+        "hint": "Leave empty to use the default text."
+      },
+      "serviceSelection": {
+        "label": "Enable service selection",
+        "help": "The patient picks what they need, in a step before date and time, from the services you marked as bookable online under Sales → Services. When off, every booking is created with the default service and the patient picks nothing."
+      },
+      "defaultService": {
+        "label": "Default service for bookings",
+        "help": "Which service the appointment is created with when the patient picks none. Use it so every portal booking comes in as, for example, General consultation, for the front desk to review later.",
+        "placeholder": "Pick a service",
+        "none": "No default service",
+        "hint": "Used when service selection is off, and also when it's on but the patient picks nothing."
+      },
+      "showPricing": {
+        "label": "Show duration and prices",
+        "help": "The patient sees each service's price and the total time and cost of what they picked. When off they only see the names: the duration is still used to book the right slot, but it isn't shown, and prices never leave the system."
+      }
+    },
+    "qr": {
+      "test": "Try it",
+      "download": "Download"
+    },
+    "flier": {
+      "print": "Print flyer",
+      "staff": {
+        "badge": "Access · Staff",
+        "title": "Access your workspace",
+        "body": "Scan the QR code with your phone's camera to enter the platform and manage your day to day.",
+        "footer": "Platform powered by"
+      },
+      "patient": {
+        "badge": "Booking · Online",
+        "title": "Book online, no phone calls",
+        "body": "Sign in today to book appointments whenever you want and manage your details and bookings from your phone. Just scan the QR.",
+        "footer": "Bookings powered by"
+      }
+    }
+  },
+  "PatientIndicationsTab": {
+    "tabs": {
+      "instructions": "Instructions",
+      "prescriptions": "Prescriptions"
+    }
+  },
+  "MedicationSelector": {
+    "trigger": "Select medication",
+    "searchPlaceholder": "Search medication...",
+    "loading": "Loading...",
+    "noResults": "No medications found.",
+    "create": "Create \"{name}\"",
+    "createHint": "This medication will be added to the catalog.",
+    "commercialNamePlaceholder": "Brand name (optional)",
+    "createError": "Could not create the medication.",
+    "save": "Save"
+  },
+  "SignatureUploader": {
+    "label": "Signature",
+    "description": "Printed at the bottom of the prescriptions issued by this doctor.",
+    "alt": "Doctor's signature",
+    "empty": "No signature",
+    "hint": "PNG, JPG or WEBP. 1 MB max. A transparent background is recommended.",
+    "save": "Save signature",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "errors": {
+      "tooLarge": "The file is larger than 1 MB.",
+      "generic": "Could not save the signature."
+    },
+    "toast": {
+      "saved": "Signature saved.",
+      "deleted": "Signature deleted."
+    },
+    "deleteDialog": {
+      "title": "Delete signature",
+      "description": "Are you sure you want to delete this signature? Prescriptions already issued keep the signature they were printed with.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "or": "or",
+    "draw": "Draw signature"
+  },
+  "PatientPrescriptionsSection": {
+    "title": "Prescriptions",
+    "newPrescription": "New prescription",
+    "noData": "No prescriptions recorded.",
+    "medicationCount": "{count} medication(s)",
+    "print": "Print",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteDialog": {
+      "title": "Delete Prescription",
+      "description": "Are you sure you want to delete this prescription? The medications it added to the anamnesis will be removed as well.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "deleteSuccess": "Prescription deleted.",
+      "error": "An error occurred."
+    }
+  },
+  "PrescriptionDialog": {
+    "createTitle": "New Prescription",
+    "editTitle": "Edit Prescription",
+    "date": "Date",
+    "doctor": "Doctor",
+    "selectDoctor": "Select a doctor",
+    "searchDoctor": "Search doctor...",
+    "noDoctor": "No doctors found.",
+    "template": "Template",
+    "selectTemplate": "Select a template",
+    "diagnosis": "Diagnosis",
+    "diagnosisPlaceholder": "Reason for the prescription",
+    "notes": "Notes",
+    "notesPlaceholder": "General instructions",
+    "medications": "Medications",
+    "addMedication": "Add medication",
+    "content": "Prescription content",
+    "contentHint": "Only if you need to depart from the template. The medications table and the signature are built at print time from the fields above, which is why their tokens stay in the text.",
+    "refreshVariables": "Refresh variables",
+    "close": "Close",
+    "print": "Print",
+    "save": "Save",
+    "saving": "Saving...",
+    "item": {
+      "medication": "Medication",
+      "presentation": "Presentation",
+      "presentationPlaceholder": "e.g. 500 mg tablets",
+      "dosage": "Dosage",
+      "dosagePlaceholder": "e.g. 1 tablet",
+      "route": "Route",
+      "routePlaceholder": "e.g. Oral",
+      "frequency": "Frequency",
+      "frequencyPlaceholder": "e.g. Every 8 hours",
+      "durationDays": "Duration (days)",
+      "quantity": "Quantity",
+      "quantityPlaceholder": "e.g. 20 tablets",
+      "startDate": "Start",
+      "endDate": "End",
+      "instructions": "Instructions",
+      "instructionsPlaceholder": "e.g. Take with food",
+      "registerInAnamnesis": "Record in the patient's anamnesis",
+      "remove": "Remove medication",
+      "done": "Done",
+      "edit": "Edit",
+      "inAnamnesis": "In anamnesis"
+    },
+    "variables": {
+      "title": "Variables",
+      "groups": {
+        "patient": "Patient",
+        "clinic": "Clinic",
+        "document": "Document",
+        "tables": "Tables"
+      }
+    },
+    "validation": {
+      "doctorRequired": "You must select a doctor.",
+      "itemsRequired": "Add at least one medication.",
+      "contentRequired": "Content is required."
+    },
+    "toast": {
+      "createSuccess": "Prescription created.",
+      "editSuccess": "Prescription updated.",
+      "error": "An error occurred while saving the prescription."
+    },
+    "paneForm": "Details",
+    "panePreview": "Preview",
+    "previewEmpty": "Pick a template to see how the printed prescription will look.",
+    "showEditor": "Edit prescription content",
+    "hideEditor": "Hide the editor",
+    "signature": {
+      "missing": "This doctor has no signature yet. The prescription will print unsigned.",
+      "define": "Set signature",
+      "dialogTitle": "Set the doctor's signature",
+      "dialogDescription": "Upload an image or draw the signature. It is stored on the doctor's profile and used in this prescription."
+    }
+  },
+  "PrescriptionPrint": {
+    "title": "Prescription",
+    "patient": "Patient",
+    "date": "Date",
+    "doctor": "Doctor",
+    "diagnosis": "Diagnosis",
+    "signatureLabel": "Practitioner's signature",
+    "table": {
+      "medication": "Medication",
+      "presentation": "Presentation",
+      "dosage": "Dosage",
+      "frequency": "Frequency",
+      "duration": "Duration",
+      "instructions": "Instructions",
+      "days": "days"
+    },
+    "clinic": {
+      "phonePrefix": "Tel.",
+      "taxIdPrefix": "Tax ID",
+      "footerNote": "This prescription is personal and non-transferable. Consult your doctor about any adverse effects."
+    }
+  },
+  "PrescriptionTemplatesPage": {
+    "title": "Prescription Templates",
+    "description": "Define the structure of prescriptions: letterhead, medications and signature.",
+    "filterPlaceholder": "Filter by template name...",
+    "noAccess": "You do not have access to view this section.",
+    "columns": {
+      "name": "Name",
+      "description": "Description",
+      "isActive": "Active",
+      "yes": "Yes",
+      "no": "No",
+      "actions": "Actions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "dialog": {
+      "createTitle": "Create Prescription Template",
+      "editTitle": "Edit Prescription Template",
+      "name": "Name",
+      "namePlaceholder": "e.g. Standard prescription",
+      "descriptionLabel": "Description",
+      "content": "Content",
+      "legend": "Use the \"Variables\" button to insert data resolved when the prescription is issued. '{{medications_table}}' inserts the medications table and '{{doctor_signature}}' the doctor's signature.",
+      "isActive": "Is Active",
+      "cancel": "Cancel",
+      "create": "Create Template",
+      "save": "Save Changes"
+    },
+    "variables": {
+      "title": "Variables",
+      "groups": {
+        "patient": "Patient",
+        "clinic": "Clinic",
+        "document": "Document",
+        "tables": "Tables"
+      }
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createSuccessTitle": "Template Created",
+      "editSuccessTitle": "Template Updated",
+      "successDescription": "Template \"{name}\" was saved successfully.",
+      "deleteSuccessTitle": "Template Deleted",
+      "deleteSuccessDescription": "Template \"{name}\" has been deleted."
+    },
+    "deleteDialog": {
+      "title": "Delete Template",
+      "description": "Are you sure you want to delete template \"{name}\"?",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "validation": {
+      "nameRequired": "Name is required.",
+      "contentRequired": "Content is required."
+    }
+  },
+  "SignaturePad": {
+    "title": "Draw signature",
+    "description": "Draw your signature with the mouse, your finger or a stylus. It is saved as an image with a transparent background.",
+    "placeholder": "Sign here",
+    "undo": "Undo",
+    "clear": "Clear all",
+    "cancel": "Cancel",
+    "use": "Use this signature"
+  },
+  "ServiceImageUploader": {
+    "label": "Service image",
+    "description": "Shown on the patient portal cards when choosing what to book. The preview is exactly as wide as it will be there.",
+    "alt": "Service image",
+    "empty": "No image",
+    "hint": "Ideal size {width} × {height} px. PNG, JPG or WEBP, up to {maxMb} MB (for photos prefer JPG or WEBP — PNG runs over).",
+    "pendingCreate": "It'll be uploaded when you save the service.",
+    "save": "Save image",
+    "cancel": "Discard",
+    "delete": "Remove",
+    "errors": {
+      "tooLarge": "The image is over {maxMb} MB. Shrink it and try again.",
+      "generic": "The image couldn't be saved."
+    },
+    "toast": {
+      "saved": "Image saved",
+      "deleted": "Image removed"
+    },
+    "deleteDialog": {
+      "title": "Remove the image?",
+      "description": "The service will show without an image in the patient portal. You can upload another one any time.",
+      "cancel": "Cancel",
+      "confirm": "Remove"
+    },
+    "ratioHint": "It's shown in full at the card's full width, never cropped: the height follows your image's aspect ratio. Using the same ratio across services keeps the cards aligned."
+  },
+  "SendDocumentEmailDialog": {
+    "title": {
+      "quote": "Email quote",
+      "invoice": "Email invoice",
+      "credit_note": "Email credit note",
+      "payment": "Email payment receipt",
+      "prepayment": "Email prepayment receipt"
+    },
+    "description": {
+      "quote": "The whole quote {docNo} will be sent.",
+      "invoice": "The whole invoice {docNo} will be sent.",
+      "credit_note": "Credit note {docNo} will be sent.",
+      "payment": "The receipt for payment {docNo} will be sent.",
+      "prepayment": "The receipt for prepayment {docNo} will be sent."
+    },
+    "descriptionNoNumber": "The whole document will be sent.",
+    "recipients": "Recipients",
+    "placeholder": "email1@example.com, email2@example.com",
+    "helperText": "Separate multiple emails with commas.",
+    "cancel": "Cancel",
+    "send": "Send email",
+    "success": {
+      "quote": "Quote sent",
+      "invoice": "Invoice sent",
+      "credit_note": "Credit note sent",
+      "payment": "Payment receipt sent",
+      "prepayment": "Prepayment receipt sent"
+    },
+    "error": "Couldn't send the email",
+    "errorNoEmail": "Enter at least one recipient email.",
+    "errorInvalidEmails": "Invalid emails: {emails}",
+    "errorPdf": "Couldn't generate the document PDF",
+    "sending": "Sending…",
+    "generatingPdf": "Generating PDF…"
+  },
+  "CalendarMobileSheet": {
+    "appointmentTitle": "Appointment actions",
+    "reminderTitle": "Reminder actions",
+    "back": "Back",
+    "close": "Close",
+    "patientHint": "Patient account, history and details"
   }
 }

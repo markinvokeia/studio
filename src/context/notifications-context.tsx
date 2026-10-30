@@ -6,20 +6,26 @@ import { useTranslations } from 'next-intl';
 
 import { GlobalNotificationAlerts } from '@/components/notifications/GlobalNotificationAlerts';
 import { useAuth } from '@/context/AuthContext';
+import { useEventStreamSubscription, useRegisterEventChannels } from '@/context/event-stream-context';
 import { useDoctorAlertStyle } from '@/hooks/use-doctor-alert-style';
-import { useEventStream } from '@/hooks/use-event-stream';
+import { usePatientPortal } from '@/hooks/usePatientPortal';
 import { useToast } from '@/hooks/use-toast';
 import { normalizeAppointmentStatus } from '@/constants/appointment-status';
+import { getChannelsForRoles } from '@/constants/notification-channels';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import type {
+  AppointmentReassignedNotification,
+  AppointmentRescheduledNotification,
   AppointmentStatus,
   AppointmentStatusChangeNotification,
+  AppointmentUpdatedNotification,
   DoctorAlertStyle,
   NewAppointmentNotification,
   ReminderPanelNotification,
   SessionCompletedNotification,
   UnifiedNotification,
+  WhatsappHandoffRequestedNotification,
 } from '@/lib/types';
 import { normalizeTratamiento } from '@/lib/utils';
 
@@ -72,12 +78,21 @@ function writeActionsTaken(notifId: string, actions: ('quote' | 'invoice' | 'sch
 
 interface BackendNotification {
   id: number | string;
-  type: 'appointment_status_change' | 'session_completed' | 'new_appointment' | 'reminder';
+  type:
+    | 'appointment_status_change'
+    | 'session_completed'
+    | 'new_appointment'
+    | 'reminder'
+    | 'appointment_rescheduled'
+    | 'appointment_reassigned'
+    | 'appointment_updated'
+    | 'whatsapp_handoff_requested';
   reminder_id?: string | null;
   status: 'pending' | 'read' | 'dismissed';
   appointment_id?: string | null;
   session_id?: number | null;
   patient_id?: string | null;
+  channels?: string[];
   metadata: Record<string, any>;
   created_at: string;
 }
@@ -189,12 +204,50 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
         appointment: buildAppointment(normalizeAppointmentStatus(m.status ?? 'scheduled')),
       } satisfies NewAppointmentNotification;
 
+    case 'appointment_rescheduled':
+      return {
+        ...base,
+        type: 'appointment_rescheduled',
+        appointment: buildAppointment(normalizeAppointmentStatus(m.status ?? 'scheduled')),
+        originalAppointmentId: String(m.original_appointment_id ?? ''),
+      } satisfies AppointmentRescheduledNotification;
+
+    case 'appointment_reassigned':
+      return {
+        ...base,
+        type: 'appointment_reassigned',
+        appointment: buildAppointment(normalizeAppointmentStatus(m.status ?? 'scheduled')),
+      } satisfies AppointmentReassignedNotification;
+
+    case 'appointment_updated':
+      return {
+        ...base,
+        type: 'appointment_updated',
+        appointment: buildAppointment(normalizeAppointmentStatus(m.status ?? 'scheduled')),
+      } satisfies AppointmentUpdatedNotification;
+
+    case 'whatsapp_handoff_requested':
+      return {
+        ...base,
+        type: 'whatsapp_handoff_requested',
+        patientId,
+        patientName: m.patient_name ?? patientName,
+        phone: m.phone ?? '',
+        lastMessage: m.last_message ?? m.message_text ?? '',
+        reason: m.reason ?? '',
+      } satisfies WhatsappHandoffRequestedNotification;
+
     case 'reminder':
       return {
         ...base,
         type: 'reminder',
         reminder: {
           id: m.id ?? n.reminder_id ?? '',
+          type: m.type === 'note' || m.tipo === 'nota' ? 'note' : 'reminder',
+          calendar_id: (() => {
+            const calendarId = m.calendar_id ?? m.calendarId ?? m.calendario_id ?? m.calendarioId ?? null;
+            return calendarId == null || calendarId === '' ? null : String(calendarId);
+          })(),
           title: m.title ?? '',
           description: m.description ?? null,
           start_datetime: m.start_datetime ?? '',
@@ -202,7 +255,8 @@ function normalizeBackendNotification(n: BackendNotification): UnifiedNotificati
           color: m.color ?? null,
           priority: m.priority ?? 'MEDIUM',
           status: m.status ?? 'pending',
-          visibility: 'clinic',
+          visibility: m.visibility === 'personal' ? 'personal' : 'clinic',
+          is_all_day: Boolean(m.is_all_day),
           raise_alert: m.raise_alert ?? true,
           alert_instance_id: m.alert_instance_id ?? null,
           created_by: m.created_by ?? null,
@@ -226,9 +280,10 @@ interface NotificationsContextValue {
   isPanelOpen: boolean;
   alertStyle: DoctorAlertStyle;
   setAlertStyle: (style: DoctorAlertStyle) => void;
+  refreshAlertStyle: () => void;
   openPanel: () => void;
   closePanel: () => void;
-  dismissNotification: (id: string) => void;
+  dismissNotification: (id: string, status?: 'read' | 'done') => void;
   clearAll: () => void;
   refreshNotifications: () => void;
   markSessionAction: (notificationId: string, action: 'quote' | 'invoice' | 'schedule') => void;
@@ -240,6 +295,7 @@ const NotificationsContext = React.createContext<NotificationsContextValue>({
   isPanelOpen: false,
   alertStyle: 'modal',
   setAlertStyle: () => undefined,
+  refreshAlertStyle: () => undefined,
   openPanel: () => undefined,
   closePanel: () => undefined,
   dismissNotification: () => undefined,
@@ -255,10 +311,20 @@ export function useNotifications() {
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  const userId = user?.id ? String(user.id) : null;
+  const { user, roleNames } = useAuth();
+  const { isPatientOnly } = usePatientPortal();
+  /**
+   * Este sistema de notificaciones es enteramente para el staff (citas nuevas,
+   * cambios de estado, recordatorios internos…). Un paciente cuyo ÚNICO rol es
+   * "Paciente" no debe suscribirse a nada acá — ni sondeo ni SSE — así que se
+   * lo trata como si no hubiera sesión: todos los efectos de abajo ya cortan
+   * con `if (!userId) return`. El staff con rol dual (también paciente) sigue
+   * viendo sus notificaciones normalmente.
+   */
+  const userId = user?.id && !isPatientOnly ? String(user.id) : null;
+  const channels = React.useMemo(() => getChannelsForRoles(roleNames), [roleNames]);
   const { toast } = useToast();
-  const [alertStyle, setAlertStyle] = useDoctorAlertStyle(user?.id);
+  const [alertStyle, setAlertStyle, refreshAlertStyle] = useDoctorAlertStyle(userId ?? undefined);
   const alertStyleRef = React.useRef(alertStyle);
   React.useEffect(() => { alertStyleRef.current = alertStyle; }, [alertStyle]);
   const tDW = useTranslations('DoctorWorkspace');
@@ -352,6 +418,16 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   // ── SSE event stream ──────────────────────────────────────────────────────
 
   const handleSSEEvent = React.useCallback((_eventType: string, data: unknown) => {
+    // `calendar_changed` (citas y notas/recordatorios, ver `useCalendarLiveRefresh`)
+    // ya tiene su propio consumidor dedicado (el patch en vivo del calendario) y no
+    // es un `BackendNotification`. Sin este corte, un evento de nota/recordatorio
+    // colaba acá porque la fila de `reminders` trae su propia columna `type`
+    // ('note'|'reminder'), que coincide por accidente con el discriminador
+    // `BackendNotification.type === 'reminder'` — `normalizeBackendNotification` lo
+    // tomaba como una notificación real y armaba una `ReminderPanelNotification` sin
+    // los campos que esa forma necesita (p. ej. `created_at`), rompiendo `RelativeTime`.
+    const eventType = _eventType || (data as { event_type?: string } | null)?.event_type;
+    if (eventType === 'calendar_changed') return;
     try {
       const normalized = normalizeBackendNotification(data as BackendNotification);
       if (!normalized) return;
@@ -364,7 +440,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     }
   }, [fetchNotifications]);
 
-  useEventStream(userId, handleSSEEvent);
+  useRegisterEventChannels('notifications', channels);
+  useEventStreamSubscription(handleSSEEvent);
 
   // ── Global alert queue (modal / toast) ───────────────────────────────────
 
@@ -388,6 +465,10 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
     const statusChanges = novel.filter((n): n is AppointmentStatusChangeNotification => n.type === 'appointment_status_change');
     const sessionsDone = novel.filter((n): n is SessionCompletedNotification => n.type === 'session_completed');
     const reminders = novel.filter((n): n is ReminderPanelNotification => n.type === 'reminder');
+    const reschedules = novel.filter((n): n is AppointmentRescheduledNotification => n.type === 'appointment_rescheduled');
+    const reassigns = novel.filter((n): n is AppointmentReassignedNotification => n.type === 'appointment_reassigned');
+    const edits = novel.filter((n): n is AppointmentUpdatedNotification => n.type === 'appointment_updated');
+    const handoffs = novel.filter((n): n is WhatsappHandoffRequestedNotification => n.type === 'whatsapp_handoff_requested');
 
     if (alertStyleRef.current === 'toast') {
       newAppts.forEach((n) => {
@@ -405,6 +486,24 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
           }),
         });
       });
+      reschedules.forEach((n) => {
+        toast({
+          title: tDW('rescheduleAlerts.singleTitle'),
+          description: `${n.appointment.patientName || tN('unknownPatient')} · ${n.appointment.time || ''}`,
+        });
+      });
+      reassigns.forEach((n) => {
+        toast({
+          title: tDW('reassignAlerts.singleTitle'),
+          description: `${n.appointment.patientName || tN('unknownPatient')} · ${n.appointment.time || ''}`,
+        });
+      });
+      edits.forEach((n) => {
+        toast({
+          title: tDW('editAlerts.singleTitle'),
+          description: `${n.appointment.patientName || tN('unknownPatient')} · ${n.appointment.time || ''}`,
+        });
+      });
       sessionsDone.forEach((n) => {
         toast({
           title: tN('sessionCompletedAlertTitle'),
@@ -417,6 +516,12 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
           description: n.reminder.description
             ? `${n.reminder.title} · ${n.reminder.description}`
             : n.reminder.title,
+        });
+      });
+      handoffs.forEach((n) => {
+        toast({
+          title: tN('handoffRequestedTitle'),
+          description: n.patientName || n.phone || tN('unknownPatient'),
         });
       });
       const novelIds = new Set(novel.map((n) => n.id));
@@ -436,8 +541,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
-  const dismissNotification = React.useCallback((id: string) => {
-    void api.post(API_ROUTES.NOTIFICATIONS_STATUS, { ids: [id], status: 'read' }).catch(() => {});
+  const dismissNotification = React.useCallback((id: string, status: 'read' | 'done' = 'read') => {
+    void api.post(API_ROUTES.NOTIFICATIONS_STATUS, { ids: [id], status }).catch(() => {});
     setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
@@ -458,8 +563,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const pendingCount = notifications.length;
 
   const value = React.useMemo<NotificationsContextValue>(
-    () => ({ notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications, markSessionAction }),
-    [notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications, markSessionAction],
+    () => ({ notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, refreshAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications, markSessionAction }),
+    [notifications, pendingCount, isPanelOpen, alertStyle, setAlertStyle, refreshAlertStyle, openPanel, closePanel, dismissNotification, clearAll, refreshNotifications, markSessionAction],
   );
 
   return (

@@ -35,6 +35,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useReportCurrency } from '@/hooks/useReportCurrency';
+import { ReportCurrencyFilter } from '@/components/reports/currency-filter';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 }).format(n);
@@ -62,7 +64,7 @@ export default function GastosOperativosPage() {
     from: startOfMonth(new Date()),
     to:   endOfMonth(new Date()),
   });
-  const [currency, setCurrency] = useState<'UYU' | 'USD'>('UYU');
+  const { currency, setCurrency, isDual } = useReportCurrency({ includeAll: false });
 
   // Client-side secondary filters (applied after data loads)
   const [supplierSearch, setSupplierSearch] = useState('');
@@ -239,15 +241,7 @@ export default function GastosOperativosPage() {
   const filters = (
     <div className="flex flex-wrap items-center gap-3">
       <DateRangePresets value={dateRange} onChange={setDateRange} />
-      <Select value={currency} onValueChange={v => setCurrency(v as 'UYU' | 'USD')}>
-        <SelectTrigger className="h-8 w-20 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="UYU">UYU</SelectItem>
-          <SelectItem value="USD">USD</SelectItem>
-        </SelectContent>
-      </Select>
+      <ReportCurrencyFilter value={currency} onChange={setCurrency} includeAll={false} className="h-8 w-20 text-xs" />
     </div>
   );
 

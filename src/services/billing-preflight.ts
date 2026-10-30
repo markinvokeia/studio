@@ -2,6 +2,7 @@ import { addDays, format } from 'date-fns';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import type { Invoice } from '@/lib/types';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 export interface AppointmentBillingState {
   invoice_id: string | null;
@@ -38,7 +39,7 @@ function buildInvoiceFromRecord(rec: any, fallbackUserId: string): Invoice {
     user_name: rec.user_name || '',
     userEmail: rec.user_email || rec.userEmail || '',
     total: Number(rec.total || 0),
-    currency: rec.currency || 'USD',
+    currency: rec.currency || getClinicCurrency(),
     status: rec.status || 'booked',
     payment_status: rec.payment_state || rec.payment_status || 'unpaid',
     paid_amount: Number(rec.paid_amount || 0),

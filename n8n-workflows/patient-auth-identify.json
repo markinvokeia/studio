@@ -1,0 +1,143 @@
+{
+  "name": "Patient Portal — Identify",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "api/auth/patient/identify",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-normalize",
+      "name": "Normalizar Identificador",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Normaliza el identificador: email, teléfono o cédula.\n// Sólo se busca por teléfono/cédula cuando hay al menos 6 dígitos, para evitar\n// coincidencias accidentales con valores muy cortos.\nconst body = $input.first().json.body || $input.first().json || {};\nconst raw = String(body.identifier || '').trim();\n\nif (!raw) {\n  return [{ json: { __error: true, statusCode: 400, message: 'identifier is required' } }];\n}\n\nconst digits = raw.replace(/\\D/g, '');\n\nreturn [{ json: {\n  identifier: raw,\n  email_candidate: raw.toLowerCase(),\n  digits_candidate: digits.length >= 6 ? digits : '__no_match__',\n  supplied_email: String(body.email || '').trim().toLowerCase(),\n} }];"
+      }
+    },
+    {
+      "id": "node-lookup",
+      "name": "Buscar Paciente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        540,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Además de resolver al paciente, informa si tiene citas futuras: eso es lo\n-- que decide si se le pide OTP (tiene algo que consultar) o si se lo manda\n-- directo a reservar. Ver docs/patient-portal.md §3.\n--\n-- OJO con el nombre de la columna: en `appointments` la fecha de inicio es\n-- `start_datetime`, NO `start_time`.\nSELECT\n    u.id,\n    u.name,\n    u.email,\n    EXISTS (\n      SELECT 1\n      FROM public.appointments a\n      WHERE a.patient_id = u.id\n        AND a.start_datetime >= NOW()\n        AND lower(coalesce(a.status, '')) NOT IN ('cancelled', 'canceled', 'no_show')\n    ) AS has_upcoming_appointments\nFROM public.users u\nWHERE u.is_active = TRUE\n  AND (\n        lower(u.email) = $1\n     OR regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') = $2\n     OR regexp_replace(coalesce(u.alternative_phone, ''), '\\D', '', 'g') = $2\n     OR u.identity_document = $2\n  )\nLIMIT 1",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.email_candidate, $json.digits_candidate ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "jsCode": "function maskEmail(email) {\n  if (!email) return null;\n  const [user, domain] = String(email).split('@');\n  if (!domain) return null;\n  const head = user.slice(0, 1);\n  const tail = user.length > 1 ? user.slice(-1) : '';\n  return `${head}***${tail}@${domain}`;\n}\n\nconst rows = $input.all().map(i => i.json).filter(r => r && r.id);\nconst user = rows[0];\n\nif (!user) {\n  return [{ json: { statusCode: 200, body: {\n    found: false, needs_email: false, masked_email: null,\n  } } }];\n}\n\nconst hasEmail = !!(user.email && String(user.email).trim());\n\n// `user_id` y `name` son el mínimo para poder reservar sin sesión.\n// NO agregar email, teléfono ni ningún otro dato: este endpoint es público.\nreturn [{ json: { statusCode: 200, body: {\n  found: true,\n  needs_email: !hasEmail,\n  masked_email: hasEmail ? maskEmail(user.email) : null,\n  user_id: user.id,\n  name: user.name || null,\n  has_upcoming_appointments: user.has_upcoming_appointments === true,\n} } }];\n"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        980,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Identificador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Identificador": {
+      "main": [
+        [
+          {
+            "node": "Buscar Paciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Paciente": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' en el nodo 'Buscar Paciente' (reemplaza POSTGRES_CREDENTIAL_ID).\n2. Webhook PÚBLICO (noauth): el paciente todavía no tiene token.\n3. Activar el workflow.\n\nRUTA: POST https://<tu-n8n>/webhook/api/auth/patient/identify\n\nREQUEST:  { \"identifier\": \"099123456\" }   // email, teléfono o cédula\n\nRESPONSE (encontrado):\n{ \"found\": true, \"needs_email\": false, \"masked_email\": \"j***z@gmail.com\",\n  \"user_id\": \"uuid\", \"name\": \"Juan\", \"has_upcoming_appointments\": true }\n\nRESPONSE (no encontrado):\n{ \"found\": false, \"needs_email\": false, \"masked_email\": null }\n\n`has_upcoming_appointments` DECIDE LA RAMA DEL FLUJO (docs/patient-portal.md §3):\n  · true  → se le pide el código y entra al portal (tiene datos que consultar).\n  · false → va directo a reservar, sin OTP.\n\nIMPORTANTE — nombres de columna reales:\n  · La fecha de inicio de una cita es `appointments.start_datetime` (NO start_time).\n  · La tabla de la clínica es `clinic`, en singular.\nEl baseline de Liquibase está desactualizado; la referencia son los flujos en\nproducción (docs/n8n-flows/All Appointment Workflows.json).\n\nSEGURIDAD:\nEndpoint público. Sólo devolver el email enmascarado, user_id y name — nunca el\nemail en claro, el teléfono ni la cédula.\n\nREQUISITOS: database/scripts/065_20260806_patient-portal.sql\nCONTRATO:   docs/patient-portal.md §2.1"
+  }
+}

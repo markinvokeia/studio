@@ -1,0 +1,694 @@
+'use client';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { ArrowRight, CalendarCheck, CheckCircle2, ClipboardPaste, Loader2, Lock, Mail, ShieldCheck, UserPlus } from 'lucide-react';
+import { isValidPhoneNumber } from 'libphonenumber-js';
+import { useLocale, useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
+import * as React from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { Button } from '@/components/ui/button';
+import { DatePickerInput } from '@/components/ui/date-picker';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { PhoneInput } from '@/components/ui/phone-input';
+
+import { CodeInput } from '@/components/patient-portal/code-input';
+import { PatientBookingPanel } from '@/components/patient-portal/patient-booking-panel';
+
+import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
+import { getPersonNameIssue, type PersonNameIssue } from '@/lib/person-name';
+import type { PatientSendCodeResponse } from '@/lib/types';
+import {
+  identifyPatient,
+  registerPatient,
+  sendPatientCode,
+  verifyPatientCode,
+} from '@/services/patient-auth';
+
+/**
+ * Pasos internos. El stepper visible agrupa `identify`/`register`/`needEmail`
+ * bajo "Identificarte", porque para el paciente son todos el mismo momento.
+ */
+type Step = 'identify' | 'needEmail' | 'register' | 'code' | 'booking' | 'booked';
+
+/**
+ * Paciente resuelto sin sesión. Sólo existe en el modo "sólo citas", donde la
+ * clínica acepta a propósito reservas sin verificar la identidad.
+ */
+interface GuestPatient {
+  id: string;
+  name: string;
+  email: string;
+}
+
+const RESEND_SECONDS = 60;
+
+const PORTAL_NAME_ISSUE_MESSAGES: Record<PersonNameIssue, string> = {
+  required: 'validation.nameRequired',
+  invalid: 'validation.nameInvalid',
+  tooShort: 'validation.nameTooShort',
+  tooLong: 'validation.nameTooLong',
+};
+
+/**
+ * Registro mínimo: deliberadamente más corto que `userFormSchema`
+ * (patient-form-utils.ts) para que el paciente nuevo no pierda tiempo. Sólo
+ * nombre, teléfono y email son obligatorios.
+ */
+const registerSchema = (t: (key: string) => string) =>
+  z.object({
+    name: z.string().superRefine((value, ctx) => {
+      const issue = getPersonNameIssue(value);
+      if (issue) ctx.addIssue({ code: z.ZodIssueCode.custom, message: t(PORTAL_NAME_ISSUE_MESSAGES[issue]) });
+    }),
+    phone: z
+      .string()
+      .optional()
+      .refine((v) => !v?.trim() || isValidPhoneNumber(v, DEFAULT_PHONE_COUNTRY), {
+        message: t('validation.phoneInvalid'),
+      }),
+    email: z
+      .string()
+      .min(1, { message: t('validation.emailRequired') })
+      .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, { message: t('validation.emailInvalid') }),
+    identity_document: z
+      .string()
+      .regex(/^\d*$/, { message: t('validation.documentDigits') })
+      .max(10, { message: t('validation.documentMax') })
+      .optional(),
+    birth_date: z.string().optional(),
+    address: z.string().optional(),
+  });
+
+type RegisterValues = z.infer<ReturnType<typeof registerSchema>>;
+
+interface RequestError extends Error {
+  status?: number;
+  data?: any;
+}
+
+/** Clases compartidas de los controles: alto generoso y texto grande, pensado para el pulgar. */
+const TOUCH_INPUT = 'h-14 text-base sm:h-12 sm:text-sm';
+const TOUCH_BUTTON = 'h-14 w-full text-base sm:h-12 sm:text-sm';
+
+interface PatientLoginWizardProps {
+  /** `false` ⇒ la clínica no acepta reservas online; sólo consulta con OTP. */
+  onlineBookingEnabled?: boolean;
+  /**
+   * `true` ⇒ el portal se agota en reservar: el paciente nunca recibe código ni
+   * entra al perfil. Es una decisión explícita de la clínica, que cambia
+   * verificación de identidad por cero fricción.
+   */
+  appointmentsOnly?: boolean;
+  /**
+   * Avisa cuando el wizard entra o sale de la pantalla de reserva, para que la
+   * landing le ceda todo el ancho. El paso de elegir servicios muestra tarjetas
+   * con imagen y en una columna de 26rem no se puede leer.
+   */
+  onBookingActiveChange?: (active: boolean) => void;
+}
+
+export function PatientLoginWizard({
+  onlineBookingEnabled = true,
+  appointmentsOnly = false,
+  onBookingActiveChange,
+}: PatientLoginWizardProps) {
+  const t = useTranslations('PatientLogin');
+  const locale = useLocale();
+  const router = useRouter();
+  const { toast } = useToast();
+  const { loginWithToken } = useAuth();
+
+  const [step, setStep] = React.useState<Step>('identify');
+  const [identifier, setIdentifier] = React.useState('');
+  const [missingEmail, setMissingEmail] = React.useState('');
+  const [maskedEmail, setMaskedEmail] = React.useState<string | null>(null);
+  const [code, setCode] = React.useState('');
+  const [isNewPatient, setIsNewPatient] = React.useState(false);
+  /** Paciente resuelto para reservar sin sesión, sólo en modo "sólo citas". */
+  const [guest, setGuest] = React.useState<GuestPatient | null>(null);
+  const [bookedDetails, setBookedDetails] = React.useState<{ date: string; time: string } | null>(null);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [resendIn, setResendIn] = React.useState(0);
+
+  const registerForm = useForm<RegisterValues>({
+    resolver: zodResolver(registerSchema(t)),
+    defaultValues: { name: '', phone: '', email: '', identity_document: '', birth_date: '', address: '' },
+  });
+
+  // Sólo la reserva necesita la pantalla completa. Al confirmar —o al volver
+  // atrás— la landing recupera su bienvenida con el video.
+  React.useEffect(() => {
+    onBookingActiveChange?.(step === 'booking');
+  }, [step, onBookingActiveChange]);
+
+  React.useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendIn]);
+
+  const showError = (err: unknown, fallbackKey = 'errors.unexpected') => {
+    const message = err instanceof Error && err.message ? err.message : t(fallbackKey);
+    toast({ variant: 'destructive', title: t('errors.title'), description: message });
+  };
+
+  const goToCodeStep = (masked: string | null, resendSeconds = RESEND_SECONDS) => {
+    setMaskedEmail(masked);
+    setCode('');
+    setResendIn(resendSeconds);
+    setStep('code');
+  };
+
+  /**
+   * Lleva al paso del código tanto si se acaba de enviar como si el backend
+   * avisó que ya había uno vigente (429). En ese segundo caso se le recuerda
+   * que revise el correo: el código que sirve es el que ya recibió.
+   */
+  const goToCodeFrom = (sent: PatientSendCodeResponse, fallbackMasked: string | null = null) => {
+    if (sent.already_sent) {
+      toast({ title: t('code.alreadySentTitle'), description: t('code.alreadySentDescription') });
+    }
+    goToCodeStep(sent.masked_email ?? fallbackMasked, sent.retry_after ?? RESEND_SECONDS);
+  };
+
+  const openRegisterStep = (prefill = '') => {
+    const value = prefill.trim();
+    const digitCount = value.replace(/\D/g, '').length;
+    registerForm.reset({
+      name: '',
+      phone: !value.includes('@') && digitCount >= 6 ? value : '',
+      email: value.includes('@') ? value : '',
+      identity_document: '',
+      birth_date: '',
+      address: '',
+    });
+    setIsNewPatient(true);
+    setStep('register');
+  };
+
+  // ── Paso 1: identificar ───────────────────────────────────────────────────
+  const handleIdentify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!identifier.trim()) return;
+    setIsLoading(true);
+    try {
+      const result = await identifyPatient(identifier);
+
+      // No está en el sistema ⇒ se registra y verifica el correo como cualquier
+      // otro. Sin reserva online el auto-registro no tiene destino útil —el
+      // perfil nace vacío—, así que ni se lo ofrece.
+      if (!result.found) {
+        if (!onlineBookingEnabled) {
+          toast({ title: t('identify.newPatientDisabled') });
+          return;
+        }
+        openRegisterStep(identifier);
+        return;
+      }
+
+      // Modo "sólo citas": la clínica eligió no verificar identidad a cambio de
+      // cero fricción. Se reserva acá mismo y no se emite token, así que el
+      // perfil queda fuera de alcance por construcción.
+      if (appointmentsOnly) {
+        setGuest({ id: result.user_id ?? '', name: result.name ?? '', email: '' });
+        setStep('booking');
+        return;
+      }
+
+      // Fuera de ese modo NO hay atajos: escribir un email conocido no prueba
+      // ser su dueño, así que todo camino pasa por el código.
+      if (result.needs_email) {
+        setStep('needEmail');
+        return;
+      }
+
+      const sent = await sendPatientCode(identifier);
+      goToCodeFrom(sent, result.masked_email);
+    } catch (err) {
+      showError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ── Paso 1b: existe pero no tiene email cargado ───────────────────────────
+  const handleSubmitMissingEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const sent = await sendPatientCode(identifier, missingEmail);
+      goToCodeFrom(sent);
+    } catch (err) {
+      showError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ── Paso 1c: auto-registro ────────────────────────────────────────────────
+  const handleRegister = async (values: RegisterValues) => {
+    // Defensivo: el botón que lleva acá ya está oculto sin reserva online,
+    // pero si la clínica lo deshabilitó mientras el paciente completaba el
+    // formulario, no lo mandamos a un panel de reserva que igual va a fallar.
+    if (!onlineBookingEnabled) {
+      showError(new Error(t('identify.newPatientDisabled')));
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const result = await registerPatient(values, { skipCode: appointmentsOnly });
+      setIdentifier(values.email);
+      setIsNewPatient(true);
+
+      if (appointmentsOnly) {
+        setGuest({
+          id: result.user_id,
+          name: result.name ?? values.name,
+          email: result.email ?? values.email,
+        });
+        setStep('booking');
+        return;
+      }
+
+      // `/api/auth/patient/register` genera y envía el código: se pide acá.
+      goToCodeStep(result.masked_email);
+    } catch (err) {
+      const error = err as Partial<RequestError>;
+      const conflicted: string[] | undefined = error.data?.error?.conflictedFields;
+      if (error.data?.error?.code === 'unique_conflict' && conflicted?.length) {
+        const labels = conflicted.map((f) => t(`fields.${f}` as never)).join(', ');
+        toast({
+          variant: 'destructive',
+          title: t('errors.title'),
+          description: t('errors.alreadyRegistered', { fields: labels }),
+        });
+        return;
+      }
+      showError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ── Paso 2: verificar el código ───────────────────────────────────────────
+  const handleVerify = async (submittedCode?: string) => {
+    const value = (submittedCode ?? code).trim();
+    if (value.length !== 6) return;
+    setIsLoading(true);
+    try {
+      const result = await verifyPatientCode(identifier, value);
+      await loginWithToken(result.token);
+      // El portal decide solo si toca reservar primero (paciente sin citas
+      // futuras) o mostrar el perfil directamente — no hace falta pasárselo.
+      router.replace(`/${locale}/my-profile`);
+    } catch (err) {
+      setCode('');
+      showError(err, 'errors.invalidCode');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (resendIn > 0) return;
+    setIsLoading(true);
+    try {
+      const sent = await sendPatientCode(identifier, missingEmail || undefined);
+      if (sent.masked_email) setMaskedEmail(sent.masked_email);
+      setResendIn(sent.retry_after ?? RESEND_SECONDS);
+      toast(
+        sent.already_sent
+          ? { title: t('code.alreadySentTitle'), description: t('code.alreadySentDescription') }
+          : { title: t('code.resentTitle'), description: t('code.resentDescription') },
+      );
+    } catch (err) {
+      showError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const backToIdentify = () => {
+    setStep('identify');
+    setCode('');
+    setMissingEmail('');
+    setIsNewPatient(false);
+    setGuest(null);
+    setBookedDetails(null);
+    setIdentifier('');
+  };
+
+  /** Motivo que se le muestra al paciente en cada paso. */
+  const reasons: Record<Step, { icon: React.ElementType; text: string }> = {
+    identify: { icon: ShieldCheck, text: t('identify.reason') },
+    needEmail: { icon: Mail, text: t('needEmail.reason') },
+    register: { icon: UserPlus, text: t('register.reason') },
+    code: { icon: Lock, text: t('code.reason') },
+    booking: { icon: CalendarCheck, text: t('booking.reason') },
+    booked: { icon: CalendarCheck, text: t('booked.reason') },
+  };
+  const reason = reasons[step];
+
+  const headings: Record<Step, { title: string; description: string }> = {
+    identify: { title: t('identify.title'), description: t('identify.description') },
+    needEmail: { title: t('needEmail.title'), description: t('needEmail.description') },
+    register: { title: t('register.title'), description: t('register.description') },
+    code: { title: t('code.title'), description: t('code.description', { email: maskedEmail ?? '' }) },
+    booking: { title: t('booking.title'), description: t('booking.description') },
+    booked: { title: t('booked.title'), description: t('booked.description') },
+  };
+
+  return (
+    <div>
+      <div className="space-y-1.5 text-center lg:text-left">
+        <h2 className="text-xl font-bold tracking-tight sm:text-2xl">{headings[step].title}</h2>
+        <p className="text-sm text-muted-foreground">{headings[step].description}</p>
+      </div>
+
+      {/* Por qué pedimos esto: el paciente no está en un software, está en la web
+          de su clínica — cada paso explica para qué sirve el dato. */}
+      {step !== 'booked' && <Explainer icon={reason.icon}>{reason.text}</Explainer>}
+
+      <div className="mt-5">
+        {/* ── Identificar ──────────────────────────────────────────────── */}
+        {step === 'identify' && (
+          <div className="space-y-5">
+            <form onSubmit={handleIdentify} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="identifier" className="text-sm font-medium">
+                  {t('identify.label')}
+                </Label>
+                <Input
+                  id="identifier"
+                  autoComplete="username"
+                  inputMode="email"
+                  className={TOUCH_INPUT}
+                  placeholder={t('identify.placeholder')}
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">{t('identify.hint')}</p>
+              </div>
+              <Button type="submit" size="lg" className={TOUCH_BUTTON} disabled={isLoading || !identifier.trim()}>
+                {isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    {t('identify.submit')}
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </>
+                )}
+              </Button>
+            </form>
+
+            {/* Sin reserva online el auto-registro no lleva a ningún lado
+                (el paciente nuevo entra directo a reservar, nunca a OTP). */}
+            {onlineBookingEnabled && (
+              <>
+                <div className="flex items-center gap-3">
+                  <span className="h-px flex-1 bg-border" />
+                  <span className="text-xs uppercase tracking-wide text-muted-foreground">{t('or')}</span>
+                  <span className="h-px flex-1 bg-border" />
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="lg"
+                  className={TOUCH_BUTTON}
+                  onClick={() => openRegisterStep(identifier)}
+                >
+                  <UserPlus className="mr-2 h-5 w-5" />
+                  {t('identify.newPatient')}
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── Falta el email ───────────────────────────────────────────── */}
+        {step === 'needEmail' && (
+          <form onSubmit={handleSubmitMissingEmail} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="missing-email">{t('needEmail.label')}</Label>
+              <Input
+                id="missing-email"
+                type="email"
+                inputMode="email"
+                autoFocus
+                className={TOUCH_INPUT}
+                placeholder="tu@email.com"
+                value={missingEmail}
+                onChange={(e) => setMissingEmail(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" size="lg" className={TOUCH_BUTTON} disabled={isLoading}>
+              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : t('needEmail.submit')}
+            </Button>
+            <BackLink onClick={backToIdentify} label={t('back')} />
+          </form>
+        )}
+
+        {/* ── Auto-registro ────────────────────────────────────────────── */}
+        {step === 'register' && (
+          <Form {...registerForm}>
+            <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4">
+              <FormField
+                control={registerForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('register.name')}</FormLabel>
+                    <FormControl>
+                      <Input autoFocus className={TOUCH_INPUT} placeholder={t('register.namePlaceholder')} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {/* Correo y teléfono, uno debajo del otro y a ancho completo: el
+                  correo es la credencial (ahí llega el código) y el teléfono
+                  queda para que la clínica pueda contactarlo, sin bloquear el
+                  registro. */}
+              <FormField
+                control={registerForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t('register.email')}</FormLabel>
+                    <FormControl>
+                      <Input type="email" inputMode="email" className={TOUCH_INPUT} placeholder="tu@email.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={registerForm.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {t('register.phone')}{' '}
+                      <span className="font-normal text-muted-foreground">{t('register.optionalSuffix')}</span>
+                    </FormLabel>
+                    <FormControl>
+                      <PhoneInput
+                        value={field.value ?? ''}
+                        onChange={field.onChange}
+                        defaultCountry={DEFAULT_PHONE_COUNTRY}
+                        className={TOUCH_INPUT}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <details className="rounded-xl border bg-muted/30 px-4 py-3">
+                <summary className="cursor-pointer select-none text-sm font-medium text-muted-foreground">
+                  {t('register.optionalToggle')}
+                </summary>
+                <div className="mt-4 space-y-4">
+                  <FormField
+                    control={registerForm.control}
+                    name="identity_document"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('register.document')}</FormLabel>
+                        <FormControl>
+                          <Input inputMode="numeric" className={TOUCH_INPUT} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={registerForm.control}
+                    name="birth_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('register.birthDate')}</FormLabel>
+                        <FormControl>
+                          <DatePickerInput
+                            value={field.value}
+                            onChange={field.onChange}
+                            disabledDays={(date: Date) => date > new Date() || date < new Date('1900-01-01')}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={registerForm.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('register.address')}</FormLabel>
+                        <FormControl>
+                          <Input className={TOUCH_INPUT} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </details>
+
+              <Button type="submit" size="lg" className={TOUCH_BUTTON} disabled={isLoading}>
+                {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : t('register.submit')}
+              </Button>
+              <BackLink onClick={backToIdentify} label={t('back')} />
+            </form>
+          </Form>
+        )}
+
+        {/* ── Reserva sin sesión (modo "sólo citas") ───────────────────── */}
+        {step === 'booking' && guest && (
+          /* Alto acotado: el panel reparte scroll interno y footer fijo. Con
+             las tarjetas de servicio el contenido es más alto que antes, y el
+             tope en `vh` evita que en pantallas chicas el recuadro empuje el
+             scroll a la página entera. */
+          <div className="flex h-[min(38rem,80vh)] min-h-0 w-full flex-col sm:h-[min(40rem,82vh)]">
+            <PatientBookingPanel
+              authMode="public"
+              patient={{
+                id: guest.id,
+                name: guest.name,
+                email: guest.email,
+                phone_number: '',
+                is_active: true,
+                avatar: '',
+              }}
+              onBooked={(details) => {
+                setBookedDetails(details);
+                setStep('booked');
+              }}
+              secondaryAction={<BackLink onClick={backToIdentify} label={t('startOver')} />}
+            />
+          </div>
+        )}
+
+        {/* ── Confirmación final ───────────────────────────────────────── */}
+        {step === 'booked' && (
+          <div className="space-y-5 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+              <CheckCircle2 className="h-8 w-8 text-primary" />
+            </div>
+            {bookedDetails && (
+              <p className="text-base font-semibold">
+                {t('booked.when', { date: bookedDetails.date, time: bookedDetails.time })}
+              </p>
+            )}
+            <p className="rounded-xl bg-primary/5 px-4 py-3 text-sm leading-relaxed text-muted-foreground">
+              {t('booked.emailSent')}
+            </p>
+            <Button type="button" variant="outline" size="lg" className={TOUCH_BUTTON} onClick={backToIdentify}>
+              {t('booked.done')}
+            </Button>
+          </div>
+        )}
+
+        {/* ── Código ───────────────────────────────────────────────────── */}
+        {step === 'code' && (
+          <div className="space-y-5">
+            <div className="flex items-center justify-center gap-2 rounded-xl bg-muted/50 px-4 py-3 text-sm">
+              <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <span className="truncate font-medium">{maskedEmail}</span>
+            </div>
+
+            <p className="flex items-start gap-2 text-sm text-muted-foreground">
+              <ClipboardPaste className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              {t('code.pasteHint')}
+            </p>
+
+            <CodeInput value={code} onChange={setCode} onComplete={handleVerify} disabled={isLoading} />
+
+            <Button
+              type="button"
+              size="lg"
+              className={TOUCH_BUTTON}
+              disabled={isLoading || code.length !== 6}
+              onClick={() => handleVerify()}
+            >
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  <ShieldCheck className="mr-2 h-5 w-5" />
+                  {t('code.submit')}
+                </>
+              )}
+            </Button>
+
+            <div className="space-y-2 text-center">
+              <Button
+                type="button"
+                variant="link"
+                className="h-auto p-0 text-sm"
+                disabled={resendIn > 0 || isLoading}
+                onClick={handleResend}
+              >
+                {resendIn > 0 ? t('code.resendIn', { seconds: resendIn }) : t('code.resend')}
+              </Button>
+              <BackLink onClick={backToIdentify} label={t('back')} />
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Nota de contexto de un paso: por qué se piden esos datos o qué protege. */
+function Explainer({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
+  return (
+    <p className="mt-4 flex items-start gap-2.5 rounded-xl bg-primary/5 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+      <span>{children}</span>
+    </p>
+  );
+}
+
+function BackLink({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <Button
+      type="button"
+      variant="link"
+      className="h-auto w-full py-1 text-xs font-normal text-muted-foreground hover:text-foreground"
+      onClick={onClick}
+    >
+      {label}
+    </Button>
+  );
+}

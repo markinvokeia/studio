@@ -1,12 +1,17 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
+import { DuplicateContactDialog, UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
+import { PERSON_NAME_ISSUE_MESSAGES } from '@/components/patients/patient-form-utils';
+import { ResponsibleMatchHint } from '@/components/patients/responsible-match-hint';
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { API_ROUTES } from '@/constants/routes';
-import { User } from '@/lib/types';
+import { DuplicateContactOwners, UniqueConflict, User } from '@/lib/types';
+import { getPersonNameIssue, normalizePersonName } from '@/lib/person-name';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { Check, ChevronsUpDown, Loader2, Plus } from 'lucide-react';
@@ -21,6 +26,13 @@ interface UserSelectorProps {
     triggerText?: string;
     className?: string;
     disabled?: boolean;
+    /** Marca el campo como inválido (borde rojo). `FormControl` lo pasa solo. */
+    'aria-invalid'?: React.AriaAttributes['aria-invalid'];
+    openCreateToken?: number;
+    /** When provided, "create new" delegates to this callback (e.g. to open a
+     *  full patient form dialog) instead of the built-in inline mini-form.
+     *  Receives the current search query as name prefill. */
+    onRequestCreate?: (name: string) => void;
 }
 
 export function UserSelector({
@@ -33,7 +45,11 @@ export function UserSelector({
     triggerText = 'Seleccionar',
     className,
     disabled = false,
+    'aria-invalid': ariaInvalid,
+    openCreateToken,
+    onRequestCreate,
 }: UserSelectorProps) {
+    const t = useTranslations();
     const [open, setOpen] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
     const [users, setUsers] = React.useState<User[]>([]);
@@ -45,12 +61,37 @@ export function UserSelector({
     const [createPhone, setCreatePhone] = React.useState('');
     const [createEmail, setCreateEmail] = React.useState('');
     const [createError, setCreateError] = React.useState<string | null>(null);
+    // Otro paciente ya usa este teléfono/correo: se pide confirmación antes de crear.
+    const [duplicateOwners, setDuplicateOwners] = React.useState<DuplicateContactOwners | null>(null);
+    // Dato que no se puede repetir: modal en vez de texto inline.
+    const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
+    const searchQueryRef = React.useRef(searchQuery);
+    const lastOpenCreateTokenRef = React.useRef(openCreateToken);
 
     React.useEffect(() => {
+        searchQueryRef.current = searchQuery;
         setIsCreating(false);
     }, [searchQuery]);
 
+    React.useEffect(() => {
+        if (openCreateToken === undefined) return;
+        if (lastOpenCreateTokenRef.current === openCreateToken) return;
+        lastOpenCreateTokenRef.current = openCreateToken;
+        if (onRequestCreate) {
+            onRequestCreate(searchQueryRef.current.trim());
+            return;
+        }
+        setOpen(true);
+        setCreateName(searchQueryRef.current.trim());
+        setCreatePhone('');
+        setCreateEmail('');
+        setCreateError(null);
+        setIsCreating(true);
+    }, [openCreateToken, onRequestCreate]);
+
     const handleOpenChange = (nextOpen: boolean) => {
+        // La advertencia de contacto repetido se abre encima: no perder lo tecleado.
+        if (!nextOpen && (duplicateOwners || uniqueConflict)) return;
         if (!nextOpen) {
             setIsCreating(false);
             setCreateName('');
@@ -82,6 +123,13 @@ export function UserSelector({
                     phone_number: u.phone_number || '',
                     is_active: u.is_active ?? true,
                     avatar: '',
+                    doctor_id: u.doctor_id ? String(u.doctor_id) : null,
+                    doctor_name: u.doctor_name || undefined,
+                    is_dependent: u.is_dependent ?? u.is_dependant ?? false,
+                    responsible_contact_id: u.responsible_contact_id ? String(u.responsible_contact_id) : undefined,
+                    responsible_contact_name: u.responsible_contact_name || undefined,
+                    responsible_phone_number: u.responsible_phone_number || undefined,
+                    matched_by_responsible: u.matched_by_responsible === true,
                 })));
             } catch {
                 setUsers([]);
@@ -119,6 +167,12 @@ export function UserSelector({
     };
 
     const handleStartCreate = () => {
+        if (onRequestCreate) {
+            onRequestCreate(searchQuery.trim());
+            setOpen(false);
+            setSearchQuery('');
+            return;
+        }
         setCreateName(searchQuery.trim());
         setCreatePhone('');
         setCreateEmail('');
@@ -126,15 +180,15 @@ export function UserSelector({
         setIsCreating(true);
     };
 
-    const buildConflictMessage = (conflictedFields: string[], label: string): string => {
-        const fieldLabels: Record<string, string> = { email: 'email', phone: 'teléfono', phone_number: 'teléfono' };
-        const names = Array.from(new Set(conflictedFields.map(f => fieldLabels[f] || f)));
-        return `Ya existe un ${label} con ese ${names.join(' y ')}.`;
-    };
-
-    const handleCreateUser = async () => {
-        const name = createName.trim();
+    const handleCreateUser = async (confirmDuplicates = false) => {
+        const name = normalizePersonName(createName);
         if (!name) return;
+        // Proveedores son empresas ("Dental 2000 S.A."): la regla de nombre es solo para pacientes.
+        const nameIssue = filterType === 'PACIENTE' ? getPersonNameIssue(name) : null;
+        if (nameIssue) {
+            setCreateError(t(PERSON_NAME_ISSUE_MESSAGES[nameIssue]));
+            return;
+        }
         setIsSaving(true);
         setCreateError(null);
         try {
@@ -145,11 +199,20 @@ export function UserSelector({
                 filter_type: filterType,
                 is_sales: isSales,
                 is_active: true,
+                ...(confirmDuplicates ? { confirm_duplicates: true } : {}),
             });
 
             const errPayload = responseData?.error;
+            if (errPayload?.code === 'duplicate_contact' && errPayload.owners) {
+                setDuplicateOwners(errPayload.owners);
+                return;
+            }
             if (errPayload?.code === 'unique_conflict') {
-                setCreateError(buildConflictMessage(errPayload.conflictedFields ?? [], entityLabel));
+                setUniqueConflict({ conflictedFields: errPayload.conflictedFields ?? [], owners: errPayload.owners ?? {} });
+                return;
+            }
+            if (errPayload?.code === 'invalid_name') {
+                setCreateError(t('UsersPage.createDialog.validation.nameInvalid'));
                 return;
             }
             if (errPayload) {
@@ -173,6 +236,8 @@ export function UserSelector({
                 phone_number: u.phone_number || '',
                 is_active: u.is_active ?? true,
                 avatar: '',
+                doctor_id: u.doctor_id ? String(u.doctor_id) : null,
+                doctor_name: u.doctor_name || undefined,
             }));
             setUsers(newUsers);
 
@@ -180,8 +245,12 @@ export function UserSelector({
             if (created) handleSelect(created);
         } catch (err: any) {
             const errPayload = err?.response?.error || err?.data?.error || err?.error;
-            if (errPayload?.code === 'unique_conflict') {
-                setCreateError(buildConflictMessage(errPayload.conflictedFields ?? [], entityLabel));
+            if (errPayload?.code === 'duplicate_contact' && errPayload.owners) {
+                setDuplicateOwners(errPayload.owners);
+            } else if (errPayload?.code === 'unique_conflict') {
+                setUniqueConflict({ conflictedFields: errPayload.conflictedFields ?? [], owners: errPayload.owners ?? {} });
+            } else if (errPayload?.code === 'invalid_name') {
+                setCreateError(t('UsersPage.createDialog.validation.nameInvalid'));
             } else {
                 setCreateError('Revisá que la información ingresada sea válida.');
             }
@@ -193,11 +262,13 @@ export function UserSelector({
     const entityLabel = filterType === 'PROVEEDOR' ? 'proveedor' : 'paciente';
 
     return (
+        <>
         <Popover open={open} onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
                 <Button
                     variant="outline"
                     role="combobox"
+                    aria-invalid={ariaInvalid}
                     className={cn('w-full justify-between', !value && 'text-muted-foreground', className)}
                     disabled={disabled}
                 >
@@ -236,6 +307,7 @@ export function UserSelector({
                                                     {user.phone_number && (
                                                         <span className="text-xs text-muted-foreground truncate">{user.phone_number}</span>
                                                     )}
+                                                    <ResponsibleMatchHint user={user} />
                                                 </div>
                                             </CommandItem>
                                         ))}
@@ -248,7 +320,7 @@ export function UserSelector({
                                     </p>
                                 )}
 
-                                {searchQuery.trim() && (
+                                {(searchQuery.trim() || isCreating) && (
                                     <div className={cn('border-t', users.length === 0 && 'border-t-0')}>
                                         {isCreating ? (
                                             <div className="p-2 space-y-1.5">
@@ -281,7 +353,7 @@ export function UserSelector({
                                                     <Button
                                                         size="sm"
                                                         className="bg-green-600 hover:bg-green-700 text-white shrink-0"
-                                                        onClick={handleCreateUser}
+                                                        onClick={() => void handleCreateUser()}
                                                         disabled={isSaving || !createName.trim()}
                                                         type="button"
                                                     >
@@ -308,6 +380,16 @@ export function UserSelector({
                 </Command>
             </PopoverContent>
         </Popover>
+        <DuplicateContactDialog
+            owners={duplicateOwners}
+            onCancel={() => setDuplicateOwners(null)}
+            onConfirm={() => {
+                setDuplicateOwners(null);
+                void handleCreateUser(true);
+            }}
+        />
+        <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
+        </>
     );
 }
 

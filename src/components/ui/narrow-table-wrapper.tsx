@@ -25,6 +25,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import { useTranslations } from 'next-intl';
+import { getDefaultPageSize } from '@/lib/pagination';
 
 interface NarrowTableWrapperProps<TData> {
   data: TData[];
@@ -48,6 +49,7 @@ export function NarrowTableWrapper<TData>({
   const table = useReactTable({
     data,
     columns: [],
+    initialState: { pagination: { pageSize: getDefaultPageSize() } },
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });

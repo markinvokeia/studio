@@ -6,6 +6,7 @@ import { DataTableColumnHeader } from '@/components/ui/data-table-column-header'
 import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
 import { Appointment, Calendar as CalendarType } from '@/lib/types';
+import { formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef } from '@tanstack/react-table';
 import { addMonths, format, parseISO } from 'date-fns';
@@ -125,8 +126,7 @@ export function DoctorAppointments({ doctorId, refreshTrigger }: DoctorAppointme
       cell: ({ row }) => {
         const val = row.original.date;
         if (!val) return <span className="text-muted-foreground">—</span>;
-        try { return <span>{format(parseISO(val), 'dd/MM/yyyy')}</span>; }
-        catch { return <span>{val}</span>; }
+        return <span>{formatDisplayDate(val)}</span>;
       },
     },
     {

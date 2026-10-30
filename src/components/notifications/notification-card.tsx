@@ -6,13 +6,18 @@ import { es } from 'date-fns/locale';
 import {
   ArrowRight,
   Bell,
+  CalendarClock,
   CalendarPlus,
   Check,
   Clock,
   ExternalLink,
+  Headset,
   ListChecks,
   Loader2,
+  Pencil,
   Stethoscope,
+  UserCog,
+  Users,
   X,
   Zap,
 } from 'lucide-react';
@@ -21,8 +26,11 @@ import { useRouter } from 'next/navigation';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { normalizeAppointmentStatus, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
+import { normalizeAppointmentStatus } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
 import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/notifications-context';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { fetchAppointmentBillingState } from '@/services/billing-preflight';
@@ -30,13 +38,17 @@ import { getSalesServices } from '@/services/services';
 import { cn, normalizeTratamiento } from '@/lib/utils';
 import { api } from '@/services/api';
 import type {
+  AppointmentReassignedNotification,
+  AppointmentRescheduledNotification,
   AppointmentStatus,
   AppointmentStatusChangeNotification,
+  AppointmentUpdatedNotification,
   NewAppointmentNotification,
   ReminderPanelNotification,
   SessionCompletedNotification,
   TreatmentDetail,
   UnifiedNotification,
+  WhatsappHandoffRequestedNotification,
 } from '@/lib/types';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
@@ -44,8 +56,13 @@ import type {
 function RelativeTime({ iso }: { iso: string }) {
   const [label, setLabel] = React.useState('');
   React.useEffect(() => {
+    // The API sends a 'Z'-suffixed string but the wall-clock digits are already local
+    // time, not true UTC (see the date-formatting skill). Parsing with the 'Z' intact
+    // makes date-fns treat it as a real UTC instant, inflating the elapsed time shown
+    // here by the client's UTC offset (3h in GMT-3).
+    const localIso = iso.replace('Z', '');
     const update = () =>
-      setLabel(formatDistanceToNow(parseISO(iso), { addSuffix: true, locale: es }));
+      setLabel(formatDistanceToNow(parseISO(localIso), { addSuffix: true, locale: es }));
     update();
     const id = setInterval(update, 60_000);
     return () => clearInterval(id);
@@ -79,16 +96,10 @@ function CardWrapper({
 
 function StatusBadge({ status }: { status: AppointmentStatus }) {
   const tStatus = useTranslations('AppointmentStatus');
-  const variant = (STATUS_BADGE_VARIANT[status] ?? 'default') as
-    | 'default'
-    | 'secondary'
-    | 'destructive'
-    | 'outline'
-    | 'success'
-    | 'warning'
-    | 'info';
+  const { displayOf } = useAppointmentStatusDisplay();
+  const display = displayOf(normalizeAppointmentStatus(status));
   return (
-    <Badge variant={variant} className="capitalize text-[10px]">
+    <Badge variant="custom" className={cn('capitalize text-[10px]', statusBadgeClassNames(display))} style={statusBadgeInlineStyle(display)}>
       {tStatus(normalizeAppointmentStatus(status))}
     </Badge>
   );
@@ -384,7 +395,7 @@ function SessionCompletedCard({ notification }: { notification: SessionCompleted
                 {t('dischargedUntil', {
                   date: (() => {
                     try {
-                      return format(parseISO(notification.discharge.appointment_date), 'PP', { locale: es });
+                      return format(parseISO(notification.discharge.appointment_date.replace('Z', '')), 'PP', { locale: es });
                     } catch {
                       return notification.discharge.appointment_date;
                     }
@@ -551,14 +562,183 @@ function NewAppointmentCard({ notification }: { notification: NewAppointmentNoti
   );
 }
 
+// ── Appointment rescheduled card ──────────────────────────────────────────────
+
+function AppointmentRescheduledCard({ notification }: { notification: AppointmentRescheduledNotification }) {
+  const { dismissNotification, closePanel } = useNotifications();
+  const t = useTranslations('Notifications');
+  const locale = useLocale();
+  const router = useRouter();
+  const { appointment, createdAt } = notification;
+
+  const serviceLabel =
+    appointment.services?.length
+      ? appointment.services.map((s) => s.name).join(', ')
+      : appointment.service_name || appointment.summary || t('unknownService');
+
+  const handleView = () => {
+    closePanel();
+    window.dispatchEvent(new Event('clinic:calendar:refresh'));
+    router.push(`/${locale}/workspace?appointmentId=${appointment.id}`);
+  };
+
+  return (
+    <CardWrapper onDismiss={() => dismissNotification(notification.id)} accent="border-l-[3px] border-l-amber-500/60">
+      <div className="flex items-start gap-3 pr-6">
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-500/10">
+          <CalendarClock className="h-3.5 w-3.5 text-amber-600" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-semibold text-foreground truncate">
+              {appointment.patientName || t('unknownPatient')}
+            </span>
+            <RelativeTime iso={createdAt} />
+          </div>
+          <p className="mt-0.5 text-[11px] text-muted-foreground truncate">{serviceLabel}</p>
+          {appointment.time && (
+            <p className="mt-1 text-[11px] font-medium text-amber-700">
+              {t('newAppointmentTime', { time: appointment.time })}
+            </p>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 h-7 w-full justify-start gap-2 text-[11px]"
+            onClick={handleView}
+          >
+            <ExternalLink className="h-3.5 w-3.5 text-amber-600" />
+            {t('actionViewWorkspace')}
+          </Button>
+        </div>
+      </div>
+    </CardWrapper>
+  );
+}
+
+// ── Appointment reassigned card ───────────────────────────────────────────────
+
+function AppointmentReassignedCard({ notification }: { notification: AppointmentReassignedNotification }) {
+  const { dismissNotification, closePanel } = useNotifications();
+  const t = useTranslations('Notifications');
+  const locale = useLocale();
+  const router = useRouter();
+  const { appointment, createdAt } = notification;
+
+  const serviceLabel =
+    appointment.services?.length
+      ? appointment.services.map((s) => s.name).join(', ')
+      : appointment.service_name || appointment.summary || t('unknownService');
+
+  const handleView = () => {
+    closePanel();
+    window.dispatchEvent(new Event('clinic:calendar:refresh'));
+    router.push(`/${locale}/workspace?appointmentId=${appointment.id}`);
+  };
+
+  return (
+    <CardWrapper onDismiss={() => dismissNotification(notification.id)} accent="border-l-[3px] border-l-teal-500/60">
+      <div className="flex items-start gap-3 pr-6">
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-500/10">
+          <UserCog className="h-3.5 w-3.5 text-teal-600" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-semibold text-foreground truncate">
+              {appointment.patientName || t('unknownPatient')}
+            </span>
+            <RelativeTime iso={createdAt} />
+          </div>
+          <p className="mt-0.5 text-[11px] text-muted-foreground truncate">{serviceLabel}</p>
+          {appointment.time && (
+            <p className="mt-1 text-[11px] font-medium text-teal-700">
+              {t('newAppointmentTime', { time: appointment.time })}
+            </p>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 h-7 w-full justify-start gap-2 text-[11px]"
+            onClick={handleView}
+          >
+            <ExternalLink className="h-3.5 w-3.5 text-teal-600" />
+            {t('actionViewWorkspace')}
+          </Button>
+        </div>
+      </div>
+    </CardWrapper>
+  );
+}
+
+// ── Appointment updated (edited) card ─────────────────────────────────────────
+
+function AppointmentUpdatedCard({ notification }: { notification: AppointmentUpdatedNotification }) {
+  const { dismissNotification, closePanel } = useNotifications();
+  const t = useTranslations('Notifications');
+  const locale = useLocale();
+  const router = useRouter();
+  const { appointment, createdAt } = notification;
+
+  const serviceLabel =
+    appointment.services?.length
+      ? appointment.services.map((s) => s.name).join(', ')
+      : appointment.service_name || appointment.summary || t('unknownService');
+
+  const handleView = () => {
+    closePanel();
+    window.dispatchEvent(new Event('clinic:calendar:refresh'));
+    router.push(`/${locale}/workspace?appointmentId=${appointment.id}`);
+  };
+
+  return (
+    <CardWrapper onDismiss={() => dismissNotification(notification.id)} accent="border-l-[3px] border-l-violet-500/60">
+      <div className="flex items-start gap-3 pr-6">
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-violet-500/10">
+          <Pencil className="h-3.5 w-3.5 text-violet-600" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-semibold text-foreground truncate">
+              {appointment.patientName || t('unknownPatient')}
+            </span>
+            <RelativeTime iso={createdAt} />
+          </div>
+          <p className="mt-0.5 text-[11px] text-muted-foreground truncate">{serviceLabel}</p>
+          {appointment.time && (
+            <p className="mt-1 text-[11px] font-medium text-violet-700">
+              {t('newAppointmentTime', { time: appointment.time })}
+            </p>
+          )}
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 h-7 w-full justify-start gap-2 text-[11px]"
+            onClick={handleView}
+          >
+            <ExternalLink className="h-3.5 w-3.5 text-violet-600" />
+            {t('actionViewWorkspace')}
+          </Button>
+        </div>
+      </div>
+    </CardWrapper>
+  );
+}
+
 // ── Reminder card ─────────────────────────────────────────────────────────────
 
 function ReminderCard({ notification }: { notification: ReminderPanelNotification }) {
   const { dismissNotification } = useNotifications();
+  const { user } = useAuth();
   const t = useTranslations('Notifications');
+  const tReminders = useTranslations('Reminders');
   const { reminder, createdAt } = notification;
   const [isDone, setIsDone] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const isGeneral = reminder.visibility === 'clinic';
+  const isOwner = !reminder.created_by || reminder.created_by === user?.id;
 
   const priorityAccent =
     reminder.priority === 'HIGH'
@@ -578,16 +758,26 @@ function ReminderCard({ notification }: { notification: ReminderPanelNotificatio
     setIsLoading(true);
     try {
       const now = new Date().toISOString();
-      await api.post(API_ROUTES.REMINDERS_UPSERT, {
-        ...reminder,
-        status: 'done',
-        raise_alert: reminder.raise_alert ?? true,
-        updated_at: now,
-        completed_at: now,
-      });
+      // Always resolve the caller's own notification. Only the reminder's creator
+      // also completes the shared reminder — a non-owner completing their copy of a
+      // "clinic" reminder must not silence it for the rest of the staff.
+      const requests: Promise<unknown>[] = [
+        api.post(API_ROUTES.NOTIFICATIONS_STATUS, { ids: [notification.id], status: 'done' }),
+      ];
+      if (isOwner) {
+        requests.push(api.post(API_ROUTES.REMINDERS_UPSERT, {
+          ...reminder,
+          status: 'done',
+          raise_alert: reminder.raise_alert ?? true,
+          updated_at: now,
+          completed_at: now,
+        }));
+      }
+      await Promise.all(requests);
       setIsDone(true);
-      // Small delay so the user sees the ✓ before the card disappears
-      setTimeout(() => dismissNotification(notification.id), 600);
+      // Small delay so the user sees the ✓ before the card disappears. The status
+      // is already 'done' server-side, so remove locally without re-posting 'read'.
+      setTimeout(() => dismissNotification(notification.id, 'done'), 600);
     } catch {
       // Silent — dismiss anyway so the panel stays clean
       dismissNotification(notification.id);
@@ -616,6 +806,12 @@ function ReminderCard({ notification }: { notification: ReminderPanelNotificatio
             <Badge variant="outline" className="text-[10px] capitalize">
               {t(`priority_${reminder.priority.toLowerCase()}`)}
             </Badge>
+            {isGeneral && (
+              <Badge className="gap-1 bg-purple-500 text-[10px] text-white hover:bg-purple-500">
+                <Users className="h-2.5 w-2.5" />
+                {tReminders('generalBadge')}
+              </Badge>
+            )}
           </div>
 
           <Button
@@ -635,6 +831,71 @@ function ReminderCard({ notification }: { notification: ReminderPanelNotificatio
             )}
             {isDone ? t('reminderDone') : t('actionMarkDone')}
           </Button>
+          {isGeneral && !isOwner && !isDone && (
+            <p className="mt-1 text-[10px] text-muted-foreground">{t('markDoneOwnCopyHint')}</p>
+          )}
+        </div>
+      </div>
+    </CardWrapper>
+  );
+}
+
+// ── WhatsApp handoff requested card ───────────────────────────────────────────
+
+function WhatsappHandoffCard({ notification }: { notification: WhatsappHandoffRequestedNotification }) {
+  const { dismissNotification, closePanel } = useNotifications();
+  const t = useTranslations('Notifications');
+  const locale = useLocale();
+  const router = useRouter();
+  const { patientId, patientName, phone, lastMessage, createdAt } = notification;
+
+  const handleView = () => {
+    closePanel();
+    router.push(`/${locale}/patients?q=${encodeURIComponent(patientName || phone)}`);
+  };
+
+  return (
+    <CardWrapper onDismiss={() => dismissNotification(notification.id)} accent="border-l-[3px] border-l-green-500/60">
+      <div className="flex items-start gap-3 pr-6">
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-500/10">
+          <Headset className="h-3.5 w-3.5 text-green-600" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-semibold text-foreground truncate">
+              {patientName || phone || t('unknownPatient')}
+            </span>
+            <RelativeTime iso={createdAt} />
+          </div>
+          <p className="mt-0.5 text-[11px] font-medium text-green-700">{t('handoffRequestedTitle')}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">{t('handoffAgentPaused')}</p>
+
+          {phone && (
+            <p className="mt-1.5 text-[11px] text-muted-foreground">
+              {t('handoffPhone')}: <span className="font-medium text-foreground">{phone}</span>
+            </p>
+          )}
+
+          {lastMessage && (
+            <div className="mt-2 rounded-lg bg-muted/40 px-3 py-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                {t('handoffLastMessage')}
+              </p>
+              <p className="mt-0.5 text-[11px] text-foreground line-clamp-3">{lastMessage}</p>
+            </div>
+          )}
+
+          {patientId && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 h-7 w-full justify-start gap-2 text-[11px]"
+              onClick={handleView}
+            >
+              <ExternalLink className="h-3.5 w-3.5 text-green-600" />
+              {t('actionViewPatient')}
+            </Button>
+          )}
         </div>
       </div>
     </CardWrapper>
@@ -649,9 +910,17 @@ export function NotificationCard({ notification }: { notification: UnifiedNotifi
       return <NewAppointmentCard notification={notification} />;
     case 'appointment_status_change':
       return <AppointmentStatusCard notification={notification} />;
+    case 'appointment_rescheduled':
+      return <AppointmentRescheduledCard notification={notification} />;
+    case 'appointment_reassigned':
+      return <AppointmentReassignedCard notification={notification} />;
+    case 'appointment_updated':
+      return <AppointmentUpdatedCard notification={notification} />;
     case 'session_completed':
       return <SessionCompletedCard notification={notification} />;
     case 'reminder':
       return <ReminderCard notification={notification} />;
+    case 'whatsapp_handoff_requested':
+      return <WhatsappHandoffCard notification={notification} />;
   }
 }

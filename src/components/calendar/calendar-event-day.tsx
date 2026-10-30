@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { BellRing, CheckCircle2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { BellRing, CheckCircle2, FileText, Lock } from 'lucide-react';
 
 import {
   ContextMenu,
@@ -13,24 +14,43 @@ import { cn } from '@/lib/utils';
 import type { Locale } from 'date-fns';
 import { parseISO } from 'date-fns';
 
-import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus, CancellationReason } from '@/lib/types';
 import { getStatusIcon } from '@/components/appointments/status-icons';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 
-import { GOOGLE_CALENDAR_COLORS } from './calendar-constants';
-import type { CalendarEvent } from './calendar-types';
-import { formatEventTime, getReadableTextColor } from './calendar-utils';
-import { getReminderCardStyle, getReminderPriorityColor, isReminderDone } from './reminder-visuals';
+import { EVENT_DENSITY_COMPACT_PX, EVENT_DENSITY_NORMAL_PX, EVENT_RESIZE_MIN_PX, GOOGLE_IMPORT_BADGE_COLOR, HOUR_SLOT_HEIGHT } from './calendar-constants';
+import type { CalendarDragMode, CalendarDragPhase, CalendarEvent } from './calendar-types';
+import { formatEventTime, getContrastingIconColor, getReadableTextColor } from './calendar-utils';
+import { getReminderCardStyle, getReminderPriorityColor, isPersonalReminder, isReminderDone } from './reminder-visuals';
 
 interface CalendarEventDayProps {
   event: CalendarEvent;
   style: React.CSSProperties;
   dateLocale: Locale;
-  onEventClick: (data: any) => void;
-  onEventColorChange: (data: any, colorId: string) => void;
+  onEventClick: (data: any, anchorRect?: DOMRect) => void;
+  /** @deprecated Color swatches are now rendered by the `onEventContextMenu` render prop. Kept for prop compatibility with the view components. */
+  onEventColorChange?: (data: any, colorId: string) => void;
   onEventDoubleClick?: (data: any) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
   onEventContextMenuOpen?: (data: any) => void;
+  /** Alto efectivo de una hora en px (altura configurada x zoom). Con él la card
+   *  sabe cuántos píxeles mide de verdad y compacta su contenido en consecuencia. */
+  hourSlotHeight?: number;
+  /** Arranca un arrastre o un resize. Una única función compartida por todas las
+   *  cards de la vista, para no recrear la prop en cada render y anular el memo. */
+  onDragPointerDown?: (event: CalendarEvent, mode: CalendarDragMode, e: React.PointerEvent<HTMLElement>) => void;
+  /** Estado del gesto, leído por ref: los handlers de clic lo consultan sin que la
+   *  card tenga que re-renderizarse mientras se arrastra. */
+  dragStateRef?: React.MutableRefObject<{ phase: CalendarDragPhase; didDrag: boolean }>;
+  /** Si la card admite arrastre. La vista lo resuelve con el veto de la página. */
+  draggable?: boolean;
+  /** Apaga el menú contextual de la card mientras hay un arrastre en curso.
+   *  En táctil, Radix arma un long-press de 700 ms en su propio pointerdown; lo
+   *  cancela cualquier pointermove, así que en el caso normal ya está limpio para
+   *  cuando el arrastre se confirma (300 ms + movimiento). Pero si el dedo se queda
+   *  quieto justo después de confirmar, el menú saltaría a mitad del gesto. Radix
+   *  limpia su timer pendiente al recibir `disabled`, así que esto lo cierra. */
+  contextMenuDisabled?: boolean;
 }
 
 export const CalendarEventDay = React.memo(function CalendarEventDay({
@@ -38,42 +58,80 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
   style,
   dateLocale,
   onEventClick,
-  onEventColorChange,
   onEventDoubleClick,
   onEventContextMenu,
   onEventContextMenuOpen,
+  hourSlotHeight = HOUR_SLOT_HEIGHT,
+  onDragPointerDown,
+  dragStateRef,
+  draggable = false,
+  contextMenuDisabled = false,
 }: CalendarEventDayProps) {
   // Distinguish single vs double click: delay the single-click action briefly so a
   // double-click (inline edit) can cancel it. Only delays when a dbl handler exists.
+  const tAppointments = useTranslations('AppointmentsPage');
+  const { colorOf } = useAppointmentStatusDisplay();
   const clickTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   React.useEffect(() => () => { if (clickTimer.current) clearTimeout(clickTimer.current); }, []);
   const start = typeof event.start === 'string' ? parseISO(event.start) : event.start;
   const end = typeof event.end === 'string' ? parseISO(event.end) : event.end;
   const durationMinutes = Math.max(0, (end.getTime() - start.getTime()) / (1000 * 60));
   const isShortEvent = durationMinutes < 60;
+  // Alto real de la card en px. La caja siempre mide exactamente lo que dura la cita
+  // (nunca se infla con un min-height, que es lo que antes tapaba los huecos cortos a
+  // zoom bajo); es el contenido el que se adapta a lo que hay.
+  const pxHeight = (durationMinutes / 60) * hourSlotHeight;
+  const density =
+    pxHeight >= EVENT_DENSITY_NORMAL_PX ? 'normal' : pxHeight >= EVENT_DENSITY_COMPACT_PX ? 'compact' : 'tiny';
+  const stackLevel = event.stackLevel ?? 0;
+  const isDraggable = draggable && !event.locked && !!onDragPointerDown;
+  // Los tiradores se ofrecen desde EVENT_RESIZE_MIN_PX y no desde el tramo `compact`:
+  // una cita de 10 min mide 13 px con la altura de hora por defecto. Por debajo del
+  // piso los dos tiradores se pisarían entre sí, y ahí la duración se sigue cambiando
+  // por doble clic (edición inline).
+  //
+  // En las cards cortas (`compact`/`tiny`) el CSS decide según el puntero: con
+  // hover, los tiradores solo existen en la card bajo el mouse y la card entera
+  // queda para mover; en táctil no hay tiradores y la card entera mueve, porque un
+  // dedo no distingue tres zonas en tan poco alto (ver Calendar.css).
+  const showResizeGrips = isDraggable && pxHeight >= EVENT_RESIZE_MIN_PX;
+  const gripsOnActive = showResizeGrips && density !== 'normal';
   const rawStatus = event.data?.status as string | undefined;
   const isReminder = event.data?.kind === 'reminder';
+  const isNote = isReminder && event.data?.type === 'note';
   const reminderStatus = event.data?.status as CalendarReminderStatus | undefined;
   const reminderPriority = event.data?.priority as CalendarReminderPriority | undefined;
   const reminderIsDone = isReminderDone(reminderStatus);
-  const ReminderIcon = reminderIsDone ? CheckCircle2 : BellRing;
+  const reminderIsPersonal = isReminder && isPersonalReminder(event.data);
+  const ReminderIcon = isNote ? FileText : reminderIsDone ? CheckCircle2 : reminderIsPersonal ? Lock : BellRing;
   const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
   const cancellationReason = (event.data?.cancellation_reason as CancellationReason | undefined) ?? null;
   const isCancelled = status === 'cancelled';
-  const accentColor = isReminder ? getReminderPriorityColor(reminderPriority) : status ? STATUS_ACCENT_COLOR[status] : undefined;
-  const textColor = isReminder ? undefined : isCancelled ? undefined : getReadableTextColor(event.color);
+  const statusColored = event.statusColored === true;
+  // Con la card ya pintada del gris de "cancelada" el rayado sobra: se muestra
+  // solo cuando el color viene del calendario/servicio y no del estado.
+  const showCancelledStripes = isCancelled && !statusColored;
+  const accentColor = isReminder ? getReminderPriorityColor(reminderPriority) : status ? colorOf(status) : undefined;
+  const textColor = isReminder ? undefined : showCancelledStripes ? undefined : getReadableTextColor(event.color);
   const reminderCardStyle = isReminder ? getReminderCardStyle(event.color, reminderIsDone) : {};
 
   return (
     <ContextMenu onOpenChange={(o) => { if (o) onEventContextMenuOpen?.(event.data); }}>
-      <ContextMenuTrigger>
+      <ContextMenuTrigger asChild disabled={contextMenuDisabled || !onEventContextMenu}>
         <div
           data-testid="calendar-day-event"
+          data-event-id={event.id}
+          data-draggable={isDraggable ? 'true' : undefined}
+          data-grips={gripsOnActive ? 'on-active' : undefined}
+          data-density={density}
+          data-stack-level={stackLevel}
+          data-stacked={stackLevel > 0 ? 'true' : undefined}
           title={event.label ?? event.title}
           className={cn(
             'event-in-day-view',
             isShortEvent && 'event-in-day-view-compact',
-            isCancelled && 'event-cancelled',
+            event.statusStripeColor && 'event-status-stripe',
+            showCancelledStripes && 'event-cancelled',
             isReminder && 'event-reminder',
             reminderIsDone && 'event-reminder-done',
           )}
@@ -81,25 +139,83 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
             ...style,
             ...reminderCardStyle,
             color: textColor,
-            left: `${((event.column || 0) / (event.totalColumns || 1)) * 100}%`,
-            width: `${(1 / (event.totalColumns || 1)) * 100}%`,
-            paddingRight: '4px',
+            // Cascada: cada nivel de solapamiento corre la card a la derecha un
+            // porcentaje del ancho de la columna, y todas llegan al borde derecho. Los
+            // tres valores los resuelve getEventsWithLayout; los defaults dejan la card
+            // a ancho completo si alguien la renderiza sin pasar por el layout.
+            left: `${event.stackLeftPercent ?? 0}%`,
+            width: `${event.stackWidthPercent ?? 100}%`,
+            ...(event.stackZIndex !== undefined ? { zIndex: event.stackZIndex } : {}),
+            // La franja del estado se dibuja en un ::before que lee esta variable.
+            ...(event.statusStripeColor
+              ? ({ ['--status-stripe' as string]: event.statusStripeColor } as React.CSSProperties)
+              : {}),
+          }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            if (!isDraggable) return;
+            // Un arrastre que arranca dentro de los 220 ms del timer dejaría salir
+            // el quick-view a mitad del gesto.
+            if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
+            onDragPointerDown?.(event, 'move', e);
+          }}
+          onContextMenu={(e) => {
+            e.stopPropagation();
+            // Sin menú propio (móvil) nadie frena el long-press nativo: Android lo
+            // usa para seleccionar texto y cancela el puntero a mitad del arrastre.
+            // Antes lo frenaba el preventDefault del trigger de Radix.
+            const pointerType = (e.nativeEvent as Partial<PointerEvent>).pointerType;
+            if (isDraggable && !onEventContextMenu && pointerType && pointerType !== 'mouse') e.preventDefault();
           }}
           onClick={(e) => {
             if (e.button !== 0) return;
+            // Este click cierra un arrastre, no es un clic sobre la cita.
+            if (dragStateRef?.current.didDrag) return;
             e.stopPropagation();
-            if (!onEventDoubleClick) { onEventClick(event.data); return; }
+            // El rect se toma acá y no dentro del timeout: para cuando este corre,
+            // React ya anuló `currentTarget` del evento.
+            const anchorRect = e.currentTarget.getBoundingClientRect();
+            if (!onEventDoubleClick) { onEventClick(event.data, anchorRect); return; }
             if (e.detail > 1) return; // part of a double-click; ignore
             if (clickTimer.current) clearTimeout(clickTimer.current);
-            clickTimer.current = setTimeout(() => onEventClick(event.data), 220);
+            clickTimer.current = setTimeout(() => {
+              // Segunda guarda: el arrastre pudo empezar después de este click.
+              if (dragStateRef?.current.didDrag) return;
+              onEventClick(event.data, anchorRect);
+            }, 220);
           }}
           onDoubleClick={(e) => {
             if (!onEventDoubleClick) return;
+            if (dragStateRef?.current.didDrag) return;
             e.stopPropagation();
             if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
             onEventDoubleClick(event.data);
           }}
         >
+          {showResizeGrips && (
+            <div
+              data-testid="calendar-resize-grip-top"
+              className="event-resize-grip event-resize-grip--top"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
+                onDragPointerDown?.(event, 'resize-start', e);
+              }}
+              aria-hidden
+            />
+          )}
+          {showResizeGrips && (
+            <div
+              data-testid="calendar-resize-grip-bottom"
+              className="event-resize-grip event-resize-grip--bottom"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
+                onDragPointerDown?.(event, 'resize-end', e);
+              }}
+              aria-hidden
+            />
+          )}
           {event.label ? (
             <span className="event-day-title">{event.label}</span>
           ) : (
@@ -117,9 +233,9 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
               aria-hidden
               className="event-status-corner"
               title={event.title}
-              style={{ backgroundColor: accentColor }}
+              style={{ backgroundColor: accentColor, color: getContrastingIconColor(accentColor) }}
             >
-              <ReminderIcon className="h-3 w-3" strokeWidth={2.5} />
+              <ReminderIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
             </span>
           )}
           {!isReminder && status && accentColor && (() => {
@@ -130,28 +246,30 @@ export const CalendarEventDay = React.memo(function CalendarEventDay({
                 aria-hidden
                 className="event-status-corner"
                 title={cancellationReason ? `${status} - ${cancellationReason}` : status}
-                style={{ backgroundColor: accentColor }}
+                // Sobre una card ya pintada con el color del estado el círculo
+                // desaparece, así que se invierte: fondo claro, ícono del color.
+                style={statusColored
+                  ? { backgroundColor: 'rgba(255,255,255,0.92)', color: accentColor }
+                  : { backgroundColor: accentColor, color: getContrastingIconColor(accentColor) }}
               >
-                <StatusIcon className="h-3 w-3" strokeWidth={2.5} />
+                <StatusIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
               </span>
             );
           })()}
+          {!isReminder && event.data?.imported_from_google === true && (
+            <span
+              aria-hidden
+              className="event-source-corner"
+              title={tAppointments('importedFromGoogle')}
+              style={{ backgroundColor: GOOGLE_IMPORT_BADGE_COLOR }}
+            />
+          )}
         </div>
       </ContextMenuTrigger>
-      <ContextMenuContent>
-        <div className="grid grid-cols-4 gap-2 p-2">
-          {GOOGLE_CALENDAR_COLORS.map((color) => (
-            <div
-              key={color.id}
-              className="w-6 h-6 rounded-full cursor-pointer hover:opacity-80"
-              style={{ backgroundColor: color.hex }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onEventColorChange(event.data, color.id);
-              }}
-            />
-          ))}
-        </div>
+      <ContextMenuContent className="w-[min(18rem,calc(100vw-1rem))]">
+        {/* The whole menu body (including color swatches) is supplied by the
+            consumer's render prop so it can place the color picker inline or in
+            a submenu depending on the calendar mode. */}
         {onEventContextMenu && onEventContextMenu(event.data)}
       </ContextMenuContent>
     </ContextMenu>

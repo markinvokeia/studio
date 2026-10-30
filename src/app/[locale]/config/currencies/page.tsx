@@ -12,31 +12,41 @@ import { DatePickerInput } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
-import { useToast } from '@/hooks/use-toast';
 import { ExchangeRateHistoryItem } from '@/lib/types';
+import { formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
 import { ColumnDef, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { DollarSign, History, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { getCurrency } from '@/constants/currencies';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { createDefaultPagination } from '@/lib/pagination';
 
 export default function CurrenciesPage() {
     const t = useTranslations('CurrenciesPage');
-    const { toast } = useToast();
+    // El historial de cotizaciones es el feed BROU (UYU↔USD). Con cualquier
+    // otro par no hay datos que mostrar: se enseñan las monedas configuradas y
+    // se explica que el tipo de cambio se carga a mano al abrir la caja.
+    const { def, secondaryCode, hasAutoRate } = useCurrencySettings();
     const isNarrow = useViewportNarrow();
 
-    const [data, setData] = React.useState<ExchangeRateHistoryItem[]>([]);
-    const [isLoading, setIsLoading] = React.useState(true);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
-    const [totalPages, setTotalPages] = React.useState(0);
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [selectedItem, setSelectedItem] = React.useState<ExchangeRateHistoryItem | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [startDate, setStartDate] = React.useState<string>('');
     const [endDate, setEndDate] = React.useState<string>('');
 
-    const fetchExchangeRates = React.useCallback(async () => {
-        try {
-            setIsLoading(true);
+    // Only the latest page/filter request may write the table (fast paging can't show an older page).
+    const {
+        data: { items: data, totalPages },
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload: fetchExchangeRates,
+    } = useDataLoader(
+        async () => {
             const query: any = {
                 page: pagination.pageIndex + 1,
                 limit: pagination.pageSize,
@@ -46,21 +56,14 @@ export default function CurrenciesPage() {
 
             const response = await api.getExchangeRateHistory(query);
             if (response && typeof response === 'object' && 'metadata' in response && 'data' in response) {
-                setData(response.data || []);
-                setTotalPages(response.metadata.total_paginas || 0);
-            } else {
-                setData([]);
-                setTotalPages(0);
+                return { items: (response.data || []) as ExchangeRateHistoryItem[], totalPages: response.metadata.total_paginas || 0 };
             }
-        } catch (error) {
-            console.error('Failed to fetch exchange rates:', error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to load exchange rate history.' });
-            setData([]);
-            setTotalPages(0);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [pagination.pageIndex, pagination.pageSize, startDate, endDate, toast]);
+            return { items: [] as ExchangeRateHistoryItem[], totalPages: 0 };
+        },
+        { items: [] as ExchangeRateHistoryItem[], totalPages: 0 },
+        [pagination.pageIndex, pagination.pageSize, startDate, endDate],
+        { enabled: hasAutoRate }
+    );
 
     const handleApplyFilters = React.useCallback(() => {
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
@@ -74,8 +77,6 @@ export default function CurrenciesPage() {
         setSelectedItem(null);
         setRowSelection({});
     };
-
-    React.useEffect(() => { fetchExchangeRates(); }, [fetchExchangeRates]);
 
     const columns: ColumnDef<ExchangeRateHistoryItem>[] = React.useMemo(() => [
         { accessorKey: 'fecha', header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.date')} /> },
@@ -112,12 +113,12 @@ export default function CurrenciesPage() {
                     <DatePickerInput value={endDate} onChange={setEndDate} />
                 </div>
             </div>
-            <Button onClick={handleApplyFilters} disabled={isLoading} size="sm" className="h-9">
-                <RefreshCw className={`h-4 w-4 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <Button onClick={handleApplyFilters} disabled={isRefreshing} size="sm" className="h-9">
+                <RefreshCw className={`h-4 w-4 sm:mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                 <span className="hidden sm:inline">{t('applyFilters')}</span>
             </Button>
         </div>
-    ), [startDate, endDate, handleApplyFilters, isLoading, t]);
+    ), [startDate, endDate, handleApplyFilters, isRefreshing, t]);
 
     const leftPanel = (
         <div className="h-full flex flex-col gap-4 overflow-hidden">
@@ -132,12 +133,24 @@ export default function CurrenciesPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="bg-card pb-4 px-4">
-                    <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t('baseCurrency')}</p>
-                        <Badge variant="secondary">UYU (Pesos Uruguayos)</Badge>
+                    <div className="space-y-2">
+                        <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t('baseCurrency')}</p>
+                            <Badge variant="secondary">{def.code} ({def.name})</Badge>
+                        </div>
+                        {secondaryCode && (
+                            <div className="space-y-1">
+                                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{t('secondaryCurrency')}</p>
+                                <Badge variant="secondary">{getCurrency(secondaryCode).code} ({getCurrency(secondaryCode).name})</Badge>
+                            </div>
+                        )}
+                        {!hasAutoRate && (
+                            <p className="text-xs text-muted-foreground pt-1">{t('noAutoRate')}</p>
+                        )}
                     </div>
                 </CardContent>
             </Card>
+            {hasAutoRate && (
             <Card className="flex-1 flex flex-col min-h-0 overflow-hidden border-0 lg:border shadow-none lg:shadow-sm">
                 <CardHeader className="flex-none p-4">
                     <div className="flex items-start gap-3">
@@ -155,7 +168,9 @@ export default function CurrenciesPage() {
                         onPaginationChange={setPagination}
                         manualPagination={true}
                         pageCount={totalPages}
-                        isRefreshing={isLoading}
+                        isRefreshing={isRefreshing}
+                        isLoading={isLoading}
+                        loadError={loadError}
                         onRefresh={fetchExchangeRates}
                         isNarrow={isNarrow || !!selectedItem}
                         renderCard={(row: ExchangeRateHistoryItem, _isSelected: boolean) => (
@@ -173,6 +188,7 @@ export default function CurrenciesPage() {
                     />
                 </CardContent>
             </Card>
+            )}
         </div>
     );
 
@@ -183,7 +199,7 @@ export default function CurrenciesPage() {
                     <div className="header-icon-circle flex-none"><History className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
                         <CardTitle className="text-base lg:text-lg truncate">{t('detailsModal.title')}</CardTitle>
-                        <p className="text-xs text-muted-foreground">{selectedItem.fecha ? new Date(selectedItem.fecha).toLocaleDateString('es-ES') : ''}</p>
+                        <p className="text-xs text-muted-foreground">{formatDisplayDate(selectedItem.fecha)}</p>
                     </div>
                 </div>
             </CardHeader>

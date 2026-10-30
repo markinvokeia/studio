@@ -1,0 +1,6 @@
+{
+  "AppointmentStatus": {
+    "completed": "Attended",
+    "arrived": "In waiting room"
+  }
+}

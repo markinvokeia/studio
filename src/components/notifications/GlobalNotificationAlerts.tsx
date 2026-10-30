@@ -1,21 +1,28 @@
 'use client';
 
 import * as React from 'react';
-import { ArrowRight, BellRing, CheckCircle2, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { ArrowRight, BellRing, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Clock, Headset, Pencil, UserCog } from 'lucide-react';
 import { format, isValid, parseISO } from 'date-fns';
 import { useTranslations } from 'next-intl';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import { normalizeAppointmentStatus, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
+import { normalizeAppointmentStatus } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
+import { cn } from '@/lib/utils';
 import type {
+  AppointmentReassignedNotification,
+  AppointmentRescheduledNotification,
   AppointmentStatus,
   AppointmentStatusChangeNotification,
+  AppointmentUpdatedNotification,
   NewAppointmentNotification,
   ReminderPanelNotification,
   SessionCompletedNotification,
   UnifiedNotification,
+  WhatsappHandoffRequestedNotification,
 } from '@/lib/types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -26,17 +33,6 @@ interface GlobalNotificationAlertsProps {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function statusVariant(status: AppointmentStatus) {
-  return (STATUS_BADGE_VARIANT[status] ?? 'default') as
-    | 'default'
-    | 'success'
-    | 'destructive'
-    | 'info'
-    | 'warning'
-    | 'secondary'
-    | 'outline';
-}
 
 function formatLocalTime(value?: string | null): string {
   if (!value) return '';
@@ -83,6 +79,9 @@ function StatusChangeBody({ item }: { item: AppointmentStatusChangeNotification 
   const t = useTranslations('DoctorWorkspace');
   const tStatus = useTranslations('AppointmentStatus');
   const tN = useTranslations('Notifications');
+  const { displayOf } = useAppointmentStatusDisplay();
+  const previousDisplay = displayOf(normalizeAppointmentStatus(item.previousStatus));
+  const currentDisplay = displayOf(normalizeAppointmentStatus(item.appointment.status));
 
   return (
     <div className="flex flex-col items-center gap-5 px-2 py-4">
@@ -100,14 +99,113 @@ function StatusChangeBody({ item }: { item: AppointmentStatusChangeNotification 
           {item.appointment.patientName || tN('unknownPatient')}
         </p>
         <div className="flex items-center justify-center gap-2">
-          <Badge variant={statusVariant(normalizeAppointmentStatus(item.previousStatus))} className="capitalize">
+          <Badge variant="custom" className={cn('capitalize', statusBadgeClassNames(previousDisplay))} style={statusBadgeInlineStyle(previousDisplay)}>
             {tStatus(normalizeAppointmentStatus(item.previousStatus))}
           </Badge>
           <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <Badge variant={statusVariant(normalizeAppointmentStatus(item.appointment.status))} className="capitalize">
+          <Badge variant="custom" className={cn('capitalize', statusBadgeClassNames(currentDisplay))} style={statusBadgeInlineStyle(currentDisplay)}>
             {tStatus(normalizeAppointmentStatus(item.appointment.status))}
           </Badge>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function RescheduledBody({ item }: { item: AppointmentRescheduledNotification }) {
+  const t = useTranslations('DoctorWorkspace');
+  const tN = useTranslations('Notifications');
+  const { appointment: appt } = item;
+
+  return (
+    <div className="flex flex-col items-center gap-5 px-2 py-4">
+      <div
+        className="grid h-16 w-16 place-items-center rounded-full text-white shadow-lg"
+        style={{ backgroundColor: '#f59e0b', animation: 'global-alert-sway 1.4s ease-in-out infinite' }}
+      >
+        <CalendarClock className="h-8 w-8" />
+      </div>
+      <div className="space-y-1 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {t('rescheduleAlerts.singleTitle')}
+        </p>
+        <p className="text-xl font-bold leading-tight text-foreground">
+          {appt.patientName || tN('unknownPatient')}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {appt.services?.length
+            ? appt.services.map((s) => s.name).join(', ')
+            : appt.service_name || appt.summary || t('appointmentAlerts.unknownService')}
+        </p>
+        {appt.time && (
+          <p className="text-sm font-semibold text-amber-700">{appt.time}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ReassignedBody({ item }: { item: AppointmentReassignedNotification }) {
+  const t = useTranslations('DoctorWorkspace');
+  const tN = useTranslations('Notifications');
+  const { appointment: appt } = item;
+
+  return (
+    <div className="flex flex-col items-center gap-5 px-2 py-4">
+      <div
+        className="grid h-16 w-16 place-items-center rounded-full text-white shadow-lg"
+        style={{ backgroundColor: '#14b8a6', animation: 'global-alert-sway 1.4s ease-in-out infinite' }}
+      >
+        <UserCog className="h-8 w-8" />
+      </div>
+      <div className="space-y-1 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {t('reassignAlerts.singleTitle')}
+        </p>
+        <p className="text-xl font-bold leading-tight text-foreground">
+          {appt.patientName || tN('unknownPatient')}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {appt.services?.length
+            ? appt.services.map((s) => s.name).join(', ')
+            : appt.service_name || appt.summary || t('appointmentAlerts.unknownService')}
+        </p>
+        {appt.time && (
+          <p className="text-sm font-semibold text-teal-700">{appt.time}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function UpdatedBody({ item }: { item: AppointmentUpdatedNotification }) {
+  const t = useTranslations('DoctorWorkspace');
+  const tN = useTranslations('Notifications');
+  const { appointment: appt } = item;
+
+  return (
+    <div className="flex flex-col items-center gap-5 px-2 py-4">
+      <div
+        className="grid h-16 w-16 place-items-center rounded-full text-white shadow-lg"
+        style={{ backgroundColor: '#8b5cf6', animation: 'global-alert-sway 1.4s ease-in-out infinite' }}
+      >
+        <Pencil className="h-8 w-8" />
+      </div>
+      <div className="space-y-1 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {t('editAlerts.singleTitle')}
+        </p>
+        <p className="text-xl font-bold leading-tight text-foreground">
+          {appt.patientName || tN('unknownPatient')}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {appt.services?.length
+            ? appt.services.map((s) => s.name).join(', ')
+            : appt.service_name || appt.summary || t('appointmentAlerts.unknownService')}
+        </p>
+        {appt.time && (
+          <p className="text-sm font-semibold text-violet-700">{appt.time}</p>
+        )}
       </div>
     </div>
   );
@@ -181,10 +279,41 @@ function ReminderBody({ item }: { item: ReminderPanelNotification }) {
   );
 }
 
+function HandoffBody({ item }: { item: WhatsappHandoffRequestedNotification }) {
+  const t = useTranslations('Notifications');
+
+  return (
+    <div className="flex flex-col items-center gap-5 px-2 py-4">
+      <div
+        className="grid h-16 w-16 place-items-center rounded-full text-white shadow-lg"
+        style={{ backgroundColor: '#16a34a', animation: 'global-alert-sway 1.4s ease-in-out infinite' }}
+      >
+        <Headset className="h-8 w-8" />
+      </div>
+      <div className="space-y-1 text-center">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {t('handoffRequestedTitle')}
+        </p>
+        <p className="text-xl font-bold leading-tight text-foreground">
+          {item.patientName || item.phone || t('unknownPatient')}
+        </p>
+        {item.phone && <p className="text-sm text-muted-foreground">{item.phone}</p>}
+        {item.lastMessage && (
+          <p className="text-sm text-muted-foreground leading-relaxed">{item.lastMessage}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function NotificationBody({ item }: { item: UnifiedNotification }) {
   if (item.type === 'new_appointment') return <NewAppointmentBody item={item} />;
   if (item.type === 'appointment_status_change') return <StatusChangeBody item={item} />;
+  if (item.type === 'appointment_rescheduled') return <RescheduledBody item={item} />;
+  if (item.type === 'appointment_reassigned') return <ReassignedBody item={item} />;
+  if (item.type === 'appointment_updated') return <UpdatedBody item={item} />;
   if (item.type === 'session_completed') return <SessionCompletedBody item={item} />;
+  if (item.type === 'whatsapp_handoff_requested') return <HandoffBody item={item} />;
   return <ReminderBody item={item as ReminderPanelNotification} />;
 }
 
@@ -213,7 +342,11 @@ export function GlobalNotificationAlerts({ items, onDismissAll }: GlobalNotifica
     if (!current) return '';
     if (current.type === 'new_appointment') return tN('newAppointmentTitle');
     if (current.type === 'appointment_status_change') return tN('statusChangedTitle');
+    if (current.type === 'appointment_rescheduled') return tN('appointmentRescheduledTitle');
+    if (current.type === 'appointment_reassigned') return tN('appointmentReassignedTitle');
+    if (current.type === 'appointment_updated') return tN('appointmentUpdatedTitle');
     if (current.type === 'session_completed') return tN('sessionCompletedAlertTitle');
+    if (current.type === 'whatsapp_handoff_requested') return tN('handoffRequestedTitle');
     return tN('reminderDueTitle');
   }
 

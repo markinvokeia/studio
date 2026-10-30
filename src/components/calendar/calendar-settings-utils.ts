@@ -1,18 +1,22 @@
 import { CalendarSettings } from '@/lib/types';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
-import { DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, SLOT_DURATION_OPTIONS } from './calendar-constants';
+import { CALENDAR_MODES, DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, SLOT_DURATION_OPTIONS } from './calendar-constants';
 
 export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
-  default_view: 'month',
+  default_view: 'week',
   grouped_by: 'none',
   check_availability: false,
   filter_doctors_by_service: false,
-  block_unavailable: false,
+  block_unavailable: true,
   hour_height: HOUR_SLOT_HEIGHT,
   slot_duration: DEFAULT_SLOT_DURATION,
   event_label_format: DEFAULT_EVENT_LABEL_FORMAT,
   default_sede: '',
+  inline_draft_live_preview: false,
+  color_by_status: DEFAULT_COLOR_BY_STATUS,
+  mode: DEFAULT_CALENDAR_MODE,
+  hidden_weekdays: [],
 };
 
 const normalizeBoolean = (value: unknown, defaultValue: boolean): boolean => {
@@ -23,15 +27,90 @@ const normalizeBoolean = (value: unknown, defaultValue: boolean): boolean => {
   return value === true || value === 'true' || value === 1;
 };
 
-export const normalizeCalendarSettings = (data: unknown): CalendarSettings | null => {
-  const settingsData = Array.isArray(data) ? data[0] : data;
+/** Normaliza `hidden_weekdays`: puede llegar como array, como string JSON
+ *  ("[0,6]") o como string separado por comas ("0,6") según cómo lo devuelva
+ *  la API. Se descartan valores fuera de 0-6 y duplicados, y si terminan
+ *  cubriendo los 7 días se ignora por completo (ocultaría toda la grilla). */
+const normalizeHiddenWeekdays = (value: unknown): number[] => {
+  let list: unknown[];
 
-  if (
-    !settingsData ||
-    Array.isArray(settingsData) ||
-    typeof settingsData !== 'object' ||
-    Object.keys(settingsData).length === 0
-  ) {
+  if (Array.isArray(value)) {
+    list = value;
+  } else if (typeof value === 'string' && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      list = Array.isArray(parsed) ? parsed : value.split(',');
+    } catch {
+      list = value.split(',');
+    }
+  } else {
+    return [];
+  }
+
+  const days = Array.from(
+    new Set(
+      list
+        .map((v) => Number(v))
+        .filter((n) => Number.isInteger(n) && n >= 0 && n <= 6)
+    )
+  ).sort((a, b) => a - b);
+
+  return days.length >= 7 ? [] : days;
+};
+
+/** Claves que identifican una fila de calendar_settings. Sirven para distinguir la
+ *  fila real del envoltorio de la respuesta ({data: …}, {result: …}, …), que hasta
+ *  ahora se tomaba como si fuera la fila: al no tener ninguna de estas claves,
+ *  todos los campos caían al default y el `id` quedaba sin definir (de ahí que las
+ *  preferencias guardadas no se cargaran y cada guardado creara una fila nueva). */
+const CALENDAR_SETTINGS_ROW_KEYS = [
+  'default_view',
+  'grouped_by',
+  'check_availability',
+  'filter_doctors_by_service',
+  'block_unavailable',
+  'hour_height',
+  'slot_duration',
+  'event_label_format',
+  'default_sede',
+  'inline_appointment_creation',
+  'inline_draft_live_preview',
+  'color_by_status',
+  'mode',
+  'hidden_weekdays',
+  'user_id',
+] as const;
+
+const isCalendarSettingsRow = (value: Record<string, unknown>): boolean =>
+  CALENDAR_SETTINGS_ROW_KEYS.some((key) => key in value);
+
+/** Desenvuelve la fila de settings de las formas en que la devuelve la API:
+ *  `row`, `[row]`, `{data: row}`, `{data: [row]}`, `[{data: [row]}]`… */
+const unwrapCalendarSettingsRow = (data: unknown): Record<string, unknown> | null => {
+  let current: unknown = data;
+
+  for (let depth = 0; depth < 4; depth += 1) {
+    if (Array.isArray(current)) {
+      current = current[0];
+      continue;
+    }
+    if (!current || typeof current !== 'object') return null;
+
+    const holder = current as Record<string, unknown>;
+    if (isCalendarSettingsRow(holder)) return holder;
+
+    const inner = holder.data ?? holder.result ?? holder.calendar_settings;
+    if (inner === undefined) return null;
+    current = inner;
+  }
+
+  return null;
+};
+
+export const normalizeCalendarSettings = (data: unknown): CalendarSettings | null => {
+  const settingsData = unwrapCalendarSettingsRow(data);
+
+  if (!settingsData || Object.keys(settingsData).length === 0) {
     return null;
   }
 
@@ -66,6 +145,20 @@ export const normalizeCalendarSettings = (data: unknown): CalendarSettings | nul
         ? rawSettings.event_label_format
         : DEFAULT_CALENDAR_SETTINGS.event_label_format,
     default_sede: typeof rawSettings.default_sede === 'string' ? rawSettings.default_sede : DEFAULT_CALENDAR_SETTINGS.default_sede,
+    inline_draft_live_preview: normalizeBoolean(
+      (rawSettings as { inline_draft_live_preview?: unknown }).inline_draft_live_preview,
+      false,
+    ),
+    // Ausente (usuario sin la preferencia guardada todavía) => queda activa.
+    color_by_status: normalizeBoolean(
+      (rawSettings as { color_by_status?: unknown }).color_by_status,
+      DEFAULT_CALENDAR_SETTINGS.color_by_status ?? DEFAULT_COLOR_BY_STATUS,
+    ),
+    mode:
+      typeof rawSettings.mode === 'string' && (CALENDAR_MODES as readonly string[]).includes(rawSettings.mode)
+        ? rawSettings.mode
+        : DEFAULT_CALENDAR_SETTINGS.mode,
+    hidden_weekdays: normalizeHiddenWeekdays((rawSettings as { hidden_weekdays?: unknown }).hidden_weekdays),
   };
 };
 
@@ -73,13 +166,9 @@ export async function getCalendarSettings(): Promise<CalendarSettings> {
   try {
     const data = await api.get(API_ROUTES.CALENDAR_SETTINGS_SEARCH);
     const existingSettings = normalizeCalendarSettings(data);
-    const nextSettings = existingSettings ?? DEFAULT_CALENDAR_SETTINGS;
-
-    if (!existingSettings) {
-      await api.post(API_ROUTES.CALENDAR_SETTINGS_UPSERT, nextSettings);
-    }
-
-    return nextSettings;
+    // Don't upsert defaults just because none exist yet — only persist once
+    // the user actually changes an option, to avoid duplicate-create races.
+    return existingSettings ?? DEFAULT_CALENDAR_SETTINGS;
   } catch (error) {
     console.error('Failed to fetch calendar settings:', error);
     return DEFAULT_CALENDAR_SETTINGS;

@@ -1,7 +1,266 @@
 {
+  "FormValidation": {
+    "title": "Faltan datos obligatorios",
+    "description": "Completá los campos marcados en rojo."
+  },
+  "FinanceSortOrder": {
+    "label": "Orden",
+    "newestFirst": "Más recientes arriba",
+    "newestLast": "Más recientes al final"
+  },
+  "PatientLedger": {
+    "newQuote": "Nuevo Presupuesto",
+    "newTreatment": "Nuevo Tratamiento",
+    "newPayment": "Nuevo Pago",
+    "viewStatement": "Estado de cuenta",
+    "inline": {
+      "addQuote": "Presupuesto",
+      "addTreatment": "Tratamiento",
+      "addPayment": "Pago",
+      "editPayment": "Editar pago",
+      "new": "Nuevo",
+      "confirm": "Confirmar",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "delete": "Eliminar",
+      "edit": "Editar",
+      "selectPending": "Seleccionar tratamientos pendientes"
+    },
+    "allocations": {
+      "title": "Tratamientos pendientes",
+      "pending": "Pendiente",
+      "allocated": "Asignado",
+      "difference": "Diferencia: {amount}",
+      "exceedsPending": "No puede exceder el pendiente",
+      "exceeds": "Excede el monto por {amount}",
+      "leftoverCredit": "El resto ({amount}) se agregará como crédito del paciente",
+      "noPending": "No hay tratamientos pendientes en esta moneda",
+      "noneSelected": "Selecciona al menos un tratamiento o desmarca la opción",
+      "mismatch": "La suma asignada no puede superar el monto del pago. Excedente: {amount}"
+    },
+    "docLine": {
+      "quote": "Presupuesto",
+      "invoice": "Factura",
+      "treatment": "Tratamiento",
+      "payment": "Pago",
+      "creditNote": "Nota de crédito",
+      "dueDate": "Vencimiento"
+    },
+    "openingBalance": {
+      "label": "Saldo anterior",
+      "hint": "Balance de la cuenta antes de este período"
+    },
+    "allocationsPopover": {
+      "paidTreatments": "Tratamientos pagados",
+      "paidBy": "Pagado con",
+      "loading": "Cargando…",
+      "empty": "Sin datos"
+    },
+    "footer": {
+      "totalDebit": "Facturado",
+      "totalCredit": "Cobrado",
+      "finalBalance": "Pendiente",
+      "notCounted": "no contabiliza"
+    },
+    "fields": {
+      "date": "Fecha",
+      "currency": "Moneda",
+      "service": "Tratamiento",
+      "searchService": "Buscar tratamiento...",
+      "selectService": "Seleccionar tratamiento",
+      "tooth": "Pieza",
+      "quantity": "Cant.",
+      "doctor": "Doctor",
+      "searchDoctor": "Buscar doctor...",
+      "selectDoctor": "Seleccionar doctor",
+      "searchSede": "Buscar sede...",
+      "selectSede": "Seleccionar sede",
+      "description": "Descripción",
+      "price": "Precio",
+      "amount": "Monto",
+      "method": "Método de pago",
+      "selectMethod": "Seleccionar método",
+      "notes": "Notas",
+      "historical": "Histórico",
+      "dueDate": "Vencimiento"
+    },
+    "errors": {
+      "dueDateBeforeIssue": "El vencimiento debe ser posterior a la fecha de emisión",
+      "negativeTooth": "El número de pieza no puede ser negativo",
+      "sedeRequired": "La sede es obligatoria",
+      "methodRequired": "Debes seleccionar un método de pago",
+      "amountRequired": "El monto debe ser mayor a cero",
+      "requiredFields": "Completá los campos marcados en rojo"
+    },
+    "columns": {
+      "date": "Fecha",
+      "treatment": "Tratamiento",
+      "debit": "Debe",
+      "credit": "Haber",
+      "balance": "Saldo",
+      "status": "Estado"
+    },
+    "status": {
+      "presupuestado": "Presupuestado",
+      "facturado": "Facturado",
+      "parcial": "Pago parcial",
+      "pagado": "Pagado",
+      "pago": "Pago",
+      "notaCredito": "Nota de crédito"
+    },
+    "empty": "Este paciente aún no tiene presupuestos, facturas ni pagos.",
+    "search": "Buscar...",
+    "finalBalance": "Saldo final:",
+    "loading": "Cargando cuenta…",
+    "noPendingInvoices": "No hay facturas pendientes de pago",
+    "actions": {
+      "openMenu": "Abrir menú",
+      "edit": "Editar",
+      "invoiceCustom": "Facturación personalizada / parcial…",
+      "creditNote": "Crear nota de crédito",
+      "deleteQuote": "Eliminar presupuesto",
+      "deletePayment": "Eliminar pago",
+      "deleteCreditNote": "Eliminar nota de crédito",
+      "deleteInvoice": "Eliminar tratamiento",
+      "print": "Imprimir",
+      "sendEmail": "Enviar"
+    },
+    "statusControl": {
+      "presupuesto": "Presupuesto",
+      "enCurso": "En curso",
+      "finalizado": "Finalizado"
+    },
+    "dialogs": {
+      "editItem": {
+        "title": "Editar ítem",
+        "description": "Modifica el servicio, la cantidad o el precio de esta línea del presupuesto.",
+        "service": "Servicio",
+        "quantity": "Cantidad",
+        "unitPrice": "Precio unitario",
+        "save": "Guardar",
+        "cancel": "Cancelar"
+      },
+      "creditNote": {
+        "title": "Crear nota de crédito",
+        "description": "Para \"{service}\". Se crea una nota de crédito contra la factura de esta línea.",
+        "maxCreditable": "Monto máximo acreditable para esta factura: {max}",
+        "exceedsMax": "El total de la nota de crédito no puede superar {max}, el monto máximo acreditable restante de la factura.",
+        "quantity": "Cantidad",
+        "unitPrice": "Precio unitario",
+        "notes": "Notas",
+        "save": "Crear",
+        "cancel": "Cancelar"
+      },
+      "revertInvoice": {
+        "title": "Volver factura a presupuesto",
+        "description": "Esto revertirá la factura de vuelta a un presupuesto. Esta acción no se puede deshacer.",
+        "confirm": "Revertir"
+      },
+      "deleteInvoice": {
+        "title": "Eliminar tratamiento",
+        "description": "Este tratamiento se facturó directamente, sin un presupuesto detrás, así que no se puede volver a presupuesto: se eliminará permanentemente. Esta acción no se puede deshacer."
+      },
+      "deleteInvoiceAndQuote": {
+        "title": "Eliminar documento",
+        "description": "Esto eliminará permanentemente la factura junto con el presupuesto que le dio origen. Esta acción no se puede deshacer."
+      },
+      "deleteQuote": {
+        "title": "Eliminar presupuesto",
+        "description": "Esto eliminará permanentemente el presupuesto y todos sus ítems. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar",
+        "confirm": "Eliminar"
+      },
+      "deletePayment": {
+        "title": "Eliminar pago",
+        "description": "Esto eliminará permanentemente el pago y revertirá las facturas a las que se aplicó. Esta acción no se puede deshacer."
+      },
+      "deleteCreditNote": {
+        "title": "Eliminar nota de crédito",
+        "description": "Esto eliminará permanentemente la nota de crédito junto con sus alocaciones. Esta acción no se puede deshacer."
+      }
+    },
+    "toasts": {
+      "quoteCreated": "Presupuesto creado",
+      "quoteCreateError": "No se pudo crear el presupuesto",
+      "treatmentCreated": "Tratamiento creado",
+      "treatmentCreateError": "No se pudo crear el tratamiento",
+      "paymentCreated": "Pago registrado",
+      "paymentCreateError": "No se pudo registrar el pago",
+      "itemUpdated": "Ítem actualizado",
+      "itemUpdateError": "No se pudo actualizar el ítem",
+      "creditNoteCreated": "Nota de crédito creada",
+      "creditNoteError": "No se pudo crear la nota de crédito",
+      "markedEnCurso": "Presupuesto confirmado y facturado",
+      "markEnCursoError": "No se pudo confirmar y facturar el presupuesto",
+      "itemFinalized": "Tratamiento pagado",
+      "itemFinalizedManualDesc": "{pending} quedó sin cobrar — se marcó como Finalizado manualmente igual",
+      "itemFinalizeError": "No se pudo pagar el tratamiento",
+      "itemUnfinalized": "Pago revertido",
+      "itemUnfinalizeError": "No se pudo revertir el pago",
+      "invoiceReverted": "Factura revertida a presupuesto",
+      "invoiceRevertError": "No se pudo revertir la factura",
+      "invoiceDeleted": "Tratamiento eliminado",
+      "invoiceDeleteError": "No se pudo eliminar el tratamiento",
+      "quoteDeleted": "Presupuesto eliminado",
+      "quoteDeleteError": "No se pudo eliminar el presupuesto",
+      "paymentDeleted": "Pago eliminado",
+      "paymentDeleteError": "No se pudo eliminar el pago",
+      "creditNoteDeleted": "Nota de crédito eliminada",
+      "creditNoteDeleteError": "No se pudo eliminar la nota de crédito",
+      "paymentUpdated": "Pago actualizado",
+      "releasedCredit": "{amount} pasó a estar disponible como crédito del paciente",
+      "paymentUpdateError": "No se pudo actualizar el pago",
+      "creditNoteUpdated": "Nota de crédito actualizada",
+      "creditNoteUpdateError": "No se pudo actualizar la nota de crédito",
+      "printError": "No se pudo imprimir el documento",
+      "emailNotFound": "No se encontró el documento para enviar"
+    }
+  },
+  "QuickTreatmentDialog": {
+    "titleQuote": "Nuevo Presupuesto",
+    "titleTreatment": "Nuevo Tratamiento",
+    "fields": {
+      "date": "Fecha",
+      "tooth": "Pieza",
+      "treatment": "Tratamiento",
+      "searchTreatment": "Buscar tratamiento...",
+      "selectTreatment": "Seleccionar tratamiento",
+      "showDescription": "Mostrar descripción",
+      "hideDescription": "Ocultar descripción",
+      "price": "Precio",
+      "doctor": "Doctor",
+      "searchDoctor": "Buscar doctor...",
+      "selectDoctor": "Seleccionar doctor",
+      "sede": "Sede",
+      "searchSede": "Buscar sede...",
+      "selectSede": "Seleccionar sede",
+      "keepOpen": "Guardar y cargar otro"
+    },
+    "validation": {
+      "discountOverLimit": "Supera el descuento máximo permitido por la clínica",
+      "dateRequired": "La fecha es obligatoria",
+      "toothNumberMin": "Número de pieza inválido",
+      "toothNumberMax": "Número de pieza inválido",
+      "serviceRequired": "Selecciona un tratamiento",
+      "pricePositive": "El precio debe ser mayor o igual a 0",
+      "sedeRequired": "La sede es obligatoria"
+    },
+    "toasts": {
+      "quoteCreated": "Presupuesto creado",
+      "treatmentCreated": "Tratamiento creado"
+    },
+    "errors": {
+      "saveQuote": "No se pudo crear el presupuesto",
+      "saveInvoice": "No se pudo crear el tratamiento"
+    },
+    "cancel": "Cancelar",
+    "save": "Aceptar"
+  },
   "AccountStatement": {
     "title": "Estado de cuenta",
     "print": "Imprimir",
+    "search": "Buscar...",
+    "refresh": "Refrescar",
     "close": "Cerrar",
     "loading": "Cargando estado de cuenta…",
     "noData": "Este paciente no tiene movimientos financieros.",
@@ -35,6 +294,9 @@
     "docTypePayments": "Pagos",
     "docTypeCreditNotes": "Notas de crédito",
     "noEntriesMatch": "No hay movimientos que coincidan con los filtros.",
+    "totalCharged": "Facturado",
+    "totalPaid": "Pagado",
+    "pendingBalance": "Pendiente",
     "balance": "Saldo",
     "invoiced": "Facturado",
     "paid": "Pagado",
@@ -51,7 +313,8 @@
     "placeholder": "Buscar paciente por nombre o teléfono…",
     "searching": "Buscando…",
     "noResults": "No se encontraron pacientes.",
-    "hint": "Escribe para buscar un paciente."
+    "hint": "Escribe para buscar un paciente.",
+    "createPatient": "Crear paciente {name}"
   },
   "ConfirmCloseDialog": {
     "title": "¿Descartar cambios?",
@@ -96,9 +359,11 @@
     "PhysicalCashRegisters": "Cajas Registradoras Físicas",
     "BusinessSetup": "Configuración de Negocio",
     "ClinicDetails": "Detalles de la Clínica",
+    "ClinicPrefs": "Preferencias de Clínica",
     "Schedules": "Horarios",
-    "Holidays": "Días Feriados",
+    "Holidays": "Horarios de Excepción",
     "Calendars": "Calendarios",
+    "CalendarColors": "Colores de Calendario",
     "Doctors": "Doctores",
     "Staff": "Secretarias y Administración",
     "DoctorAvailability": "Disponibilidad Médica",
@@ -106,8 +371,11 @@
     "Currencies": "Monedas y Tipos de Cambio",
     "Sequences": "Secuencias",
     "MutualSocieties": "Sociedades Mutuales",
+    "PatientGroups": "Grupos de Pacientes",
+    "ProviderGroups": "Grupos de Proveedores",
     "PrintTemplates": "Plantillas de Documentos",
     "Templates": "Plantillas",
+    "MedicalInstructionTemplates": "Plantillas de Indicaciones Médicas",
     "System": "Sistema",
     "SystemUsers": "Usuarios",
     "Roles": "Roles",
@@ -127,6 +395,7 @@
     "AlertTemplates": "Plantillas de Alertas",
     "AlertHistory": "Historial de Alertas",
     "AlertExecutions": "Ejecuciones de Alertas",
+    "WhatsAppAgent": "Agente WhatsApp",
     "Marketing": "Marketing",
     "Campaigns": "Campañas",
     "Audiences": "Audiencias",
@@ -169,7 +438,10 @@
     "ReportGastos": "Gastos Operativos",
     "ReportEstadoRes": "Estado de Resultados",
     "ReportKPIs": "KPIs Clínica",
-    "Sedes": "Sedes"
+    "ReportBalanceMensual": "Balance Mensual",
+    "Sedes": "Sedes",
+    "PatientsPortal": "Portal del Paciente",
+    "PrescriptionTemplates": "Plantillas de Receta"
   },
   "TVDisplayPage": {
     "title": "Pantalla TV",
@@ -318,9 +590,15 @@
     "priority_medium": "Media",
     "priority_high": "Alta",
     "actionMarkDone": "Marcar como hecho",
+    "markDoneOwnCopyHint": "Se marca como hecho solo para vos; el resto del staff lo sigue viendo.",
     "reminderDone": "Marcado como hecho",
     "newAppointmentTime": "Hora: {time}",
     "actionViewWorkspace": "Ver en workspace",
+    "handoffRequestedTitle": "Solicitud de atención humana",
+    "handoffAgentPaused": "El asistente dejó de responder esta conversación.",
+    "handoffPhone": "Teléfono",
+    "handoffLastMessage": "Último mensaje",
+    "actionViewPatient": "Ver paciente",
     "discharged": "Dado de Alta",
     "dischargedUntil": "Hasta el {date}",
     "sessionCompletedAlertTitle": "Sesión completada",
@@ -334,12 +612,16 @@
     "nextNotification": "Siguiente",
     "newAppointmentTitle": "Nueva cita",
     "statusChangedTitle": "Cambio de estado",
+    "appointmentRescheduledTitle": "Cita reagendada",
+    "appointmentReassignedTitle": "Cita reasignada",
+    "appointmentUpdatedTitle": "Cita editada",
     "reminderDueTitle": "Recordatorio vencido"
   },
   "Header": {
     "toggleLanguage": "Cambiar idioma",
     "english": "English",
     "spanish": "Español",
+    "spanishSpain": "Castellano",
     "myAccount": "Mi Cuenta",
     "settings": "Configuración",
     "support": "Soporte",
@@ -397,7 +679,8 @@
     "success": {
       "title": "Éxito",
       "description": "Su contraseña ha sido cambiada exitosamente."
-    }
+    },
+    "viewAsPatient": "Ver como paciente"
   },
   "OpenCashSessionWidget": {
     "checkingStatus": "Verificando estado de la sesión de caja...",
@@ -411,6 +694,15 @@
     "description": "No tiene una sesión de caja activa. Por favor, abra una para comenzar a registrar transacciones.",
     "button": "Abrir Sesión de Caja",
     "tooltip": "Sin sesión activa. Haga clic para abrir una."
+  },
+  "WorkingSedeSelector": {
+    "title": "Sede de Trabajo",
+    "selectPrompt": "Seleccione en qué sede está trabajando",
+    "noSedes": "No hay sedes disponibles"
+  },
+  "SedeSelectionModal": {
+    "title": "Selecciona una sede",
+    "description": "Debes elegir la sede en la que vas a trabajar antes de continuar."
   },
   "DataTableToolbar": {
     "toggleColumns": "Alternar columnas",
@@ -541,6 +833,81 @@
     "dateRange": "Desde {from} hasta {to}",
     "from": "Desde {from}"
   },
+  "DashboardGerencial": {
+    "title": "Panel de Control",
+    "consolidated": "Consolidado",
+    "branch": "Sucursal",
+    "today": "Hoy",
+    "updatedAt": "actualizado {time}",
+    "monthAccrued": "{month} acumulado",
+    "production": "Producción",
+    "collections": "Cobranza",
+    "patientsSeen": "Pacientes atendidos",
+    "cashResult": "Resultado de caja",
+    "monthExpenses": "Gastos del mes",
+    "newPatients": "Pacientes nuevos",
+    "vsSameWeekday": "vs. {weekday} pasado",
+    "ofScheduled": "de {count} agendados",
+    "previousMonth": "{month}: {value}",
+    "pctOfProduced": "{pct}% de lo producido",
+    "newThisMonth": "{count} nuevos este mes",
+    "noExpensesLoaded": "No hay gastos cargados",
+    "noData": "sin datos",
+    "noDataTooltip": "Todavía no hay ningún gasto cargado en el sistema. El indicador queda vacío en vez de mostrar $ 0, que se leería como \"no hubo gastos\".",
+    "estimated": "estimado",
+    "estimatedTooltip": "La sucursal de una factura se estima a partir de la cita del paciente más cercana en el tiempo, porque el dato no se registra al facturar. Cobertura 100%, margen de error ~1,2% (pacientes que se atienden en más de una sede).",
+    "consolidatedOnly": "solo consolidado",
+    "collectionsNoBranchTooltip": "Los cobros no registran sucursal ni por vía directa ni derivada, así que la cobranza se muestra siempre consolidada aunque haya una sede seleccionada.",
+    "branches": "Sucursales",
+    "compareBranches": "Comparar sucursales",
+    "patientsLabel": "pacientes",
+    "avgTicket": "ticket prom.",
+    "noShow": "no asistió",
+    "patientsPerDay": "Pacientes por día",
+    "legendThisPeriod": "Este período",
+    "legendToday": "Hoy",
+    "noBranchData": "No hay actividad registrada en el período.",
+    "loadError": "No se pudieron cargar los datos del panel.",
+    "retry": "Reintentar",
+    "patientsPerWeek": "Pacientes por semana",
+    "patientsPerMonth": "Pacientes por mes",
+    "avgPerDay": "Atendidos únicos · promedio {avg}/día",
+    "avgPerWeek": "Atendidos únicos · promedio {avg}/semana",
+    "avgPerMonth": "Atendidos únicos · promedio {avg}/mes",
+    "legendCurrentPeriod": "Período actual",
+    "granularityNote": "Agrupado por {unit} porque el período abarca {days} días",
+    "unitDay": "día",
+    "unitWeek": "semana",
+    "unitMonth": "mes",
+    "legendNew": "Nuevos",
+    "legendReturning": "Recurrentes",
+    "uniquePatientsNote": "Cada barra cuenta los pacientes únicos de ese {unit}. Quien viene más de un {unit} aparece en varias barras, por eso las barras no suman el total del período.",
+    "tooltipTotal": "Total",
+    "evolutionTitle": "Evolución",
+    "evolutionSubtitle": "Últimos {count} meses",
+    "evolutionMetric": "Métrica",
+    "evolutionDelta": "Δ vs {month}",
+    "evolutionDeltaGeneric": "Δ vs mes anterior",
+    "evolutionPartial": "mes en curso, al {date}",
+    "evolutionPartialMark": "en curso",
+    "metricProduction": "Producción",
+    "metricCollections": "Cobranza",
+    "metricPatients": "Pacientes atendidos",
+    "metricNew": "Pacientes nuevos",
+    "metricExpenses": "Gastos",
+    "newPatientDefinition": "Un paciente cuenta como nuevo el día de su primera cita atendida en la clínica. Con una sucursal filtrada, quien debutó en otra sede cuenta como recurrente.",
+    "blockUnavailable": "No se pudieron cargar estos datos.",
+    "metricAttendances": "Atenciones",
+    "attendancesPerDay": "Atenciones por día",
+    "attendancesPerWeek": "Atenciones por semana",
+    "attendancesPerMonth": "Atenciones por mes",
+    "avgAttendancesPerDay": "Citas atendidas · promedio {avg}/día",
+    "avgAttendancesPerWeek": "Citas atendidas · promedio {avg}/semana",
+    "avgAttendancesPerMonth": "Citas atendidas · promedio {avg}/mes",
+    "distinctPatients": "{count} pacientes distintos",
+    "distinctPatientsTooltip": "Las atenciones cuentan citas: quien vino más de una vez cuenta tantas veces como vino. Los pacientes distintos cuentan personas, así que ese número no se puede sumar entre períodos.",
+    "attendancesLabel": "atenciones"
+  },
   "SalesByServiceChart": {
     "title": "Ventas por Servicio",
     "description": "Servicios con mejor desempeño por porcentaje",
@@ -586,11 +953,17 @@
   "AppointmentsPage": {
     "title": "Citas",
     "description": "Gestionar todas las citas.",
+    "responsibleContactHint": "Contacto del responsable",
     "settings": {
       "title": "Configuración del Calendario",
+      "mode": "Vista (Modo)",
+      "modeOptions": {
+        "invoke": "Invoke",
+        "custom": "Personalizado"
+      },
       "defaultView": "Vista predeterminada",
       "hourHeight": "Altura de la hora",
-      "hourHeightOption": "{px} px",
+      "hourHeightOptionWithSlot": "{px} px · {slotPx} px por slot",
       "slotDuration": "Duración del slot",
       "slotDurationOption": "{min} min",
       "slotDurationHour": "1 hora",
@@ -599,12 +972,15 @@
       "eventLabel": "Formato de la cita",
       "eventLabelOptions": {
         "time_patient_notes": "Hora - Paciente - (Notas)",
-        "patient_treatment_time": "Paciente - Tratamiento - Hora"
+        "patient_treatment_time": "Paciente - Tratamiento - Hora",
+        "time_patient_notes_treatment": "Hora - Paciente teléfono - (Notas, Tratamiento)",
+        "time_treatment_patient_notes": "Hora - Tratamiento - Paciente - Teléfono - (Notas)"
       },
       "groupBy": "Agrupar por",
       "checkAvailability": "Verificar disponibilidad",
       "filterDoctorsByService": "Filtrar doctores por servicio",
       "inlineAppointmentCreation": "Crear cita en el calendario (sin modal)",
+      "inlineDraftLivePreview": "Previsualizar la cita al crearla",
       "options": {
         "day": "Día",
         "2_days": "2 Días",
@@ -618,26 +994,43 @@
         "sede": "Sedes"
       },
       "blockUnavailable": "Bloquear horarios fuera de atención",
+      "colorByStatus": "Mostrar el estado de la cita con color",
+      "hiddenWeekdays": "Ocultar días en vista de día/semana",
+      "weekdayAbbr": {
+        "0": "Dom",
+        "1": "Lun",
+        "2": "Mar",
+        "3": "Mié",
+        "4": "Jue",
+        "5": "Vie",
+        "6": "Sáb"
+      },
       "help": {
+        "mode": "Invoke muestra el calendario como siempre. Personalizado muestra una sola agenda a la vez a pantalla completa; usa el botón 'Agendas' (arriba a la izquierda) para elegir cuál ver.",
         "defaultView": "Define qué vista se muestra al abrir el calendario (día, semana, mes, agenda…). Cambiarla aplica la vista al instante.",
         "groupBy": "Divide el calendario en columnas por doctor o por consultorio. 'Sin agrupar' muestra una sola columna combinada.",
-        "hourHeight": "Altura en píxeles de cada hora en las vistas de día y semana. Más alto = filas más grandes y eventos más fáciles de leer.",
-        "slotDuration": "Duración de cada slot (10, 15, 20, 30 min o 1 h). Define cuántos slots entran por hora; agendas apretadas muestran más slots y la fila se hace más alta para que siempre se lea el título de la cita.",
+        "hourHeight": "Espacio vertical de cada hora en las vistas de día y semana. Más alto = más separación entre las citas y más visibles los huecos libres entre ellas. El zoom multiplica este valor y la duración del slot lo reparte: abajo se indica cuántos píxeles queda midiendo cada slot.",
+        "slotDuration": "Duración de cada slot (10, 15, 20, 30 min o 1 h). Define cuántos slots entran por hora: cuantos más slots, más finos quedan dentro de la altura de hora configurada. Si quedan muy justos, sube la altura de la hora o el zoom.",
         "sede": "Limita el calendario a los consultorios de una sede. 'Todas las sedes' muestra todos los consultorios.",
         "eventLabel": "Define cómo se compone el texto que se ve en cada cita (hora, paciente, tratamiento, notas).",
         "checkAvailability": "Al crear/editar una cita valida que el horario esté disponible para el doctor o consultorio elegido.",
         "blockUnavailable": "Atenúa y bloquea en el calendario los horarios fuera de atención (según horarios y excepciones), impidiendo crear citas ahí.",
         "filterDoctorsByService": "Al crear una cita, filtra la lista de doctores para mostrar solo los que prestan el servicio seleccionado.",
-        "inlineAppointmentCreation": "Al hacer clic en un slot crea la cita directamente en el calendario con un card, sin abrir el modal. El botón Crear siempre abre el modal."
+        "inlineAppointmentCreation": "Al hacer clic en un slot crea la cita directamente en el calendario con un card, sin abrir el modal. El botón Crear siempre abre el modal.",
+        "inlineDraftLivePreview": "La tarjeta de cita inline se abre al lado de la cita, que se ve en el calendario mientras la completás, para ver cómo entra en los huecos. Al cambiar la fecha el calendario se mueve a ese día. Solo en tablet y escritorio.",
+        "colorByStatus": "Las citas muestran su estado con color. Si la cita tiene una etiqueta de color propia o el color de su servicio, lo conserva y el estado aparece como una franja en el borde izquierdo. Si solo hereda el color del doctor o del consultorio, toda la cita se pinta con el color del estado. Algunos estados están configurados para pintar siempre la cita sin importar esta preferencia — ver Configuración → Colores de Calendario.",
+        "hiddenWeekdays": "Oculta los días elegidos como columnas en las vistas de día y semana. Es solo visual, para ganar espacio: no afecta la disponibilidad ni los días en que se pueden agendar citas."
       }
     },
     "newAppointment": "Nueva Cita",
     "calendarView": "Vista de Calendario",
     "listView": "Vista de Lista",
     "refresh": "Actualizar",
+    "printSchedule": "Exportar agenda a Excel",
     "calendars": "Calendarios",
     "toggleCalendars": "Mostrar/Ocultar Calendarios",
     "toggleDoctors": "Mostrar/Ocultar Doctores",
+    "agendas": "Agendas",
     "createSubtitle": "Cita o recordatorio",
     "showingAllCalendars": "Mostrando todos los calendarios",
     "showingAllOfSede": "Mostrando todos de: {sede}",
@@ -646,7 +1039,7 @@
     "showingCountDoctors": "Mostrando {count} de {total} doctores",
     "selectAll": "Seleccionar Todo",
     "bulk": {
-      "toggleButton": "Selección masiva",
+      "toggleButton": "Operaciones en Lotes",
       "toggleSubtitle": "Filtra y asigna en lote",
       "panelTitle": "Filtros de selección",
       "datePreset": "Rango de fechas",
@@ -734,7 +1127,9 @@
       "workflowServiceTitle": "Servicio con Flujo",
       "workflowServiceDescription": "Agendar esta cita creará un plan de tratamiento con {steps} pasos.",
       "workflowPlanCreated": "Plan de tratamiento creado para {name} ({steps} pasos)",
-      "workflowStepsLoading": "Cargando pasos..."
+      "workflowStepsLoading": "Cargando pasos...",
+      "summary": "Resumen del evento",
+      "summaryRequired": "El resumen es obligatorio para las citas importadas."
     },
     "AppointmentsColumns": {
       "service": "Servicio",
@@ -766,6 +1161,12 @@
     "noSuggestions": "Sin sugerencias",
     "search": "Buscar",
     "selectedServices": "Servicios Seleccionados",
+    "loadErrors": {
+      "title": "No se pudo cargar la agenda",
+      "description": "Hubo un problema al cargar consultorios, servicios o doctores. Revisá la conexión e intentá de nuevo.",
+      "fetchError": "No se pudieron actualizar las citas. Se muestran los últimos datos cargados.",
+      "retry": "Reintentar"
+    },
     "toasts": {
       "appointmentCancelled": "Cita cancelada",
       "appointmentCancelledDesc": "La cita ha sido cancelada.",
@@ -781,10 +1182,13 @@
       "failedCancel": "Error al cancelar",
       "failedDelete": "Error al eliminar",
       "fillRequired": "Por favor complete los campos obligatorios",
+      "patientRequired": "Debe asignar un paciente antes de guardar la cita",
       "missingInfoTitle": "Información Faltante",
       "slotNoLongerAvailable": "El horario ya no está disponible",
       "slotUnavailableDescription": "El horario seleccionado ya no está disponible.",
       "slotUnavailableTitle": "Horario no disponible",
+      "slotBlockedTitle": "Horario fuera de atención",
+      "slotBlockedDescription": "La fecha y hora seleccionada está fuera del horario de atención del calendario y no se puede agendar.",
       "unexpectedError": "Error inesperado",
       "endTimeInvalid": "La hora de fin debe ser posterior a la de inicio",
       "loadQuoteServicesError": "Error al cargar servicios del presupuesto",
@@ -793,6 +1197,9 @@
       "sessionUpdated": "Sesión clínica actualizada",
       "errorCreatingSession": "Error al guardar sesión",
       "errorCreatingSessionDesc": "Ocurrió un error al guardar la sesión clínica.",
+      "sessionFailedAppointmentCreated": "Cita creada, pero la sesión no se pudo guardar",
+      "sessionFailedAppointmentCreatedDesc": "La cita quedó guardada. Complete la sesión clínica desde el historial del paciente.",
+      "createdWithoutSessionId": "La cita se creó, pero no se pudo obtener su ID. Cree la sesión manualmente desde el historial del paciente.",
       "patientIdRequired": "Se requiere el ID del paciente",
       "errorLoadingQuoteItems": "Error al cargar tratamientos",
       "errorLoadingQuoteItemsDesc": "No se pudieron cargar los tratamientos del presupuesto.",
@@ -802,7 +1209,11 @@
       "calendarReassigned": "Consultorio actualizado",
       "quoteLinked": "Presupuesto enlazado",
       "quoteUnlinked": "Presupuesto desvinculado",
-      "invoiceLinked": "Factura enlazada"
+      "invoiceLinked": "Factura enlazada",
+      "appointmentMoved": "Cita movida",
+      "appointmentMovedDesc": "Nuevo horario: {date} · {time}",
+      "appointmentResized": "Duración actualizada",
+      "appointmentResizedDesc": "{start} – {end} ({minutes} min)"
     },
     "inlineCreate": {
       "title": "Nueva cita",
@@ -811,8 +1222,22 @@
       "cancelledAppointments": "{count} citas canceladas",
       "createService": "Crear \"{name}\"",
       "overlapWarning": "Cuidado: se solapa con otra cita",
+      "slotUnavailable": "Horario no disponible: el consultorio o el doctor están ocupados",
+      "checkingAvailability": "Comprobando disponibilidad…",
       "cancel": "Cancelar",
       "save": "Guardar",
+      "date": "Fecha",
+      "background": "Fondo",
+      "noBackground": "Sin fondo",
+      "roomBackground": "Consultorio",
+      "from": "Desde",
+      "to": "Hasta",
+      "patient": "Paciente",
+      "annotation": "Anotación",
+      "hoursShort": "h",
+      "minutesShort": "min",
+      "addPatient": "Adicionar usuario",
+      "editPatient": "Editar usuario",
       "selectPatient": "¿Quién se atiende?",
       "searchPatient": "Buscar paciente…",
       "duration": "Duración",
@@ -828,7 +1253,9 @@
       "selectDoctor": "Doctor",
       "searchDoctor": "Buscar doctor…",
       "noDoctors": "Sin doctores",
-      "viewStatement": "Ver estado de cuenta"
+      "viewStatement": "Ver estado de cuenta",
+      "importedFromGoogle": "Importado de Google Calendar",
+      "summaryPlaceholder": "Título del evento"
     },
     "linkedSession": "Sesión Clínica Enlazada",
     "noLinkedSession": "No hay sesión clínica enlazada a esta cita",
@@ -854,7 +1281,13 @@
       "newInvoice": "Crear nueva factura",
       "searchInvoice": "Buscar factura…",
       "noInvoices": "Sin facturas",
-      "quickBill": "Cobro rápido"
+      "quickBill": "Cobro rápido",
+      "accounts": "Cuentas",
+      "clinicHistory": "Historia",
+      "imagesAndFiles": "Imágenes y archivos",
+      "appointmentsHistory": "Historial de Citas",
+      "patientData": "Datos del paciente",
+      "deleteAppointment": "Eliminar cita"
     },
     "linkedInvoice": "Factura",
     "notInvoiced": "Sin facturar",
@@ -876,7 +1309,77 @@
     "treatmentSequence": {
       "title": "Plan de Tratamiento",
       "stepRef": "Paso del plan #{id}"
+    },
+    "importedFromGoogle": "Importado de Google Calendar",
+    "enableSlot": {
+      "menuItem": "Habilitar horario…",
+      "title": "Habilitar horario",
+      "description": "{date} · {scope}",
+      "thisBranch": "Esta sede",
+      "allBranches": "Todas las sedes",
+      "startTime": "Desde",
+      "endTime": "Hasta",
+      "notes": "Motivo (opcional)",
+      "notesPlaceholder": "Ej.: horario extendido por cirugía",
+      "defaultNote": "Habilitado desde el calendario",
+      "resultingHours": "Horario de atención ese día: {hours}",
+      "alreadyOpen": "Ese horario ya está habilitado. Elegí un rango fuera del horario.",
+      "hint": "Solo cambia este día. Se guarda como horario de excepción, que podés revisar o quitar en Configuración → Horarios de excepción.",
+      "cancel": "Cancelar",
+      "confirm": "Habilitar",
+      "successTitle": "Horario habilitado",
+      "successDescription": "Horario de atención ese día: {hours}",
+      "partialError": "Solo se aplicaron {saved} de {total} cambios. Revisá el día en Horarios de excepción.",
+      "validation": {
+        "time": "Ingresá una hora válida",
+        "endAfterStart": "El fin tiene que ser posterior al inicio"
+      },
+      "unnamedClosure": "Cierre sin nota",
+      "closedAllDay": "cerrado todo el día",
+      "nothingEditable": "Ese horario sigue cerrado por cierres que no se pueden cambiar desde acá.",
+      "missingPermission": "No tenés permiso para hacer todos los cambios en Horarios de excepción que hacen falta.",
+      "changes": {
+        "title": "Qué va a cambiar",
+        "liftClosure": "Se quita el cierre «{name}».",
+        "trimClosure": "El cierre «{name}» queda solo en {hours}.",
+        "removeDate": "Se quita este día del cierre «{name}» (sigue en {count, plural, one {# fecha más} other {# fechas más}}).",
+        "removeDatePartial": "Se quita este día del cierre «{name}» (sigue en {count, plural, one {# fecha más} other {# fechas más}}); hoy queda cerrado {hours}.",
+        "extendHours": "Se amplía el horario de atención del día.",
+        "closedOutsideHours": "El cierre «{name}» queda solo fuera del horario de atención.",
+        "removeDateOutsideHours": "Se quita este día del cierre «{name}» (sigue en {count, plural, one {# fecha más} other {# fechas más}}); hoy queda cerrado solo fuera del horario de atención."
+      },
+      "locked": {
+        "title": "Estos cierres no se pueden cambiar desde el calendario:",
+        "recurring": "«{name}» se repite en otras fechas.",
+        "otherScope": "«{name}» aplica a otro alcance de sedes (por ejemplo, todas las sedes).",
+        "link": "Abrir Horarios de excepción"
+      }
     }
+  },
+  "PrintScheduleDialog": {
+    "title": "Exportar agenda a Excel",
+    "description": "Genera una planilla de las citas de un calendario. Se excluyen las citas canceladas y las ausencias.",
+    "field_calendar": "Calendario",
+    "no_calendars": "No hay calendarios disponibles",
+    "field_calendar_placeholder": "Elegí un calendario",
+    "field_range": "Período",
+    "range_day": "Día",
+    "range_week": "Semana",
+    "range_month": "Mes",
+    "range_custom": "Rango",
+    "field_anchor": "Fecha",
+    "field_from": "Desde",
+    "field_to": "Hasta",
+    "summary_single": "Citas del {date}",
+    "summary_range": "Citas del {from} al {to}",
+    "cancel": "Cancelar",
+    "export": "Descargar Excel",
+    "col_time": "Horario",
+    "col_name": "Nombre y Apellido",
+    "col_phone": "Teléfono",
+    "toast_success": "{count, plural, one {# cita exportada} other {# citas exportadas}}",
+    "toast_empty": "No hay citas en el período seleccionado",
+    "toast_error": "No se pudo generar el Excel"
   },
   "AppointmentsColumns": {
     "service": "Servicio",
@@ -888,6 +1391,7 @@
     "cancel": "Cancelar",
     "calendar": "Calendario",
     "patient": "Paciente",
+    "phone": "Teléfono",
     "quoteDocNo": "Presupuesto"
   },
   "AppointmentStatus": {
@@ -897,7 +1401,9 @@
     "cancelled": "Cancelada",
     "scheduled": "Programada",
     "arrived": "Llegó",
+    "arrived_late": "Llegó tarde",
     "in_progress": "En curso",
+    "attended_late": "Se le atiende tarde",
     "no_show": "No asistió"
   },
   "AppointmentStatusMenu": {
@@ -911,6 +1417,13 @@
     "errorDesc": "Ocurrió un error al actualizar el estado de la cita.",
     "cancelSubmenu": "Cancelar…",
     "otherReason": "Otro motivo…"
+  },
+  "MissingIdentityDocumentDialog": {
+    "title": "Falta el documento de identidad",
+    "description": "No se puede marcar la cita como \"{status}\" porque {patient} no tiene documento de identidad cargado. Cargalo en su ficha y volvé a intentarlo.",
+    "descriptionNoName": "No se puede marcar la cita como \"{status}\" porque el paciente no tiene documento de identidad cargado. Cargalo en su ficha y volvé a intentarlo.",
+    "close": "Entendido",
+    "dismiss": "Cerrar"
   },
   "CancellationReason": {
     "late": "Cancelada tarde",
@@ -972,7 +1485,26 @@
     "deleteTitle": "Eliminar cita",
     "deleteDescription": "Esta acción eliminará la cita por completo del sistema y no se podrá volver a ver. ¿Deseas continuar?",
     "deleteConfirm": "Sí, eliminar",
-    "deleteCancel": "Cancelar"
+    "deleteCancel": "Cancelar",
+    "history": {
+      "title": "Historial de cambios",
+      "empty": "Aún no hay cambios registrados.",
+      "fields": {
+        "status": "Estado",
+        "notes": "Notas",
+        "description": "Descripción",
+        "summary": "Resumen",
+        "color": "Color",
+        "doctor_id": "Doctor",
+        "calendar_id": "Consultorio",
+        "quote_id": "Presupuesto",
+        "invoice_id": "Factura",
+        "start_datetime": "Inicio",
+        "end_datetime": "Fin",
+        "cancellation_reason": "Motivo de cancelación",
+        "cancellation_note": "Detalle de cancelación"
+      }
+    }
   },
   "AppointmentReschedule": {
     "action": "Reagendar",
@@ -1013,6 +1545,18 @@
       "dismiss": "Cerrar aviso",
       "openFirst": "Ver primera cita"
     },
+    "rescheduleAlerts": {
+      "singleTitle": "Se reagendó una cita de hoy",
+      "multipleTitle": "Se reagendaron {count} citas de hoy"
+    },
+    "reassignAlerts": {
+      "singleTitle": "Te reasignaron una cita",
+      "multipleTitle": "Te reasignaron {count} citas"
+    },
+    "editAlerts": {
+      "singleTitle": "Se editó una cita de hoy",
+      "multipleTitle": "Se editaron {count} citas de hoy"
+    },
     "todayLabel": "Hoy: {date}",
     "lastUpdated": "Última actualización: {time}",
     "lastUpdatedPending": "Cargando actualización inicial",
@@ -1036,15 +1580,32 @@
       "refresh": "Actualizar",
       "openFullAgenda": "Abrir agenda completa",
       "emptyTitle": "No hay citas para hoy",
+      "emptyTitleOtherDay": "No hay citas para este día",
       "emptyDescription": "Cuando se agenden nuevas citas o cambie el estado de una existente, aparecerán aquí.",
-      "hiddenPastAppointments": "{count} citas anteriores ocultas",
-      "historyHidden": "Historial",
-      "showHistory": "Ver historial",
-      "hideHistory": "Ocultar",
       "unknownPatient": "Paciente sin nombre",
       "viewPatient": "Paciente",
       "viewContext": "Contexto",
-      "startSession": "Sesión"
+      "startSession": "Sesión",
+      "today": "Hoy",
+      "titleRange": "Agenda del período",
+      "emptyTitleRange": "No hay citas en este período",
+      "rangeSummary": "{appointments, plural, =1 {1 cita} other {# citas}} · {days, plural, =1 {1 día} other {# días}}",
+      "dayAppointmentCount": "{count, plural, =1 {1 cita} other {# citas}}",
+      "readOnlyDay": "Solo lectura (no es hoy)",
+      "dateFilter": {
+        "today": "Hoy",
+        "tomorrow": "Mañana",
+        "week": "Esta semana",
+        "next7": "Próximos 7 días",
+        "month": "Este mes",
+        "nextMonth": "Mes próximo",
+        "prevMonth": "Mes pasado",
+        "modeDay": "Un día",
+        "modeRange": "Período",
+        "hintDay": "Elige un día para ver su agenda.",
+        "hintPickStart": "Marca el día de inicio del período.",
+        "hintPickEnd": "Inicio: {date}. Ahora marca el día de fin."
+      }
     },
     "focus": {
       "title": "Paciente en foco",
@@ -1068,9 +1629,9 @@
       "latestSessionBadge": "Última sesión",
       "currentAppointmentBadge": "Cita actual",
       "viewPatientFile": "Ficha del paciente",
-      "noClinicalSignals": "Sin alergias ni complicaciones registradas.",
       "moreAlertTags": "+{count} más",
       "sessionExistsToday": "Ya existe una sesión clínica registrada para hoy. Solo se permite una sesión por paciente por día.",
+      "sessionOnlyOnAppointmentDay": "No puedes completar o editar la sesión clínica antes del día de la cita.",
       "sessionIsOdontogram": "La sesión registrada para esta cita es de tipo Odontograma. Edítala desde el panel de Odontograma.",
       "workspaceLabel": "Workspace clínico",
       "sessionStatusTitle": "Estado de la sesión",
@@ -1155,8 +1716,13 @@
         "sessionConfirmSaveDirect": "Guardar directamente",
         "sessionConfirmCancel": "Cancelar",
         "sessionConfirmSaving": "Guardando...",
-        "sessionConfirmSavedOk": "Sesión guardada correctamente."
-      }
+        "sessionConfirmSavedOk": "Sesión guardada correctamente.",
+        "odontogramNotApplied": "No pude aplicar las marcas en el odontograma: esta cita no admite una sesión nueva. Abre la sesión existente y vuelve a pedírmelo.",
+        "odontogramNotConfirmed": "Abrí el odontograma, pero no pude confirmar que se aplicaran las marcas. Revísalo antes de guardar."
+      },
+      "readOnly": "Solo lectura",
+      "readOnlyOnDate": "Solo lectura · {date}",
+      "prescribe": "Recetar"
     },
     "calendarSwitch": {
       "myAppointments": "Mis citas",
@@ -1394,6 +1960,7 @@
     "filterPlaceholder": "Filtrar pacientes por correo...",
     "filterByPatient": "Filtrar por paciente...",
     "detailsFor": "Detalles para {name}",
+    "readOnlyBadge": "Solo lectura",
     "doctorWorkspace": {
       "clinicalAlerts": "Alertas clínicas",
       "noAllergies": "Sin alergias registradas."
@@ -1401,13 +1968,62 @@
     "close": "Cerrar detalles",
     "dependentPatient": "Paciente dependiente",
     "dependentOf": "Dependiente de {name}",
+    "viewResponsibleProfile": "Ver perfil del contacto responsable",
+    "dependents": {
+      "title": "Pacientes a cargo",
+      "refresh": "Actualizar",
+      "linkExisting": "Vincular existente",
+      "addNew": "Nuevo dependiente",
+      "searchPlaceholder": "Buscar paciente por nombre, documento o teléfono...",
+      "searchHint": "Escribí para buscar un paciente.",
+      "noResults": "No se encontraron pacientes.",
+      "alreadyLinked": "Ya está a cargo",
+      "hasOtherResponsible": "A cargo de otro responsable",
+      "age": "{age} años",
+      "inactive": "Inactivo",
+      "usesResponsiblePhone": "Usa el teléfono del responsable",
+      "openProfile": "Abrir ficha",
+      "unlink": "Desvincular",
+      "retry": "Reintentar",
+      "empty": "No tiene pacientes a cargo",
+      "emptyHint": "Vinculá un paciente existente o registrá uno nuevo (por ejemplo, un hijo) para que figure como su responsable.",
+      "noSiblings": "No hay otros pacientes a cargo de este responsable.",
+      "responsibleTitle": "Responsable",
+      "responsibleUnknown": "No se encontró el responsable",
+      "responsibleHint": "Para cambiar el responsable, editá los detalles del paciente.",
+      "siblingsTitle": "También a cargo de {name}",
+      "unlinkTitle": "¿Desvincular dependiente?",
+      "unlinkDescription": "{name} dejará de estar a cargo de {responsible} y pasará a ser un paciente independiente.",
+      "unlinkNoPhoneWarning": "{name} no tiene teléfono propio: los recordatorios y alertas dejarán de llegarle hasta que se le cargue uno.",
+      "unlinkConfirm": "Desvincular",
+      "cancel": "Cancelar",
+      "unlinkSuccess": "{name} ya no es dependiente",
+      "unlinkError": "No se pudo desvincular al paciente",
+      "linkSuccess": "{name} ahora es dependiente",
+      "linkError": "No se pudo vincular al paciente",
+      "reassignTitle": "¿Cambiar de responsable?",
+      "reassignDescription": "{name} ya está a cargo de otro responsable. Si continuás, pasará a estar a cargo de {responsible}.",
+      "reassignDescriptionNamed": "{name} está a cargo de {current}. Si continuás, pasará a estar a cargo de {responsible}.",
+      "reassignConfirm": "Cambiar responsable",
+      "createTitle": "Nuevo dependiente",
+      "createDescription": "El paciente nuevo quedará registrado a cargo de {name}.",
+      "errors": {
+        "selfResponsible": "Un paciente no puede ser su propio responsable.",
+        "responsibleIsDependent": "El responsable elegido es un paciente dependiente: un dependiente no puede tener pacientes a cargo.",
+        "guardianHasDependents": "Este paciente tiene dependientes a su cargo, así que no puede ser dependiente. Desvinculá primero a sus dependientes.",
+        "notFound": "El paciente ya no existe o no se encontró."
+      }
+    },
+    "responsibleMatch": "A cargo de {name}",
+    "responsibleMatchWithPhone": "A cargo de {name} · {phone}",
     "preferencesButton": "Preferencias",
     "dischargeButton": "Dar Alta",
     "readmitButton": "Reingreso",
-    "setInitialPassword": "Establecer Contraseña Inicial",
+    "setInitialPassword": "Restablecer Contraseña",
     "tabs": {
       "roles": "Roles",
       "services": "Servicios",
+      "ledger": "Cuenta",
       "quotes": "Presupuestos",
       "appointments": "Citas",
       "treatmentPlans": "Planes de Trat.",
@@ -1428,7 +2044,10 @@
       "info": "Información",
       "anamnesis": "Anamnesis",
       "summary": "Resumen",
-      "history": "Línea de tiempo"
+      "history": "Línea de tiempo",
+      "medicalInstructions": "Indicaciones Médicas",
+      "dependents": "Dependientes",
+      "responsible": "Responsable"
     },
     "createDialog": {
       "title": "Crear Nuevo Paciente",
@@ -1438,6 +2057,7 @@
       "editDescription": "Actualice los detalles de este paciente.",
       "createSuccessTitle": "Paciente Creado",
       "createSuccessDescription": "El nuevo paciente ha sido agregado exitosamente.",
+      "createdNotResolvedDescription": "El paciente se creó pero no se pudo seleccionar automáticamente. Buscalo en la lista.",
       "editSuccessTitle": "Paciente Actualizado",
       "editSuccessDescription": "El paciente ha sido actualizado exitosamente.",
       "name": "Nombre",
@@ -1451,9 +2071,30 @@
       "responsibleContactPlaceholder": "Sin asignar",
       "searchGuardianPlaceholder": "Buscar por nombre...",
       "noGuardianResults": "No se encontraron pacientes",
+      "searchGuardianHint": "Escribe para buscar el tutor.",
+      "createGuardian": "Crear tutor {name}",
+      "createGuardianTitle": "Crear Tutor",
+      "createGuardianDescription": "Complete los datos del tutor. Al guardarlo queda asignado como contacto responsable.",
       "clearResponsibleContact": "Limpiar",
+      "doctor": "Doctor por defecto",
+      "searchDoctor": "Buscar doctor...",
+      "selectDoctor": "Seleccionar doctor",
+      "clearDoctor": "Limpiar",
+      "sex": "Sexo",
+      "sexNone": "No especificado",
+      "sexMale": "Masculino",
+      "sexFemale": "Femenino",
       "identity_document": "Documento de Identidad",
       "identity_document_placeholder": "ej., 12345678",
+      "identity_document_type": "Tipo de Documento",
+      "identityDocumentTypes": {
+        "cedula_uy": "Cédula Uruguaya",
+        "cedula_ext": "Cédula Extranjera",
+        "pasaporte_uy": "Pasaporte Uruguayo",
+        "pasaporte_ext": "Pasaporte Extranjero",
+        "dni": "DNI (España)",
+        "nie": "NIE (España)"
+      },
       "isActive": "Está Activo",
       "cancel": "Cancelar",
       "save": "Crear Paciente",
@@ -1465,9 +2106,10 @@
         "phoneInvalid": "Número de teléfono inválido",
         "phoneRequired": "El teléfono es obligatorio",
         "identityRequired": "El documento de identidad es obligatorio",
-        "identityInvalid": "El documento de identidad debe ser un número.",
+        "identityInvalid": "El documento de identidad no tiene un formato válido para el tipo seleccionado.",
         "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
         "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
+        "responsibleContactRequired": "El paciente es dependiente: debe seleccionar el contacto responsable.",
         "genericError": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
         "serverError": "Error del servidor, por favor inténtelo más tarde.",
         "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
@@ -1475,10 +2117,15 @@
           "email": "Correo Electrónico",
           "phone": "Teléfono",
           "identity_document": "Documento de Identidad"
-        }
+        },
+        "nameInvalid": "Usá solo letras, espacios, guiones, apóstrofos y puntos (sin números ni símbolos).",
+        "nameTooShort": "El nombre debe tener al menos 2 letras.",
+        "nameTooLong": "El nombre no puede superar los 120 caracteres."
       },
       "birth_date": "Fecha de nacimiento",
       "birth_date_placeholder": "01/01/1999",
+      "address": "Dirección",
+      "addressPlaceholder": "Calle, número, ciudad",
       "notes": {
         "title": "Notas del Paciente",
         "description": "Gestionar las notas y observaciones del paciente",
@@ -1505,6 +2152,21 @@
         "success": "Sociedad mutual actualizada",
         "error": "Error al actualizar la sociedad mutual"
       }
+    },
+    "patientGroup": {
+      "select": "Seleccionar grupo",
+      "none": "Sin asignar"
+    },
+    "patientGroups": {
+      "label": "Grupos del paciente",
+      "selectPlaceholder": "Seleccionar grupos...",
+      "search": "Buscar grupo...",
+      "noResults": "No hay grupos.",
+      "empty": "Este paciente no pertenece a ningún grupo.",
+      "count": "{count} grupo(s)",
+      "save": "Guardar grupos",
+      "saved": "Grupos del paciente actualizados",
+      "saveError": "No se pudieron guardar los grupos"
     },
     "filters": {
       "type": {
@@ -1847,20 +2509,6 @@
       "invoiceSuccessDesc": "La factura para la orden #{orderId} ha sido creada exitosamente.",
       "invoiceError": "Error al crear la factura"
     },
-    "sendEmailDialog": {
-      "title": "Enviar Presupuesto por Correo",
-      "description": "Ingrese los correos de los destinatarios para el presupuesto #{id}.",
-      "recipients": "Destinatarios",
-      "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
-      "helperText": "Separe múltiples correos con comas.",
-      "sending": "Enviando...",
-      "cancel": "Cancelar",
-      "send": "Enviar correo",
-      "success": "Presupuesto enviado exitosamente",
-      "error": "Error al enviar presupuesto",
-      "errorNoEmail": "Por favor ingrese al menos un correo destinatario.",
-      "errorInvalidEmails": "Direcciones de correo inválidas: {emails}"
-    },
     "confirmDialog": {
       "title": "Confirmar Presupuesto",
       "titleReject": "Rechazar Presupuesto",
@@ -1880,6 +2528,12 @@
       "user": "Usuario",
       "selectUser": "Seleccionar Usuario",
       "searchUser": "Buscar Usuario",
+      "doctor": "Doctor",
+      "selectDoctor": "Seleccionar Doctor",
+      "searchDoctor": "Buscar doctor...",
+      "sede": "Sede",
+      "selectSede": "Seleccionar sede...",
+      "searchSede": "Buscar sede...",
       "total": "Total",
       "currency": "Moneda",
       "exchangeRate": "Tasa de Cambio",
@@ -1972,12 +2626,6 @@
     "pdfDownloading": "Su PDF para el presupuesto #{id} se está descargando.",
     "printError": "Error de Impresión",
     "couldNotPrint": "No se pudo imprimir el presupuesto.",
-    "emailError": "Error de Correo Electrónico",
-    "invalidEmail": "Dirección de Correo Inválida",
-    "atLeastOneEmail": "Por favor ingrese al menos un correo electrónico destinatario.",
-    "invalidEmails": "Los siguientes correos electrónicos son inválidos: {emails}",
-    "emailSent": "Correo Enviado",
-    "emailSentSuccess": "El presupuesto ha sido enviado exitosamente a {emails}.",
     "unexpectedError": "Ocurrió un error inesperado.",
     "reject": "Rechazar",
     "edit": "Editar",
@@ -2051,6 +2699,7 @@
       "saving": "Guardando..."
     },
     "validation": {
+      "discountOverLimit": "Supera el descuento máximo permitido por la clínica",
       "userRequired": "Un usuario es obligatorio",
       "serviceRequired": "Un servicio es obligatorio",
       "dateRequired": "La fecha es obligatoria",
@@ -2061,7 +2710,8 @@
       "unitPriceTwoDecimals": "El precio debe tener máximo 2 decimales",
       "toothNumberMin": "El número de diente debe ser al menos 11",
       "toothNumberMax": "El número de diente debe ser como máximo 85",
-      "exchangeRatePositive": "La tasa de cambio debe ser mayor a 0"
+      "exchangeRatePositive": "La tasa de cambio debe ser mayor a 0",
+      "sedeRequired": "La sede es obligatoria"
     },
     "deleteQuoteDialog": {
       "title": "Eliminar Presupuesto",
@@ -2260,6 +2910,7 @@
     },
     "validation": {
       "amountPositive": "El monto debe ser un número positivo.",
+      "amountNonNegative": "El monto no puede ser negativo.",
       "methodRequired": "El método de pago es obligatorio.",
       "dateRequired": "La fecha de pago es obligatoria.",
       "userRequired": "Un usuario es obligatorio",
@@ -2320,20 +2971,6 @@
         "invoice": "Factura"
       }
     },
-    "sendEmailDialog": {
-      "title": "Enviar Factura por Correo",
-      "description": "Ingrese los correos de los destinatarios para la factura #{id}.",
-      "recipients": "Destinatarios",
-      "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
-      "helperText": "Separe múltiples correos con comas.",
-      "errorNoEmail": "Por favor, ingrese al menos un correo electrónico.",
-      "send": "Enviar Correo",
-      "sending": "Enviando...",
-      "cancel": "Cancelar",
-      "success": "Factura enviada exitosamente",
-      "error": "Error al enviar la factura",
-      "errorInvalidEmails": "Correos inválidos: {emails}"
-    },
     "importDialog": {
       "title": "Importar Factura",
       "description": "Suba un archivo PDF o imagen para crear automáticamente una factura.",
@@ -2376,6 +3013,12 @@
       "description": "Crear una nueva factura",
       "user": "Usuario",
       "selectUser": "Seleccionar Usuario",
+      "doctor": "Doctor",
+      "selectDoctor": "Seleccionar Doctor",
+      "searchDoctor": "Buscar doctor...",
+      "sede": "Sede",
+      "selectSede": "Seleccionar sede...",
+      "searchSede": "Buscar sede...",
       "invoiceRef": "Referencia de Factura",
       "addItem": "Agregar Artículo",
       "total": "Total",
@@ -2398,7 +3041,9 @@
         "totalNonNegative": "El total debe ser un número no negativo.",
         "serviceRequired": "El nombre del servicio es obligatorio.",
         "quantityMin": "La cantidad debe ser al menos 1.",
-        "unitPriceNonNegative": "El precio unitario no puede ser negativo."
+        "unitPriceNonNegative": "El precio unitario no puede ser negativo.",
+        "sedeRequired": "La sede es obligatoria.",
+        "parentInvoiceRequired": "Debe seleccionar la factura padre."
       },
       "errors": {
         "title": "Error",
@@ -2441,7 +3086,17 @@
       "title": "Acciones",
       "edit": "Editar",
       "print": "Imprimir",
-      "sendEmail": "Enviar Correo"
+      "sendEmail": "Enviar Correo",
+      "confirm": "Confirmar",
+      "confirmSuccess": "Factura confirmada",
+      "confirmError": "Error al confirmar la factura",
+      "printError": "Error al descargar la factura",
+      "paymentSuccess": "Pago registrado correctamente",
+      "paymentError": "Error al registrar el pago",
+      "registerPayment": "Registrar pago",
+      "paymentDialogDescription": "Ingrese los detalles del pago de la factura {docNo}",
+      "cancel": "Cancelar",
+      "register": "Registrar"
     },
     "confirmation": {
       "confirm": "Confirmar",
@@ -2497,6 +3152,17 @@
     },
     "notes": {
       "noNotes": "No hay notas."
+    },
+    "fields": {
+      "amount": "Monto",
+      "paymentMethod": "Método de pago",
+      "reference": "Referencia",
+      "referencePlaceholder": "Número de referencia"
+    },
+    "paymentMethods": {
+      "cash": "Efectivo",
+      "card": "Tarjeta",
+      "transfer": "Transferencia"
     }
   },
   "CashierPage": {
@@ -2522,35 +3188,36 @@
       "prefillLast": "Rellenar con último cierre",
       "cashCountTitle": "Conteo de Efectivo ({currency})",
       "cashCountDescription": "Ingrese el conteo físico de efectivo para cada denominación.",
-      "uyuCountTitle": "Conteo UYU",
-      "usdCountTitle": "Conteo USD",
       "steps": {
         "config": "Configuración",
-        "countUYU": "Conteo de Efectivo (UYU)",
-        "countUSD": "Conteo de Efectivo (USD)",
         "bankDeposit": "Depósito Bancario",
         "review": "Revisar",
         "declare": "Declarar",
         "report": "Reporte",
-        "confirm": "Confirmación"
+        "confirm": "Confirmación",
+        "count": "Contar {currency}"
       },
-      "title": "Cerrar Sesión"
+      "title": "Cerrar Sesión",
+      "count": {
+        "title": "Conteo de efectivo ({currency})",
+        "noDenominations": "No hay desglose de billetes para {currency}. Introduce el importe total contado."
+      }
     },
     "bankDeposit": {
       "title": "Declaración de Depósito Bancario",
       "description": "Declare las denominaciones de efectivo físico que se retirarán para el banco. Este paso es opcional.",
-      "countUYU": "Depósito Bancario UYU",
-      "countUSD": "Depósito Bancario USD",
       "attachFiles": "Adjuntar Archivos",
-      "chooseFiles": "Elegir Archivos"
+      "chooseFiles": "Elegir Archivos",
+      "count": "Depositar {currency}"
     },
     "confirmation": {
       "sessionInfo": "Info de Sesión",
       "cashSummary": "Resumen de Efectivo",
-      "totalUYU": "Total UYU",
-      "totalUSD": "Total USD",
       "totalOpening": "Total Apertura",
-      "confirmButton": "Confirmar"
+      "confirmButton": "Confirmar",
+      "total": "Total {currency}",
+      "denomination": "Denominación {currency}",
+      "quantity": "Cantidad"
     },
     "activeSession": {
       "columns": {
@@ -2571,7 +3238,9 @@
       "quantity": "Cantidad",
       "subtotal": "Subtotal",
       "cashOnHand": "Efectivo en Mano",
+      "cashGenerated": "Generado",
       "totalOutcome": "Egresos Totales",
+      "totalPos": "POS",
       "transactions": "Transacciones",
       "printOpening": "Imprimir Apertura"
     },
@@ -2596,6 +3265,7 @@
         "mobile_payment": "Pago Móvil",
         "mercado_pago": "Mercado Pago",
         "pe": "PE",
+        "ca": "Compra ágil",
         "card": "Tarjeta",
         "transfer": "Transferencia",
         "other": "Otro"
@@ -2735,7 +3405,9 @@
     "actions": {
       "edit": "Editar",
       "delete": "Eliminar",
-      "openMenu": "Abrir menú"
+      "openMenu": "Abrir menú",
+      "deleteDisabledClosedSession": "No se puede eliminar: la caja de esta transacción ya está cerrada",
+      "editDisabledClosedSession": "No se puede editar: la caja de esta transacción ya está cerrada"
     },
     "dialog": {
       "editTitle": "Editar Transacción",
@@ -2789,6 +3461,7 @@
     "columns": {
       "id": "ID",
       "name": "Nombre",
+      "sede": "Sede",
       "isActive": "Está Activa",
       "createdAt": "Creado En",
       "updatedAt": "Actualizado En",
@@ -2803,6 +3476,9 @@
       "createTitle": "Crear Caja Registradora",
       "name": "Nombre",
       "namePlaceholder": "Nombre aquí...",
+      "sede": "Sede",
+      "selectSede": "Seleccionar sede...",
+      "searchSede": "Buscar sede...",
       "isActive": "Está Activa",
       "cancel": "Cancelar",
       "create": "Crear",
@@ -2810,7 +3486,8 @@
       "save": "Guardar Cambios"
     },
     "validation": {
-      "nameRequired": "El nombre es obligatorio"
+      "nameRequired": "El nombre es obligatorio",
+      "sedeRequired": "La sede es obligatoria"
     },
     "deleteDialog": {
       "title": "Eliminar Caja Registradora",
@@ -2909,6 +3586,7 @@
         "MOBILE_PAYMENT": "Pago Móvil",
         "MERCADO_PAGO": "Mercado Pago",
         "PE": "Pago en especies",
+        "CA": "Compra ágil",
         "Cash": "Efectivo",
         "CN": "Nota de crédito"
       }
@@ -2963,6 +3641,33 @@
       "isHistoricalDescription": "Marque esta opción si el pago fue realizado en una fecha anterior a hoy",
       "isHistoricalWarning": "Pago histórico registrado"
     },
+    "smartPaymentDialog": {
+      "title": "Nuevo Pago",
+      "amount": "Monto",
+      "currency": "Moneda",
+      "paymentMethod": "Método de Pago",
+      "selectMethod": "Seleccionar método",
+      "paymentDate": "Fecha de Pago",
+      "useAvailableCredit": "Usar crédito disponible",
+      "allocationPreview": "Este pago se aplicará a",
+      "loadingInvoices": "Revisando facturas pendientes…",
+      "noPendingInvoices": "No hay facturas pendientes — se registrará como prepago.",
+      "fromCredit": "desde crédito",
+      "prepaidRemainder": "Sobrante (se registra como prepago)",
+      "notes": "Notas",
+      "notesPlaceholder": "Agregue notas adicionales aquí...",
+      "isHistorical": "Histórico",
+      "isHistoricalDescription": "Marque esta opción si el pago fue realizado en una fecha anterior a hoy",
+      "isHistoricalWarning": "Pago histórico registrado",
+      "cancel": "Cancelar",
+      "save": "Guardar",
+      "confirmTitle": "Confirmar Pago",
+      "confirmDescription": "Esto aplicará el pago a las facturas pendientes del paciente (las más antiguas primero) y registrará el sobrante como prepago. ¿Continuar?",
+      "confirm": "Confirmar",
+      "toasts": {
+        "successDescription": "Pago registrado y aplicado correctamente."
+      }
+    },
     "tabs": {
       "allocations": "Asignaciones",
       "notes": "Notas"
@@ -2985,20 +3690,6 @@
     },
     "notes": {
       "noNotes": "No hay notas disponibles."
-    },
-    "sendEmailDialog": {
-      "title": "Enviar Recibo de Pago por Correo",
-      "description": "Ingrese los correos de los destinatarios para el pago #{id}.",
-      "recipients": "Destinatarios",
-      "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
-      "helperText": "Separe múltiples correos con comas.",
-      "errorNoEmail": "Ingrese al menos un correo de destinatario.",
-      "errorInvalidEmails": "Correos inválidos: {emails}",
-      "send": "Enviar Correo",
-      "sending": "Enviando...",
-      "cancel": "Cancelar",
-      "success": "Pago enviado exitosamente",
-      "error": "Error al enviar el pago"
     },
     "editDialog": {
       "title": "Editar pago",
@@ -3080,6 +3771,10 @@
     "title": "Servicios",
     "description": "Una visión general de los servicios.",
     "filterPlaceholder": "Filtrar aquí...",
+    "statusFilter": {
+      "active": "Activos",
+      "inactive": "Inactivos"
+    },
     "createDialog": {
       "title": "Crear Servicio",
       "description": "Crear un nuevo servicio",
@@ -3103,7 +3798,11 @@
       "color": "Color",
       "activeLabel": "Activo",
       "activeDescription": "Servicio activado",
-      "colorLabel": "Color"
+      "colorLabel": "Color",
+      "bookableOnline": {
+        "label": "Agendable online por el paciente",
+        "help": "Aparece en el portal del paciente para que lo reserve solo. Dejalo apagado para lo que tiene que pasar por la clínica."
+      }
     },
     "serviceType": {
       "label": "Servicio con Flujo",
@@ -3150,7 +3849,11 @@
       "editSuccessTitle": "Servicio Actualizado",
       "errorTitle": "Error",
       "genericError": "Ocurrió un error inesperado.",
-      "successDescription": "Operación completada exitosamente."
+      "successDescription": "Operación completada exitosamente.",
+      "imagePendingTitle": "El servicio se creó, pero la imagen no",
+      "imagePendingDescription": "Abrí el servicio en el listado y subí la imagen desde ahí.",
+      "bookableOnlineFailedTitle": "No se pudo cambiar la agenda online",
+      "bookableOnlineFailedDescription": "El servicio se guardó, pero la opción de que el paciente lo reserve quedó como estaba. Volvé a intentarlo."
     },
     "validation": {
       "categoryRequired": "La categoría es obligatoria.",
@@ -3179,10 +3882,23 @@
     "inactive": "Inactivo",
     "actions": "Acciones",
     "edit": "Editar",
-    "delete": "Eliminar"
+    "delete": "Eliminar",
+    "bookableOnline": "Online",
+    "bookableOnlineYes": "Agendable"
   },
   "ProvidersPage": {
     "title": "Proveedores",
+    "providerGroups": {
+      "label": "Grupos del proveedor",
+      "selectPlaceholder": "Seleccionar grupos...",
+      "search": "Buscar grupo...",
+      "noResults": "No hay grupos.",
+      "empty": "Este proveedor no pertenece a ningún grupo.",
+      "count": "{count} grupo(s)",
+      "save": "Guardar grupos",
+      "saved": "Grupos del proveedor actualizados",
+      "saveError": "No se pudieron guardar los grupos"
+    },
     "stats": {
       "title": "Resumen Financiero",
       "totalInvoiced": "Total Facturado",
@@ -3229,11 +3945,14 @@
         "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
         "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
         "fields": {
-          "identity_document": "RUT"
+          "identity_document": "RUT",
+          "email": "Correo Electrónico",
+          "phone": "Teléfono"
         },
         "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
         "errorTitle": "Error Actualizando Detalles",
         "serverError": "Error del servidor, por favor inténtelo más tarde.",
+        "genericError": "Ocurrió un error inesperado. Inténtalo de nuevo.",
         "identityRequired": "El documento de identidad es obligatorio"
       },
       "editTitle": "Editar Proveedor",
@@ -3279,7 +3998,7 @@
       "saveError": "Error al guardar",
       "saveErrorDescription": "No se pudieron guardar las notas. Intente de nuevo."
     },
-    "setInitialPassword": "Establecer Contraseña Inicial",
+    "setInitialPassword": "Restablecer Contraseña",
     "close": "Cerrar detalles",
     "quickCreate": {
       "title": "Crear",
@@ -3317,7 +4036,8 @@
       "invalidCredentials": "Las credenciales que ingresaste son incorrectas. Por favor, verifica tu email y contraseña e intenta nuevamente.",
       "emailNotFound": "El correo electrónico ingresado no existe en nuestro sistema. Por favor, verifica el email e intenta nuevamente.",
       "unexpected": "Ocurrió un error inesperado. Por favor, intenta de nuevo más tarde."
-    }
+    },
+    "patientPortalLink": "¿Sos paciente? Accedé a tu portal"
   },
   "ClinicDetailsPage": {
     "title": "Detalles de la Clínica",
@@ -3335,7 +4055,7 @@
     "emailPlaceholder": "ej. juan.perez@ejemplo.com",
     "save": "Guardar",
     "logoAlt": "Vista previa del logo",
-    "currencyLabel": "Moneda",
+    "currencyLabel": "Moneda principal",
     "currencyPlaceholder": "Seleccionar una moneda",
     "fallbacks": {
       "name": "Sin nombre",
@@ -3384,7 +4104,14 @@
     "sedeDeleteConfirmDelete": "Eliminar",
     "validation": {
       "phoneInvalid": "Número de teléfono inválido"
-    }
+    },
+    "currencySearchPlaceholder": "Buscar por código o nombre…",
+    "currencyEmpty": "No se encontró la moneda",
+    "currencyHelp": "La moneda con la que trabaja la clínica. Se usa por defecto en presupuestos, facturas, cobros e informes.",
+    "secondaryCurrencyLabel": "Moneda secundaria (opcional)",
+    "secondaryCurrencyPlaceholder": "Sin moneda secundaria",
+    "secondaryCurrencyNone": "Sin moneda secundaria",
+    "secondaryCurrencyHelp": "Configúrala solo si la clínica también opera en una segunda moneda. Vacía ⇒ se trabaja en moneda única y se oculta el tipo de cambio."
   },
   "SchedulesPage": {
     "title": "Horarios",
@@ -3419,10 +4146,12 @@
       "cancel": "Cancelar",
       "editTitle": "Editar horario",
       "editDescription": "Editar el horario para la clínica",
-      "editSave": "Guardar Cambios"
+      "editSave": "Guardar Cambios",
+      "daysOfWeek": "Días de la Semana",
+      "daysOfWeekHelp": "Se crea un horario por cada día elegido, con el mismo rango."
     },
     "validation": {
-      "dayRequired": "El día de la semana es obligatorio.",
+      "dayRequired": "Seleccioná al menos un día.",
       "startRequired": "La hora de inicio es obligatoria.",
       "endRequired": "La hora de fin es obligatoria.",
       "dayOfWeekRequired": "El día de la semana es obligatorio.",
@@ -3431,22 +4160,22 @@
     },
     "deleteDialog": {
       "title": "Eliminar Horario",
-      "description": "¿Está seguro de que desea eliminar este horario? Esta acción no se puede deshacer.",
+      "description": "¿Está seguro de que desea eliminar el horario {schedule}? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
     "toast": {
       "editSuccessDescription": "Los detalles han sido actualizados satisfactoriamente",
-      "editSuccessTitle": "Operación exitosa",
+      "editSuccessTitle": "Horario actualizado",
       "successDescription": "Los detalles han sido actualizados satisfactoriamente",
       "successTitle": "Operación exitosa",
       "deleteSuccessDescription": "Registro eliminado satisfactoriamente",
-      "deleteSuccessTitle": "Eliminado Satisfactoriamente",
-      "errorDesc": "Hubo un error y los detalles no han sido actualizados satisfactoriamente",
-      "errorTitle": "Error Actualizando",
-      "createSuccessTitle": "Operación exitosa",
-      "genericError": "Hubo un error y los detalles no han sido actualizados satisfactoriamente",
-      "deleteErrorDescription": "Registro eliminado satisfactoriamente"
+      "deleteSuccessTitle": "Horario eliminado",
+      "errorDesc": "No se pudieron guardar los cambios del horario.",
+      "errorTitle": "Error",
+      "createSuccessTitle": "Horario creado",
+      "genericError": "No se pudo guardar el horario.",
+      "deleteErrorDescription": "No se pudo eliminar el horario."
     },
     "sede": {
       "general": "General",
@@ -3454,15 +4183,17 @@
     }
   },
   "HolidaysPage": {
-    "title": "Feriados",
-    "description": "Todos los feriados para la clínica",
+    "title": "Horarios de Excepción",
+    "description": "Horarios excepcionales de la clínica: feriados, cierres puntuales o recurrentes",
     "filterPlaceholder": "Filtrar aquí...",
     "columns": {
       "id": "ID",
       "date": "Fecha",
+      "recurrence": "Recurrencia",
       "status": "Estado",
       "startTime": "Hora de Inicio",
       "endTime": "Hora de Fin",
+      "sede": "Sede",
       "notes": "Notas",
       "open": "Abierto",
       "closed": "Cerrado",
@@ -3471,39 +4202,86 @@
       "delete": "Eliminar"
     },
     "createDialog": {
-      "title": "Crear feriado",
-      "description": "Crear un nuevo feriado para la clínica",
+      "title": "Crear horario de excepción",
+      "description": "Crear un nuevo horario de excepción para la clínica",
       "date": "Fecha",
+      "recurrence": "Recurrencia",
+      "once": "Una vez",
+      "weekly": "Semanal",
+      "biweekly": "Quincenal",
+      "monthly": "Mensual",
+      "biweeklyReferenceDate": "Fecha de Referencia",
+      "biweeklyReferenceDateHelp": "Las semanas se cuentan desde la semana de esta fecha: aplica esa semana, dos semanas después, y así sucesivamente.",
+      "endDate": "Fecha de Fin",
+      "endDateHelp": "Dejá vacío para que la recurrencia aplique indefinidamente.",
       "isOpen": "¿Está Abierto?",
       "startTime": "Hora de Inicio",
       "endTime": "Hora de Fin",
+      "sede": "Sede",
+      "allSedes": "Todas las sedes",
+      "sedeHelp": "Dejá \"Todas las sedes\" para aplicar la excepción a toda la clínica.",
+      "timesHelp": "Dejá ambas horas vacías para cerrar todo el día; indicá un rango para cerrar solo esas horas.",
       "notes": "Notas",
       "notesPlaceholder": "Ingrese notas aquí...",
       "save": "Guardar",
       "cancel": "Cancelar",
-      "editTitle": "Editar feriado",
-      "editDescription": "Editar el feriado para la clínica",
-      "editSave": "Guardar Cambios"
+      "editTitle": "Editar horario de excepción",
+      "editDescription": "Editar el horario de excepción para la clínica",
+      "edit": "Editar",
+      "editSave": "Guardar Cambios",
+      "dates": "Fechas",
+      "startDate": "Fecha de Inicio",
+      "daysOfWeek": "Días de la Semana",
+      "daysOfMonth": "Días del Mes"
     },
     "validation": {
-      "dateRequired": "La fecha es obligatoria."
+      "dateRequired": "La fecha de inicio es obligatoria.",
+      "dayOfWeekRequired": "Seleccioná al menos un día de la semana para recurrencia semanal o quincenal.",
+      "dayOfMonthRequired": "Seleccioná al menos un día del mes para recurrencia mensual.",
+      "biweeklyReferenceDateRequired": "La fecha de referencia es obligatoria para recurrencia quincenal.",
+      "datesRequired": "Seleccioná al menos una fecha."
     },
     "deleteDialog": {
-      "title": "Eliminar Feriado",
-      "description": "¿Está seguro de que desea eliminar este feriado? Esta acción no se puede deshacer.",
+      "title": "Eliminar Horario de Excepción",
+      "description": "¿Está seguro de que desea eliminar el horario de excepción del {date}? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
     "toast": {
-      "createSuccessTitle": "Feriado Creado",
-      "editSuccessTitle": "Feriado Actualizado",
-      "successDescription": "El feriado ha sido guardado exitosamente.",
-      "deleteSuccessTitle": "Feriado Eliminado",
-      "deleteSuccessDescription": "El feriado ha sido eliminado exitosamente.",
+      "createSuccessTitle": "Horario de Excepción Creado",
+      "editSuccessTitle": "Horario de Excepción Actualizado",
+      "successDescription": "El horario de excepción ha sido guardado exitosamente.",
+      "deleteSuccessTitle": "Horario de Excepción Eliminado",
+      "deleteSuccessDescription": "El horario de excepción ha sido eliminado exitosamente.",
       "errorTitle": "Error",
-      "deleteErrorDescription": "No se pudo eliminar el feriado. Por favor, inténtelo de nuevo.",
+      "deleteErrorDescription": "No se pudo eliminar el horario de excepción. Por favor, inténtelo de nuevo.",
       "genericError": "Ocurrió un error inesperado."
     }
+  },
+  "DayPickers": {
+    "days": {
+      "monday": "Lunes",
+      "tuesday": "Martes",
+      "wednesday": "Miércoles",
+      "thursday": "Jueves",
+      "friday": "Viernes",
+      "saturday": "Sábado",
+      "sunday": "Domingo"
+    },
+    "daysShort": {
+      "monday": "Lun",
+      "tuesday": "Mar",
+      "wednesday": "Mié",
+      "thursday": "Jue",
+      "friday": "Vie",
+      "saturday": "Sáb",
+      "sunday": "Dom"
+    },
+    "datesHelp": "Hacé clic en los días del calendario para agregarlos o quitarlos.",
+    "noDatesSelected": "Ninguna fecha seleccionada",
+    "removeDate": "Quitar {date}",
+    "datesCount": "{count, plural, one {# fecha} other {# fechas}}",
+    "shortMonthsHelp": "Los días que un mes no tiene (29, 30 o 31) no aplican ese mes."
   },
   "CalendarsPage": {
     "title": "Calendarios",
@@ -3638,14 +4416,22 @@
         "identityInvalid": "Documento de identidad inválido.",
         "identityRequired": "La cedula de identidad es requerida.",
         "identityMaxLength": "Documento de identidad debe tener como máximo 10 caracteres.",
-        "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono."
+        "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
+        "genericError": "Ocurrió un error inesperado. Inténtalo de nuevo.",
+        "serverError": "Error del servidor, inténtalo de nuevo más tarde.",
+        "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
+        "fields": {
+          "email": "Correo Electrónico",
+          "phone": "Teléfono",
+          "identity_document": "Documento de Identidad"
+        }
       },
       "defaultCalendar": "Consultorio por defecto",
       "selectCalendar": "Seleccionar consultorio...",
       "searchCalendarPlaceholder": "Buscar consultorio...",
       "noCalendar": "Sin consultorio por defecto",
-      "canBrowseCalendars": "Puede ver agendas de calendarios",
-      "canBrowseCalendarsHint": "Permite a este doctor alternar en su workspace entre sus citas asignadas y las de los calendarios a los que tiene acceso."
+      "defaultSede": "Sede por defecto",
+      "defaultSedePlaceholder": "Seleccionar sede..."
     },
     "filters": {
       "showOnlyActive": "Mostrar solo activos"
@@ -3654,7 +4440,9 @@
       "details": "Detalles",
       "availability": "Disponibilidad",
       "exceptions": "Excepciones",
-      "calendars": "Calendarios con acceso"
+      "calendars": "Calendarios con acceso",
+      "preferences": "Preferencias",
+      "signature": "Firma"
     },
     "calendarAccess": {
       "title": "Calendarios con acceso",
@@ -3666,7 +4454,8 @@
       "count": "{count} con acceso",
       "save": "Guardar accesos",
       "saved": "Accesos actualizados",
-      "saveError": "No se pudieron guardar los accesos"
+      "saveError": "No se pudieron guardar los accesos",
+      "partialSaveError": "Se aplicaron {done} de {total} cambios antes del error. Se muestra el estado actual guardado; revíselo y vuelva a intentarlo."
     }
   },
   "UserLogsPage": {
@@ -3682,14 +4471,12 @@
     "description": "Gestionar la disponibilidad de doctores para la clínica",
     "filterPlaceholder": "Filtrar aquí...",
     "dialog": {
-      "daily": "Diario",
       "weekly": "Semanal",
       "monthly": "Mensual",
       "biweekly": "Quincenal",
       "selectRecurrence": "Seleccione recurrencia",
       "searchDoctor": "Buscar doctor",
       "noDoctorFound": "No se encontró el doctor",
-      "selectDay": "Seleccione día",
       "save": "Guardar",
       "edit": "Editar",
       "createTitle": "Crear Disponibilidad",
@@ -3699,30 +4486,26 @@
       "doctor": "Doctor",
       "selectDoctor": "Seleccionar un doctor",
       "recurrence": "Recurrencia",
-      "dayOfWeek": "Día de la Semana",
       "startTime": "Hora de Inicio",
       "endTime": "Hora de Fin",
       "startDate": "Fecha de Inicio",
       "endDate": "Fecha de Fin",
       "create": "Crear",
-      "cancel": "Cancelar"
-    },
-    "days": {
-      "monday": "Lunes",
-      "tuesday": "Martes",
-      "wednesday": "Miércoles",
-      "thursday": "Jueves",
-      "friday": "Viernes",
-      "saturday": "Sábado",
-      "sunday": "Domingo"
+      "cancel": "Cancelar",
+      "daysOfWeek": "Días de la Semana",
+      "daysOfMonth": "Días del Mes",
+      "biweeklyReferenceDate": "Fecha de Referencia",
+      "biweeklyStartHelp": "En quincenal, las semanas se cuentan desde la semana de la fecha de inicio: aplica esa semana, dos semanas después, y así sucesivamente."
     },
     "validation": {
       "doctorRequired": "El doctor es obligatorio.",
       "recurrenceRequired": "La recurrencia es obligatoria.",
       "startTimeRequired": "La hora de inicio es obligatoria.",
       "endTimeRequired": "La hora de fin es obligatoria.",
+      "endTimeAfterStartTime": "La hora de fin debe ser mayor que la hora de inicio.",
       "startDateRequired": "La fecha de inicio es obligatoria.",
-      "dayOfWeekRequired": "El día de la semana es obligatorio para recurrencia semanal o quincenal."
+      "dayOfWeekRequired": "Seleccioná al menos un día de la semana para recurrencia semanal o quincenal.",
+      "dayOfMonthRequired": "Seleccioná al menos un día del mes para recurrencia mensual."
     },
     "toast": {
       "createTitle": "Disponibilidad Creada",
@@ -3737,7 +4520,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Disponibilidad",
-      "description": "¿Está seguro que desea eliminar esta disponibilidad? Esta acción no se puede deshacer.",
+      "description": "¿Está seguro que desea eliminar la disponibilidad de {doctor} ({schedule})? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -3782,13 +4565,13 @@
       "selectDoctor": "Seleccionar un doctor",
       "searchDoctor": "Buscar doctor",
       "noDoctorFound": "No se encontró el doctor",
-      "date": "Fecha",
       "isAvailable": "¿Está Disponible?",
       "startTime": "Hora de Inicio",
       "endTime": "Hora de Fin",
       "create": "Crear",
       "cancel": "Cancelar",
-      "save": "Guardar Cambios"
+      "save": "Guardar Cambios",
+      "dates": "Fechas"
     },
     "toast": {
       "createTitle": "Excepción Creada",
@@ -3803,13 +4586,13 @@
     },
     "deleteDialog": {
       "title": "Eliminar Excepción",
-      "description": "¿Está seguro de que desea eliminar esta excepción? Esta acción no se puede deshacer.",
+      "description": "¿Está seguro de que desea eliminar la excepción de {doctor} del {date}? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
     "validation": {
       "doctorRequired": "El doctor es obligatorio.",
-      "dateRequired": "La fecha es obligatoria."
+      "dateRequired": "Seleccioná al menos una fecha."
     },
     "empty": "No hay excepciones de disponibilidad para este doctor."
   },
@@ -3849,7 +4632,9 @@
       "create": "Crear",
       "cancel": "Cancelar",
       "save": "Guardar Cambios"
-    }
+    },
+    "secondaryCurrency": "Moneda secundaria",
+    "noAutoRate": "El histórico automático de cotizaciones solo existe para el par UYU/USD. Con cualquier otro par, el tipo de cambio se carga a mano al abrir la caja."
   },
   "ProductCategoriesPage": {
     "title": "Categorías de Productos",
@@ -3941,6 +4726,8 @@
       "phonePlaceholder": "ej. 123-456-7890",
       "identity_document": "Documento de Identidad",
       "identity_document_placeholder": "ej. 1234567890",
+      "defaultSede": "Sede por defecto",
+      "defaultSedePlaceholder": "Seleccionar sede...",
       "isActive": "¿Está Activo?",
       "save": "Guardar",
       "cancel": "Cancelar",
@@ -3954,7 +4741,17 @@
         "identityMaxLength": "El documento de identidad debe tener 10 caracteres o menos.",
         "emailOrPhoneRequired": "Debe proporcionar al menos un correo electrónico o un número de teléfono.",
         "genericError": "Ocurrió un error inesperado. Por favor, inténtelo de nuevo.",
-        "serverError": "Error del servidor, por favor inténtelo más tarde."
+        "serverError": "Error del servidor, por favor inténtelo más tarde.",
+        "errorTitle": "Error al crear el usuario",
+        "uniqueConflict": "Los siguientes campos ya están registrados: {fields}",
+        "fields": {
+          "email": "Correo electrónico",
+          "phone": "Teléfono",
+          "phone_number": "Teléfono",
+          "identity_document": "Documento de identidad",
+          "internal_id": "ID interno",
+          "name": "Nombre"
+        }
       },
       "editSave": "Guardar",
       "serverError": "Error del servidor, por favor inténtelo más tarde.",
@@ -3964,10 +4761,18 @@
       "editSuccessTitle": "Usuario actualizado",
       "editSuccessDescription": "El usuario se ha actualizado exitosamente"
     },
-    "setInitialPassword": "Establecer Contraseña Inicial",
+    "setInitialPassword": "Restablecer Contraseña",
     "initialPasswordSentTitle": "Correo enviado",
-    "initialPasswordSentDescription": "Se ha enviado un correo con el enlace para establecer la contraseña.",
+    "initialPasswordSentDescription": "Se ha enviado un correo con el enlace para restablecer la contraseña.",
     "initialPasswordError": "Ocurrió un error inesperado. Intente de nuevo.",
+    "initialPasswordPartialError": "El usuario se creó, pero no se pudo enviar el correo para establecer la contraseña. Puede reenviarlo desde el panel de detalles con \"Restablecer Contraseña\".",
+    "toggleStatus": {
+      "successTitle": "Éxito",
+      "activatedDescription": "El usuario {name} ha sido activado.",
+      "deactivatedDescription": "El usuario {name} ha sido desactivado.",
+      "errorTitle": "Error",
+      "errorDescription": "No se pudo actualizar el estado del usuario."
+    },
     "tabs": {
       "roles": "Roles",
       "quotes": "Presupuestos",
@@ -3976,7 +4781,9 @@
       "logs": "Registros",
       "history": "Historia Clínica",
       "notes": "Notas",
-      "details": "Detalles"
+      "details": "Detalles",
+      "preferences": "Preferencias",
+      "signature": "Firma"
     },
     "detailsFor": "Detalles para {name}",
     "close": "Cerrar detalles",
@@ -4004,6 +4811,8 @@
       "phonePlaceholder": "ej. 099 123 456",
       "identity_document": "Documento de Identidad",
       "identity_document_placeholder": "ej. 12345678",
+      "defaultSede": "Sede por defecto",
+      "defaultSedePlaceholder": "Seleccionar sede...",
       "isActive": "¿Está Activo?",
       "save": "Guardar",
       "cancel": "Cancelar",
@@ -4018,7 +4827,8 @@
     "tabs": {
       "details": "Detalles",
       "roles": "Roles",
-      "logs": "Historial"
+      "logs": "Historial",
+      "preferences": "Preferencias"
     },
     "noSelection": "Selecciona un usuario para ver sus detalles",
     "columns": {
@@ -4238,7 +5048,8 @@
       "keyRequired": "La clave es obligatoria.",
       "valueRequired": "El valor es obligatorio.",
       "dataTypeRequired": "El tipo de dato es obligatorio."
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "AuditLog": {
     "title": "Registro de Auditoría",
@@ -4256,7 +5067,22 @@
       "viewDetails": "Ver detalles",
       "id": "ID",
       "openMenu": "Abrir Menú"
-    }
+    },
+    "filters": {
+      "entity": "Entidad",
+      "allEntities": "Todas las entidades",
+      "operation": "Operación",
+      "allOperations": "Todas las operaciones",
+      "user": "Usuario",
+      "userPlaceholder": "Buscar usuario...",
+      "clear": "Limpiar filtros"
+    },
+    "operations": {
+      "INSERT": "Creación",
+      "UPDATE": "Actualización",
+      "DELETE": "Eliminación"
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "AccessLogPage": {
     "title": "Registro de Acceso",
@@ -4276,7 +5102,8 @@
       "openMenu": "Abrir Menú",
       "yes": "Sí",
       "no": "No"
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "ErrorLogPage": {
     "title": "Registro de Errores",
@@ -4292,6 +5119,62 @@
       "viewDetails": "Ver detalles",
       "id": "ID",
       "openMenu": "Abrir Menú"
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
+  },
+  "ClinicHistoryPrint": {
+    "title": "Historia Clínica",
+    "emittedOn": "Emitido el",
+    "anamnesis": "Anamnesis",
+    "sessions": "Historial de sesiones clínicas",
+    "noSessions": "Sin sesiones registradas.",
+    "none": "Sin registros.",
+    "relative": "Parentesco",
+    "allergies": "Alergias",
+    "personalHistory": "Antecedentes personales",
+    "familyHistory": "Antecedentes familiares",
+    "medication": "Medicación",
+    "medicationActive": "Activa",
+    "medicationPast": "Finalizada",
+    "doctor": "Dr./Dra.",
+    "noDate": "Sin fecha",
+    "sessionTypeClinical": "Sesión clínica",
+    "sessionTypeOdontogram": "Odontograma",
+    "patient": {
+      "name": "Paciente",
+      "document": "Documento",
+      "birthDate": "Fecha de nacimiento",
+      "email": "Correo",
+      "phone": "Teléfono"
+    },
+    "habits": {
+      "title": "Hábitos",
+      "smoking": "Tabaquismo",
+      "alcohol": "Alcohol",
+      "bruxism": "Bruxismo",
+      "other": "Otros",
+      "comments": "Comentarios"
+    },
+    "field": {
+      "procedure": "Procedimiento realizado",
+      "diagnosis": "Diagnóstico",
+      "tooth": "Pieza",
+      "notes": "Notas clínicas",
+      "nextPlan": "Plan próxima cita",
+      "nextDate": "Fecha próxima cita",
+      "treatments": "Tratamientos",
+      "odontogramUpdate": "Actualización de odontograma",
+      "attachments": "Adjuntos",
+      "file": "Archivo"
+    },
+    "errorTitle": "No se pudo imprimir",
+    "noData": "Este paciente no tiene historia clínica para imprimir.",
+    "action": "Imprimir historia clínica",
+    "columns": {
+      "date": "Fecha",
+      "professional": "Profesional",
+      "detail": "Detalle",
+      "next": "Próxima cita"
     }
   },
   "ClinicHistoryPage": {
@@ -4338,7 +5221,9 @@
       "confirmDelete": "¿Estás seguro de que deseas eliminar este documento?",
       "dragDropBold": "Haz clic para subir",
       "dragDropNormal": "o arrastra y suelta",
-      "dragDropSubtext": "PDF, PNG, JPG o GIF (MÁX. 10MB)"
+      "dragDropSubtext": "PDF, PNG, JPG o GIF (MÁX. 10MB)",
+      "documentBadge": "Documento",
+      "sessionBadge": "Sesión · {date}"
     },
     "selectPatientTitle": "Seleccionar un Paciente",
     "selectPatientDescription": "Por favor seleccione un paciente para ver su historial médico",
@@ -4438,6 +5323,8 @@
       "notes": "Notas",
       "tooth": "Diente",
       "odontogramUpdate": "Actualización de Odontograma",
+      "viewOdontogram": "Ver odontograma",
+      "openAppointment": "Ver cita",
       "showMore": "Mostrar más",
       "showDetails": "Ver detalles",
       "hideDetails": "Ocultar detalles",
@@ -4451,7 +5338,12 @@
       "sessionTypeOdontogram": "Odontograma",
       "sessionTypeClinical": "Sesión Clínica",
       "sessionTypeAppointment": "Cita",
+      "currentAppointmentBadge": "Cita actual",
+      "latestSessionBadge": "Última sesión",
       "upcomingAppointment": "Próxima",
+      "apptCalendar": "Calendario",
+      "apptDoctor": "Doctor",
+      "apptDurationMin": "{min} min",
       "quote": "Presupuesto",
       "addFirstSession": "Agregar primera sesión",
       "toast": {
@@ -4463,6 +5355,7 @@
       "nextSessionPlan": "Plan para la Próxima Sesión",
       "nextSessionDate": "Fecha",
       "addSession": "Agregar sesión",
+      "readOnlyMessage": "Solo puedes visualizar esta ficha. Edición no disponible para citas de otro día.",
       "noSessions": "No hay sesiones registradas",
       "appointmentStatus": {
         "pending": "Pendiente",
@@ -4475,43 +5368,7 @@
         "rescheduled": "Reagendada"
       },
       "noTitle": "Sin título",
-      "conditions": {
-        "healthy": "Sano",
-        "caries": "Caries",
-        "crown": "Corona",
-        "crown-tmp": "Corona Temporal",
-        "missing": "Ausente",
-        "fracture": "Fractura",
-        "diastema": "Diastema",
-        "filling": "Obturación",
-        "rem-prost": "Prótesis Removible",
-        "drifting": "Migración",
-        "rotation": "Rotación",
-        "fusion": "Fusión",
-        "root-remnant": "Resto Radicular",
-        "eruption": "Erupción",
-        "transposition": "Transposición",
-        "supernumerary": "Supernumerario",
-        "pulp": "Pulpa",
-        "prosthesis": "Prótesis",
-        "bolt": "Perno",
-        "fixed-ortho": "Ortodoncia Fija",
-        "fixed-prosth": "Prótesis Fija",
-        "implant": "Implante",
-        "macrodontia": "Macrodontia",
-        "microdontia": "Microdontia",
-        "dyschromic": "Discromía",
-        "worn": "Desgastado",
-        "impacted-semi": "Semi Impactado",
-        "intrusion": "Intrusión",
-        "edentulism": "Edentulismo",
-        "ectopic": "Ectópico",
-        "impacted": "Impactado",
-        "rem-orthodo": "Ortodoncia Removible",
-        "extrusion": "Extrusión",
-        "post": "Post",
-        "endodontics": "Endodoncia"
-      },
+      "apptUnassigned": "No asignado",
       "surfaces": {
         "center": "Centro",
         "O": "Oclusal",
@@ -4527,7 +5384,9 @@
         "left": "Izquierda",
         "overlays": "Overlay",
         "whole": "Completo"
-      }
+      },
+      "apptTime": "Horario",
+      "apptServices": "Servicios"
     },
     "anamnesis": {
       "personalTitle": "Información Personal",
@@ -4874,12 +5733,30 @@
     "showingView": "Mostrando vista: {view}",
     "collapseMonth": "Colapsar mes",
     "expandMonth": "Expandir mes",
+    "showHours": "Mostrar columna de horas",
+    "createAppointment": "Crear cita",
+    "agendas": "Agendas",
+    "agendasPanelTitle": "Agendas",
+    "agendasPanelPin": "Fijar el panel",
+    "agendasPanelUnpin": "Dejar de fijar el panel",
+    "agendasEmpty": "No hay agendas visibles.",
+    "back": "Atrás",
+    "view": "Ver",
+    "zoom": "Zoom",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "resetZoom": "Restablecer zoom",
     "timeZone": "GMT-03",
     "views": {
+      "1day": "1 Día",
       "2day": "2 Días",
       "3day": "3 Días",
+      "4day": "4 Días",
+      "5day": "5 Días",
+      "6day": "6 Días",
       "day": "Día",
       "month": "Mes",
+      "list": "Lista",
       "schedule": "Agenda",
       "week": "Semana",
       "year": "Año"
@@ -4888,7 +5765,7 @@
     "filterTitle": "Filtrar Agenda",
     "noAppointments": "Sin citas",
     "gaps": {
-      "button": "Encontrar huecos",
+      "button": "Buscar huecos",
       "buttonSubtitle": "Espacios disponibles",
       "panelTitle": "Huecos disponibles",
       "duration": "{min} min",
@@ -4896,23 +5773,120 @@
       "maxBadge": "Mayor",
       "close": "Cerrar"
     },
+    "search": {
+      "button": "Buscar cita",
+      "panelTitle": "Buscar citas",
+      "placeholder": "Paciente o título de la cita…",
+      "hint": "Buscá por título de la cita o por nombre, teléfono, email o documento del paciente. Incluye todas las fechas.",
+      "minChars": "Escribí al menos {count} caracteres.",
+      "empty": "Ninguna cita coincide con la búsqueda.",
+      "error": "No se pudo completar la búsqueda.",
+      "retry": "Reintentar",
+      "untitled": "Cita sin título",
+      "clear": "Limpiar",
+      "close": "Cerrar",
+      "allCalendars": "Todos los calendarios",
+      "nCalendars": "{count} calendarios",
+      "calendarFilter": "Filtrar por calendario"
+    },
     "blocked": {
       "label": "No disponible"
+    },
+    "drag": {
+      "moveTo": "Mover a…",
+      "duration": "Duración",
+      "minutes": "{minutes} min"
     }
   },
   "Reminders": {
     "recordatorio": "Recordatorio",
+    "nota": "Nota",
     "createTitle": "Crear recordatorio",
+    "createNoteTitle": "Crear nota",
     "editTitle": "Editar recordatorio",
+    "editNoteTitle": "Editar nota",
     "dialogDescription": "Agrega una tarea interna visible en el calendario de la clínica.",
+    "noteDialogDescription": "Agrega una nota interna silenciosa al calendario de la clínica.",
     "titleLabel": "Título",
     "titlePlaceholder": "Ej: Llamar a laboratorio",
     "descriptionLabel": "Descripción",
     "descriptionPlaceholder": "Detalles opcionales del recordatorio",
     "dateLabel": "Fecha",
-    "timeLabel": "Hora",
-    "durationLabel": "Duración (min)",
+    "timeLabel": "Hora de inicio",
+    "endTimeLabel": "Hora de fin",
     "priorityLabel": "Prioridad",
+    "onlyForMeLabel": "Solo para mí",
+    "onlyForMeHint": "Si lo dejás sin marcar, todo el equipo puede verlo, editarlo y eliminarlo.",
+    "allDayLabel": "Todo el día",
+    "allDayHint": "Ocupa el día entero y se muestra fijo arriba, debajo del nombre del día. No genera notificaciones.",
+    "allDayBadge": "Todo el día",
+    "allDayBandLabel": "Todo el día",
+    "repeatLabel": "Repetir",
+    "repeatHint": "Se crea una serie: el ítem aparece en todas las fechas que correspondan.",
+    "recurringBadge": "Se repite",
+    "recurrence": {
+      "freqLabel": "Frecuencia",
+      "intervalLabel": "Cada",
+      "endLabel": "Termina",
+      "untilDateLabel": "Hasta el",
+      "countLabel": "Cantidad de veces",
+      "weekdaysLabel": "Días de la semana",
+      "monthDayLabel": "Día del mes",
+      "weekdaysRequired": "Elegí al menos un día de la semana.",
+      "intervalInvalid": "El intervalo tiene que estar entre 1 y 52.",
+      "countInvalid": "La cantidad de veces tiene que ser 1 o más.",
+      "untilInvalid": "La fecha de fin tiene que ser posterior a la del ítem.",
+      "monthlyClampHint": "Si el mes no tiene ese día, se usa el último (el 31 cae 28 en febrero).",
+      "freq": {
+        "daily": "Diaria",
+        "weekly": "Semanal",
+        "monthly": "Mensual"
+      },
+      "end": {
+        "never": "Nunca",
+        "until": "En una fecha",
+        "count": "Después de N veces"
+      },
+      "every": {
+        "daily": "Todos los días",
+        "weekly": "Todas las semanas",
+        "monthly": "Todos los meses"
+      },
+      "everyN": {
+        "daily": "Cada {count} días",
+        "weekly": "Cada {count} semanas",
+        "monthly": "Cada {count} meses"
+      },
+      "weekdayShort": {
+        "1": "lun",
+        "2": "mar",
+        "3": "mié",
+        "4": "jue",
+        "5": "vie",
+        "6": "sáb",
+        "7": "dom"
+      },
+      "onDay": "el día {day}",
+      "until": "hasta el {date}",
+      "afterCount": "{count} veces"
+    },
+    "scope": {
+      "editTitle": "Editar ítem repetido",
+      "deleteTitle": "Eliminar ítem repetido",
+      "editDescription": "¿Qué querés editar?",
+      "deleteDescription": "¿Qué querés eliminar?",
+      "occurrence": "Solo esta ocurrencia",
+      "occurrenceHint": "El resto de la serie queda como está.",
+      "series": "Toda la serie",
+      "seriesHint": "Alcanza a las ocurrencias futuras pendientes. Las pasadas no se tocan.",
+      "confirm": "Continuar"
+    },
+    "onlyForMeLockedHint": "Solo quien lo creó puede cambiar el alcance.",
+    "personalBadge": "Personal",
+    "generalBadge": "General",
+    "calendarLabel": "Calendario",
+    "noCalendar": "Sin calendario",
+    "groupedItems": "Notas y recordatorios",
     "colorLabel": "Color",
     "saveCreate": "Guardar",
     "saveEdit": "Guardar",
@@ -4935,7 +5909,7 @@
     "errorDesc": "No se pudo completar la acción del recordatorio.",
     "titleRequired": "El título es obligatorio.",
     "dateTimeRequired": "La fecha y la hora son obligatorias.",
-    "durationInvalid": "La duración debe ser de al menos 5 minutos.",
+    "endTimeInvalid": "La hora de fin tiene que ser posterior a la de inicio.",
     "priority": {
       "low": "Baja",
       "medium": "Media",
@@ -4954,7 +5928,9 @@
       "appointment": "Crear cita",
       "appointmentDescription": "Agenda una cita con paciente, doctor y servicio.",
       "reminder": "Crear recordatorio",
-      "reminderDescription": "Agrega una tarea interna para la clínica."
+      "reminderDescription": "Agrega una tarea interna para la clínica.",
+      "note": "Crear nota",
+      "noteDescription": "Agrega una nota interna silenciosa sin notificaciones."
     }
   },
   "AlertCategoriesPage": {
@@ -5055,6 +6031,10 @@
       "medium": "Media"
     },
     "dailyAlerts": "Alertas Diarias",
+    "fieldValues": {
+      "yes": "Sí",
+      "no": "No"
+    },
     "pagination": {
       "showing": "Mostrando",
       "of": "de",
@@ -5099,6 +6079,7 @@
     },
     "actions": {
       "sendEmail": "Enviar Correo",
+      "viewPatient": "Ver perfil del paciente",
       "sendEmailUnavailable": "El paciente no tiene correo",
       "markCompleted": "Marcar como Completada",
       "sendSms": "Enviar SMS",
@@ -5117,6 +6098,11 @@
       "sendEmail": "Enviar Correo",
       "sendSms": "Enviar SMS",
       "sendWhatsApp": "Enviar WhatsApp",
+      "complete": "Marcada como Completada",
+      "ignore": "Ignorada",
+      "note": "Nota Agregada",
+      "call": "Llamada Registrada",
+      "snooze": "Pospuesta",
       "performedAt": "Realizado el",
       "status": "Estado",
       "resultMessage": "Resultado",
@@ -5191,6 +6177,7 @@
       "smsSendFailedDescription": "Ocurrió un error al enviar el SMS. Por favor, inténtelo de nuevo.",
       "whatsappSent": "WhatsApp Enviado",
       "whatsappSentDescription": "Mensaje de WhatsApp enviado a {count} alerta(s).",
+      "whatsappBulkResultDescription": "{sent} enviado(s), {skipped} omitido(s), {failed} fallido(s).",
       "whatsappSendFailed": "Error al enviar WhatsApp",
       "whatsappSendFailedDescription": "Ocurrió un error al enviar el mensaje de WhatsApp. Por favor, inténtelo de nuevo.",
       "callRegistered": "Llamada Registrada",
@@ -5245,16 +6232,31 @@
       "save": "Guardar Cambios",
       "conditions": "Condiciones",
       "selectSourceTable": "Seleccionar Tabla de Origen",
+      "sourceTablesGroup": "Tablas",
+      "sourceViewsGroup": "Vistas",
+      "sourceViewHint": "Las alertas generadas desde esta vista se vinculan a la tabla \"{table}\".",
       "recurrenceType": "Tipo de Recurrencia",
       "selectRecurrenceType": "Seleccionar Tipo de Recurrencia",
+      "recurrenceOptions": {
+        "ONCE": "Una vez",
+        "DAILY": "Diaria",
+        "WEEKLY": "Semanal",
+        "MONTHLY": "Mensual"
+      },
       "emailTemplate": "Plantilla de Correo",
       "selectEmailTemplate": "Seleccionar Plantilla de Correo",
       "smsTemplate": "Plantilla de SMS",
       "selectSmsTemplate": "Seleccionar Plantilla de SMS",
+      "whatsappTemplate": "Plantilla de WhatsApp",
+      "selectWhatsappTemplate": "Seleccionar Plantilla de WhatsApp",
       "saving": "Guardando",
       "userIdField": "Campo de ID de usuario",
       "selectUserIdField": "Seleccionar campo de ID de usuario",
       "noUserIdField": "Sin campo de ID de usuario",
+      "eventField": "Fecha del evento",
+      "eventFieldAuto": "Automática (según las condiciones)",
+      "eventFieldNone": "Sin fecha de evento",
+      "eventFieldHint": "Se crea una alerta por cada fecha del evento. Si la fecha cambia (cita reprogramada, vencimiento extendido), se genera una alerta nueva y la anterior pendiente queda reemplazada. Sin fecha de evento, solo se crea otra cuando la anterior se cerró.",
       "tableIdField": "Campo de ID de tabla",
       "selectTableIdField": "Seleccionar campo de ID de tabla",
       "displayFields": "Campos a Mostrar",
@@ -5263,7 +6265,9 @@
       "fieldSourceColumn": "Columna",
       "fieldType": "Tipo de Dato",
       "selectFieldColumn": "Seleccionar columna",
-      "selectFieldType": "Seleccionar tipo"
+      "selectFieldType": "Seleccionar tipo",
+      "conditionColumnPlaceholder": "Columna",
+      "conditionOperatorPlaceholder": "Operador"
     },
     "deleteDialog": {
       "title": "Eliminar Regla",
@@ -5281,7 +6285,8 @@
       "deleteSuccessDescription": "La regla \"{name}\" ha sido eliminada.",
       "testSuccessTitle": "Prueba Iniciada",
       "testSuccessDescription": "La prueba de la regla \"{name}\" ha sido iniciada.",
-      "testErrorDescription": "Error al ejecutar la prueba de la regla."
+      "testErrorDescription": "Error al ejecutar la prueba de la regla.",
+      "deleteErrorDescription": "No se pudo eliminar la regla."
     },
     "validation": {
       "categoryRequired": "La categoría es obligatoria.",
@@ -5297,7 +6302,8 @@
       "medium": "Media",
       "high": "Alta",
       "critical": "Crítica"
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "CommunicationTemplatesPage": {
     "title": "Plantillas de Comunicación",
@@ -5356,7 +6362,46 @@
       "version": "Versión",
       "defaultSender": "Enviador por defecto",
       "close": "Cerrar",
-      "namePlaceholder": "ej. Nombre template"
+      "namePlaceholder": "ej. Nombre template",
+      "whatsapp": {
+        "entityType": "Tipo de entidad",
+        "selectEntityType": "Selecciona el tipo de entidad",
+        "entityTypes": {
+          "patient": "Paciente",
+          "appointment": "Cita",
+          "invoice": "Factura"
+        },
+        "searchLabel": "Template de Meta/YCloud",
+        "searchPlaceholder": "Buscar por nombre de template...",
+        "searchButton": "Buscar",
+        "loadingTemplates": "Cargando templates desde YCloud...",
+        "noResults": "No se encontraron templates coincidentes.",
+        "selectPrompt": "Selecciona el template exacto aprobado en Meta.",
+        "status": {
+          "APPROVED": "Aprobado",
+          "PENDING": "Pendiente",
+          "REJECTED": "Rechazado",
+          "unknown": "Estado desconocido"
+        },
+        "language": "Idioma",
+        "selectedTemplate": "Template seleccionado",
+        "previewLabel": "Vista previa del template",
+        "variablesTitle": "Mapeo de variables",
+        "variablesDescription": "Indica de dónde sale el valor de cada variable del template.",
+        "selectSourceField": "Selecciona el campo de origen",
+        "noVariables": "Este template no tiene variables.",
+        "searchFirst": "Busca y selecciona un template de Meta/YCloud para configurar sus variables.",
+        "fieldLabels": {
+          "patientName": "Nombre del paciente",
+          "clinicName": "Nombre de la clínica",
+          "appointmentDate": "Fecha de la cita",
+          "appointmentHour": "Hora de la cita",
+          "appointmentProfessionalName": "Nombre del profesional",
+          "invoiceDocNo": "Número de factura",
+          "invoiceAmount": "Monto de la factura",
+          "invoiceDueDate": "Fecha de vencimiento de la factura"
+        }
+      }
     },
     "deleteDialog": {
       "title": "Eliminar Plantilla",
@@ -5381,7 +6426,128 @@
         "name": "Nombre"
       },
       "badRequest": "Error de validación. Por favor verifique los datos ingresados."
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
+  },
+  "MedicalInstructionTemplatesPage": {
+    "title": "Plantillas de Indicaciones Médicas",
+    "description": "Gestionar plantillas reutilizables de indicaciones médicas para pacientes.",
+    "filterPlaceholder": "Filtrar por nombre de plantilla...",
+    "noAccess": "No tiene acceso para ver esta sección.",
+    "columns": {
+      "name": "Nombre",
+      "description": "Descripción",
+      "isActive": "Activo",
+      "yes": "Sí",
+      "no": "No",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+    "dialog": {
+      "createTitle": "Crear Plantilla de Indicación",
+      "editTitle": "Editar Plantilla de Indicación",
+      "name": "Nombre",
+      "namePlaceholder": "ej. Post-extracción",
+      "descriptionLabel": "Descripción",
+      "content": "Contenido",
+      "legend": "Use el botón \"Variables\" para insertar datos que se completarán automáticamente al usar esta plantilla con un paciente, como el nombre del paciente, la clínica, la fecha o la pieza dental.",
+      "preview": "Vista previa",
+      "isActive": "Está Activa",
+      "cancel": "Cancelar",
+      "create": "Crear Plantilla",
+      "save": "Guardar Cambios"
+    },
+    "variables": {
+      "title": "Variables",
+      "groups": {
+        "patient": "Paciente",
+        "clinic": "Clínica",
+        "document": "Documento",
+        "tables": "Tablas"
+      }
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createSuccessTitle": "Plantilla Creada",
+      "editSuccessTitle": "Plantilla Actualizada",
+      "successDescription": "La plantilla \"{name}\" se ha guardado exitosamente.",
+      "deleteSuccessTitle": "Plantilla Eliminada",
+      "deleteSuccessDescription": "La plantilla \"{name}\" ha sido eliminada."
+    },
+    "deleteDialog": {
+      "title": "Eliminar Plantilla",
+      "description": "¿Está seguro de que desea eliminar la plantilla \"{name}\"?",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio.",
+      "contentRequired": "El contenido es obligatorio."
     }
+  },
+  "PatientInstructionDialog": {
+    "createTitle": "Nueva Indicación Médica",
+    "editTitle": "Editar Indicación Médica",
+    "date": "Fecha",
+    "tooth": "Pieza dental",
+    "toothPlaceholder": "Opcional",
+    "doctor": "Doctor",
+    "selectDoctor": "Seleccione un doctor",
+    "searchDoctor": "Buscar doctor...",
+    "noDoctor": "No se encontraron doctores.",
+    "template": "Plantilla",
+    "selectTemplate": "Seleccione una plantilla",
+    "content": "Contenido",
+    "refreshVariables": "Actualizar variables",
+    "preview": "Vista previa",
+    "close": "Cerrar",
+    "print": "Imprimir",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "variables": {
+      "title": "Variables",
+      "groups": {
+        "patient": "Paciente",
+        "clinic": "Clínica",
+        "document": "Documento",
+        "tables": "Tablas"
+      }
+    },
+    "validation": {
+      "doctorRequired": "Debe seleccionar un doctor.",
+      "contentRequired": "El contenido es obligatorio."
+    },
+    "toast": {
+      "createSuccess": "Indicación médica creada.",
+      "editSuccess": "Indicación médica actualizada.",
+      "error": "Ocurrió un error al guardar la indicación médica."
+    }
+  },
+  "PatientInstructionsSection": {
+    "title": "Indicaciones Médicas",
+    "newInstruction": "Nueva indicación",
+    "noData": "No hay indicaciones médicas registradas.",
+    "tooth": "Pieza",
+    "print": "Imprimir",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "deleteDialog": {
+      "title": "Eliminar Indicación Médica",
+      "description": "¿Está seguro de que desea eliminar esta indicación médica?",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "deleteSuccess": "Indicación médica eliminada.",
+      "error": "Ocurrió un error."
+    }
+  },
+  "PatientInstructionPrint": {
+    "patient": "Paciente",
+    "date": "Fecha",
+    "doctor": "Doctor",
+    "tooth": "Pieza dental"
   },
   "CommunicationHistoryPage": {
     "title": "Historial de Comunicaciones",
@@ -5431,7 +6597,8 @@
       "errorDetails": "Detalles de Error",
       "noErrors": "No hay detalles de error disponibles",
       "status": "Estado"
-    }
+    },
+    "noAccess": "No tiene acceso para ver esta sección."
   },
   "AlertsConfigPage": {
     "title": "Configuración del Sistema de Alertas",
@@ -5448,7 +6615,12 @@
       "runNowSuccessTitle": "Programador Ejecutado",
       "runNowSuccessDescription": "El programador de alertas se ha ejecutado correctamente.",
       "runNowErrorTitle": "Error al Ejecutar",
-      "runNowErrorDescription": "Ocurrió un error al ejecutar el programador. Por favor, inténtelo nuevamente."
+      "runNowErrorDescription": "Ocurrió un error al ejecutar el programador. Por favor, inténtelo nuevamente.",
+      "runNowConfirm": {
+        "title": "¿Ejecutar el programador ahora?",
+        "description": "Se evaluarán todas las reglas activas y se generarán alertas; las que tengan acciones automáticas enviarán emails o mensajes a los pacientes. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar"
+      }
     },
     "email": {
       "title": "Configuración de Correo Electrónico",
@@ -5485,6 +6657,57 @@
       "saveSuccessDescription": "Sus cambios de configuración se han guardado.",
       "saveErrorTitle": "Error al Guardar",
       "saveErrorDescription": "Ocurrió un error al guardar los cambios. Por favor, inténtelo nuevamente."
+    },
+    "loadError": "No se pudo cargar la configuración de alertas"
+  },
+  "WhatsAppAgentConfigPage": {
+    "title": "Agente de WhatsApp",
+    "description": "Configure el agente conversacional de WhatsApp y su horario de atención.",
+    "saveChanges": "Guardar Cambios",
+    "agent": {
+      "title": "Agente",
+      "description": "Interruptor general del agente conversacional de WhatsApp.",
+      "enable": "Agente habilitado",
+      "enableDescription": "Si está deshabilitado, el agente no procesa ningún mensaje entrante."
+    },
+    "hours": {
+      "title": "Horario de atención",
+      "description": "El agente sólo responde consultas dentro de los rangos definidos. Fuera de ellos no hace nada.",
+      "enable": "Aplicar horario",
+      "enableDescription": "Si está desactivado, el agente responde a toda hora.",
+      "timezone": "Zona horaria",
+      "rulesHelp": "Cada regla aplica sus rangos horarios a los días seleccionados. El agente responde dentro de esos rangos (hora local); usá 24:00 como fin del día. Si dos reglas comparten un día, se suman sus rangos.",
+      "noDays": "Seleccioná al menos un día para esta regla.",
+      "addRange": "Agregar rango",
+      "addRule": "Agregar regla",
+      "removeRule": "Quitar regla",
+      "removeRange": "Quitar rango",
+      "offHoursReply": "Mensaje fuera de horario",
+      "offHoursReplyPlaceholder": "Ej: Gracias por tu mensaje. Nuestro horario de atención es de 9 a 20 h. Te responderemos a la brevedad.",
+      "offHoursReplyHelp": "Opcional. Si se completa, el agente envía este texto una vez cuando recibe un mensaje fuera de horario. Si se deja vacío, no responde nada.",
+      "preset": {
+        "weekdays": "Entre semana",
+        "weekend": "Fin de semana",
+        "all": "Todos"
+      }
+    },
+    "days": {
+      "mon": "Lunes",
+      "tue": "Martes",
+      "wed": "Miércoles",
+      "thu": "Jueves",
+      "fri": "Viernes",
+      "sat": "Sábado",
+      "sun": "Domingo"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "successTitle": "Guardado",
+      "loadError": "No se pudo cargar la configuración del agente.",
+      "saveSuccess": "La configuración del agente de WhatsApp se guardó correctamente.",
+      "saveError": "No se pudo guardar la configuración. Intente nuevamente.",
+      "validationError": "Revise los rangos horarios: la hora de inicio debe ser menor que la de fin.",
+      "partialSaveError": "Se guardó la activación del agente, pero no el horario de atención. Revise los cambios y vuelva a guardar."
     }
   },
   "SequencesPage": {
@@ -5527,7 +6750,7 @@
     },
     "deleteDialog": {
       "title": "Eliminar Secuencia",
-      "description": "¿Está seguro de que desea eliminar esta secuencia? Esta acción no se puede deshacer.",
+      "description": "¿Está seguro de que desea eliminar la secuencia \"{name}\"? Esta acción no se puede deshacer.",
       "cancel": "Cancelar",
       "confirm": "Eliminar"
     },
@@ -5717,13 +6940,31 @@
     "title": "Preferencias",
     "description": "Gestiona tus preferencias de notificaciones y espacio de trabajo",
     "notificationsSection": "Notificaciones",
+    "toastPositionLabel": "Posición de los mensajes",
+    "toastPositionDescription": "Elige en qué parte de la pantalla aparecen los mensajes de confirmación y error. En pantallas pequeñas siempre se muestran arriba.",
+    "toastPositionPreview": "Los mensajes se mostrarán aquí",
+    "toastPosition": {
+      "top-center": "Arriba centro",
+      "top-right": "Arriba derecha",
+      "bottom-center": "Abajo centro",
+      "bottom-right": "Abajo derecha"
+    },
     "workspaceSection": "Espacio de trabajo",
     "alertStyleLabel": "Estilo de alertas",
     "alertStyleDescription": "Elige cómo se muestran las alertas de nuevas citas.",
     "alertStyle": {
       "modal": "Modal",
       "toast": "Notificación"
-    }
+    },
+    "financeViewSection": "Finanzas del paciente",
+    "financeViewLabel": "Diseño de la pestaña Finanzas",
+    "financeViewDescription": "Elige cómo se muestra la pestaña de finanzas del paciente.",
+    "financeView": {
+      "unified": "Personalizado",
+      "tabs": "Normal"
+    },
+    "calendarSection": "Calendario",
+    "signatureSection": "Firma"
   },
   "UserCommunicationPreferences": {
     "title": "Preferencias",
@@ -5751,6 +6992,14 @@
     "description": "Las siguientes direcciones de correo electrónico no tienen el canal de email habilitado en sus preferencias de comunicación. Es posible que no reciban este mensaje:",
     "cancel": "Cancelar",
     "continueAnyway": "Enviar de Todos Modos"
+  },
+  "FutureAppointmentsConfirmDialog": {
+    "title": "Atención",
+    "description": "{patient} tiene las siguientes citas marcadas:",
+    "appointmentLine": "Día: {date}  Hora: {time} - {room}",
+    "question": "¿Darle esta nueva hora?",
+    "confirm": "Sí",
+    "cancel": "No"
   },
   "MutualSocietiesPage": {
     "title": "Sociedades Mutuales",
@@ -5791,6 +7040,183 @@
       "nameRequired": "El nombre es obligatorio.",
       "codeRequired": "El código es obligatorio."
     }
+  },
+  "PatientGroupsPage": {
+    "title": "Grupos de Pacientes",
+    "description": "Gestione el catálogo de grupos de pacientes.",
+    "filterPlaceholder": "Filtrar por nombre...",
+    "createDialog": {
+      "title": "Crear Grupo de Pacientes",
+      "description": "Descripción",
+      "editTitle": "Editar Grupo de Pacientes",
+      "editDescription": "Actualice los detalles de este grupo de pacientes.",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Ortodoncia",
+      "descriptionPlaceholder": "Ingrese una descripción opcional",
+      "isActive": "Activo",
+      "isDoctor": "Este grupo representa a un doctor",
+      "doctor": "Doctor",
+      "doctorPlaceholder": "Seleccione un doctor",
+      "cancel": "Cancelar",
+      "revert": "Descartar cambios",
+      "save": "Crear Grupo",
+      "editSave": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Está seguro?",
+      "description": "Esto eliminará permanentemente el grupo de pacientes \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Grupo de Pacientes Creado",
+      "editSuccessTitle": "Grupo de Pacientes Actualizado",
+      "successDescription": "El grupo de pacientes \"{name}\" se ha guardado exitosamente.",
+      "deleteSuccessTitle": "Grupo de Pacientes Eliminado",
+      "deleteSuccessDescription": "El grupo de pacientes \"{name}\" ha sido eliminado.",
+      "deleteErrorDescription": "No se pudo eliminar el grupo de pacientes."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio.",
+      "doctorRequired": "Debe seleccionar un doctor."
+    },
+    "tabs": {
+      "info": "Información",
+      "patients": "Pacientes",
+      "services": "Servicios"
+    },
+    "patients": {
+      "title": "Pacientes del grupo",
+      "description": "Agregue o quite pacientes de este grupo.",
+      "filterPlaceholder": "Buscar en el grupo...",
+      "addButton": "Agregar pacientes",
+      "addConfirm": "Agregar",
+      "addCancel": "Cancelar",
+      "added": "{count} paciente(s) agregado(s) al grupo",
+      "addError": "No se pudieron agregar los pacientes",
+      "search": "Buscar paciente...",
+      "noResults": "No se encontraron pacientes.",
+      "count": "{count} seleccionado(s)",
+      "col_name": "Nombre",
+      "col_document": "Documento",
+      "col_phone": "Teléfono",
+      "col_email": "Email",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "remove": "Quitar del grupo",
+      "removed": "Paciente quitado del grupo",
+      "removeError": "No se pudo quitar el paciente"
+    },
+    "services": {
+      "title": "Servicios del grupo",
+      "description": "Vincule los servicios que pertenecen a este grupo, para poder reportar lo producido/cobrado por grupo.",
+      "filterPlaceholder": "Buscar en el grupo...",
+      "addButton": "Agregar servicios",
+      "addConfirm": "Agregar",
+      "addCancel": "Cancelar",
+      "added": "{count} servicio(s) agregado(s) al grupo",
+      "addError": "No se pudieron agregar los servicios",
+      "search": "Buscar servicio...",
+      "noResults": "No se encontraron servicios.",
+      "count": "{count} seleccionado(s)",
+      "col_name": "Nombre",
+      "col_category": "Categoría",
+      "col_price": "Precio",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "remove": "Quitar del grupo",
+      "removed": "Servicio quitado del grupo",
+      "removeError": "No se pudo quitar el servicio"
+    },
+    "export": {
+      "button": "Exportar a Excel",
+      "allButton": "Exportar todos",
+      "allFileName": "Grupos de pacientes",
+      "col_name": "Nombre",
+      "col_phone": "Teléfono",
+      "progress": "Exportando {done}/{total}...",
+      "successSingle": "Excel exportado ({count} pacientes)",
+      "successAll": "Excel exportado ({groups} grupos, {count} pacientes)",
+      "empty": "No hay grupos para exportar",
+      "error": "No se pudo exportar a Excel"
+    }
+  },
+  "ProviderGroupsPage": {
+    "title": "Grupos de Proveedores",
+    "description": "Gestione el catálogo de grupos de proveedores.",
+    "filterPlaceholder": "Filtrar por nombre...",
+    "createDialog": {
+      "title": "Crear Grupo de Proveedores",
+      "description": "Descripción",
+      "editTitle": "Editar Grupo de Proveedores",
+      "editDescription": "Actualice los detalles de este grupo de proveedores.",
+      "name": "Nombre",
+      "namePlaceholder": "ej., Insumos dentales",
+      "descriptionPlaceholder": "Ingrese una descripción opcional",
+      "isActive": "Activo",
+      "cancel": "Cancelar",
+      "revert": "Descartar cambios",
+      "save": "Crear Grupo",
+      "editSave": "Guardar Cambios"
+    },
+    "deleteDialog": {
+      "title": "¿Está seguro?",
+      "description": "Esto eliminará permanentemente el grupo de proveedores \"{name}\". Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "genericError": "Ocurrió un error inesperado.",
+      "createSuccessTitle": "Grupo de Proveedores Creado",
+      "editSuccessTitle": "Grupo de Proveedores Actualizado",
+      "successDescription": "El grupo de proveedores \"{name}\" se ha guardado exitosamente.",
+      "deleteSuccessTitle": "Grupo de Proveedores Eliminado",
+      "deleteSuccessDescription": "El grupo de proveedores \"{name}\" ha sido eliminado.",
+      "deleteErrorDescription": "No se pudo eliminar el grupo de proveedores."
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio."
+    },
+    "tabs": {
+      "info": "Información",
+      "providers": "Proveedores"
+    },
+    "providers": {
+      "title": "Proveedores del grupo",
+      "description": "Agregue o quite proveedores de este grupo.",
+      "filterPlaceholder": "Buscar en el grupo...",
+      "addButton": "Agregar proveedores",
+      "addConfirm": "Agregar",
+      "addCancel": "Cancelar",
+      "added": "{count} proveedor(es) agregado(s) al grupo",
+      "addError": "No se pudieron agregar los proveedores",
+      "search": "Buscar proveedor...",
+      "noResults": "No se encontraron proveedores.",
+      "count": "{count} seleccionado(s)",
+      "col_name": "Nombre",
+      "col_document": "Documento",
+      "col_phone": "Teléfono",
+      "col_email": "Email",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "remove": "Quitar del grupo",
+      "removed": "Proveedor quitado del grupo",
+      "removeError": "No se pudo quitar el proveedor"
+    }
+  },
+  "ProviderGroupsColumns": {
+    "id": "ID",
+    "name": "Nombre",
+    "description": "Descripción",
+    "isActive": "Activo",
+    "createdAt": "Fecha de Creación",
+    "updatedAt": "Fecha de Actualización",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
   },
   "Config": {
     "PrintTemplates": {
@@ -5870,6 +7296,15 @@
         "alert": "Alerta",
         "treatment": "Tratamiento",
         "cash": "Caja"
+      },
+      "loadError": "No se pudieron cargar las plantillas",
+      "resetError": "No se pudo restaurar la plantilla",
+      "unsavedChanges": "Cambios sin guardar",
+      "textMode": "Texto",
+      "resetConfirm": {
+        "title": "¿Restaurar la plantilla predeterminada?",
+        "description": "Se eliminará la versión personalizada de \"{name}\" (incluidos los cambios sin guardar) y se volverá a usar la predeterminada. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar"
       }
     }
   },
@@ -5885,10 +7320,27 @@
     "edit": "Editar",
     "delete": "Eliminar"
   },
+  "PatientGroupsColumns": {
+    "id": "ID",
+    "name": "Nombre",
+    "description": "Descripción",
+    "isActive": "Activo",
+    "createdAt": "Fecha de Creación",
+    "updatedAt": "Fecha de Actualización",
+    "actions": "Acciones",
+    "edit": "Editar",
+    "delete": "Eliminar"
+  },
   "Common": {
     "accessDenied": "Acceso Denegado",
     "noPermission": "No tienes permisos para acceder a esta página.",
-    "loading": "Cargando..."
+    "loading": "Cargando...",
+    "errorTitle": "Algo salió mal",
+    "genericError": "No se pudo completar la acción. Inténtalo de nuevo.",
+    "timeoutError": "El servidor tardó demasiado en responder. Es posible que el cambio se haya guardado: actualiza antes de volver a intentarlo.",
+    "loadError": "No se pudieron cargar los datos.",
+    "retry": "Reintentar",
+    "unsavedChangesConfirm": "Tienes cambios sin guardar. ¿Descartarlos?"
   },
   "ImportPage": {
     "title": "Importar Datos",
@@ -5961,7 +7413,8 @@
       "error": "Error",
       "importValid": "Importar solo los válidos",
       "fixCsv": "Corregir CSV y volver a subir",
-      "noErrors": "¡Todos los registros son válidos!"
+      "noErrors": "¡Todos los registros son válidos!",
+      "importing": "Importando..."
     },
     "result": {
       "inserted": "Insertados",
@@ -5977,6 +7430,51 @@
       "next": "Siguiente",
       "import": "Importar",
       "cancel": "Cancelar"
+    },
+    "importError": "No se pudo completar la importación",
+    "importTimeout": "El servidor tardó demasiado en responder y la importación pudo haberse procesado. No vuelva a importar el archivo: revise los registros antes de intentarlo de nuevo.",
+    "confirm": {
+      "title": "¿Importar {count} registros?",
+      "description": "Se crearán o actualizarán {count} registros de {type} a partir de «{file}». La importación no se puede deshacer desde el sistema.",
+      "cancel": "Cancelar"
+    }
+  },
+  "PatientHistorySheet": {
+    "title": "Historia clínica",
+    "back": "Atrás",
+    "newAnnotation": "Nueva anotación",
+    "newInstruction": "Nueva indicación",
+    "searchPlaceholder": "Buscar...",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "deleteConfirm": "Esta anotación será eliminada permanentemente. ¿Continuar?",
+    "deleteSuccess": "Anotación eliminada",
+    "deleteError": "No se pudo eliminar la anotación",
+    "columns": {
+      "date": "Fecha",
+      "piece": "Pieza",
+      "description": "Descripción",
+      "next": "Próxima",
+      "color": "Color"
+    },
+    "newPrescription": "Nueva receta"
+  },
+  "PatientDocumentsSheet": {
+    "title": "Imágenes y archivos",
+    "back": "Atrás"
+  },
+  "PatientAppointmentsSheet": {
+    "title": "Historial de citas",
+    "back": "Atrás",
+    "searchPlaceholder": "Buscar...",
+    "durationMinutes": "{min} min",
+    "columns": {
+      "date": "Fecha",
+      "time": "Hora",
+      "duration": "Duración (min)",
+      "calendar": "Agenda",
+      "attendance": "Asistencia"
     }
   },
   "ClinicSessionDialog": {
@@ -5996,6 +7494,19 @@
       "existing": "Archivos existentes",
       "new": "Nuevos archivos",
       "browseFiles": "buscar archivos"
+    },
+    "annotation": {
+      "createTitle": "Nueva Anotación",
+      "editTitle": "Editar Anotación",
+      "piece": "Pieza",
+      "piecePlaceholder": "N° de pieza",
+      "color": "Color",
+      "selectColor": "Seleccionar color",
+      "noColor": "Sin color",
+      "annotationLabel": "Anotación",
+      "annotationPlaceholder": "Escribe la anotación...",
+      "nextLabel": "Próxima",
+      "nextPlaceholder": "Notas para la próxima cita..."
     },
     "createTitle": "Crear Sesión",
     "editTitle": "Editar Sesión",
@@ -6301,31 +7812,6 @@
       "sendErrorDescription": "No se pudo enviar el correo de alerta. Inténtalo nuevamente."
     }
   },
-  "AlertWhatsAppComposerDialog": {
-    "title": "Mensaje de WhatsApp de alerta",
-    "description": "Revisa el contenido y ábrelo en WhatsApp.",
-    "phone": "Teléfono",
-    "message": "Mensaje",
-    "messagePlaceholder": "Escribe tu mensaje aquí...",
-    "missingPhone": "Esta alerta no tiene teléfono del paciente.",
-    "unknownPatient": "paciente",
-    "cancel": "Cancelar",
-    "open": "Abrir WhatsApp",
-    "opening": "Abriendo...",
-    "template": {
-      "greeting": "Hola {name}.",
-      "intro": "Nos comunicamos contigo por esta alerta:",
-      "alertTitle": "Alerta",
-      "summary": "Resumen",
-      "alertDate": "Fecha de alerta",
-      "eventDate": "Fecha de evento",
-      "closing": "Si necesitas más información, no dudes en contactarnos."
-    },
-    "toast": {
-      "openErrorTitle": "No se pudo abrir WhatsApp",
-      "openErrorDescription": "Permite las ventanas emergentes e inténtalo nuevamente."
-    }
-  },
   "EmailComposerDialog": {
     "title": "Nuevo correo",
     "to": "Para",
@@ -6367,6 +7853,44 @@
       "openErrorDescription": "Permite las ventanas emergentes e inténtalo nuevamente."
     }
   },
+  "PatientActionsMenu": {
+    "sendReminder": "Enviar recordatorio"
+  },
+  "WhatsAppTemplateSendDialog": {
+    "title": "Enviar recordatorio por WhatsApp",
+    "description": "Selecciona la plantilla a enviar al paciente.",
+    "missingPhone": "El paciente no tiene un teléfono registrado.",
+    "templateLabel": "Plantilla",
+    "templates": {
+      "birthday": {
+        "label": "Cumpleaños",
+        "description": "Saludo de cumpleaños."
+      },
+      "appointment_reminder": {
+        "label": "Próxima cita",
+        "description": "Recordatorio de la cita seleccionada."
+      },
+      "invoice_due": {
+        "label": "Factura a vencer",
+        "description": "Recordatorio de la factura pendiente más próxima a vencer."
+      }
+    },
+    "appointmentLabel": "Cita",
+    "loadingAppointments": "Buscando próximas citas...",
+    "noAppointments": "Este paciente no tiene citas próximas agendadas.",
+    "invoiceLabel": "Factura",
+    "loadingInvoices": "Buscando facturas pendientes...",
+    "noInvoices": "Este paciente no tiene facturas pendientes con vencimiento.",
+    "cancel": "Cancelar",
+    "send": "Enviar",
+    "sending": "Enviando...",
+    "toast": {
+      "sendSuccessTitle": "Mensaje enviado",
+      "sendSuccessDescription": "El recordatorio se envió correctamente por WhatsApp.",
+      "sendErrorTitle": "Error al enviar el mensaje",
+      "sendErrorDescription": "No se pudo enviar el recordatorio. Inténtalo nuevamente."
+    }
+  },
   "DentalRecord": {
     "title": "Expediente Médico",
     "tab": {
@@ -6385,24 +7909,8 @@
     "selectToothHint": "Toca un diente para ver detalles y aplicar condiciones",
     "clearTooth": "Limpiar diente",
     "clearAll": "Limpiar odontograma",
-    "activeTool": "Herramienta activa",
     "fullscreen": "Pantalla completa",
     "exitFullscreen": "Salir de pantalla completa",
-    "layoutMouth": "Vista boca abierta",
-    "layoutFlat": "Vista plana",
-    "backToMouth": "Volver a la boca",
-    "conditionsPanel": "Condiciones",
-    "odontogramSection": "Odontograma",
-    "conditionCategory": {
-      "surface": "Superficies",
-      "whole": "Pieza",
-      "overlay": "Superposición"
-    },
-    "hint": {
-      "surface": "Haz clic en una zona del diente",
-      "whole": "Haz clic en el diente para aplicar a la pieza completa",
-      "overlay": "Haz clic en el diente para agregar/quitar superposición"
-    },
     "conditions": {
       "healthy": "Sano",
       "caries": "Caries",
@@ -6490,6 +7998,481 @@
         "datePlaceholder": "Selecciona una fecha",
         "toastSuccess": "Paciente dado de alta correctamente",
         "dateRequired": "Debes seleccionar una fecha de alta."
+      },
+      "defaultTitle": "Sesión Odontograma {date}",
+      "wholeToothShort": "pieza"
+    },
+    "quickBilling": "Cobro Rápido",
+    "categories": {
+      "restorations": "Restauración",
+      "fixed-prosthesis": "Prótesis",
+      "endodontics": "Endodoncia",
+      "implants": "Implante",
+      "periodontics": "Periodoncia",
+      "oral-surgery": "Cirugía",
+      "orthodontics": "Ortodoncia",
+      "pathologies": "Patología"
+    },
+    "surfaces": {
+      "top": "Vestibular (V)",
+      "left": "Mesial (M)",
+      "center": "Oclusal/Incisal (O)",
+      "right": "Distal (D)",
+      "bottom": "Lingual/Palatina (L)"
+    },
+    "toothNames": {
+      "central": "Incisivo central",
+      "lateral": "Incisivo lateral",
+      "canine": "Canino",
+      "premolar1": "Primer premolar",
+      "premolar2": "Segundo premolar",
+      "molar1": "Primer molar",
+      "molar2": "Segundo molar",
+      "molar3": "Tercer molar"
+    },
+    "board": {
+      "surfaceTitle": "Diente {tooth} - {surface}",
+      "toothLabel": "Diente {tooth}",
+      "piece": "Pieza {tooth}",
+      "upperPiece": "Pieza superior",
+      "lowerPiece": "Pieza inferior",
+      "clickToZoom": "Haz clic en un diente para ampliarlo aquí",
+      "filter": {
+        "permanent": "Permanente",
+        "temporal": "Temporal",
+        "both": "Ambas"
+      },
+      "layout": {
+        "anatomical": "Arcada anatómica",
+        "traditional": "FDI tradicional"
+      },
+      "activeToolBanner": "Herramienta activa: <strong>{tool}</strong>. Haz clic en cualquier diente o superficie para aplicarla.",
+      "deactivateTool": "Desactivar herramienta",
+      "quadrant": {
+        "q1": "Permanente superior derecho (Q1)",
+        "q2": "Permanente superior izquierdo (Q2)",
+        "q3": "Permanente inferior izquierdo (Q3)",
+        "q4": "Permanente inferior derecho (Q4)",
+        "q5": "Temporal superior derecho (Q5)",
+        "q6": "Temporal superior izquierdo (Q6)",
+        "q7": "Temporal inferior izquierdo (Q7)",
+        "q8": "Temporal inferior derecho (Q8)"
+      }
+    },
+    "palette": {
+      "title": "Simbología",
+      "selectMode": "Modo selección",
+      "selectModeHint": "Modo puntero: selecciona un diente para ver sus detalles",
+      "search": "Buscar",
+      "searchHint": "Buscar procedimientos o símbolos",
+      "searchPlaceholder": "Buscar código o nombre...",
+      "clearSearch": "Limpiar búsqueda",
+      "categoryCount": "{category} ({count, plural, one {# símbolo} other {# símbolos}})",
+      "results": "Resultados ({count})",
+      "noResults": "No hay coincidencias.",
+      "closeCategory": "Cerrar categoría",
+      "pickCategory": "Toca una categoría para desplegar sus símbolos.",
+      "symbol": "Símbolo: {symbol}",
+      "appliesTo": {
+        "surface": "Superficies",
+        "tooth": "Pieza",
+        "both": "Ambas"
+      },
+      "legendTitle": "Simbología FDI:",
+      "legend": {
+        "amalgam": "Amalgama",
+        "resin": "Resina",
+        "required": "Requerida",
+        "caries": "Caries",
+        "missing": "Ausente",
+        "extraction": "Exodoncia"
+      }
+    },
+    "toothCard": {
+      "removeProcedure": "Quitar",
+      "temporal": "Pieza temporal",
+      "permanent": "Pieza permanente",
+      "undo": "Deshacer",
+      "quickAdd": "Patología o procedimiento para la pieza {tooth}",
+      "quickAddPlaceholder": "+ Selecciona una condición o tratamiento del listado FDI...",
+      "alreadyApplied": "(ya registrado)",
+      "summary": "Marcado en esta pieza",
+      "wholeTooth": "pieza",
+      "noMarks": "Todavía no hay nada marcado en esta pieza.",
+      "notes": "Notas de la pieza",
+      "notesPlaceholder": "Diagnóstico, observaciones o notas de esta pieza..."
+    },
+    "autoNote": {
+      "surfaceAdded": "D{tooth}({surface}): {label}",
+      "surfaceRemoved": "D{tooth}({surface}): {label} eliminado",
+      "toothAdded": "D{tooth}: {label} (pieza completa)",
+      "toothRemoved": "D{tooth}: {label} eliminado",
+      "cleared": "D{tooth}: limpiado"
+    },
+    "confirm": {
+      "clearAllTitle": "¿Limpiar el odontograma completo?",
+      "clearAllDescription": "Se quitarán todas las marcas de esta sesión. Puedes deshacerlo mientras sigas editando.",
+      "clearAllAction": "Sí, limpiar todo",
+      "cancelTitle": "¿Descartar los cambios?",
+      "cancelDescription": "Se perderán los cambios realizados en esta sesión.",
+      "cancelAction": "Sí, descartar",
+      "keepEditing": "Seguir editando"
+    },
+    "procedures": {
+      "caries": {
+        "label": "Caries Dental (Cavitada)",
+        "description": "Área roja sombreada que indica caries cavitada extensa que requiere restauración activa.",
+        "symbol": "Rojo sólido en la superficie"
+      },
+      "caries-incipient": {
+        "label": "Caries Incipiente (Punto)",
+        "description": "Punto rojo marcado en surcos o fosas que representa descalcificación o caries incipiente.",
+        "symbol": "Punto rojo en la cara"
+      },
+      "amalgam": {
+        "label": "Amalgama Existente",
+        "description": "Restauración dental existente con amalgama de plata metálica en buen estado.",
+        "symbol": "Cara azul rellena"
+      },
+      "resin": {
+        "label": "Resina Compuesta Existente",
+        "description": "Restauración dental estética con resina compuesta realizada e integrada.",
+        "symbol": "Cara azul rayada"
+      },
+      "restoration-required": {
+        "label": "Restauración Requerida",
+        "description": "Superficie dentaria con restauración perdida, filtrada o requerida por caries.",
+        "symbol": "Cara roja rellena"
+      },
+      "filling": {
+        "label": "Obturación General Existente",
+        "description": "Obturación o calza dental ya existente en buen estado.",
+        "symbol": "Cara azul sólida"
+      },
+      "sealant": {
+        "label": "Sellante (Protector)",
+        "description": "Material sellante preventivo aplicado en fosas y fisuras profundas.",
+        "symbol": "Sello verde"
+      },
+      "healthy": {
+        "label": "Sano",
+        "description": "Superficie sana (condición de sesiones anteriores).",
+        "symbol": "Cara verde"
+      },
+      "pulp": {
+        "label": "Tratamiento Pulpar",
+        "description": "Tratamiento pulpar registrado en sesiones anteriores.",
+        "symbol": "Cara naranja"
+      },
+      "dyschromic": {
+        "label": "Discromía",
+        "description": "Alteración del color dental registrada en sesiones anteriores.",
+        "symbol": "Cara amarilla"
+      },
+      "worn": {
+        "label": "Desgaste",
+        "description": "Desgaste de superficie registrado en sesiones anteriores.",
+        "symbol": "Cara gris"
+      },
+      "crown": {
+        "label": "Corona Protésica Existente",
+        "description": "Corona protésica metálica o cerámica fija colocada previamente.",
+        "symbol": "Circunferencia azul"
+      },
+      "crown-indicated": {
+        "label": "Corona Protésica Indicada",
+        "description": "Tratamiento rehabilitador con corona dental indicado por destrucción o endodoncia.",
+        "symbol": "Circunferencia roja punteada"
+      },
+      "crown-tmp": {
+        "label": "Corona Provisional",
+        "description": "Corona transitoria de acrílico o material provisional en preparación final.",
+        "symbol": "Circunferencia ámbar punteada"
+      },
+      "bridge-in-progress": {
+        "label": "Puente Fijo (En Progreso)",
+        "description": "Puente fijo en proceso de confección o indicado para realizar.",
+        "symbol": "Barra roja"
+      },
+      "fixed-prosth": {
+        "label": "Puente Fijo (Realizado)",
+        "description": "Puente fijo existente ya confeccionado y en buen estado.",
+        "symbol": "Barra azul"
+      },
+      "bridge-defective": {
+        "label": "Puente Fijo (Defectuoso o Recidiva)",
+        "description": "Puente fijo existente en mal estado, defectuoso o con recidiva.",
+        "symbol": "Barra azul con borde rojo"
+      },
+      "rem-prost": {
+        "label": "Prótesis Removible (PPR)",
+        "description": "Soportes de una prótesis removible parcial metálica o acrílica.",
+        "symbol": "Rectángulo punteado"
+      },
+      "post": {
+        "label": "Perno Metálico",
+        "description": "Perno o poste metálico colado de soporte intrarradicular.",
+        "symbol": "Perno gris"
+      },
+      "post-fiber": {
+        "label": "Perno de Fibra",
+        "description": "Perno o poste de fibra de vidrio o cuarzo estético.",
+        "symbol": "Perno mostaza"
+      },
+      "prosthesis": {
+        "label": "Prótesis",
+        "description": "Prótesis registrada en sesiones anteriores.",
+        "symbol": "Circunferencia violeta"
+      },
+      "endo-done": {
+        "label": "Tratamiento Endodóntico Realizado",
+        "description": "Tratamiento de conductos radiculares satisfactorio ya realizado.",
+        "symbol": "Línea azul en la raíz"
+      },
+      "endo-indicated": {
+        "label": "Tratamiento Endodóntico Indicado",
+        "description": "Pieza dental con necrosis pulpar o pulpitis irreversible con endodoncia indicada.",
+        "symbol": "Línea roja en la raíz"
+      },
+      "root-post": {
+        "label": "Poste Intrarradicular",
+        "description": "Elemento de retención intrapulpar como perno de fibra de vidrio o perno colado.",
+        "symbol": "Conducto grueso"
+      },
+      "endodontics": {
+        "label": "Endodoncia (Tratada)",
+        "description": "Tratamiento de conducto general.",
+        "symbol": "Conducto en la raíz"
+      },
+      "implant-osseo": {
+        "label": "Implante Osteointegrado",
+        "description": "Implante de titanio clínicamente osteointegrado.",
+        "symbol": "Tornillo en el hueso"
+      },
+      "implant-planned": {
+        "label": "Implante Planificado",
+        "description": "Sitio edéntulo planificado para la inserción quirúrgica de un implante dental.",
+        "symbol": "Tornillo rojo"
+      },
+      "implant": {
+        "label": "Implante Dental",
+        "description": "Implante dental general.",
+        "symbol": "Tornillo metálico"
+      },
+      "perio-pocket": {
+        "label": "Bolsa Periodontal",
+        "description": "Bolsa periodontal con profundidad de sondaje patológica mayor a 4 mm.",
+        "symbol": "Línea roja vertical"
+      },
+      "gingival-recession": {
+        "label": "Recesión Gingival (Apical)",
+        "description": "Migración del margen gingival en sentido apical, exponiendo la raíz.",
+        "symbol": "Flecha apical"
+      },
+      "gingival-enlargement": {
+        "label": "Agrandamiento Gingival",
+        "description": "Incremento excesivo del tamaño de la encía (hiperplasia o hipertrofia gingival).",
+        "symbol": "Flecha coronal"
+      },
+      "mobility-1": {
+        "label": "Movilidad Dental Grado I",
+        "description": "Movilidad mayor que la fisiológica pero menor de 1 mm en sentido horizontal.",
+        "symbol": "M1"
+      },
+      "mobility-2": {
+        "label": "Movilidad Dental Grado II",
+        "description": "Movilidad horizontal de la pieza dental entre 1 mm y 2 mm.",
+        "symbol": "M2"
+      },
+      "mobility-3": {
+        "label": "Movilidad Dental Grado III",
+        "description": "Movilidad horizontal mayor de 2 mm o en sentido vertical.",
+        "symbol": "M3"
+      },
+      "furcation": {
+        "label": "Compromiso de Furcación",
+        "description": "Pérdida de soporte óseo en el espacio interradicular de molares o premolares.",
+        "symbol": "Triángulo de furca"
+      },
+      "missing": {
+        "label": "Diente Ausente o Extraído",
+        "description": "Diente ya extraído clínicamente o ausente por agenesia.",
+        "symbol": "Aspa azul"
+      },
+      "extraction-indicated": {
+        "label": "Exodoncia Indicada",
+        "description": "Extracción indicada por caries destructiva, infección o fractura.",
+        "symbol": "Aspa roja"
+      },
+      "retained": {
+        "label": "Diente Retenido / Impactado",
+        "description": "Diente que no ha erupcionado y continúa alojado dentro del hueso o encía.",
+        "symbol": "Semicírculo arqueado"
+      },
+      "semi-erupted": {
+        "label": "Diente Semierupcionado",
+        "description": "Pieza que solo ha erupcionado parcialmente a través de la encía.",
+        "symbol": "Sombra translúcida"
+      },
+      "root-remnant": {
+        "label": "Resto Radicular",
+        "description": "Resto radicular registrado en sesiones anteriores.",
+        "symbol": "Círculo rojo punteado"
+      },
+      "edentulism": {
+        "label": "Edentulismo",
+        "description": "Zona edéntula registrada en sesiones anteriores.",
+        "symbol": "Doble línea gris"
+      },
+      "bracket": {
+        "label": "Aparato Fijo (Bracket)",
+        "description": "Presencia de aparatología fija (brackets metálicos o de zafiro).",
+        "symbol": "Bracket cuadrado"
+      },
+      "fixed-retainer": {
+        "label": "Contención Fija Ortodóntica",
+        "description": "Alambre de contención ortodóntica fijo adherido por lingual/palatino.",
+        "symbol": "Línea horizontal continua"
+      },
+      "ortho-movement": {
+        "label": "Movimiento Dentario Requerido",
+        "description": "Migración activa, inclinación o extrusión de la pieza.",
+        "symbol": "Flechas de dirección"
+      },
+      "fixed-ortho": {
+        "label": "Ortodoncia Fija",
+        "description": "Aparatología ortodóntica fija activa (brackets, bandas o arcos).",
+        "symbol": "Bracket verde con arco"
+      },
+      "rem-orthodo": {
+        "label": "Ortodoncia Removible",
+        "description": "Aparato de ortodoncia u ortopedia removible (alineadores, placas).",
+        "symbol": "Triángulo verde"
+      },
+      "bolt": {
+        "label": "Tornillo",
+        "description": "Microtornillo de anclaje esquelético temporal de ortodoncia.",
+        "symbol": "Tornillo gris"
+      },
+      "diastema": {
+        "label": "Diastema",
+        "description": "Espacio o separación interdental entre piezas contiguas.",
+        "symbol": ")( Paréntesis"
+      },
+      "malposition": {
+        "label": "Diente Fuera de Arco (Giro)",
+        "description": "Malposición rotacional, versión o intrusión de la corona fuera de su plano ideal.",
+        "symbol": "Arco punteado"
+      },
+      "ectopic": {
+        "label": "Ectópico",
+        "description": "Erupción dental ectópica fuera del arco normal.",
+        "symbol": "Flecha diagonal"
+      },
+      "eruption": {
+        "label": "Erupción",
+        "description": "Proceso de erupción dentaria activa hacia el plano oclusal.",
+        "symbol": "Flecha oclusal"
+      },
+      "extrusion": {
+        "label": "Extrusión",
+        "description": "Desplazamiento vertical del diente fuera de su alvéolo.",
+        "symbol": "Flecha oclusal violeta"
+      },
+      "ortho-fracture": {
+        "label": "Fractura (Ortodoncia)",
+        "description": "Fractura de corona o de la aparatología.",
+        "symbol": "Zigzag rojo"
+      },
+      "fusion": {
+        "label": "Fusión",
+        "description": "Unión durante el desarrollo de dos gérmenes dentarios independientes.",
+        "symbol": "Símbolo infinito"
+      },
+      "intrusion": {
+        "label": "Intrusión",
+        "description": "Desplazamiento del diente hacia el interior del alvéolo.",
+        "symbol": "Flecha apical"
+      },
+      "macrodontia": {
+        "label": "Macrodoncia",
+        "description": "Diente de tamaño significativamente superior al promedio.",
+        "symbol": "Círculo grande punteado"
+      },
+      "microdontia": {
+        "label": "Microdoncia",
+        "description": "Diente de dimensión anormalmente pequeña o conoide.",
+        "symbol": "Círculo pequeño punteado"
+      },
+      "drifting": {
+        "label": "Migración",
+        "description": "Desplazamiento mesial o distal de la pieza fuera de su posición.",
+        "symbol": "Flecha horizontal"
+      },
+      "impacted": {
+        "label": "Retenido",
+        "description": "Diente retenido o impactado totalmente en el hueso alveolar.",
+        "symbol": "Arco marrón sombreado"
+      },
+      "rotation": {
+        "label": "Rotación",
+        "description": "Giro del diente sobre su propio eje longitudinal.",
+        "symbol": "Flecha circular"
+      },
+      "impacted-semi": {
+        "label": "Semirretenido",
+        "description": "Pieza dentaria con erupción parcial impedida u obstaculizada.",
+        "symbol": "Arco ámbar punteado"
+      },
+      "supernumerary": {
+        "label": "Supernumerario",
+        "description": "Presencia de un diente adicional o supernumerario.",
+        "symbol": "+S"
+      },
+      "transposition": {
+        "label": "Transposición",
+        "description": "Intercambio de posición en la arcada entre dos dientes contiguos.",
+        "symbol": "Flechas opuestas"
+      },
+      "crown-fracture": {
+        "label": "Fractura Coronaria",
+        "description": "Fractura traumática que compromete esmalte, dentina o cámara pulpar.",
+        "symbol": "Zigzag transversal"
+      },
+      "root-fracture": {
+        "label": "Fractura Radicular",
+        "description": "Fractura vertical u horizontal a lo largo de la raíz.",
+        "symbol": "Zigzag vertical"
+      },
+      "periapical-lesion": {
+        "label": "Lesión Periapical (Absceso)",
+        "description": "Proceso inflamatorio crónico o agudo en el ápice radicular visible radiográficamente.",
+        "symbol": "Círculo en el ápice"
+      },
+      "root-resorption": {
+        "label": "Reabsorción Radicular",
+        "description": "Pérdida localizada de cemento y dentina de la raíz.",
+        "symbol": "Línea ondulada"
+      },
+      "abrasion": {
+        "label": "Abrasión Cervical (Desgaste)",
+        "description": "Desgaste patológico del esmalte o dentina por cepillado traumático u objetos.",
+        "symbol": "Cuña cervical"
+      },
+      "abfraction": {
+        "label": "Abfracción Dental",
+        "description": "Lesión cervical no cariosa por microfracturas del esmalte debido a sobrecarga oclusal.",
+        "symbol": "Muesca redondeada"
+      },
+      "erosion": {
+        "label": "Erosión Dental (Química)",
+        "description": "Desmineralización ácida intrínseca o extrínseca del tejido dental.",
+        "symbol": "Desgaste liso"
+      },
+      "fracture": {
+        "label": "Fractura General",
+        "description": "Fractura general de la corona.",
+        "symbol": "Zigzag amarillo"
       }
     }
   },
@@ -6538,7 +8521,9 @@
     "month": "Este mes",
     "prevMonth": "Mes anterior",
     "year": "Este año",
-    "custom": "Personalizado"
+    "custom": "Personalizado",
+    "fromPrefix": "Desde",
+    "toPrefix": "Hasta"
   },
   "ReportShell": {
     "generate": "Generar Reporte",
@@ -6890,6 +8875,49 @@
     "col_pendiente": "Pendiente",
     "col_pct": "% Cobrado"
   },
+  "ReportBalanceMensualPage": {
+    "title": "Balance Mensual",
+    "description": "Cierre del mes: lo producido y lo cobrado, por médico y período",
+    "all_doctors": "Todos los médicos",
+    "all_groups": "Todos los grupos",
+    "no_group": "Sin grupo",
+    "all_sedes": "Todas las sedes",
+    "all_currencies": "Todas",
+    "doc_type_all": "Todos",
+    "doc_type_producido": "Producido",
+    "doc_type_cobrado": "Cobrado",
+    "doc_type_pendiente": "Pendiente",
+    "kpi_producido": "Producido",
+    "kpi_cobrado": "Cobrado",
+    "kpi_pendiente": "Pendiente",
+    "block_producido": "Producido (facturas emitidas)",
+    "block_cobrado": "Cobrado (pagos recibidos)",
+    "block_pendiente": "Pendiente por médico",
+    "empty_block": "Sin movimientos en el período",
+    "subtotal_dia": "Subtotal del día",
+    "total_periodo": "Total del período",
+    "col_bloque": "Bloque",
+    "col_fecha": "Fecha",
+    "col_medico": "Médico",
+    "col_paciente": "Paciente",
+    "col_servicio": "Servicio",
+    "col_factura": "Factura",
+    "col_forma_pago": "Forma de Pago",
+    "col_moneda": "Moneda",
+    "col_importe": "Importe",
+    "col_detalle": "Detalle",
+    "col_facturado": "Facturado",
+    "col_cobrado": "Cobrado",
+    "col_saldo": "Saldo",
+    "col_total": "Total",
+    "col_grupo": "Grupo",
+    "total_general": "Total general",
+    "tab_resumen": "Resumen",
+    "resumen_producido_doctor": "Producido total por doctor",
+    "resumen_pago_total": "Pago total de pacientes",
+    "resumen_pago_grupo": "Pago de pacientes por grupo",
+    "resumen_nota_grupos": "Los grupos se derivan del servicio facturado. Un servicio que pertenece a varios grupos suma su importe en cada uno, por lo que la suma de los grupos puede superar el total; lo que no pertenece a ningún grupo aparece como \"Sin grupo\"."
+  },
   "ReportDeudoresPage": {
     "title": "Deudores",
     "description": "Cartera de deuda clasificada por antigüedad — herramienta de cobranza",
@@ -7099,7 +9127,9 @@
       "unpaid": "No Pagado",
       "paid": "Pagado",
       "partial": "Parcial",
-      "partially_paid": "Pago Parcial"
+      "partially_paid": "Pago Parcial",
+      "not_paid": "No Pagado",
+      "not_invoiced": "No Pagado"
     },
     "transactionType": {
       "direct_payment": "Pago Directo",
@@ -7107,7 +9137,6 @@
       "payment_allocation": "Aplicación de Pago"
     },
     "financialSummary": {
-      "title": "Resumen Financiero",
       "to": "al",
       "id": "Cédula / RUT",
       "email": "Email",
@@ -7116,7 +9145,20 @@
       "balance": "Saldo",
       "finalBalance": "Saldo Final",
       "paysInvoice": "Paga"
-    }
+    },
+    "cajaCierre": {
+      "movements": "Movimientos",
+      "noMovements": "Sin movimientos en {currency}.",
+      "movementDate": "Fecha",
+      "movementMethod": "Método",
+      "movementDescription": "Descripción",
+      "registeredBy": "Registrado por",
+      "movementAmount": "Monto",
+      "totalIncome": "Total ingresos",
+      "totalExpense": "Total egresos",
+      "net": "Neto"
+    },
+    "discount": "Descuento"
   },
   "License": {
     "expired": {
@@ -7155,7 +9197,16 @@
       "aiAccess": "Acceso IA",
       "notes": "Notas",
       "generate": "Generar Licencia",
-      "generating": "Generando..."
+      "generating": "Generando...",
+      "generateSuccess": "Licencia generada y activada",
+      "generateError": "No se pudo generar la licencia",
+      "subscriptionPartialError": "La licencia se guardó y ya está activa, pero no se pudo registrar la suscripción. No genere otra: registre la suscripción manualmente o contacte a soporte.",
+      "loadError": "No se pudo cargar la licencia actual",
+      "generateConfirm": {
+        "title": "¿Generar y activar una nueva licencia?",
+        "description": "La nueva licencia ({type}, {start} → {end}) reemplazará a la actual de inmediato y sus límites se aplicarán a todos los usuarios. Esta acción no se puede deshacer.",
+        "cancel": "Cancelar"
+      }
     },
     "enforcement": {
       "limitReachedTitle": "Límite de licencia alcanzado",
@@ -7226,5 +9277,907 @@
       "cancel": "Cancelar",
       "delete": "Eliminar"
     }
+  },
+  "PatientLogin": {
+    "toggleTheme": "Cambiar tema",
+    "back": "Volver",
+    "identify": {
+      "title": "Accedé a tu portal",
+      "description": "Ingresá tu correo, teléfono o cédula. Te enviamos un código — no necesitás contraseña.",
+      "label": "Correo, teléfono o cédula",
+      "placeholder": "juan@ejemplo.com, 099 123 456 o 12345678",
+      "submit": "Continuar",
+      "staffLink": "¿Sos parte del equipo? Iniciá sesión acá",
+      "hint": "Podés usar cualquiera de los tres.",
+      "newPatient": "Soy nuevo, no estoy registrado",
+      "newPatientDisabled": "Todavía no encontramos tu registro y esta clínica no acepta reservas online. Comunicate directamente para que te den de alta.",
+      "reason": "Con este dato verificamos si ya sos paciente de la clínica. Si ya estás registrado, cargamos tu historia, tus citas y tu estado de cuenta; si es tu primera vez, te pedimos unos pocos datos y listo."
+    },
+    "needEmail": {
+      "title": "Falta tu correo",
+      "description": "Te encontramos, pero no tenemos un correo registrado. Ingresá uno para enviarte el código.",
+      "label": "Correo electrónico",
+      "submit": "Enviar código",
+      "reason": "Todavía no tenemos un correo tuyo registrado. Lo necesitamos para enviarte el código de acceso — y para avisarte de tus próximas citas."
+    },
+    "register": {
+      "title": "Creá tu cuenta",
+      "description": "No te encontramos en el sistema. Con estos datos alcanza para empezar.",
+      "name": "Nombre completo",
+      "namePlaceholder": "Juan Pérez",
+      "phone": "Teléfono",
+      "email": "Correo electrónico",
+      "optionalToggle": "Datos opcionales (podés completarlos después)",
+      "document": "Cédula",
+      "birthDate": "Fecha de nacimiento",
+      "address": "Dirección",
+      "submit": "Crear cuenta y enviarme el código",
+      "reason": "Tu nombre, teléfono y correo quedan disponibles para el equipo de la clínica, así pueden contactarte directo por tu cita o cualquier novedad. No los compartimos con nadie más.",
+      "optionalSuffix": "(opcional)"
+    },
+    "code": {
+      "title": "Ingresá tu código",
+      "description": "Enviamos un código de 6 dígitos a {email}. Vence en 10 minutos.",
+      "submit": "Entrar",
+      "resend": "Reenviar código",
+      "resendIn": "Podés reenviar el código en {seconds}s",
+      "resentTitle": "Código reenviado",
+      "resentDescription": "Revisá tu correo, incluida la carpeta de spam.",
+      "reason": "Sólo vos tenés acceso a tu correo. Por eso te pedimos el código: así garantizamos que nadie más pueda ver tu información ni hacer operaciones a tu nombre sin tu consentimiento.",
+      "pasteHint": "Revisá tu correo y copiá el código de 6 dígitos que te enviamos. Podés pegarlo directamente en la primera casilla.",
+      "alreadySentTitle": "Ya te enviamos un código",
+      "alreadySentDescription": "Revisá tu correo y escribí el código que recibiste. Si no llegó, en unos segundos vas a poder pedir otro."
+    },
+    "fields": {
+      "email": "Correo electrónico",
+      "phone": "Teléfono",
+      "identity_document": "Cédula"
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio",
+      "phoneInvalid": "El teléfono no es válido",
+      "emailRequired": "El correo es obligatorio",
+      "emailInvalid": "El correo no es válido",
+      "documentDigits": "La cédula sólo puede tener números",
+      "documentMax": "La cédula no puede superar los 10 dígitos",
+      "nameInvalid": "Usá solo letras, espacios, guiones, apóstrofos y puntos (sin números ni símbolos).",
+      "nameTooShort": "El nombre debe tener al menos 2 letras.",
+      "nameTooLong": "El nombre no puede superar los 120 caracteres."
+    },
+    "errors": {
+      "title": "Error",
+      "unexpected": "Ocurrió un error inesperado. Intentá de nuevo.",
+      "invalidCode": "El código no es válido o venció. Pedí uno nuevo.",
+      "alreadyRegistered": "Ya existe una cuenta con: {fields}. Volvé atrás e ingresá con ese dato."
+    },
+    "genericClinicName": "nuestra clínica",
+    "or": "o",
+    "header": {
+      "tagline": "Portal del paciente"
+    },
+    "hero": {
+      "badge": "Reservá tu cita en un minuto",
+      "title": "Bienvenido a {clinic}",
+      "subtitle": "Reservá y gestioná tus citas, consultá tu historia clínica y tu estado de cuenta, cuando quieras y desde donde estés.",
+      "cta": "Acceder a mi portal",
+      "staffCta": "Soy del equipo",
+      "perks": {
+        "appointments": "Reservá y reagendá citas",
+        "history": "Consultá tu historia clínica",
+        "finance": "Mirá tu estado de cuenta"
+      },
+      "videoTitle": "Video de bienvenida de {clinic}"
+    },
+    "info": {
+      "title": "Dónde encontrarnos",
+      "address": "Dirección",
+      "phone": "Teléfono",
+      "email": "Correo",
+      "hours": "Horarios"
+    },
+    "weekdays": {
+      "sunday": "Domingo",
+      "monday": "Lunes",
+      "tuesday": "Martes",
+      "wednesday": "Miércoles",
+      "thursday": "Jueves",
+      "friday": "Viernes",
+      "saturday": "Sábado"
+    },
+    "disabled": {
+      "title": "Portal no disponible",
+      "description": "{clinic} todavía no habilitó el acceso online para pacientes. Comunicate con nosotros y te ayudamos."
+    },
+    "footer": {
+      "contact": "Contacto",
+      "rights": "Todos los derechos reservados.",
+      "poweredBy": "Desarrollado por Invoke IA"
+    },
+    "startOver": "Empezar de nuevo",
+    "booking": {
+      "title": "Elegí tu cita",
+      "description": "Seleccioná el día y el horario que mejor te venga.",
+      "reason": "Sólo se muestran los horarios con disponibilidad real. Al confirmar, la clínica recibe tu solicitud y te la confirma por correo."
+    },
+    "booked": {
+      "title": "¡Tu cita quedó agendada!",
+      "description": "Te esperamos.",
+      "reason": "",
+      "when": "{date} a las {time}",
+      "emailSent": "Enviamos un correo con los detalles de tu cita a vos y a la clínica. Si necesitás cambiarla, comunicate con nosotros.",
+      "done": "Listo"
+    }
+  },
+  "PatientPortal": {
+    "subtitle": "Mi perfil",
+    "logout": "Cerrar sesión",
+    "toggleTheme": "Cambiar tema",
+    "accessDenied": {
+      "title": "Acceso denegado",
+      "description": "Tu cuenta no tiene acceso al portal del paciente."
+    },
+    "tabs": {
+      "info": "Mi Información",
+      "appointments": "Mis Citas",
+      "appointmentsShort": "Citas",
+      "clinical": "Historial",
+      "financial": "Finanzas",
+      "infoSubtitle": "Tus datos personales y de contacto",
+      "appointmentsSubtitle": "Próximas citas y solicitud de nuevas",
+      "clinicalSubtitle": "Historia clínica, tratamientos y documentos",
+      "financialSubtitle": "Tu estado de cuenta"
+    },
+    "subTabs": {
+      "history": "Historia clínica",
+      "anamnesis": "Anamnesis",
+      "treatmentPlans": "Planes de tratamiento",
+      "treatmentPlansShort": "Planes",
+      "instructions": "Indicaciones médicas",
+      "instructionsShort": "Indicaciones",
+      "documents": "Documentos"
+    },
+    "appointments": {
+      "upcomingCount": "{count, plural, =0 {Sin citas próximas} one {# cita próxima} other {# citas próximas}}",
+      "book": "Reservar cita",
+      "reschedule": "Reagendar",
+      "cancel": "Cancelar",
+      "empty": "No tenés citas agendadas. Las citas pasadas están en tu Historial.",
+      "loadError": "No pudimos cargar tus citas. Intentá de nuevo.",
+      "bookingDisabled": "La clínica no tiene habilitada la reserva de citas online. Comunicate directamente para agendar.",
+      "cancelDialog": {
+        "title": "¿Cancelar esta cita?",
+        "description": "Vas a cancelar tu cita del {date} a las {time}. La clínica va a ser notificada.",
+        "noteLabel": "Motivo (opcional)",
+        "notePlaceholder": "Contanos brevemente por qué no podés asistir",
+        "back": "Volver",
+        "confirm": "Sí, cancelar cita",
+        "successTitle": "Cita cancelada",
+        "successDescription": "Avisamos a la clínica. Podés reservar una nueva cuando quieras.",
+        "errorTitle": "No pudimos cancelar la cita"
+      },
+      "nextOne": "Tu próxima cita",
+      "doctor": "Profesional",
+      "room": "Consultorio",
+      "service": "Motivo"
+    },
+    "assistant": {
+      "open": "Abrir asistente",
+      "close": "Cerrar",
+      "title": "Asistente",
+      "subtitle": "Consultas sobre la clínica y tu perfil",
+      "placeholder": "Escribí tu consulta…",
+      "noAnswer": "No pude encontrar una respuesta. Probá reformulando la pregunta.",
+      "error": "No pudimos contactar al asistente. Intentá de nuevo.",
+      "suggestions": {
+        "nextAppointment": "¿Cuándo es mi próxima cita?",
+        "balance": "¿Cuánto debo?",
+        "hours": "¿Cuál es el horario de la clínica?"
+      }
+    },
+    "onboarding": {
+      "title": "Hola, {name}",
+      "description": "No tenés ninguna cita agendada. Solicitá una ahora y después te mostramos tu perfil completo.",
+      "skip": "Lo hago más tarde",
+      "bookedTitle": "¡Solicitud enviada!",
+      "bookedDescription": "La clínica va a confirmarte la cita. Ya podés ver tu perfil.",
+      "goToProfile": "Ir a mi perfil",
+      "bookAnother": "Reservar otra cita"
+    },
+    "backToStaff": "Volver a vista de Staff",
+    "booking": {
+      "title": "Solicitar una cita",
+      "description": "Elegí el día y el horario que mejor te venga. Sólo se muestran los horarios disponibles.",
+      "pickDay": "¿Qué día te viene bien?",
+      "pickTime": "Elegí un horario",
+      "previousDays": "Días anteriores",
+      "nextDays": "Días siguientes",
+      "availableCount": "{count, plural, =0 {Sin horarios libres} one {# horario libre} other {# horarios libres}}",
+      "closedDay": "Ese día la clínica no atiende. Probá con otro.",
+      "noneAvailable": "No quedan horarios libres ese día. Probá con otro.",
+      "slotTaken": "Horario no disponible",
+      "reasonLabel": "¿Qué te pasa?",
+      "reasonPlaceholder": "Contanos brevemente el motivo de la consulta: molestia, control, urgencia…",
+      "reasonHint": "Nos ayuda a preparar tu consulta y reservar el tiempo necesario.",
+      "confirm": "Confirmar solicitud",
+      "pendingNotice": "La clínica va a confirmarte la cita. Te avisamos por correo.",
+      "loadError": "No pudimos cargar los horarios. Intentá de nuevo.",
+      "successTitle": "¡Solicitud enviada!",
+      "successDescription": "La clínica va a confirmarte la cita a la brevedad.",
+      "errorTitle": "No pudimos crear la cita",
+      "back": "Volver",
+      "pickSede": "¿En qué sede querés atenderte?",
+      "rescheduleTitle": "Reagendar cita",
+      "replacing": "Vas a reemplazar tu cita del {date} a las {time}. Elegí el nuevo horario y nosotros cancelamos la anterior.",
+      "confirmReschedule": "Confirmar el cambio",
+      "rescheduledTitle": "¡Cita reagendada!",
+      "rescheduledDescription": "Cancelamos la cita anterior y la clínica va a confirmarte la nueva.",
+      "rescheduledPartialTitle": "Reservamos la nueva, pero la anterior sigue activa",
+      "rescheduledPartialDescription": "No pudimos cancelar tu cita anterior. Comunicate con la clínica para que la den de baja.",
+      "steps": {
+        "sede": "Sede",
+        "slot": "Horario",
+        "confirm": "Confirmar",
+        "services": "Servicios"
+      },
+      "summary": {
+        "title": "Resumen de tu cita",
+        "when": "Cuándo",
+        "who": "Te va a atender",
+        "where": "Dónde",
+        "services": "Qué te vamos a hacer",
+        "duration": "Cuánto dura",
+        "total": "Total estimado"
+      },
+      "pickServices": "¿Qué necesitás?",
+      "servicesHint": "Marcá todo lo que quieras resolver en esta visita. Podés elegir más de uno, y así reservamos el tiempo que haga falta.",
+      "selectedServices": "{count, plural, one {# servicio elegido} other {# servicios elegidos}}",
+      "selectionSummary": "{minutes} min · {total}",
+      "removeService": "Quitar {name}",
+      "continue": "Continuar",
+      "continueWithoutServices": "Si no elegís nada, la clínica define el motivo de la cita.",
+      "defaultServiceNotice": "Si no elegís nada, la cita se agenda como {name}.",
+      "noBookableServices": "Todavía no hay servicios disponibles para reservar online. Continuá y la clínica define el motivo de la cita.",
+      "servicesLoadError": "No pudimos cargar los servicios.",
+      "minutesShort": "{minutes} min",
+      "rescheduleNoServices": "Si no marcás ninguno, la cita se reagenda sin servicios asociados."
+    },
+    "info": {
+      "emailLocked": "El correo no se puede cambiar: es a donde te llega tu código de acceso. Si necesitás actualizarlo, avisale a la clínica."
+    },
+    "finance": {
+      "loadError": "No pudimos cargar tu estado de cuenta. Intentá de nuevo.",
+      "empty": "Todavía no tenés movimientos en tu cuenta."
+    },
+    "footer": {
+      "whatsapp": "Escribir por WhatsApp",
+      "noSchedules": "Horarios a confirmar",
+      "viewSchedules": "Ver horarios",
+      "mailSubject": "Consulta desde el portal — {sede}",
+      "collapse": "Ocultar",
+      "expand": "Ver datos de contacto"
+    }
+  },
+  "Discounts": {
+    "fieldLabel": "Descuento",
+    "percentMode": "Descuento en porcentaje",
+    "amountMode": "Descuento en {currency}",
+    "resultingAmount": "Descuenta {currency} {amount}",
+    "overLimit": "Supera el máximo permitido ({max} %)",
+    "subtotal": "Subtotal",
+    "discount": "Descuento",
+    "total": "Total",
+    "applyAction": "Aplicar descuentos",
+    "confirm": "Aplicar",
+    "cancel": "Cancelar",
+    "edit": "Editar",
+    "remove": "Quitar",
+    "appliedSummary": "Descuento {detail} · −{currency} {amount}"
+  },
+  "ClinicPrefsPage": {
+    "title": "Preferencias de Clínica",
+    "description": "Ajustes de cómo trabaja tu clínica. No incluye datos fiscales ni de contacto: eso está en Detalles de la Clínica.",
+    "save": "Guardar",
+    "saved": "Preferencias guardadas",
+    "saveError": "No se pudieron guardar las preferencias",
+    "loadError": "No se pudieron cargar las preferencias",
+    "readOnlyNotice": "Solo lectura: no tenés permiso para modificar las preferencias de la clínica.",
+    "discounts": {
+      "sectionTitle": "Descuentos",
+      "enabled": {
+        "label": "Aplicar descuentos",
+        "help": "Con esto apagado, ninguna pantalla de presupuestos ni facturas muestra campos de descuento y los totales se calculan como siempre."
+      },
+      "scope": {
+        "label": "¿Dónde se aplica el descuento?",
+        "help": "Las dos opciones son excluyentes: se elige una para toda la clínica y es la que aparece al vender.",
+        "line": {
+          "title": "Por servicio",
+          "description": "Cada línea del presupuesto o la factura lleva su propio descuento."
+        },
+        "total": {
+          "title": "Sobre el total",
+          "description": "Un único descuento sobre el total del documento. Los servicios se imprimen a precio de lista y el descuento aparece como una línea aparte."
+        }
+      },
+      "defaultPct": {
+        "label": "Descuento por defecto (%)",
+        "help": "Valor con el que arranca el campo al crear un presupuesto o una factura. Siempre se puede cambiar en la venta.",
+        "hint": "0 deja el campo vacío."
+      },
+      "maxPct": {
+        "label": "Descuento máximo (%)",
+        "help": "Tope que el formulario deja guardar, calculado en porcentaje sobre el importe. También aplica a los descuentos introducidos como importe fijo.",
+        "hint": "100 significa sin tope."
+      },
+      "defaultOverMax": "El descuento por defecto no puede ser mayor que el máximo permitido.",
+      "permissionNotice": "Solo quien tenga el permiso «Aplicar Descuentos» puede modificar el descuento al vender. Al resto se le muestra el campo en solo lectura."
+    },
+    "identityDocument": {
+      "sectionTitle": "Documento de identidad",
+      "required": {
+        "label": "Exigir documento de identidad",
+        "help": "Con esto encendido, el formulario de pacientes no deja guardar sin un documento de identidad. Apagado (por defecto), el documento puede quedar vacío."
+      },
+      "warnOnStatus": {
+        "label": "Exigirlo para cambiar el estado de una cita",
+        "help": "Con esto encendido, una cita no puede pasar a los estados elegidos si el paciente no tiene documento de identidad: el cambio se bloquea hasta que se cargue el documento en su ficha. Cancelar nunca se bloquea. Es independiente de la opción anterior.",
+        "statusesLabel": "Exigir el documento para que la cita pase a:"
+      }
+    },
+    "duplicateContact": {
+      "sectionTitle": "Teléfono de pacientes",
+      "allow": {
+        "label": "Permitir teléfonos repetidos",
+        "help": "Apagado (por defecto): no se puede registrar un paciente con un teléfono que ya tiene otro, y el mensaje indica quién lo tiene. Encendido, se permite (por ejemplo, familiares que comparten teléfono), pero antes se avisa de quién lo tiene y hay que confirmar. El correo nunca puede repetirse.",
+        "notice": "Los doctores, operadores y proveedores siguen sin poder repetir teléfono, y el correo y el documento de identidad tampoco. Cuando dos fichas comparten teléfono, el portal del paciente y WhatsApp usan la más antigua que esté activa."
+      },
+      "warning": {
+        "title": "Antes de activar esta opción",
+        "description": "Cuando dos fichas comparten teléfono, el sistema no puede distinguirlas si la persona se identifica solo con el número:",
+        "whatsapp": "WhatsApp: el asistente atenderá a la ficha activa más antigua con ese teléfono, aunque quien escriba sea otra persona.",
+        "portal": "Portal del paciente: quien inicie sesión con ese teléfono entrará a la ficha activa más antigua.",
+        "footer": "El correo, el documento de identidad y los usuarios del sistema siguen siendo únicos. Puede desactivarla cuando quiera; las fichas que ya comparten teléfono se conservan.",
+        "cancel": "Cancelar",
+        "confirm": "Entiendo, activar"
+      }
+    },
+    "automation": {
+      "loadError": "No se pudieron leer los ajustes de automatización (emails de alertas y Google Calendar).",
+      "partialSaveError": "Las preferencias se guardaron, pero no los ajustes de automatización. Revísalos y vuelve a guardar."
+    },
+    "alertEmail": {
+      "sectionTitle": "Emails automáticos de alertas",
+      "enabled": {
+        "label": "Enviar emails de alertas automáticamente",
+        "help": "Interruptor general. Apagado, el planificador no envía ningún email por su cuenta aunque una regla lo tenga marcado; las alertas se siguen generando."
+      },
+      "notice": {
+        "on": "Se envían emails solo en las reglas que tienen marcado \"Enviar correo automáticamente\" (Sistema → Reglas de alertas).",
+        "off": "No se envía ningún email automático. Las alertas quedan pendientes para gestionarlas a mano."
+      },
+      "confirm": {
+        "title": "¿Activar los emails automáticos?",
+        "description": "Desde la próxima ejecución del planificador se enviarán emails a los pacientes en las reglas que tengan el envío automático marcado. El cambio se aplica al guardar.",
+        "cancel": "Cancelar",
+        "confirm": "Activar"
+      }
+    },
+    "googleCalendar": {
+      "sectionTitle": "Sincronización con Google Calendar",
+      "help": "Aplica a todos los calendarios que tengan cargado un ID de Google Calendar (Configuración → Calendarios).",
+      "notice": "Desde Google solo se traen eventos nuevos y cancelaciones: los cambios de horario o de título hechos en Google no se reflejan en la app.",
+      "modes": {
+        "none": {
+          "title": "No sincronizar",
+          "description": "Las citas viven solo en la app."
+        },
+        "from_google": {
+          "title": "Desde Google Calendar",
+          "description": "Los eventos nuevos y las cancelaciones de Google se traen a la app."
+        },
+        "to_google": {
+          "title": "Hacia Google Calendar",
+          "description": "Las citas creadas, editadas o canceladas en la app se reflejan en Google."
+        },
+        "both": {
+          "title": "Desde y hacia Google Calendar",
+          "description": "Combina las dos direcciones."
+        }
+      }
+    }
+  },
+  "DuplicateContact": {
+    "title": "Este teléfono ya está registrado",
+    "description": "Otro paciente ya usa este número de teléfono. Verifique que no sea la misma persona antes de guardar.",
+    "fields": {
+      "phone": "Teléfono",
+      "email": "Correo",
+      "identity_document": "Documento de identidad"
+    },
+    "usedBy": "{field} ya registrado a nombre de:",
+    "inactive": "Inactivo",
+    "document": "Doc.: {value}",
+    "birthDate": "Nac.: {value}",
+    "hint": "Si es la misma persona, cancele y abra su ficha existente. Si es un familiar que comparte el teléfono, puede guardar de todos modos.",
+    "cancel": "Revisar datos",
+    "confirm": "Guardar de todos modos",
+    "conflictTitle": "No se puede guardar",
+    "conflictDescription": "Estos datos ya existen y no pueden repetirse. Revise si la persona ya está registrada.",
+    "conflictNoOwner": "{field} ya está registrado.",
+    "understood": "Entendido"
+  },
+  "CalendarColorsPage": {
+    "title": "Colores de Calendario",
+    "description": "Color, comportamiento en el calendario y estilo de badge para cada estado de cita.",
+    "save": "Guardar",
+    "saved": "Matriz de colores guardada",
+    "saveError": "No se pudo guardar la matriz de colores",
+    "loadError": "No se pudo cargar la matriz de colores",
+    "readOnlyNotice": "Solo lectura: no tenés permiso para modificar los colores de calendario.",
+    "restoreDefaults": "Restaurar por defecto",
+    "unsavedChangesConfirm": "Tenés cambios sin guardar en esta vista. ¿Descartarlos y cambiar de calendario?",
+    "colorSource": {
+      "title": "Origen del color",
+      "description": "Elige qué niveles se tienen en cuenta al pintar una cita. La cadena va de lo más específico a lo más general: color de la cita > servicio > doctor > calendario. Desactiva un nivel para saltarlo.",
+      "save": "Guardar origen del color",
+      "saved": "Origen del color guardado",
+      "saveError": "No pudimos guardar el origen del color",
+      "revert": "Usar General",
+      "revertSuccess": "El calendario vuelve a usar el origen de color general",
+      "revertError": "No pudimos revertir el origen del color",
+      "alwaysActive": "Siempre activo",
+      "levels": {
+        "appointment": {
+          "label": "Etiqueta de color de la cita",
+          "help": "El color que un usuario elige en la propia cita. Siempre gana."
+        },
+        "service": {
+          "label": "Color del servicio",
+          "help": "Usar el color del servicio de la cita."
+        },
+        "doctor": {
+          "label": "Color del doctor",
+          "help": "Usar el color del doctor asignado."
+        },
+        "calendar": {
+          "label": "Color del calendario",
+          "help": "Usar el color del calendario (consultorio) al que pertenece la cita."
+        }
+      },
+      "highlight": {
+        "label": "Resaltar la vista con el color del calendario",
+        "help": "Cuando hay un único calendario en pantalla, su color se refleja en la vista del calendario para distinguir de un vistazo entre sedes (un calendario por sede). \"Franja superior\" y \"Marco y etiqueta\" solo marcan los bordes; \"Toda la vista\" tiñe casi todo (marco, panel de agendas, encabezado y grilla) y deja solo la barra de navegación con el tema normal. Usa el color definido en Configuración → Calendarios.",
+        "options": {
+          "off": "Desactivado",
+          "subtle": "Franja superior",
+          "strong": "Marco y etiqueta",
+          "full": "Toda la vista"
+        }
+      },
+      "allOffWarning": "Con todos los niveles desactivados, las citas sin etiqueta de color propia quedan sin color y usan el aspecto por defecto.",
+      "customizedHint": "Este calendario tiene su propio origen de color, que reemplaza al General.",
+      "inheritedHint": "Este calendario hereda el origen de color General. Al guardar se crea su propia configuración."
+    },
+    "table": {
+      "status": "Estado",
+      "scope": "Alcance",
+      "color": "Color",
+      "calendarMode": "En el calendario",
+      "badgeStyle": "Badge",
+      "preview": "Vista previa"
+    },
+    "scope": {
+      "general": "General",
+      "generalHint": "Matriz de la clínica: aplica a todos los calendarios que no tengan su propia configuración.",
+      "calendarHint": "Mostrando la configuración de este calendario. Lo que no personalices sigue heredando de General.",
+      "customized": "Personalizado",
+      "inherited": "Hereda de General",
+      "revertStatus": "Volver a heredar de General",
+      "revertStatusSuccess": "Ese estado vuelve a heredar de la matriz general",
+      "revertStatusError": "No se pudo revertir ese estado",
+      "revertAll": "Revertir todo a General",
+      "revertAllSuccess": "El calendario vuelve a usar la matriz general",
+      "revertAllError": "No se pudo revertir la configuración de ese calendario",
+      "revertAllConfirm": {
+        "title": "¿Volver a la matriz general?",
+        "description": "Se borrarán todas las personalizaciones de \"{name}\" y volverá a usar la matriz general. Esta acción no se puede deshacer.",
+        "confirm": "Revertir todo"
+      }
+    },
+    "calendarMode": {
+      "always": {
+        "label": "Siempre",
+        "help": "Pinta la card entera con este color sin importar la preferencia \"colorear por estado\" ni el color de servicio/doctor/consultorio. Una etiqueta de color puesta a mano sobre la cita sigue ganando."
+      },
+      "preference": {
+        "label": "Según preferencia",
+        "help": "Respeta el interruptor \"colorear por estado\" de cada usuario: con color propio o de servicio se ve como franja lateral; heredando solo el del doctor o el consultorio se pinta la card entera."
+      },
+      "never": {
+        "label": "Nunca",
+        "help": "Este estado nunca aporta color al calendario; la cita se ve igual que con la preferencia apagada."
+      }
+    },
+    "badgeStyle": {
+      "solid": "Sólido",
+      "soft": "Suave",
+      "outline": "Contorno"
+    },
+    "replicateDialog": {
+      "trigger": "Copiar a otros calendarios…",
+      "title": "Copiar a otros calendarios",
+      "description": "Copia la configuración que estás viendo ahora mismo a los calendarios seleccionados.",
+      "selectAll": "Seleccionar todos",
+      "decoupleNotice": "A partir de este momento, cada calendario seleccionado queda con su propia copia: los cambios que hagas después acá ya no les van a llegar automáticamente.",
+      "cancel": "Cancelar",
+      "confirm": "Copiar",
+      "success": "Configuración copiada",
+      "error": "No se pudo copiar la configuración"
+    }
+  },
+  "PatientPortalConfigPage": {
+    "title": "Portal del Paciente",
+    "description": "Controlá qué pueden hacer tus pacientes desde su portal de auto-servicio.",
+    "save": "Guardar",
+    "saved": "Configuración guardada",
+    "saveError": "No pudimos guardar la configuración",
+    "loadError": "No pudimos cargar la configuración",
+    "readOnlyNotice": "No tenés permisos para modificar esta configuración.",
+    "fields": {
+      "enabled": {
+        "label": "Permitir el acceso de pacientes al portal",
+        "help": "Habilita la página pública /patient-login. Con esto activo el paciente puede comenzar y generar reservas. Si está apagado, ve un aviso de que el portal no está disponible y no puede identificarse ni reservar."
+      },
+      "onlineBooking": {
+        "label": "Agenda y acceso al perfil del paciente",
+        "help": "Deja que el paciente agende la cita, elija día y horario entre los huecos libres de la agenda, y acceda a su perfil. Si está apagado, sólo puede consultar su información: las citas las sigue agendando la clínica."
+      },
+      "appointmentsOnly": {
+        "label": "El portal es sólo para reservar citas",
+        "help": "El paciente sólo reserva citas y no accede a su información: se queda en la pantalla de /patient-login. No se le envía código de acceso, así que reserva sin confirmar su identidad — la cita queda pendiente de confirmación por la clínica.",
+        "activeNotice": "Con esta opción activa, ningún paciente va a ver su perfil: sólo la pantalla para reservar. Tampoco se envían códigos de acceso, así que nadie verifica ser el dueño del correo que escribe."
+      },
+      "video": {
+        "label": "Video de bienvenida",
+        "help": "Se muestra en la portada de /patient-login. Podés pegar un link de YouTube, un reel de Instagram, un video de Vimeo o la URL de un archivo .mp4. Si lo dejás vacío se usa un video genérico de Invoke IA.",
+        "placeholder": "https://youtube.com/watch?v=… o https://instagram.com/reel/…",
+        "hint": "Acepta YouTube, Instagram, Vimeo o un archivo de video. Dejalo vacío para usar el video por defecto.",
+        "unsupported": "No pudimos reconocer ese enlace. Verificá que sea de YouTube, Instagram, Vimeo o un archivo .mp4."
+      },
+      "message": {
+        "label": "Mensaje de bienvenida",
+        "help": "Reemplaza el texto que acompaña al título en la portada del portal. Si lo dejás vacío se usa el texto por defecto del sistema.",
+        "placeholder": "Reservá y gestioná tus citas cuando quieras…",
+        "hint": "Dejalo vacío para usar el texto por defecto."
+      },
+      "serviceSelection": {
+        "label": "Habilitar selección de servicios",
+        "help": "El paciente elige qué se va a hacer, en un paso previo a la fecha y hora, entre los servicios que marcaste como agendables online en Ventas → Servicios. Si está apagado, todas las reservas se crean con el servicio por defecto y el paciente no elige nada."
+      },
+      "defaultService": {
+        "label": "Servicio por defecto de la reserva",
+        "help": "Con qué servicio se crea la cita cuando el paciente no elige ninguno. Sirve para que todas las reservas del portal entren como, por ejemplo, Consulta general, y recepción las revise después.",
+        "placeholder": "Elegí un servicio",
+        "none": "Sin servicio por defecto",
+        "hint": "Se usa cuando la selección de servicios está apagada, y también cuando está encendida pero el paciente no marca nada."
+      },
+      "showPricing": {
+        "label": "Mostrar duración y precios",
+        "help": "El paciente ve el precio de cada servicio y el total de tiempo y dinero de lo que eligió. Si está apagado sólo ve los nombres: la duración se sigue usando para reservar el hueco correcto en la agenda, pero no se le muestra, y los precios tampoco salen del sistema."
+      }
+    },
+    "qr": {
+      "test": "Probar",
+      "download": "Descargar"
+    },
+    "flier": {
+      "print": "Imprimir flier",
+      "staff": {
+        "badge": "Acceso · Personal",
+        "title": "Accede a tu espacio de trabajo",
+        "body": "Escanea el código QR con la cámara de tu teléfono para entrar a la plataforma y gestionar tu día a día.",
+        "footer": "Plataforma impulsada por"
+      },
+      "patient": {
+        "badge": "Reserva · Online",
+        "title": "Reserva online, sin llamadas",
+        "body": "Accede hoy mismo para reservar tus citas cuando quieras y gestionar tus datos y reservas desde tu teléfono. Solo escanea el QR.",
+        "footer": "Reservas impulsadas por"
+      }
+    }
+  },
+  "PatientIndicationsTab": {
+    "tabs": {
+      "instructions": "Indicaciones",
+      "prescriptions": "Recetas"
+    }
+  },
+  "MedicationSelector": {
+    "trigger": "Seleccionar medicamento",
+    "searchPlaceholder": "Buscar medicamento...",
+    "loading": "Cargando...",
+    "noResults": "No se encontraron medicamentos.",
+    "create": "Crear \"{name}\"",
+    "createHint": "Este medicamento se agregará al catálogo.",
+    "commercialNamePlaceholder": "Nombre comercial (opcional)",
+    "createError": "No se pudo crear el medicamento.",
+    "save": "Guardar"
+  },
+  "SignatureUploader": {
+    "label": "Firma",
+    "description": "Se imprime al pie de las recetas médicas que emita este doctor.",
+    "alt": "Firma del doctor",
+    "empty": "Sin firma",
+    "hint": "PNG, JPG o WEBP. Máximo 1 MB. Se recomienda fondo transparente.",
+    "save": "Guardar firma",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "errors": {
+      "tooLarge": "El archivo supera 1 MB.",
+      "generic": "No se pudo guardar la firma."
+    },
+    "toast": {
+      "saved": "Firma guardada.",
+      "deleted": "Firma eliminada."
+    },
+    "deleteDialog": {
+      "title": "Eliminar firma",
+      "description": "¿Está seguro de que desea eliminar la firma? Las recetas ya emitidas conservan la firma con la que se imprimieron.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "or": "o",
+    "draw": "Dibujar firma"
+  },
+  "PatientPrescriptionsSection": {
+    "title": "Recetas Médicas",
+    "newPrescription": "Nueva receta",
+    "noData": "No hay recetas médicas registradas.",
+    "medicationCount": "{count} medicamento(s)",
+    "print": "Imprimir",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "deleteDialog": {
+      "title": "Eliminar Receta Médica",
+      "description": "¿Está seguro de que desea eliminar esta receta? También se quitarán de la anamnesis los medicamentos que haya registrado.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "toast": {
+      "deleteSuccess": "Receta médica eliminada.",
+      "error": "Ocurrió un error."
+    }
+  },
+  "PrescriptionDialog": {
+    "createTitle": "Nueva Receta Médica",
+    "editTitle": "Editar Receta Médica",
+    "date": "Fecha",
+    "doctor": "Doctor",
+    "selectDoctor": "Seleccione un doctor",
+    "searchDoctor": "Buscar doctor...",
+    "noDoctor": "No se encontraron doctores.",
+    "template": "Plantilla",
+    "selectTemplate": "Seleccione una plantilla",
+    "diagnosis": "Diagnóstico",
+    "diagnosisPlaceholder": "Motivo de la prescripción",
+    "notes": "Notas",
+    "notesPlaceholder": "Indicaciones generales",
+    "medications": "Medicamentos",
+    "addMedication": "Agregar medicamento",
+    "content": "Contenido de la receta",
+    "contentHint": "Sólo si necesita apartarse de la plantilla. La tabla de medicamentos y la firma se arman al imprimir a partir de los campos de arriba, por eso sus tokens se mantienen en el texto.",
+    "refreshVariables": "Actualizar variables",
+    "close": "Cerrar",
+    "print": "Imprimir",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "item": {
+      "medication": "Medicamento",
+      "presentation": "Presentación",
+      "presentationPlaceholder": "ej. Comprimidos 500 mg",
+      "dosage": "Dosis",
+      "dosagePlaceholder": "ej. 1 comprimido",
+      "route": "Vía",
+      "routePlaceholder": "ej. Oral",
+      "frequency": "Frecuencia",
+      "frequencyPlaceholder": "ej. Cada 8 horas",
+      "durationDays": "Duración (días)",
+      "quantity": "Cantidad",
+      "quantityPlaceholder": "ej. 20 comprimidos",
+      "startDate": "Inicio",
+      "endDate": "Fin",
+      "instructions": "Indicaciones",
+      "instructionsPlaceholder": "ej. Tomar con alimentos",
+      "registerInAnamnesis": "Registrar en la anamnesis del paciente",
+      "remove": "Quitar medicamento",
+      "done": "Listo",
+      "edit": "Editar",
+      "inAnamnesis": "En anamnesis"
+    },
+    "variables": {
+      "title": "Variables",
+      "groups": {
+        "patient": "Paciente",
+        "clinic": "Clínica",
+        "document": "Documento",
+        "tables": "Tablas"
+      }
+    },
+    "validation": {
+      "doctorRequired": "Debe seleccionar un doctor.",
+      "itemsRequired": "Debe agregar al menos un medicamento.",
+      "contentRequired": "El contenido es obligatorio."
+    },
+    "toast": {
+      "createSuccess": "Receta médica creada.",
+      "editSuccess": "Receta médica actualizada.",
+      "error": "Ocurrió un error al guardar la receta médica."
+    },
+    "paneForm": "Datos",
+    "panePreview": "Vista previa",
+    "previewEmpty": "Elija una plantilla para ver cómo quedará la receta impresa.",
+    "showEditor": "Editar contenido de la receta",
+    "hideEditor": "Ocultar el editor",
+    "signature": {
+      "missing": "Este doctor todavía no tiene firma. La receta se imprimirá sin firmar.",
+      "define": "Definir firma",
+      "dialogTitle": "Definir firma del doctor",
+      "dialogDescription": "Suba una imagen o dibuje la firma. Queda guardada en el perfil del doctor y se usa en esta receta."
+    }
+  },
+  "PrescriptionPrint": {
+    "title": "Receta Médica",
+    "patient": "Paciente",
+    "date": "Fecha",
+    "doctor": "Doctor",
+    "diagnosis": "Diagnóstico",
+    "signatureLabel": "Firma del profesional",
+    "table": {
+      "medication": "Medicamento",
+      "presentation": "Presentación",
+      "dosage": "Dosis",
+      "frequency": "Frecuencia",
+      "duration": "Duración",
+      "instructions": "Indicaciones",
+      "days": "días"
+    },
+    "clinic": {
+      "phonePrefix": "Tel.",
+      "taxIdPrefix": "RUT",
+      "footerNote": "Esta receta es personal e intransferible. Consulte a su médico ante cualquier efecto adverso."
+    }
+  },
+  "PrescriptionTemplatesPage": {
+    "title": "Plantillas de Receta",
+    "description": "Definir la estructura de las recetas médicas: membrete, medicamentos y firma.",
+    "filterPlaceholder": "Filtrar por nombre de plantilla...",
+    "noAccess": "No tiene acceso para ver esta sección.",
+    "columns": {
+      "name": "Nombre",
+      "description": "Descripción",
+      "isActive": "Activo",
+      "yes": "Sí",
+      "no": "No",
+      "actions": "Acciones",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+    "dialog": {
+      "createTitle": "Crear Plantilla de Receta",
+      "editTitle": "Editar Plantilla de Receta",
+      "name": "Nombre",
+      "namePlaceholder": "ej. Receta estándar",
+      "descriptionLabel": "Descripción",
+      "content": "Contenido",
+      "legend": "Use el botón \"Variables\" para insertar datos que se completarán al emitir la receta. '{{medications_table}}' inserta la tabla de medicamentos y '{{doctor_signature}}' la firma del doctor.",
+      "isActive": "Está Activa",
+      "cancel": "Cancelar",
+      "create": "Crear Plantilla",
+      "save": "Guardar Cambios"
+    },
+    "variables": {
+      "title": "Variables",
+      "groups": {
+        "patient": "Paciente",
+        "clinic": "Clínica",
+        "document": "Documento",
+        "tables": "Tablas"
+      }
+    },
+    "toast": {
+      "errorTitle": "Error",
+      "createSuccessTitle": "Plantilla Creada",
+      "editSuccessTitle": "Plantilla Actualizada",
+      "successDescription": "La plantilla \"{name}\" se ha guardado exitosamente.",
+      "deleteSuccessTitle": "Plantilla Eliminada",
+      "deleteSuccessDescription": "La plantilla \"{name}\" ha sido eliminada."
+    },
+    "deleteDialog": {
+      "title": "Eliminar Plantilla",
+      "description": "¿Está seguro de que desea eliminar la plantilla \"{name}\"?",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar"
+    },
+    "validation": {
+      "nameRequired": "El nombre es obligatorio.",
+      "contentRequired": "El contenido es obligatorio."
+    }
+  },
+  "SignaturePad": {
+    "title": "Dibujar firma",
+    "description": "Trace su firma con el ratón, el dedo o un lápiz. Se guardará como imagen con fondo transparente.",
+    "placeholder": "Firme aquí",
+    "undo": "Deshacer",
+    "clear": "Borrar todo",
+    "cancel": "Cancelar",
+    "use": "Usar esta firma"
+  },
+  "ServiceImageUploader": {
+    "label": "Imagen del servicio",
+    "description": "Se muestra en las tarjetas del portal del paciente, al elegir qué reservar. La vista previa tiene el mismo ancho que va a tener ahí.",
+    "alt": "Imagen del servicio",
+    "empty": "Sin imagen",
+    "hint": "Tamaño ideal {width} × {height} px. PNG, JPG o WEBP, hasta {maxMb} MB (para fotos conviene JPG o WEBP: en PNG se pasan de peso).",
+    "pendingCreate": "Se sube cuando guardes el servicio.",
+    "save": "Guardar imagen",
+    "cancel": "Descartar",
+    "delete": "Quitar",
+    "errors": {
+      "tooLarge": "La imagen supera {maxMb} MB. Reducila e intentá de nuevo.",
+      "generic": "No se pudo guardar la imagen."
+    },
+    "toast": {
+      "saved": "Imagen guardada",
+      "deleted": "Imagen eliminada"
+    },
+    "deleteDialog": {
+      "title": "¿Quitar la imagen?",
+      "description": "El servicio va a aparecer sin imagen en el portal del paciente. Podés subir otra cuando quieras.",
+      "cancel": "Cancelar",
+      "confirm": "Quitar"
+    },
+    "ratioHint": "Se muestra completa y a todo el ancho, sin recortarse: el alto sale de la proporción de tu imagen. Si usás la misma proporción en todos los servicios, las tarjetas quedan alineadas."
+  },
+  "SendDocumentEmailDialog": {
+    "title": {
+      "quote": "Enviar presupuesto por correo",
+      "invoice": "Enviar factura por correo",
+      "credit_note": "Enviar nota de crédito por correo",
+      "payment": "Enviar recibo de pago por correo",
+      "prepayment": "Enviar recibo de anticipo por correo"
+    },
+    "description": {
+      "quote": "Se enviará el presupuesto {docNo} completo.",
+      "invoice": "Se enviará la factura {docNo} completa.",
+      "credit_note": "Se enviará la nota de crédito {docNo}.",
+      "payment": "Se enviará el recibo del pago {docNo}.",
+      "prepayment": "Se enviará el recibo del anticipo {docNo}."
+    },
+    "descriptionNoNumber": "Se enviará el documento completo.",
+    "recipients": "Destinatarios",
+    "placeholder": "correo1@ejemplo.com, correo2@ejemplo.com",
+    "helperText": "Separe múltiples correos con comas.",
+    "cancel": "Cancelar",
+    "send": "Enviar correo",
+    "success": {
+      "quote": "Presupuesto enviado",
+      "invoice": "Factura enviada",
+      "credit_note": "Nota de crédito enviada",
+      "payment": "Recibo de pago enviado",
+      "prepayment": "Recibo de anticipo enviado"
+    },
+    "error": "No se pudo enviar el correo",
+    "errorNoEmail": "Ingrese al menos un correo destinatario.",
+    "errorInvalidEmails": "Correos inválidos: {emails}",
+    "errorPdf": "No se pudo generar el PDF del documento",
+    "sending": "Enviando…",
+    "generatingPdf": "Generando PDF…"
+  },
+  "CalendarMobileSheet": {
+    "appointmentTitle": "Acciones de la cita",
+    "reminderTitle": "Acciones del recordatorio",
+    "back": "Volver",
+    "close": "Cerrar",
+    "patientHint": "Cuentas, historia y datos del paciente"
   }
 }

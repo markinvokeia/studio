@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { Calendar as DatePickerCalendar } from '@/components/ui/calendar';
+import { DatePicker } from '@/components/ui/date-picker';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 import {
@@ -11,7 +11,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
-import { enUS, es } from 'date-fns/locale';
+import { getDateFnsLocale } from '@/lib/locale';
 
 import type { CalendarBreakpoint, CalendarView } from './calendar-types';
 
@@ -27,10 +27,19 @@ interface CalendarHeaderProps {
   /** Jump the calendar to a date picked from the header date picker. */
   onDateSelect: (date: Date) => void;
   onOpenFilterSheet?: () => void;
+  /** Hide the static "Calendar" title (custom mode). */
+  hideTitle?: boolean;
+  /** Render the prev/next arrows before the "Today" button (custom mode). */
+  arrowsBeforeToday?: boolean;
+  /** Rendered at the very top-left, before the title (e.g. the "Agendas" toggle). */
+  leadingActions?: React.ReactNode;
   extraActions?: React.ReactNode;
   extraActionsAfterToday?: React.ReactNode;
   primaryActions?: React.ReactNode;
   trailingActions?: React.ReactNode;
+  /** Callback ref to the desktop action cluster (fires with null when it unmounts),
+   *  used by the page to observe overflow and collapse buttons to icon-only. */
+  actionsClusterRef?: React.RefCallback<HTMLDivElement>;
   children?: React.ReactNode;
   /** When provided, replaces the entire desktop header with this content */
   bulkModeContent?: React.ReactNode;
@@ -38,27 +47,32 @@ interface CalendarHeaderProps {
 
 /** Clickable header date that opens a date picker to jump to any day. Selecting a
  *  day moves the calendar to that day (and thus its week/month, per the view). */
-function HeaderDatePicker({
+export function HeaderDatePicker({
   headerTitle,
-  viewLabel,
+  view,
   currentDate,
   onDateSelect,
   className,
 }: {
   headerTitle: string;
-  viewLabel: string;
+  view: CalendarView;
   currentDate: Date;
   onDateSelect: (date: Date) => void;
   className?: string;
 }) {
   const [open, setOpen] = React.useState(false);
+  const t = useTranslations('Calendar');
   const locale = useLocale();
-  const dateLocale = locale === 'es' ? es : enUS;
+  const dateLocale = getDateFnsLocale(locale);
+  const viewKey = view.includes('-') ? view.replace('-', '') : view;
+  const viewLabel = t('showingView', { view: t(`views.${viewKey}`) });
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           type="button"
+          data-testid="calendar-header-date-picker"
           className={`flex flex-col items-start whitespace-nowrap rounded-md px-1.5 py-0.5 leading-tight transition-colors hover:bg-muted ${className ?? ''}`}
         >
           <span className="font-semibold">{headerTitle}</span>
@@ -66,7 +80,7 @@ function HeaderDatePicker({
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
-        <DatePickerCalendar
+        <DatePicker
           mode="single"
           selected={currentDate}
           defaultMonth={currentDate}
@@ -89,31 +103,34 @@ export function CalendarHeader({
   onToday,
   onDateSelect,
   onOpenFilterSheet,
+  hideTitle,
+  arrowsBeforeToday,
+  leadingActions,
   extraActions,
   extraActionsAfterToday,
   primaryActions,
   trailingActions,
+  actionsClusterRef,
   children,
   bulkModeContent,
 }: CalendarHeaderProps) {
   const t = useTranslations('Calendar');
-  const viewKey = view.includes('-') ? view.replace('-', '') : view;
-  const viewLabel = t('showingView', { view: t(`views.${viewKey}`) });
 
   // Mobile / tablet: compact header
   if (breakpoint === 'mobile' || breakpoint === 'tablet') {
     return (
       <div className="calendar-header-mobile">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 min-w-0">
+            {leadingActions}
             {onOpenFilterSheet && (
               <Button variant="ghost" size="icon" onClick={onOpenFilterSheet}>
                 <SlidersHorizontal className="h-4 w-4" />
               </Button>
             )}
-            <h2 className="text-base font-bold tracking-tight">{t('title')}</h2>
+            {!hideTitle && <h2 className="text-base font-bold tracking-tight">{t('title')}</h2>}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center justify-end gap-1">
             <Button variant="ghost" size="sm" onClick={onToday} className="text-xs px-2">
               {t('today')}
             </Button>
@@ -123,10 +140,11 @@ export function CalendarHeader({
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
               <ChevronRight className="h-4 w-4" />
             </Button>
-            {extraActions}
+            {/* Buscar huecos / Operaciones en Lotes (extraActions) and settings
+                (trailingActions) are surfaced inside the filter sheet on compact
+                layouts to keep this row on a single line. */}
             {primaryActions}
             {extraActionsAfterToday}
-            {breakpoint === 'tablet' && trailingActions}
           </div>
         </div>
         {children ? (
@@ -148,39 +166,55 @@ export function CalendarHeader({
   }
 
   return (
-    <div className="calendar-header calendar-header--actions relative pr-14">
-      {/* Settings: pinned to the top-right of row 1; action buttons wrap below it. */}
-      {trailingActions && (
-        <div className="absolute right-3 top-2.5 z-10">{trailingActions}</div>
-      )}
-      {/* Row-1 cluster: title + date navigation (date is clickable to jump) */}
-      <div className="flex items-center gap-2 min-w-0">
-        <h2 className="text-xl font-bold whitespace-nowrap">{t('title')}</h2>
-        <Button variant="outline" size="sm" className="h-11" onClick={onToday}>
+    <div className="calendar-header calendar-header--actions">
+      {/* Nav cluster: title + date navigation (date is clickable to jump). shrink-0 so
+          it keeps its natural width; the adjacent action cluster absorbs and clips any
+          shortfall instead. */}
+      <div className="flex items-center gap-2 shrink-0">
+        {leadingActions}
+        {!hideTitle && <h2 className="text-xl font-bold whitespace-nowrap">{t('title')}</h2>}
+        {arrowsBeforeToday && (
+          <div className="flex items-center gap-0.5 shrink-0">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        <Button variant="outline" size="sm" className="h-10 shrink-0" onClick={onToday}>
           {t('today')}
         </Button>
-        <div className="flex items-center gap-0.5 shrink-0">
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-        <HeaderDatePicker headerTitle={headerTitle} viewLabel={viewLabel} currentDate={currentDate} onDateSelect={onDateSelect} className="text-sm" />
+        {!arrowsBeforeToday && (
+          <div className="flex items-center gap-0.5 shrink-0">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onPrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onNext}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        <HeaderDatePicker headerTitle={headerTitle} view={view} currentDate={currentDate} onDateSelect={onDateSelect} className="text-sm" />
       </div>
 
-      {/* Primary cluster: Refresh + Create — stays on row 1 (after the date) */}
-      <div className="flex items-center gap-2">
-        {extraActionsAfterToday}
+      {/* Action cluster: Create / View / Zoom + gaps / bulk + calendars. flex-1 so it
+          fills the space between the nav and the right controls; min-w-0 + overflow-hidden
+          so its buttons overflow WITHIN it (clipped, keeping the right controls visible)
+          when tight. page.tsx reads scrollWidth vs clientWidth here (via actionsClusterRef)
+          and collapses these buttons to icon-only (secondary first, then primary) before
+          they clip. */}
+      <div ref={actionsClusterRef} className="calendar-header__secondary flex flex-1 min-w-0 items-center gap-2 overflow-hidden">
         {primaryActions}
-      </div>
-
-      {/* Secondary cluster: Huecos, bulk selection, calendars, doctors. Fills the
-          rest of row 1 and wraps to a second row when space is tight. */}
-      <div className="calendar-header__secondary flex flex-wrap items-center gap-2">
         {extraActions}
         {children}
+      </div>
+
+      {/* Right cluster: Refresh + Settings — always pinned to the far right. */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        {extraActionsAfterToday}
+        {trailingActions}
       </div>
     </div>
   );

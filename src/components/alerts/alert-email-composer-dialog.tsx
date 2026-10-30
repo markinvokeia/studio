@@ -11,11 +11,10 @@ interface AlertEmailComposerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   alert: AlertInstance | null;
-}
-
-function getPatientEmail(alert: AlertInstance | null): string {
-  const email = alert?.details_json?.patient?.email;
-  return typeof email === 'string' ? email.trim() : '';
+  /** Patient's current email, fetched live from the patient record (not the alert's snapshot). */
+  patientEmail: string;
+  /** Called right after a successful send, before the dialog closes */
+  onSent?: () => void;
 }
 
 function getRecipientName(alert: AlertInstance | null): string {
@@ -31,7 +30,7 @@ function getAlertUserId(alert: AlertInstance | null): string {
   return '';
 }
 
-export function AlertEmailComposerDialog({ open, onOpenChange, alert }: AlertEmailComposerDialogProps) {
+export function AlertEmailComposerDialog({ open, onOpenChange, alert, patientEmail, onSent }: AlertEmailComposerDialogProps) {
   const t = useTranslations('AlertEmailComposerDialog');
 
   const isAppointment = alert?.reference_table === 'appointments';
@@ -65,7 +64,7 @@ export function AlertEmailComposerDialog({ open, onOpenChange, alert }: AlertEma
     <EmailComposerDialog
       open={open}
       onOpenChange={onOpenChange}
-      to={getPatientEmail(alert)}
+      to={patientEmail}
       userId={getAlertUserId(alert)}
       recipientName={getRecipientName(alert)}
       templateCode={templateCode}
@@ -75,6 +74,7 @@ export function AlertEmailComposerDialog({ open, onOpenChange, alert }: AlertEma
       description={t('description')}
       missingToMessage={t('missingEmail')}
       missingUserIdMessage={t('missingUserId')}
+      onSent={onSent}
     />
   );
 }

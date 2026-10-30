@@ -16,7 +16,7 @@ interface CalendarZoomControlProps {
  * Transparent zoom slider pinned to the calendar's bottom-right corner. Scaling
  * the zoom enlarges slot height and font together (the slot:font ratio is kept).
  */
-export function CalendarZoomControl({ zoom, onZoomChange, min = 0.7, max = 2.5 }: CalendarZoomControlProps) {
+export function CalendarZoomControl({ zoom, onZoomChange, min = 0.3, max = 2.5 }: CalendarZoomControlProps) {
   return (
     <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2 rounded-full border border-border/40 bg-card/70 px-3 py-1.5 opacity-60 shadow-sm backdrop-blur-sm transition-opacity hover:opacity-100">
       <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />

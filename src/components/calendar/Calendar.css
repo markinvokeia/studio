@@ -1,4 +1,7 @@
 .calendar-container {
+  --calendar-grid-major: hsl(var(--border) / 0.5);
+  --calendar-grid-minor: hsl(var(--border) / 0.4);
+  --calendar-grid-vertical: hsl(var(--border));
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -7,28 +10,39 @@
   border-radius: var(--radius);
 }
 
+.dark .calendar-container {
+  --calendar-grid-major: hsl(var(--foreground) / 0.2);
+  --calendar-grid-minor: hsl(var(--foreground) / 0.1);
+  --calendar-grid-vertical: hsl(var(--foreground) / 0.16);
+}
+
 .calendar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 1rem;
   border-bottom: 1px solid hsl(var(--border));
   flex-shrink: 0;
   flex-wrap: wrap;
   gap: 0.5rem;
 }
 
-/* Reordered actions header (desktop): items flow left-to-right after the date.
-   When space is tight the secondary cluster wraps to a full-width second row,
-   staying left-aligned. */
+/* Reordered actions header (desktop): a single non-wrapping row. Nav on the left,
+   action buttons in the middle, refresh + settings pinned to the right. When space
+   is tight the middle buttons collapse to icon-only (driven from page.tsx) instead
+   of wrapping to a second row, keeping the header at a single compact row. */
 .calendar-header--actions {
   justify-content: flex-start;
+  flex-wrap: nowrap;
 }
 .calendar-header--actions .calendar-header__secondary {
-  /* Fill the remaining row-1 space; its buttons wrap to a second row when tight. */
-  flex: 1 1 auto;
-  min-width: 0;
   justify-content: flex-start;
+}
+/* Keep the action buttons at their natural width: they must NOT shrink individually
+   (which would clip each button's label), so their combined width overflows the
+   cluster and page.tsx can read scrollWidth vs clientWidth to decide icon collapse. */
+.calendar-header--actions .calendar-header__secondary > * {
+  flex-shrink: 0;
 }
 
 .calendar-body {
@@ -107,6 +121,33 @@
   gap: 0.5rem;
 }
 
+/* Franja con el color del estado en el borde izquierdo. La llevan las citas que
+   conservan su color propio o el de su servicio; las que solo heredan el color del
+   doctor o del consultorio se siguen pintando enteras y no usan esto.
+
+   Va en un ::before y no en el fondo del elemento para no chocar con
+   `.event-cancelled`, que pisa background-color con !important y dibuja el rayado
+   sobre el propio nodo. Las dos tarjetas ya tienen overflow:hidden, así que la
+   franja se recorta sola con las esquinas de 4px, y ya reservan padding a la
+   izquierda (0.65rem el chip de mes, 8px la de día). */
+.event.event-status-stripe::before,
+.event-in-day-view.event-status-stripe::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background-color: var(--status-stripe);
+  pointer-events: none;
+}
+
+/* El chip de mes mide 24px de alto y el texto arranca a 0.65rem: 3px alcanzan y
+   dejan respirar al título. */
+.event.event-status-stripe::before {
+  width: 3px;
+}
+
 /* Cancelled state — full diagonal striped background overrides the calendar color */
 .event-cancelled,
 .event-in-day-view.event-cancelled {
@@ -126,7 +167,7 @@
 .event-reminder,
 .event-in-day-view.event-reminder {
   background-color: var(--reminder-bg, rgb(245 243 255)) !important;
-  color: rgb(76 29 149) !important;
+  color: var(--reminder-foreground, white) !important;
   border: 1px dashed var(--reminder-border, rgb(196 181 253));
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.55);
 }
@@ -137,7 +178,6 @@
   color: rgb(107 114 128) !important;
   border-color: var(--reminder-border, rgb(229 231 235));
   border-style: solid;
-  opacity: 0.82;
 }
 
 .event-reminder-done .event-title,
@@ -148,8 +188,11 @@
   text-decoration-color: rgb(156 163 175);
 }
 
-/* Status icon — solid colored badge with white icon, matching the agenda view.
-   The background color is set inline per-event via STATUS_ACCENT_COLOR. */
+/* Status icon — solid colored badge, matching the agenda view. El fondo se fija
+   inline por evento desde STATUS_ACCENT_COLOR, y junto con él el color del ícono,
+   que sale de getContrastingIconColor: sobre los estados claros (Llegó, Pendiente,
+   En curso) el blanco quedaba por debajo del mínimo legible. El `color: white` de
+   acá queda solo como respaldo para cuando el acento no es un hex parseable. */
 .event-in-day-view .event-status-corner {
   position: absolute;
   bottom: 2px;
@@ -163,10 +206,38 @@
   pointer-events: none;
 }
 
+/* Tamaño fijo, igual al `h-3.5` del JSX que aplica en las demás vistas. La altura
+   de hora ya no escala la tipografía del calendario: es interlineado, no tamaño de
+   letra. Lo que sí manda es cuántos píxeles mide la card — ver los tramos
+   `[data-density]` más abajo, donde el ícono se achica y termina ocultándose. */
+.event-in-day-view .event-status-corner svg {
+  width: 14px;
+  height: 14px;
+}
+
 .event-in-day-view-compact .event-status-corner {
   bottom: 1px;
   right: 2px;
   padding: 1px;
+}
+
+/* Origen del evento (importado de Google Calendar): un punto chico arriba a la
+   derecha, en la esquina opuesta al badge de estado para que no se pisen. El
+   anillo claro lo despega de las cards pintadas en tonos oscuros o azulados. */
+.event-in-day-view .event-source-corner {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  box-shadow: 0 0 0 1px hsl(0 0% 100% / 0.65);
+  pointer-events: none;
+}
+
+.event-in-day-view-compact .event-source-corner {
+  top: 2px;
+  right: 2px;
 }
 
 /* In month view chips the event is a single row — show the icon inline at the end. */
@@ -177,8 +248,28 @@
   justify-content: center;
   color: white;
   border-radius: 9999px;
-  padding: 2px;
+  /* 1px (y no 2px como en la vista de día): acá el badge va inline y es lo más alto
+     del chip, así que su altura manda la del chip. Con el ícono a 14px el anillo más
+     fino deja el chip en los mismos 24px de siempre — el ícono crece sin que entren
+     menos citas por día en la vista de mes. */
+  padding: 1px;
   flex-shrink: 0;
+}
+
+/* En el chip de mes el punto va inline, al final de la fila. */
+.event .event-source-corner {
+  margin-left: auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  box-shadow: 0 0 0 1px hsl(0 0% 100% / 0.65);
+  flex-shrink: 0;
+}
+
+/* Cuando además hay badge de estado, ese ya empuja al final: el punto se pega a su
+   derecha en vez de repartirse el espacio libre con él. */
+.event .event-status-corner ~ .event-source-corner {
+  margin-left: 3px;
 }
 
 .event:hover {
@@ -340,6 +431,100 @@
   background-color: hsl(var(--card));
 }
 
+/* ── Banda de todo el día ──────────────────────────────────────────────────
+   Fila dentro de `.day-view-header-wrapper`, así que hereda su `position: sticky`
+   y su z-index: queda fija al scrollear la rejilla sin lógica propia. Solo se
+   monta cuando hay ítems; vacía le robaría alto a la rejilla todos los días. */
+
+.all-day-band {
+  display: grid;
+  border-bottom: 1px solid hsl(var(--border));
+  background-color: hsl(var(--card));
+  /* Crece con los ítems del día más cargado, pero con techo: la banda no se puede
+     comer la rejilla. Pasado el techo, scrollea ella. */
+  max-height: 5.25rem;
+  overflow-y: auto;
+}
+
+.all-day-band-gutter {
+  position: sticky;
+  left: 0;
+  z-index: 16;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0.25rem 0.375rem;
+  background-color: hsl(var(--card));
+  border-right: 1px solid hsl(var(--border));
+}
+
+.all-day-band-label {
+  font-size: 0.625rem;
+  line-height: 1;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  text-align: right;
+}
+
+/* Bloque de un día cuando la vista está agrupada: adentro, una celda por
+   consultorio, con el mismo template que `.day-view-group-block`. */
+.all-day-band-block {
+  display: grid;
+  min-width: 0;
+  border-right: 1px solid hsl(var(--border));
+  box-sizing: border-box;
+}
+
+.all-day-band-block:last-child {
+  border-right: none;
+}
+
+.all-day-band-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 0.25rem;
+  border-right: 1px solid hsl(var(--border));
+}
+
+.all-day-band-cell:last-child,
+.all-day-band-block > .all-day-band-cell:last-child {
+  border-right: none;
+}
+
+.all-day-band-chip {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  /* El color de fondo lo pone el ítem, inline. El texto va en blanco porque los
+     colores disponibles son los de Google Calendar, todos de contraste suficiente
+     (el mismo criterio que usan las cards de la rejilla). */
+  color: #fff;
+  font-size: 0.6875rem;
+  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+  transition: filter 0.12s ease;
+}
+
+.all-day-band-chip:hover {
+  filter: brightness(1.08);
+}
+
+.all-day-band-chip--locked {
+  cursor: default;
+}
+
+.all-day-band-chip-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .day-view-group-block {
   display: grid;
   background-color: hsl(var(--muted) / 0.25);
@@ -384,7 +569,9 @@
 }
 
 .time-column {
-  font-size: calc(0.75rem * var(--cal-font-scale, 1));
+  /* Igual que la etiqueta del rail: tamaño fijo, acotado solo si la fila es tan baja
+     que las horas consecutivas se pisarían. */
+  font-size: min(0.75rem, calc(var(--hour-slot-height, 60px) * 0.55));
   color: hsl(var(--muted-foreground));
   text-align: right;
   padding-right: 0.5rem;
@@ -392,26 +579,36 @@
   left: 0;
   z-index: 11;
   background-color: hsl(var(--card));
-  border-right: 1px solid hsl(var(--border));
+  border-right: 1px solid var(--calendar-grid-vertical);
 }
 
 .time-zone-label {
-  padding: 0.5rem;
-  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.25rem;
+  font-size: 0.7rem;
   color: hsl(var(--muted-foreground));
   text-align: center;
-  border-bottom: 1px solid hsl(var(--border));
-  border-right: 1px solid hsl(var(--border));
+  border-bottom: 1px solid var(--calendar-grid-major);
+  border-right: 1px solid var(--calendar-grid-vertical);
   position: sticky;
   left: 0;
   z-index: 16;
   background-color: hsl(var(--card));
 }
 
+.time-zone-toggle {
+  height: 0.85rem;
+  width: 0.85rem;
+}
+
 .time-slot {
   height: var(--hour-slot-height, 60px);
   /* 1 hour */
-  border-bottom: 1px solid hsl(var(--border) / 0.5);
+  border-bottom: 1px solid var(--calendar-grid-major);
   position: relative;
 }
 
@@ -427,8 +624,8 @@
   background-image:
     repeating-linear-gradient(
       to bottom,
-      hsl(var(--border) / 0.4) 0,
-      hsl(var(--border) / 0.4) 1px,
+      var(--calendar-grid-minor) 0,
+      var(--calendar-grid-minor) 1px,
       transparent 1px,
       transparent calc(var(--hour-slot-height, 60px) / var(--cal-slots-per-hour, 4))
     );
@@ -445,19 +642,88 @@
 }
 
 .day-column {
-  border-right: 1px solid hsl(var(--border));
+  border-right: 1px solid var(--calendar-grid-vertical);
   position: relative;
   box-sizing: border-box;
+  display: flex;
+  align-items: stretch;
 }
 
 .day-column:last-child {
   border-right: none;
 }
 
+/* Events/overlays are positioned within this inner area so that appointments sit
+   to the right of the clickable hour rail. */
+.day-column-content {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  /* Contexto de apilamiento propio: los z-index de las cards apiladas (10, 11, 12…)
+     quedan locales a la columna y nunca compiten con la columna de horas sticky
+     (z-11), con la línea de la hora actual (z-14) ni con el header. Sin esto, a
+     partir del primer nivel del apilado una cita taparía el gutter de horas.
+     Invariante a respetar: nada `position: fixed` acá adentro. */
+  isolation: isolate;
+}
+
+/* Thin clickable rail at the left edge of each column: shows the hour numbers and,
+   sitting beside (not under) the events area, always creates an appointment on
+   click — even when an event already occupies that time. */
+.column-hour-rail {
+  position: relative;
+  flex: 0 0 auto;
+  width: 22px;
+  box-sizing: border-box;
+  border-right: 1px solid var(--calendar-grid-vertical);
+  background-color: hsl(var(--muted) / 0.25);
+  cursor: pointer;
+  user-select: none;
+}
+
+.column-hour-rail:hover {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+.column-hour-rail-slot {
+  height: var(--hour-slot-height, 60px);
+  position: relative;
+  border-bottom: 1px solid var(--calendar-grid-major);
+  /* Same sub-hour slot lines as the events area (see .time-slot-divider). */
+  background-image:
+    repeating-linear-gradient(
+      to bottom,
+      var(--calendar-grid-minor) 0,
+      var(--calendar-grid-minor) 1px,
+      transparent 1px,
+      transparent calc(var(--hour-slot-height, 60px) / var(--cal-slots-per-hour, 4))
+    );
+}
+
+.column-hour-rail-slot:last-child {
+  border-bottom: none;
+}
+
+.column-hour-rail-label {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  /* Tamaño fijo (la altura de hora ya no escala la tipografía), acotado hacia abajo
+     cuando la fila es tan baja que el número no entra: por debajo de ~18px de hora
+     las etiquetas de horas consecutivas se pisarían. */
+  font-size: min(0.625rem, calc(var(--hour-slot-height, 60px) * 0.55));
+  line-height: 1;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+}
+
 .day-block {
   display: grid;
   background-color: hsl(var(--card));
-  border-right: 1px solid hsl(var(--border));
+  border-right: 1px solid var(--calendar-grid-vertical);
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -471,11 +737,11 @@
 }
 
 .day-block > .day-column:not(:last-child) {
-  border-right: 1px solid hsl(var(--border));
+  border-right: 1px solid var(--calendar-grid-vertical);
 }
 
-.day-column>.time-slot {
-  border-bottom: 1px solid hsl(var(--border) / 0.5);
+.day-column-content>.time-slot {
+  border-bottom: 1px solid var(--calendar-grid-major);
 }
 
 .event-in-day-view {
@@ -485,17 +751,53 @@
   color: hsl(var(--primary-foreground));
   border-radius: 4px;
   padding: 4px 4px 4px 8px;
-  font-size: calc(0.75rem * var(--cal-font-scale, 1));
+  font-size: 0.75rem;
   overflow: hidden;
   cursor: pointer;
   z-index: 10;
+  /* Sin esto, arrastrar el mouse sobre las cards selecciona el texto de media
+     columna. La card no tiene texto seleccionable útil: su contenido completo
+     está en el `title`. */
+  user-select: none;
+  -webkit-user-select: none;
   border: 1px solid rgba(255, 255, 255, 0.2);
   /* Add subtle border for visibility */
+  /* Dos sombras componibles: la interior es la de los recordatorios y la de apilado
+     marca el escalón de la cascada. Van por variable porque `box-shadow` no se acumula
+     entre reglas y `.event-in-day-view.event-reminder` gana por especificidad.
+     `0 0 #0000` es el valor neutro (una lista de sombras no admite `none` como ítem). */
+  --event-inset-shadow: 0 0 #0000;
+  --event-stack-shadow: 0 0 #0000;
+  box-shadow: var(--event-inset-shadow), var(--event-stack-shadow);
   display: flex;
   flex-direction: column;
   gap: 2px;
-  /* Ensure short events (e.g. 15-min) still fit a single line of title + time */
-  min-height: 22px;
+  /* Sin min-height a propósito: el `height` en línea que calcula getEventStyle es
+     exactamente proporcional a la duración de la cita, y con box-sizing:border-box
+     el padding y el borde caben dentro. Un mínimo absoluto (antes 22px) hacía que
+     una cita de 20 min a zoom bajo se dibujara más alta de lo que dura y tapara el
+     hueco siguiente. Para que el contenido siga legible al achicarse, la card se
+     compacta por tramos según su alto real — ver [data-density]. */
+}
+
+/* En la vista de día la sombra interior del recordatorio tiene que convivir con la
+   del apilado, así que se pasa por variable para que se dibujen las dos. Va después de
+   la regla de `.event-reminder` (misma especificidad, gana por orden) y solo aplica a
+   la card de la grilla; el chip de la vista de mes conserva la regla original. */
+.event-in-day-view.event-reminder {
+  --event-inset-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.55);
+  box-shadow: var(--event-inset-shadow), var(--event-stack-shadow);
+}
+
+/* Card apilada sobre otra: sin nada que las separe, dos vecinas del mismo color se
+   leen como una sola mancha. El peso lo lleva el CONTORNO —un canto claro y nítido en
+   el borde izquierdo, que es el que queda sobre la card de atrás— y no la sombra: una
+   sombra marcada hace que las cards floten como capas despegadas, cuando lo único que
+   se busca es que se distinga dónde termina una y empieza la otra. Queda apenas un
+   velo de 1px para que el canto también se lea sobre fondos claros. */
+.event-in-day-view[data-stacked="true"] {
+  --event-stack-shadow: -1px 0 2px -1px rgb(0 0 0 / 0.14);
+  border-left-color: rgb(255 255 255 / 0.72);
 }
 
 .event-day-title {
@@ -512,7 +814,7 @@
 }
 
 .event-day-time {
-  font-size: calc(0.7rem * var(--cal-font-scale, 1));
+  font-size: 0.7rem;
   line-height: 1;
   opacity: 0.95;
 }
@@ -544,6 +846,74 @@
   line-height: inherit;
 }
 
+/* --------------------------------------------------------------------------
+   Tramos de densidad de la card (`data-density`, calculado en calendar-event-day
+   a partir de su alto REAL en px = duración x altura de hora efectiva).
+
+   La caja nunca crece para que quepa el contenido — eso taparía el hueco con la
+   cita siguiente —, así que es el contenido el que se ajusta a la caja: se recorta
+   el padding, el título baja a una línea, la hora se oculta y por último desaparece
+   el círculo de estado. Van después de `.event-in-day-view-compact` (misma
+   especificidad) para poder afinar lo que aquella define.
+   -------------------------------------------------------------------------- */
+
+/* 18–34px: cabe una línea de título, pero ya no el rango horario. */
+.event-in-day-view[data-density="compact"] {
+  padding: 1px 4px 1px 8px;
+  gap: 0;
+  border-radius: 3px;
+  font-size: 0.6875rem;
+}
+
+.event-in-day-view[data-density="compact"] .event-day-title {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+.event-in-day-view[data-density="compact"] .event-day-time {
+  display: none;
+}
+
+.event-in-day-view[data-density="compact"] .event-status-corner {
+  bottom: 0;
+  right: 1px;
+  padding: 1px;
+}
+
+.event-in-day-view[data-density="compact"] .event-source-corner {
+  top: 2px;
+  right: 2px;
+  width: 5px;
+  height: 5px;
+}
+
+.event-in-day-view[data-density="compact"] .event-status-corner svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* <18px: solo el nombre, y en el mínimo ni eso — pero la barra de color sigue
+   midiendo exactamente lo que dura la cita, que es lo que hace legible el hueco. */
+.event-in-day-view[data-density="tiny"] {
+  padding: 0 2px 0 6px;
+  gap: 0;
+  border-radius: 2px;
+  font-size: 0.5625rem;
+  justify-content: center;
+}
+
+.event-in-day-view[data-density="tiny"] .event-day-title {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  line-height: 1;
+}
+
+.event-in-day-view[data-density="tiny"] .event-day-time,
+.event-in-day-view[data-density="tiny"] .event-status-corner,
+.event-in-day-view[data-density="tiny"] .event-source-corner {
+  display: none;
+}
+
 .current-time-indicator {
   position: absolute;
   left: 60px;
@@ -553,15 +923,6 @@
   align-items: center;
   z-index: 14;
   pointer-events: none;
-}
-
-.current-time-dot {
-  width: 12px;
-  height: 12px;
-  background-color: #F44336;
-  border-radius: 9999px;
-  position: absolute;
-  left: -6px;
 }
 
 .current-time-line {
@@ -761,6 +1122,35 @@
 }
 
 /* ───────────────────────────────────────────────────────────────────────────
+   Cita enfocada (resultado de búsqueda elegido): aro de "hormigas en marcha",
+   el mismo efecto que el hueco máximo en "Buscar huecos". Es un overlay que
+   Calendar.tsx posiciona por rAF sobre la card (no una clase en la card, que
+   los re-render de la grilla borraban). Persiste hasta elegir otro resultado
+   o cerrar el buscador.
+   ─────────────────────────────────────────────────────────────────────────── */
+.calendar-focus-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 45;
+  pointer-events: none;
+  border-radius: 8px;
+  will-change: transform;
+  background:
+    linear-gradient(90deg, hsl(var(--primary)) 50%, transparent 0) repeat-x,
+    linear-gradient(90deg, hsl(var(--primary)) 50%, transparent 0) repeat-x,
+    linear-gradient(0deg, hsl(var(--primary)) 50%, transparent 0) repeat-y,
+    linear-gradient(0deg, hsl(var(--primary)) 50%, transparent 0) repeat-y;
+  background-size: 12px 2px, 12px 2px, 2px 12px, 2px 12px;
+  background-position: 0 0, 0 100%, 0 0, 100% 0;
+  background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+  animation: calendar-gap-march 0.6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .calendar-focus-ring { animation: none; }
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
    Out-of-office blocking ("No disponible") — schedules + exceptions
    ─────────────────────────────────────────────────────────────────────────── */
 .calendar-blocked {
@@ -827,4 +1217,340 @@
     transparent 6px,
     transparent 12px
   );
+}
+
+/* ==========================================================================
+   Arrastre y redimensionado de citas (modo custom)
+
+   Todo lo de acá se togglea imperativamente desde use-calendar-drag-drop: durante
+   el gesto no hay un solo re-render de React, así que el estado visual vive en
+   clases y atributos sobre nodos que ya estaban montados.
+   ========================================================================== */
+
+/* Estado global mientras se arrastra. La clase va sobre el contenedor con scroll. */
+.calendar-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
+.calendar-dragging[data-drag-invalid='true'] {
+  cursor: not-allowed;
+}
+
+/* Borde "armado": el puntero se está sosteniendo contra el costado y, si sigue ahí,
+   la vista pasa al período anterior/siguiente sin soltar la cita. El latido dice que
+   hay una espera en curso, no un estado final.
+
+   Cuelga de `body` y va `fixed` porque las dos alternativas fallan: un
+   `box-shadow: inset` en el contenedor lo tapan los fondos opacos de las columnas
+   (`.day-block`), y un hijo absoluto se iría con el scroll. El hook escribe la
+   geometría del contenedor en estas variables al armar el borde. */
+body[data-calendar-drag-edge]::after {
+  content: '';
+  position: fixed;
+  top: var(--calendar-edge-nav-top, 0);
+  height: var(--calendar-edge-nav-height, 0);
+  left: var(--calendar-edge-nav-x, 0);
+  width: 64px;
+  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 60;
+  animation: calendar-edge-nav-pulse 750ms ease-in-out infinite;
+}
+
+body[data-calendar-drag-edge='left']::after {
+  border-left: 3px solid hsl(var(--primary));
+  background: linear-gradient(to right, hsl(var(--primary) / 0.7), hsl(var(--primary) / 0.25) 45%, transparent);
+}
+
+/* El borde derecho se ancla en `right`, así que la banda se corre su propio ancho
+   hacia adentro para quedar del lado visible. */
+body[data-calendar-drag-edge='right']::after {
+  transform: translateX(-100%);
+  border-right: 3px solid hsl(var(--primary));
+  background: linear-gradient(to left, hsl(var(--primary) / 0.7), hsl(var(--primary) / 0.25) 45%, transparent);
+}
+
+@keyframes calendar-edge-nav-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+/* Además de matar el hover, deja que `elementFromPoint` devuelva la columna (o la
+   celda del mes) y no la card que va bajo el cursor: es lo que permite el hit-test
+   de un solo paso. */
+.calendar-dragging .event-in-day-view,
+.calendar-dragging .event {
+  pointer-events: none;
+}
+
+/* La card origen se queda en su lugar, atenuada, como referencia de dónde estaba. */
+.event-in-day-view[data-dragging='true'] {
+  opacity: 0.35;
+}
+
+.event-in-day-view[data-draggable='true'] {
+  cursor: grab;
+}
+
+/* Tiradores de resize. El `::after` agranda el área de agarre sin tocar el alto de
+   la card: el `height` en línea es exactamente proporcional a la duración, y
+   inflarlo taparía el hueco siguiente. */
+.event-resize-grip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 7px;
+  cursor: ns-resize;
+  touch-action: none;
+  z-index: 1;
+}
+
+.event-resize-grip::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+
+/* -1px: el tirador cubre también el borde de 1px de la card. Sin eso, entre el fin
+   de una cita y el inicio de la de abajo quedaban 2px (los dos bordes) de "mover". */
+.event-resize-grip--top { top: -1px; }
+.event-resize-grip--bottom { bottom: -1px; }
+
+/* `hidden` recorta en el borde interior (padding box) y se comería ese píxel; `clip`
+   con 1px de margen lo deja ver sin que nada asome fuera de la card. */
+.event-in-day-view[data-draggable='true'] {
+  overflow: clip;
+  overflow-clip-margin: 1px;
+}
+
+/* Marcador de resize: una línea de 3px pegada al borde mientras el puntero está sobre
+   el tirador. Es el mismo en todas las cards, sea cual sea el alto del tirador.
+   `currentColor` es el texto legible que la card ya calculó sobre su propio fondo,
+   así que la línea se ve sobre cualquier color de calendario. */
+.event-resize-grip::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  pointer-events: none;
+}
+
+.event-resize-grip--top::before { top: 0; }
+.event-resize-grip--bottom::before { bottom: 0; }
+
+/* --------------------------------------------------------------------------
+   Tiradores de las cards cortas (`compact`/`tiny`, `data-grips="on-active"`).
+
+   Hay dos modelos y los separa el tipo de puntero, no el ancho de pantalla: una
+   tablet con mouse se comporta como desktop, y una laptop táctil también.
+
+   - Con hover (mouse/trackpad): los tiradores solo existen en la card bajo el
+     puntero, y no asoman fuera de ella.
+   - Sin hover (táctil): no hay tiradores; la card entera es para mover. Un dedo no
+     distingue tres zonas en 13–34px (con tiradores que asomaban por fuera, a una
+     cita de 15 min le quedaba 1px para mover), y el modelo de hover no tiene
+     equivalente: el toque que podría "activar" la card es el mismo que abre su
+     sheet o su ventana de detalle. La duración se cambia desde ahí: "Duración" en el
+     sheet de móvil, o en el menú contextual (long-press quieto) en tablet.
+   -------------------------------------------------------------------------- */
+
+@media (hover: hover) {
+  .event-resize-grip:hover::before {
+    background-color: color-mix(in srgb, currentColor 55%, transparent);
+  }
+
+  /* En 13–34px no caben dos franjas de resize siempre activas y además un lugar de
+     donde agarrar para mover: la zona de mover de una cita de 15 min quedaba en ~3px.
+     Fuera de la card bajo el puntero, la card entera es para mover.
+
+     El área de agarre no asoma por fuera del borde, a propósito. Entre dos citas
+     pegadas, el borde es a la vez el fin de una y el inicio de la otra; si el tirador
+     de la card activa invade a la vecina, al bajar el cursor de una a otra se pasa del
+     "estirar hacia abajo" de la de arriba directo al cuerpo de la de abajo, y su
+     "estirar hacia arriba" no aparece nunca (y al subir, al revés). Con cada tirador
+     dentro de su card, el borde se reparte: el cursor que baja pasa por el fin de la
+     de arriba y luego por el inicio de la de abajo. Es como ya se comportan las cards
+     grandes, cuyo recorte (`overflow: clip` + 1px) deja afuera lo que el `::after` de
+     su tirador asoma. */
+  .event-in-day-view[data-grips='on-active'] .event-resize-grip {
+    height: 4px;
+    pointer-events: none;
+  }
+
+  .event-in-day-view[data-grips='on-active'] .event-resize-grip::after {
+    content: none;
+  }
+
+  /* Una cita de 15 min en `tiny` mide 14px: con 3px por borde le quedan 8px de mover. */
+  .event-in-day-view[data-grips='on-active'][data-density='tiny'] .event-resize-grip {
+    height: 3px;
+  }
+
+  .event-in-day-view[data-grips='on-active']:hover .event-resize-grip {
+    pointer-events: auto;
+  }
+}
+
+@media (hover: none) {
+  .event-in-day-view[data-grips='on-active'] .event-resize-grip {
+    display: none;
+  }
+}
+
+/* Mientras hay un arrastre, el `pointer-events: none` de las cards es lo que deja que
+   `elementFromPoint` devuelva la columna. Un tirador con `pointer-events: auto` lo
+   anularía, porque la propiedad se hereda pero un hijo puede volver a prenderla. */
+.calendar-dragging .event-in-day-view .event-resize-grip {
+  pointer-events: none !important;
+}
+
+/* Fantasma del destino. `absolute` dentro de la columna, nunca `fixed`: ver la
+   invariante de `.day-column-content`. */
+.calendar-drag-ghost {
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 4px;
+  border: 2px solid hsl(var(--primary));
+  background: hsl(var(--primary) / 0.18);
+  padding: 2px 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.1;
+  color: hsl(var(--foreground));
+}
+
+.calendar-drag-ghost--invalid {
+  border-color: hsl(var(--destructive));
+  background-color: hsl(var(--destructive) / 0.16);
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 6px,
+    hsl(var(--destructive) / 0.18) 6px 12px
+  );
+}
+
+.calendar-drag-ghost__time {
+  white-space: nowrap;
+}
+
+/* ── Preview en vivo de la tarjeta inline ──────────────────────────────────
+   Con `inline_draft_live_preview` la tarjeta flota al lado de la cita (sin
+   backdrop) y la cita se dibuja sobre su columna mientras se completa. */
+
+/* La banda del preview. Mismo modelo de capas que el fantasma de arrastre: encima
+   de las citas, sin capturar el puntero. */
+.calendar-draft-preview {
+  --draft-preview-color: hsl(var(--primary));
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  pointer-events: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border-radius: 6px;
+  border: 2px dashed var(--draft-preview-color);
+  background-color: color-mix(in srgb, var(--draft-preview-color) 22%, transparent);
+  box-shadow: 0 4px 14px -6px color-mix(in srgb, var(--draft-preview-color) 60%, transparent);
+  padding: 2px 6px;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  color: hsl(var(--foreground));
+  transition: top 120ms ease-out, height 120ms ease-out;
+}
+
+.calendar-draft-preview--conflict {
+  --draft-preview-color: hsl(var(--destructive));
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 6px,
+    hsl(var(--destructive) / 0.14) 6px 12px
+  );
+}
+
+.calendar-draft-preview--short {
+  flex-direction: row;
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.calendar-draft-preview__time {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-draft-preview__title,
+.calendar-draft-preview__subtitle {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-draft-preview__title {
+  font-weight: 600;
+}
+
+.calendar-draft-preview__subtitle {
+  color: hsl(var(--muted-foreground));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .calendar-draft-preview { transition: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-in-day-view[data-dragging='true'] { opacity: 0.5; }
+  body[data-calendar-drag-edge]::after { animation: none; opacity: 0.8; }
+}
+
+/* ── Vista de mes ──────────────────────────────────────────────────────────
+   Sin eje de horas no hay resize: arrastrar solo cambia la fecha, conservando la
+   hora del día y la duración. */
+
+.event[data-draggable='true'] { cursor: grab; }
+
+.calendar-day--drop-target {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: -2px;
+  background-color: hsl(var(--primary) / 0.08);
+}
+
+.calendar-day--drop-invalid {
+  outline-color: hsl(var(--destructive));
+  background-color: hsl(var(--destructive) / 0.08);
+}
+
+/* Portalado a body: las celdas tienen overflow-y auto y lo recortarían. */
+.calendar-drag-chip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  pointer-events: none;
+  max-width: 220px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  border-radius: 4px;
+  border: 1px solid hsl(var(--primary));
+  background: hsl(var(--background));
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.18);
+  padding: 3px 7px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+.calendar-drag-chip--invalid {
+  border-color: hsl(var(--destructive));
+  color: hsl(var(--destructive));
 }

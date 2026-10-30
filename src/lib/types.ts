@@ -2,6 +2,8 @@
 
 export type UserDetailMode = 'sales' | 'purchases';
 
+export type IdentityDocumentType = 'cedula_uy' | 'cedula_ext' | 'pasaporte_uy' | 'pasaporte_ext' | 'dni' | 'nie';
+
 export type User = {
   id: string;
   name: string;
@@ -11,6 +13,7 @@ export type User = {
   avatar: string;
   internal_id?: string | number | null;
   identity_document?: string;
+  identity_document_type?: IdentityDocumentType;
   birth_date?: string;
   color?: string;
   is_sales?: boolean;
@@ -27,10 +30,26 @@ export type User = {
   is_dependent?: boolean;
   responsible_contact_id?: string;
   responsible_contact_name?: string;
+  /** Teléfono del tutor (propio o alternativo); lo trae la búsqueda de `/users`. */
+  responsible_phone_number?: string;
+  /** La búsqueda lo encontró solo por los datos de su tutor, no por los suyos. */
+  matched_by_responsible?: boolean;
   calendar_source_id?: string;
-  /** Doctor flag: enables browsing appointments of calendars they have access to in the workspace. */
-  can_browse_calendars?: boolean;
+  /** Default doctor assigned to this patient. Nullable. */
+  doctor_id?: string | null;
+  doctor_name?: string;
+  sex?: 'male' | 'female' | null;
+  active_sede_id?: string | null;
 };
+
+/**
+ * Código ISO 4217 de 3 letras (`USD`, `EUR`, `UYU`, …). Es lo que se guarda y
+ * lo que viaja al backend. Deliberadamente `string` y no una unión cerrada: la
+ * moneda es configurable por clínica, y un registro histórico puede venir en
+ * cualquier moneda con la que se haya operado en el pasado. El conjunto que la
+ * UI ofrece lo acotan `@/constants/currencies` y `useCurrencySettings()`.
+ */
+export type CurrencyCode = string;
 
 export type CurrencyFinancialData = {
   total_paid: number;
@@ -41,10 +60,8 @@ export type CurrencyFinancialData = {
   total_credit_notes: number;
 };
 
-export type UserFinancialData = {
-  USD?: CurrencyFinancialData;
-  UYU?: CurrencyFinancialData;
-};
+/** Datos financieros del paciente, indexados por código de moneda. */
+export type UserFinancialData = Partial<Record<CurrencyCode, CurrencyFinancialData>>;
 
 export type UserFinancial = {
   user_id: string;
@@ -145,8 +162,6 @@ export type AuthUser = {
   internal_id?: string | null;
   is_active: boolean;
   roles_and_permissions: UserRoleAndPermission[];
-  /** Doctor flag: enables the "view calendar agendas" switch in the workspace. */
-  can_browse_calendars?: boolean;
 };
 
 export type PatientDischarge = {
@@ -161,7 +176,7 @@ export type Debtor = {
   patient_name: string;
   email: string;
   identity_document: string;
-  currency: 'UYU' | 'USD';
+  currency: CurrencyCode;
   pending_invoices_count: string;
   total_debt_amount: string;
 };
@@ -216,16 +231,51 @@ export type UserClinic = {
   position: string;
 };
 
+/** Cómo se expresa un descuento: porcentaje sobre la base, o importe fijo. */
+export type DiscountMode = 'percent' | 'amount';
+
+/** Dónde se aplica el descuento en un documento: por línea, o sobre el total. */
+export type DiscountScope = 'line' | 'total';
+
+/**
+ * Campos de descuento de una línea (`quote_items`, `order_items`, `invoice_items`).
+ *
+ * Invariante: `total` es SIEMPRE el importe neto, ya descontado, porque el
+ * backend recalcula el total del documento como `SUM(items.total)`. `gross_total`
+ * guarda el bruto (`unit_price × quantity`) para poder imprimir la línea sin
+ * descontar. Las filas anteriores a esta feature traen todo a `undefined`: hay
+ * que leerlas como `gross_total ?? total` y sin descuento.
+ */
+export type LineDiscountFields = {
+  gross_total?: number;
+  discount_mode?: DiscountMode | null;
+  discount_value?: number | null;
+  discount_amount?: number | null;
+};
+
+/**
+ * Campos de descuento de una cabecera (`quotes`, `orders`, `invoices`).
+ * `discount_mode` y `discount_value` sólo se rellenan con `discount_scope: 'total'`;
+ * con `'line'`, `discount_amount` es la suma de los descuentos de las líneas.
+ */
+export type DocumentDiscountFields = LineDiscountFields & {
+  discount_scope?: DiscountScope | null;
+};
+
 export type Quote = {
   id: string;
   doc_no?: string;
   quote_doc_no?: string;
   user_id: string;
+  doctor_id?: string;
+  doctor_name?: string;
+  sede_id?: string;
+  sede_name?: string;
   total: number;
   status: 'draft' | 'sent' | 'accepted' | 'rejected' | 'pending' | 'confirmed';
   payment_status: 'unpaid' | 'paid' | 'partial' | 'partially_paid';
   billing_status: string;
-  currency?: 'UYU' | 'USD';
+  currency?: CurrencyCode;
   user_name?: string;
   userEmail?: string;
   notes?: string;
@@ -239,7 +289,7 @@ export type Quote = {
   amount_paid?: number;
   amount_pending_payment?: number;
   external_id?: string | number | null;
-};
+} & DocumentDiscountFields;
 
 export type QuoteItem = {
   id: string;
@@ -253,7 +303,7 @@ export type QuoteItem = {
   updated_at?: string;
   created_by?: string;
   updated_by?: string;
-};
+} & LineDiscountFields;
 
 export type Order = {
   id: string;
@@ -262,13 +312,13 @@ export type Order = {
   quote_id: string;
   quote_doc_no?: string;
   user_name?: string;
-  currency?: 'UYU' | 'USD';
+  currency?: CurrencyCode;
   status: 'pending' | 'processing' | 'completed' | 'cancelled';
   is_invoiced?: boolean;
   notes?: string;
   createdAt: string;
   updatedAt: string;
-};
+} & DocumentDiscountFields;
 
 export type OrderItem = {
   id: string;
@@ -284,7 +334,7 @@ export type OrderItem = {
   invoiced_date?: string;
   appointment_id?: string;
   quote_item_id?: string | number;
-};
+} & LineDiscountFields;
 
 export type Invoice = {
   id: string;
@@ -298,8 +348,12 @@ export type Invoice = {
   user_name: string;
   userEmail?: string;
   user_id: string;
+  doctor_id?: string;
+  doctor_name?: string;
+  sede_id?: string;
+  sede_name?: string;
   total: number;
-  currency?: 'UYU' | 'USD';
+  currency?: CurrencyCode;
   notes?: string;
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'booked';
   payment_status: 'unpaid' | 'paid' | 'partial' | 'partially_paid';
@@ -312,7 +366,7 @@ export type Invoice = {
   external_id?: string | number | null;
   createdAt: string;
   updatedAt: string;
-};
+} & DocumentDiscountFields;
 
 export type CreditNote = Invoice & {
   type: 'credit_note';
@@ -322,7 +376,7 @@ export type CreditNote = Invoice & {
 export interface DocPrintTemplate {
   id: string;
   clinic_id: string;
-  template_type: 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion';
+  template_type: 'quote' | 'invoice' | 'payment' | 'credit_note' | 'prepayment' | 'financial_summary' | 'ledger' | 'caja_apertura' | 'caja_cierre' | 'caja_sesion' | 'clinic_history';
   template_html: string;
   is_active: boolean;
   createdAt: string;
@@ -336,10 +390,11 @@ export type InvoiceItem = {
   quantity: number;
   unit_price: number;
   total: number;
+  tooth_number?: number;
   quote_item_id?: string | number;
   step_id?: string;
   steps?: string;
-};
+} & LineDiscountFields;
 
 export type Payment = {
   id: string;
@@ -355,7 +410,7 @@ export type Payment = {
   payment_date: string;
   amount_applied: number;
   source_amount: number;
-  source_currency: 'UYU' | 'USD';
+  source_currency: CurrencyCode;
   exchange_rate?: number;
   payment_method_id?: string;
   payment_method: string;
@@ -367,11 +422,13 @@ export type Payment = {
   status: 'pending' | 'completed' | 'failed';
   is_historical?: boolean;
   external_id?: string | number | null;
+  doctor_id?: string;
+  doctor_name?: string;
   createdAt: string;
   updatedAt: string;
   amount: number;
   method: string;
-  currency?: 'UYU' | 'USD';
+  currency?: CurrencyCode;
   type: 'invoice' | 'credit_note' | null;
 };
 
@@ -430,7 +487,7 @@ export type Service = {
   category_id?: string;
   category_name?: string;
   price: number;
-  currency?: 'UYU' | 'USD';
+  currency?: CurrencyCode;
   duration_minutes: number;
   description?: string;
   indications?: string;
@@ -439,6 +496,14 @@ export type Service = {
   is_sales?: boolean;
   service_type?: ServiceType;
   treatment_steps?: TreatmentStep[];
+  /**
+   * El paciente puede elegir este servicio al reservar desde el portal. Separa
+   * el catálogo que la clínica brinda del subconjunto auto-agendable: una
+   * cirugía existe como servicio pero no es algo que un paciente reserve solo.
+   */
+  bookable_online?: boolean;
+  /** Última vez que se reemplazó la imagen. Se usa para invalidar la caché. */
+  image_updated_at?: string | null;
 };
 
 export interface UserServicesEntry {
@@ -454,7 +519,14 @@ export type Clinic = {
   phone_number: string;
   logo?: string;
   logo_base64?: string;
-  currency?: 'UYU' | 'USD';
+  /** Moneda de trabajo principal. Es la que usa toda la UI por defecto. */
+  currency?: CurrencyCode;
+  /**
+   * Segunda moneda opcional en la que la clínica también acepta operar.
+   * Configurada ⇒ los formularios ofrecen ambas y aparece el tipo de cambio.
+   * Vacía ⇒ la clínica opera en moneda única.
+   */
+  secondary_currency?: CurrencyCode | null;
   // New fields from API response
   address?: string;
   phone?: string;
@@ -477,13 +549,33 @@ export type ClinicSchedule = {
   sede_id?: string;
 };
 
+export type ClinicExceptionRecurrence = 'once' | 'weekly' | 'biweekly' | 'monthly';
+
 export type ClinicException = {
   id: string;
+  /** Primera de `dates` cuando recurrence es 'once'; fecha de inicio de la
+   *  recurrencia para 'weekly' | 'biweekly' | 'monthly'. */
   date: string;
   is_open: boolean;
   start_time?: string;
   end_time?: string;
   notes: string;
+  /** Sede a la que aplica. Vacío/undefined = aplica a todas las sedes. */
+  sede_id?: string;
+  /** Nombre de la sede, cuando la API lo devuelve resuelto. */
+  sede_name?: string;
+  /** Patrón de repetición. 'once' (default) = fechas sueltas (`dates`). */
+  recurrence?: ClinicExceptionRecurrence;
+  /** Fechas `yyyy-MM-dd` para 'once', ordenadas. */
+  dates?: string[];
+  /** Días ISO para 'weekly' | 'biweekly' (1=lunes..7=domingo), ordenados. */
+  days_of_week?: number[];
+  /** Días del mes para 'monthly' (1-31), ordenados. */
+  days_of_month?: number[];
+  /** Requerido para 'biweekly': la paridad se cuenta desde el lunes de esta semana. */
+  biweekly_reference_date?: string;
+  /** Fin de la recurrencia (inclusive). Vacío/undefined = indefinida. */
+  end_date?: string;
 };
 
 export type Conversation = {
@@ -511,13 +603,26 @@ export type SystemConfiguration = {
   is_public?: boolean;
 };
 
+/** `system_configurations.google_calendar_sync_mode`: dirección de la sincronización con Google Calendar. */
+export type GoogleCalendarSyncMode = 'none' | 'from_google' | 'to_google' | 'both';
+
+/**
+ * Ajustes de automatización que se editan en Preferencias de Clínica pero viven
+ * en `system_configurations` (los leen los flujos de n8n).
+ */
+export interface ClinicAutomationSettings {
+  alert_email_auto_send_enabled: boolean;
+  google_calendar_sync_mode: GoogleCalendarSyncMode;
+}
+
 export type AuditLog = {
   id: string;
   changed_at: string;
   changed_by: string;
+  changed_by_name?: string;
   table_name: string;
   record_id: string;
-  operation: 'create' | 'update' | 'delete';
+  operation: 'INSERT' | 'UPDATE' | 'DELETE';
   old_value: any;
   new_value: any;
 };
@@ -565,8 +670,10 @@ export type AppointmentStatus =
   | 'scheduled'
   | 'confirmed'
   | 'arrived'
+  | 'arrived_late'
   | 'in_progress'
   | 'completed'
+  | 'attended_late'
   | 'no_show'
   | 'cancelled'
   | 'pending';
@@ -580,12 +687,95 @@ export type CancellationReason =
   | 'other'
   | 'reschedule';
 
+/**
+ * Nivel de la cadena `etiqueta de la cita > servicio > doctor > consultorio` del
+ * que salió el `color` de una cita. `appointment` y `service` son colores que
+ * alguien le asignó a esa cita; `doctor` y `calendar` son herencia.
+ */
+export type AppointmentColorSource = 'appointment' | 'service' | 'doctor' | 'calendar' | 'none';
+
+/**
+ * Niveles heredables de la cadena de color de una cita (Configuración → Colores
+ * de calendario → Origen del color). El color propio de la cita no se
+ * configura: es una elección explícita del usuario y siempre gana.
+ */
+export type InheritedColorLevel = 'service' | 'doctor' | 'calendar';
+export type CalendarColorSources = Record<InheritedColorLevel, boolean>;
+
+/**
+ * Cuánto refleja la vista del calendario el color del calendario que se está
+ * viendo, para distinguir de un vistazo entre sedes (un calendario por sede).
+ * off = nada, subtle = franja superior, strong = marco + etiqueta, full = toda la
+ * vista teñida (marco, panel de agendas, encabezado y grilla; solo la barra de
+ * navegación queda con el tema normal).
+ */
+export type CalendarViewHighlight = 'off' | 'subtle' | 'strong' | 'full';
+
+/** Lo que se configura por alcance en Colores de calendario → Origen del color. */
+export type CalendarColorSettings = CalendarColorSources & {
+  highlight: CalendarViewHighlight;
+};
+
+/** `calendar_id: null` es la configuración general de la clínica. */
+export type CalendarColorSourceRow = CalendarColorSettings & {
+  calendar_id: string | null;
+};
+
+/**
+ * Matriz de colores de estado configurable por cliente (Configuración → Colores
+ * de calendario). `calendarMode` gobierna cuándo el estado pinta la card del
+ * calendario; `badgeStyle` gobierna el resto de la app (badges, chips, notifs).
+ */
+export type StatusCalendarMode = 'always' | 'preference' | 'never';
+export type StatusBadgeStyle = 'solid' | 'soft' | 'outline';
+
+export type AppointmentStatusDisplay = {
+  color: string;
+  calendarMode: StatusCalendarMode;
+  badgeStyle: StatusBadgeStyle;
+};
+
+export type AppointmentStatusDisplayMatrix = Record<AppointmentStatus, AppointmentStatusDisplay>;
+
+export type CalendarStatusDisplayRow = AppointmentStatusDisplay & {
+  calendar_id: string | null;
+  status: AppointmentStatus;
+};
+
+/**
+ * Contacto del responsable/tutor del paciente (`users.responsible_contact_id`).
+ * Lo trae el backend como sub-json sólo cuando el paciente tiene responsable.
+ */
+export type ResponsibleContact = {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone_number?: string | null;
+  address?: string | null;
+};
+
+/** Paciente a cargo de un tutor, tal como lo lista `/users/dependents`. */
+export interface PatientDependent {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone_number?: string | null;
+  identity_document?: string | null;
+  identity_document_type?: string | null;
+  birth_date?: string | null;
+  is_active: boolean;
+  /** Sin teléfono propio: alertas y recordatorios le escriben al tutor. */
+  uses_responsible_phone: boolean;
+}
+
 export type Appointment = {
   id: string; // appointmentId in backend
   patientId: string;
   patientName: string;
   patientEmail?: string;
   patientPhone?: string;
+  /** Presente cuando el paciente de la cita tiene un responsable/tutor asociado. */
+  responsibleContact?: ResponsibleContact | null;
   doctorId: string;
   doctorName?: string;
   doctorEmail?: string;
@@ -599,11 +789,16 @@ export type Appointment = {
   created_at?: string;
   google_calendar_id?: string;
   googleEventId?: string;
+  /** La cita fue importada desde Google Calendar; no se creó desde la app. */
+  imported_from_google?: boolean;
   calendar_id?: string; // keeping legacy for a moment to avoid immediate break
   calendar_source_id?: string;
   calendar_name?: string;
   color?: string;
   colorId?: string;
+  /** De qué nivel de la cadena salió `color`. Lo usa el calendario para decidir si
+   *  el color es de la cita (y hay que preservarlo) o heredado. */
+  colorSource?: AppointmentColorSource;
   start?: any;
   end?: any;
   services?: Service[];
@@ -651,8 +846,37 @@ export type CalendarReminderPriority = 'LOW' | 'MEDIUM' | 'HIGH';
 
 export type CalendarReminderStatus = 'pending' | 'done' | 'dismissed' | 'cancelled';
 
+export type CalendarItemType = 'note' | 'reminder';
+
+export type CalendarReminderVisibility = 'personal' | 'clinic';
+
+export type ReminderRecurrenceFreq = 'DAILY' | 'WEEKLY' | 'MONTHLY';
+
+export type ReminderRecurrenceEndMode = 'never' | 'until' | 'count';
+
+/** La regla de repetición, descompuesta en columnas (no RRULE). Espeja `reminder_series`. */
+export type ReminderRecurrence = {
+  freq: ReminderRecurrenceFreq;
+  interval: number;
+  /** ISODOW 1..7 (1 = lunes). Solo en `WEEKLY`. */
+  byweekday?: number[] | null;
+  /** 1..31, recortado al último día del mes cuando no existe. Solo en `MONTHLY`. */
+  by_month_day?: number | null;
+  end_mode: ReminderRecurrenceEndMode;
+  until_date?: string | null;
+  occurrence_count?: number | null;
+};
+
+/**
+ * Sobre qué actúa una edición o un borrado de algo que pertenece a una serie: solo esta
+ * ocurrencia, o toda la serie. Lo pregunta `ReminderScopeDialog`.
+ */
+export type CalendarItemScope = 'occurrence' | 'series';
+
 export type CalendarReminder = {
   id: string;
+  type: CalendarItemType;
+  calendar_id: string | null;
   title: string;
   description?: string | null;
   start_datetime: string;
@@ -660,7 +884,20 @@ export type CalendarReminder = {
   color?: string | null;
   priority: CalendarReminderPriority;
   status: CalendarReminderStatus;
-  visibility: 'clinic';
+  visibility: CalendarReminderVisibility;
+  /**
+   * Ítem de todo el día. La convención, atada por `reminders_all_day_range_check`, es
+   * `start_datetime` = día 00:00:00 y `end_datetime` = mismo día 23:59:59. El calendario
+   * lo dibuja en la banda fija de arriba, nunca dentro de la rejilla de horas.
+   */
+  is_all_day: boolean;
+  /** Serie a la que pertenece esta ocurrencia, si la hay. */
+  series_id?: string | null;
+  /** La ocurrencia se editó o se canceló a mano: la regeneración de la serie no la pisa. */
+  is_series_exception?: boolean;
+  /** La regla de la serie. La trae el GET con el JOIN a `reminder_series`; es la misma
+   *  para todas las ocurrencias y solo se usa para mostrarla y para sembrar el editor. */
+  recurrence?: ReminderRecurrence | null;
   raise_alert?: boolean;
   alert_instance_id?: number | null;
   created_by?: string | null;
@@ -708,11 +945,55 @@ export type NewAppointmentNotification = {
   appointment: Appointment;
 };
 
+export type AppointmentRescheduledNotification = {
+  id: string;
+  type: 'appointment_rescheduled';
+  createdAt: string;
+  seen?: boolean;
+  appointment: Appointment;
+  originalAppointmentId: string;
+};
+
+export type AppointmentReassignedNotification = {
+  id: string;
+  type: 'appointment_reassigned';
+  createdAt: string;
+  seen?: boolean;
+  appointment: Appointment;
+};
+
+export type AppointmentUpdatedNotification = {
+  id: string;
+  type: 'appointment_updated';
+  createdAt: string;
+  seen?: boolean;
+  appointment: Appointment;
+};
+
+export type WhatsappHandoffRequestedNotification = {
+  id: string;
+  type: 'whatsapp_handoff_requested';
+  createdAt: string;
+  seen?: boolean;
+  /** May be empty when the WhatsApp number is not a registered patient. */
+  patientId: string;
+  patientName: string;
+  phone: string;
+  /** The patient's last inbound message, for context. */
+  lastMessage: string;
+  /** Short reason the agent captured when escalating. */
+  reason: string;
+};
+
 export type UnifiedNotification =
   | AppointmentStatusChangeNotification
   | SessionCompletedNotification
   | ReminderPanelNotification
-  | NewAppointmentNotification;
+  | NewAppointmentNotification
+  | AppointmentRescheduledNotification
+  | AppointmentReassignedNotification
+  | AppointmentUpdatedNotification
+  | WhatsappHandoffRequestedNotification;
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -774,6 +1055,156 @@ export type AppointmentAttendanceRate = {
   changeType: KpiChangeType;
 };
 
+/* ── Panel de Control Gerencial ─────────────────────────────────────────────── */
+
+export type DashboardCurrency = CurrencyCode;
+
+/**
+ * Métrica con doble lectura hoy / mes acumulado.
+ * `null` significa "sin datos de origen", que no es lo mismo que 0 — la UI debe
+ * distinguirlos (gastos y resultado de caja hoy no tienen ningún dato cargado).
+ */
+export type DashboardMetricPair = {
+  hoy: number | null;
+  mes: number | null;
+  var_dia_pct?: number | null;
+  var_mes_pct?: number | null;
+};
+
+export type DashboardExecutiveSummary = {
+  fecha_servidor: string;
+  sede_id: number | null;
+  currency: DashboardCurrency;
+  /** `estimated` mientras `invoices.sede_id` esté vacío y la sede salga de la heurística. */
+  sede_source: 'estimated' | 'actual';
+  produccion: DashboardMetricPair & { mes_anterior: number | null };
+  /** `payments` no tiene vía a la sede: el monto es siempre consolidado. */
+  cobranza: DashboardMetricPair & { disponible_por_sede: boolean };
+  gastos: DashboardMetricPair & { sin_datos: boolean };
+  resultado: DashboardMetricPair & { sin_datos: boolean };
+  /** Personas distintas con al menos una cita atendida. No es aditivo entre ventanas. */
+  pacientes_atendidos: {
+    hoy: number;
+    mes: number;
+    var_dia_abs: number;
+    var_mes_pct: number | null;
+    agendados_hoy: number;
+  };
+  /**
+   * Citas atendidas, no personas: quien vino dos veces cuenta dos. A diferencia de los
+   * pacientes distintos **es aditivo**, así que la suma de los días da el total del mes.
+   * Ausente contra un workflow anterior — la UI vuelve entonces a rotular "pacientes
+   * atendidos" en vez de mostrar personas bajo la etiqueta "atenciones".
+   */
+  atenciones?: {
+    hoy: number;
+    mes: number;
+    var_dia_abs: number;
+    var_mes_pct: number | null;
+    agendados_hoy: number;
+  };
+  pacientes_nuevos: { mes: number; var_pct: number | null };
+};
+
+export type ProduccionSucursalRow = {
+  sede_id: number;
+  name: string;
+  produccion: number;
+  /** Personas distintas atendidas en la sede. */
+  pacientes: number;
+  /** Citas atendidas en la sede. Ausente contra un workflow anterior. */
+  atenciones?: number;
+  no_show: number;
+  ticket_promedio: number | null;
+  pct: number;
+};
+
+export type ProduccionSucursalResponse = {
+  sede_source: 'estimated' | 'actual';
+  total: number;
+  rows: ProduccionSucursalRow[];
+};
+
+/**
+ * Granularidad de la serie de pacientes atendidos. La elige el backend según el ancho del
+ * período: con varios meses, una barra por día es ilegible y el eje repite los mismos
+ * números de día. La agregación es del backend porque los pacientes únicos de una semana
+ * no son la suma de los únicos de cada día.
+ */
+export type DashboardGranularity = 'day' | 'week' | 'month';
+
+export type PacientesPorDiaPoint = {
+  fecha_inicio: string;
+  fecha_fin: string;
+  /** Total de pacientes únicos del bucket. Siempre `nuevos + recurrentes`. */
+  pacientes: number;
+  /**
+   * Pacientes cuya primera cita atendida de la historia cae en este bucket. Es primera
+   * visita **en la clínica**, no en la sede: con el filtro de sucursal puesto, quien debutó
+   * en otra sede cuenta como recurrente. Ausentes contra un workflow anterior al desglose.
+   */
+  nuevos?: number;
+  recurrentes?: number;
+  /** Citas atendidas del bucket, la serie aditiva del gráfico. */
+  atenciones?: number;
+  atenciones_nuevos?: number;
+  atenciones_recurrentes?: number;
+  /** El período en curso (el bucket que contiene la fecha del servidor). */
+  es_actual: boolean;
+  /**
+   * Forma anterior del webhook, previa a la granularidad adaptativa. El workflow de n8n se
+   * despliega a mano y por fuera del frontend, así que puede haber una versión vieja en
+   * servicio: se aceptan los dos nombres para que el panel siga funcionando en modo diario
+   * en lugar de quedarse sin eje.
+   */
+  fecha?: string;
+  es_hoy?: boolean;
+};
+
+export type PacientesPorDiaResponse = {
+  granularity: DashboardGranularity;
+  /** Promedio de personas distintas por período con actividad. */
+  promedio: number;
+  /** Promedio de atenciones por período con actividad. */
+  promedio_atenciones?: number;
+  periodos_con_actividad: number;
+  rows: PacientesPorDiaPoint[];
+};
+
+export type VentasPorServicioResponse = {
+  total: number;
+  rows: SalesByServiceChartData[];
+};
+
+/* ── Evolución mensual ──────────────────────────────────────────────────────── */
+
+export type EvolucionMensualMes = {
+  /** `YYYY-MM`. */
+  mes: string;
+  inicio: string;
+  fin: string;
+  /** El mes todavía está en curso: `fin` es la fecha del servidor, no el fin de mes. */
+  es_parcial: boolean;
+};
+
+export type EvolucionMensualMetrica = {
+  key: 'produccion' | 'cobranza' | 'atenciones' | 'pacientes' | 'nuevos' | 'gastos';
+  tipo: 'moneda' | 'conteo';
+  /** Un valor por mes, en el mismo orden que `meses`. `null` = sin dato de origen. */
+  valores: (number | null)[];
+  /**
+   * Variación del último mes. Si está en curso compara contra el mismo tramo de días del
+   * mes anterior, no contra el mes anterior completo. `null` si no hay base de comparación.
+   */
+  var_pct: number | null;
+  sin_datos: boolean;
+};
+
+export type EvolucionMensualResponse = {
+  meses: EvolucionMensualMes[];
+  metricas: EvolucionMensualMetrica[];
+};
+
 export type CalendarSettings = {
   id?: string;
   user_id?: string;
@@ -782,7 +1213,7 @@ export type CalendarSettings = {
   check_availability: boolean;
   filter_doctors_by_service: boolean;
   /** When true, blocks (greys out + prevents clicks on) time outside clinic
-   *  business hours, honoring schedules and exceptions. Default false. */
+   *  business hours, honoring schedules and exceptions. Default true. */
   block_unavailable?: boolean;
   /** Height in px of one hour slot in day/week views. */
   hour_height?: number;
@@ -797,6 +1228,25 @@ export type CalendarSettings = {
    *  (a draft card) instead of opening the modal. The "Create" button always
    *  opens the modal regardless. Default false. */
   inline_appointment_creation?: boolean;
+  /** When true (tablet/desktop), the inline appointment card floats next to the
+   *  appointment (Google Calendar style, no backdrop), which is previewed live on the
+   *  grid while it is filled in (date/time/duration/agenda). Changing the date
+   *  navigates the calendar to that day and keeps the appointment centered.
+   *  Purely visual. Default false. */
+  inline_draft_live_preview?: boolean;
+  /** When true, appointments in a status other than "scheduled" paint the whole
+   *  card with that status' color instead of the calendar/service/doctor color.
+   *  Default true. */
+  color_by_status?: boolean;
+  /** Display mode. 'invoke' = multi-column when grouped; 'custom' = a single
+   *  agenda shown at a time, chosen from the "Agendas" side panel. Default
+   *  'custom'. See CALENDAR_MODES. */
+  mode?: string;
+  /** Days of week hidden from the day/week grid (0=Sunday…6=Saturday, same
+   *  convention as `ClinicSchedule.day_of_week`). Purely visual: it doesn't
+   *  change the date range fetched, only which day columns are rendered.
+   *  Default []. */
+  hidden_weekdays?: number[];
 };
 
 export type Sede = {
@@ -892,6 +1342,8 @@ export type PatientSession = {
   tipo_sesion?: 'odontograma' | 'clinica';
   fecha_sesion: string;
   diagnostico?: string | null;
+  pieza?: string | null;
+  color?: string | null;
   procedimiento_realizado: string;
   notas_clinicas?: string;
   plan_proxima_cita?: string;
@@ -1171,8 +1623,14 @@ export type AvailabilityRule = {
   id: string;
   user_id: string;
   user_name?: string;
-  recurrence: 'daily' | 'weekly' | 'biweekly';
-  day_of_week?: number;
+  /** 'daily' (lunes a viernes) es legado: el script 139 lo pasó a weekly y la UI ya no lo crea. */
+  recurrence: 'daily' | 'weekly' | 'biweekly' | 'monthly';
+  /** Días ISO para 'weekly' | 'biweekly' (1=lunes..7=domingo), ordenados. */
+  days_of_week?: number[];
+  /** Días del mes para 'monthly' (1-31), ordenados. */
+  days_of_month?: number[];
+  /** 'biweekly': la paridad se cuenta desde el lunes de esta semana. */
+  biweekly_reference_date?: string;
   start_time: string;
   end_time: string;
   start_date: string;
@@ -1183,7 +1641,10 @@ export type AvailabilityException = {
   id: string;
   user_id: string;
   user_name?: string;
+  /** Primera de `dates` (orden y buscador). */
   exception_date: string;
+  /** Fechas `yyyy-MM-dd` a las que aplica, ordenadas. */
+  dates: string[];
   start_time: string;
   end_time: string;
   is_available: boolean;
@@ -1204,7 +1665,7 @@ export type CajaSesion = {
   closing_details?: object | string | null;
   notasCierre?: string | null;
   currencies_data?: Array<{
-    currency: 'UYU' | 'USD';
+    currency: CurrencyCode;
     opening_amount: number;
     declared_cash: number;
     calculated_cash: number;
@@ -1216,7 +1677,7 @@ export type CajaSesion = {
   currency?: string;
   date_rate?: number;
   amounts?: Array<{
-    currency: 'UYU' | 'USD' | string;
+    currency: CurrencyCode;
     opening_amount: number;
     cash_on_hand?: number;
   }>;
@@ -1226,13 +1687,17 @@ export type CajaMovimiento = {
   id: string;
   cajaSesionId: string;
   tipo: 'INGRESO' | 'EGRESO';
-  metodoPago: 'CASH' | 'BANK_TRANSFER' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'MOBILE_PAYMENT' | 'MERCADO_PAGO' | 'PE';
+  /** Normalized payment method code; custom methods keep their own code. */
+  metodoPago: string;
+  metodoPagoNombre?: string;
+  /** Whether the method counts as physical cash (payment_methods.is_cash_equivalent). */
+  esEquivalenteEfectivo: boolean;
   monto: number;
   descripcion: string;
   fecha: string;
   usuarioId: string;
   pagoId?: string;
-  currency: 'UYU' | 'USD';
+  currency: CurrencyCode;
   isSales?: boolean;
   documentNumber?: string;
   registeredUserName?: string;
@@ -1280,6 +1745,8 @@ export type CashPoint = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  sede_id?: string;
+  sede_name?: string;
 };
 
 export type MiscellaneousCategory = {
@@ -1334,11 +1801,34 @@ export type MutualSociety = {
   updated_at?: string;
 };
 
+export type PatientGroup = {
+  id: string | number;
+  name: string;
+  description?: string;
+  is_active: boolean;
+  is_doctor?: boolean;
+  user_id?: string | null;
+  external_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+
+export type ProviderGroup = {
+  id: string | number;
+  name: string;
+  description?: string;
+  is_active: boolean;
+  external_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
 
 export type Credit = {
   source_id: string;
   available_balance: string;
-  currency: 'UYU' | 'USD';
+  currency: CurrencyCode;
   type: 'credit_note' | 'prepaid';
 };
 
@@ -1373,6 +1863,9 @@ export type AlertRule = {
   source_table: string;
   query_template: string;
   user_id_field?: string;
+  /** condition_config.event_field: column holding the event date (one alert per event date),
+   *  'none' (no event date) or empty (inferred by the scheduler from the conditions). */
+  event_field?: string;
   days_before?: number;
   days_after?: number;
   recurrence_type?: 'ONCE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
@@ -1380,10 +1873,27 @@ export type AlertRule = {
   auto_send_sms: boolean;
   email_template_id?: string;
   sms_template_id?: string;
+  /** FK to a CommunicationTemplate with type='WHATSAPP' — its `code` is sent as-is as the YCloud template name */
+  whatsapp_template_id?: string;
   is_active: boolean;
   display_config?: AlertDisplayField[];
   ui_display_config?: { fields: AlertDisplayField[] };
 };
+
+export interface AlertSourceColumn {
+  name: string;
+  type: string;
+  is_nullable: string;
+}
+
+/** Metadata of a selectable alert rule origin (GET /system/tables → `sources`). Views
+ *  (`v_alert_*`) declare in their COMMENT the real table their alert instances point to,
+ *  so `reference_table` is what ends up in alert_instances.reference_table. */
+export interface AlertSourceMeta {
+  kind: 'table' | 'view';
+  reference_table: string;
+  label?: string | null;
+}
 
 export type AlertInstance = {
   id: string;
@@ -1407,8 +1917,15 @@ export type AlertInstance = {
   updated_at?: string;
 };
 
+/** Business entity a WHATSAPP template's variables are resolved from — see docs/whatsapp-templates-alerts-design.md */
+export type WhatsAppTemplateEntityType = 'patient' | 'appointment' | 'invoice';
+
+/** Maps each variable name as it appears in the Meta/YCloud template to a resolver field key (e.g. "patient.name", "invoice.due_date_formatted") */
+export type WhatsAppVariablesSchema = Record<string, string>;
+
 export type CommunicationTemplate = {
   id?: string;
+  /** For type='WHATSAPP', this is the exact template name approved in Meta/YCloud — not a free internal code */
   code: string;
   name: string;
   type: 'EMAIL' | 'SMS' | 'DOCUMENT' | 'WHATSAPP';
@@ -1416,7 +1933,11 @@ export type CommunicationTemplate = {
   subject?: string;
   body_html?: string;
   body_text?: string;
-  variables_schema?: any;
+  variables_schema?: WhatsAppVariablesSchema | any;
+  /** Only type='WHATSAPP'. Language of the template in Meta/YCloud, e.g. "es" */
+  provider_language?: string;
+  /** Only type='WHATSAPP'. See WhatsAppTemplateEntityType */
+  entity_type?: WhatsAppTemplateEntityType;
   default_sender?: string;
   attachments_config?: any;
   is_active: boolean;
@@ -1446,7 +1967,8 @@ export type AlertAction = {
   };
   result_status: 'SUCCESS' | 'FAILED' | 'PENDING';
   result_message?: string;
-  performed_by: string;
+  /** null for system-generated actions (e.g. alert auto-send); a user uuid when a person took the action. */
+  performed_by: string | null;
   performed_at: string;
   title?: string;
   summary?: string;
@@ -1465,6 +1987,23 @@ export type CommunicationLog = {
   sent_at?: string;
   error_message?: string;
   notes?: string;
+};
+
+/** UI-only curated key for the patient-profile "send reminder" dialog — maps to a live CommunicationTemplate.code, see whatsapp-template-send-dialog.tsx */
+export type WhatsAppTemplateCode = 'birthday' | 'appointment_reminder' | 'invoice_due';
+
+export type WhatsAppTemplateSendPayload = {
+  id: string; // patient id
+  /** CommunicationTemplate.code (type='WHATSAPP') — the exact Meta/YCloud template name */
+  template_code: string;
+  /** Backwards-compat alias for reference_table='appointments' + reference_id — prefer reference_table/reference_id */
+  appointment_id?: string;
+  /** Business entity the template's variables resolve from, e.g. "appointments" | "invoices" */
+  reference_table?: string;
+  reference_id?: string;
+  /** When sending from an alert: ties the send to alert_actions for audit trail. performed_by is then required. */
+  alert_instance_id?: string;
+  performed_by?: string;
 };
 
 export type AlertScheduleRun = {
@@ -1541,8 +2080,22 @@ export type GlobalNotificationSetting = {
 
 export type DoctorAlertStyle = 'modal' | 'toast';
 
+/** `unified` = single account ledger (Debe/Haber/Saldo). `tabs` = separate Quotes/Invoices/Payments tabs. */
+export type PatientFinanceView = 'unified' | 'tabs';
+
+/** Display order of the patient finance lists: most recent document at the top, or at the end (opened scrolled to it). */
+export type FinanceSortOrder = 'newest-first' | 'newest-last';
+
+/**
+ * Where toasts appear on screen. Small screens always show them at the top
+ * (safe-area aware), so this preference only takes effect from `sm:` upwards.
+ */
+export type ToastPosition = 'top-center' | 'top-right' | 'bottom-center' | 'bottom-right';
+
 export type UserPreferences = {
   alert_style?: DoctorAlertStyle;
+  finance_view?: PatientFinanceView;
+  toast_position?: ToastPosition;
 };
 
 export type UserPreferencesResponse = {
@@ -1686,18 +2239,49 @@ export type DentalRecordSession = {
 
 // ──── Odontogram (interactive, session-based) ────
 
-/** All possible conditions that can be applied to a tooth or surface */
+/**
+ * All possible conditions that can be applied to a tooth or surface.
+ * Ids are persisted inside `estado_odontograma`, so existing ids must never be renamed.
+ */
 export type OdontogramCondition =
   // Surface conditions (apply per face)
   | 'healthy' | 'caries' | 'filling' | 'pulp' | 'dyschromic' | 'worn'
+  | 'caries-incipient' | 'amalgam' | 'resin' | 'restoration-required' | 'sealant'
   // Whole-tooth conditions
   | 'crown' | 'crown-tmp' | 'missing' | 'root-remnant' | 'prosthesis'
   | 'fixed-prosth' | 'implant' | 'edentulism' | 'endodontics'
+  | 'crown-indicated' | 'bridge-in-progress' | 'bridge-defective'
+  | 'endo-done' | 'endo-indicated' | 'implant-osseo' | 'implant-planned' | 'extraction-indicated'
   // Overlay conditions (stack on top)
   | 'fracture' | 'diastema' | 'rem-prost' | 'drifting' | 'rotation'
   | 'fusion' | 'eruption' | 'transposition' | 'supernumerary' | 'bolt'
   | 'fixed-ortho' | 'macrodontia' | 'microdontia' | 'impacted-semi'
-  | 'intrusion' | 'ectopic' | 'impacted' | 'rem-orthodo' | 'extrusion' | 'post';
+  | 'intrusion' | 'ectopic' | 'impacted' | 'rem-orthodo' | 'extrusion' | 'post'
+  | 'post-fiber' | 'root-post' | 'perio-pocket' | 'gingival-recession' | 'gingival-enlargement'
+  | 'mobility-1' | 'mobility-2' | 'mobility-3' | 'furcation' | 'retained' | 'semi-erupted'
+  | 'bracket' | 'fixed-retainer' | 'ortho-movement' | 'malposition' | 'ortho-fracture'
+  | 'crown-fracture' | 'root-fracture' | 'periapical-lesion' | 'root-resorption'
+  | 'abrasion' | 'abfraction' | 'erosion';
+
+export type OdontogramProcedureCategory =
+  | 'restorations' | 'fixed-prosthesis' | 'endodontics' | 'implants'
+  | 'periodontics' | 'oral-surgery' | 'orthodontics' | 'pathologies';
+
+/** Whether a procedure is painted on a surface, on the whole tooth, or on either */
+export type OdontogramProcedureTarget = 'surface' | 'tooth' | 'both';
+
+/** Catalog entry for a condition/procedure. Labels live in `DentalRecord.procedures.<id>` */
+export interface OdontogramProcedure {
+  id: OdontogramCondition;
+  category: OdontogramProcedureCategory;
+  code: string;
+  color: string;
+  appliesTo: OdontogramProcedureTarget;
+  /** Tooth-level storage slot: `whole` holds a single primary condition, the rest go to `overlays` */
+  slot: 'whole' | 'overlay';
+  /** Read-only: still rendered on old sessions, but not offered in the palette */
+  legacy?: boolean;
+}
 
 /** 5 surfaces of a tooth */
 export type OdontogramSurface = 'center' | 'top' | 'bottom' | 'left' | 'right';
@@ -1717,6 +2301,8 @@ export type OdontogramToothState = {
   whole?: OdontogramCondition;
   /** Stacked overlays (fractura, ortodoncia, etc.) */
   overlays?: OdontogramCondition[];
+  /** Free-text clinical notes for this tooth */
+  notes?: string;
 };
 
 /** Keyed by FDI tooth ID string (e.g. "16", "48") */
@@ -1764,7 +2350,7 @@ export type StickyNote = {
 export interface ReportFiltersBase {
   date_from: string;
   date_to: string;
-  currency?: 'UYU' | 'USD';
+  currency?: CurrencyCode;
 }
 
 // R-01: Cierre de Caja
@@ -2373,6 +2959,98 @@ export interface ReportKPIsResponse {
   total_gastos: number;
 }
 
+// R-21: Balance Mensual (Producido / Cobrado / Pendiente por médico)
+export interface ReportBalanceMensualPatientGroup {
+  id: string;
+  name: string;
+}
+export interface ReportBalanceMensualProducidoRow {
+  fecha: string;
+  doctor_id: string;
+  doctor_name: string;
+  patient_name: string;
+  service_name: string;
+  invoice_doc_no: string;
+  currency: string;
+  importe: number;
+  // Only populated when the request filtered by patient group — the group(s)
+  // (among those requested) that this row's patient belongs to
+  patient_groups?: ReportBalanceMensualPatientGroup[];
+}
+export interface ReportBalanceMensualCobradoRow {
+  fecha: string;
+  doctor_id: string;
+  doctor_name: string;
+  patient_name: string;
+  invoice_doc_no: string;
+  payment_method: string;
+  currency: string;
+  importe: number;
+  patient_groups?: ReportBalanceMensualPatientGroup[];
+}
+export interface ReportBalanceMensualPendienteRow {
+  doctor_id: string;
+  doctor_name: string;
+  currency: string;
+  total_facturado: number;
+  total_cobrado: number;
+  saldo: number;
+}
+// Same shape as ReportBalanceMensualPendienteRow, broken down further by
+// patient group — only present when the request filtered by patient group
+export interface ReportBalanceMensualPendienteGrupoRow extends ReportBalanceMensualPendienteRow {
+  group_id: string;
+  group_name: string;
+}
+// Totales por moneda — nunca se suman importes de monedas distintas
+export interface ReportBalanceMensualSummaryCurrencyRow {
+  currency: string;
+  total_producido: number;
+  total_cobrado: number;
+  total_pendiente: number;
+}
+export interface ReportBalanceMensualSummary {
+  by_currency: ReportBalanceMensualSummaryCurrencyRow[];
+  num_doctores: number;
+}
+// ── Resumen (pestaña Resumen + 1ra hoja de exportación) ──────────────────────
+// Totales precalculados por el workflow. Los grupos salen del servicio
+// facturado (group_services), no del paciente; "atribución completa": una
+// línea/pago cuya factura toca varios grupos suma a cada uno, y lo que no
+// pertenece a ningún grupo cae en "Sin grupo" (group_id: null).
+export interface ReportBalanceMensualResumenDoctorRow {
+  doctor_id: string | null;
+  doctor_name: string;
+  currency: string;
+  total: number;
+}
+export interface ReportBalanceMensualResumenCurrencyRow {
+  currency: string;
+  total: number;
+}
+export interface ReportBalanceMensualResumenGrupoRow {
+  group_id: string | null;
+  group_name: string;
+  currency: string;
+  total: number;
+}
+export interface ReportBalanceMensualResumen {
+  producido_por_doctor: ReportBalanceMensualResumenDoctorRow[];
+  cobrado_total: ReportBalanceMensualResumenCurrencyRow[];
+  cobrado_por_grupo: ReportBalanceMensualResumenGrupoRow[];
+  producido_por_grupo: ReportBalanceMensualResumenGrupoRow[];
+}
+export interface ReportBalanceMensualResponse {
+  summary: ReportBalanceMensualSummary;
+  producido: ReportBalanceMensualProducidoRow[];
+  cobrado: ReportBalanceMensualCobradoRow[];
+  pendiente: ReportBalanceMensualPendienteRow[];
+  pendiente_por_grupo?: ReportBalanceMensualPendienteGrupoRow[];
+  // Optional: puede faltar si el workflow aún no fue desplegado — el frontend
+  // reconstruye el resumen client-side en ese caso
+  resumen?: ReportBalanceMensualResumen;
+}
+
 // ── Licensing ────────────────────────────────────────────────────────────────
 
 export type AiAccessLevel = 'full' | 'doctors_only' | 'none';
@@ -2394,6 +3072,77 @@ export interface LicensePayload {
   notes?: string;
 }
 
+export type MedicalInstructionTemplate = {
+  id?: string;
+  name: string;
+  description?: string;
+  content_html: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type PatientMedicalInstruction = {
+  id?: string;
+  patient_id: string;
+  fecha: string;
+  numero_diente?: number | null;
+  doctor_id: string | null;
+  doctor_name?: string;
+  template_id?: string;
+  template_name?: string;
+  content_html: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type PrescriptionTemplate = {
+  id?: string;
+  name: string;
+  description?: string;
+  content_html: string;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type PrescriptionItem = {
+  id?: string;
+  orden?: number;
+  /** FK a catalogo_medicamentos. Null si el fármaco se escribió libre. */
+  medicamento_id?: string | null;
+  /** Nombre denormalizado — la receta sobrevive al borrado del catálogo. */
+  medicamento_texto: string;
+  presentacion?: string;
+  dosis?: string;
+  via_administracion?: string;
+  frecuencia?: string;
+  duracion_dias?: number | null;
+  cantidad?: string;
+  fecha_inicio?: string;
+  fecha_fin?: string | null;
+  indicaciones?: string;
+  /** True ⇒ la línea se refleja en los medicamentos de la anamnesis, con su período. */
+  registrar_en_anamnesis: boolean;
+};
+
+export type PatientPrescription = {
+  id?: string;
+  patient_id: string;
+  fecha: string;
+  doctor_id: string | null;
+  doctor_name?: string;
+  template_id?: string;
+  template_name?: string;
+  diagnostico?: string;
+  notas?: string;
+  items: PrescriptionItem[];
+  /** HTML final ya interpolado — fuente de verdad al reimprimir. */
+  content_html: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
 export type CreateLicenseInput = Omit<LicensePayload, 'licenseId' | 'version' | 'issuedAt'>;
 
 export interface Subscription {
@@ -2412,3 +3161,244 @@ export interface Subscription {
   notes?: string;
   createdAt: string;
 }
+
+// ---------------------------------------------------------------------------
+// Portal del paciente (/my-profile) — ver docs/patient-portal.md
+// ---------------------------------------------------------------------------
+
+/**
+ * Datos públicos de la clínica que alimentan la landing /patient-login.
+ * Los sirve un endpoint sin autenticación — nunca debe incluir datos sensibles.
+ */
+export type PublicClinicInfo = {
+  name: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  /**
+   * Logo de la clínica: data URI si el endpoint lo devuelve así, o la URL del
+   * webhook binario `/clinic/logo` (el mismo que usan los reportes). La landing
+   * sólo cae al isotipo de Invoke IA si la imagen **falla al cargar**.
+   */
+  logo_url: string | null;
+  /** Video de bienvenida. `null` ⇒ el genérico de Invoke IA. */
+  welcome_video_url: string | null;
+  /** Texto del hero. `null` ⇒ copy por defecto traducido. */
+  welcome_message: string | null;
+  /** `false` ⇒ la clínica no habilitó el portal; la landing muestra el aviso. */
+  patient_portal_enabled: boolean;
+  /** `false` ⇒ el paciente puede consultar pero no reservar. */
+  online_booking_enabled: boolean;
+  /**
+   * `true` ⇒ el portal es exclusivamente para reservar: se pide el identificador
+   * y se pasa a la agenda, sin OTP ni acceso al perfil.
+   */
+  appointments_only: boolean;
+  /**
+   * `true` ⇒ el paciente elige servicios en un paso previo a la fecha y hora.
+   * `false` ⇒ toda reserva se crea con `default_service`.
+   */
+  service_selection_enabled: boolean;
+  /**
+   * `true` ⇒ el portal muestra precios y duraciones. Es sólo presentación: la
+   * duración de los servicios dimensiona el hueco de la agenda en cualquier caso.
+   */
+  show_pricing: boolean;
+  /**
+   * Servicio con el que se crea la reserva cuando el paciente no elige ninguno.
+   * `null` ⇒ la cita se crea sin servicio y con la duración genérica.
+   */
+  default_service: BookableService | null;
+  /** Horarios de atención de la clínica, si no están cargados por sede. */
+  schedules?: PublicClinicSchedule[];
+};
+
+/**
+ * Servicio tal como lo ve un paciente al reservar. Es una proyección mínima del
+ * catálogo: sólo lo que hace falta para elegir y para dimensionar la cita.
+ *
+ * `price` y `currency` son opcionales porque el backend los omite cuando la
+ * clínica eligió no mostrar precios — si no se muestran, tampoco se exponen en
+ * un endpoint sin token.
+ */
+export type BookableService = {
+  id: string;
+  name: string;
+  description?: string | null;
+  duration_minutes: number;
+  price?: number | null;
+  currency?: CurrencyCode | null;
+  /**
+   * El servicio tiene imagen cargada. Lo resuelve el backend contra
+   * `image_drive_file_id`, que es la fuente de verdad. Ausente ⇒ no se sabe, y
+   * entonces se pide la imagen igual: mejor un 204 de más que esconder una
+   * imagen que sí existe.
+   */
+  has_image?: boolean;
+  /** Cache-buster de la imagen: cambia cada vez que se reemplaza. */
+  image_updated_at?: string | null;
+};
+
+/**
+ * Sede tal como la ve un visitante del portal, desde `/sedes_noauth`.
+ * Los horarios se piden aparte, a `/schedules_noauth?sede_id=`.
+ */
+export type PublicSede = {
+  id: string;
+  name: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  schedules: PublicClinicSchedule[];
+};
+
+export type PublicClinicSchedule = {
+  /** 0 = domingo … 6 = sábado */
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+};
+
+/** Respuesta de POST /api/auth/patient/identify. Nunca trae datos del paciente. */
+export type PatientIdentifyResponse = {
+  found: boolean;
+  /**
+   * Sólo cuando `found`. Decide si se le pide OTP para entrar al portal o si se
+   * lo manda directo a reservar (ver docs/patient-portal.md §3).
+   */
+  has_upcoming_appointments?: boolean;
+  /** users.id — necesario para reservar sin sesión. Sólo cuando `found`. */
+  user_id?: string | null;
+  /** Nombre del paciente, para saludarlo antes de pedirle el código. */
+  name?: string | null;
+  /** El paciente existe pero no tiene email cargado: hay que pedírselo antes de enviar el código. */
+  needs_email: boolean;
+  /** Email enmascarado (j***z@gmail.com) para que el usuario confirme el destino. */
+  masked_email: string | null;
+};
+
+/** Respuesta de POST /api/auth/patient/send-code. */
+export type PatientSendCodeResponse = {
+  sent: boolean;
+  masked_email: string | null;
+  /** Vigencia del código en segundos (600 = 10 min). */
+  expires_in?: number;
+  /**
+   * `true` cuando el backend rechazó el reenvío por rate-limit: ya hay un
+   * código vigente en la casilla del paciente. No es un error — hay que dejarlo
+   * escribir el que recibió.
+   */
+  already_sent?: boolean;
+  /** Segundos que faltan para poder pedir otro código. */
+  retry_after?: number;
+};
+
+/** Respuesta de POST /api/auth/patient/verify-code. El token es el mismo JWT que emite /api/auth/login. */
+export type PatientVerifyCodeResponse = {
+  token: string;
+  user: Pick<User, 'id' | 'name' | 'email'>;
+  /** true cuando el paciente se acaba de registrar: el portal le abre la reserva de cita. */
+  is_new?: boolean;
+};
+
+/** Cuerpo de POST /api/auth/patient/register. Sólo name y email son obligatorios. */
+export type PatientRegisterPayload = {
+  name: string;
+  email: string;
+  /** Opcional: sirve para que la clínica pueda contactarlo, pero no bloquea el registro. */
+  phone?: string;
+  identity_document?: string;
+  birth_date?: string;
+  address?: string;
+};
+
+export type PatientRegisterResponse = PatientSendCodeResponse & {
+  created: boolean;
+  user_id: string;
+  name?: string;
+  email?: string;
+};
+
+/**
+ * Ajustes de Configuración → Preferencias de Clínica (tabla `clinic_preferences`).
+ * Se cargan una única vez tras el login y se leen desde el store; no se piden
+ * en cada pantalla de venta.
+ */
+export type ClinicPreferences = {
+  /** FALSE ⇒ ninguna pantalla de venta muestra campo de descuento. */
+  discounts_enabled: boolean;
+  /** Dónde se aplica el descuento. Excluyente: o por servicio, o sobre el documento. */
+  discount_scope: DiscountScope;
+  /** Porcentaje precargado en el campo. 0 ⇒ el campo arranca vacío. */
+  default_discount_pct: number;
+  /** Tope que el formulario deja guardar, en % sobre la base. 100 ⇒ sin tope. */
+  max_discount_pct: number;
+  /** TRUE ⇒ el formulario de pacientes exige un documento de identidad no vacío. */
+  identity_document_required: boolean;
+  /**
+   * Estados de cita que exigen que el paciente tenga documento de identidad:
+   * sin él, `update_status` rechaza el cambio (`identity_document_missing`).
+   * Vacío ⇒ sin restricción. Nunca incluye `cancelled`. Independiente de
+   * `identity_document_required`.
+   */
+  identity_document_warn_statuses: AppointmentStatus[];
+  /**
+   * TRUE ⇒ un paciente puede compartir teléfono con otro: el alta solo
+   * advierte de quién lo tiene y pide confirmación. FALSE ⇒ se bloquea. El
+   * correo siempre es único.
+   */
+  allow_duplicate_phone: boolean;
+};
+
+/** Ficha que ya usa el correo/teléfono que se intenta guardar (respuesta de `/users/upsert`). */
+export interface DuplicateContactOwner {
+  id: string;
+  name: string;
+  is_active: boolean;
+  /** Documento de identidad (o RUT) para distinguir homónimos y familiares. */
+  document?: string | null;
+  birth_date?: string | null;
+}
+
+/** Dueños del contacto repetido, por campo. */
+export type DuplicateContactOwners = Partial<Record<'email' | 'phone', DuplicateContactOwner[]>>;
+
+/** `unique_conflict` de `/users/upsert`: campos que no se pueden repetir y, si se sabe, quién los tiene. */
+export interface UniqueConflict {
+  conflictedFields: string[];
+  owners: DuplicateContactOwners;
+}
+
+/** Ajustes de Configuración → Portal del Paciente. */
+export type PatientPortalConfig = {
+  patient_portal_enabled: boolean;
+  online_booking_enabled: boolean;
+  appointments_only: boolean;
+  /** El paciente elige los servicios de su reserva. */
+  service_selection_enabled: boolean;
+  /**
+   * Servicio con el que se crea la reserva cuando el paciente no elige.
+   * Cadena vacía ⇒ sin servicio por defecto.
+   */
+  default_service_id: string;
+  /** Muestra precios y duraciones en el portal. Sólo presentación. */
+  show_pricing: boolean;
+  welcome_video_url: string;
+  welcome_message: string;
+};
+
+export type PatientAiActionType = 'open_booking' | 'open_tab' | 'none';
+
+export type PatientAiAction = {
+  type: PatientAiActionType;
+  payload?: { tab?: string; appointment_id?: string } | null;
+};
+
+/** Respuesta de POST /ai/patient/query — misma forma que DoctorAiQueryResponse. */
+export type PatientAiQueryResponse = {
+  answer?: string;
+  output?: string;
+  speak_text?: string;
+  suggestions?: string[];
+  action?: PatientAiAction | null;
+};

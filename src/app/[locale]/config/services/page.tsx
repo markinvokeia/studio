@@ -2,9 +2,9 @@
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
 import { DataTable } from '@/components/ui/data-table';
 import {
   Dialog,
@@ -23,11 +23,15 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { normalizeApiResponse } from '@/lib/api-utils';
+import { getErrorMessage } from '@/lib/error-utils';
 import { MiscellaneousCategory, Service } from '@/lib/types';
-import api from '@/services/api';
+import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { getSalesServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, PlusCircle, X } from 'lucide-react';
@@ -36,13 +40,16 @@ import * as React from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { ServicesColumnsWrapper } from './columns';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 const serviceFormSchema = (t: (key: string) => string) => z.object({
   id: z.string().optional(),
   name: z.string().min(1, t('nameRequired')),
   category: z.string().min(1, t('categoryRequired')),
   price: z.coerce.number().positive(t('pricePositive')),
-  currency: z.enum(['UYU', 'USD']).default('USD'),
+  currency: currencySchema,
   duration_minutes: z.coerce.number().int().positive(t('durationInteger')),
   description: z.string().optional(),
   indications: z.string().optional(),
@@ -60,7 +67,6 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
 type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
 
 async function getServices(): Promise<Service[]> {
-  try {
     const result = await getSalesServices({ limit: 100 });
     const servicesData = result.items;
 
@@ -69,22 +75,17 @@ async function getServices(): Promise<Service[]> {
       name: apiService.name || 'No Name',
       category: apiService.category_name || apiService.category || 'No Category',
       price: apiService.price || 0,
-      currency: apiService.currency || 'USD',
+      currency: apiService.currency || getClinicCurrency(),
       duration_minutes: apiService.duration_minutes || 0,
       description: apiService.description,
       indications: apiService.indications,
       is_active: apiService.is_active,
       color: apiService.color,
     }));
-  } catch (error) {
-    console.error("Failed to fetch services:", error);
-    return [];
-  }
 }
 
-async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
-  try {
-    const data = await api.get(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_GET);
+async function getMiscellaneousCategories(signal?: AbortSignal): Promise<MiscellaneousCategory[]> {
+    const data = await api.get(API_ROUTES.CASHIER.MISCELLANEOUS_CATEGORIES_GET, undefined, undefined, { signal });
     const normalized = normalizeApiResponse(data);
     const categoriesData = normalized.items;
 
@@ -93,15 +94,11 @@ async function getMiscellaneousCategories(): Promise<MiscellaneousCategory[]> {
       id: String(c.id),
       type: c.category_type
     }));
-  } catch (error) {
-    console.error("Failed to fetch miscellaneous categories:", error);
-    return [];
-  }
 }
 
 
 async function upsertService(serviceData: ServiceFormValues) {
-  const responseData = await api.post(API_ROUTES.SERVICES_UPSERT, { ...serviceData, is_sales: true });
+  const responseData = await api.post(API_ROUTES.SERVICES_UPSERT, { ...serviceData, is_sales: true }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
 
   // Check for error responses in array format
   if (Array.isArray(responseData) && responseData.length > 0) {
@@ -124,7 +121,7 @@ async function upsertService(serviceData: ServiceFormValues) {
 }
 
 async function deleteService(id: string) {
-  const responseData = await api.delete(API_ROUTES.SERVICES_DELETE, { id, is_sales: true });
+  const responseData = await api.delete(API_ROUTES.SERVICES_DELETE, { id, is_sales: true }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
 
   // Check for error responses in array format
   if (Array.isArray(responseData) && responseData.length > 0) {
@@ -150,42 +147,27 @@ export default function ServicesPage() {
   const t = useTranslations('ServicesPage');
   const tValidation = useTranslations('ServicesPage.validation');
   const tColumns = useTranslations('ServicesColumns');
-  const [services, setServices] = React.useState<Service[]>([]);
-  const [categories, setCategories] = React.useState<MiscellaneousCategory[]>([]);
+  const tCommon = useTranslations('Common');
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [editingService, setEditingService] = React.useState<Service | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [deletingService, setDeletingService] = React.useState<Service | null>(null);
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
 
   const { toast } = useToast();
   const clinicInfo = useClinicInfo();
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema(tValidation)),
     defaultValues: { service_type: 'single', treatment_steps: [] },
   });
 
-  const { fields, append, remove } = useFieldArray({ control: form.control, name: 'treatment_steps' });
+  const { fields, append, remove: removeStep } = useFieldArray({ control: form.control, name: 'treatment_steps' });
   const watchServiceType = form.watch('service_type');
 
-  const loadServices = React.useCallback(async () => {
-    setIsRefreshing(true);
-    const fetchedServices = await getServices();
-    setServices(fetchedServices);
-    setIsRefreshing(false);
-  }, []);
-
-  React.useEffect(() => {
-    loadServices();
-  }, [loadServices]);
-
-  React.useEffect(() => {
-    if (isDialogOpen) {
-      getMiscellaneousCategories().then(setCategories);
-    }
-  }, [isDialogOpen]);
+  const { data: services, isLoading, isRefreshing, error: loadError, reload: loadServices } = useDataLoader(getServices, [] as Service[]);
+  const { data: categories, error: categoriesError } = useDataLoader(getMiscellaneousCategories, [] as MiscellaneousCategory[], [], { enabled: isDialogOpen });
 
   const handleCreate = () => {
     setEditingService(null);
@@ -193,7 +175,7 @@ export default function ServicesPage() {
       name: '',
       category: '',
       price: 0,
-      currency: clinicInfo?.currency ?? 'UYU',
+      currency: clinicInfo?.currency ?? getClinicCurrency(),
       duration_minutes: 60,
       description: '',
       indications: '',
@@ -212,7 +194,7 @@ export default function ServicesPage() {
       name: service.name,
       category: service.category,
       price: service.price,
-      currency: service.currency || 'USD',
+      currency: service.currency || getClinicCurrency(),
       duration_minutes: service.duration_minutes,
       description: service.description,
       indications: service.indications,
@@ -229,40 +211,53 @@ export default function ServicesPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const confirmDelete = async () => {
-    if (!deletingService) return;
-    try {
-      await deleteService(deletingService.id);
-      toast({
-        title: t('toast.deleteSuccessTitle'),
-        description: t('toast.deleteSuccessDescription', { name: deletingService.name }),
-      });
-      setIsDeleteDialogOpen(false);
-      setDeletingService(null);
-      loadServices();
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: t('toast.errorTitle'),
-        description: error instanceof Error ? error.message : t('toast.deleteErrorDescription'),
-      });
+  const removeService = useAsyncAction(
+    async (service: Service) => {
+      await deleteService(service.id);
+      return service;
+    },
+    {
+      onSuccess: async (service) => {
+        toast({
+          title: t('toast.deleteSuccessTitle'),
+          description: t('toast.deleteSuccessDescription', { name: service.name }),
+        });
+        setIsDeleteDialogOpen(false);
+        setDeletingService(null);
+        await loadServices();
+      },
+      onError: (error) => { if (isTimeoutError(error)) loadServices(); },
+      errorTitle: t('toast.deleteErrorDescription'),
     }
-  };
+  );
 
-  const onSubmit = async (values: ServiceFormValues) => {
-    setSubmissionError(null);
-    try {
+  const save = useAsyncAction(
+    async (values: ServiceFormValues) => {
+      setSubmissionError(null);
       await upsertService(values);
-      toast({
-        title: editingService ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'),
-        description: t('toast.successDescription', { name: values.name }),
-      });
-      setIsDialogOpen(false);
-      loadServices();
-    } catch (error) {
-      setSubmissionError(error instanceof Error ? error.message : t('toast.genericError'));
+      return values;
+    },
+    {
+      onSuccess: async (values) => {
+        toast({
+          title: values.id ? t('toast.editSuccessTitle') : t('toast.createSuccessTitle'),
+          description: t('toast.successDescription', { name: values.name }),
+        });
+        await loadServices();
+        setIsDialogOpen(false);
+      },
+      onError: (error) => {
+        if (isTimeoutError(error)) {
+          // The service may have been saved anyway: refresh so the user can check before retrying.
+          setSubmissionError(tCommon('timeoutError'));
+          loadServices();
+          return;
+        }
+        setSubmissionError(getErrorMessage(error) || t('toast.genericError'));
+      },
+      showErrorToast: false,
     }
-  };
+  );
 
   const servicesColumns = ServicesColumnsWrapper({ onEdit: handleEdit, onDelete: handleDelete });
 
@@ -293,13 +288,21 @@ export default function ServicesPage() {
             onCreate={handleCreate}
             onRefresh={loadServices}
             isRefreshing={isRefreshing}
+            isLoading={isLoading}
+            loadError={loadError}
             columnTranslations={columnTranslations}
           />
         </CardContent>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={(open) => {
+          if (!open && save.isPending) return;
+          setIsDialogOpen(open);
+        }}
+      >
+        <DialogContent confirmOnClose isDirty={form.formState.isDirty && !save.isPending}>
           <DialogHeader>
             <DialogTitle>{editingService ? t('createDialog.editTitle') : t('createDialog.title')}</DialogTitle>
             <DialogDescription>
@@ -307,7 +310,7 @@ export default function ServicesPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit(save.run, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 px-6 py-4">
                 {submissionError && (
                   <Alert variant="destructive">
@@ -316,6 +319,8 @@ export default function ServicesPage() {
                     <AlertDescription>{submissionError}</AlertDescription>
                   </Alert>
                 )}
+                {/* Native fieldset disables every control while the request is in flight */}
+                <fieldset disabled={save.isPending} className="min-w-0 space-y-4">
                 <FormField
                   control={form.control}
                   name="name"
@@ -349,6 +354,7 @@ export default function ServicesPage() {
                           ))}
                         </SelectContent>
                       </Select>
+                      {categoriesError && <p className="text-xs text-destructive">{tCommon('loadError')}</p>}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -377,17 +383,7 @@ export default function ServicesPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t('createDialog.currency')}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={t('createDialog.selectCurrency')} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="USD">USD</SelectItem>
-                            <SelectItem value="UYU">UYU</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormControl><CurrencySelect value={field.value} onChange={field.onChange} placeholder={t('createDialog.selectCurrency')} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -500,7 +496,8 @@ export default function ServicesPage() {
                             variant="ghost"
                             size="icon"
                             className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                            onClick={() => remove(index)}
+                            onClick={() => removeStep(index)}
+                            aria-label={`${t('serviceType.stepLabel')} ${index + 1}`}
                           >
                             <X className="h-3.5 w-3.5" />
                           </Button>
@@ -563,30 +560,27 @@ export default function ServicesPage() {
                     ))}
                   </div>
                 )}
+                </fieldset>
               </DialogBody>
               <DialogFooter>
-                <Button type="submit">{editingService ? t('createDialog.editSave') : t('createDialog.save')}</Button>
-                <DialogCancelButton>{t('createDialog.cancel')}</DialogCancelButton>
+                <Button type="submit" loading={save.isPending}>{editingService ? t('createDialog.editSave') : t('createDialog.save')}</Button>
+                <DialogCancelButton disabled={save.isPending}>{t('createDialog.cancel')}</DialogCancelButton>
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('deleteDialog.description', { name: deletingService?.name })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
-            <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmActionDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title={t('deleteDialog.title')}
+        description={t('deleteDialog.description', { name: deletingService?.name })}
+        cancelLabel={t('deleteDialog.cancel')}
+        confirmLabel={t('deleteDialog.confirm')}
+        onConfirm={() => { if (deletingService) removeService.run(deletingService); }}
+        isPending={removeService.isPending}
+      />
     </div>
   );
 }

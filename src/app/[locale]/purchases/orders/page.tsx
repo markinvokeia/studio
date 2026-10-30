@@ -13,12 +13,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { API_ROUTES } from '@/constants/routes';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
+import { mapLineDiscountFields } from '@/lib/discounts';
 import { Invoice, InvoiceItem, Order, OrderItem, Payment } from '@/lib/types';
 import { api } from '@/services/api';
 import { RowSelectionState } from '@tanstack/react-table';
 import { RefreshCw, X, ShoppingCart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 async function getOrders(): Promise<Order[]> {
     try {
@@ -32,7 +34,7 @@ async function getOrders(): Promise<Order[]> {
             quote_doc_no: apiOrder.quote_doc_no || 'N/A',
             user_name: apiOrder.user_name || 'N/A',
             status: apiOrder.status,
-            currency: apiOrder.currency || 'URU',
+            currency: apiOrder.currency || getClinicCurrency(),
             notes: apiOrder.notes || '',
             createdAt: apiOrder.createdAt || new Date().toISOString().split('T')[0],
             updatedAt: apiOrder.updatedAt || new Date().toISOString().split('T')[0],
@@ -60,6 +62,7 @@ async function getOrderItems(orderId: string): Promise<OrderItem[]> {
             scheduled_date: apiItem.scheduled_date,
             completed_date: apiItem.completed_date,
             invoiced_date: apiItem.invoiced_date,
+            ...mapLineDiscountFields(apiItem),
         }));
     } catch (error) {
         console.error("Failed to fetch order items:", error);
@@ -88,7 +91,7 @@ async function getInvoicesForOrder(orderId: string): Promise<Invoice[]> {
             type: apiInvoice.type || 'invoice',
             createdAt: apiInvoice.created_at || apiInvoice.createdAt || new Date().toISOString(),
             updatedAt: apiInvoice.updated_at || apiInvoice.updatedAt || new Date().toISOString(),
-            currency: apiInvoice.currency || 'USD',
+            currency: apiInvoice.currency || getClinicCurrency(),
             is_historical: apiInvoice.is_historical || false,
         }));
     } catch (error) {
@@ -143,11 +146,11 @@ async function getPaymentsForOrder(orderId: string): Promise<Payment[]> {
             status: apiPayment.status || 'completed',
             createdAt: apiPayment.payment_date || apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.payment_date || apiPayment.updatedAt || new Date().toISOString().split('T')[0],
-            currency: isNewFormat ? apiPayment.invoice_currency : (apiPayment.source_currency || 'USD'),
+            currency: isNewFormat ? apiPayment.invoice_currency : (apiPayment.source_currency || getClinicCurrency()),
             payment_date: apiPayment.payment_date || apiPayment.created_at,
             amount_applied: isNewFormat ? parseFloat(apiPayment.amount_applied) : (parseFloat(apiPayment.amount) || 0),
             source_amount: isNewFormat ? parseFloat(apiPayment.source_amount) : (parseFloat(apiPayment.amount) || 0),
-            source_currency: apiPayment.source_currency || 'UYU',
+            source_currency: apiPayment.source_currency || getClinicCurrency(),
             exchange_rate: isNewFormat ? parseFloat(apiPayment.exchange_rate) : 1,
             transaction_type: apiPayment.transaction_type || 'direct_payment',
             transaction_id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : String(apiPayment.id),
@@ -171,6 +174,7 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
             quantity: apiItem.quantity,
             unit_price: apiItem.unit_price,
             total: apiItem.total,
+            ...mapLineDiscountFields(apiItem),
         }));
     } catch (error) {
         console.error("Failed to fetch invoice items:", error);

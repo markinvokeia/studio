@@ -58,6 +58,7 @@ getMasterSec()       // Gate de administración de licencias
 | `NEXT_PUBLIC_MASTER_SEC` | `getMasterSec()` | Gate admin de licencias |
 | `NEXT_PUBLIC_CLIENT_ID` | `getClientId()` | Identificador de cliente para SSE |
 | `NEXT_PUBLIC_EVENT_PUSHER_KEY` | `getEventPusherKey()` | API key para el stream de eventos SSE |
+| `NEXT_PUBLIC_EVENT_PUSHER_URL` | `getEventPusherUrl()` | Origen del servidor de eventos SSE. Vacío = ruta relativa `/events/stream` contra el mismo origen (reverse proxy). Si se define, solo el origen, sin `/events/stream`. Cross-origin requiere CORS en el event-pusher: `Access-Control-Allow-Origin`, `Access-Control-Allow-Headers: X-Api-Key`, `Access-Control-Allow-Methods: GET` |
 
 ## Cómo añadir una nueva variable de entorno
 

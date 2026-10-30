@@ -1,6 +1,7 @@
 import { API_ROUTES } from '@/constants/routes';
 import type { Invoice, Quote } from '@/lib/types';
 import { api } from './api';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 export interface QuoteFinancialSummary {
   amount_invoiced: number;
@@ -50,7 +51,7 @@ function mapQuoteInvoice(apiInvoice: any, fallbackQuoteId: string): Invoice {
     userEmail: apiInvoice.user_email || apiInvoice.userEmail || '',
     user_id: apiInvoice.user_id ? String(apiInvoice.user_id) : '',
     total: Number(apiInvoice.total || 0),
-    currency: apiInvoice.currency || 'USD',
+    currency: apiInvoice.currency || getClinicCurrency(),
     notes: apiInvoice.notes || '',
     status: apiInvoice.status || 'draft',
     payment_status: apiInvoice.payment_state || apiInvoice.payment_status || 'unpaid',

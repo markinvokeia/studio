@@ -21,6 +21,7 @@ import { FileText, ListChecks, Receipt, CreditCard, XCircle } from 'lucide-react
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 // ── Data fetching ────────────────────────────────────────────────────────────
 
@@ -36,6 +37,12 @@ async function fetchQuoteItems(quoteId: string): Promise<QuoteItem[]> {
       quantity: Number(a.quantity) || 0,
       total: Number(a.total) || 0,
       tooth_number: a.tooth_number ? Number(a.tooth_number) : undefined,
+      // Metadatos de descuento: `total` ya viene neto. Sin ellos la tabla no
+      // podria avisar de que ese importe esta rebajado.
+      gross_total: a.gross_total != null ? Number(a.gross_total) : undefined,
+      discount_mode: a.discount_mode ?? null,
+      discount_value: a.discount_value != null ? Number(a.discount_value) : null,
+      discount_amount: a.discount_amount != null ? Number(a.discount_amount) : null,
     }));
     return sortQuoteItems(quoteItems);
   } catch { return []; }
@@ -86,7 +93,7 @@ async function fetchQuotePayments(quoteId: string): Promise<Payment[]> {
       amount: isNew ? parseFloat(a.amount_applied) : (parseFloat(a.amount) || 0),
       amount_applied: isNew ? parseFloat(a.amount_applied) : (parseFloat(a.amount) || 0),
       source_amount: isNew ? parseFloat(a.source_amount) : (parseFloat(a.amount) || 0),
-      source_currency: ((isNew ? a.source_currency : a.currency) || 'UYU') as 'UYU' | 'USD',
+      source_currency: ((isNew ? a.source_currency : a.currency) || getClinicCurrency()),
       method: a.payment_method_name || a.method || '',
       payment_method: a.payment_method_name || a.method || '',
       payment_method_code: a.payment_method_code,
@@ -158,7 +165,7 @@ export function QuoteDetailSheet({
   const [invoices, setInvoices] = React.useState<Invoice[]>([]);
   const [payments, setPayments] = React.useState<Payment[]>([]);
   const quoteTotal = React.useMemo(() => items.reduce((sum, item) => sum + Number(item.total || 0), 0), [items]);
-  const quoteCurrency = invoices[0]?.currency || 'UYU';
+  const quoteCurrency = invoices[0]?.currency || getClinicCurrency();
   const financialSummary = React.useMemo(
     () => calculateQuoteFinancialSummary(quoteTotal, invoices),
     [invoices, quoteTotal],

@@ -37,7 +37,12 @@ export const useBillingWizard = create<BillingWizardStore>((set) => ({
   isOpen: false,
   context: null,
   onSuccess: undefined,
+  // Deferred: `open` is often called from a ContextMenuItem's onSelect. Radix's
+  // menu and this dialog both lock document.body's pointer-events while
+  // open/closing; opening the wizard in the same tick the menu starts its
+  // (animated) unmount races that lock and can leave the dialog unclosable.
+  // Letting the menu finish unwinding first (next tick) avoids the overlap.
   open: (ctx, onSuccess) =>
-    set({ isOpen: true, context: { isSales: true, ...ctx }, onSuccess }),
+    setTimeout(() => set({ isOpen: true, context: { isSales: true, ...ctx }, onSuccess }), 0),
   close: () => set({ isOpen: false, context: null, onSuccess: undefined }),
 }));

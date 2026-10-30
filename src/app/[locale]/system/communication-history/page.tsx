@@ -9,6 +9,8 @@ import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { Separator } from '@/components/ui/separator';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
+import { API_ROUTES } from '@/constants/routes';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { CommunicationLog, AlertAction } from '@/lib/types';
 import { api } from '@/services/api';
@@ -38,23 +40,28 @@ const mapAlertActionToCommunicationLog = (action: AlertAction): CommunicationLog
 export default function CommunicationHistoryPage() {
     const t = useTranslations('CommunicationHistoryPage');
     const isNarrow = useViewportNarrow();
-    const [logs, setLogs] = React.useState<CommunicationLog[]>([]);
-    const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 50 });
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedLog, setSelectedLog] = React.useState<CommunicationLog | null>(null);
 
-    const fetchLogs = async (page: number, limit: number) => {
-        try {
-            const response = await api.get('/system/alert-actions', { page: page.toString(), limit: limit.toString() });
-            const mappedLogs = response.map(mapAlertActionToCommunicationLog);
-            setLogs(mappedLogs);
-        } catch (error) {
-            console.error('Failed to fetch communication logs:', error);
-        }
-    };
-
-    React.useEffect(() => { fetchLogs(1, 50); }, []);
+    // Only the latest page request may write the table; a failed load shows an error, not "no messages".
+    const {
+        data: logs,
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload: onRefresh,
+    } = useDataLoader(
+        async (signal) => {
+            const response = await api.get(API_ROUTES.SYSTEM.ALERT_ACTIONS, {
+                page: (pagination.pageIndex + 1).toString(),
+                limit: pagination.pageSize.toString(),
+            }, undefined, { signal });
+            return (Array.isArray(response) ? response : []).map(mapAlertActionToCommunicationLog);
+        },
+        [] as CommunicationLog[],
+        [pagination.pageIndex, pagination.pageSize]
+    );
 
     const handleRowSelection = (rows: CommunicationLog[]) => {
         setSelectedLog(rows[0] ?? null);
@@ -65,20 +72,7 @@ export default function CommunicationHistoryPage() {
         setRowSelection({});
     };
 
-    const onPaginationChange: React.Dispatch<React.SetStateAction<typeof pagination>> = (updater) => {
-        const newPagination = typeof updater === 'function' ? updater(pagination) : updater;
-        setPagination(newPagination);
-        fetchLogs(newPagination.pageIndex + 1, newPagination.pageSize);
-    };
-
-    const onRefresh = async () => {
-        setIsRefreshing(true);
-        try {
-            await fetchLogs(pagination.pageIndex + 1, pagination.pageSize);
-        } finally {
-            setIsRefreshing(false);
-        }
-    };
+    const onPaginationChange = setPagination;
 
     const columns: ColumnDef<CommunicationLog>[] = React.useMemo(() => [
         {
@@ -124,6 +118,8 @@ export default function CommunicationHistoryPage() {
                     filterPlaceholder={t('filterPlaceholder')}
                     onRefresh={onRefresh}
                     isRefreshing={isRefreshing}
+                    isLoading={isLoading}
+                    loadError={loadError}
                     isNarrow={isNarrow || !!selectedLog}
                     renderCard={(row: CommunicationLog, _isSelected: boolean) => (
                         <DataCard isSelected={_isSelected}

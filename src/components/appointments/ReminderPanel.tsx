@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { format, parseISO } from 'date-fns';
-import { BellRing, Calendar, CalendarDays, CheckCircle2, Clock, Edit, FileText, Flag, Info, Receipt, ShoppingCart, Sparkles, Trash2 } from 'lucide-react';
+import { BellRing, Calendar, CalendarDays, CheckCircle2, Clock, Edit, FileText, Flag, Info, Lock, Receipt, ShoppingCart, Repeat, Sparkles, Sun, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ResizableSheet, SheetDescription, SheetTitle } from '@/components/ui/resizable-sheet';
 import { useLocalAI } from '@/hooks/use-local-ai';
 import type { NoteActionKey } from '@/hooks/use-local-ai';
+import { canManageReminder, formatRecurrenceSummary } from '@/lib/reminders';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import type { CalendarReminder } from '@/lib/types';
 
@@ -18,6 +19,7 @@ interface ReminderPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   reminder: CalendarReminder | null;
+  currentUserId?: string | null;
   onEdit: (reminder: CalendarReminder) => void;
   onMarkDone: (reminder: CalendarReminder) => void;
   onDelete: (reminder: CalendarReminder) => void;
@@ -92,6 +94,7 @@ export function ReminderPanel({
   open,
   onOpenChange,
   reminder,
+  currentUserId,
   onEdit,
   onMarkDone,
   onDelete,
@@ -159,6 +162,13 @@ export function ReminderPanel({
   const startTime = formatLocalTime(reminder.start_datetime);
   const endTime = formatLocalTime(reminder.end_datetime);
   const isDone = reminder.status === 'done';
+  const isNote = reminder.type === 'note';
+  const isPersonal = reminder.visibility === 'personal';
+  const isAllDay = reminder.is_all_day;
+  const recurrenceSummary = reminder.recurrence ? formatRecurrenceSummary(reminder.recurrence, t) : null;
+  // Lo compartido lo gestiona cualquiera; lo personal, solo su autor.
+  const canManage = canManageReminder(reminder, currentUserId);
+  const ItemIcon = isNote ? FileText : BellRing;
 
   const displayTitle = enhancement?.title ?? reminder.title;
   const displayDescription = enhancement?.description ?? reminder.description;
@@ -183,7 +193,7 @@ export function ReminderPanel({
               className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-white shadow-sm"
               style={{ backgroundColor: reminder.color || '#8b5cf6' }}
             >
-              <BellRing className="h-5 w-5" />
+              <ItemIcon className="h-5 w-5" />
             </span>
             <div className="min-w-0 flex-1">
               <SheetTitle className="flex items-center gap-2 text-lg font-semibold text-foreground">
@@ -196,7 +206,7 @@ export function ReminderPanel({
                 )}
               </SheetTitle>
               <SheetDescription className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <span>{t('recordatorio')}</span>
+                <span>{t(isNote ? 'nota' : 'recordatorio')}</span>
                 <span
                   className={cn(
                     'inline-flex items-center rounded-full border border-transparent px-2.5 py-0.5 text-xs font-semibold text-white',
@@ -205,6 +215,27 @@ export function ReminderPanel({
                 >
                   {t(`status.${reminder.status}`)}
                 </span>
+                {isPersonal && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-transparent bg-slate-500 px-2.5 py-0.5 text-xs font-semibold text-white">
+                    <Lock className="h-3 w-3" />
+                    {t('personalBadge')}
+                  </span>
+                )}
+                {isAllDay && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-transparent bg-indigo-500 px-2.5 py-0.5 text-xs font-semibold text-white">
+                    <Sun className="h-3 w-3" />
+                    {t('allDayBadge')}
+                  </span>
+                )}
+                {recurrenceSummary && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full border border-transparent bg-teal-600 px-2.5 py-0.5 text-xs font-semibold text-white"
+                    title={recurrenceSummary}
+                  >
+                    <Repeat className="h-3 w-3" />
+                    {t('recurringBadge')}
+                  </span>
+                )}
               </SheetDescription>
             </div>
           </div>
@@ -226,13 +257,22 @@ export function ReminderPanel({
               <DetailRow
                 icon={Clock}
                 label={t('timeLabel')}
-                value={endTime ? `${startTime} -> ${endTime}` : startTime}
+                value={isAllDay ? t('allDayBandLabel') : (endTime ? `${startTime} -> ${endTime}` : startTime)}
               />
-              <DetailRow
-                icon={Flag}
-                label={t('priorityLabel')}
-                value={t(`priority.${reminder.priority.toLowerCase()}`)}
-              />
+              {recurrenceSummary && (
+                <DetailRow
+                  icon={Repeat}
+                  label={t('repeatLabel')}
+                  value={recurrenceSummary}
+                />
+              )}
+              {!isNote && (
+                <DetailRow
+                  icon={Flag}
+                  label={t('priorityLabel')}
+                  value={t(`priority.${reminder.priority.toLowerCase()}`)}
+                />
+              )}
               {displayDescription && (
                 <DetailRow
                   icon={FileText}
@@ -271,20 +311,24 @@ export function ReminderPanel({
                   tooltipText={t('enhanceTooltip')}
                 />
               )}
-              {!isDone && (
+              {canManage && !isDone && (
                 <Button variant="outline" className="gap-2" onClick={() => onMarkDone(reminder)}>
                   <CheckCircle2 className="h-4 w-4" />
                   {t('markDone')}
                 </Button>
               )}
-              <Button variant="outline" className="gap-2" onClick={() => onEdit(reminderForEdit)}>
-                <Edit className="h-4 w-4" />
-                {t('edit')}
-              </Button>
-              <Button variant="destructive" className="gap-2" onClick={() => onDelete(reminder)}>
-                <Trash2 className="h-4 w-4" />
-                {t('delete')}
-              </Button>
+              {canManage && (
+                <Button variant="outline" className="gap-2" onClick={() => onEdit(reminderForEdit)}>
+                  <Edit className="h-4 w-4" />
+                  {t('edit')}
+                </Button>
+              )}
+              {canManage && (
+                <Button variant="destructive" className="gap-2" onClick={() => onDelete(reminder)}>
+                  <Trash2 className="h-4 w-4" />
+                  {t('delete')}
+                </Button>
+              )}
             </div>
           </div>
         </div>

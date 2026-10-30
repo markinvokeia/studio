@@ -19,6 +19,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
 import { Input } from '@/components/ui/input';
+import { MiscCategorySelector } from '@/components/ui/misc-category-selector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -28,6 +29,7 @@ import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { PURCHASES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { MiscellaneousCategory, Service } from '@/lib/types';
@@ -42,6 +44,9 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { ServicesColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 console.log("Purchases Services Page Loaded. API_ROUTES.SERVICES_ALL:", API_ROUTES.PURCHASES.SERVICES_ALL);
 
@@ -51,7 +56,7 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
   category_id: z.string().min(1, t('categoryRequired')),
   category: z.string().optional(),
   price: z.coerce.number().min(0, t('priceNonNegative')),
-  currency: z.enum(['UYU', 'USD']).default('USD'),
+  currency: currencySchema,
   description: z.string().optional(),
   color: z.string().optional(),
   is_active: z.boolean().default(true),
@@ -59,21 +64,34 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
 
 type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
 
-const DEFAULT_SERVICE_FORM_VALUES: ServiceFormValues = {
+/**
+ * Valores iniciales de un servicio nuevo.
+ *
+ * Es una función, no una constante: la moneda de la clínica se carga tras el
+ * login, y una constante de módulo la congelaría en el valor por defecto que
+ * hubiera en el momento de importar el fichero.
+ */
+const defaultServiceFormValues = (): ServiceFormValues => ({
   id: undefined,
   name: '',
   category_id: '',
   category: '',
   price: 0,
-  currency: 'USD',
+  currency: getClinicCurrency(),
   description: '',
   color: '',
   is_active: true,
-};
+});
 
-async function getServices(): Promise<Service[]> {
+/** Filtro de estado del catálogo: 'all' no envía `is_active` al endpoint. */
+type ServiceStatusFilter = 'all' | 'true' | 'false';
+
+async function getServices(isActive: ServiceStatusFilter): Promise<Service[]> {
   try {
-    const data = await api.get(API_ROUTES.PURCHASES.SERVICES_ALL, { is_sales: 'false' });
+    const query: Record<string, string> = { is_sales: 'false' };
+    // 'all' = sin filtro: el backend devuelve activos e inactivos
+    if (isActive !== 'all') query.is_active = isActive;
+    const data = await api.get(API_ROUTES.PURCHASES.SERVICES_ALL, query);
     const normalized = normalizeApiResponse(data);
     return normalized.items.map((apiService: any) => ({
       id: apiService.id ? String(apiService.id) : `srv_${Math.random().toString(36).substr(2, 9)}`,
@@ -81,7 +99,7 @@ async function getServices(): Promise<Service[]> {
       category: apiService.category_name || apiService.category || 'No Category',
       category_id: apiService.category_id ? String(apiService.category_id) : undefined,
       price: apiService.price || 0,
-      currency: apiService.currency || 'USD',
+      currency: apiService.currency || getClinicCurrency(),
       duration_minutes: apiService.duration_minutes || 0,
       description: apiService.description,
       indications: apiService.indications,
@@ -130,7 +148,7 @@ async function deleteService(id: string) {
   return responseData;
 }
 
-function PurchaseServiceFormFields({ form, categories, t }: { form: any; categories: MiscellaneousCategory[]; t: (key: string) => string }) {
+function PurchaseServiceFormFields({ form, categories, onCategoryCreated, t }: { form: any; categories: MiscellaneousCategory[]; onCategoryCreated: (category: MiscellaneousCategory) => void; t: (key: string) => string }) {
   return (
     <>
       <div className="grid grid-cols-2 gap-3">
@@ -139,10 +157,16 @@ function PurchaseServiceFormFields({ form, categories, t }: { form: any; categor
         )} />
         <FormField control={form.control} name="category_id" render={({ field }) => (
           <FormItem><FormLabel>{t('createDialog.category')}</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value || ''}>
-              <FormControl><SelectTrigger><SelectValue placeholder={t('createDialog.categoryPlaceholder')} /></SelectTrigger></FormControl>
-              <SelectContent>{categories.map((cat) => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}</SelectContent>
-            </Select><FormMessage /></FormItem>
+            <MiscCategorySelector
+              categories={categories}
+              categoryType="expense"
+              value={field.value || ''}
+              onValueChange={(id) => field.onChange(id)}
+              onCategoryCreated={onCategoryCreated}
+              placeholder={t('createDialog.categoryPlaceholder')}
+              triggerText={t('createDialog.categoryPlaceholder')}
+            />
+            <FormMessage /></FormItem>
         )} />
       </div>
       <div className="grid grid-cols-3 gap-3">
@@ -151,10 +175,7 @@ function PurchaseServiceFormFields({ form, categories, t }: { form: any; categor
         )} />
         <FormField control={form.control} name="currency" render={({ field }) => (
           <FormItem><FormLabel>{t('createDialog.currency')}</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value || 'USD'}>
-              <FormControl><SelectTrigger><SelectValue placeholder={t('createDialog.selectCurrency')} /></SelectTrigger></FormControl>
-              <SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent>
-            </Select><FormMessage /></FormItem>
+            <FormControl><CurrencySelect value={field.value} onChange={(v) => { if (v) field.onChange(v); }} placeholder={t('createDialog.selectCurrency')} /></FormControl><FormMessage /></FormItem>
         )} />
         <FormField control={form.control} name="color" render={({ field }) => (
           <FormItem><FormLabel>{t('createDialog.colorLabel')}</FormLabel><FormControl><Input type="color" className="h-10 w-full cursor-pointer" {...field} /></FormControl><FormMessage /></FormItem>
@@ -174,7 +195,8 @@ function PurchaseServiceFormFields({ form, categories, t }: { form: any; categor
 }
 
 function ServicesTableWithCards({
-  services, columns, selectedService, onRowSelect, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection, t,
+  services, columns, selectedService, onRowSelect, onRefresh, isRefreshing, onCreate, rowSelection, setRowSelection,
+  statusFilter, onStatusFilterChange, t,
 }: {
   services: Service[];
   columns: any[];
@@ -185,6 +207,8 @@ function ServicesTableWithCards({
   onCreate?: () => void;
   rowSelection: RowSelectionState;
   setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>;
+  statusFilter: ServiceStatusFilter;
+  onStatusFilterChange: (value: string) => void;
   t: (key: string) => string;
 }) {
   const { isNarrow: panelNarrow } = useNarrowMode();
@@ -205,6 +229,12 @@ function ServicesTableWithCards({
       rowSelection={rowSelection}
       setRowSelection={setRowSelection}
       isNarrow={isNarrow}
+      filterValue={statusFilter}
+      onFilterChange={onStatusFilterChange}
+      filterOptions={[
+        { label: t('statusFilter.active'), value: 'true' },
+        { label: t('statusFilter.inactive'), value: 'false' },
+      ]}
       renderCard={(service: Service, _isSelected: boolean) => (
         <DataCard isSelected={_isSelected}
           title={service.name}
@@ -246,20 +276,26 @@ export default function ServicesPage() {
   const [isSavingDetail, setIsSavingDetail] = React.useState(false);
   const [selectedService, setSelectedService] = React.useState<Service | null>(null);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const [statusFilter, setStatusFilter] = React.useState<ServiceStatusFilter>('all');
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const createForm = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema(tValidation)),
-    defaultValues: DEFAULT_SERVICE_FORM_VALUES,
+    defaultValues: defaultServiceFormValues(),
   });
   const detailForm = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema(tValidation)),
-    defaultValues: DEFAULT_SERVICE_FORM_VALUES,
+    defaultValues: defaultServiceFormValues(),
   });
 
   const loadServices = React.useCallback(async () => {
     setIsRefreshing(true);
-    setServices(await getServices());
+    setServices(await getServices(statusFilter));
     setIsRefreshing(false);
+  }, [statusFilter]);
+
+  const handleStatusFilterChange = React.useCallback((value: string) => {
+    setStatusFilter((value as ServiceStatusFilter) || 'all');
   }, []);
 
   React.useEffect(() => { loadServices(); }, [loadServices]);
@@ -267,6 +303,10 @@ export default function ServicesPage() {
   // Load categories once on mount — they don't change so we never need to reload
   React.useEffect(() => {
     getMiscellaneousCategories().then(setCategories);
+  }, []);
+
+  const handleCategoryCreated = React.useCallback((category: MiscellaneousCategory) => {
+    setCategories(prev => [...prev, category]);
   }, []);
 
   // Populate detail form when selection changes (categories already loaded from mount)
@@ -281,7 +321,7 @@ export default function ServicesPage() {
       name: selectedService.name,
       category_id: categoryId,
       price: selectedService.price,
-      currency: (selectedService.currency as 'USD' | 'UYU') || 'USD',
+      currency: selectedService.currency || getClinicCurrency(),
       description: selectedService.description || '',
       color: selectedService.color || '',
       is_active: selectedService.is_active ?? true,
@@ -291,7 +331,7 @@ export default function ServicesPage() {
 
   const handleCreate = () => {
     if (!canCreateProduct) return;
-    createForm.reset(DEFAULT_SERVICE_FORM_VALUES);
+    createForm.reset(defaultServiceFormValues());
     setCreateError(null);
     setIsCreateDialogOpen(true);
   };
@@ -330,7 +370,8 @@ export default function ServicesPage() {
     try {
       await upsertService(values, categories);
       toast({ title: t('toast.editSuccessTitle'), description: t('toast.successDescription', { name: values.name }) });
-      const updatedService: Service = { ...selectedService!, name: values.name, price: values.price, currency: values.currency, description: values.description, color: values.color || null, is_active: values.is_active, category_id: values.category_id };
+      const categoryName = categories.find(cat => cat.id === values.category_id)?.name || selectedService!.category;
+      const updatedService: Service = { ...selectedService!, name: values.name, price: values.price, currency: values.currency, description: values.description, color: values.color || null, is_active: values.is_active, category_id: values.category_id, category: categoryName };
       setServices(prev => prev.map(s => s.id === values.id ? updatedService : s));
       setSelectedService(updatedService);
     } catch (error) {
@@ -391,6 +432,8 @@ export default function ServicesPage() {
                 onCreate={canCreateProduct ? handleCreate : undefined}
                 rowSelection={rowSelection}
                 setRowSelection={setRowSelection}
+                statusFilter={statusFilter}
+                onStatusFilterChange={handleStatusFilterChange}
                 t={t}
               />
             </CardContent>
@@ -431,8 +474,8 @@ export default function ServicesPage() {
                   </TabsList>
                   <div className="flex-1 overflow-auto mt-4">
                     <TabsContent value="details" className="m-0">
-                      <Form {...detailForm}>
-                        <form onSubmit={detailForm.handleSubmit(onDetailSubmit)} className="space-y-3">
+                      <Form {...detailForm} key={selectedService.id}>
+                        <form onSubmit={detailForm.handleSubmit(onDetailSubmit, onInvalidSubmit)} className="space-y-3">
                           {detailError && (
                             <Alert variant="destructive">
                               <AlertTriangle className="h-4 w-4" />
@@ -440,7 +483,7 @@ export default function ServicesPage() {
                               <AlertDescription>{detailError}</AlertDescription>
                             </Alert>
                           )}
-                          <PurchaseServiceFormFields form={detailForm} categories={categories} t={t} />
+                          <PurchaseServiceFormFields form={detailForm} categories={categories} onCategoryCreated={handleCategoryCreated} t={t} />
                           {canUpdateProduct && (
                             <div className="flex gap-2 pt-2">
                               <Button type="submit" disabled={isSavingDetail}>
@@ -493,7 +536,7 @@ export default function ServicesPage() {
             <DialogDescription>{t('createDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...createForm}>
-            <form onSubmit={createForm.handleSubmit(onCreateSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={createForm.handleSubmit(onCreateSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-3 py-4 px-6">
                 {createError && (
                   <Alert variant="destructive">
@@ -502,7 +545,7 @@ export default function ServicesPage() {
                     <AlertDescription>{createError}</AlertDescription>
                   </Alert>
                 )}
-                <PurchaseServiceFormFields form={createForm} categories={categories} t={t} />
+                <PurchaseServiceFormFields form={createForm} categories={categories} onCategoryCreated={handleCategoryCreated} t={t} />
               </DialogBody>
               <DialogFooter>
                 <Button type="submit">{t('createDialog.save')}</Button>

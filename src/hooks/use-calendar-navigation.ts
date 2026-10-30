@@ -1,12 +1,21 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Locale } from 'date-fns';
-import { enUS, es } from 'date-fns/locale';
 import { useLocale } from 'next-intl';
 
 import type { CalendarView } from '@/components/calendar/calendar-types';
-import { computeDateRange, computeHeaderTitle, navigateDate } from '@/components/calendar/calendar-utils';
+import {
+  computeDateRange,
+  computeHeaderTitle,
+  getCalendarViewStartDate,
+  navigateDate,
+} from '@/components/calendar/calendar-utils';
+import { getDateFnsLocale } from '@/lib/locale';
+
+/** Views whose stored `currentDate` is collapsed to the first day of a multi-day
+ *  block (week or N-day), rather than the specific day the user was on. */
+const MULTI_DAY_VIEWS: CalendarView[] = ['week', '2-day', '3-day', '4-day', '5-day', '6-day'];
 
 interface UseCalendarNavigationOptions {
   onDateChange?: (range: { start: Date; end: Date }) => void;
@@ -38,21 +47,47 @@ export function useCalendarNavigation({
   initialView = 'month',
 }: UseCalendarNavigationOptions = {}): UseCalendarNavigationReturn {
   const locale = useLocale();
-  const dateLocale = locale === 'es' ? es : enUS;
+  const dateLocale = getDateFnsLocale(locale);
+  const initialViewRef = useRef(initialView);
 
-  const [currentDate, setCurrentDate] = useState<Date>(SSR_STABLE_DATE);
-  const [view, setView] = useState<CalendarView>(initialView);
+  const [currentDate, setCurrentDateState] = useState<Date>(() => (
+    getCalendarViewStartDate(SSR_STABLE_DATE, initialView)
+  ));
+  const [view, setViewState] = useState<CalendarView>(initialView);
   const [currentTime, setCurrentTime] = useState<Date>(SSR_STABLE_DATE);
+
+  const setCurrentDate = useCallback((date: Date) => {
+    setCurrentDateState(getCalendarViewStartDate(date, view));
+  }, [view]);
+
+  const setView = useCallback((newView: CalendarView) => {
+    if (newView === view) {
+      return;
+    }
+
+    setViewState(newView);
+    setCurrentDateState((date) => {
+      // Coming from a week/N-day view, `date` is collapsed to that block's first
+      // day, not the specific day being looked at, so it's not a meaningful day to
+      // land on. Switching to 'day' view from one of these should jump to today,
+      // like clicking the "Today" button would.
+      if (newView === 'day' && MULTI_DAY_VIEWS.includes(view)) {
+        return getCalendarViewStartDate(new Date(), newView);
+      }
+      return getCalendarViewStartDate(date, newView);
+    });
+  }, [view]);
 
   // Sync view if initialView changes (e.g. from settings)
   useEffect(() => {
     setView(initialView);
-  }, [initialView]);
+  }, [initialView, setView]);
 
   // Initialize with real "now" after mount, then update every minute
   useEffect(() => {
-    setCurrentDate(new Date());
-    setCurrentTime(new Date());
+    const now = new Date();
+    setCurrentDateState(getCalendarViewStartDate(now, initialViewRef.current));
+    setCurrentTime(now);
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
@@ -75,16 +110,16 @@ export function useCalendarNavigation({
   }, [currentDate, view, handleDateChange]);
 
   const handlePrev = useCallback(() => {
-    setCurrentDate((prev) => navigateDate(prev, view, -1));
+    setCurrentDateState((previousDate) => navigateDate(previousDate, view, -1));
   }, [view]);
 
   const handleNext = useCallback(() => {
-    setCurrentDate((prev) => navigateDate(prev, view, 1));
+    setCurrentDateState((previousDate) => navigateDate(previousDate, view, 1));
   }, [view]);
 
   const handleToday = useCallback(() => {
-    setCurrentDate(new Date());
-  }, []);
+    setCurrentDateState(getCalendarViewStartDate(new Date(), view));
+  }, [view]);
 
   const handleViewChange = useCallback(
     (newView: CalendarView) => {
@@ -93,7 +128,7 @@ export function useCalendarNavigation({
         onViewChange(newView);
       }
     },
-    [onViewChange]
+    [onViewChange, setView]
   );
 
   const headerTitle = useMemo(

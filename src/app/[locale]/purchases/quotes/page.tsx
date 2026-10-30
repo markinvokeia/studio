@@ -8,7 +8,7 @@ import { OrdersTable } from '@/components/tables/orders-table';
 import { PaymentsTable } from '@/components/tables/payments-table';
 import { QuoteItemsTable } from '@/components/tables/quote-items-table';
 import { RecentQuotesTable } from '@/components/tables/recent-quotes-table';
-import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
 import { ActionButton } from '@/components/ui/action-button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -37,6 +37,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ServiceSelector } from '@/components/ui/service-selector';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import { UserSelector } from '@/components/ui/user-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { VerticalTabStrip, type VerticalTab } from '@/components/ui/vertical-tab-strip';
@@ -45,12 +46,13 @@ import { GridExportDialog, type GridExportFormat } from '@/components/ui/grid-ex
 import { downloadCSV, downloadExcel, type ExportColumn } from '@/lib/export-utils';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
-import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDebounce } from '@/hooks/use-debounce';
 import { normalizeApiResponse } from '@/lib/api-utils';
+import { mapLineDiscountFields } from '@/lib/discounts';
 import { invoiceOrder } from '@/lib/invoice-actions';
 import { Clinic, Invoice, InvoiceItem, Order, OrderItem, Payment, Quote, QuoteItem, Service, User } from '@/lib/types';
 import { cn, formatDate, formatDateTime, formatDisplayDate, getDocumentFileName, sortQuoteItems, toLocalISOString } from '@/lib/utils';
@@ -58,28 +60,35 @@ import { api } from '@/services/api';
 import { getPurchaseServices } from '@/services/services';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { PaginationState, RowSelectionState } from '@tanstack/react-table';
-import { format, parseISO } from 'date-fns';
+import { addDays, format, parseISO } from 'date-fns';
 import { AlertTriangle, CheckCircle, CreditCard, FileText, Loader2, Maximize2, Minimize2, Pencil, Printer, Receipt, RefreshCw, Send, ShoppingCart, StickyNote, Trash2, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { convertAmount } from '@/lib/currency';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { createDefaultPagination } from '@/lib/pagination';
 
 
 const quoteFormSchema = (t: (key: string) => string) => z.object({
     id: z.string().optional(),
     user_id: z.string().min(1, t('validation.userRequired')),
     total: z.coerce.number().min(0, t('validation.totalPositive')),
-    currency: z.enum(['UYU', 'USD', 'URU']).default('USD'),
+    currency: currencySchema,
     status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed',
         'Draft', 'Sent', 'Accepted', 'Rejected', 'Pending', 'Confirmed']),
     payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid',
         'not_paid', 'not invoiced', 'not_invoiced']),
-    billing_status: z.enum(['not invoiced', 'partially invoiced', 'invoiced',
-        'not_invoiced', 'partially_invoiced', 'Pending']),
+    // Lo gestiona el backend y no se muestra: un valor fuera de lista no puede bloquear el guardado.
+    billing_status: z.string(),
     exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
     created_at: z.date({ required_error: t('validation.dateRequired') }),
     notes: z.string().optional(),
+    sede_id: z.string().min(1, t('validation.sedeRequired')),
     items: z.array(z.object({
         id: z.string().optional(),
         service_id: z.string().min(1, t('validation.serviceRequired')),
@@ -122,9 +131,11 @@ async function getQuotes(params: { page: number; limit: number; search: string }
             status: apiQuote.status || 'draft',
             payment_status: apiQuote.payment_status || 'unpaid',
             billing_status: apiQuote.billing_status || 'not invoiced',
-            currency: apiQuote.currency || 'UYU',
+            currency: apiQuote.currency || getClinicCurrency(),
             user_name: apiQuote.user_name || t('defaults.noName'),
             userEmail: apiQuote.userEmail || t('defaults.noEmail'),
+            sede_id: apiQuote.sede_id != null ? String(apiQuote.sede_id) : undefined,
+            sede_name: apiQuote.sede_name || undefined,
             notes: apiQuote.notes || '',
             createdAt: apiQuote.created_at || new Date().toISOString().split('T')[0],
             exchange_rate: parseFloat(apiQuote.exchange_rate) || 1,
@@ -152,6 +163,7 @@ async function getQuoteItems(quoteId: string, t: (key: string) => string): Promi
             quantity: apiItem.quantity || 0,
             total: apiItem.total || 0,
             tooth_number: apiItem.tooth_number ? Number(apiItem.tooth_number) : undefined,
+            ...mapLineDiscountFields(apiItem),
         }));
 
         return sortQuoteItems(quoteItems);
@@ -166,7 +178,7 @@ async function findServiceById(serviceId: string, serviceName?: string): Promise
     try {
         const result = await getPurchaseServices({ search: serviceName || '', limit: 50 });
         const match = result.items.find((s: any) => String(s.id) === String(serviceId));
-        return match ? { ...match, id: String(match.id), currency: match.currency || 'USD' } : null;
+        return match ? { ...match, id: String(match.id), currency: match.currency || getClinicCurrency() } : null;
     } catch (error) {
         console.error("Failed to resolve service:", error);
         return null;
@@ -206,7 +218,7 @@ async function getOrders(quoteId: string, t: (key: string) => string): Promise<O
             user_name: apiOrder.user_name || apiOrder.name || t('defaults.notAvailable'),
             status: apiOrder.status,
             createdAt: apiOrder.created_at || apiOrder.createdAt || new Date().toISOString().split('T')[0],
-            currency: apiOrder.currency || 'UYU',
+            currency: apiOrder.currency || getClinicCurrency(),
         }));
     } catch (error) {
         console.error("Failed to fetch orders:", error);
@@ -232,6 +244,7 @@ async function getOrderItems(orderId: string, t: (key: string) => string): Promi
             completed_date: apiItem.completed_date,
             invoiced_date: apiItem.invoiced_date,
             quote_item_id: apiItem.quote_item_id ? String(apiItem.quote_item_id) : undefined,
+            ...mapLineDiscountFields(apiItem),
         }));
     } catch (error) {
         console.error("Failed to fetch order items:", error);
@@ -253,7 +266,7 @@ async function getInvoices(quoteId: string, t: (key: string) => string): Promise
             total: parseFloat(apiInvoice.total) || 0,
             status: apiInvoice.status || 'draft',
             createdAt: apiInvoice.created_at || apiInvoice.createdAt || new Date().toISOString(),
-            currency: apiInvoice.currency || 'USD',
+            currency: apiInvoice.currency || getClinicCurrency(),
             order_id: apiInvoice.order_id,
             user_name: apiInvoice.user_name || apiInvoice.name || t('defaults.notAvailable'),
             user_id: apiInvoice.user_id,
@@ -282,6 +295,7 @@ async function getInvoiceItems(invoiceId: string, t: (key: string) => string): P
             quantity: apiItem.quantity,
             unit_price: apiItem.unit_price,
             total: apiItem.total,
+            ...mapLineDiscountFields(apiItem),
         }));
     } catch (error) {
         console.error("Failed to fetch invoice items:", error);
@@ -328,7 +342,7 @@ async function getPayments(quoteId: string, t: (key: string) => string): Promise
             amount: isNewFormat ? parseFloat(apiPayment.amount_applied) : (parseFloat(apiPayment.amount) || 0),
             amount_applied: isNewFormat ? parseFloat(apiPayment.amount_applied) : (parseFloat(apiPayment.amount) || 0),
             source_amount: isNewFormat ? parseFloat(apiPayment.source_amount) : (parseFloat(apiPayment.amount) || 0),
-            source_currency: (isNewFormat ? apiPayment.source_currency : apiPayment.currency) as 'UYU' | 'USD' || 'UYU',
+            source_currency: (isNewFormat ? apiPayment.source_currency : apiPayment.currency) || getClinicCurrency(),
             method: apiPayment.payment_method_name || apiPayment.method,
             payment_method: apiPayment.payment_method_name || apiPayment.method,
             payment_method_code: apiPayment.payment_method_code,
@@ -383,7 +397,7 @@ async function getClinic(): Promise<Clinic | null> {
             location: apiClinic.address || '',
             contact_email: apiClinic.email || '',
             phone_number: apiClinic.phone || '',
-            currency: apiClinic.currency || 'UYU',
+            currency: apiClinic.currency || getClinicCurrency(),
         };
     } catch (error) {
         console.error("Failed to fetch clinic:", error);
@@ -403,7 +417,7 @@ function QuotesPageContent() {
     const tVal = useTranslations('QuotesPage');
     const tInvoiceItems = useTranslations('InvoicesPage.InvoiceItemsTable');
     const { toast } = useToast();
-    const { user, activeCashSession } = useAuth();
+    const { user, activeCashSession, activeSede } = useAuth();
     const { hasPermission } = usePermissions();
     const { printQuote } = usePrintDocument();
 
@@ -419,7 +433,7 @@ function QuotesPageContent() {
 
     const [quotes, setQuotes] = React.useState<Quote[]>([]);
     const [totalQuotes, setTotalQuotes] = React.useState(0);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [searchTerm, setSearchTerm] = React.useState('');
     const debouncedSearch = useDebounce(searchTerm, 300);
     const quotesPageCount = totalQuotes > 0 ? Math.ceil(totalQuotes / pagination.pageSize) : 1;
@@ -443,6 +457,7 @@ function QuotesPageContent() {
     const [paymentRowSelection, setPaymentRowSelection] = React.useState<RowSelectionState>({});
 
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
+    const { code: clinicCurrency } = useCurrencySettings();
 
     const [isLoadingItems, setIsLoadingItems] = React.useState(false);
     const [isLoadingOrders, setIsLoadingOrders] = React.useState(false);
@@ -473,12 +488,7 @@ function QuotesPageContent() {
     const [isServiceSearchOpen, setServiceSearchOpen] = React.useState(false);
 
     const [isRefreshing, setIsRefreshing] = React.useState(false);
-    const [isSendingEmail, setIsSendingEmail] = React.useState(false);
-    const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
-    const [selectedQuoteForEmail, setSelectedQuoteForEmail] = React.useState<Quote | null>(null);
-    const [emailRecipients, setEmailRecipients] = React.useState('');
-    const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
-    const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
+    const [emailTarget, setEmailTarget] = React.useState<EmailDocumentTarget | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [activeTab, setActiveTab] = React.useState('items');
     const [isRightExpanded, setIsRightExpanded] = React.useState(false);
@@ -496,6 +506,7 @@ function QuotesPageContent() {
     const [originalServicePrice, setOriginalServicePrice] = React.useState<number | null>(null);
     const [originalServiceCurrency, setOriginalServiceCurrency] = React.useState('');
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const quoteForm = useForm<QuoteFormValues>({ resolver: zodResolver(quoteFormSchema(tVal)), mode: 'onBlur' });
     const quoteItemForm = useForm<QuoteItemFormValues>({ resolver: zodResolver(quoteItemFormSchema(tVal)), mode: 'onBlur' });
     const { fields: quoteFormFields, append: appendQuoteItem, remove: removeQuoteItem } = useFieldArray({
@@ -714,6 +725,7 @@ function QuotesPageContent() {
                 orderId: selectedOrder.id,
                 userId: selectedOrder.user_id,
                 mode: 'purchases',
+                dueDate: addDays(new Date(), 30),
             });
             toast({
                 title: t('actions.invoiceSuccess'),
@@ -736,9 +748,9 @@ function QuotesPageContent() {
         setEditingQuote(null);
         setSelectedQuoteUser(null);
         const sessionRate = getSessionExchangeRate();
-        const defaultCurrency = clinic?.currency || 'UYU';
+        const defaultCurrency = clinic?.currency || getClinicCurrency();
         const exchangeRate = defaultCurrency === clinic?.currency ? 1 : sessionRate;
-        quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: exchangeRate, created_at: new Date(), notes: '', items: [] });
+        quoteForm.reset({ user_id: '', total: 0, currency: defaultCurrency, status: 'draft', payment_status: 'unpaid', billing_status: 'not invoiced', exchange_rate: exchangeRate, created_at: new Date(), notes: '', sede_id: activeSede?.id || '', items: [] });
         setQuoteSubmissionError(null);
         setIsQuoteDialogOpen(true);
     };
@@ -755,13 +767,12 @@ function QuotesPageContent() {
             'not_invoiced': 'not invoiced', 'partially_invoiced': 'partially invoiced',
             'Pending': 'not invoiced',
         };
-        const currencyMap: Record<string, string> = { 'URU': 'UYU' };
-        const quoteCurrency = quote.currency || 'UYU';
+        const quoteCurrency = quote.currency || getClinicCurrency();
         return {
             status: (statusMap[quote.status] || quote.status.toLowerCase()),
             payment_status: (paymentStatusMap[quote.payment_status] || quote.payment_status),
             billing_status: (billingStatusMap[quote.billing_status] || quote.billing_status),
-            currency: (currencyMap[quoteCurrency] || quoteCurrency),
+            currency: quoteCurrency,
         };
     };
 
@@ -774,7 +785,7 @@ function QuotesPageContent() {
         setIsSubmittingQuote(false);
         const sessionRate = getSessionExchangeRate();
         const normalized = normalizeQuoteFields(quote);
-        const normalizedCurrency = normalized.currency as 'UYU' | 'USD';
+        const normalizedCurrency = normalized.currency;
         const exchangeRate = normalizedCurrency === clinic?.currency ? 1 : (quote.exchange_rate || sessionRate);
 
         const items = await getQuoteItems(quote.id, t);
@@ -799,6 +810,7 @@ function QuotesPageContent() {
                 exchange_rate: exchangeRate,
                 created_at: quote.createdAt ? parseISO(formatDate(quote.createdAt)) : new Date(),
                 notes: quote.notes || '',
+                sede_id: quote.sede_id || activeSede?.id || '',
                 items: mappedItems
             },
             {
@@ -926,10 +938,10 @@ function QuotesPageContent() {
             if (service) {
                 const servicePrice = Number(service.price);
                 setOriginalServicePrice(servicePrice);
-                setOriginalServiceCurrency(service.currency || 'USD');
+                setOriginalServiceCurrency(service.currency || getClinicCurrency());
 
-                const quoteCurrency = selectedQuote.currency || 'USD';
-                const serviceCurrency = service.currency || 'USD';
+                const quoteCurrency = selectedQuote.currency || getClinicCurrency();
+                const serviceCurrency = service.currency || getClinicCurrency();
                 const conversionNeeded = quoteCurrency !== serviceCurrency;
                 setShowConversion(conversionNeeded);
                 setExchangeRate(1);
@@ -1088,93 +1100,19 @@ function QuotesPageContent() {
     }, [printQuote]);
 
     const handleSendEmailClick = React.useCallback((quote: Quote) => {
-        setSelectedQuoteForEmail(quote);
-        setEmailRecipients(quote.userEmail || '');
-        setIsSendEmailDialogOpen(true);
+        setEmailTarget({
+            request: { type: 'quote', quote, isSales: false },
+            id: quote.id,
+            docNo: quote.doc_no,
+            defaultEmails: quote.userEmail || '',
+        });
     }, []);
-
-    const sendQuoteEmail = React.useCallback(async (emails: string[]) => {
-        if (!selectedQuoteForEmail) return;
-
-        setIsSendingEmail(true);
-        try {
-            await api.post(API_ROUTES.PURCHASES.QUOTES_SEND, {
-                quote_id: selectedQuoteForEmail.id,
-                is_sales: false,
-                emails,
-            });
-
-            toast({
-                title: t('emailSent'),
-                description: t('emailSentSuccess', { emails: emails.join(', ') }),
-            });
-
-            setIsSendEmailDialogOpen(false);
-            setSelectedQuoteForEmail(null);
-            setEmailRecipients('');
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: t('emailError'),
-                description: error instanceof Error ? error.message : t('unexpectedError'),
-            });
-        } finally {
-            setIsSendingEmail(false);
-        }
-    }, [selectedQuoteForEmail, t, toast]);
-
-    const handleConfirmSendEmail = React.useCallback(async () => {
-        if (!selectedQuoteForEmail) return;
-
-        const emails = emailRecipients
-            .split(',')
-            .map((email) => email.trim())
-            .filter((email) => email);
-
-        if (emails.length === 0) {
-            toast({ variant: 'destructive', title: t('emailError'), description: t('atLeastOneEmail') });
-            return;
-        }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const invalidEmails = emails.filter((email) => !emailRegex.test(email));
-
-        if (invalidEmails.length > 0) {
-            toast({
-                variant: 'destructive',
-                title: t('invalidEmail'),
-                description: t('invalidEmails', { emails: invalidEmails.join(', ') }),
-            });
-            return;
-        }
-
-        const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
-        const disabled = getDisabledEmails(preferences);
-
-        if (disabled.length > 0) {
-            setDisabledEmails(disabled);
-            setIsWarningDialogOpen(true);
-            return;
-        }
-
-        await sendQuoteEmail(emails);
-    }, [emailRecipients, selectedQuoteForEmail, sendQuoteEmail, t, toast]);
-
-    const handleWarningConfirm = React.useCallback(async () => {
-        const emails = emailRecipients
-            .split(',')
-            .map((email) => email.trim())
-            .filter((email) => email);
-
-        setIsWarningDialogOpen(false);
-        await sendQuoteEmail(emails);
-    }, [emailRecipients, sendQuoteEmail]);
 
     const watchedServiceId = quoteItemForm.watch('service_id');
     const watchedQuantity = quoteItemForm.watch('quantity');
     const watchedQuoteExchangeRate = quoteForm.watch('exchange_rate');
     const watchedQuoteCurrency = quoteForm.watch('currency');
-    const isClinicCurrency = watchedQuoteCurrency === (clinic?.currency || 'UYU');
+    const isClinicCurrency = watchedQuoteCurrency === clinicCurrency;
 
     React.useEffect(() => {
         if (isClinicCurrency) {
@@ -1198,8 +1136,8 @@ function QuotesPageContent() {
 
             setOriginalServicePrice(servicePrice);
 
-            const quoteCurrency = selectedQuote.currency || 'USD';
-            const serviceCurrency = service.currency || 'USD';
+            const quoteCurrency = selectedQuote.currency || getClinicCurrency();
+            const serviceCurrency = service.currency || getClinicCurrency();
             setOriginalServiceCurrency(serviceCurrency);
 
             const conversionNeeded = quoteCurrency !== serviceCurrency;
@@ -1211,11 +1149,7 @@ function QuotesPageContent() {
                 setExchangeRate(exchangeRate);
                 quoteItemForm.setValue('exchange_rate', exchangeRate);
 
-                if (quoteCurrency === 'UYU' && serviceCurrency === 'USD') {
-                    newUnitPrice = servicePrice * exchangeRate;
-                } else if (quoteCurrency === 'USD' && serviceCurrency === 'UYU') {
-                    newUnitPrice = exchangeRate > 0 ? servicePrice / exchangeRate : 0;
-                }
+                newUnitPrice = convertAmount(servicePrice, serviceCurrency, quoteCurrency, exchangeRate, clinicCurrency);
             } else {
                 setExchangeRate(1);
             }
@@ -1273,8 +1207,6 @@ function QuotesPageContent() {
                             title={t('title')}
                             description={t('description')}
                             className="h-full"
-                            isSendingEmail={isSendingEmail}
-                            setIsSendingEmail={setIsSendingEmail}
                             isSales={false}
                             canEditQuote={canUpdateQuote}
                             canDeleteQuote={canDeleteQuote}
@@ -1305,7 +1237,7 @@ function QuotesPageContent() {
                                                 label: t('tabs.total'),
                                                 value: new Intl.NumberFormat('en-US', {
                                                     style: 'currency',
-                                                    currency: selectedQuote.currency || 'USD',
+                                                    currency: selectedQuote.currency || getClinicCurrency(),
                                                 }).format(selectedQuote.total),
                                                 variant: 'default',
                                             },
@@ -1454,7 +1386,7 @@ function QuotesPageContent() {
                                         onTabClick={(tab) => setActiveTab(tab.id)}
                                     />
                                     <div className="flex-1 min-w-0 overflow-y-auto flex flex-col min-h-0 px-0 pt-4 pb-8 sm:py-3 sm:px-3">
-                                            {activeTab === 'items' && (
+                                        {activeTab === 'items' && (
                                             <div className="m-0 h-full flex flex-col">
                                                 <QuoteItemsTable
                                                     items={quoteItems}
@@ -1472,8 +1404,8 @@ function QuotesPageContent() {
                                                     extraButtons={quoteItemToolbarActions}
                                                 />
                                             </div>
-                                            )}
-                                            {/* hidden: orders tab
+                                        )}
+                                        {/* hidden: orders tab
                                             <TabsContent value="orders" className="m-0 h-full overflow-y-auto data-[state=active]:flex data-[state=active]:flex-col pr-2">
                                                 <div className="flex-1 min-h-[400px] flex flex-col">
                                                     <div className="flex items-center justify-between mb-2 flex-none">
@@ -1523,7 +1455,7 @@ function QuotesPageContent() {
                                                 )}
                                             </TabsContent>
                                             */}
-                                            {activeTab === 'invoices' && (
+                                        {activeTab === 'invoices' && (
                                             <div className="relative m-0 h-full overflow-hidden flex flex-col">
                                                 <InvoicesTable
                                                     invoices={invoices}
@@ -1567,7 +1499,7 @@ function QuotesPageContent() {
                                                             </SheetHeader>
                                                             <div className="flex-1 overflow-y-auto p-4 space-y-4">
                                                                 <div className="grid grid-cols-2 gap-3 text-sm">
-                                                                    <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.total')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</p></div>
+                                                                    <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.total')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || getClinicCurrency() }).format(selectedInvoice.total)}</p></div>
                                                                     <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.status')}</p><Badge variant="outline" className="capitalize">{tInvoiceStatus(selectedInvoice.status.toLowerCase())}</Badge></div>
                                                                     <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.paymentStatus')}</p><Badge variant="secondary" className="capitalize">{selectedInvoice.payment_status ? tInvoiceStatus(selectedInvoice.payment_status.toLowerCase()) : ''}</Badge></div>
                                                                     <div><p className="text-xs text-muted-foreground">{tRoot('InvoicesPage.columns.createdAt')}</p><p>{formatDisplayDate(selectedInvoice.createdAt)}</p></div>
@@ -1586,8 +1518,8 @@ function QuotesPageContent() {
                                                     )}
                                                 </ResizableSheet>
                                             </div>
-                                            )}
-                                            {activeTab === 'payments' && (
+                                        )}
+                                        {activeTab === 'payments' && (
                                             <div className="relative m-0 h-full flex flex-col overflow-hidden">
                                                 <PaymentsTable
                                                     payments={payments}
@@ -1621,7 +1553,7 @@ function QuotesPageContent() {
                                                             <div className="grid grid-cols-2 gap-3 overflow-y-auto p-4 text-sm">
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.invoice_doc_no')}</p><p className="font-medium">{selectedPayment.invoice_doc_no || 'N/A'}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.date')}</p><p>{formatDisplayDate(selectedPayment.payment_date || selectedPayment.createdAt)}</p></div>
-                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.amount_applied')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || selectedPayment.source_currency || 'USD' }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.amount_applied')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || selectedPayment.source_currency || getClinicCurrency() }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.method')}</p><p>{selectedPayment.payment_method_code || selectedPayment.method || 'N/A'}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.transaction_type')}</p><Badge variant="secondary" className="capitalize">{selectedPayment.transaction_type}</Badge></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tRoot('PaymentsPage.columns.exchange_rate')}</p><p>{selectedPayment.exchange_rate || 'N/A'}</p></div>
@@ -1631,8 +1563,8 @@ function QuotesPageContent() {
                                                     )}
                                                 </ResizableSheet>
                                             </div>
-                                            )}
-                                            {activeTab === 'notes' && (
+                                        )}
+                                        {activeTab === 'notes' && (
                                             <div className="m-0 h-full p-4">
                                                 {selectedQuote?.notes ? (
                                                     <div className="whitespace-pre-wrap text-sm">{selectedQuote.notes}</div>
@@ -1640,7 +1572,7 @@ function QuotesPageContent() {
                                                     <p className="text-muted-foreground text-sm">{t('notes.noNotes')}</p>
                                                 )}
                                             </div>
-                                            )}
+                                        )}
                                     </div>
                                 </CardContent>
                             </Card>
@@ -1663,7 +1595,7 @@ function QuotesPageContent() {
                         </DialogDescription>
                     </DialogHeader>
                     <Form {...quoteForm}>
-                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddQuoteItem(); } }}>
+                        <form onSubmit={quoteForm.handleSubmit(onQuoteSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddQuoteItem(); } }}>
                             <DialogBody className="space-y-4 py-4 px-6">
                                 {quoteSubmissionError && (
                                     <Alert variant="destructive">
@@ -1719,13 +1651,25 @@ function QuotesPageContent() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>{t('quoteDialog.currency')}</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl><SelectTrigger><SelectValue placeholder={t('quoteDialog.selectCurrency')} /></SelectTrigger></FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="USD">USD</SelectItem>
-                                                        <SelectItem value="UYU">UYU</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
+                                                <FormControl><CurrencySelect value={field.value} onChange={field.onChange} placeholder={t('quoteDialog.selectCurrency')} /></FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={quoteForm.control}
+                                        name="sede_id"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>{t('quoteDialog.sede')}</FormLabel>
+                                                <FormControl>
+                                                    <SedeSelector
+                                                        value={field.value}
+                                                        onValueChange={(sedeId) => field.onChange(sedeId)}
+                                                        triggerText={t('quoteDialog.selectSede')}
+                                                        placeholder={t('quoteDialog.searchSede')}
+                                                    />
+                                                </FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -1866,22 +1810,22 @@ function QuotesPageContent() {
                                                                                 isSales={false}
                                                                                 value={field.value}
                                                                                 selectedServiceName={quoteForm.getValues(`items.${index}.service_name`) || undefined}
-                                                                            onValueChange={(serviceId, service) => {
-                                                                                field.onChange(serviceId);
-                                                                                if (service) {
-                                                                                    const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
-                                                                                    const servicePrice = Number(service.price);
-                                                                                    quoteForm.setValue(`items.${index}.service_name`, service.name, { shouldDirty: true });
-                                                                                    quoteForm.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
-                                                                                    quoteForm.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
-                                                                                }
-                                                                            }}
-                                                                            placeholder={t('itemDialog.searchService') || 'Buscar servicio...'}
-                                                                            triggerText={t('quoteDialog.items.selectService') || 'Seleccionar servicio'}
-                                                                        />
-                                                                        <FormMessage />
-                                                                    </FormItem>
-                                                                )} />
+                                                                                onValueChange={(serviceId, service) => {
+                                                                                    field.onChange(serviceId);
+                                                                                    if (service) {
+                                                                                        const quantity = quoteForm.getValues(`items.${index}.quantity`) || 1;
+                                                                                        const servicePrice = Number(service.price);
+                                                                                        quoteForm.setValue(`items.${index}.service_name`, service.name, { shouldDirty: true });
+                                                                                        quoteForm.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
+                                                                                        quoteForm.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
+                                                                                    }
+                                                                                }}
+                                                                                placeholder={t('itemDialog.searchService') || 'Buscar servicio...'}
+                                                                                triggerText={t('quoteDialog.items.selectService') || 'Seleccionar servicio'}
+                                                                            />
+                                                                            <FormMessage />
+                                                                        </FormItem>
+                                                                    )} />
                                                                 </div>
                                                             </td>
                                                             <td className="p-1">
@@ -1937,7 +1881,7 @@ function QuotesPageContent() {
                                             </table>
                                             <FormMessage>{quoteForm.formState.errors.items?.root?.message}</FormMessage>
                                             <div className="text-right pt-2">
-                                                <span className="font-semibold text-lg">{t('quoteDialog.total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: quoteForm.watch('currency') || 'USD' }).format(quoteFormFields.reduce((sum, _, i) => sum + (Number(quoteForm.getValues(`items.${i}.total`)) || 0), 0))}</span>
+                                                <span className="font-semibold text-lg">{t('quoteDialog.total')}: {new Intl.NumberFormat('en-US', { style: 'currency', currency: quoteForm.watch('currency') || getClinicCurrency() }).format(quoteFormFields.reduce((sum, _, i) => sum + (Number(quoteForm.getValues(`items.${i}.total`)) || 0), 0))}</span>
                                             </div>
                                         </div>
                                     </CardContent>
@@ -1994,7 +1938,7 @@ function QuotesPageContent() {
                         <DialogDescription>{t('itemDialog.description')}</DialogDescription>
                     </DialogHeader>
                     <Form {...quoteItemForm}>
-                        <form onSubmit={quoteItemForm.handleSubmit(onQuoteItemSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={quoteItemForm.handleSubmit(onQuoteItemSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
                             <DialogBody className="space-y-4 py-4 px-6">
                                 {quoteItemSubmissionError && (
                                     <Alert variant="destructive">
@@ -2020,8 +1964,8 @@ function QuotesPageContent() {
                                                         const servicePrice = Number(service.price);
                                                         quoteItemForm.setValue('service_name', service.name);
                                                         setOriginalServicePrice(servicePrice);
-                                                        const quoteCurrency = selectedQuote.currency || 'USD';
-                                                        const serviceCurrency = service.currency || 'USD';
+                                                        const quoteCurrency = selectedQuote.currency || getClinicCurrency();
+                                                        const serviceCurrency = service.currency || getClinicCurrency();
                                                         const conversionNeeded = quoteCurrency !== serviceCurrency;
                                                         setShowConversion(conversionNeeded);
                                                         setOriginalServiceCurrency(serviceCurrency);
@@ -2029,11 +1973,7 @@ function QuotesPageContent() {
                                                         let newUnitPrice = servicePrice;
                                                         if (conversionNeeded) {
                                                             const rate = exchangeRate || 1;
-                                                            if (quoteCurrency === 'UYU' && serviceCurrency === 'USD') {
-                                                                newUnitPrice = servicePrice * rate;
-                                                            } else if (quoteCurrency === 'USD' && serviceCurrency === 'UYU') {
-                                                                newUnitPrice = rate > 0 ? servicePrice / rate : 0;
-                                                            }
+                                                            newUnitPrice = convertAmount(servicePrice, serviceCurrency, quoteCurrency, rate, clinicCurrency);
                                                         }
 
                                                         const quantity = Number(quoteItemForm.getValues('quantity')) || 1;
@@ -2207,45 +2147,7 @@ function QuotesPageContent() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-            <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{t('sendEmailDialog.title')}</DialogTitle>
-                        <DialogDescription>{t('sendEmailDialog.description', { id: selectedQuoteForEmail?.doc_no || selectedQuoteForEmail?.id })}</DialogDescription>
-                    </DialogHeader>
-                    <div className="px-6 py-4">
-                        <label htmlFor="quote-email-recipients" className="text-sm font-medium">{t('sendEmailDialog.recipients')}</label>
-                        <Input
-                            id="quote-email-recipients"
-                            value={emailRecipients}
-                            onChange={(e) => setEmailRecipients(e.target.value)}
-                            placeholder={t('sendEmailDialog.placeholder')}
-                        />
-                        <p className="mt-1 text-sm text-muted-foreground">{t('sendEmailDialog.helperText')}</p>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>
-                            {t('quoteDialog.cancel')}
-                        </Button>
-                        <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
-                            {isSendingEmail ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    {t('sendEmailDialog.sending')}
-                                </>
-                            ) : (
-                                t('sendEmail')
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-            <CommunicationWarningDialog
-                open={isWarningDialogOpen}
-                onOpenChange={setIsWarningDialogOpen}
-                disabledItems={disabledEmails}
-                onConfirm={handleWarningConfirm}
-            />
+            <SendDocumentEmailDialog document={emailTarget} onClose={() => setEmailTarget(null)} />
             <GridExportDialog
                 open={exportOpen}
                 onOpenChange={setExportOpen}

@@ -3,7 +3,9 @@
 import { Button } from '@/components/ui/button';
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Service } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -11,6 +13,7 @@ import { getPurchaseServices, getSalesServices } from '@/services/services';
 import { Check, ChevronsUpDown, Loader2, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface ServiceSelectorProps {
     /** Tipo de servicio: true = sales (clínica), false = purchase (proveedores) */
@@ -33,7 +36,15 @@ interface ServiceSelectorProps {
     className?: string;
     /** Si está deshabilitado */
     disabled?: boolean;
+    /** Marca el campo como inválido (borde rojo). `FormControl` lo pasa solo. */
+    'aria-invalid'?: React.AriaAttributes['aria-invalid'];
 }
+
+/**
+ * Altura aproximada que el popover intenta ocupar. Si hacia abajo hay menos que
+ * esto y hacia arriba hay más espacio, el desplegable se abre hacia arriba.
+ */
+const DESIRED_POPOVER_HEIGHT = 320;
 
 export function ServiceSelector({
     isSales = true,
@@ -46,8 +57,13 @@ export function ServiceSelector({
     triggerText = 'Seleccionar servicio',
     className,
     disabled = false,
+    'aria-invalid': ariaInvalid,
 }: ServiceSelectorProps) {
     const t = useTranslations('General');
+    const { hasPermission } = usePermissions();
+    const canCreateService = hasPermission(SALES_PERMISSIONS.SERVICES_CREATE);
+    const triggerRef = React.useRef<HTMLButtonElement>(null);
+    const [side, setSide] = React.useState<'top' | 'bottom'>('bottom');
     const [open, setOpen] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
     const [services, setServices] = React.useState<Service[]>([]);
@@ -64,7 +80,19 @@ export function ServiceSelector({
     }, [searchQuery]);
 
     const handleOpenChange = (nextOpen: boolean) => {
-        if (!nextOpen) setIsCreating(false);
+        if (nextOpen) {
+            // Decide el lado al abrir: si abajo no entra un desplegable cómodo y
+            // arriba hay más aire, se abre hacia arriba. Radix mantiene su propia
+            // detección de colisión encima de esto como red de seguridad.
+            const rect = triggerRef.current?.getBoundingClientRect();
+            if (rect) {
+                const spaceBelow = window.innerHeight - rect.bottom;
+                const spaceAbove = rect.top;
+                setSide(spaceBelow < DESIRED_POPOVER_HEIGHT && spaceAbove > spaceBelow ? 'top' : 'bottom');
+            }
+        } else {
+            setIsCreating(false);
+        }
         setOpen(nextOpen);
     };
 
@@ -80,7 +108,7 @@ export function ServiceSelector({
                 setServices(result.items.map((s: any) => ({
                     ...s,
                     id: String(s.id),
-                    currency: s.currency || 'UYU',
+                    currency: s.currency || getClinicCurrency(),
                 })));
             } catch (error) {
                 console.error('Failed to fetch services:', error);
@@ -131,13 +159,13 @@ export function ServiceSelector({
 
     const handleCreateService = async () => {
         const name = searchQuery.trim();
-        if (!name) return;
+        if (!name || !canCreateService) return;
         setIsSaving(true);
         try {
             await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, {
                 name,
                 price: 0,
-                currency: 'UYU',
+                currency: getClinicCurrency(),
                 is_sales: isSales,
                 is_active: true,
                 duration_minutes: 60,
@@ -153,7 +181,7 @@ export function ServiceSelector({
             const newServices = result.items.map((s: any) => ({
                 ...s,
                 id: String(s.id),
-                currency: s.currency || 'UYU',
+                currency: s.currency || getClinicCurrency(),
             }));
             setServices(newServices);
 
@@ -175,10 +203,12 @@ export function ServiceSelector({
         <Popover open={open} onOpenChange={handleOpenChange}>
             <PopoverTrigger asChild>
                 <Button
+                    ref={triggerRef}
                     variant="outline"
                     role="combobox"
                     className={cn("w-full justify-between", !value && "text-muted-foreground", className)}
                     disabled={disabled}
+                    aria-invalid={ariaInvalid}
                 >
                     {value && selectedService
                         ? <span className="truncate block">{selectedService.name}</span>
@@ -186,14 +216,14 @@ export function ServiceSelector({
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+            <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start" side={side}>
                 <Command shouldFilter={false}>
                     <CommandInput
                         placeholder={placeholder}
                         value={searchQuery}
                         onValueChange={setSearchQuery}
                     />
-                    <CommandList>
+                    <CommandList className="max-h-[320px]">
                         {isLoading ? (
                             <div className="flex items-center justify-center p-4">
                                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -231,8 +261,10 @@ export function ServiceSelector({
                                     </p>
                                 )}
 
-                                {/* Create option — always at bottom when there's a search query */}
-                                {searchQuery.trim() && (
+                                {/* Create option — always at bottom when there's a search query.
+                                    Solo para quien puede dar de alta servicios: crear acá es
+                                    el mismo alta que desde el catálogo, con otra puerta. */}
+                                {canCreateService && searchQuery.trim() && (
                                     <div className={cn("border-t", services.length === 0 && "border-t-0")}>
                                         {isCreating ? (
                                             <div className="p-2 space-y-1.5">

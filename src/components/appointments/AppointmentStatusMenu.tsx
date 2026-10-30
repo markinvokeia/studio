@@ -24,11 +24,11 @@ import {
 import { cn } from '@/lib/utils';
 import {
   ALLOWED_STATUS_TRANSITIONS,
-  APPOINTMENT_STATUSES,
-  CANCELLATION_REASONS_QUICK,
-  STATUS_ACCENT_COLOR,
-  STATUS_BADGE_VARIANT,
+  CANCELLATION_REASONS_SUBMENU,
+  STATUS_MENU_LAYOUT,
 } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
 import type { Appointment, AppointmentStatus, CancellationReason } from '@/lib/types';
 import { CANCELLATION_REASON_ICONS, getStatusIcon, STATUS_ICONS } from './status-icons';
 
@@ -43,10 +43,6 @@ function ColorDot({ color, className }: { color: string; className?: string }) {
   );
 }
 
-// The "cancelled" accent serves as the swatch for every cancellation reason
-// (they all end the appointment in the same state).
-const CANCELLATION_REASON_COLOR = STATUS_ACCENT_COLOR.cancelled;
-
 export interface StatusChangeExtra {
   cancellation_reason?: CancellationReason;
   cancellation_note?: string;
@@ -59,6 +55,137 @@ interface BaseProps {
   onRequestCustomCancellation?: () => void;
   disabled?: boolean;
   isUpdating?: boolean;
+}
+
+/**
+ * Shared body for every status picker: renders STATUS_MENU_LAYOUT (statuses,
+ * the promoted cancellation actions and the trailing "Cancelar…" submenu with
+ * the remaining reasons) using host-provided menu primitives so the exact same
+ * ordering/logic drives both the badge DropdownMenu and the calendar ContextMenu.
+ */
+interface StatusMenuEntriesProps {
+  appointment: Appointment;
+  onChange: (newStatus: AppointmentStatus, extra?: StatusChangeExtra) => void;
+  onRequestCustomCancellation?: () => void;
+  /** Mientras hay un cambio de estado en vuelo, las transiciones se bloquean para
+   *  que un segundo clic no dispare otro POST sobre la misma cita. */
+  isUpdating?: boolean;
+  Item: React.ComponentType<any>;
+  Sub: React.ComponentType<any>;
+  SubTrigger: React.ComponentType<any>;
+  SubContent: React.ComponentType<any>;
+  Separator: React.ComponentType<any>;
+  /** How selecting an item is wired: DropdownMenu/ContextMenu `onSelect` vs a plain `onClick`. */
+  interaction: 'select' | 'click';
+}
+
+function StatusMenuEntries({
+  appointment,
+  onChange,
+  onRequestCustomCancellation,
+  isUpdating = false,
+  Item,
+  Sub,
+  SubTrigger,
+  SubContent,
+  Separator,
+  interaction,
+}: StatusMenuEntriesProps) {
+  const tStatus = useTranslations('AppointmentStatus');
+  const tMenu = useTranslations('AppointmentStatusMenu');
+  const tReason = useTranslations('CancellationReason');
+  const { colorOf } = useAppointmentStatusDisplay();
+  const current = appointment.status;
+  const allowed = ALLOWED_STATUS_TRANSITIONS[current] ?? [];
+  const canCancel = allowed.includes('cancelled');
+  const CancelIcon = STATUS_ICONS.cancelled;
+  // El acento de "cancelada" sirve de swatch para todos los motivos de
+  // cancelación (todos terminan la cita en el mismo estado). Scope de
+  // componente: la matriz solo se conoce en render, no a nivel de módulo.
+  const CANCELLATION_REASON_COLOR = colorOf('cancelled');
+
+  // Fire the action using the host menu's interaction API.
+  const fire = (fn: () => void) =>
+    interaction === 'select'
+      ? { onSelect: (e: Event) => { e.preventDefault(); fn(); } }
+      : { onClick: (e: React.MouseEvent) => { e.stopPropagation(); fn(); } };
+
+  const statusItem = (status: AppointmentStatus) => {
+    const Icon = STATUS_ICONS[status];
+    const isCurrent = status === current;
+    const enabled = !isCurrent && allowed.includes(status) && !isUpdating;
+    const statusColor = colorOf(status);
+    return (
+      <Item
+        key={`status-${status}`}
+        disabled={!enabled}
+        {...fire(() => { if (enabled) onChange(status); })}
+        className="flex items-center gap-2 cursor-pointer"
+      >
+        <ColorDot color={statusColor} />
+        <Icon className="h-4 w-4 shrink-0" style={{ color: statusColor }} />
+        <span className="flex-1 capitalize">{tStatus(status)}</span>
+        {isCurrent && <Check className="ml-auto h-3.5 w-3.5 text-muted-foreground" />}
+      </Item>
+    );
+  };
+
+  const cancelReasonItem = (reason: CancellationReason) => {
+    const ReasonIcon = CANCELLATION_REASON_ICONS[reason];
+    const isCurrent = current === 'cancelled' && appointment.cancellation_reason === reason;
+    const enabled = canCancel && !isCurrent && !isUpdating;
+    return (
+      <Item
+        key={`reason-${reason}`}
+        disabled={!enabled}
+        {...fire(() => { if (enabled) onChange('cancelled', { cancellation_reason: reason }); })}
+        className="flex items-center gap-2 cursor-pointer"
+      >
+        <ReasonIcon className="h-4 w-4 shrink-0" style={{ color: CANCELLATION_REASON_COLOR }} />
+        <ColorDot color={CANCELLATION_REASON_COLOR} />
+        <span className="flex-1">{tReason(reason)}</span>
+        {isCurrent && <Check className="ml-auto h-3.5 w-3.5 text-muted-foreground" />}
+      </Item>
+    );
+  };
+
+  return (
+    <>
+      {STATUS_MENU_LAYOUT.map((entry) => {
+        if (entry.kind === 'status') return statusItem(entry.status);
+        if (entry.kind === 'cancelReason') return cancelReasonItem(entry.reason);
+        // Trailing "Cancelar…" submenu with the reasons not promoted above.
+        return (
+          <React.Fragment key="cancel-submenu">
+            <Separator />
+            <Sub>
+              <SubTrigger disabled={!canCancel || isUpdating} className="flex items-center gap-2 cursor-pointer">
+                <ColorDot color={CANCELLATION_REASON_COLOR} />
+                <CancelIcon className="h-4 w-4 shrink-0" style={{ color: CANCELLATION_REASON_COLOR }} />
+                <span className="capitalize">{tMenu('cancelSubmenu')}</span>
+              </SubTrigger>
+              <SubContent>
+                {CANCELLATION_REASONS_SUBMENU.map((reason) => cancelReasonItem(reason))}
+                {onRequestCustomCancellation && (
+                  <>
+                    <Separator />
+                    <Item
+                      {...fire(() => onRequestCustomCancellation())}
+                      className="flex items-center gap-2 cursor-pointer"
+                    >
+                      <ColorDot color={CANCELLATION_REASON_COLOR} />
+                      <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                      <span>{tMenu('otherReason')}</span>
+                    </Item>
+                  </>
+                )}
+              </SubContent>
+            </Sub>
+          </React.Fragment>
+        );
+      })}
+    </>
+  );
 }
 
 export function AppointmentStatusMenu({
@@ -76,12 +203,11 @@ export function AppointmentStatusMenu({
   const tStatus = useTranslations('AppointmentStatus');
   const tMenu = useTranslations('AppointmentStatusMenu');
   const tReason = useTranslations('CancellationReason');
+  const { displayOf } = useAppointmentStatusDisplay();
   const current = appointment.status;
   const allowed = ALLOWED_STATUS_TRANSITIONS[current] ?? [];
-  const variant = (STATUS_BADGE_VARIANT[current] ?? 'default') as
-    | 'default' | 'success' | 'destructive' | 'info' | 'warning' | 'secondary' | 'outline';
+  const currentDisplay = displayOf(current);
   const CurrentIcon = getStatusIcon(current, appointment.cancellation_reason) ?? ClipboardList;
-  const canCancel = allowed.includes('cancelled');
 
   return (
     <DropdownMenu modal={false}>
@@ -97,8 +223,9 @@ export function AppointmentStatusMenu({
           aria-label={tMenu('label')}
         >
           <Badge
-            variant={variant}
-            className={cn('capitalize gap-1', size === 'sm' ? 'text-xs' : 'text-sm')}
+            variant="custom"
+            className={cn('capitalize gap-1', statusBadgeClassNames(currentDisplay), size === 'sm' ? 'text-xs' : 'text-sm')}
+            style={statusBadgeInlineStyle(currentDisplay)}
           >
             {isUpdating ? (
               <Loader2 className="h-3 w-3 animate-spin" />
@@ -120,90 +247,18 @@ export function AppointmentStatusMenu({
           {tMenu('changeStatus')}
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {APPOINTMENT_STATUSES.map((status) => {
-          const Icon = STATUS_ICONS[status];
-          const isCurrent = status === current;
-          const enabled = isCurrent || allowed.includes(status);
-          const statusColor = STATUS_ACCENT_COLOR[status];
-
-          // The "cancelled" entry becomes a submenu so the user picks a reason.
-          if (status === 'cancelled') {
-            if (!canCancel) {
-              return (
-                <DropdownMenuItem key={status} disabled className="gap-2 text-sm">
-                  <ColorDot color={statusColor} />
-                  <Icon className="h-4 w-4 shrink-0" style={{ color: statusColor }} />
-                  <span className="flex-1 capitalize">{tStatus(status)}</span>
-                  {isCurrent && <Check className="h-3.5 w-3.5 text-muted-foreground" />}
-                </DropdownMenuItem>
-              );
-            }
-            return (
-              <DropdownMenuSub key={status}>
-                <DropdownMenuSubTrigger className="gap-2 text-sm">
-                  <ColorDot color={statusColor} />
-                  <Icon className="h-4 w-4 shrink-0" style={{ color: statusColor }} />
-                  <span className="flex-1 capitalize">{tMenu('cancelSubmenu')}</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  {CANCELLATION_REASONS_QUICK.map((reason) => (
-                    (() => {
-                      const ReasonIcon = CANCELLATION_REASON_ICONS[reason];
-
-                      return (
-                        <DropdownMenuItem
-                          key={reason}
-                          onSelect={(e) => {
-                            e.preventDefault();
-                            onChange('cancelled', { cancellation_reason: reason });
-                          }}
-                          className="gap-2 text-sm"
-                        >
-                          <ReasonIcon className="h-4 w-4 shrink-0" style={{ color: CANCELLATION_REASON_COLOR }} />
-                          <ColorDot color={CANCELLATION_REASON_COLOR} />
-                          <span>{tReason(reason)}</span>
-                        </DropdownMenuItem>
-                      );
-                    })()
-                  ))}
-                  {onRequestCustomCancellation && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          onRequestCustomCancellation();
-                        }}
-                        className="gap-2 text-sm"
-                      >
-                        <ColorDot color={CANCELLATION_REASON_COLOR} />
-                        <MessageSquare className="h-3.5 w-3.5 shrink-0" />
-                        <span>{tMenu('otherReason')}</span>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-            );
-          }
-
-          return (
-            <DropdownMenuItem
-              key={status}
-              disabled={!enabled || isCurrent}
-              onSelect={(e) => {
-                e.preventDefault();
-                if (!isCurrent && enabled) onChange(status);
-              }}
-              className="gap-2 text-sm"
-            >
-              <ColorDot color={statusColor} />
-              <Icon className="h-4 w-4 shrink-0" style={{ color: statusColor }} />
-              <span className="flex-1 capitalize">{tStatus(status)}</span>
-              {isCurrent && <Check className="h-3.5 w-3.5 text-muted-foreground" />}
-            </DropdownMenuItem>
-          );
-        })}
+        <StatusMenuEntries
+          appointment={appointment}
+          onChange={onChange}
+          onRequestCustomCancellation={onRequestCustomCancellation}
+          isUpdating={isUpdating}
+          Item={DropdownMenuItem}
+          Sub={DropdownMenuSub}
+          SubTrigger={DropdownMenuSubTrigger}
+          SubContent={DropdownMenuSubContent}
+          Separator={DropdownMenuSeparator}
+          interaction="select"
+        />
         {allowed.length === 0 && (
           <p className="px-2 py-1.5 text-xs text-muted-foreground italic">
             {tMenu('noTransitions')}
@@ -215,14 +270,17 @@ export function AppointmentStatusMenu({
 }
 
 /**
- * Renderable list of <ContextMenuItem> entries for the status submenu inside the calendar's
- * native ContextMenu. The "cancelled" entry is rendered as a nested ContextMenuSub with the
- * 5 quick reasons + "Other reason…".
+ * Renderable list of <ContextMenuItem> entries for the calendar's native
+ * ContextMenu. Delegates to the shared STATUS_MENU_LAYOUT renderer so the order,
+ * the promoted cancellation actions and the trailing "Cancelar…" submenu stay in
+ * sync with the badge dropdown.
  */
 interface AppointmentStatusContextItemsProps {
   appointment: Appointment;
   onChange: (newStatus: AppointmentStatus, extra?: StatusChangeExtra) => void;
   onRequestCustomCancellation?: () => void;
+  /** Bloquea las transiciones mientras hay un cambio de estado en vuelo. */
+  isUpdating?: boolean;
   ItemComponent: React.ComponentType<any>;
   SubComponent: React.ComponentType<any>;
   SubTriggerComponent: React.ComponentType<any>;
@@ -234,108 +292,25 @@ export function AppointmentStatusContextItems({
   appointment,
   onChange,
   onRequestCustomCancellation,
+  isUpdating,
   ItemComponent,
   SubComponent,
   SubTriggerComponent,
   SubContentComponent,
   SeparatorComponent,
 }: AppointmentStatusContextItemsProps) {
-  const tStatus = useTranslations('AppointmentStatus');
-  const tMenu = useTranslations('AppointmentStatusMenu');
-  const tReason = useTranslations('CancellationReason');
-  const current = appointment.status;
-  const allowed = ALLOWED_STATUS_TRANSITIONS[current] ?? [];
-  const canCancel = allowed.includes('cancelled');
-
   return (
-    <>
-      {APPOINTMENT_STATUSES.map((status) => {
-        const Icon = STATUS_ICONS[status];
-        const isCurrent = status === current;
-        const enabled = !isCurrent && allowed.includes(status);
-        const statusColor = STATUS_ACCENT_COLOR[status];
-
-        if (status === 'cancelled') {
-          if (!canCancel) {
-            return (
-              <ItemComponent
-                key={status}
-                disabled
-                className="flex items-center gap-2 cursor-not-allowed"
-              >
-                <ColorDot color={statusColor} />
-                <Icon className="h-4 w-4" style={{ color: statusColor }} />
-                <span className="capitalize">{tStatus(status)}</span>
-                {isCurrent && <Check className="ml-auto h-3.5 w-3.5 text-muted-foreground" />}
-              </ItemComponent>
-            );
-          }
-          return (
-            <SubComponent key={status}>
-              <SubTriggerComponent className="flex items-center gap-2 cursor-pointer">
-                <ColorDot color={statusColor} />
-                <Icon className="h-4 w-4" style={{ color: statusColor }} />
-                <span className="capitalize">{tMenu('cancelSubmenu')}</span>
-              </SubTriggerComponent>
-              <SubContentComponent>
-                {CANCELLATION_REASONS_QUICK.map((reason) => (
-                  (() => {
-                    const ReasonIcon = CANCELLATION_REASON_ICONS[reason];
-
-                    return (
-                      <ItemComponent
-                        key={reason}
-                        onClick={(e: React.MouseEvent) => {
-                          e.stopPropagation();
-                          onChange('cancelled', { cancellation_reason: reason });
-                        }}
-                        className="flex items-center gap-2 cursor-pointer"
-                      >
-                        <ReasonIcon className="h-4 w-4 shrink-0" style={{ color: CANCELLATION_REASON_COLOR }} />
-                        <ColorDot color={CANCELLATION_REASON_COLOR} />
-                        <span>{tReason(reason)}</span>
-                      </ItemComponent>
-                    );
-                  })()
-                ))}
-                {onRequestCustomCancellation && (
-                  <>
-                    <SeparatorComponent />
-                    <ItemComponent
-                      onClick={(e: React.MouseEvent) => {
-                        e.stopPropagation();
-                        onRequestCustomCancellation();
-                      }}
-                      className="flex items-center gap-2 cursor-pointer"
-                    >
-                      <ColorDot color={CANCELLATION_REASON_COLOR} />
-                      <MessageSquare className="h-3.5 w-3.5" />
-                      <span>{tMenu('otherReason')}</span>
-                    </ItemComponent>
-                  </>
-                )}
-              </SubContentComponent>
-            </SubComponent>
-          );
-        }
-
-        return (
-          <ItemComponent
-            key={status}
-            disabled={!enabled}
-            onClick={(e: React.MouseEvent) => {
-              e.stopPropagation();
-              if (enabled) onChange(status);
-            }}
-            className="flex items-center gap-2 cursor-pointer"
-          >
-            <ColorDot color={statusColor} />
-            <Icon className="h-4 w-4" style={{ color: statusColor }} />
-            <span className="capitalize">{tStatus(status)}</span>
-            {isCurrent && <Check className="ml-auto h-3.5 w-3.5 text-muted-foreground" />}
-          </ItemComponent>
-        );
-      })}
-    </>
+    <StatusMenuEntries
+      appointment={appointment}
+      onChange={onChange}
+      onRequestCustomCancellation={onRequestCustomCancellation}
+      isUpdating={isUpdating}
+      Item={ItemComponent}
+      Sub={SubComponent}
+      SubTrigger={SubTriggerComponent}
+      SubContent={SubContentComponent}
+      Separator={SeparatorComponent}
+      interaction="click"
+    />
   );
 }

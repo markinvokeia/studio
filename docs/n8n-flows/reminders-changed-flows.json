@@ -1,0 +1,1149 @@
+{
+  "name": "Reminders - flujos modificados (2026-09-14)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## LÉEME antes de importar\n\nEste fichero junta **solo** las cadenas de nodos que se tocaron, para no tener que\ndiferenciar el `All Appointment Workflows.json` entero.\n\n**No es un workflow para activar tal cual.** Las cinco cadenas de abajo pertenecen a tres\nworkflows distintos de n8n (cada bloque dice a cuál). Pegar acá dentro **agrega** nodos, no\nlos reemplaza: hay que borrar los viejos en el workflow de destino antes de pegar los\nnuevos, o quedan duplicados y dos webhooks compitiendo por la misma ruta.\n\n**Orden de despliegue:**\nLos scripts están numerados en el orden en que se corren:\n\n1. `081_20260914_reminders-all-day.sql` — columna `is_all_day`. Sin esto el upsert falla\n   por columna inexistente.\n2. `082_20260914_reminders-recurrence.sql` — `reminder_series` y las funciones\n   `reminders_save`, `reminders_delete_scoped` y `reminders_materialize_all`, que los\n   nodos de abajo invocan.\n3. Reemplazar las cadenas en sus workflows.\n4. `083_20260914_purge-note-notifications.sql` — **va último a propósito**: si se corre\n   antes de desplegar el cron corregido, el cron vuelve a insertar las notificaciones en\n   el minuto siguiente.\n\n**Ojo con Always Output Data**: `Upsert Reminder` y `Delete Reminder` lo necesitan. Sin\neso, cuando el guard de permisos corta, el nodo Postgres no emite ítems, el nodo siguiente\nno corre y el webhook queda sin responder: el 403 no llega nunca y el request muere por\ntimeout.\n\nNinguno de estos ficheros se verificó contra el n8n desplegado: se editaron leyendo el\nrepositorio. Conviene exportar los flujos vivos y diferenciarlos antes de aplicar.",
+        "height": 780,
+        "width": 820,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        -700
+      ],
+      "id": "readme",
+      "name": "Doc readme"
+    },
+    {
+      "parameters": {
+        "content": "## → workflow: All Appointment Workflows\n\n**POST** `/webhook/reminders/upsert`\n\nCambios:\n- `Validate Input`: acepta `visibility`, `is_all_day`, `recurrence` y `scope`. Normaliza en\n  el servidor las horas de los ítems de todo el día y les fuerza `raise_alert = false`.\n- `Upsert Reminder`: pasa a llamar a `reminders_save($1::jsonb, $2::uuid)`. Toda la lógica\n  (alta, edición, alcance de serie y guard de permisos) queda en SQL versionado.\n- `Check Ownership`: filtra por `row.id`. Con `alwaysOutputData` la fila bloqueada llega\n  como `{}`, así que el `rows.length === 0` de antes nunca daba true.\n- `Upsert Reminder` necesita **Always Output Data** activado.\n- `Push calendar_changed (reminder upsert)` se conserva tal como estaba, colgado de la\n  rama sin error del IF junto a `Respond 202`.",
+        "height": 380,
+        "width": 700,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        0
+      ],
+      "id": "doc-upsert",
+      "name": "Doc doc-upsert"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "reminders/upsert",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        60
+      ],
+      "id": "09f342d5-eb79-415b-a8c5-ecaafa17feb5",
+      "name": "Webhook",
+      "webhookId": "reminders-upsert",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\n\nconst UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst LOCAL_DATETIME_PATTERN = /^\\d{4}-\\d{2}-\\d{2}[T ]\\d{2}:\\d{2}(?::\\d{2}(?:\\.\\d{1,6})?)?$/;\nconst HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;\n\nconst requireUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!UUID_PATTERN.test(text)) throw new Error(`${field} must be a valid UUID`);\n  return text;\n};\n\nconst optionalUuid = (value, field) => {\n  if (value == null || value === '') return null;\n  return requireUuid(value, field);\n};\n\nconst localDateTime = (value, field, required = true) => {\n  if (value == null || value === '') {\n    if (required) throw new Error(`${field} is required`);\n    return null;\n  }\n  const text = String(value).trim();\n  if (!LOCAL_DATETIME_PATTERN.test(text)) {\n    throw new Error(`${field} must be a local datetime without Z or timezone offset`);\n  }\n  return text.replace(' ', 'T');\n};\n\nconst actorId = requireUuid(input.jwtPayload?.userId ?? input.jwtPayload?.sub, 'jwt userId');\nconst id = optionalUuid(body.id, 'id');\nconst type = String(body.type ?? 'reminder').trim().toLowerCase();\nconst priority = String(body.priority ?? 'MEDIUM').trim().toUpperCase();\nconst status = String(body.status ?? 'pending').trim().toLowerCase();\n\nif (!['note', 'reminder'].includes(type)) throw new Error(`Invalid type: ${body.type}`);\nif (!['LOW', 'MEDIUM', 'HIGH'].includes(priority)) throw new Error(`Invalid priority: ${body.priority}`);\nif (!['pending', 'done', 'dismissed', 'cancelled'].includes(status)) throw new Error(`Invalid status: ${body.status}`);\n\nconst visibility = String(body.visibility ?? 'clinic').trim().toLowerCase();\nif (!['personal', 'clinic'].includes(visibility)) throw new Error(`Invalid visibility: ${body.visibility}`);\n\nconst isAllDay = body.is_all_day === true;\n\n// Las horas de un ítem de todo el día las decide el servidor, no el cliente: el CHECK\n// reminders_all_day_range_check exige 00:00:00–23:59:59 del mismo día, y un body que\n// mandara cualquier otra cosa haría fallar el INSERT con un error de constraint en vez\n// de guardar lo que corresponde.\nconst allDayRange = (value) => {\n  const day = String(value).slice(0, 10);\n  return { start: `${day}T00:00:00`, end: `${day}T23:59:59` };\n};\n\nconst title = String(body.title ?? '').trim();\nif (!title) throw new Error('title is required');\n\nlet calendarId = null;\nif (body.calendar_id != null && body.calendar_id !== '') {\n  calendarId = String(body.calendar_id).trim();\n  if (!/^[1-9]\\d*$/.test(calendarId)) throw new Error(`Invalid calendar_id: ${body.calendar_id}`);\n}\n\nconst defaultColors = { LOW: '#3b82f6', MEDIUM: '#f59e0b', HIGH: '#ef4444' };\nconst requestedColor = String(body.color ?? '').trim();\nif (requestedColor && !HEX_COLOR_PATTERN.test(requestedColor)) {\n  throw new Error(`Invalid color: ${body.color}`);\n}\n\nconst VALID_FREQ = ['DAILY', 'WEEKLY', 'MONTHLY'];\nconst VALID_END = ['never', 'until', 'count'];\n\n// La regla de repetición. Se valida acá y no en la función SQL para poder devolver un\n// mensaje entendible; los CHECK de reminder_series son la garantía, no la validación.\nlet recurrence = null;\nif (body.recurrence != null && typeof body.recurrence === 'object') {\n  const freq = String(body.recurrence.freq ?? '').toUpperCase();\n  const endMode = String(body.recurrence.end_mode ?? 'never').toLowerCase();\n  const interval = Number(body.recurrence.interval ?? 1);\n\n  if (!VALID_FREQ.includes(freq)) throw new Error(`Invalid recurrence.freq: ${body.recurrence.freq}`);\n  if (!VALID_END.includes(endMode)) throw new Error(`Invalid recurrence.end_mode: ${body.recurrence.end_mode}`);\n  if (!Number.isInteger(interval) || interval < 1 || interval > 52) {\n    throw new Error(`Invalid recurrence.interval: ${body.recurrence.interval}`);\n  }\n\n  const byweekday = Array.isArray(body.recurrence.byweekday)\n    ? body.recurrence.byweekday.map(Number).filter((d) => Number.isInteger(d) && d >= 1 && d <= 7)\n    : null;\n  if (freq === 'WEEKLY' && (!byweekday || byweekday.length === 0)) {\n    throw new Error('recurrence.byweekday is required for WEEKLY');\n  }\n\n  const byMonthDay = body.recurrence.by_month_day == null ? null : Number(body.recurrence.by_month_day);\n  if (freq === 'MONTHLY' && (!Number.isInteger(byMonthDay) || byMonthDay < 1 || byMonthDay > 31)) {\n    throw new Error(`Invalid recurrence.by_month_day: ${body.recurrence.by_month_day}`);\n  }\n\n  const count = body.recurrence.occurrence_count == null ? null : Number(body.recurrence.occurrence_count);\n  if (endMode === 'count' && (!Number.isInteger(count) || count < 1)) {\n    throw new Error(`Invalid recurrence.occurrence_count: ${body.recurrence.occurrence_count}`);\n  }\n\n  const until = body.recurrence.until_date == null || body.recurrence.until_date === ''\n    ? null\n    : String(body.recurrence.until_date).slice(0, 10);\n  if (endMode === 'until' && !/^\\d{4}-\\d{2}-\\d{2}$/.test(until ?? '')) {\n    throw new Error(`Invalid recurrence.until_date: ${body.recurrence.until_date}`);\n  }\n\n  recurrence = {\n    freq,\n    interval,\n    byweekday: freq === 'WEEKLY' ? byweekday : null,\n    by_month_day: freq === 'MONTHLY' ? byMonthDay : null,\n    end_mode: endMode,\n    until_date: endMode === 'until' ? until : null,\n    occurrence_count: endMode === 'count' ? count : null,\n  };\n}\n\nconst scope = String(body.scope ?? 'occurrence').trim().toLowerCase();\nif (!['occurrence', 'series'].includes(scope)) throw new Error(`Invalid scope: ${body.scope}`);\n\nconst payload = {\n  id,\n  scope,\n  type,\n  calendar_id: calendarId,\n  title,\n  description: body.description == null || body.description === '' ? null : String(body.description),\n  start_datetime: isAllDay\n    ? allDayRange(localDateTime(body.start_datetime, 'start_datetime')).start\n    : localDateTime(body.start_datetime, 'start_datetime'),\n  end_datetime: isAllDay\n    ? allDayRange(localDateTime(body.start_datetime, 'start_datetime')).end\n    : localDateTime(body.end_datetime, 'end_datetime', false),\n  color: (requestedColor || defaultColors[priority]).toLowerCase(),\n  priority,\n  status,\n  visibility,\n  is_all_day: isAllDay,\n  // Un ítem de todo el día dispararía la alerta a las 00:00, que no le sirve a nadie,\n  // así que se trata como las notas: silencioso.\n  raise_alert: type === 'reminder' && body.raise_alert === true && !isAllDay,\n  recurrence,\n};\n\nreturn [{ json: { payload_json: JSON.stringify(payload), actor_id: actorId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        90,
+        60
+      ],
+      "id": "772a5bc0-e9ad-4f08-b6d6-df7b140de6fc",
+      "name": "Validate Input"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Toda la lógica (alta, edición, alcance de serie y guard de permisos) vive en\n-- reminders_save, en SQL versionado. Devolver cero filas significa \"no autorizado\", que\n-- Check Ownership traduce a 403.\nSELECT\n  id::text AS id, type, calendar_id::text AS calendar_id, title, description,\n  start_datetime::text AS start_datetime, end_datetime::text AS end_datetime,\n  color, priority, status, visibility, is_all_day, raise_alert, alert_instance_id,\n  series_id::text AS series_id, is_series_exception,\n  created_by::text AS created_by, created_at::text AS created_at,\n  updated_at::text AS updated_at, completed_at::text AS completed_at,\n  completed_by::text AS completed_by\nFROM public.reminders_save($1::jsonb, $2::uuid);",
+        "options": {
+          "queryReplacement": "={{ [ $json.payload_json, $json.actor_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        60
+      ],
+      "id": "ef47eb01-5ba1-4b4f-b12e-d417a4897402",
+      "name": "Upsert Reminder",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Con alwaysOutputData el nodo Postgres emite un ítem vacío cuando el\n// `ON CONFLICT ... WHERE` corta el UPDATE, así que no alcanza con mirar la cantidad:\n// hay que exigir que la fila traiga id. Sin alwaysOutputData el nodo no emitiría nada,\n// este código no correría y el webhook quedaría sin responder.\nconst rows = $input.all().map((item) => item.json).filter((row) => row && row.id);\n\nif (rows.length === 0) {\n  return [{ json: { __error: true, code: 403, message: 'Solo su autor puede editar un ítem personal' } }];\n}\n\nreturn [{ json: { ...rows[0] } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        550,
+        60
+      ],
+      "id": "664fb938-b099-4f69-a559-5909b455ab21",
+      "name": "Check Ownership"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.__error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "id": "5c8e6f2b-1a4d-4e9c-8b3a-7d0f2c6e4a19"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        780,
+        60
+      ],
+      "id": "fa1a22c8-4b15-4940-aaad-bc06f87bc441",
+      "name": "Has Error? (Reminder Ownership)"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ error: true, code: $json.code, message: $json.message }) }}",
+        "options": {
+          "responseCode": "={{ $json.code }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1010,
+        60
+      ],
+      "id": "40d80b5d-83f7-43f6-a247-2cd1557d0591",
+      "name": "Respond 403"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, code: 200, reminder: $json }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1240,
+        60
+      ],
+      "id": "12d89c53-7c96-48d5-afc7-9539fadb395f",
+      "name": "Respond 202"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
+          "cachedResultName": "Events"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "calendar_changed",
+            "user_ids": "={{ $json.visibility === 'personal' ? [$json.created_by] : [] }}",
+            "channels": "={{ $json.visibility === 'personal' ? [] : ($json.calendar_id ? [\"appointments\", \"calendar:\" + $json.calendar_id] : [\"appointments\"]) }}",
+            "payload": "={{ Object.assign({}, $json, { item_type: \"reminder\", action: \"upserted\", event_type: \"calendar_changed\", reminder_id: $json.id }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_ids",
+              "displayName": "user_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "channels",
+              "displayName": "channels",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1470,
+        60
+      ],
+      "id": "198a6e0b-3363-4dcb-a125-c32d72aa678d",
+      "name": "Push calendar_changed (reminder upsert)"
+    },
+    {
+      "parameters": {
+        "content": "## → workflow: All Appointment Workflows\n\n**GET** `/webhook/reminders`\n\nCambios:\n- `Parse Query`: valida que el `userId` del JWT sea un UUID. Antes se interpolaba sin\n  chequear y un valor vacío reventaba el `::uuid` del WHERE en runtime.\n- **`Materialize Series` es un nodo NUEVO**, entre `Parse Query` y `Load Reminders`.\n- `Load Reminders`: filtro de visibilidad server-side, JOIN a `reminder_series` para\n  devolver la regla, y columnas `is_all_day`, `series_id`, `is_series_exception`.\n  Las referencias pasaron de `$json.x` a `$('Parse Query').first().json.x` porque\n  ahora hay un nodo en el medio.",
+        "height": 380,
+        "width": 700,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        460
+      ],
+      "id": "doc-get",
+      "name": "Doc doc-get"
+    },
+    {
+      "parameters": {
+        "path": "reminders",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        520
+      ],
+      "id": "dd0cd318-6cf4-47d6-a93d-11acfb22fc05",
+      "name": "Webhook2",
+      "webhookId": "reminders-get",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst query = input.query ?? input;\n\nconst esc = (value) => String(value).replace(/'/g, \"''\");\nconst nullableTimestamp = (value) => {\n  if (!value) return 'NULL';\n  const date = new Date(value);\n  if (Number.isNaN(date.getTime())) throw new Error(`Invalid datetime: ${value}`);\n  return `'${esc(String(value).replace(/Z$/, ''))}'`;\n};\n\nconst VALID_STATUS = ['pending', 'done', 'dismissed', 'cancelled'];\nconst status = query.status ? String(query.status).toLowerCase().trim() : null;\nif (status && !VALID_STATUS.includes(status)) throw new Error(`Invalid status: ${query.status}`);\n\nconst includeCancelled = ['true', '1', 'yes'].includes(String(query.include_cancelled ?? '').toLowerCase());\n// El actor decide qué ítems personales se devuelven, así que se valida como en el resto\n// de los flujos: si llegara vacío, el `::uuid` del WHERE reventaría en runtime.\nconst UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst created_by = String(input.jwtPayload?.userId ?? input.jwtPayload?.sub ?? '').trim();\nif (!UUID_PATTERN.test(created_by)) throw new Error('jwt userId must be a valid UUID');\n\nreturn [{ json: {\n  from_sql: nullableTimestamp(query.from),\n  to_sql: nullableTimestamp(query.to),\n  status_sql: status ? `'${esc(status)}'` : 'NULL',\n  include_cancelled: includeCancelled,\n  created_by_sql: `'${created_by}'`,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        90,
+        520
+      ],
+      "id": "1446c0da-f402-4a0c-a7c7-902d82f67c01",
+      "name": "Parse Query"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Genera lo que falte hasta el fin de la ventana pedida, para que navegar más allá\n-- del horizonte del cron no muestre una serie vacía. Es idempotente y acotada por\n-- el tope duro de la propia función.\nSELECT public.reminders_materialize_all({{ $json.to_sql }}::timestamp) AS generated;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        520
+      ],
+      "id": "reminders-materialize-on-read",
+      "name": "Materialize Series",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  r.id::text AS id,\n  r.title,\n  r.description,\n  r.start_datetime::text AS start_datetime,\n  r.end_datetime::text AS end_datetime,\n  r.color,\n  r.priority,\n  r.status,\n  r.visibility,\n  r.is_all_day,\n  r.raise_alert,\n  r.alert_instance_id,\n  r.calendar_id,\n  r.type,\n  r.created_by::text AS created_by,\n  r.created_at::text AS created_at,\n  r.updated_at::text AS updated_at,\n  r.completed_at::text AS completed_at,\n  r.completed_by::text AS completed_by,\n  r.series_id::text AS series_id,\n  r.is_series_exception,\n  CASE WHEN s.id IS NULL THEN NULL ELSE jsonb_build_object(\n    'freq', s.freq, 'interval', s.rec_interval, 'byweekday', s.byweekday,\n    'by_month_day', s.by_month_day, 'end_mode', s.end_mode,\n    'until_date', s.until_date, 'occurrence_count', s.occurrence_count\n  ) END AS recurrence\nFROM reminders r\n  LEFT JOIN public.reminder_series s ON s.id = r.series_id\nWHERE ({{ $('Parse Query').first().json.from_sql }}::timestamp IS NULL OR r.start_datetime >= {{ $('Parse Query').first().json.from_sql }}::timestamp)\n  AND ({{ $('Parse Query').first().json.to_sql }}::timestamp IS NULL OR r.start_datetime <= {{ $('Parse Query').first().json.to_sql }}::timestamp)\n  AND ({{ $('Parse Query').first().json.status_sql }}::text IS NULL OR r.status = {{ $('Parse Query').first().json.status_sql }}::text)\n  AND ({{ $('Parse Query').first().json.include_cancelled }}::boolean OR r.status <> 'cancelled')\n  -- Lo compartido lo ve todo el staff; lo personal, solo su autor. El cliente vuelve a\n  -- aplicar la misma regla (canManageReminder), que es la que decide si muestra los\n  -- botones; esto es para que lo personal ajeno no salga del servidor.\n  AND (r.visibility <> 'personal'\n       OR r.created_by IS NULL\n       OR r.created_by = {{ $('Parse Query').first().json.created_by_sql }}::uuid)\nORDER BY r.start_datetime ASC, r.created_at ASC;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        550,
+        520
+      ],
+      "id": "cac1bfd0-c114-43c6-b06f-a26ca9f2a2b6",
+      "name": "Load Reminders",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($input.all().map(item => item.json)) }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        780,
+        520
+      ],
+      "id": "bb615172-7c91-4999-a6c9-d79d3ccdcfdd",
+      "name": "Respond 201"
+    },
+    {
+      "parameters": {
+        "content": "## → workflow: All Appointment Workflows\n\n**POST** `/webhook/reminders/delete`\n\nCambios:\n- `Parse Input3`: acepta `scope` (`occurrence` | `series`).\n- `Delete Reminder`: pasa a llamar a `reminders_delete_scoped($1,$2,$3)`. Deja de filtrar\n  por autoría y aplica la regla de alcance; distingue 404 de 403.\n- `Build Response3`: traduce `found`/`removed` a 200 / 403 / 404.\n- `Delete Reminder` necesita **Always Output Data** activado.\n- **`¿Se eliminó? (reminder)` es un nodo NUEVO**, entre `Delete Reminder` y el push. La\n  función devuelve una fila siempre, también cuando no borró nada, así que sin esta\n  guarda se anunciaría por `calendar_changed` un cambio que no ocurrió.\n- `Push calendar_changed (reminder delete)` se conserva tal como estaba.",
+        "height": 380,
+        "width": 700,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        920
+      ],
+      "id": "doc-delete",
+      "name": "Doc doc-delete"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "reminders/delete",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -140,
+        980
+      ],
+      "id": "7ca8e00d-219c-4f09-924d-a4184e6cc473",
+      "name": "Webhook4",
+      "webhookId": "reminders-delete",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst body = input.body ?? input;\nconst id = String(body.id ?? '').trim();\nif (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {\n  throw new Error('Valid id is required');\n}\nconst actorId = String(input.jwtPayload?.userId ?? input.jwtPayload?.sub ?? '').trim();\nif (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(actorId)) {\n  throw new Error('Valid jwt userId is required');\n}\nconst scope = String(body.scope ?? 'occurrence').trim().toLowerCase();\nif (!['occurrence', 'series'].includes(scope)) throw new Error(`Invalid scope: ${body.scope}`);\n\nreturn [{ json: { id, scope, actor_id: actorId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        90,
+        980
+      ],
+      "id": "030c7d66-78d0-4917-84f7-08a68e8e3889",
+      "name": "Parse Input3"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- found=0 → 404; found=1 y removed=0 → 403. Una ocurrencia de serie se cancela en\n-- blando: borrarla de verdad la haría resucitar en la próxima generación.\n--\n-- Los alias sacan el prefijo `out_` que la función necesita para que sus columnas de\n-- salida no choquen con las de la tabla adentro del plpgsql.\n--\n-- found y removed van casteados a int: son count(*), o sea bigint, y el driver de\n-- Postgres devuelve bigint como STRING. Comparar \"1\" > 0 en un IF con validación\n-- estricta de tipos falla.\n--\n-- Las columnas de identidad viajan porque el push de `calendar_changed` arma los canales\n-- con `visibility` y `calendar_id`.\nSELECT out_found::int       AS found,\n       out_removed::int     AS removed,\n       out_id               AS id,\n       out_type             AS type,\n       out_calendar_id      AS calendar_id,\n       out_visibility       AS visibility,\n       out_created_by       AS created_by,\n       out_series_id        AS series_id\nFROM public.reminders_delete_scoped($1::uuid, $2::text, $3::uuid);",
+        "options": {
+          "queryReplacement": "={{ [ $json.id, $json.scope ?? 'occurrence', $json.actor_id ] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        320,
+        980
+      ],
+      "id": "5312b888-2ac2-4e9c-84d5-59399de09cf5",
+      "name": "Delete Reminder",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ Number($json.removed) > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "id": "a1f0c9d2-7b34-4e55-9a10-2c6f8e4b7d31"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        550,
+        980
+      ],
+      "id": "reminders-delete-was-removed",
+      "name": "¿Se eliminó? (reminder)"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
+          "cachedResultName": "Events"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "calendar_changed",
+            "user_ids": "={{ $json.visibility === 'personal' ? [$json.created_by] : [] }}",
+            "channels": "={{ $json.visibility === 'personal' ? [] : ($json.calendar_id ? [\"appointments\", \"calendar:\" + $json.calendar_id] : [\"appointments\"]) }}",
+            "payload": "={{ Object.assign({}, $json, { item_type: \"reminder\", action: \"deleted\", event_type: \"calendar_changed\", reminder_id: $json.id }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_ids",
+              "displayName": "user_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "channels",
+              "displayName": "channels",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        780,
+        980
+      ],
+      "id": "72bb0ca3-83aa-4de0-b1fe-6b7a0d901df3",
+      "name": "Push calendar_changed (reminder delete)"
+    },
+    {
+      "parameters": {
+        "jsCode": "const row = $input.first().json ?? {};\nconst parsedId = $('Parse Input3').first().json.id;\n\nif (Number(row.removed) > 0) {\n  return [{ json: { success: true, code: 200, id: row.id || parsedId } }];\n}\n\n// Ya no existe: la baja optimista del calendario puede reintentar sobre un id borrado.\nif (Number(row.found) === 0) {\n  return [{ json: { error: true, code: 404, message: 'El ítem ya no existe' } }];\n}\n\nreturn [{ json: { error: true, code: 403, message: 'Solo su autor puede eliminar un ítem personal' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1010,
+        980
+      ],
+      "id": "3fd8dc68-2177-4edd-91fb-8a0927755cda",
+      "name": "Build Response3"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": "={{ $json.code }}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1240,
+        980
+      ],
+      "id": "6a4a1f36-097e-467d-bfc5-3de7a4a3cf00",
+      "name": "Respond"
+    },
+    {
+      "parameters": {
+        "content": "## → workflow: Reminders\n\nCron de notificaciones, cada 1 minuto.\n\nCambio, en `Get reminders`:\n\n```sql\nAND type <> 'note'\nAND raise_alert = true\n```\n\nSin eso el cron levantaba las notas y le mandaba una notificación a todo el staff, contra\nlo que promete la propia UI. Los dos predicados, no uno.\n\nDespués de desplegar esto hay que correr `082_*.sql`, que borra las que ya se generaron.",
+        "height": 380,
+        "width": 700,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        1380
+      ],
+      "id": "doc-cron",
+      "name": "Doc doc-cron"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -140,
+        1440
+      ],
+      "id": "bbef0a6c-6fcd-4004-95fb-af737717f207",
+      "name": "Every 1 minute"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM public.reminders\nWHERE status ILIKE 'pending'\n  -- Las notas son silenciosas por contrato: la UI las ofrece como \"nota interna sin\n  -- notificaciones\" y el upsert les fuerza raise_alert = false. Sin estos dos predicados\n  -- el cron las levantaba igual y le mandaba una notificación a todo el staff.\n  --\n  -- Van los dos, no uno: hoy raise_alert ya alcanza, pero type <> 'note' es el que aguanta\n  -- si alguna vía de escritura futura se saltea el CASE del upsert.\n  AND type <> 'note'\n  AND raise_alert = true\n  AND start_datetime <= $1\n  AND end_datetime > $1;",
+        "options": {
+          "queryReplacement": "={{ [$now] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        90,
+        1440
+      ],
+      "id": "a8910463-59ef-4a9e-8ffe-9aed6451e8ca",
+      "name": "Get reminders",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "daee43ec-2959-4969-a367-22627e3783f0",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "42ae0d7b-14cf-4700-bcba-b5cadf90a69c",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        320,
+        1440
+      ],
+      "id": "538c32c7-d082-48f6-a642-1e62a7e66a8e",
+      "name": "Hay?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1a3f5c7e-8b2d-4a6f-9c0e-3d7b1a5f8c62",
+              "leftValue": "={{ $json.visibility }}",
+              "rightValue": "clinic",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        550,
+        1440
+      ],
+      "id": "6e2a8d4c-1f7b-4e3a-9d6c-2b8f5a0e7c93",
+      "name": "¿Es general?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.notifications (\n  user_id, type, status, priority, appointment_id, session_id, patient_id, reminder_id, metadata, created_at, read_at\n)\nVALUES (\n  $1, 'reminder', 'pending', 'MEDIUM', null, null, null, $2, $3, $4, null\n)\nON CONFLICT (reminder_id, user_id) DO NOTHING\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ [$json.created_by, $json.id, $json, $now]  }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        780,
+        1440
+      ],
+      "id": "253a8122-3731-4240-b4ab-4b716e16bbea",
+      "name": "Insert Reminder Notification",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Los recordatorios \"clinic\" son avisos internos del staff (turnos, tareas\n-- administrativas). Sin este filtro se insertaba una notificación para TODO\n-- usuario activo, incluidos los pacientes logueados en el portal, que veían\n-- el pop-up con el nombre y horario de OTRO paciente. Se excluye a quien\n-- SOLO tenga el rol Paciente; el personal con rol dual (staff + paciente)\n-- sigue recibiéndolos por su rol de staff.\nINSERT INTO public.notifications (\n  user_id, type, status, priority, appointment_id, session_id, patient_id, reminder_id, metadata, created_at, read_at\n)\nSELECT u.id, 'reminder', 'pending', 'MEDIUM', null, null, null, $1, $2, $3, null\nFROM public.users u\nWHERE u.is_active = true\n  AND EXISTS (\n    SELECT 1\n    FROM public.user_roles ur\n    JOIN public.roles r ON r.id = ur.role_id\n    WHERE ur.user_id = u.id\n      AND ur.is_active = true\n      AND lower(r.name) NOT IN ('paciente', 'patient')\n  )\nON CONFLICT (reminder_id, user_id) DO NOTHING\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ [$json.id, $json, $now] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1010,
+        1440
+      ],
+      "id": "4c9e1b6a-3d8f-4a7c-8b2e-6f1d9c4a0e75",
+      "name": "Insert Reminder Notification (Staff)",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
+          "cachedResultName": "Events"
+        },
+        "mode": "each",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "reminder",
+            "user_ids": "={{ [$json.user_id] }}",
+            "channels": "={{ [] }}",
+            "payload": "={{ $json }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_ids",
+              "displayName": "user_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "channels",
+              "displayName": "channels",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        1240,
+        1440
+      ],
+      "id": "bfeab620-0356-4a55-bd6d-7f82e192a0a7",
+      "name": "Push event"
+    },
+    {
+      "parameters": {
+        "content": "## → workflow: Reminders Series Horizon (NUEVO)\n\nWorkflow **nuevo**. Cron diario que mantiene materializadas las ocurrencias de las\nseries activas llamando a `reminders_materialize_all(now() + 90 días)`.\n\nEs un piso: al guardar una serie ya se materializan 90 días, y el GET materializa hasta el\nfin de la ventana pedida. Este cron cubre la serie que nadie edita ni mira durante meses.\n\nCrear un workflow propio con estos dos nodos; no va dentro de los otros.",
+        "height": 380,
+        "width": 700,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -900,
+        1840
+      ],
+      "id": "doc-horizon",
+      "name": "Doc doc-horizon"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 3,
+              "triggerAtMinute": 15
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -140,
+        1900
+      ],
+      "id": "reminders-horizon-trigger",
+      "name": "Every day at 03:15"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT public.reminders_materialize_all((now() + interval '90 days')::timestamp) AS generated;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        90,
+        1900
+      ],
+      "id": "reminders-horizon-pg",
+      "name": "Materialize Horizon",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Upsert Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Reminder": {
+      "main": [
+        [
+          {
+            "node": "Check Ownership",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Ownership": {
+      "main": [
+        [
+          {
+            "node": "Has Error? (Reminder Ownership)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Error? (Reminder Ownership)": {
+      "main": [
+        [
+          {
+            "node": "Respond 403",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 202",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Push calendar_changed (reminder upsert)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Parse Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Query": {
+      "main": [
+        [
+          {
+            "node": "Materialize Series",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Materialize Series": {
+      "main": [
+        [
+          {
+            "node": "Load Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Reminders": {
+      "main": [
+        [
+          {
+            "node": "Respond 201",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook4": {
+      "main": [
+        [
+          {
+            "node": "Parse Input3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Input3": {
+      "main": [
+        [
+          {
+            "node": "Delete Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Reminder": {
+      "main": [
+        [
+          {
+            "node": "Build Response3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "¿Se eliminó? (reminder)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Se eliminó? (reminder)": {
+      "main": [
+        [
+          {
+            "node": "Push calendar_changed (reminder delete)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Build Response3": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every 1 minute": {
+      "main": [
+        [
+          {
+            "node": "Get reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get reminders": {
+      "main": [
+        [
+          {
+            "node": "Hay?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hay?": {
+      "main": [
+        [
+          {
+            "node": "¿Es general?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es general?": {
+      "main": [
+        [
+          {
+            "node": "Insert Reminder Notification (Staff)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert Reminder Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Reminder Notification": {
+      "main": [
+        [
+          {
+            "node": "Push event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Reminder Notification (Staff)": {
+      "main": [
+        [
+          {
+            "node": "Push event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every day at 03:15": {
+      "main": [
+        [
+          {
+            "node": "Materialize Horizon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {},
+  "tags": []
+}

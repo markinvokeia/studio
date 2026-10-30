@@ -1,6 +1,6 @@
 'use client';
 
-import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
 import { PaymentEditDialog } from '@/components/payments/payment-edit-dialog';
 import { PaymentAllocationsTable } from '@/components/tables/payment-allocations-table';
 import { Badge } from '@/components/ui/badge';
@@ -13,18 +13,16 @@ import { ViewModeToggle } from '@/components/ui/view-mode-toggle';
 import { useTableViewMode } from '@/hooks/use-table-view-mode';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
-import { Dialog, DialogCancelButton, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { FinanceSortOrderToggle } from '@/components/users/finance-sort-order-toggle';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { ResizableSheet, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/resizable-sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PURCHASES_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
-import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useFinanceTableSorting } from '@/hooks/use-finance-sort-order';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { Payment, PaymentAllocation, Quote, UserDetailMode } from '@/lib/types';
 import { cn, formatDisplayDate, getDocumentFileName } from '@/lib/utils';
@@ -34,6 +32,7 @@ import { ColumnDef, RowSelectionState } from '@tanstack/react-table';
 import { ChevronDown, Eye, Loader2, Pencil, Printer, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 const STATUS_BADGE: Record<string, any> = { completed: 'success', pending: 'info', failed: 'destructive' };
@@ -100,7 +99,7 @@ const getColumns = (t: (key: string) => string): ColumnDef<Payment>[] => [
       const amount = Math.abs(parseFloat(row.getValue('amount')));
       const formatted = new Intl.NumberFormat('en-US', {
         style: 'currency',
-        currency: row.original.currency || 'USD',
+        currency: row.original.currency || getClinicCurrency(),
       }).format(amount);
       return <div className="font-medium">{formatted}</div>;
     },
@@ -180,6 +179,8 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
   const { hasPermission } = usePermissions();
   const { printPayment } = usePrintDocument();
   const isSales = mode === 'sales';
+  // Patient finance only: default date order from the shared preference (providers keep the backend order).
+  const { sortOrder, setSortOrder, sorting, setSorting, startAtEnd } = useFinanceTableSorting('payment_date', isSales);
   const canEditPayment = hasPermission(isSales ? SALES_PERMISSIONS.PAYMENTS_CREATE : PURCHASES_PERMISSIONS.PAYMENTS_CREATE);
   const [payments, setPayments] = React.useState<Payment[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -193,7 +194,7 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
   const [isLoadingAllocations, setIsLoadingAllocations] = React.useState(false);
 
   // Prepaid credit balance
-  const prepaidCurrency = selectedPayment?.currency || selectedPayment?.source_currency || 'USD';
+  const prepaidCurrency = selectedPayment?.currency || selectedPayment?.source_currency || getClinicCurrency();
   const prepaidTotal = Math.abs(Number(selectedPayment?.amount_applied || selectedPayment?.amount || 0));
   const prepaidUsed = React.useMemo(
     () => allocations.reduce((sum, a) => sum + Math.abs(Number(a.monto_desde_pago || 0)), 0),
@@ -201,13 +202,7 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
   );
   const prepaidAvailable = Math.max(0, prepaidTotal - prepaidUsed);
 
-  // Email dialog
-  const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
-  const [selectedPaymentForEmail, setSelectedPaymentForEmail] = React.useState<Payment | null>(null);
-  const [emailRecipients, setEmailRecipients] = React.useState('');
-  const [isSendingEmail, setIsSendingEmail] = React.useState(false);
-  const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
-  const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
+  const [emailTarget, setEmailTarget] = React.useState<EmailDocumentTarget | null>(null);
   const [selectedPaymentForEdit, setSelectedPaymentForEdit] = React.useState<Payment | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
 
@@ -267,9 +262,12 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
   }, [loadAllocations]);
 
   const handleSendEmailClick = (payment: Payment) => {
-    setSelectedPaymentForEmail(payment);
-    setEmailRecipients(payment.userEmail || '');
-    setIsSendEmailDialogOpen(true);
+    setEmailTarget({
+      request: { type: 'payment', payment, isSales },
+      id: payment.id,
+      docNo: payment.doc_no || payment.payment_doc_no,
+      defaultEmails: payment.userEmail || '',
+    });
   };
 
   const handleEditPaymentClick = React.useCallback((payment: Payment) => {
@@ -281,65 +279,6 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
     setSelectedPaymentForEdit(payment);
     setIsEditDialogOpen(true);
   }, [tPayments, toast]);
-
-  const handleConfirmSendEmail = async () => {
-    if (!selectedPaymentForEmail) return;
-
-    const emails = emailRecipients.split(',').map(e => e.trim()).filter(e => e);
-    if (emails.length === 0) {
-      toast({ title: tPayments('sendEmailDialog.errorNoEmail'), variant: 'destructive' });
-      return;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const invalidEmails = emails.filter(e => !emailRegex.test(e));
-    if (invalidEmails.length > 0) {
-      toast({ title: tPayments('sendEmailDialog.errorInvalidEmails', { emails: invalidEmails.join(', ') }), variant: 'destructive' });
-      return;
-    }
-
-    // Verificar preferencias de comunicación
-    const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
-    const disabled = getDisabledEmails(preferences);
-
-    if (disabled.length > 0) {
-      setDisabledEmails(disabled);
-      setIsWarningDialogOpen(true);
-      return;
-    }
-
-    await sendEmail(emails);
-  };
-
-  const sendEmail = async (emails: string[]) => {
-    if (!selectedPaymentForEmail) return;
-
-    setIsSendingEmail(true);
-    try {
-      await api.post(
-        isSales ? API_ROUTES.SALES.API_PAYMENT_SEND : API_ROUTES.PURCHASES.API_PAYMENT_SEND,
-        {
-          transaction_id: selectedPaymentForEmail.transaction_id || selectedPaymentForEmail.id,
-          transaction_type: selectedPaymentForEmail.transaction_type,
-          emails
-        }
-      );
-      toast({ title: tPayments('sendEmailDialog.success') });
-      setIsSendEmailDialogOpen(false);
-      setSelectedPaymentForEmail(null);
-      setEmailRecipients('');
-    } catch {
-      toast({ title: tPayments('sendEmailDialog.error'), variant: 'destructive' });
-    } finally {
-      setIsSendingEmail(false);
-    }
-  };
-
-  const handleWarningConfirm = async () => {
-    setIsWarningDialogOpen(false);
-    const emails = emailRecipients.split(',').map(e => e.trim()).filter(e => e);
-    await sendEmail(emails);
-  };
 
   // ── Record actions ──────────────────────────────────────────────────────────
   const handlePrint = () => {
@@ -408,6 +347,10 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
           <DataTable
             columns={columns}
             data={payments}
+            sorting={sorting}
+            onSortingChange={setSorting}
+            startAtEnd={startAtEnd}
+            primaryActions={isSales ? <FinanceSortOrderToggle value={sortOrder} onChange={setSortOrder} /> : undefined}
             filterColumnId="doc_no"
             filterPlaceholder={t('PaymentsPage.filterPlaceholder')}
             onRowSelectionChange={handleRowSelectionChange}
@@ -677,7 +620,7 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
               <div className="flex items-center justify-between">
                 <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Monto</p>
                 <p className="text-sm font-semibold tabular-nums">
-                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || 'USD' }).format(Math.abs(selectedPayment.amount))}
+                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || getClinicCurrency() }).format(Math.abs(selectedPayment.amount))}
                 </p>
               </div>
             </div>
@@ -685,45 +628,7 @@ export function UserPayments({ userId, mode = 'sales', refreshTrigger }: UserPay
         )}
       </ResizableSheet>
 
-      {/* Email Dialog */}
-      <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
-        <DialogContent confirmOnClose isDirty={emailRecipients.trim() !== ''}>
-          <DialogHeader>
-            <DialogTitle>{tPayments('sendEmailDialog.title')}</DialogTitle>
-            <DialogDescription>
-              {tPayments('sendEmailDialog.description', { id: selectedPaymentForEmail?.id || '' })}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4 px-6">
-            <Label htmlFor="email-recipients">{tPayments('sendEmailDialog.recipients')}</Label>
-            <Input
-              id="email-recipients"
-              value={emailRecipients}
-              onChange={(e) => setEmailRecipients(e.target.value)}
-              placeholder={tPayments('sendEmailDialog.placeholder')}
-            />
-            <p className="text-sm text-muted-foreground mt-1">
-              {tPayments('sendEmailDialog.helperText')}
-            </p>
-          </div>
-          <DialogFooter>
-            <DialogCancelButton>
-              {tPayments('sendEmailDialog.cancel')}
-            </DialogCancelButton>
-            <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
-              {isSendingEmail ? tPayments('sendEmailDialog.sending') : tPayments('sendEmailDialog.send')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Warning Dialog */}
-      <CommunicationWarningDialog
-        open={isWarningDialogOpen}
-        onOpenChange={setIsWarningDialogOpen}
-        disabledItems={disabledEmails}
-        onConfirm={handleWarningConfirm}
-      />
+      <SendDocumentEmailDialog document={emailTarget} onClose={() => setEmailTarget(null)} />
 
       <PaymentEditDialog
         open={isEditDialogOpen}

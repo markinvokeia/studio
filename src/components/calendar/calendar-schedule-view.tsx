@@ -1,20 +1,35 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 
 import type { Locale } from 'date-fns';
 import { format, parseISO } from 'date-fns';
-import { BellRing, CheckCircle2, Clock, Stethoscope, FileText } from 'lucide-react';
+import { BellRing, CheckCircle2, Clock, Lock, Stethoscope, FileText } from 'lucide-react';
 
 import { Checkbox } from '@/components/ui/checkbox';
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { getStatusIcon } from '@/components/appointments/status-icons';
-import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { cn } from '@/lib/utils';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus, CancellationReason } from '@/lib/types';
 
+import { GOOGLE_IMPORT_BADGE_COLOR } from './calendar-constants';
 import type { CalendarBreakpoint, CalendarEvent } from './calendar-types';
-import { formatEventTime } from './calendar-utils';
-import { getReminderCardStyle, getReminderPriorityColor, isReminderDone } from './reminder-visuals';
+import { formatEventTime, getContrastingIconColor } from './calendar-utils';
+import { getReminderCardStyle, getReminderPriorityColor, isPersonalReminder, isReminderDone } from './reminder-visuals';
+
+/** Marca de "importado de Google Calendar": un punto chico junto al badge de estado. */
+function ImportedBadge({ label }: { label: string }) {
+  return (
+    <span
+      aria-hidden
+      title={label}
+      className="h-1.5 w-1.5 shrink-0 rounded-full ring-1 ring-white/65"
+      style={{ backgroundColor: GOOGLE_IMPORT_BADGE_COLOR }}
+    />
+  );
+}
 
 function StatusBadge({
   status,
@@ -23,18 +38,19 @@ function StatusBadge({
   status: AppointmentStatus;
   cancellationReason?: CancellationReason | null;
 }) {
+  const { colorOf } = useAppointmentStatusDisplay();
   const Icon = getStatusIcon(status, cancellationReason);
-  const color = STATUS_ACCENT_COLOR[status];
+  const color = colorOf(status);
   if (!Icon || !color) return null;
   const label = status === 'cancelled' && cancellationReason ? `${status} – ${cancellationReason}` : status;
   return (
     <span
       aria-hidden
       title={label}
-      className="inline-flex items-center justify-center rounded-full p-1 text-white shrink-0"
-      style={{ backgroundColor: color }}
+      className="inline-flex items-center justify-center rounded-full p-1 shrink-0"
+      style={{ backgroundColor: color, color: getContrastingIconColor(color) }}
     >
-      <Icon className="h-3 w-3" strokeWidth={2.5} />
+      <Icon className="h-3.5 w-3.5" strokeWidth={2.5} />
     </span>
   );
 }
@@ -43,7 +59,13 @@ interface CalendarScheduleViewProps {
   events: CalendarEvent[];
   dateLocale: Locale;
   breakpoint?: CalendarBreakpoint;
-  onEventClick: (data: any) => void;
+  onEventClick: (data: any, anchorRect?: DOMRect) => void;
+  /** Doble clic sobre la cita/recordatorio: abre el modal de edición (igual que día/semana). */
+  onEventDoubleClick?: (data: any) => void;
+  /** Cuerpo del menú contextual de una cita/recordatorio (mismo render prop que las demás vistas). */
+  onEventContextMenu?: (data: any) => React.ReactNode;
+  /** Aviso de que el menú contextual se abrió, para prefetch de datos. */
+  onEventContextMenuOpen?: (data: any) => void;
   selectedAppointmentIds?: Set<string>;
   onToggleAppointmentSelect?: (id: string) => void;
 }
@@ -53,10 +75,18 @@ export function CalendarScheduleView({
   dateLocale,
   breakpoint = 'desktop',
   onEventClick,
+  onEventDoubleClick,
+  onEventContextMenu,
+  onEventContextMenuOpen,
   selectedAppointmentIds,
   onToggleAppointmentSelect,
 }: CalendarScheduleViewProps) {
+  const tAppointments = useTranslations('AppointmentsPage');
   const isBulkMode = !!onToggleAppointmentSelect;
+  // El clic simple se difiere para no dispararse al hacer doble clic (que abre el
+  // modal de edición). Una sola interacción a la vez, así que basta un ref.
+  const clickTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => () => { if (clickTimer.current) clearTimeout(clickTimer.current); }, []);
   const groupedEvents = events.reduce<Record<string, CalendarEvent[]>>((acc, event) => {
     if (!event.start) return acc;
     try {
@@ -113,25 +143,27 @@ export function CalendarScheduleView({
             {groupedEvents[date].map((event) => {
               const rawStatus = event.data?.status as string | undefined;
               const isReminder = event.data?.kind === 'reminder';
+              const isNote = isReminder && event.data?.type === 'note';
               const reminderStatus = event.data?.status as CalendarReminderStatus | undefined;
               const reminderPriority = event.data?.priority as CalendarReminderPriority | undefined;
               const reminderIsDone = isReminderDone(reminderStatus);
               const reminderColor = getReminderPriorityColor(reminderPriority);
               const reminderCardStyle = isReminder ? getReminderCardStyle(event.color, reminderIsDone) : {};
-              const ReminderIcon = reminderIsDone ? CheckCircle2 : BellRing;
+              const reminderIsPersonal = isReminder && isPersonalReminder(event.data);
+              const ReminderIcon = isNote ? FileText : reminderIsDone ? CheckCircle2 : reminderIsPersonal ? Lock : BellRing;
               const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
               const cancellationReason = (event.data?.cancellation_reason as CancellationReason | undefined) ?? null;
               const appointmentId: string = event.data?.id ?? event.id;
               const isSelected = !isReminder && isBulkMode && (selectedAppointmentIds?.has(appointmentId) ?? false);
-              return (
+              const card = (
               <div
-                key={event.id}
                 title={event.label ?? event.title}
                 data-testid="calendar-schedule-event"
+                data-event-id={event.id}
                 className={cn(
                   'relative group/card overflow-hidden p-2 rounded-md cursor-pointer transition-all duration-150',
                   isReminder && !isBulkMode && 'border border-dashed border-[var(--reminder-border)] bg-[var(--reminder-bg)]',
-                  reminderIsDone && !isBulkMode && 'border-solid border-slate-200 opacity-80',
+                  reminderIsDone && !isBulkMode && 'border-solid border-slate-200',
                   isBulkMode && isReminder && 'opacity-40 cursor-default pointer-events-none',
                   isBulkMode && !isReminder && isSelected && 'shadow-sm',
                 )}
@@ -148,7 +180,18 @@ export function CalendarScheduleView({
                     onToggleAppointmentSelect!(appointmentId);
                     return;
                   }
-                  onEventClick(event.data);
+                  // El rect se toma acá y no dentro del timeout: para cuando corre,
+                  // React ya anuló `currentTarget` del evento.
+                  const anchorRect = e.currentTarget.getBoundingClientRect();
+                  if (!onEventDoubleClick) { onEventClick(event.data, anchorRect); return; }
+                  if (e.detail > 1) return; // parte de un doble clic; se ignora
+                  if (clickTimer.current) clearTimeout(clickTimer.current);
+                  clickTimer.current = setTimeout(() => onEventClick(event.data, anchorRect), 220);
+                }}
+                onDoubleClick={() => {
+                  if (!onEventDoubleClick || (isBulkMode && !isReminder)) return;
+                  if (clickTimer.current) { clearTimeout(clickTimer.current); clickTimer.current = null; }
+                  onEventDoubleClick(event.data);
                 }}
               >
                 {/* Accent bar — selection indicator */}
@@ -190,9 +233,14 @@ export function CalendarScheduleView({
                             className="inline-flex items-center justify-center rounded-full p-1 text-white shrink-0"
                             style={{ backgroundColor: reminderColor }}
                           >
-                            <ReminderIcon className="h-3 w-3" strokeWidth={2.5} />
+                            <ReminderIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
                           </span>
-                        ) : status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
+                        ) : (
+                          <>
+                            {status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
+                            {event.data?.imported_from_google === true && <ImportedBadge label={tAppointments('importedFromGoogle')} />}
+                          </>
+                        )}
                       </div>
                       {!event.label && (
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
@@ -225,9 +273,14 @@ export function CalendarScheduleView({
                         className="inline-flex items-center justify-center rounded-full p-1 text-white shrink-0"
                         style={{ backgroundColor: reminderColor }}
                       >
-                        <ReminderIcon className="h-3 w-3" strokeWidth={2.5} />
+                        <ReminderIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
                       </span>
-                    ) : status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
+                    ) : (
+                      <>
+                        {status && <StatusBadge status={status} cancellationReason={cancellationReason} />}
+                        {event.data?.imported_from_google === true && <ImportedBadge label={tAppointments('importedFromGoogle')} />}
+                      </>
+                    )}
                     {!event.label && (
                       <div className="flex items-center gap-2 w-28 text-sm font-semibold">
                         <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
@@ -259,6 +312,23 @@ export function CalendarScheduleView({
                   </div>
                 )}
               </div>
+              );
+
+              // En modo selección múltiple el clic ya no abre nada y el menú
+              // contextual queda deshabilitado, igual que en el resto de vistas.
+              if (!onEventContextMenu || (isBulkMode && !isReminder)) {
+                return <React.Fragment key={event.id}>{card}</React.Fragment>;
+              }
+              return (
+                <ContextMenu
+                  key={event.id}
+                  onOpenChange={(open) => { if (open) onEventContextMenuOpen?.(event.data); }}
+                >
+                  <ContextMenuTrigger asChild>{card}</ContextMenuTrigger>
+                  <ContextMenuContent className="w-[min(18rem,calc(100vw-1rem))]">
+                    {onEventContextMenu(event.data)}
+                  </ContextMenuContent>
+                </ContextMenu>
               );
             })}
           </div>

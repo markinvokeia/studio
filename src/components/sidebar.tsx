@@ -34,14 +34,17 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { navItems } from '@/config/nav';
+import { navItems, type NavItem } from '@/config/nav';
 import { GLOBAL_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAlertNotifications } from '@/context/alert-notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { useTableDensity } from '@/hooks/use-table-density';
 import { useToast } from '@/hooks/use-toast';
+import { usePatientPortal } from '@/hooks/usePatientPortal';
 import { usePermissions } from '@/hooks/usePermissions';
+import { INVOKEIA_LOGO } from '@/lib/brand';
+import { rememberLocale } from '@/lib/locale';
 import { filterNavByPermissions } from '@/lib/permissions';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -51,6 +54,7 @@ import {
     Check,
     ChevronDown,
     Globe,
+    HeartPulse,
     KeyRound,
     LogOut,
     Menu,
@@ -82,6 +86,21 @@ const passwordFormSchema = (t: (key: string) => string) => z.object({
 
 type PasswordFormValues = z.infer<ReturnType<typeof passwordFormSchema>>;
 
+/**
+ * A parent nav item's `href` is just a default landing page (e.g. Sales →
+ * quotes), not necessarily one the current user can see. `item.items` is
+ * already permission-filtered by `filterNavByPermissions`, so its first
+ * entry is always accessible — unlike `item.href`, which would send someone
+ * with e.g. only Payments access into an "Acceso Denegado" wall on Quotes.
+ */
+function getPrimaryHref(item: NavItem): string {
+    if (item.items && item.items.length > 0) {
+        const firstChild = item.items.find(sub => sub.href && !sub.isSeparator);
+        if (firstChild) return firstChild.href;
+    }
+    return item.href;
+}
+
 const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; activeItem: any }) => {
     const pathname = usePathname();
     const router = useRouter();
@@ -92,6 +111,8 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
     const [density, setDensity] = useTableDensity();
     const { logout, user } = useAuth();
     const { hasPermission, permissions, roles } = usePermissions();
+    // Quien es paciente además de staff puede alternar a su propio perfil.
+    const { isDualRole } = usePatientPortal();
     const { toast } = useToast();
     const { pendingCount } = useAlertNotifications();
 
@@ -166,7 +187,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
         <aside className="fixed inset-y-0 left-0 z-[20] hidden sm:flex h-screen w-20 flex-col bg-[var(--nav-bg)] shadow-[2px_0_12px_rgba(0,0,0,0.15)] transition-all">
             <div className="flex h-14 items-center justify-center mb-2 mt-2 shrink-0">
                 <Link href={`/${locale}`} className="transition-transform hover:scale-110">
-                    <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={44} height={44} alt="InvokeIA Logo" priority />
+                    <Image src={INVOKEIA_LOGO} width={44} height={44} alt="InvokeIA Logo" priority />
                 </Link>
             </div>
             <TooltipProvider>
@@ -182,7 +203,8 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                             const isHovered = activeItem?.title === item.title;
                             const isExpanded = isHovered && item.items;
 
-                            let linkHref = `/${locale}${item.href === '/' ? '' : item.href}`;
+                            const primaryHref = getPrimaryHref(item);
+                            let linkHref = `/${locale}${primaryHref === '/' ? '' : primaryHref}`;
                             if (item.href.includes('/clinic-history')) {
                                 const parts = effectivePathname.split('/');
                                 const userIdFromUrl = (effectivePathname.startsWith('/clinic-history') && parts[2])
@@ -259,6 +281,15 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                             <span>{tHeader('preferences')}</span>
                                         </DropdownMenuItem>
                                     </Link>
+                                    {isDualRole && (
+                                        <DropdownMenuItem
+                                            onClick={() => router.push(`/${locale}/my-profile`)}
+                                            className="rounded-lg font-medium"
+                                        >
+                                            <HeartPulse className="mr-2 h-4 w-4" />
+                                            <span>{tHeader('viewAsPatient')}</span>
+                                        </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuSeparator />
                                     <>
                                         <DropdownMenuLabel className="px-2 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -303,6 +334,7 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                             {([
                                                 { code: 'es', label: '🇺🇾 Español' },
                                                 { code: 'en', label: '🇺🇸 English' },
+                                                { code: 'es-ES', label: '🇪🇸 Castellano' },
                                             ] as const).map(({ code, label }) => {
                                                 const isActive = locale === code;
                                                 return (
@@ -313,6 +345,9 @@ const MainSidebar = ({ onHover, activeItem }: { onHover: (item: any) => void; ac
                                                         onClick={() => {
                                                             const sp = new URLSearchParams(window.location.search);
                                                             const newPath = pathname.replace(`/${locale}`, `/${code}`);
+                                                            // Deja registrada la elección: el middleware ya no fija la
+                                                            // cookie solo, para que navegar no cambie el idioma.
+                                                            rememberLocale(code);
                                                             router.replace(`${newPath}?${sp.toString()}`);
                                                         }}
                                                         className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'}`}
@@ -496,6 +531,8 @@ function MobileNav() {
     const { theme, setTheme } = useTheme();
     const { logout, user } = useAuth();
     const { hasPermission, permissions, roles } = usePermissions();
+    // Quien es paciente además de staff puede alternar a su propio perfil.
+    const { isDualRole } = usePatientPortal();
     const { toast } = useToast();
     const { pendingCount } = useAlertNotifications();
 
@@ -581,7 +618,7 @@ function MobileNav() {
                 {/* Logo — centered */}
                 <Link href={`/${locale}`} className="flex-1 flex items-center justify-center gap-2">
                     <Image
-                        src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp"
+                        src={INVOKEIA_LOGO}
                         width={28}
                         height={28}
                         alt=""
@@ -604,7 +641,7 @@ function MobileNav() {
                         {/* Header */}
                         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--nav-border)] shrink-0">
                             <Link href={`/${locale}`} onClick={() => setIsOpen(false)}>
-                                <Image src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp" width={36} height={36} alt="InvokeIA Logo" />
+                                <Image src={INVOKEIA_LOGO} width={36} height={36} alt="InvokeIA Logo" />
                             </Link>
                             <button
                                 type="button"
@@ -730,12 +767,13 @@ function MobileNav() {
                             {mobileFooterPanel === 'language' && (
                                 <div className="px-4 py-3 border-b border-[var(--nav-border)] animate-in fade-in slide-in-from-bottom-2 duration-150">
                                     <div className="flex items-center gap-2">
-                                        {([{ code: 'es', label: '🇺🇾 Español' }, { code: 'en', label: '🇺🇸 English' }] as const).map(({ code, label }) => (
+                                        {([{ code: 'es', label: '🇺🇾 Español' }, { code: 'en', label: '🇺🇸 English' }, { code: 'es-ES', label: '🇪🇸 Castellano' }] as const).map(({ code, label }) => (
                                             <button
                                                 key={code}
                                                 type="button"
                                                 onClick={() => {
                                                     const newPath = pathname.replace(`/${locale}`, `/${code}`);
+                                                    rememberLocale(code);
                                                     router.push(newPath);
                                                     setMobileFooterPanel(null);
                                                 }}
@@ -782,6 +820,16 @@ function MobileNav() {
                                             <Settings2 className="h-4 w-4 shrink-0" />
                                             <span>{tHeader('preferences')}</span>
                                         </Link>
+                                        {isDualRole && (
+                                            <Link
+                                                href={`/${locale}/my-profile`}
+                                                onClick={() => { setIsOpen(false); setMobileFooterPanel(null); }}
+                                                className="flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-[var(--nav-text-muted)] hover:text-[var(--nav-foreground)] hover:bg-[var(--nav-hover-bg)] transition-colors"
+                                            >
+                                                <HeartPulse className="h-4 w-4 shrink-0" />
+                                                <span>{tHeader('viewAsPatient')}</span>
+                                            </Link>
+                                        )}
                                         <button
                                             type="button"
                                             onClick={() => { handleLogoutClick(); setIsOpen(false); setMobileFooterPanel(null); }}

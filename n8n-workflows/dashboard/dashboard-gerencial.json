@@ -1,0 +1,565 @@
+{
+  "name": "Dashboard Gerencial",
+  "nodes": [
+    {
+      "id": "wh-Executive Summary",
+      "name": "GET /dashboard/executive-summary",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        100,
+        100
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "dashboard/executive-summary",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "id": "pg-Executive Summary",
+      "name": "Query Executive Summary",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        340,
+        100
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "/* Resumen ejecutivo del panel gerencial: doble lectura HOY / MES ACUMULADO. \"Hoy\" lo define el servidor (los timestamps se guardan en hora local naive y la base corre en UTC). */\nWITH rr AS (\n  SELECT hoy, sede, mon,\n         date_trunc('month', hoy)::date AS mes_ini,\n         (hoy - 7) AS dia_ant,\n         (date_trunc('month', hoy) - interval '1 month')::date AS mes_ant_ini,\n         ((date_trunc('month', hoy) - interval '1 month')::date\n           + (hoy - date_trunc('month', hoy)::date)) AS mes_ant_fin\n  FROM (\n    /* ref_date solo se informa para pruebas y reprocesos; en uso normal viene vacio y manda el servidor. */\n    SELECT COALESCE($3::date, (now() AT TIME ZONE 'America/Montevideo')::date) AS hoy,\n           $1::int AS sede,\n           COALESCE($2::varchar, 'UYU') AS mon\n  ) r\n),\n/* Produccion = facturado por fecha de factura. La sede sale de la heuristica de cita mas cercana (100% de cobertura, ~1,2% de error) porque invoices.sede_id esta vacio. */\ninv AS (\n  SELECT i.created_at::date AS fecha, i.total, est.sede_id\n  FROM invoices i\n  CROSS JOIN rr\n  LEFT JOIN LATERAL (\n    SELECT cs.sede_id\n    FROM appointments a\n    JOIN calendar_sources cs ON cs.id = a.calendar_source_id\n    WHERE a.patient_id = i.user_id AND cs.sede_id IS NOT NULL\n    ORDER BY abs(extract(epoch FROM (a.start_datetime - i.created_at)))\n    LIMIT 1\n  ) est ON true\n  WHERE i.is_sales = true AND i.currency = rr.mon\n    AND i.created_at::date BETWEEN rr.mes_ant_ini AND rr.hoy\n    AND (rr.sede IS NULL OR est.sede_id = rr.sede)\n),\n/* Cobranza: payments no tiene ninguna via a la sede (cash_session_id esta al 0%), asi que siempre es consolidada. El nodo Code lo declara con disponible_por_sede=false. */\npay AS (\n  SELECT p.created_at::date AS fecha, p.amount\n  FROM payments p CROSS JOIN rr\n  WHERE p.is_sales = true AND p.currency = rr.mon\n    AND p.created_at::date BETWEEN rr.mes_ant_ini AND rr.hoy\n),\n/* Gastos: miscellaneous_transactions no tiene columna de sede. gas_filas permite distinguir \"sin datos cargados\" de \"cero\", que es la diferencia que pide CA-10. */\ngas AS (\n  SELECT mt.transaction_date AS fecha, mt.amount\n  FROM miscellaneous_transactions mt CROSS JOIN rr\n  WHERE mt.currency = rr.mon\n    AND mt.transaction_date BETWEEN rr.mes_ant_ini AND rr.hoy\n),\ncit AS (\n  SELECT a.start_datetime::date AS fecha, a.patient_id, a.status\n  FROM appointments a\n  JOIN calendar_sources cs ON cs.id = a.calendar_source_id\n  CROSS JOIN rr\n  WHERE a.start_datetime::date BETWEEN rr.mes_ant_ini AND rr.hoy\n    AND (rr.sede IS NULL OR cs.sede_id = rr.sede)\n),\nnue AS (\n  /* Paciente nuevo = fecha de su primera cita atendida de la historia. NO se usa users.created_at: esa columna refleja la fecha de importacion (14.796 de las 14.979 fichas se crearon de golpe en julio 2026), no el alta real del paciente. */\n  SELECT f.primera AS fecha\n  FROM (\n    SELECT a.patient_id, min(a.start_datetime::date) AS primera\n    FROM appointments a\n    WHERE a.status IN ('completed','attended_late','arrived_late')\n    GROUP BY a.patient_id\n  ) f\n  CROSS JOIN rr\n  WHERE f.primera BETWEEN rr.mes_ant_ini AND rr.hoy\n)\nSELECT\n  rr.hoy AS fecha_servidor,\n  rr.sede AS sede_id,\n  rr.mon AS currency,\n  (SELECT COALESCE(SUM(total),0) FROM inv WHERE fecha = rr.hoy) AS prod_hoy,\n  (SELECT COALESCE(SUM(total),0) FROM inv WHERE fecha = rr.dia_ant) AS prod_dia_ant,\n  (SELECT COALESCE(SUM(total),0) FROM inv WHERE fecha BETWEEN rr.mes_ini AND rr.hoy) AS prod_mes,\n  (SELECT COALESCE(SUM(total),0) FROM inv WHERE fecha BETWEEN rr.mes_ant_ini AND rr.mes_ant_fin) AS prod_mes_ant,\n  (SELECT COALESCE(SUM(amount),0) FROM pay WHERE fecha = rr.hoy) AS cob_hoy,\n  (SELECT COALESCE(SUM(amount),0) FROM pay WHERE fecha = rr.dia_ant) AS cob_dia_ant,\n  (SELECT COALESCE(SUM(amount),0) FROM pay WHERE fecha BETWEEN rr.mes_ini AND rr.hoy) AS cob_mes,\n  (SELECT COALESCE(SUM(amount),0) FROM pay WHERE fecha BETWEEN rr.mes_ant_ini AND rr.mes_ant_fin) AS cob_mes_ant,\n  (SELECT COUNT(*) FROM gas) AS gas_filas,\n  (SELECT COALESCE(SUM(amount),0) FROM gas WHERE fecha = rr.hoy) AS gas_hoy,\n  (SELECT COALESCE(SUM(amount),0) FROM gas WHERE fecha BETWEEN rr.mes_ini AND rr.hoy) AS gas_mes,\n  (SELECT COUNT(DISTINCT patient_id) FROM cit\n     WHERE fecha = rr.hoy AND status IN ('completed','attended_late','arrived_late')) AS pac_hoy,\n  (SELECT COUNT(DISTINCT patient_id) FROM cit\n     WHERE fecha = rr.dia_ant AND status IN ('completed','attended_late','arrived_late')) AS pac_dia_ant,\n  (SELECT COUNT(DISTINCT patient_id) FROM cit\n     WHERE fecha BETWEEN rr.mes_ini AND rr.hoy\n       AND status IN ('completed','attended_late','arrived_late')) AS pac_mes,\n  (SELECT COUNT(DISTINCT patient_id) FROM cit\n     WHERE fecha BETWEEN rr.mes_ant_ini AND rr.mes_ant_fin\n       AND status IN ('completed','attended_late','arrived_late')) AS pac_mes_ant,\n  (SELECT COUNT(*) FROM cit WHERE fecha = rr.hoy) AS agendados_hoy,\n  /* Atenciones: cuenta citas atendidas, no personas. A diferencia de los pacientes unicos, es aditiva: la suma de los dias da el total del mes. */\n  (SELECT COUNT(*) FROM cit\n     WHERE fecha = rr.hoy AND status IN ('completed','attended_late','arrived_late')) AS at_hoy,\n  (SELECT COUNT(*) FROM cit\n     WHERE fecha = rr.dia_ant AND status IN ('completed','attended_late','arrived_late')) AS at_dia_ant,\n  (SELECT COUNT(*) FROM cit\n     WHERE fecha BETWEEN rr.mes_ini AND rr.hoy\n       AND status IN ('completed','attended_late','arrived_late')) AS at_mes,\n  (SELECT COUNT(*) FROM cit\n     WHERE fecha BETWEEN rr.mes_ant_ini AND rr.mes_ant_fin\n       AND status IN ('completed','attended_late','arrived_late')) AS at_mes_ant,\n  (SELECT COUNT(*) FROM nue WHERE fecha BETWEEN rr.mes_ini AND rr.hoy) AS nue_mes,\n  (SELECT COUNT(*) FROM nue WHERE fecha BETWEEN rr.mes_ant_ini AND rr.mes_ant_fin) AS nue_mes_ant\nFROM rr;",
+        "options": {
+          "queryReplacement": "={{ [\n  $json.query.sede_id || null,\n  $json.query.currency || null,\n  $json.query.ref_date || null\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-Executive Summary",
+      "name": "Build Executive Summary Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        100
+      ],
+      "parameters": {
+        "jsCode": "const r = $input.first().json;\n\nconst num = (v) => (v === null || v === undefined ? null : Number(v));\nconst int = (v) => Number(v || 0);\n/** Variacion porcentual con un decimal. null cuando no hay base de comparacion. */\nconst pct = (cur, prev) => {\n  const p = Number(prev || 0);\n  if (!p) return null;\n  return Math.round(((Number(cur || 0) - p) / p) * 1000) / 10;\n};\n\n// Vacio no es cero: mientras no haya un solo gasto cargado, gastos y resultado van en null\n// para que la UI muestre \"sin datos\" y no \"$ 0\".\nconst sinGastos = int(r.gas_filas) === 0;\n\nreturn [{ json: {\n  fecha_servidor: r.fecha_servidor,\n  sede_id: r.sede_id ?? null,\n  currency: r.currency,\n  // Los montos por sede salen de la heuristica de cita mas cercana, no de invoices.sede_id.\n  sede_source: 'estimated',\n  produccion: {\n    hoy: num(r.prod_hoy),\n    mes: num(r.prod_mes),\n    var_dia_pct: pct(r.prod_hoy, r.prod_dia_ant),\n    var_mes_pct: pct(r.prod_mes, r.prod_mes_ant),\n    mes_anterior: num(r.prod_mes_ant),\n  },\n  cobranza: {\n    hoy: num(r.cob_hoy),\n    mes: num(r.cob_mes),\n    var_dia_pct: pct(r.cob_hoy, r.cob_dia_ant),\n    var_mes_pct: pct(r.cob_mes, r.cob_mes_ant),\n    // payments no tiene via a la sede: el valor es siempre consolidado.\n    disponible_por_sede: false,\n  },\n  gastos: {\n    hoy: sinGastos ? null : num(r.gas_hoy),\n    mes: sinGastos ? null : num(r.gas_mes),\n    sin_datos: sinGastos,\n  },\n  resultado: {\n    hoy: sinGastos ? null : num(r.cob_hoy) - num(r.gas_hoy),\n    mes: sinGastos ? null : num(r.cob_mes) - num(r.gas_mes),\n    sin_datos: sinGastos,\n  },\n  pacientes_atendidos: {\n    hoy: int(r.pac_hoy),\n    mes: int(r.pac_mes),\n    var_dia_abs: int(r.pac_hoy) - int(r.pac_dia_ant),\n    var_mes_pct: pct(r.pac_mes, r.pac_mes_ant),\n    agendados_hoy: int(r.agendados_hoy),\n  },\n  atenciones: {\n    hoy: int(r.at_hoy),\n    mes: int(r.at_mes),\n    var_dia_abs: int(r.at_hoy) - int(r.at_dia_ant),\n    var_mes_pct: pct(r.at_mes, r.at_mes_ant),\n    agendados_hoy: int(r.agendados_hoy),\n  },\n  pacientes_nuevos: {\n    mes: int(r.nue_mes),\n    var_pct: pct(r.nue_mes, r.nue_mes_ant),\n  },\n} }];"
+      }
+    },
+    {
+      "id": "resp-Executive Summary",
+      "name": "Respond Executive Summary",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        820,
+        100
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-Produccion Sucursal",
+      "name": "GET /dashboard/produccion-sucursal",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        100,
+        340
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "dashboard/produccion-sucursal",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "id": "pg-Produccion Sucursal",
+      "name": "Query Produccion Sucursal",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        340,
+        340
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "/* Produccion, pacientes y no-show por sucursal. Una fila por sede activa (tambien las que no facturaron, para que el gerente vea el cero en vez de una sede ausente). */\nWITH p AS (\n  SELECT $1::date AS df, $2::date AS dt, COALESCE($3::varchar,'UYU') AS mon\n),\ninv AS (\n  SELECT i.total, est.sede_id\n  FROM invoices i\n  CROSS JOIN p\n  LEFT JOIN LATERAL (\n    SELECT cs.sede_id\n    FROM appointments a\n    JOIN calendar_sources cs ON cs.id = a.calendar_source_id\n    WHERE a.patient_id = i.user_id AND cs.sede_id IS NOT NULL\n    ORDER BY abs(extract(epoch FROM (a.start_datetime - i.created_at)))\n    LIMIT 1\n  ) est ON true\n  WHERE i.is_sales = true AND i.currency = p.mon\n    AND i.created_at::date BETWEEN p.df AND p.dt\n),\nag AS (\n  SELECT cs.sede_id,\n         count(DISTINCT a.patient_id)\n           FILTER (WHERE a.status IN ('completed','attended_late','arrived_late')) AS pacientes,\n         count(*) FILTER (WHERE a.status IN ('completed','attended_late','arrived_late')) AS atenciones,\n         count(*) FILTER (WHERE a.status = 'no_show') AS no_show\n  FROM appointments a\n  JOIN calendar_sources cs ON cs.id = a.calendar_source_id\n  CROSS JOIN p\n  WHERE a.start_datetime::date BETWEEN p.df AND p.dt\n  GROUP BY 1\n),\nagg AS (\n  SELECT s.id AS sede_id, s.name,\n         COALESCE((SELECT SUM(total) FROM inv WHERE inv.sede_id = s.id), 0) AS produccion,\n         COALESCE(ag.pacientes, 0) AS pacientes,\n         COALESCE(ag.atenciones, 0) AS atenciones,\n         COALESCE(ag.no_show, 0) AS no_show\n  FROM sedes s\n  LEFT JOIN ag ON ag.sede_id = s.id\n  WHERE s.is_active\n)\nSELECT sede_id, name, produccion, pacientes, atenciones, no_show,\n       CASE WHEN pacientes > 0 THEN ROUND(produccion / pacientes, 0) END AS ticket_promedio,\n       ROUND(100.0 * produccion / NULLIF(SUM(produccion) OVER (), 0), 1) AS pct\nFROM agg\nORDER BY produccion DESC;",
+        "options": {
+          "queryReplacement": "={{ [\n  $json.query.date_from,\n  $json.query.date_to,\n  $json.query.currency || null\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-Produccion Sucursal",
+      "name": "Build Produccion Sucursal Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        340
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map((i) => i.json);\n\nreturn [{ json: {\n  sede_source: 'estimated',\n  total: rows.reduce((s, r) => s + Number(r.produccion || 0), 0),\n  rows: rows.map((r) => ({\n    sede_id: Number(r.sede_id),\n    name: r.name,\n    produccion: Number(r.produccion || 0),\n    pacientes: Number(r.pacientes || 0),\n    atenciones: Number(r.atenciones || 0),\n    no_show: Number(r.no_show || 0),\n    ticket_promedio: r.ticket_promedio === null || r.ticket_promedio === undefined\n      ? null : Number(r.ticket_promedio),\n    pct: r.pct === null || r.pct === undefined ? 0 : Number(r.pct),\n  })),\n} }];"
+      }
+    },
+    {
+      "id": "resp-Produccion Sucursal",
+      "name": "Respond Produccion Sucursal",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        820,
+        340
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-Pacientes Por Dia",
+      "name": "GET /dashboard/pacientes-por-dia",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        100,
+        580
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "dashboard/pacientes-por-dia",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "id": "pg-Pacientes Por Dia",
+      "name": "Query Pacientes Por Dia",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        340,
+        580
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "/* Serie de pacientes unicos atendidos, con la granularidad adaptada al ancho del periodo: con un rango de varios meses, 300 barras diarias son ilegibles y el eje X repite los mismos numeros de dia una vez por mes.  La agregacion se hace aca y no en el frontend por una razon de correctitud: los pacientes unicos de una semana NO son la suma de los unicos de cada dia. Quien viene el lunes y el jueves cuenta una sola vez en la semana, pero dos si se suman los dias. */\nWITH p AS (\n  SELECT $1::date AS df,\n         $2::date AS dt,\n         $3::int AS sede,\n         COALESCE($5::date, (now() AT TIME ZONE 'America/Montevideo')::date) AS hoy,\n         COALESCE(\n           NULLIF($4::varchar, ''),\n           CASE\n             WHEN $2::date - $1::date <= 62  THEN 'day'\n             WHEN $2::date - $1::date <= 180 THEN 'week'\n             ELSE 'month'\n           END\n         ) AS gran\n),\nstep AS (\n  SELECT p.*,\n         CASE p.gran\n           WHEN 'day'  THEN interval '1 day'\n           WHEN 'week' THEN interval '1 week'\n           ELSE interval '1 month'\n         END AS paso,\n         /* Las semanas y los meses arrancan en su limite natural, aunque el rango empiece a mitad; el primer bucket se recorta despues para no mostrar dias fuera del filtro. */\n         CASE p.gran\n           WHEN 'day'  THEN p.df\n           WHEN 'week' THEN date_trunc('week', p.df)::date\n           ELSE date_trunc('month', p.df)::date\n         END AS primer_bucket\n  FROM p\n),\nbucket AS (\n  SELECT s.gran, s.sede, s.hoy, s.df, s.dt, s.paso,\n         generate_series(s.primer_bucket, s.dt, s.paso)::date AS ini\n  FROM step s\n),\nrango AS (\n  SELECT gran, sede, hoy,\n         GREATEST(ini, df) AS fecha_inicio,\n         LEAST((ini + paso - interval '1 day')::date, dt) AS fecha_fin\n  FROM bucket\n),\npri AS (\n  SELECT a.patient_id, min(a.start_datetime::date) AS primera\n  FROM appointments a\n  WHERE a.status IN ('completed','attended_late','arrived_late')\n  GROUP BY a.patient_id\n)\nSELECT r.gran AS granularity,\n       r.fecha_inicio,\n       r.fecha_fin,\n       x.pacientes,\n       x.nuevos,\n       x.pacientes - x.nuevos AS recurrentes,\n       x.atenciones,\n       x.atenciones_nuevos,\n       x.atenciones - x.atenciones_nuevos AS atenciones_recurrentes,\n       (r.hoy BETWEEN r.fecha_inicio AND r.fecha_fin) AS es_actual\nFROM rango r\nLEFT JOIN LATERAL (\n  /* \"nuevo\" es primera visita EN LA CLINICA, no en la sede: con el filtro de sucursal puesto, quien debuto en otra sede cuenta como recurrente. */\n  SELECT count(DISTINCT a.patient_id) AS pacientes,\n         count(DISTINCT a.patient_id) FILTER (\n           WHERE pri.primera BETWEEN r.fecha_inicio AND r.fecha_fin\n         ) AS nuevos,\n         /* Atenciones: citas, no personas. Es la serie aditiva del grafico; la suma de los buckets da el total del periodo, cosa que los pacientes unicos no cumplen. */\n         count(*) AS atenciones,\n         count(*) FILTER (\n           WHERE pri.primera BETWEEN r.fecha_inicio AND r.fecha_fin\n         ) AS atenciones_nuevos\n  FROM appointments a\n  JOIN calendar_sources cs ON cs.id = a.calendar_source_id\n  /* LEFT y no JOIN: hay 12 citas atendidas en la historia sin paciente asignado. Con un JOIN se caian de las atenciones y el grafico sumaba uno menos que la tarjeta del mes. Sin paciente no pueden ser primera visita, asi que caen del lado de recurrentes. */\n  LEFT JOIN pri ON pri.patient_id = a.patient_id\n  WHERE a.status IN ('completed','attended_late','arrived_late')\n    AND a.start_datetime::date BETWEEN r.fecha_inicio AND r.fecha_fin\n    AND (r.sede IS NULL OR cs.sede_id = r.sede)\n) x ON true\nORDER BY r.fecha_inicio;",
+        "options": {
+          "queryReplacement": "={{ [\n  $json.query.date_from,\n  $json.query.date_to,\n  $json.query.sede_id || null,\n  $json.query.granularity || null,\n  $json.query.ref_date || null\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-Pacientes Por Dia",
+      "name": "Build Pacientes Por Dia Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        580
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map((i) => i.json);\nconst granularity = rows[0]?.granularity ?? 'day';\n\n// El promedio se calcula sobre los periodos con actividad: incluir los domingos cerrados\n// hundiria el promedio y daria una lectura falsa del ritmo de la clinica.\nconst activos = rows.filter((r) => Number(r.pacientes || 0) > 0);\nconst media = (campo) =>\n  activos.length\n    ? Math.round(activos.reduce((s, r) => s + Number(r[campo] || 0), 0) / activos.length)\n    : 0;\nconst promedio = media('pacientes');\nconst promedioAtenciones = media('atenciones');\n\nreturn [{ json: {\n  granularity,\n  promedio,\n  promedio_atenciones: promedioAtenciones,\n  periodos_con_actividad: activos.length,\n  rows: rows.map((r) => ({\n    fecha_inicio: r.fecha_inicio,\n    fecha_fin: r.fecha_fin,\n    pacientes: Number(r.pacientes || 0),\n    nuevos: Number(r.nuevos || 0),\n    recurrentes: Number(r.recurrentes || 0),\n    atenciones: Number(r.atenciones || 0),\n    atenciones_nuevos: Number(r.atenciones_nuevos || 0),\n    atenciones_recurrentes: Number(r.atenciones_recurrentes || 0),\n    es_actual: r.es_actual === true,\n  })),\n} }];"
+      }
+    },
+    {
+      "id": "resp-Pacientes Por Dia",
+      "name": "Respond Pacientes Por Dia",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        820,
+        580
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-Ventas Por Servicio",
+      "name": "GET /dashboard/ventas-por-servicio",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        100,
+        820
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "dashboard/ventas-por-servicio",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "id": "pg-Ventas Por Servicio",
+      "name": "Query Ventas Por Servicio",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        340,
+        820
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "/* Ventas por servicio. Se agrupa por nombre de servicio y no por service_catalog.specialty porque specialty esta vacio en los ~381 servicios 'single' (98,4% de la facturacion caeria en \"sin clasificar\"). El total del periodo se devuelve aparte para calcular el porcentaje sobre el total real y no sobre la suma del top N. */\nWITH p AS (\n  SELECT $1::date AS df, $2::date AS dt, $3::int AS sede,\n         COALESCE($4::varchar,'UYU') AS mon, COALESCE($5::int, 6) AS lim\n),\nitems AS (\n  SELECT COALESCE(sc.name, 'Sin servicio') AS name, ii.total\n  FROM invoice_items ii\n  JOIN invoices i ON i.id = ii.invoice_id AND i.is_sales = true\n  LEFT JOIN service_catalog sc ON sc.id = ii.service_id\n  CROSS JOIN p\n  LEFT JOIN LATERAL (\n    SELECT cs.sede_id\n    FROM appointments a\n    JOIN calendar_sources cs ON cs.id = a.calendar_source_id\n    WHERE a.patient_id = i.user_id AND cs.sede_id IS NOT NULL\n    ORDER BY abs(extract(epoch FROM (a.start_datetime - i.created_at)))\n    LIMIT 1\n  ) est ON true\n  WHERE i.currency = p.mon\n    AND i.created_at::date BETWEEN p.df AND p.dt\n    AND (p.sede IS NULL OR est.sede_id = p.sede)\n)\nSELECT name,\n       SUM(total) AS sales,\n       (SELECT COALESCE(SUM(total),0) FROM items) AS total_periodo\nFROM items\nGROUP BY name\nORDER BY sales DESC\nLIMIT (SELECT lim FROM p);",
+        "options": {
+          "queryReplacement": "={{ [\n  $json.query.date_from,\n  $json.query.date_to,\n  $json.query.sede_id || null,\n  $json.query.currency || null,\n  $json.query.limit || null\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-Ventas Por Servicio",
+      "name": "Build Ventas Por Servicio Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        820
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map((i) => i.json);\nconst total = Number(rows[0]?.total_periodo || 0);\n\n// Paleta --chart-1..5 de globals.css, en el mismo formato hsl(var(--chart-N)) que usa el resto\n// de los graficos, para que la tarjeta siga los temas claro/oscuro.\nconst COLORS = [\n  'hsl(var(--chart-5))', 'hsl(var(--chart-3))', 'hsl(var(--chart-2))',\n  'hsl(var(--chart-4))', 'hsl(var(--chart-1))',\n];\n\nreturn [{ json: {\n  total,\n  rows: rows.map((r, idx) => ({\n    name: r.name,\n    sales: Number(r.sales || 0),\n    percentage: total ? Math.round((Number(r.sales || 0) / total) * 1000) / 10 : 0,\n    color: COLORS[idx % COLORS.length],\n  })),\n} }];"
+      }
+    },
+    {
+      "id": "resp-Ventas Por Servicio",
+      "name": "Respond Ventas Por Servicio",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        820,
+        820
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "wh-Evolucion Mensual",
+      "name": "GET /dashboard/evolucion-mensual",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        100,
+        1060
+      ],
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "dashboard/evolucion-mensual",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "id": "pg-Evolucion Mensual",
+      "name": "Query Evolucion Mensual",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        340,
+        1060
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "/* Evolucion mensual de todas las metricas del panel, para responder \"como venimos de un mes a otro\" sin tener que ir cambiando el filtro de periodo.  El ultimo mes casi siempre esta en curso, asi que se recorta a la fecha de referencia y se marca como parcial. Para que su variacion no compare 20 dias contra 30, ademas se calcula el mes anterior truncado al mismo dia (anterior_alineado), el mismo criterio de mes_ant_fin que usa el resumen ejecutivo. */\nWITH p AS (\n  SELECT COALESCE($4::date, (now() AT TIME ZONE 'America/Montevideo')::date) AS ref,\n         $1::int AS sede,\n         COALESCE($2::varchar, 'UYU') AS mon,\n         GREATEST(LEAST(COALESCE($3::int, 6), 24), 2) AS meses\n),\nm AS (\n  SELECT generate_series(\n           date_trunc('month', p.ref) - ((p.meses - 1) || ' month')::interval,\n           date_trunc('month', p.ref),\n           '1 month')::date AS ini,\n         p.sede, p.mon, p.ref\n  FROM p\n),\nr AS (\n  SELECT ini, sede, mon, ref,\n         LEAST((ini + interval '1 month' - interval '1 day')::date, ref) AS fin,\n         (ini + interval '1 month' - interval '1 day')::date > ref AS es_parcial,\n         /* Mismo tramo de dias en el mes anterior, para comparar peras con peras. */\n         (ini - interval '1 month')::date AS ant_ini,\n         ((ini - interval '1 month')::date + (LEAST((ini + interval '1 month' - interval '1 day')::date, ref) - ini)) AS ant_fin\n  FROM m\n),\npri AS (\n  SELECT a.patient_id, min(a.start_datetime::date) AS primera\n  FROM appointments a\n  WHERE a.status IN ('completed','attended_late','arrived_late')\n  GROUP BY a.patient_id\n)\nSELECT\n  to_char(r.ini, 'YYYY-MM') AS mes,\n  r.ini AS mes_inicio,\n  r.fin AS mes_fin,\n  r.es_parcial,\n  (SELECT COALESCE(SUM(i.total), 0) FROM invoices i\n   LEFT JOIN LATERAL (\n     SELECT cs.sede_id FROM appointments a\n     JOIN calendar_sources cs ON cs.id = a.calendar_source_id\n     WHERE a.patient_id = i.user_id AND cs.sede_id IS NOT NULL\n     ORDER BY abs(extract(epoch FROM (a.start_datetime - i.created_at))) LIMIT 1\n   ) est ON true\n   WHERE i.is_sales AND i.currency = r.mon\n     AND i.created_at::date BETWEEN r.ini AND r.fin\n     AND (r.sede IS NULL OR est.sede_id = r.sede))                                AS produccion,\n  (SELECT COALESCE(SUM(pa.amount), 0) FROM payments pa\n   WHERE pa.is_sales AND pa.currency = r.mon\n     AND pa.created_at::date BETWEEN r.ini AND r.fin)                             AS cobranza,\n  (SELECT COUNT(DISTINCT a.patient_id) FROM appointments a\n   JOIN calendar_sources cs ON cs.id = a.calendar_source_id\n   WHERE a.status IN ('completed','attended_late','arrived_late')\n     AND a.start_datetime::date BETWEEN r.ini AND r.fin\n     AND (r.sede IS NULL OR cs.sede_id = r.sede))                                 AS pacientes,\n  (SELECT COUNT(*) FROM appointments a\n   JOIN calendar_sources cs ON cs.id = a.calendar_source_id\n   WHERE a.status IN ('completed','attended_late','arrived_late')\n     AND a.start_datetime::date BETWEEN r.ini AND r.fin\n     AND (r.sede IS NULL OR cs.sede_id = r.sede))                                 AS atenciones,\n  (SELECT COUNT(*) FROM pri WHERE pri.primera BETWEEN r.ini AND r.fin)            AS nuevos,\n  (SELECT COUNT(*) FROM miscellaneous_transactions mt\n   WHERE mt.currency = r.mon AND mt.transaction_date BETWEEN r.ini AND r.fin)     AS gastos_filas,\n  (SELECT COALESCE(SUM(mt.amount), 0) FROM miscellaneous_transactions mt\n   WHERE mt.currency = r.mon AND mt.transaction_date BETWEEN r.ini AND r.fin)     AS gastos,\n  /* Solo se usa cuando el mes esta en curso. */\n  (SELECT COALESCE(SUM(i.total), 0) FROM invoices i\n   LEFT JOIN LATERAL (\n     SELECT cs.sede_id FROM appointments a\n     JOIN calendar_sources cs ON cs.id = a.calendar_source_id\n     WHERE a.patient_id = i.user_id AND cs.sede_id IS NOT NULL\n     ORDER BY abs(extract(epoch FROM (a.start_datetime - i.created_at))) LIMIT 1\n   ) est ON true\n   WHERE i.is_sales AND i.currency = r.mon\n     AND i.created_at::date BETWEEN r.ant_ini AND r.ant_fin\n     AND (r.sede IS NULL OR est.sede_id = r.sede))                                AS produccion_ant_alineada,\n  (SELECT COALESCE(SUM(pa.amount), 0) FROM payments pa\n   WHERE pa.is_sales AND pa.currency = r.mon\n     AND pa.created_at::date BETWEEN r.ant_ini AND r.ant_fin)                     AS cobranza_ant_alineada,\n  (SELECT COUNT(DISTINCT a.patient_id) FROM appointments a\n   JOIN calendar_sources cs ON cs.id = a.calendar_source_id\n   WHERE a.status IN ('completed','attended_late','arrived_late')\n     AND a.start_datetime::date BETWEEN r.ant_ini AND r.ant_fin\n     AND (r.sede IS NULL OR cs.sede_id = r.sede))                                 AS pacientes_ant_alineada,\n  (SELECT COUNT(*) FROM appointments a\n   JOIN calendar_sources cs ON cs.id = a.calendar_source_id\n   WHERE a.status IN ('completed','attended_late','arrived_late')\n     AND a.start_datetime::date BETWEEN r.ant_ini AND r.ant_fin\n     AND (r.sede IS NULL OR cs.sede_id = r.sede))                                 AS atenciones_ant_alineada,\n  (SELECT COUNT(*) FROM pri WHERE pri.primera BETWEEN r.ant_ini AND r.ant_fin)    AS nuevos_ant_alineada,\n  (SELECT COALESCE(SUM(mt.amount), 0) FROM miscellaneous_transactions mt\n   WHERE mt.currency = r.mon AND mt.transaction_date BETWEEN r.ant_ini AND r.ant_fin) AS gastos_ant_alineada\nFROM r\nORDER BY r.ini;",
+        "options": {
+          "queryReplacement": "={{ [\n  $json.query.sede_id || null,\n  $json.query.currency || null,\n  $json.query.meses || null,\n  $json.query.ref_date || null\n] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "code-Evolucion Mensual",
+      "name": "Build Evolucion Mensual Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        1060
+      ],
+      "parameters": {
+        "jsCode": "const rows = $input.all().map((i) => i.json);\n\nconst num = (v) => (v === null || v === undefined ? null : Number(v));\n/** Variacion porcentual con un decimal. null cuando no hay base de comparacion. */\nconst pct = (cur, prev) => {\n  const p = Number(prev || 0);\n  if (!p) return null;\n  return Math.round(((Number(cur || 0) - p) / p) * 1000) / 10;\n};\n\n// Vacio no es cero, y se evalua mes a mes: un mes sin una sola fila de gasto va en null\n// para que la celda muestre un guion, no un \"$ 0\" que se leeria como \"no hubo gastos\".\n// La metrica entera se marca sin_datos solo si ningun mes de la ventana tiene gastos.\nconst tieneGastos = (r) => Number(r.gastos_filas || 0) > 0;\nconst hayGastos = rows.some(tieneGastos);\n\nconst meses = rows.map((r) => ({\n  mes: r.mes,\n  inicio: r.mes_inicio,\n  fin: r.mes_fin,\n  es_parcial: r.es_parcial === true,\n}));\n\nconst METRICAS = [\n  { key: 'produccion', tipo: 'moneda' },\n  { key: 'cobranza',   tipo: 'moneda' },\n  { key: 'atenciones', tipo: 'conteo' },\n  { key: 'pacientes',  tipo: 'conteo' },\n  { key: 'nuevos',     tipo: 'conteo' },\n  { key: 'gastos',     tipo: 'moneda' },\n];\n\nconst metricas = METRICAS.map(({ key, tipo }) => {\n  const sinDatos = key === 'gastos' && !hayGastos;\n  const valores = rows.map((r) =>\n    key === 'gastos' && !tieneGastos(r) ? null : sinDatos ? null : num(r[key]),\n  );\n\n  // La variacion del ultimo mes: si esta en curso se compara contra el mismo tramo de dias\n  // del mes anterior; si esta cerrado, contra el mes anterior completo.\n  const ult = rows[rows.length - 1];\n  const prev = rows[rows.length - 2];\n  let varPct = null;\n  if (!sinDatos && ult) {\n    varPct = ult.es_parcial === true\n      ? pct(ult[key], ult[key + '_ant_alineada'])\n      : pct(ult[key], prev ? prev[key] : null);\n  }\n\n  return { key, tipo, valores, var_pct: varPct, sin_datos: sinDatos };\n});\n\nreturn [{ json: { meses, metricas } }];"
+      }
+    },
+    {
+      "id": "resp-Evolucion Mensual",
+      "name": "Respond Evolucion Mensual",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        820,
+        1060
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { data: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "GET /dashboard/executive-summary": {
+      "main": [
+        [
+          {
+            "node": "Query Executive Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Executive Summary": {
+      "main": [
+        [
+          {
+            "node": "Build Executive Summary Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Executive Summary Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Executive Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /dashboard/produccion-sucursal": {
+      "main": [
+        [
+          {
+            "node": "Query Produccion Sucursal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Produccion Sucursal": {
+      "main": [
+        [
+          {
+            "node": "Build Produccion Sucursal Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Produccion Sucursal Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Produccion Sucursal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /dashboard/pacientes-por-dia": {
+      "main": [
+        [
+          {
+            "node": "Query Pacientes Por Dia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Pacientes Por Dia": {
+      "main": [
+        [
+          {
+            "node": "Build Pacientes Por Dia Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Pacientes Por Dia Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Pacientes Por Dia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /dashboard/ventas-por-servicio": {
+      "main": [
+        [
+          {
+            "node": "Query Ventas Por Servicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Ventas Por Servicio": {
+      "main": [
+        [
+          {
+            "node": "Build Ventas Por Servicio Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Ventas Por Servicio Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Ventas Por Servicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /dashboard/evolucion-mensual": {
+      "main": [
+        [
+          {
+            "node": "Query Evolucion Mensual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Evolucion Mensual": {
+      "main": [
+        [
+          {
+            "node": "Build Evolucion Mensual Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Evolucion Mensual Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Evolucion Mensual",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

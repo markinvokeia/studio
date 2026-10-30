@@ -2,10 +2,11 @@
 
 import * as React from 'react';
 import { addMinutes, differenceInMinutes, format, parseISO, set } from 'date-fns';
-import { enUS, es } from 'date-fns/locale';
+import { getDateFnsLocale } from '@/lib/locale';
 import {
   AlertTriangle,
   ArrowRight,
+  Ban,
   Calendar as CalendarIcon,
   CalendarSync,
   ChevronDown,
@@ -14,6 +15,7 @@ import {
   Edit,
   FileText,
   HeartPulse,
+  History,
   Info,
   Layers,
   Loader2,
@@ -59,10 +61,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { GOOGLE_CALENDAR_COLORS } from '@/components/calendar/calendar-constants';
 import { getReadableTextColor } from '@/components/calendar/calendar-utils';
 import { useToast } from '@/hooks/use-toast';
-import { STATUS_ACCENT_COLOR, canReschedule } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { canReschedule } from '@/constants/appointment-status';
 import { formatDisplayDate, cn, formatServicePrice, toLocalISOString } from '@/lib/utils';
+import { getEffectiveAppointmentContact } from '@/lib/appointment-contact';
 import type { Appointment, AppointmentStatus, Calendar as CalendarType, Invoice, Order, PatientSession, Service, User } from '@/lib/types';
 
+import { AppointmentHistorySheet } from '@/components/appointments/AppointmentHistorySheet';
 import { DoctorDetailSheet } from '@/components/appointments/DoctorDetailSheet';
 import { InlineEntityPicker } from '@/components/appointments/InlineEntityPicker';
 import { InlineServicePicker } from '@/components/calendar/inline-service-picker';
@@ -70,15 +75,25 @@ import { QuoteDetailSheet } from '@/components/appointments/QuoteDetailSheet';
 import { AppointmentStatusRail, type StatusChangeExtra } from '@/components/appointments/AppointmentStatusRail';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 import { usePatientView } from '@/stores/patient-view-store';
-import { useAccountStatement } from '@/stores/account-statement-store';
+import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import {
   fetchReassignCalendars,
   fetchReassignDoctors,
   reassignAppointmentField,
   type AppointmentReassignChange,
 } from '@/lib/appointment-reassign';
+import { usePermissions } from '@/hooks/usePermissions';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
+import { BUSINESS_CONFIG_PERMISSIONS, SALES_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SYSTEM_PERMISSIONS } from '@/constants/permissions';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
+
+/**
+ * Color de respaldo del punto de un servicio que no tiene color propio. Estaba
+ * tomado de `STATUS_ACCENT_COLOR.confirmed`, con el que no guarda ninguna
+ * relación semántica: era solo el verde que quedaba bien ahí.
+ */
+const DEFAULT_SERVICE_COLOR = '#10b981';
 
 function initials(name?: string): string {
   if (!name) return '?';
@@ -181,6 +196,8 @@ interface EditableDetailRowProps {
   /** Floating picker rendered in the popover anchored below the value. */
   picker: React.ReactNode;
   className?: string;
+  /** Hides the edit trigger and keeps the picker closed. */
+  readOnly?: boolean;
 }
 
 /**
@@ -199,9 +216,10 @@ function EditableDetailRow({
   onEditingChange,
   picker,
   className,
+  readOnly = false,
 }: EditableDetailRowProps) {
   return (
-    <Popover open={isEditing} onOpenChange={onEditingChange}>
+    <Popover open={isEditing && !readOnly} onOpenChange={onEditingChange}>
       <div className={cn('flex w-full items-center gap-3 border-b border-border/70 py-3 text-left', className)}>
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-muted/60 text-muted-foreground">
           <Icon className="h-4 w-4" />
@@ -218,17 +236,19 @@ function EditableDetailRow({
             {detail && <span className="mt-0.5 block text-xs text-muted-foreground">{detail}</span>}
           </button>
         </PopoverAnchor>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className={cn('h-8 w-8 shrink-0 text-muted-foreground', isEditing && 'bg-muted text-foreground')}
-          onClick={() => onEditingChange(!isEditing)}
-          title={editLabel}
-          aria-label={editLabel}
-        >
-          <Edit className="h-3.5 w-3.5" />
-        </Button>
+        {!readOnly && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={cn('h-8 w-8 shrink-0 text-muted-foreground', isEditing && 'bg-muted text-foreground')}
+            onClick={() => onEditingChange(!isEditing)}
+            title={editLabel}
+            aria-label={editLabel}
+          >
+            <Edit className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
       <PopoverContent align="start" sideOffset={6} className="w-72 p-0">
         {picker}
@@ -432,11 +452,19 @@ interface AppointmentPanelProps {
   onReschedule?: (appointment: Appointment) => void;
   onBillingSuccess?: () => void;
   hideBillingAction?: boolean;
+  /** Hides the patient shortcuts ("View patient" / "View account statement" and
+   *  the clickable name+avatar) plus the outstanding-debt summary. Set it when
+   *  the panel is opened from inside the patient's own module, where those
+   *  shortcuts are redundant and the finances don't belong. The calendar leaves
+   *  it off and keeps them. */
+  hidePatientActions?: boolean;
   onStatusChange: (
     appointment: Appointment,
     newStatus: AppointmentStatus,
     extra?: StatusChangeExtra,
   ) => void;
+  /** Cambio de estado en vuelo: bloquea las transiciones y muestra el spinner. */
+  isUpdatingStatus?: boolean;
   onRequestCustomCancellation?: (appointment: Appointment) => void;
   /** Doctors offered in the quick-edit picker. Fetched lazily when omitted. */
   doctors?: User[];
@@ -465,6 +493,7 @@ export function AppointmentPanel({
   onOpenClinicSession,
   onReschedule,
   onStatusChange,
+  isUpdatingStatus,
   onRequestCustomCancellation,
   onBillingSuccess,
   doctors: doctorsProp,
@@ -472,10 +501,12 @@ export function AppointmentPanel({
   onAppointmentUpdated,
   onColorChange,
   onCreateQuote,
+  hidePatientActions = false,
 }: AppointmentPanelProps) {
   const locale = useLocale();
-  const dateLocale = locale === 'es' ? es : enUS;
+  const dateLocale = getDateFnsLocale(locale);
   const { toast } = useToast();
+  const { colorOf } = useAppointmentStatusDisplay();
   const t = useTranslations('AppointmentsPage');
   const tColumns = useTranslations('AppointmentsColumns');
   const tStatus = useTranslations('AppointmentStatus');
@@ -490,6 +521,7 @@ export function AppointmentPanel({
 
   const [isDoctorSheetOpen, setIsDoctorSheetOpen] = React.useState(false);
   const [isQuoteSheetOpen, setIsQuoteSheetOpen] = React.useState(false);
+  const [isHistorySheetOpen, setIsHistorySheetOpen] = React.useState(false);
   const [selectedService, setSelectedService] = React.useState<NonNullable<Appointment['services']>[number] | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = React.useState(false);
   const [isColorPickerOpen, setIsColorPickerOpen] = React.useState(false);
@@ -497,8 +529,21 @@ export function AppointmentPanel({
   const [localColor, setLocalColor] = React.useState<string | undefined>(undefined);
   React.useEffect(() => { setLocalColor(undefined); }, [appointment?.id]);
   const canOpenDetailDeepLinks = useCanOpenDetailDeepLinks();
+  const { hasPermission, hasAnyPermission } = usePermissions();
+  // Without APPOINTMENTS_UPDATE the whole panel is read-only: no status
+  // transitions, no quick-edits, no services, no quote linking, no
+  // reschedule/delete. Clinical-only roles (médico) land here.
+  const canEditAppointment = hasPermission(BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_UPDATE);
+  // The Budget section is financial data (quote doc no. + billing status) and its
+  // row deep-links into the quote, so it needs the quote-read permission.
+  const canViewQuotes = hasPermission(SALES_PERMISSIONS.QUOTES_VIEW_DETAIL);
+  // The change-history section reuses the audit log's own read permission — anyone
+  // who can browse /system/audit can also see an appointment's audit trail here.
+  const canViewHistory = hasPermission(SYSTEM_PERMISSIONS.AUDIT_LOG_VIEW_LIST);
+  // "Ver estado de cuenta" abre el ledger financiero consolidado del paciente.
+  const canViewStatement = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
   const { open: openPatientView } = usePatientView();
-  const { open: openAccountStatement } = useAccountStatement();
+  const { open: openAccountStatement } = usePatientLedgerSheet();
 
   // Outstanding-debt indicator + cancelled-appointment count for the patient.
   const [patientDebt, setPatientDebt] = React.useState<{ currency: string; amount: number }[]>([]);
@@ -510,18 +555,23 @@ export function AppointmentPanel({
     const patientId = appointment?.patientId;
     if (!open || !patientId) { setPatientDebt([]); setCancelledCount(0); return; }
     let active = true;
-    api.get(API_ROUTES.USER_FINANCIAL, { user_id: patientId })
-      .then((raw: any) => {
-        if (!active) return;
-        const fin = Array.isArray(raw) ? raw[0] : raw;
-        const byCurrency = fin?.financial_data ?? {};
-        setPatientDebt(
-          Object.entries(byCurrency)
-            .map(([currency, d]: [string, any]) => ({ currency, amount: Number(d?.current_debt ?? 0) }))
-            .filter((d) => d.amount > 0),
-        );
-      })
-      .catch(() => { if (active) setPatientDebt([]); });
+    // Don't even fetch the patient's finances when the debt summary is hidden.
+    if (hidePatientActions) {
+      setPatientDebt([]);
+    } else {
+      api.get(API_ROUTES.USER_FINANCIAL, { user_id: patientId })
+        .then((raw: any) => {
+          if (!active) return;
+          const fin = Array.isArray(raw) ? raw[0] : raw;
+          const byCurrency = fin?.financial_data ?? {};
+          setPatientDebt(
+            Object.entries(byCurrency)
+              .map(([currency, d]: [string, any]) => ({ currency, amount: Number(d?.current_debt ?? 0) }))
+              .filter((d) => d.amount > 0),
+          );
+        })
+        .catch(() => { if (active) setPatientDebt([]); });
+    }
     api.get(API_ROUTES.USER_CANCELLED_APPOINTMENTS_COUNT, { user_id: patientId })
       .then((raw: any) => {
         if (!active) return;
@@ -530,7 +580,7 @@ export function AppointmentPanel({
       })
       .catch(() => { if (active) setCancelledCount(0); });
     return () => { active = false; };
-  }, [open, appointment?.patientId, billingRefreshKey]);
+  }, [open, appointment?.patientId, billingRefreshKey, hidePatientActions]);
 
   // ── Quick-edit doctor / room (calendar) ─────────────────────────────────────
   // Local override so the panel reflects the reassignment immediately even if the
@@ -556,7 +606,7 @@ export function AppointmentPanel({
         id: String(q.id),
         doc_no: q.doc_no || q.quote_doc_no || '',
         total: Number(q.total_presupuesto ?? q.total ?? 0),
-        currency: q.currency || 'USD',
+        currency: q.currency || getClinicCurrency(),
         paymentStatus: String(q.payment_status ?? '').toLowerCase(),
         billingStatus: String(q.billing_status ?? '').toLowerCase(),
         amountInvoiced: Number(q.monto_facturado ?? q.amount_invoiced ?? 0),
@@ -572,6 +622,7 @@ export function AppointmentPanel({
   const [fetchedDoctors, setFetchedDoctors] = React.useState<User[] | null>(null);
   const [fetchedCalendars, setFetchedCalendars] = React.useState<CalendarType[] | null>(null);
   const [isLoadingTargets, setIsLoadingTargets] = React.useState(false);
+  const [isResolvingCalendarName, setIsResolvingCalendarName] = React.useState(false);
 
   const doctors = React.useMemo(() => doctorsProp ?? fetchedDoctors ?? [], [doctorsProp, fetchedDoctors]);
   const calendars = React.useMemo(() => calendarsProp ?? fetchedCalendars ?? [], [calendarsProp, fetchedCalendars]);
@@ -581,6 +632,24 @@ export function AppointmentPanel({
     setLocalAppointment(null);
     setEditingField(null);
   }, [appointment?.id]);
+
+  // Some callers build the appointment before their calendar list has loaded, so
+  // it arrives with `calendar_source_id` but no `calendar_name`. Resolve the name
+  // as soon as the panel opens instead of waiting for the user to open the picker
+  // (which is why the room looked unassigned until you clicked "edit").
+  const needsCalendarName = !!(appointment?.calendar_source_id && !appointment.calendar_name);
+  React.useEffect(() => {
+    if (!open || !needsCalendarName || calendarsProp || fetchedCalendars !== null) return;
+    let cancelled = false;
+    setIsResolvingCalendarName(true);
+    (async () => {
+      const list = await fetchReassignCalendars();
+      if (!cancelled) setFetchedCalendars(list);
+    })().finally(() => {
+      if (!cancelled) setIsResolvingCalendarName(false);
+    });
+    return () => { cancelled = true; };
+  }, [open, needsCalendarName, calendarsProp, fetchedCalendars]);
 
   const handleEditingChange = React.useCallback(async (field: 'doctor' | 'calendar', open: boolean) => {
     setEditingField(open ? field : null);
@@ -708,7 +777,7 @@ export function AppointmentPanel({
           user_id: String(found.user_id || ''),
           user_name: found.user_name || '',
           total: Number(found.total || 0),
-          currency: found.currency || 'USD',
+          currency: found.currency || getClinicCurrency(),
           status: found.status || 'draft',
           payment_status: found.payment_state || found.payment_status || 'unpaid',
           paid_amount: Number(found.paid_amount || 0),
@@ -740,11 +809,12 @@ export function AppointmentPanel({
 
   const openPatientDetail = React.useCallback(() => {
     if (!appointment?.patientId) return;
+    const { email, phone } = getEffectiveAppointmentContact(appointment);
     openPatientView({
       userId: appointment.patientId,
       userName: appointment.patientName,
-      userEmail: appointment.patientEmail,
-      userPhone: appointment.patientPhone,
+      userEmail: email,
+      userPhone: phone,
     });
   }, [appointment, openPatientView]);
 
@@ -807,10 +877,18 @@ export function AppointmentPanel({
   const durationHHmm = durationMin != null && durationMin > 0
     ? `${String(Math.floor(durationMin / 60)).padStart(2, '0')}:${String(durationMin % 60).padStart(2, '0')}`
     : null;
+  // Prefer the name the caller sent; fall back to the loaded calendar list so the
+  // room always renders when only `calendar_source_id` came through.
+  const resolvedCalendarName = displayAppointment.calendar_name
+    || calendars.find((c) => String(c.id) === String(displayAppointment.calendar_source_id))?.name
+    || null;
+  const calendarValue = resolvedCalendarName
+    ?? (isResolvingCalendarName ? '…' : tPanel('noCalendar'));
   const StatusIcon = getStatusIcon(appointment.status, appointment.cancellation_reason);
-  const statusColor = STATUS_ACCENT_COLOR[appointment.status];
+  const statusColor = colorOf(appointment.status);
   const appointmentCode = `#${appointment.id.slice(0, 8).toUpperCase()}`;
-  const patientMeta = [appointment.patientPhone].filter(Boolean).join(' · ');
+  const { phone: effectivePatientPhone, fromResponsibleContact } = getEffectiveAppointmentContact(appointment);
+  const patientMeta = [effectivePatientPhone].filter(Boolean).join(' · ');
   const invoiceCount = quoteInvoices.length;
   const isCancelled = appointment.status === 'cancelled';
   const cancellationReasonLabel = isCancelled
@@ -823,9 +901,11 @@ export function AppointmentPanel({
   // wins) so the panel header matches how the appointment looks on the calendar.
   const headerColor = localColor ?? appointment.color ?? undefined;
   const headerText = headerColor ? getReadableTextColor(headerColor) : undefined;
+  // `colorId` vacío = "Sin fondo": se suelta el override local y el encabezado toma
+  // el color heredado que el calendario ya recalculó en `appointment.color`.
   const handleColorSelect = (colorId: string) => {
     const hex = GOOGLE_CALENDAR_COLORS.find((c) => c.id === colorId)?.hex;
-    if (hex) setLocalColor(hex);
+    setLocalColor(hex);
     setIsColorPickerOpen(false);
     onColorChange?.(appointment, colorId);
   };
@@ -857,8 +937,8 @@ export function AppointmentPanel({
                   <button
                     type="button"
                     onClick={openPatientDetail}
-                    disabled={!appointment.patientId}
-                    className={cn('text-left font-bold', appointment.patientId && 'hover:underline underline-offset-4')}
+                    disabled={hidePatientActions || !appointment.patientId}
+                    className={cn('text-left font-bold', !hidePatientActions && appointment.patientId && 'hover:underline underline-offset-4')}
                   >
                     {appointment.patientName}
                   </button>
@@ -878,7 +958,7 @@ export function AppointmentPanel({
                 <RefreshCw className={cn('h-4 w-4', isLoadingPayments && 'animate-spin')} style={headerColor ? { color: headerText } : undefined} />
               </Button>
               {/* Change-color dropdown — same palette as the calendar right-click menu */}
-              {onColorChange && (
+              {onColorChange && canEditAppointment && (
                 <Popover open={isColorPickerOpen} onOpenChange={setIsColorPickerOpen}>
                   <PopoverTrigger asChild>
                     <Button
@@ -894,6 +974,15 @@ export function AppointmentPanel({
                   </PopoverTrigger>
                   <PopoverContent align="end" className="w-auto p-2">
                     <div className="grid grid-cols-4 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleColorSelect('')}
+                        className="grid h-6 w-6 place-items-center rounded-full border border-border bg-background text-muted-foreground transition-transform hover:scale-110 hover:bg-muted"
+                        aria-label={tInline('noBackground')}
+                        title={tInline('noBackground')}
+                      >
+                        <Ban className="h-3.5 w-3.5" />
+                      </button>
                       {GOOGLE_CALENDAR_COLORS.map((color) => (
                         <button
                           key={color.id}
@@ -926,6 +1015,8 @@ export function AppointmentPanel({
               <div className="mb-4 sm:hidden">
                 <AppointmentStatusRail
                   variant="dropdown"
+                  readOnly={!canEditAppointment}
+                  isUpdating={isUpdatingStatus}
                   appointment={appointment}
                   onChange={(status, extra) => onStatusChange(appointment, status, extra)}
                   onRequestCustomCancellation={
@@ -969,7 +1060,7 @@ export function AppointmentPanel({
                   <button
                     type="button"
                     onClick={openPatientDetail}
-                    disabled={!appointment.patientId}
+                    disabled={hidePatientActions || !appointment.patientId}
                     className="shrink-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-ring"
                     aria-label={tPanel('openPatient')}
                   >
@@ -983,30 +1074,41 @@ export function AppointmentPanel({
                     <button
                       type="button"
                       onClick={openPatientDetail}
-                      disabled={!appointment.patientId}
+                      disabled={hidePatientActions || !appointment.patientId}
                       className={cn(
                         'block max-w-full truncate text-left text-sm font-bold text-foreground',
-                        appointment.patientId && 'hover:underline underline-offset-4',
+                        !hidePatientActions && appointment.patientId && 'hover:underline underline-offset-4',
                       )}
                     >
                       {appointment.patientName}
                     </button>
-                    {patientMeta && <p className="truncate text-xs text-muted-foreground">{patientMeta}</p>}
-                    <p className={cn('truncate text-xs font-medium', patientDebt.length > 0 ? 'text-destructive' : 'text-muted-foreground')}>
-                      {patientDebt.length > 0 ? tAccount('debtAlertTitle') : tAccount('noDebt')}
-                    </p>
+                    {patientMeta && (
+                      <p className="truncate text-xs text-muted-foreground">
+                        {patientMeta}
+                        {fromResponsibleContact && (
+                          <span className="ml-1.5 text-[11px]">({t('responsibleContactHint')})</span>
+                        )}
+                      </p>
+                    )}
+                    {!hidePatientActions && (
+                      <p className={cn('truncate text-xs font-medium', patientDebt.length > 0 ? 'text-destructive' : 'text-muted-foreground')}>
+                        {patientDebt.length > 0 ? tAccount('debtAlertTitle') : tAccount('noDebt')}
+                      </p>
+                    )}
                     {cancelledCount > 0 && (
                       <p className="truncate text-xs font-medium text-amber-600 dark:text-amber-400">
                         {tPanel('cancelledAppointments', { count: cancelledCount })}
                       </p>
                     )}
                   </div>
-                  {appointment.patientId && (
+                  {appointment.patientId && !hidePatientActions && (
                     <div className="flex shrink-0 items-center gap-2">
-                      <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={openAccountStatementForPatient}>
-                        <FileText className="h-3.5 w-3.5" />
-                        {tAccount('viewStatement')}
-                      </Button>
+                      {canViewStatement && (
+                        <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={openAccountStatementForPatient}>
+                          <FileText className="h-3.5 w-3.5" />
+                          {tAccount('viewStatement')}
+                        </Button>
+                      )}
                       <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={openPatientDetail}>
                         <UserRound className="h-3.5 w-3.5" />
                         {tPanel('openPatient')}
@@ -1016,7 +1118,7 @@ export function AppointmentPanel({
                 </div>
 
                 {/* Outstanding-debt alert */}
-                {patientDebt.length > 0 && (
+                {patientDebt.length > 0 && !hidePatientActions && (
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2.5">
                     <div className="flex items-center gap-2 text-sm font-semibold text-destructive">
                       <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -1024,16 +1126,18 @@ export function AppointmentPanel({
                         {patientDebt.map((d) => `${d.currency} ${d.amount.toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`).join(' · ')}
                       </span>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 gap-1.5 border-destructive/40 px-2.5 text-xs text-destructive hover:bg-destructive/10"
-                      onClick={openAccountStatementForPatient}
-                    >
-                      <FileText className="h-3.5 w-3.5" />
-                      {tAccount('viewStatement')}
-                    </Button>
+                    {canViewStatement && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1.5 border-destructive/40 px-2.5 text-xs text-destructive hover:bg-destructive/10"
+                        onClick={openAccountStatementForPatient}
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        {tAccount('viewStatement')}
+                      </Button>
+                    )}
                   </div>
                 )}
 
@@ -1045,6 +1149,7 @@ export function AppointmentPanel({
                     editLabel={tColumns('date')}
                     isEditing={editingField === 'date'}
                     onEditingChange={(o) => setEditingField(o ? 'date' : null)}
+                    readOnly={!canEditAppointment}
                     picker={
                       <DatePickerCalendar
                         mode="single"
@@ -1072,6 +1177,7 @@ export function AppointmentPanel({
                     editLabel={tColumns('time')}
                     isEditing={editingField === 'time'}
                     onEditingChange={(o) => setEditingField(o ? 'time' : null)}
+                    readOnly={!canEditAppointment}
                     picker={
                       <TimeEditor
                         startDate={startDt ?? new Date()}
@@ -1085,10 +1191,11 @@ export function AppointmentPanel({
                   <EditableDetailRow
                     icon={MapPin}
                     label={tColumns('calendar')}
-                    value={displayAppointment.calendar_name || tPanel('noCalendar')}
+                    value={calendarValue}
                     editLabel={displayAppointment.calendar_source_id ? tPanel('changeCalendar') : tPanel('assignCalendar')}
                     isEditing={editingField === 'calendar'}
                     onEditingChange={(open) => handleEditingChange('calendar', open)}
+                    readOnly={!canEditAppointment}
                     picker={
                       <InlineEntityPicker
                         className="border-0"
@@ -1116,6 +1223,7 @@ export function AppointmentPanel({
                     editLabel={displayAppointment.doctorId ? tPanel('changeDoctor') : tPanel('assignDoctor')}
                     isEditing={editingField === 'doctor'}
                     onEditingChange={(open) => handleEditingChange('doctor', open)}
+                    readOnly={!canEditAppointment}
                     picker={
                       <InlineEntityPicker
                         className="border-0"
@@ -1141,6 +1249,7 @@ export function AppointmentPanel({
                       <span className="text-xs font-medium text-muted-foreground">
                         {tPanel('servicesCount', { count: apptServices.length })}
                       </span>
+                      {canEditAppointment && (
                       <Popover open={editingField === 'services'} onOpenChange={(o) => setEditingField(o ? 'services' : null)}>
                         <PopoverTrigger asChild>
                           <Button type="button" variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs text-muted-foreground">
@@ -1158,6 +1267,7 @@ export function AppointmentPanel({
                           />
                         </PopoverContent>
                       </Popover>
+                      )}
                     </div>
                     {apptServices.length === 0 ? (
                       <p className="mt-1 text-sm text-muted-foreground">{tPanel('noServices')}</p>
@@ -1170,7 +1280,7 @@ export function AppointmentPanel({
                           >
                             <span
                               className="h-2.5 w-2.5 shrink-0 rounded-full"
-                              style={{ backgroundColor: service.color || STATUS_ACCENT_COLOR.confirmed }}
+                              style={{ backgroundColor: service.color || DEFAULT_SERVICE_COLOR }}
                             />
                             <button
                               type="button"
@@ -1184,15 +1294,17 @@ export function AppointmentPanel({
                                 {tPanel('durationMinutes', { minutes: service.duration_minutes })}
                               </span>
                             ) : null}
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveService(service)}
-                              className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive"
-                              aria-label={tPanel('removeService')}
-                              title={tPanel('removeService')}
-                            >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
+                            {canEditAppointment && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveService(service)}
+                                className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive"
+                                aria-label={tPanel('removeService')}
+                                title={tPanel('removeService')}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -1211,6 +1323,7 @@ export function AppointmentPanel({
                   editLabel={t('contextMenu.notes')}
                   isEditing={editingField === 'notes'}
                   onEditingChange={(o) => setEditingField(o ? 'notes' : null)}
+                  readOnly={!canEditAppointment}
                   className="md:col-span-2"
                   picker={
                     <NotesEditor
@@ -1293,8 +1406,9 @@ export function AppointmentPanel({
                 </section>
               )}
 
-              {/* Quote section — always visible so a quote can be associated/created */}
-              {(
+              {/* Quote section — hidden without quote-read permission (clinical-only
+                  roles must not see the budget or deep-link into it). */}
+              {canViewQuotes && (
                 <section className="mt-6 border-t border-border pt-4 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
@@ -1302,6 +1416,7 @@ export function AppointmentPanel({
                       <h3 className="text-base font-semibold">{tColumns('quoteDocNo')}</h3>
                     </div>
                     <div className="flex items-center gap-2">
+                      {canEditAppointment && (
                       <Popover open={editingField === 'quote'} onOpenChange={(o) => { setEditingField(o ? 'quote' : null); if (o) void loadPatientQuotes(); }}>
                         <PopoverTrigger asChild>
                           <Button type="button" variant="outline" size="sm" className="h-7 gap-1.5 px-2.5 text-xs">
@@ -1336,7 +1451,8 @@ export function AppointmentPanel({
                           />
                         </PopoverContent>
                       </Popover>
-                      {onCreateQuote && (
+                      )}
+                      {onCreateQuote && canEditAppointment && (
                         <Button type="button" size="sm" className="h-7 gap-1.5 px-2.5 text-xs" onClick={() => onCreateQuote(displayAppointment)}>
                           <FileText className="h-3.5 w-3.5" />
                           {t('contextMenu.newQuote')}
@@ -1396,10 +1512,29 @@ export function AppointmentPanel({
                   )}
                 </section>
               )}
+
+              {/* Change history — gated by the audit log's own read permission. Opens the
+                  dedicated history sheet instead of an inline list, same entry point the
+                  custom calendar mode's quick view uses. */}
+              {canViewHistory && (
+                <section className="mt-6 border-t border-border pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => setIsHistorySheetOpen(true)}
+                  >
+                    <History className="h-4 w-4" />
+                    {tPanel('history.title')}
+                  </Button>
+                </section>
+              )}
             </div>
 
             <AppointmentStatusRail
               variant="side"
+              readOnly={!canEditAppointment}
+              isUpdating={isUpdatingStatus}
               appointment={appointment}
               onChange={(status, extra) => onStatusChange(appointment, status, extra)}
               onRequestCustomCancellation={
@@ -1413,7 +1548,7 @@ export function AppointmentPanel({
           <div className="flex-none border-t border-border bg-muted/30 px-5 py-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3">
               <div className="flex items-center gap-2 sm:ml-auto sm:gap-3">
-                {onReschedule && (
+                {onReschedule && canEditAppointment && (
                   <Button
                     size="lg"
                     variant="outline"
@@ -1428,7 +1563,7 @@ export function AppointmentPanel({
                     {tReschedule('action')}
                   </Button>
                 )}
-                {onDelete && (
+                {onDelete && canEditAppointment && (
                   <Button
                     size="lg"
                     variant="destructive"
@@ -1468,6 +1603,14 @@ export function AppointmentPanel({
         </AlertDialogContent>
       </AlertDialog>
 
+      {canViewHistory && (
+        <AppointmentHistorySheet
+          open={isHistorySheetOpen}
+          onOpenChange={setIsHistorySheetOpen}
+          appointmentId={appointment.id}
+          appointmentLabel={appointment.patientName}
+        />
+      )}
       {displayAppointment.doctorId && (
         <DoctorDetailSheet
           open={isDoctorSheetOpen}
@@ -1494,7 +1637,7 @@ export function AppointmentPanel({
                 <div className="flex min-w-0 items-center gap-3">
                   <span
                     className="h-9 w-9 shrink-0 rounded-full border border-white/60 shadow-sm"
-                    style={{ backgroundColor: selectedService.color || STATUS_ACCENT_COLOR.confirmed }}
+                    style={{ backgroundColor: selectedService.color || DEFAULT_SERVICE_COLOR }}
                   />
                   <div className="min-w-0">
                     <DialogTitle className="truncate">{selectedService.name}</DialogTitle>

@@ -1,6 +1,6 @@
 import { API_ROUTES } from '@/constants/routes';
 import type { OdontogramSnapshot, OdontogramState } from '@/lib/types';
-import { api } from '@/services/api';
+import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
 export { fetchDoctorById, fetchDoctors } from '@/services/doctors';
 export type { DoctorOption } from '@/services/doctors';
 
@@ -110,7 +110,9 @@ export async function upsertOdontogram(
   if (snapshot.fechaProximaCita) formData.append('fecha_proxima_cita', snapshot.fechaProximaCita);
   if (snapshot.appointmentId) formData.append('appointment_id', snapshot.appointmentId);
   files.forEach((f) => formData.append('images', f));
-  await api.post(API_ROUTES.ODONTOGRAM.UPSERT_ODONTOGRAM, formData);
+  await api.post(API_ROUTES.ODONTOGRAM.UPSERT_ODONTOGRAM, formData, undefined, undefined, {
+    timeoutMs: REQUEST_TIMEOUT_MS.longRunning,
+  });
 }
 
 /** @deprecated Use upsertOdontogram instead */

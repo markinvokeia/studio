@@ -1,6 +1,6 @@
 'use client';
 
-import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { PaymentEditDialog } from '@/components/payments/payment-edit-dialog';
 import { PaymentAllocationsTable } from '@/components/tables/payment-allocations-table';
@@ -13,11 +13,9 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { DetailHeader } from '@/components/ui/detail-header';
-import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { UserSelector } from '@/components/ui/user-selector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,10 +26,10 @@ import { downloadCSV, downloadExcel, type ExportColumn } from '@/lib/export-util
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
-import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { usePaymentsPagination } from '@/hooks/use-payments-pagination';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -48,6 +46,9 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 const prepaidFormSchema = (t: (key: string) => string) => z.object({
     user_id: z.string().min(1, t('validation.userRequired')),
@@ -56,7 +57,7 @@ const prepaidFormSchema = (t: (key: string) => string) => z.object({
     created_at: z.date({
         required_error: t('validation.dateRequired'),
     }),
-    currency: z.enum(['UYU', 'USD']),
+    currency: currencySchema,
     notes: z.string().optional(),
     is_historical: z.boolean().default(false),
 });
@@ -105,8 +106,7 @@ export default function PaymentsPage() {
         handleTypeFilterChange,
         refreshPayments
     } = usePaymentsPagination({
-        fetchFunction: getSalesPayments,
-        initialPageSize: 25
+        fetchFunction: getSalesPayments
     });
 
     // Server-side transaction-type filter (prepaid / allocations / ...)
@@ -130,12 +130,7 @@ export default function PaymentsPage() {
         handleSearchChange(debouncedSearch);
     }, [debouncedSearch, handleSearchChange]);
 
-    const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
-    const [selectedPaymentForEmail, setSelectedPaymentForEmail] = React.useState<Payment | null>(null);
-    const [emailRecipients, setEmailRecipients] = React.useState('');
-    const [isSendingEmail, setIsSendingEmail] = React.useState(false);
-    const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
-    const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
+    const [emailTarget, setEmailTarget] = React.useState<EmailDocumentTarget | null>(null);
     const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
     const [isConfirmPrepaidOpen, setIsConfirmPrepaidOpen] = React.useState(false);
     const [prepaidData, setPrepaidData] = React.useState<PrepaidFormValues | null>(null);
@@ -206,7 +201,7 @@ export default function PaymentsPage() {
     }, [t, toast]);
 
     // Prepaid credit balance (only relevant when selectedPayment.invoice_id is null)
-    const prepaidCurrency = selectedPayment?.currency || selectedPayment?.source_currency || 'USD';
+    const prepaidCurrency = selectedPayment?.currency || selectedPayment?.source_currency || getClinicCurrency();
     const prepaidTotal = Math.abs(Number(selectedPayment?.amount_applied || selectedPayment?.amount || 0));
     const prepaidUsed = React.useMemo(
         () => paymentAllocations.reduce((sum, a) => sum + Math.abs(Number(a.monto_desde_pago || 0)), 0),
@@ -214,6 +209,7 @@ export default function PaymentsPage() {
     );
     const prepaidAvailable = Math.max(0, prepaidTotal - prepaidUsed);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<PrepaidFormValues>({
         resolver: zodResolver(prepaidFormSchema(tValidation)),
         defaultValues: {
@@ -221,7 +217,7 @@ export default function PaymentsPage() {
             payment_amount: 0,
             payment_method_id: '',
             created_at: new Date(),
-            currency: clinicInfo?.currency ?? 'UYU',
+            currency: clinicInfo?.currency ?? getClinicCurrency(),
             notes: '',
             is_historical: false
         }
@@ -280,84 +276,18 @@ export default function PaymentsPage() {
     }, [printPayment]);
 
     const handleSendEmailClick = React.useCallback((payment: Payment) => {
-        setSelectedPaymentForEmail(payment);
-        setEmailRecipients(payment.userEmail || '');
-        setIsSendEmailDialogOpen(true);
+        setEmailTarget({
+            request: { type: 'payment', payment, isSales: true },
+            id: payment.id,
+            docNo: payment.doc_no || payment.payment_doc_no,
+            defaultEmails: payment.userEmail || '',
+        });
     }, []);
 
     const handleEditPaymentClick = React.useCallback((payment: Payment) => {
         setSelectedPaymentForEdit(payment);
         setIsEditDialogOpen(true);
     }, []);
-
-    const handleConfirmSendEmail = async () => {
-        if (!selectedPaymentForEmail) return;
-
-        const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
-        if (emails.length === 0) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Please enter at least one recipient email.' });
-            return;
-        }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const invalidEmails = emails.filter(email => !emailRegex.test(email));
-
-        if (invalidEmails.length > 0) {
-            toast({
-                variant: 'destructive',
-                title: 'Invalid Email Address',
-                description: `The following emails are invalid: ${invalidEmails.join(', ')}`,
-            });
-            return;
-        }
-
-        const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
-        const disabled = getDisabledEmails(preferences);
-
-        if (disabled.length > 0) {
-            setDisabledEmails(disabled);
-            setIsWarningDialogOpen(true);
-            return;
-        }
-
-        await sendEmail(emails);
-    };
-
-    const sendEmail = async (emails: string[]) => {
-        if (!selectedPaymentForEmail) return;
-
-        setIsSendingEmail(true);
-        try {
-            await api.post(API_ROUTES.SALES.API_PAYMENT_SEND, {
-                transaction_id: selectedPaymentForEmail.transaction_id || selectedPaymentForEmail.id,
-                transaction_type: selectedPaymentForEmail.transaction_type,
-                emails,
-            });
-
-            toast({
-                title: 'Email Sent',
-                description: `The payment receipt has been successfully sent to ${emails.join(', ')}.`,
-            });
-
-            setIsSendEmailDialogOpen(false);
-
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: error instanceof Error ? error.message : 'An unexpected error occurred.',
-            });
-        } finally {
-            setIsSendingEmail(false);
-        }
-    };
-
-    const handleWarningConfirm = async () => {
-        if (!selectedPaymentForEmail) return;
-        const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
-        await sendEmail(emails);
-        setIsWarningDialogOpen(false);
-    };
 
     const handleCreatePrepaid = async () => {
         form.reset();
@@ -486,7 +416,7 @@ export default function PaymentsPage() {
                                                 <span className="text-sm font-semibold">
                                                     {new Intl.NumberFormat('en-US', {
                                                         style: 'currency',
-                                                        currency: selectedPayment.currency || selectedPayment.source_currency || 'USD',
+                                                        currency: selectedPayment.currency || selectedPayment.source_currency || getClinicCurrency(),
                                                     }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}
                                                 </span>
                                             ),
@@ -667,44 +597,7 @@ export default function PaymentsPage() {
                 }
             />
 
-            <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Send Payment Receipt by Email</DialogTitle>
-                        <DialogDescription>Enter the recipient emails for payment #{selectedPaymentForEmail?.id}.</DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4 px-6">
-                        <Label htmlFor="email-recipients">Recipients</Label>
-                        <Input
-                            id="email-recipients"
-                            value={emailRecipients}
-                            onChange={(e) => setEmailRecipients(e.target.value)}
-                            placeholder="email1@example.com, email2@example.com"
-                        />
-                        <p className="text-sm text-muted-foreground mt-1">Separate multiple emails with commas.</p>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>Cancel</Button>
-                        <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
-                            {isSendingEmail ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Sending...
-                                </>
-                            ) : (
-                                'Send Email'
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <CommunicationWarningDialog
-                open={isWarningDialogOpen}
-                onOpenChange={setIsWarningDialogOpen}
-                disabledItems={disabledEmails}
-                onConfirm={handleWarningConfirm}
-            />
+            <SendDocumentEmailDialog document={emailTarget} onClose={() => setEmailTarget(null)} />
 
             <PaymentEditDialog
                 open={isEditDialogOpen}
@@ -725,7 +618,7 @@ export default function PaymentsPage() {
                         <DialogTitle>{t('prepaidDialog.title')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onPrepaidSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={form.handleSubmit(onPrepaidSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">
@@ -772,7 +665,7 @@ export default function PaymentsPage() {
                                             <FormMessage />
                                         </FormItem>
                                     )} />
-                                    <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>{t('prepaidDialog.currency')}</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="USD">USD</SelectItem><SelectItem value="UYU">UYU</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                                    <FormField control={form.control} name="currency" render={({ field }) => (<FormItem><FormLabel>{t('prepaidDialog.currency')}</FormLabel><FormControl><CurrencySelect value={field.value} onChange={field.onChange} /></FormControl><FormMessage /></FormItem>)} />
                                 </div>
                                 <FormField
                                     control={form.control}

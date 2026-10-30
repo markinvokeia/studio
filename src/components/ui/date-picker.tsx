@@ -5,19 +5,14 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { CalendarIcon } from "lucide-react"
 import { DayPicker } from "react-day-picker"
 import { useLocale, useTranslations } from "next-intl"
-import { enUS, es } from 'date-fns/locale'
 import { format, parse, setMonth } from "date-fns"
 import { Locale } from "date-fns"
 
 import { cn, formatDate, formatDisplayDate } from "@/lib/utils"
+import { getDateFnsLocale } from "@/lib/locale"
 import { buttonVariants } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-
-const LOCALES = {
-  en: enUS,
-  es: es,
-}
 
 type DatePickerView = "days" | "months" | "years"
 
@@ -124,7 +119,7 @@ function DatePicker({
 }: DatePickerProps) {
   const locale = useLocale()
   const t = useTranslations(translationsNamespace)
-  const dateLocale = LOCALES[locale as keyof typeof LOCALES] || enUS
+  const dateLocale = getDateFnsLocale(locale)
 
   const [view, setView] = React.useState<DatePickerView>("days")
   const [currentMonth, setCurrentMonth] = React.useState<Date>(() => {
@@ -132,7 +127,7 @@ function DatePicker({
     return new Date()
   })
 
-  const monthLocale = locale === "es" ? es : enUS
+  const monthLocale = getDateFnsLocale(locale)
 
   // Nombres de meses
   const monthNames = React.useMemo(() => {
@@ -314,7 +309,11 @@ type DatePickerInputProps = {
   placeholder?: string
   disabled?: boolean
   className?: string
+  /** Overrides the calendar-toggle icon color (defaults to a muted foreground). */
+  iconClassName?: string
   disabledDays?: (date: Date) => boolean
+  /** Marks the field invalid (red border). `FormControl` passes it automatically. */
+  'aria-invalid'?: React.AriaAttributes['aria-invalid']
 }
 
 const DATE_FORMAT = 'dd/MM/yyyy'
@@ -360,7 +359,9 @@ export function DatePickerInput({
   placeholder = 'dd/mm/aaaa',
   disabled = false,
   className,
+  iconClassName,
   disabledDays,
+  'aria-invalid': ariaInvalid,
 }: DatePickerInputProps) {
   const [inputValue, setInputValue] = React.useState<string>(() => {
     if (!value) return ''
@@ -464,11 +465,15 @@ export function DatePickerInput({
             )}
             inputMode="numeric"
             maxLength={10}
+            aria-invalid={ariaInvalid || error || undefined}
           />
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50"
+              className={cn(
+                'absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50',
+                iconClassName,
+              )}
               disabled={disabled}
               onClick={(e) => {
                 e.preventDefault()

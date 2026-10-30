@@ -1,0 +1,1852 @@
+{
+  "name": "Miscellaneous",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## CRUD Miscellaneous Categories\n",
+        "height": 1072,
+        "width": 928
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1296,
+        -96
+      ],
+      "id": "963a3f4a-accc-4f16-9f74-d79e4d707915",
+      "name": "Sticky Note24"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "128ee44d-ec55-4396-925f-52935cd1dcf0",
+              "leftValue": "={{ $json.body.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1584,
+        48
+      ],
+      "id": "5cdc1fd3-9e82-42be-a298-609b33d9fc07",
+      "name": "If11"
+    },
+    {
+      "parameters": {
+        "operation": "deleteTable",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "miscellaneous_categories",
+          "mode": "list",
+          "cachedResultName": "miscellaneous_categories"
+        },
+        "deleteCommand": "delete",
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "={{ $json.body.id }}"
+            }
+          ]
+        },
+        "combineConditions": "OR",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1584,
+        448
+      ],
+      "id": "a19d05bd-f3ec-4999-8084-57fb428f34f5",
+      "name": "Delete rows in a table2",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "misc_categories/upsert",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        1360,
+        64
+      ],
+      "id": "3154423d-6d01-497c-b9c8-c225d5640ab7",
+      "name": "misc_categories/upsert",
+      "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "miscellaneous_categories",
+          "mode": "list",
+          "cachedResultName": "miscellaneous_categories"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.body.id }}",
+            "code": "={{ $json.body.code }}",
+            "name": "={{ $json.body.name }}",
+            "description": "={{ $json.body.description }}",
+            "category_type": "={{ $json.body.type }}",
+            "is_active": "={{ $json.body.is_active }}",
+            "created_at": "={{ $now.toISO() }}",
+            "updated_at": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "code",
+              "displayName": "code",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "category_type",
+              "displayName": "category_type",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "account_code",
+              "displayName": "account_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "parent_id",
+              "displayName": "parent_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1760,
+        0
+      ],
+      "id": "6b742b6b-5236-432c-964b-984d597c10c8",
+      "name": "Update Miscs",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "miscellaneous_categories",
+          "mode": "list",
+          "cachedResultName": "miscellaneous_categories"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "code": "={{ $json.body.code }}",
+            "name": "={{ $json.body.name }}",
+            "description": "={{ $json.body.description }}",
+            "category_type": "={{ $json.body.type }}",
+            "is_active": "={{ $json.body.is_active }}",
+            "created_at": "={{ $now.toISO() }}",
+            "updated_at": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "code",
+              "displayName": "code",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "category_type",
+              "displayName": "category_type",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "account_code",
+              "displayName": "account_code",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "parent_id",
+              "displayName": "parent_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1760,
+        144
+      ],
+      "id": "8238401a-2dcc-4a47-8827-7e3ebbc9db79",
+      "name": "Insert Misc Category",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "misc_categories/delete",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        1376,
+        448
+      ],
+      "id": "ca1d5ba1-9ff5-4be0-b07d-305e35b5f6fd",
+      "name": "misc_categories/delete",
+      "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "misc_categories",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        1376,
+        752
+      ],
+      "id": "ef323e18-3ec7-4de4-ba9c-d8e6af0e2ba4",
+      "name": "misc_categories",
+      "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## CRUD Miscellaneous Transactions\n",
+        "height": 1152,
+        "width": 1376
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2272,
+        -96
+      ],
+      "id": "52706228-ea7a-4725-b6a4-d22efa9b01e1",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "128ee44d-ec55-4396-925f-52935cd1dcf0",
+              "leftValue": "={{ $json.body.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2768,
+        192
+      ],
+      "id": "607049d2-8d69-4647-9198-e305cb53666d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT mt.id,\n       mt.cash_session_id,\n       cs.status AS session_status,\n       cm.id     AS cash_movement_id\nFROM public.miscellaneous_transactions mt\nLEFT JOIN public.cash_sessions  cs ON cs.id = mt.cash_session_id\nLEFT JOIN public.cash_movements cm ON cm.source_id = mt.id\n                                  AND cm.source_type = 'miscellaneous'\nWHERE mt.id = $1;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2944,
+        -16
+      ],
+      "id": "3c1e7b52-6a0d-4f8e-9b21-5d7a4e0c9f13",
+      "name": "Get transaction to update",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7e2d9a41-8c3b-4f5e-a6d7-1b0c2e3f4a5d",
+              "leftValue": "={{ $json.cash_session_id === null || $json.cash_session_id === undefined || $json.session_status === 'OPEN' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3152,
+        -16
+      ],
+      "id": "a4b8c2d6-1e3f-4a5b-9c7d-8e0f1a2b3c4d",
+      "name": "Guard: caja abierta? (editar)"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH upd AS (\n    UPDATE public.miscellaneous_transactions\n    SET category_id       = $2::int,\n        beneficiary       = $3,\n        amount            = $4::numeric,\n        currency          = COALESCE(NULLIF($5::text, ''), currency),\n        exchange_rate     = COALESCE($6::numeric, 1),\n        payment_method_id = COALESCE($7::int, payment_method_id),\n        transaction_date  = COALESCE(NULLIF($8::text, '')::date, transaction_date),\n        description       = $9,\n        reference_number  = NULLIF($10::text, ''),\n        tags              = CASE WHEN jsonb_typeof($11::jsonb) = 'array'\n                                 THEN ARRAY(SELECT jsonb_array_elements_text($11::jsonb))\n                                 ELSE tags END,\n        updated_by        = $12::uuid,\n        updated_at        = NOW()\n    WHERE id = $1\n    RETURNING *\n),\nmov AS (\n    UPDATE public.cash_movements cm\n    SET type              = CASE WHEN mc.category_type = 'income' THEN 'income' ELSE 'expense' END,\n        payment_method_id = COALESCE(upd.payment_method_id, cm.payment_method_id),\n        amount            = ABS(COALESCE(upd.converted_amount, upd.amount))\n                            * CASE WHEN mc.category_type = 'income' THEN 1 ELSE -1 END,\n        description       = (CASE WHEN COALESCE(upd.converted_amount, upd.amount) < 0 THEN '[DEVOLUCIÓN] ' ELSE '' END)\n                            || upd.description\n                            || CASE WHEN upd.reference_number IS NOT NULL\n                                    THEN ' (Ref: ' || upd.reference_number || ')'\n                                    ELSE '' END,\n        currency          = upd.currency,\n        is_sales          = (mc.category_type = 'income'),\n        updated_by        = upd.updated_by\n    FROM upd\n    JOIN public.miscellaneous_categories mc ON mc.id = upd.category_id\n    WHERE cm.source_type = 'miscellaneous'\n      AND cm.source_id = upd.id\n    RETURNING cm.id\n)\nSELECT upd.*, (SELECT id FROM mov LIMIT 1) AS cash_movement_id\nFROM upd;",
+        "options": {
+          "queryReplacement": "={{ [\n  $json.id,\n  $('Code').item.json.body.category_id,\n  $('Code').item.json.body.beneficiary_name ?? null,\n  $('Code').item.json.body.amount,\n  $('Code').item.json.body.currency ?? null,\n  $('Code').item.json.body.exchange_rate ?? null,\n  $('Code').item.json.body.payment_method_id ?? null,\n  $('Code').item.json.body.transaction_date || null,\n  $('Code').item.json.body.description,\n  $('Code').item.json.body.reference_number || $('Code').item.json.body.external_reference || null,\n  JSON.stringify($('Code').item.json.body.tags ?? null),\n  $('misc_transactions/upsert').item.json.jwtPayload.userId\n] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3376,
+        -96
+      ],
+      "id": "b5e17824-cdf8-45fc-bb46-f6930a187d31",
+      "name": "Update misc transaction + movement",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"No se puede editar: la caja de este movimiento ya está cerrada.\"\n}",
+        "options": {
+          "responseCode": 409,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        3376,
+        96
+      ],
+      "id": "c6d0e4f8-2a4b-4c6d-8e0f-2a4b6c8d0e2f",
+      "name": "Error: caja cerrada (editar)"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT mt.id,\n       mt.cash_session_id,\n       cs.status AS session_status,\n       cm.id     AS cash_movement_id\nFROM public.miscellaneous_transactions mt\nLEFT JOIN public.cash_sessions  cs ON cs.id = mt.cash_session_id\nLEFT JOIN public.cash_movements cm ON cm.source_id = mt.id\n                                  AND cm.source_type = 'miscellaneous'\nWHERE mt.id = $1;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2560,
+        560
+      ],
+      "id": "ecea3a84-b8ea-4c28-abe8-a8bb7bd7db0a",
+      "name": "Get transaction to delete",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b1f4c0a2-3d5e-4f6a-8b7c-9d0e1f2a3b4c",
+              "leftValue": "={{ $json.cash_session_id === null || $json.cash_session_id === undefined || $json.session_status === 'OPEN' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2768,
+        560
+      ],
+      "id": "f0cd637a-708c-4aa7-9170-f794eeacf7dc",
+      "name": "Guard: caja abierta?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH del_mov AS (\n    DELETE FROM public.cash_movements\n    WHERE source_type = 'miscellaneous' AND source_id = $1\n    RETURNING id\n)\nDELETE FROM public.miscellaneous_transactions\nWHERE id = $1\nRETURNING id;",
+        "options": {
+          "queryReplacement": "={{ [$json.id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2976,
+        480
+      ],
+      "id": "a8d66ae7-d7f7-4dfe-b97b-8fe480eb4835",
+      "name": "Delete misc transaction + movement",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"No se puede eliminar: la caja de este movimiento ya está cerrada.\"\n}",
+        "options": {
+          "responseCode": 409,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2976,
+        672
+      ],
+      "id": "23cc5fdf-bc0f-449f-bb4d-e938f88ee2ae",
+      "name": "Error: caja cerrada"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "misc_transactions/upsert",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        2336,
+        80
+      ],
+      "id": "73d817b9-ea36-4fed-8f40-b37d7a0a6b21",
+      "name": "misc_transactions/upsert",
+      "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "misc_transactions/delete",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        2352,
+        560
+      ],
+      "id": "ca159f1d-8736-42eb-a462-fc07454caeaa",
+      "name": "misc_transactions/delete",
+      "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "path": "misc_transactions",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        2352,
+        864
+      ],
+      "id": "2309c56a-cd0a-4096-9f98-4a03456619f7",
+      "name": "misc_transactions",
+      "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "miscellaneous_transactions",
+          "mode": "list",
+          "cachedResultName": "miscellaneous_transactions"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "description": "={{ $json.body.description }}",
+            "created_at": "={{ $now.toISO() }}",
+            "updated_at": "={{ $now.toISO() }}",
+            "cash_session_id": "={{ $json.body.cash_session_id || ''}}",
+            "payment_method_id": "={{ $json.body.payment_method_id }}",
+            "exchange_rate": "={{ $json.body.exchange_rate }}",
+            "amount": "={{ $json.body.amount }}",
+            "category_id": "={{ $json.body.category_id }}",
+            "reference_number": "={{ $json.body.reference_number || $json.body.external_reference || ''}}",
+            "status": "={{ $json.body.status || 'pending' }}",
+            "created_by": "={{ $json.body.user_id }}",
+            "tags": "={{ $json.body.tags }}",
+            "transaction_currency": "={{ $json.body.transaction_currency || $json.body.currency}}",
+            "currency": "={{ $json.body.currency }}",
+            "transaction_date": "={{ $json.body.transaction_date || $now.toISO() }}",
+            "completed_at": "={{ $now.toISO() }}",
+            "beneficiary": "={{ $json.body.beneficiary_name }}",
+            "updated_by": "={{ $('misc_transactions/upsert').item.json.jwtPayload.userId }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "doc_no",
+              "displayName": "doc_no",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "category_id",
+              "displayName": "category_id",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "beneficiary",
+              "displayName": "beneficiary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "amount",
+              "displayName": "amount",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "transaction_currency",
+              "displayName": "transaction_currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "exchange_rate",
+              "displayName": "exchange_rate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "converted_amount",
+              "displayName": "converted_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "payment_method_id",
+              "displayName": "payment_method_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "cash_session_id",
+              "displayName": "cash_session_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "transaction_date",
+              "displayName": "transaction_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "completed_at",
+              "displayName": "completed_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "reference_number",
+              "displayName": "reference_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_by",
+              "displayName": "created_by",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "is_recurring",
+              "displayName": "is_recurring",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "recurrence_pattern",
+              "displayName": "recurrence_pattern",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "tags",
+              "displayName": "tags",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "array",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "updated_by",
+              "displayName": "updated_by",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2944,
+        304
+      ],
+      "id": "91e42642-f1f9-4893-8451-5b9c5a656a37",
+      "name": "Insert Misc Transaction",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select complete_miscellaneous_transaction(\n    $1 ,\n    $2 ,\n    (SELECT id FROM public.cash_sessions WHERE user_id = $2 AND status = 'OPEN' LIMIT 1) ,\n    $3 \n);",
+        "options": {
+          "queryReplacement": "={{ [$json.id,$json.created_by,$json.payment_method_id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3152,
+        144
+      ],
+      "id": "9cca55c8-7a5a-4f21-b65a-2afb88376b05",
+      "name": "Execute Completion",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Dwt3WdobiGtSwEcH",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Dwt3WdobiGtSwEcH",
+          "cachedResultName": "Is Cash session active workflow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $json.body.user_id || $json.query.user_id}}"
+          },
+          "matchingColumns": [
+            "authorization"
+          ],
+          "schema": [
+            {
+              "id": "authorization",
+              "displayName": "authorization",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2512,
+        192
+      ],
+      "name": "Call Cash-session-active-workflow",
+      "id": "046d5196-4491-4925-a8ab-2dd8ff6003bd"
+    },
+    {
+      "parameters": {
+        "jsCode": "var input = $input.first() || {};\nvar body = $('misc_transactions/upsert').first().json.body;\nreturn {\n  \"body\":{...body, \"cash_session_id\": $input.first().json.data.id}\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2640,
+        64
+      ],
+      "id": "793087a1-4c98-404a-9a1d-d23a3b64a39e",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2032,
+        384
+      ],
+      "id": "3f905487-f90c-4664-98dd-b062e2292910",
+      "name": "Success"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2032,
+        640
+      ],
+      "id": "bbc1ce8f-5531-470d-8512-da0f76f57d4d",
+      "name": "Error"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        3376,
+        416
+      ],
+      "id": "6f78a81e-78a7-4148-94b2-a7bd2c917845",
+      "name": "Success 1"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        3376,
+        592
+      ],
+      "id": "25d31068-3bdf-4df3-98f5-7f20194c2ab7",
+      "name": "Error 1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Obtiene todos los items que llegan desde el nodo anterior\nconst items = $input.all();\n\n// Si no hay resultados, devuelve una estructura vacía\nif (items.length === 0) {\n  return {\n    json: {\n      data: [],\n      total: 0\n    }\n  };\n}\n\n// Extrae el conteo total del primer item.\nconst total = items[0].json.total;\n\n// Prepara el array de datos, quitando el campo 'total' de cada objeto para no ser redundante.\nconst data = items.map(item => {\n  const { total, ...restOfItem } = item.json;\n  return restOfItem;\n});\n\nreturn {\n  json: {\n    data: data,\n    total: total\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        640
+      ],
+      "id": "2ac96949-5b82-474b-b23a-d3785318ed95",
+      "name": "Code31"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  a.id,\n  a.code,\n  a.name,\n  a.description,\n  a.category_type,\n  a.is_active,\n  a.account_code,\n  a.parent_id,\n  a.created_at,\n  a.updated_at,\n  COUNT(*) OVER() AS total\nFROM\n  miscellaneous_categories a\nWHERE\n  (COALESCE($1, '') = '' OR\n    (\n      a.name ILIKE '%' || $1 || '%' OR\n      a.description ILIKE '%' || $1 || '%' OR\n      a.category_type ILIKE '%' || $1 || '%' OR\n      a.account_code ILIKE '%' || $1 || '%' OR\n      a.created_at::text ILIKE '%' || $1 || '%' OR\n      a.updated_at::text ILIKE '%' || $1 || '%'\n    )\n  )\n  AND (COALESCE($4, '') = '' OR a.category_type = $4)\nORDER BY\n  a.created_at DESC\nLIMIT $2\nOFFSET $3;",
+        "options": {
+          "queryReplacement": "={{ \n[ \n  $json.query.search || null, \n  parseInt($json.query.limit) || 100, \n  ((parseInt($json.query.page) || 1) - 1) * (parseInt($json.query.limit) || 100),\n  $json.query.type\n] \n}}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1568,
+        752
+      ],
+      "id": "9b5f9ca7-fd73-4d78-9667-8b1815436f38",
+      "name": "Select miscellaneous_categories",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.f_get_miscellaneous_transactions_paginated($1, $2, $3)",
+        "options": {
+          "queryReplacement": "={{ [$json.query.search, $json.query.limit, $json.query.page] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2560,
+        864
+      ],
+      "id": "c48a4309-3f60-4ae6-b690-ddfde7d4dfaa",
+      "name": "Select misc transactions paginated",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "pinData": {
+    "misc_transactions/upsert": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
+            "content-length": "297",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "content-type": "application/json",
+            "origin": "https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev",
+            "priority": "u=1, i",
+            "referer": "https://6000-firebase-studio-1756657738244.cluster-j6d3cbsvdbe5uxnhqrfzzeyj7i.cloudworkstations.dev/",
+            "sec-ch-ua": "\"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "179.24.117.217",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "179.24.117.217"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "category_id": 19,
+            "transaction_date": "2025-11-24",
+            "amount": 555,
+            "description": "5555",
+            "beneficiary_id": "d6239321-312c-427d-88dd-499b2bfebc03",
+            "currency": "UYU",
+            "exchange_rate": 1,
+            "external_reference": "555",
+            "tags": [
+              "55",
+              "55",
+              "55"
+            ],
+            "payment_method_id": 1,
+            "user_id": "97f2f970-b037-4bdf-9d12-4285e0bab34b"
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_transactions/upsert",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "misc_categories": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.5",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3NzA2NDY0Mzh9.BjPNyHWNOxqn0pixt78YJ1F6jSWHL0UPv8_unLaS3TI",
+            "origin": "http://localhost:3000",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"144\", \"Brave\";v=\"144\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "177.5.0.122",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "05c9532e790b",
+            "x-real-ip": "177.5.0.122"
+          },
+          "params": {},
+          "query": {
+            "limit": "1000"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_categories",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1770646438
+          }
+        }
+      }
+    ],
+    "misc_transactions": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.5",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3NzQ0NDI5MTF9.TSy3SYuiUDz8wJapPeiSXV3xltjfLxzQ9AVK4c6-fDY",
+            "origin": "http://localhost:3000",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\", \"Brave\";v=\"146\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "187.7.185.217",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "05c9532e790b",
+            "x-real-ip": "187.7.185.217"
+          },
+          "params": {},
+          "query": {
+            "page": "1",
+            "limit": "10",
+            "search": ""
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/misc_transactions",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1774442911
+          }
+        }
+      }
+    ]
+  },
+  "connections": {
+    "If11": {
+      "main": [
+        [
+          {
+            "node": "Update Miscs",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert Misc Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete rows in a table2": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "misc_categories/upsert": {
+      "main": [
+        [
+          {
+            "node": "If11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Miscs": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Misc Category": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "misc_categories/delete": {
+      "main": [
+        [
+          {
+            "node": "Delete rows in a table2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "misc_categories": {
+      "main": [
+        [
+          {
+            "node": "Select miscellaneous_categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get transaction to update",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert Misc Transaction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "misc_transactions/upsert": {
+      "main": [
+        [
+          {
+            "node": "Call Cash-session-active-workflow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "misc_transactions/delete": {
+      "main": [
+        [
+          {
+            "node": "Get transaction to delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get transaction to delete": {
+      "main": [
+        [
+          {
+            "node": "Guard: caja abierta?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guard: caja abierta?": {
+      "main": [
+        [
+          {
+            "node": "Delete misc transaction + movement",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: caja cerrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete misc transaction + movement": {
+      "main": [
+        [
+          {
+            "node": "Success 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "misc_transactions": {
+      "main": [
+        [
+          {
+            "node": "Select misc transactions paginated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Misc Transaction": {
+      "main": [
+        [
+          {
+            "node": "Execute Completion",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Completion": {
+      "main": [
+        [
+          {
+            "node": "Success 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Cash-session-active-workflow": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select miscellaneous_categories": {
+      "main": [
+        [
+          {
+            "node": "Code31",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code31": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select misc transactions paginated": {
+      "main": [
+        [
+          {
+            "node": "Success 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get transaction to update": {
+      "main": [
+        [
+          {
+            "node": "Guard: caja abierta? (editar)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guard: caja abierta? (editar)": {
+      "main": [
+        [
+          {
+            "node": "Update misc transaction + movement",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: caja cerrada (editar)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update misc transaction + movement": {
+      "main": [
+        [
+          {
+            "node": "Success 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2975c44d-3d92-4bd5-aae4-4d529b87e722",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "2mt4T36zAIiMS5bq",
+  "tags": []
+}

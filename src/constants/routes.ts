@@ -4,6 +4,7 @@ export const API_ROUTES = {
     CLINIC_LOGO: '/clinic/logo',
     USERS_APPOINTMENTS: '/users_appointments',
     USER_QUOTES: '/user_quotes',
+    USER_QUOTES_INVOICES: '/user_quotes_invoices',
     USER_PAYMENTS: '/user_payments',
     USER_ORDERS: '/user_orders',
     USER_INVOICES: '/user_invoices',
@@ -25,12 +26,29 @@ export const API_ROUTES = {
     SERVICES_STEPS: '/services/steps',
     SERVICES_STEPS_UPSERT: '/services/steps/upsert',
     SERVICES_STEPS_DELETE: '/services/steps/delete',
+    /**
+     * GET binario de la imagen del servicio: ?service_id=… (mismo contrato que
+     * /clinic/logo y /users/signature). Es público: lo consume la landing del
+     * portal, donde el paciente todavía no tiene token.
+     */
+    /**
+     * Prende o apaga `service_catalog.bookable_online`, y nada más. Es el único
+     * escritor de esa columna: `/catalogoservicios/upsert` no la toca.
+     */
+    SERVICE_BOOKABLE_ONLINE: '/services/bookable-online',
+    SERVICE_IMAGE: '/services/image',
+    SERVICE_IMAGE_UPLOAD: '/services/image/upload',
+    SERVICE_IMAGE_DELETE: '/services/image/delete',
     USER_SERVICES: '/services/user_services',
     USERS_SERVICES: '/users_services',
     USER_SERVICES_ASSIGN: '/services/assign',
     USERS: '/users',
     USERS_DOCTORS: '/users/doctors',
     USER_PREFERENCES: '/users/preferences',
+    /** GET binario de la firma del doctor: ?user_id=… (mismo contrato que /clinic/logo). */
+    USER_SIGNATURE: '/users/signature',
+    USER_SIGNATURE_UPLOAD: '/users/signature/upload',
+    USER_SIGNATURE_DELETE: '/users/signature/delete',
     APPOINTMENTS_AVAILABILITY: '/appointments_availability',
     APPOINTMENTS_UPSERT: '/appointments/upsert',
     APPOINTMENTS_UPDATE_COLOR: '/appointments/update_color',
@@ -39,6 +57,7 @@ export const API_ROUTES = {
     APPOINTMENTS_DELETE: '/appointments/delete',
     APPOINTMENTS_LINK_INVOICE: '/appointments/link_invoice',
     APPOINTMENTS_FILTER_IDS: '/appointments/filter-ids',
+    APPOINTMENTS_SEARCH: '/appointments/search',
     APPOINTMENTS_BULK_REASSIGN_DOCTOR: '/appointments/bulk-reassign-doctor',
     CLINIC_SESSIONS_LINK_INVOICE: '/sesiones_clinicas/link_invoice',
     SESSIONS_LINK_INVOICE: '/sesiones/link_invoice',
@@ -117,6 +136,7 @@ export const API_ROUTES = {
         SESSIONS_UPSERT: '/sesiones/upsert',
         SESSIONS_DELETE: '/sesiones/delete',
         SESSIONS_ATTACHMENT: '/sesiones/attachment',
+        SESSIONS_ATTACHMENTS_BY_PATIENT: '/sesiones/attachments-by-patient',
         USERS_DOCUMENTS: '/api/users/documents',
         USERS_DOCUMENT: '/api/users/document',
         USERS_IMPORT: '/api/users/import',
@@ -131,9 +151,17 @@ export const API_ROUTES = {
         ENHANCE_TEXT: '/ai/enhance-text',
         /** Genera tratamientos estructurados desde procedimiento y plan de próxima sesión */
         TREATMENTS: '/ai/treatments',
+        /** Asistente virtual del portal del paciente. El patient_id efectivo sale del JWT, no del body. */
+        PATIENT_QUERY: '/ai/patient/query',
     },
     PATIENT_DISCHARGE: '/patient/discharge',
     PATIENT_DISCHARGE_CANCEL: '/patient/discharge/cancel',
+    /** Sends a YCloud WhatsApp template message (birthday, appointment_reminder, invoice_due) to a patient */
+    PATIENTS_SEND_WHATSAPP_TEMPLATE: '/patients/send_whatsapp_template',
+    /** Batch-fetches current contact info (email, phone_number, alternative_phone) for one or more user ids */
+    USER_CONTACT: '/user_contact',
+    /** Lists WhatsApp templates as returned by YCloud (raw) — used to search/select a template's exact name + language when configuring a CommunicationTemplate */
+    WHATSAPP_TEMPLATES: '/whatsapp-templates',
     CLINIC_UPDATE: '/clinic/update',
     AVAILABILITY_EXCEPTIONS_SEARCH: '/availability_exceptions/search',
     AVAILABILITY_EXCEPTIONS_UPSERT: '/availability_exceptions/upsert',
@@ -167,10 +195,78 @@ export const API_ROUTES = {
         SALES_BY_SERVICE: '/dashboard_sales_by_service',
         INVOICE_STATUS: '/dashboard_invoice_status',
         NEW_VS_RECURRING_PATIENTS: '/dashboard_new_vs_recurring_patients',
+        // Panel de Control Gerencial — n8n-workflows/dashboard/dashboard-gerencial.json
+        EXECUTIVE_SUMMARY:    '/dashboard/executive-summary',
+        PRODUCCION_SUCURSAL:  '/dashboard/produccion-sucursal',
+        PACIENTES_POR_DIA:    '/dashboard/pacientes-por-dia',
+        VENTAS_POR_SERVICIO:  '/dashboard/ventas-por-servicio',
+        EVOLUCION_MENSUAL:    '/dashboard/evolucion-mensual',
     },
     LOGIN: '/api/auth/login',
     LOGOUT: '/api/auth/logout',
     AUTH_ME: '/auth/me',
+    USER_ACTIVE_SEDE: '/users/active-sede',
+    /**
+     * Portal del paciente — login sin password por código de un solo uso.
+     * Los cuatro endpoints son públicos (noauth): el paciente todavía no tiene token.
+     * VERIFY_CODE emite el mismo JWT que LOGIN. Contrato: docs/patient-portal.md
+     */
+    PATIENT_AUTH: {
+        IDENTIFY: '/api/auth/patient/identify',
+        SEND_CODE: '/api/auth/patient/send-code',
+        VERIFY_CODE: '/api/auth/patient/verify-code',
+        REGISTER: '/api/auth/patient/register',
+        /** Datos públicos de la clínica para la landing /patient-login (sin token). */
+        PUBLIC_CLINIC: '/api/public/clinic',
+        /**
+         * Reserva sin sesión, desde la landing. Variantes `_noauth` que ya existen
+         * en el workflow de citas — el visitante todavía no tiene token.
+         */
+        PUBLIC_AVAILABILITY: '/appointments_availability_noauth',
+        PUBLIC_APPOINTMENT_UPSERT: '/appointments/upsert_noauth',
+        /** Sedes y consultorios visibles sin token: el visitante elige dónde atenderse. */
+        PUBLIC_SEDES: '/sedes_noauth',
+        PUBLIC_CALENDARS: '/calendars_noauth',
+        /** Horarios de atención de una sede. Requiere `sede_id`. */
+        PUBLIC_SCHEDULES: '/schedules_noauth',
+        /**
+         * Servicios que el paciente puede auto-agendar (`bookable_online`).
+         * Devuelve sólo campos públicos, y omite los precios cuando la clínica
+         * eligió no mostrarlos.
+         */
+        PUBLIC_SERVICES: '/services_noauth',
+        /** Envía la confirmación de la cita al paciente y a la clínica. */
+        APPOINTMENT_NOTIFY: '/api/public/appointment-notify',
+    },
+    /** Configuración → Portal del Paciente. Sólo actualiza; no crea clínicas. */
+    PATIENT_PORTAL_CONFIG: '/clinic/patient-portal-config',
+    /**
+     * Configuración → Preferencias de Clínica. Tabla propia (`clinic_preferences`),
+     * separada de los Datos de la Clínica: se carga una única vez tras el login.
+     */
+    CLINIC_PREFERENCES: {
+        GET: '/clinic/preferences',
+        UPSERT: '/clinic/preferences/upsert',
+    },
+    /**
+     * Configuración → Colores de calendario. Matriz de color/modo/badge por
+     * estado de cita, general (calendar_id null) u override por calendario.
+     */
+    CALENDAR_STATUS_DISPLAY: {
+        SEARCH: '/calendar_status_display/search',
+        UPSERT: '/calendar_status_display/upsert',
+        DELETE: '/calendar_status_display/delete',
+    },
+    /**
+     * Configuración → Colores de calendario → Origen del color. Qué niveles de la
+     * cadena (servicio, doctor, calendario) cuentan al pintar una cita, general
+     * (calendar_id null) u override por calendario.
+     */
+    CALENDAR_COLOR_SOURCE: {
+        SEARCH: '/calendar_color_source/search',
+        UPSERT: '/calendar_color_source/upsert',
+        DELETE: '/calendar_color_source/delete',
+    },
     ORDERS: '/orders',
     PERMISSIONS: '/permissions',
     PERMISSION_USERS: '/permission_users',
@@ -184,7 +280,6 @@ export const API_ROUTES = {
         INVOICE_PAYMENTS: '/invoice_payments',
         INVOICE_ALLOCATIONS: '/invoice_allocations',
         API_INVOICE_PRINT: '/api/invoice/print',
-        API_INVOICE_SEND: '/api/invoice/send',
         API_INVOICE_IMPORT: '/api/invoice/import',
         INVOICES_ITEMS_UPSERT: '/invoices/items/upsert',
         INVOICES_ITEMS_DELETE: '/invoices/items/delete',
@@ -201,7 +296,6 @@ export const API_ROUTES = {
         PAYMENTS_ALL: '/all_payments',
         PAYMENT_ALLOCATIONS: '/payment_allocations',
         API_PAYMENT_PRINT: '/api/payment/print',
-        API_PAYMENT_SEND: '/api/payment/send',
         INVOICE_PAYMENT: '/invoice/payment',
         QUOTES: '/purchases/quotes',
         QUOTES_ALL: '/quotes',
@@ -213,7 +307,6 @@ export const API_ROUTES = {
         QUOTES_PAYMENTS: '/quote_payments',
         QUOTES_UPSERT: '/quotes/upsert',
         QUOTES_PRINT: '/api/quote/print',
-        QUOTES_SEND: '/api/quote/send',
         QUOTES_LINES_SCHEDULE: '/quote/lines/schedule',
         QUOTE_DELETE: '/quote/delete',
         QUOTE_CONFIRM: '/quote/confirm',
@@ -227,6 +320,8 @@ export const API_ROUTES = {
     },
     QUOTES: '/quotes',
     RESET_PASSWORD: '/reset-password',
+    /** Ruta de frontend (no API) de la landing pública del portal del paciente. */
+    PATIENT_LOGIN_PAGE: '/patient-login',
     ROLES: '/roles',
     ROLES_ASSIGN: '/roles/assign',
     ROLES_UPSERT: '/roles/upsert',
@@ -238,7 +333,6 @@ export const API_ROUTES = {
         INVOICE_PAYMENTS: '/invoice_payments',
         INVOICE_ALLOCATIONS: '/invoice_allocations',
         API_INVOICE_PRINT: '/api/invoice/print',
-        API_INVOICE_SEND: '/api/invoice/send',
         API_INVOICE_IMPORT: '/api/invoice/import',
         INVOICES_ITEMS_UPSERT: '/invoices/items/upsert',
         INVOICES_ITEMS_DELETE: '/invoices/items/delete',
@@ -258,8 +352,13 @@ export const API_ROUTES = {
         PAYMENTS_ALL: '/all_payments',
         PAYMENT_ALLOCATIONS: '/payment_allocations',
         API_PAYMENT_PRINT: '/api/payment/print',
-        API_PAYMENT_SEND: '/api/payment/send',
         INVOICE_PAYMENT: '/invoice/payment',
+        INVOICE_UNDO: '/invoice/undo',
+        INVOICE_ITEMS_EDIT_WITH_REALLOCATION: '/invoice/items/edit-with-reallocation',
+        INVOICE_PAYMENT_STATE_SET: '/invoice/payment-state/set',
+        PAYMENT_UNDO: '/payment/undo',
+        PAYMENT_EDIT_WITH_REALLOCATION: '/payment/edit-with-reallocation',
+        CREDIT_NOTE_UNDO: '/credit_note/undo',
         QUOTES: '/sales/quotes',
         QUOTES_ITEMS: '/quote_items',
         QUOTES_LINES_UPSERT: '/quote/lines/upsert',
@@ -272,15 +371,13 @@ export const API_ROUTES = {
         QUOTE_CLINIC_SESSIONS: '/quote_clinic_sessions',
         QUOTES_UPSERT: '/quotes/upsert',
         QUOTE_DELETE: '/quote/delete',
+        QUOTE_UNDO: '/quote/undo',
         QUOTE_CONFIRM: '/quote/confirm',
         QUOTE_REJECT: '/quote/reject',
         QUOTE_CONFIRM_URL: (id: string) => `/quote/confirm?id=${id}`,
         QUOTE_REJECT_URL: (id: string) => `/quote/reject?id=${id}`,
-        QUOTE_SEND: '/api/quote/send',
-        QUOTE_SEND_URL: (id: string) => `/api/quote/send?id=${id}`,
         QUOTE_PRINT: '/api/quote/print',
         QUOTE_PRINT_URL: (id: string) => `/api/quote/print?id=${id}`,
-        INVOICE_SEND: (id: string) => `/api/invoice/send?id=${id}`,
         SERVICES: '/sales/services',
         USERS: '/users',
     },
@@ -294,6 +391,8 @@ export const API_ROUTES = {
         ALERT_CATEGORIES: '/alert_categories',
         ALERT_CATEGORY: '/alert_category',
         ALERT_CONFIG_WEBHOOK: '/system/alert-config',
+        ALERT_EXECUTION_HISTORY: '/system/alert-execution-history',
+        ALERT_SCHEDULER_RUN: '/system/alert-scheduler',
         ALERT_INSTANCES: '/system/alert-instances',
         ALERT_STATISTICS: '/system/alert-statistics',
         ALERT_INSTANCES_COMPLETE: '/system/alert-instances/complete',
@@ -309,6 +408,8 @@ export const API_ROUTES = {
         ALERTS_CONFIG: '/system/alerts-config',
         AUDIT: '/system/audit',
         AUDIT_LOGS: '/audit_logs',
+        AUDIT_LOG_ENTITIES: '/audit_logs/entities',
+        AUDIT_LOG_ENTITY_HISTORY: '/audit_logs/entity_history',
         COMMUNICATION_HISTORY: '/system/communication-history',
         COMMUNICATION_TEMPLATES: '/system/communication-templates',
         COMMUNICATION_TEMPLATE: '/system/communication-template',
@@ -339,7 +440,12 @@ export const API_ROUTES = {
     },
     ORDER_INVOICE: '/order/invoice',
     USER_DEPENDANT: '/user_dependant',
+    /** Pacientes a cargo de un tutor (`?user_id=` del tutor). */
+    USERS_DEPENDENTS: '/users/dependents',
+    /** Vincula/desvincula un dependiente: solo toca `is_dependant` y `responsible_contact_id`. */
+    USERS_RESPONSIBLE: '/users/responsible',
     USERS_UPSERT: '/users/upsert',
+    USER_NOTES: '/user/notes',
     USERS_ACTIVATE: '/users/activate',
     USERS_SEND_EMAIL: '/users/send_email',
     ROLES_USER_ROLES: '/roles/user_roles',
@@ -378,9 +484,42 @@ export const API_ROUTES = {
     MUTUAL_SOCIETIES_UPSERT: '/mutual-society',
     MUTUAL_SOCIETIES_DELETE: '/mutual-society',
     MUTUAL_SOCIETIES_ASSIGN_USER: '/mutual-society/user',
+    PATIENT_GROUPS: '/grupos_paciente',
+    PATIENT_GROUP: '/grupo_paciente',
+    PATIENT_GROUP_UPSERT: '/grupo_paciente',
+    PATIENT_GROUP_DELETE: '/grupo_paciente',
+    PATIENT_GROUP_PATIENTS: '/grupo_paciente/pacientes',
+    PATIENT_GROUP_ASSIGN: '/grupo_paciente/asignar',
+    PATIENT_GROUP_REMOVE: '/grupo_paciente/quitar',
+    PATIENT_GROUPS_BY_PATIENT: '/paciente/grupos',
+    PATIENT_GROUP_SERVICES: '/grupo_paciente/servicios',
+    PATIENT_GROUP_SERVICES_ASSIGN: '/grupo_paciente/servicios/asignar',
+    PATIENT_GROUP_SERVICES_REMOVE: '/grupo_paciente/servicios/quitar',
+    PROVIDER_GROUPS: '/grupos_proveedor',
+    PROVIDER_GROUP: '/grupo_proveedor',
+    PROVIDER_GROUP_UPSERT: '/grupo_proveedor',
+    PROVIDER_GROUP_DELETE: '/grupo_proveedor',
+    PROVIDER_GROUP_PROVIDERS: '/grupo_proveedor/proveedores',
+    PROVIDER_GROUP_ASSIGN: '/grupo_proveedor/asignar',
+    PROVIDER_GROUP_REMOVE: '/grupo_proveedor/quitar',
+    PROVIDER_GROUPS_BY_PROVIDER: '/proveedor/grupos',
     PRINT_TEMPLATES:        '/print-templates',
     PRINT_TEMPLATES_UPSERT: '/print-templates/upsert',
     PRINT_TEMPLATES_DELETE: '/print-templates/delete',
+    /** Emails a quote/invoice/credit note/payment with its PDF (rendered in the browser) attached. */
+    DOCUMENTS_SEND:         '/api/documents/send',
+    MEDICAL_INSTRUCTION_TEMPLATES:        '/medical-instruction-templates',
+    MEDICAL_INSTRUCTION_TEMPLATES_UPSERT: '/medical-instruction-templates/upsert',
+    MEDICAL_INSTRUCTION_TEMPLATES_DELETE: '/medical-instruction-templates/delete',
+    PATIENT_MEDICAL_INSTRUCTIONS:        '/patient-medical-instructions',
+    PATIENT_MEDICAL_INSTRUCTIONS_UPSERT: '/patient-medical-instructions/upsert',
+    PATIENT_MEDICAL_INSTRUCTIONS_DELETE: '/patient-medical-instructions/delete',
+    PRESCRIPTION_TEMPLATES:        '/prescription-templates',
+    PRESCRIPTION_TEMPLATES_UPSERT: '/prescription-templates/upsert',
+    PRESCRIPTION_TEMPLATES_DELETE: '/prescription-templates/delete',
+    PATIENT_PRESCRIPTIONS:         '/patient-prescriptions',
+    PATIENT_PRESCRIPTIONS_UPSERT:  '/patient-prescriptions/upsert',
+    PATIENT_PRESCRIPTIONS_DELETE:  '/patient-prescriptions/delete',
     STICKY_NOTES: '/sticky-notes',
     STICKY_NOTES_UPSERT: '/sticky-notes/upsert',
     STICKY_NOTES_DELETE: '/sticky-notes/delete',
@@ -406,6 +545,7 @@ export const API_ROUTES = {
         ESTADO_RESULTADOS:    '/reports/estado-resultados',
         KPIS:                 '/reports/kpis',
         USERS_BY_ROLE:        '/reports/users-by-role',
+        BALANCE_MENSUAL:      '/reports/balance-mensual',
     },
     SERVICE: '/service',
     LICENSE: {

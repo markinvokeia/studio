@@ -1,26 +1,10 @@
 import type * as React from 'react';
 
-import type { CalendarReminderPriority, CalendarReminderStatus } from '@/lib/types';
+import type { CalendarReminder, CalendarReminderPriority, CalendarReminderStatus } from '@/lib/types';
+
+import { getReadableTextColor } from './calendar-utils';
 
 const DEFAULT_REMINDER_COLOR = '#8b5cf6';
-
-function colorWithAlpha(color: string, alpha: number) {
-  const normalized = color.trim();
-  const shortHexMatch = /^#([0-9a-f]{3})$/i.exec(normalized);
-  const longHexMatch = /^#([0-9a-f]{6})$/i.exec(normalized);
-  const hex = shortHexMatch
-    ? shortHexMatch[1].split('').map((char) => `${char}${char}`).join('')
-    : longHexMatch?.[1];
-
-  if (hex) {
-    const red = parseInt(hex.slice(0, 2), 16);
-    const green = parseInt(hex.slice(2, 4), 16);
-    const blue = parseInt(hex.slice(4, 6), 16);
-    return `rgb(${red} ${green} ${blue} / ${alpha})`;
-  }
-
-  return `color-mix(in srgb, ${normalized} ${alpha * 100}%, white)`;
-}
 
 export function getReminderPriorityColor(priority?: CalendarReminderPriority | null) {
   switch (priority) {
@@ -38,20 +22,36 @@ export function isReminderDone(status?: CalendarReminderStatus | string | null) 
   return status === 'done';
 }
 
+/**
+ * Un ítem `personal` es la excepción: `clinic` —visible y editable por todo el staff— es
+ * el default del modelo. La UI marca lo excepcional, no lo normal.
+ */
+export function isPersonalReminder(reminder?: Pick<CalendarReminder, 'visibility'> | null) {
+  return reminder?.visibility === 'personal';
+}
+
 export function getReminderCardStyle(color?: string | null, done = false): React.CSSProperties {
   const baseColor = color || DEFAULT_REMINDER_COLOR;
 
   if (done) {
     return {
+      backgroundColor: 'rgb(249 250 251)',
+      color: 'rgb(107 114 128)',
       '--reminder-bg': 'rgb(249 250 251)',
-      '--reminder-border': colorWithAlpha(baseColor, 0.28),
+      '--reminder-border': baseColor,
       '--reminder-color': baseColor,
+      '--reminder-foreground': 'rgb(107 114 128)',
     } as React.CSSProperties;
   }
 
+  const foregroundColor = getReadableTextColor(baseColor);
+
   return {
-    '--reminder-bg': colorWithAlpha(baseColor, 0.16),
-    '--reminder-border': colorWithAlpha(baseColor, 0.42),
+    backgroundColor: baseColor,
+    color: foregroundColor,
+    '--reminder-bg': baseColor,
+    '--reminder-border': baseColor,
     '--reminder-color': baseColor,
+    '--reminder-foreground': foregroundColor,
   } as React.CSSProperties;
 }

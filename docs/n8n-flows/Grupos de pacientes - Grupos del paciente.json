@@ -1,0 +1,1672 @@
+{
+  "name": "Grupos de pacientes - Grupos del paciente",
+  "nodes": [
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        560,
+        416
+      ],
+      "id": "a102bf98-ec67-4495-a4ee-eee1179a62aa",
+      "name": "Error"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        560,
+        48
+      ],
+      "id": "80ed12a0-6b3f-4089-bee6-7d956c1e9b9a",
+      "name": "OK"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grupo_paciente",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -288,
+        -144
+      ],
+      "id": "d85f48be-b583-4fa6-aff8-63b104e1335c",
+      "name": "UPSERT /grupo_paciente",
+      "webhookId": "15f21bd0-5172-4a29-ae00-5557f8977663",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "89f0babb-3d7a-4be8-b6e2-e90c00ee1537",
+              "leftValue": "={{ $json.body.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -80,
+        -144
+      ],
+      "id": "77b20687-5278-41d2-bf65-5e3212c289de",
+      "name": "Grupo paciente exists?"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "groups",
+          "mode": "list",
+          "cachedResultName": "groups"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "is_active": "={{ $json.body.is_active }}",
+            "name": "={{ $json.body.name }}",
+            "created_at": "={{ $now }}",
+            "updated_at": "={{ $now }}",
+            "description": "={{ $json.body.description }}",
+            "is_doctor": "={{ $json.body.is_doctor || false }}",
+            "user_id": "={{ $json.body.user_id || null }}",
+            "external_id": "={{ $json.body.external_id || null }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_doctor",
+              "displayName": "is_doctor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "external_id",
+              "displayName": "external_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        144,
+        -64
+      ],
+      "id": "70577f48-2ff5-4d3d-8486-971a74388a32",
+      "name": "Insert grupo paciente",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "groups",
+          "mode": "list",
+          "cachedResultName": "groups"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "is_active": "={{ $json.body.is_active }}",
+            "id": "={{ $json.body.id }}",
+            "name": "={{ $json.body.name }}",
+            "updated_at": "={{ $now }}",
+            "description": "={{ $json.body.description }}",
+            "is_doctor": "={{ $json.body.is_doctor || false }}",
+            "user_id": "={{ $json.body.user_id || null }}",
+            "external_id": "={{ $json.body.external_id || null }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": true,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "updated_at",
+              "displayName": "updated_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_active",
+              "displayName": "is_active",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_doctor",
+              "displayName": "is_doctor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "external_id",
+              "displayName": "external_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        144,
+        -240
+      ],
+      "id": "ab9c988c-9339-40d0-9a23-ab6cf0c9603b",
+      "name": "Update grupo paciente",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "grupo_paciente",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -288,
+        48
+      ],
+      "id": "7aa61f69-883e-442e-9eef-8209ff881a22",
+      "name": "GET /grupo_paciente",
+      "webhookId": "15f21bd0-5172-4a29-ae00-5557f8977663",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM public.groups\nWHERE id = $1\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.query.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -80,
+        48
+      ],
+      "id": "ce0208f1-1e18-45c1-8886-4fba8d7d279a",
+      "name": "Select grupo paciente",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "grupos_paciente",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -288,
+        240
+      ],
+      "id": "fd855235-8236-4637-ab3e-8e678427ae24",
+      "name": "LIST /grupos_paciente",
+      "webhookId": "15f21bd0-5172-4a29-ae00-5557f8977663",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM\n    public.groups\nWHERE\n    (\n        $1 IS NULL\n        OR name ILIKE '%' || $1 || '%'\n    )\n    AND ($2 IS NULL OR is_active = $2)\nORDER BY\n    created_at DESC\n-- LIMIT $3\n-- OFFSET $4;",
+        "options": {
+          "queryReplacement": "={{ [$json.query.search, $json.query.is_active, $json.query.limit, (($json.query.page - 1) * $json.query.limit)] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -80,
+        240
+      ],
+      "id": "98637be3-826f-47f1-856d-a3a18658efe3",
+      "name": "Select grupos paciente",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "grupo_paciente",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -288,
+        432
+      ],
+      "id": "98d6d2e4-accb-42ab-88ec-1957a6253c60",
+      "name": "DELETE /grupo_paciente",
+      "webhookId": "15f21bd0-5172-4a29-ae00-5557f8977663",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM public.groups\nWHERE id = $1;",
+        "options": {
+          "queryReplacement": "={{ $json.body.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -80,
+        432
+      ],
+      "id": "3b025d6e-d0e8-4fb9-9204-e42c722dc775",
+      "name": "Delete grupo paciente",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "path": "grupo_paciente/pacientes",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "33ebd7bf-b946-416c-bedc-60851648af7a",
+      "name": "LIST /grupo_paciente/pacientes",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -304,
+        656
+      ],
+      "webhookId": "61b686c6-9441-41f8-9a72-8be1fca36ade",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  u.id,\n  u.name,\n  u.email,\n  u.phone_number,\n  u.identity_document,\n  u.is_active,\n  COUNT(*) OVER() AS total_count\nFROM group_patients gp\nJOIN users u ON u.id = gp.patient_id\nWHERE gp.group_id = $1::uuid\n  AND (\n    $2::text IS NULL OR $2 = ''\n    OR u.name ILIKE '%' || $2 || '%'\n    OR u.email ILIKE '%' || $2 || '%'\n    OR u.phone_number ILIKE '%' || $2 || '%'\n    OR u.identity_document ILIKE '%' || $2 || '%'\n  )\nORDER BY u.name ASC\nLIMIT $3::int OFFSET $4::int;",
+        "options": {
+          "queryReplacement": "={{ [$json.query.group_id, $json.query.search || null, Number($json.query.limit || 25), (Number($json.query.page || 1) - 1) * Number($json.query.limit || 25)] }}"
+        }
+      },
+      "id": "3b725cb9-d8b8-4d3f-96f7-f85ec26f2450",
+      "name": "Select pacientes del grupo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -64,
+        656
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json).filter(r => r && r.id);\nconst total = rows.length ? Number(rows[0].total_count) : 0;\nconst data = rows.map(({ total_count, ...r }) => r);\nreturn [{ json: { data, total } }];"
+      },
+      "id": "d04ba636-6446-4b2a-b960-93a0b158e5ef",
+      "name": "Build Pacientes Page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "0450867b-f2a3-452e-a61e-6253d0b7901c",
+      "name": "OK Pacientes",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        416,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grupo_paciente/asignar",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "638eb11b-eae0-4fb2-bd45-5fa8a7673eff",
+      "name": "ADD /grupo_paciente/asignar",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -304,
+        880
+      ],
+      "webhookId": "40e24603-9cf0-4933-864a-8344db0a96d7",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.group_patients (group_id, patient_id)\nSELECT $1::uuid, x\nFROM unnest(\n  CASE\n    WHEN NULLIF($2, '') IS NULL THEN ARRAY[]::uuid[]\n    ELSE string_to_array($2, ',')::uuid[]\n  END\n) AS x\nON CONFLICT (group_id, patient_id) DO NOTHING\nRETURNING patient_id;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.group_id, ($json.body.user_ids || []).join(',')] }}"
+        }
+      },
+      "id": "52e13300-47e6-41dd-a60d-9c9804981da0",
+      "name": "Asignar pacientes al grupo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -64,
+        880
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "dfd9a52e-6e6b-462c-ac12-818be1a9ee0c",
+      "name": "OK Asignar",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        176,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grupo_paciente/quitar",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "55bbb110-34f3-46ef-ae37-83bc20fc40b2",
+      "name": "REMOVE /grupo_paciente/quitar",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -304,
+        1104
+      ],
+      "webhookId": "55c58f2c-e26e-4619-a4b9-2c1f20a2ebf5",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM public.group_patients\nWHERE group_id = $1::uuid\n  AND patient_id = ANY(\n    CASE\n      WHEN NULLIF($2, '') IS NULL THEN ARRAY[]::uuid[]\n      ELSE string_to_array($2, ',')::uuid[]\n    END\n  )\nRETURNING patient_id;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.group_id, ($json.body.user_ids || []).join(',')] }}"
+        }
+      },
+      "id": "fbf74c5a-a267-4939-a02f-38b14b6a66fb",
+      "name": "Quitar pacientes del grupo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -64,
+        1104
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "9ec6bcc5-d21e-476f-8488-67921fe40ffe",
+      "name": "OK Quitar",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        176,
+        1104
+      ]
+    },
+    {
+      "parameters": {
+        "path": "paciente/grupos",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "a4cb3a57-1daf-4e7d-b391-026a7b4856c3",
+      "name": "LIST /paciente/grupos",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -320,
+        1376
+      ],
+      "webhookId": "2f943abe-aa00-4f54-b886-f9c490e671e0",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  g.id,\n  g.name,\n  g.description,\n  g.is_active\nFROM group_patients gp\nJOIN groups g ON g.id = gp.group_id\nWHERE gp.patient_id = $1::uuid\nORDER BY g.name ASC;",
+        "options": {
+          "queryReplacement": "={{ [$json.query.patient_id] }}"
+        }
+      },
+      "id": "5e17df84-d551-45db-990d-8a49344a735b",
+      "name": "Select grupos del paciente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -80,
+        1376
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "0fa977ce-a159-4dd9-8fb7-781b16b30b1b",
+      "name": "OK Grupos",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        160,
+        1376
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "paciente/grupos",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "dcaa84f3-11f2-432e-9e53-e1cd3b59ee72",
+      "name": "SET /paciente/grupos",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -320,
+        1600
+      ],
+      "webhookId": "82729e55-994b-447c-8c79-13f197c5c17b",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH target AS (\n  SELECT CASE\n           WHEN NULLIF($2, '') IS NULL THEN ARRAY[]::uuid[]\n           ELSE string_to_array($2, ',')::uuid[]\n         END AS ids\n),\ndel AS (\n  DELETE FROM public.group_patients gp\n  USING target t\n  WHERE gp.patient_id = $1::uuid\n    AND NOT (gp.group_id = ANY(t.ids))\n  RETURNING gp.group_id\n),\nins AS (\n  INSERT INTO public.group_patients (group_id, patient_id)\n  SELECT x, $1::uuid\n  FROM target t, unnest(t.ids) AS x\n  ON CONFLICT (group_id, patient_id) DO NOTHING\n  RETURNING group_id\n)\nSELECT\n  (SELECT COUNT(*) FROM ins) AS added,\n  (SELECT COUNT(*) FROM del) AS removed;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.patient_id, ($json.body.group_ids || []).join(',')] }}"
+        }
+      },
+      "id": "f7c90c81-6130-43d4-98ee-ed7e7b6565e5",
+      "name": "Set grupos del paciente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -80,
+        1600
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "59be26d2-0e65-43f2-ae25-a6c8d9fa658d",
+      "name": "OK Set Grupos",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        160,
+        1600
+      ]
+    },
+    {
+      "parameters": {
+        "path": "grupo_paciente/servicios",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "a1c3f9de-2b6a-4d7e-9c1a-7f2e8b4d5a10",
+      "name": "LIST /grupo_paciente/servicios",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -304,
+        1824
+      ],
+      "webhookId": "a1c3f9de-2b6a-4d7e-9c1a-7f2e8b4d5a11",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  s.id,\n  s.name,\n  s.category,\n  mc.name AS category_name,\n  s.price,\n  s.currency,\n  s.duration_minutes,\n  s.is_active,\n  COUNT(*) OVER() AS total_count\nFROM group_services gs\nJOIN service_catalog s ON s.id = gs.service_id\nLEFT JOIN miscellaneous_categories mc ON mc.id = s.category_id\nWHERE gs.group_id = $1::uuid\n  AND (\n    $2::text IS NULL OR $2 = ''\n    OR s.name ILIKE '%' || $2 || '%'\n  )\nORDER BY s.name ASC\nLIMIT $3::int OFFSET $4::int;",
+        "options": {
+          "queryReplacement": "={{ [$json.query.group_id, $json.query.search || null, Number($json.query.limit || 25), (Number($json.query.page || 1) - 1) * Number($json.query.limit || 25)] }}"
+        }
+      },
+      "id": "b2d4f0ef-3c7b-4e8f-ad2b-8f3f9c5e6b21",
+      "name": "Select servicios del grupo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -64,
+        1824
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all().map(i => i.json).filter(r => r && r.id);\nconst total = rows.length ? Number(rows[0].total_count) : 0;\nconst data = rows.map(({ total_count, ...r }) => r);\nreturn [{ json: { data, total } }];"
+      },
+      "id": "c3e5a1f0-4d8c-4f90-be3c-9a4a0d6f7c32",
+      "name": "Build Servicios Page",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        1824
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "d4f6b202-5e9d-4001-8f4d-0b5b1e708c43",
+      "name": "OK Servicios",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        416,
+        1824
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grupo_paciente/servicios/asignar",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "e5079313-6fae-4112-9a5e-1c6c2f819d54",
+      "name": "ADD /grupo_paciente/servicios/asignar",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -304,
+        2048
+      ],
+      "webhookId": "e5079313-6fae-4112-9a5e-1c6c2f819d55",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.group_services (group_id, service_id)\nSELECT $1::uuid, x\nFROM unnest(\n  CASE\n    WHEN NULLIF($2, '') IS NULL THEN ARRAY[]::int[]\n    ELSE string_to_array($2, ',')::int[]\n  END\n) AS x\nON CONFLICT (group_id, service_id) DO NOTHING\nRETURNING service_id;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.group_id, ($json.body.service_ids || []).join(',')] }}"
+        }
+      },
+      "id": "f6180424-7fbf-4223-ab6f-2d7d3fa2ae65",
+      "name": "Asignar servicios al grupo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -64,
+        2048
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "07291535-80c0-4334-bc70-3e8e4fb3bf76",
+      "name": "OK Asignar Servicios",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        176,
+        2048
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "grupo_paciente/servicios/quitar",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "183a2646-91d1-4445-cd81-4f9f5104c087",
+      "name": "REMOVE /grupo_paciente/servicios/quitar",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -304,
+        2272
+      ],
+      "webhookId": "183a2646-91d1-4445-cd81-4f9f5104c088",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM public.group_services\nWHERE group_id = $1::uuid\n  AND service_id = ANY(\n    CASE\n      WHEN NULLIF($2, '') IS NULL THEN ARRAY[]::int[]\n      ELSE string_to_array($2, ',')::int[]\n    END\n  )\nRETURNING service_id;",
+        "options": {
+          "queryReplacement": "={{ [$json.body.group_id, ($json.body.service_ids || []).join(',')] }}"
+        }
+      },
+      "id": "294b3757-a2e2-4556-de92-5a0a06215d98",
+      "name": "Quitar servicios del grupo",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -64,
+        2272
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "3a5c4868-b3f3-4667-ef03-6b1b17326ea9",
+      "name": "OK Quitar Servicios",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        176,
+        2272
+      ]
+    }
+  ],
+  "pinData": {
+    "LIST /grupos_paciente": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.8",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3NjY1OTA1NzJ9.WnZ5C14V9AhihaZKNr1Ivkw6TqXCxWKH1ohZssVDRMY",
+            "origin": "http://localhost:3000",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/",
+            "sec-ch-ua": "\"Brave\";v=\"143\", \"Chromium\";v=\"143\", \"Not A(Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "sec-gpc": "1",
+            "x-forwarded-for": "177.7.143.97",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "6c8052c64eb2",
+            "x-real-ip": "177.7.143.97"
+          },
+          "params": {},
+          "query": {
+            "page": "1",
+            "limit": "10"
+          },
+          "body": {},
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/system/communication-templates",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1766590572
+          }
+        }
+      }
+    ],
+    "UPSERT /grupo_paciente": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+            "content-length": "238",
+            "accept": "application/json",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyODNmMDljNy03YmE2LTRlZWQtYWQ1Ni03YjNiZTBjMTk5MDkiLCJlbWFpbCI6InJhaWRlbEBpbnZva2VpYS5jb20iLCJleHBpcmVzSW4iOiIyNGgiLCJpYXQiOjE3ODI1MTMxMTl9.zzQ83widCIuyJvFMQX8cI1hWE9jSKyUVkRU6vAYsueU",
+            "cache-control": "no-cache",
+            "content-type": "application/json",
+            "origin": "http://localhost:3000",
+            "pragma": "no-cache",
+            "priority": "u=1, i",
+            "referer": "http://localhost:3000/es/config/patient-groups",
+            "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"macOS\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "179.26.232.154",
+            "x-forwarded-host": "n8n-project-n8n.7ig1i3.easypanel.host",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "d4e738525fe6",
+            "x-real-ip": "179.26.232.154"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "id": "52bfe826-5536-4326-9096-cd6145faeafc",
+            "name": "Ortodoncia",
+            "description": "alwkjdalkwjdl akjdlakw djlakw jdawd\nadkjaw djawlkd awd\nawdjawlkdajkwlda",
+            "is_active": true,
+            "is_doctor": true,
+            "user_id": "607af43b-5e26-44f8-8bab-732bb85dcf21"
+          },
+          "webhookUrl": "https://n8n-project-n8n.7ig1i3.easypanel.host/webhook/grupo_paciente",
+          "executionMode": "production",
+          "jwtPayload": {
+            "userId": "283f09c7-7ba6-4eed-ad56-7b3be0c19909",
+            "email": "raidel@invokeia.com",
+            "expiresIn": "24h",
+            "iat": 1782513119
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "UPSERT /grupo_paciente": {
+      "main": [
+        [
+          {
+            "node": "Grupo paciente exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grupo paciente exists?": {
+      "main": [
+        [
+          {
+            "node": "Update grupo paciente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert grupo paciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert grupo paciente": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update grupo paciente": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET /grupo_paciente": {
+      "main": [
+        [
+          {
+            "node": "Select grupo paciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select grupo paciente": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LIST /grupos_paciente": {
+      "main": [
+        [
+          {
+            "node": "Select grupos paciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select grupos paciente": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DELETE /grupo_paciente": {
+      "main": [
+        [
+          {
+            "node": "Delete grupo paciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete grupo paciente": {
+      "main": [
+        [
+          {
+            "node": "OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LIST /grupo_paciente/pacientes": {
+      "main": [
+        [
+          {
+            "node": "Select pacientes del grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select pacientes del grupo": {
+      "main": [
+        [
+          {
+            "node": "Build Pacientes Page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Pacientes Page": {
+      "main": [
+        [
+          {
+            "node": "OK Pacientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ADD /grupo_paciente/asignar": {
+      "main": [
+        [
+          {
+            "node": "Asignar pacientes al grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asignar pacientes al grupo": {
+      "main": [
+        [
+          {
+            "node": "OK Asignar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "REMOVE /grupo_paciente/quitar": {
+      "main": [
+        [
+          {
+            "node": "Quitar pacientes del grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quitar pacientes del grupo": {
+      "main": [
+        [
+          {
+            "node": "OK Quitar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LIST /paciente/grupos": {
+      "main": [
+        [
+          {
+            "node": "Select grupos del paciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select grupos del paciente": {
+      "main": [
+        [
+          {
+            "node": "OK Grupos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SET /paciente/grupos": {
+      "main": [
+        [
+          {
+            "node": "Set grupos del paciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set grupos del paciente": {
+      "main": [
+        [
+          {
+            "node": "OK Set Grupos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LIST /grupo_paciente/servicios": {
+      "main": [
+        [
+          {
+            "node": "Select servicios del grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select servicios del grupo": {
+      "main": [
+        [
+          {
+            "node": "Build Servicios Page",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Servicios Page": {
+      "main": [
+        [
+          {
+            "node": "OK Servicios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ADD /grupo_paciente/servicios/asignar": {
+      "main": [
+        [
+          {
+            "node": "Asignar servicios al grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asignar servicios al grupo": {
+      "main": [
+        [
+          {
+            "node": "OK Asignar Servicios",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "REMOVE /grupo_paciente/servicios/quitar": {
+      "main": [
+        [
+          {
+            "node": "Quitar servicios del grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quitar servicios del grupo": {
+      "main": [
+        [
+          {
+            "node": "OK Quitar Servicios",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "397ad2b8-eb42-4902-908d-376ef789fca6",
+  "meta": {
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "14x4x7iraz0OuD05",
+  "tags": []
+}

@@ -6,7 +6,7 @@ import { AsYouType, CountryCode, Examples, getCountryCallingCode, getExampleNumb
 import { Check, ChevronsUpDown } from 'lucide-react';
 import * as React from 'react';
 
-import { countries } from '@/lib/countries';
+import { countries, DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import { cn } from '@/lib/utils';
 import {
   Button,
@@ -33,7 +33,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   className,
   value: valueProp,
   onChange,
-  defaultCountry = 'UY',
+  defaultCountry = DEFAULT_PHONE_COUNTRY,
   ...rest
 }) => {
   const [open, setOpen] = React.useState(false);

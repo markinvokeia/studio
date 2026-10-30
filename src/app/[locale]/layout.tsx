@@ -11,11 +11,10 @@ import { AlertNotificationsProvider } from '@/context/alert-notifications-contex
 import { TVDisplayProvider } from '@/context/tv-display-context';
 import { PrivateRoute } from '@/components/auth/PrivateRoute';
 import { NotificationsProvider } from '@/context/notifications-context';
-import { BillingWizardModal } from '@/components/billing-wizard';
-import { PrintDocumentContainer } from '@/components/print-templates';
-import { AccountStatementSheet } from '@/components/financial/AccountStatementSheet';
-import { PatientQuickViewHost } from '@/components/patients/PatientQuickViewHost';
+import { EventStreamProvider } from '@/context/event-stream-context';
+import { ClinicPreferencesInitializer } from '@/components/clinic/ClinicPreferencesInitializer';
 import { LicenseInitializer } from '@/components/license/LicenseInitializer';
+import { MissingIdentityDocumentDialog } from '@/components/appointments/MissingIdentityDocumentDialog';
 import type { RuntimeConfig } from '@/lib/runtime-config';
 
 
@@ -45,6 +44,7 @@ export default async function LocaleLayout({
     masterSec: process.env.NEXT_PUBLIC_MASTER_SEC ?? '',
     clientId: process.env.NEXT_PUBLIC_CLIENT_ID ?? '',
     eventPusherKey: process.env.NEXT_PUBLIC_EVENT_PUSHER_KEY ?? '',
+    eventPusherUrl: process.env.NEXT_PUBLIC_EVENT_PUSHER_URL ?? '',
   };
 
   return (
@@ -70,16 +70,16 @@ export default async function LocaleLayout({
             }}
           />
           <TVDisplayProvider>
-            <NotificationsProvider>
-              <PrivateRoute>
-                <LicenseInitializer />
-                {children}
-                <BillingWizardModal />
-                <PrintDocumentContainer />
-                <AccountStatementSheet />
-                <PatientQuickViewHost />
-              </PrivateRoute>
-            </NotificationsProvider>
+            <EventStreamProvider>
+              <NotificationsProvider>
+                <PrivateRoute>
+                  <LicenseInitializer />
+                  <ClinicPreferencesInitializer />
+                  <MissingIdentityDocumentDialog />
+                  {children}
+                </PrivateRoute>
+              </NotificationsProvider>
+            </EventStreamProvider>
           </TVDisplayProvider>
           </NextIntlClientProvider>
           <Toaster />

@@ -1,13 +1,16 @@
 import { fetchEventSource } from '@microsoft/fetch-event-source';
-import { getClientId, getEventPusherKey } from '@/lib/runtime-config';
+import { getClientId, getEventPusherKey, getEventPusherUrl } from '@/lib/runtime-config';
 
 export type EventHandler = (eventType: string, data: unknown) => void;
 
 const RETRY_DELAYS = [2_000, 5_000, 15_000, 30_000];
 
-export function connectEventStream(userId: string, onEvent: EventHandler): () => void {
+export function connectEventStream(userId: string, onEvent: EventHandler, channels: string[] = []): () => void {
   const clientId = getClientId();
   const apiKey = getEventPusherKey();
+  // Base del servidor de eventos: si no hay env var, ruta relativa contra el
+  // mismo origen (resuelta por el reverse proxy). Si la hay, origen absoluto.
+  const baseUrl = getEventPusherUrl().replace(/\/+$/, '');
 
   if (!clientId || !apiKey) {
     console.warn('[event-stream] NEXT_PUBLIC_CLIENT_ID or NEXT_PUBLIC_EVENT_PUSHER_KEY not set — SSE disabled');
@@ -18,14 +21,20 @@ export function connectEventStream(userId: string, onEvent: EventHandler): () =>
   let retryCount = 0;
   let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
+  const channelsParam = channels.map((channel) => `&channels=${encodeURIComponent(channel)}`).join('');
+
   function connect() {
     fetchEventSource(
-      `/events/stream?client_id=${encodeURIComponent(clientId)}&user_ids=${encodeURIComponent(userId)}`,
+      `${baseUrl}/events/stream?client_id=${encodeURIComponent(clientId)}&user_ids=${encodeURIComponent(userId)}${channelsParam}`,
       {
         headers: { 'X-Api-Key': apiKey },
         signal: ctrl.signal,
+        openWhenHidden: true,
 
-        onopen: async () => {
+        onopen: async (response) => {
+          if (!response.ok || !response.headers.get('content-type')?.startsWith('text/event-stream')) {
+            throw new Error(`[event-stream] unexpected open response: ${response.status}`);
+          }
           retryCount = 0;
         },
 

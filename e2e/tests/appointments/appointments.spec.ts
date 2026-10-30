@@ -23,6 +23,31 @@ const T = {
     doctor: 'Doctores',
     calendar: 'Consultorios',
   },
+  calendarItems: {
+    createNote: 'Crear nota',
+    createReminder: 'Crear recordatorio',
+    createAppointment: 'Crear cita',
+    noteTitle: 'Crear nota',
+    editNoteTitle: 'Editar nota',
+    reminderTitle: 'Crear recordatorio',
+    noCalendar: 'Sin calendario',
+    title: 'Título',
+    endTime: 'Hora de fin',
+    allDay: 'Todo el día',
+    priority: 'Prioridad',
+    color: 'Color',
+    save: 'Guardar',
+  },
+  editAppointment: 'Editar cita',
+  rescheduleAppointment: 'Reagendar',
+  patientData: 'Datos del paciente',
+  patientName: 'Paciente Contexto',
+  cancel: 'Cancelar',
+  discardChanges: 'Descartar cambios',
+  keepEditing: 'Seguir editando',
+  addPatient: 'Adicionar usuario',
+  editPatient: 'Editar usuario',
+  createPatient: 'Crear Nuevo Paciente',
   panelTabs: {
     info: 'Información',
     patient: 'Paciente',
@@ -519,6 +544,38 @@ test.describe('Citas', () => {
       await expect(page.getByText(T.grouping.calendar).first()).toBeVisible();
       await page.keyboard.press('Escape');
     });
+
+    test('en modo custom móvil no muestra el submenú Agrupar', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== 'mobile-chrome', 'El comportamiento aplica únicamente al tamaño mobile');
+
+      await page.route(/\/calendar_settings\/search(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            default_view: 'day',
+            grouped_by: 'none',
+            check_availability: false,
+            filter_doctors_by_service: false,
+            block_unavailable: false,
+            hour_height: 96,
+            slot_duration: 15,
+            event_label_format: 'time_patient_service',
+            default_sede: '',
+            mode: 'custom',
+          }),
+        });
+      });
+
+      await page.reload();
+      await page.getByRole('button', { name: T.today }).waitFor({ state: 'visible', timeout: 30_000 });
+
+      const filterButton = page.locator('svg.lucide-sliders-horizontal').locator('..').first();
+      await expect(filterButton).toBeVisible();
+      await filterButton.click({ force: true });
+
+      await expect(page.locator('h4').filter({ hasText: new RegExp(`^${T.grouping.label}$`, 'i') })).toHaveCount(0);
+    });
   });
 
   // ── Creación desde slot vacío del calendario ──────────────────────────
@@ -537,6 +594,230 @@ test.describe('Citas', () => {
       await expect(page.getByText(T.createDialog.title)).toBeVisible();
       await page.getByRole('button', { name: T.createDialog.cancel }).click();
       await expect(dialog).not.toBeVisible({ timeout: 5_000 });
+    });
+
+    test('mobile day muestra guía horaria, cancela long press al deslizar y permite elegir fecha', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== 'mobile-chrome', 'El comportamiento aplica únicamente al tamaño mobile');
+
+      await page.route(/\/calendar_settings\/search(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            default_view: 'day',
+            grouped_by: 'none',
+            check_availability: false,
+            filter_doctors_by_service: false,
+            block_unavailable: false,
+            hour_height: 96,
+            slot_duration: 15,
+            event_label_format: 'time_patient_service',
+            default_sede: '',
+            mode: 'custom',
+          }),
+        });
+      });
+
+      await page.reload();
+      await page.getByRole('button', { name: T.today }).waitFor({ state: 'visible', timeout: 30_000 });
+
+      const rail = page.locator('.column-hour-rail').first();
+      await expect(rail).toBeVisible();
+      await expect(rail.locator('.column-hour-rail-slot')).toHaveCount(24);
+      await expect(rail.locator('.column-hour-rail-label')).toHaveText(
+        Array.from({ length: 24 }, (_, hour) => String(hour)),
+      );
+      await expect(page.locator('.calendar-body')).toHaveCSS('--cal-slots-per-hour', '4');
+      await expect(rail.locator('.column-hour-rail-slot').first()).toHaveCSS(
+        'background-image',
+        /repeating-linear-gradient/,
+      );
+
+      const timeGrid = page.getByTestId('calendar-mobile-time-grid');
+      await timeGrid.evaluate((element) => { element.scrollTop = 0; });
+      const slide = page.getByTestId('calendar-mobile-slide').first();
+      const box = await slide.boundingBox();
+      expect(box).not.toBeNull();
+      const clientX = (box?.x ?? 0) + 60;
+      const clientY = (box?.y ?? 0) + 40;
+
+      await slide.dispatchEvent('pointerdown', {
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX,
+        clientY,
+      });
+      await slide.dispatchEvent('pointermove', {
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX: clientX + 50,
+        clientY,
+      });
+      await page.waitForTimeout(750);
+      await expect(page.getByRole('menuitem', { name: T.calendarItems.createAppointment })).toHaveCount(0);
+      await slide.dispatchEvent('pointerup', {
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 0,
+        clientX: clientX + 50,
+        clientY,
+      });
+
+      await slide.dispatchEvent('pointerdown', {
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX,
+        clientY,
+      });
+      await page.waitForTimeout(750);
+      await expect(page.getByRole('menuitem', { name: T.calendarItems.createAppointment })).toBeVisible();
+      await expect(page.getByRole('menuitem', { name: T.calendarItems.createReminder })).toBeVisible();
+      await expect(page.getByRole('menuitem', { name: T.calendarItems.createNote })).toBeVisible();
+      await page.keyboard.press('Escape');
+
+      const datePicker = page.getByTestId('calendar-header-date-picker').last();
+      const previousTitle = (await datePicker.locator('span').first().textContent())?.trim();
+      await datePicker.click();
+      const datePopover = page.locator('[data-radix-popper-content-wrapper]').last();
+      await expect(datePopover).toBeVisible();
+      await datePopover.locator('button:has(svg.lucide-chevron-right)').click();
+      await datePopover.locator('button:not(.day-outside)').filter({ hasText: /^1$/ }).first().click();
+      await expect(datePopover).not.toBeVisible();
+      await expect(datePicker.locator('span').first()).not.toHaveText(previousTitle ?? '');
+    });
+
+    test('mobile long press en horario bloqueado deshabilita solo Crear cita', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== 'mobile-chrome', 'El comportamiento aplica únicamente al tamaño mobile');
+
+      await page.route(/\/calendar_settings\/search(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            default_view: 'day',
+            grouped_by: 'none',
+            check_availability: false,
+            filter_doctors_by_service: false,
+            block_unavailable: true,
+            hour_height: 96,
+            slot_duration: 15,
+            event_label_format: 'time_patient_service',
+            default_sede: '',
+            mode: 'custom',
+          }),
+        });
+      });
+      await page.route(/\/schedules(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(Array.from({ length: 7 }, (_, index) => ({
+            id: `schedule-${index + 1}`,
+            day_of_week: index + 1,
+            start_time: '09:00:00',
+            end_time: '17:00:00',
+          }))),
+        });
+      });
+      await page.route(/\/exceptions(?:\?.*)?$/, async (route) => {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+      });
+
+      await page.reload();
+      await page.getByRole('button', { name: T.today }).waitFor({ state: 'visible', timeout: 30_000 });
+      await expect(page.locator('.calendar-blocked').first()).toBeAttached();
+
+      const timeGrid = page.getByTestId('calendar-mobile-time-grid');
+      await timeGrid.evaluate((element) => { element.scrollTop = 0; });
+      const slide = page.getByTestId('calendar-mobile-slide').first();
+      const box = await slide.boundingBox();
+      expect(box).not.toBeNull();
+
+      await slide.dispatchEvent('pointerdown', {
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX: (box?.x ?? 0) + 60,
+        clientY: (box?.y ?? 0) + 40,
+      });
+      await page.waitForTimeout(750);
+
+      await expect(page.getByRole('menuitem', { name: T.calendarItems.createAppointment }))
+        .toHaveAttribute('data-disabled', '');
+      await expect(page.getByRole('menuitem', { name: T.calendarItems.createReminder }))
+        .not.toHaveAttribute('data-disabled');
+      await expect(page.getByRole('menuitem', { name: T.calendarItems.createNote }))
+        .not.toHaveAttribute('data-disabled');
+    });
+
+    test('mobile long press sobre una cita abre exclusivamente su menú', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== 'mobile-chrome', 'El comportamiento aplica únicamente al tamaño mobile');
+
+      await page.route(/\/calendar_settings\/search(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            default_view: 'day',
+            grouped_by: 'none',
+            check_availability: false,
+            filter_doctors_by_service: false,
+            block_unavailable: false,
+            hour_height: 96,
+            slot_duration: 15,
+            event_label_format: 'time_patient_service',
+            default_sede: '',
+            mode: 'invoke',
+          }),
+        });
+      });
+      await page.route(/\/users_appointments(?:\?.*)?$/, async (route) => {
+        const start = new URL(route.request().url()).searchParams.get('startingDateAndTime');
+        const day = start?.slice(0, 10) ?? '2026-01-01';
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([{
+            id: 'mobile-context-menu-appointment',
+            patient_id: 'mobile-patient',
+            patient_name: 'Paciente Mobile',
+            doctor_id: '',
+            summary: 'Control',
+            start_time: `${day}T10:00:00`,
+            end_time: `${day}T10:30:00`,
+            status: 'scheduled',
+            calendar_source_id: '',
+          }]),
+        });
+      });
+
+      await page.reload();
+      await page.getByRole('button', { name: T.today }).waitFor({ state: 'visible', timeout: 30_000 });
+      const appointment = page.getByTestId('calendar-day-event').first();
+      await expect(appointment).toBeVisible();
+      const box = await appointment.boundingBox();
+      expect(box).not.toBeNull();
+
+      await appointment.dispatchEvent('pointerdown', {
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        buttons: 1,
+        clientX: (box?.x ?? 0) + 10,
+        clientY: (box?.y ?? 0) + 10,
+      });
+      await page.waitForTimeout(750);
+
+      await expect(page.getByRole('menuitem', { name: T.editAppointment })).toBeVisible();
+      await expect(page.getByRole('menuitem', { name: T.calendarItems.createAppointment })).toHaveCount(0);
     });
   });
 
@@ -858,6 +1139,330 @@ test.describe('Citas', () => {
   // ── Funcionalidades avanzadas ─────────────────────────────────────────
 
   test.describe('Funcionalidades avanzadas', () => {
+    test('envía type y calendar_id de una nota al backend', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name === 'mobile-chrome', 'El contrato HTTP se valida una vez en escritorio');
+
+      await page.route(/\/calendar_settings\/search(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            default_view: 'day',
+            grouped_by: 'none',
+            check_availability: false,
+            filter_doctors_by_service: false,
+            block_unavailable: false,
+            hour_height: 96,
+            slot_duration: 15,
+            event_label_format: 'time_patient_service',
+            default_sede: '',
+            mode: 'invoke',
+          }),
+        });
+      });
+      await page.reload();
+      await page.getByRole('button', { name: T.today }).waitFor({ state: 'visible', timeout: 30_000 });
+
+      let submittedPayload: Record<string, unknown> | null = null;
+      await page.route(/\/reminders(?:\?.*)?$/, async (route) => {
+        if (route.request().method() !== 'GET') {
+          await route.continue();
+          return;
+        }
+
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            reminders: submittedPayload ? [{
+              ...submittedPayload,
+              id: 'note-e2e-001',
+              created_at: '2026-07-13T10:00:00',
+            }] : [],
+          }),
+        });
+      });
+      await page.route('**/reminders/upsert', async (route) => {
+        submittedPayload = route.request().postDataJSON() as Record<string, unknown>;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            reminder: {
+              ...submittedPayload,
+              id: 'note-e2e-001',
+              created_at: '2026-07-13T10:00:00',
+            },
+          }),
+        });
+      });
+
+      const slot = page.locator('.day-column-content').first();
+      if (!await slot.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      const box = await slot.boundingBox();
+      const scrollBox = await page.locator('.day-view-container').boundingBox();
+      if (!box || !scrollBox) return;
+      await page.mouse.click(
+        box.x + Math.min(24, box.width / 2),
+        scrollBox.y + scrollBox.height / 2,
+        { button: 'right' },
+      );
+      await page.getByRole('menuitem', { name: T.calendarItems.createNote }).click();
+
+      const dialog = page.getByRole('dialog', { name: T.calendarItems.noteTitle });
+      await expect(dialog).toBeVisible({ timeout: 5_000 });
+      await expect(dialog.getByText(T.calendarItems.endTime, { exact: true })).toBeVisible();
+      await expect(dialog.getByText(T.calendarItems.priority, { exact: true })).toHaveCount(0);
+      await expect(dialog.getByText(T.calendarItems.color, { exact: true })).toBeVisible();
+      await expect(dialog.getByRole('radio')).toHaveCount(11);
+      await expect(dialog.locator('input[placeholder="dd/mm/aaaa"]')).toBeVisible();
+      await expect(dialog.getByTestId('reminder-start-time')).toBeVisible();
+      await expect(dialog.getByTestId('reminder-end-time')).toBeVisible();
+      await dialog.locator('#reminder-title').fill('Nota persistida e2e');
+      await dialog.getByTestId('reminder-color-9').click();
+      await dialog.getByRole('button', { name: T.calendarItems.save }).click();
+
+      await expect.poll(() => submittedPayload).not.toBeNull();
+      expect(submittedPayload).toMatchObject({
+        type: 'note',
+        calendar_id: null,
+        color: '#5484ed',
+        is_all_day: false,
+      });
+
+      const savedNote = page.locator('.event-reminder').filter({ hasText: 'Nota persistida e2e' }).first();
+      await expect(savedNote).toBeVisible({ timeout: 5_000 });
+      await expect(savedNote).toContainText(/^\d{2}:\d{2}–\d{2}:\d{2}\s+Nota persistida e2e/);
+      await expect.poll(() => savedNote.evaluate((element) => (
+        (element as HTMLElement).style.getPropertyValue('--reminder-color')
+      ))).toBe('#5484ed');
+      await expect.poll(() => savedNote.evaluate((element) => (
+        getComputedStyle(element).backgroundColor
+      ))).toBe('rgb(84, 132, 237)');
+      await expect.poll(() => savedNote.evaluate((element) => (
+        getComputedStyle(element).opacity
+      ))).toBe('1');
+
+      await savedNote.dblclick();
+      await expect(page.getByRole('dialog', { name: T.calendarItems.editNoteTitle })).toBeVisible({ timeout: 5_000 });
+    });
+
+    test('una nota de todo el día va a la banda fija, no a la rejilla', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name === 'mobile-chrome', 'La banda de escritorio se valida una vez');
+
+      let submittedPayload: Record<string, unknown> | null = null;
+      await page.route(/\/reminders(?:\?.*)?$/, async (route) => {
+        if (route.request().method() !== 'GET') {
+          await route.continue();
+          return;
+        }
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            reminders: submittedPayload ? [{
+              ...submittedPayload,
+              id: 'note-all-day-001',
+              created_at: '2026-07-13T10:00:00',
+            }] : [],
+          }),
+        });
+      });
+      await page.route('**/reminders/upsert', async (route) => {
+        submittedPayload = route.request().postDataJSON() as Record<string, unknown>;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            reminder: { ...submittedPayload, id: 'note-all-day-001', created_at: '2026-07-13T10:00:00' },
+          }),
+        });
+      });
+
+      const slot = page.locator('.day-column-content').first();
+      if (!await slot.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      const box = await slot.boundingBox();
+      const scrollBox = await page.locator('.day-view-container').boundingBox();
+      if (!box || !scrollBox) return;
+      await page.mouse.click(
+        box.x + Math.min(24, box.width / 2),
+        scrollBox.y + scrollBox.height / 2,
+        { button: 'right' },
+      );
+      await page.getByRole('menuitem', { name: T.calendarItems.createNote }).click();
+
+      const dialog = page.getByRole('dialog', { name: T.calendarItems.noteTitle });
+      await expect(dialog).toBeVisible({ timeout: 5_000 });
+      await dialog.locator('#reminder-title').fill('Feriado del equipo');
+
+      // Al marcar todo el día, los dos inputs de hora se ocultan: las fija la convención.
+      await dialog.getByTestId('reminder-all-day').click();
+      await expect(dialog.getByTestId('reminder-start-time')).toHaveCount(0);
+      await expect(dialog.getByTestId('reminder-end-time')).toHaveCount(0);
+
+      await dialog.getByRole('button', { name: T.calendarItems.save }).click();
+
+      await expect.poll(() => submittedPayload).not.toBeNull();
+      expect(submittedPayload).toMatchObject({ type: 'note', is_all_day: true });
+      expect(String(submittedPayload!.start_datetime)).toMatch(/T00:00:00$/);
+      expect(String(submittedPayload!.end_datetime)).toMatch(/T23:59:59$/);
+
+      // En la banda, y sin hora: la banda ya dice cuándo es.
+      const band = page.getByTestId('calendar-all-day-band');
+      await expect(band).toBeVisible({ timeout: 5_000 });
+      await expect(band).toContainText('Feriado del equipo');
+      await expect(band).not.toContainText(/\d{2}:\d{2}/);
+
+      // Y fuera de la rejilla: si quedara ahí, arrastraría el layout de toda la columna.
+      await expect(
+        page.locator('.event-reminder').filter({ hasText: 'Feriado del equipo' }),
+      ).toHaveCount(0);
+    });
+
+    test('una nota recurrente manda la regla y pregunta el alcance al editar', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name === 'mobile-chrome', 'El contrato de series se valida una vez');
+
+      let submittedPayload: Record<string, unknown> | null = null;
+      await page.route(/\/reminders(?:\?.*)?$/, async (route) => {
+        if (route.request().method() !== 'GET') {
+          await route.continue();
+          return;
+        }
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            reminders: submittedPayload ? [{
+              ...submittedPayload,
+              id: 'note-series-001',
+              created_at: '2026-07-13T10:00:00',
+              // Lo que devolvería el GET con el JOIN a reminder_series.
+              series_id: 'series-001',
+              recurrence: submittedPayload.recurrence,
+            }] : [],
+          }),
+        });
+      });
+      await page.route('**/reminders/upsert', async (route) => {
+        submittedPayload = route.request().postDataJSON() as Record<string, unknown>;
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            reminder: {
+              ...submittedPayload,
+              id: 'note-series-001',
+              created_at: '2026-07-13T10:00:00',
+              series_id: 'series-001',
+            },
+          }),
+        });
+      });
+
+      const slot = page.locator('.day-column-content').first();
+      if (!await slot.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      const box = await slot.boundingBox();
+      const scrollBox = await page.locator('.day-view-container').boundingBox();
+      if (!box || !scrollBox) return;
+      await page.mouse.click(
+        box.x + Math.min(24, box.width / 2),
+        scrollBox.y + scrollBox.height / 2,
+        { button: 'right' },
+      );
+      await page.getByRole('menuitem', { name: T.calendarItems.createNote }).click();
+
+      const dialog = page.getByRole('dialog', { name: T.calendarItems.noteTitle });
+      await expect(dialog).toBeVisible({ timeout: 5_000 });
+      await dialog.locator('#reminder-title').fill('Reunión de equipo');
+
+      // Los campos de la regla solo aparecen con "Repetir" marcado.
+      await expect(dialog.getByTestId('reminder-freq')).toHaveCount(0);
+      await dialog.getByTestId('reminder-repeat').click();
+      await expect(dialog.getByTestId('reminder-freq')).toBeVisible();
+
+      // Semanal: lunes y miércoles. El día de la fecha ya viene marcado, así que se
+      // agregan los dos explícitamente y se deja que el toggle haga su trabajo.
+      await dialog.getByTestId('reminder-weekday-1').click();
+      await dialog.getByTestId('reminder-weekday-3').click();
+      await dialog.getByRole('button', { name: T.calendarItems.save }).click();
+
+      await expect.poll(() => submittedPayload).not.toBeNull();
+      expect(submittedPayload).toMatchObject({ type: 'note', scope: 'occurrence' });
+      const recurrence = submittedPayload!.recurrence as Record<string, unknown>;
+      expect(recurrence).toMatchObject({ freq: 'WEEKLY', interval: 1, end_mode: 'never' });
+      expect(Array.isArray(recurrence.byweekday)).toBe(true);
+
+      // La card lleva el glifo de repetición.
+      const savedNote = page.locator('.event-reminder').filter({ hasText: 'Reunión de equipo' }).first();
+      await expect(savedNote).toBeVisible({ timeout: 5_000 });
+      await expect(savedNote).toContainText('↻');
+
+      // Editarla pregunta el alcance antes de abrir el formulario.
+      await savedNote.dblclick();
+      await expect(page.getByTestId('reminder-scope-occurrence')).toBeVisible({ timeout: 5_000 });
+      await page.getByTestId('reminder-scope-series').click();
+      await page.getByTestId('reminder-scope-confirm').click();
+
+      await expect(page.getByRole('dialog', { name: T.calendarItems.editNoteTitle })).toBeVisible({ timeout: 5_000 });
+      // El editor se siembra con la regla guardada, no con los valores por defecto.
+      await expect(page.getByTestId('reminder-repeat')).toBeChecked();
+    });
+
+    test('muestra el selector de color al crear un recordatorio', async ({ page }) => {
+      const slot = page.locator('.day-column-content').first();
+      if (!await slot.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      const box = await slot.boundingBox();
+      const scrollBox = await page.locator('.day-view-container').boundingBox();
+      if (!box || !scrollBox) return;
+
+      await page.mouse.click(
+        box.x + Math.min(24, box.width / 2),
+        scrollBox.y + scrollBox.height / 2,
+        { button: 'right' },
+      );
+      await page.getByRole('menuitem', { name: T.calendarItems.createReminder }).click();
+
+      const dialog = page.getByRole('dialog', { name: T.calendarItems.reminderTitle });
+      await expect(dialog).toBeVisible({ timeout: 5_000 });
+      await expect(dialog.getByText(T.calendarItems.color, { exact: true })).toBeVisible();
+      await expect(dialog.getByRole('radio')).toHaveCount(11);
+    });
+
+    test('clic derecho en un slot muestra cita, recordatorio y nota', async ({ page }) => {
+      const dayViewButton = page.getByRole('button', { name: /Día|1 Día/ }).first();
+      if (await dayViewButton.isVisible().catch(() => false)) await dayViewButton.click();
+
+      const slot = page.locator('.day-column-content').first();
+      if (!await slot.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+      const box = await slot.boundingBox();
+      const scrollBox = await page.locator('.day-view-container').boundingBox();
+      if (!box || !scrollBox) return;
+      await page.mouse.click(
+        box.x + Math.min(24, box.width / 2),
+        scrollBox.y + scrollBox.height / 2,
+        { button: 'right' },
+      );
+
+      const menu = page.getByRole('menu');
+      await expect(menu.getByRole('menuitem', { name: T.calendarItems.createAppointment })).toBeVisible();
+      await expect(menu.getByRole('menuitem', { name: T.calendarItems.createReminder })).toBeVisible();
+      await expect(menu.getByRole('menuitem', { name: T.calendarItems.createNote })).toBeVisible();
+    });
+
+    test('en un horario bloqueado la cita está deshabilitada y recordatorio y nota habilitados', async ({ page }) => {
+      const blocked = page.locator('.calendar-blocked').first();
+      test.skip(!await blocked.isVisible({ timeout: 3_000 }).catch(() => false), 'No hay horarios bloqueados visibles');
+
+      const box = await blocked.boundingBox();
+      if (!box) return;
+      await page.mouse.click(box.x + Math.min(12, box.width / 2), box.y + Math.min(12, box.height / 2), { button: 'right' });
+
+      const menu = page.getByRole('menu');
+      await expect(menu.getByRole('menuitem', { name: T.calendarItems.createAppointment })).toHaveAttribute('data-disabled');
+      await expect(menu.getByRole('menuitem', { name: T.calendarItems.createReminder })).not.toHaveAttribute('data-disabled');
+      await expect(menu.getByRole('menuitem', { name: T.calendarItems.createNote })).not.toHaveAttribute('data-disabled');
+    });
+
     test('menú contextual de evento muestra paleta de 11 colores', async ({ page }) => {
       // Events render as .event divs wrapped in a Radix ContextMenu
       const firstEvent = page.locator('.event').first();
@@ -872,6 +1477,161 @@ test.describe('Citas', () => {
       expect(count).toBeGreaterThanOrEqual(11);
 
       await page.keyboard.press('Escape');
+    });
+
+    test('modo custom protege el cierre de pacientes y de la edición inline', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== 'chromium', 'La cobertura desktop evita duplicar este flujo en mobile');
+
+      await page.route(/\/calendar_settings\/search(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            default_view: 'day',
+            grouped_by: 'none',
+            check_availability: false,
+            filter_doctors_by_service: false,
+            block_unavailable: false,
+            hour_height: 96,
+            slot_duration: 15,
+            event_label_format: 'time_patient_service',
+            default_sede: '',
+            mode: 'custom',
+          }),
+        });
+      });
+      await page.route(/\/calendars(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([{
+            id: 'custom-calendar-e2e',
+            name: 'Agenda E2E',
+            is_active: true,
+            color: '#7c3aed',
+          }]),
+        });
+      });
+      await page.route(/\/users_appointments(?:\?.*)?$/, async (route) => {
+        const start = new URL(route.request().url()).searchParams.get('startingDateAndTime');
+        const day = start?.slice(0, 10) ?? '2026-01-01';
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([{
+            id: 'custom-context-menu-appointment',
+            patient_id: 'custom-context-patient',
+            patient_name: T.patientName,
+            doctor_id: '',
+            summary: 'Control',
+            start_time: `${day}T10:00:00`,
+            end_time: `${day}T10:30:00`,
+            status: 'scheduled',
+            calendar_source_id: 'custom-calendar-e2e',
+          }]),
+        });
+      });
+      await page.route(/\/filter_users(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([{
+            data: [{
+              user_id: 'custom-context-patient',
+              name: T.patientName,
+              email: 'paciente-contexto@example.com',
+              phone_number: '099111222',
+              is_active: true,
+            }],
+          }]),
+        });
+      });
+      await page.route(/\/mutual-societies(?:\?.*)?$/, async (route) => {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+      });
+      await page.route(/\/grupos_paciente(?:\?.*)?$/, async (route) => {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+      });
+      await page.route(/\/paciente\/grupos(?:\?.*)?$/, async (route) => {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+      });
+
+      await page.reload();
+      await page.getByRole('button', { name: T.today }).waitFor({ state: 'visible', timeout: 30_000 });
+
+      const appointment = page.getByTestId('calendar-day-event').filter({ hasText: T.patientName }).first();
+      await expect(appointment).toBeVisible({ timeout: 10_000 });
+      await appointment.click({ button: 'right' });
+
+      await expect(page.getByRole('menuitem', { name: T.rescheduleAppointment })).toHaveCount(0);
+      const patientSubmenu = page.getByRole('menuitem', { name: T.patientName });
+      await patientSubmenu.hover();
+      await page.getByRole('menuitem', { name: T.patientData }).click();
+
+      const patientDialog = page.getByRole('dialog').filter({ hasText: T.patientData });
+      await expect(patientDialog).toBeVisible({ timeout: 10_000 });
+      const cancelButton = patientDialog.getByRole('button', { name: T.cancel, exact: true });
+      await expect(cancelButton).toBeVisible();
+
+      const nameInput = patientDialog.getByRole('textbox', { name: 'Nombre', exact: true });
+      await nameInput.fill('Paciente con cambios');
+      await cancelButton.click();
+
+      const confirmDialog = page.getByRole('alertdialog');
+      await expect(confirmDialog.getByText(`¿${T.discardChanges}?`)).toBeVisible();
+      await confirmDialog.getByRole('button', { name: T.keepEditing }).click();
+      await expect(patientDialog).toBeVisible();
+      await expect(nameInput).toHaveValue('Paciente con cambios');
+
+      await cancelButton.click();
+      await confirmDialog.getByRole('button', { name: T.discardChanges }).click();
+      await expect(patientDialog).not.toBeVisible();
+
+      await appointment.dblclick();
+      const inlineDraft = page.getByTestId('calendar-inline-draft-overlay');
+      await expect(inlineDraft).toBeVisible({ timeout: 5_000 });
+
+      await inlineDraft.getByTitle(T.editPatient).click();
+      const editPatientDialog = page.getByRole('dialog').filter({ hasText: T.patientData });
+      await expect(editPatientDialog.getByRole('button', { name: T.cancel, exact: true })).toBeVisible();
+      await editPatientDialog.getByRole('button', { name: T.cancel, exact: true }).click();
+      await expect(editPatientDialog).not.toBeVisible();
+
+      await inlineDraft.getByTitle(T.addPatient).click();
+      const createPatientDialog = page.getByRole('dialog', { name: T.createPatient });
+      await expect(createPatientDialog.getByRole('button', { name: T.cancel, exact: true })).toBeVisible();
+      await createPatientDialog.getByRole('button', { name: T.cancel, exact: true }).click();
+      await expect(createPatientDialog).not.toBeVisible();
+
+      // Sin cambios, Escape debe cerrar directamente la edición inline.
+      await page.keyboard.press('Escape');
+      await expect(inlineDraft).not.toBeVisible();
+
+      await appointment.dblclick();
+      await expect(inlineDraft).toBeVisible({ timeout: 5_000 });
+      await inlineDraft.locator('textarea').fill('Cambio pendiente en la cita');
+
+      // Cancelar y X comparten el mismo callback protegido; comprobamos el
+      // descarte desde Cancelar y dejamos Escape limpio cubierto arriba.
+      await inlineDraft.getByRole('button', { name: T.cancel, exact: true }).last().click();
+      await expect(confirmDialog.getByText(`¿${T.discardChanges}?`)).toBeVisible();
+      await confirmDialog.getByRole('button', { name: T.discardChanges }).click();
+      await expect(inlineDraft).not.toBeVisible();
+    });
+
+    test('en modo custom sólo el doble clic abre la edición inline de una cita', async ({ page }) => {
+      const agendasButton = page.getByRole('button', { name: 'Agendas' }).first();
+      if (!await agendasButton.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+
+      const event = page.getByTestId('calendar-day-event').first();
+      if (!await event.isVisible({ timeout: 5_000 }).catch(() => false)) return;
+
+      await event.click();
+      await page.waitForTimeout(300);
+      await expect(page.getByTestId('calendar-inline-draft-overlay')).toHaveCount(0);
+
+      await event.dblclick();
+      await expect(page.getByTestId('calendar-inline-draft-overlay')).toBeVisible({ timeout: 5_000 });
     });
 
     test('botón "Nuevo" de presupuesto en formulario abre QuickQuoteDialog', async ({ page }) => {

@@ -60,6 +60,7 @@ const PATIENTS_READ = [
   'PATIENTS_VIEW_LIST',
   'PATIENTS_COPY_ID',
   'PATIENTS_VIEW_DETAIL',
+  'PATIENTS_VIEW_DETAIL_INFO',
   'PATIENTS_VIEW_DETAIL_HISTORY',
   'PATIENTS_VIEW_DETAIL_APPOINTMENTS',
   'PATIENTS_VIEW_DETAIL_QUOTES',
@@ -176,6 +177,16 @@ const CLINICAL_HISTORY_ALL = [
   'CLINICAL_SESSION_UPLOAD_ATTACHMENT',
   'CLINICAL_SESSION_VIEW_ATTACHMENTS',
   'CLINICAL_SESSION_DELETE_ATTACHMENT',
+  // Patient Medical Instructions
+  'PATIENT_MEDICAL_INSTRUCTIONS_VIEW',
+  'PATIENT_MEDICAL_INSTRUCTIONS_CREATE',
+  'PATIENT_MEDICAL_INSTRUCTIONS_UPDATE',
+  'PATIENT_MEDICAL_INSTRUCTIONS_DELETE',
+  // Patient Prescriptions (Recetas Médicas)
+  'PATIENT_PRESCRIPTIONS_VIEW',
+  'PATIENT_PRESCRIPTIONS_CREATE',
+  'PATIENT_PRESCRIPTIONS_UPDATE',
+  'PATIENT_PRESCRIPTIONS_DELETE',
   // Odontogram
   'ODONTOGRAM_VIEW',
   'ODONTOGRAM_NAVIGATE_HISTORY',
@@ -199,6 +210,23 @@ const CLINICAL_HISTORY_ALL = [
   'DICOM_USE_WINDOW',
   'DICOM_ADD_ANNOTATIONS',
   'DICOM_CHANGE_LAYOUT',
+];
+
+// Read-only clinical history. Used by roles that consult the clinical record but
+// only write it from "Mi Consultorio" (/workspace), where there is appointment
+// context. Mirrors the grants in
+// database/scripts/065_20260901_medico-patients-clinical-access.sql
+const CLINICAL_HISTORY_READ = [
+  'MEDICAL_HISTORY_VIEW',
+  'TIMELINE_VIEW',
+  'ANAMNESIS_VIEW',
+  'ODONTOGRAM_VIEW',
+  'ODONTOGRAM_NAVIGATE_HISTORY',
+  'ODONTOGRAM_TOGGLE_VIEW',
+  'CLINICAL_DOCS_VIEW',
+  'CLINICAL_SESSION_VIEW_DETAIL',
+  'CLINICAL_SESSION_VIEW_ATTACHMENTS',
+  'PATIENT_MEDICAL_INSTRUCTIONS_VIEW',
 ];
 
 const CASHIER_FULL = [
@@ -248,6 +276,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'DASHBOARD_VIEW_RECENT_ORDERS',
     'DASHBOARD_VIEW_NEW_PATIENTS',
     'DASHBOARD_APPLY_FILTERS',
+    'DASHBOARD_VIEW_EXECUTIVE_SUMMARY',
+    'DASHBOARD_VIEW_BY_BRANCH',
     // Alert Center
     ...ALERT_CENTER_READ,
     ...ALERT_CENTER_ACTIONS,
@@ -273,6 +303,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'PATIENTS_CREATE_NOTE',
     'PATIENTS_UPDATE_NOTE',
     'PATIENTS_DELETE_NOTE',
+    'PATIENTS_MANAGE_APPOINTMENTS',
     // Clinical History
     ...CLINICAL_HISTORY_ALL,
     // Sales
@@ -342,6 +373,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'SALES_SERVICES_CREATE',
     'SALES_SERVICES_UPDATE',
     'SALES_SERVICES_DELETE',
+    'SALES_APPLY_DISCOUNT',
     // Purchases
     'PURCHASES_VIEW_MENU',
     'PURCHASE_INVOICES_VIEW_MENU',
@@ -415,6 +447,16 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'CLINIC_DETAILS_VIEW',
     'CLINIC_DETAILS_UPDATE',
     'CLINIC_DETAILS_UPLOAD_LOGO',
+    'PRESCRIPTION_TEMPLATES_VIEW',
+    'PRESCRIPTION_TEMPLATES_CREATE',
+    'PRESCRIPTION_TEMPLATES_UPDATE',
+    'PRESCRIPTION_TEMPLATES_DELETE',
+    'USER_SIGNATURE_UPLOAD',
+    'USER_SIGNATURE_MANAGE',
+    'CLINIC_PREFS_VIEW',
+    'CLINIC_PREFS_UPDATE',
+    'CALENDAR_DISPLAY_VIEW',
+    'CALENDAR_DISPLAY_UPDATE',
     'SCHEDULES_VIEW_MENU',
     'SCHEDULES_VIEW_LIST',
     'SCHEDULES_CREATE',
@@ -568,6 +610,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'DASHBOARD_VIEW_RECENT_ORDERS',
     'DASHBOARD_VIEW_NEW_PATIENTS',
     'DASHBOARD_APPLY_FILTERS',
+    'DASHBOARD_VIEW_EXECUTIVE_SUMMARY',
+    'DASHBOARD_VIEW_BY_BRANCH',
     // Alert Center - completo
     ...ALERT_CENTER_READ,
     ...ALERT_CENTER_ACTIONS,
@@ -598,6 +642,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'TIMELINE_VIEW',
     'CLINICAL_SESSION_VIEW_DETAIL',
     'CLINICAL_SESSION_VIEW_ATTACHMENTS',
+    'PATIENT_MEDICAL_INSTRUCTIONS_VIEW',
+    'PATIENT_PRESCRIPTIONS_VIEW',
     'ODONTOGRAM_VIEW',
     'ODONTOGRAM_NAVIGATE_HISTORY',
     'ODONTOGRAM_TOGGLE_VIEW',
@@ -624,6 +670,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'SALES_PAYMENTS_CREATE',
     'SALES_PAYMENTS_USE_CREDITS',
     'SALES_PREPAYMENTS_VIEW',
+    'SALES_APPLY_DISCOUNT',
     // Purchases - gestión completa sin eliminar
     ...PURCHASES_VIEW_ONLY,
     'PURCHASE_INVOICES_CONFIRM',
@@ -639,8 +686,20 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'CATALOG_DENTAL_COND_VIEW_LIST',
     'CATALOG_DENTAL_SURF_VIEW_MENU',
     'CATALOG_DENTAL_SURF_VIEW_LIST',
-    // Business Config - solo lectura
+    // Business Config - solo lectura, salvo las preferencias de clínica: la
+    // política de descuentos es una decisión de gestión, no técnica.
     ...BUSINESS_CONFIG_VIEW_ONLY,
+    // Recetas: gestiona las plantillas y las firmas del equipo.
+    'PRESCRIPTION_TEMPLATES_VIEW',
+    'PRESCRIPTION_TEMPLATES_CREATE',
+    'PRESCRIPTION_TEMPLATES_UPDATE',
+    'PRESCRIPTION_TEMPLATES_DELETE',
+    'USER_SIGNATURE_UPLOAD',
+    'USER_SIGNATURE_MANAGE',
+    'CLINIC_PREFS_VIEW',
+    'CLINIC_PREFS_UPDATE',
+    'CALENDAR_DISPLAY_VIEW',
+    'CALENDAR_DISPLAY_UPDATE',
     // System - solo lectura de usuarios/roles/logs
     'SYSTEM_VIEW_MENU',
     'USERS_VIEW_MENU',
@@ -709,6 +768,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'PATIENTS_SEARCH_DEBTORS',
     'PATIENTS_CREATE_NOTE',
     'PATIENTS_UPDATE_NOTE',
+    // Crear/editar citas desde el perfil del paciente. Va con los APPOINTMENTS_
+    // CREATE/UPDATE que este rol ya tiene para el calendario.
+    'PATIENTS_MANAGE_APPOINTMENTS',
     // Sales - presupuestos y pagos completos, facturas básicas
     'SALES_VIEW_MENU',
     // Quotes
@@ -782,16 +844,27 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     ...ALERT_CENTER_READ,
     'ALERT_CENTER_ADD_NOTES',
     'ALERT_CENTER_COMPLETE',
-    // Appointments - ver y actualizar estado
+    // Appointments - solo lectura. Sin APPOINTMENTS_UPDATE: el panel de detalle
+    // de la cita queda completamente solo-lectura para el médico (ni estado, ni
+    // fecha/hora/calendario/doctor, ni servicios, ni presupuesto, ni reprogramar
+    // o borrar). En Mi Consultorio el estado pasa a 'completed' solo al guardar
+    // la sesión clínica, así que no necesita este permiso.
     ...APPOINTMENTS_READ,
-    'APPOINTMENTS_UPDATE',
-    // Patients - lectura completa + notas
-    ...PATIENTS_READ,
-    'PATIENTS_SEARCH_DEBTORS',
-    'PATIENTS_CREATE_NOTE',
-    'PATIENTS_UPDATE_NOTE',
-    // Clinical History - acceso completo
-    ...CLINICAL_HISTORY_ALL,
+    // Patients - solo el bloque clínico del panel de detalle.
+    // Sin _INFO (datos personales) ni los tabs financieros ni notas: el médico
+    // ve en /patients lo mismo que en "Ficha del paciente" de /workspace.
+    'PATIENTS_VIEW_MENU',
+    'PATIENTS_VIEW_LIST',
+    'PATIENTS_COPY_ID',
+    'PATIENTS_VIEW_DETAIL',
+    'PATIENTS_VIEW_DETAIL_HISTORY',
+    'PATIENTS_VIEW_DETAIL_APPOINTMENTS',
+    // Clinical History - solo lectura (escribe desde /workspace)
+    ...CLINICAL_HISTORY_READ,
+    // Recetas: usa las plantillas y gestiona su propia firma, pero no
+    // administra las plantillas ni las firmas de otros usuarios.
+    'PRESCRIPTION_TEMPLATES_VIEW',
+    'USER_SIGNATURE_UPLOAD',
     // Sales - ver órdenes e invoices propias (sin editar)
     'SALES_VIEW_MENU',
     'SALES_ORDERS_VIEW_MENU',
@@ -837,6 +910,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, string[]> = {
     'PATIENTS_COPY_ID',
     'PATIENTS_SEARCH_DEBTORS',
     'PATIENTS_VIEW_DETAIL',
+    'PATIENTS_VIEW_DETAIL_INFO',
     'PATIENTS_VIEW_DETAIL_APPOINTMENTS',
     'PATIENTS_VIEW_DETAIL_QUOTES',
     'PATIENTS_VIEW_DETAIL_ORDERS',

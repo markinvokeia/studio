@@ -1,0 +1,302 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Forzar payment_state manualmente\n\nUsado por \"Finalizado\" (fuerza a 'paid' sin importar paid_amount real) y por su\nreversión (recalcula 'partial'/'unpaid' desde el frontend). Solo cambia\ninvoices.payment_state — no toca paid_amount ni ninguna allocation.\n\nVer docs/finalizado-manual-tratamiento.md.",
+        "height": 300,
+        "width": 600
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -840,
+        5460
+      ],
+      "id": "4d7c4f1b-1ba7-4922-839c-1f840c946367",
+      "name": "Sticky Note - Flujo C"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "invoice/payment-state/set",
+        "authentication": "jwtAuth",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -800,
+        5800
+      ],
+      "id": "96acab63-b9ad-4141-8769-096eadbaaa0f",
+      "name": "invoice/payment-state/set",
+      "webhookId": "aaf3d27a-77af-4651-b210-4e762025ca35",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d4e66cee-5fa5-4042-b411-221f65c26ba9",
+              "leftValue": "={{ $json.body.invoice_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "8a056ed5-f292-4110-8b53-4f5d1592dc0a",
+              "leftValue": "={{ ['paid', 'partial', 'unpaid'] }}",
+              "rightValue": "={{ $json.body.payment_state }}",
+              "operator": {
+                "type": "array",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -560,
+        5800
+      ],
+      "id": "49d76823-2e3d-4bf7-86d1-fd2c8702961c",
+      "name": "Datos validos?"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"message\": \"invoice_id es requerido y payment_state debe ser paid, partial o unpaid\",\n  \"code\": 400,\n  \"error\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -320,
+        6000
+      ],
+      "id": "1d28e78a-f5cf-45b4-bc04-e4728018c615",
+      "name": "Error: datos invalidos"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "invoices",
+          "mode": "list",
+          "cachedResultName": "invoices"
+        },
+        "limit": 1,
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "={{ $('invoice/payment-state/set').item.json.body.invoice_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -320,
+        5680
+      ],
+      "id": "c5b617ad-ad47-48ff-bf49-88f55e80e542",
+      "name": "Get Invoice",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ab4eb030-74e6-4825-b7d7-84aeb53e7fd6",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -80,
+        5680
+      ],
+      "id": "9f7e5060-ee2f-4530-a481-28339f391133",
+      "name": "Factura existe?"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"message\": \"Factura no encontrada\",\n  \"code\": 404,\n  \"error\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        5880
+      ],
+      "id": "5158b489-9633-499d-8373-75887ce76d84",
+      "name": "Error: factura no encontrada"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.invoices\nSET payment_state = $1\nWHERE id = $2\nRETURNING id, payment_state;",
+        "options": {
+          "queryReplacement": "={{ [$('invoice/payment-state/set').item.json.body.payment_state, $('invoice/payment-state/set').item.json.body.invoice_id] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        160,
+        5680
+      ],
+      "id": "27df502c-b294-42ce-a057-26f3a642d714",
+      "name": "Set Payment State",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"success\": true,\n  \"invoice_id\": {{ $json.id }},\n  \"payment_state\": \"{{ $json.payment_state }}\",\n  \"code\": 200\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        400,
+        5680
+      ],
+      "id": "c68f316c-34c6-4c50-b158-2c86036965e8",
+      "name": "Success"
+    }
+  ],
+  "connections": {
+    "invoice/payment-state/set": {
+      "main": [
+        [
+          {
+            "node": "Datos validos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Datos validos?": {
+      "main": [
+        [
+          {
+            "node": "Get Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: datos invalidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Invoice": {
+      "main": [
+        [
+          {
+            "node": "Factura existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Factura existe?": {
+      "main": [
+        [
+          {
+            "node": "Set Payment State",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: factura no encontrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Payment State": {
+      "main": [
+        [
+          {
+            "node": "Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

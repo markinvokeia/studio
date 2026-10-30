@@ -2,12 +2,13 @@
 
 import * as React from 'react';
 import { format } from 'date-fns';
-import { es, enUS } from 'date-fns/locale';
 import { useLocale } from 'next-intl';
+
+import { getDateFnsLocale } from '@/lib/locale';
 
 export function ClockDisplay() {
   const locale = useLocale();
-  const dateLocale = locale === 'es' ? es : enUS;
+  const dateLocale = getDateFnsLocale(locale);
   const [now, setNow] = React.useState<Date | null>(null);
 
   React.useEffect(() => {

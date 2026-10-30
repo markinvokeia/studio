@@ -14,6 +14,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { DiscountControl, DocumentTotals } from '@/components/ui/discount-control';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import {
@@ -24,13 +25,25 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { DatePickerInput } from '@/components/ui/date-picker';
+import { DoctorSelector } from '@/components/ui/doctor-selector';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { UserSelector } from '@/components/ui/user-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
+import { useDiscountSettings } from '@/hooks/useDiscountSettings';
 import { useToast } from '@/hooks/use-toast';
-import { Clinic, Quote, TreatmentDetail, User } from '@/lib/types';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
+import {
+    buildDiscountedDocument,
+    computeDiscountAmount,
+    computeGrossTotal,
+    computeLineTotals,
+    isDiscountWithinLimit,
+    roundCurrency,
+} from '@/lib/discounts';
+import { Clinic, DiscountMode, Quote, TreatmentDetail, User } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,14 +51,25 @@ import { format, parseISO } from 'date-fns';
 import { AlertTriangle, Loader2, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
-import { useFieldArray, useForm } from 'react-hook-form';
+import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import * as z from 'zod';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
-const quoteFormSchema = (t: (key: string) => string) => z.object({
+/**
+ * `maxDiscountPct` llega de las preferencias de la clínica, así que el esquema
+ * se construye en runtime: el tope no se puede escribir como literal.
+ */
+const quoteFormSchema = (t: (key: string) => string, maxDiscountPct: number) => z.object({
     id: z.string().optional(),
     user_id: z.string().min(1, t('validation.userRequired')),
+    doctor_id: z.string().optional(),
     total: z.coerce.number().min(0, t('validation.totalPositive')),
-    currency: z.enum(['UYU', 'USD', 'URU']).default('USD'),
+    /** Descuento sobre el total del documento. Sólo con ámbito 'total'. */
+    discount_mode: z.enum(['percent', 'amount']).nullish(),
+    discount_value: z.coerce.number().min(0).nullish(),
+    currency: currencySchema,
     status: z.enum(['draft', 'sent', 'accepted', 'rejected', 'pending', 'confirmed',
         'Draft', 'Sent', 'Accepted', 'Rejected', 'Pending', 'Confirmed']),
     payment_status: z.enum(['unpaid', 'paid', 'partial', 'partially_paid',
@@ -55,6 +79,7 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
     exchange_rate: z.coerce.number().min(0.0001, t('validation.exchangeRatePositive')).optional(),
     created_at: z.date({ required_error: t('validation.dateRequired') }),
     notes: z.string().optional(),
+    sede_id: z.string().min(1, t('validation.sedeRequired')),
     patient_confirmed: z.boolean().default(false),
     items: z.array(z.object({
         id: z.string().optional(),
@@ -67,7 +92,34 @@ const quoteFormSchema = (t: (key: string) => string) => z.object({
         tooth_number: z.coerce.number().int().min(11, t('validation.toothNumberMin')).max(85, t('validation.toothNumberMax')).optional().or(z.literal('')),
         /** Flag para diferenciar servicios de sesión actual vs próxima sesión (generado por IA) */
         is_for_next_session: z.boolean().optional(),
+        /** Descuento de la línea. Sólo con ámbito 'line'. */
+        discount_mode: z.enum(['percent', 'amount']).nullish(),
+        discount_value: z.coerce.number().min(0).nullish(),
     })).default([]),
+}).superRefine((values, ctx) => {
+    // El tope se valida acá y no en cada campo porque para un descuento en
+    // importe hace falta la base, que sale de unit_price × quantity.
+    (values.items ?? []).forEach((item, index) => {
+        const base = computeGrossTotal(item.unit_price, item.quantity);
+        if (!isDiscountWithinLimit(base, { mode: item.discount_mode, value: item.discount_value }, maxDiscountPct)) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['items', index, 'discount_value'],
+                message: t('validation.discountOverLimit'),
+            });
+        }
+    });
+
+    const grossTotal = roundCurrency(
+        (values.items ?? []).reduce((sum, item) => sum + computeGrossTotal(item.unit_price, item.quantity), 0),
+    );
+    if (!isDiscountWithinLimit(grossTotal, { mode: values.discount_mode, value: values.discount_value }, maxDiscountPct)) {
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['discount_value'],
+            message: t('validation.discountOverLimit'),
+        });
+    }
 });
 
 type QuoteFormValues = z.infer<ReturnType<typeof quoteFormSchema>>;
@@ -93,7 +145,7 @@ async function getClinic(): Promise<Clinic | null> {
             location: apiClinic.address || '',
             contact_email: apiClinic.email || '',
             phone_number: apiClinic.phone || '',
-            currency: apiClinic.currency || 'UYU',
+            currency: apiClinic.currency || getClinicCurrency(),
         };
     } catch {
         return null;
@@ -114,16 +166,46 @@ export interface QuoteFormDialogProps {
 export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess, onQuoteCreated, isSales = true, initialItems }: QuoteFormDialogProps) {
     const t = useTranslations('QuotesPage');
     const { toast } = useToast();
-    const { activeCashSession } = useAuth();
+    const { activeCashSession, activeSede } = useAuth();
 
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
     const [submissionError, setSubmissionError] = React.useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [doctorName, setDoctorName] = React.useState('');
 
+    const discounts = useDiscountSettings();
+
+    const schema = React.useMemo(() => quoteFormSchema(t, discounts.maxPct), [t, discounts.maxPct]);
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<QuoteFormValues>({
-        resolver: zodResolver(quoteFormSchema(t)),
+        resolver: zodResolver(schema),
         mode: 'onBlur',
     });
+
+    /**
+     * Único punto donde se recalcula el importe de una línea. Cada handler
+     * (servicio, cantidad, precio, descuento) escribe su campo y llama acá, en
+     * vez de repetir la multiplicación —que ahora además lleva descuento— en
+     * seis sitios distintos.
+     */
+    const recalcLine = React.useCallback((index: number) => {
+        const item = form.getValues(`items.${index}`);
+        if (!item) return;
+        // Con ámbito 'total' la línea no lleva descuento propio: el del documento
+        // se reparte recién al guardar.
+        const lineDiscount = discounts.showLineDiscount
+            ? { mode: item.discount_mode, value: item.discount_value }
+            : null;
+        const { total } = computeLineTotals(item.unit_price, item.quantity, lineDiscount);
+        form.setValue(`items.${index}.total`, total, { shouldDirty: true });
+    }, [form, discounts.showLineDiscount]);
+
+    /** Aplica o quita el descuento de una línea y deja su importe al día. */
+    const setLineDiscount = React.useCallback((index: number, next: { mode: DiscountMode | null | undefined; value: number | null | undefined }) => {
+        form.setValue(`items.${index}.discount_mode`, next.mode ?? null, { shouldDirty: true });
+        form.setValue(`items.${index}.discount_value`, next.value ?? null, { shouldDirty: true, shouldValidate: true });
+        recalcLine(index);
+    }, [form, recalcLine]);
 
     const { fields, append, remove } = useFieldArray({
         control: form.control,
@@ -143,21 +225,29 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
     // Reset form when dialog opens — pre-carga ítems IA si están disponibles
     React.useEffect(() => {
         if (!open) return;
-        const defaultCurrency = clinic?.currency || 'UYU';
+        const defaultCurrency = clinic?.currency || getClinicCurrency();
         const sessionRate = getSessionExchangeRate();
+        // Los ítems precargados por IA entran sin descuento: aplicarlo es una
+        // decisión del usuario, no algo que se herede del servicio.
         const preloadedItems = initialItems?.filter(i => i.service_id).map(i => ({
             service_id: i.service_id!,
             service_name: i.service_name ?? '',
             quantity: i.quantity ?? 1,
             unit_price: i.unit_price ?? 0,
-            total: (i.unit_price ?? 0) * (i.quantity ?? 1),
+            total: computeLineTotals(i.unit_price ?? 0, i.quantity ?? 1).total,
             tooth_number: (i.numero_diente ?? '') as number | '',
             is_for_next_session: i.is_for_next_session ?? false,
+            discount_mode: null,
+            discount_value: null,
         })) ?? [];
         form.reset(
             {
                 user_id: initialData?.user?.id || '',
+                doctor_id: '',
                 total: 0,
+                // El descuento al total se muestra en 0 y sólo cuenta si se teclea.
+                discount_mode: null,
+                discount_value: null,
                 currency: defaultCurrency as any,
                 status: 'draft',
                 payment_status: 'unpaid',
@@ -165,6 +255,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                 exchange_rate: 1,
                 created_at: new Date(),
                 notes: '',
+                sede_id: activeSede?.id || '',
                 patient_confirmed: false,
                 items: preloadedItems,
             },
@@ -174,16 +265,17 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
             }
         );
         // Set exchange rate based on currency vs clinic currency
-        if (defaultCurrency !== (clinic?.currency || 'UYU')) {
+        if (defaultCurrency !== (clinic?.currency || getClinicCurrency())) {
             form.setValue('exchange_rate', sessionRate);
         }
+        setDoctorName('');
         setSubmissionError(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open]);
 
     const watchedCurrency = form.watch('currency');
     const watchedExchangeRate = form.watch('exchange_rate');
-    const isClinicCurrency = watchedCurrency === (clinic?.currency || 'UYU');
+    const isClinicCurrency = watchedCurrency === (clinic?.currency || getClinicCurrency());
 
     React.useEffect(() => {
         if (isClinicCurrency) {
@@ -197,18 +289,64 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
     }, [isClinicCurrency, watchedExchangeRate, form, getSessionExchangeRate]);
 
     // Recalculate total when items change
-    const watchedItems = form.watch('items');
-    React.useEffect(() => {
+    // useWatch (y no form.watch) para que el total del documento se recalcule
+    // en cuanto cambia el importe de UNA linea, sin esperar a otra edicion.
+    const watchedItems = useWatch({ control: form.control, name: 'items' }) ?? [];
+    const watchedDiscountMode = form.watch('discount_mode');
+    const watchedDiscountValue = form.watch('discount_value');
+
+    /**
+     * Importes del documento.
+     *
+     * Con ámbito 'line' las líneas ya vienen netas y el total es su suma. Con
+     * ámbito 'total' las líneas están en bruto y el descuento se aplica acá;
+     * el reparto entre líneas se hace al guardar, no mientras se edita.
+     */
+    /**
+     * Totales del documento, SIEMPRE derivados de precio × cantidad y del
+     * descuento aplicado. No se lee `item.total` a propósito: ese campo es sólo
+     * para mostrar y puede quedar desfasado si un handler no lo recalculó.
+     */
+    const documentTotals = React.useMemo(() => {
         const items = watchedItems || [];
-        const newTotal = items.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
-        const currentTotal = form.getValues('total') || 0;
-        if (Math.abs(newTotal - currentTotal) > 0.001) {
-            form.setValue('total', newTotal, { shouldDirty: true });
+        let gross = 0;
+        let lineDiscounts = 0;
+        for (const item of items) {
+            const lineGross = computeGrossTotal(item?.unit_price, item?.quantity);
+            gross += lineGross;
+            if (discounts.showLineDiscount) {
+                lineDiscounts += computeDiscountAmount(lineGross, { mode: item?.discount_mode, value: item?.discount_value });
+            }
         }
-    }, [watchedItems, form]);
+        const grossTotal = roundCurrency(gross);
+        const netAfterLines = roundCurrency(grossTotal - roundCurrency(lineDiscounts));
+
+        if (!discounts.showTotalDiscount) {
+            return { grossTotal, discountAmount: roundCurrency(grossTotal - netAfterLines), total: netAfterLines };
+        }
+        const discountAmount = computeDiscountAmount(grossTotal, { mode: watchedDiscountMode, value: watchedDiscountValue });
+        return { grossTotal, discountAmount, total: roundCurrency(grossTotal - discountAmount) };
+    }, [watchedItems, discounts.showLineDiscount, discounts.showTotalDiscount, watchedDiscountMode, watchedDiscountValue]);
+
+    React.useEffect(() => {
+        const currentTotal = form.getValues('total') || 0;
+        if (Math.abs(documentTotals.total - currentTotal) > 0.001) {
+            form.setValue('total', documentTotals.total, { shouldDirty: true });
+        }
+    }, [documentTotals.total, form]);
 
     const handleAddItem = () => {
-        append({ service_id: '', quantity: 1, unit_price: 0, total: 0, tooth_number: '' });
+        // Sin descuento: que la clínica los tenga habilitados no significa que se
+        // apliquen a todo. Se pide línea por línea con el botón «Aplicar descuentos».
+        append({
+            service_id: '',
+            quantity: 1,
+            unit_price: 0,
+            total: 0,
+            tooth_number: '',
+            discount_mode: null,
+            discount_value: null,
+        });
     };
 
     const onSubmit = async (values: QuoteFormValues) => {
@@ -219,16 +357,27 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
             if (!values.items || values.items.length === 0) {
                 throw new Error(t('quoteDialog.atLeastOneItem'));
             }
-            const itemsToSubmit = values.items.map(item => ({
-                id: item.id,
-                service_id: item.service_id,
-                quantity: item.quantity,
-                unit_price: item.unit_price,
-                total: item.total,
-                tooth_number: item.tooth_number ? Number(item.tooth_number) : null,
-                // Flag de sesión para el backend (ignorado si aún no tiene soporte)
-                is_for_next_session: item.is_for_next_session ?? false,
-            }));
+            // Los importes definitivos (y el reparto del descuento del total
+            // entre las líneas) se resuelven acá, no mientras se edita.
+            const { items: itemsToSubmit, document } = buildDiscountedDocument(
+                values.items.map(item => ({
+                    id: item.id,
+                    service_id: item.service_id,
+                    quantity: item.quantity,
+                    unit_price: item.unit_price,
+                    tooth_number: item.tooth_number ? Number(item.tooth_number) : null,
+                    // Flag de sesión para el backend (ignorado si aún no tiene soporte)
+                    is_for_next_session: item.is_for_next_session ?? false,
+                    discount_mode: item.discount_mode,
+                    discount_value: item.discount_value,
+                })),
+                {
+                    enabled: discounts.enabled,
+                    scope: discounts.scope,
+                    documentDiscount: { mode: values.discount_mode, value: values.discount_value },
+                },
+            );
+
             const normalizeBilling = (s: string) =>
                 s === 'not_invoiced' ? 'not invoiced' : s === 'partially_invoiced' ? 'partially invoiced' : s;
 
@@ -238,6 +387,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                 billing_status: normalizeBilling(values.billing_status),
                 created_at: toLocalISOString(values.created_at),
                 items: itemsToSubmit,
+                ...document,
             };
             const response = await upsertQuote(payload as any, isSales, t);
             const quoteData = Array.isArray(response) ? response[0]?.data : response?.data;
@@ -267,7 +417,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                     status: values.patient_confirmed ? 'confirmed' : (quoteData.status || 'draft'),
                     payment_status: quoteData.payment_status || 'unpaid',
                     billing_status: quoteData.billing_status || 'not invoiced',
-                    currency: quoteData.currency || 'USD',
+                    currency: quoteData.currency || getClinicCurrency(),
                     exchange_rate: parseFloat(quoteData.exchange_rate) || 1,
                     notes: quoteData.notes || '',
                     createdAt: quoteData.created_at || new Date().toISOString(),
@@ -290,7 +440,7 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                     <DialogDescription>{t('quoteDialog.description')}</DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddItem(); } }}>
+                    <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') { e.preventDefault(); if ((e.target as HTMLInputElement).name?.startsWith('items.')) handleAddItem(); } }}>
                         <DialogBody className="space-y-4 py-4 px-6">
                             {submissionError && (
                                 <Alert variant="destructive">
@@ -362,15 +512,51 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                     render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>{t('quoteDialog.currency')}</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger><SelectValue placeholder={t('quoteDialog.selectCurrency')} /></SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="USD">USD</SelectItem>
-                                                    <SelectItem value="UYU">UYU</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                            <FormControl><CurrencySelect value={field.value} onChange={field.onChange} placeholder={t('quoteDialog.selectCurrency')} /></FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
+                            {/* Doctor field */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <FormField
+                                    control={form.control}
+                                    name="doctor_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('quoteDialog.doctor')}</FormLabel>
+                                            <FormControl>
+                                                <DoctorSelector
+                                                    value={field.value}
+                                                    selectedDoctorName={doctorName}
+                                                    onValueChange={(doctorId, doctor) => {
+                                                        field.onChange(doctorId);
+                                                        setDoctorName(doctor?.name || '');
+                                                    }}
+                                                    placeholder={t('quoteDialog.searchDoctor')}
+                                                    triggerText={t('quoteDialog.selectDoctor')}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="sede_id"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>{t('quoteDialog.sede')}</FormLabel>
+                                            <FormControl>
+                                                <SedeSelector
+                                                    value={field.value}
+                                                    onValueChange={(sedeId) => field.onChange(sedeId)}
+                                                    triggerText={t('quoteDialog.selectSede')}
+                                                    placeholder={t('quoteDialog.searchSede')}
+                                                />
+                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -448,11 +634,10 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                                 onValueChange={(serviceId, service) => {
                                                                     field.onChange(serviceId);
                                                                     if (service) {
-                                                                        const quantity = form.getValues(`items.${index}.quantity`) || 1;
                                                                         const servicePrice = Number(service.price);
                                                                         form.setValue(`items.${index}.service_name`, service.name, { shouldDirty: true });
                                                                         form.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
-                                                                        form.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
+                                                                        recalcLine(index);
                                                                     }
                                                                 }}
                                                                 placeholder={t('itemDialog.searchService')}
@@ -471,10 +656,8 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                                         onChange={(e) => {
                                                                             const rounded = e.target.value === '' ? '' : Math.round(Number(e.target.value));
                                                                             field.onChange(e);
-                                                                            const price = form.getValues(`items.${index}.unit_price`) || 0;
-                                                                            const newQty = rounded === '' ? 0 : rounded;
-                                                                            form.setValue(`items.${index}.quantity`, newQty, { shouldValidate: true });
-                                                                            form.setValue(`items.${index}.total`, price * newQty, { shouldDirty: true });
+                                                                            form.setValue(`items.${index}.quantity`, rounded === '' ? 0 : rounded, { shouldValidate: true });
+                                                                            recalcLine(index);
                                                                         }}
                                                                     />
                                                                 </FormControl>
@@ -488,9 +671,8 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                                     <Input type="number" step="0.01" min="0" {...field}
                                                                         onChange={(e) => {
                                                                             field.onChange(e);
-                                                                            const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                                                                            const newPrice = Number(e.target.value);
-                                                                            form.setValue(`items.${index}.total`, Math.round(newPrice * quantity * 100) / 100, { shouldDirty: true });
+                                                                            form.setValue(`items.${index}.unit_price`, Number(e.target.value), { shouldDirty: true });
+                                                                            recalcLine(index);
                                                                         }}
                                                                     />
                                                                 </FormControl>
@@ -498,6 +680,19 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                             </FormItem>
                                                         )} />
                                                     </div>
+                                                    {discounts.showLineDiscount && (
+                                                        <DiscountControl
+                                                            mode={watchedItems?.[index]?.discount_mode}
+                                                            value={watchedItems?.[index]?.discount_value}
+                                                            base={computeGrossTotal(watchedItems?.[index]?.unit_price ?? 0, watchedItems?.[index]?.quantity ?? 0)}
+                                                            currency={watchedCurrency || getClinicCurrency()}
+                                                            maxPct={discounts.maxPct}
+                                                            defaultPct={discounts.defaultPct}
+                                                            canApply={discounts.canApply}
+                                                            onApply={(next) => setLineDiscount(index, next)}
+                                                            onRemove={() => setLineDiscount(index, { mode: null, value: null })}
+                                                        />
+                                                    )}
                                                     <div className="grid grid-cols-2 gap-2">
                                                         <FormField control={form.control} name={`items.${index}.total`} render={({ field }) => (
                                                             <FormItem>
@@ -534,13 +729,15 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                     <th className="font-semibold p-2 w-24">{t('quoteDialog.items.quantity')}</th>
                                                     <th className="font-semibold p-2 w-28">{t('quoteDialog.items.unitPrice')}</th>
                                                     <th className="font-semibold p-2 w-28">{t('quoteDialog.items.total')}</th>
+                                                    {discounts.showLineDiscount && <th className="p-2 w-24"></th>}
                                                     <th className="font-semibold p-2 w-24">{t('quoteDialog.items.toothNumber')}</th>
                                                     <th className="p-2 w-10"></th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {fields.map((fieldItem, index) => (
-                                                    <tr key={fieldItem.id} className="align-top">
+                                                    <React.Fragment key={fieldItem.id}>
+                                                    <tr className="align-top">
                                                         <td className="p-1 max-w-0">
                                                             <FormField control={form.control} name={`items.${index}.service_id`} render={({ field }) => (
                                                                 <FormItem>
@@ -551,11 +748,10 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                                         onValueChange={(serviceId, service) => {
                                                                             field.onChange(serviceId);
                                                                             if (service) {
-                                                                                const quantity = form.getValues(`items.${index}.quantity`) || 1;
                                                                                 const servicePrice = Number(service.price);
                                                                                 form.setValue(`items.${index}.service_name`, service.name, { shouldDirty: true });
                                                                                 form.setValue(`items.${index}.unit_price`, servicePrice, { shouldDirty: true, shouldValidate: true });
-                                                                                form.setValue(`items.${index}.total`, servicePrice * quantity, { shouldDirty: true, shouldValidate: true });
+                                                                                recalcLine(index);
                                                                             }
                                                                         }}
                                                                         placeholder={t('itemDialog.searchService')}
@@ -585,10 +781,8 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                                             onChange={(e) => {
                                                                                 const rounded = e.target.value === '' ? '' : Math.round(Number(e.target.value));
                                                                                 field.onChange(e);
-                                                                                const price = form.getValues(`items.${index}.unit_price`) || 0;
-                                                                                const newQty = rounded === '' ? 0 : rounded;
-                                                                                form.setValue(`items.${index}.quantity`, newQty, { shouldValidate: true });
-                                                                                form.setValue(`items.${index}.total`, price * newQty, { shouldDirty: true });
+                                                                                form.setValue(`items.${index}.quantity`, rounded === '' ? 0 : rounded, { shouldValidate: true });
+                                                                                recalcLine(index);
                                                                             }}
                                                                         />
                                                                     </FormControl>
@@ -603,9 +797,8 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                                         <Input type="number" step="0.01" min="0" {...field}
                                                                             onChange={(e) => {
                                                                                 field.onChange(e);
-                                                                                const quantity = form.getValues(`items.${index}.quantity`) || 1;
-                                                                                const newPrice = Number(e.target.value);
-                                                                                form.setValue(`items.${index}.total`, Math.round(newPrice * quantity * 100) / 100, { shouldDirty: true });
+                                                                                form.setValue(`items.${index}.unit_price`, Number(e.target.value), { shouldDirty: true });
+                                                                                recalcLine(index);
                                                                             }}
                                                                         />
                                                                     </FormControl>
@@ -623,6 +816,21 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                                 </FormItem>
                                                             )} />
                                                         </td>
+                                                        {discounts.showLineDiscount && (
+                                                            <td className="p-1">
+                                                                <DiscountControl
+                                                                    mode={watchedItems?.[index]?.discount_mode}
+                                                                    value={watchedItems?.[index]?.discount_value}
+                                                                    base={computeGrossTotal(watchedItems?.[index]?.unit_price ?? 0, watchedItems?.[index]?.quantity ?? 0)}
+                                                                    currency={watchedCurrency || getClinicCurrency()}
+                                                                    maxPct={discounts.maxPct}
+                                                                    defaultPct={discounts.defaultPct}
+                                                                    canApply={discounts.canApply}
+                                                                    onApply={(next) => setLineDiscount(index, next)}
+                                                                    onRemove={() => setLineDiscount(index, { mode: null, value: null })}
+                                                                />
+                                                            </td>
+                                                        )}
                                                         <td className="p-1">
                                                             <FormField control={form.control} name={`items.${index}.tooth_number`} render={({ field }) => (
                                                                 <FormItem>
@@ -641,17 +849,40 @@ export function QuoteFormDialog({ open, onOpenChange, initialData, onSaveSuccess
                                                             </Button>
                                                         </td>
                                                     </tr>
+                                                    </React.Fragment>
                                                 ))}
                                             </tbody>
                                         </table>
                                         <FormMessage>{form.formState.errors.items?.root?.message}</FormMessage>
-                                        <div className="text-right pt-2">
-                                            <span className="font-semibold text-lg">
-                                                {t('quoteDialog.total')}: {new Intl.NumberFormat('en-US', {
-                                                    style: 'currency',
-                                                    currency: form.watch('currency') || 'USD',
-                                                }).format(fields.reduce((sum, _, i) => sum + (Number(form.getValues(`items.${i}.total`)) || 0), 0))}
-                                            </span>
+
+                                        <div className="flex flex-col items-end gap-2 pt-3">
+                                            {/* Con ámbito de documento el campo se ofrece directo, en 0:
+                                                no hay una línea concreta a la que colgarlo. */}
+                                            {discounts.showTotalDiscount && (
+                                                <DiscountControl
+                                                    mode={watchedDiscountMode}
+                                                    value={watchedDiscountValue}
+                                                    base={documentTotals.grossTotal}
+                                                    currency={watchedCurrency || getClinicCurrency()}
+                                                    maxPct={discounts.maxPct}
+                                                    defaultPct={discounts.defaultPct}
+                                                    canApply={discounts.canApply}
+                                                    onApply={(next) => {
+                                                        form.setValue('discount_mode', next.mode ?? null, { shouldDirty: true });
+                                                        form.setValue('discount_value', next.value ?? null, { shouldDirty: true, shouldValidate: true });
+                                                    }}
+                                                    onRemove={() => {
+                                                        form.setValue('discount_mode', null, { shouldDirty: true });
+                                                        form.setValue('discount_value', null, { shouldDirty: true, shouldValidate: true });
+                                                    }}
+                                                />
+                                            )}
+                                            <DocumentTotals
+                                                grossTotal={documentTotals.grossTotal}
+                                                discountAmount={documentTotals.discountAmount}
+                                                total={documentTotals.total}
+                                                currency={watchedCurrency || getClinicCurrency()}
+                                            />
                                         </div>
                                     </div>
                                 </CardContent>

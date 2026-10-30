@@ -1,0 +1,1044 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Editar pago con allocations\n\nReemplaza el enfoque de \"deshacer y recrear\" (payment/undo + invoice/payment):\nhace un UPDATE en el lugar sobre el mismo id, reusa la validación de sesión\nde caja de payments/edit (extendida a monto, no solo método), y reasigna\nFIFO las allocations existentes contra el nuevo monto.\n\nVer docs/reconciliacion-allocations-edicion.md (Flujo B).",
+        "height": 340,
+        "width": 640
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -840,
+        4320
+      ],
+      "id": "5a004bdf-807c-4276-8c25-414b358f266e",
+      "name": "Sticky Note - Flujo B"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "payment/edit-with-reallocation",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*",
+          "rawBody": true
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -800,
+        4700
+      ],
+      "id": "9802858f-44a4-41c8-81c3-2bea317c661f",
+      "name": "payment/edit-with-reallocation",
+      "webhookId": "24df633f-6221-480f-a5d7-24606287dff2",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT p.*, pm.code AS payment_method_code\nFROM public.payments p\nLEFT JOIN public.payment_methods pm ON pm.id = p.payment_method_id\nWHERE p.id = $1\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $json.body.payment_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -560,
+        4700
+      ],
+      "id": "4f9a2bc9-d7c0-4eb6-a39b-e4afe0979dab",
+      "name": "Get payment",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "985ee562-fcd5-414f-aff2-2f61adf8dd7b",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -320,
+        4700
+      ],
+      "id": "987458b2-fba1-43b0-afe1-4a025cf727bd",
+      "name": "Pago existe?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"Payment not found\"\n}",
+        "options": {
+          "responseCode": 404,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -80,
+        4940
+      ],
+      "id": "a68f855b-7af7-4cc6-9cde-d3ba6391ceb7",
+      "name": "Error: 404"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $('payment/edit-with-reallocation').first().json.body;\nconst current = $('Get payment').first().json;\n\nconst currentAmount = Math.abs(Number(current.amount));\nconst newAmount = Math.abs(Number(body.amount));\nconst methodChanged = String(body.payment_method_id) !== String(current.payment_method_id);\nconst amountChanged = Math.abs(newAmount - currentAmount) > 0.0001;\n\nreturn [{\n  json: {\n    payment_id: current.id,\n    needs_cash_check: methodChanged || amountChanged,\n    method_changed: methodChanged,\n    amount_changed: amountChanged,\n    new_payment_method_id: body.payment_method_id,\n    new_amount: newAmount,\n    new_payment_date: body.payment_date,\n    new_notes: body.notes || '',\n    new_is_historical: !!body.is_historical,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        4700
+      ],
+      "id": "19fcbe07-e600-4076-95e1-e61bdcc73a88",
+      "name": "Detectar cambios"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "dd33586c-710f-4808-91af-b08e2273a892",
+              "leftValue": "={{ $json.needs_cash_check }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        160,
+        4700
+      ],
+      "id": "d8846268-055c-4b88-b97a-a4ae90d1467d",
+      "name": "Necesita validar caja?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.payment_methods WHERE id = $1 LIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $('Detectar cambios').item.json.new_payment_method_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        400,
+        4540
+      ],
+      "id": "39a7cf75-2e2c-4d1a-8bc0-ae347a5c8515",
+      "name": "Get new payment method",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c060beb7-8d98-466d-8cf3-9dd67d830e0e",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        640,
+        4540
+      ],
+      "id": "145c1169-95ec-444c-9fa5-258f5dfd1d79",
+      "name": "Metodo nuevo existe?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"Payment method not found\"\n}",
+        "options": {
+          "responseCode": 404,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        880,
+        4780
+      ],
+      "id": "6493a684-2fb4-41b9-87d8-78ce5604d241",
+      "name": "Error: 4042"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "Dwt3WdobiGtSwEcH",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/Dwt3WdobiGtSwEcH",
+          "cachedResultName": "Is Cash session active workflow"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "user_id": "={{ $('payment/edit-with-reallocation').first().json.jwtPayload.userId }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "authorization",
+              "displayName": "authorization",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": true
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        880,
+        4540
+      ],
+      "id": "f3979009-da2a-4487-a0e7-dc2ccf147127",
+      "name": "Get active cash session"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payment = $('Get payment').first().json;\nconst activeSessionId = $json.data ? $json.data.id : null;\nconst hasOwnSession = payment.cash_session_id !== null && payment.cash_session_id !== undefined;\n// Un pago que nunca tuvo sesión de caja (histórico) no tiene nada que proteger;\n// uno que sí tuvo, solo se puede editar si esa sesión sigue siendo la activa.\nconst sessionOk = !hasOwnSession || (activeSessionId !== null && Number(activeSessionId) === Number(payment.cash_session_id));\n\nreturn [{ json: { session_ok: sessionOk, active_session_id: activeSessionId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        4540
+      ],
+      "id": "ab714824-43e9-4cd0-9044-fc1ea0219db8",
+      "name": "Evaluar sesion de caja"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "51d862bc-08cc-441e-904d-c272dc4d84a8",
+              "leftValue": "={{ $json.session_ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1360,
+        4540
+      ],
+      "id": "a139745c-fab2-474e-a231-5197c2da653c",
+      "name": "Sesion de caja OK?"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"error\": \"Can't edit the payment because is from old cash session\"\n}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1600,
+        4780
+      ],
+      "id": "887299e3-28d6-4da6-b968-73968a1008e0",
+      "name": "Error: 400"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM public.cash_movements\nWHERE payment_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $('Get payment').first().json.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1600,
+        4540
+      ],
+      "id": "8d580108-f322-4e5b-8e3e-6207958f2529",
+      "name": "Remove cash movement",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f5a80ef0-2d53-4b55-a46e-893de8e08b29",
+              "leftValue": "={{ $('Get new payment method').first().json.code.toUpperCase() }}",
+              "rightValue": "CASH",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1840,
+        4540
+      ],
+      "id": "af90dcc6-3fda-412d-9c87-2aa1a23843bd",
+      "name": "Metodo final es CASH?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT i.doc_no AS invoice_doc_no, o.doc_no AS order_doc_no\nFROM public.invoices i\nLEFT JOIN public.orders o ON o.id = i.order_id\nWHERE i.id = $1\nLIMIT 1;",
+        "options": {
+          "queryReplacement": "={{ $('Get payment').first().json.invoice_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2080,
+        4380
+      ],
+      "id": "bce285fa-fe29-4d84-b2ab-28e1d4b67fa0",
+      "name": "Get payment description",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "cash_movements",
+          "mode": "list",
+          "cachedResultName": "cash_movements"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "amount": "={{ $('Detectar cambios').first().json.new_amount }}",
+            "created_at": "={{ $now.toISO() }}",
+            "payment_method_id": "={{ $('Detectar cambios').first().json.new_payment_method_id }}",
+            "cash_session_id": "={{ $('Evaluar sesion de caja').first().json.active_session_id }}",
+            "payment_id": "={{ $('Get payment').first().json.id }}",
+            "description": "=Pago editado — factura: {{ $json.invoice_doc_no || \"N/A\" }}\nOrden: {{ $json.order_doc_no || \"N/A\" }}",
+            "user_id": "={{ $('Get payment').first().json.user_id }}",
+            "type": "INFLOW",
+            "currency": "={{ $('Get payment').first().json.currency }}",
+            "is_sales": "={{ $('Get payment').first().json.is_sales }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2320,
+        4380
+      ],
+      "id": "ba382180-6559-4cb6-b703-392a9d081ae3",
+      "name": "Registrar Movimiento Caja",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "payments",
+          "mode": "list",
+          "cachedResultName": "payments"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Get payment').first().json.id }}",
+            "payment_method_id": "={{ $('Detectar cambios').first().json.new_payment_method_id }}",
+            "amount": "={{ (Number($('Get payment').first().json.amount) < 0 ? -1 : 1) * Number($('Detectar cambios').first().json.new_amount) }}",
+            "converted_amount": "={{ (Number($('Get payment').first().json.amount) < 0 ? -1 : 1) * Number($('Detectar cambios').first().json.new_amount) * Number($('Get payment').first().json.exchange_rate || 1) }}",
+            "created_at": "={{ $('Detectar cambios').first().json.new_payment_date }}",
+            "notes": "={{ $('Detectar cambios').first().json.new_notes }}",
+            "is_historical": "={{ $('Detectar cambios').first().json.new_is_historical }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2560,
+        4700
+      ],
+      "id": "97dc4ebe-007b-492f-9372-b7c61b172c66",
+      "name": "Update Payment In Place",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, invoice_id, amount, allocated_currency, target_amount, exchange_rate, created_at\nFROM public.payment_allocations\nWHERE payment_id = $1\nORDER BY created_at ASC, id ASC;",
+        "options": {
+          "queryReplacement": "={{ $('Get payment').first().json.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2800,
+        4700
+      ],
+      "id": "c9f8905f-1dce-44d7-8903-3532046ded31",
+      "name": "Get Payment Allocations (Pago)",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM public.payment_allocations\nWHERE payment_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $('Get payment').first().json.id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3040,
+        4700
+      ],
+      "id": "f7c01c6c-f22e-4a7b-9786-c475b93741f6",
+      "name": "Delete Payment Allocations (Pago)",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const paymentId = Number($('Get payment').first().json.id);\nconst newAmount = Math.abs(Number($('Detectar cambios').first().json.new_amount));\n\nconst rows = $('Get Payment Allocations (Pago)').all().map((i) => i.json);\nconst pool = [...rows].sort((a, b) => {\n  const ta = new Date(a.created_at).getTime();\n  const tb = new Date(b.created_at).getTime();\n  if (ta !== tb) return ta - tb;\n  return Number(a.id) - Number(b.id);\n});\n\nconst poolTotal = pool.reduce((sum, row) => sum + Number(row.amount), 0);\n\nlet remaining = newAmount;\nconst toReinsert = [];\n\nfor (const row of pool) {\n  if (remaining <= 0.0001) break;\n  const rowAmount = Number(row.amount);\n  const take = Math.min(rowAmount, remaining);\n  if (take <= 0.0001) continue;\n\n  // Misma lógica que el Flujo A: se preserva la proporción del tipo de\n  // cambio / target_amount original, no se recalcula de nuevo.\n  const ratio = take / rowAmount;\n\n  toReinsert.push({\n    payment_id: paymentId,\n    invoice_id: row.invoice_id,\n    amount: Math.round(take * 100) / 100,\n    allocated_currency: row.allocated_currency,\n    target_amount: Math.round(Number(row.target_amount) * ratio * 100) / 100,\n    exchange_rate: row.exchange_rate,\n  });\n\n  remaining = Math.round((remaining - take) * 100) / 100;\n}\n\nconst reinsertedTotal = toReinsert.reduce((s, r) => s + r.amount, 0);\nconst releasedAmount = Math.round((poolTotal - reinsertedTotal) * 100) / 100;\n\nif (toReinsert.length === 0) {\n  return [{\n    json: {\n      payment_id: paymentId,\n      new_amount: newAmount,\n      pool_total: Math.round(poolTotal * 100) / 100,\n      released_amount: releasedAmount,\n      _empty: true,\n    },\n  }];\n}\n\nreturn toReinsert.map((item) => ({\n  json: { ...item, new_amount: newAmount, released_amount: releasedAmount },\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3280,
+        4700
+      ],
+      "id": "a689a8e8-7611-4dff-943e-e66e9803f6cd",
+      "name": "Reallocate FIFO (Pago)"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3520,
+        4700
+      ],
+      "id": "2a6b7d91-f892-44a7-91d8-23521c0903af",
+      "name": "Loop Over Reinsert Items (Pago)"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d77d4d76-c56a-41bb-ab3b-480bd7ea76e0",
+              "leftValue": "={{ $json.invoice_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3760,
+        4860
+      ],
+      "id": "31af49e2-d1c3-4372-ab0c-9c2bda0f4b85",
+      "name": "Tiene factura?"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "payment_allocations",
+          "mode": "list",
+          "cachedResultName": "payment_allocations"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "payment_id": "={{ $json.payment_id }}",
+            "invoice_id": "={{ $json.invoice_id }}",
+            "amount": "={{ $json.amount }}",
+            "allocated_currency": "={{ $json.allocated_currency }}",
+            "target_amount": "={{ $json.target_amount }}",
+            "exchange_rate": "={{ $json.exchange_rate }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        4000,
+        4860
+      ],
+      "id": "d6cb0351-97a3-4390-beef-3397c3a7a7da",
+      "name": "Insert Payment Allocation (Pago)",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $('Reallocate FIFO (Pago)').all().map((i) => i.json);\nconst meta = source[0] || {};\nconst reallocated = source.filter((i) => !i._empty).map((i) => ({ invoice_id: i.invoice_id, amount: i.amount }));\n\nreturn [{\n  json: {\n    success: true,\n    payment_id: meta.payment_id,\n    new_amount: meta.new_amount,\n    reallocated,\n    released_amount: meta.released_amount,\n    code: 200,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3760,
+        4540
+      ],
+      "id": "09451f60-60a0-41aa-87cc-a75f762ea02e",
+      "name": "Build Response (Pago)"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        4000,
+        4540
+      ],
+      "id": "a94a8cf9-a609-4644-a4b0-5e7e59d718e0",
+      "name": "OK: 200"
+    }
+  ],
+  "connections": {
+    "payment/edit-with-reallocation": {
+      "main": [
+        [
+          {
+            "node": "Get payment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get payment": {
+      "main": [
+        [
+          {
+            "node": "Pago existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pago existe?": {
+      "main": [
+        [
+          {
+            "node": "Detectar cambios",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: 404",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detectar cambios": {
+      "main": [
+        [
+          {
+            "node": "Necesita validar caja?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Necesita validar caja?": {
+      "main": [
+        [
+          {
+            "node": "Get new payment method",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Payment In Place",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get new payment method": {
+      "main": [
+        [
+          {
+            "node": "Metodo nuevo existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Metodo nuevo existe?": {
+      "main": [
+        [
+          {
+            "node": "Get active cash session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: 4042",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get active cash session": {
+      "main": [
+        [
+          {
+            "node": "Evaluar sesion de caja",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluar sesion de caja": {
+      "main": [
+        [
+          {
+            "node": "Sesion de caja OK?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sesion de caja OK?": {
+      "main": [
+        [
+          {
+            "node": "Remove cash movement",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error: 400",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove cash movement": {
+      "main": [
+        [
+          {
+            "node": "Metodo final es CASH?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Metodo final es CASH?": {
+      "main": [
+        [
+          {
+            "node": "Get payment description",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Payment In Place",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get payment description": {
+      "main": [
+        [
+          {
+            "node": "Registrar Movimiento Caja",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar Movimiento Caja": {
+      "main": [
+        [
+          {
+            "node": "Update Payment In Place",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Payment In Place": {
+      "main": [
+        [
+          {
+            "node": "Get Payment Allocations (Pago)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Payment Allocations (Pago)": {
+      "main": [
+        [
+          {
+            "node": "Delete Payment Allocations (Pago)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Payment Allocations (Pago)": {
+      "main": [
+        [
+          {
+            "node": "Reallocate FIFO (Pago)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reallocate FIFO (Pago)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Reinsert Items (Pago)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Reinsert Items (Pago)": {
+      "main": [
+        [
+          {
+            "node": "Build Response (Pago)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tiene factura?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tiene factura?": {
+      "main": [
+        [
+          {
+            "node": "Insert Payment Allocation (Pago)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Reinsert Items (Pago)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Payment Allocation (Pago)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Reinsert Items (Pago)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Response (Pago)": {
+      "main": [
+        [
+          {
+            "node": "OK: 200",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

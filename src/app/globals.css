@@ -99,6 +99,9 @@
     /* Gris para cabeceras y elementos secundarios */
     --accent: 263 67% 45%;
     --accent-foreground: 0 0% 100%;
+    /* Color de enlaces. Token propio porque en el tema oscuro --primary es un gris de relleno
+       de botón y resulta ilegible como texto. */
+    --link: 263 67% 35%;
     --border: 260 20% 90%;
     --input: 260 20% 90%;
     --ring: 263 67% 35%;
@@ -169,6 +172,7 @@
     /* Gris para cabeceras y elementos secundarios */
     --accent: 240 5% 96%;
     --accent-foreground: 240 10% 10%;
+    --link: 221 83% 33%;
     --border: 240 5% 94%;
     --input: 240 5% 94%;
     --ring: 221 83% 33%;
@@ -216,8 +220,12 @@
     --muted-foreground: 240 5% 75%;
     --accent: 240 10% 25%;
     --accent-foreground: 0 0% 100%;
-    --border: 240 10% 20%;
-    --input: 240 10% 20%;
+    /* Azul claro: 5.6:1 sobre --card (240 10% 18%), cumple WCAG AA. */
+    --link: 217 91% 70%;
+    /* Sube por encima de --card (18%) para que los bordes y los separadores de fila
+       se distingan; con 20% las listas y las tablas se fundían con la superficie. */
+    --border: 240 10% 27%;
+    --input: 240 10% 27%;
     --ring: 240 10% 35%;
 
     /* Semantic Nav Tokens */
@@ -273,6 +281,18 @@ textarea::placeholder {
   color: hsl(var(--muted-foreground)) !important;
 }
 
+/* Campo inválido/obligatorio sin completar: todo control con aria-invalid se pinta en
+   rojo. `FormControl` lo pone solo; los selectores compartidos lo reenvían a su
+   trigger y los editores sin <FormField> lo pasan a mano. Va fuera de @layer y con
+   el elemento en el selector para ganarle a `border-input` de las utilidades. */
+input[aria-invalid="true"],
+textarea[aria-invalid="true"],
+button[aria-invalid="true"],
+div[role="combobox"][aria-invalid="true"] {
+  border-color: hsl(var(--destructive));
+  --tw-ring-color: hsl(var(--destructive));
+}
+
 /* ── Panel slide animations ──────────────────────────────────────────────── */
 @keyframes panel-slide-in {
   from {
@@ -313,6 +333,230 @@ textarea::placeholder {
 @container action-bar (max-width: 400px) {
   .action-btn-label {
     display: none;
+  }
+}
+
+/* ── Responsive patient ledger (container query) ─────────────────────────
+   The ledger panel (patient-finance-section.tsx / PatientLedgerSheet) can be
+   narrow even on a wide viewport — a fixed sidebar + a moderately-sized
+   window/sheet routinely leaves it well under 640px, so a `sm:` viewport
+   breakpoint can't tell "narrow panel" from "wide panel" apart. Sizing off
+   the panel's own width instead fixes that. */
+.patient-ledger-container {
+  container-type: inline-size;
+  container-name: patient-ledger;
+}
+
+.patient-ledger-col-header {
+  display: none;
+}
+
+.patient-ledger-row-min-w {
+  min-width: 0;
+}
+
+.patient-ledger-amounts {
+  display: flex;
+}
+
+.patient-ledger-amount-cell {
+  flex: 1 1 0%;
+  text-align: left;
+}
+
+.patient-ledger-amount-label {
+  display: block;
+}
+
+.patient-ledger-footer {
+  flex-direction: column;
+}
+
+.patient-ledger-footer-totals {
+  display: grid;
+}
+
+.patient-ledger-footer-total-cell {
+  text-align: right;
+}
+
+/* Row floor = its fixed columns, not its content: date 8rem + treatment 10rem +
+   3 × 6rem amounts + 4 × 0.75rem gaps + 1.5rem row padding + border + 1rem
+   wrapper padding ≈ 41.75rem. (`max-content` used to size rows off the full,
+   untruncated treatment label, forcing horizontal scroll that hid the Saldo
+   column.) The switch-over sits ~1.25rem above that floor so a vertical
+   scrollbar in the list can't tip it into horizontal scroll. */
+@container patient-ledger (min-width: 43rem) {
+  .patient-ledger-col-header {
+    display: flex;
+  }
+
+  .patient-ledger-row-min-w {
+    min-width: 41.75rem;
+  }
+
+  .patient-ledger-amounts {
+    display: contents;
+  }
+
+  .patient-ledger-amount-cell {
+    flex: none;
+    width: 6rem;
+    text-align: right;
+  }
+
+  .patient-ledger-amount-label {
+    display: none;
+  }
+
+  .patient-ledger-footer {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  .patient-ledger-footer-totals {
+    display: contents;
+  }
+
+  .patient-ledger-footer-total-cell {
+    width: 6rem;
+    flex: none;
+  }
+}
+
+/* ── Ledger inline editors (container query) ───────────────────────────────
+   The create/edit editors in patient-ledger.tsx live in the same variable-width
+   panel as the ledger, so they size off their own width too. Each editor lays
+   its fields on a grid whose areas are picked per editor (`data-layout`) and
+   per width tier, so fields always land in fixed, full rows instead of
+   wrapping raggedly. Fields opt into a slot with `[grid-area:<name>]`; a slot
+   with no field (e.g. `pend` while editing a payment) just stays empty.
+   Tiers: < 34rem (phone / narrow sheet), 34–60rem (split panel), ≥ 60rem. */
+.ledger-editor {
+  container-type: inline-size;
+  container-name: ledger-editor;
+}
+
+/* Same tint as the editor card (`bg-primary/5` over the card), but opaque so the
+   sticky header covers the fields scrolling beneath it. */
+.ledger-editor-header {
+  background: linear-gradient(hsl(var(--primary) / 0.05), hsl(var(--primary) / 0.05)), hsl(var(--card));
+}
+
+.ledger-editor-grid {
+  display: grid;
+  align-items: center;
+  gap: 0.5rem;
+  /* Outer columns keep a floor so the short fields that sit there (quantity,
+     tooth) never clip their placeholder on a phone. */
+  grid-template-columns: minmax(5.5rem, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(5.5rem, 1fr);
+}
+
+.ledger-editor-grid > * {
+  min-width: 0;
+}
+
+.ledger-editor-grid[data-layout='invoice'] {
+  grid-template-areas:
+    'date date due due'
+    'svc svc svc svc'
+    'qty amt amt amt'
+    'doc doc doc doc'
+    'sede sede sede sede'
+    'notes notes notes tooth';
+}
+
+.ledger-editor-grid[data-layout='quote'] {
+  grid-template-areas:
+    'date date date date'
+    'svc svc svc svc'
+    'qty amt amt amt'
+    'doc doc doc doc'
+    'sede sede sede sede'
+    'notes notes notes tooth';
+}
+
+.ledger-editor-grid[data-layout='payment'] {
+  grid-template-areas:
+    'date date hist hist'
+    'method method method method'
+    'amt amt amt amt'
+    'notes notes notes notes'
+    'pend pend pend pend';
+}
+
+.ledger-editor-grid[data-layout='credit-note'] {
+  grid-template-areas:
+    'date date date date'
+    'svc svc svc svc'
+    'qty amt amt amt'
+    'total total total total'
+    'notes notes notes notes';
+}
+
+@container ledger-editor (min-width: 34rem) {
+  .ledger-editor-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .ledger-editor-grid[data-layout='invoice'] {
+    grid-template-areas:
+      'date date svc svc svc svc'
+      'due due qty amt amt amt'
+      'doc doc doc sede sede sede'
+      'notes notes notes notes notes tooth';
+  }
+
+  .ledger-editor-grid[data-layout='quote'] {
+    grid-template-areas:
+      'date date svc svc svc svc'
+      'qty amt amt amt amt amt'
+      'doc doc doc sede sede sede'
+      'notes notes notes notes notes tooth';
+  }
+
+  .ledger-editor-grid[data-layout='payment'] {
+    grid-template-areas:
+      'date date method method method method'
+      'amt amt amt hist hist hist'
+      'notes notes notes pend pend pend';
+  }
+
+  .ledger-editor-grid[data-layout='credit-note'] {
+    grid-template-areas:
+      'date date svc svc svc svc'
+      'qty amt amt total total total'
+      'notes notes notes notes notes notes';
+  }
+}
+
+@container ledger-editor (min-width: 60rem) {
+  .ledger-editor-grid {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .ledger-editor-grid[data-layout='invoice'] {
+    grid-template-areas:
+      'date date svc svc svc svc qty amt amt amt amt amt'
+      'due due doc doc doc sede sede sede notes notes notes tooth';
+  }
+
+  .ledger-editor-grid[data-layout='quote'] {
+    grid-template-areas:
+      'date date svc svc svc svc qty amt amt amt amt amt'
+      'doc doc doc sede sede sede notes notes notes notes notes tooth';
+  }
+
+  .ledger-editor-grid[data-layout='payment'] {
+    grid-template-areas:
+      'date date method method method method method amt amt amt amt amt'
+      'notes notes notes notes notes notes hist hist pend pend pend pend';
+  }
+
+  .ledger-editor-grid[data-layout='credit-note'] {
+    grid-template-areas:
+      'date date svc svc svc svc qty amt amt amt total total'
+      'notes notes notes notes notes notes notes notes notes notes notes notes';
   }
 }
 
@@ -439,6 +683,37 @@ textarea::placeholder {
     white-space: nowrap;
   }
 
+  /* ── Receta médica ───────────────────────────────────────────────────────── */
+  /* La receta se imprime EXACTAMENTE como se previsualiza en pantalla: su HTML
+     trae todos los estilos inline (viene de una plantilla editable en BD), así
+     que hay que neutralizar el formato genérico de tablas de reporte de más
+     arriba, que si no le mete bordes y fondos que la vista previa no tiene.
+     Los selectores tienen más especificidad que los `table`/`th`/`td` sueltos,
+     por eso ganan pese al `!important` de aquéllos. */
+  .prescription-document table {
+    font-size: inherit !important;
+    table-layout: auto !important;
+  }
+  .prescription-document th,
+  .prescription-document td {
+    border: 0 !important;
+    background: transparent !important;
+    padding: 2px 0 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+  /* La tabla de medicamentos sí lleva separadores: se restituyen los mismos
+     valores que usa `buildMedicationsTable` para el render en pantalla. */
+  .prescription-document .rx-med-table th {
+    border-bottom: 2px solid #d1d5db !important;
+    padding: 6px 8px !important;
+  }
+  .prescription-document .rx-med-table td {
+    border-bottom: 1px solid #e5e7eb !important;
+    padding: 6px 8px !important;
+  }
+
   /* Ensure the document container is shown in full during print */
   .print-template-root {
     width: 100%;
@@ -447,19 +722,82 @@ textarea::placeholder {
     color: #111827;
   }
 
-  /* ── Multi-page print (financial summary) ────────────────────────────────── */
-  /* Hide everything on the page except our print container so the app layout
-     (sidebar, panels, overlays) doesn't bleed through as a gray shadow. */
-  html.printing-multipage * {
-    visibility: hidden !important;
+  /* ── Patient ledger print (Clásico) ──────────────────────────────────────── */
+  /* Scoped, higher-specificity !important rules that win over the generic
+     table/th/td print rules above: compact fonts, fixed equal-width amount
+     columns, status stacked under the date, amounts never wrapping. */
+  table.ledger-print-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+    font-size: 0.68rem !important;
   }
-  html.printing-multipage [data-print-container],
-  html.printing-multipage [data-print-container] * {
-    visibility: visible !important;
+  table.ledger-print-table th {
+    padding: 3px 5px !important;
+    border: none !important;
+    border-bottom: 1px solid #9ca3af !important;
+    background: transparent !important;
+    text-align: left !important;
+    font-weight: 600 !important;
+    font-size: 0.58rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.03em !important;
+    color: #6b7280 !important;
+    white-space: nowrap !important;
+  }
+  table.ledger-print-table td {
+    padding: 3px 5px !important;
+    border: none !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    vertical-align: top !important;
+    white-space: normal !important;
+    word-break: normal !important;
+  }
+  table.ledger-print-table th.num,
+  table.ledger-print-table td.num {
+    text-align: right !important;
+    white-space: nowrap !important;
+    font-variant-numeric: tabular-nums !important;
+  }
+  table.ledger-print-table .status { font-size: 0.58rem !important; color: #374151 !important; }
+  table.ledger-print-table .doc { font-size: 0.58rem !important; color: #6b7280 !important; }
+  table.ledger-print-table .notes { font-size: 0.56rem !important; font-style: italic !important; color: #6b7280 !important; }
+  table.ledger-print-table .notcounted { font-size: 0.56rem !important; color: #6b7280 !important; }
+
+  .ledger-print-totals {
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 1.5rem !important;
+    margin-top: 0.5rem !important;
+    padding-top: 0.4rem !important;
+    border-top: 1.5px solid #9ca3af !important;
+  }
+  .ledger-print-totals .lbl {
+    font-size: 0.58rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.03em !important;
+    color: #6b7280 !important;
+  }
+  .ledger-print-totals .val { font-size: 0.78rem !important; font-weight: 600 !important; font-variant-numeric: tabular-nums !important; }
+
+  /* Both "estado de cuenta" print outputs (split report and unified ledger) share this
+     wrapper class so a font bump here applies to just these two, not every print doc
+     that also reuses the generic .print-template-table / .print-template-root classes. */
+  .account-statement-print { font-size: 0.95rem; }
+  .account-statement-print .print-template-table { font-size: 0.82rem; }
+
+  /* ── Multi-page print (document templates) ───────────────────────────────── */
+  /* The print container is portaled to <body>. Hide every *other* body child with
+     display:none so their (otherwise still-laid-out) height doesn't generate phantom
+     blank pages, and let the document flow naturally across pages. */
+  html.printing-multipage body > *:not([data-print-container]) {
+    display: none !important;
   }
   html.printing-multipage [data-print-container] {
-    position: absolute !important;
-    inset: 0 !important;
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
     padding: 0 !important;
     background: white !important;
   }

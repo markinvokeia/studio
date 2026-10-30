@@ -5,10 +5,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 interface ReportKPICardProps {
   title: string;
-  value: string | number;
+  value: ReactNode;
   subtitle?: string;
   icon?: LucideIcon;
   trend?: number;

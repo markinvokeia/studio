@@ -269,7 +269,7 @@ export function VoiceAssistant({ onAudioReady, isProcessing, onTranscriptReady }
             };
             animFrameRef.current = requestAnimationFrame(checkSilence);
         } catch {
-            toast({ title: t('micError'), variant: 'destructive', duration: 4000 });
+            toast({ title: t('micError'), variant: 'destructive' });
             setState('idle');
         }
     }, [onAudioReady, onTranscriptReady, releaseStream, startStopWordRecognition, startTranscriptRecognition, stopRecording, t, toast]);

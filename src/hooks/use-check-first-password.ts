@@ -23,7 +23,11 @@ export function useCheckFirstPassword(
       }
       try {
         const result = await api.get(API_ROUTES.SYSTEM.API_AUTH_CHECK_FIRST_PASSWORD, { user_id: selectedUser.id })
-        setHasPasswordPermission(result?.success === true)
+        // `success === true`  -> user never set a password / never logged in.
+        // `code === 'INVALID_ACTION'` -> user already has a password, but still
+        // passed the permission + not-a-patient checks. We now allow resending
+        // the set/reset-password link in that case too.
+        setHasPasswordPermission(result?.success === true || result?.code === 'INVALID_ACTION')
       } catch {
         setHasPasswordPermission(false)
       }

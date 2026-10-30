@@ -19,6 +19,7 @@ import { DatePickerInput } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { WhatsAppComposerDialog } from '@/components/whatsapp-composer-dialog';
+import { WhatsAppTemplateSendDialog } from '@/components/patients/whatsapp-template-send-dialog';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
@@ -29,8 +30,10 @@ import { fetchPatientById } from '@/components/patients/patient-form-utils';
 import { fetchReassignCalendars, fetchReassignDoctors } from '@/lib/appointment-reassign';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
+import { BUSINESS_CONFIG_PERMISSIONS, PATIENTS_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import type { Calendar as CalendarType, PatientDischarge, User } from '@/lib/types';
 
 interface PatientQuickActionsProps {
@@ -41,6 +44,8 @@ interface PatientQuickActionsProps {
   onPatientChanged?: () => void;
   onCreateClinicalSession?: () => void;
   onCreateOdontogram?: () => void;
+  onCreateMedicalInstruction?: () => void;
+  onCreatePrescription?: () => void;
   onCreateDocument?: () => void;
 }
 
@@ -49,10 +54,22 @@ interface PatientQuickActionsProps {
  * PatientActionsMenu and hosts every dialog it triggers. Open from anywhere with
  * only the patient's identity.
  */
-export function PatientQuickActions({ userId, userName, userEmail, userPhone, onPatientChanged, onCreateClinicalSession, onCreateOdontogram, onCreateDocument }: PatientQuickActionsProps) {
+export function PatientQuickActions({ userId, userName, userEmail, userPhone, onPatientChanged, onCreateClinicalSession, onCreateOdontogram, onCreateMedicalInstruction, onCreatePrescription, onCreateDocument }: PatientQuickActionsProps) {
   const t = useTranslations();
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
+  const { hasPermission, hasAnyPermission } = usePermissions();
+  const canSendWhatsAppTemplate = hasPermission(PATIENTS_PERMISSIONS.SEND_WHATSAPP_TEMPLATE);
+
+  // These actions were previously unconditional. Gate them so a clinical-only
+  // role (médico) never gets billing/agenda/status actions from the quick view.
+  const canQuickBill = hasAnyPermission([SALES_PERMISSIONS.INVOICES_CREATE, SALES_PERMISSIONS.PAYMENTS_CREATE]);
+  const canCreateQuote = hasPermission(SALES_PERMISSIONS.QUOTES_CREATE);
+  const canCreateInvoice = hasPermission(SALES_PERMISSIONS.INVOICES_CREATE);
+  const canCreatePrepaid = hasPermission(SALES_PERMISSIONS.PREPAYMENTS_CREATE);
+  const canCreateAppointment = hasPermission(BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_CREATE);
+  const canUpdatePatient = hasPermission(PATIENTS_PERMISSIONS.UPDATE);
+  const canViewInfo = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_INFO);
 
   const [patient, setPatient] = React.useState<User | null>(null);
   const [currentDischarge, setCurrentDischarge] = React.useState<PatientDischarge | null>(null);
@@ -63,6 +80,7 @@ export function PatientQuickActions({ userId, userName, userEmail, userPhone, on
   const [isAppointmentOpen, setIsAppointmentOpen] = React.useState(false);
   const [isEmailOpen, setIsEmailOpen] = React.useState(false);
   const [isWhatsAppOpen, setIsWhatsAppOpen] = React.useState(false);
+  const [isWhatsAppTemplateOpen, setIsWhatsAppTemplateOpen] = React.useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false);
 
   const [isDischargeOpen, setIsDischargeOpen] = React.useState(false);
@@ -160,17 +178,20 @@ export function PatientQuickActions({ userId, userName, userEmail, userPhone, on
         isBusy={isSubmittingDischarge}
         onCreateClinicalSession={onCreateClinicalSession}
         onCreateOdontogram={onCreateOdontogram}
+        onCreateMedicalInstruction={onCreateMedicalInstruction}
+        onCreatePrescription={onCreatePrescription}
         onCreateDocument={onCreateDocument}
-        onQuickBill={() => openBillingWizard({ patientId: userId, patientName: userName })}
-        onCreateQuote={() => setIsQuoteOpen(true)}
-        onCreateInvoice={() => setIsInvoiceOpen(true)}
-        onCreatePrepaid={() => setIsPrepaidOpen(true)}
-        onCreateAppointment={openAppointment}
+        onQuickBill={canQuickBill ? () => openBillingWizard({ patientId: userId, patientName: userName }) : undefined}
+        onCreateQuote={canCreateQuote ? () => setIsQuoteOpen(true) : undefined}
+        onCreateInvoice={canCreateInvoice ? () => setIsInvoiceOpen(true) : undefined}
+        onCreatePrepaid={canCreatePrepaid ? () => setIsPrepaidOpen(true) : undefined}
+        onCreateAppointment={canCreateAppointment ? openAppointment : undefined}
         onEmail={() => setIsEmailOpen(true)}
         onWhatsApp={() => setIsWhatsAppOpen(true)}
-        onToggleDischarge={currentDischarge ? handleCancelDischarge : () => setIsDischargeOpen(true)}
+        onSendWhatsAppTemplate={canSendWhatsAppTemplate ? () => setIsWhatsAppTemplateOpen(true) : undefined}
+        onToggleDischarge={canUpdatePatient ? (currentDischarge ? handleCancelDischarge : () => setIsDischargeOpen(true)) : undefined}
         onToggleActivate={handleToggleActivate}
-        onPreferences={() => setIsPreferencesOpen(true)}
+        onPreferences={canViewInfo && canUpdatePatient ? () => setIsPreferencesOpen(true) : undefined}
       />
 
       {/* Dialogs */}
@@ -191,6 +212,15 @@ export function PatientQuickActions({ userId, userName, userEmail, userPhone, on
       )}
       {userPhone && (
         <WhatsAppComposerDialog open={isWhatsAppOpen} onOpenChange={setIsWhatsAppOpen} phone={userPhone} recipientName={userName} />
+      )}
+      {userPhone && (
+        <WhatsAppTemplateSendDialog
+          open={isWhatsAppTemplateOpen}
+          onOpenChange={setIsWhatsAppTemplateOpen}
+          patientId={userId}
+          patientName={userName}
+          patientPhone={userPhone}
+        />
       )}
 
       <Dialog open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>

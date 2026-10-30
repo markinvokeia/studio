@@ -1,7 +1,8 @@
 import { API_ROUTES } from '@/constants/routes';
 import { normalizeApiResponse } from '@/lib/api-utils';
 import { Service, UserServicesEntry } from '@/lib/types';
-import { api } from './api';
+import { api, REQUEST_TIMEOUT_MS } from './api';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 export interface ServicesResponse {
     items: Service[];
@@ -41,6 +42,11 @@ export async function getServices(params: GetServicesParams = {}): Promise<Servi
             queryParams.limit = String(params.limit);
         }
 
+        // Fuera de los catálogos de Ventas/Compras el resto de la app solo debe ver
+        // servicios activos, así que el filtro se fuerza aquí y no es configurable.
+        // Esas dos pantallas consultan el endpoint directamente con su propio filtro.
+        queryParams.is_active = 'true';
+
         const data = await api.get(API_ROUTES.SERVICES, queryParams);
 
         // El endpoint retorna un array con la estructura [response]
@@ -56,7 +62,7 @@ export async function getServices(params: GetServicesParams = {}): Promise<Servi
         const mappedServices = items.map((service: any) => ({
             ...service,
             id: String(service.id),
-            currency: service.currency || 'USD',
+            currency: service.currency || getClinicCurrency(),
             category_id: service.category_id ? String(service.category_id) : undefined,
             category_name: service.category_name || service.category || '',
         }));
@@ -77,6 +83,36 @@ export async function getServices(params: GetServicesParams = {}): Promise<Servi
  */
 export async function getSalesServices(params: Omit<GetServicesParams, 'is_sales'> = {}): Promise<ServicesResponse> {
     return getServices({ ...params, is_sales: true });
+}
+
+/**
+ * Prende o apaga la agenda online de un servicio.
+ *
+ * Endpoint propio porque `/catalogoservicios/upsert` no persiste
+ * `bookable_online`: este es el único escritor de esa columna. Se llama siempre
+ * al crear un servicio, y al editar **sólo si el flag cambió** — ver
+ * `src/app/[locale]/sales/services/page.tsx`.
+ *
+ * Nunca lanza: devuelve `false` si no se pudo aplicar. Quien llama ya guardó el
+ * servicio, así que el fallo se avisa sin deshacer lo que sí se guardó.
+ */
+export async function setServiceBookableOnline(serviceId: string, bookableOnline: boolean): Promise<boolean> {
+    if (!serviceId) return false;
+    try {
+        const response = await api.post(
+            API_ROUTES.SERVICE_BOOKABLE_ONLINE,
+            { service_id: Number(serviceId), bookable_online: bookableOnline },
+            undefined,
+            undefined,
+            { timeoutMs: REQUEST_TIMEOUT_MS.mutation },
+        );
+        const result = Array.isArray(response) ? (response[0]?.json ?? response[0]) : response;
+        if (result?.error || (result?.code && result.code >= 400)) return false;
+        return true;
+    } catch (error) {
+        console.error('Failed to update the online booking flag:', error);
+        return false;
+    }
 }
 
 /**
@@ -107,7 +143,7 @@ export async function getUserServices(userId: string): Promise<Service[]> {
         return userServicesData.map((s: any) => ({
             ...s,
             id: String(s.id),
-            currency: s.currency || 'USD',
+            currency: s.currency || getClinicCurrency(),
         }));
     } catch (error) {
         console.error('Failed to fetch user services:', error);
@@ -135,7 +171,7 @@ export async function getUsersServicesBatch(userIds: string[]): Promise<Map<stri
             const services = (entry.services || []).map((s: any) => ({
                 ...s,
                 id: String(s.id),
-                currency: s.currency || 'USD',
+                currency: s.currency || getClinicCurrency(),
                 duration_minutes: s.duration_minutes || 30,
             }));
             serviceMap.set(String(entry.user_id), services);

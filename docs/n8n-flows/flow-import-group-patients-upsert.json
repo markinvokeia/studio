@@ -1,0 +1,67 @@
+{
+  "name": "Importar - Asociaciones grupo-paciente (upsert)",
+  "nodes": [
+    {
+      "id": "node-trigger",
+      "name": "Inicio Manual",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [100, 300],
+      "parameters": {}
+    },
+    {
+      "id": "node-rows",
+      "name": "Filas de asociaciones (reemplazar por lectura de Excel)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [340, 300],
+      "parameters": {
+        "jsCode": "// ⚠️ Nodo de ejemplo. Reemplázalo por la lectura del Excel:\n//   Read Binary File → Spreadsheet File (xlsx) → (este mapeo).\n// Cada item de salida = UNA fila de la asociación grupo-paciente.\n// El nodo Postgres siguiente se ejecuta una vez por item (fila).\n//\n// Columnas del Excel:\n//   ID_GRUPO_PACIENTE → se busca en groups.external_id  (→ group_id real)\n//   ID_PACIENTE       → se busca en users.internal_id     (→ patient_id real)\nconst rows = [\n  { ID_GRUPO_PACIENTE: 'EXT-001', ID_PACIENTE: 'PAC-100' }\n];\n\nreturn rows.map((r) => ({ json: r }));"
+      }
+    },
+    {
+      "id": "node-pg-upsert",
+      "name": "Upsert asociación grupo-paciente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [600, 300],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Una sola sentencia = una sola transacción (commit implícito).\n-- Se ejecuta una vez por fila (item) que entra.\n-- Parámetros:\n--   $1 ID_GRUPO_PACIENTE (→ groups.external_id)\n--   $2 ID_PACIENTE       (→ users.internal_id)\nWITH input AS (\n    SELECT\n        NULLIF($1::text, '') AS group_external_id,\n        NULLIF($2::text, '') AS patient_internal_id\n),\n-- Resuelve los UUIDs reales a partir de los identificadores del Excel.\nresolved AS (\n    SELECT\n        (SELECT g.id FROM public.groups g WHERE g.external_id = i.group_external_id)   AS group_id,\n        (SELECT u.id FROM public.users  u WHERE u.internal_id  = i.patient_internal_id) AS patient_id,\n        i.group_external_id,\n        i.patient_internal_id,\n        -- external_id de la asociación = combinación de ambos ids del Excel\n        -- (trazable e idempotente). Cámbialo si tu Excel trae un id propio.\n        i.group_external_id || '::' || i.patient_internal_id AS external_id\n    FROM input i\n),\n-- Upsert de la asociación. Conflicto por la PK real (group_id, patient_id).\nupsert_link AS (\n    INSERT INTO public.group_patients (group_id, patient_id, external_id)\n    SELECT group_id, patient_id, external_id\n    FROM resolved\n    WHERE group_id IS NOT NULL AND patient_id IS NOT NULL\n    ON CONFLICT (group_id, patient_id) DO UPDATE\n        SET external_id = EXCLUDED.external_id\n    RETURNING *\n)\n-- Todo en un solo objeto (incluye la resolución para depurar filas sin match).\nSELECT json_build_object(\n    'group_patient', (SELECT row_to_json(l) FROM upsert_link l),\n    'resolved',      (SELECT row_to_json(r) FROM resolved r)\n) AS result;",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.ID_GRUPO_PACIENTE, $json.ID_PACIENTE ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      }
+    },
+    {
+      "id": "node-output",
+      "name": "Salida (objeto único)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300],
+      "parameters": {
+        "jsCode": "// Junta el resultado de todas las filas procesadas en un solo objeto.\n// 'matched' = filas que resolvieron ambos ids y se insertaron/actualizaron.\n// 'unmatched' = filas donde faltó el grupo o el paciente (para depurar).\nconst items = $input.all();\nconst results = items.map((i) => i.json.result).filter(Boolean);\n\nconst matched = results.filter((r) => r.group_patient);\nconst unmatched = results\n  .filter((r) => !r.group_patient)\n  .map((r) => r.resolved);\n\nreturn [{\n  json: {\n    count: matched.length,\n    group_patients: matched.map((r) => r.group_patient),\n    unmatched_count: unmatched.length,\n    unmatched\n  }\n}];"
+      }
+    }
+  ],
+  "connections": {
+    "Inicio Manual": {
+      "main": [[{ "node": "Filas de asociaciones (reemplazar por lectura de Excel)", "type": "main", "index": 0 }]]
+    },
+    "Filas de asociaciones (reemplazar por lectura de Excel)": {
+      "main": [[{ "node": "Upsert asociación grupo-paciente", "type": "main", "index": 0 }]]
+    },
+    "Upsert asociación grupo-paciente": {
+      "main": [[{ "node": "Salida (objeto único)", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -2,6 +2,8 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { format, parseISO } from "date-fns"
 import type { QuoteItem, TreatmentDetail } from '@/lib/types'
+import { formatMoney, formatMoneyCompact, formatMultiCurrency } from '@/lib/currency'
+import { getDateFnsLocale } from '@/lib/locale'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -17,6 +19,31 @@ export function formatDateTime(date: string | Date | null | undefined): string {
     return format(d, 'dd/MM/yyyy HH:mm');
   } catch (error) {
     console.error('Error formatting date:', error);
+    return 'Invalid Date';
+  }
+}
+
+/**
+ * Formats a genuinely UTC timestamp (e.g. `audit_log.changed_at`, or any other
+ * `timestamp without time zone` column whose value is written by a Postgres
+ * `now()`/`CURRENT_TIMESTAMP` default rather than by the application) into the
+ * viewer's local time.
+ *
+ * Unlike `formatDateTime`, this does NOT strip the `Z` suffix: those DB-generated
+ * columns hold a real UTC instant (the DB session timezone is `Etc/UTC`), so the
+ * conversion to local time must actually happen. Using `formatDateTime` on them
+ * displays the raw UTC clock value as if it were already local, showing times
+ * ahead by the local UTC offset (e.g. 3 hours in GMT-3).
+ */
+export function formatUtcDateTime(date: string | Date | null | undefined): string {
+  if (!date) return 'N/A';
+
+  try {
+    const d = typeof date === 'string' ? parseISO(date.endsWith('Z') ? date : `${date}Z`) : date;
+    if (isNaN(d.getTime())) return 'Invalid Date';
+    return format(d, 'dd/MM/yyyy HH:mm');
+  } catch (error) {
+    console.error('Error formatting UTC date:', error);
     return 'Invalid Date';
   }
 }
@@ -75,6 +102,19 @@ export function toLocalISOString(date: Date): string {
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 }
 
+/**
+ * A `DatePickerInput` only lets the user pick a day — once touched, its value collapses
+ * to midnight (via `parseISO('yyyy-MM-dd')`), losing whatever real time-of-day the field
+ * held before. For same-day records that matters: a ledger/timeline sorted by this
+ * timestamp would misorder a midnight-truncated entry before one created earlier the same
+ * day with a real time. When the picked day is today, swap in the current wall-clock time
+ * instead of midnight; a genuinely backdated (different-day) pick is left untouched.
+ */
+export function preserveTimeIfToday(picked: Date): Date {
+  const now = new Date();
+  return picked.toDateString() === now.toDateString() ? now : picked;
+}
+
 type DocumentWithDocNo = {
   doc_no?: string;
   invoice_doc_no?: string;
@@ -104,6 +144,22 @@ export function formatDisplayDate(date: string | Date | null | undefined): strin
   if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return datePart;
   const [year, month, day] = datePart.split('-');
   return `${day}/${month}/${year}`;
+}
+
+/**
+ * Same as `formatDisplayDate` but prefixed with the capitalized weekday name (e.g.
+ * "Jueves, 20/08/2026"). The weekday is derived from the y/m/d components as a local
+ * `Date` (never `parseISO` on the raw string) so it can't shift a day off from timezone
+ * conversion. `locale` picks the weekday's language — pass the active next-intl locale.
+ */
+export function formatDisplayDateWithWeekday(date: string | Date | null | undefined, locale: string = 'es'): string {
+  const displayDate = formatDisplayDate(date);
+  if (!displayDate || displayDate === 'N/A' || displayDate === 'Invalid Date') return displayDate;
+  const datePart = formatDate(date);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) return displayDate;
+  const [year, month, day] = datePart.split('-').map(Number);
+  const weekday = format(new Date(year, month - 1, day), 'EEEE', { locale: getDateFnsLocale(locale) });
+  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)}, ${displayDate}`;
 }
 
 /**
@@ -144,21 +200,25 @@ export function formatServicePrice(
     return freeLabel;
   }
 
-  return currency ? `${currency} ${normalizedPrice}` : String(normalizedPrice);
+  return formatMoney(normalizedPrice, currency);
 }
 
-const _moneyFmt = new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 });
-
+/**
+ * Importe con su código de moneda, como `1.234 (USD)`.
+ *
+ * @deprecated Usar `formatMoney`/`formatMoneyCompact` de `@/lib/currency`, que
+ * formatean con el símbolo y el locale de la moneda en vez de anteponer
+ * siempre los separadores uruguayos. Se mantiene porque lo usan ~20 archivos.
+ */
 export function fmtMoney(amount: number, currency: string): string {
-  return `${_moneyFmt.format(amount)} (${currency})`;
+  return formatMoneyCompact(amount, currency, { showSymbol: false, showCode: true });
 }
 
+/**
+ * @deprecated Usar `formatMultiCurrency` de `@/lib/currency`.
+ */
 export function fmtMultiCurrency(amounts: Record<string, number>): string {
-  const entries = Object.entries(amounts)
-    .filter(([, v]) => v > 0)
-    .sort(([a], [b]) => a.localeCompare(b));
-  if (entries.length === 0) return '—';
-  return entries.map(([c, v]) => `${_moneyFmt.format(v)} (${c})`).join(' / ');
+  return formatMultiCurrency(amounts);
 }
 
 /**

@@ -15,6 +15,8 @@ import { endOfMonth, format, startOfMonth } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
+import { ReportCurrencyFilter } from '@/components/reports/currency-filter';
+import { useReportCurrency } from '@/hooks/useReportCurrency';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 }).format(n);
@@ -26,7 +28,7 @@ export default function KPIsPage() {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
-  const [currency, setCurrency] = useState('UYU');
+  const { currency, setCurrency, isDual } = useReportCurrency({ includeAll: false });
 
   const [data, setData] = useState<ReportKPIsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -65,15 +67,7 @@ export default function KPIsPage() {
   const filters = (
     <div className="flex flex-wrap items-center gap-3">
       <DateRangePresets value={dateRange} onChange={setDateRange} />
-      <Select value={currency} onValueChange={setCurrency}>
-        <SelectTrigger className="h-8 w-24 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="UYU">UYU</SelectItem>
-          <SelectItem value="USD">USD</SelectItem>
-        </SelectContent>
-      </Select>
+      <ReportCurrencyFilter value={currency} onChange={setCurrency} includeAll={false} />
     </div>
   );
 

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import type { User } from '@/lib/types';
+
 type PatientDetailTab = 'info' | 'clinical' | 'financial';
 
 /**
@@ -13,14 +15,37 @@ type PatientViewStore = {
   userEmail?: string;
   userPhone?: string;
   initialTab?: PatientDetailTab;
+  /** Show only the "Información" tab content: no tab strip, no quick actions. */
+  infoOnly?: boolean;
+  /** Show the guarded Cancel action used by patient forms opened from custom calendar mode. */
+  showCancelAction?: boolean;
+  /**
+   * Último paciente guardado desde el sheet/diálogo de "Datos del paciente"
+   * (cualquier host: `PatientDetailSheet` o el diálogo `infoOnly`). Las vistas
+   * que muestran datos de un paciente (agenda, panel de citas) lo escuchan para
+   * refrescar nombre/teléfono/responsable sin depender de que las citas manden
+   * su propio evento — editar un paciente no es editar una cita, así que el
+   * `calendar_changed` (SSE) no lo cubre.
+   */
+  lastUpdatedPatient: User | null;
+  /**
+   * Callback de quien abrió el diálogo `infoOnly`, llamado tras un guardado
+   * exitoso (antes de cerrarlo). Lo usa el aviso de documento faltante para
+   * reintentar el cambio de estado de la cita.
+   */
+  onSaved?: (user: User) => void;
   open: (patient: {
     userId: string;
     userName: string;
     userEmail?: string;
     userPhone?: string;
     initialTab?: PatientDetailTab;
+    infoOnly?: boolean;
+    showCancelAction?: boolean;
+    onSaved?: (user: User) => void;
   }) => void;
   close: () => void;
+  notifyPatientUpdated: (user: User) => void;
 };
 
 export const usePatientView = create<PatientViewStore>((set) => ({
@@ -30,7 +55,35 @@ export const usePatientView = create<PatientViewStore>((set) => ({
   userEmail: undefined,
   userPhone: undefined,
   initialTab: undefined,
-  open: ({ userId, userName, userEmail, userPhone, initialTab }) =>
-    set({ isOpen: true, userId, userName, userEmail, userPhone, initialTab }),
-  close: () => set({ isOpen: false, userId: null, userName: '' }),
+  infoOnly: false,
+  showCancelAction: false,
+  lastUpdatedPatient: null,
+  onSaved: undefined,
+  // Deferred: `open` is often called from a ContextMenuItem's onSelect. Radix's
+  // menu and this sheet both lock document.body's pointer-events while
+  // open/closing; opening the sheet in the same tick the menu starts its
+  // (animated) unmount races that lock and can leave the sheet unclosable.
+  // Letting the menu finish unwinding first (next tick) avoids the overlap.
+  open: ({ userId, userName, userEmail, userPhone, initialTab, infoOnly, showCancelAction, onSaved }) =>
+    setTimeout(() => set({
+      isOpen: true,
+      userId,
+      userName,
+      userEmail,
+      userPhone,
+      initialTab,
+      infoOnly: infoOnly ?? false,
+      showCancelAction: showCancelAction ?? false,
+      onSaved,
+    }), 0),
+  close: () => set({
+    isOpen: false,
+    userId: null,
+    userName: '',
+    initialTab: undefined,
+    infoOnly: false,
+    showCancelAction: false,
+    onSaved: undefined,
+  }),
+  notifyPatientUpdated: (user) => set({ lastUpdatedPatient: user }),
 }));

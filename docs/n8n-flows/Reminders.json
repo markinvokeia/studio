@@ -1,0 +1,336 @@
+{
+  "name": "Reminders",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "bbef0a6c-6fcd-4004-95fb-af737717f207",
+      "name": "Every 1 minute"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT *\nFROM public.reminders\nWHERE status ILIKE 'pending'\n  -- Las notas son silenciosas por contrato: la UI las ofrece como \"nota interna sin\n  -- notificaciones\" y el upsert les fuerza raise_alert = false. Sin estos dos predicados\n  -- el cron las levantaba igual y le mandaba una notificación a todo el staff.\n  --\n  -- Van los dos, no uno: hoy raise_alert ya alcanza, pero type <> 'note' es el que aguanta\n  -- si alguna vía de escritura futura se saltea el CASE del upsert.\n  AND type <> 'note'\n  AND raise_alert = true\n  AND start_datetime <= $1\n  AND end_datetime > $1;",
+        "options": {
+          "queryReplacement": "={{ [$now] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        0
+      ],
+      "id": "a8910463-59ef-4a9e-8ffe-9aed6451e8ca",
+      "name": "Get reminders",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "daee43ec-2959-4969-a367-22627e3783f0",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "42ae0d7b-14cf-4700-bcba-b5cadf90a69c",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "538c32c7-d082-48f6-a642-1e62a7e66a8e",
+      "name": "Hay?"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1a3f5c7e-8b2d-4a6f-9c0e-3d7b1a5f8c62",
+              "leftValue": "={{ $json.visibility }}",
+              "rightValue": "clinic",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        512,
+        0
+      ],
+      "id": "6e2a8d4c-1f7b-4e3a-9d6c-2b8f5a0e7c93",
+      "name": "¿Es general?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.notifications (\n  user_id, type, status, priority, appointment_id, session_id, patient_id, reminder_id, metadata, created_at, read_at\n)\nVALUES (\n  $1, 'reminder', 'pending', 'MEDIUM', null, null, null, $2, $3, $4, null\n)\nON CONFLICT (reminder_id, user_id) DO NOTHING\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ [$json.created_by, $json.id, $json, $now]  }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "253a8122-3731-4240-b4ab-4b716e16bbea",
+      "name": "Insert Reminder Notification",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Los recordatorios \"clinic\" son avisos internos del staff (turnos, tareas\n-- administrativas). Sin este filtro se insertaba una notificación para TODO\n-- usuario activo, incluidos los pacientes logueados en el portal, que veían\n-- el pop-up con el nombre y horario de OTRO paciente. Se excluye a quien\n-- SOLO tenga el rol Paciente; el personal con rol dual (staff + paciente)\n-- sigue recibiéndolos por su rol de staff.\nINSERT INTO public.notifications (\n  user_id, type, status, priority, appointment_id, session_id, patient_id, reminder_id, metadata, created_at, read_at\n)\nSELECT u.id, 'reminder', 'pending', 'MEDIUM', null, null, null, $1, $2, $3, null\nFROM public.users u\nWHERE u.is_active = true\n  AND EXISTS (\n    SELECT 1\n    FROM public.user_roles ur\n    JOIN public.roles r ON r.id = ur.role_id\n    WHERE ur.user_id = u.id\n      AND ur.is_active = true\n      AND lower(r.name) NOT IN ('paciente', 'patient')\n  )\nON CONFLICT (reminder_id, user_id) DO NOTHING\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ [$json.id, $json, $now] }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        624,
+        96
+      ],
+      "id": "4c9e1b6a-3d8f-4a7c-8b2e-6f1d9c4a0e75",
+      "name": "Insert Reminder Notification (Staff)",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "W5SZnwkaTigFrHO6",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/W5SZnwkaTigFrHO6",
+          "cachedResultName": "Events"
+        },
+        "mode": "each",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_type": "reminder",
+            "user_ids": "={{ [$json.user_id] }}",
+            "channels": "={{ [] }}",
+            "payload": "={{ $json }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "event_type",
+              "displayName": "event_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "user_ids",
+              "displayName": "user_ids",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "channels",
+              "displayName": "channels",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        832,
+        -96
+      ],
+      "id": "bfeab620-0356-4a55-bd6d-7f82e192a0a7",
+      "name": "Push event"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Every 1 minute": {
+      "main": [
+        [
+          {
+            "node": "Get reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get reminders": {
+      "main": [
+        [
+          {
+            "node": "Hay?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hay?": {
+      "main": [
+        [
+          {
+            "node": "¿Es general?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es general?": {
+      "main": [
+        [
+          {
+            "node": "Insert Reminder Notification (Staff)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert Reminder Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Reminder Notification": {
+      "main": [
+        [
+          {
+            "node": "Push event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Reminder Notification (Staff)": {
+      "main": [
+        [
+          {
+            "node": "Push event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "America/Montevideo",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "06803549-f8bd-4f2c-8f09-226d5969bb14",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "qsS07tDQ2i5rsuWZ",
+  "tags": []
+}

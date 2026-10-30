@@ -21,6 +21,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { Order, Quote, User } from '@/lib/types';
 import { cn, formatDate, formatDateTime, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -171,8 +172,7 @@ export function OrdersTable({ orders, isLoading = false, onRowSelectionChange, o
           <RadioGroup
             value={isSelected ? row.id : ''}
             onValueChange={() => {
-              table.toggleAllPageRowsSelected(false);
-              row.toggleSelected(true);
+              table.setRowSelection({ [row.id]: true });
             }}
           >
             <RadioGroupItem value={row.id} id={row.id} aria-label="Select row" />
@@ -444,6 +444,7 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated, isSale
   const [isQuoteSearchOpen, setQuoteSearchOpen] = React.useState(false);
   const { toast } = useToast();
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderFormSchema(t)),
     defaultValues: {
@@ -503,7 +504,7 @@ export function CreateOrderDialog({ isOpen, onOpenChange, onOrderCreated, isSale
           <DialogDescription>{t('createDescription')}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="space-y-4 py-4">
             <FormField
               control={form.control}
               name="user_id"

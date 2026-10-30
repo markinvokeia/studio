@@ -8,6 +8,10 @@ export const DASHBOARD_PERMISSIONS = {
   VIEW_RECENT_ORDERS: 'DASHBOARD_VIEW_RECENT_ORDERS',
   VIEW_NEW_PATIENTS: 'DASHBOARD_VIEW_NEW_PATIENTS',
   APPLY_FILTERS: 'DASHBOARD_APPLY_FILTERS',
+  /** Bloque HOY + mes acumulado del panel gerencial. */
+  VIEW_EXECUTIVE_SUMMARY: 'DASHBOARD_VIEW_EXECUTIVE_SUMMARY',
+  /** Filtro de sucursal y corte por sede. */
+  VIEW_BY_BRANCH: 'DASHBOARD_VIEW_BY_BRANCH',
 } as const;
 
 export type DashboardPermission = (typeof DASHBOARD_PERMISSIONS)[keyof typeof DASHBOARD_PERMISSIONS];
@@ -78,6 +82,8 @@ export const PATIENTS_PERMISSIONS = {
   COPY_ID: 'PATIENTS_COPY_ID',
   // Patient Detail Panel
   VIEW_DETAIL: 'PATIENTS_VIEW_DETAIL',
+  /** Personal/contact data: the "Información" macro tab and the list's email/phone columns. */
+  VIEW_DETAIL_INFO: 'PATIENTS_VIEW_DETAIL_INFO',
   VIEW_DETAIL_HISTORY: 'PATIENTS_VIEW_DETAIL_HISTORY',
   VIEW_DETAIL_APPOINTMENTS: 'PATIENTS_VIEW_DETAIL_APPOINTMENTS',
   VIEW_DETAIL_QUOTES: 'PATIENTS_VIEW_DETAIL_QUOTES',
@@ -86,13 +92,34 @@ export const PATIENTS_PERMISSIONS = {
   VIEW_DETAIL_PAYMENTS: 'PATIENTS_VIEW_DETAIL_PAYMENTS',
   VIEW_DETAIL_MESSAGES: 'PATIENTS_VIEW_DETAIL_MESSAGES',
   VIEW_DETAIL_NOTES: 'PATIENTS_VIEW_DETAIL_NOTES',
+  // Communication
+  SEND_WHATSAPP_TEMPLATE: 'PATIENTS_SEND_WHATSAPP_TEMPLATE',
   // Notes
   CREATE_NOTE: 'PATIENTS_CREATE_NOTE',
   UPDATE_NOTE: 'PATIENTS_UPDATE_NOTE',
   DELETE_NOTE: 'PATIENTS_DELETE_NOTE',
+  /** Crear y editar citas desde el perfil del paciente (opción "Cita" del menú Crear y
+   *  el lápiz de una cita en la línea de tiempo del historial). Independiente de los
+   *  APPOINTMENTS_* del calendario: permite dar acceso al calendario sin habilitar esta
+   *  vía, o al revés. */
+  MANAGE_APPOINTMENTS: 'PATIENTS_MANAGE_APPOINTMENTS',
 } as const;
 
 export type PatientsPermission = (typeof PATIENTS_PERMISSIONS)[keyof typeof PATIENTS_PERMISSIONS];
+
+/**
+ * Permisos que habilitan ver la información financiera del paciente: la pestaña
+ * "Finanzas" del detalle y el atajo "Ver estado de cuenta" (menú contextual del
+ * calendario, panel de cita, formulario de cita, borrador inline). Basta con
+ * tener uno — el estado de cuenta consolida presupuestos, órdenes, facturas y
+ * pagos, así que cualquiera de esas lecturas justifica el acceso.
+ */
+export const PATIENT_FINANCIAL_VIEW_PERMISSIONS = [
+  PATIENTS_PERMISSIONS.VIEW_DETAIL_QUOTES,
+  PATIENTS_PERMISSIONS.VIEW_DETAIL_ORDERS,
+  PATIENTS_PERMISSIONS.VIEW_DETAIL_INVOICES,
+  PATIENTS_PERMISSIONS.VIEW_DETAIL_PAYMENTS,
+] as const;
 
 export const MEDICAL_HISTORY_PERMISSIONS = {
   VIEW_MENU: 'MEDICAL_HISTORY_VIEW_MENU',
@@ -100,6 +127,23 @@ export const MEDICAL_HISTORY_PERMISSIONS = {
 } as const;
 
 export type MedicalHistoryPermission = (typeof MEDICAL_HISTORY_PERMISSIONS)[keyof typeof MEDICAL_HISTORY_PERMISSIONS];
+
+// Clinical-history codes that exist in the backend catalog and were previously
+// used as raw string literals. Only the ones consumed by the patients module
+// are declared here.
+export const CLINICAL_HISTORY_PERMISSIONS = {
+  // Anamnesis
+  ANAMNESIS_VIEW: 'ANAMNESIS_VIEW',
+  ANAMNESIS_ADD_PERSONAL: 'ANAMNESIS_ADD_PERSONAL',
+  // Odontogram
+  ODONTOGRAM_VIEW: 'ODONTOGRAM_VIEW',
+  ODONTOGRAM_REGISTER_SESSION: 'ODONTOGRAM_REGISTER_SESSION',
+  // Clinical documents
+  DOCS_VIEW: 'CLINICAL_DOCS_VIEW',
+  DOCS_UPLOAD: 'CLINICAL_DOCS_UPLOAD',
+} as const;
+
+export type ClinicalHistoryPermission = (typeof CLINICAL_HISTORY_PERMISSIONS)[keyof typeof CLINICAL_HISTORY_PERMISSIONS];
 
 export const TIMELINE_PERMISSIONS = {
   VIEW: 'TIMELINE_VIEW',
@@ -110,6 +154,18 @@ export const TIMELINE_PERMISSIONS = {
   UPLOAD_ATTACHMENT: 'CLINICAL_SESSION_UPLOAD_ATTACHMENT',
   VIEW_ATTACHMENTS: 'CLINICAL_SESSION_VIEW_ATTACHMENTS',
   DELETE_ATTACHMENT: 'CLINICAL_SESSION_DELETE_ATTACHMENT',
+
+  // Patient Medical Instructions (Indicaciones Médicas)
+  MEDICAL_INSTRUCTIONS_VIEW: 'PATIENT_MEDICAL_INSTRUCTIONS_VIEW',
+  MEDICAL_INSTRUCTIONS_CREATE: 'PATIENT_MEDICAL_INSTRUCTIONS_CREATE',
+  MEDICAL_INSTRUCTIONS_UPDATE: 'PATIENT_MEDICAL_INSTRUCTIONS_UPDATE',
+  MEDICAL_INSTRUCTIONS_DELETE: 'PATIENT_MEDICAL_INSTRUCTIONS_DELETE',
+
+  // Patient Prescriptions (Recetas Médicas)
+  PRESCRIPTIONS_VIEW: 'PATIENT_PRESCRIPTIONS_VIEW',
+  PRESCRIPTIONS_CREATE: 'PATIENT_PRESCRIPTIONS_CREATE',
+  PRESCRIPTIONS_UPDATE: 'PATIENT_PRESCRIPTIONS_UPDATE',
+  PRESCRIPTIONS_DELETE: 'PATIENT_PRESCRIPTIONS_DELETE',
 } as const;
 
 export type TimelinePermission = (typeof TIMELINE_PERMISSIONS)[keyof typeof TIMELINE_PERMISSIONS];
@@ -222,6 +278,13 @@ export const SALES_PERMISSIONS = {
   PAYMENT_METHODS_UPDATE: 'PAYMENT_METHODS_UPDATE',
   PAYMENT_METHODS_DELETE: 'PAYMENT_METHODS_DELETE',
   PAYMENT_METHODS_TOGGLE_STATUS: 'PAYMENT_METHODS_TOGGLE_STATUS',
+
+  /**
+   * Descuentos manuales. Sin este permiso el campo de descuento sigue siendo
+   * visible en presupuestos y facturas, pero en solo lectura: rebajar un precio
+   * es una decisión de gestión, no de quien teclea la venta.
+   */
+  APPLY_DISCOUNT: 'SALES_APPLY_DISCOUNT',
 
   // Services (Servicios)
   SERVICES_VIEW_MENU: 'SALES_SERVICES_VIEW_MENU',
@@ -440,9 +503,35 @@ export const BUSINESS_CONFIG_PERMISSIONS = {
   MUTUAL_SOC_UPDATE: 'MUTUAL_SOC_UPDATE',
   MUTUAL_SOC_DELETE: 'MUTUAL_SOC_DELETE',
 
+  // Patient Groups (Grupos de Pacientes)
+  PATIENT_GROUPS_VIEW_MENU: 'PATIENT_GROUPS_VIEW_MENU',
+  PATIENT_GROUPS_VIEW_LIST: 'PATIENT_GROUPS_VIEW_LIST',
+  PATIENT_GROUPS_CREATE: 'PATIENT_GROUPS_CREATE',
+  PATIENT_GROUPS_UPDATE: 'PATIENT_GROUPS_UPDATE',
+  PATIENT_GROUPS_DELETE: 'PATIENT_GROUPS_DELETE',
+
+  // Provider Groups (Grupos de Proveedores)
+  PROVIDER_GROUPS_VIEW_MENU: 'PROVIDER_GROUPS_VIEW_MENU',
+  PROVIDER_GROUPS_VIEW_LIST: 'PROVIDER_GROUPS_VIEW_LIST',
+  PROVIDER_GROUPS_CREATE: 'PROVIDER_GROUPS_CREATE',
+  PROVIDER_GROUPS_UPDATE: 'PROVIDER_GROUPS_UPDATE',
+  PROVIDER_GROUPS_DELETE: 'PROVIDER_GROUPS_DELETE',
+
   // Print Templates
   PRINT_TEMPLATES_VIEW: 'PRINT_TEMPLATES_VIEW',
   PRINT_TEMPLATES_EDIT: 'PRINT_TEMPLATES_EDIT',
+
+  // Medical Instruction Templates (Plantillas de Indicaciones Médicas)
+  MEDICAL_INSTRUCTION_TEMPLATES_VIEW: 'MEDICAL_INSTRUCTION_TEMPLATES_VIEW',
+  MEDICAL_INSTRUCTION_TEMPLATES_CREATE: 'MEDICAL_INSTRUCTION_TEMPLATES_CREATE',
+  MEDICAL_INSTRUCTION_TEMPLATES_UPDATE: 'MEDICAL_INSTRUCTION_TEMPLATES_UPDATE',
+  MEDICAL_INSTRUCTION_TEMPLATES_DELETE: 'MEDICAL_INSTRUCTION_TEMPLATES_DELETE',
+
+  // Prescription Templates (Plantillas de Receta Médica)
+  PRESCRIPTION_TEMPLATES_VIEW: 'PRESCRIPTION_TEMPLATES_VIEW',
+  PRESCRIPTION_TEMPLATES_CREATE: 'PRESCRIPTION_TEMPLATES_CREATE',
+  PRESCRIPTION_TEMPLATES_UPDATE: 'PRESCRIPTION_TEMPLATES_UPDATE',
+  PRESCRIPTION_TEMPLATES_DELETE: 'PRESCRIPTION_TEMPLATES_DELETE',
 } as const;
 
 export type BusinessConfigPermission = (typeof BUSINESS_CONFIG_PERMISSIONS)[keyof typeof BUSINESS_CONFIG_PERMISSIONS];
@@ -451,6 +540,8 @@ export type BusinessConfigPermission = (typeof BUSINESS_CONFIG_PERMISSIONS)[keyo
 export const GLOBAL_PERMISSIONS = {
   // Profile
   PROFILE_CHANGE_PASSWORD: 'PROFILE_CHANGE_PASSWORD',
+  /** Subir o reemplazar la firma propia desde Preferencias. */
+  PROFILE_UPLOAD_SIGNATURE: 'USER_SIGNATURE_UPLOAD',
 
   // Panel Superior
   GLOBAL_CHANGE_LANGUAGE: 'GLOBAL_CHANGE_LANGUAGE',
@@ -479,6 +570,8 @@ export const SYSTEM_PERMISSIONS = {
   USERS_ASSIGN_ROLE: 'USERS_ASSIGN_ROLE',
   USERS_REMOVE_ROLE: 'USERS_REMOVE_ROLE',
   USERS_VIEW_LOGS: 'USERS_VIEW_LOGS',
+  /** Subir, reemplazar o borrar la firma de OTRO usuario desde su ficha. */
+  USERS_MANAGE_SIGNATURE: 'USER_SIGNATURE_MANAGE',
 
   // Roles
   ROLES_VIEW_MENU: 'ROLES_VIEW_MENU',
@@ -525,6 +618,11 @@ export const SYSTEM_PERMISSIONS = {
   ALERT_CONFIG_VIEW_MENU: 'ALERT_CONFIG_VIEW_MENU',
   ALERT_CONFIG_VIEW: 'ALERT_CONFIG_VIEW',
   ALERT_CONFIG_UPDATE: 'ALERT_CONFIG_UPDATE',
+
+  // WhatsApp Agent Config
+  WHATSAPP_AGENT_CONFIG_VIEW_MENU: 'WHATSAPP_AGENT_CONFIG_VIEW_MENU',
+  WHATSAPP_AGENT_CONFIG_VIEW: 'WHATSAPP_AGENT_CONFIG_VIEW',
+  WHATSAPP_AGENT_CONFIG_UPDATE: 'WHATSAPP_AGENT_CONFIG_UPDATE',
 
   // Alert Categories
   ALERT_CATEGORIES_VIEW_MENU: 'ALERT_CATEGORIES_VIEW_MENU',
@@ -595,6 +693,7 @@ export const REPORTS_PERMISSIONS = {
   INGRESOS_VIEW:   'REPORTS_INGRESOS_VIEW',
   GASTOS_VIEW:     'REPORTS_GASTOS_VIEW',
   GESTION_VIEW:    'REPORTS_GESTION_VIEW',
+  BALANCE_MENSUAL_VIEW: 'REPORTS_BALANCE_MENSUAL_VIEW',
   EXPORT_PDF:      'REPORTS_EXPORT_PDF',
   EXPORT_EXCEL:    'REPORTS_EXPORT_EXCEL',
 } as const;
@@ -615,3 +714,56 @@ export const SUBSCRIPTIONS_PERMISSIONS = {
 } as const;
 
 export type SubscriptionsPermission = (typeof SUBSCRIPTIONS_PERMISSIONS)[keyof typeof SUBSCRIPTIONS_PERMISSIONS];
+
+/**
+ * Portal del paciente (/my-profile) — permisos del rol "Paciente".
+ * Se crean en database/scripts/065_20260806_patient-portal.sql.
+ * A diferencia del resto, estos permisos los tiene el propio paciente, no el staff.
+ */
+/**
+ * Configuración → Portal del Paciente. A diferencia de PATIENT_PORTAL_PERMISSIONS
+ * —que son del propio paciente— estos son permisos de staff.
+ */
+export const PATIENT_PORTAL_CONFIG_PERMISSIONS = {
+  VIEW:   'PATIENT_PORTAL_CONFIG_VIEW',
+  UPDATE: 'PATIENT_PORTAL_CONFIG_UPDATE',
+} as const;
+
+export type PatientPortalConfigPermission =
+  (typeof PATIENT_PORTAL_CONFIG_PERMISSIONS)[keyof typeof PATIENT_PORTAL_CONFIG_PERMISSIONS];
+
+/**
+ * Configuración → Preferencias de Clínica. Ajustes de producto de la clínica
+ * (hoy, la política de descuentos). El permiso para *aplicar* un descuento en
+ * una venta es otro: SALES_PERMISSIONS.APPLY_DISCOUNT.
+ */
+export const CLINIC_PREFS_PERMISSIONS = {
+  VIEW:   'CLINIC_PREFS_VIEW',
+  UPDATE: 'CLINIC_PREFS_UPDATE',
+} as const;
+
+export type ClinicPrefsPermission =
+  (typeof CLINIC_PREFS_PERMISSIONS)[keyof typeof CLINIC_PREFS_PERMISSIONS];
+
+/**
+ * Configuración → Colores de Calendario. Matriz de color/modo/badge por
+ * estado de cita (tabla `calendar_status_display`).
+ */
+export const CALENDAR_DISPLAY_PERMISSIONS = {
+  VIEW:   'CALENDAR_DISPLAY_VIEW',
+  UPDATE: 'CALENDAR_DISPLAY_UPDATE',
+} as const;
+
+export type CalendarDisplayPermission =
+  (typeof CALENDAR_DISPLAY_PERMISSIONS)[keyof typeof CALENDAR_DISPLAY_PERMISSIONS];
+
+export const PATIENT_PORTAL_PERMISSIONS = {
+  ACCESS:              'PATIENT_PORTAL_ACCESS',
+  VIEW_INFO:           'PATIENT_PORTAL_VIEW_INFO',
+  VIEW_HISTORY:        'PATIENT_PORTAL_VIEW_HISTORY',
+  VIEW_FINANCE:        'PATIENT_PORTAL_VIEW_FINANCE',
+  MANAGE_APPOINTMENTS: 'PATIENT_PORTAL_MANAGE_APPOINTMENTS',
+  USE_ASSISTANT:       'PATIENT_PORTAL_USE_ASSISTANT',
+} as const;
+
+export type PatientPortalPermission = (typeof PATIENT_PORTAL_PERMISSIONS)[keyof typeof PATIENT_PORTAL_PERMISSIONS];

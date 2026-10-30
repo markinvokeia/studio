@@ -1,0 +1,405 @@
+{
+  "name": "Patient Portal — Verify Code",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "api/auth/patient/verify-code",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-normalize",
+      "name": "Normalizar Identificador",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Normaliza el identificador: email, teléfono o cédula.\n// Sólo se busca por teléfono/cédula cuando hay al menos 6 dígitos, para evitar\n// coincidencias accidentales con valores muy cortos.\nconst body = $input.first().json.body || $input.first().json || {};\nconst raw = String(body.identifier || '').trim();\n\nif (!raw) {\n  return [{ json: { __error: true, statusCode: 400, message: 'identifier is required' } }];\n}\n\nconst digits = raw.replace(/\\D/g, '');\n\nreturn [{ json: {\n  identifier: raw,\n  email_candidate: raw.toLowerCase(),\n  digits_candidate: digits.length >= 6 ? digits : '__no_match__',\n  supplied_email: String(body.email || '').trim().toLowerCase(),\n} }];"
+      }
+    },
+    {
+      "id": "node-lookup",
+      "name": "Buscar Paciente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, email, phone_number, identity_document,\n       login_code, login_code_expires_at, login_code_attempts, login_code_sent_at,\n       is_portal_user, created_at\nFROM public.users\nWHERE is_active = TRUE\n  AND (\n        lower(email) = $1\n     OR regexp_replace(coalesce(phone_number, ''), '\\D', '', 'g') = $2\n     OR regexp_replace(coalesce(alternative_phone, ''), '\\D', '', 'g') = $2\n     OR identity_document = $2\n  )\nLIMIT 1",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.email_candidate, $json.digits_candidate ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-check",
+      "name": "Validar Código",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\n// Valida el código contra el hash guardado, la expiración y los intentos.\nconst rows = $input.all().map(i => i.json).filter(r => r && r.id);\nconst user = rows[0];\nconst body = $('Webhook').first().json.body || {};\nconst code = String(body.code || '').trim();\n\nif (!user) {\n  return [{ json: { __respond: true, statusCode: 404, body: { message: 'No encontramos ese paciente.' } } }];\n}\nif (!user.login_code || !user.login_code_expires_at) {\n  return [{ json: { __respond: true, statusCode: 410, body: { message: 'Pedí un código nuevo.' } } }];\n}\nif (new Date(user.login_code_expires_at).getTime() < Date.now()) {\n  return [{ json: { __respond: true, statusCode: 410, body: { message: 'El código venció. Pedí uno nuevo.' } } }];\n}\nif (Number(user.login_code_attempts || 0) >= 5) {\n  return [{ json: { __respond: true, statusCode: 429, body: { message: 'Demasiados intentos. Pedí un código nuevo.' } } }];\n}\n\nconst crypto = require('crypto');\nconst hash = crypto.createHash('sha256').update(code + String(user.id)).digest('hex');\n\nif (hash !== user.login_code) {\n  return [{ json: { __respond: false, __invalid: true, user_id: user.id,\n                    statusCode: 401, body: { message: 'El código no es correcto.' } } }];\n}\n\n// is_new: registrado hace menos de 30 min y sin haber entrado nunca al portal.\nconst createdAt = user.created_at ? new Date(user.created_at).getTime() : 0;\nconst isNew = !user.is_portal_user && createdAt > Date.now() - 30 * 60 * 1000;\n\nreturn [{ json: {\n  __respond: false, __invalid: false,\n  user_id: user.id, name: user.name, email: user.email, is_new: isNew,\n} }];\n"
+      }
+    },
+    {
+      "id": "node-if",
+      "name": "¿Código Válido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        820,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "valid",
+              "operator": {
+                "type": "boolean",
+                "operation": "false"
+              },
+              "leftValue": "={{ $json.__invalid || $json.__respond }}",
+              "rightValue": ""
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "node-clear",
+      "name": "Limpiar Código",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        200
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.users SET\n    login_code            = NULL,\n    login_code_expires_at = NULL,\n    login_code_attempts   = 0,\n    is_portal_user        = TRUE,\n    last_login_timestamp  = NOW()\nWHERE id = $1::uuid\nRETURNING id, name, email",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.user_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-role",
+      "name": "Asignar Rol Paciente",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1180,
+        200
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.user_roles (user_id, role_id, is_active)\nSELECT $1::uuid, r.id, TRUE FROM public.roles r WHERE r.name = 'Paciente'\nON CONFLICT (user_id, role_id) DO UPDATE SET is_active = TRUE\nRETURNING user_id",
+        "additionalFields": {
+          "queryParams": "={{ [ $('Validar Código').first().json.user_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-bump",
+      "name": "Sumar Intento",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1000,
+        420
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.users\nSET login_code_attempts = COALESCE(login_code_attempts, 0) + 1\nWHERE id = $1::uuid\nRETURNING id",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.user_id || null ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-error",
+      "name": "Formatear Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        420
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { statusCode: $('Validar Código').first().json.statusCode, body: $('Validar Código').first().json.body } }];"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    },
+    {
+      "id": "node-claims",
+      "name": "Preparar Claims",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        200
+      ],
+      "parameters": {
+        "jsCode": "\n// Claims EXACTAMENTE como los emite /api/auth/login. Verificado decodificando un\n// token real del sistema:\n//   { \"userId\": \"<uuid>\", \"email\": \"...\", \"expiresIn\": \"24h\", \"iat\": <epoch> }\n//\n// Ojo con lo que NO lleva:\n//   · No hay `sub`  → el identificador del usuario va en `userId`.\n//   · No hay `roles`→ /auth/me los resuelve consultando user_roles en la BD.\n//   · No hay `exp`  → \"expiresIn\" es un claim literal, no la opción de jsonwebtoken.\n// `iat` lo agrega solo el nodo JWT al firmar.\nconst ctx = $('Validar Código').first().json;\n\nreturn [{ json: {\n  userId: ctx.user_id,\n  email: ctx.email,\n  expiresIn: '24h',\n} }];\n"
+      }
+    },
+    {
+      "id": "node-jwt",
+      "name": "Firmar JWT",
+      "type": "n8n-nodes-base.jwt",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        200
+      ],
+      "parameters": {
+        "operation": "sign",
+        "useJson": true,
+        "claimsJson": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
+    },
+    {
+      "id": "node-format-ok",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1720,
+        200
+      ],
+      "parameters": {
+        "jsCode": "\n// El nodo JWT devuelve { token }. El usuario sale del paso de validación —\n// deliberadamente NO se devuelve users.password ni ningún otro campo interno.\nconst ctx = $('Validar Código').first().json;\nconst token = $input.first().json.token;\n\nif (!token) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo emitir el token de acceso.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  token,\n  user: { id: ctx.user_id, name: ctx.name, email: ctx.email },\n  is_new: ctx.is_new === true,\n} } }];\n"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalizar Identificador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar Identificador": {
+      "main": [
+        [
+          {
+            "node": "Buscar Paciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Paciente": {
+      "main": [
+        [
+          {
+            "node": "Validar Código",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Código": {
+      "main": [
+        [
+          {
+            "node": "¿Código Válido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Código Válido?": {
+      "main": [
+        [
+          {
+            "node": "Limpiar Código",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sumar Intento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar Código": {
+      "main": [
+        [
+          {
+            "node": "Asignar Rol Paciente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asignar Rol Paciente": {
+      "main": [
+        [
+          {
+            "node": "Preparar Claims",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Firmar JWT": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sumar Intento": {
+      "main": [
+        [
+          {
+            "node": "Formatear Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Error": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Claims": {
+      "main": [
+        [
+          {
+            "node": "Firmar JWT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' en los 4 nodos Postgres (POSTGRES_CREDENTIAL_ID).\n2. Credencial 'JWT Auth account' en el nodo 'Firmar JWT'.\n   ⚠️ DEBE SER LA MISMA que usa /api/auth/login. En este repo ya aparece\n   referenciada con id C6sB1r7ab5H5EmJj (ver\n   docs/n8n-flows/'Check requirements for first time password - Endpoint.json').\n   NO hace falta conocer el valor del secreto: la credencial lo guarda.\n3. Webhook PÚBLICO (noauth).\n\nRUTA: POST https://<tu-n8n>/webhook/api/auth/patient/verify-code\n\nREQUEST:  { \"identifier\": \"099123456\", \"code\": \"482913\" }\nRESPONSE: { \"token\": \"eyJ...\", \"user\": { \"id\", \"name\", \"email\" }, \"is_new\": false }\n\nFORMA DEL TOKEN — idéntica a la de /api/auth/login:\n  header  { \"alg\": \"HS256\", \"typ\": \"JWT\" }\n  payload { \"userId\": \"<uuid>\", \"email\": \"...\", \"expiresIn\": \"24h\", \"iat\": <epoch> }\n\n  · El identificador va en `userId`, NO en `sub`.\n  · NO lleva claim `roles`: /auth/me los resuelve consultando user_roles.\n  · NO lleva `exp`; \"expiresIn\" es un claim literal. El token, en los hechos,\n    no vence. Es el comportamiento actual del login de staff — si se quiere\n    corregir, hay que hacerlo en AMBOS flujos a la vez.\n  · `iat` lo agrega el propio nodo JWT.\n\nPOR QUÉ NO SE REUSA /api/auth/login:\nEse endpoint exige email + password en claro, y el flujo OTP nunca la tiene\n(en la BD está hasheada y el hash no sirve como entrada). Lo que sí se reusa\nes la credencial de firma, que es lo que hace válido al token frente a /auth/me.\n\nFLUJO:\n· Código correcto  → limpia el código, marca is_portal_user, asegura el rol\n                     'Paciente' en user_roles y firma el JWT.\n· Código incorrecto → suma 1 a login_code_attempts y responde 401 (máx. 5).\n· Vencido / sin código → 410.  Demasiados intentos → 429.\n\nCONTRATO: docs/patient-portal.md §2.3"
+  }
+}

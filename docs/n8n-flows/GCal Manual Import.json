@@ -1,0 +1,268 @@
+{
+  "name": "GCal Manual Import",
+  "nodes": [
+    {
+      "id": "33c35510-976a-49de-8281-71f3c884cf8f",
+      "name": "Ejecutar importación",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "d597c915-39a0-4534-b4f6-9ecd8b341fbd",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "03d58ab1-cefe-496e-ac61-498008d67a94",
+              "name": "days_back",
+              "value": 0,
+              "type": "number"
+            },
+            {
+              "id": "387bce30-6f78-44e8-9135-6afd3aca2797",
+              "name": "months_ahead",
+              "value": 3,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7b19edd8-be95-4725-9d4b-6a0c0cd9ff8b",
+      "name": "Nota",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        60,
+        -140
+      ],
+      "parameters": {
+        "width": 620,
+        "height": 380,
+        "content": "## Importación manual desde Google Calendar\nTrae a la app los eventos de los calendarios activos (`calendar_sources` con `google_calendar_id`) que todavía no existen como cita. **No escribe nada en Google.**\n\nEditá **Config** antes de ejecutar:\n- `days_back`: días hacia atrás desde hoy (0 = desde hoy).\n- `months_ahead`: meses hacia adelante.\n\nEs idempotente: re-ejecutar no duplica (se compara por `google_event_id` + calendario). Las citas quedan con `imported_from_google = true` y sin paciente.\nEl resultado está en el nodo **Resumen**."
+      }
+    },
+    {
+      "id": "53d04231-71c9-4306-97ec-76209e75d2b1",
+      "name": "Calendarios activos",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        440,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, name, google_calendar_id\nFROM public.calendar_sources\nWHERE is_active = true\n  AND google_calendar_id IS NOT NULL\n  AND google_calendar_id <> '';",
+        "options": {}
+      }
+    },
+    {
+      "id": "457f975c-4cc2-4922-897f-9a3049f2958c",
+      "name": "Loop_Calendars",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "options": {}
+      }
+    },
+    {
+      "id": "ab0f8ab8-84a3-498d-b473-8e9c88bfc3bc",
+      "name": "Eventos de Google",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        920,
+        400
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "j8CYn1YRMG8dHJ9K",
+          "name": "Google Calendar account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "={{ $json.google_calendar_id }}",
+          "mode": "id"
+        },
+        "returnAll": true,
+        "timeMin": "={{ $now.startOf('day').minus({ days: $('Config').first().json.days_back }) }}",
+        "timeMax": "={{ $now.startOf('day').plus({ months: $('Config').first().json.months_ahead }) }}",
+        "options": {
+          "orderBy": "startTime"
+        }
+      }
+    },
+    {
+      "id": "6228c512-2fe2-42d5-a5d6-3355a06a255c",
+      "name": "Mapear eventos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        400
+      ],
+      "parameters": {
+        "jsCode": "const calendarSourceId = $('Loop_Calendars').item.json.id;\nconst items = $input.all();\n\nconst toNaive = (iso) => {\n  if (!iso) return null;\n  // Strip timezone: keep wall-clock time as YYYY-MM-DD HH:MM:SS\n  return iso.substring(0, 19).replace('T', ' ');\n};\n\nconst mapStatus = (s) => {\n  if (s === 'cancelled') return 'canceled';\n  if (s === 'tentative') return 'tentative';\n  return 'scheduled';\n};\n\nconst valid = items\n  .filter((it) => it.json && it.json.id && it.json.status !== 'cancelled')\n  .map((it) => {\n    const ev = it.json;\n    const startIso = (ev.start && ev.start.dateTime)\n      ? ev.start.dateTime\n      : (ev.start && ev.start.date ? ev.start.date + 'T00:00:00' : null);\n    const endIso = (ev.end && ev.end.dateTime)\n      ? ev.end.dateTime\n      : (ev.end && ev.end.date ? ev.end.date + 'T00:00:00' : null);\n\n    return {\n      json: {\n        calendar_source_id: calendarSourceId,\n        google_event_id: ev.id,\n        summary: ev.summary || '(Sin título)',\n        status: mapStatus(ev.status),\n        start_datetime: toNaive(startIso),\n        end_datetime: toNaive(endIso),\n        color: ev.colorId || null,\n        notes: ev.description || null,\n      },\n    };\n  })\n  .filter((it) => it.json.start_datetime && it.json.end_datetime);\n\n// Always emit at least one item so the loop continues even when a calendar\n// has no events. The Insert query skips items with null google_event_id.\nif (valid.length === 0) {\n  return [{ json: { calendar_source_id: calendarSourceId, google_event_id: null, summary: null, status: null, start_datetime: null, end_datetime: null, color: null, notes: null } }];\n}\n\nreturn valid;\n"
+      }
+    },
+    {
+      "id": "40016a8d-9c1e-42a8-9e85-dbc254c7ede1",
+      "name": "Insertar si falta",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1400,
+        400
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.appointments (\n    calendar_source_id, google_event_id, summary, status,\n    start_datetime, end_datetime, color, notes, imported_from_google\n)\nSELECT\n    $1::bigint, $2::varchar, $3::text, $4::varchar,\n    $5::timestamp, $6::timestamp, $7::varchar, $8::text, TRUE\nWHERE $2 IS NOT NULL\n  AND NOT EXISTS (\n    SELECT 1 FROM public.appointments\n    WHERE google_event_id = $2::varchar\n      AND calendar_source_id = $1::bigint\n  )\nRETURNING id, calendar_source_id, google_event_id;",
+        "options": {
+          "queryReplacement": "={{ [$json.calendar_source_id, $json.google_event_id, $json.summary, $json.status, $json.start_datetime, $json.end_datetime, $json.color, $json.notes] }}"
+        }
+      }
+    },
+    {
+      "id": "0d429f3e-85d5-4980-b603-4d0bc8e91421",
+      "name": "Resumen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        160
+      ],
+      "parameters": {
+        "jsCode": "// Insertar si falta devuelve una fila por cita creada (RETURNING) y un\n// {success:true} cuando no inserta nada; solo cuentan las filas con id.\nconst inserted = $input.all().filter((it) => it.json && it.json.id != null);\nconst calendars = $('Calendarios activos').all();\n\nconst byCalendar = calendars.map((c) => ({\n  calendar_source_id: c.json.id,\n  calendario: c.json.name,\n  importadas: inserted.filter((it) => String(it.json.calendar_source_id) === String(c.json.id)).length,\n}));\n\nreturn [{ json: { total_importadas: inserted.length, por_calendario: byCalendar } }];\n"
+      }
+    }
+  ],
+  "connections": {
+    "Ejecutar importación": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Calendarios activos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calendarios activos": {
+      "main": [
+        [
+          {
+            "node": "Loop_Calendars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop_Calendars": {
+      "main": [
+        [
+          {
+            "node": "Resumen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Eventos de Google",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eventos de Google": {
+      "main": [
+        [
+          {
+            "node": "Mapear eventos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mapear eventos": {
+      "main": [
+        [
+          {
+            "node": "Insertar si falta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insertar si falta": {
+      "main": [
+        [
+          {
+            "node": "Loop_Calendars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

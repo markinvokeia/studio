@@ -1,5 +1,8 @@
 'use client';
 
+import { UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
+import { getUniqueConflict } from '@/components/patients/patient-form-utils';
+import type { UniqueConflict } from '@/lib/types';
 import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
@@ -22,16 +25,21 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/ui/phone-input';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserLogs } from '@/components/users/user-logs';
 import { UserRoles } from '@/components/users/user-roles';
+import { UserPreferencesTab } from '@/components/users/user-preferences-tab';
+import { SignatureUploader } from '@/components/users/signature-uploader';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useLicenseStore } from '@/stores/license-store';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Role, User, UserRole, UserRoleAssignment } from '@/lib/types';
+import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import { api } from '@/services/api';
 import { extractCreatedUserId, sendFirstTimePasswordToken } from '@/services/users';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -46,6 +54,7 @@ import * as z from 'zod';
 import { SystemUserColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { useCheckFirstPassword } from '@/hooks/use-check-first-password';
+import { createDefaultPagination } from '@/lib/pagination';
 
 
 const userFormSchema = (t: (key: string) => string) => z.object({
@@ -57,7 +66,7 @@ const userFormSchema = (t: (key: string) => string) => z.object({
   }, { message: t('SystemUsersPage.createDialog.validation.emailInvalid') }),
   phone: z.string().optional().refine(val => {
     if (!val || val.trim() === '') return true;
-    return isValidPhoneNumber(val);
+    return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
   }, { message: t('SystemUsersPage.createDialog.validation.phoneInvalid') }),
   identity_document: z.string()
     .regex(/^\d*$/, { message: t('SystemUsersPage.createDialog.validation.identityInvalid') })
@@ -65,6 +74,7 @@ const userFormSchema = (t: (key: string) => string) => z.object({
     .optional()
     .or(z.literal('')),
   is_active: z.boolean().default(false),
+  active_sede_id: z.string().optional(),
 }).refine((data) => {
   const hasEmail = data.email && data.email.trim() !== '';
   const hasPhone = data.phone && data.phone.trim() !== '';
@@ -115,6 +125,7 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyAc
       phone_number: apiUser.phone_number || '',
       is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
       identity_document: apiUser.identity_document,
+      active_sede_id: apiUser.active_sede_id != null ? String(apiUser.active_sede_id) : null,
       avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
     }));
 
@@ -127,7 +138,15 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyAc
 }
 
 async function upsertUser(userData: UserFormValues) {
-  const responseData = await api.post(API_ROUTES.USERS_UPSERT, { ...userData, is_sales: true });
+  const { active_sede_id, ...rest } = userData;
+  const responseData = await api.post(API_ROUTES.USERS_UPSERT, {
+    ...rest,
+    is_sales: true,
+    // Va en el propio upsert y no por `/users/active-sede`: ese endpoint es self-only
+    // (responde/actualiza la sede del usuario del JWT), así que mandarle un user_id ajeno
+    // terminaba cambiándole la sede activa al admin que estaba editando.
+    active_sede_id: active_sede_id ? Number(active_sede_id) : null,
+  });
 
   if (responseData.error && (responseData.error.error || responseData.code > 200)) {
     const error = new Error('API Error') as any;
@@ -256,6 +275,8 @@ export default function SystemUsersPage() {
   const router = useRouter();
   const locale = useLocale();
   const tCommon = useTranslations('Common');
+  // Dato que no se puede repetir: modal en vez de texto inline, que no se ve con el form scrolleado.
+  const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
   const { toast } = useToast();
   const [users, setUsers] = React.useState<User[]>([]);
   const [userCount, setUserCount] = React.useState(0);
@@ -268,13 +289,11 @@ export default function SystemUsersPage() {
   const [isSavingDetail, setIsSavingDetail] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
-  const [pagination, setPagination] = React.useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 25,
-  });
+  const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [showOnlyActive, setShowOnlyActive] = React.useState(true);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t)),
     defaultValues: {
@@ -283,6 +302,7 @@ export default function SystemUsersPage() {
       phone: '',
       identity_document: '',
       is_active: true,
+      active_sede_id: '',
     },
   });
 
@@ -294,6 +314,7 @@ export default function SystemUsersPage() {
       phone: '',
       identity_document: '',
       is_active: true,
+      active_sede_id: '',
     },
   });
 
@@ -309,6 +330,7 @@ export default function SystemUsersPage() {
   const canAssignRole = hasPermission(SYSTEM_PERMISSIONS.USERS_ASSIGN_ROLE);
   const canRemoveRole = hasPermission(SYSTEM_PERMISSIONS.USERS_REMOVE_ROLE);
   const canViewLogs = hasPermission(SYSTEM_PERMISSIONS.USERS_VIEW_LOGS);
+  const canManageSignature = hasPermission(SYSTEM_PERMISSIONS.USERS_MANAGE_SIGNATURE);
 
   // Redirect if no access to view list
   React.useEffect(() => {
@@ -371,16 +393,18 @@ export default function SystemUsersPage() {
       });
 
       toast({
-        title: 'Success',
-        description: `User ${user.name} has been ${user.is_active ? 'deactivated' : 'activated'}.`,
+        title: t('SystemUsersPage.toggleStatus.successTitle'),
+        description: user.is_active
+          ? t('SystemUsersPage.toggleStatus.deactivatedDescription', { name: user.name })
+          : t('SystemUsersPage.toggleStatus.activatedDescription', { name: user.name }),
       });
 
       loadUsers();
     } catch (error) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Could not update user status.',
+        title: t('SystemUsersPage.toggleStatus.errorTitle'),
+        description: t('SystemUsersPage.toggleStatus.errorDescription'),
       });
       console.error(error);
     }
@@ -394,6 +418,7 @@ export default function SystemUsersPage() {
       phone: '',
       identity_document: '',
       is_active: true,
+      active_sede_id: '',
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -412,6 +437,7 @@ export default function SystemUsersPage() {
         phone: user.phone_number || '',
         identity_document: user.identity_document || '',
         is_active: user.is_active,
+        active_sede_id: user.active_sede_id || '',
       });
       setDetailError(null);
     }
@@ -447,12 +473,34 @@ export default function SystemUsersPage() {
         phone_number: data.phone || '',
         identity_document: data.identity_document || '',
         is_active: data.is_active,
+        active_sede_id: data.active_sede_id || null,
       };
       setSelectedUser(updated);
       setUsers(prev => prev.map(u => u.id === updated.id ? updated : u));
     } catch (error: any) {
       const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-      setDetailError(errorData?.message || (error instanceof Error ? error.message : t('SystemUsersPage.createDialog.validation.genericError')));
+      const conflict = getUniqueConflict(errorData);
+      if (conflict) {
+        setUniqueConflict(conflict);
+      } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
+        const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
+        if (errors.length > 0) {
+          errors.forEach((err: { field: any; message: string }) => {
+            if (err.field) {
+              detailForm.setError(err.field as keyof UserFormValues, {
+                type: 'manual',
+                message: err.message,
+              });
+            }
+          });
+        } else {
+          setDetailError(errorData?.message || t('SystemUsersPage.createDialog.validation.genericError'));
+        }
+      } else if (error.status >= 500) {
+        setDetailError(t('SystemUsersPage.createDialog.validation.serverError'));
+      } else {
+        setDetailError(errorData?.message || (error instanceof Error ? error.message : t('SystemUsersPage.createDialog.validation.genericError')));
+      }
     } finally {
       setIsSavingDetail(false);
     }
@@ -507,9 +555,9 @@ export default function SystemUsersPage() {
 
     } catch (error: any) {
       const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-      if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
-        const fields = errorData.conflictedFields.map((f: string) => t(`SystemUsersPage.createDialog.validation.fields.${f}`)).join(', ');
-        setSubmissionError(t('SystemUsersPage.createDialog.validation.uniqueConflict', { fields }));
+      const conflict = getUniqueConflict(errorData);
+      if (conflict) {
+        setUniqueConflict(conflict);
       } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
         const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
         if (errors.length > 0) {
@@ -576,6 +624,7 @@ export default function SystemUsersPage() {
 
   return (
     <>
+      <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <TwoPanelLayout
           isRightPanelOpen={!!selectedUser}
@@ -648,11 +697,13 @@ export default function SystemUsersPage() {
                       <TabsTrigger value="details">{t('SystemUsersPage.tabs.details')}</TabsTrigger>
                       {canViewRoles && <TabsTrigger value="roles">{t('SystemUsersPage.tabs.roles')}</TabsTrigger>}
                       {canViewLogs && <TabsTrigger value="logs">{t('SystemUsersPage.tabs.logs')}</TabsTrigger>}
+                      {canManageSignature && <TabsTrigger value="signature">{t('SystemUsersPage.tabs.signature')}</TabsTrigger>}
+                      {canUpdate && <TabsTrigger value="preferences">{t('SystemUsersPage.tabs.preferences')}</TabsTrigger>}
                     </TabsList>
                     <div className="flex-1 overflow-auto mt-4">
                       <TabsContent value="details" className="m-0">
                         <Form {...detailForm}>
-                          <form onSubmit={detailForm.handleSubmit(onDetailSubmit)} className="space-y-4">
+                          <form onSubmit={detailForm.handleSubmit(onDetailSubmit, onInvalidSubmit)} className="space-y-4">
                             {detailError && (
                               <Alert variant="destructive">
                                 <AlertTriangle className="h-4 w-4" />
@@ -673,6 +724,20 @@ export default function SystemUsersPage() {
                             )} />
                             <FormField control={detailForm.control} name="identity_document" render={({ field }) => (
                               <FormItem><FormLabel>{t('SystemUsersPage.createDialog.identity_document')}</FormLabel><FormControl><Input placeholder={t('SystemUsersPage.createDialog.identity_document_placeholder')} {...field} /></FormControl><FormMessage /></FormItem>
+                            )} />
+                            <FormField control={detailForm.control} name="active_sede_id" render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>{t('SystemUsersPage.createDialog.defaultSede')}</FormLabel>
+                                <FormControl>
+                                  <SedeSelector
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                    placeholder={t('SystemUsersPage.createDialog.defaultSedePlaceholder')}
+                                    triggerText={t('SystemUsersPage.createDialog.defaultSedePlaceholder')}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
                             )} />
                             <FormField control={detailForm.control} name="is_active" render={({ field }) => (
                               <FormItem className="flex flex-row items-center space-x-3 space-y-0">
@@ -707,6 +772,16 @@ export default function SystemUsersPage() {
                           <UserLogs userId={selectedUser.id} />
                         </TabsContent>
                       )}
+                      {canManageSignature && (
+                        <TabsContent value="signature" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <SignatureUploader userId={selectedUser.id} canManage />
+                        </TabsContent>
+                      )}
+                      {canUpdate && (
+                        <TabsContent value="preferences" className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col">
+                          <UserPreferencesTab user={selectedUser} showAlertStyle />
+                        </TabsContent>
+                      )}
                     </div>
                   </Tabs>
                 </CardContent>
@@ -723,7 +798,7 @@ export default function SystemUsersPage() {
             <DialogDescription>{t('SystemUsersPage.createDialog.description')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 px-6 py-4">
                 {submissionError && (
                   <Alert variant="destructive">
@@ -785,6 +860,24 @@ export default function SystemUsersPage() {
                       <FormLabel>{t('SystemUsersPage.createDialog.identity_document')}</FormLabel>
                       <FormControl>
                         <Input placeholder={t('SystemUsersPage.createDialog.identity_document_placeholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="active_sede_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('SystemUsersPage.createDialog.defaultSede')}</FormLabel>
+                      <FormControl>
+                        <SedeSelector
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder={t('SystemUsersPage.createDialog.defaultSedePlaceholder')}
+                          triggerText={t('SystemUsersPage.createDialog.defaultSedePlaceholder')}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

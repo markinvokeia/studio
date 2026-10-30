@@ -19,6 +19,8 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { ReportCurrencyFilter } from '@/components/reports/currency-filter';
+import { useReportCurrency } from '@/hooks/useReportCurrency';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 }).format(n);
@@ -97,8 +99,7 @@ export default function CobrosDiaPage() {
     from: startOfMonth(new Date()),
     to: endOfMonth(new Date()),
   });
-  const [currency, setCurrency] = useState('all');
-  const [chartCurrency, setChartCurrency] = useState<'UYU' | 'USD'>('UYU');
+  const { currency, setCurrency, chartCurrency, setChartCurrency, activeCurrency, isDual, options: currencyOptions } = useReportCurrency();
   const [data, setData] = useState<ReportCobrosResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [printMode, setPrintMode] = useState(false);
@@ -178,16 +179,7 @@ export default function CobrosDiaPage() {
   const filters = (
     <div className="flex flex-wrap items-center gap-3">
       <DateRangePresets value={dateRange} onChange={setDateRange} />
-      <Select value={currency} onValueChange={setCurrency}>
-        <SelectTrigger className="h-8 w-28 text-xs">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas</SelectItem>
-          <SelectItem value="UYU">UYU</SelectItem>
-          <SelectItem value="USD">USD</SelectItem>
-        </SelectContent>
-      </Select>
+      <ReportCurrencyFilter value={currency} onChange={setCurrency} allLabel="Todas" />
     </div>
   );
 
@@ -197,7 +189,6 @@ export default function CobrosDiaPage() {
   }, {});
 
   const s = data?.summary;
-  const activeCurrency = (currency !== 'all' ? currency : chartCurrency) as 'UYU' | 'USD';
   const activeRows = (data?.rows ?? []).filter((r) => r.currency === activeCurrency);
 
   const promedioVal = activeRows.length > 0
@@ -307,7 +298,7 @@ export default function CobrosDiaPage() {
               because this section is display:none on screen so ResizeObserver never measures it. */}
           {currency === 'all' && (
             <div className="hidden print:grid print:grid-cols-2 print:gap-4">
-              {(['UYU', 'USD'] as const).map((cur) => {
+              {currencyOptions.map((cur) => {
                 const curRows = (data?.rows ?? []).filter(r => r.currency === cur);
                 const curPieData = curRows.reduce<{ name: string; value: number }[]>((acc, r) => {
                   const existing = acc.find(x => x.name === r.payment_method);

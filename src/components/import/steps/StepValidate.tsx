@@ -255,10 +255,11 @@ export function StepValidate({ result, onImportValid, onFixCsv, isImporting, can
             type="button"
             onClick={onImportValid}
             disabled={isImporting}
+            aria-busy={isImporting || undefined}
             className="flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             <CheckCircle2 className="h-4 w-4" />
-            {isImporting ? 'Importando...' : `${t('importValid')} (${result.valid})`}
+            {isImporting ? t('importing') : `${t('importValid')} (${result.valid})`}
           </button>
         )}
         <button

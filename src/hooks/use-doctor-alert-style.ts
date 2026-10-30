@@ -22,7 +22,9 @@ function writeCachedStyle(doctorId: string | number, style: DoctorAlertStyle) {
   } catch {}
 }
 
-export function useDoctorAlertStyle(doctorId?: string | number): [DoctorAlertStyle, (style: DoctorAlertStyle) => void] {
+export function useDoctorAlertStyle(
+  doctorId?: string | number,
+): [DoctorAlertStyle, (style: DoctorAlertStyle) => void, () => void] {
   const [alertStyle, setAlertStyleState] = React.useState<DoctorAlertStyle>('modal');
 
   // Read cache synchronously as soon as doctorId is available — runs in the same
@@ -34,18 +36,31 @@ export function useDoctorAlertStyle(doctorId?: string | number): [DoctorAlertSty
     if (cached) setAlertStyleState(cached);
   }, [doctorId]);
 
-  React.useEffect(() => {
-    if (!doctorId) return;
-    api.get(API_ROUTES.USER_PREFERENCES)
+  const fetchAlertStyle = React.useCallback((id: string | number) => {
+    return api.get(API_ROUTES.USER_PREFERENCES)
       .then((res: unknown) => {
         const prefs = (res as UserPreferencesResponse | null)?.preferences;
         if (prefs?.alert_style === 'modal' || prefs?.alert_style === 'toast') {
           setAlertStyleState(prefs.alert_style);
-          writeCachedStyle(doctorId, prefs.alert_style);
+          writeCachedStyle(id, prefs.alert_style);
         }
       })
       .catch(() => {});
-  }, [doctorId]);
+  }, []);
+
+  // Refetch whenever doctorId (re)appears — covers login and account switches.
+  React.useEffect(() => {
+    if (!doctorId) return;
+    void fetchAlertStyle(doctorId);
+  }, [doctorId, fetchAlertStyle]);
+
+  // Exposed so callers (e.g. the preferences page) can force a refresh on
+  // mount — the value in this hook is only as fresh as its last fetch, and
+  // an admin may have changed it from another session since then.
+  const refresh = React.useCallback(() => {
+    if (!doctorId) return;
+    void fetchAlertStyle(doctorId);
+  }, [doctorId, fetchAlertStyle]);
 
   const setAlertStyle = React.useCallback(
     (style: DoctorAlertStyle) => {
@@ -58,5 +73,5 @@ export function useDoctorAlertStyle(doctorId?: string | number): [DoctorAlertSty
     [doctorId],
   );
 
-  return [alertStyle, setAlertStyle];
+  return [alertStyle, setAlertStyle, refresh];
 }

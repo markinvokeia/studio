@@ -1,0 +1,181 @@
+{
+  "name": "Users — Signature Delete",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "DELETE",
+        "path": "users/signature/delete",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-validate",
+      "name": "Validar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        320,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\nconst assertUuid = (value, field) => {\n  const text = String(value ?? '').trim();\n  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(text)) {\n    throw new Error(`Invalid ${field}: ${value}`);\n  }\n  return text;\n};\n\nconst body = $input.first().json.body ?? $input.first().json ?? {};\nreturn [{ json: { user_id: assertUuid(body.user_id, 'user_id') } }];\n"
+      }
+    },
+    {
+      "id": "node-clear",
+      "name": "Limpiar en users",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        540,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- `previous` ve la foto anterior al UPDATE: RETURNING devolvería los\n-- valores nuevos (ya NULL) y se perdería el file id que hay que borrar.\nWITH previous AS (\n    SELECT signature_drive_file_id\n    FROM public.users\n    WHERE id = $1::uuid\n), cleared AS (\n    UPDATE public.users\n    SET signature_filename      = NULL,\n        signature_mimetype      = NULL,\n        signature_drive_file_id = NULL,\n        signature_web_view_link = NULL,\n        signature_updated_at    = NOW()\n    WHERE id = $1::uuid\n    RETURNING id\n)\nSELECT cleared.id::text          AS id,\n       previous.signature_drive_file_id AS previous_drive_file_id\nFROM cleared\nCROSS JOIN previous;",
+        "additionalFields": {
+          "queryParams": "={{ [ $json.user_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "Postgres"
+        }
+      },
+      "alwaysOutputData": true,
+      "continueOnFail": true
+    },
+    {
+      "id": "node-drive-delete",
+      "name": "Borrar de Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "operation": "deleteFile",
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.previous_drive_file_id }}"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "GOOGLE_DRIVE_CREDENTIAL_ID",
+          "name": "Google Drive"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        300
+      ],
+      "parameters": {
+        "jsCode": "\n// Si el borrado en Drive falla se ignora: la referencia en BD ya está limpia\n// y el archivo queda huérfano, no roto.\nconst cleared = $('Limpiar en users').first().json;\n\nif (!cleared || cleared.error || !cleared.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudo eliminar la firma.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: { success: true, user_id: cleared.id } } }];\n"
+      }
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode }}"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada": {
+      "main": [
+        [
+          {
+            "node": "Limpiar en users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpiar en users": {
+      "main": [
+        [
+          {
+            "node": "Borrar de Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar de Drive": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN REQUERIDA:\n1. Credencial 'Postgres' (POSTGRES_CREDENTIAL_ID).\n2. Credencial 'Google Drive' (GOOGLE_DRIVE_CREDENTIAL_ID).\n3. Webhook CON autenticación Bearer.\n4. Verificar el permiso: USER_SIGNATURE_UPLOAD (firma propia) o\n   USER_SIGNATURE_MANAGE (firma de otro usuario).\n\nRUTA: DELETE https://<tu-n8n>/webhook/users/signature/delete\n\nREQUEST: { \"user_id\": \"<uuid>\" }\nRESPONSE 200: { \"success\": true, \"user_id\": \"...\" }\n\nLas recetas ya emitidas NO se ven afectadas en su contenido: guardan su\ncontent_html. La firma sí deja de renderizarse al reimprimirlas, porque la\nimagen se resuelve en vivo contra GET /users/signature.\n\nREQUISITOS: database/scripts/068_20260819_prescriptions-and-doctor-signature.sql\nCONTRATO:   src/constants/routes.ts → USER_SIGNATURE_DELETE"
+  }
+}

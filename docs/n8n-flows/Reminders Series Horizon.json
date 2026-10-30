@@ -1,0 +1,83 @@
+{
+  "name": "Reminders Series Horizon",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Reminders – Series Horizon\n\nCron diario que mantiene materializadas las ocurrencias de las series activas.\n\nLlama a `reminders_materialize_all(now() + 90 días)`, que recorre las series con\n`is_active` y `generated_until` por debajo del horizonte y genera lo que falte. Es\nidempotente: se apoya en `uq_reminders_series_start`, así que volver a correrlo no\nduplica nada ni resucita las ocurrencias canceladas a mano.\n\n**Es un piso, no la única vía.** Al guardar una serie ya se materializan 90 días, y el\nGET de `/reminders` materializa hasta el fin de la ventana pedida, así que navegar más\nallá del horizonte tampoco muestra una serie vacía. Este cron cubre el caso de la serie\nque nadie edita ni mira durante meses.\n\nCorre de madrugada para no competir con el cron de notificaciones de 1 minuto.",
+        "height": 460,
+        "width": 520,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        -260
+      ],
+      "id": "reminders-horizon-doc",
+      "name": "Flow Documentation"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "triggerAtHour": 3,
+              "triggerAtMinute": 15
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "reminders-horizon-trigger",
+      "name": "Every day at 03:15"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT public.reminders_materialize_all((now() + interval '90 days')::timestamp) AS generated;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        240,
+        0
+      ],
+      "id": "reminders-horizon-pg",
+      "name": "Materialize Horizon",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    }
+  ],
+  "connections": {
+    "Every day at 03:15": {
+      "main": [
+        [
+          {
+            "node": "Materialize Horizon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {},
+  "tags": []
+}

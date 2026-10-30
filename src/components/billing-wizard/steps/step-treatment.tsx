@@ -8,6 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { Quote, QuoteItem } from '@/lib/types';
 import type { QuoteFinancialSummary } from '@/services/quote-financials';
 import { cn } from '@/lib/utils';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { formatMoney } from '@/lib/currency';
 
 interface StepTreatmentProps {
   quote: Quote | null;
@@ -18,8 +20,8 @@ interface StepTreatmentProps {
   patientName?: string;
 }
 
-function fmtCurrency(amount: number, currency = 'USD') {
-  return new Intl.NumberFormat('es-UY', { style: 'currency', currency }).format(amount);
+function fmtCurrency(amount: number, currency?: string) {
+  return formatMoney(amount, currency ?? getClinicCurrency());
 }
 
 export function StepTreatment({
@@ -30,7 +32,7 @@ export function StepTreatment({
   error,
   patientName,
 }: StepTreatmentProps) {
-  const currency = quote?.currency || 'USD';
+  const currency = quote?.currency || getClinicCurrency();
 
   if (isLoading) {
     return (

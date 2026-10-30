@@ -4,9 +4,17 @@ import * as React from 'react';
 
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { DoctorAgentChat } from '@/components/dashboard/doctor-agent-chat';
+import {
+  WorkspaceDateRange,
+  WorkspaceDatePreset,
+  WorkspaceDateRangeFilter,
+  getWorkspacePresetRange,
+} from '@/components/dashboard/workspace-date-range-filter';
 import { PatientDetailSheet } from '@/components/appointments/PatientDetailSheet';
+import { PrescriptionDialog } from '@/components/medical-instructions/prescription-dialog';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
-import { CONDITION_MAP } from '@/components/users/dental-record/condition-toolbar';
+import type { OdontogramPrefillResult } from '@/components/users/dental-record/dental-record-viewer';
+import { TreatmentTimeline } from '@/components/users/clinic-history-viewer';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,19 +23,25 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { normalizeAppointmentStatus, STATUS_ACCENT_COLOR, STATUS_BADGE_VARIANT } from '@/constants/appointment-status';
+import { normalizeAppointmentStatus } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { usePermissions } from '@/hooks/usePermissions';
+import { TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { Appointment, AppointmentStatus, DoctorAgentAction, DoctorAgentActionPayload, PatientSession, QuoteItem, TreatmentDetail } from '@/lib/types';
 import { canManageDoctorWorkspaceSessions } from '@/lib/permissions';
 import { cn, formatDate } from '@/lib/utils';
+import { normalizeResponsibleContact } from '@/lib/appointment-contact';
 import { api } from '@/services/api';
-import { updateAppointmentStatusRequest } from '@/services/appointments';
+import { useCompleteAppointmentWithDocumentCheck } from '@/hooks/use-appointment-status';
 import { getQuoteItems } from '@/services/quotes';
-import { format, parseISO } from 'date-fns';
+import { format, isSameDay, parseISO } from 'date-fns';
+import type { Locale } from 'date-fns';
+import { getDateFnsLocale } from '@/lib/locale';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -35,13 +49,12 @@ import {
   BookUser,
   CalendarDays,
   ChevronDown,
-  ChevronUp,
   ClipboardCheck,
-  FileText,
+  Pill,
   Heart,
+  Lock,
   RefreshCw,
   Sparkles,
-  Stethoscope,
   UserRound,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -62,13 +75,11 @@ type DoctorAgentActionResult = {
   message?: string;
 };
 
-interface DoctorPatientTimelineProps {
-  linkedAppointmentId?: string;
-  sessions: PatientSession[];
-  isLoading: boolean;
-}
-
 const AUTO_REFRESH_MS = 60_000;
+/** How long an odontogram prefill may take to be applied (includes loading the patient's sessions) */
+const ODONTOGRAM_PREFILL_TIMEOUT_MS = 30_000;
+/** Agent "titles" longer than this are really the dictated procedures and belong in the notes */
+const ODONTOGRAM_TITLE_MAX_LENGTH = 80;
 const KNOWN_APPOINTMENTS_STORAGE_PREFIX = 'doctor-workspace:known-appointments';
 const APPOINTMENT_STATUSES_STORAGE_PREFIX = 'doctor-workspace:appointment-statuses';
 const LOCALLY_UPDATED_STORAGE_PREFIX = 'doctor-workspace:locally-updated';
@@ -76,18 +87,6 @@ const LOCALLY_UPDATED_TTL_MS = 120_000;
 const TIMELINE_MIN_BLOCK_HEIGHT = 74;
 const TIMELINE_BASE_GAP = 14;
 const TIMELINE_MAX_GAP = 34;
-const TIMELINE_HIDDEN_MARKER_LANE_HEIGHT = 28;
-
-function getAppointmentStatusVariant(status: AppointmentStatus) {
-  return (STATUS_BADGE_VARIANT[status] ?? 'default') as
-    | 'default'
-    | 'success'
-    | 'destructive'
-    | 'info'
-    | 'warning'
-    | 'secondary'
-    | 'outline';
-}
 
 function getTimeRangeLabel(appointment: Appointment): string {
   const startTime = appointment.time || '00:00';
@@ -124,8 +123,34 @@ function getAppointmentDurationMinutes(appointment: Appointment): number {
   return Math.max(totalServiceDuration, 30);
 }
 
-function getAppointmentAccentColor(appointment: Appointment, status: AppointmentStatus): string {
-  return appointment.color || STATUS_ACCENT_COLOR[status] || '#64748b';
+/**
+ * Cita que "posee" la hora actual dentro de un día: la que está en curso, si no la próxima en
+ * empezar, y si la jornada ya terminó la última del día. Devuelve null si el día no tiene
+ * citas. Se usa tanto para el auto-scroll de la agenda como para elegir la cita seleccionada
+ * al cargar, de modo que la lista y el panel clínico coincidan.
+ */
+function findCurrentAppointment(dayAppointments: Appointment[], now: Date): Appointment | null {
+  if (dayAppointments.length === 0) return null;
+
+  const sorted = [...dayAppointments].sort((left, right) => left.time.localeCompare(right.time));
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const inProgress = sorted.find((appointment) => {
+    const startMinutes = parseTimeToMinutes(appointment.time);
+    const endMinutes = startMinutes + getAppointmentDurationMinutes(appointment);
+    return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+  });
+  if (inProgress) return inProgress;
+
+  const upcoming = sorted.find((appointment) => parseTimeToMinutes(appointment.time) > currentMinutes);
+  if (upcoming) return upcoming;
+
+  // La jornada ya terminó: la última cita es la referencia más útil.
+  return sorted[sorted.length - 1];
+}
+
+function getAppointmentAccentColor(appointment: Appointment, statusColor: string): string {
+  return appointment.color || statusColor || '#64748b';
 }
 
 function estimateAgendaCardMinHeight(appointment: Appointment): number {
@@ -157,6 +182,10 @@ interface DoctorAgendaTimelineProps {
   isLoading: boolean;
   onSelect: (appointmentId: string) => void;
   selectedAppointmentId?: string | null;
+  /** Whether the agenda currently shown corresponds to today's date. When false, the
+   *  "current time" marker and the in-progress highlight are disabled, since those only
+   *  make sense relative to the real-time clock on today's schedule. */
+  isToday: boolean;
 }
 
 function DoctorAgendaTimeline({
@@ -164,15 +193,19 @@ function DoctorAgendaTimeline({
   isLoading,
   onSelect,
   selectedAppointmentId,
+  isToday,
 }: DoctorAgendaTimelineProps) {
   const t = useTranslations('DoctorWorkspace');
   const tStatus = useTranslations('AppointmentStatus');
-  const [showPastAppointments, setShowPastAppointments] = React.useState(false);
+  const { colorOf, displayOf } = useAppointmentStatusDisplay();
 
   const timeline = React.useMemo(() => {
     const sortedAppointments = [...appointments].sort((left, right) => left.time.localeCompare(right.time));
     const now = new Date();
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    // When viewing a day other than today, there is no meaningful "current time" to plot
+    // against this agenda's minutes, so the sentinel below keeps every appointment out of
+    // the in-progress/past comparisons further down.
+    const currentMinutes = isToday ? now.getHours() * 60 + now.getMinutes() : -1;
 
     const appointmentRanges = sortedAppointments.map((appointment) => {
       const startMinutes = parseTimeToMinutes(appointment.time);
@@ -210,7 +243,7 @@ function DoctorAgendaTimeline({
         height,
         gapAfter,
         key: `${appointment.id}-${startMinutes}-${index}`,
-        accentColor: getAppointmentAccentColor(appointment, normalizeAppointmentStatus(appointment.status)),
+        accentColor: getAppointmentAccentColor(appointment, colorOf(normalizeAppointmentStatus(appointment.status))),
       }];
     }, []);
 
@@ -220,7 +253,7 @@ function DoctorAgendaTimeline({
     let currentTimeTop = 0;
     let showCurrentTime = false;
 
-    if (layouts.length > 0) {
+    if (isToday && layouts.length > 0) {
       const firstLayout = layouts[0];
       const lastLayout = layouts[layouts.length - 1];
 
@@ -256,146 +289,37 @@ function DoctorAgendaTimeline({
       }
     }
 
+    // Cita a la que se hace auto-scroll al cargar la agenda de hoy: la que está en curso, si
+    // no la próxima, y si la jornada terminó la última. En otros días no hay hora actual
+    // contra la que posicionarse, así que no se enfoca ninguna.
+    const focusAppointmentId = isToday
+      ? findCurrentAppointment(layouts.map((layout) => layout.appointment), now)?.id ?? null
+      : null;
+
     return {
       currentMinutes,
       currentTimeLabel: format(now, 'HH:mm'),
       currentTimeTop,
+      focusAppointmentId,
       timelineHeight,
       layouts,
       showCurrentTime,
     };
-  }, [appointments]);
+  }, [appointments, isToday, colorOf]);
 
-  const focusAppointmentId = React.useMemo(() => {
-    if (timeline.layouts.length === 0) return null;
+  const focusCardRef = React.useRef<HTMLDivElement | null>(null);
+  const autoScrolledDayRef = React.useRef<string | null>(null);
+  // Todas las citas de este timeline pertenecen al mismo día.
+  const dayKey = appointments[0]?.date ?? '';
 
-    const inProgress = timeline.layouts.find((layout) =>
-      timeline.currentMinutes >= layout.startMinutes && timeline.currentMinutes <= layout.endMinutes,
-    );
-    if (inProgress) return inProgress.appointment.id;
-
-    const upcoming = timeline.layouts.find((layout) => layout.startMinutes >= timeline.currentMinutes);
-    if (upcoming) return upcoming.appointment.id;
-
-    return timeline.layouts[timeline.layouts.length - 1]?.appointment.id ?? null;
-  }, [timeline.currentMinutes, timeline.layouts]);
-
-  const visibleTimeline = React.useMemo(() => {
-    const focusIndex = focusAppointmentId
-      ? timeline.layouts.findIndex((layout) => layout.appointment.id === focusAppointmentId)
-      : -1;
-    const pastCount = Math.max(focusIndex, 0);
-    const firstVisibleLayout = focusIndex >= 0 ? timeline.layouts[focusIndex] : null;
-    const hiddenRangeStart = timeline.layouts[0]?.startMinutes ?? 0;
-    const hiddenRangeEnd = firstVisibleLayout?.startMinutes ?? hiddenRangeStart;
-    const hiddenRangeSpan = Math.max(hiddenRangeEnd - hiddenRangeStart, 1);
-    const hiddenCurrentTimeRatio = !showPastAppointments
-      && pastCount > 0
-      && timeline.currentMinutes >= hiddenRangeStart
-      && timeline.currentMinutes < hiddenRangeEnd
-      ? (timeline.currentMinutes - hiddenRangeStart) / hiddenRangeSpan
-      : null;
-
-    if (timeline.layouts.length === 0) {
-      return {
-        currentTimeTop: timeline.currentTimeTop,
-        hiddenCount: pastCount,
-        hiddenCurrentTimeRatio,
-        isCurrentTimeHiddenBeforeVisible: false,
-        laneOffset: 0,
-        layouts: timeline.layouts,
-        showCurrentTime: timeline.showCurrentTime,
-        timelineHeight: timeline.timelineHeight,
-      };
-    }
-
-    if (showPastAppointments) {
-      return {
-        currentTimeTop: timeline.currentTimeTop,
-        hiddenCount: pastCount,
-        hiddenCurrentTimeRatio,
-        isCurrentTimeHiddenBeforeVisible: false,
-        laneOffset: 0,
-        layouts: timeline.layouts,
-        showCurrentTime: timeline.showCurrentTime,
-        timelineHeight: timeline.timelineHeight,
-      };
-    }
-
-    if (focusIndex <= 0) {
-      return {
-        currentTimeTop: timeline.currentTimeTop,
-        hiddenCount: pastCount,
-        hiddenCurrentTimeRatio,
-        isCurrentTimeHiddenBeforeVisible: false,
-        laneOffset: 0,
-        layouts: timeline.layouts,
-        showCurrentTime: timeline.showCurrentTime,
-        timelineHeight: timeline.timelineHeight,
-      };
-    }
-
-    const focusTop = timeline.layouts[focusIndex].top;
-    const visibleLayouts = timeline.layouts.slice(focusIndex).map((layout) => ({
-      ...layout,
-      top: layout.top - focusTop,
-    }));
-    const lastLayout = visibleLayouts[visibleLayouts.length - 1];
-    const laneOffset = hiddenCurrentTimeRatio != null ? TIMELINE_HIDDEN_MARKER_LANE_HEIGHT : 0;
-    const timelineHeight = (lastLayout?.top ?? 0) + (lastLayout?.height ?? 0) + laneOffset;
-    const isCurrentTimeHiddenBeforeVisible = hiddenCurrentTimeRatio != null;
-
-    return {
-      currentTimeTop: isCurrentTimeHiddenBeforeVisible
-        ? 0
-        : Math.max(timeline.currentTimeTop - focusTop, 0),
-      hiddenCount: pastCount,
-      hiddenCurrentTimeRatio,
-      isCurrentTimeHiddenBeforeVisible,
-      laneOffset,
-      layouts: visibleLayouts,
-      showCurrentTime: timeline.showCurrentTime && !isCurrentTimeHiddenBeforeVisible,
-      timelineHeight,
-    };
-  }, [
-    focusAppointmentId,
-    showPastAppointments,
-    timeline.currentMinutes,
-    timeline.currentTimeTop,
-    timeline.layouts,
-    timeline.showCurrentTime,
-    timeline.timelineHeight,
-  ]);
-
-  React.useEffect(() => {
-    setShowPastAppointments(false);
-  }, [appointments]);
-
-  React.useEffect(() => {
-    if (!selectedAppointmentId || showPastAppointments) return;
-    const focusIndex = timeline.layouts.findIndex((l) => l.appointment.id === focusAppointmentId);
-    if (focusIndex <= 0) return;
-    const isHidden = timeline.layouts.slice(0, focusIndex).some(
-      (l) => l.appointment.id === selectedAppointmentId,
-    );
-    if (isHidden) setShowPastAppointments(true);
-  }, [selectedAppointmentId, focusAppointmentId, timeline.layouts, showPastAppointments]);
-
-  const pastSeparatorTop = (() => {
-    if (!showPastAppointments || visibleTimeline.hiddenCount === 0) return null;
-    const focusIdx = visibleTimeline.layouts.findIndex(
-      (l) => l.appointment.id === focusAppointmentId,
-    );
-    if (focusIdx <= 0) return null;
-    const lastPast = visibleTimeline.layouts[focusIdx - 1];
-    const firstCurrent = visibleTimeline.layouts[focusIdx];
-    return (
-      lastPast.top +
-      lastPast.height +
-      (firstCurrent.top - lastPast.top - lastPast.height) / 2 +
-      visibleTimeline.laneOffset
-    );
-  })();
+  // Un único scroll por día mostrado: el refresco en segundo plano reconstruye el array de
+  // citas cada minuto y sin este guard le robaría la posición de scroll al doctor.
+  React.useLayoutEffect(() => {
+    if (autoScrolledDayRef.current === dayKey) return;
+    autoScrolledDayRef.current = dayKey;
+    if (!isToday || !timeline.focusAppointmentId) return;
+    focusCardRef.current?.scrollIntoView({ block: 'center' });
+  }, [dayKey, isToday, timeline.focusAppointmentId]);
 
   if (isLoading) {
     return (
@@ -409,8 +333,8 @@ function DoctorAgendaTimeline({
 
   if (appointments.length === 0) {
     return (
-      <div className="rounded-[1.75rem] border border-dashed border-border bg-muted/20 p-8 text-center">
-        <p className="text-sm font-medium text-foreground">{t('agenda.emptyTitle')}</p>
+      <div className="rounded-[1.75rem] border border-dashed border-border bg-muted/20 dark:bg-muted/40 p-8 text-center">
+        <p className="text-sm font-medium text-foreground">{t(isToday ? 'agenda.emptyTitle' : 'agenda.emptyTitleOtherDay')}</p>
         <p className="mt-1 text-sm text-muted-foreground">{t('agenda.emptyDescription')}</p>
       </div>
     );
@@ -419,75 +343,25 @@ function DoctorAgendaTimeline({
   return (
     <div>
       <div className="py-2">
-        {visibleTimeline.hiddenCount > 0 ? (
-          <button
-            type="button"
-            onClick={() => setShowPastAppointments((current) => !current)}
-            className="mb-4 flex w-full items-center gap-3 transition-opacity hover:opacity-80"
-          >
-            <div className="h-px flex-1 bg-border" />
-            <div className="flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/50 px-3 py-1">
-              <span className="text-[11px] font-medium text-muted-foreground">
-                {showPastAppointments
-                  ? t('agenda.hideHistory')
-                  : t('agenda.hiddenPastAppointments', { count: visibleTimeline.hiddenCount })}
-              </span>
-              <ChevronDown
-                className={cn(
-                  'h-3 w-3 text-muted-foreground transition-transform duration-200',
-                  showPastAppointments && 'rotate-180',
-                )}
-              />
-            </div>
-            <div className="h-px flex-1 bg-border" />
-          </button>
-        ) : null}
-
-        <div className="relative" style={{ height: visibleTimeline.timelineHeight }}>
-          {pastSeparatorTop !== null && (
-            <div
-              className="absolute inset-x-0 z-30 flex items-center gap-2"
-              style={{ top: pastSeparatorTop }}
-            >
-              <div className="ml-9 flex-1 border-t border-dashed border-border/60" />
-              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                {t('agenda.historyHidden')}
-              </span>
-              <div className="w-2 border-t border-dashed border-border/60" />
-            </div>
-          )}
-
+        <div className="relative" style={{ height: timeline.timelineHeight }}>
           <div className="absolute bottom-0 left-4 top-0 w-px bg-gradient-to-b from-border/20 via-border/70 to-border/20" />
 
-          {visibleTimeline.hiddenCurrentTimeRatio != null ? (
-            <div className="absolute inset-x-0 z-20" style={{ top: TIMELINE_HIDDEN_MARKER_LANE_HEIGHT / 2 }}>
+          {timeline.showCurrentTime && (
+            <div className="absolute inset-x-0 z-20" style={{ top: timeline.currentTimeTop }}>
               <div className="relative h-0">
-                <div className="absolute left-4 right-0 top-0 h-px bg-rose-300/90" />
+                <div className="absolute left-4 right-0 top-0 border-t border-dashed border-rose-400/60 dark:border-rose-400/80" />
                 <div className="absolute left-4 top-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.12)]" />
-                <span className="absolute top-0 -translate-y-full rounded bg-background/90 px-1 text-[9px] font-bold tabular-nums text-rose-500 leading-none" style={{ left: 'calc(1rem + 0.75rem)' }}>
-                  {timeline.currentTimeLabel}
-                </span>
-              </div>
-            </div>
-          ) : null}
-
-          {visibleTimeline.showCurrentTime && (
-            <div className="absolute inset-x-0 z-20" style={{ top: visibleTimeline.currentTimeTop + visibleTimeline.laneOffset }}>
-              <div className="relative h-0">
-                <div className="absolute left-4 right-0 top-0 border-t border-dashed border-rose-400/60" />
-                <div className="absolute left-4 top-0 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-rose-500 shadow-[0_0_0_4px_rgba(244,63,94,0.12)]" />
-                <span className="absolute top-0 -translate-y-full rounded bg-background/90 px-1 text-[9px] font-bold tabular-nums text-rose-500 leading-none" style={{ left: 'calc(1rem + 0.75rem)' }}>
+                <span className="absolute top-0 -translate-y-full rounded bg-background/90 px-1 text-[9px] font-bold tabular-nums text-rose-500 dark:text-rose-400 leading-none" style={{ left: 'calc(1rem + 0.75rem)' }}>
                   {timeline.currentTimeLabel}
                 </span>
               </div>
             </div>
           )}
 
-          {visibleTimeline.layouts.map((layout) => {
+          {timeline.layouts.map((layout) => {
             const normalizedStatus = normalizeAppointmentStatus(layout.appointment.status);
             const isSelected = selectedAppointmentId === layout.appointment.id;
             const isInProgress = timeline.currentMinutes >= layout.startMinutes && timeline.currentMinutes <= layout.endMinutes;
-            const isPast = !isInProgress && layout.endMinutes < timeline.currentMinutes;
             const serviceLabel = layout.appointment.services?.length
               ? layout.appointment.services.map((service) => service.name).join(', ')
               : layout.appointment.service_name || layout.appointment.summary || t('agenda.unknownPatient');
@@ -496,8 +370,9 @@ function DoctorAgendaTimeline({
             return (
               <div
                 key={layout.key}
+                ref={layout.appointment.id === timeline.focusAppointmentId ? focusCardRef : undefined}
                 className="absolute inset-x-0 z-10"
-                style={{ top: layout.top + visibleTimeline.laneOffset, height: layout.height }}
+                style={{ top: layout.top, height: layout.height }}
               >
                 {/* Dot on the vertical line */}
                 <div
@@ -507,13 +382,10 @@ function DoctorAgendaTimeline({
                     top: '1.25rem',
                     width: isInProgress ? '0.875rem' : '0.625rem',
                     height: isInProgress ? '0.875rem' : '0.625rem',
-                    backgroundColor: isPast ? 'hsl(var(--muted-foreground))' : layout.accentColor,
-                    opacity: isPast ? 0.35 : 1,
-                    boxShadow: isInProgress && !isPast
+                    backgroundColor: layout.accentColor,
+                    boxShadow: isInProgress
                       ? `0 0 0 2px hsl(var(--background)), 0 0 0 5px ${layout.accentColor}40`
-                      : isPast
-                        ? `0 0 0 2px hsl(var(--background))`
-                        : `0 0 0 2px hsl(var(--background)), 0 0 0 4px ${layout.accentColor}30`,
+                      : `0 0 0 2px hsl(var(--background)), 0 0 0 4px ${layout.accentColor}30`,
                   }}
                 />
 
@@ -524,10 +396,9 @@ function DoctorAgendaTimeline({
                   className={cn(
                     'absolute left-9 right-0 h-full rounded-xl text-left transition-all duration-300',
                     'border bg-card',
-                    isSelected ? 'shadow-lg' : 'shadow-sm hover:shadow-md border-border/40 hover:border-border/60',
-                    isPast && 'opacity-50',
+                    isSelected ? 'shadow-lg' : 'shadow-sm hover:shadow-md border-border/40 hover:border-border/60 dark:border-border dark:hover:border-border',
                   )}
-                  style={isSelected && !isPast ? { borderColor: layout.accentColor } : undefined}
+                  style={isSelected ? { borderColor: layout.accentColor } : undefined}
                 >
                   <div className="relative h-full overflow-hidden rounded-xl">
                     <span
@@ -535,7 +406,7 @@ function DoctorAgendaTimeline({
                       style={{
                         width: isSelected ? '4px' : '2px',
                         backgroundColor: layout.accentColor,
-                        opacity: isPast ? 0.3 : (isSelected ? 1 : 0.4),
+                        opacity: isSelected ? 1 : 0.4,
                       }}
                     />
 
@@ -549,7 +420,11 @@ function DoctorAgendaTimeline({
                             {serviceLabel}
                           </p>
                         </div>
-                        <Badge variant={getAppointmentStatusVariant(normalizedStatus)} className="shrink-0 capitalize text-[10px] h-5 px-1.5">
+                        <Badge
+                          variant="custom"
+                          className={cn('shrink-0 capitalize text-[10px] h-5 px-1.5', statusBadgeClassNames(displayOf(normalizedStatus)))}
+                          style={statusBadgeInlineStyle(displayOf(normalizedStatus))}
+                        >
                           {tStatus(normalizedStatus)}
                         </Badge>
                       </div>
@@ -564,7 +439,7 @@ function DoctorAgendaTimeline({
                         <span className="text-xs font-medium tabular-nums text-muted-foreground">
                           {getTimeRangeLabel(layout.appointment)}
                         </span>
-                        <span className="text-[10px] tabular-nums text-muted-foreground/55">
+                        <span className="text-[10px] tabular-nums text-muted-foreground/55 dark:text-muted-foreground/80">
                           {getAppointmentDurationMinutes(layout.appointment)} min
                         </span>
                       </div>
@@ -580,33 +455,204 @@ function DoctorAgendaTimeline({
   );
 }
 
-function getKnownAppointmentsStorageKey(doctorId: string, dateKey: string): string {
-  return `${KNOWN_APPOINTMENTS_STORAGE_PREFIX}:${doctorId}:${dateKey}`;
+type AgendaDayGroup = {
+  appointments: Appointment[];
+  date: Date;
+  isToday: boolean;
+  key: string;
+};
+
+interface DoctorAgendaPanelProps {
+  appointments: Appointment[];
+  dateLocale: Locale;
+  isLoading: boolean;
+  /** True when the active filter resolves to a single calendar day. */
+  isSingleDayRange: boolean;
+  /** True when that single day is today — drives the "no appointments today" copy. */
+  isRangeToday: boolean;
+  onSelect: (appointmentId: string) => void;
+  selectedAppointmentId?: string | null;
 }
 
-function readKnownAppointmentIds(storageKey: string): string[] {
-  if (typeof window === 'undefined') return [];
+/**
+ * Renders the agenda for the selected period. A single-day range keeps the original
+ * timeline untouched; a multi-day range groups appointments into collapsible day
+ * sections so the doctor can scan a week/month and drill into one day at a time.
+ */
+function DoctorAgendaPanel({
+  appointments,
+  dateLocale,
+  isLoading,
+  isSingleDayRange,
+  isRangeToday,
+  onSelect,
+  selectedAppointmentId,
+}: DoctorAgendaPanelProps) {
+  const t = useTranslations('DoctorWorkspace');
+  const todayKey = formatDate(new Date());
 
-  try {
-    const rawValue = window.localStorage.getItem(storageKey);
-    if (!rawValue) return [];
+  const groups = React.useMemo<AgendaDayGroup[]>(() => {
+    const byDay = new Map<string, Appointment[]>();
 
-    const parsedValue = JSON.parse(rawValue);
-    return Array.isArray(parsedValue) ? parsedValue.map((value) => String(value)) : [];
-  } catch (error) {
-    console.error('Failed to read known doctor appointments:', error);
-    return [];
+    appointments.forEach((appointment) => {
+      const key = formatDate(appointment.date);
+      const existing = byDay.get(key);
+      if (existing) existing.push(appointment);
+      else byDay.set(key, [appointment]);
+    });
+
+    return Array.from(byDay.entries())
+      .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+      .map(([key, dayAppointments]) => {
+        // `key` is a plain yyyy-MM-dd, so appending a zeroed time keeps parseISO in local time.
+        const parsedDate = parseISO(`${key}T00:00:00`);
+
+        return {
+          appointments: [...dayAppointments].sort((left, right) => left.time.localeCompare(right.time)),
+          date: Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate,
+          isToday: key === todayKey,
+          key,
+        };
+      });
+  }, [appointments, todayKey]);
+
+  // Joined keys instead of the group objects themselves: background polling rebuilds the
+  // array every minute, and depending on it would collapse the doctor's open days.
+  const groupKeys = groups.map((group) => group.key).join('|');
+  const [openDays, setOpenDays] = React.useState<string[]>([]);
+
+  React.useEffect(() => {
+    const keys = groupKeys ? groupKeys.split('|') : [];
+    if (keys.length === 0) {
+      setOpenDays([]);
+      return;
+    }
+    setOpenDays(keys.includes(todayKey) ? [todayKey] : [keys[0]]);
+  }, [groupKeys, todayKey]);
+
+  // Keep the day holding the active appointment expanded (deep links, auto-selection).
+  React.useEffect(() => {
+    if (!selectedAppointmentId) return;
+    const owningGroup = groups.find((group) =>
+      group.appointments.some((appointment) => appointment.id === selectedAppointmentId),
+    );
+    if (!owningGroup) return;
+    setOpenDays((current) => (current.includes(owningGroup.key) ? current : [...current, owningGroup.key]));
+  }, [groups, selectedAppointmentId]);
+
+  const toggleDay = React.useCallback((dayKey: string) => {
+    setOpenDays((current) => (
+      current.includes(dayKey)
+        ? current.filter((key) => key !== dayKey)
+        : [...current, dayKey]
+    ));
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-24 w-full rounded-[1.75rem]" />
+        <Skeleton className="h-24 w-full rounded-[1.75rem]" />
+        <Skeleton className="h-24 w-full rounded-[1.75rem]" />
+      </div>
+    );
   }
-}
 
-function writeKnownAppointmentIds(storageKey: string, appointmentIds: string[]) {
-  if (typeof window === 'undefined') return;
+  if (groups.length === 0) {
+    const emptyTitleKey = !isSingleDayRange
+      ? 'agenda.emptyTitleRange'
+      : isRangeToday
+        ? 'agenda.emptyTitle'
+        : 'agenda.emptyTitleOtherDay';
 
-  try {
-    window.localStorage.setItem(storageKey, JSON.stringify(appointmentIds));
-  } catch (error) {
-    console.error('Failed to store known doctor appointments:', error);
+    return (
+      <div className="rounded-[1.75rem] border border-dashed border-border bg-muted/20 dark:bg-muted/40 p-8 text-center">
+        <p className="text-sm font-medium text-foreground">{t(emptyTitleKey)}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{t('agenda.emptyDescription')}</p>
+      </div>
+    );
   }
+
+  if (isSingleDayRange) {
+    return (
+      <div className="relative isolate">
+        <DoctorAgendaTimeline
+          appointments={groups[0].appointments}
+          isLoading={false}
+          onSelect={onSelect}
+          selectedAppointmentId={selectedAppointmentId}
+          isToday={groups[0].isToday}
+        />
+      </div>
+    );
+  }
+
+  return (
+    // `isolate` confines every z-index in the grouped agenda to this subtree, so nothing
+    // can paint over the card header, the date filter or the panel next to it.
+    <div className="relative isolate space-y-2">
+      <p className="px-1 text-[11px] font-medium text-muted-foreground">
+        {t('agenda.rangeSummary', { appointments: appointments.length, days: groups.length })}
+      </p>
+
+      {groups.map((group) => {
+        const isOpen = openDays.includes(group.key);
+
+        return (
+          <Collapsible key={group.key} open={isOpen} onOpenChange={() => toggleDay(group.key)}>
+            <CollapsibleTrigger asChild>
+              {/* Deliberately not sticky: the day header scrolls with its appointments so it
+                  never floats over the timeline cards or escapes the agenda card. */}
+              <button
+                type="button"
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left transition-colors',
+                  isOpen ? 'border-border bg-muted/70' : 'border-border/50 dark:border-border bg-background hover:bg-muted/40 dark:hover:bg-muted/60',
+                )}
+              >
+                <ChevronDown
+                  className={cn(
+                    'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200',
+                    !isOpen && '-rotate-90',
+                  )}
+                />
+                <span className="truncate text-xs font-semibold capitalize text-foreground">
+                  {format(group.date, 'EEEE d MMM', { locale: dateLocale })}
+                </span>
+                {group.isToday ? (
+                  <Badge variant="secondary" className="h-4 shrink-0 px-1.5 text-[10px] font-medium">
+                    {t('agenda.today')}
+                  </Badge>
+                ) : (
+                  <Lock
+                    className="h-3 w-3 shrink-0 text-muted-foreground/60 dark:text-muted-foreground/80"
+                    aria-label={t('agenda.readOnlyDay')}
+                  />
+                )}
+                <span className="ml-auto shrink-0 text-[11px] font-medium tabular-nums text-muted-foreground">
+                  {t('agenda.dayAppointmentCount', { count: group.appointments.length })}
+                </span>
+              </button>
+            </CollapsibleTrigger>
+
+            <CollapsibleContent>
+              {/* `isolate` keeps the timeline's internal z-indexes (dots, current-time
+                  marker, history separator) inside this day's own stacking context. */}
+              <div className="relative isolate pl-1 pr-0.5">
+                <DoctorAgendaTimeline
+                  appointments={group.appointments}
+                  isLoading={false}
+                  onSelect={onSelect}
+                  selectedAppointmentId={selectedAppointmentId}
+                  isToday={group.isToday}
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+        );
+      })}
+    </div>
+  );
 }
 
 function getAppointmentStatusesStorageKey(doctorId: string, dateKey: string): string {
@@ -682,15 +728,14 @@ type WorkspaceAppointmentSource =
   | { mode: 'doctor'; doctorId: string }
   | { mode: 'calendar'; calendarId: string };
 
-async function getAppointmentsForToday(source: WorkspaceAppointmentSource): Promise<Appointment[]> {
-  const now = new Date();
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-  const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+async function getAppointmentsForRange(source: WorkspaceAppointmentSource, from: Date, to: Date): Promise<Appointment[]> {
+  const rangeStart = new Date(from.getFullYear(), from.getMonth(), from.getDate(), 0, 0, 0);
+  const rangeEnd = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 23, 59, 59);
   const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
 
   const query: Record<string, string> = {
-    startingDateAndTime: formatDateForAPI(startOfDay),
-    endingDateAndTime: formatDateForAPI(endOfDay),
+    startingDateAndTime: formatDateForAPI(rangeStart),
+    endingDateAndTime: formatDateForAPI(rangeEnd),
   };
   if (source.mode === 'doctor') query.doctor_id = source.doctorId;
   else query.calendar_source_ids = source.calendarId;
@@ -724,6 +769,9 @@ async function getAppointmentsForToday(source: WorkspaceAppointmentSource): Prom
         patientName: apiAppointment.patient_name || apiAppointment.patientName || apiAppointment.patientname || '',
         patientEmail: apiAppointment.patient_email || apiAppointment.patientEmail || apiAppointment.patientemail || '',
         patientPhone: apiAppointment.patient_phone || apiAppointment.patientPhone || apiAppointment.patientphone || '',
+        responsibleContact: normalizeResponsibleContact(
+          apiAppointment.responsible_contact ?? apiAppointment.responsibleContact,
+        ),
         doctorId: String(doctorIdValue),
         doctorName: apiAppointment.doctor_name || apiAppointment.doctorName || apiAppointment.doctorname || '',
         doctorEmail: apiAppointment.doctor_email || apiAppointment.doctorEmail || apiAppointment.doctoremail || '',
@@ -758,269 +806,54 @@ async function getAppointmentsForToday(source: WorkspaceAppointmentSource): Prom
       } as Appointment;
     })
     .filter((appointment): appointment is Appointment => appointment !== null)
-    .sort((left, right) => left.time.localeCompare(right.time));
-}
-
-function DoctorPatientTimeline({ linkedAppointmentId, sessions, isLoading }: DoctorPatientTimelineProps) {
-  const t = useTranslations('DoctorWorkspace');
-  const tTimeline = useTranslations('ClinicHistoryPage.timeline');
-  const [openItems, setOpenItems] = React.useState<string[]>([]);
-
-  React.useEffect(() => {
-    if (sessions.length === 0) {
-      setOpenItems([]);
-      return;
-    }
-
-    const latestSessionId = String(sessions[0].sesion_id);
-    setOpenItems((current) => {
-      if (current.includes(latestSessionId)) return current;
-      return [latestSessionId];
-    });
-  }, [sessions]);
-
-  const toggleItem = React.useCallback((sessionId: string) => {
-    setOpenItems((current) => (
-      current.includes(sessionId)
-        ? current.filter((item) => item !== sessionId)
-        : [...current, sessionId]
+    .sort((left, right) => (
+      left.date === right.date
+        ? left.time.localeCompare(right.time)
+        : left.date.localeCompare(right.date)
     ));
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        <Skeleton className="h-32 w-full rounded-[1.5rem]" />
-        <Skeleton className="h-24 w-full rounded-[1.5rem]" />
-        <Skeleton className="h-24 w-full rounded-[1.5rem]" />
-      </div>
-    );
-  }
-
-  if (sessions.length === 0) {
-    return (
-      <div className="rounded-[1.75rem] border border-dashed border-border bg-muted/20 p-8 text-center">
-        <p className="text-sm font-medium text-foreground">{tTimeline('noSessions')}</p>
-        <p className="mt-1 text-sm text-muted-foreground">{t('focus.timelineEmptyDescription')}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="relative space-y-3">
-      <div className="absolute bottom-0 left-3 top-0 w-px bg-gradient-to-b from-transparent via-border/60 to-transparent sm:left-[3.5rem]" />
-      {sessions.map((session, index) => {
-        const sessionId = String(session.sesion_id);
-        const isOpen = openItems.includes(sessionId);
-        const hasTreatments = Array.isArray(session.tratamientos) && session.tratamientos.length > 0;
-        const hasAttachments = Array.isArray(session.archivos_adjuntos) && session.archivos_adjuntos.length > 0;
-        const isLinkedToCurrentAppointment = Boolean(linkedAppointmentId && String(session.appointment_id ?? '') === linkedAppointmentId);
-        const SessionIcon = session.tipo_sesion === 'odontograma' ? Heart : Stethoscope;
-
-        let dateLabel = '—';
-        let yearLabel = '';
-        try {
-          const parsed = session.fecha_sesion ? new Date(session.fecha_sesion) : null;
-          if (parsed && !Number.isNaN(parsed.getTime())) {
-            dateLabel = format(parsed, 'd MMM');
-            yearLabel = format(parsed, 'yyyy');
-          }
-        } catch {}
-
-        return (
-          <Collapsible key={`${session.sesion_id}-${index}`} open={isOpen} onOpenChange={() => toggleItem(sessionId)}>
-            <div className="relative flex items-start gap-3 pl-9 sm:pl-[4.75rem]">
-              {/* Date + dot in the left gutter */}
-              <div className="absolute left-0 top-0 flex items-center gap-1.5">
-                <div className="hidden w-10 text-right sm:block">
-                  <p className="text-[11px] font-semibold leading-tight text-foreground/75 tabular-nums">{dateLabel}</p>
-                  <p className="text-[9px] font-medium text-muted-foreground/60 tabular-nums">{yearLabel}</p>
-                </div>
-                <div className={cn(
-                  'z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-background shadow-md',
-                  isLinkedToCurrentAppointment ? 'bg-primary' : 'bg-muted-foreground/15',
-                )}>
-                  <SessionIcon className={cn('h-3 w-3', isLinkedToCurrentAppointment ? 'text-primary-foreground' : 'text-muted-foreground')} />
-                </div>
-              </div>
-              <Card className={cn(
-                'min-w-0 flex-1 transition-all duration-200',
-                isLinkedToCurrentAppointment
-                  ? 'border border-primary/30 border-l-[3px] border-l-primary bg-primary/8 shadow-md ring-1 ring-primary/10'
-                  : 'border border-border/50 bg-card shadow-sm',
-              )}>
-                <CardHeader className="px-4 pt-3.5 pb-1">
-                  <div className="mb-1.5 flex items-center gap-1.5 sm:hidden">
-                    <span className="text-[11px] font-medium tabular-nums text-muted-foreground/70">{dateLabel}</span>
-                    {yearLabel && <span className="text-[10px] tabular-nums text-muted-foreground/50">· {yearLabel}</span>}
-                  </div>
-                  <div className="flex items-start justify-between gap-3">
-                    <CardTitle className="line-clamp-2 break-words text-sm font-semibold leading-tight text-foreground">
-                      {session.procedimiento_realizado || tTimeline('noTitle')}
-                    </CardTitle>
-                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                      {isLinkedToCurrentAppointment && (
-                        <Badge variant="default" className="rounded-full text-[10px] shadow-sm">
-                          {t('focus.currentAppointmentBadge')}
-                        </Badge>
-                      )}
-                      {index === 0 && !isLinkedToCurrentAppointment && (
-                        <Badge variant="secondary" className="rounded-full border border-sky-200/80 bg-sky-50 text-[10px] font-medium text-sky-700 hover:bg-sky-50">
-                          {t('focus.latestSessionBadge')}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-7 w-full justify-start px-4 py-1 text-xs text-muted-foreground/70 hover:bg-transparent hover:text-foreground">
-                    {isOpen ? <ChevronUp className="mr-1 h-3 w-3" /> : <ChevronDown className="mr-1 h-3 w-3" />}
-                    {isOpen ? tTimeline('hideDetails') : tTimeline('showDetails')}
-                  </Button>
-                </CollapsibleTrigger>
-
-                <CollapsibleContent>
-                  <CardContent className="space-y-2.5 px-4 pb-4 pt-2">
-                  {session.tipo_sesion === 'odontograma' && session.estado_odontograma && Object.keys(session.estado_odontograma).length > 0 && (() => {
-                    const grouped: Record<string, string[]> = {};
-                    Object.entries(session.estado_odontograma as Record<string, Record<string, string>>).forEach(([tooth, surfaces]) => {
-                      const seen = new Set<string>();
-                      Object.values(surfaces).forEach((condition) => {
-                        if (!seen.has(condition)) {
-                          seen.add(condition);
-                          if (!grouped[condition]) grouped[condition] = [];
-                          grouped[condition].push(tooth);
-                        }
-                      });
-                    });
-                    const entries = Object.entries(grouped);
-                    if (entries.length === 0) return null;
-                    return (
-                      <div className="border-l-[3px] border-violet-400/60 bg-violet-50/60 px-3 py-2.5">
-                        <p className="mb-2 text-xs font-semibold text-violet-600/90">
-                          {tTimeline('odontogramUpdate')}
-                        </p>
-                        <div className="space-y-1.5">
-                          {entries.map(([condition, teeth]) => {
-                            const def = CONDITION_MAP[condition as keyof typeof CONDITION_MAP];
-                            const label = def ? tTimeline(`conditions.${condition}` as Parameters<typeof tTimeline>[0]) : condition;
-                            return (
-                              <div key={condition} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
-                                <div className="flex shrink-0 items-center gap-1.5">
-                                  {def && (
-                                    <span
-                                      className="inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[10px] font-bold text-white"
-                                      style={{ backgroundColor: def.color }}
-                                    >
-                                      {def.icon}
-                                    </span>
-                                  )}
-                                  <span className="text-xs font-medium text-foreground/80">{label}:</span>
-                                </div>
-                                <span className="text-xs text-muted-foreground tabular-nums">
-                                  {teeth.sort((a, b) => Number(a) - Number(b)).join(', ')}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                  {session.diagnostico && (
-                    <div className="border-l-[3px] border-red-400/60 bg-red-50/60 px-3 py-2.5">
-                      <p className="mb-1 text-xs font-semibold text-red-500">
-                        {tTimeline('diagnosis')}
-                      </p>
-                      <p className="text-sm leading-relaxed text-foreground">{session.diagnostico}</p>
-                    </div>
-                  )}
-                  {session.notas_clinicas && (
-                    <div className="border-l-[3px] border-cyan-400/60 bg-cyan-50/60 px-3 py-2.5">
-                      <p className="mb-1 text-xs font-semibold text-cyan-600/90">
-                        {tTimeline('notes')}
-                      </p>
-                      <p className="text-sm leading-relaxed text-foreground">{session.notas_clinicas}</p>
-                    </div>
-                  )}
-                  {session.plan_proxima_cita && session.plan_proxima_cita.trim() !== '{}' && (
-                    <div className="border-l-[3px] border-blue-400/60 bg-blue-50/60 px-3 py-2.5">
-                      <p className="mb-1 text-xs font-semibold text-blue-600/90">
-                        {tTimeline('nextPlan')}
-                      </p>
-                      <p className="text-sm leading-relaxed text-foreground">{session.plan_proxima_cita}</p>
-                    </div>
-                  )}
-                  {hasTreatments && (
-                    <div className="border-l-[3px] border-green-500/60 bg-green-50/60 px-3 py-2.5">
-                      <p className="mb-2 text-xs font-semibold text-green-600/90">
-                        {tTimeline('treatments')}
-                      </p>
-                      <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
-                        {session.tratamientos.map((treatment, treatmentIndex) => (
-                          <div
-                            key={`${session.sesion_id}-treatment-${treatmentIndex}`}
-                            className="flex min-w-0 items-baseline gap-2"
-                          >
-                            {treatment.numero_diente ? (
-                              <span className="shrink-0 rounded-md border border-primary/15 bg-primary/8 px-1.5 py-0.5 font-mono text-xs font-semibold text-primary/80">
-                                {tTimeline('tooth')} {treatment.numero_diente}
-                              </span>
-                            ) : null}
-                            <p className="break-words text-sm leading-relaxed text-muted-foreground">
-                              {treatment.descripcion}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {hasAttachments && (
-                    <div className="border-l-[3px] border-amber-500/60 bg-amber-50/60 px-3 py-2.5">
-                      <p className="mb-2 text-xs font-semibold text-amber-600/90">
-                        {tTimeline('attachments')}
-                      </p>
-                      <div className="flex flex-wrap gap-1.5">
-                        {session.archivos_adjuntos.map((attachment, attachmentIndex) => (
-                          <div
-                            key={`${session.sesion_id}-attachment-${attachmentIndex}`}
-                            className="flex items-center gap-1 rounded border border-muted bg-background px-2 py-1 text-xs"
-                          >
-                            <FileText className="h-3 w-3 text-amber-500" />
-                            {attachment.file_name || attachment.ruta || 'Adjunto'}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  </CardContent>
-                </CollapsibleContent>
-              </Card>
-            </div>
-          </Collapsible>
-        );
-      })}
-    </div>
-  );
 }
 
 export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspaceProps) {
   const t = useTranslations('DoctorWorkspace');
   const tStatus = useTranslations('AppointmentStatus');
   const { user } = useAuth();
-  const { permissions, roles } = usePermissions();
-  const { createSession, updateSession } = useClinicHistory();
+  const { permissions, roles, hasPermission } = usePermissions();
+  const {
+    createSession,
+    updateSession,
+    deleteSession,
+    fetchDoctors,
+    doctors,
+    isLoadingDoctors,
+    isSubmittingSession,
+    getSessionAttachment,
+  } = useClinicHistory();
   const canManageSessions = React.useMemo(() => canManageDoctorWorkspaceSessions(permissions, roles), [permissions, roles]);
+  // Recetar no depende de poder editar la sesión ni de la fecha de la cita.
+  const canPrescribe = hasPermission(TIMELINE_PERMISSIONS.PRESCRIPTIONS_CREATE);
   const isMobile = useViewportNarrow(1024);
 
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [selectedAppointmentId, setSelectedAppointmentId] = React.useState<string | null>(null);
-  // Calendar access: doctors with the `can_browse_calendars` flag and at least one
-  // assigned calendar can switch the agenda between their own appointments and a
-  // shared calendar's appointments. The flag ideally comes from AUTH_ME; if that
-  // endpoint doesn't provide it yet, we fall back to fetching the user's record.
-  const [canBrowseCalendars, setCanBrowseCalendars] = React.useState<boolean>(Boolean(user?.can_browse_calendars));
+  const [dateRange, setDateRange] = React.useState<WorkspaceDateRange>(() => getWorkspacePresetRange('today'));
+  const [datePreset, setDatePreset] = React.useState<WorkspaceDatePreset>('today');
+  const isSingleDayRange = React.useMemo(() => isSameDay(dateRange.from, dateRange.to), [dateRange]);
+  const isViewingToday = React.useMemo(
+    () => isSingleDayRange && isSameDay(dateRange.from, new Date()),
+    [dateRange, isSingleDayRange],
+  );
+  const dateFnsLocale = getDateFnsLocale(locale);
+
+  const handleDateRangeChange = React.useCallback((range: WorkspaceDateRange, preset: WorkspaceDatePreset) => {
+    setDateRange(range);
+    setDatePreset(preset);
+  }, []);
+
+  const goToToday = React.useCallback(() => {
+    handleDateRangeChange(getWorkspacePresetRange('today'), 'today');
+  }, [handleDateRangeChange]);
+  // Calendar access: doctors with at least one assigned calendar can switch the
+  // agenda between their own appointments and a shared calendar's appointments.
   const [accessibleCalendars, setAccessibleCalendars] = React.useState<{ id: string; name: string; color?: string }[]>([]);
   const [viewMode, setViewMode] = React.useState<'mine' | 'calendar'>('mine');
   const [selectedCalendarId, setSelectedCalendarId] = React.useState<string>('');
@@ -1032,6 +865,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   const [isLoadingTimeline, setIsLoadingTimeline] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [clinicSessionOpen, setClinicSessionOpen] = React.useState(false);
+  const [prescriptionOpen, setPrescriptionOpen] = React.useState(false);
   const [patientFichaOpen, setPatientFichaOpen] = React.useState(false);
   const [patientFichaDefaultView, setPatientFichaDefaultView] = React.useState<'anamnesis' | 'timeline' | undefined>(undefined);
   const [mobileDetailsOpen, setMobileDetailsOpen] = React.useState(false);
@@ -1044,8 +878,10 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   } | null>(null);
   const [agentSessionTreatments, setAgentSessionTreatments] = React.useState<TreatmentDetail[]>([]);
   const [activePanel, setActivePanel] = React.useState<'sessions' | 'odontogram'>('sessions');
-  const [odontogramAutoStart, setOdontogramAutoStart] = React.useState(false);
-  const [odontogramPrefill, setOdontogramPrefill] = React.useState<{ description: string; notes: string; marcaciones?: import('@/lib/types').OdontogramMarcacion[] } | null>(null);
+  // Each agent request gets its own key so the odontogram applies it even when it is already open
+  const [odontogramPrefill, setOdontogramPrefill] = React.useState<{ key: number; description: string; notes: string; nextSessionPlan: string; marcaciones?: import('@/lib/types').OdontogramMarcacion[] } | null>(null);
+  const odontogramPrefillKeyRef = React.useRef(0);
+  const pendingOdontogramPrefillsRef = React.useRef(new Map<number, (result: DoctorAgentActionResult) => void>());
   const [lastUpdatedAt, setLastUpdatedAt] = React.useState<Date | null>(null);
   const contextRequestRef = React.useRef(0);
   // Tracks the last appointment context loaded (id:patientId). Used to distinguish a genuine
@@ -1058,6 +894,24 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     [appointments, selectedAppointmentId],
   );
 
+  // Clinical sessions can be created/edited on the appointment's day or any day after (the
+  // doctor may not get to it until later), but not before it happens: future appointments
+  // haven't happened yet. With a date range the agenda can mix days, so this is evaluated
+  // per selected appointment, not per filter.
+  const selectedAppointmentDate = selectedAppointment?.date
+    ? parseISO(`${formatDate(selectedAppointment.date)}T00:00:00`)
+    : null;
+  const hasValidSelectedDate = Boolean(selectedAppointmentDate && !Number.isNaN(selectedAppointmentDate.getTime()));
+  const todayStart = React.useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    return now;
+  }, []);
+  const isSessionEditingBlockedByDate = !hasValidSelectedDate || selectedAppointmentDate! > todayStart;
+  const selectedAppointmentDateLabel = hasValidSelectedDate
+    ? format(selectedAppointmentDate!, 'EEEE d MMM', { locale: dateFnsLocale })
+    : '';
+
   React.useEffect(() => {
     if (!isMobile) {
       setMobileDetailsOpen(false);
@@ -1066,7 +920,6 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
 
   React.useEffect(() => {
     setActivePanel('sessions');
-    setOdontogramAutoStart(false);
     setOdontogramPrefill(null);
   }, [selectedAppointmentId]);
 
@@ -1097,23 +950,20 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       const source: WorkspaceAppointmentSource = useCalendar
         ? { mode: 'calendar', calendarId: selectedCalendarId }
         : { mode: 'doctor', doctorId: String(user.id) };
-      const data = await getAppointmentsForToday(source);
-      const dateKey = formatDate(new Date());
-      const storageKey = getKnownAppointmentsStorageKey(String(user.id), dateKey);
-      const previousAppointmentIds = readKnownAppointmentIds(storageKey);
-      const previousAppointmentIdsSet = new Set(previousAppointmentIds);
-      const newAppointments = previousAppointmentIds.length > 0
-        ? data.filter((appointment) => !previousAppointmentIdsSet.has(appointment.id))
-        : [];
-
-      writeKnownAppointmentIds(storageKey, data.map((appointment) => appointment.id));
+      const data = await getAppointmentsForRange(source, dateRange.from, dateRange.to);
+      const todayKey = formatDate(new Date());
 
       React.startTransition(() => {
         setAppointments(data);
         setSelectedAppointmentId((current) => {
           if (current && data.some((appointment) => appointment.id === current)) return current;
           if (initialAppointmentId && data.some((a) => a.id === initialAppointmentId)) return initialAppointmentId;
-          return data[0]?.id ?? null;
+          // On a multi-day range, start on today's agenda when the period includes it, and
+          // within today start on the appointment the doctor is on right now (or the next one)
+          // so the clinical panel matches what the agenda auto-scrolls to.
+          const todayAppointments = data.filter((appointment) => formatDate(appointment.date) === todayKey);
+          const todayAppointment = findCurrentAppointment(todayAppointments, new Date());
+          return todayAppointment?.id ?? data[0]?.id ?? null;
         });
         setLastUpdatedAt(new Date());
       });
@@ -1124,44 +974,12 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       setIsRefreshing(false);
       setIsLoadingAppointments(false);
     }
-  }, [user?.id, viewMode, selectedCalendarId]);
+  }, [user?.id, viewMode, selectedCalendarId, dateRange]);
 
-  // Resolve the `can_browse_calendars` flag for the logged-in doctor. Prefer the value
-  // from AUTH_ME; if it isn't present, fetch the user's record from the USERS endpoint.
+  // Load the calendars this doctor has been granted access to. If none, the agenda
+  // source switch is hidden and the doctor only sees their own appointments.
   React.useEffect(() => {
-    if (user?.can_browse_calendars !== undefined) {
-      setCanBrowseCalendars(Boolean(user.can_browse_calendars));
-      return;
-    }
     if (!user?.id) {
-      setCanBrowseCalendars(false);
-      return;
-    }
-    let cancelled = false;
-    api.get(API_ROUTES.USERS, { search: String(user.id), filter_type: 'DOCTOR', limit: '5' })
-      .then((data: any) => {
-        if (cancelled) return;
-        let rows: any[] = [];
-        if (Array.isArray(data) && data.length > 0) {
-          const first = data[0];
-          if (first?.json?.data) rows = first.json.data;
-          else if (first?.data) rows = first.data;
-          else rows = data;
-        } else if (data?.data) {
-          rows = data.data;
-        }
-        const me = rows.find((row: any) => String(row.id) === String(user.id));
-        setCanBrowseCalendars(Boolean(me?.can_browse_calendars));
-      })
-      .catch(() => { if (!cancelled) setCanBrowseCalendars(false); });
-    return () => { cancelled = true; };
-  }, [user?.id, user?.can_browse_calendars]);
-
-  // Load the calendars this doctor has been granted access to. Only when the doctor
-  // has the `can_browse_calendars` flag enabled. If none, the agenda source switch is
-  // hidden and the doctor only sees their own appointments.
-  React.useEffect(() => {
-    if (!user?.id || !canBrowseCalendars) {
       setAccessibleCalendars([]);
       return;
     }
@@ -1183,7 +1001,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
         if (!cancelled) setAccessibleCalendars([]);
       });
     return () => { cancelled = true; };
-  }, [user?.id, canBrowseCalendars]);
+  }, [user?.id]);
 
   // Keep the selected calendar valid: when switching to calendar mode without a
   // selection, default to the first accessible calendar; clear it if access is lost.
@@ -1194,12 +1012,12 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     });
   }, [accessibleCalendars]);
 
-  // If the doctor loses calendar access (flag off / no calendars), fall back to "mine".
+  // If the doctor loses calendar access (no calendars assigned), fall back to "mine".
   React.useEffect(() => {
-    if ((!canBrowseCalendars || accessibleCalendars.length === 0) && viewMode !== 'mine') {
+    if (accessibleCalendars.length === 0 && viewMode !== 'mine') {
       setViewMode('mine');
     }
-  }, [canBrowseCalendars, accessibleCalendars.length, viewMode]);
+  }, [accessibleCalendars.length, viewMode]);
 
   const loadLinkedSession = React.useCallback(async (appointment: Appointment | null, requestId?: number, silent = false) => {
     if (!appointment?.patientId) {
@@ -1235,6 +1053,12 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       }
     }
   }, []);
+
+  // La línea de tiempo pide recargar tras guardar o borrar una sesión. El paciente ya
+  // viene dado por la cita seleccionada, así que se ignora el userId que envía.
+  const handleRefreshSessions = React.useCallback(async () => {
+    await loadLinkedSession(selectedAppointment, undefined, true);
+  }, [loadLinkedSession, selectedAppointment]);
 
   const loadQuoteItems = React.useCallback(async (appointment: Appointment | null, requestId?: number) => {
     if (!appointment?.quote_id) {
@@ -1339,8 +1163,24 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     };
   }, [loadAppointments]);
 
+  const completeAppointmentWithDocumentCheck = useCompleteAppointmentWithDocumentCheck();
+
+  // Pasa la cita a "completada" al guardar su sesión. Si el paciente no tiene el
+  // documento que exige ese estado, la sesión queda guardada y la cita conserva su
+  // estado hasta que se cargue el documento desde el aviso (ahí se completa sola).
+  const completeSelectedAppointment = React.useCallback(async (appointment: Appointment) => {
+    const userId = String(user?.id ?? '');
+    markAppointmentLocallyUpdated(userId, appointment.id);
+    const completed = await completeAppointmentWithDocumentCheck(appointment, () => {
+      markAppointmentLocallyUpdated(userId, appointment.id);
+      updateKnownAppointmentStatus(userId, appointment.id, 'completed');
+      void loadAppointments(true);
+    });
+    if (completed) updateKnownAppointmentStatus(userId, appointment.id, 'completed');
+  }, [completeAppointmentWithDocumentCheck, loadAppointments, user?.id]);
+
   const handleSaveClinicSession = React.useCallback(async (data: ClinicSessionFormData) => {
-    if (!selectedAppointment?.patientId) return;
+    if (!selectedAppointment?.patientId || isSessionEditingBlockedByDate) return;
 
     // Obtener sesion_id: para updates ya lo tenemos; para creates lo retorna createSession.
     let sesionId: number | undefined;
@@ -1359,20 +1199,16 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     }
 
     if (selectedAppointment.status !== 'completed') {
-      markAppointmentLocallyUpdated(String(user?.id ?? ''), selectedAppointment.id);
-      updateKnownAppointmentStatus(String(user?.id ?? ''), selectedAppointment.id, 'completed');
-      await updateAppointmentStatusRequest({
-        appointment: selectedAppointment,
-        newStatus: 'completed',
-      });
+      await completeSelectedAppointment(selectedAppointment);
     }
 
     await loadLinkedSession(selectedAppointment);
     await loadAppointments(true);
   }, [
+    completeSelectedAppointment,
     createSession,
-    linkedSession?.archivos_adjuntos,
-    linkedSession?.sesion_id,
+    isSessionEditingBlockedByDate,
+    linkedSession,
     loadAppointments,
     loadLinkedSession,
     selectedAppointment,
@@ -1392,13 +1228,27 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     [quoteItems],
   );
 
+  // In calendar view, an appointment may not be assigned to any doctor, or may be
+  // assigned to a different doctor than the one actually completing it right now.
+  // In that case, default the session's doctor to the logged-in doctor instead of
+  // whatever (or whoever) is configured on the appointment.
+  const isAppointmentUnownedInCalendar = viewMode === 'calendar'
+    && (!selectedAppointment?.doctorId || selectedAppointment.doctorId !== String(user?.id ?? ''));
+
+  const sessionDoctorId = isAppointmentUnownedInCalendar
+    ? String(user?.id ?? '')
+    : selectedAppointment?.doctorId;
+  const sessionDoctorName = isAppointmentUnownedInCalendar
+    ? (user?.name ?? '')
+    : selectedAppointment?.doctorName;
+
   const clinicSessionPrefillData = React.useMemo(() => ({
-    doctor_id: selectedAppointment?.doctorId,
-    doctor_name: selectedAppointment?.doctorName,
+    doctor_id: sessionDoctorId,
+    doctor_name: sessionDoctorName,
     procedimiento_realizado: agentSessionPrefill?.procedimiento_realizado,
     plan_proxima_cita: agentSessionPrefill?.plan_proxima_cita,
     fecha_proxima_cita: agentSessionPrefill?.fecha_proxima_cita,
-  }), [selectedAppointment?.doctorId, selectedAppointment?.doctorName, agentSessionPrefill]);
+  }), [sessionDoctorId, sessionDoctorName, agentSessionPrefill]);
 
   const clinicSessionPrefillTreatments = React.useMemo(
     () => agentSessionTreatments.length > 0 ? agentSessionTreatments : prefillTreatments,
@@ -1431,17 +1281,39 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
       return { success: false, message: t('focus.ai.actionAppointmentContextMissing') };
     }
 
+    if (
+      (action.type === 'open_odontogram' || action.type === 'open_clinic_session')
+      && isSessionEditingBlockedByDate
+    ) {
+      return { success: false, message: t('focus.sessionOnlyOnAppointmentDay') };
+    }
+
     if (action.type === 'open_odontogram') {
       const payload = action.payload || {};
+      const key = ++odontogramPrefillKeyRef.current;
       if (isMobile) setMobileDetailsOpen(true);
       setActivePanel('odontogram');
-      setOdontogramAutoStart(true);
+      const title = (payload.procedimiento_realizado || '').trim();
+      const dictatedNotes = (payload.notas_clinicas || '').trim();
+      // A long title with no notes is the procedures text put in the wrong field: keep it visible
+      const titleIsNotes = !dictatedNotes && (title.length > ODONTOGRAM_TITLE_MAX_LENGTH || title.includes('\n'));
       setOdontogramPrefill({
-        description: payload.procedimiento_realizado || '',
-        notes: payload.notas_clinicas || '',
+        key,
+        description: titleIsNotes ? '' : title,
+        notes: titleIsNotes ? title : dictatedNotes,
+        nextSessionPlan: (payload.plan_proxima_cita || '').trim(),
         marcaciones: payload.marcaciones ?? [],
       });
-      return { success: true };
+      // Answer the agent only once the odontogram reports what actually happened
+      return new Promise<DoctorAgentActionResult>((resolve) => {
+        const pending = pendingOdontogramPrefillsRef.current;
+        pending.set(key, resolve);
+        window.setTimeout(() => {
+          if (!pending.has(key)) return;
+          pending.delete(key);
+          resolve({ success: false, message: t('focus.ai.odontogramNotConfirmed') });
+        }, ODONTOGRAM_PREFILL_TIMEOUT_MS);
+      });
     }
 
     if (action.type === 'open_clinic_session') {
@@ -1460,20 +1332,24 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     }
 
     return { success: false, message: t('focus.ai.actionUnsupported') };
-  }, [isMobile, linkedSession, selectedAppointment, t]);
+  }, [isMobile, isSessionEditingBlockedByDate, linkedSession, selectedAppointment, t]);
+
+  const handleOdontogramPrefillHandled = React.useCallback((key: number, result: OdontogramPrefillResult) => {
+    // Consumed: a remount of the odontogram must not apply the same request again
+    setOdontogramPrefill((prev) => (prev?.key === key ? null : prev));
+    const resolve = pendingOdontogramPrefillsRef.current.get(key);
+    if (!resolve) return;
+    pendingOdontogramPrefillsRef.current.delete(key);
+    resolve(result.applied ? { success: true } : { success: false, message: t('focus.ai.odontogramNotApplied') });
+  }, [t]);
 
   const handleOdontogramSessionSaved = React.useCallback(async () => {
-    if (!selectedAppointment) return;
+    if (!selectedAppointment || isSessionEditingBlockedByDate) return;
     if (selectedAppointment.status !== 'completed') {
-      markAppointmentLocallyUpdated(String(user?.id ?? ''), selectedAppointment.id);
-      updateKnownAppointmentStatus(String(user?.id ?? ''), selectedAppointment.id, 'completed');
-      await updateAppointmentStatusRequest({
-        appointment: selectedAppointment,
-        newStatus: 'completed',
-      });
+      await completeSelectedAppointment(selectedAppointment);
     }
     await loadAppointments(true);
-  }, [loadAppointments, selectedAppointment, user?.id]);
+  }, [completeSelectedAppointment, isSessionEditingBlockedByDate, loadAppointments, selectedAppointment]);
 
   const handleClinicSessionOpenChange = React.useCallback((open: boolean) => {
     setClinicSessionOpen(open);
@@ -1483,15 +1359,15 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   }, [clearAgentSessionDraft]);
 
   const handleAgentDirectSave = React.useCallback(async (payload: DoctorAgentActionPayload) => {
-    if (!selectedAppointment?.patientId) return;
+    if (!selectedAppointment?.patientId || isSessionEditingBlockedByDate) return;
 
     const fecha = selectedAppointment.start?.dateTime
       ? format(parseISO(selectedAppointment.start.dateTime.replace(/Z$/, '')), 'yyyy-MM-dd')
       : format(new Date(), 'yyyy-MM-dd');
 
     const data: ClinicSessionFormData = {
-      doctor_id: payload.doctor_id || selectedAppointment.doctorId,
-      doctor_name: payload.doctor_name || selectedAppointment.doctorName || '',
+      doctor_id: payload.doctor_id || sessionDoctorId,
+      doctor_name: payload.doctor_name || sessionDoctorName || '',
       fecha_sesion: fecha,
       procedimiento_realizado: payload.procedimiento_realizado || '',
       plan_proxima_cita: payload.plan_proxima_cita,
@@ -1502,24 +1378,41 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
     };
 
     await handleSaveClinicSession(data);
-  }, [handleSaveClinicSession, linkedSession, prefillTreatments, selectedAppointment]);
+  }, [handleSaveClinicSession, isSessionEditingBlockedByDate, linkedSession, prefillTreatments, selectedAppointment, sessionDoctorId, sessionDoctorName]);
 
   const handleDoctorAgentAction = React.useCallback((action: DoctorAgentAction) => (
     executeDoctorAgentAction(action)
   ), [executeDoctorAgentAction]);
 
+  // En mobile viaja a la fila de "Volver a la agenda"; en desktop se queda a la
+  // derecha de la cabecera del paciente.
+  const patientFileButton = (
+    <Button
+      variant="outline"
+      size="sm"
+      className={cn('shrink-0', isMobile ? 'h-8' : 'self-start')}
+      onClick={() => setPatientFichaOpen(true)}
+    >
+      <BookUser className="h-4 w-4 sm:mr-2" />
+      <span className="hidden sm:inline">{t('focus.viewPatientFile')}</span>
+    </Button>
+  );
+
   const renderDetailPanel = selectedAppointment ? (
     <Card className="flex h-full flex-col overflow-hidden">
       <CardContent className="flex flex-col flex-1 min-h-0 overflow-hidden gap-3 p-3 sm:p-4">
         {isMobile && (
-          <Button variant="ghost" className="-ml-1 h-8 w-fit px-2 text-sm" onClick={() => setMobileDetailsOpen(false)}>
-            <ArrowLeft className="mr-1.5 h-4 w-4" />
-            {t('focus.backToAgenda')}
-          </Button>
+          <div className="flex shrink-0 items-center justify-between gap-2">
+            <Button variant="ghost" className="-ml-1 h-8 w-fit px-2 text-sm" onClick={() => setMobileDetailsOpen(false)}>
+              <ArrowLeft className="mr-1.5 h-4 w-4" />
+              {t('focus.backToAgenda')}
+            </Button>
+            {patientFileButton}
+          </div>
         )}
 
-        <div className="flex shrink-0 flex-row items-start justify-between gap-3 border-b pb-3 sm:pb-4">
-            <div className="flex min-w-0 items-start gap-3">
+        <div className="flex shrink-0 flex-row items-center justify-between gap-3 border-b pb-2.5 sm:pb-4">
+            <div className="flex min-w-0 items-center gap-3">
               <TooltipProvider>
                 {hasAlerts ? (
                   <Popover>
@@ -1529,20 +1422,22 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                           <button type="button" className="flex-none cursor-pointer">
                             <div className="relative flex-none">
                               <span
-                                className="absolute inset-0 rounded-full animate-ping"
-                                style={
-                                  alertAllergies.length > 0
-                                    ? { backgroundColor: 'rgb(220 38 38)', opacity: 0.35 }
-                                    : { backgroundColor: 'rgb(217 119 6)', opacity: 0.35 }
-                                }
+                                className={cn(
+                                  'absolute inset-0 rounded-full animate-ping opacity-35',
+                                  alertAllergies.length > 0 ? 'bg-red-600 dark:bg-red-500' : 'bg-amber-600 dark:bg-amber-500',
+                                )}
                               />
+                              {/* Sin `header-icon-circle`: esa clase se define después de
+                                  `@tailwind utilities` en globals.css, así que su fondo (y el de
+                                  `.dark .header-icon-circle`) le gana a las clases de color. Se
+                                  repite su geometría y el color va por clases con par oscuro. */}
                               <div
-                                className="header-icon-circle relative"
-                                style={
+                                className={cn(
+                                  'relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
                                   alertAllergies.length > 0
-                                    ? { backgroundColor: 'rgb(254 226 226)', color: 'rgb(220 38 38)' }
-                                    : { backgroundColor: 'rgb(254 243 199)', color: 'rgb(217 119 6)' }
-                                }
+                                    ? 'bg-red-100 text-red-600 dark:bg-red-950/50 dark:text-red-400'
+                                    : 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400',
+                                )}
                               >
                                 <AlertTriangle className="h-5 w-5" />
                               </div>
@@ -1575,13 +1470,13 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                       )}
                       {alertConditions.length > 0 && (
                         <div className="space-y-1.5">
-                          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide flex items-center gap-1">
+                          <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide flex items-center gap-1">
                             <Heart className="h-3 w-3" />
                             Padecimientos
                           </p>
                           <div className="flex flex-wrap gap-1">
                             {alertConditions.map((c, i) => (
-                              <Badge key={i} variant="secondary" className="gap-1 text-xs font-normal bg-amber-100 text-amber-800 hover:bg-amber-100">
+                              <Badge key={i} variant="secondary" className="gap-1 text-xs font-normal bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:hover:bg-amber-950/40">
                                 {c.label}
                               </Badge>
                             ))}
@@ -1610,29 +1505,31 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                 )}
               </TooltipProvider>
               <div className="min-w-0">
-                <p className="text-xl font-semibold leading-tight text-foreground sm:text-2xl">
+                <p className="text-base font-semibold leading-tight text-foreground sm:text-xl">
                   {selectedAppointment.patientName || t('agenda.unknownPatient')}
                 </p>
-                <p className="text-sm text-muted-foreground">
-                  {hasAlerts
-                    ? [
-                        alertAllergies.length > 0 ? `${alertAllergies.length} alergia(s)` : '',
-                        alertConditions.length > 0 ? `${alertConditions.length} padecimiento(s)` : '',
-                      ].filter(Boolean).join(' · ')
-                    : t('focus.noClinicalSignals')}
-                </p>
+                {/* Solo se lista lo que el paciente tiene. Cuando no hay nada, el ícono
+                    neutro de la izquierda ya lo dice y una línea de texto solo ocupa alto. */}
+                {hasAlerts && (
+                  <p className="text-xs text-muted-foreground sm:text-sm">
+                    {[
+                      alertAllergies.length > 0 ? `${alertAllergies.length} alergia(s)` : '',
+                      alertConditions.length > 0 ? `${alertConditions.length} padecimiento(s)` : '',
+                    ].filter(Boolean).join(' · ')}
+                  </p>
+                )}
+                {isSessionEditingBlockedByDate && (
+                  <Badge variant="outline" className="mt-1 gap-1 text-[10px] font-medium capitalize">
+                    <Lock className="h-3 w-3" />
+                    {selectedAppointmentDateLabel
+                      ? t('focus.readOnlyOnDate', { date: selectedAppointmentDateLabel })
+                      : t('focus.readOnly')}
+                  </Badge>
+                )}
               </div>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0 self-start"
-              onClick={() => setPatientFichaOpen(true)}
-            >
-              <BookUser className="h-4 w-4 sm:mr-2" />
-              <span className="hidden sm:inline">{t('focus.viewPatientFile')}</span>
-            </Button>
+            {!isMobile && patientFileButton}
         </div>
 
         <div className="flex flex-col flex-1 min-h-0">
@@ -1641,7 +1538,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
               <div className="flex overflow-hidden rounded-md border text-xs">
                 <button
                   type="button"
-                  onClick={() => { setActivePanel('sessions'); setOdontogramAutoStart(false); setOdontogramPrefill(null); }}
+                  onClick={() => { setActivePanel('sessions'); setOdontogramPrefill(null); }}
                   className={cn(
                     'whitespace-nowrap px-3 py-1.5 font-medium transition-colors',
                     activePanel === 'sessions'
@@ -1666,9 +1563,15 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
               </div>
 
               {activePanel === 'sessions' && (
-                <Button size="sm" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession} className="hidden shrink-0 sm:inline-flex" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
+                <Button size="sm" onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession || isSessionEditingBlockedByDate} className="hidden shrink-0 sm:inline-flex" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
                   <ClipboardCheck className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">{nextActionLabel}</span>
+                </Button>
+              )}
+              {activePanel === 'sessions' && canPrescribe && (
+                <Button size="sm" variant="outline" onClick={() => setPrescriptionOpen(true)} className="hidden shrink-0 sm:inline-flex">
+                  <Pill className="h-4 w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{t('focus.prescribe')}</span>
                 </Button>
               )}
             </div>
@@ -1677,17 +1580,40 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
             {activePanel === 'sessions' ? (
               <>
                 <div className="flex-1 min-h-0 overflow-y-auto pr-1 pb-2">
-                  <DoctorPatientTimeline
-                    linkedAppointmentId={selectedAppointment.id}
+                  {/* Misma línea de tiempo que la historia clínica, en modo doctor y sin
+                      citas: acordeón con la sesión más reciente desplegada, sin truncar. */}
+                  <TreatmentTimeline
                     sessions={patientSessions}
+                    appointments={[]}
                     isLoading={isLoadingTimeline}
+                    userId={selectedAppointment.patientId}
+                    userName={selectedAppointment.patientName}
+                    doctors={doctors}
+                    isLoadingDoctors={isLoadingDoctors}
+                    isSubmittingSession={isSubmittingSession}
+                    onCreateSession={createSession}
+                    onUpdateSession={updateSession}
+                    onDeleteSession={deleteSession}
+                    onFetchDoctors={fetchDoctors}
+                    onRefreshAll={handleRefreshSessions}
+                    onLoadSessionAttachment={getSessionAttachment}
+                    linkedAppointmentId={selectedAppointment.id}
+                    isDoctorMode
+                    hideToolbar
+                    readOnly={!canManageSessions}
                   />
                 </div>
-                <div className="mt-2 shrink-0 border-t pt-3 sm:hidden">
-                  <Button onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession} className="w-full" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
+                <div className="mt-2 flex shrink-0 gap-2 border-t pt-3 sm:hidden">
+                  <Button onClick={() => setClinicSessionOpen(true)} disabled={!canManageSessions || isNewSessionBlocked || isOdontogramSession || isSessionEditingBlockedByDate} className="flex-1" title={isOdontogramSession ? t('focus.sessionIsOdontogram') : isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : isNewSessionBlocked ? t('focus.sessionExistsToday') : undefined}>
                     <ClipboardCheck className="mr-2 h-4 w-4" />
                     {nextActionLabel}
                   </Button>
+                  {canPrescribe && (
+                    <Button variant="outline" onClick={() => setPrescriptionOpen(true)} className="flex-1">
+                      <Pill className="mr-2 h-4 w-4" />
+                      {t('focus.prescribe')}
+                    </Button>
+                  )}
                 </div>
               </>
             ) : (
@@ -1695,15 +1621,20 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                 <DentalRecordViewer
                   patientId={selectedAppointment.patientId}
                   patientName={selectedAppointment.patientName}
-                  doctorId={selectedAppointment.doctorId}
-                  doctorName={selectedAppointment.doctorName}
-                  autoStartSession={odontogramAutoStart && !isOdontogramSession}
+                  // Same doctor resolution as the clinical session: the logged-in doctor when the
+                  // appointment is unassigned or belongs to someone else (calendar view)
+                  doctorId={sessionDoctorId || undefined}
+                  doctorName={sessionDoctorName || undefined}
+                  autoStartKey={odontogramPrefill?.key}
+                  onAutoStartHandled={handleOdontogramPrefillHandled}
                   autoStartDescription={odontogramPrefill?.description}
                   autoStartNotes={odontogramPrefill?.notes}
+                  autoStartNextSessionPlan={odontogramPrefill?.nextSessionPlan}
                   autoStartMarcaciones={odontogramPrefill?.marcaciones}
                   onSessionSaved={handleOdontogramSessionSaved}
                   autoNavigateToAppointmentSession={isOdontogramSession}
-                  blockNewSession={isOdontogramSession}
+                  blockNewSession={isOdontogramSession || isSessionEditingBlockedByDate}
+                  blockNewSessionMessage={isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : undefined}
                   appointmentId={selectedAppointment.id}
                   hideBillingWizard
                 />
@@ -1715,7 +1646,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
   ) : (
     <Card className="flex h-full flex-col overflow-hidden">
       <CardContent className="p-6">
-        <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-6 text-sm text-muted-foreground">
+        <div className="rounded-2xl border border-dashed border-border bg-muted/20 dark:bg-muted/40 p-6 text-sm text-muted-foreground">
           {t('focus.empty')}
         </div>
       </CardContent>
@@ -1736,7 +1667,9 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                     <CalendarDays className="h-4 w-4" />
                   </div>
                   <div>
-                    <CardTitle className="text-sm font-semibold">{t('agenda.title')}</CardTitle>
+                    <CardTitle className="text-sm font-semibold">
+                      {t(isSingleDayRange ? 'agenda.title' : 'agenda.titleRange')}
+                    </CardTitle>
                     <CardDescription className="text-xs">{t('agenda.description')}</CardDescription>
                   </div>
                 </div>
@@ -1745,7 +1678,27 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                 </Button>
               </CardHeader>
 
-              {canBrowseCalendars && accessibleCalendars.length > 0 && (
+              <div className="shrink-0 flex items-center gap-2 border-b px-4 py-2.5">
+                <WorkspaceDateRangeFilter
+                  value={dateRange}
+                  preset={datePreset}
+                  onChange={handleDateRangeChange}
+                  dateLocale={dateFnsLocale}
+                  className="flex-1"
+                />
+                {!isViewingToday && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 shrink-0 text-xs font-medium"
+                    onClick={goToToday}
+                  >
+                    {t('agenda.today')}
+                  </Button>
+                )}
+              </div>
+
+              {accessibleCalendars.length > 0 && (
                 <div className="shrink-0 space-y-2 border-b px-4 py-2.5">
                   <div className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-0.5">
                     <button
@@ -1753,7 +1706,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                       onClick={() => setViewMode('mine')}
                       className={cn(
                         'rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
-                        viewMode === 'mine' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                        viewMode === 'mine' ? 'bg-background text-foreground shadow-sm dark:ring-1 dark:ring-inset dark:ring-border' : 'text-muted-foreground hover:text-foreground',
                       )}
                     >
                       {t('calendarSwitch.assignedToMe')}
@@ -1763,7 +1716,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                       onClick={() => setViewMode('calendar')}
                       className={cn(
                         'rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
-                        viewMode === 'calendar' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+                        viewMode === 'calendar' ? 'bg-background text-foreground shadow-sm dark:ring-1 dark:ring-inset dark:ring-border' : 'text-muted-foreground hover:text-foreground',
                       )}
                     >
                       {t('calendarSwitch.myCalendars')}
@@ -1793,9 +1746,12 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
               )}
 
               <CardContent className="flex-1 min-h-0 overflow-y-auto p-4">
-                <DoctorAgendaTimeline
+                <DoctorAgendaPanel
                   appointments={appointments}
+                  dateLocale={dateFnsLocale}
                   isLoading={isLoadingAppointments}
+                  isSingleDayRange={isSingleDayRange}
+                  isRangeToday={isViewingToday}
                   onSelect={(appointmentId) => selectAppointment(appointmentId, true)}
                   selectedAppointmentId={isMobile && !mobileDetailsOpen ? null : selectedAppointment?.id}
                 />
@@ -1830,6 +1786,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           userName={selectedAppointment.patientName || ''}
           mode="doctor"
           clinicalHistoryDefaultView={patientFichaDefaultView}
+          readOnly={isSessionEditingBlockedByDate}
         />
       )}
 
@@ -1852,6 +1809,17 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
           prefillData={clinicSessionPrefillData}
           prefillTreatments={clinicSessionPrefillTreatments}
           existingSession={linkedSession ?? undefined}
+          lockDoctor
+        />
+      )}
+
+      {selectedAppointment && canPrescribe && (
+        <PrescriptionDialog
+          open={prescriptionOpen}
+          onOpenChange={setPrescriptionOpen}
+          patientId={selectedAppointment.patientId}
+          patientName={selectedAppointment.patientName}
+          // En el workspace firma siempre el doctor de la sesión.
           lockDoctor
         />
       )}

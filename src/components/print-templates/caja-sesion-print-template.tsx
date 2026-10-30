@@ -3,6 +3,7 @@
 import { formatDateTime } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import type { CajaSesionPrintData } from '@/stores/print-document-store';
+import { sessionCurrencyCodes } from '@/lib/currency';
 
 interface CajaSesionPrintTemplateProps {
   data: CajaSesionPrintData;
@@ -45,7 +46,8 @@ export function CajaSesionPrintTemplate({ data }: CajaSesionPrintTemplateProps) 
   const bankDepositDetails = details.bank_deposit_details ?? {};
   const currenciesData = details.currencies_data ?? [];
 
-  const currencies = ['UYU', 'USD'] as const;
+  // Monedas realmente presentes en la sesión, no un par fijo.
+  const currencies = sessionCurrencyCodes(movements);
 
   // Opening denominations
   function renderDenominationTable(currencyKey: string, label: string) {

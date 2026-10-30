@@ -3,9 +3,9 @@
   "nodes": [
     {
       "parameters": {
-        "content": "## Reminders – Get\n\n**GET** `/webhook/reminders`\n\nReturns internal calendar reminders.\n\n**Query params:**\n- `from`: optional ISO/local datetime lower bound for `start_datetime`\n- `to`: optional ISO/local datetime upper bound for `start_datetime`\n- `status`: optional status filter (`pending`, `done`, `dismissed`, `cancelled`)\n- `include_cancelled`: optional boolean; default false\n\n**Response 200:** array of reminders using the frontend contract:\n`id`, `title`, `description`, `start_datetime`, `end_datetime`, `color`, `priority`, `status`, `visibility`, `raise_alert`, `alert_instance_id`, `created_by`, `created_at`, `updated_at`.",
-        "height": 420,
-        "width": 520,
+        "content": "## Reminders – Get\n\n**GET** `/webhook/reminders?from=...&to=...`\n\nLista notas y recordatorios de un rango de fechas.\n\n**Query params:** `from`, `to` (datetimes locales), `status`, `include_cancelled`.\n\n**Alcance (`visibility`)**\n- `clinic` (compartido, el default): lo maneja cualquier usuario del staff.\n- `personal`: solo lo maneja su autor (`created_by`). Un ítem sin autor — filas viejas o\n  cuyo autor fue dado de baja, la FK es `ON DELETE SET NULL` — se trata como compartido\n  para que no quede inaccesible para siempre.\n\nEs la misma regla que aplica `canManageReminder` en el frontend.\n\nEl filtro va acá y no solo en el cliente: lo personal ajeno no tiene que salir del\nservidor. El frontend vuelve a aplicar la misma regla porque es la que decide si muestra\nlos botones de editar y eliminar.\n\n**Response 200:** array de filas con el contrato del frontend, incluidos `type`,\n`calendar_id` y `visibility`.",
+        "height": 820,
+        "width": 640,
         "color": 4
       },
       "type": "n8n-nodes-base.stickyNote",
@@ -19,53 +19,80 @@
     },
     {
       "parameters": {
-        "httpMethod": "GET",
         "path": "reminders",
+        "authentication": "jwtAuth",
         "responseMode": "responseNode",
         "options": {}
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        460,
-        260
+        -5472,
+        3264
       ],
-      "id": "reminders-get-wh",
-      "name": "Webhook",
-      "webhookId": "reminders-get"
+      "id": "dd0cd318-6cf4-47d6-a93d-11acfb22fc05",
+      "name": "Webhook2",
+      "webhookId": "reminders-get",
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst query = input.query ?? input;\n\nconst esc = (value) => String(value).replace(/'/g, \"''\");\nconst nullableTimestamp = (value) => {\n  if (!value) return 'NULL';\n  const date = new Date(value);\n  if (Number.isNaN(date.getTime())) throw new Error(`Invalid datetime: ${value}`);\n  return `'${esc(String(value).replace(/Z$/, ''))}'`;\n};\n\nconst VALID_STATUS = ['pending', 'done', 'dismissed', 'cancelled'];\nconst status = query.status ? String(query.status).toLowerCase().trim() : null;\nif (status && !VALID_STATUS.includes(status)) throw new Error(`Invalid status: ${query.status}`);\n\nconst includeCancelled = ['true', '1', 'yes'].includes(String(query.include_cancelled ?? '').toLowerCase());\n\nreturn [{ json: {\n  from_sql: nullableTimestamp(query.from),\n  to_sql: nullableTimestamp(query.to),\n  status_sql: status ? `'${esc(status)}'` : 'NULL',\n  include_cancelled: includeCancelled,\n} }];",
-        "mode": "runOnceForAllItems"
+        "jsCode": "const input = $input.first().json;\nconst query = input.query ?? input;\n\nconst esc = (value) => String(value).replace(/'/g, \"''\");\nconst nullableTimestamp = (value) => {\n  if (!value) return 'NULL';\n  const date = new Date(value);\n  if (Number.isNaN(date.getTime())) throw new Error(`Invalid datetime: ${value}`);\n  return `'${esc(String(value).replace(/Z$/, ''))}'`;\n};\n\nconst VALID_STATUS = ['pending', 'done', 'dismissed', 'cancelled'];\nconst status = query.status ? String(query.status).toLowerCase().trim() : null;\nif (status && !VALID_STATUS.includes(status)) throw new Error(`Invalid status: ${query.status}`);\n\nconst includeCancelled = ['true', '1', 'yes'].includes(String(query.include_cancelled ?? '').toLowerCase());\n// El actor decide qué ítems personales se devuelven, así que se valida como en el resto\n// de los flujos: si llegara vacío, el `::uuid` del WHERE reventaría en runtime.\nconst UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;\nconst created_by = String(input.jwtPayload?.userId ?? input.jwtPayload?.sub ?? '').trim();\nif (!UUID_PATTERN.test(created_by)) throw new Error('jwt userId must be a valid UUID');\n\nreturn [{ json: {\n  from_sql: nullableTimestamp(query.from),\n  to_sql: nullableTimestamp(query.to),\n  status_sql: status ? `'${esc(status)}'` : 'NULL',\n  include_cancelled: includeCancelled,\n  created_by_sql: `'${created_by}'`,\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        680,
-        260
+        -5264,
+        3264
       ],
-      "id": "reminders-get-parse",
+      "id": "1446c0da-f402-4a0c-a7c7-902d82f67c01",
       "name": "Parse Query"
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  id::text AS id,\n  title,\n  description,\n  start_datetime::text AS start_datetime,\n  end_datetime::text AS end_datetime,\n  color,\n  priority,\n  status,\n  visibility,\n  raise_alert,\n  alert_instance_id,\n  created_by::text AS created_by,\n  created_at::text AS created_at,\n  updated_at::text AS updated_at,\n  completed_at::text AS completed_at,\n  completed_by::text AS completed_by\nFROM reminders\nWHERE ({{ $json.from_sql }}::timestamp IS NULL OR start_datetime >= {{ $json.from_sql }}::timestamp)\n  AND ({{ $json.to_sql }}::timestamp IS NULL OR start_datetime <= {{ $json.to_sql }}::timestamp)\n  AND ({{ $json.status_sql }}::text IS NULL OR status = {{ $json.status_sql }}::text)\n  AND ({{ $json.include_cancelled }}::boolean OR status <> 'cancelled')\nORDER BY start_datetime ASC, created_at ASC;",
+        "query": "-- Genera lo que falte hasta el fin de la ventana pedida, para que navegar más allá\n-- del horizonte del cron no muestre una serie vacía. Es idempotente y acotada por\n-- el tope duro de la propia función.\nSELECT public.reminders_materialize_all({{ $json.to_sql }}::timestamp) AS generated;",
         "options": {}
       },
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        900,
-        260
+        -5160,
+        3264
       ],
-      "id": "reminders-get-pg",
+      "id": "reminders-materialize-on-read",
+      "name": "Materialize Series",
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n  r.id::text AS id,\n  r.title,\n  r.description,\n  r.start_datetime::text AS start_datetime,\n  r.end_datetime::text AS end_datetime,\n  r.color,\n  r.priority,\n  r.status,\n  r.visibility,\n  r.is_all_day,\n  r.raise_alert,\n  r.alert_instance_id,\n  r.calendar_id,\n  r.type,\n  r.created_by::text AS created_by,\n  r.created_at::text AS created_at,\n  r.updated_at::text AS updated_at,\n  r.completed_at::text AS completed_at,\n  r.completed_by::text AS completed_by,\n  r.series_id::text AS series_id,\n  r.is_series_exception,\n  CASE WHEN s.id IS NULL THEN NULL ELSE jsonb_build_object(\n    'freq', s.freq, 'interval', s.rec_interval, 'byweekday', s.byweekday,\n    'by_month_day', s.by_month_day, 'end_mode', s.end_mode,\n    'until_date', s.until_date, 'occurrence_count', s.occurrence_count\n  ) END AS recurrence\nFROM reminders r\n  LEFT JOIN public.reminder_series s ON s.id = r.series_id\nWHERE ({{ $('Parse Query').first().json.from_sql }}::timestamp IS NULL OR r.start_datetime >= {{ $('Parse Query').first().json.from_sql }}::timestamp)\n  AND ({{ $('Parse Query').first().json.to_sql }}::timestamp IS NULL OR r.start_datetime <= {{ $('Parse Query').first().json.to_sql }}::timestamp)\n  AND ({{ $('Parse Query').first().json.status_sql }}::text IS NULL OR r.status = {{ $('Parse Query').first().json.status_sql }}::text)\n  AND ({{ $('Parse Query').first().json.include_cancelled }}::boolean OR r.status <> 'cancelled')\n  -- Lo compartido lo ve todo el staff; lo personal, solo su autor. El cliente vuelve a\n  -- aplicar la misma regla (canManageReminder), que es la que decide si muestra los\n  -- botones; esto es para que lo personal ajeno no salga del servidor.\n  AND (r.visibility <> 'personal'\n       OR r.created_by IS NULL\n       OR r.created_by = {{ $('Parse Query').first().json.created_by_sql }}::uuid)\nORDER BY r.start_datetime ASC, r.created_at ASC;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        -5040,
+        3264
+      ],
+      "id": "cac1bfd0-c114-43c6-b06f-a26ca9f2a2b6",
       "name": "Load Reminders",
       "credentials": {
         "postgres": {
-          "id": "clinic-postgres",
-          "name": "Clinic Postgres"
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
         }
       }
     },
@@ -80,15 +107,15 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1120,
-        260
+        -4816,
+        3264
       ],
-      "id": "reminders-get-respond",
-      "name": "Respond 200"
+      "id": "bb615172-7c91-4999-a6c9-d79d3ccdcfdd",
+      "name": "Respond 201"
     }
   ],
   "connections": {
-    "Webhook": {
+    "Webhook2": {
       "main": [
         [
           {
@@ -103,6 +130,17 @@
       "main": [
         [
           {
+            "node": "Materialize Series",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Materialize Series": {
+      "main": [
+        [
+          {
             "node": "Load Reminders",
             "type": "main",
             "index": 0
@@ -114,7 +152,7 @@
       "main": [
         [
           {
-            "node": "Respond 200",
+            "node": "Respond 201",
             "type": "main",
             "index": 0
           }

@@ -5,10 +5,13 @@ import { Check, Loader2, Plus } from 'lucide-react';
 
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList, CommandInput } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import { SALES_PERMISSIONS } from '@/constants/permissions';
+import { usePermissions } from '@/hooks/usePermissions';
 import { getSalesServices } from '@/services/services';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import type { Service } from '@/lib/types';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface InlineServicePickerProps {
   selected: Service[];
@@ -35,6 +38,8 @@ function mapApiService(s: any): Service {
  * live search and, when no match exists, a "create" action that adds the service.
  */
 export function InlineServicePicker({ selected, onToggle, searchPlaceholder, emptyText, createLabel }: InlineServicePickerProps) {
+  const { hasPermission } = usePermissions();
+  const canCreateService = hasPermission(SALES_PERMISSIONS.SERVICES_CREATE);
   const [query, setQuery] = React.useState('');
   const [results, setResults] = React.useState<Service[]>([]);
   const [isSearching, setIsSearching] = React.useState(false);
@@ -58,12 +63,13 @@ export function InlineServicePicker({ selected, onToggle, searchPlaceholder, emp
   }, [query]);
 
   const handleCreate = async () => {
+    if (!canCreateService) return;
     const name = query.trim();
     if (!name) return;
     setIsCreating(true);
     try {
       await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, {
-        name, price: 0, currency: 'UYU', is_sales: true, is_active: true, duration_minutes: 60, category: '', description: '',
+        name, price: 0, currency: getClinicCurrency(), is_sales: true, is_active: true, duration_minutes: 60, category: '', description: '',
       });
       const r = await getSalesServices({ search: name, limit: 50 });
       const created = r.items.map(mapApiService).find((s) => s.name.toLowerCase() === name.toLowerCase()) ?? r.items.map(mapApiService)[0];
@@ -75,7 +81,12 @@ export function InlineServicePicker({ selected, onToggle, searchPlaceholder, emp
     }
   };
 
-  const showCreate = query.trim() && !results.some((s) => s.name.toLowerCase() === query.trim().toLowerCase());
+  // La creación al vuelo es un alta de servicio con otra puerta de entrada, así que pide
+  // el mismo permiso que el alta desde el catálogo. Ocultar el botón es UX: quien manda
+  // es el backend, que tiene que rechazar el upsert sin SALES_SERVICES_CREATE.
+  const showCreate = canCreateService
+    && query.trim()
+    && !results.some((s) => s.name.toLowerCase() === query.trim().toLowerCase());
 
   return (
     <Command shouldFilter={false} className="rounded-lg">

@@ -2,15 +2,20 @@
 'use client';
 
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
-import { CalendarCreateTypeDialog } from '@/components/appointments/CalendarCreateTypeDialog';
 import Calendar, { type CalendarGroupBy, type CalendarGroupingColumn, type CalendarView, type CalendarEvent } from '@/components/calendar/Calendar';
+import type { CalendarDragMode, CalendarDragResult, CalendarDraftPreview, CalendarSlotContextMenuContext } from '@/components/calendar/calendar-types';
+import { DatePicker } from '@/components/ui/date-picker';
 import { CalendarSettingsPopover } from '@/components/calendar/calendar-settings-popover';
 import { CalendarSettingsForm } from '@/components/calendar/calendar-settings-form';
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
 import { CalendarGapsPanel } from '@/components/calendar/calendar-gaps-panel';
-import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, gapKey, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
+import { CalendarSearchPanel, CalendarSearchResultsChip, type CalendarSearchResult } from '@/components/calendar/calendar-search-panel';
+import { CalendarAgendasPanel } from '@/components/calendar/calendar-agendas-panel';
+import { CalendarViewMenu } from '@/components/calendar/calendar-view-menu';
+import { CalendarZoomMenu } from '@/components/calendar/calendar-zoom-menu';
+import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, filterExceptionsForSede, gapKey, suggestEnableWindow, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
 import { filterEventsByDayAndGroup } from '@/components/calendar/calendar-utils';
-import { DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, HOUR_SLOT_HEIGHT } from '@/components/calendar/calendar-constants';
+import { DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, DURATION_PRESET_MINUTES, HOUR_SLOT_HEIGHT, MINUTES_IN_DAY } from '@/components/calendar/calendar-constants';
 import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
 import { ReminderPanel } from '@/components/appointments/ReminderPanel';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
@@ -55,40 +60,71 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
 import { API_ROUTES } from '@/constants/routes';
+import { BUSINESS_CONFIG_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
-import { Appointment, AppointmentBulkFilterParams, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
+import { Appointment, AppointmentBulkFilterParams, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarColorSources, CalendarItemScope, CalendarItemType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, ResponsibleContact, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
+import { getEffectiveAppointmentContact, normalizeResponsibleContact, patchAppointmentsForPatient } from '@/lib/appointment-contact';
+import { parseClinicExceptions } from '@/lib/clinic-exceptions';
+import { getDependantContactInfo } from '@/components/patients/patient-form-utils';
+import { getDateFnsLocale } from '@/lib/locale';
 import { cn, toLocalISOString } from '@/lib/utils';
-import api from '@/services/api';
+import api, { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
+import { getErrorMessage } from '@/lib/error-utils';
 import { getQuoteItems } from '@/services/quotes';
-import { updateAppointmentStatusRequest } from '@/services/appointments';
+import { fetchFuturePatientAppointments, searchAppointments, type FuturePatientAppointment } from '@/services/appointments';
+import { FutureAppointmentsConfirmDialog } from '@/components/appointments/future-appointments-confirm-dialog';
+import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
+import { useSlotAvailability } from '@/hooks/use-slot-availability';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
-import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
-import { es, enUS } from 'date-fns/locale';
-import { BellRing, Building2, Calendar as CalendarIcon, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileText, Layers, Link2, Loader2, PlusCircle, Receipt, RefreshCw, Stethoscope, Trash2, UserCog, Users, X, Zap } from 'lucide-react';
+import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
+import { AlertTriangle, Ban, BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarClock, CalendarDays, Clock, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Search, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
+import { useTheme } from 'next-themes';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
+import { AppointmentHistorySheet } from '@/components/appointments/AppointmentHistorySheet';
+import { AppointmentQuickView } from '@/components/calendar/appointment-quick-view';
+import { ReminderQuickView } from '@/components/calendar/reminder-quick-view';
+import { AppointmentMobileSheet } from '@/components/calendar/appointment-mobile-sheet';
+import { ReminderMobileSheet } from '@/components/calendar/reminder-mobile-sheet';
+import { ReminderScopeDialog } from '@/components/appointments/ReminderScopeDialog';
+import { PatientCreateDialog } from '@/components/patients/patient-create-dialog';
 import { BulkReassignDoctorDialog } from '@/components/appointments/BulkReassignDoctorDialog';
+import { EnableSlotDialog, type EnableSlotTarget } from '@/components/appointments/enable-slot-dialog';
+import { PrintScheduleDialog } from '@/components/appointments/PrintScheduleDialog';
 import { reassignAppointmentField, type AppointmentReassignChange } from '@/lib/appointment-reassign';
 import { ContextEntityPicker } from '@/components/appointments/ContextEntityPicker';
 import { InlineAppointmentDraft } from '@/components/calendar/inline-appointment-draft';
 import { linkInvoiceToAppointment } from '@/services/billing-links';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
-import { useAccountStatement } from '@/stores/account-statement-store';
+import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
+import { usePatientView } from '@/stores/patient-view-store';
+import { usePatientHistorySheet } from '@/stores/patient-history-sheet-store';
+import { usePatientAppointmentsSheet } from '@/stores/patient-appointments-sheet-store';
+import { usePatientDocumentsSheet } from '@/stores/patient-documents-sheet-store';
 import { AppointmentStatusContextItems } from '@/components/appointments/AppointmentStatusMenu';
-import { useAppointmentStatus } from '@/hooks/use-appointment-status';
+import { useAppointmentStatus, useCompleteAppointmentWithDocumentCheck } from '@/hooks/use-appointment-status';
 import { canReschedule, normalizeAppointmentStatus, normalizeCancellationReason } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
+import { resolveEventStatusColors, resolveStatusDisplay } from '@/lib/appointment-status-display';
+import { useCalendarStatusDisplayStore } from '@/stores/calendar-status-display-store';
+import { buildCalendarTintVars, darkenColor, getOwnAppointmentColor, getReadableTextColor, isWhiteColor, resolveAppointmentColor } from '@/lib/appointment-color';
+import { resolveColorSources, useCalendarColorSourceStore } from '@/stores/calendar-color-source-store';
+import { useAppointmentReschedule } from '@/hooks/use-appointment-reschedule';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { getAppointmentColumns } from './columns';
+import { useCalendarLiveRefresh, CALENDAR_PATCH_EVENT, type CalendarChangePayload, type CalendarPatchEventDetail } from '@/hooks/use-calendar-live-refresh';
 import { useNotifications } from '@/context/notifications-context';
 import { useAuth } from '@/context/AuthContext';
-import { normalizeReminder } from '@/lib/reminders';
+import { canManageReminder, isRecurringReminder, normalizeReminder } from '@/lib/reminders';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 
 // ── Notification action deep-link ────────────────────────────────────────────
@@ -98,79 +134,122 @@ import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 
 
 interface NotifActCallbacks {
-  onQuote: (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => void | Promise<void>;
-  onSchedule: (
-    patientId: string,
-    patientName: string,
-    date?: string,
-    doctorId?: string,
-    doctorName?: string,
-    items?: SessionPreloadedService[],
-    quoteId?: string,
-    calendarId?: string,
-    notifId?: string,
-  ) => void;
-  onInvoice: (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => void | Promise<void>;
+    onQuote: (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => void | Promise<void>;
+    onSchedule: (
+        patientId: string,
+        patientName: string,
+        date?: string,
+        doctorId?: string,
+        doctorName?: string,
+        items?: SessionPreloadedService[],
+        quoteId?: string,
+        calendarId?: string,
+        notifId?: string,
+    ) => void;
+    onInvoice: (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => void | Promise<void>;
+}
+
+interface InlineAppointmentDraftState {
+    date: Date;
+    context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string };
+    durationMin: number;
+    patient: UserType | null;
+    services: Service[];
+    doctor: UserType | null;
+    calendar: CalendarType | null;
+    notes: string;
+    /** Título del evento. Solo se edita en las citas importadas de Google Calendar;
+     *  en el resto se autogenera a partir de paciente + tratamientos. */
+    summary: string;
+    color?: string;
+    /** Set when the inline card is editing an existing appointment (vs creating). */
+    editing?: Appointment | null;
+    /** When true, saving reschedules instead of updating the original appointment. */
+    rescheduling?: boolean;
+    /** Quote linked on save. Carried from the notification deep-link; the card has no quote field. */
+    quoteId?: string;
+    /** Notification whose 'schedule' action is marked done after a successful save. */
+    notifId?: string;
+    /** Stable signature used to detect changes made after the inline window opened. */
+    initialSignature: string;
+}
+
+function getInlineDraftSignature(draft: Omit<InlineAppointmentDraftState, 'initialSignature'>): string {
+    return JSON.stringify({
+        date: draft.date.getTime(),
+        durationMin: draft.durationMin,
+        patientId: draft.patient?.id ? String(draft.patient.id) : '',
+        serviceIds: draft.services.map((service) => String(service.id)),
+        doctorId: draft.doctor?.id ? String(draft.doctor.id) : '',
+        calendarId: draft.calendar?.id ? String(draft.calendar.id) : '',
+        notes: draft.notes,
+        summary: draft.summary,
+        color: draft.color ?? '',
+    });
+}
+
+function createInlineDraftState(draft: Omit<InlineAppointmentDraftState, 'initialSignature'>): InlineAppointmentDraftState {
+    return { ...draft, initialSignature: getInlineDraftSignature(draft) };
 }
 
 function NotificationActDeepLink({ onQuote, onSchedule, onInvoice }: NotifActCallbacks) {
-  const searchParams = useSearchParams();
-  // Keep callbacks in a ref so they don't need to be listed as deps.
-  const cbRef = React.useRef({ onQuote, onSchedule, onInvoice });
-  React.useEffect(() => { cbRef.current = { onQuote, onSchedule, onInvoice }; });
+    const searchParams = useSearchParams();
+    // Keep callbacks in a ref so they don't need to be listed as deps.
+    const cbRef = React.useRef({ onQuote, onSchedule, onInvoice });
+    React.useEffect(() => { cbRef.current = { onQuote, onSchedule, onInvoice }; });
 
-  React.useEffect(() => {
-    const act = searchParams.get('act');
-    const patientId = searchParams.get('patientId');
-    if (!act || !patientId) return;
+    React.useEffect(() => {
+        const act = searchParams.get('act');
+        const patientId = searchParams.get('patientId');
+        if (!act || !patientId) return;
 
-    const patientName = searchParams.get('patientName') ?? '';
-    const sessionRef = searchParams.get('sessionRef');
-    const { onQuote, onSchedule, onInvoice } = cbRef.current;
+        const patientName = searchParams.get('patientName') ?? '';
+        const sessionRef = searchParams.get('sessionRef');
+        const { onQuote, onSchedule, onInvoice } = cbRef.current;
 
-    // Limpiar la URL inmediatamente para que un segundo click en la misma
-    // notificación vuelva a disparar el efecto (searchParams cambia → vacío → params).
-    // Usar replaceState evita una re-navegación/re-render de Next.js.
-    try {
-      window.history.replaceState(null, '', window.location.pathname);
-    } catch { /* no-op */ }
+        // Limpiar la URL inmediatamente para que un segundo click en la misma
+        // notificación vuelva a disparar el efecto (searchParams cambia → vacío → params).
+        // Usar replaceState evita una re-navegación/re-render de Next.js.
+        try {
+            window.history.replaceState(null, '', window.location.pathname);
+        } catch { /* no-op */ }
 
-    // Leer servicios pre-cargados por IA desde sessionStorage
-    let preloadedItems: SessionPreloadedService[] | undefined;
-    if (sessionRef) {
-      try {
-        const raw = sessionStorage.getItem(`notif-services:${sessionRef}`);
-        if (raw) {
-          preloadedItems = JSON.parse(raw) as SessionPreloadedService[];
-          sessionStorage.removeItem(`notif-services:${sessionRef}`);
+        // Leer servicios pre-cargados por IA desde sessionStorage
+        let preloadedItems: SessionPreloadedService[] | undefined;
+        if (sessionRef) {
+            try {
+                const raw = sessionStorage.getItem(`notif-services:${sessionRef}`);
+                if (raw) {
+                    preloadedItems = JSON.parse(raw) as SessionPreloadedService[];
+                    sessionStorage.removeItem(`notif-services:${sessionRef}`);
+                }
+            } catch {
+                // sessionStorage no disponible — continuar sin pre-carga
+            }
         }
-      } catch {
-        // sessionStorage no disponible — continuar sin pre-carga
-      }
-    }
 
-    const notifId = searchParams.get('notifId') ?? undefined;
+        const notifId = searchParams.get('notifId') ?? undefined;
 
-    if (act === 'quote') {
-      onQuote(patientId, patientName, preloadedItems, notifId);
-    } else if (act === 'schedule') {
-      onSchedule(
-        patientId,
-        patientName,
-        searchParams.get('date') ?? undefined,
-        searchParams.get('doctorId') ?? undefined,
-        searchParams.get('doctorName') ?? undefined,
-        preloadedItems,
-        searchParams.get('quoteId') ?? undefined,
-        searchParams.get('calendarId') ?? undefined,
-        notifId,
-      );
-    } else if (act === 'invoice') {
-      onInvoice(patientId, patientName, preloadedItems, notifId);
-    }
-  }, [searchParams]);
+        if (act === 'quote') {
+            onQuote(patientId, patientName, preloadedItems, notifId);
+        } else if (act === 'schedule') {
+            onSchedule(
+                patientId,
+                patientName,
+                searchParams.get('date') ?? undefined,
+                searchParams.get('doctorId') ?? undefined,
+                searchParams.get('doctorName') ?? undefined,
+                preloadedItems,
+                searchParams.get('quoteId') ?? undefined,
+                searchParams.get('calendarId') ?? undefined,
+                notifId,
+            );
+        } else if (act === 'invoice') {
+            onInvoice(patientId, patientName, preloadedItems, notifId);
+        }
+    }, [searchParams]);
 
-  return null;
+    return null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -201,20 +280,149 @@ const GOOGLE_CALENDAR_COLORS = [
 
 const colorMap = new Map(GOOGLE_CALENDAR_COLORS.map(c => [c.id, c.hex]));
 
+/**
+ * Overlap among the loaded appointments: any non-cancelled appointment of the same
+ * doctor OR the same room whose span intersects the draft (including one that
+ * started earlier and is still running). Without doctor and room, any.
+ */
+function inlineDraftOverlaps(draft: InlineAppointmentDraftState, appointments: Appointment[]): boolean {
+    const draftStart = draft.date.getTime();
+    const draftEnd = addMinutes(draft.date, draft.durationMin || 30).getTime();
+    return appointments.some((a) => {
+        if (a.status === 'cancelled') return false;
+        if (draft.editing && String(a.id) === String(draft.editing.id)) return false;
+        const sameDoctor = !!draft.doctor && String(a.doctorId) === String(draft.doctor.id);
+        const sameRoom = !!draft.calendar && String(a.calendar_source_id) === String(draft.calendar.id);
+        if ((draft.doctor || draft.calendar) && !sameDoctor && !sameRoom) return false;
+        const s = a.start?.dateTime ? parseISO(a.start.dateTime.replace(/Z$/, '')).getTime() : NaN;
+        const e = a.end?.dateTime ? parseISO(a.end.dateTime.replace(/Z$/, '')).getTime() : s;
+        return !Number.isNaN(s) && s < draftEnd && e > draftStart;
+    });
+}
+
+/** Color precedence shown on the card: explicit background > service > doctor > calendar. */
+function inlineDraftAccentColor(draft: InlineAppointmentDraftState): string | undefined {
+    const selectedColor = draft.color ? colorMap.get(draft.color) : undefined;
+    return selectedColor || draft.services[draft.services.length - 1]?.color
+        || (draft.doctor as any)?.color || getGoogleCalendarColorHex((draft.calendar as any)?.color) || undefined;
+}
+
+const colorIdByHex = new Map(GOOGLE_CALENDAR_COLORS.map(c => [c.hex.toLowerCase(), c.id]));
+const UNASSIGNED_CALENDAR_GROUP_ID = '__calendar-items-unassigned__';
+const CALENDAR_ITEMS_DOCTOR_GROUP_ID = '__calendar-items-doctor-column__';
+
+function getGoogleCalendarColorId(value?: string | null): string | undefined {
+    const rawColor = (value || '').trim();
+    if (!rawColor) return undefined;
+    if (colorMap.has(rawColor)) return rawColor;
+    return colorIdByHex.get(rawColor.toLowerCase());
+}
+
+function getGoogleCalendarColorHex(value?: string | null): string | undefined {
+    const colorId = getGoogleCalendarColorId(value);
+    return colorId ? colorMap.get(colorId) : value || undefined;
+}
+
+/**
+ * Parses the `date` carried by the "schedule next appointment" notification
+ * deep-link. Accepts 'yyyy-MM-dd' and full ISO strings (the trailing Z is
+ * dropped so it reads as local time, like everywhere else on this page). When
+ * only a date is given, the current time is used — same rule as the invoke
+ * dialog, which falls back to `format(new Date(), 'HH:mm')`.
+ */
+function parseNotifScheduleDate(raw: string | undefined): Date {
+    const now = new Date();
+    if (!raw) return now;
+    const parsed = parseISO(raw.trim().replace(/Z$/, ''));
+    if (!isValid(parsed)) return now;
+    if (parsed.getHours() !== 0 || parsed.getMinutes() !== 0) {
+        return set(parsed, { seconds: 0, milliseconds: 0 });
+    }
+    return set(parsed, { hours: now.getHours(), minutes: now.getMinutes(), seconds: 0, milliseconds: 0 });
+}
+
+// Valores que el mapeo deja cuando la cita no trae paciente o tratamiento
+// (típico de eventos importados desde Google Calendar). En la tarjeta del
+// calendario no aportan nada, así que se tratan como vacíos.
+const EVENT_LABEL_PLACEHOLDERS = new Set(['n/a', 'na', '-', '--']);
+function cleanEventLabelPart(value: string | null | undefined, noneLabel: string): string {
+    const trimmed = (value || '').trim();
+    if (!trimmed) return '';
+    const normalized = trimmed.toLowerCase();
+    if (EVENT_LABEL_PLACEHOLDERS.has(normalized)) return '';
+    if (normalized === noneLabel.trim().toLowerCase()) return '';
+    return trimmed;
+}
+
+// Tratamientos de la cita, para las etiquetas que los muestran.
+//
+// No se puede usar el `summary` tal cual: se autogenera como "Paciente - Tratamientos"
+// (ver AppointmentFormDialog y la tarjeta inline), así que repetiría el nombre del
+// paciente en la etiqueta. La fuente buena es `services`; el summary queda solo como
+// respaldo para las citas que no lo traen, y en ese caso se le saca el prefijo.
+function buildTreatmentPart(appt: Appointment, patient: string, noneLabel: string): string {
+    const fromServices = (appt.services ?? [])
+        .map((service) => (service?.name || '').trim())
+        .filter(Boolean)
+        .join(', ');
+    let treatment = fromServices;
+    if (!treatment) {
+        const raw = cleanEventLabelPart(appt.summary || appt.service_name, noneLabel);
+        const prefix = patient ? `${patient.toLowerCase()} - ` : '';
+        treatment = prefix && raw.toLowerCase().startsWith(prefix) ? raw.slice(prefix.length).trim() : raw;
+    }
+    // Cuando el summary ya ocupa el lugar del paciente (citas importadas de Google, que
+    // no traen uno) no se repite como tratamiento.
+    return treatment === patient ? '' : treatment;
+}
+
 // Builds the label shown on each appointment by concatenating its fields
 // according to the configured format (see EVENT_LABEL_FORMATS).
-function buildEventLabel(appt: Appointment, start: Date, fmt: string): string {
+function buildEventLabel(appt: Appointment, start: Date, fmt: string, noneLabel: string): string {
     const time = format(start, 'HH:mm');
-    const patient = (appt.patientName || '').trim();
-    const treatment = (appt.summary || appt.service_name || '').trim();
-    const notes = (appt.notes || '').trim();
+    const summary = cleanEventLabelPart(appt.summary, noneLabel);
+    // Los formatos configurables componen la etiqueta de las citas de la app. Las
+    // importadas de Google muestran el summary del evento tal cual — es su único
+    // título real — ocupando el lugar que cada formato le da al paciente, así que la
+    // hora conserva su posición. No se les suma ni notas ni tratamiento.
+    const isImported = appt.imported_from_google === true;
+    // El `|| summary` es el respaldo para las citas de Google anteriores a la marca
+    // (no se hizo backfill de `imported_from_google`): sin paciente, el mapeo deja
+    // 'N/A', que `cleanEventLabelPart` vacía, y sin esto quedarían con solo la hora.
+    const patient = isImported ? summary : (cleanEventLabelPart(appt.patientName, noneLabel) || summary);
+    const treatment = isImported ? '' : buildTreatmentPart(appt, patient, noneLabel);
+    const notes = isImported ? '' : (appt.notes || '').trim();
+    // Solo lo usa el formato que lo pide, y solo si el paciente (o su responsable,
+    // cuando el paciente no tiene teléfono propio) lo tiene cargado.
+    const phone = isImported ? '' : cleanEventLabelPart(getEffectiveAppointmentContact(appt).phone, noneLabel);
     if (fmt === 'patient_treatment_time') {
         return [patient, treatment, time].filter(Boolean).join(' ');
+    }
+    if (fmt === 'time_patient_notes_treatment') {
+        // Como el default, pero con el teléfono del paciente después del nombre y el
+        // tratamiento dentro del paréntesis. Se omite lo que falte, y sin notas ni
+        // tratamiento no se muestra el paréntesis.
+        const base = [time, patient, phone].filter(Boolean).join(' ');
+        const extras = [notes, treatment].filter(Boolean).join(', ');
+        return extras ? `${base} (${extras})` : base;
+    }
+    if (fmt === 'time_treatment_patient_notes') {
+        // El tratamiento va antes que el paciente: en las clínicas que lo usan lo que
+        // se escanea de la grilla es qué se hace en cada hueco, no quién viene. El
+        // teléfono va detrás del paciente, como en `time_patient_notes_treatment`.
+        const base = [time, treatment, patient, phone].filter(Boolean).join(' ');
+        return notes ? `${base} (${notes})` : base;
     }
     // default: time_patient_notes -> "HH:mm Patient (Notes)"
     const base = [time, patient].filter(Boolean).join(' ');
     return notes ? `${base} (${notes})` : base;
 }
+
+/** Clave de localStorage del panel de agendas fijo (preferencia por navegador). */
+const AGENDAS_PANEL_PINNED_KEY = 'calendar-agendas-panel-pinned';
+
+/** Clave de localStorage de la agenda que el modo personalizado está mostrando. */
+const PERSONALIZED_CALENDAR_KEY = 'calendar-personalized-agenda';
 
 const SETTINGS_VIEW_MAP: Record<string, CalendarView> = {
     day: 'day',
@@ -225,12 +433,11 @@ const SETTINGS_VIEW_MAP: Record<string, CalendarView> = {
     agenda: 'schedule',
 };
 
-const isWhite = (color: string | null | undefined) => {
-    if (!color) return true;
-    const n = color.toLowerCase().replace(/\s/g, '');
-    return n === '#ffffff' || n === '#fff' || n === 'white' || n === 'rgb(255,255,255)' || n === 'rgba(255,255,255,1)' || n === 'hsl(0,0%,100%)';
-};
 
+/** Mínimo de caracteres para disparar la búsqueda global de citas. */
+const SEARCH_MIN_CHARS = 2;
+/** Inactividad (ms) antes de lanzar el pedido de búsqueda. */
+const SEARCH_DEBOUNCE_MS = 350;
 
 async function getAppointments(
     calendarSourceIds: string[],
@@ -239,7 +446,8 @@ async function getAppointments(
     calendars: CalendarType[],
     services: Service[],
     doctors: UserType[],
-    t: (key: string) => string
+    t: (key: string) => string,
+    colorSourcesFor?: (calendarId: string) => CalendarColorSources,
 ): Promise<Appointment[]> {
     if (!isValid(startDate) || !isValid(endDate)) {
         console.error("Invalid start or end date provided to getAppointments");
@@ -252,8 +460,11 @@ async function getAppointments(
             startingDateAndTime: formatDateForAPI(startDate),
             endingDateAndTime: formatDateForAPI(endDate),
         };
-        if (calendarSourceIds.length > 0) {
-            query.calendar_source_ids = calendarSourceIds.join(',');
+        // Filtra ids vacíos: un '' colado en la lista haría que el backend reciba
+        // `calendar_source_ids=` (o `12,`) y la query revienta al castear a bigint.
+        const cleanCalendarIds = calendarSourceIds.filter(Boolean);
+        if (cleanCalendarIds.length > 0) {
+            query.calendar_source_ids = cleanCalendarIds.join(',');
         }
         const data = await api.get(API_ROUTES.USERS_APPOINTMENTS, query);
         let appointmentsData: any[] = [];
@@ -269,7 +480,31 @@ async function getAppointments(
             return [];
         }
 
-        return appointmentsData.map((apiAppt: any) => {
+        return appointmentsData
+            .map((apiAppt: any) => mapApiAppointmentRow(apiAppt, calendars, services, doctors, t, colorSourcesFor))
+            .filter((apt): apt is Appointment => apt !== null);
+    } catch (error) {
+        console.error("Failed to fetch appointments:", error);
+        // Se re-lanza para que `loadAppointments` pueda mostrar el error (en vez de
+        // una agenda vacía que parece "no hay citas").
+        throw error;
+    }
+}
+
+/**
+ * Mapea una fila cruda de cita del backend (misma forma en `/users_appointments`
+ * y en `/appointments/search`) al modelo `Appointment` de la app: resuelve color
+ * con su cadena de fallbacks, doctor, servicios y los alias snake/camel de los
+ * nombres. Devuelve null si la fila no trae un inicio válido.
+ */
+function mapApiAppointmentRow(
+    apiAppt: any,
+    calendars: CalendarType[],
+    services: Service[],
+    doctors: UserType[],
+    t: (key: string) => string,
+    colorSourcesFor?: (calendarId: string) => CalendarColorSources,
+): Appointment | null {
             // Handle both structure where start is an object or a direct string
             const startNode = apiAppt.start_time || apiAppt.start;
             const appointmentDateTimeStr = typeof startNode === 'string' ? startNode : (startNode?.dateTime);
@@ -301,27 +536,23 @@ async function getAppointments(
                 apiApptServices.some((as: any) => String(as.id) === String(s.id))
             );
 
-            const appointmentColorId = String(apiAppt.color_id || apiAppt.colorId || apiAppt.colorid || '');
-            let finalColor = apiAppt.color;
+            const appointmentColorId = getGoogleCalendarColorId(apiAppt.color) || '';
+            const rawOwnColor = appointmentColorId ? colorMap.get(appointmentColorId) : apiAppt.color;
+            // Un valor que no es hex/hsl (p. ej. un id de paleta desconocido) no es un color usable.
+            const ownColor = typeof rawOwnColor === 'string' && (rawOwnColor.startsWith('#') || rawOwnColor.startsWith('hsl'))
+                ? rawOwnColor
+                : undefined;
 
-            // If the color field contains a Google Color ID, map it to hex
-            if (finalColor && colorMap.has(String(finalColor))) {
-                finalColor = colorMap.get(String(finalColor));
-            }
-
-            // Fallback algorithm: Appointment Color Tag > Service Color > Doctor Color > Calendar Color
-            // We skip white colors (255, 255, 255) as they are considered "no color"
-            if (!finalColor || (typeof finalColor === 'string' && !finalColor.startsWith('#') && !finalColor.startsWith('hsl'))) {
-                const tagColor = colorMap.get(appointmentColorId);
-                const sColor = service?.color;
-                const dColor = doctor?.color;
-                const cColor = calendar?.color;
-
-                finalColor = (!isWhite(tagColor) ? tagColor : null) ||
-                    (!isWhite(sColor) ? sColor : null) ||
-                    (!isWhite(dColor) ? dColor : null) ||
-                    (!isWhite(cColor) ? cColor : null);
-            }
+            // Cadena: color propio > servicio > doctor > calendario. Los niveles que la
+            // clínica (o este calendario) desactivó en Colores de Calendario se saltan;
+            // `colorSource` anota cuál ganó para distinguir asignado de heredado.
+            const { color: finalColor, colorSource } = resolveAppointmentColor({
+                ownColor,
+                serviceColor: service?.color,
+                doctorColor: doctor?.color,
+                calendarColor: getGoogleCalendarColorHex(calendar?.color),
+                sources: colorSourcesFor?.(calendarSourceId),
+            });
 
             const patientId = apiAppt.patient_id || apiAppt.patientId || apiAppt.patientid || apiAppt.user_id || apiAppt.userid;
             const patientName = apiAppt.patient_name || apiAppt.patientName || apiAppt.patientname || apiAppt.user_name || apiAppt.username || (apiAppt.attendees && apiAppt.attendees.length > 0 ? apiAppt.attendees.map((a: any) => a.email).join(', ') : 'N/A');
@@ -341,6 +572,9 @@ async function getAppointments(
                 patientName: patientName,
                 patientEmail: apiAppt.patient_email || apiAppt.patientEmail || apiAppt.patientemail || apiAppt.user_email,
                 patientPhone: apiAppt.patient_phone || apiAppt.patientPhone || apiAppt.patientphone || apiAppt.user_phone || apiAppt.phone_number,
+                responsibleContact: normalizeResponsibleContact(
+                    apiAppt.responsible_contact ?? apiAppt.responsibleContact,
+                ),
                 doctorId: String(doctorId || ''),
                 doctorName: doctorName,
                 doctorEmail: doctorEmail || doctor?.email || '',
@@ -358,10 +592,14 @@ async function getAppointments(
                 created_at: apiAppt.created_at || apiAppt.createdat,
                 google_calendar_id: apiAppt.google_calendar_id || apiAppt.googleCalendarId || undefined,
                 googleEventId: apiAppt.google_event_id || apiAppt.googleEventId || apiAppt.googleeventid || apiAppt.id,
+                imported_from_google: Boolean(
+                    apiAppt.imported_from_google ?? apiAppt.importedFromGoogle ?? apiAppt.importedfromgoogle,
+                ),
                 calendar_source_id: calendarSourceId,
                 calendar_name: apiAppt.organizer?.displayName || calendar?.name || apiAppt.calendar_name,
                 color: finalColor,
                 colorId: appointmentColorId,
+                colorSource,
                 start: typeof startNode === 'string' ? { dateTime: startNode } : startNode,
                 end: { dateTime: endDateTimeStr },
                 services: Array.isArray(apiAppt.services) ? apiAppt.services.map((s: any) => ({
@@ -378,11 +616,102 @@ async function getAppointments(
             };
 
             return appointment;
-        }).filter((apt): apt is Appointment => apt !== null);
-    } catch (error) {
-        console.error("Failed to fetch appointments:", error);
-        return [];
+}
+
+/**
+ * Resuelve el contacto del responsable de un paciente recién editado, para
+ * parchar las citas que lo tienen como paciente. `getDependantContactInfo`
+ * toma el id del paciente (no del responsable) y hace el mismo join que usa
+ * la ficha de paciente (`/user_dependant`).
+ */
+async function resolveResponsibleContact(patient: UserType): Promise<ResponsibleContact | null> {
+    if (!patient.is_dependent || !patient.responsible_contact_id) return null;
+    const info = await getDependantContactInfo(patient.id);
+    if (!info) return null;
+    return {
+        id: info.id,
+        name: info.name,
+        email: info.email ?? null,
+        phone_number: info.phone_number ?? null,
+        address: info.address ?? null,
+    };
+}
+
+/**
+ * Lleva una fecha cruda venida del backend (Postgres vía n8n) a un string que
+ * `parseISO` / `new Date` aceptan. n8n puede mandar un `Date`, un ISO con `T`/`Z`,
+ * o el formato de Postgres con espacio y offset corto (`2026-09-15 14:00:00+00`),
+ * que `parseISO` rechaza — de ahí que el patch "no hacía nada" o dejaba la cita
+ * con 15 min de duración.
+ */
+function toParseableDateString(v: unknown): string | undefined {
+    if (v == null) return undefined;
+    if (v instanceof Date) return isValid(v) ? v.toISOString() : undefined;
+    const raw = String(v).trim();
+    if (!raw) return undefined;
+    let s = raw.replace(/^(\d{4}-\d{2}-\d{2})[ ]/, '$1T'); // espacio → 'T'
+    s = s.replace(/([+-]\d{2})$/, '$1:00');                // '+00' → '+00:00'
+    return s;
+}
+
+/**
+ * Normaliza la fila cruda de un evento `calendar_changed` (SSE) a la forma que
+ * espera `mapApiAppointmentRow`: alias y saneo de fechas (`start_datetime` →
+ * `start`) y `services` como objetos `{id,name,price}` (el backend las manda como
+ * array de nombres, o `[null]` cuando no hay).
+ */
+function normalizePatchRow(ev: Record<string, any>): any {
+    const row: any = { ...ev };
+    const start = toParseableDateString(row.start ?? row.start_datetime);
+    const end = toParseableDateString(row.end ?? row.end_datetime);
+    if (start) { row.start = start; row.start_datetime = start; }
+    if (end) { row.end = end; row.end_datetime = end; }
+    if (Array.isArray(row.services)) {
+        row.services = row.services
+            .filter((s: unknown) => s != null)
+            // Un item string es sólo el nombre (feeder viejo `json_agg(sc.name)`):
+            // se deja `id` vacío a propósito. Si se le pusiera el nombre como id,
+            // al re-editar la cita el form mandaría ese nombre en `service_ids` y
+            // el backend responde 400. Con id vacío el form lo descarta al guardar.
+            .map((s: any) => (typeof s === 'string'
+                ? { id: '', name: s, price: 0 }
+                : { id: s.id != null ? String(s.id) : '', name: s.name ?? '', price: Number(s.price ?? 0) }));
     }
+    return row;
+}
+
+/**
+ * Combina la cita que ya está en la grilla con la mapeada del evento,
+ * conservando los campos "ricos" (nombres, contacto, servicios, notas) cuando el
+ * evento no los trajo. Las ramas de color / cancelación / movida entre agendas
+ * publican sólo columnas crudas de `appointments`, así que sin esto se perderían
+ * el nombre del paciente, los servicios, etc. hasta la próxima recarga completa.
+ */
+function mergePatchedAppointment(existing: Appointment, mapped: Appointment, ev: Record<string, any>): Appointment {
+    // `sent` = el evento incluyó la columna (aunque sea vacía); `filled` = además
+    // trae un valor útil. summary/description/notes/status/fechas/color siempre
+    // van del evento (para poder vaciarlos); nombres/contacto/servicios sólo si
+    // el evento los trajo (las ramas color/cancel/move mandan la fila cruda).
+    const filled = (k: string) => ev[k] !== undefined && ev[k] !== null && ev[k] !== '';
+    const hasDoctor = filled('doctor_name') || filled('assignee_id');
+    return {
+        ...existing,
+        ...mapped,
+        patientName: filled('patient_name') ? mapped.patientName : existing.patientName,
+        patientEmail: filled('patient_email') ? mapped.patientEmail : existing.patientEmail,
+        patientPhone: filled('patient_phone') ? mapped.patientPhone : existing.patientPhone,
+        responsibleContact: filled('responsible_contact') ? mapped.responsibleContact : existing.responsibleContact,
+        doctorName: hasDoctor ? mapped.doctorName : existing.doctorName,
+        doctorEmail: hasDoctor ? mapped.doctorEmail : existing.doctorEmail,
+        // Sólo se acepta la lista de servicios del evento si trae ids reales
+        // (feeder nuevo con `jsonb_build_object`). Si son sólo nombres se conserva
+        // la de la cita ya cargada (que sí tiene ids del REST) para no romper la
+        // próxima edición.
+        services: (Array.isArray(ev.services) && (mapped.services ?? []).every((s) => s.id))
+            ? mapped.services
+            : existing.services,
+        quote_doc_no: (filled('quote_doc_no') || filled('doc_no')) ? mapped.quote_doc_no : existing.quote_doc_no,
+    };
 }
 
 async function getReminders(startDate: Date, endDate: Date, userId?: string | null): Promise<CalendarReminder[]> {
@@ -391,10 +720,13 @@ async function getReminders(startDate: Date, endDate: Date, userId?: string | nu
     const formatDateForAPI = (date: Date) => format(date, 'yyyy-MM-dd HH:mm:ss');
 
     try {
+        // `userId` solo sirve de gate: sin sesión no se pide nada. No se manda
+        // `created_by` porque el endpoint devuelve los ítems de todo el staff y el
+        // filtrado por visibilidad se hace en el cliente (ver `reminderEvents`); mandarlo
+        // invitaba a "arreglar" el backend para honrarlo y dejar de ver lo compartido.
         const response = await api.get(API_ROUTES.REMINDERS, {
             from: formatDateForAPI(startDate),
             to: formatDateForAPI(endDate),
-            created_by: userId,
         });
         const remindersData = Array.isArray(response)
             ? response
@@ -405,7 +737,7 @@ async function getReminders(startDate: Date, endDate: Date, userId?: string | nu
             .filter((reminder: CalendarReminder | null): reminder is CalendarReminder => reminder !== null);
     } catch (error) {
         console.error("Failed to fetch reminders:", error);
-        return [];
+        throw error;
     }
 }
 
@@ -413,18 +745,25 @@ async function getCalendars(): Promise<CalendarType[]> {
     try {
         const data = await api.get(API_ROUTES.CALENDARS);
         const calendarsData = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
-        return calendarsData.map((apiCalendar: any, index: number) => ({
-            id: String(apiCalendar.id),
-            name: apiCalendar.name,
-            google_calendar_id: apiCalendar.google_calendar_id,
-            is_active: apiCalendar.is_active,
-            color: apiCalendar.color || CALENDAR_COLORS[index % CALENDAR_COLORS.length],
-            sede_id: apiCalendar.sede_id ? String(apiCalendar.sede_id) : undefined,
-            sede_name: apiCalendar.sede_name || undefined,
-        }));
+        return calendarsData
+            // El backend (`users_appointments`) excluye en duro las agendas
+            // inactivas (`WHERE c.is_active IS TRUE`). Si se mostraran acá, se
+            // podrían seleccionar/crear citas en una agenda cuyas citas nunca
+            // vuelven — grilla vacía sin explicación. Se filtran para que la
+            // vista de citas sea consistente con lo que el backend devuelve.
+            .filter((apiCalendar: any) => apiCalendar.is_active !== false)
+            .map((apiCalendar: any, index: number) => ({
+                id: String(apiCalendar.id),
+                name: apiCalendar.name,
+                google_calendar_id: apiCalendar.google_calendar_id,
+                is_active: apiCalendar.is_active,
+                color: apiCalendar.color || CALENDAR_COLORS[index % CALENDAR_COLORS.length],
+                sede_id: apiCalendar.sede_id ? String(apiCalendar.sede_id) : undefined,
+                sede_name: apiCalendar.sede_name || undefined,
+            }));
     } catch (error) {
         console.error("Failed to fetch calendars:", error);
-        return [];
+        throw error;
     }
 }
 
@@ -438,8 +777,9 @@ async function getSedes(): Promise<Sede[]> {
             name: s.name || '',
             is_active: s.is_active !== undefined ? s.is_active : true,
         }));
-    } catch {
-        return [];
+    } catch (error) {
+        console.error("Failed to fetch sedes:", error);
+        throw error;
     }
 }
 
@@ -449,7 +789,7 @@ async function getServices(): Promise<Service[]> {
         return result.items.map((s: any) => ({ ...s, id: String(s.id) }));
     } catch (error) {
         console.error("Failed to fetch services:", error);
-        return [];
+        throw error;
     }
 }
 
@@ -472,7 +812,7 @@ async function getDoctors(): Promise<UserType[]> {
         return doctorsData.map((d: any) => ({ ...d, id: String(d.id) }));
     } catch (error) {
         console.error("Failed to fetch doctors:", error);
-        return [];
+        throw error;
     }
 }
 
@@ -506,6 +846,7 @@ export default function AppointmentsPage() {
     const isMobile = breakpoint === 'mobile';
 
     const t = useTranslations('AppointmentsPage');
+    const tCalendar = useTranslations('Calendar');
     const tColumns = useTranslations('AppointmentsColumns');
     const tStatus = useTranslations('AppointmentStatus');
     const tStatusMenu = useTranslations('AppointmentStatusMenu');
@@ -513,20 +854,50 @@ export default function AppointmentsPage() {
     const tGeneral = useTranslations('General');
     const tUserRoles = useTranslations('UserRoles');
     const tToasts = useTranslations('AppointmentsPage.toasts');
+    const tLoadErrors = useTranslations('AppointmentsPage.loadErrors');
+    const tCommon = useTranslations('Common');
     const tOrderStatus = useTranslations('OrderStatus');
     const tReminders = useTranslations('Reminders');
+    const tEnableSlot = useTranslations('AppointmentsPage.enableSlot');
     const tPanel = useTranslations('AppointmentPanel');
     const tInline = useTranslations('AppointmentsPage.inlineCreate');
     const tGaps = useTranslations('Calendar.gaps');
+    const tSearch = useTranslations('Calendar.search');
+    const tDrag = useTranslations('Calendar.drag');
+    const tConfirmClose = useTranslations('ConfirmCloseDialog');
     const locale = useLocale();
-    const gapsDateLocale = locale === 'es' ? es : enUS;
+    const gapsDateLocale = getDateFnsLocale(locale);
 
     const { refreshNotifications: refreshReminders, markSessionAction } = useNotifications();
     const { user } = useAuth();
     const { open: openBillingWizard } = useBillingWizard();
-    const { open: openAccountStatement } = useAccountStatement();
+    const { open: openAccountStatement } = usePatientLedgerSheet();
+    const { open: openPatientView, lastUpdatedPatient } = usePatientView();
+    const { open: openPatientHistory } = usePatientHistorySheet();
+    const { open: openPatientAppointments } = usePatientAppointmentsSheet();
+    const { open: openPatientDocuments } = usePatientDocumentsSheet();
+    const { hasPermission, hasAnyPermission } = usePermissions();
+    const canCreateInlinePatient = hasPermission(PATIENTS_PERMISSIONS.CREATE);
+    const canEditInlinePatient = hasPermission(PATIENTS_PERMISSIONS.UPDATE);
+    // "Ver estado de cuenta" abre el ledger financiero consolidado del paciente.
+    const canViewPatientStatement = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
+    // Hasta ahora la rejilla no escribía nada, así que la página no gateaba este
+    // permiso (el único call-site de la app estaba en AppointmentPanel). Mover o
+    // redimensionar una cita sí es escritura.
+    const canUpdateAppointments = hasPermission(BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_UPDATE);
+    // Habilita el botón de historial en la ventana flotante del modo custom — mismo
+    // permiso que gatea la sección de historial dentro del panel lateral completo.
+    const canViewAppointmentHistory = hasPermission(SYSTEM_PERMISSIONS.AUDIT_LOG_VIEW_LIST);
 
     const { toast } = useToast();
+    const { reschedule: rescheduleAppointment } = useAppointmentReschedule();
+
+    /** Mensaje legible de un error de mutación. Traduce el timeout al texto estándar
+     *  (que además avisa que el cambio pudo haberse guardado igual). */
+    const describeError = React.useCallback(
+        (error: unknown, fallback: string) => (isTimeoutError(error) ? tCommon('timeoutError') : getErrorMessage(error) || fallback),
+        [tCommon],
+    );
 
     const [appointments, setAppointments] = React.useState<Appointment[]>([]);
     const [reminders, setReminders] = React.useState<CalendarReminder[]>([]);
@@ -538,7 +909,13 @@ export default function AppointmentsPage() {
     const [doctorCalendarMap, setDoctorCalendarMap] = React.useState<Map<string, CalendarType[]>>(new Map());
     const [selectedCalendarIds, setSelectedCalendarIds] = React.useState<string[]>([]);
     const [isDataLoading, setIsDataLoading] = React.useState(true);
+    // Falló la carga del esqueleto (agendas/servicios/doctores): la grilla no se
+    // puede usar y se ofrece reintentar en vez de mostrar una agenda vacía.
+    const [initialLoadError, setInitialLoadError] = React.useState(false);
+    // Falló la última carga de citas: se mantienen los datos previos y se avisa.
+    const [appointmentsError, setAppointmentsError] = React.useState(false);
     const [isCreateOpen, setCreateOpen] = React.useState(false);
+    const [isPrintScheduleOpen, setIsPrintScheduleOpen] = React.useState(false);
     const [isRefreshing, setIsRefreshing] = React.useState(false);
     const [fetchRange, setFetchRange] = React.useState<{ start: Date; end: Date } | null>(null);
     const [checkCalendarAvailability, setCheckCalendarAvailability] = React.useState(false);
@@ -553,17 +930,75 @@ export default function AppointmentsPage() {
 
     const [selectedAppointment, setSelectedAppointment] = React.useState<Appointment | null>(null);
     const [isDetailViewOpen, setIsDetailViewOpen] = React.useState(false);
+    // Ventana flotante de detalle (modo custom): la cita y el rect de su card, para
+    // anclarla. En el modo normal el clic simple sigue abriendo el panel lateral.
+    // En móvil no hay rect: la ficha se abre como sheet inferior, no anclada a la card.
+    const [quickView, setQuickView] = React.useState<{ appointment: Appointment; anchorRect?: DOMRect } | null>(null);
+    // Cita cuyo historial de auditoría se está viendo en el sheet dedicado — se abre
+    // desde el botón de historial de la ventana flotante (modo custom).
+    const [historyAppointment, setHistoryAppointment] = React.useState<Appointment | null>(null);
+    const [reminderQuickView, setReminderQuickView] = React.useState<{ reminder: CalendarReminder; anchorRect?: DOMRect } | null>(null);
+    // Versión viva de la cita del sheet de móvil: tras cambiar estado, doctor o color
+    // desde el propio sheet, la ficha muestra el dato nuevo sin reabrirse.
+    const liveQuickViewAppointment = quickView
+        ? (appointments.find((a) => a.id === quickView.appointment.id) ?? quickView.appointment)
+        : null;
+    const liveReminderQuickView = reminderQuickView?.reminder ?? null;
     const [selectedReminder, setSelectedReminder] = React.useState<CalendarReminder | null>(null);
     const [isReminderPanelOpen, setIsReminderPanelOpen] = React.useState(false);
     const [isReminderFormOpen, setIsReminderFormOpen] = React.useState(false);
     const [editingReminder, setEditingReminder] = React.useState<CalendarReminder | null>(null);
     const [reminderInitialDate, setReminderInitialDate] = React.useState<Date | null>(null);
-    const [isCreateTypeOpen, setIsCreateTypeOpen] = React.useState(false);
-    const [pendingSlotDate, setPendingSlotDate] = React.useState<Date | null>(null);
+    const [reminderInitialType, setReminderInitialType] = React.useState<CalendarItemType>('reminder');
+    const [reminderInitialCalendarId, setReminderInitialCalendarId] = React.useState<string | null>(null);
+    // Editar o borrar algo de una serie pregunta primero a qué alcanza. El alcance
+    // elegido viaja con el guardado: el backend decide si toca una fila o la serie.
+    const [scopePrompt, setScopePrompt] = React.useState<{ action: 'edit' | 'delete'; reminder: CalendarReminder } | null>(null);
+    const [pendingScope, setPendingScope] = React.useState<CalendarItemScope>('occurrence');
 
     const [selectedDoctorIds, setSelectedDoctorIds] = React.useState<string[]>([]);
     const [groupBy, setGroupBy] = React.useState<CalendarGroupBy>('none');
     const [currentView, setCurrentView] = React.useState<CalendarView>('month');
+
+    // ── Buscar cita — búsqueda global por texto (título de la cita / datos del
+    //    paciente). Pega a `/appointments/search`; los resultados van a un panel
+    //    lateral y al elegir uno el calendario salta a esa fecha y abre el detalle.
+    const [searchActive, setSearchActive] = React.useState(false);
+    // Solo en mobile: al elegir un resultado el panel se colapsa (se oculta pero la
+    // búsqueda sigue activa) y aparece un chip flotante para reabrirlo o cerrarlo,
+    // así se puede ver la cita marcada en la grilla. En desktop nunca se pone true.
+    const [searchCollapsed, setSearchCollapsed] = React.useState(false);
+    const [searchQuery, setSearchQuery] = React.useState('');
+    // Calendarios a los que se acota la búsqueda. Vacío = todos.
+    const [searchCalendarIds, setSearchCalendarIds] = React.useState<string[]>([]);
+    const [searchResults, setSearchResults] = React.useState<Appointment[]>([]);
+    const [isSearching, setIsSearching] = React.useState(false);
+    const [searchHasSearched, setSearchHasSearched] = React.useState(false);
+    // La última búsqueda falló: el panel muestra error + Reintentar en vez de "sin resultados".
+    const [searchError, setSearchError] = React.useState(false);
+    // Cambia para volver a disparar la búsqueda actual desde "Reintentar".
+    const [searchRetryNonce, setSearchRetryNonce] = React.useState(0);
+    const [selectedSearchId, setSelectedSearchId] = React.useState<string | null>(null);
+    const [searchFocusDate, setSearchFocusDate] = React.useState<Date | null>(null);
+    // Cita a resaltar en la grilla al elegir un resultado. El nonce re-dispara el
+    // halo aunque se vuelva a elegir la misma cita.
+    const [focusedEvent, setFocusedEvent] = React.useState<{ id: string; nonce: number } | null>(null);
+    const searchReqIdRef = React.useRef(0);
+    /** Cancela la espera "aparezca la card + termine el scroll" de `openCustomQuickViewForResult`
+     *  cuando se elige otro resultado antes de que la anterior termine. */
+    const pendingQuickViewCancelRef = React.useRef<(() => void) | null>(null);
+
+    /** Limpia todo el estado de la búsqueda (resultados, filtros, cita resaltada). */
+    const resetSearchState = React.useCallback(() => {
+        setSearchQuery('');
+        setSearchCalendarIds([]);
+        setSearchResults([]);
+        setSearchHasSearched(false);
+        setSearchError(false);
+        setSelectedSearchId(null);
+        setFocusedEvent(null);
+        setSearchCollapsed(false);
+    }, []);
 
     // ── "Huecos" — free-slot finder ──────────────────────────────────────────
     const [gapsActive, setGapsActive] = React.useState(false);
@@ -593,7 +1028,176 @@ export default function AppointmentsPage() {
     const [hourSlotHeight, setHourSlotHeight] = React.useState<number>(HOUR_SLOT_HEIGHT);
     const [slotDuration, setSlotDuration] = React.useState<number>(DEFAULT_SLOT_DURATION);
     const [eventLabelFormat, setEventLabelFormat] = React.useState<string>(DEFAULT_EVENT_LABEL_FORMAT);
+    const [colorByStatus, setColorByStatus] = React.useState<boolean>(DEFAULT_COLOR_BY_STATUS);
     const [defaultSede, setDefaultSede] = React.useState<string>('');
+    // Matriz general (sin argumento) + mapa por calendario del store: cada cita
+    // resuelve su propia matriz según su consultorio (`matchedCalendar.id`) más
+    // abajo, en vez de usar siempre la general — antes ningún override de
+    // calendario se veía en el calendario de citas por este motivo.
+    const { matrix: statusDisplayMatrix } = useAppointmentStatusDisplay();
+    const statusDisplayByCalendar = useCalendarStatusDisplayStore((s) => s.byCalendar);
+    // Niveles de la cadena de color que cuentan (general + override por calendario).
+    // Cambiar la función invalida `loadAppointments`, así que la agenda se repinta sola.
+    const generalColorSources = useCalendarColorSourceStore((s) => s.general);
+    const colorSourcesByCalendar = useCalendarColorSourceStore((s) => s.byCalendar);
+    const colorSourcesFor = React.useCallback(
+        (calendarId: string) => resolveColorSources(generalColorSources, colorSourcesByCalendar, calendarId),
+        [generalColorSources, colorSourcesByCalendar],
+    );
+
+    // ── Calendar display mode (invoke | custom) ──────────────────────────────
+    // In 'custom' mode a single agenda is shown at a time, chosen from the
+    // "Agendas" side panel.
+    const [calendarMode, setCalendarMode] = React.useState<string>(DEFAULT_CALENDAR_MODE);
+    const [personalizedCalendarId, setPersonalizedCalendarId] = React.useState<string | null>(null);
+    // Última agenda mirada, recordada por navegador igual que el zoom y el panel fijo.
+    // Se lee una sola vez en el arranque y entra como preferencia, no como valor
+    // final: si esa agenda ya no está entre las visibles se cae a la primera, como
+    // hacía antes. El estado sigue arrancando en null para que el render del
+    // servidor y el primero del cliente coincidan.
+    const [restoredPersonalizedId] = React.useState<string | null>(() => {
+        if (typeof window === 'undefined') return null;
+        try { return window.localStorage.getItem(PERSONALIZED_CALENDAR_KEY); } catch { return null; }
+    });
+    const [agendasPanelOpen, setAgendasPanelOpen] = React.useState(false);
+    // Panel de agendas fijo: elegir una agenda no lo cierra. Se recuerda por navegador,
+    // igual que el zoom y la columna de horas del calendario.
+    const [agendasPanelPinned, setAgendasPanelPinned] = React.useState(false);
+    React.useEffect(() => {
+        try {
+            setAgendasPanelPinned(window.localStorage.getItem(AGENDAS_PANEL_PINNED_KEY) === 'true');
+        } catch { /* localStorage bloqueado: queda sin fijar */ }
+    }, []);
+    const handleToggleAgendasPinned = React.useCallback(() => {
+        setAgendasPanelPinned((prev) => {
+            const next = !prev;
+            try { window.localStorage.setItem(AGENDAS_PANEL_PINNED_KEY, String(next)); } catch { /* ignore */ }
+            return next;
+        });
+    }, []);
+    const isCustomMode = calendarMode === 'custom';
+    // `resolvedTheme` es 'dark' solo con el tema Oscuro; decide el tono del teñido de la vista.
+    const { resolvedTheme } = useTheme();
+    const firstVisibleCalendarId = React.useMemo(
+        () => calendars.find((calendar) => selectedCalendarIds.includes(calendar.id))?.id ?? null,
+        [calendars, selectedCalendarIds],
+    );
+    // Agenda que el usuario está viendo: en modo personalizado es la única
+    // visible, en el resto la primera de las seleccionadas. Es la que el
+    // diálogo de exportación preselecciona.
+    const activeCalendarId = React.useMemo(
+        () => (isCustomMode ? personalizedCalendarId : null) ?? firstVisibleCalendarId,
+        [isCustomMode, personalizedCalendarId, firstVisibleCalendarId],
+    );
+    // Agendas cuyas citas se piden al backend. En modo personalizado sólo se ve
+    // una agenda a la vez, así que se trae únicamente esa (menos payload en cada
+    // reload / refresco silencioso); en el resto de modos la grilla pinta varias
+    // columnas, así que se piden todas las seleccionadas.
+    const fetchCalendarIds = React.useMemo(
+        () => (isCustomMode && activeCalendarId ? [activeCalendarId] : selectedCalendarIds),
+        [isCustomMode, activeCalendarId, selectedCalendarIds],
+    );
+    // Resaltado de la vista con el color del calendario que se está viendo, para
+    // distinguir de un vistazo entre sedes (un calendario por sede). Se configura en
+    // Configuración → Colores de calendario (general u override por calendario). Solo
+    // aplica con un único calendario visible: con varios no hay una sede/color que mostrar.
+    const calendarHighlight = React.useMemo(() => {
+        const visibleIds = isCustomMode && activeCalendarId ? [activeCalendarId] : selectedCalendarIds;
+        if (visibleIds.length !== 1) return null;
+        const { highlight } = resolveColorSources(generalColorSources, colorSourcesByCalendar, visibleIds[0]);
+        if (highlight === 'off') return null;
+        const calendar = calendars.find((c) => c.id === visibleIds[0]);
+        if (!calendar?.color || isWhiteColor(calendar.color)) return null;
+        return {
+            mode: highlight,
+            color: calendar.color,
+            textColor: getReadableTextColor(calendar.color),
+            label: calendar.sede_name || calendar.name,
+            // Modo "toda la vista": superficies teñidas con el color del calendario. Se
+            // redefinen sobre el contenedor, así que la barra de navegación (fuera de él),
+            // los diálogos y los popovers (portados al body) conservan el tema normal.
+            tintVars: highlight === 'full' ? buildCalendarTintVars(calendar.color, resolvedTheme === 'dark') : null,
+            // Fondo del layout (detrás de todo): un poco más oscuro que el color del calendario.
+            // El marco que rodea a la vista conserva el color original, así los dos se distinguen.
+            backdropColor: darkenColor(calendar.color, 0.7),
+        };
+    }, [isCustomMode, activeCalendarId, selectedCalendarIds, generalColorSources, colorSourcesByCalendar, calendars, resolvedTheme]);
+    // En "toda la vista" el fondo del layout (el de PrivateRoute, fuera de esta página) también
+    // toma el color del calendario: se publica como `--page-tint` en <html> y se retira al
+    // salir del modo o de la página. La barra de navegación tiene su propio fondo y no cambia.
+    const pageTint = calendarHighlight?.tintVars ? calendarHighlight.backdropColor : null;
+    React.useEffect(() => {
+        if (!pageTint) return;
+        const root = document.documentElement;
+        root.style.setProperty('--page-tint', pageTint);
+        return () => { root.style.removeProperty('--page-tint'); };
+    }, [pageTint]);
+    // Refresco en vivo: cuando otro usuario crea/edita/reprograma/reasigna/cambia
+    // color/cancela una cita, el backend publica `calendar_changed` con la fila de
+    // la cita y este hook lo reemite como `clinic:calendar:patch` (lote de filas).
+    // El efecto de más abajo lo aplica como patch quirúrgico sobre `appointments`
+    // en vez de recargar todo el rango visible.
+    useCalendarLiveRefresh(fetchCalendarIds);
+    const exportableCalendars = React.useMemo(
+        () => calendars.filter((c) => c.is_active !== false).map((c) => ({ id: c.id, name: c.name })),
+        [calendars],
+    );
+    // Calendarios ofrecidos en el filtro del buscador de citas (incluye color).
+    const searchPanelCalendars = React.useMemo(
+        () => calendars
+            .filter((c) => c.is_active !== false)
+            .map((c) => ({ id: c.id, name: c.name, color: c.color })),
+        [calendars],
+    );
+    // Zoom is controlled here in custom mode (a dropdown replaces the floating slider).
+    // Persisted in the same localStorage key the Calendar uses internally.
+    const [calendarZoom, setCalendarZoom] = React.useState<number>(0.9);
+    React.useEffect(() => {
+        const saved = typeof window !== 'undefined' ? window.localStorage.getItem('calendar-zoom') : null;
+        if (saved) {
+            const v = parseFloat(saved);
+            if (!Number.isNaN(v) && v >= 0.3 && v <= 2.5) setCalendarZoom(v);
+        }
+    }, []);
+    const applyCalendarZoom = React.useCallback((v: number) => {
+        const clamped = Math.min(2.5, Math.max(0.3, Math.round(v * 10) / 10));
+        setCalendarZoom(clamped);
+        try { window.localStorage.setItem('calendar-zoom', String(clamped)); } catch { /* ignore */ }
+    }, []);
+    // Ctrl/Cmd +/- zoom shortcuts (custom mode, time-grid views only). Ctrl 0 resets.
+    React.useEffect(() => {
+        if (calendarMode !== 'custom') return;
+        const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
+        if (!isTimeGrid) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (!(e.ctrlKey || e.metaKey)) return;
+            if (e.key === '+' || e.key === '=') {
+                e.preventDefault();
+                applyCalendarZoom(calendarZoom + 0.1);
+            } else if (e.key === '-' || e.key === '_') {
+                e.preventDefault();
+                applyCalendarZoom(calendarZoom - 0.1);
+            } else if (e.key === '0') {
+                e.preventDefault();
+                applyCalendarZoom(1);
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [calendarMode, currentView, calendarZoom, applyCalendarZoom]);
+    // Ctrl/Cmd B toggles the Agendas side panel (custom mode only).
+    React.useEffect(() => {
+        if (calendarMode !== 'custom') return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'b') return;
+            const el = e.target as HTMLElement | null;
+            if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+            e.preventDefault();
+            setAgendasPanelOpen((o) => !o);
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [calendarMode]);
 
     const tBulk = useTranslations('AppointmentsPage.bulk');
 
@@ -609,6 +1213,8 @@ export default function AppointmentsPage() {
             if (!prev) {
                 setGapsActive(false); // gaps and bulk modes are mutually exclusive
                 setSelectedGap(null);
+                setSearchActive(false); // idem con Buscar cita
+                resetSearchState();
                 skipNextBulkFilterRef.current = true; // entering — skip auto-trigger
                 prevViewRef.current = currentView;
                 setCurrentView('schedule');
@@ -622,7 +1228,7 @@ export default function AppointmentsPage() {
         setBulkCalendarIds([]);
         setBulkStatuses([]);
         setBulkDatePreset('today');
-    }, [currentView]);
+    }, [currentView, resetSearchState]);
 
     const handleApplyBulkFilter = React.useCallback(async () => {
         setIsBulkLoading(true);
@@ -632,16 +1238,18 @@ export default function AppointmentsPage() {
             if (bulkDoctorIds.length > 0) params.doctor_ids = bulkDoctorIds;
             if (bulkCalendarIds.length > 0) params.calendar_source_ids = bulkCalendarIds;
             if (bulkStatuses.length > 0) params.statuses = bulkStatuses;
-            const response = await api.post(API_ROUTES.APPOINTMENTS_FILTER_IDS, params);
+            const response = await api.post(API_ROUTES.APPOINTMENTS_FILTER_IDS, params, undefined, undefined, {
+                timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+            });
             const ids: string[] = (response?.ids ?? []).map(String);
             setBulkSelectedIds(new Set(ids));
             toast({ title: tBulk('filterResult', { count: ids.length }) });
-        } catch {
-            toast({ variant: 'destructive', title: tBulk('filterError') });
+        } catch (error) {
+            toast({ variant: 'destructive', title: tBulk('filterError'), description: describeError(error, tCommon('genericError')) });
         } finally {
             setIsBulkLoading(false);
         }
-    }, [bulkDatePreset, bulkDoctorIds, bulkCalendarIds, bulkStatuses, tBulk]);
+    }, [bulkDatePreset, bulkDoctorIds, bulkCalendarIds, bulkStatuses, tBulk, describeError, tCommon, toast]);
 
     const handleToggleAppointmentSelect = React.useCallback((id: string) => {
         setBulkSelectedIds((prev) => {
@@ -659,7 +1267,7 @@ export default function AppointmentsPage() {
                 doctor_id: doctorId,
                 doctor_name: doctorName,
                 doctor_email: doctorEmail,
-            });
+            }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.longRunning });
             const updated: number = response?.updated ?? 0;
             const failed: number = response?.failed ?? 0;
             if (failed > 0) {
@@ -676,12 +1284,12 @@ export default function AppointmentsPage() {
             setBulkStatuses([]);
             setBulkDatePreset('today');
             refreshCalendarDataRef.current();
-        } catch {
-            toast({ variant: 'destructive', title: tBulk('reassignError') });
+        } catch (error) {
+            toast({ variant: 'destructive', title: tBulk('reassignError'), description: describeError(error, tCommon('genericError')) });
         } finally {
             setIsReassignLoading(false);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bulkSelectedIds, tBulk]);
 
     const BULK_SELECTABLE_STATUSES: AppointmentStatus[] = ['scheduled', 'confirmed', 'pending', 'arrived', 'no_show'];
@@ -720,7 +1328,7 @@ export default function AppointmentsPage() {
         if (!isBulkModeRef.current) return;
         if (skipNextBulkFilterRef.current) { skipNextBulkFilterRef.current = false; return; }
         handleApplyBulkFilter();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bulkDoctorIds, bulkCalendarIds, bulkDatePreset]);
 
     // Compact mode: collapse filter/action buttons to icons when the viewport is narrow.
@@ -734,6 +1342,88 @@ export default function AppointmentsPage() {
         return () => window.removeEventListener('resize', check);
     }, []);
 
+    // Desktop header responsiveness: instead of wrapping action buttons to a second row
+    // when space is tight, collapse them to icon-only — secondary buttons (Buscar huecos /
+    // Operaciones en Lotes) first, then primary (Crear / Ver / Zoom). Level 0 = full labels,
+    // 1 = secondary icons, 2 = all icons.
+    //
+    // The decision is DETERMINISTIC: the action cluster is flex-1 + overflow-hidden, so its
+    // scrollWidth is the true content width at the current level regardless of how much space
+    // it was allocated, and its clientWidth is the space actually available. We record each
+    // level's content width as we observe it, then pick the target level directly.
+    //
+    // The cluster node arrives via a CALLBACK REF held in state — never located with
+    // querySelector from an effect: the desktop header can mount a commit AFTER this page's
+    // breakpoint flips to desktop (page and Calendar hold separate useCalendarBreakpoint
+    // states), so an effect keyed on isDesktop could run while the node doesn't exist yet
+    // and never retry — which left the header permanently clipped after a tablet→desktop
+    // resize. With the node in state, its mount/unmount re-runs the observer effect itself.
+    const isDesktop = breakpoint === 'desktop';
+    const [headerActionsEl, setHeaderActionsEl] = React.useState<HTMLDivElement | null>(null);
+    const [headerCollapseLevel, setHeaderCollapseLevel] = React.useState(0);
+    const levelContentWidthRef = React.useRef<Record<number, number>>({});
+
+    // `measure` compares the action cluster's content width (scrollWidth — accurate because
+    // its children are flex-shrink:0, so they keep their natural width) against the space
+    // allocated to it (clientWidth), and steps the collapse level one tier at a time. We keep
+    // it in a ref so the ResizeObserver can stay persistent across level changes, and refresh
+    // it (plus re-measure) after EVERY commit: a render can change the cluster's content
+    // width (level step, mode switch, data-driven buttons) without resizing the cluster
+    // itself, which a ResizeObserver would never report.
+    const measureHeaderRef = React.useRef<() => void>(() => {});
+    React.useEffect(() => {
+        measureHeaderRef.current = () => {
+            if (!isDesktop || isBulkMode || !headerActionsEl) return;
+            const available = headerActionsEl.clientWidth;   // space allocated to the action cluster
+            const needed = headerActionsEl.scrollWidth;      // content width at the CURRENT (committed) level
+            levelContentWidthRef.current[headerCollapseLevel] = needed;
+            let target = headerCollapseLevel;
+            if (needed - available > 1 && headerCollapseLevel < 2) {
+                target = headerCollapseLevel + 1;                 // doesn't fit → more icons
+            } else if (headerCollapseLevel > 0) {
+                // Fits → expand only if the next-lower (more labels) tier is known to fit with an
+                // 8px margin, so it doesn't flip-flop right at the boundary.
+                const lowerNeeded = levelContentWidthRef.current[headerCollapseLevel - 1];
+                if (lowerNeeded !== undefined && lowerNeeded + 8 <= available) {
+                    target = headerCollapseLevel - 1;
+                }
+            }
+            if (target !== headerCollapseLevel) setHeaderCollapseLevel(target);
+        };
+        measureHeaderRef.current();
+    });
+
+    // Custom mode adds Ver/Zoom, so per-level content widths differ — drop the cache on change.
+    React.useEffect(() => { levelContentWidthRef.current = {}; }, [calendarMode]);
+    // Force level 0 whenever the desktop header isn't in use (mobile/tablet or bulk mode).
+    React.useEffect(() => {
+        if (!isDesktop || isBulkMode) setHeaderCollapseLevel((prev) => (prev === 0 ? prev : 0));
+    }, [isDesktop, isBulkMode]);
+    // ResizeObserver on the action cluster — re-attached only when the node itself changes.
+    // The callback is deferred to requestAnimationFrame (and coalesced) so the measurement
+    // never runs synchronously inside ResizeObserver delivery — that synchronous setState is
+    // what produced the "ResizeObserver loop" errors and the resize-thrashing.
+    React.useEffect(() => {
+        if (!headerActionsEl || !isDesktop || isBulkMode || typeof ResizeObserver === 'undefined') return;
+        let raf = 0;
+        const schedule = () => {
+            if (raf) return;
+            raf = requestAnimationFrame(() => { raf = 0; measureHeaderRef.current(); });
+        };
+        const observer = new ResizeObserver(schedule);
+        observer.observe(headerActionsEl);
+        // Web fonts can widen labels after first paint without resizing the row.
+        if (typeof document !== 'undefined' && document.fonts?.ready) {
+            document.fonts.ready.then(schedule).catch(() => {});
+        }
+        return () => { if (raf) cancelAnimationFrame(raf); observer.disconnect(); };
+    }, [headerActionsEl, isDesktop, isBulkMode]);
+    // Icon-only flags: mobile always collapses; desktop collapses progressively by overflow.
+    const secondaryIconOnly = isMobile || (isDesktop && headerCollapseLevel >= 1);
+    const primaryIconOnly = isMobile || (isDesktop && headerCollapseLevel >= 2);
+    // On desktop the Ver/Zoom dropdowns collapse to icons together with the primary tier.
+    const compactPrimaryActions = isDesktop && headerCollapseLevel >= 2;
+
     const handleSettingsChange = React.useCallback((settings: CalendarSettings) => {
         setCalendarSettings(settings);
         const mappedView = SETTINGS_VIEW_MAP[settings.default_view] || 'month';
@@ -745,7 +1435,9 @@ export default function AppointmentsPage() {
         setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
         setSlotDuration(settings.slot_duration ?? DEFAULT_SLOT_DURATION);
         setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
+        setColorByStatus(settings.color_by_status ?? DEFAULT_COLOR_BY_STATUS);
         setDefaultSede(settings.default_sede ?? '');
+        setCalendarMode(settings.mode ?? DEFAULT_CALENDAR_MODE);
     }, []);
 
     const handleSettingsEditorChange = React.useCallback((settings: CalendarSettings) => {
@@ -767,7 +1459,9 @@ export default function AppointmentsPage() {
         setHourSlotHeight(settings.hour_height ?? HOUR_SLOT_HEIGHT);
         setSlotDuration(settings.slot_duration ?? DEFAULT_SLOT_DURATION);
         setEventLabelFormat(settings.event_label_format ?? DEFAULT_EVENT_LABEL_FORMAT);
+        setColorByStatus(settings.color_by_status ?? DEFAULT_COLOR_BY_STATUS);
         setDefaultSede(settings.default_sede ?? '');
+        setCalendarMode(settings.mode ?? DEFAULT_CALENDAR_MODE);
     }, [doctors]);
 
     // Tracks the last applied default sede so the effect below only re-scopes the
@@ -798,6 +1492,8 @@ export default function AppointmentsPage() {
     const { createSession, updateSession, isSubmittingSession } = useClinicHistory();
     const eventClickAbortRef = React.useRef<AbortController | null>(null);
     const refreshCalendarDataRef = React.useRef<() => void>(() => undefined);
+    /** Descarta respuestas de `loadAppointments` que llegan fuera de orden. */
+    const loadAppointmentsRequestIdRef = React.useRef(0);
 
 
 
@@ -818,6 +1514,25 @@ export default function AppointmentsPage() {
 
     const handleNewAppointmentClick = () => {
         setEditingAppointment(null);
+        setInlineDraft(null);
+        // In custom mode, "Crear cita" opens the simplified inline card (the same
+        // centered window used to edit/reschedule, regardless of the current view.
+        if (isCustomMode) {
+            const calId = personalizedCalendarId ?? firstVisibleCalendarId ?? null;
+            const calendar = calId ? (calendars.find((c) => String(c.id) === String(calId)) ?? null) : null;
+            setInlineDraft(createInlineDraftState({
+                date: new Date(),
+                context: calId ? { groupBy: 'calendar', value: String(calId) } : undefined,
+                durationMin: slotDuration,
+                patient: null,
+                services: [],
+                doctor: null,
+                calendar,
+                notes: '',
+                summary: '',
+            }));
+            return;
+        }
         setIsReschedulingMode(false);
         setSlotInitialData(null);
         setCreateOpen(true);
@@ -826,7 +1541,16 @@ export default function AppointmentsPage() {
     const handleNewReminderClick = () => {
         setEditingReminder(null);
         setReminderInitialDate(new Date());
-        setPendingSlotDate(null);
+        setReminderInitialType('reminder');
+        setReminderInitialCalendarId(isCustomMode ? (personalizedCalendarId ?? selectedCalendarIds[0] ?? null) : null);
+        setIsReminderFormOpen(true);
+    };
+
+    const handleNewNoteClick = () => {
+        setEditingReminder(null);
+        setReminderInitialDate(new Date());
+        setReminderInitialType('note');
+        setReminderInitialCalendarId(isCustomMode ? (personalizedCalendarId ?? selectedCalendarIds[0] ?? null) : null);
         setIsReminderFormOpen(true);
     };
 
@@ -848,6 +1572,7 @@ export default function AppointmentsPage() {
         services?: SessionPreloadedService[];
         quoteId?: string;
         calendarId?: string;
+        notifId?: string;
     } | null>(null);
 
     // Shared slot preparation: stores the slot's initial data (date/time + doctor/calendar
@@ -871,25 +1596,32 @@ export default function AppointmentsPage() {
             if (calendar) base.calendar = calendar;
         }
         setSlotInitialData(base);
-        setPendingSlotDate(date);
     }, [doctors, calendars]);
 
     // ── In-canvas (inline) appointment creation ─────────────────────────────
-    const [inlineDraft, setInlineDraft] = React.useState<{
-        date: Date;
-        context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string };
-        durationMin: number;
-        patient: UserType | null;
-        services: Service[];
-        doctor: UserType | null;
-        calendar: CalendarType | null;
-        notes: string;
-        /** Set when the inline card is editing an existing appointment (vs creating). */
-        editing?: Appointment | null;
-    } | null>(null);
-    const [isSavingInline, setIsSavingInline] = React.useState(false);
+    const [inlineDraft, setInlineDraft] = React.useState<InlineAppointmentDraftState | null>(null);
+    const [isInlineDiscardConfirmOpen, setIsInlineDiscardConfirmOpen] = React.useState(false);
     const [inlineDebt, setInlineDebt] = React.useState<{ currency: string; amount: number }[]>([]);
     const [inlineCancelledCount, setInlineCancelledCount] = React.useState(0);
+    // "New patient" full-form dialog opened from the inline draft's patient picker.
+    const [inlineCreatePatient, setInlineCreatePatient] = React.useState<{ open: boolean; initialName: string }>({ open: false, initialName: '' });
+    // Backend availability check for the inline card (room + doctor over the whole
+    // duration). Same setting and endpoint as the full appointment form; informative only.
+    const inlineAvailability = useSlotAvailability(
+        checkCalendarAvailability && inlineDraft && inlineDraft.calendar && !inlineDraft.editing?.imported_from_google
+            ? {
+                start: inlineDraft.date,
+                end: addMinutes(inlineDraft.date, inlineDraft.durationMin || 30),
+                doctorId: inlineDraft.doctor?.id ? String(inlineDraft.doctor.id) : undefined,
+                calendarId: String(inlineDraft.calendar.id),
+                patientId: inlineDraft.patient?.id ? String(inlineDraft.patient.id) : undefined,
+                appointmentId: inlineDraft.editing?.id ? String(inlineDraft.editing.id) : undefined,
+            }
+            : null,
+    );
+    // Future-appointments confirmation for the quick inline-create flow.
+    const [inlineFutureConfirm, setInlineFutureConfirm] = React.useState<{ appointments: FuturePatientAppointment[]; patientName: string } | null>(null);
+    const skipInlineFutureCheckRef = React.useRef(false);
 
     // Load the inline-draft patient's debt + cancelled-appointment count to surface
     // them inline next to the patient.
@@ -919,9 +1651,51 @@ export default function AppointmentsPage() {
         return () => { active = false; };
     }, [inlineDraft?.patient?.id]);
 
-    const handleSaveInlineDraft = React.useCallback(async () => {
-        if (!inlineDraft?.patient) return;
-        setIsSavingInline(true);
+    // True when "block out-of-office hours" is on and the given time falls inside a
+    // non-working band for that specific day. Computed from the schedules directly
+    // (not the visible `blockedRanges`) so it also validates dates in other weeks.
+    // When a calendar is given, its sede's schedules are preferred. Used to block
+    // save on create/edit/reschedule y para rechazar un drop en la rejilla.
+    //
+    // Con `end`, evalúa el RANGO completo por solape en vez del instante inicial:
+    // una cita que empieza en horario válido y termina pasado el cierre está fuera
+    // de horario igual. Sin `end` conserva la semántica puntual de siempre.
+    const isDateTimeBlocked = React.useCallback((start: Date, calendarId?: string, end?: Date): boolean => {
+        if (!blockUnavailable || !isValid(start) || clinicSchedules.length === 0) return false;
+        // Clinic-wide schedules scoped to the default sede (matches the block overlay);
+        // never over-filter to empty.
+        let sched = defaultSede
+            ? clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === String(defaultSede))
+            : clinicSchedules;
+        if (sched.length === 0) sched = clinicSchedules;
+        // Prefer the target calendar's sede schedules when a calendar is given.
+        let sedeId = defaultSede ? String(defaultSede) : '';
+        if (calendarId) {
+            const cal = calendars.find((c) => String(c.id) === String(calendarId));
+            if (cal?.sede_id) {
+                sedeId = String(cal.sede_id);
+                const scoped = clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === sedeId);
+                if (scoped.length > 0) sched = scoped;
+            }
+        }
+        // Exceptions of that branch (an empty result is legitimate → no fallback).
+        const exc = filterExceptionsForSede(clinicExceptions, sedeId || undefined);
+        const startMin = start.getHours() * 60 + start.getMinutes();
+        const ranges = computeBlockedRanges(start, sched, exc);
+        if (!end || !isValid(end)) {
+            return ranges.some((b) => startMin >= b.startMin && startMin < b.endMin);
+        }
+        // Un fin en otro día ya se sale del horario del día de inicio.
+        const endMin = isSameDay(start, end)
+            ? Math.max(startMin + 1, end.getHours() * 60 + end.getMinutes())
+            : MINUTES_IN_DAY;
+        return ranges.some((b) => startMin < b.endMin && endMin > b.startMin);
+    }, [blockUnavailable, clinicSchedules, defaultSede, clinicExceptions, calendars]);
+
+    const runSaveInlineDraft = React.useCallback(async () => {
+        // Las citas importadas de Google llegan sin paciente y aun así se pueden
+        // guardar; el resto sigue necesitando uno (la validación de más abajo avisa).
+        if (!inlineDraft) return;
         try {
             const start = inlineDraft.date;
             const end = addMinutes(start, inlineDraft.durationMin || 30);
@@ -929,10 +1703,78 @@ export default function AppointmentsPage() {
             const calendar = inlineDraft.calendar ?? undefined;
             const patient = inlineDraft.patient;
             const svcNames = inlineDraft.services.map((s) => s.name).join(', ');
-            // Color precedence: selected service color > doctor color > calendar color.
-            const draftColor = inlineDraft.services[inlineDraft.services.length - 1]?.color
-                || (doctor as any)?.color || (calendar as any)?.color || undefined;
+            // Solo el color que el usuario eligió: el del calendario se hereda por la cadena, no se copia a la cita.
+            const draftColor = inlineDraft.color;
             const editing = inlineDraft.editing ?? null;
+            const isImported = editing?.imported_from_google === true;
+            // En las citas importadas el summary es el título del evento y lo maneja el
+            // usuario en el campo de la tarjeta: se guarda literal, sin regenerarlo.
+            const importedSummary = isImported ? (inlineDraft.summary.trim() || editing!.summary) : null;
+            // Sin paciente (solo posible en las importadas) el summary generado se
+            // queda con los tratamientos; en la práctica no se usa, porque esas citas
+            // siempre resuelven por `importedSummary`.
+            const generatedSummary = patient
+                ? (svcNames ? `${patient.name} - ${svcNames}` : patient.name)
+                : svcNames;
+
+            // A patient is always required, EXCEPT for appointments imported from Google
+            // Calendar: those arrive with no patient assigned and must stay editable.
+            if (!patient?.id && !isImported) {
+                toast({ variant: 'destructive', title: tToasts('missingInfoTitle'), description: tToasts('patientRequired') });
+                return;
+            }
+
+            // Block save when the chosen slot falls outside the calendar's working
+            // hours (only when "block out-of-office hours" is enabled). Se valida el
+            // rango completo y no solo el inicio: una cita que arranca 17:45 y termina
+            // 18:15 con cierre a las 18:00 está fuera de horario igual.
+            if (isDateTimeBlocked(start, calendar?.id ? String(calendar.id) : undefined, end)) {
+                toast({ variant: 'destructive', title: tToasts('slotBlockedTitle'), description: tToasts('slotBlockedDescription') });
+                return;
+            }
+
+            // When creating (not editing/rescheduling), warn if the patient already
+            // has upcoming appointments booked, and let the user confirm first.
+            if (!editing && !inlineDraft.rescheduling) {
+                if (skipInlineFutureCheckRef.current) {
+                    skipInlineFutureCheckRef.current = false;
+                } else if (patient?.id) {
+                    const future = await fetchFuturePatientAppointments(String(patient.id), calendars);
+                    if (future.length > 0) {
+                        setInlineFutureConfirm({ appointments: future, patientName: patient.name });
+                        return;
+                    }
+                }
+            }
+
+            // Reschedule flow (custom mode): cancel the original + create a new
+            // appointment via the reschedule endpoint, reusing the inline card.
+            if (editing && inlineDraft.rescheduling) {
+                const newId = await rescheduleAppointment(editing, {
+                    patient_id: patient?.id || '',
+                    patient_name: patient?.name || '',
+                    patient_email: patient?.email || '',
+                    patient_phone: patient?.phone_number || '',
+                    doctor_id: doctor?.id || '',
+                    doctor_name: doctor?.name || '',
+                    doctor_email: doctor?.email || '',
+                    calendar_source_id: calendar?.id ? String(calendar.id) : '',
+                    summary: importedSummary ?? generatedSummary,
+                    notes: inlineDraft.notes || '',
+                    service_ids: inlineDraft.services.map((s) => s.id),
+                    service_names: svcNames,
+                    start: toLocalISOString(start),
+                    end: toLocalISOString(end),
+                    changed_by: user?.id ? String(user.id) : undefined,
+                    status: 'deleted',
+                });
+                if (newId) {
+                    setInlineDraft(null);
+                    refreshCalendarDataRef.current();
+                }
+                return;
+            }
+
             const payload: any = {
                 mode: editing ? 'update' : 'create',
                 start: toLocalISOString(start),
@@ -940,59 +1782,107 @@ export default function AppointmentsPage() {
                 doctor_id: doctor?.id || '',
                 doctor_name: doctor?.name || '',
                 doctor_email: doctor?.email || '',
-                patient_id: patient.id,
-                patient_name: patient.name,
-                patient_email: patient.email || '',
-                patient_phone: patient.phone_number || '',
-                summary: svcNames ? `${patient.name} - ${svcNames}` : patient.name,
+                patient_id: patient?.id || '',
+                patient_name: patient?.name || '',
+                patient_email: patient?.email || '',
+                patient_phone: patient?.phone_number || '',
+                summary: importedSummary ?? generatedSummary,
                 service_ids: inlineDraft.services.map((s) => s.id),
                 service_names: svcNames,
                 notes: inlineDraft.notes || '',
                 calendar_source_id: calendar?.id ? String(calendar.id) : '',
                 color: draftColor,
-                quote_id: editing?.quote_id ?? null,
+                quote_id: editing?.quote_id ?? inlineDraft.quoteId ?? null,
             };
             if (editing) {
                 payload.appointment_id = editing.id;
                 payload.google_event_id = editing.googleEventId;
                 if (editing.calendar_source_id) payload.old_calendar_source_id = editing.calendar_source_id;
             }
-            const response = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload);
+            const response = await api.post(API_ROUTES.APPOINTMENTS_UPSERT, payload, undefined, undefined, {
+                timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+            });
             const result = Array.isArray(response) ? response[0] : response;
             if (result?.error || (result?.code && result.code >= 400)) throw new Error(result?.message || 'Failed to save appointment');
             toast({ title: editing ? tToasts('appointmentUpdated') : tToasts('appointmentCreated') });
+            // La notificación se marca solo tras el guardado exitoso (igual que
+            // handleSaveSuccess para el dialog completo).
+            if (inlineDraft.notifId) markSessionAction(inlineDraft.notifId, 'schedule');
             setInlineDraft(null);
             refreshCalendarDataRef.current();
         } catch (error) {
-            toast({ variant: 'destructive', title: tToasts('error'), description: error instanceof Error ? error.message : tToasts('unexpectedError') });
-        } finally {
-            setIsSavingInline(false);
+            // Tras un timeout la cita puede haberse guardado igual: se recarga la
+            // grilla para reflejarlo antes de que el usuario reintente.
+            if (isTimeoutError(error)) refreshCalendarDataRef.current();
+            toast({ variant: 'destructive', title: tToasts('error'), description: describeError(error, tToasts('unexpectedError')) });
         }
-    }, [inlineDraft, doctors, calendars, toast, tToasts]);
+    }, [inlineDraft, toast, tToasts, rescheduleAppointment, user?.id, calendars, isDateTimeBlocked, markSessionAction, describeError]);
 
-    const renderInlineDraft = React.useCallback(() => {
-        if (!inlineDraft) return null;
-        const draftStart = inlineDraft.date.getTime();
-        const draftEnd = addMinutes(inlineDraft.date, inlineDraft.durationMin || 30).getTime();
-        // Overlap: a non-cancelled appointment in the same column starting within the draft span.
-        const overlap = appointments.some((a) => {
-            if (a.status === 'cancelled') return false;
-            if (inlineDraft.doctor && String(a.doctorId) !== String(inlineDraft.doctor.id)) return false;
-            if (inlineDraft.calendar && String(a.calendar_source_id) !== String(inlineDraft.calendar.id)) return false;
-            const s = a.start?.dateTime ? parseISO(a.start.dateTime.replace(/Z$/, '')).getTime() : NaN;
-            return !Number.isNaN(s) && s > draftStart && s < draftEnd;
+    // Bloqueo síncrono del guardado inline: `run` ignora los clics que lleguen
+    // mientras hay una petición en vuelo (doble clic = dos citas).
+    const saveInlineDraft = useAsyncAction<[], void>(runSaveInlineDraft, { showErrorToast: false });
+    const isSavingInline = saveInlineDraft.isPending;
+
+    const isInlineDraftDirty = (
+        inlineDraft
+            ? getInlineDraftSignature(inlineDraft) !== inlineDraft.initialSignature
+            : false
+    );
+
+    // `inline_draft_live_preview`: the inline card floats next to the appointment,
+    // which is previewed live on the grid. Mobile keeps the centered card.
+    const inlineDraftLivePreview = !!calendarSettings?.inline_draft_live_preview && !isMobile;
+    const hasAnchoredInlineDraft = inlineDraftLivePreview && inlineDraft !== null;
+
+    // Moves the open draft to another slot/column, keeping what was already filled
+    // in. The clicked column's agenda/doctor replaces the draft's one.
+    const moveInlineDraftTo = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
+        setInlineDraft((d) => {
+            if (!d) return d;
+            const next: InlineAppointmentDraftState = { ...d, date, context: context ?? d.context };
+            if (context?.groupBy === 'calendar') {
+                const calendar = calendars.find((c) => String(c.id) === String(context.value));
+                if (calendar) next.calendar = calendar;
+            } else if (context?.groupBy === 'doctor') {
+                const doctor = doctors.find((doc) => String(doc.id) === String(context.value));
+                if (doctor) next.doctor = doctor;
+            }
+            return next;
         });
+    }, [calendars, doctors, setInlineDraft]);
+
+    const closeInlineDraft = () => {
+        setIsInlineDiscardConfirmOpen(false);
+        setInlineDraft(null);
+    };
+
+    const requestInlineDraftClose = () => {
+        if (!inlineDraft || isSavingInline) return;
+        if (isInlineDraftDirty) {
+            setIsInlineDiscardConfirmOpen(true);
+            return;
+        }
+        closeInlineDraft();
+    };
+
+    const renderInlineDraft = () => {
+        if (!inlineDraft) return null;
+        const overlap = inlineDraftOverlaps(inlineDraft, appointments);
         const isEditing = !!inlineDraft.editing;
-        // Color precedence shown on the card: service > doctor > calendar.
-        const accentColor = inlineDraft.services[inlineDraft.services.length - 1]?.color
-            || (inlineDraft.doctor as any)?.color || (inlineDraft.calendar as any)?.color || undefined;
+        const isRescheduling = isEditing && !!inlineDraft.rescheduling;
+        const accentColor = inlineDraftAccentColor(inlineDraft);
         return (
             <InlineAppointmentDraft
+                variant={calendarMode === 'custom' ? 'custom' : 'default'}
                 date={inlineDraft.date}
                 endTime={format(addMinutes(inlineDraft.date, inlineDraft.durationMin || 30), 'HH:mm')}
                 durationMin={inlineDraft.durationMin}
                 onDurationChange={(min) => setInlineDraft((d) => (d ? { ...d, durationMin: min } : d))}
+                onDateChange={(nextDate) => setInlineDraft((d) => (d ? { ...d, date: nextDate } : d))}
                 onStartTimeChange={(h, m) => setInlineDraft((d) => (d ? { ...d, date: set(d.date, { hours: h, minutes: m, seconds: 0, milliseconds: 0 }) } : d))}
+                color={inlineDraft.color}
+                colorOptions={GOOGLE_CALENDAR_COLORS.map((color) => ({ id: color.id, hex: color.hex, label: color.id }))}
+                onColorChange={(color) => setInlineDraft((d) => (d ? { ...d, color: color || undefined } : d))}
                 calendar={inlineDraft.calendar}
                 onCalendarChange={(c) => setInlineDraft((d) => (d ? { ...d, calendar: c } : d))}
                 calendarOptions={calendars}
@@ -1000,7 +1890,15 @@ export default function AppointmentsPage() {
                 onDoctorChange={(doc) => setInlineDraft((d) => (d ? { ...d, doctor: doc } : d))}
                 doctorOptions={doctors}
                 patient={inlineDraft.patient}
-                onPatientChange={(u) => setInlineDraft((d) => (d ? { ...d, patient: u } : d))}
+                onPatientChange={(u) => setInlineDraft((d) => {
+                    if (!d) return d;
+                    // Patient's default doctor — only when the draft has no doctor yet
+                    // (e.g. a doctor-column draft keeps the column's doctor).
+                    const defaultDoctor = !d.doctor && u?.doctor_id
+                        ? doctors.find((doc) => String(doc.id) === String(u.doctor_id)) ?? null
+                        : null;
+                    return { ...d, patient: u, ...(defaultDoctor ? { doctor: defaultDoctor } : {}) };
+                })}
                 services={inlineDraft.services}
                 onServicesChange={(s) => setInlineDraft((d) => {
                     if (!d) return d;
@@ -1011,89 +1909,185 @@ export default function AppointmentsPage() {
                 })}
                 notes={inlineDraft.notes}
                 onNotesChange={(n) => setInlineDraft((d) => (d ? { ...d, notes: n } : d))}
+                importedFromGoogle={inlineDraft.editing?.imported_from_google === true}
+                summary={inlineDraft.summary}
+                onSummaryChange={(v) => setInlineDraft((d) => (d ? { ...d, summary: v } : d))}
                 overlapWarning={overlap}
+                availabilityStatus={inlineAvailability}
                 patientDebt={inlineDebt}
                 cancelledCount={inlineCancelledCount}
-                onViewStatement={inlineDraft.patient ? () => openAccountStatement(inlineDraft.patient!.id, inlineDraft.patient!.name) : undefined}
+                onViewStatement={inlineDraft.patient && canViewPatientStatement ? () => openAccountStatement(inlineDraft.patient!.id, inlineDraft.patient!.name) : undefined}
                 isSaving={isSavingInline}
-                onSave={handleSaveInlineDraft}
-                onCancel={() => setInlineDraft(null)}
+                onSave={saveInlineDraft.run}
+                onCancel={requestInlineDraftClose}
                 accentColor={accentColor}
-                title={isEditing ? tInline('editTitle') : undefined}
-                saveLabel={isEditing ? tInline('update') : undefined}
+                canCreatePatient={canCreateInlinePatient}
+                canEditPatient={canEditInlinePatient}
+                onRequestCreatePatient={(name) => setInlineCreatePatient({ open: true, initialName: name })}
+                onEditPatient={inlineDraft.patient ? () => openPatientView({
+                    userId: inlineDraft.patient!.id,
+                    userName: inlineDraft.patient!.name,
+                    userEmail: inlineDraft.patient!.email || undefined,
+                    userPhone: inlineDraft.patient!.phone_number || undefined,
+                    initialTab: 'info',
+                    infoOnly: true,
+                    showCancelAction: calendarMode === 'custom',
+                }) : undefined}
+                title={isRescheduling ? tReschedule('dialogTitle') : isEditing ? tInline('editTitle') : undefined}
+                saveLabel={isRescheduling ? tReschedule('submit') : isEditing ? tInline('update') : undefined}
             />
         );
-    }, [inlineDraft, doctors, calendars, appointments, inlineDebt, inlineCancelledCount, isSavingInline, handleSaveInlineDraft, openAccountStatement, tInline]);
+    };
 
-    // Left-click on an empty slot → inline draft (if enabled, desktop, time-grid view)
-    // or the modal form. Month/year/schedule always use the modal.
+    // Esc follows the same guarded close path as Cancel and X. Radix layers get
+    // first refusal so an open picker or nested dialog closes before the draft.
+    React.useEffect(() => {
+        if (!inlineDraft) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape' || e.defaultPrevented || isSavingInline || isInlineDiscardConfirmOpen) return;
+            const openLayer = document.querySelector('[role="dialog"][data-state="open"], [role="alertdialog"][data-state="open"], [data-notifications-panel="open"]');
+            if (openLayer) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            if (isInlineDraftDirty) {
+                // Open after the Escape event finishes so the newly mounted
+                // AlertDialog cannot consume the same key press and close itself.
+                window.setTimeout(() => setIsInlineDiscardConfirmOpen(true), 0);
+            } else {
+                setInlineDraft(null);
+            }
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [inlineDraft, isInlineDiscardConfirmOpen, isInlineDraftDirty, isSavingInline]);
+
+    // Left-click on an empty slot → the centered inline draft in custom mode.
+    // Outside custom mode, the saved inline preference still applies only to time grids.
     const handleSlotClick = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
-        const isTimeGrid = ['day', '2-day', '3-day', 'week'].includes(currentView);
-        if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
+        // With the floating card the grid stays clickable: an empty slot moves the
+        // open draft there instead of starting a new one.
+        if (hasAnchoredInlineDraft) {
+            if (!isSavingInline) moveInlineDraftTo(date, context);
+            return;
+        }
+        const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
+        if (isCustomMode || (calendarSettings?.inline_appointment_creation && isTimeGrid)) {
             const draftDoctor = context?.groupBy === 'doctor' ? (doctors.find((d) => String(d.id) === String(context.value)) ?? null) : null;
-            const draftCalendar = context?.groupBy === 'calendar' ? (calendars.find((c) => String(c.id) === String(context.value)) ?? null) : null;
-            setInlineDraft({ date, context, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '' });
+            const customCalendarId = isCustomMode ? (personalizedCalendarId ?? selectedCalendarIds[0] ?? null) : null;
+            const draftCalendarId = context?.groupBy === 'calendar' ? context.value : customCalendarId;
+            const draftCalendar = draftCalendarId ? (calendars.find((c) => String(c.id) === String(draftCalendarId)) ?? null) : null;
+            const draftContext = context ?? (draftCalendarId ? { groupBy: 'calendar' as const, value: String(draftCalendarId) } : undefined);
+            setInlineDraft(createInlineDraftState({ date, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', summary: '' }));
             return;
         }
         prepareSlot(date, context);
         setIsReschedulingMode(false);
         setCreateOpen(true);
-    }, [prepareSlot, calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, slotDuration]);
+    }, [prepareSlot, calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, slotDuration, isCustomMode, personalizedCalendarId, selectedCalendarIds, hasAnchoredInlineDraft, isSavingInline, moveInlineDraftTo]);
 
-    // Edit an existing appointment: inline edit card when the inline-creation
-    // preference is on (and on a time-grid view), otherwise the modal form.
-    const handleEditAppointment = React.useCallback((appointment: Appointment) => {
-        const isTimeGrid = ['day', '2-day', '3-day', 'week'].includes(currentView);
-        if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
-            const startStr = appointment.start?.dateTime;
-            const start = startStr ? parseISO(startStr.replace(/Z$/, '')) : new Date();
-            const endStr = appointment.end?.dateTime;
-            const end = endStr ? parseISO(endStr.replace(/Z$/, '')) : addMinutes(start, 30);
-            let durationMin = Math.round((end.getTime() - start.getTime()) / 60000);
-            if (!Number.isFinite(durationMin) || durationMin <= 0) durationMin = 30;
-            const doctor = doctors.find((d) => String(d.id) === String(appointment.doctorId)) ?? null;
-            const calendar = calendars.find((c) => String(c.id) === String(appointment.calendar_source_id)) ?? null;
-            const patient = {
+    // Opens the inline edit/reschedule card for an existing appointment. Custom
+    // mode always uses this centered window, regardless of view or preference.
+    // Returns true when it handled the request inline (so callers can fall back
+    // to the modal form otherwise). Pass `rescheduling` to submit via the
+    // reschedule endpoint (cancel old + create new) instead of an in-place update.
+    const openInlineDraftForAppointment = React.useCallback((appointment: Appointment, rescheduling: boolean): boolean => {
+        const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
+        if (!isCustomMode && (!calendarSettings?.inline_appointment_creation || !isTimeGrid)) return false;
+        const startStr = appointment.start?.dateTime;
+        const start = startStr ? parseISO(startStr.replace(/Z$/, '')) : new Date();
+        const endStr = appointment.end?.dateTime;
+        const end = endStr ? parseISO(endStr.replace(/Z$/, '')) : addMinutes(start, 30);
+        let durationMin = Math.round((end.getTime() - start.getTime()) / 60000);
+        if (!Number.isFinite(durationMin) || durationMin <= 0) durationMin = 30;
+        const doctor = doctors.find((d) => String(d.id) === String(appointment.doctorId)) ?? null;
+        const calendar = calendars.find((c) => String(c.id) === String(appointment.calendar_source_id)) ?? null;
+        // Las citas importadas de Google llegan sin paciente y el mapeo deja 'N/A':
+        // sin id el selector tiene que verse vacío, no con ese texto.
+        const patient = appointment.patientId
+            ? ({
                 id: appointment.patientId,
                 name: appointment.patientName,
                 email: appointment.patientEmail,
                 phone_number: appointment.patientPhone,
-            } as UserType;
-            const services: Service[] = Array.isArray(appointment.services)
-                ? appointment.services.map((s: any) => ({ id: String(s.id), name: s.name, color: s.color } as Service))
-                : [];
-            const context = groupBy === 'doctor'
+            } as UserType)
+            : null;
+        const services: Service[] = Array.isArray(appointment.services)
+            ? appointment.services.map((s: any) => ({ id: String(s.id), name: s.name, color: s.color } as Service))
+            : [];
+        // In custom mode the grid is a single calendar column, so the inline
+        // draft must carry the calendar context to render in that column.
+        const context = calendarMode === 'custom'
+            ? { groupBy: 'calendar' as const, value: String(appointment.calendar_source_id) }
+            : groupBy === 'doctor'
                 ? { groupBy: 'doctor' as const, value: String(appointment.doctorId) }
                 : groupBy === 'calendar'
                     ? { groupBy: 'calendar' as const, value: String(appointment.calendar_source_id) }
                     : undefined;
-            setInlineDraft({ date: start, context, durationMin, patient, services, doctor, calendar, notes: appointment.notes || '', editing: appointment });
+        setInlineDraft(createInlineDraftState({
+            date: start,
+            context,
+            durationMin,
+            patient,
+            services,
+            doctor,
+            calendar,
+            notes: appointment.notes || '',
+            // El mapper rellena el summary con el placeholder "Ninguno" cuando la cita
+            // no trae uno; en el campo eso tiene que verse vacío.
+            summary: appointment.summary && appointment.summary !== t('createDialog.none') ? appointment.summary : '',
+            // Solo el color propio: el resuelto (heredado) convertiría la herencia en etiqueta al guardar.
+            color: getOwnAppointmentColor(appointment),
+            editing: appointment,
+            rescheduling,
+        }));
+        return true;
+    }, [calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, groupBy, calendarMode, isCustomMode, t]);
+
+    // Edit an existing appointment: inline edit card when the inline-creation
+    // preference is on (and on a time-grid view), otherwise the modal form.
+    const handleEditAppointment = React.useCallback((appointment: Appointment) => {
+        if (openInlineDraftForAppointment(appointment, false)) {
             return;
         }
-        setEditingAppointment(appointment);
-        setIsReschedulingMode(false);
-        setCreateOpen(true);
-    }, [calendarSettings?.inline_appointment_creation, currentView, doctors, calendars, groupBy]);
+        // Deferred: often called from a ContextMenuItem's onSelect. Radix's menu and
+        // this dialog both lock document.body's pointer-events while open/closing;
+        // opening the dialog in the same tick the menu starts its (animated) unmount
+        // races that lock and can leave the dialog unclosable. Letting the menu
+        // finish unwinding first (next tick) avoids the overlap.
+        setTimeout(() => {
+            setEditingAppointment(appointment);
+            setIsReschedulingMode(false);
+            setCreateOpen(true);
+        }, 0);
+    }, [openInlineDraftForAppointment]);
 
-    // Right-click on an empty slot → choose between appointment or reminder.
-    const handleSlotContextMenu = React.useCallback((date: Date, context?: { groupBy: 'doctor' | 'calendar' | 'sede'; value: string }) => {
-        prepareSlot(date, context);
-        setIsCreateTypeOpen(true);
-    }, [prepareSlot]);
+    const handleCreateAppointmentFromSlot = React.useCallback((slot: CalendarSlotContextMenuContext) => {
+        handleSlotClick(slot.date, slot.context);
+    }, [handleSlotClick]);
 
-    const handleCreateAppointmentFromSlot = React.useCallback(() => {
-        setEditingAppointment(null);
-        setIsReschedulingMode(false);
-        setIsCreateTypeOpen(false);
-        setCreateOpen(true);
+    const handleCreateReminderFromSlot = React.useCallback((slot: CalendarSlotContextMenuContext) => {
+        setEditingReminder(null);
+        setReminderInitialDate(slot.date);
+        setReminderInitialType('reminder');
+        setReminderInitialCalendarId(
+            slot.context?.groupBy === 'calendar' && slot.context.value !== UNASSIGNED_CALENDAR_GROUP_ID
+                ? slot.context.value
+                : null,
+        );
+        setIsReminderFormOpen(true);
     }, []);
 
-    const handleCreateReminderFromSlot = React.useCallback(() => {
+    const handleCreateNoteFromSlot = React.useCallback((slot: CalendarSlotContextMenuContext) => {
         setEditingReminder(null);
-        setReminderInitialDate(pendingSlotDate ?? new Date());
-        setIsCreateTypeOpen(false);
+        setReminderInitialDate(slot.date);
+        setReminderInitialType('note');
+        setReminderInitialCalendarId(
+            slot.context?.groupBy === 'calendar' && slot.context.value !== UNASSIGNED_CALENDAR_GROUP_ID
+                ? slot.context.value
+                : null,
+        );
         setIsReminderFormOpen(true);
-    }, [pendingSlotDate]);
+    }, []);
 
 
     // Keep grouping in sync with the saved calendar settings whenever the
@@ -1202,14 +2196,40 @@ export default function AppointmentsPage() {
         }
     }, []);
 
-    const handleEventClick = (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' })) => {
+    // Estable a propósito: es prop de cada card de la rejilla, que está memoizada.
+    // `loadLinkedSession` y `loadQuoteInfo` son useCallback sin dependencias.
+    const handleEventClick = React.useCallback((
+        eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }),
+        anchorRect?: DOMRect,
+        opts?: { forceSidePanel?: boolean },
+    ) => {
         if (eventData.kind === 'reminder') {
+            // En modo custom, igual que las citas: ventana flotante anclada a la card en
+            // vez del panel lateral. Sin rect (vistas que no posicionan cards) se cae al
+            // panel, que siempre funciona.
+            // En móvil se abre igual, como sheet inferior (no necesita rect).
+            if (calendarMode === 'custom' && (anchorRect || isMobile)) {
+                setQuickView(null);
+                setReminderQuickView({ reminder: eventData, anchorRect });
+                return;
+            }
             setSelectedReminder(eventData);
             setIsReminderPanelOpen(true);
             return;
         }
 
         const appointment = eventData as Appointment;
+        if (calendarMode === 'custom' && !opts?.forceSidePanel) {
+            // En este modo el panel lateral no se usa: el clic simple abre la ventana
+            // flotante de detalle, anclada a la card. Sin rect (vistas que no
+            // posicionan cards) se mantiene el comportamiento anterior de no abrir nada.
+            setSelectedAppointment(null);
+            setIsDetailViewOpen(false);
+            eventClickAbortRef.current?.abort();
+            setReminderQuickView(null);
+            setQuickView(anchorRect || isMobile ? { appointment, anchorRect } : null);
+            return;
+        }
         eventClickAbortRef.current?.abort();
         const controller = new AbortController();
         eventClickAbortRef.current = controller;
@@ -1224,7 +2244,215 @@ export default function AppointmentsPage() {
         const tasks: Promise<void>[] = [loadLinkedSession(appointment, controller.signal)];
         if (appointment.quote_id) tasks.push(loadQuoteInfo(appointment.quote_id, controller.signal));
         Promise.all(tasks);
-    };
+    }, [calendarMode, isMobile, loadLinkedSession, loadQuoteInfo]);
+
+    // ── Buscar cita — efecto de búsqueda con debounce ────────────────────────
+    // Se dispara solo con el panel abierto y >= SEARCH_MIN_CHARS. El pedido (y el
+    // spinner) esperan SEARCH_DEBOUNCE_MS de inactividad: mientras se tipea, el
+    // cleanup cancela el timeout y `isSearching` nunca se prende, así el ícono de
+    // carga no parpadea tecla a tecla. `searchReqIdRef` descarta respuestas fuera
+    // de orden (el cliente HTTP no soporta abortar).
+    React.useEffect(() => {
+        if (!searchActive) return;
+        const term = searchQuery.trim();
+        if (term.length < SEARCH_MIN_CHARS) {
+            searchReqIdRef.current++; // invalida cualquier respuesta en vuelo
+            setSearchResults([]);
+            setIsSearching(false);
+            setSearchHasSearched(false);
+            setSearchError(false);
+            return;
+        }
+        const handle = setTimeout(async () => {
+            const reqId = ++searchReqIdRef.current;
+            setIsSearching(true);
+            try {
+                const rows = await searchAppointments({
+                    q: term,
+                    calendarSourceIds: searchCalendarIds.length > 0 ? searchCalendarIds : undefined,
+                    limit: 50,
+                });
+                if (reqId !== searchReqIdRef.current) return;
+                const mapped = rows
+                    .map((row) => mapApiAppointmentRow(row, calendars, services, doctors, t, colorSourcesFor))
+                    .filter((a): a is Appointment => a !== null);
+                setSearchResults(mapped);
+                setSearchError(false);
+            } catch (err) {
+                if (reqId !== searchReqIdRef.current) return;
+                console.error('Appointment search failed:', err);
+                setSearchResults([]);
+                // El panel distingue error de "sin resultados" y ofrece reintentar.
+                setSearchError(true);
+            } finally {
+                if (reqId === searchReqIdRef.current) {
+                    setIsSearching(false);
+                    setSearchHasSearched(true);
+                }
+            }
+        }, SEARCH_DEBOUNCE_MS);
+        return () => clearTimeout(handle);
+    }, [searchActive, searchQuery, searchCalendarIds, calendars, services, doctors, t, colorSourcesFor, searchRetryNonce]);
+
+    // El chip colapsado es solo para mobile: en desktop el panel siempre se muestra.
+    React.useEffect(() => {
+        if (!isMobile && searchCollapsed) setSearchCollapsed(false);
+    }, [isMobile, searchCollapsed]);
+
+    const searchResultItems = React.useMemo<CalendarSearchResult[]>(() => {
+        const noneLabel = t('createDialog.none');
+        return searchResults
+            .map((a): CalendarSearchResult | null => {
+                const startStr = a.start?.dateTime;
+                const start = startStr ? parseISO(startStr.replace(/Z$/, '')) : null;
+                if (!start || !isValid(start)) return null;
+                const patient = a.patientName && a.patientName !== 'N/A' ? a.patientName : undefined;
+                const summary = a.summary && a.summary !== noneLabel ? a.summary : undefined;
+                const title = summary || a.services?.[0]?.name || patient || tSearch('untitled');
+                return {
+                    id: a.id,
+                    title,
+                    subtitle: patient,
+                    meta: a.doctorName && a.doctorName !== 'Doctor' ? a.doctorName : undefined,
+                    start,
+                    status: a.status,
+                };
+            })
+            .filter((r): r is CalendarSearchResult => r !== null);
+    }, [searchResults, t, tSearch]);
+
+    const handleToggleSearch = React.useCallback(() => {
+        if (!searchActive) {
+            // Buscar, huecos y lotes son mutuamente excluyentes.
+            setIsBulkMode(false);
+            setGapsActive(false);
+            setSelectedGap(null);
+            setSearchCollapsed(false);
+            setSearchActive(true);
+            return;
+        }
+        // Activo + colapsado (mobile, tras elegir un resultado): reabrir el panel.
+        if (searchCollapsed) {
+            setSearchCollapsed(false);
+            return;
+        }
+        // Activo + visible: cerrar del todo.
+        setSearchActive(false);
+        resetSearchState();
+    }, [searchActive, searchCollapsed, resetSearchState]);
+
+    /** Vuelve a mostrar el panel desde el chip flotante (mobile). */
+    const handleExpandSearch = React.useCallback(() => setSearchCollapsed(false), []);
+
+    const handleCloseSearch = React.useCallback(() => {
+        setSearchActive(false);
+        resetSearchState();
+    }, [resetSearchState]);
+
+    React.useEffect(() => () => pendingQuickViewCancelRef.current?.(), []);
+
+    /** En modo personalizado el detalle de una cita es la ventana flotante anclada a
+     *  la card (`AppointmentQuickView`, ver `handleEventClick`), no el panel lateral.
+     *  Al elegir un resultado del buscador la card todavía no existe en el DOM (recién
+     *  se están cambiando filtros/fecha arriba); hay que esperar a que aparezca y a que
+     *  termine el scroll de centrado de `Calendar.tsx` — abrir el popover mientras ese
+     *  scroll sigue en curso hace que su propio listener de scroll lo cierre al instante
+     *  (ver appointment-quick-view.tsx). */
+    const openCustomQuickViewForResult = React.useCallback((appt: Appointment) => {
+        pendingQuickViewCancelRef.current?.();
+        let cancelled = false;
+        let raf = 0;
+        const startedAt = Date.now();
+        const selector = `[data-event-id="${(typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(appt.id) : appt.id}"]`;
+
+        const waitForScrollSettle = (el: HTMLElement) => {
+            const scroller = el.closest('.day-view-container, .overflow-y-auto') as HTMLElement | null;
+            let lastTop = -1;
+            let lastLeft = -1;
+            let stableFrames = 0;
+            const tick = () => {
+                if (cancelled) return;
+                const top = scroller?.scrollTop ?? 0;
+                const left = scroller?.scrollLeft ?? 0;
+                const stable = top === lastTop && left === lastLeft;
+                lastTop = top;
+                lastLeft = left;
+                stableFrames = stable ? stableFrames + 1 : 0;
+                if (stableFrames > 6 || Date.now() - startedAt > 2000) {
+                    handleEventClick({ ...appt, kind: 'appointment' }, el.getBoundingClientRect());
+                    return;
+                }
+                raf = requestAnimationFrame(tick);
+            };
+            raf = requestAnimationFrame(tick);
+        };
+
+        const waitForCard = () => {
+            if (cancelled) return;
+            const el = document.querySelector<HTMLElement>(selector);
+            if (el) { waitForScrollSettle(el); return; }
+            if (Date.now() - startedAt > 4000) return; // agenda oculta o fuera del rango cargado
+            raf = requestAnimationFrame(waitForCard);
+        };
+        raf = requestAnimationFrame(waitForCard);
+
+        pendingQuickViewCancelRef.current = () => { cancelled = true; cancelAnimationFrame(raf); };
+    }, [handleEventClick]);
+
+    const handleSelectSearchResult = React.useCallback((result: CalendarSearchResult) => {
+        const appt = searchResults.find((a) => a.id === result.id);
+        if (!appt) return;
+        setSelectedSearchId(result.id);
+
+        // La búsqueda es global, pero la grilla solo dibuja las citas de las agendas
+        // y los doctores visibles. Si la cita elegida cae fuera de ese filtro, se
+        // suman su agenda y su doctor a lo visible (sin quitar nada) para que
+        // aparezca en la grilla y se pueda resaltar. Cambiar `selectedCalendarIds`
+        // además re-dispara el fetch, que está acotado a esas agendas.
+        const calId = String(appt.calendar_source_id || appt.calendar_id || '');
+        if (calId) {
+            setSelectedCalendarIds((prev) => (prev.includes(calId) ? prev : [...prev, calId]));
+            // En modo personalizado la grilla muestra una sola agenda: hay que
+            // apuntarla a la de esta cita.
+            if (isCustomMode) setPersonalizedCalendarId(calId);
+        }
+        const docId = String(appt.doctorId || '');
+        if (docId) {
+            setSelectedDoctorIds((prev) => (prev.includes(docId) ? prev : [...prev, docId]));
+        }
+
+        const startStr = appt.start?.dateTime;
+        const start = startStr ? parseISO(startStr.replace(/Z$/, '')) : null;
+        const focusDate = start && isValid(start) ? new Date(start.getTime()) : null;
+
+        // En mobile, si la vista es multi-día o mes, la cita quedaría en otra
+        // columna (sin scroll horizontal a mano) o como un punto sin card. Se
+        // cambia a vista "día" para caer exactamente en su día; `Calendar`
+        // re-aplica el `focusDate` al adoptar la vista nueva. La agenda ya lista
+        // todos los días, así que se deja.
+        if (isMobile) {
+            setCurrentView((cur) => (cur !== 'day' && cur !== 'schedule' ? 'day' : cur));
+            setInlineDraft(null);
+        }
+
+        // Salta el calendario a la fecha de la cita — Date nuevo en cada elección
+        // para que el efecto de `focusDate` corra aunque el día no cambie.
+        if (focusDate) setSearchFocusDate(focusDate);
+
+        // Resalta su card en la grilla (scroll + halo). El nonce fuerza el re-halo.
+        setFocusedEvent((prev) => ({ id: appt.id, nonce: (prev?.nonce ?? 0) + 1 }));
+        // En mobile el panel tapa casi toda la pantalla: se colapsa a un chip
+        // flotante para poder ver la cita marcada. En desktop se deja abierto.
+        if (isMobile) setSearchCollapsed(true);
+        if (isCustomMode) {
+            // Modo personalizado: detalle inline (ventana flotante anclada a la card),
+            // no el panel lateral — igual que un clic directo sobre la card.
+            openCustomQuickViewForResult(appt);
+        } else {
+            // Resto de vistas: el detalle siempre vive en el panel lateral.
+            handleEventClick({ ...appt, kind: 'appointment' }, undefined, { forceSidePanel: true });
+        }
+    }, [searchResults, handleEventClick, isCustomMode, isMobile, setCurrentView, setInlineDraft, openCustomQuickViewForResult]);
 
     // Keep the panel's quote/invoice section in sync when the selected appointment's
     // quote changes (inline change/associate/create a quote, or quick bill).
@@ -1248,6 +2476,8 @@ export default function AppointmentsPage() {
         );
         const optimisticReminder: CalendarReminder = {
             id: reminderId,
+            type: values.type,
+            calendar_id: values.calendar_id,
             title: values.title,
             description: values.description,
             start_datetime: values.start_datetime,
@@ -1255,8 +2485,10 @@ export default function AppointmentsPage() {
             color: values.color,
             priority: values.priority,
             status: editingReminder?.status ?? 'pending',
-            visibility: 'clinic',
-            created_by: editingReminder?.created_by ?? null,
+            visibility: values.visibility,
+            is_all_day: values.is_all_day,
+            series_id: editingReminder?.series_id ?? null,
+            created_by: editingReminder?.created_by ?? user?.id ?? null,
             created_at: editingReminder?.created_at ?? now,
             updated_at: editingReminder ? now : null,
         };
@@ -1268,12 +2500,15 @@ export default function AppointmentsPage() {
             return [...prev, optimisticReminder];
         });
         setSelectedReminder((prev) => (prev && prev.id === optimisticReminder.id ? optimisticReminder : prev));
-        setEditingReminder(null);
-        setReminderInitialDate(null);
+        // `editingReminder` NO se limpia acá: si el guardado falla, el diálogo
+        // sigue abierto y el reintento debe seguir siendo una edición (con id),
+        // no un alta nueva. Lo limpia el `onOpenChange` cuando el diálogo se cierra.
 
         try {
             const response = await api.post(API_ROUTES.REMINDERS_UPSERT, {
                 id: editingReminder?.id || undefined,
+                type: values.type,
+                calendar_id: values.calendar_id,
                 title: values.title,
                 description: values.description,
                 start_datetime: values.start_datetime,
@@ -1281,10 +2516,13 @@ export default function AppointmentsPage() {
                 color: values.color,
                 priority: values.priority,
                 status: editingReminder?.status ?? 'pending',
-                visibility: 'clinic',
+                visibility: values.visibility,
+                is_all_day: values.is_all_day,
+                recurrence: values.recurrence,
+                scope: editingReminder ? pendingScope : 'occurrence',
                 raise_alert: editingReminder?.raise_alert ?? true,
                 created_by: editingReminder?.created_by ?? user?.id ?? undefined,
-            });
+            }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
             const result = Array.isArray(response) ? response[0] : response;
             if (result?.error || (result?.code && result.code >= 400)) {
                 throw new Error(result?.message || tReminders('errorDesc'));
@@ -1299,24 +2537,36 @@ export default function AppointmentsPage() {
                 setSelectedReminder((prev) => (prev && (prev.id === reminderId || prev.id === savedReminder.id) ? savedReminder : prev));
             }
             toast({ title: tReminders('saved') });
+            // Una serie reescribe varias filas de golpe; el parche optimista de una sola
+            // no alcanza para reflejarlo.
+            if (values.recurrence || editingReminder?.series_id) refreshCalendarDataRef.current();
             refreshReminders();
         } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: tReminders('error'),
-                description: error instanceof Error ? error.message : tReminders('errorDesc'),
-            });
+            // Rollback: el ítem optimista se descarta recargando del backend. El
+            // diálogo muestra el error inline y conserva lo que el usuario escribió.
             refreshCalendarDataRef.current();
+            throw error;
         }
-    }, [editingReminder, tReminders, toast, refreshReminders]);
+    }, [editingReminder, pendingScope, tReminders, toast, refreshReminders, user]);
 
-    const handleEditReminder = React.useCallback((reminder: CalendarReminder) => {
+    const openReminderForm = React.useCallback((reminder: CalendarReminder, scope: CalendarItemScope) => {
+        setPendingScope(scope);
         setEditingReminder(reminder);
         setReminderInitialDate(null);
+        setReminderInitialType(reminder.type);
+        setReminderInitialCalendarId(reminder.calendar_id);
         setIsReminderFormOpen(true);
     }, []);
 
-    const handleMarkReminderDone = React.useCallback(async (reminder: CalendarReminder) => {
+    const handleEditReminder = React.useCallback((reminder: CalendarReminder) => {
+        if (isRecurringReminder(reminder)) {
+            setScopePrompt({ action: 'edit', reminder });
+            return;
+        }
+        openReminderForm(reminder, 'occurrence');
+    }, [openReminderForm]);
+
+    const runMarkReminderDone = React.useCallback(async (reminder: CalendarReminder) => {
         const now = toLocalISOString(new Date());
         const updated: CalendarReminder = { ...reminder, status: 'done', updated_at: now, completed_at: now };
         setReminders((prev) => prev.map((item) => (item.id === reminder.id ? updated : item)));
@@ -1326,7 +2576,7 @@ export default function AppointmentsPage() {
                 ...reminder,
                 status: 'done',
                 raise_alert: reminder.raise_alert ?? true,
-            });
+            }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
             const result = Array.isArray(response) ? response[0] : response;
             if (result?.error || (result?.code && result.code >= 400)) {
                 throw new Error(result?.message || tReminders('errorDesc'));
@@ -1341,18 +2591,26 @@ export default function AppointmentsPage() {
             toast({
                 variant: 'destructive',
                 title: tReminders('error'),
-                description: error instanceof Error ? error.message : tReminders('errorDesc'),
+                description: describeError(error, tReminders('errorDesc')),
             });
             refreshCalendarDataRef.current();
         }
-    }, [tReminders, toast]);
+    }, [tReminders, toast, describeError]);
 
-    const handleDeleteReminder = React.useCallback(async (reminder: CalendarReminder) => {
-        setReminders((prev) => prev.filter((item) => item.id !== reminder.id));
+    const runDeleteReminderWithScope = React.useCallback(async (reminder: CalendarReminder, scope: CalendarItemScope) => {
+        // Con alcance de serie desaparece más de una fila, así que la baja optimista
+        // saca todas las de la serie en vez de solo la clickeada.
+        setReminders((prev) => prev.filter((item) => (
+            scope === 'series' && reminder.series_id
+                ? item.series_id !== reminder.series_id
+                : item.id !== reminder.id
+        )));
         setSelectedReminder(null);
         setIsReminderPanelOpen(false);
         try {
-            const response = await api.post(API_ROUTES.REMINDERS_DELETE, { id: reminder.id });
+            const response = await api.post(API_ROUTES.REMINDERS_DELETE, { id: reminder.id, scope }, undefined, undefined, {
+                timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+            });
             const result = Array.isArray(response) ? response[0] : response;
             if (result?.error || (result?.code && result.code >= 400)) {
                 throw new Error(result?.message || tReminders('errorDesc'));
@@ -1362,43 +2620,235 @@ export default function AppointmentsPage() {
             toast({
                 variant: 'destructive',
                 title: tReminders('error'),
-                description: error instanceof Error ? error.message : tReminders('errorDesc'),
+                description: describeError(error, tReminders('errorDesc')),
             });
             refreshCalendarDataRef.current();
         }
-    }, [tReminders, toast]);
+    }, [tReminders, toast, describeError]);
+
+    // Bloqueo por recordatorio: marcar hecho o borrar dos veces seguidas ya no
+    // dispara dos POST (el segundo se ignora mientras el primero está en vuelo).
+    const markReminderDoneAction = useKeyedAsyncAction(
+        async (reminder: CalendarReminder) => { await runMarkReminderDone(reminder); },
+        { showErrorToast: false },
+    );
+    const reminderDeleteAction = useKeyedAsyncAction(
+        async (reminder: CalendarReminder, scope: CalendarItemScope) => { await runDeleteReminderWithScope(reminder, scope); },
+        { showErrorToast: false },
+    );
+
+    const handleMarkReminderDone = (reminder: CalendarReminder) => {
+        void markReminderDoneAction.run(reminder.id, reminder);
+    };
+
+    const deleteReminderWithScope = (reminder: CalendarReminder, scope: CalendarItemScope) => {
+        void reminderDeleteAction.run(reminder.id, reminder, scope);
+    };
+
+    const isReminderActionPending = (reminder: CalendarReminder) =>
+        markReminderDoneAction.isPending(reminder.id) || reminderDeleteAction.isPending(reminder.id);
+
+    const handleDeleteReminder = React.useCallback((reminder: CalendarReminder) => {
+        if (isRecurringReminder(reminder)) {
+            setScopePrompt({ action: 'delete', reminder });
+            return;
+        }
+        void reminderDeleteAction.run(reminder.id, reminder, 'occurrence');
+    }, [reminderDeleteAction]);
 
     const handleEdit = (appointment: Appointment) => {
+        if (calendarMode === 'custom' && openInlineDraftForAppointment(appointment, false)) {
+            return;
+        }
         setEditingAppointment(appointment);
         setIsReschedulingMode(false);
         setCreateOpen(true);
     };
 
     const handleReschedule = (appointment: Appointment) => {
+        // In custom mode, reschedule reuses the same inline card that create/edit
+        // use, submitting via the reschedule endpoint on save.
+        if (calendarMode === 'custom' && openInlineDraftForAppointment(appointment, true)) {
+            return;
+        }
         setEditingAppointment(appointment);
         setIsReschedulingMode(true);
         setCreateOpen(true);
     };
 
     // Quick doctor/room reassignment (upsert) from the calendar context menu or
+    // Quick doctor/room reassignment (upsert) from the calendar context menu or
     // the detail panel — no confirmation step, optimistic UI, then a silent refresh.
-    const handleReassign = React.useCallback(async (appointment: Appointment, change: AppointmentReassignChange) => {
-        try {
+    //
+    // Bloqueo POR CITA (`useKeyedAsyncAction`): solo esa fila queda pendiente y sus
+    // ítems de menú deshabilitados, así dos selecciones rápidas no compiten por el
+    // mismo upsert (ganaba la respuesta más vieja).
+    const reassignAction = useKeyedAsyncAction(
+        async (appointment: Appointment, change: AppointmentReassignChange) => {
             const updated = await reassignAppointmentField(appointment, change);
             setAppointments((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
             setSelectedAppointment((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
-            toast({
-                title: change.doctor ? tToasts('doctorReassigned') : tToasts('calendarReassigned'),
-            });
             refreshCalendarDataRef.current();
+            return change;
+        },
+        {
+            onSuccess: (change) => {
+                toast({ title: change.doctor ? tToasts('doctorReassigned') : tToasts('calendarReassigned') });
+            },
+            onError: (error) => {
+                toast({
+                    variant: 'destructive',
+                    title: tToasts('error'),
+                    description: describeError(error, tToasts('unexpectedError')),
+                });
+            },
+            showErrorToast: false,
+        },
+    );
+
+    const handleReassign = (appointment: Appointment, change: AppointmentReassignChange) => {
+        void reassignAction.run(appointment.id, appointment, change);
+    };
+
+    const isReassignPending = (appointment: Appointment) => reassignAction.isPending(appointment.id);
+
+    // ── Mover / redimensionar por arrastre ───────────────────────────────────
+
+    /** Veto por evento y modo, evaluado en el pointerdown de la card. */
+    const canDragCalendarEvent = React.useCallback((event: CalendarEvent, mode: CalendarDragMode): boolean => {
+        const data = event.data as (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }) | undefined;
+        if (!data) return false;
+        if (data.kind === 'reminder') {
+            // `canManageReminder` ya se aplicó al construir los eventos: si un ítem se
+            // dibuja, el usuario puede gestionarlo. Lo único que falta es que un
+            // recordatorio puntual (sin fin) no tiene borde inferior que arrastrar.
+            return mode === 'move' || !!(data as CalendarReminder).end_datetime;
+        }
+        return !event.locked;
+    }, []);
+
+    /**
+     * Único camino de guardado para el drop y para el resize.
+     *
+     * Va por `reassignAppointmentField` (upsert en sitio) y no por el hook de
+     * reprogramación: `/appointments/reschedule` cancela la cita original y crea otra
+     * con id nuevo, lo que rompe el pintado optimista y deja rastro de cancelación.
+     * Arrastrar es corregir la hora, no reprogramar con el paciente; el menú
+     * contextual "Reprogramar" sigue haciendo lo otro.
+     */
+    const runApplyEventTimeChange = React.useCallback(async (result: CalendarDragResult) => {
+        const { data, start, end, originalStart, originalEnd, mode } = result;
+        if (start.getTime() === originalStart.getTime() && end.getTime() === originalEnd.getTime()) return;
+
+        const targetCalendarId = result.context?.groupBy === 'calendar'
+            ? String(result.context.value)
+            : (personalizedCalendarId ?? undefined);
+
+        const isReminder = (data as { kind?: string }).kind === 'reminder';
+
+        // La vista ya lo marcó en rojo mientras se arrastraba; acá se vuelve a
+        // preguntar contra los horarios directamente, que es la fuente autoritativa
+        // y cubre días fuera de la ventana renderizada.
+        //
+        // Solo para las citas: "no disponible" acota cuándo se puede atender a un
+        // paciente, no cuándo el equipo puede anotarse una nota o un recordatorio.
+        // Uno puesto justo en el hueco de cierre es un caso legítimo, y de hecho se
+        // puede crear ahí — cortarlo acá solo impedía moverlo después.
+        if (!isReminder && (result.blocked || isDateTimeBlocked(start, targetCalendarId, end))) {
+            toast({ variant: 'destructive', title: tToasts('slotBlockedTitle'), description: tToasts('slotBlockedDescription') });
+            return;
+        }
+
+        // Siempre toLocalISOString: toISOString() corre la cita 3 h en GMT-3.
+        const nextStart = toLocalISOString(start);
+        const nextEnd = toLocalISOString(end);
+
+        if (isReminder) {
+            const reminder = data as CalendarReminder;
+            // Un recordatorio puntual que solo se mueve sigue siendo puntual.
+            const nextEndValue = (!reminder.end_datetime && mode === 'move') ? null : nextEnd;
+            const optimistic: CalendarReminder = { ...reminder, start_datetime: nextStart, end_datetime: nextEndValue };
+            setReminders((prev) => prev.map((item) => (item.id === reminder.id ? optimistic : item)));
+            try {
+                const response = await api.post(API_ROUTES.REMINDERS_UPSERT, {
+                    ...reminder,
+                    start_datetime: nextStart,
+                    end_datetime: nextEndValue,
+                    raise_alert: reminder.raise_alert ?? true,
+                }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+                const res = Array.isArray(response) ? response[0] : response;
+                if (res?.error || (res?.code && res.code >= 400)) throw new Error(res?.message || tReminders('errorDesc'));
+                const saved = normalizeReminder(res?.reminder || res);
+                if (saved) setReminders((prev) => prev.map((item) => (item.id === reminder.id ? saved : item)));
+                toast({ title: mode === 'move' ? tToasts('appointmentMoved') : tToasts('appointmentResized') });
+            } catch (error) {
+                // Rollback local en vez de refetch: una card que se queda mal puesta
+                // hasta que vuelve la red se lee como un bug.
+                setReminders((prev) => prev.map((item) => (item.id === reminder.id ? reminder : item)));
+                toast({
+                    variant: 'destructive',
+                    title: tReminders('error'),
+                    description: describeError(error, tReminders('errorDesc')),
+                });
+            }
+            return;
+        }
+
+        const appointment = data as Appointment;
+        setAppointments((prev) => prev.map((a) => (a.id === appointment.id
+            ? { ...a, start: { ...a.start, dateTime: nextStart }, end: { ...a.end, dateTime: nextEnd }, date: nextStart.slice(0, 10), time: nextStart.slice(11, 16) }
+            : a)));
+        try {
+            // Se le pasa la cita PRE-mutación: de ahí sale el payload del upsert.
+            const updated = await reassignAppointmentField(appointment, { start: nextStart, end: nextEnd });
+            setAppointments((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
+            setSelectedAppointment((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+            toast({
+                title: mode === 'move' ? tToasts('appointmentMoved') : tToasts('appointmentResized'),
+                description: mode === 'move'
+                    ? tToasts('appointmentMovedDesc', { date: format(start, 'dd/MM/yyyy'), time: format(start, 'HH:mm') })
+                    : tToasts('appointmentResizedDesc', {
+                        start: format(start, 'HH:mm'),
+                        end: format(end, 'HH:mm'),
+                        minutes: Math.round((end.getTime() - start.getTime()) / 60000),
+                    }),
+            });
         } catch (error) {
+            setAppointments((prev) => prev.map((a) => (a.id === appointment.id ? appointment : a)));
             toast({
                 variant: 'destructive',
                 title: tToasts('error'),
-                description: error instanceof Error ? error.message : tToasts('unexpectedError'),
+                description: describeError(error, tToasts('unexpectedError')),
             });
         }
-    }, [toast, tToasts]);
+    }, [personalizedCalendarId, isDateTimeBlocked, toast, tToasts, tReminders, describeError]);
+
+    // Bloqueo por evento para mover/redimensionar (drag, resize y los submenús
+    // "Mover a…"/"Duración"): dos gestos seguidos no compiten por el mismo upsert.
+    const eventTimeAction = useKeyedAsyncAction(
+        async (result: CalendarDragResult) => { await runApplyEventTimeChange(result); },
+        { showErrorToast: false },
+    );
+    const applyEventTimeChange = (result: CalendarDragResult) => {
+        void eventTimeAction.run(String(result.eventId), result);
+    };
+
+    /** Cambio de horario elegido desde un menú ("Mover a…" / "Duración"), no por arrastre. */
+    const retimeAppointment = (appointment: Appointment, nextStart: Date, nextEnd: Date) => {
+        const originalStart = appointment.start?.dateTime ? parseISO(appointment.start.dateTime.replace(/Z$/, '')) : null;
+        const originalEnd = appointment.end?.dateTime ? parseISO(appointment.end.dateTime.replace(/Z$/, '')) : null;
+        if (!originalStart || !originalEnd) return;
+        applyEventTimeChange({
+            data: { ...appointment, kind: 'appointment' as const },
+            eventId: String(appointment.id),
+            mode: nextStart.getTime() === originalStart.getTime() ? 'resize-end' : 'move',
+            start: nextStart,
+            end: nextEnd,
+            originalStart,
+            originalEnd,
+            blocked: false,
+        });
+    };
 
     // ── Context-menu financial / session quick actions ───────────────────────
     // Lazily-loaded data keyed by patient/appointment, populated the first time an
@@ -1416,7 +2866,7 @@ export default function AppointmentsPage() {
                 id: String(q.id),
                 doc_no: q.doc_no || q.quote_doc_no || '',
                 total: Number(q.total || 0),
-                currency: q.currency || 'USD',
+                currency: q.currency || getClinicCurrency(),
                 status: q.status || 'draft',
                 createdAt: q.created_at || q.createdAt || '',
             } as Quote));
@@ -1441,7 +2891,7 @@ export default function AppointmentsPage() {
                 user_id: String(inv.user_id || ''),
                 user_name: inv.user_name || '',
                 total: Number(inv.total || 0),
-                currency: inv.currency || 'USD',
+                currency: inv.currency || getClinicCurrency(),
                 status: inv.status || 'draft',
                 payment_status: inv.payment_state || inv.payment_status || 'unpaid',
                 paid_amount: Number(inv.paid_amount || 0),
@@ -1491,31 +2941,59 @@ export default function AppointmentsPage() {
         });
     }, [ensureSessionInfo, ensurePatientQuotes, ensurePatientInvoices]);
 
-    const handleLinkQuote = React.useCallback(async (appointment: Appointment, quote: Quote | null) => {
-        try {
+    const linkQuoteAction = useKeyedAsyncAction(
+        async (appointment: Appointment, quote: Quote | null) => {
             const updated = await reassignAppointmentField(appointment, {
                 quote: quote ? { id: quote.id, doc_no: quote.doc_no } : null,
             });
             setAppointments((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
             setSelectedAppointment((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
-            toast({ title: quote ? tToasts('quoteLinked') : tToasts('quoteUnlinked') });
             refreshCalendarDataRef.current();
-        } catch (error) {
-            toast({ variant: 'destructive', title: tToasts('error'), description: error instanceof Error ? error.message : tToasts('unexpectedError') });
-        }
-    }, [toast, tToasts]);
+            return quote;
+        },
+        {
+            onSuccess: (quote) => {
+                toast({ title: quote ? tToasts('quoteLinked') : tToasts('quoteUnlinked') });
+            },
+            onError: (error) => {
+                toast({ variant: 'destructive', title: tToasts('error'), description: describeError(error, tToasts('unexpectedError')) });
+            },
+            showErrorToast: false,
+        },
+    );
 
-    const handleLinkInvoice = React.useCallback(async (appointment: Appointment, invoice: Invoice) => {
-        try {
-            await linkInvoiceToAppointment(invoice.id, appointment.id);
+    const handleLinkQuote = (appointment: Appointment, quote: Quote | null) => {
+        void linkQuoteAction.run(appointment.id, appointment, quote);
+    };
+
+    const isLinkQuotePending = (appointment: Appointment) => linkQuoteAction.isPending(appointment.id);
+
+    const linkInvoiceAction = useKeyedAsyncAction(
+        async (appointment: Appointment, invoice: Invoice) => {
+            // `propagateErrors`: acá el vínculo es la acción del usuario y la UI no
+            // puede confirmar un link que en realidad falló.
+            await linkInvoiceToAppointment(invoice.id, appointment.id, { propagateErrors: true });
             setAppointments((prev) => prev.map((a) => (a.id === appointment.id ? { ...a, invoice_id: invoice.id } : a)));
             setSelectedAppointment((prev) => (prev && prev.id === appointment.id ? { ...prev, invoice_id: invoice.id } : prev));
-            toast({ title: tToasts('invoiceLinked') });
             refreshCalendarDataRef.current();
-        } catch (error) {
-            toast({ variant: 'destructive', title: tToasts('error'), description: error instanceof Error ? error.message : tToasts('unexpectedError') });
-        }
-    }, [toast, tToasts]);
+            return invoice;
+        },
+        {
+            onSuccess: () => {
+                toast({ title: tToasts('invoiceLinked') });
+            },
+            onError: (error) => {
+                toast({ variant: 'destructive', title: tToasts('error'), description: describeError(error, tToasts('unexpectedError')) });
+            },
+            showErrorToast: false,
+        },
+    );
+
+    const handleLinkInvoice = (appointment: Appointment, invoice: Invoice) => {
+        void linkInvoiceAction.run(appointment.id, appointment, invoice);
+    };
+
+    const isLinkInvoicePending = (appointment: Appointment) => linkInvoiceAction.isPending(appointment.id);
 
     // Opens the global Cobro Rápido wizard with whatever the appointment already
     // has (invoice → quote → services), mirroring the detail panel behavior.
@@ -1544,7 +3022,8 @@ export default function AppointmentsPage() {
         setIsDeleteAlertOpen(true);
     };
 
-    const { updateStatus } = useAppointmentStatus({
+    const completeAppointmentWithDocumentCheck = useCompleteAppointmentWithDocumentCheck();
+    const { updateStatus, isUpdating: isUpdatingAppointmentStatus } = useAppointmentStatus({
         onSuccess: (appt, newStatus, extra) => {
             const patch = {
                 status: newStatus,
@@ -1575,14 +3054,14 @@ export default function AppointmentsPage() {
 
     // Soft-delete: flips the appointment's status to 'deleted' on the backend
     // (excluded from future fetches) and removes it from the calendar immediately.
-    const handleSoftDelete = React.useCallback(async (appointment: Appointment) => {
+    const runSoftDelete = React.useCallback(async (appointment: Appointment) => {
         try {
             const response = await api.post(API_ROUTES.APPOINTMENTS_UPDATE_STATUS, {
                 appointment_id: appointment.id,
                 google_event_id: appointment.googleEventId,
                 calendar_source_id: appointment.calendar_source_id,
                 status: 'deleted',
-            });
+            }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
             const result = Array.isArray(response) ? response[0] : response;
             if (result?.error || (result?.code && result.code >= 400)) {
                 throw new Error(result?.message || 'Failed to delete appointment');
@@ -1590,15 +3069,24 @@ export default function AppointmentsPage() {
             setAppointments((prev) => prev.filter((a) => a.id !== appointment.id));
             setIsDetailViewOpen(false);
             setSelectedAppointment(null);
+            // El diálogo de confirmación se cierra recién acá (ya no se cierra
+            // solo al hacer clic): si el borrado falla, el usuario mantiene el
+            // contexto y ve el toast de error.
+            setSoftDeleteTarget(null);
             toast({ title: tToasts('appointmentDeleted'), description: tToasts('appointmentDeletedDesc') });
         } catch (error) {
             toast({
                 variant: 'destructive',
                 title: tToasts('error'),
-                description: error instanceof Error ? error.message : tToasts('failedDelete'),
+                description: describeError(error, tToasts('failedDelete')),
             });
         }
-    }, [toast, tToasts]);
+    }, [toast, tToasts, describeError]);
+
+    // Bloqueo síncrono del borrado suave (menú contextual y panel de detalle).
+    const softDelete = useAsyncAction<[Appointment], void>(runSoftDelete, { showErrorToast: false });
+    const handleSoftDelete = softDelete.run;
+    const isSoftDeleting = softDelete.isPending;
 
     const [pendingCancellation, setPendingCancellation] = React.useState<Appointment | null>(null);
     const handleRequestCustomCancellation = React.useCallback((appointment: Appointment) => {
@@ -1613,7 +3101,7 @@ export default function AppointmentsPage() {
             cancellation_note: note,
         });
         setPendingCancellation(null);
-    }, [pendingCancellation, updateStatus]);
+    }, [pendingCancellation, updateStatus, user]);
 
     // Clinic Session Handlers
     const handleOpenClinicSession = async (appointment: Appointment) => {
@@ -1672,11 +3160,7 @@ export default function AppointmentsPage() {
                 toast({ title: t('toasts.sessionUpdated') });
             } else {
                 await createSession(clinicSessionAppointment.patientId, sessionData, data.archivos_adjuntos);
-                if (clinicSessionAppointment.status !== 'completed') {
-                    await updateAppointmentStatusRequest({
-                        appointment: clinicSessionAppointment,
-                        newStatus: 'completed',
-                    });
+                const markCompleted = () => {
                     setAppointments((prev) =>
                         prev.map((appointment) =>
                             appointment.id === clinicSessionAppointment.id
@@ -1689,6 +3173,14 @@ export default function AppointmentsPage() {
                             ? { ...prev, status: 'completed' }
                             : prev,
                     );
+                };
+                // Si el paciente no tiene el documento que exige ese estado, la sesión queda guardada y la
+                // cita no cambia hasta que se cargue el documento desde el aviso (ahí se completa sola).
+                if (
+                    clinicSessionAppointment.status !== 'completed' &&
+                    (await completeAppointmentWithDocumentCheck(clinicSessionAppointment, markCompleted))
+                ) {
+                    markCompleted();
                 }
                 toast({ title: t('toasts.sessionCreated'), description: t('toasts.sessionCreatedDesc') });
             }
@@ -1702,7 +3194,7 @@ export default function AppointmentsPage() {
             toast({
                 variant: 'destructive',
                 title: t('toasts.errorCreatingSession'),
-                description: error instanceof Error ? error.message : t('toasts.errorCreatingSessionDesc'),
+                description: describeError(error, t('toasts.errorCreatingSessionDesc')),
             });
             throw error;
         }
@@ -1718,23 +3210,178 @@ export default function AppointmentsPage() {
             return;
         }
 
+        // Dos cargas concurrentes (cambio de rango + refresco por SSE, por ejemplo)
+        // pueden resolver fuera de orden y dejar ganando a la vieja. Solo la última
+        // lanzada tiene derecho a escribir el estado.
+        const requestId = ++loadAppointmentsRequestIdRef.current;
         setIsRefreshing(true);
-        const [fetchedAppointments, fetchedReminders] = await Promise.all([
-            getAppointments(selectedCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors, t),
-            getReminders(fetchRange.start, fetchRange.end, user?.id),
-        ]);
-        // Defensive: exclude soft-deleted appointments (the backend also excludes them).
-        setAppointments(fetchedAppointments.filter((a) => (a.status as string) !== 'deleted'));
-        setReminders(fetchedReminders);
-
-        setIsRefreshing(false);
-    }, [selectedCalendarIds, fetchRange, calendars, services, doctors, t, user?.id]);
+        try {
+            const [fetchedAppointments, fetchedReminders] = await Promise.all([
+                getAppointments(fetchCalendarIds, fetchRange.start, fetchRange.end, calendars, services, doctors, t, colorSourcesFor),
+                getReminders(fetchRange.start, fetchRange.end, user?.id),
+            ]);
+            if (requestId !== loadAppointmentsRequestIdRef.current) return;
+            // Defensive: exclude soft-deleted appointments (the backend also excludes them).
+            setAppointments(fetchedAppointments.filter((a) => (a.status as string) !== 'deleted'));
+            setReminders(fetchedReminders);
+            setAppointmentsError(false);
+        } catch {
+            // Error ≠ vacío: se conservan las citas ya cargadas y se avisa con
+            // "Reintentar" (el detalle ya quedó en consola desde los fetchers).
+            if (requestId === loadAppointmentsRequestIdRef.current) setAppointmentsError(true);
+        } finally {
+            if (requestId === loadAppointmentsRequestIdRef.current) setIsRefreshing(false);
+        }
+    }, [fetchCalendarIds, fetchRange, calendars, services, doctors, t, colorSourcesFor, user?.id]);
 
     const forceRefresh = React.useCallback(() => {
         loadAppointments();
     }, [loadAppointments]);
 
     React.useEffect(() => { refreshCalendarDataRef.current = forceRefresh; }, [forceRefresh]);
+
+    // ── Patch en vivo del calendario (evento `clinic:calendar:patch`) ─────────
+    // Espejo de `appointments` en un ref para que el handler (invocado desde un
+    // evento DOM, no en render) lea el estado actual sin re-suscribirse.
+    const appointmentsRef = React.useRef<Appointment[]>([]);
+    React.useEffect(() => { appointmentsRef.current = appointments; }, [appointments]);
+    // id de cita → epoch de su último `updated_at` aplicado. Descarta eventos
+    // viejos, reordenados o el eco de una mutación local ya reflejada.
+    const patchSeenRef = React.useRef<Map<string, number>>(new Map());
+
+    const applyCalendarPatch = React.useCallback((events: CalendarChangePayload[]) => {
+        const debug = (() => {
+            try { return typeof window !== 'undefined' && !!window.localStorage.getItem('debug:calendar-patch'); }
+            catch { return false; }
+        })();
+        if (debug) console.debug('[calendar-patch] recibidos', events);
+
+        // Datos base aún cargando o rango inválido: recarga completa (más barato
+        // que intentar mapear sin `calendars`/`services`/`doctors`).
+        if (isDataLoading || calendars.length === 0 || !fetchRange) {
+            forceRefresh();
+            return;
+        }
+        const visibleIds = fetchCalendarIds.filter(Boolean);
+        let list = appointmentsRef.current;
+        let changed = false;
+        let needFullRefresh = false;
+
+        for (const ev of events) {
+            const id = String(ev.appointment_id ?? ev.id ?? '');
+            if (!id) continue;
+
+            // Guardia anti-desorden: sólo se descarta un evento si es
+            // ESTRICTAMENTE más viejo que el último aplicado para esa cita. Si el
+            // `updated_at` viene igual (o no viene, o no cambia entre ediciones)
+            // el evento se aplica igual — el merge es idempotente. Antes usaba
+            // `>=` y eso dejaba la cita "congelada" tras la primera edición.
+            const uaNum = Date.parse(String(ev.updated_at ?? ''));
+            if (!Number.isNaN(uaNum)) {
+                const seen = patchSeenRef.current.get(id);
+                if (seen != null && seen > uaNum) {
+                    if (debug) console.debug('[calendar-patch] descartado (más viejo)', id, ev.updated_at);
+                    continue;
+                }
+                if (patchSeenRef.current.size > 500) patchSeenRef.current.clear();
+                patchSeenRef.current.set(id, Math.max(seen ?? 0, uaNum));
+            }
+
+            // Reagendamiento: la fila vieja quedó `cancelled` sin evento propio.
+            const originalId = ev.original_appointment_id != null ? String(ev.original_appointment_id) : '';
+            if (originalId && originalId !== id && list.some((a) => a.id === originalId)) {
+                list = list.filter((a) => a.id !== originalId);
+                changed = true;
+            }
+
+            // Baja definitiva (borrado, o lado viejo de una movida entre agendas
+            // que deja la fila en `deleted`).
+            if (ev.action === 'deleted' || ev.status === 'deleted') {
+                if (list.some((a) => a.id === id)) { list = list.filter((a) => a.id !== id); changed = true; }
+                continue;
+            }
+
+            const mapped = mapApiAppointmentRow(normalizePatchRow(ev), calendars, services, doctors, t, colorSourcesFor);
+            if (!mapped) {
+                if (debug) console.debug('[calendar-patch] mapApiAppointmentRow devolvió null → recarga', ev);
+                needFullRefresh = true;
+                continue;
+            }
+
+            // ¿La cita (ya con su estado nuevo) sigue entrando en el rango y en
+            // alguna de las agendas visibles? Si no, se saca de la grilla.
+            const start = parseISO(String(mapped.start?.dateTime ?? '').replace(/Z$/, ''));
+            const inRange = isValid(start) && start >= fetchRange.start && start <= fetchRange.end;
+            const inView = visibleIds.length === 0 || visibleIds.includes(mapped.calendar_source_id ?? '');
+            if (!inRange || !inView) {
+                if (debug) console.debug('[calendar-patch] fuera de rango/agenda', { id, inRange, inView, start: mapped.start?.dateTime });
+                if (list.some((a) => a.id === id)) { list = list.filter((a) => a.id !== id); changed = true; }
+                continue;
+            }
+
+            const existing = list.find((a) => a.id === id);
+            if (!existing) {
+                list = [...list, mapped];
+            } else {
+                list = list.map((a) => (a.id === id ? mergePatchedAppointment(a, mapped, ev) : a));
+            }
+            changed = true;
+        }
+
+        if (changed) {
+            appointmentsRef.current = list;
+            setAppointments(list);
+        }
+        if (debug) console.debug('[calendar-patch] resultado', { changed, needFullRefresh, total: list.length });
+        if (needFullRefresh) forceRefresh();
+    }, [isDataLoading, calendars, services, doctors, t, colorSourcesFor, fetchRange, fetchCalendarIds, forceRefresh]);
+
+    const applyCalendarPatchRef = React.useRef(applyCalendarPatch);
+    React.useEffect(() => { applyCalendarPatchRef.current = applyCalendarPatch; }, [applyCalendarPatch]);
+
+    // id de nota/recordatorio → epoch de su último `updated_at` aplicado. Mismo
+    // criterio anti-desorden que `patchSeenRef`, pero separado porque comparte
+    // el mismo lote de eventos con las citas (discriminado por `item_type`).
+    const reminderPatchSeenRef = React.useRef<Map<string, number>>(new Map());
+
+    const applyReminderPatch = React.useCallback((events: CalendarChangePayload[]) => {
+        setReminders((prev) => {
+            let list = prev;
+            let changed = false;
+            for (const ev of events) {
+                const id = String(ev.reminder_id ?? ev.id ?? '');
+                if (!id) continue;
+
+                const uaNum = Date.parse(String(ev.updated_at ?? ''));
+                if (!Number.isNaN(uaNum)) {
+                    const seen = reminderPatchSeenRef.current.get(id);
+                    if (seen != null && seen > uaNum) continue;
+                    if (reminderPatchSeenRef.current.size > 500) reminderPatchSeenRef.current.clear();
+                    reminderPatchSeenRef.current.set(id, Math.max(seen ?? 0, uaNum));
+                }
+
+                if (ev.action === 'deleted') {
+                    if (list.some((r) => r.id === id)) { list = list.filter((r) => r.id !== id); changed = true; }
+                    continue;
+                }
+
+                const mapped = normalizeReminder(ev as Record<string, unknown>);
+                if (!mapped) continue;
+                // Defensa extra: un ítem `personal` sólo debería llegar dirigido a su
+                // autor (el backend lo apunta por `user_ids`, no por canal), pero se
+                // filtra igual por si el visor cambia de usuario sin recargar.
+                if (!canManageReminder(mapped, user?.id)) continue;
+
+                const exists = list.some((r) => r.id === id);
+                list = exists ? list.map((r) => (r.id === id ? mapped : r)) : [...list, mapped];
+                changed = true;
+            }
+            return changed ? list : prev;
+        });
+    }, [user?.id]);
+
+    const applyReminderPatchRef = React.useRef(applyReminderPatch);
+    React.useEffect(() => { applyReminderPatchRef.current = applyReminderPatch; }, [applyReminderPatch]);
 
     const [isQuickQuoteOpen, setIsQuickQuoteOpen] = React.useState(false);
     const [quickQuotePatient, setQuickQuotePatient] = React.useState<UserType | null>(null);
@@ -1748,6 +3395,11 @@ export default function AppointmentsPage() {
     const [pendingInvoiceNotifId, setPendingInvoiceNotifId] = React.useState<string | undefined>();
     const [pendingScheduleNotifId, setPendingScheduleNotifId] = React.useState<string | undefined>();
     const [scheduleNextResolvedServices, setScheduleNextResolvedServices] = React.useState<Service[] | undefined>();
+    // Deferred open for the "schedule next appointment" deep-link: whether it targets
+    // the full dialog (invoke) or the simplified inline card (custom) depends on the
+    // calendar mode, which is only known once getCalendarSettings() resolves.
+    const [pendingScheduleOpen, setPendingScheduleOpen] = React.useState(false);
+    const scheduleDraftRunRef = React.useRef(0);
 
     // Quote/invoice creation dialogs preloaded with the appointment's patient +
     // services; the freshly created document is linked back to the appointment.
@@ -1802,7 +3454,13 @@ export default function AppointmentsPage() {
 
     const handleNotifQuote = React.useCallback(async (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => {
         setQuickQuotePatient({ id: patientId, name: patientName, email: '', phone_number: '', is_active: true, avatar: '' } as UserType);
-        setQuickQuoteInitialItems(await enrichItemsWithPrices(items));
+        // Si falla el enriquecido, el diálogo igual abre con lo que trajo la
+        // notificación (sin precios) en vez de quedar en un rechazo sin manejar.
+        try {
+            setQuickQuoteInitialItems(await enrichItemsWithPrices(items));
+        } catch {
+            setQuickQuoteInitialItems(items);
+        }
         setPendingQuoteNotifId(notifId);
         setIsQuickQuoteOpen(true);
     }, [enrichItemsWithPrices]);
@@ -1818,14 +3476,19 @@ export default function AppointmentsPage() {
         calendarId?: string,
         notifId?: string,
     ) => {
-        setScheduleNextData({ patientId, patientName, date, doctorId, doctorName, services: items, quoteId, calendarId });
-        setPendingScheduleNotifId(notifId);
-        setCreateOpen(true);
+        // La apertura se difiere: en modo personalizado va a la tarjeta simplificada
+        // y en modo invoke al dialog completo, y el modo aún no está cargado aquí.
+        setScheduleNextData({ patientId, patientName, date, doctorId, doctorName, services: items, quoteId, calendarId, notifId });
+        setPendingScheduleOpen(true);
     }, []);
 
     const handleNotifInvoice = React.useCallback(async (patientId: string, patientName: string, items?: SessionPreloadedService[], notifId?: string) => {
         setInvoicePatient({ id: patientId, name: patientName, email: '', phone_number: '', is_active: true, avatar: '' } as UserType);
-        setInvoiceInitialItems(await enrichItemsWithPrices(items));
+        try {
+            setInvoiceInitialItems(await enrichItemsWithPrices(items));
+        } catch {
+            setInvoiceInitialItems(items);
+        }
         setPendingInvoiceNotifId(notifId);
         setIsInvoiceFormOpen(true);
     }, [enrichItemsWithPrices]);
@@ -1874,42 +3537,116 @@ export default function AppointmentsPage() {
             quote,
         };
     }, [scheduleNextData, doctors, calendars, scheduleNextResolvedServices]);
+
+    // Modo personalizado: la notificación "agendar próxima cita" abre la tarjeta
+    // simplificada en vez del dialog completo, con la misma pre-carga.
+    const openInlineDraftFromNotifSchedule = React.useCallback(async (data: NonNullable<typeof scheduleNextData>) => {
+        const runId = ++scheduleDraftRunRef.current;
+        const serviceIds = (data.services ?? [])
+            .map((s) => s.service_id)
+            .filter((id): id is string => Boolean(id));
+        let draftServices: Service[] = [];
+        if (serviceIds.length > 0) {
+            // Resolver contra el catálogo ya en memoria; solo pedir a la API si algún
+            // id detectado por la IA quedó fuera de la página cargada.
+            const idSet = new Set(serviceIds.map(String));
+            const local = services.filter((s) => idSet.has(String(s.id)));
+            draftServices = local.length === idSet.size
+                ? local
+                : await fetchServicesByIds(serviceIds).catch(() => local);
+        }
+        if (scheduleDraftRunRef.current !== runId) return; // reemplazado por otra notificación
+
+        const doctor = data.doctorId ? (doctors.find(d => String(d.id) === String(data.doctorId)) ?? null) : null;
+        const calendar = data.calendarId ? (calendars.find(c => String(c.id) === String(data.calendarId)) ?? null) : null;
+        const totalDuration = draftServices.reduce((acc, s) => acc + ((s as any).duration_minutes || 0), 0);
+
+        setEditingAppointment(null);
+        setInlineDraft(createInlineDraftState({
+            date: parseNotifScheduleDate(data.date),
+            context: calendar ? { groupBy: 'calendar', value: String(calendar.id) } : undefined,
+            durationMin: totalDuration > 0 ? totalDuration : slotDuration,
+            patient: { id: data.patientId, name: data.patientName, email: '', phone_number: '', is_active: true, avatar: '' } as UserType,
+            services: draftServices,
+            doctor,
+            calendar,
+            notes: '',
+            summary: '',
+            quoteId: data.quoteId,
+            notifId: data.notifId,
+        }));
+    }, [services, doctors, calendars, slotDuration]);
+
+    // El deep-link se dispara al montar, antes de que getCalendarSettings() resuelva,
+    // así que la apertura espera a conocer el modo. Se consume una sola vez.
+    React.useEffect(() => {
+        if (!pendingScheduleOpen || isDataLoading || !scheduleNextData) return;
+        setPendingScheduleOpen(false);
+        if (isCustomMode) {
+            void openInlineDraftFromNotifSchedule(scheduleNextData);
+            // El initialData del dialog no debe seguir apuntando a este payload.
+            setScheduleNextData(null);
+            return;
+        }
+        setPendingScheduleNotifId(scheduleNextData.notifId);
+        setCreateOpen(true);
+    }, [pendingScheduleOpen, isDataLoading, isCustomMode, scheduleNextData, openInlineDraftFromNotifSchedule]);
     // ─────────────────────────────────────────────────────────────────────────
 
     const loadInitialData = React.useCallback(async () => {
         setIsDataLoading(true);
-        const [fetchedCalendars, fetchedServices, fetchedDoctors, fetchedSettings, fetchedSedes] = await Promise.all([
-            getCalendars(),
-            getServices(),
-            getDoctors(),
-            getCalendarSettings(),
-            getSedes(),
-        ]);
-        setCalendars(fetchedCalendars);
-        setSedes(fetchedSedes);
-        setServices(fetchedServices);
-        setDoctors(fetchedDoctors);
+        setInitialLoadError(false);
+        try {
+            // allSettled: si falla un pedido (p. ej. doctores) se conserva lo que sí
+            // llegó y la grilla sigue funcionando. Solo la falta de agendas o de
+            // settings deja la vista inutilizable y muestra el error con reintento.
+            const [calendarsResult, servicesResult, doctorsResult, settingsResult, sedesResult] = await Promise.allSettled([
+                getCalendars(),
+                getServices(),
+                getDoctors(),
+                getCalendarSettings(),
+                getSedes(),
+            ]);
+            const fetchedCalendars = calendarsResult.status === 'fulfilled' ? calendarsResult.value : [];
+            const fetchedServices = servicesResult.status === 'fulfilled' ? servicesResult.value : [];
+            const fetchedDoctors = doctorsResult.status === 'fulfilled' ? doctorsResult.value : [];
+            const fetchedSedes = sedesResult.status === 'fulfilled' ? sedesResult.value : [];
+            const fetchedSettings = settingsResult.status === 'fulfilled' ? settingsResult.value : null;
 
-        handleSettingsChange(fetchedSettings);
+            if (calendarsResult.status === 'rejected' || settingsResult.status === 'rejected') {
+                setInitialLoadError(true);
+            }
 
-        const doctorIds = fetchedDoctors.map(d => d.id).filter(Boolean);
-        const serviceMap = await getUsersServicesBatch(doctorIds);
-        setDoctorServiceMap(serviceMap);
+            setCalendars(fetchedCalendars);
+            setSedes(fetchedSedes);
+            setServices(fetchedServices);
+            setDoctors(fetchedDoctors);
 
-        setDoctorCalendarMap(await getDoctorCalendarMap(fetchedCalendars));
+            if (fetchedSettings) handleSettingsChange(fetchedSettings);
 
-        setSelectedDoctorIds(fetchedDoctors.map(d => d.id));
-        // Honor the configured default branch (sede): show only its calendars by
-        // default. Empty = all. prevSedeRef keeps the live-change effect from
-        // re-applying this same selection right after load.
-        const defaultSedeId = fetchedSettings.default_sede || '';
-        const initialCalendarIds = (defaultSedeId
-            ? fetchedCalendars.filter(c => String(c.sede_id) === String(defaultSedeId))
-            : fetchedCalendars
-        ).map(c => c.id).filter(id => id);
-        prevSedeRef.current = defaultSedeId;
-        setSelectedCalendarIds(initialCalendarIds);
-        setIsDataLoading(false);
+            const doctorIds = fetchedDoctors.map(d => d.id).filter(Boolean);
+            const serviceMap = await getUsersServicesBatch(doctorIds);
+            setDoctorServiceMap(serviceMap);
+
+            setDoctorCalendarMap(await getDoctorCalendarMap(fetchedCalendars));
+
+            setSelectedDoctorIds(fetchedDoctors.map(d => d.id));
+            // Honor the configured default branch (sede): show only its calendars by
+            // default. Empty = all. prevSedeRef keeps the live-change effect from
+            // re-applying this same selection right after load.
+            const defaultSedeId = fetchedSettings?.default_sede || '';
+            const initialCalendarIds = (defaultSedeId
+                ? fetchedCalendars.filter(c => String(c.sede_id) === String(defaultSedeId))
+                : fetchedCalendars
+            ).map(c => c.id).filter(id => id);
+            prevSedeRef.current = defaultSedeId;
+            setSelectedCalendarIds(initialCalendarIds);
+        } catch (error) {
+            console.error('Failed to load initial appointments data:', error);
+            setInitialLoadError(true);
+        } finally {
+            setIsDataLoading(false);
+        }
     }, [handleSettingsChange]);
 
     // Moved doctor filtering to AppointmentFormDialog
@@ -1924,7 +3661,7 @@ export default function AppointmentsPage() {
         if (!isDataLoading && fetchRange) {
             loadAppointments();
         }
-    }, [loadAppointments, selectedCalendarIds, fetchRange, isDataLoading]);
+    }, [loadAppointments, fetchCalendarIds, fetchRange, isDataLoading]);
 
     // Silent calendar refresh when the notification system detects new events
     // (new appointments, status changes, completed sessions) or after a
@@ -1934,6 +3671,50 @@ export default function AppointmentsPage() {
         window.addEventListener('clinic:calendar:refresh', handler);
         return () => window.removeEventListener('clinic:calendar:refresh', handler);
     }, [forceRefresh, isDataLoading]);
+
+    // Patch en vivo: lote de filas `calendar_changed` reemitido por
+    // `useCalendarLiveRefresh`. Se aplica sobre `appointments` (o `reminders`,
+    // según `item_type`) sin recargar.
+    React.useEffect(() => {
+        const handler = (e: Event) => {
+            const detail = (e as CustomEvent<CalendarPatchEventDetail>).detail;
+            if (!detail?.events?.length) return;
+            const reminderEvents = detail.events.filter((ev) => ev.item_type === 'reminder');
+            const appointmentEvents = detail.events.filter((ev) => ev.item_type !== 'reminder');
+            if (appointmentEvents.length) applyCalendarPatchRef.current(appointmentEvents);
+            if (reminderEvents.length) applyReminderPatchRef.current(reminderEvents);
+        };
+        window.addEventListener(CALENDAR_PATCH_EVENT, handler);
+        return () => window.removeEventListener(CALENDAR_PATCH_EVENT, handler);
+    }, []);
+
+    // Editar un paciente (desde "Datos del paciente" en el menú de una cita, o desde
+    // el sheet de detalle) no es un cambio de cita: no dispara `calendar_changed`.
+    // Sin esto, tras cambiar el teléfono o el responsable del paciente, la agenda
+    // seguía mostrando los datos viejos hasta el próximo refetch completo.
+    React.useEffect(() => {
+        if (!lastUpdatedPatient) return;
+        let cancelled = false;
+        (async () => {
+            const responsibleContact = await resolveResponsibleContact(lastUpdatedPatient);
+            if (cancelled) return;
+            setAppointments((prev) => patchAppointmentsForPatient(prev, lastUpdatedPatient, responsibleContact));
+            setSearchResults((prev) => patchAppointmentsForPatient(prev, lastUpdatedPatient, responsibleContact));
+            // El panel lateral guarda su propia copia (`selectedAppointment`), igual
+            // que hace cada acción de edición de cita — sin esto se queda con los
+            // datos viejos hasta cerrarlo y reabrirlo.
+            setSelectedAppointment((prev) => (prev
+                ? patchAppointmentsForPatient([prev], lastUpdatedPatient, responsibleContact)[0]
+                : prev));
+            // La tarjeta inline (modo `custom`) guarda su propio paciente aparte —
+            // "Datos del paciente" se abre justo desde ahí (`onEditPatient`) — así que
+            // sin esto seguía mostrando el nombre viejo hasta cerrarla y reabrirla.
+            setInlineDraft((prev) => (prev?.patient && prev.patient.id === lastUpdatedPatient.id
+                ? { ...prev, patient: { ...prev.patient, ...lastUpdatedPatient } }
+                : prev));
+        })();
+        return () => { cancelled = true; };
+    }, [lastUpdatedPatient]);
 
     // Moved searches to AppointmentFormDialog
 
@@ -1953,7 +3734,7 @@ export default function AppointmentsPage() {
         }
     };
 
-    const handleEventColorChange = async (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }), colorId: string) => {
+    const runEventColorChange = async (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }), colorId: string) => {
         const colorHex = colorMap.get(colorId);
         if (eventData.kind === 'reminder') {
             const color = colorHex || eventData.color || '#8b5cf6';
@@ -1966,7 +3747,7 @@ export default function AppointmentsPage() {
                     ...eventData,
                     color,
                     raise_alert: eventData.raise_alert ?? true,
-                });
+                }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
                 const result = Array.isArray(response) ? response[0] : response;
                 if (result?.error || (result?.code && result.code >= 400)) {
                     throw new Error(result?.message || tReminders('errorDesc'));
@@ -1980,7 +3761,7 @@ export default function AppointmentsPage() {
                 toast({
                     variant: 'destructive',
                     title: tReminders('error'),
-                    description: error instanceof Error ? error.message : tReminders('errorDesc'),
+                    description: describeError(error, tReminders('errorDesc')),
                 });
                 forceRefresh();
             }
@@ -1989,20 +3770,42 @@ export default function AppointmentsPage() {
 
         const appointment = eventData as Appointment;
 
-        // Optimistically update UI
-        setAppointments(prev => prev.map(a => a.id === appointment.id ? { ...a, color: colorHex, colorId: colorId } : a));
-        setSelectedAppointment(prev => (prev && prev.id === appointment.id ? { ...prev, color: colorHex, colorId: colorId } : prev));
+        // Optimistically update UI. Con una etiqueta el origen pasa a 'appointment': el
+        // usuario acaba de elegirle color a esta cita, así que deja de heredar. "Sin
+        // fondo" (colorId vacío) le saca el color propio y la cita vuelve a la cadena
+        // servicio > doctor > calendario, que se resuelve acá igual que en el mapper
+        // para no pintarla sin color hasta que llegue el refresco.
+        const colorPatch = colorId
+            ? { color: colorHex, colorId, colorSource: 'appointment' as const }
+            : (() => {
+                const service = services.find((s) =>
+                    s.name === appointment.summary ||
+                    (appointment.services ?? []).some((as) => String(as.id) === String(s.id)),
+                );
+                const doctor = doctors.find((d) => String(d.id) === String(appointment.doctorId));
+                const calendar = calendars.find((c) => String(c.id) === String(appointment.calendar_source_id));
+                const { color, colorSource } = resolveAppointmentColor({
+                    serviceColor: service?.color,
+                    doctorColor: doctor?.color,
+                    calendarColor: getGoogleCalendarColorHex(calendar?.color),
+                    sources: colorSourcesFor(String(appointment.calendar_source_id ?? '')),
+                });
+                return { color, colorId: '', colorSource };
+            })();
+        setAppointments(prev => prev.map(a => a.id === appointment.id ? { ...a, ...colorPatch } : a));
+        setSelectedAppointment(prev => (prev && prev.id === appointment.id ? { ...prev, ...colorPatch } : prev));
 
-        // Persist change to backend using snake_case for consistency
         const payload = {
             appointment_id: appointment.id,
             google_event_id: appointment.googleEventId,
             calendar_source_id: appointment.calendar_source_id,
-            color_id: colorId
+            color: colorId,
         };
 
         try {
-            const responseData = await api.post(API_ROUTES.APPOINTMENTS_UPDATE_COLOR, payload);
+            const responseData = await api.post(API_ROUTES.APPOINTMENTS_UPDATE_COLOR, payload, undefined, undefined, {
+                timeoutMs: REQUEST_TIMEOUT_MS.mutation,
+            });
             if (responseData.error || (responseData.code && responseData.code >= 400)) {
                 throw new Error(responseData.message || 'Failed to update color');
             }
@@ -2016,21 +3819,40 @@ export default function AppointmentsPage() {
             toast({
                 variant: 'destructive',
                 title: tToasts('errorUpdatingColor'),
-                description: error instanceof Error ? error.message : tToasts('errorUpdatingColorDesc'),
+                description: describeError(error, tToasts('errorUpdatingColorDesc')),
             });
             // Revert optimistic update on failure
             forceRefresh();
         }
     };
 
-    const confirmDeleteAppointment = async () => {
+    // Bloqueo por evento para el cambio de color: dos selecciones rápidas de
+    // etiquetas no compiten por el mismo upsert.
+    const colorChangeAction = useKeyedAsyncAction(
+        async (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }), colorId: string) => {
+            await runEventColorChange(eventData, colorId);
+        },
+        { showErrorToast: false },
+    );
+
+    const colorEventKey = (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' })) =>
+        `${eventData.kind ?? 'appointment'}:${eventData.id}`;
+
+    const handleEventColorChange = (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' }), colorId: string) => {
+        void colorChangeAction.run(colorEventKey(eventData), eventData, colorId);
+    };
+
+    const isColorChangePending = (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' })) =>
+        colorChangeAction.isPending(colorEventKey(eventData));
+
+    const runCancelAppointment = async () => {
         if (!deletingAppointment) return;
         try {
             const responseData = await api.delete(API_ROUTES.APPOINTMENTS_DELETE, {
                 appointment_id: deletingAppointment.id,
                 google_event_id: deletingAppointment.googleEventId,
                 calendar_source_id: deletingAppointment.calendar_source_id,
-            });
+            }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
             const result = Array.isArray(responseData) ? responseData[0] : responseData;
 
             const isSuccess = !result.error && (result.code === 200 || result.success || result.message);
@@ -2051,16 +3873,34 @@ export default function AppointmentsPage() {
             toast({
                 variant: 'destructive',
                 title: tToasts('error'),
-                description: error instanceof Error ? error.message : tToasts('failedCancel'),
+                description: describeError(error, tToasts('failedCancel')),
             });
         }
     };
 
+    // Bloqueo síncrono del borrado duro: el diálogo se queda abierto hasta que
+    // termina (o falla) y el botón muestra el spinner.
+    const cancelAppointment = useAsyncAction<[], void>(runCancelAppointment, { showErrorToast: false });
+    const isCancellingAppointment = cancelAppointment.isPending;
+
     const onDateChange = React.useCallback((newRange: { start: Date; end: Date }) => {
-        setFetchRange(newRange);
+        // Ignora el re-aviso cuando el rango no cambió (p. ej. al "saltar" a una
+        // fecha que ya está dentro de la vista actual desde el buscador): así no
+        // se dispara un refetch que vacía la grilla un instante y hace que la
+        // cita resaltada "desaparezca y vuelva".
+        setFetchRange((prev) =>
+            prev &&
+            prev.start.getTime() === newRange.start.getTime() &&
+            prev.end.getTime() === newRange.end.getTime()
+                ? prev
+                : newRange,
+        );
     }, []);
 
     const calendarEvents = React.useMemo(() => {
+        // El mapeo de la API rellena summary/service_name con este texto cuando
+        // el evento no trae ninguno; en la etiqueta se ignora.
+        const noneLabel = t('createDialog.none');
         const selectedDoctorIdSet = new Set(selectedDoctorIds.map(String));
         const selectedCalendarIdSet = new Set(selectedCalendarIds.map(String));
         const events = appointments
@@ -2077,50 +3917,96 @@ export default function AppointmentsPage() {
                 return selectedCalendarIdSet.has(id);
             })
             .map(appt => {
-            if (!appt.start?.dateTime || !appt.end?.dateTime) {
-                console.warn("Appointment missing start or end dateTime:", appt);
-                return null;
-            }
-            try {
-                const start = parseISO(appt.start.dateTime.replace(/Z$/, ''));
-                const end = parseISO(appt.end.dateTime.replace(/Z$/, ''));
-
-                if (!isValid(start) || !isValid(end)) {
-                    console.error("Invalid start/end date for appointment", appt);
+                if (!appt.start?.dateTime || !appt.end?.dateTime) {
+                    console.warn("Appointment missing start or end dateTime:", appt);
                     return null;
                 }
+                try {
+                    const start = parseISO(appt.start.dateTime.replace(/Z$/, ''));
+                    const end = parseISO(appt.end.dateTime.replace(/Z$/, ''));
 
-                const matchedCalendar = calendars.find((calendar) => String(calendar.id) === String(appt.calendar_source_id));
-                return {
-                    id: String(appt.id),
-                    title: appt.summary || appt.service_name || 'Cita',
-                    label: buildEventLabel(appt, start, eventLabelFormat),
-                    start,
-                    end,
-                    doctorGroupId: appt.doctorId || undefined,
-                    calendarGroupId: matchedCalendar?.id || appt.calendar_source_id || undefined,
-                    data: { ...appt, kind: 'appointment' as const },
-                    color: appt.color,
-                    colorId: appt.colorId,
-                };
-            } catch (e) {
-                console.error("Error parsing date/time for appointment", appt, e);
-                return null;
-            }
-        }).filter((event): event is NonNullable<typeof event> => event !== null);
+                    if (!isValid(start) || !isValid(end)) {
+                        console.error("Invalid start/end date for appointment", appt);
+                        return null;
+                    }
+
+                    const matchedCalendar = calendars.find((calendar) => String(calendar.id) === String(appt.calendar_source_id));
+                    // Preferencia "colorear por estado". Un color propio o de servicio es una
+                    // decisión que alguien tomó sobre esa cita y no se pisa: ahí el estado va
+                    // en una franja lateral. Heredar el color del doctor o del consultorio no
+                    // lo es, así que esas citas sí se pintan enteras. `appt.color` queda
+                    // intacto en los dos casos para el selector de color y el panel de detalle.
+                    // Los estados en modo 'always' (calendar_mode de la matriz) pintan la
+                    // card entera aunque la preferencia esté apagada o el color venga del
+                    // servicio, del doctor o del consultorio, porque son los estados que hay
+                    // que ver de un vistazo. La única excepción es la etiqueta de color
+                    // elegida a mano sobre la cita: eso gana siempre y se ve al instante, sin
+                    // esperar a que la cita pase al siguiente estado; el estado queda en la
+                    // franja lateral.
+                    const status = normalizeAppointmentStatus(appt.status);
+                    const calendarStatusMatrix = (matchedCalendar && statusDisplayByCalendar[matchedCalendar.id]) || statusDisplayMatrix;
+                    const display = resolveStatusDisplay(calendarStatusMatrix, status);
+                    const { color: resolvedColor, statusColored, statusStripeColor } = resolveEventStatusColors({
+                        status,
+                        display,
+                        colorSource: appt.colorSource,
+                        color: appt.color,
+                        colorByStatus,
+                    });
+                    return {
+                        id: String(appt.id),
+                        title: appt.summary || appt.service_name || 'Cita',
+                        label: buildEventLabel(appt, start, eventLabelFormat, noneLabel),
+                        start,
+                        end,
+                        doctorGroupId: appt.doctorId || undefined,
+                        calendarGroupId: matchedCalendar?.id || appt.calendar_source_id || undefined,
+                        data: { ...appt, kind: 'appointment' as const },
+                        // Una cita completada, cancelada o ausente no se arrastra: puede
+                        // tener sesión clínica y factura colgando. Mismo criterio que
+                        // usa el hook de reprogramación.
+                        locked: !canUpdateAppointments || !canReschedule(status),
+                        color: resolvedColor,
+                        statusColored,
+                        statusStripeColor,
+                        colorId: appt.colorId,
+                    };
+                } catch (e) {
+                    console.error("Error parsing date/time for appointment", appt, e);
+                    return null;
+                }
+            }).filter((event): event is NonNullable<typeof event> => event !== null);
 
         const reminderEvents = reminders
             .filter((reminder) => reminder.status !== 'cancelled')
+            // Lo personal de otros no llega al calendario. Este filtro es la única fuente
+            // de verdad: si un ítem se dibuja, el usuario puede gestionarlo.
+            .filter((reminder) => canManageReminder(reminder, user?.id))
+            .filter((reminder) => !reminder.calendar_id || selectedCalendarIdSet.has(String(reminder.calendar_id)))
             .map((reminder) => {
                 const start = parseISO(reminder.start_datetime.replace(/Z$/, ''));
                 const end = reminder.end_datetime ? parseISO(reminder.end_datetime.replace(/Z$/, '')) : start;
                 if (!isValid(start) || !isValid(end)) return null;
 
+                // Se muestra el rango, no solo el inicio: un ítem largo ("09:00 17:00")
+                // no se leía, y en mes y agenda no hay alto de card que lo comunique.
+                // Los de todo el día no llevan hora: la banda ya dice cuándo son.
+                const timeLabel = reminder.is_all_day
+                    ? ''
+                    : `${format(start, 'HH:mm')}–${format(end, 'HH:mm')}`;
+                // El glifo va en el label y no en un badge propio para no tocar los cuatro
+                // consumidores de `reminder-visuals`, que dibujan la card en cada vista.
+                const repeatGlyph = reminder.series_id ? '↻' : '';
+
                 return {
                     id: `reminder-${reminder.id}`,
                     title: reminder.title,
+                    label: [timeLabel, repeatGlyph, reminder.title].filter(Boolean).join(' '),
                     start,
                     end,
+                    allDay: reminder.is_all_day,
+                    doctorGroupId: CALENDAR_ITEMS_DOCTOR_GROUP_ID,
+                    calendarGroupId: reminder.calendar_id || UNASSIGNED_CALENDAR_GROUP_ID,
                     data: { ...reminder, kind: 'reminder' as const },
                     color: reminder.color || '#8b5cf6',
                 };
@@ -2128,7 +4014,21 @@ export default function AppointmentsPage() {
             .filter((event): event is NonNullable<typeof event> => event !== null);
 
         return [...events, ...reminderEvents];
-    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, isBulkMode]);
+    }, [appointments, calendars, reminders, selectedCalendarIds, selectedDoctorIds, eventLabelFormat, colorByStatus, statusDisplayMatrix, statusDisplayByCalendar, isBulkMode, user?.id, t, canUpdateAppointments]);
+
+    const visibleCalendarItems = React.useMemo(
+        () => reminders.filter((reminder) => {
+            if (reminder.status === 'cancelled') return false;
+            if (!canManageReminder(reminder, user?.id)) return false;
+            if (reminder.calendar_id && !selectedCalendarIds.includes(String(reminder.calendar_id))) return false;
+            if (!fetchRange) return true;
+            const start = parseISO(reminder.start_datetime.replace(/Z$/, ''));
+            return isValid(start) && start >= fetchRange.start && start <= fetchRange.end;
+        }),
+        [fetchRange, reminders, selectedCalendarIds, user?.id],
+    );
+    const hasVisibleCalendarItems = visibleCalendarItems.length > 0;
+    const hasVisibleUnassignedItems = visibleCalendarItems.some((reminder) => !reminder.calendar_id);
 
     // ── "Huecos"/blocking: clinic schedules. `/schedules` requires `sede_id`, so
     // fetch the availability of every sede and combine.
@@ -2155,22 +4055,16 @@ export default function AppointmentsPage() {
     }, [sedes]);
 
     // Clinic exceptions (holidays / one-off openings) for out-of-office blocking.
-    React.useEffect(() => {
+    // A failed reload keeps the previous list: clearing it would lift every closure.
+    const loadClinicExceptions = React.useCallback(() =>
         api.get(API_ROUTES.EXCEPTIONS)
-            .then((data) => {
-                const rows = Array.isArray(data) ? data : ((data as { exceptions?: unknown[]; data?: unknown[]; result?: unknown[] })?.exceptions || (data as { data?: unknown[] })?.data || (data as { result?: unknown[] })?.result || []);
-                setClinicExceptions((rows as Record<string, unknown>[]).map((e) => ({
-                    id: String(e.id ?? ''),
-                    date: String(e.date ?? ''),
-                    is_open: e.is_open as boolean,
-                    start_time: (e.start_time as string) ?? '',
-                    end_time: (e.end_time as string) ?? '',
-                    // Notes can come under a few key names depending on the flow.
-                    notes: String(e.notes ?? e.note ?? e.nota ?? e.notas ?? e.description ?? e.descripcion ?? e.motivo ?? ''),
-                })));
-            })
-            .catch(() => setClinicExceptions([]));
-    }, []);
+            // Recurrence and its day lists come along: without them calendar-gaps.ts
+            // couldn't match weekly/biweekly/monthly or multi-date exceptions.
+            .then((data) => setClinicExceptions(parseClinicExceptions(data)))
+            .catch(() => undefined), []);
+    React.useEffect(() => {
+        void loadClinicExceptions();
+    }, [loadClinicExceptions]);
 
     // Schedules scoped to the selected sede (matching sede + rows with no sede).
     const effectiveSchedules = React.useMemo(() => {
@@ -2180,6 +4074,139 @@ export default function AppointmentsPage() {
         // schedules so the calendar isn't accidentally blocked end-to-end.
         return scoped.length > 0 ? scoped : clinicSchedules;
     }, [clinicSchedules, defaultSede]);
+
+    // Sede used for clinic-wide (non per-calendar) blocking. Without a default sede
+    // the timeline mixes branches, so it stays empty — unless every calendar belongs
+    // to the same branch, in which case scoping to it is unambiguous.
+    const timelineSede = React.useMemo(() => {
+        if (defaultSede) return String(defaultSede);
+        const ids = new Set(calendars.filter((c) => c.sede_id).map((c) => String(c.sede_id)));
+        return ids.size === 1 ? [...ids][0] : '';
+    }, [defaultSede, calendars]);
+
+    // Exceptions scoped by sede (clinic-wide rows always included), precomputed for
+    // every sede in play because the blocking memo asks for the same lists day x
+    // column times. Key '' = no sede context, i.e. only the clinic-wide rows.
+    // Unlike `effectiveSchedules` there is deliberately NO "don't over-filter to empty"
+    // fallback: for schedules an empty list means "we lost the hours" (dangerous), for
+    // exceptions it just means "nothing is closed" (correct).
+    const exceptionsBySede = React.useMemo(() => {
+        const map = new Map<string, ClinicException[]>();
+        map.set('', filterExceptionsForSede(clinicExceptions, undefined));
+        for (const cal of calendars) {
+            const key = cal.sede_id ? String(cal.sede_id) : '';
+            if (!map.has(key)) map.set(key, filterExceptionsForSede(clinicExceptions, key));
+        }
+        // The default sede may have no calendar of its own.
+        if (timelineSede && !map.has(timelineSede)) {
+            map.set(timelineSede, filterExceptionsForSede(clinicExceptions, timelineSede));
+        }
+        return map;
+    }, [clinicExceptions, calendars, timelineSede]);
+
+    const exceptionsForSede = React.useCallback((sedeId?: string): ClinicException[] => {
+        const key = sedeId ? String(sedeId) : '';
+        return exceptionsBySede.get(key) ?? filterExceptionsForSede(clinicExceptions, key || undefined);
+    }, [exceptionsBySede, clinicExceptions]);
+
+    // Horarios de una sede concreta; las filas sin sede son de toda la clínica.
+    // Sin sede se cae a `effectiveSchedules` (la sede por defecto, con su resguardo
+    // de "no filtres hasta vaciar"), que es lo que corresponde a las columnas que no
+    // tienen sucursal propia: las de doctor y la línea de tiempo sin agrupar.
+    const schedulesForSede = React.useCallback((sedeId?: string): ClinicSchedule[] => {
+        if (!sedeId) return effectiveSchedules;
+        return clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === String(sedeId));
+    }, [clinicSchedules, effectiveSchedules]);
+
+    // ── "Habilitar horario" desde una banda bloqueada ─────────────────────────
+    // Escribe en Horarios de excepción: crear aperturas o tramos de cierre,
+    // recortar y borrar cierres. El diálogo pide el permiso de cada escritura.
+    const enableSlotPermissions = React.useMemo(() => ({
+        create: hasPermission(BUSINESS_CONFIG_PERMISSIONS.HOLIDAYS_CREATE),
+        update: hasPermission(BUSINESS_CONFIG_PERMISSIONS.HOLIDAYS_UPDATE),
+        delete: hasPermission(BUSINESS_CONFIG_PERMISSIONS.HOLIDAYS_DELETE),
+    }), [hasPermission]);
+    const canEnableSlots = enableSlotPermissions.create || enableSlotPermissions.update || enableSlotPermissions.delete;
+    const [enableSlotTarget, setEnableSlotTarget] = React.useState<EnableSlotTarget | null>(null);
+
+    // Sede, horarios y excepciones detrás de una columna de la grilla: el mismo
+    // alcance con el que `blockedRanges` pinta esa columna. Una columna de
+    // consultorio usa su sede; el resto (doctor, sin agrupar, sin sede) la sede
+    // de la línea de tiempo ('' = toda la clínica).
+    const blockingScopeForSlot = React.useCallback((slot: CalendarSlotContextMenuContext) => {
+        const effGroupBy = calendarMode === 'custom' ? 'calendar' : groupBy;
+        const calendarId = effGroupBy === 'calendar' && slot.context?.groupBy === 'calendar' ? slot.context.value : undefined;
+        const cal = calendarId ? calendars.find((c) => String(c.id) === calendarId) : undefined;
+        if (cal?.sede_id) {
+            const sedeId = String(cal.sede_id);
+            return { sedeId, schedules: schedulesForSede(sedeId), exceptions: exceptionsForSede(sedeId) };
+        }
+        return { sedeId: timelineSede, schedules: effectiveSchedules, exceptions: exceptionsForSede(timelineSede) };
+    }, [calendarMode, groupBy, calendars, schedulesForSede, exceptionsForSede, timelineSede, effectiveSchedules]);
+
+    // Bandas grises (fuera de horario) y rojas (cierres): el diálogo decide qué
+    // escribir y avisa de los cierres que no se pueden tocar desde acá.
+    const enableSlotTargetFor = React.useCallback((slot: CalendarSlotContextMenuContext): EnableSlotTarget | null => {
+        if (!slot.isBlocked || !blockUnavailable || effectiveSchedules.length === 0) return null;
+        const { sedeId, schedules, exceptions } = blockingScopeForSlot(slot);
+        const slotMin = slot.date.getHours() * 60 + slot.date.getMinutes();
+        const suggested = suggestEnableWindow(slot.date, schedules, exceptions, slotMin);
+        if (!suggested) return null;
+        return {
+            day: slot.date,
+            sedeId: sedeId || undefined,
+            sedeName: sedeId ? sedes.find((s) => String(s.id) === sedeId)?.name : undefined,
+            singleBranch: sedes.length <= 1,
+            schedules,
+            exceptions,
+            initialStartMin: suggested.startMin,
+            initialEndMin: suggested.endMin,
+        };
+    }, [blockUnavailable, effectiveSchedules, blockingScopeForSlot, sedes]);
+
+    const renderSlotContextMenu = React.useCallback((slot: CalendarSlotContextMenuContext) => {
+        const enableTarget = canEnableSlots ? enableSlotTargetFor(slot) : null;
+        return (
+            <>
+                {enableTarget && (
+                    <>
+                        <ContextMenuItem
+                            className="flex cursor-pointer items-center gap-2"
+                            // Next tick: the menu has to finish unwinding its pointer-events
+                            // lock before the dialog takes its own.
+                            onSelect={() => setTimeout(() => setEnableSlotTarget(enableTarget), 0)}
+                        >
+                            <CalendarClock className="h-4 w-4" />
+                            {tEnableSlot('menuItem')}
+                        </ContextMenuItem>
+                        <ContextMenuSeparator />
+                    </>
+                )}
+                <ContextMenuItem
+                    disabled={slot.isBlocked}
+                    className="flex cursor-pointer items-center gap-2"
+                    onSelect={() => handleCreateAppointmentFromSlot(slot)}
+                >
+                    <CalendarPlus className="h-4 w-4" />
+                    {tReminders('createType.appointment')}
+                </ContextMenuItem>
+                <ContextMenuItem
+                    className="flex cursor-pointer items-center gap-2"
+                    onSelect={() => handleCreateReminderFromSlot(slot)}
+                >
+                    <BellRing className="h-4 w-4" />
+                    {tReminders('createType.reminder')}
+                </ContextMenuItem>
+                <ContextMenuItem
+                    className="flex cursor-pointer items-center gap-2"
+                    onSelect={() => handleCreateNoteFromSlot(slot)}
+                >
+                    <FileText className="h-4 w-4" />
+                    {tReminders('createType.note')}
+                </ContextMenuItem>
+            </>
+        );
+    }, [canEnableSlots, enableSlotTargetFor, handleCreateAppointmentFromSlot, handleCreateNoteFromSlot, handleCreateReminderFromSlot, tReminders, tEnableSlot]);
 
     // Visible days for the blocking overlay (independent of the Huecos toggle).
     const blockVisibleDays = React.useMemo(() => {
@@ -2198,41 +4225,60 @@ export default function AppointmentsPage() {
 
     const blockedRanges = React.useMemo<BlockedRange[]>(() => {
         if (!blockUnavailable || !blockingConfigured) return [];
-        const isGroupingView = ['day', '2-day', '3-day', 'week'].includes(currentView);
-        const tagDay = (day: Date, sched: ClinicSchedule[], groupValue?: string): BlockedRange[] =>
-            computeBlockedRanges(day, sched, clinicExceptions)
+        const isGroupingView = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
+        // Custom mode always renders grouped-by-calendar columns (regardless of the
+        // grouped_by setting), so the ranges must be tagged per calendar to match.
+        const effGroupBy = calendarMode === 'custom' ? 'calendar' : groupBy;
+        // Exceptions for columns with no branch of their own (doctor columns, the
+        // ungrouped timeline, the "sin agenda" column).
+        const clinicWideExceptions = exceptionsForSede(timelineSede);
+        const tagDay = (day: Date, sched: ClinicSchedule[], exc: ClinicException[], groupValue?: string): BlockedRange[] =>
+            computeBlockedRanges(day, sched, exc)
                 .map((r) => ({ dayKey: format(day, 'yyyy-MM-dd'), startMin: r.startMin, endMin: r.endMin, groupValue, reason: r.reason, note: r.note }));
 
-        // Grouped by consultorio: each column blocks per its calendar's SEDE schedules.
-        if (isGroupingView && groupBy === 'calendar') {
-            return calendars.flatMap((cal) => {
-                const sedeId = cal.sede_id;
-                const sched = sedeId
-                    ? clinicSchedules.filter((s) => !s.sede_id || String(s.sede_id) === String(sedeId))
-                    : effectiveSchedules;
-                return blockVisibleDays.flatMap((day) => tagDay(day, sched, String(cal.id)));
+        // Grouped by consultorio: each column blocks per its calendar's SEDE schedules
+        // and that sede's exceptions (plus the clinic-wide ones).
+        if (isGroupingView && effGroupBy === 'calendar') {
+            const calendarRanges = calendars.flatMap((cal) => {
+                const sedeId = cal.sede_id ? String(cal.sede_id) : '';
+                const sched = schedulesForSede(sedeId);
+                const exc = sedeId ? exceptionsForSede(sedeId) : clinicWideExceptions;
+                return blockVisibleDays.flatMap((day) => tagDay(day, sched, exc, String(cal.id)));
             });
+            if (!hasVisibleUnassignedItems || calendarMode === 'custom') return calendarRanges;
+            return [
+                ...calendarRanges,
+                ...blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, clinicWideExceptions, UNASSIGNED_CALENDAR_GROUP_ID)),
+            ];
         }
         // Grouped by doctor: clinic-wide hours, tagged per column so each shows them.
-        if (isGroupingView && groupBy === 'doctor') {
-            return doctors.flatMap((doc) =>
-                blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, String(doc.id))),
+        // A doctor column has no branch, so only branch-agnostic exceptions apply.
+        if (isGroupingView && effGroupBy === 'doctor') {
+            const doctorRanges = doctors.flatMap((doc) =>
+                blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, clinicWideExceptions, String(doc.id))),
             );
+            if (!hasVisibleCalendarItems) return doctorRanges;
+            return [
+                ...doctorRanges,
+                ...blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, clinicWideExceptions, CALENDAR_ITEMS_DOCTOR_GROUP_ID)),
+            ];
         }
         // Non-grouped: a single clinic-wide timeline.
-        return blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, undefined));
-    }, [blockUnavailable, blockingConfigured, currentView, groupBy, blockVisibleDays, effectiveSchedules, clinicSchedules, clinicExceptions, calendars, doctors]);
+        return blockVisibleDays.flatMap((day) => tagDay(day, effectiveSchedules, clinicWideExceptions, undefined));
+    }, [blockUnavailable, blockingConfigured, currentView, groupBy, calendarMode, blockVisibleDays, effectiveSchedules, schedulesForSede, exceptionsForSede, timelineSede, calendars, doctors, hasVisibleCalendarItems, hasVisibleUnassignedItems]);
 
     const blockedFullDays = React.useMemo<Set<string>>(() => {
         if (!blockUnavailable || !blockingConfigured) return new Set();
+        // Month cells are clinic-wide: use the timeline's exception scope.
+        const exc = exceptionsForSede(timelineSede);
         const set = new Set<string>();
         for (const day of blockVisibleDays) {
-            if (getAvailableIntervals(day, effectiveSchedules, clinicExceptions).length === 0) {
+            if (getAvailableIntervals(day, effectiveSchedules, exc).length === 0) {
                 set.add(format(day, 'yyyy-MM-dd'));
             }
         }
         return set;
-    }, [blockUnavailable, blockingConfigured, blockVisibleDays, effectiveSchedules, clinicExceptions]);
+    }, [blockUnavailable, blockingConfigured, blockVisibleDays, effectiveSchedules, exceptionsForSede, timelineSede]);
 
     const gapVisibleDays = React.useMemo(() => {
         if (!gapsActive || !fetchRange?.start || !fetchRange?.end) return [];
@@ -2246,11 +4292,15 @@ export default function AppointmentsPage() {
     const handleToggleGaps = React.useCallback(() => {
         setGapsActive((prev) => {
             const next = !prev;
-            if (next) setIsBulkMode(false); // gaps and bulk modes are mutually exclusive
+            if (next) {
+                setIsBulkMode(false); // gaps y bulk son mutuamente excluyentes
+                setSearchActive(false); // idem con Buscar cita
+                resetSearchState();
+            }
             if (!next) setSelectedGap(null);
             return next;
         });
-    }, []);
+    }, [resetSearchState]);
 
     const handleCloseGaps = React.useCallback(() => {
         setGapsActive(false);
@@ -2262,13 +4312,24 @@ export default function AppointmentsPage() {
             ? { groupBy: groupBy as 'doctor' | 'calendar' | 'sede', value: gap.groupValue }
             : undefined;
 
-        // When inline creation is on (and on a time-grid view), draft the appointment
-        // in-place on the calendar instead of opening the modal — same as a slot click.
-        const isTimeGrid = ['day', '2-day', '3-day', 'week'].includes(currentView);
-        if (calendarSettings?.inline_appointment_creation && isTimeGrid) {
+        // Floating card open: the chosen gap becomes the draft's new slot.
+        if (hasAnchoredInlineDraft) {
+            if (!isSavingInline) moveInlineDraftTo(gap.start, context);
+            setGapsActive(false);
+            setSelectedGap(null);
+            return;
+        }
+
+        // Custom mode always uses the centered inline window. Outside custom mode,
+        // the saved preference applies only to time-grid views.
+        const isTimeGrid = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
+        if (isCustomMode || (calendarSettings?.inline_appointment_creation && isTimeGrid)) {
             const draftDoctor = context?.groupBy === 'doctor' ? (doctors.find((d) => String(d.id) === String(context.value)) ?? null) : null;
-            const draftCalendar = context?.groupBy === 'calendar' ? (calendars.find((c) => String(c.id) === String(context.value)) ?? null) : null;
-            setInlineDraft({ date: gap.start, context, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '' });
+            const customCalendarId = isCustomMode ? (personalizedCalendarId ?? selectedCalendarIds[0] ?? null) : null;
+            const draftCalendarId = context?.groupBy === 'calendar' ? context.value : customCalendarId;
+            const draftCalendar = draftCalendarId ? (calendars.find((c) => String(c.id) === String(draftCalendarId)) ?? null) : null;
+            const draftContext = context ?? (draftCalendarId ? { groupBy: 'calendar' as const, value: String(draftCalendarId) } : undefined);
+            setInlineDraft(createInlineDraftState({ date: gap.start, context: draftContext, durationMin: slotDuration, patient: null, services: [], doctor: draftDoctor, calendar: draftCalendar, notes: '', summary: '' }));
             setGapsActive(false);
             setSelectedGap(null);
             return;
@@ -2296,12 +4357,11 @@ export default function AppointmentsPage() {
             }
         }
         setSlotInitialData(base);
-        setPendingSlotDate(gap.start);
         setCreateOpen(true);
         // Per the requirement: selecting a proposal closes the panel and clears the effect.
         setGapsActive(false);
         setSelectedGap(null);
-    }, [groupBy, doctors, calendars, calendarSettings?.inline_appointment_creation, currentView, slotDuration]);
+    }, [groupBy, doctors, calendars, calendarSettings?.inline_appointment_creation, currentView, slotDuration, isCustomMode, personalizedCalendarId, selectedCalendarIds, hasAnchoredInlineDraft, isSavingInline, moveInlineDraftTo]);
 
     const handleSelectDoctor = React.useCallback((doctorId: string, checked: boolean) => {
         setSelectedDoctorIds(prev => {
@@ -2313,7 +4373,7 @@ export default function AppointmentsPage() {
         });
     }, []);
 
-    const showGroupControls = ['day', '2-day', '3-day', 'week'].includes(currentView);
+    const showGroupControls = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
     // The doctors filter also applies to the agenda (schedule) view, even though
     // that view does not support column grouping.
     const showDoctorFilter = showGroupControls || currentView === 'schedule';
@@ -2329,7 +4389,7 @@ export default function AppointmentsPage() {
     }, []);
 
     const doctorGroupingColumns = React.useMemo<CalendarGroupingColumn[]>(() => {
-        return doctors
+        const columns: CalendarGroupingColumn[] = doctors
             .filter((doctor) => selectedDoctorIds.includes(doctor.id))
             .map((doctor) => ({
                 id: doctor.id,
@@ -2337,10 +4397,18 @@ export default function AppointmentsPage() {
                 value: doctor.id,
                 color: (doctor as any).color ?? undefined,
             }));
-    }, [doctors, selectedDoctorIds]);
+        if (hasVisibleCalendarItems) {
+            columns.push({
+                id: CALENDAR_ITEMS_DOCTOR_GROUP_ID,
+                label: tReminders('groupedItems'),
+                value: CALENDAR_ITEMS_DOCTOR_GROUP_ID,
+            });
+        }
+        return columns;
+    }, [doctors, selectedDoctorIds, hasVisibleCalendarItems, tReminders]);
 
     const calendarGroupingColumns = React.useMemo<CalendarGroupingColumn[]>(() => {
-        return calendars
+        const columns: CalendarGroupingColumn[] = calendars
             .filter((calendar) => selectedCalendarIds.includes(calendar.id))
             .map((calendar) => ({
                 id: calendar.id,
@@ -2348,7 +4416,15 @@ export default function AppointmentsPage() {
                 value: calendar.id,
                 color: (calendar as any).color ?? undefined,
             }));
-    }, [calendars, selectedCalendarIds]);
+        if (hasVisibleUnassignedItems) {
+            columns.push({
+                id: UNASSIGNED_CALENDAR_GROUP_ID,
+                label: tReminders('noCalendar'),
+                value: UNASSIGNED_CALENDAR_GROUP_ID,
+            });
+        }
+        return columns;
+    }, [calendars, selectedCalendarIds, hasVisibleUnassignedItems, tReminders]);
 
     // Calendars grouped by sede, used by the calendar selector to offer a
     // per-sede "select all" toggle. Calendars without a sede fall into a
@@ -2412,44 +4488,208 @@ export default function AppointmentsPage() {
         return [];
     }, [calendarGroupingColumns, doctorGroupingColumns, groupBy]);
 
+    // ── Custom mode: show a single agenda at a time ──────────────────────────
+    // Keep the shown agenda valid: default to the first visible one, and fall
+    // back to it if the current selection gets hidden.
+    React.useEffect(() => {
+        if (!isCustomMode) return;
+        setPersonalizedCalendarId((prev) => {
+            if (prev && selectedCalendarIds.includes(prev)) return prev;
+            // Sin `prev` todavía estamos en el arranque (o recién se entró al modo):
+            // es el único momento en que se recupera la agenda recordada. Después no,
+            // porque llegar acá con `prev` puesto significa que esa agenda se ocultó y
+            // corresponde caer a la primera visible, no volver a la de la sesión previa.
+            if (!prev && restoredPersonalizedId && selectedCalendarIds.includes(restoredPersonalizedId)) {
+                return restoredPersonalizedId;
+            }
+            return firstVisibleCalendarId;
+        });
+    }, [isCustomMode, selectedCalendarIds, firstVisibleCalendarId, restoredPersonalizedId]);
+
+    // Se guarda la agenda efectiva y no solo el clic en el panel: saltar a una cita
+    // desde el buscador también cambia cuál se está mirando, y refrescar tiene que
+    // devolver a esa.
+    React.useEffect(() => {
+        if (!isCustomMode || !personalizedCalendarId) return;
+        try {
+            window.localStorage.setItem(PERSONALIZED_CALENDAR_KEY, personalizedCalendarId);
+        } catch { /* localStorage bloqueado: se pierde la preferencia, nada más */ }
+    }, [isCustomMode, personalizedCalendarId]);
+    // On entering custom mode, open the Agendas panel first so the user picks an
+    // agenda before seeing its appointments; closing it on leaving the mode.
+    React.useEffect(() => {
+        setAgendasPanelOpen(isCustomMode);
+    }, [isCustomMode]);
+
+    // In custom mode force calendar grouping with a single column, and filter
+    // events to that one agenda (so month/agenda views also show only it).
+    const effectiveGroupBy: CalendarGroupBy = isCustomMode ? 'calendar' : groupBy;
+    const effectiveGroupingColumns = React.useMemo<CalendarGroupingColumn[]>(() => {
+        if (!isCustomMode) return groupingColumns;
+        const cal = calendars.find((c) => c.id === personalizedCalendarId);
+        return cal ? [{ id: cal.id, label: cal.name, value: cal.id, color: (cal as any).color ?? undefined }] : [];
+    }, [isCustomMode, groupingColumns, calendars, personalizedCalendarId]);
+    const effectiveEvents = React.useMemo<CalendarEvent[]>(() => {
+        if (!isCustomMode || !personalizedCalendarId) return calendarEvents;
+        // Reminders carry no calendarGroupId, so they're excluded in custom mode.
+        return calendarEvents.filter((e) => (e as { calendarGroupId?: string }).calendarGroupId === personalizedCalendarId);
+    }, [isCustomMode, personalizedCalendarId, calendarEvents]);
+
+    /**
+     * Los de todo el día salen del array de la rejilla y van a la banda fija de arriba.
+     *
+     * No es una preferencia estética: con `start` 00:00 y `end` 23:59, `getEventsWithLayout`
+     * los encadenaría en un cluster con TODAS las citas del día y, como ordena "a igual
+     * inicio, primero la más larga", quedarían en `stackLevel 0` empujando la columna
+     * entera hacia la derecha. Rompen el día completo, no solo su propia card.
+     */
+    const gridEvents = React.useMemo<CalendarEvent[]>(
+        () => effectiveEvents.filter((event) => !event.allDay),
+        [effectiveEvents],
+    );
+
+    // Live preview of the inline draft on the grid (floating-card mode only). It lands
+    // in the column of the draft's agenda/doctor, so picking another one in the card
+    // moves it; when the draft has none, it stays in the clicked column.
+    const inlineDraftPreview = React.useMemo<CalendarDraftPreview | null>(() => {
+        if (!hasAnchoredInlineDraft || !inlineDraft) return null;
+        const contextValue = inlineDraft.context?.groupBy === effectiveGroupBy ? inlineDraft.context.value : undefined;
+        const groupValue = effectiveGroupBy === 'calendar'
+            ? (inlineDraft.calendar?.id ? String(inlineDraft.calendar.id) : contextValue)
+            : effectiveGroupBy === 'doctor'
+                ? (inlineDraft.doctor?.id ? String(inlineDraft.doctor.id) : contextValue)
+                : undefined;
+        const subtitle = [inlineDraft.services.map((s) => s.name).join(', '), inlineDraft.doctor?.name]
+            .filter(Boolean)
+            .join(' · ');
+        return {
+            start: inlineDraft.date,
+            end: addMinutes(inlineDraft.date, inlineDraft.durationMin || 30),
+            groupValue,
+            title: inlineDraft.patient?.name || inlineDraft.summary.trim() || (inlineDraft.editing ? tInline('editTitle') : tInline('title')),
+            subtitle: subtitle || undefined,
+            color: inlineDraftAccentColor(inlineDraft),
+            conflict: inlineDraftOverlaps(inlineDraft, appointments) || inlineAvailability === 'unavailable',
+            sourceEventId: inlineDraft.editing?.id ? String(inlineDraft.editing.id) : undefined,
+        };
+    }, [hasAnchoredInlineDraft, inlineDraft, effectiveGroupBy, appointments, inlineAvailability, tInline]);
+
+    const allDayEvents = React.useMemo<CalendarEvent[]>(
+        () => effectiveEvents.filter((event) => event.allDay),
+        [effectiveEvents],
+    );
+
+    /**
+     * Lo que realmente ocupa la agenda a efectos de "Buscar huecos".
+     *
+     * Quedan afuera las notas y los recordatorios —son apuntes del equipo, no
+     * tiempo reservado con un paciente— y las citas canceladas, que liberan su
+     * horario. La grilla los sigue dibujando igual: esto solo decide contra qué se
+     * calcula el tiempo libre.
+     */
+    const gapBusyEvents = React.useMemo<CalendarEvent[]>(
+        () => calendarEvents.filter((ev) => {
+            const data = ev.data as { kind?: string; status?: unknown } | undefined;
+            if (!data || data.kind === 'reminder') return false;
+            return normalizeAppointmentStatus(data.status) !== 'cancelled';
+        }),
+        [calendarEvents],
+    );
+
     const calendarGaps = React.useMemo<Gap[]>(() => {
         if (!gapsActive) return [];
-        // When blocking is on, restrict gaps to the available intervals (split shifts
-        // + exceptions); otherwise keep the original single-window behavior.
-        const useIntervals = blockUnavailable && blockingConfigured;
-        const dayGapsFor = (evts: CalendarEvent[], day: Date): Gap[] =>
+        // Los huecos SIEMPRE se recortan contra el horario de la sede y sus
+        // excepciones, esté encendida o no la preferencia de "bloquear no
+        // disponible": esa preferencia decide si se pintan las bandas grises, no si
+        // se puede ofrecer un horario en el que la sede no atiende. Sin horarios
+        // cargados no hay contra qué contrastar y se cae a la ventana por defecto.
+        const useIntervals = blockingConfigured;
+        const clinicWideExceptions = exceptionsForSede(timelineSede);
+        const dayGapsFor = (
+            evts: CalendarEvent[],
+            day: Date,
+            exc: ClinicException[] = clinicWideExceptions,
+            sched: ClinicSchedule[] = effectiveSchedules,
+        ): Gap[] =>
             useIntervals
-                ? computeDayGapsForIntervals(evts, day, DEFAULT_MIN_GAP_MINUTES, getAvailableIntervals(day, effectiveSchedules, clinicExceptions))
+                ? computeDayGapsForIntervals(evts, day, DEFAULT_MIN_GAP_MINUTES, getAvailableIntervals(day, sched, exc))
                 : computeDayGaps(evts, day, DEFAULT_MIN_GAP_MINUTES, getBusinessWindow(day, clinicSchedules));
         // Grouped (by doctor/consultorio): free slots PER column, so a consultorio's
         // continuous free time merges across hours regardless of other columns.
         // Only the grid views render grouped columns; month/schedule/year use union.
-        const isGroupingView = ['day', '2-day', '3-day', 'week'].includes(currentView);
-        if (isGroupingView && groupBy !== 'none' && groupingColumns.length > 0) {
-            return groupingColumns.flatMap((col) =>
-                gapVisibleDays.flatMap((day) =>
-                    dayGapsFor(filterEventsByDayAndGroup(calendarEvents, day, groupBy, col.value), day)
+        const isGroupingView = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
+        // Use the effective grouping so custom mode (always grouped by calendar)
+        // gets gaps tagged with the shown agenda's column value.
+        if (isGroupingView && effectiveGroupBy !== 'none' && effectiveGroupingColumns.length > 0) {
+            return effectiveGroupingColumns.flatMap((col) => {
+                // Cada columna de consultorio conoce su sucursal, así que se le aplican
+                // SUS horarios y SUS feriados: los de otra sede no pueden ni tallarle
+                // huecos falsos ni ofrecerle un día que en su sede está cerrado.
+                const cal = effectiveGroupBy === 'calendar' ? calendars.find((c) => String(c.id) === String(col.value)) : undefined;
+                const sedeId = cal?.sede_id ? String(cal.sede_id) : '';
+                const exc = sedeId ? exceptionsForSede(sedeId) : clinicWideExceptions;
+                const sched = schedulesForSede(sedeId);
+                return gapVisibleDays.flatMap((day) =>
+                    dayGapsFor(filterEventsByDayAndGroup(gapBusyEvents, day, effectiveGroupBy, col.value), day, exc, sched)
                         .map((g) => ({ ...g, groupValue: col.value, groupLabel: col.label })),
-                ),
-            );
+                );
+            });
         }
         // Non-grouped: a single timeline (union of all visible events).
         if (useIntervals) {
-            return gapVisibleDays.flatMap((day) => dayGapsFor(calendarEvents, day));
+            return gapVisibleDays.flatMap((day) => dayGapsFor(gapBusyEvents, day));
         }
-        return computeRangeGaps(calendarEvents, gapVisibleDays, clinicSchedules);
-    }, [gapsActive, blockUnavailable, blockingConfigured, groupBy, groupingColumns, currentView, calendarEvents, gapVisibleDays, clinicSchedules, effectiveSchedules, clinicExceptions]);
+        return computeRangeGaps(gapBusyEvents, gapVisibleDays, clinicSchedules);
+    }, [gapsActive, blockingConfigured, effectiveGroupBy, effectiveGroupingColumns, currentView, gapBusyEvents, gapVisibleDays, clinicSchedules, effectiveSchedules, schedulesForSede, exceptionsForSede, timelineSede, calendars]);
 
     // Render additional context menu items for the calendar event:
     // status submenu + clinic session shortcut.
     const renderEventContextMenu = (eventData: (Appointment & { kind?: 'appointment' }) | (CalendarReminder & { kind?: 'reminder' })) => {
+        // Google-color swatch grid. Rendered inline at the top of the menu in the
+        // default layout; in custom mode it moves into a "Cambiar color" submenu.
+        // "Sin fondo" solo para citas (como en la tarjeta inline): les saca el color
+        // propio y vuelven a heredar. Los recordatorios siempre llevan un color.
+        // Cada muestra es un ContextMenuItem para que elegir un color cierre el menú
+        // (también desde el submenú) y se pueda navegar con teclado.
+        const colorSwatchClass = 'h-6 w-6 cursor-pointer justify-center rounded-full p-0 focus:ring-2 focus:ring-ring focus:ring-offset-1';
+        const colorSwatchGrid = (
+            <div className="grid grid-cols-4 gap-2 p-2">
+                {eventData.kind !== 'reminder' && (
+                    <ContextMenuItem
+                        aria-label={t('inlineCreate.noBackground')}
+                        title={t('inlineCreate.noBackground')}
+                        disabled={isColorChangePending(eventData)}
+                        className={cn(colorSwatchClass, 'border border-border bg-background text-muted-foreground hover:bg-muted')}
+                        onSelect={() => handleEventColorChange(eventData, '')}
+                    >
+                        <Ban className="h-3.5 w-3.5" />
+                    </ContextMenuItem>
+                )}
+                {GOOGLE_CALENDAR_COLORS.map((color) => (
+                    <ContextMenuItem
+                        key={color.id}
+                        aria-label={color.id}
+                        disabled={isColorChangePending(eventData)}
+                        className={cn(colorSwatchClass, 'hover:opacity-80')}
+                        style={{ backgroundColor: color.hex }}
+                        onSelect={() => handleEventColorChange(eventData, color.id)}
+                    />
+                ))}
+            </div>
+        );
+
         if (eventData.kind === 'reminder') {
             const reminder = eventData as CalendarReminder;
+            // Sin guarda de propiedad: el filtro de `reminderEvents` ya garantiza que
+            // solo llegan acá ítems que el usuario puede gestionar. La guarda anterior
+            // devolvía null y dejaba un ContextMenuContent vacío — el "no aparece menú".
             return (
                 <>
+                    {colorSwatchGrid}
                     <ContextMenuSeparator />
                     {reminder.status !== 'done' && (
                         <ContextMenuItem
+                            disabled={isReminderActionPending(reminder)}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleMarkReminderDone(reminder);
@@ -2471,6 +4711,7 @@ export default function AppointmentsPage() {
                         {tReminders('edit')}
                     </ContextMenuItem>
                     <ContextMenuItem
+                        disabled={isReminderActionPending(reminder)}
                         onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteReminder(reminder);
@@ -2491,19 +4732,18 @@ export default function AppointmentsPage() {
         const patientInvoices = appointment.patientId ? (patientInvoicesMap[appointment.patientId] ?? []) : [];
         const linkedQuote = appointment.quote_id ? patientQuotes.find((q) => String(q.id) === String(appointment.quote_id)) : undefined;
         const linkedInvoice = appointment.invoice_id ? patientInvoices.find((i) => String(i.id) === String(appointment.invoice_id)) : undefined;
-        const fmtMoney = (amount: number, currency?: string) => new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || 'USD' }).format(amount);
+        const fmtMoney = (amount: number, currency?: string) => new Intl.NumberFormat('en-US', { style: 'currency', currency: currency || getClinicCurrency() }).format(amount);
         const hasSession = sessionExistsMap[appointment.id];
-        return (
-            <>
-            <ContextMenuSeparator />
-            <ContextMenuItem
-                key="edit-appointment"
-                onSelect={() => handleEditAppointment(appointment)}
-                className="flex items-center gap-2 cursor-pointer"
-            >
-                <Edit className="h-4 w-4 shrink-0" />
-                {t('contextMenu.editAppointment')}
-            </ContextMenuItem>
+        // Acciones de ESTA cita en vuelo: los ítems del menú que las disparan se
+        // deshabilitan para que no compitan dos upserts sobre la misma fila.
+        const rowActionPending =
+            isReassignPending(appointment) ||
+            isLinkQuotePending(appointment) ||
+            isLinkInvoicePending(appointment) ||
+            isColorChangePending(eventData);
+
+        // Shared building blocks reused across the "invoke" and "custom" layouts.
+        const statusSubmenu = (
             <ContextMenuSub>
                 <ContextMenuSubTrigger className="cursor-pointer gap-2">
                     <ClipboardCheck className="h-4 w-4 shrink-0" />
@@ -2517,6 +4757,7 @@ export default function AppointmentsPage() {
                         appointment={appointment}
                         onChange={(s, extra) => handleStatusChange(appointment, s, extra)}
                         onRequestCustomCancellation={() => handleRequestCustomCancellation(appointment)}
+                        isUpdating={isUpdatingAppointmentStatus}
                         ItemComponent={ContextMenuItem}
                         SubComponent={ContextMenuSub}
                         SubTriggerComponent={ContextMenuSubTrigger}
@@ -2525,8 +4766,77 @@ export default function AppointmentsPage() {
                     />
                 </ContextMenuSubContent>
             </ContextMenuSub>
+        );
+        // Alternativa por menú a los gestos de arrastre: cubre teclado y lector de
+        // pantalla, la vista de mes en móvil (donde las filas de agenda no tienen
+        // rejilla sobre la cual arrastrar) y las cards demasiado bajas como para
+        // tener tiradores de resize.
+        const apptStart = appointment.start?.dateTime ? parseISO(appointment.start.dateTime.replace(/Z$/, '')) : null;
+        const apptEnd = appointment.end?.dateTime ? parseISO(appointment.end.dateTime.replace(/Z$/, '')) : null;
+        const apptDurationMin = apptStart && apptEnd ? Math.max(0, (apptEnd.getTime() - apptStart.getTime()) / 60000) : 0;
+        const canRetimeAppointment = canUpdateAppointments
+            && canReschedule(normalizeAppointmentStatus(appointment.status))
+            && !!apptStart && !!apptEnd && isValid(apptStart) && isValid(apptEnd);
+
+        const moveToSubmenu = canRetimeAppointment ? (
             <ContextMenuSub>
                 <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <CalendarIcon className="h-4 w-4 shrink-0" />
+                    <span className="flex min-w-0 flex-col">
+                        <span>{tDrag('moveTo')}</span>
+                        <span className="truncate text-xs italic text-muted-foreground">{format(apptStart!, 'dd/MM/yyyy HH:mm')}</span>
+                    </span>
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent className="p-0">
+                    <DatePicker
+                        mode="single"
+                        selected={apptStart!}
+                        onSelect={(date) => {
+                            if (!date || !apptStart) return;
+                            const nextStart = set(apptStart, {
+                                year: date.getFullYear(),
+                                month: date.getMonth(),
+                                date: date.getDate(),
+                            });
+                            if (nextStart.getTime() === apptStart.getTime()) return;
+                            retimeAppointment(appointment, nextStart, addMinutes(nextStart, apptDurationMin));
+                        }}
+                        initialFocus
+                    />
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+        ) : null;
+
+        const durationSubmenu = canRetimeAppointment ? (
+            <ContextMenuSub>
+                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                    <Clock className="h-4 w-4 shrink-0" />
+                    <span className="flex min-w-0 flex-col">
+                        <span>{tDrag('duration')}</span>
+                        <span className="truncate text-xs italic text-muted-foreground">{tDrag('minutes', { minutes: Math.round(apptDurationMin) })}</span>
+                    </span>
+                </ContextMenuSubTrigger>
+                <ContextMenuSubContent>
+                    {DURATION_PRESET_MINUTES.map((minutes) => (
+                        <ContextMenuItem
+                            key={minutes}
+                            onSelect={() => {
+                                if (!apptStart || Math.round(apptDurationMin) === minutes) return;
+                                retimeAppointment(appointment, apptStart, addMinutes(apptStart, minutes));
+                            }}
+                            className="flex items-center gap-2 cursor-pointer"
+                        >
+                            <Check className={cn('h-4 w-4 shrink-0', Math.round(apptDurationMin) === minutes ? 'opacity-100' : 'opacity-0')} />
+                            {tDrag('minutes', { minutes })}
+                        </ContextMenuItem>
+                    ))}
+                </ContextMenuSubContent>
+            </ContextMenuSub>
+        ) : null;
+
+        const doctorSubmenu = (
+            <ContextMenuSub>
+                <ContextMenuSubTrigger disabled={rowActionPending} className="cursor-pointer gap-2">
                     <UserCog className="h-4 w-4 shrink-0" />
                     <span className="flex min-w-0 flex-col">
                         <span>{appointment.doctorId ? tPanel('changeDoctor') : tPanel('assignDoctor')}</span>
@@ -2542,6 +4852,7 @@ export default function AppointmentsPage() {
                         doctors.map((doctor) => (
                             <ContextMenuItem
                                 key={doctor.id}
+                                disabled={rowActionPending}
                                 onSelect={() => {
                                     if (String(doctor.id) !== String(appointment.doctorId)) {
                                         handleReassign(appointment, { doctor });
@@ -2559,8 +4870,10 @@ export default function AppointmentsPage() {
                     )}
                 </ContextMenuSubContent>
             </ContextMenuSub>
+        );
+        const calendarSubmenu = (
             <ContextMenuSub>
-                <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                <ContextMenuSubTrigger disabled={rowActionPending} className="cursor-pointer gap-2">
                     <Building2 className="h-4 w-4 shrink-0" />
                     <span className="flex min-w-0 flex-col">
                         <span>{appointment.calendar_source_id ? tPanel('changeCalendar') : tPanel('assignCalendar')}</span>
@@ -2576,6 +4889,7 @@ export default function AppointmentsPage() {
                         calendars.map((calendar) => (
                             <ContextMenuItem
                                 key={calendar.id}
+                                disabled={rowActionPending}
                                 onSelect={() => {
                                     if (String(calendar.id) !== String(appointment.calendar_source_id)) {
                                         handleReassign(appointment, { calendar });
@@ -2593,19 +4907,157 @@ export default function AppointmentsPage() {
                     )}
                 </ContextMenuSubContent>
             </ContextMenuSub>
-            {canReschedule(appointment.status) && (
-                <ContextMenuItem
-                    key="reschedule"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleReschedule(appointment);
-                    }}
-                    className="flex items-center gap-2 cursor-pointer"
-                >
-                    <CalendarSync className="h-4 w-4" />
-                    {tReschedule('action')}
-                </ContextMenuItem>
-            )}
+        );
+        const rescheduleItem = canReschedule(appointment.status) ? (
+            <ContextMenuItem
+                key="reschedule"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    handleReschedule(appointment);
+                }}
+                className="flex items-center gap-2 cursor-pointer"
+            >
+                <CalendarSync className="h-4 w-4" />
+                {tReschedule('action')}
+            </ContextMenuItem>
+        ) : null;
+        const editItem = (
+            <ContextMenuItem
+                key="edit-appointment"
+                onSelect={() => handleEditAppointment(appointment)}
+                className="flex items-center gap-2 cursor-pointer"
+            >
+                <Edit className="h-4 w-4 shrink-0" />
+                {t('contextMenu.editAppointment')}
+            </ContextMenuItem>
+        );
+
+        // ── "custom" mode layout ──────────────────────────────────────────────
+        // Patient submenu first, then the appointment statuses, then edit/delete,
+        // then color and doctor/room reassignment actions.
+        if (calendarMode === 'custom') {
+            // Citas importadas de Google (u otras sin paciente asociado) no tienen a
+            // quién mostrarle cuentas, historial ni datos — el submenú queda
+            // deshabilitado en vez de abrir con todo vacío.
+            const hasPatient = !!appointment.patientId;
+            return (
+                <>
+                    <ContextMenuSeparator />
+                    <ContextMenuSub>
+                        <ContextMenuSubTrigger disabled={!hasPatient} className="cursor-pointer gap-2 font-medium">
+                            <UserRound className="h-4 w-4 shrink-0" />
+                            <span className="min-w-0 flex-1 truncate">{hasPatient ? appointment.patientName : t('createDialog.none')}</span>
+                        </ContextMenuSubTrigger>
+                        <ContextMenuSubContent className="w-56">
+                            {canViewPatientStatement && (
+                                <ContextMenuItem
+                                    key="patient-accounts"
+                                    onSelect={() => openAccountStatement(appointment.patientId, appointment.patientName)}
+                                    className="flex items-center gap-2 cursor-pointer"
+                                >
+                                    <FileText className="h-4 w-4 shrink-0" />
+                                    {t('contextMenu.accounts')}
+                                </ContextMenuItem>
+                            )}
+                            <ContextMenuItem
+                                key="patient-history"
+                                onSelect={() => openPatientHistory(appointment.patientId, appointment.patientName)}
+                                className="flex items-center gap-2 cursor-pointer"
+                            >
+                                <BookOpenText className="h-4 w-4 shrink-0" />
+                                {t('contextMenu.clinicHistory')}
+                            </ContextMenuItem>
+                            <ContextMenuItem
+                                key="patient-documents"
+                                onSelect={() => openPatientDocuments(appointment.patientId, appointment.patientName)}
+                                className="flex items-center gap-2 cursor-pointer"
+                            >
+                                <Images className="h-4 w-4 shrink-0" />
+                                {t('contextMenu.imagesAndFiles')}
+                            </ContextMenuItem>
+                            <ContextMenuSeparator />
+                            <ContextMenuItem
+                                key="patient-appointments-history"
+                                onSelect={() => openPatientAppointments(appointment.patientId, appointment.patientName)}
+                                className="flex items-center gap-2 cursor-pointer"
+                            >
+                                <History className="h-4 w-4 shrink-0" />
+                                {t('contextMenu.appointmentsHistory')}
+                            </ContextMenuItem>
+                            <ContextMenuSeparator />
+                            <ContextMenuItem
+                                key="patient-data"
+                                onSelect={() => openPatientView({
+                                    userId: appointment.patientId,
+                                    userName: appointment.patientName,
+                                    userEmail: getEffectiveAppointmentContact(appointment).email,
+                                    userPhone: getEffectiveAppointmentContact(appointment).phone,
+                                    initialTab: 'info',
+                                })}
+                                className="flex items-center gap-2 cursor-pointer"
+                            >
+                                <Users className="h-4 w-4 shrink-0" />
+                                {t('contextMenu.patientData')}
+                            </ContextMenuItem>
+                        </ContextMenuSubContent>
+                    </ContextMenuSub>
+
+                    <ContextMenuSeparator />
+                    <AppointmentStatusContextItems
+                        appointment={appointment}
+                        onChange={(s, extra) => handleStatusChange(appointment, s, extra)}
+                        onRequestCustomCancellation={() => handleRequestCustomCancellation(appointment)}
+                        isUpdating={isUpdatingAppointmentStatus}
+                        ItemComponent={ContextMenuItem}
+                        SubComponent={ContextMenuSub}
+                        SubTriggerComponent={ContextMenuSubTrigger}
+                        SubContentComponent={ContextMenuSubContent}
+                        SeparatorComponent={ContextMenuSeparator}
+                    />
+
+                    <ContextMenuSeparator />
+                    {editItem}
+                    <ContextMenuItem
+                        key="delete"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setSoftDeleteTarget(appointment);
+                        }}
+                        className="flex items-center gap-2 cursor-pointer text-destructive"
+                    >
+                        <Trash2 className="h-4 w-4 shrink-0" />
+                        {t('contextMenu.deleteAppointment')}
+                    </ContextMenuItem>
+
+                    <ContextMenuSeparator />
+                    <ContextMenuSub>
+                        <ContextMenuSubTrigger className="cursor-pointer gap-2">
+                            <Palette className="h-4 w-4 shrink-0" />
+                            {tPanel('changeColor')}
+                        </ContextMenuSubTrigger>
+                        <ContextMenuSubContent>
+                            {colorSwatchGrid}
+                        </ContextMenuSubContent>
+                    </ContextMenuSub>
+                    {doctorSubmenu}
+                    {calendarSubmenu}
+                    {moveToSubmenu}
+                    {durationSubmenu}
+                </>
+            );
+        }
+
+        return (
+            <>
+            {colorSwatchGrid}
+            <ContextMenuSeparator />
+            {editItem}
+            {statusSubmenu}
+            {doctorSubmenu}
+            {calendarSubmenu}
+            {moveToSubmenu}
+            {durationSubmenu}
+            {rescheduleItem}
             <ContextMenuItem
                 key="clinic-session"
                 onClick={(e) => {
@@ -2618,91 +5070,93 @@ export default function AppointmentsPage() {
                 {hasSession ? t('contextMenu.editSession') : t('contextMenu.createSession')}
             </ContextMenuItem>
 
-            <ContextMenuSeparator />
+                <ContextMenuSeparator />
 
-            {/* Quote: link/change */}
-            <ContextMenuSub onOpenChange={(o) => { if (o && appointment.patientId) ensurePatientQuotes(appointment.patientId); }}>
-                <ContextMenuSubTrigger className="cursor-pointer gap-2">
-                    <Link2 className="h-4 w-4 shrink-0" />
-                    <span className="flex min-w-0 flex-col">
-                        <span>{appointment.quote_id ? t('contextMenu.changeQuote') : t('contextMenu.linkQuote')}</span>
-                        {appointment.quote_id && (
-                            <span className="truncate text-xs italic text-muted-foreground">
-                                {(linkedQuote?.doc_no || appointment.quote_doc_no || appointment.quote_id)}
-                                {linkedQuote ? ` · ${fmtMoney(linkedQuote.total, linkedQuote.currency)}` : ''}
-                            </span>
-                        )}
-                    </span>
-                </ContextMenuSubTrigger>
-                <ContextMenuSubContent className="p-0">
-                    <ContextEntityPicker
-                        items={patientQuotes.map((quote) => ({
-                            id: String(quote.id),
-                            title: quote.doc_no || String(quote.id),
-                            subtitle: fmtMoney(quote.total, quote.currency),
-                        }))}
-                        selectedId={appointment.quote_id}
-                        onSelect={(id) => { const quote = patientQuotes.find((q) => String(q.id) === id); if (quote && String(id) !== String(appointment.quote_id)) handleLinkQuote(appointment, quote); }}
-                        onCreateNew={() => handleCreateQuoteForAppointment(appointment)}
-                        createLabel={t('contextMenu.newQuote')}
-                        searchPlaceholder={t('contextMenu.searchQuote')}
-                        emptyText={t('contextMenu.noQuotes')}
-                    />
-                </ContextMenuSubContent>
-            </ContextMenuSub>
+                {/* Quote: link/change */}
+                <ContextMenuSub onOpenChange={(o) => { if (o && appointment.patientId) ensurePatientQuotes(appointment.patientId); }}>
+                    <ContextMenuSubTrigger disabled={rowActionPending} className="cursor-pointer gap-2">
+                        <Link2 className="h-4 w-4 shrink-0" />
+                        <span className="flex min-w-0 flex-col">
+                            <span>{appointment.quote_id ? t('contextMenu.changeQuote') : t('contextMenu.linkQuote')}</span>
+                            {appointment.quote_id && (
+                                <span className="truncate text-xs italic text-muted-foreground">
+                                    {(linkedQuote?.doc_no || appointment.quote_doc_no || appointment.quote_id)}
+                                    {linkedQuote ? ` · ${fmtMoney(linkedQuote.total, linkedQuote.currency)}` : ''}
+                                </span>
+                            )}
+                        </span>
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="p-0">
+                        <ContextEntityPicker
+                            items={patientQuotes.map((quote) => ({
+                                id: String(quote.id),
+                                title: quote.doc_no || String(quote.id),
+                                subtitle: fmtMoney(quote.total, quote.currency),
+                            }))}
+                            selectedId={appointment.quote_id}
+                            disabled={rowActionPending}
+                            onSelect={(id) => { const quote = patientQuotes.find((q) => String(q.id) === id); if (quote && String(id) !== String(appointment.quote_id)) handleLinkQuote(appointment, quote); }}
+                            onCreateNew={() => handleCreateQuoteForAppointment(appointment)}
+                            createLabel={t('contextMenu.newQuote')}
+                            searchPlaceholder={t('contextMenu.searchQuote')}
+                            emptyText={t('contextMenu.noQuotes')}
+                        />
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
 
-            {/* Invoice: bill/change */}
-            <ContextMenuSub onOpenChange={(o) => { if (o && appointment.patientId) ensurePatientInvoices(appointment.patientId); }}>
-                <ContextMenuSubTrigger className="cursor-pointer gap-2">
-                    <Receipt className="h-4 w-4 shrink-0" />
-                    <span className="flex min-w-0 flex-col">
-                        <span>{appointment.invoice_id ? t('contextMenu.changeInvoice') : t('contextMenu.createInvoice')}</span>
-                        {appointment.invoice_id && (
-                            <span className="truncate text-xs italic text-muted-foreground">
-                                {(linkedInvoice?.doc_no || linkedInvoice?.invoice_doc_no || appointment.invoice_id)}
-                                {linkedInvoice ? ` · ${fmtMoney(linkedInvoice.total, linkedInvoice.currency)}` : ''}
-                            </span>
-                        )}
-                    </span>
-                </ContextMenuSubTrigger>
-                <ContextMenuSubContent className="p-0">
-                    <ContextEntityPicker
-                        items={patientInvoices.map((invoice) => ({
-                            id: String(invoice.id),
-                            title: invoice.doc_no || invoice.invoice_doc_no || String(invoice.id),
-                            subtitle: fmtMoney(invoice.total, invoice.currency),
-                        }))}
-                        selectedId={appointment.invoice_id}
-                        onSelect={(id) => { const invoice = patientInvoices.find((i) => String(i.id) === id); if (invoice && String(id) !== String(appointment.invoice_id)) handleLinkInvoice(appointment, invoice); }}
-                        onCreateNew={() => handleCreateInvoiceForAppointment(appointment)}
-                        createLabel={t('contextMenu.newInvoice')}
-                        searchPlaceholder={t('contextMenu.searchInvoice')}
-                        emptyText={t('contextMenu.noInvoices')}
-                    />
-                </ContextMenuSubContent>
-            </ContextMenuSub>
+                {/* Invoice: bill/change */}
+                <ContextMenuSub onOpenChange={(o) => { if (o && appointment.patientId) ensurePatientInvoices(appointment.patientId); }}>
+                    <ContextMenuSubTrigger disabled={rowActionPending} className="cursor-pointer gap-2">
+                        <Receipt className="h-4 w-4 shrink-0" />
+                        <span className="flex min-w-0 flex-col">
+                            <span>{appointment.invoice_id ? t('contextMenu.changeInvoice') : t('contextMenu.createInvoice')}</span>
+                            {appointment.invoice_id && (
+                                <span className="truncate text-xs italic text-muted-foreground">
+                                    {(linkedInvoice?.doc_no || linkedInvoice?.invoice_doc_no || appointment.invoice_id)}
+                                    {linkedInvoice ? ` · ${fmtMoney(linkedInvoice.total, linkedInvoice.currency)}` : ''}
+                                </span>
+                            )}
+                        </span>
+                    </ContextMenuSubTrigger>
+                    <ContextMenuSubContent className="p-0">
+                        <ContextEntityPicker
+                            items={patientInvoices.map((invoice) => ({
+                                id: String(invoice.id),
+                                title: invoice.doc_no || invoice.invoice_doc_no || String(invoice.id),
+                                subtitle: fmtMoney(invoice.total, invoice.currency),
+                            }))}
+                            selectedId={appointment.invoice_id}
+                            disabled={rowActionPending}
+                            onSelect={(id) => { const invoice = patientInvoices.find((i) => String(i.id) === id); if (invoice && String(id) !== String(appointment.invoice_id)) handleLinkInvoice(appointment, invoice); }}
+                            onCreateNew={() => handleCreateInvoiceForAppointment(appointment)}
+                            createLabel={t('contextMenu.newInvoice')}
+                            searchPlaceholder={t('contextMenu.searchInvoice')}
+                            emptyText={t('contextMenu.noInvoices')}
+                        />
+                    </ContextMenuSubContent>
+                </ContextMenuSub>
 
-            <ContextMenuItem
-                key="quick-bill"
-                onSelect={() => handleQuickBillFromContext(appointment)}
-                className="flex items-center gap-2 cursor-pointer font-medium text-emerald-600 focus:text-emerald-600 dark:text-emerald-400 dark:focus:text-emerald-400"
-            >
-                <Zap className="h-4 w-4" />
-                {t('contextMenu.quickBill')}
-            </ContextMenuItem>
+                <ContextMenuItem
+                    key="quick-bill"
+                    onSelect={() => handleQuickBillFromContext(appointment)}
+                    className="flex items-center gap-2 cursor-pointer font-medium text-emerald-600 focus:text-emerald-600 dark:text-emerald-400 dark:focus:text-emerald-400"
+                >
+                    <Zap className="h-4 w-4" />
+                    {t('contextMenu.quickBill')}
+                </ContextMenuItem>
 
-            <ContextMenuSeparator />
-            <ContextMenuItem
-                key="delete"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    setSoftDeleteTarget(appointment);
-                }}
-                className="flex items-center gap-2 cursor-pointer text-destructive"
-            >
-                <Trash2 className="h-4 w-4" />
-                {tPanel('delete')}
-            </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem
+                    key="delete"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        setSoftDeleteTarget(appointment);
+                    }}
+                    className="flex items-center gap-2 cursor-pointer text-destructive"
+                >
+                    <Trash2 className="h-4 w-4" />
+                    {tPanel('delete')}
+                </ContextMenuItem>
             </>
         );
     };
@@ -2710,9 +5164,12 @@ export default function AppointmentsPage() {
     // Unused form logic removed
 
 
+    // Al cambiar el conjunto de agendas que se piden (incluye cambiar de agenda
+    // en modo personalizado) se vacía la grilla para no mostrar las citas de la
+    // agenda anterior mientras llega la nueva carga.
     React.useEffect(() => {
         setAppointments([]);
-    }, [selectedCalendarIds]);
+    }, [fetchCalendarIds]);
 
     // Stabilize prefillTreatments with useMemo to prevent unnecessary recalculations
     // Include all quote items as treatments: items with tooth_number get it prefilled, others get null
@@ -2737,307 +5194,492 @@ export default function AppointmentsPage() {
     // Desktop-only contextual header rendered when bulk mode is active
     const bulkModeHeaderContent = (isBulkMode && breakpoint === 'desktop') ? (
         <TooltipProvider delayDuration={300}>
-        <div ref={bulkToolbarRef} className="flex items-center gap-2 w-full min-w-0">
-            {/* Left: selection counter — always visible */}
-            <div className="flex items-center gap-2 shrink-0">
-                <Checkbox
-                    checked={bulkSomeSelected ? 'indeterminate' : bulkAllSelected}
-                    onCheckedChange={(c) => handleSelectAllVisible(!!c)}
-                />
-                <span className="text-sm font-medium whitespace-nowrap">
-                    {bulkSelectedIds.size > 0
-                        ? tBulk('selectedCount', { count: bulkSelectedIds.size })
-                        : tBulk('selectHint')}
-                </span>
-                {bulkSelectedIds.size > 0 && (
-                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => {
-                        skipNextBulkFilterRef.current = true;
-                        setBulkSelectedIds(new Set());
-                        setBulkDoctorIds([]);
-                        setBulkCalendarIds([]);
-                    }}>
-                        <X className="h-3.5 w-3.5 mr-1" />
-                        {!isBulkToolbarCompact && tBulk('clearSelection')}
-                    </Button>
-                )}
-            </div>
+            <div ref={bulkToolbarRef} className="flex items-center gap-2 w-full min-w-0">
+                {/* Left: selection counter — always visible */}
+                <div className="flex items-center gap-2 shrink-0">
+                    <Checkbox
+                        checked={bulkSomeSelected ? 'indeterminate' : bulkAllSelected}
+                        onCheckedChange={(c) => handleSelectAllVisible(!!c)}
+                    />
+                    <span className="text-sm font-medium whitespace-nowrap">
+                        {bulkSelectedIds.size > 0
+                            ? tBulk('selectedCount', { count: bulkSelectedIds.size })
+                            : tBulk('selectHint')}
+                    </span>
+                    {bulkSelectedIds.size > 0 && (
+                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => {
+                            skipNextBulkFilterRef.current = true;
+                            setBulkSelectedIds(new Set());
+                            setBulkDoctorIds([]);
+                            setBulkCalendarIds([]);
+                        }}>
+                            <X className="h-3.5 w-3.5 mr-1" />
+                            {!isBulkToolbarCompact && tBulk('clearSelection')}
+                        </Button>
+                    )}
+                </div>
 
-            {/* Middle: filters */}
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-                {/* Date preset selector */}
-                <Select value={bulkDatePreset} onValueChange={(v) => setBulkDatePreset(v as AppointmentDatePreset)}>
-                    <SelectTrigger className={cn('h-8 text-xs shrink-0', isBulkToolbarCompact ? 'w-28' : 'w-36')}>
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {(['today', 'this_week', 'this_month'] as AppointmentDatePreset[]).map((preset) => (
-                            <SelectItem key={preset} value={preset} className="text-xs">
-                                {tBulk(preset)}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                {/* Middle: filters */}
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                    {/* Date preset selector */}
+                    <Select value={bulkDatePreset} onValueChange={(v) => setBulkDatePreset(v as AppointmentDatePreset)}>
+                        <SelectTrigger className={cn('h-8 text-xs shrink-0', isBulkToolbarCompact ? 'w-28' : 'w-36')}>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {(['today', 'this_week', 'this_month'] as AppointmentDatePreset[]).map((preset) => (
+                                <SelectItem key={preset} value={preset} className="text-xs">
+                                    {tBulk(preset)}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
 
-                {/* Doctor filter */}
-                <Popover>
+                    {/* Doctor filter */}
+                    <Popover>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
+                                        <Users className="h-3.5 w-3.5 shrink-0" />
+                                        {!isBulkToolbarCompact && tBulk('doctorFilter')}
+                                        {bulkDoctorIds.length > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{bulkDoctorIds.length}</Badge>}
+                                        {isBulkLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                                    </Button>
+                                </PopoverTrigger>
+                            </TooltipTrigger>
+                            {isBulkToolbarCompact && <TooltipContent>{tBulk('doctorFilter')}</TooltipContent>}
+                        </Tooltip>
+                        <PopoverContent className="w-52 p-2" align="start">
+                            <div className="space-y-0.5">
+                                {(() => {
+                                    const activeDoctors = doctors.filter(d => d.is_active);
+                                    const allSelected = activeDoctors.length > 0 && activeDoctors.every(d => bulkDoctorIds.includes(d.id));
+                                    const someSelected = !allSelected && activeDoctors.some(d => bulkDoctorIds.includes(d.id));
+                                    return (
+                                        <>
+                                            <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
+                                                <Checkbox
+                                                    checked={someSelected ? 'indeterminate' : allSelected}
+                                                    onCheckedChange={(c) => setBulkDoctorIds(c ? activeDoctors.map(d => d.id) : [])}
+                                                />
+                                                <span className="text-sm font-medium">{t('selectAll')}</span>
+                                            </label>
+                                            {activeDoctors.map((doctor) => (
+                                                <label key={doctor.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                                                    <Checkbox checked={bulkDoctorIds.includes(doctor.id)} onCheckedChange={(c) => handleSelectBulkDoctor(doctor.id, !!c)} />
+                                                    <span className="text-sm">{doctor.name}</span>
+                                                </label>
+                                            ))}
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+
+                    {/* Calendar filter */}
+                    <Popover>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
+                                        <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
+                                        {!isBulkToolbarCompact && tBulk('calendarFilter')}
+                                        {bulkCalendarIds.length > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{bulkCalendarIds.length}</Badge>}
+                                        {isBulkLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                                    </Button>
+                                </PopoverTrigger>
+                            </TooltipTrigger>
+                            {isBulkToolbarCompact && <TooltipContent>{tBulk('calendarFilter')}</TooltipContent>}
+                        </Tooltip>
+                        <PopoverContent className="w-52 p-2" align="start">
+                            <div className="space-y-0.5">
+                                {(() => {
+                                    const allSelected = calendars.length > 0 && calendars.every(c => bulkCalendarIds.includes(c.id));
+                                    const someSelected = !allSelected && calendars.some(c => bulkCalendarIds.includes(c.id));
+                                    return (
+                                        <>
+                                            <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
+                                                <Checkbox
+                                                    checked={someSelected ? 'indeterminate' : allSelected}
+                                                    onCheckedChange={(c) => setBulkCalendarIds(c ? calendars.map(c => c.id) : [])}
+                                                />
+                                                <span className="text-sm font-medium">{t('selectAll')}</span>
+                                            </label>
+                                            {calendars.map((cal) => (
+                                                <label key={cal.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                                                    <Checkbox checked={bulkCalendarIds.includes(cal.id)} onCheckedChange={(c) => handleSelectBulkCalendar(cal.id, !!c)} />
+                                                    <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
+                                                    <span className="text-sm truncate">{cal.name}</span>
+                                                </label>
+                                            ))}
+                                        </>
+                                    );
+                                })()}
+                            </div>
+                        </PopoverContent>
+                    </Popover>
+                </div>
+
+                {/* Right: action buttons — always visible */}
+                <div className="flex items-center gap-2 shrink-0">
+                    <Separator orientation="vertical" className="h-5" />
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
-                                    <Users className="h-3.5 w-3.5 shrink-0" />
-                                    {!isBulkToolbarCompact && tBulk('doctorFilter')}
-                                    {bulkDoctorIds.length > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{bulkDoctorIds.length}</Badge>}
-                                    {isBulkLoading && <Loader2 className="h-3 w-3 animate-spin" />}
-                                </Button>
-                            </PopoverTrigger>
+                            <Button
+                                size="sm"
+                                className="h-8 gap-1.5 text-xs"
+                                disabled={bulkSelectedIds.size === 0}
+                                onClick={() => setIsReassignDialogOpen(true)}
+                            >
+                                <Stethoscope className="h-3.5 w-3.5 shrink-0" />
+                                {!isBulkToolbarCompact && tBulk('reassignDoctor')}
+                            </Button>
                         </TooltipTrigger>
-                        {isBulkToolbarCompact && <TooltipContent>{tBulk('doctorFilter')}</TooltipContent>}
+                        <TooltipContent>{tBulk('reassignDoctor')}</TooltipContent>
                     </Tooltip>
-                    <PopoverContent className="w-52 p-2" align="start">
-                        <div className="space-y-0.5">
-                            {(() => {
-                                const activeDoctors = doctors.filter(d => d.is_active);
-                                const allSelected = activeDoctors.length > 0 && activeDoctors.every(d => bulkDoctorIds.includes(d.id));
-                                const someSelected = !allSelected && activeDoctors.some(d => bulkDoctorIds.includes(d.id));
-                                return (
-                                    <>
-                                        <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
-                                            <Checkbox
-                                                checked={someSelected ? 'indeterminate' : allSelected}
-                                                onCheckedChange={(c) => setBulkDoctorIds(c ? activeDoctors.map(d => d.id) : [])}
-                                            />
-                                            <span className="text-sm font-medium">{t('selectAll')}</span>
-                                        </label>
-                                        {activeDoctors.map((doctor) => (
-                                            <label key={doctor.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
-                                                <Checkbox checked={bulkDoctorIds.includes(doctor.id)} onCheckedChange={(c) => handleSelectBulkDoctor(doctor.id, !!c)} />
-                                                <span className="text-sm">{doctor.name}</span>
-                                            </label>
-                                        ))}
-                                    </>
-                                );
-                            })()}
-                        </div>
-                    </PopoverContent>
-                </Popover>
-
-                {/* Calendar filter */}
-                <Popover>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs shrink-0">
-                                    <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
-                                    {!isBulkToolbarCompact && tBulk('calendarFilter')}
-                                    {bulkCalendarIds.length > 0 && <Badge variant="secondary" className="h-4 px-1 text-[10px]">{bulkCalendarIds.length}</Badge>}
-                                    {isBulkLoading && <Loader2 className="h-3 w-3 animate-spin" />}
-                                </Button>
-                            </PopoverTrigger>
+                            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleToggleBulkMode}>
+                                <X className="h-3.5 w-3.5 shrink-0" />
+                                {!isBulkToolbarCompact && tBulk('exitBulkMode')}
+                            </Button>
                         </TooltipTrigger>
-                        {isBulkToolbarCompact && <TooltipContent>{tBulk('calendarFilter')}</TooltipContent>}
+                        <TooltipContent>{tBulk('exitBulkMode')}</TooltipContent>
                     </Tooltip>
-                    <PopoverContent className="w-52 p-2" align="start">
-                        <div className="space-y-0.5">
-                            {(() => {
-                                const allSelected = calendars.length > 0 && calendars.every(c => bulkCalendarIds.includes(c.id));
-                                const someSelected = !allSelected && calendars.some(c => bulkCalendarIds.includes(c.id));
-                                return (
-                                    <>
-                                        <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
-                                            <Checkbox
-                                                checked={someSelected ? 'indeterminate' : allSelected}
-                                                onCheckedChange={(c) => setBulkCalendarIds(c ? calendars.map(c => c.id) : [])}
-                                            />
-                                            <span className="text-sm font-medium">{t('selectAll')}</span>
-                                        </label>
-                                        {calendars.map((cal) => (
-                                            <label key={cal.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
-                                                <Checkbox checked={bulkCalendarIds.includes(cal.id)} onCheckedChange={(c) => handleSelectBulkCalendar(cal.id, !!c)} />
-                                                <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
-                                                <span className="text-sm truncate">{cal.name}</span>
-                                            </label>
-                                        ))}
-                                    </>
-                                );
-                            })()}
-                        </div>
-                    </PopoverContent>
-                </Popover>
+                </div>
             </div>
-
-            {/* Right: action buttons — always visible */}
-            <div className="flex items-center gap-2 shrink-0">
-                <Separator orientation="vertical" className="h-5" />
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            size="sm"
-                            className="h-8 gap-1.5 text-xs"
-                            disabled={bulkSelectedIds.size === 0}
-                            onClick={() => setIsReassignDialogOpen(true)}
-                        >
-                            <Stethoscope className="h-3.5 w-3.5 shrink-0" />
-                            {!isBulkToolbarCompact && tBulk('reassignDoctor')}
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{tBulk('reassignDoctor')}</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleToggleBulkMode}>
-                            <X className="h-3.5 w-3.5 shrink-0" />
-                            {!isBulkToolbarCompact && tBulk('exitBulkMode')}
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>{tBulk('exitBulkMode')}</TooltipContent>
-                </Tooltip>
-            </div>
-        </div>
         </TooltipProvider>
     ) : undefined;
 
     return (
         <Card className="border-none shadow-none h-full">
             <CardContent className="relative p-0 h-[calc(100vh-6rem)] min-h-[600px]">
-                {gapsActive && (
-                    <CalendarGapsPanel
-                        gaps={calendarGaps}
-                        selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
-                        dateLocale={gapsDateLocale}
-                        onSelect={handleSelectGap}
-                        onClose={handleCloseGaps}
-                    />
-                )}
-                <Calendar
-                    view={currentView}
-                    hourSlotHeight={hourSlotHeight}
-                    slotMinutes={slotDuration}
-                    events={calendarEvents}
-                    onDateChange={onDateChange}
-                    isLoading={isRefreshing}
-                    onEventClick={handleEventClick}
-                    onEventColorChange={handleEventColorChange}
-                    onEventDoubleClick={isBulkMode ? undefined : (data) => { if (data?.kind !== 'reminder') handleEditAppointment(data as Appointment); }}
-                    onEventContextMenu={isBulkMode ? undefined : renderEventContextMenu}
-                    onEventContextMenuOpen={isBulkMode ? undefined : (data) => { if (data?.kind !== 'reminder') requestAppointmentMenuData(data as Appointment); }}
-                    inlineDraft={inlineDraft ? { date: inlineDraft.date, durationMin: inlineDraft.durationMin, groupValue: inlineDraft.context?.value } : null}
-                    renderInlineDraft={renderInlineDraft}
-                    groupBy={groupBy}
-                    groupingColumns={groupingColumns}
-                    onViewChange={(v) => { setCurrentView(v); setInlineDraft(null); }}
-                    selectedAppointmentIds={isBulkMode ? bulkSelectedIds : undefined}
-                    onToggleAppointmentSelect={isBulkMode ? handleToggleAppointmentSelect : undefined}
-                    bulkModeContent={bulkModeHeaderContent}
-                    onSlotClick={handleSlotClick}
-                    onCreateClick={() => { setInlineDraft(null); prepareSlot(new Date()); setIsReschedulingMode(false); setCreateOpen(true); }}
-                    onSlotContextMenu={handleSlotContextMenu}
-                    gaps={gapsActive ? calendarGaps : undefined}
-                    selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
-                    onGapClick={handleSelectGap}
-                    blockedRanges={blockedRanges}
-                    blockedFullDays={blockedFullDays}
-                    filterSheet={
-                        <div className="space-y-6">
-                            {/* Bulk selection filters (mobile) */}
-                            {isBulkMode && (
-                                <>
-                                    <div>
-                                        <h4 className="text-sm font-semibold mb-3">{tBulk('panelTitle')}</h4>
-                                        <Select value={bulkDatePreset} onValueChange={(v) => setBulkDatePreset(v as AppointmentDatePreset)}>
-                                            <SelectTrigger className="h-8 w-full text-xs mb-3">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {(['today', 'this_week', 'this_month'] as AppointmentDatePreset[]).map((preset) => (
-                                                    <SelectItem key={preset} value={preset} className="text-xs">
-                                                        {tBulk(preset)}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <div className="space-y-1 mb-3">
-                                            <p className="text-xs text-muted-foreground font-medium mb-1">{tBulk('doctorFilter')}</p>
-                                            {(() => {
-                                                const activeDoctors = doctors.filter(d => d.is_active);
-                                                const allSelected = activeDoctors.length > 0 && activeDoctors.every(d => bulkDoctorIds.includes(d.id));
-                                                const someSelected = !allSelected && activeDoctors.some(d => bulkDoctorIds.includes(d.id));
-                                                return (
-                                                    <>
-                                                        <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
-                                                            <Checkbox
-                                                                checked={someSelected ? 'indeterminate' : allSelected}
-                                                                onCheckedChange={(c) => setBulkDoctorIds(c ? activeDoctors.map(d => d.id) : [])}
-                                                            />
-                                                            <span className="text-sm font-medium">{t('selectAll')}</span>
-                                                        </label>
-                                                        {activeDoctors.map((doctor) => (
-                                                            <label key={doctor.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
-                                                                <Checkbox checked={bulkDoctorIds.includes(doctor.id)} onCheckedChange={(c) => handleSelectBulkDoctor(doctor.id, !!c)} />
-                                                                <span className="text-sm">{doctor.name}</span>
-                                                            </label>
-                                                        ))}
-                                                    </>
-                                                );
-                                            })()}
-                                        </div>
-                                        <div className="space-y-1 mb-3">
-                                            <p className="text-xs text-muted-foreground font-medium mb-1">{tBulk('calendarFilter')}</p>
-                                            {(() => {
-                                                const allSelected = calendars.length > 0 && calendars.every(c => bulkCalendarIds.includes(c.id));
-                                                const someSelected = !allSelected && calendars.some(c => bulkCalendarIds.includes(c.id));
-                                                return (
-                                                    <>
-                                                        <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
-                                                            <Checkbox
-                                                                checked={someSelected ? 'indeterminate' : allSelected}
-                                                                onCheckedChange={(c) => setBulkCalendarIds(c ? calendars.map(cal => cal.id) : [])}
-                                                            />
-                                                            <span className="text-sm font-medium">{t('selectAll')}</span>
-                                                        </label>
-                                                        {calendars.map((cal) => (
-                                                            <label key={cal.id} className="flex items-center justify-between py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
-                                                                <div className="flex items-center gap-2">
-                                                                    <Checkbox checked={bulkCalendarIds.includes(cal.id)} onCheckedChange={(c) => handleSelectBulkCalendar(cal.id, !!c)} />
-                                                                    <span className="text-sm">{cal.name}</span>
-                                                                </div>
-                                                                <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
-                                                            </label>
-                                                        ))}
-                                                    </>
-                                                );
-                                            })()}
-                                        </div>
-                                        {isBulkLoading && (
-                                            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-1">
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                {tBulk('applying')}
-                                            </div>
-                                        )}
+                {initialLoadError && (calendars.length === 0 || !calendarSettings) ? (
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-6 text-center">
+                        <AlertTriangle className="h-8 w-8 text-destructive" />
+                        <p className="font-medium">{tLoadErrors('title')}</p>
+                        <p className="max-w-md text-sm text-muted-foreground">{tLoadErrors('description')}</p>
+                        <Button variant="outline" onClick={() => { void loadInitialData(); }} loading={isDataLoading}>
+                            {tLoadErrors('retry')}
+                        </Button>
+                    </div>
+                ) : !calendarSettings ? (
+                    <div className="flex h-full w-full items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                ) : (
+                    <div
+                        className={cn('flex h-full', calendarHighlight?.tintVars && 'gap-2 rounded-xl p-2')}
+                        style={calendarHighlight?.tintVars
+                            ? { backgroundColor: calendarHighlight.color, ...(calendarHighlight.tintVars as React.CSSProperties) }
+                            : undefined}
+                    >
+                        {isCustomMode && agendasPanelOpen && (
+                            <CalendarAgendasPanel
+                                sedeGroups={calendarSedeGroups.sedeGroups}
+                                noSede={calendarSedeGroups.noSede}
+                                visibleIds={selectedCalendarIds}
+                                selectedId={personalizedCalendarId}
+                                onSelect={(id) => {
+                                    setPersonalizedCalendarId(id);
+                                    if (!agendasPanelPinned) setAgendasPanelOpen(false);
+                                }}
+                                onClose={() => setAgendasPanelOpen(false)}
+                                pinned={agendasPanelPinned}
+                                onTogglePinned={handleToggleAgendasPinned}
+                            />
+                        )}
+                        <div className={cn('relative h-full min-w-0 flex-1', isCustomMode && agendasPanelOpen && '[&_.calendar-container]:rounded-l-none')}>
+                        {calendarHighlight && calendarHighlight.mode !== 'full' && (
+                            <>
+                                <div
+                                    aria-hidden
+                                    className={cn('pointer-events-none absolute inset-0 z-30', calendarHighlight.mode === 'strong' ? 'border-[3px]' : 'border-t-4')}
+                                    style={{ borderColor: calendarHighlight.color }}
+                                />
+                                {calendarHighlight.mode === 'strong' && (
+                                    // Abajo a la izquierda: arriba están los controles del encabezado.
+                                    <div
+                                        aria-hidden
+                                        className="pointer-events-none absolute bottom-[3px] left-3 z-30 max-w-[60%] truncate rounded-t-md px-2 py-0.5 text-[11px] font-semibold shadow-sm"
+                                        style={{ backgroundColor: calendarHighlight.color, color: calendarHighlight.textColor }}
+                                    >
+                                        {calendarHighlight.label}
+                                    </div>
+                                )}
+                            </>
+                        )}
+                        {gapsActive && (
+                            <CalendarGapsPanel
+                                gaps={calendarGaps}
+                                selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
+                                dateLocale={gapsDateLocale}
+                                onSelect={handleSelectGap}
+                                onClose={handleCloseGaps}
+                            />
+                        )}
+                        {searchActive && !searchCollapsed && (
+                            <CalendarSearchPanel
+                                query={searchQuery}
+                                onQueryChange={setSearchQuery}
+                                results={searchResultItems}
+                                isLoading={isSearching}
+                                hasSearched={searchHasSearched}
+                                hasError={searchError}
+                                onRetry={() => setSearchRetryNonce((n) => n + 1)}
+                                minChars={SEARCH_MIN_CHARS}
+                                selectedId={selectedSearchId ?? undefined}
+                                dateLocale={gapsDateLocale}
+                                calendars={searchPanelCalendars}
+                                selectedCalendarIds={searchCalendarIds}
+                                onSelectedCalendarIdsChange={setSearchCalendarIds}
+                                onSelect={handleSelectSearchResult}
+                                onClose={handleCloseSearch}
+                            />
+                        )}
+                        {searchActive && searchCollapsed && (
+                            <CalendarSearchResultsChip
+                                query={searchQuery}
+                                count={searchResultItems.length}
+                                onExpand={handleExpandSearch}
+                                onClose={handleCloseSearch}
+                            />
+                        )}
+                        {appointmentsError && (
+                            <div className="absolute bottom-3 left-1/2 z-40 flex w-[min(92%,28rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-destructive/30 bg-card/95 px-3 py-2 text-xs text-destructive shadow-lg backdrop-blur">
+                                <AlertTriangle className="h-4 w-4 shrink-0" />
+                                <span className="flex-1">{tLoadErrors('fetchError')}</span>
+                                <Button variant="outline" size="sm" className="h-7 shrink-0 px-2 text-xs" onClick={forceRefresh} loading={isRefreshing}>
+                                    {tLoadErrors('retry')}
+                                </Button>
+                            </div>
+                        )}
+                        <Calendar
+                            view={currentView}
+                            headerActionsClusterRef={setHeaderActionsEl}
+                            hourSlotHeight={hourSlotHeight}
+                            slotMinutes={slotDuration}
+                            hiddenWeekdays={calendarSettings?.hidden_weekdays}
+                            events={gridEvents}
+                            allDayEvents={allDayEvents}
+                            focusDate={searchFocusDate}
+                            focusedEventId={focusedEvent?.id ?? null}
+                            focusEventNonce={focusedEvent?.nonce ?? 0}
+                            // Desktop: el panel de búsqueda (w-80 + right-3) tapa el
+                            // borde derecho; se descuenta al centrar la cita elegida.
+                            focusScrollRightInset={!isMobile && searchActive && !searchCollapsed ? 344 : 0}
+                            onDateChange={onDateChange}
+                            isLoading={isRefreshing}
+                            onEventClick={handleEventClick}
+                            onEventColorChange={handleEventColorChange}
+                            // With the floating draft open the grid stays interactive, so the
+                            // actions that would replace the draft (edit, context menus) are off
+                            // until it is saved or discarded.
+                            onEventDoubleClick={isBulkMode || hasAnchoredInlineDraft ? undefined : (data) => {
+                                if (data?.kind === 'reminder') {
+                                    handleEditReminder(data as CalendarReminder);
+                                    return;
+                                }
+                                handleEditAppointment(data as Appointment);
+                            }}
+                            // Móvil: sin menú contextual en las cards. Su long-press competía con
+                            // el de arrastrar; las acciones están en el sheet del toque simple.
+                            onEventContextMenu={isBulkMode || isMobile || hasAnchoredInlineDraft ? undefined : renderEventContextMenu}
+                            onEventContextMenuOpen={isBulkMode || isMobile || hasAnchoredInlineDraft ? undefined : (data) => { if (data?.kind !== 'reminder') requestAppointmentMenuData(data as Appointment); }}
+                            inlineDraft={inlineDraft ? { date: inlineDraft.date, durationMin: inlineDraft.durationMin, groupValue: inlineDraft.context?.value } : null}
+                            renderInlineDraft={renderInlineDraft}
+                            inlineDraftLayout={inlineDraftLivePreview ? 'anchored' : 'overlay'}
+                            draftPreview={inlineDraftPreview}
+                            groupBy={effectiveGroupBy}
+                            groupingColumns={effectiveGroupingColumns}
+                            hideTitle={isCustomMode}
+                            arrowsBeforeToday={isCustomMode}
+                            hideTimeGutter={isCustomMode}
+                            zoom={isCustomMode ? calendarZoom : undefined}
+                            onZoomChange={applyCalendarZoom}
+                            showZoomSlider={!isCustomMode}
+                            leadingActions={isCustomMode ? (
+                                <Button
+                                    variant={agendasPanelOpen ? 'default' : 'outline'}
+                                    size="sm"
+                                    className="h-10 gap-1.5 shrink-0"
+                                    onClick={() => setAgendasPanelOpen((o) => !o)}
+                                    title="Ctrl+B"
+                                >
+                                    <CalendarDays className="h-4 w-4" />
+                                    {tCalendar('agendas')}
+                                </Button>
+                            ) : undefined}
+                            onViewChange={(v) => { setCurrentView(v); setInlineDraft(null); }}
+                            selectedAppointmentIds={isBulkMode ? bulkSelectedIds : undefined}
+                            onToggleAppointmentSelect={isBulkMode ? handleToggleAppointmentSelect : undefined}
+                            bulkModeContent={bulkModeHeaderContent}
+                            onSlotClick={handleSlotClick}
+                            onCreateClick={handleNewAppointmentClick}
+                            renderSlotContextMenu={hasAnchoredInlineDraft ? undefined : renderSlotContextMenu}
+                            gaps={gapsActive ? calendarGaps : undefined}
+                            selectedGapKey={selectedGap ? gapKey(selectedGap) : undefined}
+                            onGapClick={handleSelectGap}
+                            blockedRanges={blockedRanges}
+                            blockedFullDays={blockedFullDays}
+                            // Solo en modo custom, que es donde la rejilla muestra una única
+                            // agenda. Apagado en bulk (ahí se ven citas de agendas ocultas) y
+                            // con la tarjeta inline abierta (su backdrop ya tapa la grilla).
+                            enableEventDrag={isCustomMode && !isBulkMode && !inlineDraft}
+                            canDragEvent={canDragCalendarEvent}
+                            onEventDrop={applyEventTimeChange}
+                            onEventResize={applyEventTimeChange}
+                            filterSheet={
+                                <div className="space-y-6">
+                                    {/* Quick actions (compact layouts): Buscar cita / Buscar huecos / Operaciones
+                                        en Lotes live here instead of the header row to keep it on a single line. */}
+                                    <Button
+                                        variant={searchActive ? 'default' : 'outline'}
+                                        size="sm"
+                                        className="h-10 w-full justify-start gap-2"
+                                        onClick={handleToggleSearch}
+                                    >
+                                        <Search className="h-4 w-4 shrink-0" />
+                                        <span className="truncate">{tSearch('button')}</span>
+                                    </Button>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Button
+                                            variant={gapsActive ? 'default' : 'outline'}
+                                            size="sm"
+                                            className="h-10 justify-start gap-2"
+                                            onClick={handleToggleGaps}
+                                        >
+                                            <CalendarSearch className="h-4 w-4 shrink-0" />
+                                            <span className="truncate">{tGaps('button')}</span>
+                                        </Button>
+                                        <Button
+                                            variant={isBulkMode ? 'default' : 'outline'}
+                                            size="sm"
+                                            className="h-10 justify-start gap-2"
+                                            onClick={handleToggleBulkMode}
+                                        >
+                                            <Layers className="h-4 w-4 shrink-0" />
+                                            <span className="truncate">{tBulk('toggleButton')}</span>
+                                        </Button>
                                     </div>
                                     <Separator />
-                                </>
-                            )}
-                            {/* Calendars section */}
-                            <div>
-                                <h4 className="text-sm font-semibold mb-3">{t('calendars')}</h4>
-                                <div className="flex gap-2 mb-3">
-                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedCalendarIds(calendars.map(c => c.id))}>{t('selectAll')}</Button>
-                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedCalendarIds([])}>{t('deselectAll')}</Button>
-                                </div>
-                                <div className="space-y-1">
-                                    {calendarSedeGroups.sedeGroups.map((group) => {
-                                        const groupCalendarIds = group.calendars.map(c => c.id);
-                                        const selectedCount = groupCalendarIds.filter(id => selectedCalendarIds.includes(id)).length;
-                                        const allSelected = selectedCount === groupCalendarIds.length;
-                                        const someSelected = selectedCount > 0 && !allSelected;
-                                        return (
-                                            <div key={group.id}>
-                                                <label className="flex items-center gap-2 py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
-                                                    <Checkbox checked={someSelected ? 'indeterminate' : allSelected} onCheckedChange={(checked) => handleSelectSede(groupCalendarIds, !!checked)} />
-                                                    <span className="text-sm font-medium">{group.name}</span>
-                                                </label>
-                                                <div className="pl-6">
-                                                    {group.calendars.map((calendar) => (
+                                    {/* Bulk selection filters (mobile) */}
+                                    {isBulkMode && (
+                                        <>
+                                            <div>
+                                                <h4 className="text-sm font-semibold mb-3">{tBulk('panelTitle')}</h4>
+                                                <Select value={bulkDatePreset} onValueChange={(v) => setBulkDatePreset(v as AppointmentDatePreset)}>
+                                                    <SelectTrigger className="h-8 w-full text-xs mb-3">
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {(['today', 'this_week', 'this_month'] as AppointmentDatePreset[]).map((preset) => (
+                                                            <SelectItem key={preset} value={preset} className="text-xs">
+                                                                {tBulk(preset)}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <div className="space-y-1 mb-3">
+                                                    <p className="text-xs text-muted-foreground font-medium mb-1">{tBulk('doctorFilter')}</p>
+                                                    {(() => {
+                                                        const activeDoctors = doctors.filter(d => d.is_active);
+                                                        const allSelected = activeDoctors.length > 0 && activeDoctors.every(d => bulkDoctorIds.includes(d.id));
+                                                        const someSelected = !allSelected && activeDoctors.some(d => bulkDoctorIds.includes(d.id));
+                                                        return (
+                                                            <>
+                                                                <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
+                                                                    <Checkbox
+                                                                        checked={someSelected ? 'indeterminate' : allSelected}
+                                                                        onCheckedChange={(c) => setBulkDoctorIds(c ? activeDoctors.map(d => d.id) : [])}
+                                                                    />
+                                                                    <span className="text-sm font-medium">{t('selectAll')}</span>
+                                                                </label>
+                                                                {activeDoctors.map((doctor) => (
+                                                                    <label key={doctor.id} className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                                                                        <Checkbox checked={bulkDoctorIds.includes(doctor.id)} onCheckedChange={(c) => handleSelectBulkDoctor(doctor.id, !!c)} />
+                                                                        <span className="text-sm">{doctor.name}</span>
+                                                                    </label>
+                                                                ))}
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </div>
+                                                <div className="space-y-1 mb-3">
+                                                    <p className="text-xs text-muted-foreground font-medium mb-1">{tBulk('calendarFilter')}</p>
+                                                    {(() => {
+                                                        const allSelected = calendars.length > 0 && calendars.every(c => bulkCalendarIds.includes(c.id));
+                                                        const someSelected = !allSelected && calendars.some(c => bulkCalendarIds.includes(c.id));
+                                                        return (
+                                                            <>
+                                                                <label className="flex items-center gap-2 py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer border-b pb-2 mb-1">
+                                                                    <Checkbox
+                                                                        checked={someSelected ? 'indeterminate' : allSelected}
+                                                                        onCheckedChange={(c) => setBulkCalendarIds(c ? calendars.map(cal => cal.id) : [])}
+                                                                    />
+                                                                    <span className="text-sm font-medium">{t('selectAll')}</span>
+                                                                </label>
+                                                                {calendars.map((cal) => (
+                                                                    <label key={cal.id} className="flex items-center justify-between py-1.5 px-1 rounded hover:bg-muted/50 cursor-pointer">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Checkbox checked={bulkCalendarIds.includes(cal.id)} onCheckedChange={(c) => handleSelectBulkCalendar(cal.id, !!c)} />
+                                                                            <span className="text-sm">{cal.name}</span>
+                                                                        </div>
+                                                                        <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: cal.color }} />
+                                                                    </label>
+                                                                ))}
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </div>
+                                                {isBulkLoading && (
+                                                    <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-1">
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                        {tBulk('applying')}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <Separator />
+                                        </>
+                                    )}
+                                    {/* Calendars section */}
+                                    {!isCustomMode && (
+                                        <>
+                                            <div>
+                                                <h4 className="text-sm font-semibold mb-3">{t('calendars')}</h4>
+                                                <div className="flex gap-2 mb-3">
+                                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedCalendarIds(calendars.map(c => c.id))}>{t('selectAll')}</Button>
+                                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedCalendarIds([])}>{t('deselectAll')}</Button>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    {calendarSedeGroups.sedeGroups.map((group) => {
+                                                        const groupCalendarIds = group.calendars.map(c => c.id);
+                                                        const selectedCount = groupCalendarIds.filter(id => selectedCalendarIds.includes(id)).length;
+                                                        const allSelected = selectedCount === groupCalendarIds.length;
+                                                        const someSelected = selectedCount > 0 && !allSelected;
+                                                        return (
+                                                            <div key={group.id}>
+                                                                <label className="flex items-center gap-2 py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
+                                                                    <Checkbox checked={someSelected ? 'indeterminate' : allSelected} onCheckedChange={(checked) => handleSelectSede(groupCalendarIds, !!checked)} />
+                                                                    <span className="text-sm font-medium">{group.name}</span>
+                                                                </label>
+                                                                <div className="pl-6">
+                                                                    {group.calendars.map((calendar) => (
+                                                                        <label key={calendar.id} className="flex items-center justify-between py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <Checkbox checked={selectedCalendarIds.includes(calendar.id)} onCheckedChange={(checked) => handleSelectCalendar(calendar.id, !!checked)} />
+                                                                                <span className="text-sm">{calendar.name}</span>
+                                                                            </div>
+                                                                            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: calendar.color }} />
+                                                                        </label>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {calendarSedeGroups.noSede.map((calendar) => (
                                                         <label key={calendar.id} className="flex items-center justify-between py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
                                                             <div className="flex items-center gap-2">
                                                                 <Checkbox checked={selectedCalendarIds.includes(calendar.id)} onCheckedChange={(checked) => handleSelectCalendar(calendar.id, !!checked)} />
@@ -3048,351 +5690,420 @@ export default function AppointmentsPage() {
                                                     ))}
                                                 </div>
                                             </div>
-                                        );
-                                    })}
-                                    {calendarSedeGroups.noSede.map((calendar) => (
-                                        <label key={calendar.id} className="flex items-center justify-between py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
-                                            <div className="flex items-center gap-2">
-                                                <Checkbox checked={selectedCalendarIds.includes(calendar.id)} onCheckedChange={(checked) => handleSelectCalendar(calendar.id, !!checked)} />
-                                                <span className="text-sm">{calendar.name}</span>
+
+                                            <Separator />
+                                        </>
+                                    )}
+
+                                    {/* Doctors section */}
+                                    {showDoctorFilter && !isCustomMode && (
+                                        <>
+                                            <div>
+                                                <h4 className="text-sm font-semibold mb-3">{t('doctors')}</h4>
+                                                <div className="flex gap-2 mb-3">
+                                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedDoctorIds(doctors.map(d => d.id))}>{t('selectAll')}</Button>
+                                                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedDoctorIds([])}>{t('deselectAll')}</Button>
+                                                </div>
+                                                <div className="space-y-1">
+                                                    {doctors.map((doctor) => (
+                                                        <label key={doctor.id} className="flex items-center gap-2 py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
+                                                            <Checkbox checked={selectedDoctorIds.includes(doctor.id)} onCheckedChange={(checked) => handleSelectDoctor(doctor.id, !!checked)} />
+                                                            <span className="text-sm">{doctor.name}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
                                             </div>
-                                            <div className="h-3 w-3 rounded-full" style={{ backgroundColor: calendar.color }} />
-                                        </label>
-                                    ))}
+                                            <Separator />
+                                        </>
+                                    )}
+
+                                    {/* Grouping section (compact header only). Custom mobile
+                                        is always grouped by consultorio, so it has no choice to expose. */}
+                                    {breakpoint !== 'desktop' && !(isCustomMode && isMobile) && (
+                                        <div className="space-y-3">
+                                            <h4 className="text-sm font-semibold">{t('grouping.label')}</h4>
+                                            <div className="space-y-1">
+                                                {[
+                                                    { value: 'none', label: t('grouping.options.none') },
+                                                    { value: 'doctor', label: t('grouping.options.doctor') },
+                                                    { value: 'calendar', label: t('grouping.options.calendar') }
+                                                ].map((opt) => (
+                                                    <button
+                                                        key={opt.value}
+                                                        className="flex items-center justify-between w-full py-2.5 px-1 rounded-md hover:bg-muted/50 cursor-pointer text-left"
+                                                        onClick={() => setGroupBy(opt.value as CalendarGroupBy)}
+                                                    >
+                                                        <span className="text-sm">{opt.label}</span>
+                                                        {groupBy === opt.value && <Check className="h-4 w-4 text-primary" />}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <Separator />
+                                        </div>
+                                    )}
+
+                                    {/* Settings section */}
+                                    <div className="pt-2">
+                                        <CalendarSettingsForm onSettingsChange={handleSettingsEditorChange} showTitle={true} sedes={sedes} value={calendarSettings ?? undefined} />
+                                    </div>
                                 </div>
-                            </div>
-
-                            <Separator />
-
-                            {/* Doctors section */}
-                            {showDoctorFilter && (
+                            }
+                            extraActions={
+                                <TooltipProvider>
+                                    <div className="flex items-center gap-1.5">
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant={searchActive ? 'default' : 'outline'}
+                                                    size={secondaryIconOnly ? 'icon' : 'sm'}
+                                                    className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
+                                                    onClick={handleToggleSearch}
+                                                >
+                                                    <Search className="h-4 w-4 shrink-0" />
+                                                    {!secondaryIconOnly && (
+                                                        <span className="block w-[3.5rem] whitespace-normal text-left leading-[1.1] text-[11px]">{tSearch('button')}</span>
+                                                    )}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>{tSearch('button')}</TooltipContent>
+                                        </Tooltip>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant={gapsActive ? 'default' : 'outline'}
+                                                    size={secondaryIconOnly ? 'icon' : 'sm'}
+                                                    className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
+                                                    onClick={handleToggleGaps}
+                                                >
+                                                    <CalendarSearch className="h-4 w-4 shrink-0" />
+                                                    {!secondaryIconOnly && (
+                                                        <span className="block w-[3.5rem] whitespace-normal text-left leading-[1.1] text-[11px]">{tGaps('button')}</span>
+                                                    )}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>{tGaps('button')}</TooltipContent>
+                                        </Tooltip>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Button
+                                                    variant={isBulkMode ? 'default' : 'outline'}
+                                                    size={secondaryIconOnly ? 'icon' : 'sm'}
+                                                    className={secondaryIconOnly ? (isMobile ? 'h-8 w-8 shrink-0' : 'h-10 w-10 shrink-0') : 'h-10 gap-1.5 shrink-0'}
+                                                    onClick={handleToggleBulkMode}
+                                                >
+                                                    <Layers className="h-4 w-4 shrink-0" />
+                                                    {!secondaryIconOnly && (
+                                                        <span className="block w-[4.25rem] whitespace-normal text-left leading-[1.1] text-[11px]">{tBulk('toggleButton')}</span>
+                                                    )}
+                                                </Button>
+                                            </TooltipTrigger>
+                                            <TooltipContent>{tBulk('toggleButton')}</TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                </TooltipProvider>
+                            }
+                            primaryActions={
                                 <>
-                                    <div>
-                                        <h4 className="text-sm font-semibold mb-3">{t('doctors')}</h4>
-                                        <div className="flex gap-2 mb-3">
-                                            <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedDoctorIds(doctors.map(d => d.id))}>{t('selectAll')}</Button>
-                                            <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setSelectedDoctorIds([])}>{t('deselectAll')}</Button>
-                                        </div>
-                                        <div className="space-y-1">
-                                            {doctors.map((doctor) => (
-                                                <label key={doctor.id} className="flex items-center gap-2 py-2 px-1 rounded-md hover:bg-muted/50 cursor-pointer">
-                                                    <Checkbox checked={selectedDoctorIds.includes(doctor.id)} onCheckedChange={(checked) => handleSelectDoctor(doctor.id, !!checked)} />
-                                                    <span className="text-sm">{doctor.name}</span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <Separator />
+                                    <DropdownMenu>
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button
+                                                            variant={isMobile ? "ghost" : "default"}
+                                                            size={primaryIconOnly ? "icon" : "sm"}
+                                                            className={primaryIconOnly ? (isMobile ? "h-8 w-8" : "h-10 w-10") : "h-10 gap-1.5"}
+                                                        >
+                                                            <PlusCircle className="h-4 w-4 shrink-0" />
+                                                            {!primaryIconOnly && (
+                                                                <>
+                                                                    <span>{tGeneral('create')}</span>
+                                                                    <ChevronDown className="h-3.5 w-3.5 opacity-80" />
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    {t('createSubtitle')}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                        <DropdownMenuContent align="end" className="w-64 p-1.5">
+                                            <DropdownMenuItem
+                                                className="cursor-pointer items-start gap-3 rounded-md p-3"
+                                                onSelect={handleNewAppointmentClick}
+                                            >
+                                                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
+                                                    <CalendarPlus className="h-4 w-4" />
+                                                </span>
+                                                <span className="min-w-0">
+                                                    <span className="block font-medium">{tReminders('createType.appointment')}</span>
+                                                    <span className="block text-xs leading-snug text-muted-foreground">
+                                                        {tReminders('createType.appointmentDescription')}
+                                                    </span>
+                                                </span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                className="cursor-pointer items-start gap-3 rounded-md p-3"
+                                                onSelect={handleNewReminderClick}
+                                            >
+                                                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-violet-100 text-violet-700">
+                                                    <BellRing className="h-4 w-4" />
+                                                </span>
+                                                <span className="min-w-0">
+                                                    <span className="block font-medium">{tReminders('createType.reminder')}</span>
+                                                    <span className="block text-xs leading-snug text-muted-foreground">
+                                                        {tReminders('createType.reminderDescription')}
+                                                    </span>
+                                                </span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem
+                                                className="cursor-pointer items-start gap-3 rounded-md p-3"
+                                                onSelect={handleNewNoteClick}
+                                            >
+                                                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-sky-100 text-sky-700">
+                                                    <FileText className="h-4 w-4" />
+                                                </span>
+                                                <span className="min-w-0">
+                                                    <span className="block font-medium">{tReminders('createType.note')}</span>
+                                                    <span className="block text-xs leading-snug text-muted-foreground">
+                                                        {tReminders('createType.noteDescription')}
+                                                    </span>
+                                                </span>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                    {isCustomMode && !isMobile && (
+                                        <>
+                                            <CalendarViewMenu
+                                                view={currentView}
+                                                onViewChange={(v) => { setCurrentView(v); setInlineDraft(null); }}
+                                                sedeGroups={calendarSedeGroups.sedeGroups}
+                                                noSede={calendarSedeGroups.noSede}
+                                                selectedCalendarIds={selectedCalendarIds}
+                                                onToggleCalendar={handleSelectCalendar}
+                                                iconOnly={compactPrimaryActions}
+                                            />
+                                            <CalendarZoomMenu zoom={calendarZoom} onZoomChange={applyCalendarZoom} iconOnly={compactPrimaryActions} />
+                                        </>
+                                    )}
                                 </>
-                            )}
-
-                            {/* Grouping section (compact header only) */}
-                            {breakpoint !== 'desktop' && (
-                                <div className="space-y-3">
-                                    <h4 className="text-sm font-semibold">{t('grouping.label')}</h4>
-                                    <div className="space-y-1">
-                                        {[
-                                            { value: 'none', label: t('grouping.options.none') },
-                                            { value: 'doctor', label: t('grouping.options.doctor') },
-                                            { value: 'calendar', label: t('grouping.options.calendar') }
-                                        ].map((opt) => (
-                                            <button
-                                                key={opt.value}
-                                                className="flex items-center justify-between w-full py-2.5 px-1 rounded-md hover:bg-muted/50 cursor-pointer text-left"
-                                                onClick={() => setGroupBy(opt.value as CalendarGroupBy)}
-                                            >
-                                                <span className="text-sm">{opt.label}</span>
-                                                {groupBy === opt.value && <Check className="h-4 w-4 text-primary" />}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <Separator />
-                                </div>
-                            )}
-
-                            {/* Settings section */}
-                            <div className="pt-2">
-                                <CalendarSettingsForm onSettingsChange={handleSettingsEditorChange} showTitle={true} sedes={sedes} value={calendarSettings ?? undefined} />
-                            </div>
-                        </div>
-                    }
-                    extraActions={
-                        <TooltipProvider>
-                            <div className="flex flex-wrap items-center gap-1.5">
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant={gapsActive ? 'default' : 'outline'}
-                                        size={isMobile ? 'icon' : 'sm'}
-                                        className={isMobile ? 'h-8 w-8' : 'h-11 gap-1.5'}
-                                        onClick={handleToggleGaps}
-                                    >
-                                        <CalendarSearch className="h-4 w-4 shrink-0" />
-                                        {!isMobile && (
-                                            <span className="flex flex-col items-start leading-tight">
-                                                <span>{tGaps('button')}</span>
-                                                <span className="text-[10px] font-normal opacity-70">{tGaps('buttonSubtitle')}</span>
-                                            </span>
-                                        )}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>{tGaps('button')}</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button
-                                        variant={isBulkMode ? 'default' : 'outline'}
-                                        size={isMobile ? 'icon' : 'sm'}
-                                        className={isMobile ? 'h-8 w-8' : 'h-11 gap-1.5'}
-                                        onClick={handleToggleBulkMode}
-                                    >
-                                        <Layers className="h-4 w-4 shrink-0" />
-                                        {!isMobile && (
-                                            <span className="flex flex-col items-start leading-tight">
-                                                <span>{tBulk('toggleButton')}</span>
-                                                <span className="text-[10px] font-normal opacity-70">{tBulk('toggleSubtitle')}</span>
-                                            </span>
-                                        )}
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>{tBulk('toggleButton')}</TooltipContent>
-                            </Tooltip>
-                            </div>
-                        </TooltipProvider>
-                    }
-                    primaryActions={
-                        <DropdownMenu>
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button
-                                                variant={isMobile ? "ghost" : "default"}
-                                                size={isMobile ? "icon" : "sm"}
-                                                className={isMobile ? "h-8 w-8" : "h-11 gap-1.5"}
-                                            >
-                                                <PlusCircle className="h-4 w-4 shrink-0" />
-                                                {!isMobile && (
-                                                    <>
-                                                        <span className="flex flex-col items-start leading-tight">
-                                                            <span>{tGeneral('create')}</span>
-                                                            <span className="text-[10px] font-normal opacity-80">{t('createSubtitle')}</span>
-                                                        </span>
-                                                        <ChevronDown className="h-3.5 w-3.5 opacity-80" />
-                                                    </>
-                                                )}
+                            }
+                            extraActionsAfterToday={
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button onClick={() => setIsPrintScheduleOpen(true)} variant="ghost" size="icon" className={isMobile ? "h-8 w-8" : "h-10 w-10"}>
+                                                <FileSpreadsheet className="h-4 w-4" />
                                             </Button>
-                                        </DropdownMenuTrigger>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        {tGeneral('create')}
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                            <DropdownMenuContent align="end" className="w-64 p-1.5">
-                                <DropdownMenuItem
-                                    className="cursor-pointer items-start gap-3 rounded-md p-3"
-                                    onSelect={handleNewAppointmentClick}
-                                >
-                                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-                                        <CalendarPlus className="h-4 w-4" />
-                                    </span>
-                                    <span className="min-w-0">
-                                        <span className="block font-medium">{tReminders('createType.appointment')}</span>
-                                        <span className="block text-xs leading-snug text-muted-foreground">
-                                            {tReminders('createType.appointmentDescription')}
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            {t('printSchedule')}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button onClick={forceRefresh} variant="ghost" size="icon" disabled={isRefreshing} className={isMobile ? "h-8 w-8" : "h-10 w-10"}>
+                                                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            {t('refresh')}
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            }
+                            trailingActions={
+                                !isMobile ? (
+                                    <CalendarSettingsPopover onSettingsChange={handleSettingsEditorChange} sedes={sedes} value={calendarSettings ?? undefined} />
+                                ) : null
+                            }
+                        >
+                            <div className="flex items-center gap-2">
+                                {/* Mobile/tablet bulk mode bar — compact row shown below the normal header */}
+                                {isBulkMode && breakpoint !== 'desktop' && (
+                                    <div className="flex items-center gap-1.5 w-full py-0.5">
+                                        <Checkbox
+                                            checked={bulkSomeSelected ? 'indeterminate' : bulkAllSelected}
+                                            onCheckedChange={(c) => handleSelectAllVisible(!!c)}
+                                            className="shrink-0"
+                                        />
+                                        <span className="text-xs font-medium flex-1 min-w-0 truncate">
+                                            {bulkSelectedIds.size > 0
+                                                ? tBulk('selectedCount', { count: bulkSelectedIds.size })
+                                                : tBulk('selectHint')}
                                         </span>
-                                    </span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    className="cursor-pointer items-start gap-3 rounded-md p-3"
-                                    onSelect={handleNewReminderClick}
-                                >
-                                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-violet-100 text-violet-700">
-                                        <BellRing className="h-4 w-4" />
-                                    </span>
-                                    <span className="min-w-0">
-                                        <span className="block font-medium">{tReminders('createType.reminder')}</span>
-                                        <span className="block text-xs leading-snug text-muted-foreground">
-                                            {tReminders('createType.reminderDescription')}
-                                        </span>
-                                    </span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    }
-                    extraActionsAfterToday={
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button onClick={forceRefresh} variant="ghost" size="icon" disabled={isRefreshing} className={isMobile ? "h-8 w-8" : "h-11 w-11"}>
-                                        <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    {t('refresh')}
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    }
-                    trailingActions={
-                        !isMobile ? (
-                            <CalendarSettingsPopover onSettingsChange={handleSettingsEditorChange} sedes={sedes} value={calendarSettings ?? undefined} />
-                        ) : null
-                    }
-                >
-                    <div className="flex items-center gap-2">
-                        {/* Mobile/tablet bulk mode bar — compact row shown below the normal header */}
-                        {isBulkMode && breakpoint !== 'desktop' && (
-                            <div className="flex items-center gap-1.5 w-full py-0.5">
-                                <Checkbox
-                                    checked={bulkSomeSelected ? 'indeterminate' : bulkAllSelected}
-                                    onCheckedChange={(c) => handleSelectAllVisible(!!c)}
-                                    className="shrink-0"
-                                />
-                                <span className="text-xs font-medium flex-1 min-w-0 truncate">
-                                    {bulkSelectedIds.size > 0
-                                        ? tBulk('selectedCount', { count: bulkSelectedIds.size })
-                                        : tBulk('selectHint')}
-                                </span>
-                                {bulkSelectedIds.size > 0 && (
-                                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setBulkSelectedIds(new Set())}>
-                                        <X className="h-3.5 w-3.5" />
-                                    </Button>
-                                )}
-                                <Button
-                                    size="sm"
-                                    className="h-7 shrink-0 gap-1.5"
-                                    disabled={bulkSelectedIds.size === 0}
-                                    onClick={() => setIsReassignDialogOpen(true)}
-                                >
-                                    <Stethoscope className="h-3.5 w-3.5" />
-                                    {breakpoint === 'tablet' && <span className="text-xs">{tBulk('reassignDoctor')}</span>}
-                                </Button>
-                                <Button variant="outline" size="icon" className="h-7 w-7 shrink-0" onClick={handleToggleBulkMode}>
-                                    <X className="h-3.5 w-3.5" />
-                                </Button>
-                            </div>
-                        )}
-                        {breakpoint === 'desktop' && (
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" className="flex h-11 items-center gap-2">
-                                            <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                            <span className="flex flex-col items-start leading-tight">
-                                                <span>{t('toggleCalendars')}</span>
-                                                {calendarsSubtitle && (
-                                                    <span className="text-[10px] font-normal text-muted-foreground">{calendarsSubtitle}</span>
-                                                )}
-                                            </span>
-                                            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                        {bulkSelectedIds.size > 0 && (
+                                            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setBulkSelectedIds(new Set())}>
+                                                <X className="h-3.5 w-3.5" />
+                                            </Button>
+                                        )}
+                                        <Button
+                                            size="sm"
+                                            className="h-7 shrink-0 gap-1.5"
+                                            disabled={bulkSelectedIds.size === 0}
+                                            onClick={() => setIsReassignDialogOpen(true)}
+                                        >
+                                            <Stethoscope className="h-3.5 w-3.5" />
+                                            {breakpoint === 'tablet' && <span className="text-xs">{tBulk('reassignDoctor')}</span>}
                                         </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-64 p-2">
-                                        <Command>
-                                            <CommandList>
-                                                <CommandGroup>
-                                                    <CommandItem onSelect={() => setSelectedCalendarIds(calendars.map(c => c.id))}>{t('selectAll')}</CommandItem>
-                                                    <CommandItem onSelect={() => setSelectedCalendarIds([])}>{t('deselectAll')}</CommandItem>
-                                                    <hr className="my-2" />
-                                                    {calendarSedeGroups.sedeGroups.map((group) => {
-                                                        const groupCalendarIds = group.calendars.map(c => c.id);
-                                                        const selectedCount = groupCalendarIds.filter(id => selectedCalendarIds.includes(id)).length;
-                                                        const allSelected = selectedCount === groupCalendarIds.length;
-                                                        const someSelected = selectedCount > 0 && !allSelected;
-                                                        return (
-                                                            <React.Fragment key={group.id}>
-                                                                <CommandItem onSelect={() => handleSelectSede(groupCalendarIds, !allSelected)} className="font-medium">
-                                                                    <div className="flex items-center">
-                                                                        <Checkbox checked={someSelected ? 'indeterminate' : allSelected} className="pointer-events-none" />
-                                                                        <span className="ml-2">{group.name}</span>
-                                                                    </div>
-                                                                </CommandItem>
-                                                                {group.calendars.map((calendar) => {
-                                                                    const isSelected = selectedCalendarIds.includes(calendar.id);
+                                        <Button variant="outline" size="icon" className="h-7 w-7 shrink-0" onClick={handleToggleBulkMode}>
+                                            <X className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </div>
+                                )}
+                                {breakpoint === 'desktop' && (
+                                    <TooltipProvider>
+                                    <div className="flex items-center gap-2">
+                                        {!isCustomMode && (
+                                            <Popover>
+                                                {/* Short label; the full "Mostrar/Ocultar Calendarios" (+ selection
+                                                    summary) lives in the tooltip. Collapses to icon-only with the
+                                                    secondary tier, like the custom-mode buttons. */}
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <PopoverTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                size={secondaryIconOnly ? 'icon' : 'sm'}
+                                                                className={secondaryIconOnly ? 'h-10 w-10 shrink-0' : 'h-10 gap-1.5 shrink-0'}
+                                                            >
+                                                                <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                                {!secondaryIconOnly && (
+                                                                    <>
+                                                                        {t('calendars')}
+                                                                        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                                                    </>
+                                                                )}
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>{t('toggleCalendars')}</p>
+                                                        {calendarsSubtitle && <p className="text-xs opacity-70">{calendarsSubtitle}</p>}
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                                <PopoverContent className="w-64 p-2">
+                                                    <Command>
+                                                        <CommandList>
+                                                            <CommandGroup>
+                                                                <CommandItem onSelect={() => setSelectedCalendarIds(calendars.map(c => c.id))}>{t('selectAll')}</CommandItem>
+                                                                <CommandItem onSelect={() => setSelectedCalendarIds([])}>{t('deselectAll')}</CommandItem>
+                                                                <hr className="my-2" />
+                                                                {calendarSedeGroups.sedeGroups.map((group) => {
+                                                                    const groupCalendarIds = group.calendars.map(c => c.id);
+                                                                    const selectedCount = groupCalendarIds.filter(id => selectedCalendarIds.includes(id)).length;
+                                                                    const allSelected = selectedCount === groupCalendarIds.length;
+                                                                    const someSelected = selectedCount > 0 && !allSelected;
                                                                     return (
-                                                                        <CommandItem key={calendar.id} onSelect={() => handleSelectCalendar(calendar.id, !isSelected)} className="pl-6">
-                                                                            <div className="flex items-center justify-between w-full">
-                                                                                <div className='flex items-center'>
-                                                                                    <Checkbox checked={isSelected} className="pointer-events-none" />
-                                                                                    <span className="ml-2">{calendar.name}</span>
+                                                                        <React.Fragment key={group.id}>
+                                                                            <CommandItem onSelect={() => handleSelectSede(groupCalendarIds, !allSelected)} className="font-medium">
+                                                                                <div className="flex items-center">
+                                                                                    <Checkbox checked={someSelected ? 'indeterminate' : allSelected} className="pointer-events-none" />
+                                                                                    <span className="ml-2">{group.name}</span>
                                                                                 </div>
-                                                                                <div className="h-4 w-4 rounded-full" style={{ backgroundColor: calendar.color }} />
+                                                                            </CommandItem>
+                                                                            {group.calendars.map((calendar) => {
+                                                                                const isSelected = selectedCalendarIds.includes(calendar.id);
+                                                                                return (
+                                                                                    <CommandItem key={calendar.id} onSelect={() => handleSelectCalendar(calendar.id, !isSelected)} className="pl-6">
+                                                                                        <div className="flex items-center justify-between w-full">
+                                                                                            <div className='flex items-center'>
+                                                                                                <Checkbox checked={isSelected} className="pointer-events-none" />
+                                                                                                <span className="ml-2">{calendar.name}</span>
+                                                                                            </div>
+                                                                                            <div className="h-4 w-4 rounded-full" style={{ backgroundColor: calendar.color }} />
+                                                                                        </div>
+                                                                                    </CommandItem>
+                                                                                );
+                                                                            })}
+                                                                        </React.Fragment>
+                                                                    );
+                                                                })}
+                                                                {calendarSedeGroups.noSede.length > 0 && (
+                                                                    <>
+                                                                        {calendarSedeGroups.sedeGroups.length > 0 && <hr className="my-2" />}
+                                                                        {calendarSedeGroups.noSede.map((calendar) => {
+                                                                            const isSelected = selectedCalendarIds.includes(calendar.id);
+                                                                            return (
+                                                                                <CommandItem key={calendar.id} onSelect={() => handleSelectCalendar(calendar.id, !isSelected)}>
+                                                                                    <div className="flex items-center justify-between w-full">
+                                                                                        <div className='flex items-center'>
+                                                                                            <Checkbox checked={isSelected} className="pointer-events-none" />
+                                                                                            <span className="ml-2">{calendar.name}</span>
+                                                                                        </div>
+                                                                                        <div className="h-4 w-4 rounded-full" style={{ backgroundColor: calendar.color }} />
+                                                                                    </div>
+                                                                                </CommandItem>
+                                                                            );
+                                                                        })}
+                                                                    </>
+                                                                )}
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                        )}
+                                        {showDoctorFilter && !isCustomMode && (
+                                            <Popover>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <PopoverTrigger asChild>
+                                                            <Button
+                                                                variant="outline"
+                                                                size={secondaryIconOnly ? 'icon' : 'sm'}
+                                                                className={secondaryIconOnly ? 'h-10 w-10 shrink-0' : 'h-10 gap-1.5 shrink-0'}
+                                                            >
+                                                                <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                                                {!secondaryIconOnly && (
+                                                                    <>
+                                                                        {t('doctors')}
+                                                                        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                                                    </>
+                                                                )}
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>
+                                                        <p>{t('toggleDoctors')}</p>
+                                                        {doctorsSubtitle && <p className="text-xs opacity-70">{doctorsSubtitle}</p>}
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                                <PopoverContent className="w-56 p-2">
+                                                    <Command>
+                                                        <CommandList>
+                                                            <CommandGroup>
+                                                                <CommandItem onSelect={() => setSelectedDoctorIds(doctors.map(d => d.id))}>{t('selectAll')}</CommandItem>
+                                                                <CommandItem onSelect={() => setSelectedDoctorIds([])}>{t('deselectAll')}</CommandItem>
+                                                                <hr className="my-2" />
+                                                                {doctors.map((doctor) => {
+                                                                    const isSelected = selectedDoctorIds.includes(doctor.id);
+                                                                    return (
+                                                                        <CommandItem key={doctor.id} onSelect={() => handleSelectDoctor(doctor.id, !isSelected)}>
+                                                                            <div className="flex items-center">
+                                                                                <Checkbox checked={isSelected} className="pointer-events-none" />
+                                                                                <span className="ml-2">{doctor.name}</span>
                                                                             </div>
                                                                         </CommandItem>
                                                                     );
                                                                 })}
-                                                            </React.Fragment>
-                                                        );
-                                                    })}
-                                                    {calendarSedeGroups.noSede.length > 0 && (
-                                                        <>
-                                                            {calendarSedeGroups.sedeGroups.length > 0 && <hr className="my-2" />}
-                                                            {calendarSedeGroups.noSede.map((calendar) => {
-                                                                const isSelected = selectedCalendarIds.includes(calendar.id);
-                                                                return (
-                                                                    <CommandItem key={calendar.id} onSelect={() => handleSelectCalendar(calendar.id, !isSelected)}>
-                                                                        <div className="flex items-center justify-between w-full">
-                                                                            <div className='flex items-center'>
-                                                                                <Checkbox checked={isSelected} className="pointer-events-none" />
-                                                                                <span className="ml-2">{calendar.name}</span>
-                                                                            </div>
-                                                                            <div className="h-4 w-4 rounded-full" style={{ backgroundColor: calendar.color }} />
-                                                                        </div>
-                                                                    </CommandItem>
-                                                                );
-                                                            })}
-                                                        </>
-                                                    )}
-                                                </CommandGroup>
-                                            </CommandList>
-                                        </Command>
-                                    </PopoverContent>
-                                </Popover>
-                                {showDoctorFilter && (
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button variant="outline" className="flex h-11 items-center gap-2">
-                                                    <Users className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                                    <span className="flex flex-col items-start leading-tight">
-                                                        <span>{t('toggleDoctors')}</span>
-                                                        {doctorsSubtitle && (
-                                                            <span className="text-[10px] font-normal text-muted-foreground">{doctorsSubtitle}</span>
-                                                        )}
-                                                    </span>
-                                                    <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-56 p-2">
-                                                <Command>
-                                                    <CommandList>
-                                                        <CommandGroup>
-                                                            <CommandItem onSelect={() => setSelectedDoctorIds(doctors.map(d => d.id))}>{t('selectAll')}</CommandItem>
-                                                            <CommandItem onSelect={() => setSelectedDoctorIds([])}>{t('deselectAll')}</CommandItem>
-                                                            <hr className="my-2" />
-                                                            {doctors.map((doctor) => {
-                                                                const isSelected = selectedDoctorIds.includes(doctor.id);
-                                                                return (
-                                                                <CommandItem key={doctor.id} onSelect={() => handleSelectDoctor(doctor.id, !isSelected)}>
-                                                                    <div className="flex items-center">
-                                                                        <Checkbox checked={isSelected} className="pointer-events-none" />
-                                                                        <span className="ml-2">{doctor.name}</span>
-                                                                    </div>
-                                                                </CommandItem>
-                                                            );
-                                                            })}
-                                                        </CommandGroup>
-                                                    </CommandList>
-                                                </Command>
-                                            </PopoverContent>
-                                        </Popover>
+                                                            </CommandGroup>
+                                                        </CommandList>
+                                                    </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                        )}
+                                    </div>
+                                    </TooltipProvider>
                                 )}
                             </div>
-                        )}
-                    </div>
 
-                </Calendar>
+                        </Calendar>
+                        </div>
+                    </div>
+                )}
             </CardContent>
 
             <BulkReassignDoctorDialog
@@ -3404,13 +6115,13 @@ export default function AppointmentsPage() {
                 isLoading={isReassignLoading}
             />
 
-            <CalendarCreateTypeDialog
-                open={isCreateTypeOpen}
-                onOpenChange={setIsCreateTypeOpen}
-                date={pendingSlotDate}
-                onCreateAppointment={handleCreateAppointmentFromSlot}
-                onCreateReminder={handleCreateReminderFromSlot}
+            <EnableSlotDialog
+                target={enableSlotTarget}
+                permissions={enableSlotPermissions}
+                onOpenChange={(open) => { if (!open) setEnableSlotTarget(null); }}
+                onEnabled={loadClinicExceptions}
             />
+
             <AppointmentFormDialog
                 open={isCreateOpen}
                 onOpenChange={handleOpenChange}
@@ -3424,7 +6135,71 @@ export default function AppointmentsPage() {
                 doctorCalendarMap={doctorCalendarMap}
                 checkCalendarAvailability={checkCalendarAvailability}
                 checkDoctorAvailability={checkDoctorAvailability}
+                isDateTimeBlocked={isDateTimeBlocked}
+                onRequestRefresh={forceRefresh}
             />
+            <PrintScheduleDialog
+                open={isPrintScheduleOpen}
+                onOpenChange={setIsPrintScheduleOpen}
+                calendars={exportableCalendars}
+                defaultCalendarId={activeCalendarId}
+            />
+            <PatientCreateDialog
+                open={inlineCreatePatient.open}
+                onOpenChange={(o) => setInlineCreatePatient((s) => ({ ...s, open: o }))}
+                initialName={inlineCreatePatient.initialName}
+                showCancelAction={isCustomMode}
+                onCreated={(created) => {
+                    setInlineDraft((d) => {
+                        if (!d) return d;
+                        // Same default-doctor rule as picking an existing patient.
+                        const defaultDoctor = !d.doctor && created.doctor_id
+                            ? doctors.find((doc) => String(doc.id) === String(created.doctor_id)) ?? null
+                            : null;
+                        return { ...d, patient: created, ...(defaultDoctor ? { doctor: defaultDoctor } : {}) };
+                    });
+                }}
+            />
+            <AlertDialog
+                open={isInlineDiscardConfirmOpen}
+                onOpenChange={(open) => {
+                    // Closing is explicit so the Escape that opened this guard
+                    // cannot also dismiss it in the same keyboard interaction.
+                    if (open) setIsInlineDiscardConfirmOpen(true);
+                }}
+            >
+                <AlertDialogContent onEscapeKeyDown={(event) => event.preventDefault()}>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{tConfirmClose('title')}</AlertDialogTitle>
+                    </AlertDialogHeader>
+                    <AlertDialogDescription>{tConfirmClose('description')}</AlertDialogDescription>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setIsInlineDiscardConfirmOpen(false)}>
+                            {tConfirmClose('cancel')}
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            onClick={closeInlineDraft}
+                        >
+                            {tConfirmClose('confirm')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            {inlineFutureConfirm && (
+                <FutureAppointmentsConfirmDialog
+                    open={!!inlineFutureConfirm}
+                    onOpenChange={(open) => { if (!open) setInlineFutureConfirm(null); }}
+                    patientName={inlineFutureConfirm.patientName}
+                    appointments={inlineFutureConfirm.appointments}
+                    onConfirm={() => {
+                        setInlineFutureConfirm(null);
+                        skipInlineFutureCheckRef.current = true;
+                        void saveInlineDraft.run();
+                    }}
+                    onCancel={() => setInlineFutureConfirm(null)}
+                />
+            )}
             <ReminderFormDialog
                 open={isReminderFormOpen}
                 onOpenChange={(open) => {
@@ -3435,6 +6210,11 @@ export default function AppointmentsPage() {
                     }
                 }}
                 initialDate={reminderInitialDate}
+                initialType={reminderInitialType}
+                initialCalendarId={reminderInitialCalendarId}
+                calendars={calendars}
+                currentUserId={user?.id}
+                scope={pendingScope}
                 editingReminder={editingReminder}
                 onSave={handleSaveReminder}
             />
@@ -3467,41 +6247,172 @@ export default function AppointmentsPage() {
                 />
             )}
 
-            <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+            <AlertDialog
+                open={isDeleteAlertOpen}
+                onOpenChange={(next) => {
+                    // No cerrar con la cancelación en vuelo.
+                    if (!next && isCancellingAppointment) return;
+                    setIsDeleteAlertOpen(next);
+                }}
+            >
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>{t('createDialog.cancelAppointmentTitle')}</AlertDialogTitle>
                         <AlertDialogDescription>{t('createDialog.cancelAppointmentDescription', { serviceName: deletingAppointment?.service_name, date: deletingAppointment?.date })}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogAction onClick={confirmDeleteAppointment} className="bg-destructive hover:bg-destructive/90">{t('AppointmentsColumns.cancel')}</AlertDialogAction>
-                        <AlertDialogCancel onClick={() => setIsDeleteAlertOpen(false)}>{t('createDialog.close')}</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => { e.preventDefault(); void cancelAppointment.run(); }}
+                            disabled={isCancellingAppointment}
+                            className="bg-destructive hover:bg-destructive/90"
+                        >
+                            {isCancellingAppointment && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            {t('AppointmentsColumns.cancel')}
+                        </AlertDialogAction>
+                        <AlertDialogCancel disabled={isCancellingAppointment} onClick={() => setIsDeleteAlertOpen(false)}>{t('createDialog.close')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
 
             {/* Soft-delete confirmation for the right-click menu (same as the detail panel button) */}
-            <AlertDialog open={!!softDeleteTarget} onOpenChange={(v) => !v && setSoftDeleteTarget(null)}>
+            <AlertDialog
+                open={!!softDeleteTarget}
+                onOpenChange={(v) => {
+                    if (!v && isSoftDeleting) return;
+                    if (!v) setSoftDeleteTarget(null);
+                }}
+            >
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>{tPanel('deleteTitle')}</AlertDialogTitle>
                         <AlertDialogDescription>{tPanel('deleteDescription')}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>{tPanel('deleteCancel')}</AlertDialogCancel>
+                        <AlertDialogCancel disabled={isSoftDeleting}>{tPanel('deleteCancel')}</AlertDialogCancel>
                         <AlertDialogAction
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={() => {
+                            disabled={isSoftDeleting}
+                            onClick={(e) => {
+                                e.preventDefault();
                                 const target = softDeleteTarget;
-                                setSoftDeleteTarget(null);
-                                if (target) handleSoftDelete(target);
+                                if (target) void handleSoftDelete(target);
                             }}
                         >
+                            {isSoftDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {tPanel('deleteConfirm')}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+            <ReminderScopeDialog
+                open={scopePrompt !== null}
+                onOpenChange={(open) => { if (!open) setScopePrompt(null); }}
+                action={scopePrompt?.action ?? 'edit'}
+                onConfirm={(scope) => {
+                    const target = scopePrompt?.reminder;
+                    if (!target) return;
+                    if (scopePrompt?.action === 'delete') void deleteReminderWithScope(target, scope);
+                    else openReminderForm(target, scope);
+                    setScopePrompt(null);
+                }}
+            />
+
+            {isMobile ? (
+                <>
+                    <ReminderMobileSheet
+                        reminder={liveReminderQuickView}
+                        onClose={() => setReminderQuickView(null)}
+                        calendarName={calendars.find((c) => String(c.id) === String(liveReminderQuickView?.calendar_id))?.name}
+                        locale={locale}
+                        isActionPending={!!liveReminderQuickView && (
+                            isReminderActionPending(liveReminderQuickView)
+                            || isColorChangePending({ ...liveReminderQuickView, kind: 'reminder' })
+                        )}
+                        onEdit={handleEditReminder}
+                        onMarkDone={handleMarkReminderDone}
+                        onDelete={handleDeleteReminder}
+                        onColorChange={(reminder, colorId) => handleEventColorChange({ ...reminder, kind: 'reminder' }, colorId)}
+                    />
+                    <AppointmentMobileSheet
+                        appointment={liveQuickViewAppointment}
+                        onClose={() => setQuickView(null)}
+                        locale={locale}
+                        doctors={doctors}
+                        calendars={calendars}
+                        canUpdateAppointments={canUpdateAppointments}
+                        isUpdatingStatus={isUpdatingAppointmentStatus}
+                        isRowActionPending={!!liveQuickViewAppointment && (
+                            isReassignPending(liveQuickViewAppointment)
+                            || isColorChangePending({ ...liveQuickViewAppointment, kind: 'appointment' })
+                            || eventTimeAction.isPending(String(liveQuickViewAppointment.id))
+                        )}
+                        patientActions={{
+                            onAccounts: canViewPatientStatement
+                                ? (appointment) => openAccountStatement(appointment.patientId, appointment.patientName)
+                                : undefined,
+                            onClinicHistory: (appointment) => openPatientHistory(appointment.patientId, appointment.patientName),
+                            onDocuments: (appointment) => openPatientDocuments(appointment.patientId, appointment.patientName),
+                            onAppointments: (appointment) => openPatientAppointments(appointment.patientId, appointment.patientName),
+                            onData: (appointment) => openPatientView({
+                                userId: appointment.patientId,
+                                userName: appointment.patientName,
+                                userEmail: getEffectiveAppointmentContact(appointment).email,
+                                userPhone: getEffectiveAppointmentContact(appointment).phone,
+                                initialTab: 'info',
+                            }),
+                        }}
+                        onEdit={handleEditAppointment}
+                        onDelete={setSoftDeleteTarget}
+                        onViewHistory={canViewAppointmentHistory ? setHistoryAppointment : undefined}
+                        onStatusChange={handleStatusChange}
+                        onRequestCustomCancellation={handleRequestCustomCancellation}
+                        onColorChange={(appointment, colorId) => handleEventColorChange({ ...appointment, kind: 'appointment' }, colorId)}
+                        onReassignDoctor={(appointment, doctorId) => {
+                            const doctor = doctors.find((d) => String(d.id) === doctorId);
+                            if (doctor) handleReassign(appointment, { doctor });
+                        }}
+                        onReassignCalendar={(appointment, calendarId) => {
+                            const calendar = calendars.find((c) => String(c.id) === calendarId);
+                            if (calendar) handleReassign(appointment, { calendar });
+                        }}
+                        onRetime={retimeAppointment}
+                    />
+                </>
+            ) : (
+                <>
+                    {reminderQuickView?.anchorRect && (
+                        <ReminderQuickView
+                            reminder={reminderQuickView.reminder}
+                            anchorRect={reminderQuickView.anchorRect}
+                            calendarName={calendars.find((c) => String(c.id) === String(reminderQuickView.reminder.calendar_id))?.name}
+                            locale={locale}
+                            onClose={() => setReminderQuickView(null)}
+                            onEdit={(reminder) => { setReminderQuickView(null); handleEditReminder(reminder); }}
+                        />
+                    )}
+                    {quickView?.anchorRect && (
+                        <AppointmentQuickView
+                            appointment={quickView.appointment}
+                            anchorRect={quickView.anchorRect}
+                            locale={locale}
+                            onClose={() => setQuickView(null)}
+                            onEdit={(appointment) => { setQuickView(null); handleEditAppointment(appointment); }}
+                            onViewDetails={canViewAppointmentHistory ? (appointment) => {
+                                setQuickView(null);
+                                setHistoryAppointment(appointment);
+                            } : undefined}
+                        />
+                    )}
+                </>
+            )}
+            {historyAppointment && (
+                <AppointmentHistorySheet
+                    open={!!historyAppointment}
+                    onOpenChange={(open) => { if (!open) setHistoryAppointment(null); }}
+                    appointmentId={historyAppointment.id}
+                    appointmentLabel={historyAppointment.patientName}
+                />
+            )}
             <AppointmentPanel
                 open={isDetailViewOpen}
                 onOpenChange={setIsDetailViewOpen}
@@ -3520,6 +6431,7 @@ export default function AppointmentsPage() {
                 onReschedule={handleReschedule}
                 onOpenClinicSession={handleOpenClinicSession}
                 onStatusChange={handleStatusChange}
+                isUpdatingStatus={isUpdatingAppointmentStatus}
                 onRequestCustomCancellation={handleRequestCustomCancellation}
                 onBillingSuccess={() => { loadAppointments(); if (selectedAppointment?.quote_id) loadQuoteInfo(selectedAppointment.quote_id); }}
                 doctors={doctors}
@@ -3534,6 +6446,7 @@ export default function AppointmentsPage() {
                 open={isReminderPanelOpen}
                 onOpenChange={setIsReminderPanelOpen}
                 reminder={selectedReminder}
+                currentUserId={user?.id}
                 onEdit={handleEditReminder}
                 onMarkDone={handleMarkReminderDone}
                 onDelete={handleDeleteReminder}

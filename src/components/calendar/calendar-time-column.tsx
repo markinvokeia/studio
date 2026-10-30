@@ -9,9 +9,12 @@ interface CalendarTimeColumnProps {
   timeZoneLabel?: string;
   /** Whether to render the timezone header cell */
   showTimeZoneLabel?: boolean;
+  /** When false, the 60px track is kept (for alignment/GMT header) but the hour
+   *  labels are hidden — each day column shows the hours in its own rail instead. */
+  visible?: boolean;
 }
 
-export function CalendarTimeColumn({ timeZoneLabel, showTimeZoneLabel = false }: CalendarTimeColumnProps) {
+export function CalendarTimeColumn({ timeZoneLabel, showTimeZoneLabel = false, visible = true }: CalendarTimeColumnProps) {
   const timeSlots = generateTimeSlots();
 
   return (
@@ -19,7 +22,7 @@ export function CalendarTimeColumn({ timeZoneLabel, showTimeZoneLabel = false }:
       {showTimeZoneLabel && (
         <div className="time-zone-label">{timeZoneLabel}</div>
       )}
-      {timeSlots.map((time) => (
+      {visible && timeSlots.map((time) => (
         <div key={time} className="time-slot">
           <span className={cn('time-slot-label', time === '00:00' && 'time-slot-label-first')}>
             {formatTimeSlotLabel(time)}

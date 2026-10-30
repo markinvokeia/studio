@@ -1,5 +1,6 @@
 'use client';
 
+import { EsFlagIcon } from '@/components/icons/es-flag-icon';
 import { UsFlagIcon } from '@/components/icons/us-flag-icon';
 import { UyFlagIcon } from '@/components/icons/uy-flag-icon';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -11,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
+import { INVOKEIA_LOGO } from '@/lib/brand';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Check, Globe, Loader2, Moon, Sun } from 'lucide-react';
@@ -97,15 +99,24 @@ export default function SetFirstPasswordPage() {
 
         } catch (err: any) {
             let errorMessage = t('errors.generic');
+            const errText: string | undefined = err.data?.error;
             if (err.status === 400) {
                 const errors: string[] = err.data?.errors;
-                errorMessage = Array.isArray(errors) && errors.length > 0
-                    ? errors.join(' ')
-                    : err.data?.message || t('errors.invalidPassword');
+                if (Array.isArray(errors) && errors.length > 0) {
+                    errorMessage = errors.join(' ');
+                } else if (errText === 'Invalid token' || errText === 'The link has expired. Request a new one') {
+                    errorMessage = t('errors.invalidToken');
+                } else if (err.data?.message) {
+                    errorMessage = err.data.message;
+                } else {
+                    errorMessage = t('errors.generic');
+                }
             } else if (err.status === 401) {
                 errorMessage = t('errors.invalidToken');
             } else if (err.status === 403) {
-                errorMessage = t('errors.alreadySet');
+                errorMessage = errText === 'The token is invalid.' ? t('errors.invalidToken') : t('errors.alreadySet');
+            } else if (err.status === 404) {
+                errorMessage = t('errors.invalidToken');
             } else if (err.status === 500) {
                 errorMessage = t('errors.serverError');
             }
@@ -144,6 +155,15 @@ export default function SetFirstPasswordPage() {
                                 {locale === 'en' && <Check className="h-4 w-4 ml-2" />}
                             </span>
                         </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => onSelectLocale('es-ES')} disabled={locale === 'es-ES'}>
+                            <span className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-2">
+                                    <EsFlagIcon className="h-4 w-4" />
+                                    {tHeader('spanishSpain')}
+                                </div>
+                                {locale === 'es-ES' && <Check className="h-4 w-4 ml-2" />}
+                            </span>
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
                 <DropdownMenu>
@@ -179,7 +199,7 @@ export default function SetFirstPasswordPage() {
             <Card className="w-full max-w-sm">
                 <CardHeader className="text-center">
                     <Image
-                        src="https://www.invokeia.com/assets/InvokeIA_C@4x-4T0dztu0.webp"
+                        src={INVOKEIA_LOGO}
                         width={80}
                         height={80}
                         alt="InvokeIA Logo"

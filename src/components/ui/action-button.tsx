@@ -8,7 +8,7 @@ import {
     TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { LucideIcon } from 'lucide-react';
+import { Loader2, LucideIcon } from 'lucide-react';
 import * as React from 'react';
 
 export interface ActionButtonProps extends Omit<ButtonProps, 'children'> {
@@ -24,7 +24,7 @@ export interface ActionButtonProps extends Omit<ButtonProps, 'children'> {
 }
 
 export const ActionButton = React.forwardRef<HTMLButtonElement, ActionButtonProps>(
-    ({ className, icon: Icon, label, tooltip, iconOnly = false, expandOnHover = false, destructive = false, disabled, ...props }, ref) => {
+    ({ className, icon: Icon, label, tooltip, iconOnly = false, expandOnHover = false, destructive = false, disabled, loading = false, ...props }, ref) => {
         // Always show icon and label together (expanded mode)
         // expandOnHover is kept for backward compatibility but label always shows
         const showLabel = !iconOnly;
@@ -40,12 +40,15 @@ export const ActionButton = React.forwardRef<HTMLButtonElement, ActionButtonProp
                                 destructive && 'text-destructive hover:text-destructive',
                                 className
                             )}
-                            disabled={disabled}
+                            disabled={disabled || loading}
+                            aria-busy={loading || undefined}
                             size="sm"
                             variant={disabled ? 'ghost' : (destructive ? 'ghost' : 'outline')}
                             {...props}
                         >
-                            <Icon className="h-4 w-4 shrink-0" />
+                            {loading
+                                ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" />
+                                : <Icon className="h-4 w-4 shrink-0" />}
                             {showLabel && (
                                 <span className={cn('ml-2 whitespace-nowrap')}>
                                     {label}
@@ -74,7 +77,7 @@ export interface CompactActionButtonProps extends Omit<ButtonProps, 'children'> 
 }
 
 export const CompactActionButton = React.forwardRef<HTMLButtonElement, CompactActionButtonProps>(
-    ({ className, icon: Icon, tooltip, destructive = false, disabled, ...props }, ref) => {
+    ({ className, icon: Icon, tooltip, destructive = false, disabled, loading = false, ...props }, ref) => {
         return (
             <TooltipProvider>
                 <Tooltip>
@@ -82,12 +85,15 @@ export const CompactActionButton = React.forwardRef<HTMLButtonElement, CompactAc
                         <Button
                             ref={ref}
                             className={cn('h-8 w-8 p-0', destructive && 'text-destructive hover:text-destructive', className)}
-                            disabled={disabled}
+                            disabled={disabled || loading}
+                            aria-busy={loading || undefined}
                             size="icon"
                             variant="ghost"
                             {...props}
                         >
-                            <Icon className="h-4 w-4" />
+                            {loading
+                                ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                                : <Icon className="h-4 w-4" />}
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent side="bottom">

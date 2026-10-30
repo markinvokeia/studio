@@ -1,5 +1,7 @@
 'use client';
 
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Calendar, FileText, Loader2, Mic, MicOff, Pencil, Plus, Receipt, ShoppingCart, Trash2, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
@@ -197,7 +199,7 @@ function NewNoteCard({
         recognition.onerror = () => {
             stopRecognition();
             setState('active-text');
-            toast({ title: tMicError, variant: 'destructive', duration: 3000 });
+            toast({ title: tMicError, variant: 'destructive' });
         };
 
         recognition.onend = () => {
@@ -248,7 +250,7 @@ function NewNoteCard({
             setColor(DEFAULT_COLOR);
             setState('idle');
         } catch {
-            toast({ title: tSaveError, variant: 'destructive', duration: 3000 });
+            toast({ title: tSaveError, variant: 'destructive' });
         } finally {
             setIsSaving(false);
         }
@@ -463,10 +465,7 @@ function ExistingNoteCard({
 
     const formattedDate = React.useMemo(() => {
         try {
-            return new Date(note.created_at).toLocaleDateString('es', {
-                day: '2-digit',
-                month: 'short',
-            });
+            return format(parseISO(note.created_at.replace('Z', '')), 'dd MMM', { locale: es });
         } catch {
             return '';
         }
@@ -481,7 +480,7 @@ function ExistingNoteCard({
             setAiActions(null); // manual save clears AI actions
             setIsEditing(false);
         } catch {
-            toast({ title: tSaveError, variant: 'destructive', duration: 3000 });
+            toast({ title: tSaveError, variant: 'destructive' });
         } finally {
             setIsSaving(false);
         }
@@ -493,7 +492,7 @@ function ExistingNoteCard({
             await onDelete(note.id);
         } catch {
             setIsDeleting(false);
-            toast({ title: tDeleteError, variant: 'destructive', duration: 3000 });
+            toast({ title: tDeleteError, variant: 'destructive' });
         }
     };
 
@@ -586,7 +585,7 @@ function ExistingNoteCard({
                                         await onUpdate({ id: note.id, text: trimmed, color: editColor, actions: result.actions, redirects: result.redirects });
                                         setIsEditing(false);
                                     } catch {
-                                        toast({ title: tSaveError, variant: 'destructive', duration: 3000 });
+                                        toast({ title: tSaveError, variant: 'destructive' });
                                         setEditText(result.text);
                                     } finally {
                                         setIsSaving(false);

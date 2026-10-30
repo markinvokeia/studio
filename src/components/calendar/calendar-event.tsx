@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { BellRing, CheckCircle2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { BellRing, CheckCircle2, FileText, Lock } from 'lucide-react';
 
 import {
   ContextMenu,
@@ -11,67 +12,104 @@ import {
 
 import type { Locale } from 'date-fns';
 
-import { STATUS_ACCENT_COLOR } from '@/constants/appointment-status';
 import { cn } from '@/lib/utils';
 import type { AppointmentStatus, CalendarReminderPriority, CalendarReminderStatus, CancellationReason } from '@/lib/types';
 import { getStatusIcon } from '@/components/appointments/status-icons';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 
-import { GOOGLE_CALENDAR_COLORS } from './calendar-constants';
-import type { CalendarEvent } from './calendar-types';
-import { formatEventTime, getReadableTextColor } from './calendar-utils';
-import { getReminderCardStyle, getReminderPriorityColor, isReminderDone } from './reminder-visuals';
+import { GOOGLE_IMPORT_BADGE_COLOR } from './calendar-constants';
+import type { CalendarDragMode, CalendarDragPhase, CalendarEvent } from './calendar-types';
+import { formatEventTime, getContrastingIconColor, getReadableTextColor } from './calendar-utils';
+import { getReminderCardStyle, getReminderPriorityColor, isPersonalReminder, isReminderDone } from './reminder-visuals';
 
 interface CalendarEventChipProps {
   event: CalendarEvent;
   dateLocale: Locale;
-  onEventClick: (data: any) => void;
-  onEventColorChange: (data: any, colorId: string) => void;
+  onEventClick: (data: any, anchorRect?: DOMRect) => void;
+  /** @deprecated Color swatches are now rendered by the `onEventContextMenu` render prop. Kept for prop compatibility with the view components. */
+  onEventColorChange?: (data: any, colorId: string) => void;
   onEventContextMenu?: (data: any) => React.ReactNode;
   onEventContextMenuOpen?: (data: any) => void;
+  /** Arranca el arrastre. En el mes solo hay modo `move`: sin eje de horas no hay
+   *  borde que estirar, así que la duración se conserva y solo cambia la fecha. */
+  onDragPointerDown?: (event: CalendarEvent, mode: CalendarDragMode, e: React.PointerEvent<HTMLElement>) => void;
+  dragStateRef?: React.MutableRefObject<{ phase: CalendarDragPhase; didDrag: boolean }>;
+  draggable?: boolean;
 }
 
 export const CalendarEventChip = React.memo(function CalendarEventChip({
   event,
   dateLocale,
   onEventClick,
-  onEventColorChange,
   onEventContextMenu,
   onEventContextMenuOpen,
+  onDragPointerDown,
+  dragStateRef,
+  draggable = false,
 }: CalendarEventChipProps) {
+  const tAppointments = useTranslations('AppointmentsPage');
+  const { colorOf } = useAppointmentStatusDisplay();
   const rawStatus = event.data?.status as string | undefined;
   const isReminder = event.data?.kind === 'reminder';
+  const isNote = isReminder && event.data?.type === 'note';
   const reminderStatus = event.data?.status as CalendarReminderStatus | undefined;
   const reminderPriority = event.data?.priority as CalendarReminderPriority | undefined;
   const reminderIsDone = isReminderDone(reminderStatus);
-  const ReminderIcon = reminderIsDone ? CheckCircle2 : BellRing;
+  const reminderIsPersonal = isReminder && isPersonalReminder(event.data);
+  const ReminderIcon = isNote ? FileText : reminderIsDone ? CheckCircle2 : reminderIsPersonal ? Lock : BellRing;
   const status = (rawStatus?.toLowerCase() as AppointmentStatus | undefined) ?? undefined;
   const cancellationReason = (event.data?.cancellation_reason as CancellationReason | undefined) ?? null;
   const isCancelled = status === 'cancelled';
-  const accentColor = isReminder ? getReminderPriorityColor(reminderPriority) : status ? STATUS_ACCENT_COLOR[status] : undefined;
+  const statusColored = event.statusColored === true;
+  // Con la card ya pintada del gris de "cancelada" el rayado sobra: se muestra
+  // solo cuando el color viene del calendario/servicio y no del estado.
+  const showCancelledStripes = isCancelled && !statusColored;
+  const accentColor = isReminder ? getReminderPriorityColor(reminderPriority) : status ? colorOf(status) : undefined;
 
+  const isChipDraggable = draggable && !event.locked && !!onDragPointerDown;
   const bg = event.color || 'hsl(var(--primary))';
-  const textColor = isReminder ? undefined : isCancelled ? undefined : getReadableTextColor(event.color);
-  const eventStyle = isReminder
-    ? getReminderCardStyle(event.color, reminderIsDone)
-    : { backgroundColor: isCancelled ? undefined : bg, color: textColor };
+  const textColor = isReminder ? undefined : showCancelledStripes ? undefined : getReadableTextColor(event.color);
+  // La franja del estado se dibuja en un ::before que lee esta variable (Calendar.css).
+  const stripeStyle = event.statusStripeColor
+    ? ({ ['--status-stripe' as string]: event.statusStripeColor } as React.CSSProperties)
+    : undefined;
+  const eventStyle = {
+    ...(isReminder
+      ? getReminderCardStyle(event.color, reminderIsDone)
+      : { backgroundColor: showCancelledStripes ? undefined : bg, color: textColor }),
+    ...stripeStyle,
+  };
 
   return (
     <ContextMenu onOpenChange={(o) => { if (o) onEventContextMenuOpen?.(event.data); }}>
-      <ContextMenuTrigger>
+      <ContextMenuTrigger asChild disabled={!onEventContextMenu}>
         <div
           data-testid="calendar-event"
+          data-event-id={event.id}
+          data-draggable={isChipDraggable ? 'true' : undefined}
           title={event.label ?? event.title}
           className={cn(
             'event',
-            isCancelled && 'event-cancelled',
+            event.statusStripeColor && 'event-status-stripe',
+            showCancelledStripes && 'event-cancelled',
             isReminder && 'event-reminder',
             reminderIsDone && 'event-reminder-done',
           )}
           style={eventStyle}
+          onContextMenu={(e) => e.stopPropagation()}
+          onPointerDown={(e) => {
+            // El chip no frenaba la propagación hasta ahora; hace falta para que el
+            // pointerdown no llegue a la celda mientras se arrastra.
+            if (!isChipDraggable) return;
+            e.stopPropagation();
+            onDragPointerDown?.(event, 'move', e);
+          }}
           onClick={(e) => {
             if (e.button !== 0) return;
+            // Este click cierra un arrastre, no es un clic sobre la cita.
+            if (dragStateRef?.current.didDrag) return;
             e.stopPropagation();
-            onEventClick(event.data);
+            onEventClick(event.data, e.currentTarget.getBoundingClientRect());
           }}
         >
           {event.label ? (
@@ -87,9 +125,9 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
               aria-hidden
               className="event-status-corner"
               title={event.title}
-              style={{ backgroundColor: accentColor }}
+              style={{ backgroundColor: accentColor, color: getContrastingIconColor(accentColor) }}
             >
-              <ReminderIcon className="h-3 w-3" strokeWidth={2.5} />
+              <ReminderIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
             </span>
           )}
           {!isReminder && status && accentColor && (() => {
@@ -100,28 +138,30 @@ export const CalendarEventChip = React.memo(function CalendarEventChip({
                 aria-hidden
                 className="event-status-corner"
                 title={cancellationReason ? `${status} - ${cancellationReason}` : status}
-                style={{ backgroundColor: accentColor }}
+                // Sobre una card ya pintada con el color del estado el círculo
+                // desaparece, así que se invierte: fondo claro, ícono del color.
+                style={statusColored
+                  ? { backgroundColor: 'rgba(255,255,255,0.92)', color: accentColor }
+                  : { backgroundColor: accentColor, color: getContrastingIconColor(accentColor) }}
               >
-                <StatusIcon className="h-3 w-3" strokeWidth={2.5} />
+                <StatusIcon className="h-3.5 w-3.5" strokeWidth={2.5} />
               </span>
             );
           })()}
+          {!isReminder && event.data?.imported_from_google === true && (
+            <span
+              aria-hidden
+              className="event-source-corner"
+              title={tAppointments('importedFromGoogle')}
+              style={{ backgroundColor: GOOGLE_IMPORT_BADGE_COLOR }}
+            />
+          )}
         </div>
       </ContextMenuTrigger>
-      <ContextMenuContent>
-        <div className="grid grid-cols-4 gap-2 p-2">
-          {GOOGLE_CALENDAR_COLORS.map((color) => (
-            <div
-              key={color.id}
-              className="w-6 h-6 rounded-full cursor-pointer hover:opacity-80"
-              style={{ backgroundColor: color.hex }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onEventColorChange(event.data, color.id);
-              }}
-            />
-          ))}
-        </div>
+      <ContextMenuContent className="w-[min(18rem,calc(100vw-1rem))]">
+        {/* The whole menu body (including color swatches) is supplied by the
+            consumer's render prop so it can place the color picker inline or in
+            a submenu depending on the calendar mode. */}
         {onEventContextMenu && onEventContextMenu(event.data)}
       </ContextMenuContent>
     </ContextMenu>

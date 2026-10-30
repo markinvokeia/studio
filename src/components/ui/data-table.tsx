@@ -23,6 +23,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -32,8 +33,10 @@ import { DataTableToolbar } from './data-table-toolbar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslations } from 'next-intl';
 
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { getDefaultPageSize } from '@/lib/pagination';
+import { AlertTriangle, ArrowUp, ArrowDown, ArrowUpDown, RefreshCw } from 'lucide-react';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -78,6 +81,14 @@ interface DataTableProps<TData, TValue> {
   onRowClick?: (row: TData) => void;
   /** Total row count for server-side pagination — enables an accurate "1–25 of N" range */
   rowCount?: number;
+  /**
+   * Maps a row to its stable id. Defaults to the row's own `id` when present,
+   * falling back to TanStack's index-based id for row shapes without one.
+   * Stable ids keep `rowSelection` bound to the entity instead of its position,
+   * so filtering, pagination and refreshes can't move the selection to a
+   * different row.
+   */
+  getRowId?: (row: TData) => string;
   /** When true, shows skeleton rows/cards instead of data or the "no results" message */
   isLoading?: boolean;
   /** Extra classes for the narrow-mode card list container (e.g. to remove the gap for a connected list) */
@@ -86,8 +97,52 @@ interface DataTableProps<TData, TValue> {
   primaryActions?: React.ReactNode;
   /** View controls (e.g. a view-mode toggle) rendered after pagination in the toolbar */
   viewControls?: React.ReactNode;
-  /** Override the default initial page size (default: 25) */
+  /** Override the default initial page size (default: 25 on tablet/desktop, 10 on mobile) */
   initialPageSize?: number;
+  /** A `<TableRow>` (or several) rendered in a `<TableFooter>` right after the body —
+   *  outside react-table's row model, so it's unaffected by sorting/filtering/pagination
+   *  and always sits at the true end of the table (e.g. a running-balance summary row). */
+  footerRow?: React.ReactNode;
+  /**
+   * Message of the last failed load. With no rows it replaces the "no results" message (a failed
+   * load is not an empty list); with rows it shows as a banner above the stale data. The retry
+   * button calls `onRefresh`.
+   */
+  loadError?: string | null;
+  /**
+   * Open on the last page, scrolled to the bottom, so the final row is in view — for lists
+   * sorted oldest-first where the most recent entry is what the user wants to see. Applied
+   * on mount, when it turns on, and after each data load (a refresh would otherwise reset
+   * to page 1). Ignored with server-side pagination.
+   */
+  startAtEnd?: boolean;
+}
+
+function LoadErrorMessage({ message, onRetry, isRetrying, compact }: { message: string; onRetry?: () => void; isRetrying?: boolean; compact?: boolean }) {
+  const t = useTranslations('Common');
+  return (
+    <div
+      role="alert"
+      className={cn(
+        'flex items-center gap-3 text-sm text-destructive',
+        compact ? 'rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2' : 'flex-col justify-center py-8 text-center'
+      )}
+    >
+      <div className="flex items-center gap-2 min-w-0">
+        <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span className="min-w-0">
+          <span className="font-medium">{t('loadError')}</span>
+          {message && message !== t('loadError') && <span className="text-muted-foreground"> {message}</span>}
+        </span>
+      </div>
+      {onRetry && (
+        <Button type="button" variant="outline" size="sm" className={cn('h-7 gap-1.5', compact && 'ml-auto shrink-0')} onClick={onRetry} loading={isRetrying}>
+          {!isRetrying && <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />}
+          {t('retry')}
+        </Button>
+      )}
+    </div>
+  );
 }
 
 export function DataTable<TData, TValue>({
@@ -127,13 +182,20 @@ export function DataTable<TData, TValue>({
   renderCard,
   onRowClick,
   rowCount,
+  getRowId,
   isLoading = false,
   cardListClassName,
   primaryActions,
   viewControls,
-  initialPageSize = 25,
+  initialPageSize,
+  footerRow,
+  loadError,
+  startAtEnd = false,
 }: DataTableProps<TData, TValue>) {
   const t = useTranslations('General');
+  // Resolve the page size once at mount: an explicit prop wins; otherwise
+  // 10 on mobile and 25 on tablet/desktop.
+  const [resolvedInitialPageSize] = React.useState(() => initialPageSize ?? getDefaultPageSize());
   const showCardList = Boolean(isNarrow && renderCard);
   const [internalRowSelection, setInternalRowSelection] = React.useState({});
   const [internalColumnVisibility, setInternalColumnVisibility] =
@@ -152,13 +214,39 @@ export function DataTable<TData, TValue>({
   const finalRowSelection = rowSelection ?? internalRowSelection;
   const finalSetRowSelection = setRowSelection ?? setInternalRowSelection;
 
+  // Entity-stable row ids. An explicit `getRowId` wins; otherwise use the
+  // row's own `id` (all entity tables here have one) and fall back to the
+  // index-based id for row shapes that don't — same as TanStack's default.
+  const resolveRowId = React.useCallback(
+    (row: TData, index: number, parent?: Row<TData>): string => {
+      if (getRowId) return getRowId(row);
+      const id = (row as { id?: unknown } | null | undefined)?.id;
+      if (id !== undefined && id !== null && id !== '') return String(id);
+      return parent ? `${parent.id}.${index}` : `${index}`;
+    },
+    [getRowId],
+  );
+
+  // Distinguishes a selection change the user made by clicking a row (which should notify
+  // onRowSelectionChange) from one the parent made programmatically — e.g. clearing the
+  // selection to open a "create" form. Without this, that programmatic clear round-trips
+  // through the sync effect below and calls onRowSelectionChange([]), which pages typically
+  // use to also reset their "isEditing" flag — clobbering the create/edit state right after
+  // it was set.
+  const isUserDrivenSelectionRef = React.useRef(false);
+  const handleTableRowSelectionChange = React.useCallback((updater: React.SetStateAction<RowSelectionState>) => {
+    isUserDrivenSelectionRef.current = true;
+    finalSetRowSelection(updater);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finalSetRowSelection]);
+
   const table = useReactTable({
     data,
     columns,
     pageCount: pageCount,
     ...(rowCount !== undefined && { rowCount }),
     initialState: {
-      pagination: { pageSize: initialPageSize },
+      pagination: { pageSize: resolvedInitialPageSize },
     },
     state: {
       sorting,
@@ -167,9 +255,10 @@ export function DataTable<TData, TValue>({
       columnFilters,
       ...(isControlledPagination && { pagination }),
     },
+    getRowId: resolveRowId,
     enableRowSelection: true,
     enableMultiRowSelection: !enableSingleRowSelection,
-    onRowSelectionChange: finalSetRowSelection,
+    onRowSelectionChange: handleTableRowSelectionChange,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: onColumnVisibilityChange ?? setInternalColumnVisibility,
@@ -218,11 +307,40 @@ export function DataTable<TData, TValue>({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [printMode, data.length]);
 
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  // Turning it off (e.g. the order flipped to newest-first) returns to the top of page 1.
+  const prevStartAtEndRef = React.useRef(startAtEnd);
+  React.useEffect(() => {
+    const wasOn = prevStartAtEndRef.current;
+    prevStartAtEndRef.current = startAtEnd;
+    if (!wasOn || startAtEnd || isControlledPagination) return;
+    table.setPageIndex(0);
+    if (scrollContainerRef.current) scrollContainerRef.current.scrollTop = 0;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startAtEnd]);
+  React.useEffect(() => {
+    if (!startAtEnd || isLoading || isControlledPagination || data.length === 0) return;
+    // Next frame: TanStack resets the page index after a data/sorting change, and the
+    // rows must be rendered before the container's scrollHeight is meaningful.
+    let innerFrame = 0;
+    const frame = requestAnimationFrame(() => {
+      table.setPageIndex(Math.max(0, table.getPageCount() - 1));
+      innerFrame = requestAnimationFrame(() => {
+        const el = scrollContainerRef.current;
+        if (el) el.scrollTop = el.scrollHeight;
+      });
+    });
+    return () => { cancelAnimationFrame(frame); cancelAnimationFrame(innerFrame); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startAtEnd, isLoading, data]);
+
   // Use a ref so the callback never appears in deps — prevents firing on every render.
   const onRowSelectionChangeRef = React.useRef(onRowSelectionChange);
   React.useLayoutEffect(() => { onRowSelectionChangeRef.current = onRowSelectionChange; });
 
   React.useEffect(() => {
+    if (!isUserDrivenSelectionRef.current) return;
+    isUserDrivenSelectionRef.current = false;
     if (onRowSelectionChangeRef.current) {
       const selectedRows = table.getFilteredSelectedRowModel().rows.map(row => row.original);
       onRowSelectionChangeRef.current(selectedRows);
@@ -275,8 +393,13 @@ export function DataTable<TData, TValue>({
           </div>
         )}
       </div>
+      {loadError && !isLoading && data.length > 0 && (
+        <div className="print:hidden">
+          <LoadErrorMessage message={loadError} onRetry={onRefresh} isRetrying={isRefreshing} compact />
+        </div>
+      )}
       {showCardList ? (
-        <div data-testid="card-list" className={cn("flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1", cardListClassName)}>
+        <div ref={scrollContainerRef} data-testid="card-list" className={cn("flex flex-col gap-2 overflow-auto flex-1 min-h-0 px-1 py-1", cardListClassName)}>
           {isLoading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <Skeleton key={i} className="h-16 w-full rounded-md" />
@@ -285,21 +408,29 @@ export function DataTable<TData, TValue>({
             table.getRowModel().rows.map((row) => (
               <div key={row.id} data-testid="list-item" onClick={() => {
                 if (enableSingleRowSelection) {
-                  table.toggleAllPageRowsSelected(false);
-                  row.toggleSelected(true);
+                  // Single selection: clicking the selected item deselects it,
+                  // clicking another one replaces the selection. Row ids are
+                  // entity ids, so this stays correct across filtering and
+                  // pagination. (Do not chain toggleAll + toggleSelected: the
+                  // latter reads the pre-update state and bails out when the
+                  // row is already selected, clearing the selection instead of
+                  // toggling it.)
+                  table.setRowSelection(row.getIsSelected() ? {} : { [row.id]: true });
                 }
                 onRowClick?.(row.original);
               }}>
                 {renderCard!(row.original, row.getIsSelected())}
               </div>
             ))
+          ) : loadError && data.length === 0 ? (
+            <LoadErrorMessage message={loadError} onRetry={onRefresh} isRetrying={isRefreshing} />
           ) : (
             <div className="py-8 text-center text-sm text-muted-foreground">{t('noResults')}</div>
           )}
         </div>
       ) : null}
       {!showCardList ? (
-      <div className="rounded-md border overflow-auto print:overflow-visible flex-1 min-h-0 print:h-auto relative print:max-h-none">
+      <div ref={scrollContainerRef} className="rounded-md border overflow-auto print:overflow-visible flex-1 min-h-0 print:h-auto relative print:max-h-none">
         <table className={cn("w-full caption-bottom text-[length:var(--tbl-font)]")}>
           <TableHeader className="sticky print:static top-0 z-10 bg-card shadow-[0_1px_0_0_hsl(var(--border))]">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -346,12 +477,13 @@ export function DataTable<TData, TValue>({
                   data-state={row.getIsSelected() && 'selected'}
                   onClick={() => {
                     if (enableSingleRowSelection) {
-                      table.toggleAllPageRowsSelected(false);
-                      row.toggleSelected(true);
+                      // Single selection: toggle this row (see note above).
+                      table.setRowSelection(row.getIsSelected() ? {} : { [row.id]: true });
                     }
+                    onRowClick?.(row.original);
                   }}
                   className={cn(
-                    enableSingleRowSelection ? 'cursor-pointer' : '',
+                    enableSingleRowSelection || onRowClick ? 'cursor-pointer' : '',
                     getRowClassName ? getRowClassName(row.original) : ''
                   )}
                 >
@@ -371,11 +503,14 @@ export function DataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  {t('noResults')}
+                  {loadError && data.length === 0
+                    ? <LoadErrorMessage message={loadError} onRetry={onRefresh} isRetrying={isRefreshing} />
+                    : t('noResults')}
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
+          {footerRow && <TableFooter>{footerRow}</TableFooter>}
         </table>
       </div>
       ) : null}

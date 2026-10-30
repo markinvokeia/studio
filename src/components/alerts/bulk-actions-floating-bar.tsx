@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import {
     CheckCircle,
     Mail,
+    MessageCircle,
     X,
     Clock,
     Loader2
@@ -13,15 +14,19 @@ import { cn } from '@/lib/utils'
 
 interface BulkActionsFloatingBarProps {
     selectedCount: number
-    loadingAction?: 'complete' | 'email' | 'snooze' | null
+    loadingAction?: 'complete' | 'email' | 'snooze' | 'whatsapp' | null
     onMarkAsCompleted: () => void
     onSendEmail: () => void
     onSnooze: () => void
+    onSendWhatsApp: () => void
     onDeselectAll: () => void
     className?: string
     canComplete?: boolean
     canSendEmail?: boolean
     canSnooze?: boolean
+    canSendWhatsApp?: boolean
+    /** How many of the currently selected alerts have a phone + WhatsApp template available. */
+    whatsAppEligibleCount?: number
 }
 
 export function BulkActionsFloatingBar({
@@ -30,11 +35,14 @@ export function BulkActionsFloatingBar({
     onMarkAsCompleted,
     onSendEmail,
     onSnooze,
+    onSendWhatsApp,
     onDeselectAll,
     className,
     canComplete = true,
     canSendEmail = true,
     canSnooze = true,
+    canSendWhatsApp = true,
+    whatsAppEligibleCount = 0,
 }: BulkActionsFloatingBarProps) {
     if (selectedCount === 0) {
         return null
@@ -119,8 +127,8 @@ export function BulkActionsFloatingBar({
                     title="Posponer alertas"
                     className={cn(
                         "h-9 w-9 p-0 transition-all duration-200",
-                        loadingAction === 'snooze' 
-                            ? "bg-gray-500 hover:bg-gray-600 text-white animate-pulse" 
+                        loadingAction === 'snooze'
+                            ? "bg-gray-500 hover:bg-gray-600 text-white animate-pulse"
                             : "hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800/50 dark:hover:text-gray-400",
                         loadingAction && loadingAction !== 'snooze' ? "opacity-50 cursor-not-allowed" : ""
                     )}
@@ -132,7 +140,30 @@ export function BulkActionsFloatingBar({
                     )}
                 </Button>
                 )}
-                
+
+                {canSendWhatsApp && (
+                <Button
+                    variant={loadingAction === 'whatsapp' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={onSendWhatsApp}
+                    disabled={loadingAction !== null || whatsAppEligibleCount === 0}
+                    title={whatsAppEligibleCount === 0 ? 'Ninguna alerta seleccionada tiene WhatsApp disponible' : `Enviar WhatsApp (${whatsAppEligibleCount} disponible${whatsAppEligibleCount === 1 ? '' : 's'})`}
+                    className={cn(
+                        "h-9 w-9 p-0 transition-all duration-200",
+                        loadingAction === 'whatsapp'
+                            ? "bg-emerald-500 hover:bg-emerald-600 text-white animate-pulse"
+                            : "hover:bg-emerald-100 hover:text-emerald-700 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400",
+                        (loadingAction && loadingAction !== 'whatsapp') || whatsAppEligibleCount === 0 ? "opacity-50 cursor-not-allowed" : ""
+                    )}
+                >
+                    {loadingAction === 'whatsapp' ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                        <MessageCircle className="h-4 w-4" />
+                    )}
+                </Button>
+                )}
+
                 <div className="h-6 w-px bg-border mx-1" />
                 
                 <Button

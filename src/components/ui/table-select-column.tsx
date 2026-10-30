@@ -17,8 +17,7 @@ export function createSelectColumn<T>(): ColumnDef<T> {
         <RadioGroup
           value={isSelected ? row.id : ''}
           onValueChange={() => {
-            table.toggleAllPageRowsSelected(false);
-            row.toggleSelected(true);
+            table.setRowSelection({ [row.id]: true });
           }}
         >
           <RadioGroupItem value={row.id} id={`radio-${row.id}`} aria-label="Select row" />

@@ -6,23 +6,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Can } from '@/components/auth/Can';
 import { useAlertNotifications, AlertNotificationsProvider } from '@/context/alert-notifications-context';
+import { useAuth } from '@/context/AuthContext';
 import { API_ROUTES } from '@/constants/routes';
 import { ALERT_CENTER_PERMISSIONS } from '@/constants/permissions';
 import { toast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { AlertInstance, AlertAction, AlertCategory } from '@/lib/types';
 import { api } from '@/services/api';
+import { usePatientView } from '@/stores/patient-view-store';
 import { BulkActionsFloatingBar } from '@/components/alerts/bulk-actions-floating-bar';
 import { AlertEmailComposerDialog } from '@/components/alerts/alert-email-composer-dialog';
-import { AlertWhatsAppComposerDialog } from '@/components/alerts/alert-whatsapp-composer-dialog';
-import { cn } from '@/lib/utils';
+import { cn, formatDisplayDate } from '@/lib/utils';
 import {
     AlertTriangle,
     Calendar,
@@ -33,7 +34,6 @@ import {
     FileText,
     Filter,
     Mail, MessageSquare,
-    MoreHorizontal,
     Phone, Printer,
     RefreshCw,
     Stethoscope,
@@ -41,7 +41,8 @@ import {
     UserPlus,
     XCircle,
     MessageCircle,
-    BellRing
+    BellRing,
+    Loader2
 } from 'lucide-react';
 import { ChevronLeftIcon, ChevronRightIcon, DoubleArrowLeftIcon, DoubleArrowRightIcon } from '@radix-ui/react-icons';
 import { useTranslations } from 'next-intl';
@@ -66,8 +67,25 @@ const getFieldValue = (alert: AlertInstance, sourceColumn: string): any => {
     return value;
 };
 
-const formatFieldValue = (value: any, type: string): string => {
+type DisplayFieldHelpers = {
+    yesLabel: string;
+    noLabel: string;
+    // Translates known enum-like column values (e.g. invoice payment_status) into the current
+    // locale. Returns undefined when the column isn't a recognized enum, so the raw value falls
+    // through untouched instead of showing a translation-missing artifact.
+    translateStatus: (sourceColumn: string, raw: string) => string | undefined;
+};
+
+const formatFieldValue = (value: any, type: string, sourceColumn: string, helpers: DisplayFieldHelpers): string => {
     if (value === null || value === undefined) return '-';
+
+    // Date-only strings (e.g. a birthday "1969-07-29") have no real time component, so
+    // parsing them with `new Date()` treats them as UTC midnight and shifts them back a
+    // day once converted to a negative-offset timezone (e.g. GMT-3). Format them from
+    // their y/m/d parts instead of going through a Date/toLocaleString conversion.
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return formatDisplayDate(value);
+    }
 
     if (type === 'datetime' || (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value))) {
         const date = value instanceof Date ? value : new Date(value);
@@ -83,20 +101,25 @@ const formatFieldValue = (value: any, type: string): string => {
             }
             return String(value);
         case 'boolean':
-            return value ? 'Sí' : 'No';
-        default:
+            return value ? helpers.yesLabel : helpers.noLabel;
+        default: {
+            if (typeof value === 'string') {
+                const translated = helpers.translateStatus(sourceColumn, value);
+                if (translated) return translated;
+            }
             return String(value ?? '-');
+        }
     }
 };
 
-const renderDisplayFields = (alert: AlertInstance, fields: DisplayField[]) => {
+const renderDisplayFields = (alert: AlertInstance, fields: DisplayField[], helpers: DisplayFieldHelpers) => {
     if (!fields || fields.length === 0) return null;
-    
+
     return (
         <div className="mt-1 flex items-center gap-3 flex-wrap text-xs">
             {fields.map((field, idx) => {
                 const value = getFieldValue(alert, field.source_column);
-                const formattedValue = formatFieldValue(value, field.type);
+                const formattedValue = formatFieldValue(value, field.type, field.source_column, helpers);
                 return (
                     <span key={idx} className="flex items-center gap-1">
                         <span className="text-muted-foreground">{field.label}:</span>
@@ -124,6 +147,44 @@ const buildAlertTitle = (title: string, patientName?: string): string => {
     }
 
     return normalizedTitle ? `${normalizedTitle} - ${patientName}` : patientName;
+};
+
+const getAlertPatientIdValue = (alert: any): string => {
+    if (alert?.patient_id) return alert.patient_id;
+    const id = alert?.details_json?.patient?.id ?? alert?.details_json?.patient_id;
+    if (typeof id === 'string') return id;
+    if (typeof id === 'number') return String(id);
+    return '';
+};
+
+type PatientContact = { email: string; phone: string };
+
+// Batch-fetches current contact info for the given patient ids. Called every time alerts are
+// (re)loaded so Email/WhatsApp enablement always reflects the live patient record, not a cache
+// that could go stale if a patient's phone/email changes between reloads.
+const fetchPatientContacts = async (patientIds: string[]): Promise<Record<string, PatientContact>> => {
+    if (patientIds.length === 0) return {};
+    try {
+        const response = await api.post(API_ROUTES.USER_CONTACT, { ids: patientIds });
+        const contacts: any[] = Array.isArray(response) ? response : [];
+        const map: Record<string, PatientContact> = {};
+        contacts.forEach((c) => {
+            if (!c?.id) return;
+            // `effective_phone` is resolved server-side: for a dependent patient with no phone of
+            // their own it holds the responsible contact's phone (so WhatsApp stays enabled and the
+            // send endpoint delivers to the guardian). Falls back to the raw columns for safety.
+            const phone = (typeof c.effective_phone === 'string' && c.effective_phone.trim())
+                || (typeof c.phone_number === 'string' && c.phone_number.trim())
+                || (typeof c.alternative_phone === 'string' && c.alternative_phone.trim())
+                || '';
+            map[String(c.id)] = { email: typeof c.email === 'string' ? c.email.trim() : '', phone };
+        });
+        patientIds.forEach(id => { if (!(id in map)) map[id] = { email: '', phone: '' }; });
+        return map;
+    } catch (error) {
+        console.error('Failed to fetch patient contact info:', error);
+        return {};
+    }
 };
 
 const fetchAlerts = async (status?: string, priority?: string, page: number = 1, limit: number = 50) => {
@@ -234,8 +295,13 @@ const SummaryCard = ({ title, count, accentColor }: { title: string, count: numb
 
 function AlertsCenterPageContent() {
     const t = useTranslations('AlertsCenterPage');
+    // Invoice payment_status values (unpaid/paid/partial/partially_paid) shown in alert display
+    // fields are the same enum as the Invoices page, so reuse its translations instead of
+    // duplicating them here.
+    const tPaymentStatus = useTranslations('InvoicesPage.status');
     const { hasPermission } = usePermissions();
     const { refreshAlerts } = useAlertNotifications();
+    const { open: openPatient } = usePatientView();
     const [alerts, setAlerts] = React.useState<AlertInstance[]>([]);
     const [alertActions, setAlertActions] = React.useState<AlertAction[]>([]);
     const [alertCategories, setAlertCategories] = React.useState<AlertCategory[]>([]);
@@ -254,7 +320,7 @@ function AlertsCenterPageContent() {
     const [snoozeDate, setSnoozeDate] = React.useState<string>('');
     const [page, setPage] = React.useState<number>(1);
     const [limit, setLimit] = React.useState<number>(50);
-    const [bulkActionLoading, setBulkActionLoading] = React.useState<'complete' | 'email' | 'snooze' | null>(null);
+    const [bulkActionLoading, setBulkActionLoading] = React.useState<'complete' | 'email' | 'snooze' | 'whatsapp' | null>(null);
     const [totalPages, setTotalPages] = React.useState<number>(1);
     const [alertsPage, setAlertsPage] = React.useState<number>(1);
     const [alertsLimit, setAlertsLimit] = React.useState<number>(50);
@@ -268,9 +334,45 @@ function AlertsCenterPageContent() {
     const [alertsForNote, setAlertsForNote] = React.useState<string[]>([]);
     const [isAlertEmailDialogOpen, setIsAlertEmailDialogOpen] = React.useState(false);
     const [alertForEmailComposer, setAlertForEmailComposer] = React.useState<AlertInstance | null>(null);
-    const [isAlertWhatsAppDialogOpen, setIsAlertWhatsAppDialogOpen] = React.useState(false);
-    const [alertForWhatsAppComposer, setAlertForWhatsAppComposer] = React.useState<AlertInstance | null>(null);
+    const [sendingWhatsAppAlertIds, setSendingWhatsAppAlertIds] = React.useState<Set<string>>(new Set());
     const [alertStatistics, setAlertStatistics] = React.useState<AlertStatistics>(EMPTY_STATISTICS);
+    const { user } = useAuth();
+    // rule_id -> { code, name } of the WhatsApp CommunicationTemplate configured on that AlertRule (see AlertRule.whatsapp_template_id)
+    const [whatsappTemplateByRuleId, setWhatsappTemplateByRuleId] = React.useState<Record<string, { code: string; name: string }>>({});
+    // patient_id -> current email/phone fetched live from the patient record.
+    // `alert.details_json.patient` is a snapshot taken when the alert was generated, so it can go
+    // stale if the patient's contact info changes afterwards — Email/WhatsApp enablement must reflect
+    // the real record, not that snapshot.
+    const [patientContactByPatientId, setPatientContactByPatientId] = React.useState<Record<string, { email: string; phone: string }>>({});
+
+    React.useEffect(() => {
+        const loadWhatsAppTemplateMap = async () => {
+            try {
+                const [rulesRes, templatesRes] = await Promise.all([
+                    api.get(API_ROUTES.SYSTEM.ALERT_RULES, { search: '', page: '1', limit: '1000', is_active: 'true' }),
+                    api.get(API_ROUTES.SYSTEM.COMMUNICATION_TEMPLATES, { search: '', page: '1', limit: '1000', is_active: 'true', type: 'whatsapp' }),
+                ]);
+                const rules: any[] = Array.isArray(rulesRes) ? rulesRes.filter(r => Object.keys(r).length > 0) : [];
+                const templates: any[] = Array.isArray(templatesRes) ? templatesRes.filter(t => Object.keys(t).length > 0) : [];
+                const templateById = new Map(templates.map(tpl => [String(tpl.id), tpl]));
+                const map: Record<string, { code: string; name: string }> = {};
+                rules.forEach(rule => {
+                    if (!rule.whatsapp_template_id) return;
+                    const tpl = templateById.get(String(rule.whatsapp_template_id));
+                    if (tpl) map[String(rule.id)] = { code: tpl.code, name: tpl.name };
+                });
+                setWhatsappTemplateByRuleId(map);
+            } catch (error) {
+                console.error('Failed to load WhatsApp template map:', error);
+            }
+        };
+        loadWhatsAppTemplateMap();
+    }, []);
+
+    const getAlertWhatsAppTemplate = React.useCallback((alert: AlertInstance): { code: string; name: string } | null => {
+        if (alert.rule_id === undefined || alert.rule_id === null) return null;
+        return whatsappTemplateByRuleId[String(alert.rule_id)] || null;
+    }, [whatsappTemplateByRuleId]);
 
 
     const loadAlerts = React.useCallback(async () => {
@@ -288,6 +390,10 @@ function AlertsCenterPageContent() {
             setTotalPages(actionsTotalPages);
             setAlertCategories(categoriesData);
             setAlertStatistics(statisticsData);
+
+            const patientIds = Array.from(new Set(alertsData.alerts.map(getAlertPatientIdValue).filter(Boolean)));
+            const contactMap = await fetchPatientContacts(patientIds);
+            setPatientContactByPatientId(contactMap);
         } catch (error) {
             console.error('Failed to load alerts:', error);
         } finally {
@@ -315,6 +421,19 @@ function AlertsCenterPageContent() {
         };
         loadActions();
     }, [page, limit]);
+
+    // Auto-completes a single alert after a successful Email/WhatsApp send. Kept separate from
+    // markAsCompleted (no bulk-loading state, no toast) so a completion failure never masks the
+    // send success toast the user already saw.
+    const completeAlertSilently = React.useCallback(async (alertId: string) => {
+        try {
+            await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_COMPLETE, { ids: [alertId] });
+            refreshAlerts();
+            await loadAlerts();
+        } catch (error) {
+            console.error('Failed to auto-complete alert after communication was sent:', error);
+        }
+    }, [refreshAlerts, loadAlerts]);
 
     const markAsCompleted = React.useCallback(async (alertIds: string[]) => {
         setBulkActionLoading('complete');
@@ -389,25 +508,140 @@ function AlertsCenterPageContent() {
         }
     };
 
+    const getAlertPatientId = React.useCallback((alert: AlertInstance): string => getAlertPatientIdValue(alert), []);
+
     const getAlertEmail = React.useCallback((alert: AlertInstance): string => {
-        const email = alert.details_json?.patient?.email;
-        return typeof email === 'string' ? email.trim() : '';
-    }, []);
+        const patientId = getAlertPatientId(alert);
+        return patientContactByPatientId[patientId]?.email || '';
+    }, [getAlertPatientId, patientContactByPatientId]);
 
     const getAlertPhone = React.useCallback((alert: AlertInstance): string => {
-        const phone = alert.details_json?.patient?.phone || alert.details_json?.patient?.phone_number;
-        return typeof phone === 'string' ? phone.trim() : '';
-    }, []);
+        const patientId = getAlertPatientId(alert);
+        return patientContactByPatientId[patientId]?.phone || '';
+    }, [getAlertPatientId, patientContactByPatientId]);
+
+    const openPatientFromAlert = React.useCallback((alert: AlertInstance) => {
+        if (!alert.patient_id) return;
+        const patient = alert.details_json?.patient;
+        const contact = patientContactByPatientId[getAlertPatientId(alert)];
+        openPatient({
+            userId: alert.patient_id,
+            userName: patient?.full_name || alert.patient_name || '',
+            userEmail: contact?.email || undefined,
+            userPhone: contact?.phone || undefined,
+        });
+    }, [openPatient, patientContactByPatientId, getAlertPatientId]);
 
     const openAlertEmailComposer = React.useCallback((alert: AlertInstance) => {
         setAlertForEmailComposer(alert);
         setIsAlertEmailDialogOpen(true);
     }, []);
 
-    const openAlertWhatsAppComposer = React.useCallback((alert: AlertInstance) => {
-        setAlertForWhatsAppComposer(alert);
-        setIsAlertWhatsAppDialogOpen(true);
-    }, []);
+    const sendAlertWhatsApp = React.useCallback(async (alert: AlertInstance) => {
+        const template = getAlertWhatsAppTemplate(alert);
+        const phone = getAlertPhone(alert);
+        const patientId = getAlertPatientId(alert);
+        if (!template || !phone || !patientId || !user?.id) return;
+
+        setSendingWhatsAppAlertIds(prev => new Set(prev).add(alert.id));
+        try {
+            await api.post(API_ROUTES.PATIENTS_SEND_WHATSAPP_TEMPLATE, {
+                id: patientId,
+                template_code: template.code,
+                reference_table: alert.reference_table || undefined,
+                reference_id: alert.reference_id || undefined,
+                alert_instance_id: alert.id,
+                performed_by: user.id,
+            });
+            toast({ title: t('toast.whatsappSent'), description: t('toast.whatsappSentDescription', { count: 1 }) });
+            await completeAlertSilently(alert.id);
+        } catch (error) {
+            console.error('Failed to send WhatsApp message:', error);
+            toast({
+                title: t('toast.whatsappSendFailed'),
+                description: error instanceof Error ? error.message : t('toast.whatsappSendFailedDescription'),
+                variant: 'destructive',
+            });
+        } finally {
+            setSendingWhatsAppAlertIds(prev => {
+                const next = new Set(prev);
+                next.delete(alert.id);
+                return next;
+            });
+        }
+    }, [getAlertWhatsAppTemplate, getAlertPhone, getAlertPatientId, user, completeAlertSilently, t]);
+
+    // Bulk WhatsApp send, done entirely client-side: there is no bulk backend endpoint for
+    // this (only Complete/Ignore/Snooze have one), so this loops the same per-patient
+    // send endpoint the single-alert button already uses — sequentially, not in parallel,
+    // since firing many WhatsApp template sends at once risks tripping YCloud/Meta rate
+    // limits. One bad phone/template only skips that alert, it never aborts the rest.
+    const sendBulkWhatsApp = React.useCallback(async (alertIds: string[]) => {
+        if (!user?.id || alertIds.length === 0) return;
+        setBulkActionLoading('whatsapp');
+        try {
+            const targets = alertIds
+                .map(id => alerts.find(a => a.id === id))
+                .filter((a): a is AlertInstance => !!a);
+
+            let sent = 0;
+            let skipped = 0;
+            let failed = 0;
+            const sentIds: string[] = [];
+
+            for (const alert of targets) {
+                const template = getAlertWhatsAppTemplate(alert);
+                const phone = getAlertPhone(alert);
+                const patientId = getAlertPatientId(alert);
+                if (!template || !phone || !patientId) {
+                    skipped += 1;
+                    continue;
+                }
+                try {
+                    await api.post(API_ROUTES.PATIENTS_SEND_WHATSAPP_TEMPLATE, {
+                        id: patientId,
+                        template_code: template.code,
+                        reference_table: alert.reference_table || undefined,
+                        reference_id: alert.reference_id || undefined,
+                        alert_instance_id: alert.id,
+                        performed_by: user.id,
+                    });
+                    sent += 1;
+                    sentIds.push(alert.id);
+                } catch (error) {
+                    console.error(`Failed to send WhatsApp for alert ${alert.id}:`, error);
+                    failed += 1;
+                }
+            }
+
+            if (sentIds.length > 0) {
+                await api.post(API_ROUTES.SYSTEM.ALERT_INSTANCES_COMPLETE, { ids: sentIds });
+            }
+            setSelectedAlerts(prev => prev.filter(id => !sentIds.includes(id)));
+            refreshAlerts();
+            await loadAlerts();
+
+            toast({
+                title: t('toast.whatsappSent'),
+                description: t('toast.whatsappBulkResultDescription', { sent, skipped, failed }),
+            });
+        } catch (error) {
+            console.error('Failed to send bulk WhatsApp messages:', error);
+            toast({
+                title: t('toast.whatsappSendFailed'),
+                description: error instanceof Error ? error.message : t('toast.whatsappSendFailedDescription'),
+                variant: 'destructive',
+            });
+        } finally {
+            setBulkActionLoading(null);
+        }
+    }, [user, alerts, getAlertWhatsAppTemplate, getAlertPhone, getAlertPatientId, refreshAlerts, loadAlerts, t]);
+
+    const selectedWhatsAppEligibleCount = React.useMemo(() => {
+        return alerts.filter(a =>
+            selectedAlerts.includes(a.id) && Boolean(getAlertPhone(a)) && Boolean(getAlertWhatsAppTemplate(a))
+        ).length;
+    }, [alerts, selectedAlerts, getAlertPhone, getAlertWhatsAppTemplate]);
 
     const handleSelectAlert = (alertId: string, checked: boolean) => {
         setSelectedAlerts(prev =>
@@ -450,6 +684,24 @@ function AlertsCenterPageContent() {
             prev.includes(category) ? prev.filter(c => c !== category) : [...prev, category]
         );
     };
+
+    const translateFieldStatus = React.useCallback((sourceColumn: string, raw: string): string | undefined => {
+        const column = sourceColumn.split('.').pop() || sourceColumn;
+        // `payment_status` is the frontend's field name for this enum; some alert rules are
+        // configured against the DB's `payment_state` column (e.g. invoices.payment_state) instead.
+        if (column !== 'payment_status' && column !== 'payment_state') return undefined;
+        try {
+            return tPaymentStatus(raw.toLowerCase() as any);
+        } catch {
+            return undefined;
+        }
+    }, [tPaymentStatus]);
+
+    const displayFieldHelpers = React.useMemo(() => ({
+        yesLabel: t('fieldValues.yes'),
+        noLabel: t('fieldValues.no'),
+        translateStatus: translateFieldStatus,
+    }), [t, translateFieldStatus]);
 
     const summaryCounts = {
         total: Number(alertStatistics.total_alertas_activas),
@@ -580,21 +832,42 @@ function AlertsCenterPageContent() {
                                                 <div className="flex-1 min-w-0 flex flex-col gap-2">
                                                     {/* Row 1: title + details */}
                                                     <div>
-                                                        <p className="font-semibold leading-snug">{alert.title}</p>
-                                                        {renderDisplayFields(alert, (alert as any).ui_display_config?.fields || [])}
+                                                        {alert.patient_id ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => openPatientFromAlert(alert)}
+                                                                title={t('actions.viewPatient')}
+                                                                className="group flex items-start gap-1.5 text-left font-semibold leading-snug text-primary hover:underline focus-visible:underline focus-visible:outline-none"
+                                                            >
+                                                                <span>{alert.title}</span>
+                                                                <User className="mt-0.5 h-3.5 w-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100" />
+                                                            </button>
+                                                        ) : (
+                                                            <p className="font-semibold leading-snug">{alert.title}</p>
+                                                        )}
+                                                        {renderDisplayFields(alert, (alert as any).ui_display_config?.fields || [], displayFieldHelpers)}
                                                         {(() => {
                                                             const actions = alert.actions || [];
                                                             return actions.length > 0 ? (
                                                                 <div className="mt-1 flex items-center gap-1 flex-wrap">
                                                                     <span className="text-xs text-muted-foreground">{t('actionHistory.title')}:</span>
-                                                                    {actions.map(action => (
-                                                                        <span key={action.id} className="text-xs px-2 py-0.5 bg-muted rounded-full">
-                                                                            {action.action_type === 'SEND_EMAIL' && t('actionHistory.sendEmail')}
-                                                                            {action.action_type === 'SEND_SMS' && t('actionHistory.sendSms')}
-                                                                            {action.action_type === 'SEND_WHATSAPP' && t('actionHistory.sendWhatsApp')}
-                                                                            {action.action_type !== 'SEND_EMAIL' && action.action_type !== 'SEND_SMS' && action.action_type !== 'SEND_WHATSAPP' && action.action_type}
-                                                                        </span>
-                                                                    ))}
+                                                                    {actions.map(action => {
+                                                                        const knownActionLabels: Record<string, string> = {
+                                                                            SEND_EMAIL: t('actionHistory.sendEmail'),
+                                                                            SEND_SMS: t('actionHistory.sendSms'),
+                                                                            SEND_WHATSAPP: t('actionHistory.sendWhatsApp'),
+                                                                            COMPLETE: t('actionHistory.complete'),
+                                                                            IGNORE: t('actionHistory.ignore'),
+                                                                            NOTE: t('actionHistory.note'),
+                                                                            CALL: t('actionHistory.call'),
+                                                                            SNOOZE: t('actionHistory.snooze'),
+                                                                        };
+                                                                        return (
+                                                                            <span key={action.id} className="text-xs px-2 py-0.5 bg-muted rounded-full">
+                                                                                {knownActionLabels[action.action_type] ?? action.action_type}
+                                                                            </span>
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                             ) : null;
                                                         })()}
@@ -608,13 +881,14 @@ function AlertsCenterPageContent() {
                                                             {t(`status.${alert.status.toLowerCase()}` as any)}
                                                         </div>
                                                     </div>
-                                                    {/* Row 3: action buttons — icon-only, same row */}
-                                                    <div className="flex items-center gap-1 border-t border-border/50 pt-2">
+                                                    {/* Row 3: action buttons — icon-only, all actions inline, same row */}
+                                                    <div className="flex items-center gap-1 border-t border-border/50 pt-2 flex-wrap">
                                                         {(() => {
                                                             const email = getAlertEmail(alert);
                                                             const phone = getAlertPhone(alert);
                                                             const emailEnabled = Boolean(email);
-                                                            const whatsappEnabled = Boolean(phone);
+                                                            const whatsappEnabled = Boolean(phone) && Boolean(getAlertWhatsAppTemplate(alert));
+                                                            const whatsappSending = sendingWhatsAppAlertIds.has(alert.id);
 
                                                             return (
                                                                 <>
@@ -630,42 +904,39 @@ function AlertsCenterPageContent() {
                                                                 <Mail className="h-4 w-4" />
                                                             </Button>
                                                         </Can>
-                                                        <Can permission={ALERT_CENTER_PERMISSIONS.COMPLETE}>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.markCompleted')} onClick={() => markAsCompleted([alert.id])}><CheckCircle className="h-4 w-4" /></Button>
+                                                        {statusFilter !== '' && (
+                                                            <Can permission={ALERT_CENTER_PERMISSIONS.COMPLETE}>
+                                                                <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.markCompleted')} onClick={() => markAsCompleted([alert.id])}><CheckCircle className="h-4 w-4" /></Button>
+                                                            </Can>
+                                                        )}
+                                                        <Can permission={ALERT_CENTER_PERMISSIONS.SEND_WHATSAPP}>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8"
+                                                                title={whatsappEnabled ? t('actions.sendWhatsApp') : t('actions.sendWhatsAppUnavailable')}
+                                                                onClick={() => sendAlertWhatsApp(alert)}
+                                                                disabled={!whatsappEnabled || whatsappSending}
+                                                            >
+                                                                {whatsappSending ? (
+                                                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                                                ) : (
+                                                                    <MessageCircle className="h-4 w-4" />
+                                                                )}
+                                                            </Button>
                                                         </Can>
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent>
-                                                                <Can permission={ALERT_CENTER_PERMISSIONS.SEND_WHATSAPP}>
-                                                                    <DropdownMenuLabel>{t('actionsGroups.communication')}</DropdownMenuLabel>
-                                                                    <DropdownMenuItem
-                                                                        onClick={() => openAlertWhatsAppComposer(alert)}
-                                                                        disabled={!whatsappEnabled}
-                                                                    >
-                                                                        <MessageCircle className="mr-2 h-4 w-4" />
-                                                                        {whatsappEnabled ? t('actions.sendWhatsApp') : t('actions.sendWhatsAppUnavailable')}
-                                                                    </DropdownMenuItem>
-                                                                </Can>
-                                                                <Can permission={ALERT_CENTER_PERMISSIONS.REGISTER_CALL}>
-                                                                    <DropdownMenuItem onClick={() => { setAlertsToRegisterCall([alert.id]); setRegisterCallDialogOpen(true); }}><Phone className="mr-2 h-4 w-4" />{t('actions.registerCall')}</DropdownMenuItem>
-                                                                </Can>
-                                                                <Can permission={ALERT_CENTER_PERMISSIONS.SNOOZE}>
-                                                                    <DropdownMenuSeparator />
-                                                                    <DropdownMenuLabel>{t('actionsGroups.management')}</DropdownMenuLabel>
-                                                                    <DropdownMenuItem onClick={() => { setAlertsToSnooze([alert.id]); setSnoozeDialogOpen(true); }}><Clock className="mr-2 h-4 w-4" />{t('actions.snooze')}</DropdownMenuItem>
-                                                                </Can>
-                                                                <Can permission={ALERT_CENTER_PERMISSIONS.IGNORE}>
-                                                                    <DropdownMenuItem onClick={() => { setAlertsToIgnore([alert.id]); setIgnoreDialogOpen(true); }}><XCircle className="mr-2 h-4 w-4" />{t('actions.ignore')}</DropdownMenuItem>
-                                                                </Can>
-                                                                <Can permission={ALERT_CENTER_PERMISSIONS.ADD_NOTES}>
-                                                                    <DropdownMenuSeparator />
-                                                                    <DropdownMenuLabel>{t('actionsGroups.other')}</DropdownMenuLabel>
-                                                                    <DropdownMenuItem onClick={() => { setAlertsForNote([alert.id]); setAddNoteDialogOpen(true); }}><FileText className="mr-2 h-4 w-4" />{t('actions.addNote')}</DropdownMenuItem>
-                                                                </Can>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
+                                                        <Can permission={ALERT_CENTER_PERMISSIONS.REGISTER_CALL}>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.registerCall')} onClick={() => { setAlertsToRegisterCall([alert.id]); setRegisterCallDialogOpen(true); }}><Phone className="h-4 w-4" /></Button>
+                                                        </Can>
+                                                        <Can permission={ALERT_CENTER_PERMISSIONS.SNOOZE}>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.snooze')} onClick={() => { setAlertsToSnooze([alert.id]); setSnoozeDialogOpen(true); }}><Clock className="h-4 w-4" /></Button>
+                                                        </Can>
+                                                        <Can permission={ALERT_CENTER_PERMISSIONS.IGNORE}>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.ignore')} onClick={() => { setAlertsToIgnore([alert.id]); setIgnoreDialogOpen(true); }}><XCircle className="h-4 w-4" /></Button>
+                                                        </Can>
+                                                        <Can permission={ALERT_CENTER_PERMISSIONS.ADD_NOTES}>
+                                                            <Button variant="ghost" size="icon" className="h-8 w-8" title={t('actions.addNote')} onClick={() => { setAlertsForNote([alert.id]); setAddNoteDialogOpen(true); }}><FileText className="h-4 w-4" /></Button>
+                                                        </Can>
                                                                 </>
                                                             );
                                                         })()}
@@ -916,17 +1187,10 @@ function AlertsCenterPageContent() {
                     }
                 }}
                 alert={alertForEmailComposer}
-            />
-
-            <AlertWhatsAppComposerDialog
-                open={isAlertWhatsAppDialogOpen}
-                onOpenChange={(open) => {
-                    setIsAlertWhatsAppDialogOpen(open);
-                    if (!open) {
-                        setAlertForWhatsAppComposer(null);
-                    }
+                patientEmail={alertForEmailComposer ? getAlertEmail(alertForEmailComposer) : ''}
+                onSent={() => {
+                    if (alertForEmailComposer) completeAlertSilently(alertForEmailComposer.id);
                 }}
-                alert={alertForWhatsAppComposer}
             />
 
             {/* Floating Bulk Actions Bar */}
@@ -940,10 +1204,13 @@ function AlertsCenterPageContent() {
                         if (alert) openAlertEmailComposer(alert);
                     }}
                     onSnooze={() => { if (!bulkActionLoading) { setAlertsToSnooze(selectedAlerts); setSnoozeDialogOpen(true); } }}
+                    onSendWhatsApp={() => sendBulkWhatsApp(selectedAlerts)}
                     onDeselectAll={() => setSelectedAlerts([])}
                     canComplete={hasPermission(ALERT_CENTER_PERMISSIONS.COMPLETE)}
                     canSendEmail={hasPermission(ALERT_CENTER_PERMISSIONS.SEND_EMAIL)}
                     canSnooze={hasPermission(ALERT_CENTER_PERMISSIONS.SNOOZE)}
+                    canSendWhatsApp={hasPermission(ALERT_CENTER_PERMISSIONS.SEND_WHATSAPP)}
+                    whatsAppEligibleCount={selectedWhatsAppEligibleCount}
                 />
             </Can>
 

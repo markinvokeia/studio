@@ -1,0 +1,571 @@
+{
+  "name": "Send Email",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "emails",
+              "type": "array"
+            },
+            {
+              "name": "subject"
+            },
+            {
+              "name": "template"
+            },
+            {
+              "name": "data",
+              "type": "object"
+            },
+            {
+              "name": "cc",
+              "type": "array"
+            },
+            {
+              "name": "bcc",
+              "type": "array"
+            },
+            {
+              "name": "attachement"
+            },
+            {
+              "name": "attachment_name"
+            },
+            {
+              "name": "attachment_mime_type"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1152,
+        16
+      ],
+      "id": "af427798-2a72-40f4-9a60-dabc745d8bdd",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -80,
+        -96
+      ],
+      "id": "90200941-649a-40e1-b0b8-455ce914ca8e",
+      "name": "Loop over emails"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "emails",
+        "options": {
+          "destinationFieldName": "email"
+        }
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -288,
+        -96
+      ],
+      "id": "a98d9055-7502-429c-9f40-ce28ad0a2b27",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d21dbba7-187f-4e82-bb95-1ed467ea891f",
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "eca785ef-e091-4efd-a088-c9ad8b00b8a6",
+              "name": "errors",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        128,
+        -224
+      ],
+      "id": "79651b74-cfc6-426b-85b6-d5715f0978a9",
+      "name": "Sucess Response"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d21dbba7-187f-4e82-bb95-1ed467ea891f",
+              "name": "success",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "ce88d9df-2aae-47b7-8c61-5a2db3ad212f",
+              "name": "error",
+              "value": "={{ $json.labelIds }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        16
+      ],
+      "id": "5be731c9-658b-4b06-8e12-d3e754df65b3",
+      "name": "Error Responses"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "XLuZ2nk6mOfWmw9B",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/XLuZ2nk6mOfWmw9B",
+          "cachedResultName": "Build Email"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "template": "={{ $json.template }}",
+            "data": "={{ $json.data }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "template",
+              "displayName": "template",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "data",
+              "displayName": "data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -944,
+        16
+      ],
+      "id": "0489a945-2f4c-475d-a15b-b1a81a51c485",
+      "name": "Call 'Build Email'"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7f1af3a3-c528-4ca5-a250-9647c58601a4",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -736,
+        16
+      ],
+      "id": "e1634f4d-dd69-4388-9f46-20218a763cae",
+      "name": "Success?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e58e19c0-38bd-4bd6-b934-f79016f5b7a7",
+              "name": "emails",
+              "value": "={{ $('When Executed by Another Workflow').item.json.emails }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -496,
+        -96
+      ],
+      "id": "440efc0a-a1e8-4af5-8c4c-f6d990e31872",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "base64",
+        "options": {
+          "fileName": "={{ $('When Executed by Another Workflow').item.json.attachment_name || 'documento.pdf' }}",
+          "mimeType": "={{ $('When Executed by Another Workflow').item.json.attachment_mime_type || 'application/pdf' }}"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        544,
+        -80
+      ],
+      "id": "4c3b2343-c641-44b8-aab8-ccdf35b3da4d",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "71de6c1f-52bb-48cd-9711-ecd305afe525",
+              "leftValue": "={{ $('When Executed by Another Workflow').item.json.attachement }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        128,
+        16
+      ],
+      "id": "5e5b825c-9d68-487c-b25c-8982ddca8d29",
+      "name": "Has attachement?"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Loop over emails').item.json.email }}",
+        "subject": "={{ $('When Executed by Another Workflow').item.json.subject }}",
+        "message": "={{ $('Call \\'Build Email\\'').item.json.html }}",
+        "options": {
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        752,
+        -80
+      ],
+      "id": "df43af92-b3d8-4e49-abfc-856d42e2f651",
+      "name": "Send email with attachement",
+      "webhookId": "7d404a40-8e21-455c-91d1-79a615321000",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NUeedDpjoyikxk43",
+          "name": "Gmail account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.email }}",
+        "subject": "={{ $('When Executed by Another Workflow').item.json.subject }}",
+        "message": "={{ $('Call \\'Build Email\\'').item.json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        336,
+        112
+      ],
+      "id": "1795c246-2712-4c34-9ffe-c11441e45087",
+      "name": "Send email",
+      "webhookId": "7d404a40-8e21-455c-91d1-79a615321000",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NUeedDpjoyikxk43",
+          "name": "Gmail account 2"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4397758c-8f32-4b42-ac5a-3b42b894c99b",
+              "name": "base64",
+              "value": "={{ $('When Executed by Another Workflow').item.json.attachement }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        336,
+        -80
+      ],
+      "id": "da8b5f39-605b-4a86-b820-d1072bf42ad1",
+      "name": "Set base64"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "emails": [
+            "raidel@invokeia.com",
+            "test1@example.com",
+            "test2@example.com"
+          ],
+          "cc": [],
+          "bcc": [],
+          "subject": "Test email template",
+          "template": "password-reset-email",
+          "data": {},
+          "attachement": ""
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Call 'Build Email'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop over emails": {
+      "main": [
+        [
+          {
+            "node": "Sucess Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Has attachement?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop over emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Responses": {
+      "main": [
+        [
+          {
+            "node": "Loop over emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Build Email'": {
+      "main": [
+        [
+          {
+            "node": "Success?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Success?": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Send email with attachement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has attachement?": {
+      "main": [
+        [
+          {
+            "node": "Set base64",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email with attachement": {
+      "main": [
+        [
+          {
+            "node": "Loop over emails",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        [
+          {
+            "node": "Loop over emails",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set base64": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c3d431c5-9a80-4bee-b80b-d1485b7684d3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"
+  },
+  "nodeGroups": [],
+  "id": "D9eorK93mFaLkKnM",
+  "tags": []
+}

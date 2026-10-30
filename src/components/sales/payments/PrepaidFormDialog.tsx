@@ -15,9 +15,10 @@ import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { PaymentMethod, User } from '@/lib/types';
-import { cn, toLocalISOString } from '@/lib/utils';
+import { cn, preserveTimeIfToday, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format, parseISO } from 'date-fns';
@@ -26,13 +27,16 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { currencySchema } from '@/lib/currency';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 const prepaidFormSchema = (t: (key: string) => string) => z.object({
     user_id: z.string().min(1, t('validation.userRequired')),
     payment_amount: z.coerce.number().positive(t('validation.amountPositive')),
     payment_method_id: z.string().min(1, t('validation.methodRequired')),
     created_at: z.date({ required_error: t('validation.dateRequired') }),
-    currency: z.enum(['UYU', 'USD']),
+    currency: currencySchema,
     notes: z.string().optional(),
     is_historical: z.boolean().default(false),
 });
@@ -70,6 +74,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
     const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
     const [pendingData, setPendingData] = React.useState<PrepaidFormValues | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const form = useForm<PrepaidFormValues>({
         resolver: zodResolver(prepaidFormSchema(tValidation)),
         defaultValues: {
@@ -77,7 +82,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
             payment_amount: 0,
             payment_method_id: '',
             created_at: new Date(),
-            currency: clinicInfo?.currency ?? 'UYU',
+            currency: clinicInfo?.currency ?? getClinicCurrency(),
             notes: '',
             is_historical: false,
         },
@@ -93,7 +98,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
             payment_amount: 0,
             payment_method_id: '',
             created_at: new Date(),
-            currency: clinicInfo?.currency ?? 'UYU',
+            currency: clinicInfo?.currency ?? getClinicCurrency(),
             notes: '',
             is_historical: false,
         });
@@ -128,7 +133,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
                 user,
                 client_user: clientUser,
                 query: {
-                    payment_date: toLocalISOString(pendingData.created_at),
+                    payment_date: toLocalISOString(preserveTimeIfToday(pendingData.created_at)),
                     amount: pendingData.payment_amount,
                     method: selectedMethod?.name,
                     payment_method_id: pendingData.payment_method_id,
@@ -167,7 +172,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
                         <DialogTitle>{t('prepaidDialog.title')}</DialogTitle>
                     </DialogHeader>
                     <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+                        <form onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
                             <DialogBody className="space-y-4 px-6 py-4">
                                 {submissionError && (
                                     <Alert variant="destructive">
@@ -219,13 +224,7 @@ export function PrepaidFormDialog({ open, onOpenChange, initialUser, onSaveSucce
                                     <FormField control={form.control} name="currency" render={({ field }) => (
                                         <FormItem>
                                             <FormLabel>{t('prepaidDialog.currency')}</FormLabel>
-                                            <Select onValueChange={field.onChange} value={field.value}>
-                                                <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="USD">USD</SelectItem>
-                                                    <SelectItem value="UYU">UYU</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                            <FormControl><CurrencySelect value={field.value} onChange={field.onChange} /></FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )} />

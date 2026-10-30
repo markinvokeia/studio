@@ -1,32 +1,51 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
+import { Checkbox } from '@/components/ui/checkbox';
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from '@/components/ui/context-menu';
+
 import type { Locale } from 'date-fns';
-import { addDays, format, isSameDay, set, startOfWeek } from 'date-fns';
+import { addDays, format, isSameDay, parseISO, set } from 'date-fns';
 
 import { DEFAULT_SCROLL_HOUR, GROUPED_COLUMN_MIN_WIDTH, HOUR_SLOT_HEIGHT, TABLET_MAX_RESOURCE_COLS } from './calendar-constants';
-import type { CalendarBreakpoint, CalendarEvent, CalendarGroupBy, CalendarGroupingColumn, CalendarSlotClickHandler, CalendarView } from './calendar-types';
+import type { CalendarBreakpoint, CalendarDragMode, CalendarDragResolver, CalendarEvent, CalendarEventDropHandler, CalendarGroupBy, CalendarGroupingColumn, CalendarSlotClickHandler, CalendarSlotContextMenuContext, CalendarSlotContextMenuRenderer, CalendarView } from './calendar-types';
 import {
+  dateFromDayMinutes,
   filterEventsByDayAndGroup,
+  getCalendarViewStartDate,
   getEventStyle,
   getEventsWithLayout,
+  resolveTimeGridTarget,
   slotTimeFromOffset,
+  snapMinutesFromOffset,
 } from './calendar-utils';
+import { CalendarAllDayBand } from './calendar-all-day-band';
+import { CalendarDragGhost } from './calendar-drag-ghost';
+import { useCalendarDragDrop } from '@/hooks/use-calendar-drag-drop';
+import { DEFAULT_SLOT_DURATION, MINUTES_IN_DAY } from './calendar-constants';
 import { CalendarEventDay } from './calendar-event-day';
 import { CalendarTimeColumn } from './calendar-time-column';
 import { TimeSlotDividers } from './calendar-time-column';
+import { CalendarHourRail } from './calendar-hour-rail';
 import { CalendarGapOverlays } from './calendar-gap-overlay';
+import { CalendarDraftPreviewBand } from './calendar-draft-preview';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
-import { isSlotBlocked } from './calendar-gaps';
+import { isRangeBlocked, isSlotBlocked } from './calendar-gaps';
 import type { Gap, BlockedRange } from './calendar-gaps';
+
+/** Referencia estable para columnas sin eventos: evita un array nuevo por celda. */
+const EMPTY_EVENTS: CalendarEvent[] = [];
 
 interface CalendarDayViewGroupedProps {
   currentDate: Date;
   view: CalendarView;
   numDays: number;
   events: CalendarEvent[];
+  /** Ítems de todo el día, para la banda fija bajo el nombre del día. */
+  allDayEvents?: CalendarEvent[];
   groupBy: CalendarGroupBy;
   groupingColumns: CalendarGroupingColumn[];
   currentTime: Date;
@@ -39,15 +58,27 @@ interface CalendarDayViewGroupedProps {
   onEventContextMenu?: (data: any) => React.ReactNode;
   onEventContextMenuOpen?: (data: any) => void;
   onSlotClick?: CalendarSlotClickHandler;
-  onSlotContextMenu?: CalendarSlotClickHandler;
-  inlineDraft?: import('./calendar-types').InlineDraft | null;
-  renderInlineDraft?: () => React.ReactNode;
+  renderSlotContextMenu?: CalendarSlotContextMenuRenderer;
   hourSlotHeight?: number;
   slotMinutes?: number;
   gaps?: Gap[];
   selectedGapKey?: string;
   onGapClick?: (gap: Gap) => void;
   blockedRanges?: BlockedRange[];
+  /** Whether the main hour gutter shows the hour labels (toggled via GMT checkbox). */
+  showTimeColumn?: boolean;
+  onToggleTimeColumn?: (value: boolean) => void;
+  /** Hide the 60px hour gutter entirely (custom mode) — hours stay on each column rail. */
+  hideTimeGutter?: boolean;
+  enableEventDrag?: boolean;
+  canDragEvent?: (event: CalendarEvent, mode: CalendarDragMode) => boolean;
+  onEventDrop?: CalendarEventDropHandler;
+  onEventResize?: CalendarEventDropHandler;
+  /** Pasar al período anterior (-1) o siguiente (+1) sin cortar el arrastre, cuando
+   *  el puntero se sostiene contra el borde izquierdo o derecho de la rejilla. */
+  onNavigatePeriod?: (direction: -1 | 1) => void;
+  /** Days of week (0=Sunday…6=Saturday) to hide as day-blocks. Default []. */
+  hiddenWeekdays?: number[];
 }
 
 export function CalendarDayViewGrouped({
@@ -55,6 +86,7 @@ export function CalendarDayViewGrouped({
   view,
   numDays,
   events,
+  allDayEvents = [],
   groupBy,
   groupingColumns,
   currentTime,
@@ -67,20 +99,48 @@ export function CalendarDayViewGrouped({
   onEventContextMenu,
   onEventContextMenuOpen,
   onSlotClick,
-  onSlotContextMenu,
-  inlineDraft,
-  renderInlineDraft,
+  renderSlotContextMenu,
   hourSlotHeight = HOUR_SLOT_HEIGHT,
   slotMinutes,
   gaps,
   selectedGapKey,
   onGapClick,
   blockedRanges,
+  showTimeColumn = false,
+  onToggleTimeColumn,
+  hideTimeGutter = false,
+  enableEventDrag = false,
+  canDragEvent,
+  onEventDrop,
+  onEventResize,
+  onNavigatePeriod,
+  hiddenWeekdays,
 }: CalendarDayViewGroupedProps) {
-  const startDay = view === 'week' ? startOfWeek(currentDate, { weekStartsOn: 1 }) : currentDate;
-  const days = Array.from({ length: numDays }, (_, i) => addDays(startDay, i));
+  const t = useTranslations('Calendar');
+  const startDay = view === 'week'
+    ? getCalendarViewStartDate(currentDate, view)
+    : currentDate;
+  const startDayKey = format(startDay, 'yyyy-MM-dd');
+  // Memoizado por su clave de fecha y no por la instancia de Date: `currentDate`
+  // cambia de identidad en cada render del padre aunque sea el mismo día. La fecha
+  // se reconstruye adentro para que la dependencia sea el string. Normalizar a
+  // medianoche no afecta a nadie: los consumidores usan `format`, `isSameDay` o
+  // `set`, que pisa la hora.
+  const hiddenWeekdaysKey = hiddenWeekdays?.join(',') ?? '';
+  const days = React.useMemo(() => {
+    const allDays = Array.from({ length: numDays }, (_, i) => addDays(parseISO(startDayKey), i));
+    if (!hiddenWeekdaysKey) return allDays;
+    const hidden = hiddenWeekdaysKey.split(',').map(Number);
+    // Si el filtro se come todos los días del rango (p.ej. vista "Día" parada en
+    // el día oculto), se muestran igual en vez de una grilla vacía.
+    const filtered = allDays.filter((day) => !hidden.includes(day.getDay()));
+    return filtered.length > 0 ? filtered : allDays;
+  }, [startDayKey, numDays, hiddenWeekdaysKey]);
+  // Custom mode hides the 60px gutter; the leading grid track collapses to 0.
+  const gutterTrack = hideTimeGutter ? '' : '60px ';
 
   const columns = groupingColumns;
+  const [contextSlot, setContextSlot] = React.useState<CalendarSlotContextMenuContext | null>(null);
   const isTablet = breakpoint === 'tablet';
   const groupedColumnMinWidth = isTablet ? 360 : GROUPED_COLUMN_MIN_WIDTH;
   const groupedDayGap = 1.6;
@@ -88,6 +148,21 @@ export function CalendarDayViewGrouped({
   const effectiveColCount = isTablet ? Math.min(columns.length, TABLET_MAX_RESOURCE_COLS) : columns.length;
   const groupedDayMinWidth = effectiveColCount * groupedColumnMinWidth;
   const contentMinWidth = `${60 + (days.length * groupedDayMinWidth) + ((days.length - 1) * groupedDayGap)}px`;
+
+  // Un solo recorrido por (día x columna) en vez de uno por celda en cada render:
+  // `filterEventsByDayAndGroup` barre el array COMPLETO de la semana cada vez que
+  // se lo llama, y `getEventsWithLayout` reconstruye copias de cada evento. Con el
+  // tick de un minuto del reloj eso se pagaba una vez por minuto sobre toda la grilla.
+  const layoutByColumn = React.useMemo(() => {
+    const map = new Map<string, CalendarEvent[]>();
+    days.forEach((day) => {
+      const dayKey = format(day, 'yyyy-MM-dd');
+      columns.forEach((col) => {
+        map.set(`${dayKey}|${col.value}`, getEventsWithLayout(filterEventsByDayAndGroup(events, day, groupBy, col.value)));
+      });
+    });
+    return map;
+  }, [days, columns, events, groupBy]);
 
   const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * hourSlotHeight;
   const showTimeIndicator = days.some((day) => isSameDay(day, currentTime));
@@ -108,27 +183,91 @@ export function CalendarDayViewGrouped({
     prevHourRef.current = hourSlotHeight;
   }, [hourSlotHeight]);
 
-  // Center the clicked point vertically when an inline draft opens; restore the
-  // previous vertical scroll when it closes. We intentionally do NOT scroll
-  // horizontally to the column (no left/right jump) — only up/down.
-  const draftKey = inlineDraft ? inlineDraft.date.getTime() : null;
-  const savedScrollMinRef = React.useRef<number | null>(null);
-  React.useEffect(() => {
-    const c = scrollContainerRef.current;
-    if (!c) return;
-    if (draftKey !== null) {
-      if (savedScrollMinRef.current === null) {
-        savedScrollMinRef.current = (c.scrollTop / hourSlotHeight) * 60;
-      }
-      const d = new Date(draftKey);
-      const clickMin = d.getHours() * 60 + d.getMinutes();
-      const top = (clickMin / 60) * hourSlotHeight;
-      c.scrollTo({ top: Math.max(0, top - c.clientHeight / 2), behavior: 'smooth' });
-    } else if (savedScrollMinRef.current !== null) {
-      c.scrollTo({ top: Math.max(0, (savedScrollMinRef.current / 60) * hourSlotHeight), behavior: 'smooth' });
-      savedScrollMinRef.current = null;
+  // ── Arrastre y redimensionado ───────────────────────────────────────────
+  const bodyRef = React.useRef<HTMLDivElement>(null);
+  const slotForSnap = slotMinutes && slotMinutes > 0 ? slotMinutes : DEFAULT_SLOT_DURATION;
+
+  // Traduce la posición del puntero a un candidato {start, end}. Se lee por ref
+  // dentro del loop del gesto, así que se memoiza para que su identidad no cambie
+  // a mitad del arrastre.
+  const resolveDrag = React.useCallback<CalendarDragResolver>((gesture, pointer) => {
+    const target = resolveTimeGridTarget(pointer.x, pointer.y, bodyRef.current);
+    if (!target) return null;
+
+    // Mover conserva la duración tal cual: el mínimo de un slot es solo para el
+    // resize, si no una cita de 10 min pasaría a 15 al arrastrarla.
+    const durationMin = (gesture.originalEnd.getTime() - gesture.originalStart.getTime()) / 60000;
+    // Un resize no cambia de columna: solo mueve un borde dentro de su día.
+    const isResize = gesture.mode !== 'move';
+    const day = isResize ? gesture.sourceTarget.day : target.day;
+    const rect = isResize ? gesture.sourceTarget.element.getBoundingClientRect() : target.rect;
+    const offsetY = pointer.y - rect.top;
+
+    let startMin: number;
+    let endMin: number;
+    if (gesture.mode === 'move') {
+      // Se descuenta dónde se agarró la card, si no salta para poner su inicio
+      // bajo el cursor. El tope deja la cita entera dentro del día: cruzar
+      // medianoche la dibujaría cortada y desaparecería del día siguiente.
+      startMin = snapMinutesFromOffset(offsetY - gesture.grabOffsetY, hourSlotHeight, slotForSnap);
+      startMin = Math.min(startMin, MINUTES_IN_DAY - durationMin);
+      endMin = startMin + durationMin;
+    } else if (gesture.mode === 'resize-end') {
+      startMin = gesture.originalStart.getHours() * 60 + gesture.originalStart.getMinutes();
+      endMin = snapMinutesFromOffset(offsetY, hourSlotHeight, slotForSnap);
+      endMin = Math.max(startMin + slotForSnap, Math.min(endMin, MINUTES_IN_DAY));
+    } else {
+      endMin = gesture.originalEnd.getHours() * 60 + gesture.originalEnd.getMinutes();
+      startMin = snapMinutesFromOffset(offsetY, hourSlotHeight, slotForSnap);
+      startMin = Math.min(Math.max(0, startMin), endMin - slotForSnap);
     }
-  }, [draftKey, hourSlotHeight]);
+
+    const start = dateFromDayMinutes(day, startMin);
+    const end = dateFromDayMinutes(day, endMin);
+    const groupValue = isResize ? gesture.sourceTarget.groupValue : target.groupValue;
+    // La banda de "no disponible" es una regla de la agenda de pacientes: acota
+    // cuándo se puede atender, no cuándo el equipo puede anotarse algo. Una nota o
+    // un recordatorio puesto justo en el hueco de cierre —o en un feriado— es un
+    // caso legítimo, así que el bloqueo solo se le aplica a las citas.
+    const enforcesBlocked = gesture.event.data?.kind !== 'reminder';
+    return {
+      target: isResize ? gesture.sourceTarget : target,
+      candidate: { start, end, invalid: enforcesBlocked && isRangeBlocked(blockedRanges, start, end, groupValue) },
+    };
+  }, [blockedRanges, hourSlotHeight, slotForSnap]);
+
+  const handleDragCommit = React.useCallback((result: Parameters<CalendarEventDropHandler>[0]) => {
+    if (result.mode === 'move') onEventDrop?.(result);
+    else onEventResize?.(result);
+  }, [onEventDrop, onEventResize]);
+
+  const buildDragContext = React.useCallback((target: { groupValue?: string }) => (
+    groupBy !== 'none' && target.groupValue ? { groupBy, value: target.groupValue } : undefined
+  ), [groupBy]);
+
+  // Con un arrastre en curso se apaga el menú contextual de las cards, para que el
+  // long-press de Radix no salte a mitad del gesto en pantallas táctiles. Un solo
+  // re-render al empezar y otro al terminar.
+  const [isDraggingEvent, setIsDraggingEvent] = React.useState(false);
+  const handleDragStart = React.useCallback(() => setIsDraggingEvent(true), []);
+  const handleDragEnd = React.useCallback(() => setIsDraggingEvent(false), []);
+
+  const { onDragPointerDown, dragStateRef, store: dragStore, isDraggable } = useCalendarDragDrop({
+    enabled: enableEventDrag && (!!onEventDrop || !!onEventResize),
+    scrollRef: scrollContainerRef,
+    resolve: resolveDrag,
+    canDrag: canDragEvent,
+    onCommit: handleDragCommit,
+    onDragStart: handleDragStart,
+    onDragEnd: handleDragEnd,
+    buildContext: buildDragContext,
+    horizontalAutoScroll: true,
+    // Arrastrar contra el borde y sostener pasa al día/semana de al lado: mover una
+    // cita a la semana que viene no obliga a soltarla, navegar y volver a agarrarla.
+    onEdgeNavigate: onNavigatePeriod,
+    // Táctil en desktop/tablet grande: el carrusel de la vista móvil no está en
+    // juego acá, así que alcanza con el hold + movimiento del hook.
+  });
 
   const slotDateFromEvent = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -139,6 +278,9 @@ export function CalendarDayViewGrouped({
 
   const handleSlotClick = (day: Date, col: CalendarGroupingColumn, e: React.MouseEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
+    // Este click cierra un arrastre: sin la guarda, soltar una cita fuera de su
+    // card abriría además la creación inline en el slot de destino.
+    if (dragStateRef.current.didDrag) return;
     // Ignore synthetic clicks that bubbled from portalled children (Sheets, DropdownMenu, ContextMenu).
     if (!e.currentTarget.contains(e.target as Node)) return;
     if (onSlotClick) {
@@ -150,17 +292,19 @@ export function CalendarDayViewGrouped({
   };
 
   const handleSlotContextMenu = (day: Date, col: CalendarGroupingColumn, e: React.MouseEvent<HTMLDivElement>) => {
-    if (!onSlotContextMenu) return;
+    if (!renderSlotContextMenu) return;
     // An event's own context menu (radix ContextMenuTrigger) already handled and
     // preventDefault'd the right-click — don't also open the slot menu over it.
     if (e.defaultPrevented) return;
     if ((e.target as HTMLElement).closest('.event-in-day-view, .event')) return;
     if (!e.currentTarget.contains(e.target as Node)) return;
     const date = slotDateFromEvent(day, e);
-    if (isSlotBlocked(blockedRanges, date, col.value)) { e.preventDefault(); return; } // disable create/reminder on blocked slots
-    e.preventDefault();
     const context = groupBy !== 'none' ? { groupBy, value: col.value } : undefined;
-    onSlotContextMenu(date, context);
+    setContextSlot({
+      date,
+      context,
+      isBlocked: isSlotBlocked(blockedRanges, date, col.value),
+    });
   };
 
   return (
@@ -173,9 +317,20 @@ export function CalendarDayViewGrouped({
         <div className="day-view-header-wrapper">
           <div
             className="day-view-header-dates-grouped"
-            style={{ gridTemplateColumns: `60px repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))` }}
+            style={{ gridTemplateColumns: `${gutterTrack}repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))` }}
           >
-            <div className="time-zone-label">{timeZoneLabel}</div>
+            {!hideTimeGutter && (
+              <div className="time-zone-label">
+                <Checkbox
+                  className="time-zone-toggle"
+                  checked={showTimeColumn}
+                  onCheckedChange={(v) => onToggleTimeColumn?.(v === true)}
+                  aria-label={t('showHours')}
+                  title={t('showHours')}
+                />
+                <span>{timeZoneLabel}</span>
+              </div>
+            )}
             {days.map((day) => (
               <div key={`date-${format(day, 'yyyy-MM-dd')}`} className="day-view-date-block">
                 <span className="day-name">{format(day, 'EEE', { locale: dateLocale }).toUpperCase()}</span>
@@ -189,9 +344,9 @@ export function CalendarDayViewGrouped({
           {/* Header: group columns per day */}
           <div
             className="day-view-header-groups-by-day"
-            style={{ gridTemplateColumns: `60px repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))` }}
+            style={{ gridTemplateColumns: `${gutterTrack}repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))` }}
           >
-            <div className="day-view-header-spacer" />
+            {!hideTimeGutter && <div className="day-view-header-spacer" />}
             {days.map((day) => (
               <div
                 key={`group-block-${format(day, 'yyyy-MM-dd')}`}
@@ -212,14 +367,28 @@ export function CalendarDayViewGrouped({
               </div>
             ))}
           </div>
+
+          {/* Una fila más, con la misma estructura de columnas que la rejilla: cada ítem
+              queda bajo su consultorio, no estirado sobre el día entero. */}
+          <CalendarAllDayBand
+            days={days}
+            events={allDayEvents}
+            gridTemplateColumns={`${gutterTrack}repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))`}
+            showGutter={!hideTimeGutter}
+            columns={columns}
+            columnsTemplate={`repeat(${columns.length}, minmax(${groupedColumnMinWidth}px, 1fr))`}
+            groupBy={groupBy}
+            onEventClick={onEventClick}
+          />
         </div>
 
         {/* Body: time grid with grouped columns */}
         <div
+          ref={bodyRef}
           className="day-view-body-grouped"
-          style={{ gridTemplateColumns: `60px repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))`, '--hour-slot-height': `${hourSlotHeight}px` } as React.CSSProperties}
+          style={{ gridTemplateColumns: `${gutterTrack}repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))`, '--hour-slot-height': `${hourSlotHeight}px` } as React.CSSProperties}
         >
-          <CalendarTimeColumn />
+          {!hideTimeGutter && <CalendarTimeColumn visible={showTimeColumn} />}
           {days.map((day) => (
             <div
               key={`day-block-${format(day, 'yyyy-MM-dd')}`}
@@ -227,66 +396,85 @@ export function CalendarDayViewGrouped({
               style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(${groupedColumnMinWidth}px, 1fr))` }}
             >
               {columns.map((col) => {
-                const dayColEvents = filterEventsByDayAndGroup(events, day, groupBy, col.value);
-                const eventsWithLayout = getEventsWithLayout(dayColEvents);
+                const eventsWithLayout = layoutByColumn.get(`${format(day, 'yyyy-MM-dd')}|${col.value}`) ?? EMPTY_EVENTS;
 
                 return (
-                  <div
-                    key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}
-                    className="day-column"
-                    data-group-col={col.value}
-                    onClick={(e) => handleSlotClick(day, col, e)}
-                    onContextMenu={(e) => handleSlotContextMenu(day, col, e)}
-                  >
-                    <TimeSlotDividers keyPrefix={col.id} />
-                    <CalendarBlockedOverlays
-                      ranges={blockedRanges}
-                      dayKey={format(day, 'yyyy-MM-dd')}
-                      groupValue={col.value}
-                      hourSlotHeight={hourSlotHeight}
-                    />
-                    <CalendarGapOverlays
-                      gaps={gaps}
-                      dayKey={format(day, 'yyyy-MM-dd')}
-                      groupValue={col.value}
-                      hourSlotHeight={hourSlotHeight}
-                      selectedGapKey={selectedGapKey}
-                      onGapClick={onGapClick}
-                    />
-                    {eventsWithLayout.map((event) => (
-                      <CalendarEventDay
-                        key={event.id}
-                        event={event}
-                        style={getEventStyle(event, hourSlotHeight)}
-                        dateLocale={dateLocale}
-                        onEventClick={onEventClick}
-                        onEventColorChange={onEventColorChange}
-                        onEventDoubleClick={onEventDoubleClick}
-                        onEventContextMenu={onEventContextMenu}
-                        onEventContextMenuOpen={onEventContextMenuOpen}
-                      />
-                    ))}
-                    {inlineDraft && renderInlineDraft && isSameDay(day, inlineDraft.date) && String(inlineDraft.groupValue ?? '') === String(col.value) && (
-                      <div
-                        className="absolute left-0.5 z-[12] w-[300px] max-w-[calc(100vw-2rem)]"
-                        style={{
-                          top: `${(inlineDraft.date.getHours() + inlineDraft.date.getMinutes() / 60) * hourSlotHeight}px`,
-                          minHeight: `${Math.max((inlineDraft.durationMin / 60) * hourSlotHeight, 96)}px`,
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        onContextMenu={(e) => e.stopPropagation()}
-                      >
-                        {renderInlineDraft()}
+                  <ContextMenu key={`${format(day, 'yyyy-MM-dd')}-${col.id}`}>
+                    <ContextMenuTrigger asChild disabled={!renderSlotContextMenu}>
+                      <div className="day-column" data-group-col={col.value}>
+                        <CalendarHourRail
+                          keyPrefix={col.id}
+                          ariaLabel={t('createAppointment')}
+                          onClick={(e) => handleSlotClick(day, col, e)}
+                          onContextMenu={(e) => handleSlotContextMenu(day, col, e)}
+                        />
+                        <div
+                          className="day-column-content"
+                          data-day={format(day, 'yyyy-MM-dd')}
+                          data-group-col={col.value}
+                          onClick={(e) => handleSlotClick(day, col, e)}
+                          onContextMenu={(e) => handleSlotContextMenu(day, col, e)}
+                        >
+                          <TimeSlotDividers keyPrefix={col.id} />
+                          <CalendarBlockedOverlays
+                            ranges={blockedRanges}
+                            dayKey={format(day, 'yyyy-MM-dd')}
+                            groupValue={col.value}
+                            hourSlotHeight={hourSlotHeight}
+                          />
+                          <CalendarGapOverlays
+                            gaps={gaps}
+                            dayKey={format(day, 'yyyy-MM-dd')}
+                            groupValue={col.value}
+                            hourSlotHeight={hourSlotHeight}
+                            selectedGapKey={selectedGapKey}
+                            onGapClick={onGapClick}
+                          />
+                          {eventsWithLayout.map((event) => (
+                            <CalendarEventDay
+                              key={event.id}
+                              event={event}
+                              style={getEventStyle(event, hourSlotHeight)}
+                              hourSlotHeight={hourSlotHeight}
+                              dateLocale={dateLocale}
+                              onEventClick={onEventClick}
+                              onEventColorChange={onEventColorChange}
+                              onEventDoubleClick={onEventDoubleClick}
+                              onEventContextMenu={onEventContextMenu}
+                              onEventContextMenuOpen={onEventContextMenuOpen}
+                              onDragPointerDown={onDragPointerDown}
+                              dragStateRef={dragStateRef}
+                              draggable={isDraggable(event)}
+                              contextMenuDisabled={isDraggingEvent}
+                            />
+                          ))}
+                          <CalendarDragGhost
+                            dayKey={format(day, 'yyyy-MM-dd')}
+                            groupValue={col.value}
+                            hourSlotHeight={hourSlotHeight}
+                            store={dragStore}
+                          />
+                          <CalendarDraftPreviewBand
+                            dayKey={format(day, 'yyyy-MM-dd')}
+                            groupValue={col.value}
+                            hourSlotHeight={hourSlotHeight}
+                          />
+                        </div>
                       </div>
-                    )}
-                  </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent>
+                      {contextSlot && renderSlotContextMenu?.(contextSlot)}
+                    </ContextMenuContent>
+                  </ContextMenu>
                 );
               })}
             </div>
           ))}
           {showTimeIndicator && (
-            <div className="current-time-indicator" style={{ top: `${currentTimePosition}px` }}>
-              <div className="current-time-dot" />
+            <div
+              className="current-time-indicator"
+              style={{ top: `${currentTimePosition}px`, left: hideTimeGutter ? 0 : undefined }}
+            >
               <div className="current-time-line" />
             </div>
           )}

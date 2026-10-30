@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DataCard } from '@/components/ui/data-card';
+import { DoctorSelector } from '@/components/ui/doctor-selector';
 import { DataTable } from '@/components/ui/data-table';
 import { DataTableAdvancedToolbar } from '@/components/ui/data-table-advanced-toolbar';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
@@ -46,37 +47,51 @@ import {
 } from '@/components/patients/patient-detail-main-content';
 import { PatientDetailHeader } from '@/components/patients/patient-detail-header';
 import { PatientInfoTab, ResponsibleContactField } from '@/components/patients/patient-info-tab';
+import { PatientDependentsTab } from '@/components/patients/patient-dependents-tab';
+import { ResponsibleMatchHint } from '@/components/patients/responsible-match-hint';
 import { PatientActionsMenu } from '@/components/patients/patient-actions-menu';
+import { DuplicateContactDialog, UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
 import {
   getDependantContactInfo,
+  getDuplicateContactWarning,
   getMutualSocietiesList,
+  getUniqueConflict,
+  getUpsertErrorPayload,
+  resolveUserUpsertError,
   upsertUser,
   userFormSchema,
   type DependantContactInfo,
   type UserFormValues,
 } from '@/components/patients/patient-form-utils';
 import { ToothIcon } from '@/components/users/dental-record/tooth-icon';
+import { IDENTITY_DOCUMENT_TYPES } from '@/lib/identity-document';
+import { useClinicPreferencesStore } from '@/stores/clinic-preferences-store';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
+import { InlineAppointmentDraftHost } from '@/components/appointments/inline-appointment-draft-host';
+import { fetchAppointmentCalendars, fetchAppointmentDoctors } from '@/services/appointments';
 import { getCalendarSettings } from '@/components/calendar/calendar-settings-utils';
 import { InvoiceFormDialog } from '@/components/tables/invoices-table';
 import { PrepaidFormDialog } from '@/components/sales/payments/PrepaidFormDialog';
 import { QuoteFormDialog } from '@/components/sales/quotes/QuoteFormDialog';
+import { QuickTreatmentDialog } from '@/components/financial/quick-treatment-dialog';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
-import { UserCommunicationPreferences } from '@/components/users/user-communication-preferences';
-import { UserFinancialSummaryStats } from '@/components/users/user-financial-summary-stats';
-import { UserInvoices } from '@/components/users/user-invoices';
+import { PatientIndicationsTab } from '@/components/medical-instructions/patient-indications-tab';
+import { UserPreferencesTab } from '@/components/users/user-preferences-tab';
+import { PatientFinanceSection } from '@/components/users/patient-finance-section';
+import type { VisibleLedger } from '@/components/users/patient-ledger';
 import { UserTreatmentPlans, type TreatmentContactContext } from '@/components/users/user-treatment-plans';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { UserOrders } from '@/components/users/user-orders';
-import { UserPayments } from '@/components/users/user-payments';
-import { UserQuotes } from '@/components/users/user-quotes';
-import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
+import { BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, SALES_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
+import { useFinanceViewPreference } from '@/hooks/use-finance-view-preference';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
-import { Appointment, Calendar as CalendarType, PatientDischarge, Quote, Service, SessionPrefillData, User, UserFinancial, UserRole, MutualSociety } from '@/lib/types';
+import { Appointment, Calendar as CalendarType, DuplicateContactOwners, PatientDischarge, Service, SessionPrefillData, UniqueConflict, User, UserRole, MutualSociety } from '@/lib/types';
 import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -84,10 +99,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, CalendarIcon, Check, CheckCircle, ChevronDown, ChevronsUpDown, ClipboardList, CreditCard, FileText, Loader2, Mail, Maximize2, Minimize2, MoreHorizontal, Plus, Printer, Receipt, ShoppingCart, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, Users, X, XCircle, Zap } from 'lucide-react';
+import { AlertTriangle, CalendarIcon, Check, CheckCircle, ChevronDown, ChevronsUpDown, ClipboardList, CreditCard, FileText, Loader2, Mail, Maximize2, Minimize2, MoreHorizontal, Plus, Receipt, ShoppingCart, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, Users, X, XCircle, Zap } from 'lucide-react';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { EmailComposerDialog } from '@/components/email-composer-dialog';
 import { WhatsAppComposerDialog } from '@/components/whatsapp-composer-dialog';
+import { WhatsAppTemplateSendDialog } from '@/components/patients/whatsapp-template-send-dialog';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -98,9 +114,10 @@ import { UserColumnsWrapper } from './columns';
 import { useDeepLink } from '@/hooks/use-deep-link';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { useBillingWizard } from '@/stores/billing-wizard-store';
-import { useAccountStatement } from '@/stores/account-statement-store';
+import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { useLicenseStore } from '@/stores/license-store';
 import { usePatientDetailNavigation } from '@/hooks/patients/use-patient-detail-navigation';
+import { createDefaultPagination } from '@/lib/pagination';
 
 
 type GetUsersResponse = {
@@ -158,6 +175,12 @@ function mapApiUser(apiUser: any): User {
     is_dependent: apiUser.is_dependent ?? apiUser.is_dependant ?? false,
     responsible_contact_id: apiUser.responsible_contact_id ? String(apiUser.responsible_contact_id) : undefined,
     responsible_contact_name: apiUser.responsible_contact_name || undefined,
+    responsible_phone_number: apiUser.responsible_phone_number || undefined,
+    matched_by_responsible: apiUser.matched_by_responsible === true,
+    doctor_id: apiUser.doctor_id !== undefined && apiUser.doctor_id !== null && apiUser.doctor_id !== ''
+      ? String(apiUser.doctor_id)
+      : null,
+    doctor_name: apiUser.doctor_name || undefined,
   };
 }
 
@@ -212,34 +235,6 @@ async function getUsers(pagination: PaginationState, searchQuery: string, onlyDe
   }
 }
 
-async function fetchCalendarsForAppt(): Promise<CalendarType[]> {
-  try {
-    const data = await api.get(API_ROUTES.CALENDARS);
-    const list = Array.isArray(data) ? data : (data.calendars || data.data || data.result || []);
-    return list.map((c: any) => ({
-      id: String(c.id),
-      name: c.name,
-      google_calendar_id: c.google_calendar_id,
-      is_active: c.is_active,
-      color: c.color,
-    }));
-  } catch { return []; }
-}
-
-async function fetchDoctorsForAppt(): Promise<User[]> {
-  try {
-    const data = await api.get(API_ROUTES.USERS, { filter_type: 'DOCTOR' });
-    let list: any[] = [];
-    if (Array.isArray(data) && data.length > 0) {
-      const first = data[0];
-      list = first.json?.data || first.data || [];
-    } else if (data?.data) {
-      list = data.data;
-    }
-    return list.map((d: any) => ({ ...d, id: String(d.id) }));
-  } catch { return []; }
-}
-
 
 
 
@@ -292,12 +287,8 @@ const NotesTab = ({ user, onUpdate }: { user: User; onUpdate: (notes: string) =>
 
   return (
     <Card className="h-full flex flex-col shadow-none border-0">
-      <CardHeader className="flex flex-row items-center justify-between flex-none p-4 pb-2">
-        <div className="min-w-0 flex-1">
-          <CardTitle className="text-lg text-foreground font-bold">{t('UsersPage.notes.title')}</CardTitle>
-          <CardDescription className="text-sm text-muted-foreground">{t('UsersPage.notes.description')}</CardDescription>
-        </div>
-        <div className="flex items-center gap-2 ml-2">
+      <CardHeader className="flex flex-row items-center justify-end flex-none p-4 pb-2">
+        <div className="flex items-center gap-2">
           {!isEditing && (
             <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
               {t('UsersPage.notes.edit')}
@@ -388,7 +379,12 @@ function UsersTableWithCards({
       renderCard={(user: User, _isSelected: boolean) => (
         <DataCard isSelected={_isSelected}
           title={user.name}
-          subtitle={user.email || user.phone_number || user.identity_document || ''}
+          subtitle={user.matched_by_responsible && user.responsible_contact_name
+            ? t(user.responsible_phone_number ? 'UsersPage.responsibleMatchWithPhone' : 'UsersPage.responsibleMatch', {
+                name: user.responsible_contact_name,
+                phone: user.responsible_phone_number ?? '',
+              })
+            : user.email || user.phone_number || user.identity_document || ''}
           avatar={user.name ? user.name.slice(0, 2).toUpperCase() : '?'}
           showArrow
           onClick={() => handleRowSelectionChange([user])}
@@ -447,18 +443,24 @@ function UsersTableWithCards({
 
 export default function UsersPage() {
   const t = useTranslations();
-  const { hasPermission } = usePermissions();
+  const { user: currentUser } = useAuth();
+  const { hasPermission, hasAnyPermission } = usePermissions();
+  const identityDocumentRequired = useClinicPreferencesStore((s) => s.preferences.identity_document_required);
+  // Otro paciente ya usa este teléfono/correo: se pide confirmación antes de guardar.
+  const [duplicateWarning, setDuplicateWarning] = React.useState<{ owners: DuplicateContactOwners; data: UserFormValues } | null>(null);
+  // Dato que no se puede repetir: modal en vez de texto inline, que no se ve con el form scrolleado.
+  const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
+  const [financeView] = useFinanceViewPreference(currentUser?.id);
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
-  const { open: openAccountStatement } = useAccountStatement();
-  const { printFinancialSummary } = usePrintDocument();
+  const { open: openAccountStatement } = usePatientLedgerSheet();
+  const { printLedger } = usePrintDocument();
   const searchParams = useSearchParams();
   const initialQ = searchParams.get('q') ?? '';
   const [users, setUsers] = React.useState<any[]>([]);
   const [userCount, setUserCount] = React.useState(0);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
   const [selectedUserRoles, setSelectedUserRoles] = React.useState<UserRole[]>([]);
-  const [selectedQuote, setSelectedQuote] = React.useState<Quote | null>(null);
   const [isRolesLoading, setIsRolesLoading] = React.useState(false);
   const [editingUser, setEditingUser] = React.useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
@@ -468,22 +470,12 @@ export default function UsersPage() {
   const [dischargePreset, setDischargePreset] = React.useState<number | null>(null);
   const [currentDischarge, setCurrentDischarge] = React.useState<PatientDischarge | null>(null);
   const [isSubmittingDischarge, setIsSubmittingDischarge] = React.useState(false);
-  const [isFinancialSummaryDialogOpen, setIsFinancialSummaryDialogOpen] = React.useState(false);
-  const [financialSummaryDateRange, setFinancialSummaryDateRange] = React.useState<{ from: string; to: string }>({
-    from: '',
-    to: '',
-  });
   const [isPrintingFinancialSummary, setIsPrintingFinancialSummary] = React.useState(false);
-  const [userFinancialData, setUserFinancialData] = React.useState<UserFinancial | null>(null);
-  const [isLoadingFinancialData, setIsLoadingFinancialData] = React.useState(false);
 
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const latestUsersRequestRef = React.useRef(0);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
-  const [pagination, setPagination] = React.useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 25,
-  });
+  const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     initialQ ? [{ id: 'email', value: initialQ }] : []
   );
@@ -510,6 +502,39 @@ export default function UsersPage() {
   const canCreateNote = hasPermission(PATIENTS_PERMISSIONS.CREATE_NOTE);
   const canUpdateNote = hasPermission(PATIENTS_PERMISSIONS.UPDATE_NOTE);
   const canDeleteNote = hasPermission(PATIENTS_PERMISSIONS.DELETE_NOTE);
+  const canSendWhatsAppTemplate = hasPermission(PATIENTS_PERMISSIONS.SEND_WHATSAPP_TEMPLATE);
+  const canUpdate = hasPermission(PATIENTS_PERMISSIONS.UPDATE);
+
+  // Macro-tab visibility. Roles without these (e.g. médico) get a clinical-only
+  // panel, matching what they already see in "Ficha del paciente" (/workspace).
+  const canViewInfoTab = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_INFO);
+  const canViewClinicalTab = hasAnyPermission([
+    PATIENTS_PERMISSIONS.VIEW_DETAIL_HISTORY,
+    MEDICAL_HISTORY_PERMISSIONS.VIEW,
+  ]);
+  const canViewFinancialTab = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
+
+  // Clinical content is read-only unless the role can actually write it. The
+  // clinical viewers don't check permissions themselves — they take `readOnly`.
+  const canWriteClinical = hasAnyPermission([
+    TIMELINE_PERMISSIONS.CREATE,
+    TIMELINE_PERMISSIONS.UPDATE,
+    CLINICAL_HISTORY_PERMISSIONS.ANAMNESIS_ADD_PERSONAL,
+    CLINICAL_HISTORY_PERMISSIONS.DOCS_UPLOAD,
+    CLINICAL_HISTORY_PERMISSIONS.ODONTOGRAM_REGISTER_SESSION,
+  ]);
+  const isClinicalReadOnly = !canWriteClinical;
+
+  // Header actions that were previously ungated.
+  const canQuickBill = hasAnyPermission([SALES_PERMISSIONS.INVOICES_CREATE, SALES_PERMISSIONS.PAYMENTS_CREATE]);
+  const canCreateQuote = hasPermission(SALES_PERMISSIONS.QUOTES_CREATE);
+  const canCreateInvoice = hasPermission(SALES_PERMISSIONS.INVOICES_CREATE);
+  const canCreatePrepaid = hasPermission(SALES_PERMISSIONS.PREPAYMENTS_CREATE);
+  const canCreateAppointment = hasPermission(BUSINESS_CONFIG_PERMISSIONS.APPOINTMENT_CREATE);
+  // Crear y editar citas desde el perfil tiene su propio permiso, independiente de los
+  // APPOINTMENTS_* del calendario: se puede dar acceso al calendario sin habilitar esta
+  // vía, o al revés. El rol Doctor no lo tiene, así que le queda oculta.
+  const canManagePatientAppointments = hasPermission(PATIENTS_PERMISSIONS.MANAGE_APPOINTMENTS);
 
   const [mutualSocieties, setMutualSocieties] = React.useState<MutualSociety[]>([]);
   const [isLoadingMutualSocieties, setIsLoadingMutualSocieties] = React.useState(false);
@@ -521,38 +546,42 @@ export default function UsersPage() {
     setActiveInfoSubTab,
     activeClinicalSubTab,
     setActiveClinicalSubTab,
-    activeFinancialSubTab,
-    setActiveFinancialSubTab,
     openClinicalAnamnesis,
     openClinicalHistory,
     openClinicalDocuments,
-    openFinancialQuotes,
-    openFinancialInvoices,
-    openFinancialPayments,
+    openClinicalMedicalInstructions,
   } = usePatientDetailNavigation({
     deepLinkView,
     selectedUserId: selectedUser?.id,
+    defaultTab: canViewInfoTab ? 'info' : 'clinical',
   });
   const [patientAllergies, setPatientAllergies] = React.useState<Array<{ id?: number; alergeno: string; reaccion_descrita: string }>>([]);
   const [patientConditions, setPatientConditions] = React.useState<Array<{ id?: number; nombre: string; nivel_alerta?: number }>>([]);
-  const [isPreferencesOpen, setIsPreferencesOpen] = React.useState(false);
   const [createSessionTrigger, setCreateSessionTrigger] = React.useState(0);
   const [createOdontogramTrigger, setCreateOdontogramTrigger] = React.useState(0);
   const [sessionPrefill, setSessionPrefill] = React.useState<SessionPrefillData | null>(null);
   const [createDocumentTrigger, setCreateDocumentTrigger] = React.useState(0);
+  const [createMedicalInstructionTrigger, setCreateMedicalInstructionTrigger] = React.useState(0);
+  const [createPrescriptionTrigger, setCreatePrescriptionTrigger] = React.useState(0);
   const [refreshInvoicesTrigger, setRefreshInvoicesTrigger] = React.useState(0);
   const [refreshQuotesTrigger, setRefreshQuotesTrigger] = React.useState(0);
   const [refreshOrdersTrigger, setRefreshOrdersTrigger] = React.useState(0);
   const [refreshPaymentsTrigger, setRefreshPaymentsTrigger] = React.useState(0);
   const [isAppointmentDialogOpen, setIsAppointmentDialogOpen] = React.useState(false);
+  // Tarjeta inline de cita (la misma del calendario) para crear/editar desde el perfil.
+  // `appointment: null` = crear. Estado propio para no interferir con los flujos de
+  // deep-link, que siguen abriendo el diálogo completo.
+  const [inlineAppt, setInlineAppt] = React.useState<{ appointment: Appointment | null } | null>(null);
+  const [apptRefreshTrigger, setApptRefreshTrigger] = React.useState(0);
   const [editingAppointmentForPlan, setEditingAppointmentForPlan] = React.useState<Appointment | null>(null);
   const [editSessionId, setEditSessionId] = React.useState<number | null>(null);
   const [isQuoteDialogOpen, setIsQuoteDialogOpen] = React.useState(false);
   const [isInvoiceDialogOpen, setIsInvoiceDialogOpen] = React.useState(false);
+  const [quickTreatmentDialogMode, setQuickTreatmentDialogMode] = React.useState<'quote' | 'invoice' | null>(null);
   const [isPrepaidDialogOpen, setIsPrepaidDialogOpen] = React.useState(false);
-  const [isStatsOpen, setIsStatsOpen] = React.useState(true);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = React.useState(false);
   const [isWhatsAppDialogOpen, setIsWhatsAppDialogOpen] = React.useState(false);
+  const [isWhatsAppTemplateDialogOpen, setIsWhatsAppTemplateDialogOpen] = React.useState(false);
   const [treatmentContactCtx, setTreatmentContactCtx] = React.useState<TreatmentContactContext | null>(null);
   const [isRightExpanded, setIsRightExpanded] = React.useState(false);
   const [dependantContactInfo, setDependantContactInfo] = React.useState<DependantContactInfo | null>(null);
@@ -584,8 +613,8 @@ export default function UsersPage() {
     setIsLoadingApptData(true);
     try {
       const [calendars, doctors, services, calendarSettings] = await Promise.all([
-        fetchCalendarsForAppt(),
-        fetchDoctorsForAppt(),
+        fetchAppointmentCalendars(),
+        fetchAppointmentDoctors(),
         getSalesServices({ limit: 100 }).then(r => r.items.map((s: any) => ({ ...s, id: String(s.id) }))).catch(() => [] as Service[]),
         getCalendarSettings(),
       ]);
@@ -601,6 +630,12 @@ export default function UsersPage() {
       setIsLoadingApptData(false);
     }
   }, []);
+
+  /** Abre la tarjeta inline. `appointment: null` crea una nueva para el paciente. */
+  const openInlineAppt = React.useCallback(async (appointment: Appointment | null) => {
+    await loadApptData();
+    setInlineAppt({ appointment });
+  }, [loadApptData]);
 
   const handleViewApptFromPlan = React.useCallback(async (appointmentId: string, scheduledDate?: string, serviceId?: string, serviceName?: string) => {
     await loadApptData();
@@ -706,23 +741,28 @@ export default function UsersPage() {
     }
   }, []);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema(t)),
+    resolver: zodResolver(userFormSchema(t, { identityDocumentRequired, originalName: editingUser?.name })),
     defaultValues: {
       name: '',
       email: '',
       phone: '',
       identity_document: '',
+      identity_document_type: 'cedula_uy',
       birth_date: '',
       notes: '',
       is_active: true,
       mutual_society_id: '',
       is_dependent: false,
       responsible_contact_id: null,
+      doctor_id: null,
+      sex: null,
     },
   });
   const isDependent = form.watch('is_dependent');
   const [selectedGuardianDisplayName, setSelectedGuardianDisplayName] = React.useState('');
+  const [selectedDoctorDisplayName, setSelectedDoctorDisplayName] = React.useState('');
 
   React.useEffect(() => {
     if (!isDependent && form.getValues('responsible_contact_id') !== null) {
@@ -790,23 +830,6 @@ export default function UsersPage() {
     } catch (error) {
       console.error("Failed to fetch patient discharge:", error);
       setCurrentDischarge(null);
-    }
-  }, []);
-
-  const fetchUserFinancialData = React.useCallback(async (userId: string) => {
-    setIsLoadingFinancialData(true);
-    try {
-      const data = await api.get(API_ROUTES.USER_FINANCIAL, { user_id: userId });
-      if (data && Array.isArray(data) && data.length > 0) {
-        setUserFinancialData(data[0] as UserFinancial);
-      } else {
-        setUserFinancialData(null);
-      }
-    } catch (error) {
-      console.error("Failed to fetch user financial data:", error);
-      setUserFinancialData(null);
-    } finally {
-      setIsLoadingFinancialData(false);
     }
   }, []);
 
@@ -926,36 +949,20 @@ export default function UsersPage() {
 
   const handleUpdateNotes = async (notes: string) => {
     if (!selectedUser) return;
-    const updatedUser = { ...selectedUser, notes };
-    await upsertUser({
-      id: selectedUser.id,
-      name: selectedUser.name,
-      email: selectedUser.email || '',
-      phone: selectedUser.phone_number || '',
-      identity_document: selectedUser.identity_document || '',
-      birth_date: selectedUser.birth_date || '',
-      notes,
-      is_active: selectedUser.is_active,
-      mutual_society_id: selectedUser.mutual_society_id ? String(selectedUser.mutual_society_id) : '',
-      is_dependent: selectedUser.is_dependent ?? false,
-      responsible_contact_id: selectedUser.responsible_contact_id || null,
-    });
-    setSelectedUser(updatedUser);
+    await api.post(API_ROUTES.USER_NOTES, { id: selectedUser.id, notes });
+    setSelectedUser({ ...selectedUser, notes });
     setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, notes } : u));
   };
 
-  const handlePrintFinancialSummary = () => {
-    if (!selectedUser) return;
-    setFinancialSummaryDateRange({ from: '', to: '' });
-    setIsFinancialSummaryDialogOpen(true);
-  };
-
-  const handlePrintFinancialSummaryWithDates = async () => {
-    if (!selectedUser) return;
+  // The account statement always prints as the unified ledger, regardless of the user's
+  // finance_view preference, so the PDF looks the same from every entry point in the app.
+  // `visible` is the ledger's on-screen snapshot (period filter applied); it only arrives
+  // from the unified layout — the tabs layout has no ledger, so there we print it whole.
+  const handlePrintFinancialSummary = async (visible?: VisibleLedger) => {
+    if (!selectedUser || isPrintingFinancialSummary) return;
     setIsPrintingFinancialSummary(true);
     try {
-      await printFinancialSummary(selectedUser.id, financialSummaryDateRange);
-      setIsFinancialSummaryDialogOpen(false);
+      await printLedger(selectedUser.id, selectedUser.name, visible);
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -998,14 +1005,18 @@ export default function UsersPage() {
       email: '',
       phone: '',
       identity_document: '',
+      identity_document_type: 'cedula_uy',
       birth_date: '',
       notes: '',
       is_active: true,
       mutual_society_id: '',
       is_dependent: false,
       responsible_contact_id: null,
+      doctor_id: null,
+      sex: null,
     });
     setSelectedGuardianDisplayName('');
+    setSelectedDoctorDisplayName('');
     setSubmissionError(null);
     setIsDialogOpen(true);
   };
@@ -1019,19 +1030,23 @@ export default function UsersPage() {
       email: user.email,
       phone: user.phone_number,
       identity_document: user.identity_document || '',
+      identity_document_type: user.identity_document_type || 'cedula_uy',
       birth_date: user.birth_date || '',
       notes: user.notes || '',
       is_active: user.is_active,
       mutual_society_id: user.mutual_society_id?.toString() || '',
       is_dependent: user.is_dependent ?? false,
       responsible_contact_id: user.responsible_contact_id || null,
+      doctor_id: user.doctor_id || null,
+      sex: user.sex ?? null,
     });
     setSelectedGuardianDisplayName(user.responsible_contact_name || '');
+    setSelectedDoctorDisplayName(user.doctor_name || '');
     setSubmissionError(null);
     setIsDialogOpen(true);
   };
 
-  const userColumns = UserColumnsWrapper();
+  const userColumns = UserColumnsWrapper({ showContactColumns: canViewInfoTab });
 
   const debtorColumns: ColumnDef<User>[] = [
     {
@@ -1044,8 +1059,8 @@ export default function UsersPage() {
             value={isSelected ? row.original.id : ''}
             onValueChange={() => {
               if (handleRowSelectionChange) {
-                table.toggleAllPageRowsSelected(false);
-                row.toggleSelected(true);
+                // Single selection: set exactly this row (see columns.tsx).
+                table.setRowSelection({ [row.id]: true });
                 handleRowSelectionChange([row.original]);
               }
             }}
@@ -1060,6 +1075,13 @@ export default function UsersPage() {
     {
       accessorKey: 'name',
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.name')} />,
+      // Un dependiente encontrado por el teléfono de su tutor: se aclara por qué aparece.
+      cell: ({ row }) => (
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate">{row.original.name}</span>
+          <ResponsibleMatchHint user={row.original} onlyWhenMatched />
+        </div>
+      ),
     },
     {
       accessorKey: 'email',
@@ -1096,35 +1118,33 @@ export default function UsersPage() {
     if (selectedUser) {
       loadUserRoles(selectedUser.id);
       fetchPatientDischarge(selectedUser.id);
-      fetchUserFinancialData(selectedUser.id);
       loadMutualSocieties();
       fetchPatientAllergies(selectedUser.id);
       fetchPatientConditions(selectedUser.id);
     } else {
       setSelectedUserRoles([]);
       setCurrentDischarge(null);
-      setUserFinancialData(null);
       setPatientAllergies([]);
       setPatientConditions([]);
-      setIsPreferencesOpen(false);
       setCreateSessionTrigger(0);
       setCreateOdontogramTrigger(0);
       setCreateDocumentTrigger(0);
+      setCreateMedicalInstructionTrigger(0);
+      setCreatePrescriptionTrigger(0);
     }
-  }, [selectedUser, loadUserRoles, fetchPatientDischarge, fetchUserFinancialData, loadMutualSocieties, fetchPatientAllergies, fetchPatientConditions]);
+  }, [selectedUser, loadUserRoles, fetchPatientDischarge, loadMutualSocieties, fetchPatientAllergies, fetchPatientConditions]);
 
   const handleCloseDetails = () => {
     setSelectedUser(null);
-    setSelectedQuote(null);
     setRowSelection({});
   };
 
-  const onSubmit = async (data: UserFormValues) => {
+  const onSubmit = async (data: UserFormValues, confirmDuplicates = false) => {
     setSubmissionError(null);
     form.clearErrors();
 
     try {
-      const savedData = await upsertUser(data);
+      const savedData = await upsertUser(data, { confirmDuplicates });
       const isEditing = !!editingUser;
       const savedUserId = data.id || savedData?.id || savedData?.user_id;
       if (data.mutual_society_id && data.mutual_society_id !== 'none' && savedUserId) {
@@ -1152,6 +1172,7 @@ export default function UsersPage() {
           email: data.email || '',
           phone_number: data.phone || '',
           identity_document: data.identity_document,
+          identity_document_type: data.identity_document_type as User['identity_document_type'],
           birth_date: data.birth_date,
           notes: data.notes,
           is_active: data.is_active,
@@ -1159,6 +1180,9 @@ export default function UsersPage() {
           is_dependent: data.is_dependent,
           responsible_contact_id: data.responsible_contact_id || undefined,
           responsible_contact_name: data.is_dependent ? selectedGuardianDisplayName || undefined : undefined,
+          doctor_id: data.doctor_id || null,
+          doctor_name: selectedDoctorDisplayName || undefined,
+          sex: data.sex ?? null,
         });
       }
       setIsDialogOpen(false);
@@ -1170,10 +1194,13 @@ export default function UsersPage() {
       }
 
     } catch (error: any) {
-      const errorData = error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-      if (errorData?.code === 'unique_conflict' && errorData?.conflictedFields) {
-        const fields = errorData.conflictedFields.map((f: string) => t(`UsersPage.createDialog.validation.fields.${f}`)).join(', ');
-        setSubmissionError(t('UsersPage.createDialog.validation.uniqueConflict', { fields }));
+      const errorData = getUpsertErrorPayload(error);
+      const duplicateOwners = getDuplicateContactWarning(error);
+      const conflict = getUniqueConflict(errorData);
+      if (duplicateOwners) {
+        setDuplicateWarning({ owners: duplicateOwners, data });
+      } else if (conflict) {
+        setUniqueConflict(conflict);
       } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
         const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
         if (errors.length > 0) {
@@ -1188,11 +1215,11 @@ export default function UsersPage() {
         } else {
           setSubmissionError(errorData?.message || t('SystemUsersPage.createDialog.validation.genericError'));
         }
-      } else if (error.status >= 500) {
-        setSubmissionError(t('UsersPage.createDialog.validation.serverError'));
       } else {
-        const errorMessage = typeof error.data === 'string' ? error.data : errorData?.message || (error instanceof Error ? error.message : t('UsersPage.createDialog.validation.genericError'));
-        setSubmissionError(errorMessage);
+        setSubmissionError(
+          resolveUserUpsertError(error, t)
+            || (error instanceof Error ? error.message : t('UsersPage.createDialog.validation.genericError')),
+        );
       }
     }
   };
@@ -1400,19 +1427,22 @@ export default function UsersPage() {
                         hasPhone={!!effectivePatientPhone}
                         isBusy={isSubmittingDischarge}
                         showActivate={canToggleStatus}
-                        onCreateClinicalSession={() => { openClinicalHistory(); setCreateSessionTrigger(n => n + 1); }}
-                        onCreateOdontogram={() => { openClinicalHistory(); setCreateOdontogramTrigger(n => n + 1); }}
-                        onCreateDocument={() => { openClinicalDocuments(); setCreateDocumentTrigger(n => n + 1); }}
-                        onQuickBill={() => openBillingWizard({ patientId: selectedUser.id, patientName: selectedUser.name })}
-                        onCreateQuote={() => setIsQuoteDialogOpen(true)}
-                        onCreateInvoice={() => setIsInvoiceDialogOpen(true)}
-                        onCreatePrepaid={() => setIsPrepaidDialogOpen(true)}
-                        onCreateAppointment={() => { loadApptData(); setIsAppointmentDialogOpen(true); }}
+                        onCreateClinicalSession={canWriteClinical ? () => { openClinicalHistory(); setCreateSessionTrigger(n => n + 1); } : undefined}
+                        onCreateOdontogram={canWriteClinical ? () => { openClinicalHistory(); setCreateOdontogramTrigger(n => n + 1); } : undefined}
+                        onCreateMedicalInstruction={canWriteClinical ? () => { openClinicalMedicalInstructions(); setCreateMedicalInstructionTrigger(n => n + 1); } : undefined}
+                        onCreatePrescription={canWriteClinical ? () => { openClinicalMedicalInstructions(); setCreatePrescriptionTrigger(n => n + 1); } : undefined}
+                        onCreateDocument={canWriteClinical ? () => { openClinicalDocuments(); setCreateDocumentTrigger(n => n + 1); } : undefined}
+                        onQuickBill={canQuickBill ? () => openBillingWizard({ patientId: selectedUser.id, patientName: selectedUser.name }) : undefined}
+                        onCreateQuote={canCreateQuote ? () => setIsQuoteDialogOpen(true) : undefined}
+                        onCreateInvoice={canCreateInvoice ? () => setIsInvoiceDialogOpen(true) : undefined}
+                        onCreatePrepaid={canCreatePrepaid ? () => setIsPrepaidDialogOpen(true) : undefined}
+                        onCreateAppointment={canManagePatientAppointments ? () => openInlineAppt(null) : undefined}
                         onEmail={() => setIsEmailDialogOpen(true)}
                         onWhatsApp={() => setIsWhatsAppDialogOpen(true)}
-                        onToggleDischarge={currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)}
+                        onSendWhatsAppTemplate={canSendWhatsAppTemplate ? () => setIsWhatsAppTemplateDialogOpen(true) : undefined}
+                        onToggleDischarge={canUpdate ? (currentDischarge ? handleCancelDischarge : () => setIsDischargeDialogOpen(true)) : undefined}
                         onToggleActivate={() => handleToggleActivate(selectedUser)}
-                        onPreferences={() => setIsPreferencesOpen(true)}
+                        onPreferences={canViewInfoTab && canUpdate ? () => { setActiveTab('info'); setActiveInfoSubTab('preferences'); } : undefined}
                       />
 
                       {/* Expand/collapse button — always visible */}
@@ -1449,10 +1479,12 @@ export default function UsersPage() {
                         onActiveTabChange={setActiveTab}
                         activeClinicalSubTab={activeClinicalSubTab}
                         onClinicalSubTabChange={setActiveClinicalSubTab}
-                        activeFinancialSubTab={activeFinancialSubTab}
-                        onFinancialSubTabChange={setActiveFinancialSubTab}
                         showDocuments={canViewHistory}
                         showNotes={canViewNotes}
+                        showPreferences={canUpdate}
+                        showInfo={canViewInfoTab}
+                        showClinical={canViewClinicalTab}
+                        showFinancial={canViewFinancialTab}
                         activeInfoSubTab={activeInfoSubTab}
                         onInfoSubTabChange={setActiveInfoSubTab}
                         infoContent={
@@ -1473,9 +1505,26 @@ export default function UsersPage() {
                             onUpdate={handleUpdateNotes}
                           />
                         }
+                        preferencesContent={
+                          <UserPreferencesTab user={selectedUser} showFinanceView />
+                        }
+                        dependentsLabel={t(selectedUser.is_dependent ? 'UsersPage.tabs.responsible' : 'UsersPage.tabs.dependents')}
+                        dependentsContent={
+                          <PatientDependentsTab
+                            patient={selectedUser}
+                            responsible={selectedUser.is_dependent && (dependantContactInfo?.id || selectedUser.responsible_contact_id)
+                              ? {
+                                  id: dependantContactInfo?.id || selectedUser.responsible_contact_id || '',
+                                  name: selectedUser.responsible_contact_name || dependantContactInfo?.name || '',
+                                }
+                              : null}
+                            onDependentsChanged={loadUsers}
+                          />
+                        }
                         anamnesisContent={
                           <AnamnesisViewer
                             userId={selectedUser.id}
+                            readOnly={isClinicalReadOnly}
                             onClinicalDataChange={() => {
                               fetchPatientAllergies(selectedUser.id)
                               fetchPatientConditions(selectedUser.id)
@@ -1486,15 +1535,13 @@ export default function UsersPage() {
                           <ClinicHistoryViewer
                             userId={selectedUser.id}
                             userName={selectedUser.name}
+                            readOnly={isClinicalReadOnly}
                             createSessionTrigger={createSessionTrigger}
                             createOdontogramTrigger={createOdontogramTrigger}
                             sessionPrefill={sessionPrefill}
                             editSessionId={editSessionId}
-                            onEditAppointment={(appt) => {
-                              setEditingAppointmentForPlan(appt);
-                              loadApptData();
-                              setIsAppointmentDialogOpen(true);
-                            }}
+                            refreshAppointmentsTrigger={apptRefreshTrigger}
+                            onEditAppointment={canManagePatientAppointments ? (appt) => openInlineAppt(appt) : undefined}
                             onSessionCreated={async (sesionId, stepId) => {
                               if (stepId) {
                                 try {
@@ -1516,7 +1563,8 @@ export default function UsersPage() {
                           <UserTreatmentPlans
                             userId={selectedUser.id}
                             userName={selectedUser.name}
-                            onCreateAppointment={() => { loadApptData(); setIsAppointmentDialogOpen(true) }}
+                            readOnly={isClinicalReadOnly}
+                            onCreateAppointment={canCreateAppointment ? () => { loadApptData(); setIsAppointmentDialogOpen(true) } : undefined}
                             onViewAppointment={(appointmentId, scheduledDate, serviceId, serviceName) => handleViewApptFromPlan(appointmentId, scheduledDate, serviceId, serviceName)}
                             onViewSession={(sesionId) => {
                               setEditSessionId(sesionId)
@@ -1526,38 +1574,33 @@ export default function UsersPage() {
                             onContact={(ctx) => { setTreatmentContactCtx(ctx); setIsWhatsAppDialogOpen(true); }}
                           />
                         }
-                        documentsContent={<DocumentsViewer userId={selectedUser.id} createTrigger={createDocumentTrigger} />}
-                        financialSummaryContent={
-                          <UserFinancialSummaryStats
-                            financialData={userFinancialData}
-                            isOpen={isStatsOpen}
-                            onToggle={() => setIsStatsOpen(v => !v)}
-                            onPrint={handlePrintFinancialSummary}
-                            onViewStatement={selectedUser ? () => openAccountStatement(selectedUser.id, selectedUser.name) : undefined}
-                          />
-                        }
-                        quotesContent={
-                          <UserQuotes
+                        medicalInstructionsContent={
+                          <PatientIndicationsTab
                             userId={selectedUser.id}
-                            onQuoteSelect={setSelectedQuote}
-                            refreshTrigger={refreshQuotesTrigger}
-                            onDataChange={() => {
-                              fetchUserFinancialData(selectedUser.id)
-                              loadUsers()
-                            }}
+                            userName={selectedUser.name}
+                            readOnly={isClinicalReadOnly}
+                            createTrigger={createMedicalInstructionTrigger}
+                            createPrescriptionTrigger={createPrescriptionTrigger}
                           />
                         }
-                        invoicesContent={
-                          <UserInvoices
+                        documentsContent={<DocumentsViewer userId={selectedUser.id} createTrigger={createDocumentTrigger} readOnly={isClinicalReadOnly} />}
+                        ledgerContent={
+                          <PatientFinanceSection
                             userId={selectedUser.id}
-                            refreshTrigger={refreshInvoicesTrigger}
-                            onDataChange={() => {
-                              fetchUserFinancialData(selectedUser.id)
-                              loadUsers()
-                            }}
+                            patientName={selectedUser.name}
+                            patientEmail={selectedUser.email}
+                            viewMode={financeView}
+                            refreshQuotesTrigger={refreshQuotesTrigger}
+                            refreshInvoicesTrigger={refreshInvoicesTrigger}
+                            refreshPaymentsTrigger={refreshPaymentsTrigger}
+                            onCreateQuote={() => setQuickTreatmentDialogMode('quote')}
+                            onCreateTreatment={() => setQuickTreatmentDialogMode('invoice')}
+                            onCreatePayment={() => setIsPrepaidDialogOpen(true)}
+                            onPrintSummary={handlePrintFinancialSummary}
+                            onViewStatement={() => openAccountStatement(selectedUser.id, selectedUser.name)}
+                            onDataChange={() => loadUsers()}
                           />
                         }
-                        paymentsContent={<UserPayments userId={selectedUser.id} selectedQuote={selectedQuote} refreshTrigger={refreshPaymentsTrigger} />}
                       />
                     </>
                   ) : (<></>)}
@@ -1568,6 +1611,17 @@ export default function UsersPage() {
         />
       </div>
 
+      <DuplicateContactDialog
+        owners={duplicateWarning?.owners ?? null}
+        onCancel={() => setDuplicateWarning(null)}
+        onConfirm={() => {
+          const pending = duplicateWarning;
+          setDuplicateWarning(null);
+          if (pending) void onSubmit(pending.data, true);
+        }}
+      />
+      <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
+
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
           <DialogHeader>
@@ -1575,7 +1629,7 @@ export default function UsersPage() {
             <DialogDescription>{editingUser ? t('UsersPage.createDialog.editDescription') : t('UsersPage.createDialog.createDescription')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden">
+            <form onSubmit={form.handleSubmit((data) => onSubmit(data), onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden">
               <DialogBody className="space-y-4 px-6 py-4">
                 {submissionError && (
                   <Alert variant="destructive">
@@ -1631,6 +1685,30 @@ export default function UsersPage() {
                 />
                 <FormField
                   control={form.control}
+                  name="identity_document_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('UsersPage.createDialog.identity_document_type')}</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {IDENTITY_DOCUMENT_TYPES.map((type) => (
+                            <SelectItem key={type} value={type}>
+                              {t(`UsersPage.createDialog.identityDocumentTypes.${type}`)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="identity_document"
                   render={({ field }) => (
                     <FormItem>
@@ -1680,6 +1758,28 @@ export default function UsersPage() {
                 />
                 <FormField
                   control={form.control}
+                  name="sex"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('UsersPage.createDialog.sex')}</FormLabel>
+                      <Select onValueChange={(value) => field.onChange(value === 'none' ? null : value)} value={field.value || 'none'}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={t('UsersPage.createDialog.sex')} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">{t('UsersPage.createDialog.sexNone')}</SelectItem>
+                          <SelectItem value="male">{t('UsersPage.createDialog.sexMale')}</SelectItem>
+                          <SelectItem value="female">{t('UsersPage.createDialog.sexFemale')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="mutual_society_id"
                   render={({ field }) => (
                     <FormItem>
@@ -1699,6 +1799,33 @@ export default function UsersPage() {
                           ))}
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="doctor_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('UsersPage.createDialog.doctor')}</FormLabel>
+                      <FormControl>
+                        <DoctorSelector
+                          value={field.value || undefined}
+                          selectedDoctorName={selectedDoctorDisplayName}
+                          onValueChange={(doctorId, doctor) => {
+                            field.onChange(doctorId || null);
+                            setSelectedDoctorDisplayName(doctor?.name || '');
+                          }}
+                          placeholder={t('UsersPage.createDialog.searchDoctor')}
+                          triggerText={t('UsersPage.createDialog.selectDoctor')}
+                        />
+                      </FormControl>
+                      {field.value && (
+                        <Button type="button" variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs" onClick={() => { field.onChange(null); setSelectedDoctorDisplayName(''); }}>
+                          {t('UsersPage.createDialog.clearDoctor')}
+                        </Button>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1817,60 +1944,6 @@ export default function UsersPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isFinancialSummaryDialogOpen} onOpenChange={setIsFinancialSummaryDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>{t('UsersPage.financialSummaryDialog.title')}</DialogTitle>
-            <DialogDescription>
-              {t('UsersPage.financialSummaryDialog.description')}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogBody>
-            <div className="grid grid-cols-2 gap-4 px-4 pt-4 pb-4">
-              <div className="space-y-2">
-                <Label>{t('UsersPage.financialSummaryDialog.from')}</Label>
-                <DatePickerInput
-                  value={financialSummaryDateRange.from}
-                  onChange={(value) => setFinancialSummaryDateRange(prev => ({ ...prev, from: value }))}
-                  placeholder="dd/mm/aaaa"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>{t('UsersPage.financialSummaryDialog.to')}</Label>
-                <DatePickerInput
-                  value={financialSummaryDateRange.to}
-                  onChange={(value) => setFinancialSummaryDateRange(prev => ({ ...prev, to: value }))}
-                  placeholder="dd/mm/aaaa"
-                />
-              </div>
-            </div>
-          </DialogBody>
-          <DialogFooter>
-            <Button onClick={handlePrintFinancialSummaryWithDates} disabled={isPrintingFinancialSummary}>
-              {isPrintingFinancialSummary ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Printer className="h-4 w-4 mr-2" />}
-              {t('UsersPage.financialSummaryDialog.print')}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setIsFinancialSummaryDialogOpen(false)}
-            >
-              {t('UsersPage.financialSummaryDialog.cancel')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isPreferencesOpen} onOpenChange={setIsPreferencesOpen}>
-        <DialogContent className="sm:max-w-[520px]">
-          <DialogHeader>
-            <DialogTitle>{t('UserCommunicationPreferences.title')}</DialogTitle>
-            <DialogDescription>{t('UserCommunicationPreferences.description')}</DialogDescription>
-          </DialogHeader>
-          <DialogBody className="px-6 py-4">
-            {selectedUser && <UserCommunicationPreferences user={selectedUser} autoSave compact />}
-          </DialogBody>
-        </DialogContent>
-      </Dialog>
 
       {selectedUser && (
         <PrepaidFormDialog
@@ -1880,9 +1953,7 @@ export default function UsersPage() {
           onSaveSuccess={() => {
             setIsPrepaidDialogOpen(false);
             setActiveTab('financial');
-            setActiveFinancialSubTab('payments');
             setRefreshPaymentsTrigger(t => t + 1);
-            fetchUserFinancialData(selectedUser.id);
             loadUsers();
           }}
         />
@@ -1897,9 +1968,7 @@ export default function UsersPage() {
           onInvoiceCreated={() => {
             setIsInvoiceDialogOpen(false);
             setActiveTab('financial');
-            setActiveFinancialSubTab('invoices');
             setRefreshInvoicesTrigger(t => t + 1);
-            fetchUserFinancialData(selectedUser.id);
             loadUsers();
           }}
         />
@@ -1913,9 +1982,42 @@ export default function UsersPage() {
           onSaveSuccess={() => {
             setIsQuoteDialogOpen(false);
             setActiveTab('financial');
-            setActiveFinancialSubTab('quotes');
             setRefreshQuotesTrigger(t => t + 1);
-            fetchUserFinancialData(selectedUser.id);
+            loadUsers();
+          }}
+        />
+      )}
+
+      {selectedUser && quickTreatmentDialogMode && (
+        <QuickTreatmentDialog
+          open={!!quickTreatmentDialogMode}
+          onOpenChange={(open) => { if (!open) setQuickTreatmentDialogMode(null); }}
+          mode={quickTreatmentDialogMode}
+          patient={selectedUser}
+          onSaveSuccess={() => {
+            setActiveTab('financial');
+            if (quickTreatmentDialogMode === 'quote') {
+              setRefreshQuotesTrigger(t => t + 1);
+            } else {
+              setRefreshInvoicesTrigger(t => t + 1);
+            }
+            loadUsers();
+          }}
+        />
+      )}
+
+      {selectedUser && inlineAppt && (
+        <InlineAppointmentDraftHost
+          open
+          appointment={inlineAppt.appointment}
+          patient={selectedUser}
+          calendars={apptCalendars}
+          doctors={apptDoctors}
+          checkAvailability={checkCalendarAvailability}
+          onOpenChange={(open) => { if (!open) setInlineAppt(null); }}
+          onSaved={() => {
+            setInlineAppt(null);
+            setApptRefreshTrigger((n) => n + 1);
             loadUsers();
           }}
         />
@@ -1939,7 +2041,6 @@ export default function UsersPage() {
           onSaveSuccess={() => {
             setIsAppointmentDialogOpen(false);
             setEditingAppointmentForPlan(null);
-            fetchUserFinancialData(selectedUser.id);
             loadUsers();
           }}
         />
@@ -1962,6 +2063,16 @@ export default function UsersPage() {
           phone={effectivePatientPhone || ''}
           recipientName={selectedUser.name}
           treatmentContext={treatmentContactCtx ?? undefined}
+        />
+      )}
+
+      {selectedUser && (
+        <WhatsAppTemplateSendDialog
+          open={isWhatsAppTemplateDialogOpen}
+          onOpenChange={setIsWhatsAppTemplateDialogOpen}
+          patientId={selectedUser.id}
+          patientName={selectedUser.name}
+          patientPhone={effectivePatientPhone || ''}
         />
       )}
     </>

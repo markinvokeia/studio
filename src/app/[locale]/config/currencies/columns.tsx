@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
 import { ExchangeRateHistoryItem } from '@/lib/types';
+import { formatDisplayDate } from '@/lib/utils';
 import { createSelectColumn } from '@/components/ui/table-select-column';
 
 export const getColumns = (
@@ -18,14 +19,7 @@ export const getColumns = (
     {
         accessorKey: 'fecha',
         header: ({ column }) => <DataTableColumnHeader column={column} title={t('columns.date')} />,
-        cell: ({ row }) => {
-            const date = new Date(row.original.fecha);
-            return date.toLocaleDateString('es-ES', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-            });
-        },
+        cell: ({ row }) => formatDisplayDate(row.original.fecha),
     },
     {
         accessorKey: 'usd_compra',

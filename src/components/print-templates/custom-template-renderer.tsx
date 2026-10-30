@@ -4,11 +4,19 @@ import { format } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { formatDisplayDate } from '@/lib/utils';
 import { computeInvoiceTotals } from '@/components/print-templates/invoice-totals';
+import { translateStatus, type PrintTranslator } from '@/components/print-templates/translate-status';
+import {
+  buildDocumentDiscountView,
+  readDiscountAmount,
+  type DocumentDiscountView,
+} from '@/lib/discounts';
+import type { LineDiscountFields } from '@/lib/types';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import type { ClinicInfo } from '@/hooks/useClinicInfo';
 import type { PrintData, PrintDocumentType, QuotePrintData, InvoicePrintData, PaymentPrintData, CreditNotePrintData, PrepaymentPrintData, FinancialSummaryPrintData, CajaAperturaPrintData, CajaCierrePrintData, CajaSesionPrintData } from '@/stores/print-document-store';
 import type { FinancialSummaryMovement, CajaSessionMovement, CajaSessionDetails } from '@/lib/types';
 import { normalizePaymentMethodCode } from '@/lib/payment-methods';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface CustomTemplateRendererProps {
   html: string;
@@ -20,21 +28,39 @@ function fmt(amount: number | undefined, _currency: string): string {
   return Number(amount ?? 0).toLocaleString('es-UY', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 }
 
+/**
+ * Espejo en HTML de la tabla de items de las plantillas React. Cualquier cambio
+ * de columnas hay que hacerlo en los dos sitios: este camino es el que se usa
+ * cuando la clinica tiene una plantilla personalizada en /config/templates.
+ *
+ * Los textos van en castellano a mano, como el resto de este archivo: las
+ * plantillas guardadas en BD no pasan por i18n.
+ */
 function buildItemsTable(
-  items: Array<{ service_name: string; tooth_number?: number | null; quantity: number; unit_price: number; total: number }>,
+  items: Array<{ service_name: string; tooth_number?: number | null; quantity: number; unit_price: number; total: number } & LineDiscountFields>,
   currency: string,
   includeTooth = false,
+  discountView?: DocumentDiscountView,
 ): string {
+  const showDiscount = discountView?.showLineColumn ?? false;
+  const lineAmount = discountView?.lineAmount ?? ((i: { total?: number | null }) => Number(i.total ?? 0));
+  const cols = 5 + (includeTooth ? 1 : 0) + (showDiscount ? 1 : 0);
   const toothCol = includeTooth ? `<th style="text-align:center;width:4rem;">Diente</th>` : '';
+  const discountCol = showDiscount ? `<th style="text-align:right;width:6rem;">Dto.</th>` : '';
   const rows = items.length === 0
-    ? `<tr><td colspan="${includeTooth ? 6 : 5}" style="text-align:center;color:#9ca3af;padding:0.5rem;">Sin ítems</td></tr>`
+    ? `<tr><td colspan="${cols}" style="text-align:center;color:#9ca3af;padding:0.5rem;">Sin ítems</td></tr>`
     : items.map((item, idx) => {
         const toothCell = includeTooth ? `<td style="text-align:center;">${item.tooth_number ?? '—'}</td>` : '';
+        const discounted = readDiscountAmount(item);
+        const discountCell = showDiscount
+          ? `<td style="text-align:right;">${discounted > 0 ? `- ${currency} ${fmt(discounted, currency)}` : '—'}</td>`
+          : '';
         return `<tr>
           <td>${idx + 1}</td><td>${item.service_name}</td>${toothCell}
           <td style="text-align:center;">${item.quantity}</td>
           <td style="text-align:right;">${currency} ${fmt(item.unit_price, currency)}</td>
-          <td style="text-align:right;">${currency} ${fmt(item.total, currency)}</td>
+          ${discountCell}
+          <td style="text-align:right;">${currency} ${fmt(lineAmount(item), currency)}</td>
         </tr>`;
       }).join('');
   return `<table class="print-template-table" style="width:100%;">
@@ -44,6 +70,7 @@ function buildItemsTable(
       ${toothCol}
       <th style="text-align:center;width:4rem;">Cant.</th>
       <th style="text-align:right;width:7rem;">P. Unit.</th>
+      ${discountCol}
       <th style="text-align:right;width:7rem;">Total</th>
     </tr></thead>
     <tbody>${rows}</tbody>
@@ -85,6 +112,7 @@ function buildInvoicesSection(invoices: QuotePrintData['invoices'], currency: st
       ? `<table class="print-template-table" style="width:100%;margin-bottom:0.5rem;">
           <thead><tr>
             <th style="text-align:left;">Servicio</th>
+            <th style="text-align:center;width:4rem;">Diente</th>
             <th style="text-align:center;width:4rem;">Cant.</th>
             <th style="text-align:right;width:7rem;">P. Unit.</th>
             <th style="text-align:right;width:7rem;">Total</th>
@@ -92,13 +120,14 @@ function buildInvoicesSection(invoices: QuotePrintData['invoices'], currency: st
           <tbody>
             ${inv.items.map((item) => `<tr>
               <td>${item.service_name}</td>
+              <td style="text-align:center;">${item.tooth_number ?? '—'}</td>
               <td style="text-align:center;">${item.quantity}</td>
               <td style="text-align:right;">${invCurrency} ${fmt(item.unit_price, invCurrency)}</td>
               <td style="text-align:right;">${invCurrency} ${fmt(item.total, invCurrency)}</td>
             </tr>`).join('')}
           </tbody>
           <tfoot><tr style="border-top:1px solid #e5e7eb;font-size:0.75rem;color:#6b7280;">
-            <td colspan="3" style="text-align:right;">Total</td>
+            <td colspan="4" style="text-align:right;">Total</td>
             <td style="text-align:right;font-weight:600;">${invCurrency} ${fmt(invTotal, invCurrency)}</td>
           </tr></tfoot>
         </table>`
@@ -244,8 +273,9 @@ function buildCajaClosingSummaryTable(
 }
 
 function buildCajaMovementsTable(movements: CajaSessionMovement[]): string {
+  const primaryCurrency = getClinicCurrency();
   const currencies = [...new Set(movements.map((m) => m.currency))].sort((a, b) =>
-    a === 'UYU' ? -1 : b === 'UYU' ? 1 : a.localeCompare(b)
+    a === primaryCurrency ? -1 : b === primaryCurrency ? 1 : a.localeCompare(b)
   );
   if (!currencies.length) return '<p style="color:#9ca3af;text-align:center;padding:0.5rem;">Sin movimientos registrados.</p>';
 
@@ -311,14 +341,7 @@ function buildClinicValues(clinic: ClinicInfo | null): Record<string, string> {
   };
 }
 
-type Translator = ReturnType<typeof useTranslations>;
-
-/** Translates a status code (e.g. "booked", "unpaid") to its label, falling back to the raw value. */
-function translateStatus(t: Translator, namespace: string, value: string | undefined | null): string {
-  if (!value) return '';
-  const key = `${namespace}.${value}`;
-  return t.has(key) ? t(key) : value;
-}
+type Translator = PrintTranslator;
 
 function substituteVariables(html: string, data: PrintData, type: PrintDocumentType, clinic: ClinicInfo | null, t: Translator): string {
   const values: Record<string, string> = {
@@ -329,8 +352,10 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
   if (type === 'invoice') {
     const d = data as InvoicePrintData;
     const { invoice, items, payments } = d;
-    const currency = invoice.currency || 'UYU';
+    const currency = invoice.currency || getClinicCurrency();
     const { total, paid, pending, paymentStatus } = computeInvoiceTotals(invoice, payments);
+    // El ambito sale del documento, no de la preferencia vigente de la clinica.
+    const invoiceDiscountView = buildDocumentDiscountView(invoice, items);
     Object.assign(values, {
       doc_no: invoice.doc_no || invoice.invoice_doc_no || invoice.invoice_ref || invoice.id,
       date: formatDisplayDate(invoice.createdAt),
@@ -341,16 +366,20 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
       patient_name: invoice.user_name || '—',
       reference: invoice.quote_doc_no || '',
       total: fmt(total, currency),
+      subtotal: fmt(invoiceDiscountView.hasDiscount ? invoiceDiscountView.grossTotal : total, currency),
+      discount: fmt(invoiceDiscountView.discountAmount, currency),
       paid: fmt(paid, currency),
       pending: fmt(pending, currency),
       notes: invoice.notes ? `<p style="color:#6b7280;font-weight:500;margin-bottom:0.25rem;">Notas</p><p>${invoice.notes}</p>` : '',
-      items_table: buildItemsTable(items, currency),
+      items_table: buildItemsTable(items, currency, true, invoiceDiscountView),
       payments_table: buildPaymentsTable(payments, currency),
     });
   } else if (type === 'quote') {
     const d = data as QuotePrintData;
     const { quote, items, invoices } = d;
-    const currency = quote.currency || 'UYU';
+    // El ambito sale del documento, no de la preferencia vigente de la clinica.
+    const quoteDiscountView = buildDocumentDiscountView(quote, items);
+    const currency = quote.currency || getClinicCurrency();
     const total = Number(quote.total || 0);
     const amountInvoiced = Number(quote.amount_invoiced ?? 0);
     const pendingInvoice = Number(quote.amount_pending_invoice ?? Math.max(total - amountInvoiced, 0));
@@ -364,18 +393,20 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
       currency,
       patient_name: quote.user_name || '—',
       total: fmt(total, currency),
+      subtotal: fmt(quoteDiscountView.hasDiscount ? quoteDiscountView.grossTotal : total, currency),
+      discount: fmt(quoteDiscountView.discountAmount, currency),
       amount_invoiced: fmt(amountInvoiced, currency),
       pending_invoice: fmt(pendingInvoice, currency),
       amount_paid: fmt(amountPaid, currency),
       pending_payment: fmt(pendingPayment, currency),
       notes: quote.notes ? `<p style="color:#6b7280;font-weight:500;margin-bottom:0.25rem;">Notas</p><p>${quote.notes}</p>` : '',
-      items_table: buildItemsTable(items, currency, true),
+      items_table: buildItemsTable(items, currency, true, quoteDiscountView),
       invoices_section: buildInvoicesSection(invoices, currency),
     });
   } else if (type === 'payment') {
     const d = data as PaymentPrintData;
     const { payment } = d;
-    const currency = payment.source_currency || 'UYU';
+    const currency = payment.source_currency || getClinicCurrency();
     Object.assign(values, {
       doc_no: payment.doc_no || payment.payment_doc_no || payment.id,
       date: formatDisplayDate(payment.payment_date || payment.createdAt),
@@ -391,8 +422,10 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
   } else if (type === 'credit_note') {
     const d = data as CreditNotePrintData;
     const { creditNote, items, originalInvoice } = d;
-    const currency = creditNote.currency || 'UYU';
+    const currency = creditNote.currency || getClinicCurrency();
     const total = Number(creditNote.total || 0);
+    // Las lineas se copian de la factura madre y ya vienen descontadas.
+    const creditNoteDiscountView = buildDocumentDiscountView(creditNote, items);
     Object.assign(values, {
       doc_no: creditNote.doc_no || creditNote.invoice_doc_no || creditNote.id,
       date: formatDisplayDate(creditNote.createdAt),
@@ -403,13 +436,15 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
         : '',
       reference: creditNote.quote_doc_no || '',
       total: fmt(total, currency),
+      subtotal: fmt(creditNoteDiscountView.hasDiscount ? creditNoteDiscountView.grossTotal : total, currency),
+      discount: fmt(creditNoteDiscountView.discountAmount, currency),
       notes: creditNote.notes ? `<p style="color:#6b7280;font-weight:500;margin-bottom:0.25rem;">Notas</p><p>${creditNote.notes}</p>` : '',
-      items_table: buildItemsTable(items, currency),
+      items_table: buildItemsTable(items, currency, true, creditNoteDiscountView),
     });
   } else if (type === 'prepayment') {
     const d = data as PrepaymentPrintData;
     const { prepayment } = d;
-    const currency = prepayment.source_currency || 'UYU';
+    const currency = prepayment.source_currency || getClinicCurrency();
     const amount = Number(prepayment.source_amount || prepayment.amount_applied || 0);
     Object.assign(values, {
       doc_no: prepayment.doc_no || prepayment.payment_doc_no || prepayment.id,
@@ -462,8 +497,9 @@ function substituteVariables(html: string, data: PrintData, type: PrintDocumentT
     const { report, dateRange } = d;
     const dateFrom = report.report_start_date ?? dateRange?.from ?? null;
     const dateTo   = report.report_end_date   ?? dateRange?.to   ?? null;
+    const primaryCurrency = getClinicCurrency();
     const currencies = Object.keys(report.history_by_currency).sort((a, b) =>
-      a === 'UYU' ? -1 : b === 'UYU' ? 1 : a.localeCompare(b)
+      a === primaryCurrency ? -1 : b === primaryCurrency ? 1 : a.localeCompare(b)
     );
     const movementsTable = currencies
       .map((cur) => {

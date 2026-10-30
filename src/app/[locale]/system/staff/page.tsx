@@ -1,5 +1,8 @@
 'use client';
 
+import { UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
+import { getUniqueConflict } from '@/components/patients/patient-form-utils';
+import type { UniqueConflict } from '@/lib/types';
 import { TwoPanelLayout, useNarrowMode } from '@/components/layout/two-panel-layout';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { DataCard } from '@/components/ui/data-card';
@@ -22,6 +25,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { PhoneInput } from '@/components/ui/phone-input';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import {
   Select,
   SelectContent,
@@ -32,13 +36,16 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserLogs } from '@/components/users/user-logs';
 import { UserRoles } from '@/components/users/user-roles';
+import { UserPreferencesTab } from '@/components/users/user-preferences-tab';
 import { SYSTEM_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useLicenseStore } from '@/stores/license-store';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Role, User, UserRole, UserRoleAssignment } from '@/lib/types';
+import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import { api } from '@/services/api';
 import { extractCreatedUserId, sendFirstTimePasswordToken } from '@/services/users';
 import { useCheckFirstPassword } from '@/hooks/use-check-first-password';
@@ -51,6 +58,7 @@ import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { createDefaultPagination } from '@/lib/pagination';
 
 // ---------------------------------------------------------------------------
 // Types & helpers
@@ -109,7 +117,7 @@ const staffFormSchema = (t: (key: string) => string) =>
         .refine(
           (val) => {
             if (!val || val.trim() === '') return true;
-            return isValidPhoneNumber(val);
+            return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
           },
           { message: t('SystemUsersPage.createDialog.validation.phoneInvalid') },
         ),
@@ -121,6 +129,7 @@ const staffFormSchema = (t: (key: string) => string) =>
         .or(z.literal('')),
       is_active: z.boolean().default(true),
       role_id: z.string().min(1, { message: t('StaffPage.createDialog.validation.roleRequired') }),
+      active_sede_id: z.string().optional(),
     })
     .refine(
       (data) => {
@@ -158,7 +167,7 @@ const detailFormSchema = (t: (key: string) => string) =>
         .refine(
           (val) => {
             if (!val || val.trim() === '') return true;
-            return isValidPhoneNumber(val);
+            return isValidPhoneNumber(val, DEFAULT_PHONE_COUNTRY);
           },
           { message: t('SystemUsersPage.createDialog.validation.phoneInvalid') },
         ),
@@ -169,6 +178,7 @@ const detailFormSchema = (t: (key: string) => string) =>
         .optional()
         .or(z.literal('')),
       is_active: z.boolean().default(true),
+      active_sede_id: z.string().optional(),
     })
     .refine(
       (data) => {
@@ -228,6 +238,7 @@ async function getUsers(
       phone_number: apiUser.phone_number || '',
       is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
       identity_document: apiUser.identity_document,
+      active_sede_id: apiUser.active_sede_id != null ? String(apiUser.active_sede_id) : null,
       avatar:
         apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
     }));
@@ -398,6 +409,8 @@ export default function StaffPage() {
   const router = useRouter();
   const locale = useLocale();
   const tCommon = useTranslations('Common');
+  // Dato que no se puede repetir: modal en vez de texto inline, que no se ve con el form scrolleado.
+  const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
   const { toast } = useToast();
 
   // List state
@@ -418,10 +431,7 @@ export default function StaffPage() {
   // Table state
   const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
-  const [pagination, setPagination] = React.useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 25,
-  });
+  const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [showOnlyActive, setShowOnlyActive] = React.useState(true);
 
@@ -433,6 +443,7 @@ export default function StaffPage() {
   const [activeTab, setActiveTab] = React.useState('details');
 
   // Forms
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<StaffFormValues>({
     resolver: zodResolver(staffFormSchema(t)),
     defaultValues: {
@@ -442,6 +453,7 @@ export default function StaffPage() {
       identity_document: '',
       is_active: true,
       role_id: '',
+      active_sede_id: '',
     },
   });
 
@@ -453,6 +465,7 @@ export default function StaffPage() {
       phone: '',
       identity_document: '',
       is_active: true,
+      active_sede_id: '',
     },
   });
 
@@ -573,6 +586,7 @@ export default function StaffPage() {
         phone: u.phone_number || '',
         identity_document: u.identity_document || '',
         is_active: u.is_active,
+        active_sede_id: u.active_sede_id || '',
       });
       setDetailError(null);
     }
@@ -641,6 +655,7 @@ export default function StaffPage() {
       identity_document: '',
       is_active: true,
       role_id: '',
+      active_sede_id: '',
     });
     setSubmissionError(null);
     setIsDialogOpen(true);
@@ -668,10 +683,14 @@ export default function StaffPage() {
     }
 
     try {
-      const { id: _id, role_id, ...userPayload } = data;
+      const { id: _id, role_id, active_sede_id, ...userPayload } = data;
       const response = await api.post(API_ROUTES.USERS_UPSERT, {
         ...userPayload,
         is_sales: true,
+        // Va en el propio upsert y no por `/users/active-sede`: ese endpoint es self-only
+        // (su GET no recibe user_id y responde la sede del usuario del JWT), así que mandarle
+        // un user_id ajeno terminaba cambiándole la sede activa al admin que estaba editando.
+        active_sede_id: active_sede_id ? Number(active_sede_id) : null,
       });
 
       if (response?.error && (response.error.error || response.code > 200)) {
@@ -711,18 +730,9 @@ export default function StaffPage() {
     } catch (error: any) {
       const errorData =
         error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-      if (
-        errorData?.code === 'unique_conflict' &&
-        errorData?.conflictedFields
-      ) {
-        const fields = errorData.conflictedFields
-          .map((f: string) =>
-            t(`SystemUsersPage.createDialog.validation.fields.${f}`),
-          )
-          .join(', ');
-        setSubmissionError(
-          t('SystemUsersPage.createDialog.validation.uniqueConflict', { fields }),
-        );
+      const conflict = getUniqueConflict(errorData);
+      if (conflict) {
+        setUniqueConflict(conflict);
       } else if (
         (error.status === 400 || error.status === 409) &&
         errorData?.errors
@@ -763,9 +773,13 @@ export default function StaffPage() {
     detailForm.clearErrors();
     setIsSavingDetail(true);
     try {
+      const { active_sede_id, ...userPayload } = data;
       const response = await api.post(API_ROUTES.USERS_UPSERT, {
-        ...data,
+        ...userPayload,
         is_sales: true,
+        // Ver el comentario del alta: `/users/active-sede` es self-only y le pisaba la sede
+        // al admin en vez de guardarla en el usuario editado.
+        active_sede_id: active_sede_id ? Number(active_sede_id) : null,
       });
       if (response?.error && (response.error.error || response.code > 200)) {
         const apiError = new Error('API Error') as any;
@@ -773,6 +787,7 @@ export default function StaffPage() {
         apiError.data = response;
         throw apiError;
       }
+
       toast({
         title: t('StaffPage.createDialog.editSuccessTitle'),
         description: t('StaffPage.createDialog.editSuccessDescription'),
@@ -784,18 +799,46 @@ export default function StaffPage() {
         phone_number: data.phone || '',
         identity_document: data.identity_document || '',
         is_active: data.is_active,
+        active_sede_id: data.active_sede_id || null,
       };
       setSelectedUser(updated);
       setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
     } catch (error: any) {
       const errorData =
         error.data?.error || (Array.isArray(error.data) && error.data[0]?.error);
-      setDetailError(
-        errorData?.message ||
-          (error instanceof Error
-            ? error.message
-            : t('SystemUsersPage.createDialog.validation.genericError')),
-      );
+      const conflict = getUniqueConflict(errorData);
+      if (conflict) {
+        setUniqueConflict(conflict);
+      } else if (
+        (error.status === 400 || error.status === 409) &&
+        errorData?.errors
+      ) {
+        const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
+        if (errors.length > 0) {
+          errors.forEach((err: { field: any; message: string }) => {
+            if (err.field) {
+              detailForm.setError(err.field as keyof DetailFormValues, {
+                type: 'manual',
+                message: err.message,
+              });
+            }
+          });
+        } else {
+          setDetailError(
+            errorData?.message ||
+              t('SystemUsersPage.createDialog.validation.genericError'),
+          );
+        }
+      } else if (error.status >= 500) {
+        setDetailError(t('SystemUsersPage.createDialog.validation.serverError'));
+      } else {
+        setDetailError(
+          errorData?.message ||
+            (error instanceof Error
+              ? error.message
+              : t('SystemUsersPage.createDialog.validation.genericError')),
+        );
+      }
     } finally {
       setIsSavingDetail(false);
     }
@@ -849,6 +892,7 @@ export default function StaffPage() {
 
   return (
     <>
+      <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <TwoPanelLayout
           isRightPanelOpen={!!selectedUser}
@@ -943,12 +987,17 @@ export default function StaffPage() {
                           {t('StaffPage.tabs.logs')}
                         </TabsTrigger>
                       )}
+                      {canUpdate && (
+                        <TabsTrigger value="preferences">
+                          {t('StaffPage.tabs.preferences')}
+                        </TabsTrigger>
+                      )}
                     </TabsList>
                     <div className="flex-1 overflow-auto mt-4">
                       <TabsContent value="details" className="m-0">
                         <Form {...detailForm}>
                           <form
-                            onSubmit={detailForm.handleSubmit(onDetailSubmit)}
+                            onSubmit={detailForm.handleSubmit(onDetailSubmit, onInvalidSubmit)}
                             className="space-y-4"
                           >
                             {detailError && (
@@ -1046,6 +1095,26 @@ export default function StaffPage() {
                             />
                             <FormField
                               control={detailForm.control}
+                              name="active_sede_id"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>
+                                    {t('StaffPage.createDialog.defaultSede')}
+                                  </FormLabel>
+                                  <FormControl>
+                                    <SedeSelector
+                                      value={field.value}
+                                      onValueChange={field.onChange}
+                                      placeholder={t('StaffPage.createDialog.defaultSedePlaceholder')}
+                                      triggerText={t('StaffPage.createDialog.defaultSedePlaceholder')}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={detailForm.control}
                               name="is_active"
                               render={({ field }) => (
                                 <FormItem className="flex flex-row items-center space-x-3 space-y-0">
@@ -1096,6 +1165,14 @@ export default function StaffPage() {
                           <UserLogs userId={selectedUser.id} />
                         </TabsContent>
                       )}
+                      {canUpdate && (
+                        <TabsContent
+                          value="preferences"
+                          className="m-0 flex-1 min-h-0 data-[state=active]:flex data-[state=active]:flex-col"
+                        >
+                          <UserPreferencesTab user={selectedUser} showAlertStyle />
+                        </TabsContent>
+                      )}
                     </div>
                   </Tabs>
                 </CardContent>
@@ -1116,7 +1193,7 @@ export default function StaffPage() {
           </DialogHeader>
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit(onSubmit)}
+              onSubmit={form.handleSubmit(onSubmit, onInvalidSubmit)}
               className="flex flex-col flex-1 overflow-hidden"
             >
               <DialogBody className="space-y-4 px-6 py-4">
@@ -1227,6 +1304,25 @@ export default function StaffPage() {
                             'StaffPage.createDialog.identity_document_placeholder',
                           )}
                           {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="active_sede_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('StaffPage.createDialog.defaultSede')}</FormLabel>
+                      <FormControl>
+                        <SedeSelector
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          placeholder={t('StaffPage.createDialog.defaultSedePlaceholder')}
+                          triggerText={t('StaffPage.createDialog.defaultSedePlaceholder')}
                         />
                       </FormControl>
                       <FormMessage />

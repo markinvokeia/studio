@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Payment, PaymentMethod } from '@/lib/types';
 import api from '@/services/api';
 import { isPaymentEditable, mapApiPaymentToPayment } from '@/services/payments-service';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 interface PaymentEditDialogProps {
     open: boolean;
@@ -37,7 +38,7 @@ function formatPaymentAmount(payment: Payment | null): string {
     if (!payment) return '';
 
     const amount = Math.abs(Number(payment.source_amount ?? payment.amount ?? payment.amount_applied ?? 0));
-    const currency = payment.source_currency || payment.currency || 'USD';
+    const currency = payment.source_currency || payment.currency || getClinicCurrency();
 
     return new Intl.NumberFormat('en-US', {
         style: 'currency',

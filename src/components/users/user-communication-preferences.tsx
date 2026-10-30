@@ -5,10 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
 import { NotificationCategory, NotificationPlatform, User } from '@/lib/types';
-import { api } from '@/services/api';
-import { Loader2, Mail, MessageSquare, Phone, Save } from 'lucide-react';
+import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
+import { AlertTriangle, Loader2, Mail, MessageSquare, Phone, Save } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 
@@ -30,72 +32,59 @@ const platformIcons: Record<string, React.ComponentType<any>> = {
     whatsapp: Phone,
 };
 
-async function getPlatforms(): Promise<NotificationPlatform[]> {
-    try {
-        const response = await api.get(API_ROUTES.SYSTEM.NOTIFICATION_PLATFORMS);
-        const platforms = Array.isArray(response) ? response : [];
-        return platforms.filter((p: NotificationPlatform) => p.is_active);
-    } catch (error) {
-        console.error('Failed to fetch platforms:', error);
-        return [];
-    }
+// These throw on failure: a matrix built from a failed load shows everything disabled, and saving
+// it (the endpoint replaces the whole set) would wipe the user's real preferences.
+async function getPlatforms(signal?: AbortSignal): Promise<NotificationPlatform[]> {
+    const response = await api.get(API_ROUTES.SYSTEM.NOTIFICATION_PLATFORMS, undefined, undefined, { signal });
+    const platforms = Array.isArray(response) ? response : [];
+    return platforms.filter((p: NotificationPlatform) => p.is_active);
 }
 
-async function getCategories(): Promise<NotificationCategory[]> {
-    try {
-        const response = await api.get(API_ROUTES.SYSTEM.NOTIFICATION_CATEGORIES);
-        return Array.isArray(response) ? response : [];
-    } catch (error) {
-        console.error('Failed to fetch categories:', error);
-        return [];
-    }
+async function getCategories(signal?: AbortSignal): Promise<NotificationCategory[]> {
+    const response = await api.get(API_ROUTES.SYSTEM.NOTIFICATION_CATEGORIES, undefined, undefined, { signal });
+    return Array.isArray(response) ? response : [];
 }
 
-async function getUserPreferences(userId: string): Promise<PreferenceState[]> {
-    try {
-        const response = await api.get(API_ROUTES.SYSTEM.USER_COMMUNICATION_PREFERENCES, { user_id: userId });
-        if (Array.isArray(response)) {
-            return response.map((p: any) => ({
-                category_slug: p.category_slug,
-                channel_slug: p.channel_slug,
-                is_enabled: p.is_enabled,
-            }));
-        }
-        return [];
-    } catch (error) {
-        console.error('Failed to fetch user preferences:', error);
-        return [];
+async function getUserPreferences(userId: string, signal?: AbortSignal): Promise<PreferenceState[]> {
+    const response = await api.get(API_ROUTES.SYSTEM.USER_COMMUNICATION_PREFERENCES, { user_id: userId }, undefined, { signal });
+    if (Array.isArray(response)) {
+        return response.map((p: any) => ({
+            category_slug: p.category_slug,
+            channel_slug: p.channel_slug,
+            is_enabled: p.is_enabled,
+        }));
     }
+    return [];
 }
 
 async function saveUserPreferences(userId: string, preferences: PreferenceState[]): Promise<void> {
     await api.post(API_ROUTES.SYSTEM.USER_COMMUNICATION_PREFERENCES, {
         user_id: userId,
         preferences,
-    });
+    }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
 }
 
 export function UserCommunicationPreferences({ user, autoSave = false, compact = false }: UserCommunicationPreferencesProps) {
     const t = useTranslations('UserCommunicationPreferences');
+    const tCommon = useTranslations('Common');
     const { toast } = useToast();
-    const [platforms, setPlatforms] = React.useState<NotificationPlatform[]>([]);
-    const [categories, setCategories] = React.useState<NotificationCategory[]>([]);
     const [preferences, setPreferences] = React.useState<PreferenceState[]>([]);
-    const [isLoading, setIsLoading] = React.useState(true);
-    const [isSaving, setIsSaving] = React.useState(false);
     const [savingKey, setSavingKey] = React.useState<string | null>(null);
 
-    const loadData = React.useCallback(async () => {
-        setIsLoading(true);
-        try {
+    // Switching users quickly can't show another user's matrix: only the latest load writes.
+    const {
+        data: { platforms, categories, combinations },
+        isLoading,
+        isRefreshing,
+        error: loadError,
+        reload: loadData,
+    } = useDataLoader(
+        async (signal) => {
             const [platformsData, categoriesData, preferencesData] = await Promise.all([
-                getPlatforms(),
-                getCategories(),
-                getUserPreferences(user.id),
+                getPlatforms(signal),
+                getCategories(signal),
+                getUserPreferences(user.id, signal),
             ]);
-
-            setPlatforms(platformsData);
-            setCategories(categoriesData);
 
             const allCombinations: PreferenceState[] = [];
             platformsData.forEach((platform: NotificationPlatform) => {
@@ -110,17 +99,15 @@ export function UserCommunicationPreferences({ user, autoSave = false, compact =
                     });
                 });
             });
-            setPreferences(allCombinations);
-        } catch (error) {
-            console.error('Failed to load data:', error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [user.id]);
+            return { platforms: platformsData, categories: categoriesData, combinations: allCombinations };
+        },
+        { platforms: [] as NotificationPlatform[], categories: [] as NotificationCategory[], combinations: [] as PreferenceState[] },
+        [user.id]
+    );
 
     React.useEffect(() => {
-        loadData();
-    }, [loadData]);
+        setPreferences(combinations);
+    }, [combinations]);
 
     const isPreferenceEnabled = (categorySlug: string, channelSlug: string): boolean => {
         const pref = preferences.find(
@@ -129,63 +116,69 @@ export function UserCommunicationPreferences({ user, autoSave = false, compact =
         return pref ? pref.is_enabled : false;
     };
 
-    const doAutoSave = React.useCallback(async (key: string, newPreferences: PreferenceState[], prevPreferences: PreferenceState[]) => {
-        setSavingKey(key);
-        try {
-            await saveUserPreferences(user.id, newPreferences);
-        } catch {
-            setPreferences(prevPreferences);
-            toast({ variant: 'destructive', title: t('toast.errorTitle'), description: t('toast.saveErrorDescription') });
-        } finally {
-            setSavingKey(null);
-        }
-    }, [user.id, toast, t]);
+    // The endpoint replaces the whole matrix, so saves are serialized: a second click while one is
+    // in flight is ignored (the checkboxes are disabled meanwhile) instead of racing it.
+    const autoSaveAction = useAsyncAction(
+        async (key: string, newPreferences: PreferenceState[], prevPreferences: PreferenceState[]) => {
+            setSavingKey(key);
+            try {
+                await saveUserPreferences(user.id, newPreferences);
+            } catch (error) {
+                setPreferences(prevPreferences);
+                throw error;
+            } finally {
+                setSavingKey(null);
+            }
+        },
+        { errorTitle: t('toast.saveErrorDescription') }
+    );
+
+    const applyChange = (key: string, newPreferences: PreferenceState[]) => {
+        if (loadError || autoSaveAction.isPending) return;
+        setPreferences(newPreferences);
+        if (autoSave) autoSaveAction.run(key, newPreferences, preferences);
+    };
 
     const handleToggle = (categorySlug: string, channelSlug: string) => {
-        const newPreferences = preferences.map(p =>
+        applyChange(`${categorySlug}-${channelSlug}`, preferences.map(p =>
             p.category_slug === categorySlug && p.channel_slug === channelSlug
                 ? { ...p, is_enabled: !p.is_enabled }
                 : p
-        );
-        setPreferences(newPreferences);
-        if (autoSave) doAutoSave(`${categorySlug}-${channelSlug}`, newPreferences, preferences);
+        ));
     };
 
     const handleCategoryToggle = (categorySlug: string, enabled: boolean) => {
-        const newPreferences = preferences.map(p =>
+        applyChange(`cat-${categorySlug}`, preferences.map(p =>
             p.category_slug === categorySlug ? { ...p, is_enabled: enabled } : p
-        );
-        setPreferences(newPreferences);
-        if (autoSave) doAutoSave(`cat-${categorySlug}`, newPreferences, preferences);
+        ));
     };
 
     const handleChannelToggle = (channelSlug: string, enabled: boolean) => {
-        const newPreferences = preferences.map(p =>
+        applyChange(`ch-${channelSlug}`, preferences.map(p =>
             p.channel_slug === channelSlug ? { ...p, is_enabled: enabled } : p
-        );
-        setPreferences(newPreferences);
-        if (autoSave) doAutoSave(`ch-${channelSlug}`, newPreferences, preferences);
+        ));
     };
 
-    const handleSave = async () => {
-        setIsSaving(true);
-        try {
-            await saveUserPreferences(user.id, preferences);
-            toast({
-                title: t('toast.successTitle'),
-                description: t('toast.saveSuccessDescription'),
-            });
-        } catch (error) {
-            console.error('Failed to save preferences:', error);
-            toast({
-                variant: 'destructive',
-                title: t('toast.errorTitle'),
-                description: t('toast.saveErrorDescription'),
-            });
-        } finally {
-            setIsSaving(false);
-        }
+    // One change for every channel at once (calling handleChannelToggle per channel would compute
+    // each from the same stale state and only the last one would stick).
+    const handleAllToggle = (enabled: boolean) => {
+        applyChange('all', preferences.map(p => ({ ...p, is_enabled: enabled })));
     };
+
+    const save = useAsyncAction(
+        () => saveUserPreferences(user.id, preferences),
+        {
+            onSuccess: () => {
+                toast({
+                    title: t('toast.successTitle'),
+                    description: t('toast.saveSuccessDescription'),
+                });
+            },
+            errorTitle: t('toast.saveErrorDescription'),
+        }
+    );
+
+    const isBusy = savingKey !== null || save.isPending;
 
     const isCategoryEnabled = (categorySlug: string): boolean => {
         const categoryPrefs = preferences.filter(p => p.category_slug === categorySlug);
@@ -223,7 +216,19 @@ export function UserCommunicationPreferences({ user, autoSave = false, compact =
                     </tr>
                 </thead>
                 <tbody>
-                    {isLoading
+                    {loadError ? (
+                        <tr>
+                            <td colSpan={platforms.length + 1} className="p-3">
+                                <div className="flex flex-wrap items-center gap-2 text-xs text-destructive" role="alert">
+                                    <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                                    <span>{tCommon('loadError')}</span>
+                                    <Button type="button" size="sm" variant="outline" className="h-6 px-2 text-xs" onClick={() => loadData()} loading={isRefreshing}>
+                                        {tCommon('retry')}
+                                    </Button>
+                                </div>
+                            </td>
+                        </tr>
+                    ) : isLoading
                         ? Array.from({ length: 3 }).map((_, i) => (
                             <tr key={i}>
                                 <td className="p-2 border-b"><Skeleton className="h-4 w-28" /></td>
@@ -243,7 +248,7 @@ export function UserCommunicationPreferences({ user, autoSave = false, compact =
                                                 : <Checkbox
                                                     checked={isCategoryEnabled(category.slug)}
                                                     onCheckedChange={(checked) => handleCategoryToggle(category.slug, !!checked)}
-                                                    disabled={savingKey !== null}
+                                                    disabled={isBusy}
                                                 />
                                             }
                                             <span className="text-sm">{category.name}</span>
@@ -258,7 +263,7 @@ export function UserCommunicationPreferences({ user, autoSave = false, compact =
                                                     : <Checkbox
                                                         checked={isPreferenceEnabled(category.slug, platform.platform_name)}
                                                         onCheckedChange={() => handleToggle(category.slug, platform.platform_name)}
-                                                        disabled={savingKey !== null}
+                                                        disabled={isBusy}
                                                     />
                                                 }
                                             </td>
@@ -269,17 +274,15 @@ export function UserCommunicationPreferences({ user, autoSave = false, compact =
                         })
                     }
                 </tbody>
-                {!compact && (
+                {!compact && !loadError && (
                     <tfoot>
                         <tr className="bg-muted/30">
                             <td className="p-2 border-b font-medium text-sm">
                                 <div className="flex items-center gap-2">
                                     <Checkbox
                                         checked={platforms.every(p => isChannelEnabled(p.platform_name))}
-                                        onCheckedChange={(checked) => {
-                                            platforms.forEach(p => handleChannelToggle(p.platform_name, !!checked));
-                                        }}
-                                        disabled={savingKey !== null}
+                                        onCheckedChange={(checked) => handleAllToggle(!!checked)}
+                                        disabled={isBusy}
                                     />
                                     <span>{t('table.allCategories')}</span>
                                 </div>
@@ -289,7 +292,7 @@ export function UserCommunicationPreferences({ user, autoSave = false, compact =
                                     <Checkbox
                                         checked={isChannelEnabled(platform.platform_name)}
                                         onCheckedChange={(checked) => handleChannelToggle(platform.platform_name, !!checked)}
-                                        disabled={savingKey !== null}
+                                        disabled={isBusy}
                                     />
                                 </td>
                             ))}
@@ -312,9 +315,9 @@ export function UserCommunicationPreferences({ user, autoSave = false, compact =
                         <CardTitle className="text-lg">{t('title')}</CardTitle>
                         <CardDescription>{t('description')}</CardDescription>
                     </div>
-                    <Button onClick={handleSave} disabled={isSaving} size="sm">
-                        <Save className="h-4 w-4 mr-2" />
-                        {isSaving ? t('saving') : t('save')}
+                    <Button onClick={() => save.run()} disabled={isLoading || !!loadError || savingKey !== null} loading={save.isPending} size="sm">
+                        {!save.isPending && <Save className="h-4 w-4 mr-2" />}
+                        {t('save')}
                     </Button>
                 </div>
             </CardHeader>

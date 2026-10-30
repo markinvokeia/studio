@@ -2,11 +2,12 @@
 'use client';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ConfirmActionDialog } from '@/components/ui/confirm-action-dialog';
+import { CurrencyPicker } from '@/components/ui/currency-picker';
 import { Dialog, DialogBody, DialogCancelButton, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -14,15 +15,22 @@ import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/ui/phone-input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DEFAULT_CURRENCY, normalizeCurrencyCode } from '@/constants/currencies';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useAsyncAction } from '@/hooks/use-async-action';
+import { useDataLoader } from '@/hooks/use-data-loader';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
+import { getErrorMessage } from '@/lib/error-utils';
 import { Clinic, Sede } from '@/lib/types';
-import { api } from '@/services/api';
+import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
+import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
+import { useClinicInfoStore } from '@/stores/clinic-info-store';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { isValidPhoneNumber } from 'libphonenumber-js';
-import { AlertTriangle, Building, Building2, Info, Loader2, Mail, MapPin, Pencil, Phone, Plus, RefreshCw, Trash2, UploadCloud } from 'lucide-react';
+import { AlertTriangle, Building, Building2, Info, Mail, MapPin, Pencil, Phone, Plus, RefreshCw, Trash2, UploadCloud } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import * as React from 'react';
@@ -55,49 +63,46 @@ type SedeFormValues = z.infer<ReturnType<typeof sedeFormSchema>>;
 
 interface ClinicFallbacks { name: string; location: string; }
 
-async function getClinic(fallbacks: ClinicFallbacks): Promise<Clinic | null> {
-    try {
-        const data = await api.get(API_ROUTES.CLINIC);
-        const clinicsData = Array.isArray(data) ? data : (data.clinics || data.data || data.result || []);
-        if (clinicsData.length === 0) return null;
-        const c = clinicsData[0];
-        return {
-            id: c.id ? String(c.id) : `cli_${Math.random().toString(36).substr(2, 9)}`,
-            name: c.name || fallbacks.name,
-            location: c.address || fallbacks.location,
-            contact_email: c.email || 'no-email@example.com',
-            phone_number: c.phone || '000-000-0000',
-            currency: c.currency || 'USD',
-            rut: c.rut || '',
-        };
-    } catch {
-        return null;
-    }
+// Throws on network/server errors so the page can tell "failed to load" apart from "no clinic".
+async function getClinic(fallbacks: ClinicFallbacks, signal?: AbortSignal): Promise<Clinic | null> {
+    const data = await api.get(API_ROUTES.CLINIC, undefined, undefined, { signal });
+    const clinicsData = Array.isArray(data) ? data : (data?.clinics || data?.data || data?.result || []);
+    if (clinicsData.length === 0) return null;
+    const c = clinicsData[0];
+    return {
+        id: c.id ? String(c.id) : `cli_${Math.random().toString(36).substr(2, 9)}`,
+        name: c.name || fallbacks.name,
+        location: c.address || fallbacks.location,
+        contact_email: c.email || 'no-email@example.com',
+        phone_number: c.phone || '000-000-0000',
+        currency: normalizeCurrencyCode(c.currency) || DEFAULT_CURRENCY,
+        secondary_currency: normalizeCurrencyCode(c.secondary_currency) ?? null,
+        rut: c.rut || '',
+    };
 }
 
-async function getClinicLogo(): Promise<string | null> {
+// The logo is optional: a missing logo (or a failed fetch) just shows the upload placeholder.
+async function getClinicLogo(signal?: AbortSignal): Promise<string | null> {
     try {
-        const blob = await api.getBlob(API_ROUTES.CLINIC_LOGO) as unknown as Blob;
+        const blob = await api.getBlob(API_ROUTES.CLINIC_LOGO, undefined, undefined, { signal }) as unknown as Blob;
         return blob?.size > 0 ? URL.createObjectURL(blob) : null;
     } catch { return null; }
 }
 
-async function getSedes(): Promise<Sede[]> {
-    try {
-        const data = await api.get(API_ROUTES.SEDES, { page: '1', limit: '200' });
-        const raw = Array.isArray(data) ? data : (data.sedes || data.data || data.result || []);
-        return raw.map((s: any) => ({
-            id: String(s.id),
-            clinic_id: String(s.clinic_id),
-            name: s.name || '',
-            address: s.address || undefined,
-            phone: s.phone || undefined,
-            email: s.email || undefined,
-            is_active: s.is_active !== undefined ? s.is_active : true,
-            created_at: s.created_at,
-            updated_at: s.updated_at,
-        }));
-    } catch { return []; }
+async function getSedes(signal?: AbortSignal): Promise<Sede[]> {
+    const data = await api.get(API_ROUTES.SEDES, { page: '1', limit: '200' }, undefined, { signal });
+    const raw = Array.isArray(data) ? data : (data?.sedes || data?.data || data?.result || []);
+    return raw.map((s: any) => ({
+        id: String(s.id),
+        clinic_id: String(s.clinic_id),
+        name: s.name || '',
+        address: s.address || undefined,
+        phone: s.phone || undefined,
+        email: s.email || undefined,
+        is_active: s.is_active !== undefined ? s.is_active : true,
+        created_at: s.created_at,
+        updated_at: s.updated_at,
+    }));
 }
 
 async function upsertSede(sedeData: SedeFormValues & { clinic_id: string }) {
@@ -110,13 +115,13 @@ async function upsertSede(sedeData: SedeFormValues & { clinic_id: string }) {
         is_active: sedeData.is_active,
     };
     if (sedeData.id) payload.id = Number(sedeData.id);
-    const res = await api.post(API_ROUTES.SEDE_UPSERT, payload);
+    const res = await api.post(API_ROUTES.SEDE_UPSERT, payload, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message || 'Error');
     return res;
 }
 
 async function deleteSede(id: string) {
-    const res = await api.delete(API_ROUTES.SEDE_DELETE, { id: Number(id) });
+    const res = await api.delete(API_ROUTES.SEDE_DELETE, { id: Number(id) }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
     if (Array.isArray(res) && res[0]?.code >= 400) throw new Error(res[0]?.message || 'Error');
     return res;
 }
@@ -134,26 +139,34 @@ export default function ClinicsPage() {
     const canDeleteSede = hasPermission(BUSINESS_CONFIG_PERMISSIONS.SEDES_DELETE);
 
     const { toast } = useToast();
+    const refreshClinicInfo = useClinicInfoStore((s) => s.refresh);
 
-    // Clinic state
+    // Clinic state: `clinic` is the editable copy of what the server returned (`clinicLoader.data.clinic`).
+    const clinicLoader = useDataLoader(
+        async (signal) => {
+            const [fetchedClinic, logoUrl] = await Promise.all([
+                getClinic({ name: tc('fallbacks.name'), location: tc('fallbacks.location') }, signal),
+                getClinicLogo(signal),
+            ]);
+            return { clinic: fetchedClinic, logoUrl };
+        },
+        { clinic: null as Clinic | null, logoUrl: null as string | null }
+    );
+    const savedClinic = clinicLoader.data.clinic;
     const [clinic, setClinic] = React.useState<Clinic | null>(null);
-    const [isLoading, setIsLoading] = React.useState(true);
-    const [isSaving, setIsSaving] = React.useState(false);
     const [logoPreview, setLogoPreview] = React.useState<string | null>(null);
     const [logoFile, setLogoFile] = React.useState<File | null>(null);
     const [phoneError, setPhoneError] = React.useState<string | null>(null);
 
     // Sedes state
-    const [sedes, setSedes] = React.useState<Sede[]>([]);
-    const [clinicId, setClinicId] = React.useState('');
-    const [isSedesLoading, setIsSedesLoading] = React.useState(true);
+    const { data: sedes, isLoading: isSedesLoading, isRefreshing: isSedesRefreshing, error: sedesError, reload: loadSedes } = useDataLoader(getSedes, [] as Sede[]);
     const [isCreateSedeOpen, setIsCreateSedeOpen] = React.useState(false);
     const [editingSede, setEditingSede] = React.useState<Sede | null>(null);
     const [deletingSede, setDeletingSede] = React.useState<Sede | null>(null);
     const [isDeleteSedeOpen, setIsDeleteSedeOpen] = React.useState(false);
-    const [isSavingSede, setIsSavingSede] = React.useState(false);
     const [sedeError, setSedeError] = React.useState<string | null>(null);
 
+    const onInvalidSubmit = useInvalidSubmitToast();
     const sedeForm = useForm<SedeFormValues>({
         resolver: zodResolver(sedeFormSchema(t)),
         defaultValues: { name: '', address: '', phone: '', email: '', is_active: true },
@@ -161,26 +174,23 @@ export default function ClinicsPage() {
 
     // ── Loaders ───────────────────────────────────────────────────────────────
 
-    const loadClinic = React.useCallback(async () => {
-        setIsLoading(true);
-        const [fetchedClinic, logoUrl] = await Promise.all([
-            getClinic({ name: tc('fallbacks.name'), location: tc('fallbacks.location') }),
-            getClinicLogo(),
-        ]);
-        setClinic(fetchedClinic);
-        if (fetchedClinic) setClinicId(fetchedClinic.id);
-        if (logoUrl) setLogoPreview(logoUrl);
-        setIsLoading(false);
-    }, [tc]);
+    const loadClinic = clinicLoader.reload;
 
-    const loadSedes = React.useCallback(async () => {
-        setIsSedesLoading(true);
-        setSedes(await getSedes());
-        setIsSedesLoading(false);
-    }, []);
+    // Every successful load (initial, refresh, after saving) resets the editable copy to the server state.
+    React.useEffect(() => {
+        setClinic(clinicLoader.data.clinic);
+        setLogoFile(null);
+        setPhoneError(null);
+        if (clinicLoader.data.logoUrl) setLogoPreview(clinicLoader.data.logoUrl);
+    }, [clinicLoader.data]);
 
-    React.useEffect(() => { loadClinic(); }, [loadClinic]);
-    React.useEffect(() => { loadSedes(); }, [loadSedes]);
+    const isClinicDirty = !!logoFile || (!!clinic && JSON.stringify(clinic) !== JSON.stringify(savedClinic));
+
+    const handleRefresh = () => {
+        if (isClinicDirty && !window.confirm(t('Common.unsavedChangesConfirm'))) return;
+        loadClinic();
+        loadSedes();
+    };
 
     // ── Clinic handlers ───────────────────────────────────────────────────────
 
@@ -213,12 +223,7 @@ export default function ClinicsPage() {
         reader.readAsDataURL(file);
     };
 
-    const handleSaveChanges = async () => {
-        if (!clinic) return;
-        const phone = clinic.phone_number?.trim();
-        if (phone && !isValidPhoneNumber(phone)) { setPhoneError(tc('validation.phoneInvalid')); return; }
-        setPhoneError(null);
-        setIsSaving(true);
+    const updateClinic = async (clinic: Clinic, logoFile: File | null) => {
         const formData = new FormData();
         formData.append('id', clinic.id);
         formData.append('name', clinic.name);
@@ -226,24 +231,41 @@ export default function ClinicsPage() {
         formData.append('email', clinic.contact_email);
         formData.append('phone', clinic.phone_number);
         if (clinic.currency) formData.append('currency', clinic.currency);
+        // Siempre se envía, también vacía: es como se quita la moneda
+        // secundaria y se vuelve a operar en moneda única.
+        formData.append('secondary_currency', clinic.secondary_currency ?? '');
         if (clinic.rut) formData.append('rut', clinic.rut);
         if (logoFile) formData.append('data', logoFile);
-        try {
-            const res = await api.post(API_ROUTES.CLINIC_UPDATE, formData);
-            if (Array.isArray(res) && res.length > 0) {
-                const first = res[0];
-                if (first.message) throw new Error(first.message);
-                if (first.id && first.name) {
-                    toast({ title: tc('toast.successTitle'), description: tc('toast.successDesc') });
-                    loadClinic();
-                } else throw new Error(tc('toast.errorUnknown'));
-            } else throw new Error(tc('toast.errorUnknown'));
-        } catch (error) {
-            toast({ variant: 'destructive', title: tc('toast.errorTitle'), description: error instanceof Error ? error.message : tc('toast.errorUnknown') });
-        } finally {
-            setIsSaving(false);
-        }
+        const res = await api.post(API_ROUTES.CLINIC_UPDATE, formData, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+        const first = Array.isArray(res) ? res[0] : undefined;
+        if (first?.message) throw new Error(first.message);
+        if (!first?.id || !first?.name) throw new Error(tc('toast.errorUnknown'));
     };
+
+    const saveClinic = useAsyncAction(
+        async () => {
+            if (!clinic) return false;
+            const phone = clinic.phone_number?.trim();
+            if (phone && !isValidPhoneNumber(phone, DEFAULT_PHONE_COUNTRY)) { setPhoneError(tc('validation.phoneInvalid')); return false; }
+            setPhoneError(null);
+            await updateClinic(clinic, logoFile);
+            return true;
+        },
+        {
+            onSuccess: async (saved) => {
+                if (!saved) return;
+                toast({ title: tc('toast.successTitle'), description: tc('toast.successDesc') });
+                // La moneda la lee medio producto desde el store; sin esto
+                // el cambio no se vería hasta el siguiente login.
+                refreshClinicInfo();
+                await loadClinic();
+            },
+            // The update may have gone through before the timeout: show the real state.
+            onError: (error) => { if (isTimeoutError(error)) loadClinic(); },
+            errorTitle: tc('toast.errorTitle'),
+        }
+    );
+
 
     // ── Sede handlers ─────────────────────────────────────────────────────────
 
@@ -266,34 +288,45 @@ export default function ClinicsPage() {
         setEditingSede(sede);
     };
 
-    const onSedeSubmit = async (values: SedeFormValues) => {
-        setSedeError(null);
-        setIsSavingSede(true);
-        try {
-            await upsertSede({ ...values, clinic_id: clinicId });
-            toast({ title: values.id ? tc('toast.sedeEditSuccess') : tc('toast.sedeCreateSuccess') });
-            await loadSedes();
-            setIsCreateSedeOpen(false);
-            setEditingSede(null);
-        } catch (err) {
-            setSedeError(err instanceof Error ? err.message : tc('toast.sedeGenericError'));
-        } finally {
-            setIsSavingSede(false);
+    const saveSede = useAsyncAction(
+        async (values: SedeFormValues) => {
+            setSedeError(null);
+            await upsertSede({ ...values, clinic_id: savedClinic?.id ?? '' });
+            return values;
+        },
+        {
+            onSuccess: async (values) => {
+                toast({ title: values.id ? tc('toast.sedeEditSuccess') : tc('toast.sedeCreateSuccess') });
+                await loadSedes();
+                setIsCreateSedeOpen(false);
+                setEditingSede(null);
+            },
+            onError: (error) => {
+                if (isTimeoutError(error)) {
+                    // The sede may have been saved anyway: refresh so the user can check before retrying.
+                    setSedeError(t('Common.timeoutError'));
+                    loadSedes();
+                    return;
+                }
+                setSedeError(getErrorMessage(error) || tc('toast.sedeGenericError'));
+            },
+            showErrorToast: false,
         }
-    };
+    );
 
-    const confirmDeleteSede = async () => {
-        if (!deletingSede) return;
-        try {
-            await deleteSede(deletingSede.id);
-            toast({ title: tc('toast.sedeDeleteSuccess') });
-            setIsDeleteSedeOpen(false);
-            setDeletingSede(null);
-            loadSedes();
-        } catch {
-            toast({ variant: 'destructive', title: tc('toast.errorTitle'), description: tc('toast.sedeDeleteError') });
+    const removeSede = useAsyncAction(
+        (sede: Sede) => deleteSede(sede.id),
+        {
+            onSuccess: async () => {
+                toast({ title: tc('toast.sedeDeleteSuccess') });
+                setIsDeleteSedeOpen(false);
+                setDeletingSede(null);
+                await loadSedes();
+            },
+            onError: (error) => { if (isTimeoutError(error)) loadSedes(); },
+            errorTitle: tc('toast.sedeDeleteError'),
         }
-    };
+    );
 
     // ── Sede form fields (shared between create/edit dialogs) ─────────────────
 
@@ -347,7 +380,7 @@ export default function ClinicsPage() {
 
     // ── Skeletons ─────────────────────────────────────────────────────────────
 
-    if (isLoading) {
+    if (clinicLoader.isLoading) {
         return (
             <Card>
                 <CardHeader>
@@ -379,7 +412,23 @@ export default function ClinicsPage() {
                     <CardTitle>{tc('title')}</CardTitle>
                     <CardDescription>{tc('description')}</CardDescription>
                 </CardHeader>
-                <CardContent><p>{tc('noClinic')}</p></CardContent>
+                <CardContent>
+                    {clinicLoader.error ? (
+                        // A failed load is not "no clinic": show the error and let the user retry.
+                        <Alert variant="destructive">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertTitle>{t('Common.loadError')}</AlertTitle>
+                            <AlertDescription className="flex flex-wrap items-center gap-3">
+                                <span>{clinicLoader.error}</span>
+                                <Button size="sm" variant="outline" onClick={() => loadClinic()} loading={clinicLoader.isRefreshing}>
+                                    {t('Common.retry')}
+                                </Button>
+                            </AlertDescription>
+                        </Alert>
+                    ) : (
+                        <p>{tc('noClinic')}</p>
+                    )}
+                </CardContent>
             </Card>
         );
     }
@@ -404,8 +453,8 @@ export default function ClinicsPage() {
                 <CardContent className="flex-1 overflow-y-auto bg-card p-4">
                     <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
 
-                        {/* ── Left column: clinic form ── */}
-                        <div className="space-y-6">
+                        {/* ── Left column: clinic form (native fieldset disables every control while saving) ── */}
+                        <fieldset disabled={saveClinic.isPending} className="min-w-0 space-y-6">
                             <div className="space-y-2">
                                 <Label htmlFor="logo">{tc('logoLabel')}</Label>
                                 <div className="flex items-center gap-4">
@@ -459,17 +508,33 @@ export default function ClinicsPage() {
 
                             <div className="space-y-2">
                                 <Label htmlFor="currency">{tc('currencyLabel')}</Label>
-                                <Select onValueChange={(v) => handleSelectChange('currency', v)} value={clinic.currency}>
-                                    <SelectTrigger>
-                                        <SelectValue placeholder={tc('currencyPlaceholder')} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="USD">USD</SelectItem>
-                                        <SelectItem value="UYU">UYU</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <CurrencyPicker
+                                    id="currency"
+                                    value={clinic.currency}
+                                    onChange={(v) => handleSelectChange('currency', v ?? DEFAULT_CURRENCY)}
+                                    placeholder={tc('currencyPlaceholder')}
+                                    searchPlaceholder={tc('currencySearchPlaceholder')}
+                                    emptyLabel={tc('currencyEmpty')}
+                                />
+                                <p className="text-xs text-muted-foreground">{tc('currencyHelp')}</p>
                             </div>
-                        </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="secondary_currency">{tc('secondaryCurrencyLabel')}</Label>
+                                <CurrencyPicker
+                                    id="secondary_currency"
+                                    value={clinic.secondary_currency ?? undefined}
+                                    onChange={(v) => setClinic((prev) => (prev ? { ...prev, secondary_currency: v ?? null } : prev))}
+                                    exclude={clinic.currency}
+                                    clearable
+                                    placeholder={tc('secondaryCurrencyPlaceholder')}
+                                    clearLabel={tc('secondaryCurrencyNone')}
+                                    searchPlaceholder={tc('currencySearchPlaceholder')}
+                                    emptyLabel={tc('currencyEmpty')}
+                                />
+                                <p className="text-xs text-muted-foreground">{tc('secondaryCurrencyHelp')}</p>
+                            </div>
+                        </fieldset>
 
                         {/* ── Right column: map + sedes list ── */}
                         <div className="flex flex-col gap-4">
@@ -492,24 +557,37 @@ export default function ClinicsPage() {
                                         <p className="text-xs text-muted-foreground">{tc('sedesSectionDesc')}</p>
                                     </div>
                                     {canCreateSede && (
-                                        <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={openCreateSede}>
+                                        <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={openCreateSede} disabled={!!sedesError && sedes.length === 0}>
                                             <Plus className="h-3.5 w-3.5" />
                                             {tc('addSede')}
                                         </Button>
                                     )}
                                 </div>
 
+                                {sedesError && !isSedesLoading && (
+                                    <Alert variant="destructive" className="py-2">
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <AlertDescription className="flex flex-wrap items-center gap-3">
+                                            <span>{t('Common.loadError')} {sedesError}</span>
+                                            <Button size="sm" variant="outline" className="h-7" onClick={() => loadSedes()} loading={isSedesRefreshing}>
+                                                {t('Common.retry')}
+                                            </Button>
+                                        </AlertDescription>
+                                    </Alert>
+                                )}
                                 {isSedesLoading ? (
                                     <div className="space-y-2">
                                         <Skeleton className="h-16 w-full rounded-lg" />
                                         <Skeleton className="h-16 w-full rounded-lg" />
                                     </div>
                                 ) : sedes.length === 0 ? (
+                                    sedesError ? null : (
                                     <div className="rounded-lg border border-dashed p-5 text-center">
                                         <Building2 className="mx-auto h-8 w-8 text-muted-foreground/40 mb-2" />
                                         <p className="text-sm text-muted-foreground">{tc('noSedes')}</p>
                                         <p className="text-xs text-muted-foreground/70 mt-0.5">{tc('noSedesHint')}</p>
                                     </div>
+                                    )
                                 ) : (
                                     <div className="space-y-2">
                                         {sedes.map((sede) => (
@@ -544,12 +622,13 @@ export default function ClinicsPage() {
                                                         )}
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-none">
+                                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity flex-none">
                                                     {canUpdateSede && (
                                                         <Button
                                                             variant="ghost"
                                                             size="icon"
                                                             className="h-7 w-7"
+                                                            aria-label={tc('sedeEditTitle')}
                                                             onClick={() => openEditSede(sede)}
                                                         >
                                                             <Pencil className="h-3.5 w-3.5" />
@@ -560,6 +639,7 @@ export default function ClinicsPage() {
                                                             variant="ghost"
                                                             size="icon"
                                                             className="h-7 w-7 hover:bg-destructive/10 hover:text-destructive"
+                                                            aria-label={tc('sedeDeleteConfirmDelete')}
                                                             onClick={() => { setDeletingSede(sede); setIsDeleteSedeOpen(true); }}
                                                         >
                                                             <Trash2 className="h-3.5 w-3.5" />
@@ -577,36 +657,42 @@ export default function ClinicsPage() {
 
                 <CardFooter className="flex-none justify-between border-t bg-card px-4 py-3">
                     {canUpdate && (
-                        <Button onClick={handleSaveChanges} disabled={isSaving}>
-                            {isSaving ? tc('saving') : tc('save')}
+                        <Button onClick={() => saveClinic.run()} loading={saveClinic.isPending}>
+                            {tc('save')}
                         </Button>
                     )}
-                    <Button variant="outline" size="icon" onClick={() => { loadClinic(); loadSedes(); }} disabled={isLoading}>
-                        <RefreshCw className={`h-4 w-4 ${isLoading || isSaving ? 'animate-spin' : ''}`} />
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={handleRefresh}
+                        disabled={saveClinic.isPending || clinicLoader.isRefreshing}
+                        aria-label={t('Common.retry')}
+                    >
+                        <RefreshCw className={`h-4 w-4 ${clinicLoader.isRefreshing || isSedesRefreshing ? 'animate-spin' : ''}`} />
                     </Button>
                 </CardFooter>
             </Card>
 
             {/* ── Create sede dialog ── */}
             <Dialog open={isCreateSedeOpen} onOpenChange={(open) => {
+                if (!open && saveSede.isPending) return;
                 setIsCreateSedeOpen(open);
                 if (!open) { setSedeError(null); sedeForm.reset(); }
             }}>
-                <DialogContent maxWidth="lg" confirmOnClose isDirty={sedeForm.formState.isDirty}>
+                <DialogContent maxWidth="lg" confirmOnClose isDirty={sedeForm.formState.isDirty && !saveSede.isPending}>
                     <DialogHeader>
                         <DialogTitle>{tc('sedeCreateTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...sedeForm}>
-                        <form onSubmit={sedeForm.handleSubmit(onSedeSubmit)} className="flex flex-col min-h-0">
+                        <form onSubmit={sedeForm.handleSubmit(saveSede.run, onInvalidSubmit)} className="flex flex-col min-h-0">
                             <DialogBody className="px-6 py-4">
-                                {sedeFormFields(false)}
+                                {sedeFormFields(saveSede.isPending)}
                             </DialogBody>
                             <DialogFooter>
-                                <DialogCancelButton disabled={isSavingSede}>
+                                <DialogCancelButton disabled={saveSede.isPending}>
                                     {t('SedesPage.form.cancel')}
                                 </DialogCancelButton>
-                                <Button type="submit" disabled={isSavingSede}>
-                                    {isSavingSede && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" loading={saveSede.isPending}>
                                     {t('SedesPage.form.create')}
                                 </Button>
                             </DialogFooter>
@@ -617,23 +703,23 @@ export default function ClinicsPage() {
 
             {/* ── Edit sede dialog ── */}
             <Dialog open={!!editingSede} onOpenChange={(open) => {
+                if (!open && saveSede.isPending) return;
                 if (!open) { setEditingSede(null); setSedeError(null); sedeForm.reset(); }
             }}>
-                <DialogContent maxWidth="lg" confirmOnClose isDirty={sedeForm.formState.isDirty}>
+                <DialogContent maxWidth="lg" confirmOnClose isDirty={sedeForm.formState.isDirty && !saveSede.isPending}>
                     <DialogHeader>
                         <DialogTitle>{tc('sedeEditTitle')}</DialogTitle>
                     </DialogHeader>
                     <Form {...sedeForm}>
-                        <form onSubmit={sedeForm.handleSubmit(onSedeSubmit)} className="flex flex-col min-h-0">
+                        <form onSubmit={sedeForm.handleSubmit(saveSede.run, onInvalidSubmit)} className="flex flex-col min-h-0">
                             <DialogBody className="px-6 py-4">
-                                {sedeFormFields(false)}
+                                {sedeFormFields(saveSede.isPending)}
                             </DialogBody>
                             <DialogFooter>
-                                <DialogCancelButton disabled={isSavingSede}>
+                                <DialogCancelButton disabled={saveSede.isPending}>
                                     {t('SedesPage.form.cancel')}
                                 </DialogCancelButton>
-                                <Button type="submit" disabled={isSavingSede}>
-                                    {isSavingSede && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" loading={saveSede.isPending}>
                                     {t('SedesPage.form.save')}
                                 </Button>
                             </DialogFooter>
@@ -643,25 +729,16 @@ export default function ClinicsPage() {
             </Dialog>
 
             {/* ── Delete sede dialog ── */}
-            <AlertDialog open={isDeleteSedeOpen} onOpenChange={setIsDeleteSedeOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{tc('sedeDeleteConfirmTitle')}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {tc('sedeDeleteConfirmDesc', { name: deletingSede?.name ?? '' })}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{tc('sedeDeleteConfirmCancel')}</AlertDialogCancel>
-                        <AlertDialogAction
-                            onClick={confirmDeleteSede}
-                            className="bg-destructive hover:bg-destructive/90"
-                        >
-                            {tc('sedeDeleteConfirmDelete')}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmActionDialog
+                open={isDeleteSedeOpen}
+                onOpenChange={setIsDeleteSedeOpen}
+                title={tc('sedeDeleteConfirmTitle')}
+                description={tc('sedeDeleteConfirmDesc', { name: deletingSede?.name ?? '' })}
+                cancelLabel={tc('sedeDeleteConfirmCancel')}
+                confirmLabel={tc('sedeDeleteConfirmDelete')}
+                onConfirm={() => { if (deletingSede) removeSede.run(deletingSede); }}
+                isPending={removeSede.isPending}
+            />
         </div>
     );
 }

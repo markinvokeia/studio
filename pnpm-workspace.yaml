@@ -1,5 +1,7 @@
 allowBuilds:
-  '@firebase/util': true
+  "@firebase/util": true
+  core-js: false
   protobufjs: true
   sharp: true
   unrs-resolver: true
+trustPolicy: "off"

@@ -34,9 +34,13 @@ import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import type { Credit, Invoice, PaymentMethod } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
+import { CurrencySelect } from '@/components/ui/currency-select';
+import { convertAmount, formatMoney } from '@/lib/currency';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 // ── Schema ────────────────────────────────────────────────────────────────────
 
@@ -114,8 +118,8 @@ interface StepPaymentProps {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmtCurrency(amount: number, currency = 'USD') {
-  return new Intl.NumberFormat('es-UY', { style: 'currency', currency }).format(amount);
+function fmtCurrency(amount: number, currency?: string) {
+  return formatMoney(amount, currency ?? getClinicCurrency());
 }
 
 function fmtDateTime(dateStr?: string): string | null {
@@ -188,9 +192,7 @@ async function fetchInvoiceDetail(
 
 function calcEquivalent(amount: number, fromCurrency: string, toCurrency: string, rate: number): number {
   if (fromCurrency === toCurrency || !rate) return amount;
-  if (toCurrency === 'USD' && fromCurrency === 'UYU') return amount / rate;
-  if (toCurrency === 'UYU' && fromCurrency === 'USD') return amount * rate;
-  return amount;
+  return convertAmount(amount, fromCurrency, toCurrency, rate, getClinicCurrency());
 }
 
 function distributePayment(invoices: Invoice[], total: number): InvoiceAllocation[] {
@@ -253,7 +255,7 @@ export function StepPayment({
     return rate && Number(rate) > 0 ? Number(rate) : 1;
   }, [activeCashSession]);
 
-  const invoiceCurrency = invoice.currency || 'USD';
+  const invoiceCurrency = invoice.currency || getClinicCurrency();
   const paidAmount = invoice.paid_amount || 0;
   const pendingAmount = isMultiInvoice
     ? invoices!.reduce((sum, inv) => sum + Math.max(0, (inv.total || 0) - (inv.paid_amount || 0)), 0)
@@ -270,6 +272,7 @@ export function StepPayment({
 
   const pendingAmountAfterCredits = Math.max(0, pendingAmount - creditsTotalConverted);
 
+  const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -1026,7 +1029,7 @@ export function StepPayment({
       )}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmitPayments)} id="billing-payment-form" className="space-y-4">
+        <form onSubmit={form.handleSubmit(handleSubmitPayments, onInvalidSubmit)} id="billing-payment-form" className="space-y-4">
           {error && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
@@ -1155,17 +1158,7 @@ export function StepPayment({
                     render={({ field: f }) => (
                       <FormItem>
                         <FormLabel className="text-xs">Moneda</FormLabel>
-                        <Select onValueChange={f.onChange} value={f.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-8 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="USD">USD</SelectItem>
-                            <SelectItem value="UYU">UYU</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <FormControl><CurrencySelect value={f.value} onChange={f.onChange} className="h-8 text-xs" /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

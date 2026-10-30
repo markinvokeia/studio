@@ -1,7 +1,9 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { cn, formatDateTime } from '@/lib/utils';
 import type { CajaCierrePrintData } from '@/stores/print-document-store';
+import { sessionCurrencyCodes } from '@/lib/currency';
 
 interface CajaCierrePrintTemplateProps {
   data: CajaCierrePrintData;
@@ -12,12 +14,67 @@ function fmtAmt(value: number, currency: string) {
 }
 
 export function CajaCierrePrintTemplate({ data }: CajaCierrePrintTemplateProps) {
+  const t = useTranslations('PrintTemplates.cajaCierre');
   const { details } = data;
   const openingDetails = details.opening_details ?? {};
   const closingDetails = details.closing_details ?? {};
   const bankDepositDetails = details.bank_deposit_details ?? {};
   const currenciesData = details.currencies_data ?? [];
-  const currencies = ['UYU', 'USD'] as const;
+  const movements = details.movements_data ?? [];
+  // Monedas realmente presentes en la sesión, no un par fijo.
+  const currencies = sessionCurrencyCodes(movements);
+
+  function renderMovementsTable(currency: string) {
+    const currMovs = movements.filter((m) => m.currency === currency);
+    if (currMovs.length === 0) return <p className="text-xs text-gray-400 text-center py-2">{t('noMovements', { currency })}</p>;
+
+    const totalIngresos = currMovs.filter((m) => m.amount > 0).reduce((s, m) => s + m.amount, 0);
+    const totalEgresos = currMovs.filter((m) => m.amount < 0).reduce((s, m) => s + Math.abs(m.amount), 0);
+
+    return (
+      <table className="print-template-table w-full">
+        <thead>
+          <tr>
+            <th className="text-left">{t('movementDate')}</th>
+            <th className="text-left">{t('movementMethod')}</th>
+            <th className="text-left">{t('movementDescription')}</th>
+            <th className="text-left">{t('registeredBy')}</th>
+            <th className="text-right">{t('movementAmount')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {currMovs.map((mov) => {
+            const isEgreso = mov.amount < 0;
+            return (
+              <tr key={mov.movement_id}>
+                <td className="text-xs whitespace-nowrap">{formatDateTime(mov.created_at)}</td>
+                <td className="text-xs">{mov.payment_method_name || '—'}</td>
+                <td className="text-xs whitespace-pre-line">{mov.description || '—'}</td>
+                <td className="text-xs text-gray-500">{mov.registered_by_user || '—'}</td>
+                <td className={cn('text-right text-xs font-medium', isEgreso ? 'text-red-600' : '')}>
+                  {isEgreso ? '−' : ''}{fmtAmt(mov.amount, currency)}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+        <tfoot>
+          <tr className="border-t border-gray-200">
+            <td colSpan={4} className="text-right text-xs text-gray-500">{t('totalIncome')}</td>
+            <td className="text-right text-xs font-semibold text-green-700">{fmtAmt(totalIngresos, currency)}</td>
+          </tr>
+          <tr>
+            <td colSpan={4} className="text-right text-xs text-gray-500">{t('totalExpense')}</td>
+            <td className="text-right text-xs font-semibold text-red-600">−{fmtAmt(totalEgresos, currency)}</td>
+          </tr>
+          <tr className="border-t border-gray-200">
+            <td colSpan={4} className="text-right text-xs font-bold">{t('net')}</td>
+            <td className="text-right text-xs font-bold">{fmtAmt(totalIngresos - totalEgresos, currency)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    );
+  }
 
   function renderDenomTable(raw: Record<string, any> | undefined, currencyKey: string) {
     if (!raw || typeof raw !== 'object') return <p className="text-xs text-gray-400">Sin detalle.</p>;
@@ -95,6 +152,15 @@ export function CajaCierrePrintTemplate({ data }: CajaCierrePrintTemplateProps) 
           </div>
         );
       })}
+
+      {/* Movimientos */}
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 pb-1 border-b border-gray-200">{t('movements')}</h2>
+      {currencies.map((cur) => (
+        <div key={cur} className="mb-4 print-template-section">
+          <p className="text-xs font-medium text-gray-600 mb-1">{cur}</p>
+          {renderMovementsTable(cur)}
+        </div>
+      ))}
 
       {/* Resumen de cierre por moneda */}
       <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2 pb-1 border-b border-gray-200">Resumen de Cierre</h2>

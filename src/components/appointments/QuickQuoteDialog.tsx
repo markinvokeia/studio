@@ -17,11 +17,14 @@ import { DatePickerInput } from '@/components/ui/date-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SedeSelector } from '@/components/ui/sede-selector';
 import { ServiceSelector } from '@/components/ui/service-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
 import { Quote, Service, User } from '@/lib/types';
 import { formatDate, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -29,6 +32,7 @@ import { parseISO } from 'date-fns';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
+import { CurrencySelect } from '@/components/ui/currency-select';
 
 interface QuoteItem {
   id: string;
@@ -51,26 +55,30 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
   const t = useTranslations();
   const { toast } = useToast();
   const clinicInfo = useClinicInfo();
+  const { code: clinicCurrency } = useCurrencySettings();
+  const { activeSede } = useAuth();
 
   const [items, setItems] = React.useState<QuoteItem[]>([]);
-  const [currency, setCurrency] = React.useState<'USD' | 'UYU'>(clinicInfo?.currency ?? 'UYU');
+  const [currency, setCurrency] = React.useState<string>(clinicCurrency);
   const [exchangeRate, setExchangeRate] = React.useState<number>(1);
   const [createdAt, setCreatedAt] = React.useState<string>(formatDate(new Date()));
   const [notes, setNotes] = React.useState('');
   const [patientConfirmed, setPatientConfirmed] = React.useState(false);
+  const [sedeId, setSedeId] = React.useState<string>('');
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Reset form on open
   React.useEffect(() => {
     if (open) {
       setItems([]);
-      setCurrency(clinicInfo?.currency ?? 'UYU');
+      setCurrency(clinicCurrency);
       setExchangeRate(1);
       setCreatedAt(formatDate(new Date()));
       setNotes('');
       setPatientConfirmed(false);
+      setSedeId(activeSede?.id || '');
     }
-  }, [open]);
+  }, [open, activeSede]);
 
   const handleAddItem = () => {
     const newItem: QuoteItem = {
@@ -131,6 +139,11 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
       return;
     }
 
+    if (!sedeId) {
+      toast({ variant: 'destructive', title: t('QuotesPage.validation.sedeRequired') });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -138,9 +151,10 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
       const payload = {
         user_id: user.id,
         currency,
-        exchange_rate: currency === 'UYU' ? 1 : exchangeRate,
+        exchange_rate: currency === clinicCurrency ? 1 : exchangeRate,
         created_at: toLocalISOString(parseISO(createdAt || formatDate(new Date()))),
         notes: notes || '',
+        sede_id: Number(sedeId),
         total,
         status: 'draft',
         payment_status: 'unpaid',
@@ -184,7 +198,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
         status: patientConfirmed ? 'confirmed' : (quoteData.status || 'draft'),
         payment_status: quoteData.payment_status || 'unpaid',
         billing_status: quoteData.billing_status || 'not invoiced',
-        currency: quoteData.currency || 'USD',
+        currency: quoteData.currency || clinicCurrency,
         exchange_rate: parseFloat(quoteData.exchange_rate) || 1,
         notes: quoteData.notes || '',
         createdAt: quoteData.created_at || new Date().toISOString(),
@@ -222,27 +236,30 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
         <DialogBody className="px-6 py-4">
           <div className="space-y-6">
             {/* Date · Currency · Exchange Rate */}
-            <div className={`grid grid-cols-1 gap-4 ${currency === 'UYU' ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
+            <div className={`grid grid-cols-1 gap-4 ${currency === clinicCurrency ? 'md:grid-cols-3' : 'md:grid-cols-4'}`}>
               <div className="space-y-2">
                 <Label>{t('QuotesPage.quoteDialog.createdAt')}</Label>
                 <DatePickerInput value={createdAt} onChange={(value) => setCreatedAt(value || formatDate(new Date()))} />
               </div>
               <div className="space-y-2">
                 <Label>{t('QuotesPage.quoteDialog.currency')}</Label>
-                <Select value={currency} onValueChange={(val: 'USD' | 'UYU') => {
+                <CurrencySelect value={currency} onChange={(val) => {
                   setCurrency(val);
-                  if (val === 'UYU') setExchangeRate(1);
-                }}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="UYU">UYU</SelectItem>
-                  </SelectContent>
-                </Select>
+                  // En la moneda principal no hay conversión: el tipo de
+                  // cambio es 1 por definición.
+                  if (val === clinicCurrency) setExchangeRate(1);
+                }} />
               </div>
-              {currency !== 'UYU' && (
+              <div className="space-y-2">
+                <Label>{t('QuotesPage.quoteDialog.sede')}</Label>
+                <SedeSelector
+                  value={sedeId}
+                  onValueChange={(id) => setSedeId(id)}
+                  triggerText={t('QuotesPage.quoteDialog.selectSede')}
+                  placeholder={t('QuotesPage.quoteDialog.searchSede')}
+                />
+              </div>
+              {currency !== clinicCurrency && (
                 <div className="space-y-2">
                   <Label>{t('QuotesPage.quoteDialog.exchangeRate')}</Label>
                   <Input
@@ -395,7 +412,7 @@ export function QuickQuoteDialog({ open, onOpenChange, user, onQuoteCreated }: Q
           </DialogCancelButton>
           <Button
             onClick={handleSubmit}
-            disabled={isSubmitting || items.length === 0 || !user}
+            disabled={isSubmitting || items.length === 0 || !user || !sedeId}
           >
             {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {t('QuotesPage.quickQuote.create')}

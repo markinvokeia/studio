@@ -26,6 +26,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { ReportCurrencyFilter } from '@/components/reports/currency-filter';
+import { useReportCurrency } from '@/hooks/useReportCurrency';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('es-UY', { maximumFractionDigits: 0 }).format(n);
@@ -45,9 +47,7 @@ export default function ComparativoProduccionPage() {
   const currentYear = new Date().getFullYear();
 
   const [year, setYear] = useState(String(currentYear));
-  const [currency, setCurrency] = useState('all');
-
-  const [chartCurrency, setChartCurrency] = useState<'UYU' | 'USD'>('UYU');
+  const { currency, setCurrency, chartCurrency, setChartCurrency, activeCurrency, isDual, options: currencyOptions } = useReportCurrency();
 
   const [data, setData] = useState<ReportComparativoResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -64,7 +64,6 @@ export default function ComparativoProduccionPage() {
     }
   }, [year, currency]);
 
-  const activeCurrency = (currency !== 'all' ? currency : chartCurrency) as 'UYU' | 'USD';
   const activeRows = (data?.rows ?? []).filter((r) => r.currency === activeCurrency);
 
   // Build chart data: 12 months × N doctors (filtered by activeCurrency)
@@ -134,16 +133,7 @@ export default function ComparativoProduccionPage() {
       </div>
       <div className="flex items-center gap-2">
         <Label className="text-xs whitespace-nowrap">{t('filter_currency')}</Label>
-        <Select value={currency} onValueChange={setCurrency}>
-          <SelectTrigger className="h-8 w-24 text-xs">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            <SelectItem value="UYU">UYU</SelectItem>
-            <SelectItem value="USD">USD</SelectItem>
-          </SelectContent>
-        </Select>
+      <ReportCurrencyFilter value={currency} onChange={setCurrency} allLabel="Todas" />
       </div>
     </div>
   );
@@ -205,7 +195,7 @@ export default function ComparativoProduccionPage() {
           {/* Print: dual-currency layout — only shown when Ambos is selected */}
           {currency === 'all' && (
             <div className="hidden print:grid print:grid-cols-2 print:gap-4">
-              {(['UYU', 'USD'] as const).map((cur) => {
+              {currencyOptions.map((cur) => {
                 const curRows = (data?.rows ?? []).filter(r => r.currency === cur);
                 const curDoctors = [...new Set(curRows.map(r => r.doctor_name))];
                 const curChartData = MONTHS.map((label, i) => {

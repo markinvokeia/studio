@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { usePrintDocumentStore } from '@/stores/print-document-store';
 import type {
   QuotePrintData,
@@ -9,9 +10,11 @@ import type {
   CreditNotePrintData,
   PrepaymentPrintData,
   FinancialSummaryPrintData,
+  LedgerPrintData,
   CajaAperturaPrintData,
   CajaCierrePrintData,
   CajaSesionPrintData,
+  ClinicHistoryPrintData,
 } from '@/stores/print-document-store';
 import { PrintDocumentLayout } from './print-document-layout';
 import { QuotePrintTemplate } from './quote-print-template';
@@ -20,9 +23,11 @@ import { PaymentPrintTemplate } from './payment-print-template';
 import { CreditNotePrintTemplate } from './credit-note-print-template';
 import { PrepaymentPrintTemplate } from './prepayment-print-template';
 import { FinancialSummaryPrintTemplate } from './financial-summary-print-template';
+import { LedgerPrintTemplate } from './ledger-print-template';
 import { CajaAperturaPrintTemplate } from './caja-apertura-print-template';
 import { CajaCierrePrintTemplate } from './caja-cierre-print-template';
 import { CajaSesionPrintTemplate } from './caja-sesion-print-template';
+import { ClinicHistoryPrintTemplate } from './clinic-history-print-template';
 import { CustomTemplateRenderer } from './custom-template-renderer';
 
 /**
@@ -30,35 +35,35 @@ import { CustomTemplateRenderer } from './custom-template-renderer';
  * Hidden on screen; only visible when the browser print dialog is active.
  *
  * - Custom templates (saved in DB): rendered directly — they include their
- *   own clinic header + InvokeIA footer via {{tokens}}.
+ *   own clinic header via {{tokens}}.
  * - React fallback templates: wrapped in PrintDocumentLayout which adds
- *   PrintReportHeader + PrintReportFooter.
+ *   PrintReportHeader.
  */
 export function PrintDocumentContainer() {
-  const { isActive, type, data, customTemplates } = usePrintDocumentStore();
+  const { isActive, mode, type, data, customTemplates } = usePrintDocumentStore();
+  const [mounted, setMounted] = useState(false);
 
-  // All documents must not use `fixed inset-0` because that clips content
-  // to a single viewport-sized box. The printing-multipage CSS class handles
-  // background isolation instead.
-  const isMultiPage = isActive;
+  useEffect(() => { setMounted(true); }, []);
 
-  // When printing multi-page, add a class to <html> so CSS can hide the rest
-  // of the app and avoid the gray-shadow effect.
+  // When printing, add a class to <html> so CSS can hide the rest of the app.
+  // Not in 'capture' mode: html2pdf renders a clone of the container inside its own
+  // overlay, which these rules (applied to the clone too) would hide.
   useEffect(() => {
-    if (!isMultiPage) return;
+    if (!isActive || mode !== 'print') return;
     document.documentElement.classList.add('printing-multipage');
     return () => document.documentElement.classList.remove('printing-multipage');
-  }, [isMultiPage]);
+  }, [isActive, mode]);
 
-  if (!isActive || !data || !type) return null;
+  if (!isActive || !data || !type || !mounted) return null;
 
   const customHtml = customTemplates[type];
 
-  return (
-    <div
-      data-print-container
-      className={`hidden print:block bg-white z-[9999] p-8${isMultiPage ? ' w-full' : ' fixed inset-0'}`}
-    >
+  // Portal to <body> so the print CSS can `display:none` every *other* body child
+  // and let only this document flow — otherwise the app layout behind it, though
+  // hidden, still occupies its full height and prints as many blank pages.
+  return createPortal(
+    // Capture mode drops the padding: html2pdf applies the page margins itself.
+    <div data-print-container className={mode === 'capture' ? 'hidden print:block w-full bg-white' : 'hidden print:block w-full bg-white p-8'}>
       {customHtml ? (
         <CustomTemplateRenderer html={customHtml} data={data} type={type} />
       ) : (
@@ -69,11 +74,14 @@ export function PrintDocumentContainer() {
           {type === 'credit_note'       && <CreditNotePrintTemplate        data={data as CreditNotePrintData} />}
           {type === 'prepayment'        && <PrepaymentPrintTemplate        data={data as PrepaymentPrintData} />}
           {type === 'financial_summary' && <FinancialSummaryPrintTemplate  data={data as FinancialSummaryPrintData} />}
+          {type === 'ledger'            && <LedgerPrintTemplate            data={data as LedgerPrintData} />}
           {type === 'caja_apertura'     && <CajaAperturaPrintTemplate      data={data as CajaAperturaPrintData} />}
           {type === 'caja_cierre'       && <CajaCierrePrintTemplate        data={data as CajaCierrePrintData} />}
           {type === 'caja_sesion'       && <CajaSesionPrintTemplate        data={data as CajaSesionPrintData} />}
+          {type === 'clinic_history'    && <ClinicHistoryPrintTemplate     data={data as ClinicHistoryPrintData} />}
         </PrintDocumentLayout>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -1,7 +1,10 @@
 
 'use client';
 
-import { CommunicationWarningDialog } from '@/components/communication-warning-dialog';
+import { SendDocumentEmailDialog, type EmailDocumentTarget } from '@/components/sales/send-document-email-dialog';
+import { DiscountControl } from '@/components/ui/discount-control';
+import { useDiscountSettings } from '@/hooks/useDiscountSettings';
+import { buildDiscountedDocument, computeGrossTotal, isDiscountWithinLimit, mapLineDiscountFields } from '@/lib/discounts';
 import { InvoicePaymentDialog } from '@/components/invoices/invoice-payment-dialog';
 import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { AllocationsTable } from '@/components/tables/allocations-table';
@@ -17,7 +20,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { ResizableSheet, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/resizable-sheet';
 import { Separator } from '@/components/ui/separator';
 import { ServiceSelector } from '@/components/ui/service-selector';
@@ -26,8 +28,8 @@ import { SALES_PERMISSIONS } from '@/constants/permissions';
 import { GridExportDialog, type GridExportFormat } from '@/components/ui/grid-export-dialog';
 import { downloadCSV, downloadExcel, type ExportColumn } from '@/lib/export-utils';
 import { API_ROUTES } from '@/constants/routes';
-import { checkPreferencesByEmails, getDisabledEmails } from '@/hooks/use-communication-preferences';
 import { useToast } from '@/hooks/use-toast';
+import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getCreditNotesForInvoice } from '@/lib/credit-notes';
@@ -44,13 +46,22 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
+import { getClinicCurrency } from '@/stores/clinic-info-store';
+import { createDefaultPagination } from '@/lib/pagination';
 
-const getInvoiceItemSchema = (t: (key: string) => string) => z.object({
+const getInvoiceItemSchema = (t: (key: string) => string, maxDiscountPct: number) => z.object({
     id: z.string().optional(),
     service_id: z.string().min(1, t('validation.serviceRequired')),
     service_name: z.string().optional(),
     quantity: z.coerce.number().min(1, t('validation.quantityMin')),
     unit_price: z.coerce.number().min(0, t('validation.priceNonNegative')),
+    discount_mode: z.enum(['percent', 'amount']).nullish(),
+    discount_value: z.coerce.number().min(0).nullish(),
+}).superRefine((values, ctx) => {
+    const base = computeGrossTotal(values.unit_price, values.quantity);
+    if (!isDiscountWithinLimit(base, { mode: values.discount_mode, value: values.discount_value }, maxDiscountPct)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['discount_value'], message: t('validation.discountOverLimit') });
+    }
 });
 type InvoiceItemFormValues = z.infer<ReturnType<typeof getInvoiceItemSchema>>;
 
@@ -85,7 +96,9 @@ async function getInvoices(params: { page: number; limit: number; search: string
             createdAt: apiInvoice.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiInvoice.updatedAt || new Date().toISOString().split('T')[0],
             due_date: apiInvoice.due_date || null,
-            currency: apiInvoice.currency || 'USD',
+            currency: apiInvoice.currency || getClinicCurrency(),
+            sede_id: apiInvoice.sede_id != null ? String(apiInvoice.sede_id) : undefined,
+            sede_name: apiInvoice.sede_name || undefined,
             notes: apiInvoice.notes || '',
             is_historical: apiInvoice.is_historical || false,
             external_id: apiInvoice.external_id ?? null,
@@ -113,6 +126,7 @@ async function getInvoiceItems(invoiceId: string): Promise<InvoiceItem[]> {
                 quantity: apiItem.quantity || apiItem.product_uom_qty || 0,
                 unit_price: apiItem.unit_price || apiItem.price_unit || 0,
                 total: apiItem.total || apiItem.price_total || 0,
+                ...mapLineDiscountFields(apiItem),
             };
         });
     } catch (error) {
@@ -165,11 +179,11 @@ async function getPaymentsForInvoice(invoiceId: string): Promise<Payment[]> {
             status: apiPayment.status || 'completed',
             createdAt: apiPayment.payment_date || apiPayment.created_at || new Date().toISOString().split('T')[0],
             updatedAt: apiPayment.payment_date || apiPayment.updatedAt || new Date().toISOString().split('T')[0],
-            currency: isNewFormat ? apiPayment.invoice_currency : (apiPayment.source_currency || 'USD'),
+            currency: isNewFormat ? apiPayment.invoice_currency : (apiPayment.source_currency || getClinicCurrency()),
             payment_date: apiPayment.payment_date,
             amount_applied: isNewFormat ? parseFloat(apiPayment.amount_applied) : (parseFloat(apiPayment.amount_applied) || 0),
             source_amount: isNewFormat ? parseFloat(apiPayment.source_amount) : (parseFloat(apiPayment.source_amount) || 0),
-            source_currency: apiPayment.source_currency || 'USD',
+            source_currency: apiPayment.source_currency || getClinicCurrency(),
             exchange_rate: isNewFormat ? parseFloat(apiPayment.exchange_rate) : (apiPayment.exchange_rate ? parseFloat(String(apiPayment.exchange_rate)) : 1),
             payment_method: apiPayment.payment_method_name || apiPayment.payment_method,
             payment_method_code: apiPayment.payment_method_code,
@@ -194,6 +208,7 @@ export default function InvoicesPage() {
     const tQuotes = useTranslations('QuotesPage');
     const { toast } = useToast();
     const { hasPermission } = usePermissions();
+    const discounts = useDiscountSettings();
     const { printInvoice } = usePrintDocument();
 
     // Permission checks
@@ -213,18 +228,13 @@ export default function InvoicesPage() {
 
     const [invoices, setInvoices] = React.useState<Invoice[]>([]);
     const [totalInvoices, setTotalInvoices] = React.useState(0);
-    const [pagination, setPagination] = React.useState<PaginationState>({ pageIndex: 0, pageSize: 25 });
+    const [pagination, setPagination] = React.useState<PaginationState>(createDefaultPagination);
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
     const [selectedInvoice, setSelectedInvoice] = React.useState<Invoice | null>(null);
     const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
     const [selectedPayment, setSelectedPayment] = React.useState<Payment | null>(null);
     const [paymentRowSelection, setPaymentRowSelection] = React.useState<RowSelectionState>({});
-    const [isSendEmailDialogOpen, setIsSendEmailDialogOpen] = React.useState(false);
-    const [selectedInvoiceForEmail, setSelectedInvoiceForEmail] = React.useState<Invoice | null>(null);
-    const [emailRecipients, setEmailRecipients] = React.useState('');
-    const [isSendingEmail, setIsSendingEmail] = React.useState(false);
-    const [isWarningDialogOpen, setIsWarningDialogOpen] = React.useState(false);
-    const [disabledEmails, setDisabledEmails] = React.useState<string[]>([]);
+    const [emailTarget, setEmailTarget] = React.useState<EmailDocumentTarget | null>(null);
     const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
     const [importFile, setImportFile] = React.useState<File | null>(null);
     const [isProcessingImport, setIsProcessingImport] = React.useState(false);
@@ -439,74 +449,14 @@ export default function InvoicesPage() {
     };
 
     const handleSendEmailClick = (invoice: Invoice) => {
-        setSelectedInvoiceForEmail(invoice);
-        setEmailRecipients(invoice.userEmail || '');
-        setIsSendEmailDialogOpen(true);
-    };
-
-    const handleConfirmSendEmail = async () => {
-        if (!selectedInvoiceForEmail) return;
-
-        const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
-        if (emails.length === 0) {
-            toast({ variant: 'destructive', title: t('toast.error'), description: t('sendEmailDialog.errorNoEmail') });
-            return;
-        }
-
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const invalidEmails = emails.filter(email => !emailRegex.test(email));
-
-        if (invalidEmails.length > 0) {
-            toast({
-                variant: 'destructive',
-                title: 'Invalid Email Address',
-                description: `The following emails are invalid: ${invalidEmails.join(', ')}`,
-            });
-            return;
-        }
-
-        const preferences = await checkPreferencesByEmails(emails, 'email', 'billing');
-        const disabled = getDisabledEmails(preferences);
-
-        if (disabled.length > 0) {
-            setDisabledEmails(disabled);
-            setIsWarningDialogOpen(true);
-            return;
-        }
-
-        await sendEmail(emails);
-    };
-
-    const sendEmail = async (emails: string[]) => {
-        if (!selectedInvoiceForEmail) return;
-
-        setIsSendingEmail(true);
-        try {
-            await api.post(API_ROUTES.SALES.API_INVOICE_SEND, { invoiceId: selectedInvoiceForEmail.id, emails });
-
-            toast({
-                title: 'Email Sent',
-                description: `The invoice has been successfully sent to ${emails.join(', ')}.`,
-            });
-
-            setIsSendEmailDialogOpen(false);
-
-        } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Error',
-                description: error instanceof Error ? error.message : 'An unexpected error occurred.',
-            });
-        } finally {
-            setIsSendingEmail(false);
-        }
-    };
-
-    const handleWarningConfirm = async () => {
-        if (!selectedInvoiceForEmail) return;
-        const emails = emailRecipients.split(',').map(email => email.trim()).filter(email => email);
-        await sendEmail(emails);
-        setIsWarningDialogOpen(false);
+        setEmailTarget({
+            request: invoice.type === 'credit_note'
+                ? { type: 'credit_note', creditNote: invoice as CreditNote, isSales: true }
+                : { type: 'invoice', invoice, isSales: true },
+            id: invoice.id,
+            docNo: invoice.doc_no,
+            defaultEmails: invoice.userEmail || '',
+        });
     };
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -564,13 +514,18 @@ export default function InvoicesPage() {
     const onItemSubmit = async (data: InvoiceItemFormValues) => {
         if (!selectedInvoice) return;
         try {
+            // Con ambito 'total' la linea va en bruto: ese descuento vive en la
+            // cabecera y solo se reparte reenviando la factura entera.
+            const { items: [lineToSubmit] } = buildDiscountedDocument(
+                [{ unit_price: Number(data.unit_price), quantity: Number(data.quantity), discount_mode: data.discount_mode, discount_value: data.discount_value }],
+                { enabled: discounts.showLineDiscount, scope: 'line', documentDiscount: null },
+            );
             const payload = {
                 id: editingItem?.id ? parseInt(editingItem.id, 10) : undefined,
                 invoice_id: parseInt(selectedInvoice.id, 10),
                 service_id: parseInt(data.service_id, 10),
                 order_item_id: selectedInvoice.order_id,
-                quantity: Number(data.quantity),
-                unit_price: Number(data.unit_price),
+                ...lineToSubmit,
             };
 
             await api.post(API_ROUTES.SALES.INVOICES_ITEMS_UPSERT, payload);
@@ -737,7 +692,7 @@ export default function InvoicesPage() {
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-muted-foreground">{t('columns.total')}:</span>
-                                                <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || 'USD' }).format(selectedInvoice.total)}</span>
+                                                <span className="font-semibold text-sm">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedInvoice.currency || getClinicCurrency() }).format(selectedInvoice.total)}</span>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-muted-foreground">{t('columns.patient')}:</span>
@@ -849,7 +804,7 @@ export default function InvoicesPage() {
                                                             <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('invoice_doc_no')}</p><p className="font-medium">{selectedPayment.invoice_doc_no || 'N/A'}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('date')}</p><p>{formatDisplayDate(selectedPayment.payment_date || selectedPayment.createdAt)}</p></div>
-                                                                <div><p className="text-xs text-muted-foreground">{tPayments('amount_applied')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || selectedPayment.source_currency || 'USD' }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}</p></div>
+                                                                <div><p className="text-xs text-muted-foreground">{tPayments('amount_applied')}</p><p className="font-semibold">{new Intl.NumberFormat('en-US', { style: 'currency', currency: selectedPayment.currency || selectedPayment.source_currency || getClinicCurrency() }).format(Math.abs(Number(selectedPayment.amount_applied || selectedPayment.amount || 0)))}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('method')}</p><p>{selectedPayment.payment_method_code || selectedPayment.method || 'N/A'}</p></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('transaction_type')}</p><Badge variant="secondary" className="capitalize">{tPaymentTransactionType(selectedPayment.transaction_type || 'direct_payment')}</Badge></div>
                                                                 <div><p className="text-xs text-muted-foreground">{tPayments('exchange_rate')}</p><p>{selectedPayment.exchange_rate || 'N/A'}</p></div>
@@ -902,51 +857,7 @@ export default function InvoicesPage() {
                 />
             </div>
 
-            <Dialog open={isSendEmailDialogOpen} onOpenChange={setIsSendEmailDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <div className="flex items-start gap-3">
-                            <div className="header-icon-circle mt-0.5">
-                                <Send className="h-5 w-5" />
-                            </div>
-                            <div className="flex flex-col text-left">
-                                <DialogTitle>{t('sendEmailDialog.title')}</DialogTitle>
-                                <DialogDescription>{t('sendEmailDialog.description', { id: selectedInvoiceForEmail?.id })}</DialogDescription>
-                            </div>
-                        </div>
-                    </DialogHeader>
-                    <div className="py-4 px-6">
-                        <Label htmlFor="email-recipients">{t('sendEmailDialog.recipients')}</Label>
-                        <Input
-                            id="email-recipients"
-                            value={emailRecipients}
-                            onChange={(e) => setEmailRecipients(e.target.value)}
-                            placeholder={t('sendEmailDialog.placeholder')}
-                        />
-                        <p className="text-sm text-muted-foreground mt-1">{t('sendEmailDialog.helperText')}</p>
-                    </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsSendEmailDialogOpen(false)} disabled={isSendingEmail}>{t('paymentDialog.cancel')}</Button>
-                        <Button onClick={handleConfirmSendEmail} disabled={isSendingEmail}>
-                            {isSendingEmail ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    {t('sendEmailDialog.sending')}
-                                </>
-                            ) : (
-                                t('sendEmailDialog.title')
-                            )}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
-            <CommunicationWarningDialog
-                open={isWarningDialogOpen}
-                onOpenChange={setIsWarningDialogOpen}
-                disabledItems={disabledEmails}
-                onConfirm={handleWarningConfirm}
-            />
+            <SendDocumentEmailDialog document={emailTarget} onClose={() => setEmailTarget(null)} />
 
             <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
                 <DialogContent>
@@ -1002,6 +913,7 @@ export default function InvoicesPage() {
                 onOpenChange={setIsItemDialogOpen}
                 editingItem={editingItem}
                 onSubmit={onItemSubmit}
+                itemCurrency={selectedInvoice?.currency || getClinicCurrency()}
                 t={t}
             />
 
@@ -1065,17 +977,22 @@ const ItemFormDialog = ({
     onOpenChange,
     editingItem,
     onSubmit,
+    itemCurrency,
     t
 }: {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
     editingItem: InvoiceItem | null;
     onSubmit: (data: InvoiceItemFormValues) => void;
+    /** Moneda de la factura, para etiquetar el descuento en importe fijo. */
+    itemCurrency: string;
     t: any;
 }) => {
     const title = editingItem ? t('InvoiceItemsTable.editTitle') : t('InvoiceItemsTable.createTitle');
 
-    const itemSchema = React.useMemo(() => getInvoiceItemSchema(t), [t]);
+    const discounts = useDiscountSettings();
+    const itemSchema = React.useMemo(() => getInvoiceItemSchema(t, discounts.maxPct), [t, discounts.maxPct]);
+    const onInvalidSubmit = useInvalidSubmitToast();
     const itemForm = useForm<InvoiceItemFormValues>({
         resolver: zodResolver(itemSchema),
         defaultValues: {
@@ -1096,14 +1013,20 @@ const ItemFormDialog = ({
                     service_name: editingItem.service_name || '',
                     quantity: editingItem.quantity,
                     unit_price: editingItem.unit_price,
+                    // Se rehidrata lo guardado, no la preferencia actual.
+                    discount_mode: editingItem.discount_mode ?? null,
+                    discount_value: editingItem.discount_value ?? null,
                 });
             } else {
+                // Sin descuento: se aplica a mano con «Aplicar descuentos».
                 itemForm.reset({
                     id: undefined,
                     service_id: '',
                     service_name: '',
                     quantity: 1,
                     unit_price: 0,
+                    discount_mode: null,
+                    discount_value: null,
                 });
             }
         }
@@ -1131,7 +1054,7 @@ const ItemFormDialog = ({
                     </div>
                 </DialogHeader>
                 <Form {...itemForm}>
-                    <form onSubmit={itemForm.handleSubmit(onSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') e.preventDefault(); }}>
+                    <form onSubmit={itemForm.handleSubmit(onSubmit, onInvalidSubmit)} className="flex flex-col flex-1 overflow-hidden" onKeyDown={(e) => { if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') e.preventDefault(); }}>
                         <DialogBody className="space-y-4 px-6 py-4">
                             <FormField
                                 control={itemForm.control}
@@ -1177,6 +1100,29 @@ const ItemFormDialog = ({
                                     </FormItem>
                                 )}
                             />
+                            {/* Con ambito 'total' el descuento vive en la cabecera de la
+                                factura, no aqui: esta pantalla edita una sola linea. */}
+                            {discounts.showLineDiscount && (
+                                <div className="flex justify-start">
+                                    <DiscountControl
+                                        mode={itemForm.watch('discount_mode')}
+                                        value={itemForm.watch('discount_value')}
+                                        base={computeGrossTotal(itemForm.watch('unit_price') ?? 0, itemForm.watch('quantity') ?? 0)}
+                                        currency={itemCurrency}
+                                        maxPct={discounts.maxPct}
+                                        defaultPct={discounts.defaultPct}
+                                        canApply={discounts.canApply}
+                                        onApply={(next) => {
+                                            itemForm.setValue('discount_mode', next.mode ?? null, { shouldDirty: true });
+                                            itemForm.setValue('discount_value', next.value ?? null, { shouldDirty: true, shouldValidate: true });
+                                        }}
+                                        onRemove={() => {
+                                            itemForm.setValue('discount_mode', null, { shouldDirty: true });
+                                            itemForm.setValue('discount_value', null, { shouldDirty: true, shouldValidate: true });
+                                        }}
+                                    />
+                                </div>
+                            )}
                         </DialogBody>
                         <DialogFooter>
                             <Button type="submit">{t('createDialog.save')}</Button>

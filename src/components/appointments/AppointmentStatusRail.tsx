@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { ChevronDown, ChevronRight, MessageSquare } from 'lucide-react';
+import { ChevronDown, ChevronRight, Loader2, MessageSquare } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import {
@@ -16,8 +16,8 @@ import {
   ALLOWED_STATUS_TRANSITIONS,
   APPOINTMENT_STATUSES,
   CANCELLATION_REASONS_QUICK,
-  STATUS_ACCENT_COLOR,
 } from '@/constants/appointment-status';
+import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { cn } from '@/lib/utils';
 import type { Appointment, AppointmentStatus, CancellationReason } from '@/lib/types';
 
@@ -33,15 +33,22 @@ interface AppointmentStatusRailProps {
   onChange: (newStatus: AppointmentStatus, extra?: StatusChangeExtra) => void;
   onRequestCustomCancellation?: () => void;
   variant?: 'top' | 'side' | 'dropdown';
+  /** Read-only: the rail still shows the current status but no transition can be
+   *  triggered. Used when the viewer lacks permission to update appointments. */
+  readOnly?: boolean;
+  /** Hay un cambio de estado en vuelo: bloquea nuevas transiciones y muestra el
+   *  spinner en el disparador. */
+  isUpdating?: boolean;
 }
 
 const STATUS_FLOW: AppointmentStatus[] = [
-  'pending',
   'scheduled',
   'confirmed',
   'arrived',
+  'arrived_late',
   'in_progress',
   'completed',
+  'attended_late',
   'no_show',
   'cancelled',
 ];
@@ -51,17 +58,20 @@ export function AppointmentStatusRail({
   onChange,
   onRequestCustomCancellation,
   variant = 'top',
+  readOnly = false,
+  isUpdating = false,
 }: AppointmentStatusRailProps) {
   const tStatus = useTranslations('AppointmentStatus');
   const tMenu = useTranslations('AppointmentStatusMenu');
   const tReason = useTranslations('CancellationReason');
+  const { colorOf } = useAppointmentStatusDisplay();
 
   const current = appointment.status;
   const currentIndex = STATUS_FLOW.indexOf(current);
-  const allowed = ALLOWED_STATUS_TRANSITIONS[current] ?? [];
+  const allowed = readOnly ? [] : (ALLOWED_STATUS_TRANSITIONS[current] ?? []);
   const canCancel = allowed.includes('cancelled');
   const CurrentIcon = getStatusIcon(current, appointment.cancellation_reason);
-  const currentColor = STATUS_ACCENT_COLOR[current];
+  const currentColor = colorOf(current);
   const activeStatusRef = React.useRef<HTMLButtonElement | null>(null);
 
   React.useLayoutEffect(() => {
@@ -81,6 +91,7 @@ export function AppointmentStatusRail({
           return (
             <DropdownMenuItem
               key={reason}
+              disabled={isUpdating}
               onSelect={(event) => {
                 if (!closeOnSelect) event.preventDefault();
                 onChange('cancelled', { cancellation_reason: reason });
@@ -89,7 +100,7 @@ export function AppointmentStatusRail({
             >
               <ReasonIcon
                 className="h-4 w-4 shrink-0"
-                style={{ color: STATUS_ACCENT_COLOR.cancelled }}
+                style={{ color: colorOf('cancelled') }}
               />
               <span>{tReason(reason)}</span>
             </DropdownMenuItem>
@@ -100,6 +111,7 @@ export function AppointmentStatusRail({
         <>
           <DropdownMenuSeparator />
           <DropdownMenuItem
+            disabled={isUpdating}
             onSelect={(event) => {
               if (!closeOnSelect) event.preventDefault();
               onRequestCustomCancellation();
@@ -125,10 +137,11 @@ export function AppointmentStatusRail({
 
     return (
       <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger asChild disabled={readOnly || isUpdating}>
           <button
             type="button"
-            className="inline-flex h-11 w-full items-center justify-between gap-3 rounded-full border px-4 text-base font-semibold shadow-sm transition-colors"
+            disabled={readOnly || isUpdating}
+            className="inline-flex h-11 w-full items-center justify-between gap-3 rounded-full border px-4 text-base font-semibold shadow-sm transition-colors disabled:cursor-default"
             style={{
               borderColor: `${currentColor}40`,
               backgroundColor: `${currentColor}14`,
@@ -140,7 +153,11 @@ export function AppointmentStatusRail({
                 className="grid h-7 w-7 shrink-0 place-items-center rounded-full"
                 style={{ backgroundColor: `${currentColor}24` }}
               >
-                <CurrentIcon className="h-4 w-4" style={{ color: currentColor }} strokeWidth={2.5} />
+                {isUpdating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" style={{ color: currentColor }} />
+                ) : (
+                  <CurrentIcon className="h-4 w-4" style={{ color: currentColor }} strokeWidth={2.5} />
+                )}
               </span>
               <span className="truncate">{tStatus(current)}</span>
             </span>
@@ -161,11 +178,12 @@ export function AppointmentStatusRail({
           )}
           {transitions.map((status) => {
             const Icon = STATUS_ICONS[status];
-            const statusColor = STATUS_ACCENT_COLOR[status];
+            const statusColor = colorOf(status);
 
             return (
               <DropdownMenuItem
                 key={status}
+                disabled={isUpdating}
                 onSelect={() => onChange(status)}
                 className="gap-2 text-sm"
               >
@@ -180,7 +198,7 @@ export function AppointmentStatusRail({
               <DropdownMenuLabel className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
                 <CancelIcon
                   className="h-3.5 w-3.5"
-                  style={{ color: STATUS_ACCENT_COLOR.cancelled }}
+                  style={{ color: colorOf('cancelled') }}
                   strokeWidth={2.4}
                 />
                 {tMenu('cancelSubmenu')}
@@ -203,12 +221,12 @@ export function AppointmentStatusRail({
             const isCurrent = status === current;
             const isDone = currentIndex > -1 && status !== 'cancelled' && status !== 'no_show' && STATUS_FLOW.indexOf(status) < currentIndex;
             const isEnabled = !isCurrent && allowed.includes(status);
-            const statusColor = STATUS_ACCENT_COLOR[status];
+            const statusColor = colorOf(status);
             const StatusIcon = isCurrent ? getStatusIcon(status, appointment.cancellation_reason) : STATUS_ICONS[status];
             const item = (
               <button
                 type="button"
-                disabled={!isEnabled && status !== 'cancelled'}
+                disabled={readOnly || isUpdating || (!isEnabled && status !== 'cancelled')}
                 onClick={() => {
                   if (status !== 'cancelled' && isEnabled) onChange(status);
                 }}
@@ -262,10 +280,11 @@ export function AppointmentStatusRail({
     <div className="border-b border-border bg-card px-3 py-3 sm:px-5 sm:py-4 min-[1200px]:hidden">
       <div className="sm:hidden">
         <DropdownMenu modal={false}>
-          <DropdownMenuTrigger asChild>
+          <DropdownMenuTrigger asChild disabled={readOnly || isUpdating}>
             <button
               type="button"
-              className="inline-flex h-11 w-full items-center justify-between gap-3 rounded-full border border-primary/25 bg-primary/10 px-4 text-base font-semibold text-primary shadow-sm"
+              disabled={readOnly || isUpdating}
+              className="inline-flex h-11 w-full items-center justify-between gap-3 rounded-full border border-primary/25 bg-primary/10 px-4 text-base font-semibold text-primary shadow-sm disabled:cursor-default"
             >
               <span className="inline-flex min-w-0 items-center gap-2">
                 <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary/15">
@@ -281,7 +300,7 @@ export function AppointmentStatusRail({
               const Icon = status === current ? CurrentIcon : STATUS_ICONS[status];
               const isCurrent = status === current;
               const isEnabled = !isCurrent && allowed.includes(status);
-              const statusColor = STATUS_ACCENT_COLOR[status];
+              const statusColor = colorOf(status);
 
               if (status === 'cancelled' && canCancel) {
                 return (
@@ -294,7 +313,7 @@ export function AppointmentStatusRail({
               return (
                 <DropdownMenuItem
                   key={status}
-                  disabled={!isEnabled || isCurrent}
+                  disabled={isUpdating || !isEnabled || isCurrent}
                   onSelect={(event) => {
                     event.preventDefault();
                     if (isEnabled) onChange(status);
@@ -318,13 +337,13 @@ export function AppointmentStatusRail({
           const isCurrent = status === current;
           const isDone = currentIndex > -1 && index < currentIndex && current !== 'cancelled' && current !== 'no_show';
           const isEnabled = !isCurrent && allowed.includes(status);
-          const statusColor = STATUS_ACCENT_COLOR[status];
+          const statusColor = colorOf(status);
           const StatusIcon = isCurrent ? getStatusIcon(status, appointment.cancellation_reason) : STATUS_ICONS[status];
           const item = (
             <button
               ref={isCurrent ? activeStatusRef : undefined}
               type="button"
-              disabled={!isEnabled && status !== 'cancelled'}
+              disabled={isUpdating || (!isEnabled && status !== 'cancelled')}
               onClick={() => {
                 if (status !== 'cancelled' && isEnabled) onChange(status);
               }}
