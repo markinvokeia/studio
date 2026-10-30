@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 
 import { cn, formatDate, formatDisplayDate } from '@/lib/utils';
 
-import type { AestheticDoseUnit, AestheticSession, AestheticZoneId } from '@/lib/types';
-import { parseZoneId, UNIT_COLORS, ZONE_ORDER } from './map-templates';
+import type { AestheticSession, AestheticZoneId } from '@/lib/types';
+import { formatQuantity, layerTitle, placeMarks } from './layers';
+import { parseZoneId, ZONE_ORDER } from './map-templates';
 import { useZoneLabel } from './use-zone-label';
 
 type Period = '3' | '6' | '12' | 'all';
@@ -19,7 +20,8 @@ const NO_ZONE_KEY = '__none__';
 
 interface ProductTotal {
   name: string;
-  unit: AestheticDoseUnit;
+  unit: string;
+  color: string;
   quantity: number;
   points: number;
 }
@@ -35,18 +37,18 @@ export function buildZoneRows(sessions: AestheticSession[], fromDate: string | n
   const rows = new Map<string, ZoneRow>();
   for (const session of sessions) {
     if (fromDate && session.date < fromDate) continue;
-    for (const point of session.points) {
+    for (const { mark: point, layer, color } of placeMarks(session.layers)) {
       const key = point.zone ?? NO_ZONE_KEY;
       const row = rows.get(key) ?? { key, products: [], sessionIds: new Set<string>(), lastDate: session.date };
       row.sessionIds.add(session.id);
       if (session.date > row.lastDate) row.lastDate = session.date;
-      const name = point.productName.trim();
-      const product = row.products.find((p) => p.name === name && p.unit === point.unit);
+      const name = layerTitle(layer);
+      const product = row.products.find((p) => p.name === name && p.unit === layer.unitSymbol);
       if (product) {
         product.quantity += point.quantity ?? 0;
         product.points += 1;
       } else {
-        row.products.push({ name, unit: point.unit, quantity: point.quantity ?? 0, points: 1 });
+        row.products.push({ name, unit: layer.unitSymbol, color, quantity: point.quantity ?? 0, points: 1 });
       }
       rows.set(key, row);
     }
@@ -62,8 +64,6 @@ export function buildZoneRows(sessions: AestheticSession[], fromDate: string | n
     return za - zb || sa - sb;
   });
 }
-
-const formatQuantity = (value: number) => (Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/\.?0+$/, ''));
 
 interface ZoneHistoryProps {
   sessions: AestheticSession[];
@@ -126,7 +126,7 @@ export function ZoneHistory({ sessions, selectedZone, onHoverZone, onSelectZone 
                   <div className="flex flex-1 flex-wrap gap-1.5">
                     {row.products.map((product) => (
                       <Badge key={`${product.name}|${product.unit}`} variant="outline" className="gap-1.5 font-normal">
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: UNIT_COLORS[product.unit] }} aria-hidden />
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: product.color }} aria-hidden />
                         <span className={cn(!product.name && 'italic text-muted-foreground')}>{product.name || t('point.noProduct')}</span>
                         <span className="font-semibold">{formatQuantity(product.quantity)} {product.unit}</span>
                         <span className="text-muted-foreground">· {t('zoneHistory.points', { count: product.points })}</span>
@@ -142,5 +142,3 @@ export function ZoneHistory({ sessions, selectedZone, onHoverZone, onSelectZone 
     </div>
   );
 }
-
-export { formatQuantity };

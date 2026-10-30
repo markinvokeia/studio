@@ -2,7 +2,6 @@ import type {
   AestheticBodyFigure,
   AestheticBodyMuscle,
   AestheticDepth,
-  AestheticDoseUnit,
   AestheticMapRegion,
   AestheticMapView,
   AestheticSide,
@@ -370,12 +369,5 @@ export const REGION_VIEWS: Record<AestheticMapRegion, AestheticMapView[]> = {
 export const MAP_VIEWS: AestheticMapView[] = MAP_REGIONS.flatMap((region) => REGION_VIEWS[region]);
 export const BODY_FIGURES: AestheticBodyFigure[] = ['female', 'male'];
 
-export const DOSE_UNITS: AestheticDoseUnit[] = ['U', 'mL'];
 export const DEPTHS: AestheticDepth[] = ['intradermal', 'subcutaneous', 'supraperiosteal', 'intramuscular'];
 export const TECHNIQUES: AestheticTechnique[] = ['bolus', 'linearRetrograde', 'fanning', 'microdroplets', 'cannula'];
-
-/** Point colors: toxins (units) and fillers (mL) read differently at a glance */
-export const UNIT_COLORS: Record<AestheticDoseUnit, string> = {
-  U: '#7c3aed',
-  mL: '#0d9488',
-};

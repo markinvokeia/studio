@@ -8,8 +8,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import { cn } from '@/lib/utils';
 
-import type { AestheticBodyFigure, AestheticMapView, AestheticPhotoAlignment, AestheticPoint, AestheticZoneId } from '@/lib/types';
-import { isFaceView, UNIT_COLORS, type MapArtwork } from './map-templates';
+import type { AestheticBodyFigure, AestheticMapView, AestheticMark, AestheticMarkKind, AestheticPhotoAlignment, AestheticZoneId } from '@/lib/types';
+import { layerTitle, polygonCentroid, type PlacedMark } from './layers';
+import { isFaceView, type MapArtwork } from './map-templates';
 import { useMapArtwork } from './use-map-artwork';
 import { useZoneLabel } from './use-zone-label';
 
@@ -19,6 +20,15 @@ const POINT_RADIUS = 6.5;
 /** Below this distance a press on a point is a click, not a drag */
 const DRAG_THRESHOLD = 2;
 const KEYBOARD_STEP = 0.01;
+/** A click this close (screen px) to the first vertex closes the area being drawn */
+const CLOSE_AREA_DISTANCE = 10;
+const MIN_AREA_VERTICES = 3;
+/** A line this close (degrees) to vertical or horizontal snaps to it; Shift draws it free */
+const LINE_SNAP_DEGREES = 8;
+/** Shorter lines (screen px) are taken as a stray click */
+const MIN_LINE_LENGTH = 6;
+/** Drawing order: areas below, lines over them, points on top so they stay clickable */
+const KIND_ORDER: Record<AestheticMarkKind, number> = { area: 0, line: 1, point: 2 };
 
 /** Stroke widths and dashes in screen pixels (non-scaling), the same on every artwork */
 const LINE_WIDTH = 1.5;
@@ -63,20 +73,26 @@ interface AestheticMapProps {
   view: AestheticMapView;
   /** Figure used by the body views */
   figure: AestheticBodyFigure;
-  /** Points of every view; only the ones of `view` are drawn */
-  points: AestheticPoint[];
-  /** Number shown on each point (its position in the session list) */
-  pointNumbers: Map<string, number>;
-  selectedPointId: string | null;
+  /** Marks of every view and layer; only the ones of `view` are drawn */
+  marks: PlacedMark[];
+  selectedMarkId: string | null;
   readOnly?: boolean;
-  /** Points drawn with an error ring (missing required data) */
-  invalidPointIds?: Set<string>;
-  /** Zones painted as highlighted (e.g. the selected point's zone) */
+  /** Marks drawn with an error ring (missing required data) */
+  invalidMarkIds?: Set<string>;
+  /** Zones painted as highlighted (e.g. the selected mark's zone) */
   highlightZones?: AestheticZoneId[];
+  /** What a click on the map adds: a point, a vertex of the area being drawn, or an end of a line */
+  tool?: AestheticMarkKind;
+  /** Color of what is being added (the active layer's) */
+  toolColor?: string;
   onAddPoint?: (x: number, y: number, zone: AestheticZoneId | null) => void;
-  onMovePoint?: (id: string, x: number, y: number, zone: AestheticZoneId | null) => void;
-  onSelectPoint: (id: string | null) => void;
-  onDeletePoint?: (id: string) => void;
+  /** An area was closed; `x`/`y` is its centre */
+  onAddArea?: (polygon: [number, number][], x: number, y: number, zone: AestheticZoneId | null) => void;
+  /** A line was drawn; `x`/`y` is its midpoint */
+  onAddLine?: (ends: [number, number][], x: number, y: number, zone: AestheticZoneId | null) => void;
+  onMoveMark?: (id: string, position: Pick<AestheticMark, 'x' | 'y' | 'polygon'>, zone: AestheticZoneId | null) => void;
+  onSelectMark: (id: string | null) => void;
+  onDeleteMark?: (id: string) => void;
   backdrop?: MapBackdrop | null;
   /** The map worked out where to put a backdrop photo that has no alignment yet */
   onBackdropFit?: (photoId: string, alignment: AestheticPhotoAlignment) => void;
@@ -125,6 +141,7 @@ interface PanState {
 
 interface DragState {
   id: string;
+  kind: AestheticMarkKind;
   startX: number;
   startY: number;
   x: number;
@@ -135,16 +152,19 @@ interface DragState {
 function MapCanvas({
   view,
   artwork,
-  points,
-  pointNumbers,
-  selectedPointId,
+  marks,
+  selectedMarkId,
   readOnly = false,
   highlightZones,
-  invalidPointIds,
+  invalidMarkIds,
+  tool = 'point',
+  toolColor,
   onAddPoint,
-  onMovePoint,
-  onSelectPoint,
-  onDeletePoint,
+  onAddArea,
+  onAddLine,
+  onMoveMark,
+  onSelectMark,
+  onDeleteMark,
   backdrop: backdropProp,
   adjustingBackdrop = false,
   onBackdropChange,
@@ -161,7 +181,16 @@ function MapCanvas({
 
   const { x: X, y: Y, width: W, height: H } = artwork.viewBox;
   const scale = W / BASE_WIDTH;
-  const viewPoints = points.filter((p) => p.view === view);
+  const viewMarks = marks.filter((m) => m.mark.view === view);
+  /** Vertices of the area (or the start of the line) being drawn, normalized, and where the pointer is to preview the next edge */
+  const [draftArea, setDraftArea] = React.useState<[number, number][] | null>(null);
+  /** `free`: Shift is held, the line doesn't snap */
+  const [cursor, setCursor] = React.useState<{ x: number; y: number; free: boolean } | null>(null);
+  const drawingArea = tool === 'area' && !!onAddArea && !readOnly;
+  const drawingLine = tool === 'line' && !!onAddLine && !readOnly;
+  const isDrafting = !!draftArea?.length;
+  // A new view or tool starts over
+  React.useEffect(() => { setDraftArea(null); }, [view, tool, readOnly]);
   const highlighted = new Set(highlightZones ?? []);
   const imageSize = useImageSize(backdropProp?.url);
   const fit = React.useMemo(() => (imageSize ? fitBackdrop(view, imageSize, { width: W, height: H }) : null), [imageSize, view, W, H]);
@@ -205,25 +234,127 @@ function MapCanvas({
       suppressClickRef.current = false;
       return;
     }
-    if ((e.target as Element).closest('[data-point-id]') || adjusting) return;
-    if (readOnly || !onAddPoint) {
-      onSelectPoint(null);
+    if (adjusting) return;
+    if (!isDrafting && (e.target as Element).closest('[data-point-id]')) return;
+    const p = toSvgPoint(e.clientX, e.clientY);
+    if (drawingArea) {
+      if (p) addAreaVertex(p);
       return;
     }
-    const p = toSvgPoint(e.clientX, e.clientY);
+    if (drawingLine) {
+      if (p) addLineEnd(p, e.shiftKey);
+      return;
+    }
+    if (readOnly || !onAddPoint) {
+      onSelectMark(null);
+      return;
+    }
     if (!p) return;
     const n = toNormalized(p.x, p.y);
     onAddPoint(n.x, n.y, zoneAt(p.x, p.y));
   }
 
-  function handlePointPointerDown(e: React.PointerEvent, point: AestheticPoint) {
+  /** Screen pixels → viewBox units at the current render size */
+  function screenDistance(px: number): number {
+    const ctm = svgRef.current?.getScreenCTM();
+    return ctm ? px / ctm.a : px * scale;
+  }
+
+  function addAreaVertex(p: { x: number; y: number }) {
+    const vertices = draftArea ?? [];
+    if (vertices.length >= MIN_AREA_VERTICES) {
+      const first = fromNormalized(...vertices[0]);
+      if (Math.hypot(p.x - first.x, p.y - first.y) <= screenDistance(CLOSE_AREA_DISTANCE)) {
+        finishArea(vertices);
+        return;
+      }
+    }
+    const n = toNormalized(p.x, p.y);
+    const last = vertices[vertices.length - 1];
+    // The clicks of a double click land on the same spot: keep one vertex
+    if (last && Math.hypot((n.x - last[0]) * W, (n.y - last[1]) * H) <= screenDistance(2)) return;
+    setDraftArea([...vertices, [n.x, n.y]]);
+  }
+
+  function finishArea(vertices = draftArea) {
+    if (!vertices || vertices.length < MIN_AREA_VERTICES || !onAddArea) return;
+    const [cx, cy] = polygonCentroid(vertices);
+    const at = fromNormalized(cx, cy);
+    onAddArea(vertices, cx, cy, zoneAt(at.x, at.y));
+    setDraftArea(null);
+  }
+
+  /** End of a line from `from` towards `to`: on the axis it is close to, unless drawn free */
+  function snapLineEnd(from: { x: number; y: number }, to: { x: number; y: number }, free: boolean): { x: number; y: number; axis: 'vertical' | 'horizontal' | null } {
+    if (free) return { ...to, axis: null };
+    const angle = Math.abs((Math.atan2(to.y - from.y, to.x - from.x) * 180) / Math.PI);
+    if (Math.min(angle, 180 - angle) <= LINE_SNAP_DEGREES) return { x: to.x, y: from.y, axis: 'horizontal' };
+    if (Math.abs(angle - 90) <= LINE_SNAP_DEGREES) return { x: from.x, y: to.y, axis: 'vertical' };
+    return { ...to, axis: null };
+  }
+
+  /** The first click starts the line, the second one ends it */
+  function addLineEnd(p: { x: number; y: number }, free: boolean) {
+    const start = draftArea?.[0];
+    if (!start) {
+      const n = toNormalized(p.x, p.y);
+      setDraftArea([[n.x, n.y]]);
+      return;
+    }
+    const from = fromNormalized(...start);
+    const end = snapLineEnd(from, p, free);
+    if (!onAddLine || Math.hypot(end.x - from.x, end.y - from.y) < screenDistance(MIN_LINE_LENGTH)) return;
+    const n = toNormalized(end.x, end.y);
+    const mid = { x: (from.x + end.x) / 2, y: (from.y + end.y) / 2 };
+    const m = toNormalized(mid.x, mid.y);
+    onAddLine([start, [n.x, n.y]], m.x, m.y, zoneAt(mid.x, mid.y));
+    setDraftArea(null);
+  }
+
+  // Enter closes the area being drawn, Escape drops it, Backspace removes its last vertex
+  const finishAreaRef = React.useRef(finishArea);
+  React.useEffect(() => { finishAreaRef.current = finishArea; });
+  React.useEffect(() => {
+    if (!isDrafting) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable]')) return;
+      if (e.key === 'Enter') { e.preventDefault(); finishAreaRef.current(); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); setDraftArea(null); }
+      else if (e.key === 'Backspace') { e.preventDefault(); setDraftArea((v) => (v && v.length > 1 ? v.slice(0, -1) : null)); }
+    };
+    // Capture: Escape must not close the sheet while an area is being drawn
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => window.removeEventListener('keydown', onKeyDown, true);
+  }, [isDrafting]);
+
+  function handleMarkPointerDown(e: React.PointerEvent, mark: AestheticMark) {
+    // While an area is drawn the clicks go to the map, even over other marks
+    if (isDrafting) return;
     e.stopPropagation();
-    if (readOnly || !onMovePoint) return;
+    if (readOnly || !onMoveMark) return;
     const p = toSvgPoint(e.clientX, e.clientY);
     if (!p) return;
     svgRef.current?.setPointerCapture(e.pointerId);
-    const at = fromNormalized(point.x, point.y);
-    setDrag({ id: point.id, startX: p.x, startY: p.y, x: at.x, y: at.y, moved: false });
+    // A point follows the pointer; an area or a line moves by the pointer's offset
+    const at = mark.kind === 'point' ? fromNormalized(mark.x, mark.y) : p;
+    setDrag({ id: mark.id, kind: mark.kind, startX: p.x, startY: p.y, x: at.x, y: at.y, moved: false });
+  }
+
+  /** Mark moved by (dx, dy), normalized; areas and lines stay inside the template */
+  function translated(mark: AestheticMark, dx: number, dy: number): Pick<AestheticMark, 'x' | 'y' | 'polygon'> & { at: { x: number; y: number } } {
+    if (mark.kind === 'point' || !mark.polygon) {
+      const x = Math.min(1, Math.max(0, mark.x + dx));
+      const y = Math.min(1, Math.max(0, mark.y + dy));
+      return { x, y, at: fromNormalized(x, y) };
+    }
+    const xs = mark.polygon.map((v) => v[0]);
+    const ys = mark.polygon.map((v) => v[1]);
+    const cdx = Math.min(1 - Math.max(...xs), Math.max(-Math.min(...xs), dx));
+    const cdy = Math.min(1 - Math.max(...ys), Math.max(-Math.min(...ys), dy));
+    const polygon = mark.polygon.map(([x, y]) => [x + cdx, y + cdy] as [number, number]);
+    const x = mark.x + cdx;
+    const y = mark.y + cdy;
+    return { x, y, polygon, at: fromNormalized(x, y) };
   }
 
   /** Client coordinates → viewBox coordinates, not clamped */
@@ -284,6 +415,10 @@ function MapCanvas({
   }
 
   function handlePointerMove(e: React.PointerEvent<SVGSVGElement>) {
+    if ((drawingArea || drawingLine) && draftArea?.length) {
+      const p = toSvgPoint(e.clientX, e.clientY);
+      if (p) setCursor({ ...p, free: e.shiftKey });
+    }
     const pan = panRef.current;
     if (pan && pan.pointerId === e.pointerId) {
       const p = toSvgPointRaw(e.clientX, e.clientY);
@@ -307,25 +442,28 @@ function MapCanvas({
     if (!drag) return;
     svgRef.current?.releasePointerCapture(e.pointerId);
     suppressClickRef.current = true;
-    if (drag.moved) {
-      const n = toNormalized(drag.x, drag.y);
-      onMovePoint?.(drag.id, n.x, n.y, zoneAt(drag.x, drag.y));
+    const placed = marks.find((m) => m.mark.id === drag.id);
+    if (drag.moved && placed) {
+      const { at, ...position } = drag.kind === 'point'
+        ? translated(placed.mark, (drag.x - X) / W - placed.mark.x, (drag.y - Y) / H - placed.mark.y)
+        : translated(placed.mark, (drag.x - drag.startX) / W, (drag.y - drag.startY) / H);
+      onMoveMark?.(drag.id, position, zoneAt(at.x, at.y));
     } else {
-      onSelectPoint(drag.id);
+      onSelectMark(drag.id);
     }
     setDrag(null);
   }
 
-  function handlePointKeyDown(e: React.KeyboardEvent, point: AestheticPoint) {
+  function handleMarkKeyDown(e: React.KeyboardEvent, mark: AestheticMark) {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      onSelectPoint(point.id);
+      onSelectMark(mark.id);
       return;
     }
     if (readOnly) return;
-    if ((e.key === 'Delete' || e.key === 'Backspace') && onDeletePoint) {
+    if ((e.key === 'Delete' || e.key === 'Backspace') && onDeleteMark) {
       e.preventDefault();
-      onDeletePoint(point.id);
+      onDeleteMark(mark.id);
       return;
     }
     const delta: Record<string, [number, number]> = {
@@ -335,12 +473,10 @@ function MapCanvas({
       ArrowDown: [0, KEYBOARD_STEP * (W / H)],
     };
     const step = delta[e.key];
-    if (!step || !onMovePoint) return;
+    if (!step || !onMoveMark) return;
     e.preventDefault();
-    const x = Math.min(1, Math.max(0, point.x + step[0]));
-    const y = Math.min(1, Math.max(0, point.y + step[1]));
-    const at = fromNormalized(x, y);
-    onMovePoint(point.id, x, y, zoneAt(at.x, at.y));
+    const { at, ...position } = translated(mark, step[0], step[1]);
+    onMoveMark(mark.id, position, zoneAt(at.x, at.y));
   }
 
   // Highlights use amber, not the theme primary: the dark theme's primary is a dark grey that
@@ -380,6 +516,8 @@ function MapCanvas({
   });
 
   const r = POINT_RADIUS * scale;
+  const lineStart = drawingLine && draftArea?.[0];
+  const lineAxis = lineStart && cursor ? snapLineEnd(fromNormalized(...lineStart), cursor, cursor.free).axis : null;
   const caption = drag ? null : hoveredZone;
 
   let backdropImage: React.ReactNode = null;
@@ -419,6 +557,8 @@ function MapCanvas({
           adjusting ? 'cursor-move' : !readOnly && 'cursor-crosshair',
         )}
         onClick={handleBackgroundClick}
+        onDoubleClick={() => drawingArea && finishArea()}
+        onPointerLeave={() => setCursor(null)}
         onPointerDown={handleBackdropPointerDown}
         onKeyDown={handleBackdropKeyDown}
         onPointerMove={handlePointerMove}
@@ -470,60 +610,184 @@ function MapCanvas({
           ))}
         </g>
 
-        {/* Points */}
+        {/* Marks: areas first, then lines, so the points stay clickable on top of them */}
         <g pointerEvents={adjusting ? 'none' : undefined} opacity={adjusting ? 0.5 : undefined}>
-        {viewPoints.map((point) => {
-          const isDragging = drag?.id === point.id;
-          const at = isDragging ? { x: drag.x, y: drag.y } : fromNormalized(point.x, point.y);
-          const isSelected = selectedPointId === point.id;
-        const isInvalid = invalidPointIds?.has(point.id) ?? false;
-          const number = pointNumbers.get(point.id);
-          const label = t('map.pointLabel', {
-            number: number ?? 0,
-            product: point.productName || t('point.noProduct'),
-            zone: point.zone ? zoneLabel(point.zone) : t('zones.none'),
-          });
-          return (
-            <g
-              key={point.id}
-              data-point-id={point.id}
-              role="button"
-              tabIndex={0}
-              aria-label={label}
-              aria-pressed={isSelected}
-              onPointerDown={(e) => handlePointPointerDown(e, point)}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (readOnly || !onMovePoint) onSelectPoint(point.id);
-              }}
-              onKeyDown={(e) => handlePointKeyDown(e, point)}
-              className={cn('outline-none [&:focus-visible>circle:first-child]:stroke-ring', !readOnly ? 'cursor-grab' : 'cursor-pointer', isDragging && 'cursor-grabbing')}
-            >
-              <title>{label}</title>
-              <circle
-                cx={at.x}
-                cy={at.y}
-                r={r + 4 * scale}
+          {[...viewMarks].sort((a, b) => KIND_ORDER[a.mark.kind] - KIND_ORDER[b.mark.kind]).map(({ mark, layer, color, number }) => {
+            const isDragging = drag?.id === mark.id;
+            const isSelected = selectedMarkId === mark.id;
+            const isInvalid = invalidMarkIds?.has(mark.id) ?? false;
+            const label = t('map.pointLabel', {
+              number,
+              product: layerTitle(layer) || t('point.noProduct'),
+              zone: mark.zone ? zoneLabel(mark.zone) : t('zones.none'),
+            });
+            let at = fromNormalized(mark.x, mark.y);
+            let offset: { x: number; y: number } | null = null;
+            if (isDragging) {
+              if (drag.kind === 'point') at = { x: drag.x, y: drag.y };
+              else offset = { x: drag.x - drag.startX, y: drag.y - drag.startY };
+            }
+            return (
+              <g
+                key={mark.id}
+                data-point-id={mark.id}
+                role="button"
+                tabIndex={isDrafting ? -1 : 0}
+                aria-label={label}
+                aria-pressed={isSelected}
+                transform={offset ? `translate(${offset.x} ${offset.y})` : undefined}
+                onPointerDown={(e) => handleMarkPointerDown(e, mark)}
+                onClick={(e) => {
+                  if (isDrafting) return;
+                  e.stopPropagation();
+                  if (readOnly || !onMoveMark) onSelectMark(mark.id);
+                }}
+                onKeyDown={(e) => handleMarkKeyDown(e, mark)}
                 className={cn(
-                  isInvalid ? 'fill-destructive/20 stroke-destructive' : isSelected ? 'fill-amber-400/25 stroke-amber-500' : 'fill-transparent stroke-transparent',
+                  'outline-none [&:focus-visible>.mark-ring]:stroke-ring',
+                  isDrafting ? 'pointer-events-none' : !readOnly ? 'cursor-grab' : 'cursor-pointer',
+                  isDragging && 'cursor-grabbing',
                 )}
-                strokeWidth={(isInvalid ? 2 : 1.5) * scale}
-              />
-              <circle cx={at.x} cy={at.y} r={r} fill={UNIT_COLORS[point.unit]} className="stroke-white" strokeWidth={1.5 * scale} />
-              {number !== undefined && (
-                <text x={at.x} y={at.y} dy="0.35em" textAnchor="middle" fontSize={7 * scale} className="fill-white font-semibold" pointerEvents="none">
-                  {number}
-                </text>
+              >
+                <title>{label}</title>
+                {mark.kind === 'area' && mark.polygon ? (
+                  <>
+                    <polygon
+                      points={mark.polygon.map(([x, y]) => { const v = fromNormalized(x, y); return `${v.x},${v.y}`; }).join(' ')}
+                      fill={color}
+                      fillOpacity={isSelected ? 0.4 : 0.25}
+                      stroke={isInvalid || isSelected ? undefined : color}
+                      className={cn('mark-ring', isInvalid ? 'stroke-destructive' : isSelected && 'stroke-amber-500')}
+                      strokeWidth={isSelected || isInvalid ? 2.5 : 1.5}
+                      strokeLinejoin="round"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <circle cx={at.x} cy={at.y} r={r * 0.85} fill={color} className="stroke-white" strokeWidth={1.5 * scale} />
+                    <text x={at.x} y={at.y} dy="0.35em" textAnchor="middle" fontSize={6.5 * scale} className="fill-white font-semibold" pointerEvents="none">
+                      {number}
+                    </text>
+                  </>
+                ) : mark.kind === 'line' && mark.polygon?.length === 2 ? (
+                  <LineMark
+                    ends={mark.polygon.map(([x, y]) => fromNormalized(x, y))}
+                    at={at}
+                    color={color}
+                    number={number}
+                    scale={scale}
+                    ringClassName={isInvalid ? 'stroke-destructive/40' : isSelected ? 'stroke-amber-400/50' : 'stroke-transparent'}
+                  />
+                ) : (
+                  <>
+                    <circle
+                      cx={at.x}
+                      cy={at.y}
+                      r={r + 4 * scale}
+                      className={cn(
+                        'mark-ring',
+                        isInvalid ? 'fill-destructive/20 stroke-destructive' : isSelected ? 'fill-amber-400/25 stroke-amber-500' : 'fill-transparent stroke-transparent',
+                      )}
+                      strokeWidth={(isInvalid ? 2 : 1.5) * scale}
+                    />
+                    <circle cx={at.x} cy={at.y} r={r} fill={color} className="stroke-white" strokeWidth={1.5 * scale} />
+                    <text x={at.x} y={at.y} dy="0.35em" textAnchor="middle" fontSize={7 * scale} className="fill-white font-semibold" pointerEvents="none">
+                      {number}
+                    </text>
+                  </>
+                )}
+              </g>
+            );
+          })}
+        </g>
+
+        {/* Line being drawn: its start, the line to the pointer and, when it snapped, the axis across the template */}
+        {draftArea && draftArea.length > 0 && drawingLine && (() => {
+          const start = fromNormalized(...draftArea[0]);
+          const stroke = toolColor ?? 'currentColor';
+          const end = cursor && snapLineEnd(start, cursor, cursor.free);
+          return (
+            <g pointerEvents="none">
+              {end?.axis && (
+                <line
+                  x1={end.axis === 'horizontal' ? X : start.x}
+                  y1={end.axis === 'horizontal' ? start.y : Y}
+                  x2={end.axis === 'horizontal' ? X + W : start.x}
+                  y2={end.axis === 'horizontal' ? start.y : Y + H}
+                  stroke={stroke}
+                  strokeOpacity={0.4}
+                  strokeWidth={1}
+                  strokeDasharray="2 4"
+                  vectorEffect="non-scaling-stroke"
+                />
               )}
+              {end && <line x1={start.x} y1={start.y} x2={end.x} y2={end.y} stroke={stroke} strokeOpacity={0.75} strokeWidth={LINE_MARK_WIDTH * scale} strokeLinecap="round" />}
+              <circle cx={start.x} cy={start.y} r={3 * scale} fill="white" stroke={stroke} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
             </g>
           );
-        })}
-        </g>
+        })()}
+
+        {/* Area being drawn: its edges, the edge to the pointer and the vertices (the first one closes it) */}
+        {draftArea && draftArea.length > 0 && !drawingLine && (() => {
+          const vertices = draftArea.map(([x, y]) => fromNormalized(x, y));
+          const stroke = toolColor ?? 'currentColor';
+          const canClose = vertices.length >= MIN_AREA_VERTICES;
+          const last = vertices[vertices.length - 1];
+          return (
+            <g pointerEvents="none">
+              {canClose && <polygon points={vertices.map((v) => `${v.x},${v.y}`).join(' ')} fill={stroke} fillOpacity={0.15} stroke="none" />}
+              <polyline points={vertices.map((v) => `${v.x},${v.y}`).join(' ')} fill="none" stroke={stroke} strokeWidth={2} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+              {cursor && <line x1={last.x} y1={last.y} x2={cursor.x} y2={cursor.y} stroke={stroke} strokeWidth={1.5} strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />}
+              {vertices.map((v, i) => (
+                <circle key={i} cx={v.x} cy={v.y} r={(i === 0 && canClose ? 4.5 : 3) * scale} fill={i === 0 && canClose ? stroke : 'white'} stroke={stroke} strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+              ))}
+            </g>
+          );
+        })()}
       </svg>
-      {/* Name of the zone under the pointer: the panels are small and the title tooltip is slow */}
-      <p className="min-h-4 truncate text-center text-xs font-medium text-muted-foreground" aria-live="polite">
-        {caption ? zoneLabel(caption) : '\u00a0'}
-      </p>
+      {draftArea && draftArea.length > 0 && drawingLine ? (
+        <div className="flex flex-wrap items-center justify-center gap-2 text-xs" aria-live="polite">
+          <span className="text-muted-foreground">{lineAxis ? t('map.line.snapped', { axis: lineAxis }) : t('map.line.drawing')}</span>
+          <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setDraftArea(null)}>{t('map.area.cancel')}</Button>
+        </div>
+      ) : draftArea && draftArea.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-center gap-2 text-xs" aria-live="polite">
+          <span className="text-muted-foreground">{t('map.area.drawing', { count: draftArea.length })}</span>
+          <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setDraftArea(null)}>{t('map.area.cancel')}</Button>
+          <Button type="button" size="sm" className="h-7 px-2 text-xs" disabled={draftArea.length < MIN_AREA_VERTICES} onClick={() => finishArea()}>
+            {t('map.area.finish')}
+          </Button>
+        </div>
+      ) : (
+        // Name of the zone under the pointer: the panels are small and the title tooltip is slow
+        <p className="min-h-4 truncate text-center text-xs font-medium text-muted-foreground" aria-live="polite">
+          {caption ? zoneLabel(caption) : '\u00a0'}
+        </p>
+      )}
     </div>
+  );
+}
+
+const LINE_MARK_WIDTH = 3.5;
+
+/** A line mark (a thread): the stroke with its ends and its number at the midpoint */
+function LineMark({ ends: [a, b], at, color, number, scale, ringClassName }: {
+  ends: { x: number; y: number }[];
+  at: { x: number; y: number };
+  color: string;
+  number: number;
+  scale: number;
+  ringClassName: string;
+}) {
+  return (
+    <>
+      {/* Wide transparent stroke: a thin line is hard to grab */}
+      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="transparent" strokeWidth={14 * scale} strokeLinecap="round" />
+      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={cn('mark-ring', ringClassName)} strokeWidth={9 * scale} strokeLinecap="round" />
+      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={color} strokeWidth={LINE_MARK_WIDTH * scale} strokeLinecap="round" />
+      {[a, b].map((v, i) => <circle key={i} cx={v.x} cy={v.y} r={2.5 * scale} fill="white" stroke={color} strokeWidth={1.5 * scale} />)}
+      <circle cx={at.x} cy={at.y} r={POINT_RADIUS * 0.85 * scale} fill={color} className="stroke-white" strokeWidth={1.5 * scale} />
+      <text x={at.x} y={at.y} dy="0.35em" textAnchor="middle" fontSize={6.5 * scale} className="fill-white font-semibold" pointerEvents="none">
+        {number}
+      </text>
+    </>
   );
 }

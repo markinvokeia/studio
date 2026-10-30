@@ -2392,30 +2392,83 @@ export type AestheticZoneBase = AestheticFaceZone | AestheticBodyMuscle;
 /** Midline zones are bare (`chin`); bilateral ones carry the patient's side (`crowsFeet.left`) */
 export type AestheticZoneId = AestheticZoneBase | `${AestheticZoneBase}.${AestheticSide}`;
 
-export type AestheticDoseUnit = 'U' | 'mL';
-
 export type AestheticDepth = 'intradermal' | 'subcutaneous' | 'supraperiosteal' | 'intramuscular';
 
 export type AestheticTechnique = 'bolus' | 'linearRetrograde' | 'fanning' | 'microdroplets' | 'cannula';
 
-export interface AestheticPoint {
+/** `point`: one click; `area`: a polygon drawn over the template; `line`: two ends (threads), snapped to vertical/horizontal */
+export type AestheticMarkKind = 'point' | 'area' | 'line';
+
+/** Dose unit of the catalog (`measurement_units`) */
+export interface MeasurementUnit {
   id: string;
-  view: AestheticMapView;
-  /** Position relative to the template (0..1), so it survives any render size */
-  x: number;
-  y: number;
-  /** Zone under the point; null when it was placed outside every zone */
-  zone: AestheticZoneId | null;
-  serviceId?: string;
-  productName: string;
-  quantity: number | null;
-  unit: AestheticDoseUnit;
+  code: string;
+  name: string;
+  symbol: string;
+  /** Step of the quantity field (1 for whole units, 0.05 for ml…) */
+  step: number;
+  isActive: boolean;
+  sortOrder: number;
+  /** Used by a service or a session: it can only be deactivated */
+  inUse: boolean;
+}
+
+/** How a service is marked on the aesthetic record */
+export interface ServiceAestheticConfig {
+  serviceId: string;
+  serviceName: string;
+  serviceColor: string | null;
+  isActive: boolean;
+  unitId: string;
+  unitSymbol: string;
+  unitStep: number;
+  markingTool: AestheticMarkKind;
+  /** Quantity a new mark starts with */
+  defaultQuantity: number | null;
+  defaultDepth?: AestheticDepth;
+  defaultTechnique?: AestheticTechnique;
+}
+
+/** Set once on the layer for all its marks; a mark that sets one overrides the layer's */
+export interface AestheticSharedAttributes {
   lot?: string;
   /** yyyy-MM-dd */
   lotExpiry?: string;
   depth?: AestheticDepth;
   technique?: AestheticTechnique;
   notes?: string;
+}
+
+export interface AestheticMark extends AestheticSharedAttributes {
+  id: string;
+  kind: AestheticMarkKind;
+  view: AestheticMapView;
+  /** Point: its position. Area/line: where its number sits (centroid/midpoint). Relative to the template (0..1), so it survives any render size */
+  x: number;
+  y: number;
+  /** Area outline or the line's two ends, `[x, y]` pairs relative to the template */
+  polygon?: [number, number][];
+  /** Zone under the mark; null when it was placed outside every zone */
+  zone: AestheticZoneId | null;
+  /** In an area, the total applied over it */
+  quantity: number | null;
+}
+
+/** One service applied in the session, with the marks where it went */
+export interface AestheticLayer extends AestheticSharedAttributes {
+  id: string;
+  serviceId?: string;
+  serviceName: string;
+  /** Color of the service in the catalog */
+  color?: string | null;
+  /** Brand or product, free text */
+  productName: string;
+  /** Copied from the service when the layer is created, so later config changes don't rewrite old sessions */
+  unitId?: string;
+  unitSymbol: string;
+  unitStep: number;
+  markingTool: AestheticMarkKind;
+  marks: AestheticMark[];
 }
 
 export type AestheticPhotoKind = 'before' | 'after';
@@ -2465,7 +2518,7 @@ export interface AestheticSession {
   doctorName?: string;
   appointmentId?: string;
   notes: string;
-  points: AestheticPoint[];
+  layers: AestheticLayer[];
   photos: AestheticPhoto[];
   consent: AestheticConsent | null;
   /** Body figure the body points were placed on (their coordinates depend on it) */

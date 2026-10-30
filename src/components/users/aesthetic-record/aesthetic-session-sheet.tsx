@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { CalendarDays, Camera, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, FileSignature, History, ListOrdered, MapPin, Mars, MousePointerClick, NotebookPen, Pencil, PersonStanding, ScanFace, Sparkles, Stethoscope, Venus } from 'lucide-react';
+import { CalendarDays, Camera, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, Eye, EyeOff, FileSignature, History, Layers, MapPin, Mars, MousePointerClick, NotebookPen, Pencil, PersonStanding, ScanFace, Sparkles, Stethoscope, Venus } from 'lucide-react';
 
 import {
   AlertDialog,
@@ -32,8 +32,11 @@ import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/lib/error-utils';
 import { cn, formatDate, formatDisplayDate, toLocalISOString } from '@/lib/utils';
 import {
+  AestheticPartialSaveError,
   fetchAestheticSessions,
-  newAestheticPointId,
+  fetchServiceAestheticConfigs,
+  newAestheticMarkId,
+  newLocalId,
   saveAestheticPhotoAlignment,
   signAestheticConsent,
   upsertAestheticSession,
@@ -41,20 +44,21 @@ import {
   type AestheticConsentUpload,
 } from '@/services/aesthetic-record';
 
-import type { AestheticBodyFigure, AestheticConsent, AestheticDoseUnit, AestheticMapRegion, AestheticMapView, AestheticPhotoAlignment, AestheticPhotoKind, AestheticPoint, AestheticSession, AestheticZoneId } from '@/lib/types';
+import type { AestheticBodyFigure, AestheticConsent, AestheticLayer, AestheticMapRegion, AestheticMapView, AestheticMark, AestheticPhotoAlignment, AestheticPhotoKind, AestheticSession, AestheticZoneId, ServiceAestheticConfig } from '@/lib/types';
 import { ConsentDialog } from './consent-dialog';
 import { ConsentPanel } from './consent-panel';
 import { AestheticMap } from './aesthetic-map';
-import { BODY_FIGURES, getViewZoneIds, MAP_REGIONS, MAP_VIEWS, REGION_VIEWS, UNIT_COLORS, VIEW_REGION } from './map-templates';
+import { formatQuantity, isMarkIncomplete, layerColor, layerTitle, newLayer, placeMarks, unitTotals, type PlacedMark } from './layers';
+import { LayersPanel } from './layers-panel';
+import { BODY_FIGURES, getViewZoneIds, MAP_REGIONS, MAP_VIEWS, REGION_VIEWS, VIEW_REGION } from './map-templates';
 import { MapRail, RailGroup, type RailOption } from './map-rail';
 import { DEFAULT_PHOTO_ALIGNMENT, PhotoBackdropAdjust, PhotoBackdropToolbar, type BackdropRef } from './photo-backdrop-controls';
 import type { ComparePhoto, PhotoRef } from './photo-compare';
 import { PhotosPanel, type PendingPhoto } from './photos-panel';
-import { PointDetailCard } from './point-detail-card';
-import { isPointIncomplete, PointsSummary } from './points-summary';
+import { MarkDetailCard } from './mark-detail-card';
 import { useAestheticFileUrl } from './use-aesthetic-file-url';
 import { VIEW_ICONS } from './view-icons';
-import { formatQuantity, ZoneHistory } from './zone-history';
+import { ZoneHistory } from './zone-history';
 
 type Tab = 'points' | 'photos' | 'consent' | 'zones' | 'notes';
 
@@ -73,27 +77,15 @@ interface Draft {
   doctorName?: string;
   appointmentId?: string;
   notes: string;
-  points: AestheticPoint[];
+  layers: AestheticLayer[];
   bodyFigure: AestheticBodyFigure;
 }
-
-/** Fields a new point copies from the last edited one, so a row of points is quick to mark */
-type PointPreset = Pick<AestheticPoint, 'serviceId' | 'productName' | 'quantity' | 'unit' | 'lot' | 'lotExpiry' | 'depth' | 'technique'>;
-
-const DEFAULT_PRESET: PointPreset = { productName: '', quantity: null, unit: 'U' };
 
 const draftKey = (draft: Draft) => JSON.stringify(draft);
 
 /** Consent signed during the edit, saved together with the session */
 interface PendingConsent extends AestheticConsentUpload {
   previewUrl: string;
-}
-
-/** Total dose per unit ("24 U", "1.5 mL"), for the one-line session summaries */
-export function aestheticUnitTotals(points: AestheticPoint[]): { unit: AestheticDoseUnit; quantity: number }[] {
-  const totals = new Map<AestheticDoseUnit, number>();
-  for (const point of points) totals.set(point.unit, (totals.get(point.unit) ?? 0) + (point.quantity ?? 0));
-  return [...totals.entries()].filter(([, quantity]) => quantity > 0).map(([unit, quantity]) => ({ unit, quantity }));
 }
 
 function TabBar<T extends string>({ value, options, onChange, ariaLabel }: {
@@ -204,6 +196,12 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   React.useEffect(() => { lastViewByRegionRef.current[region] = view; }, [region, view]);
   const [pinnedZone, setPinnedZone] = React.useState<AestheticZoneId | null>(null);
   const [selectedPointId, setSelectedPointId] = React.useState<string | null>(null);
+  /** Layer the map marks with while editing */
+  const [activeLayerId, setActiveLayerId] = React.useState<string | null>(null);
+  /** Layers left out of the map to see the others better (view only, not saved) */
+  const [hiddenLayerIds, setHiddenLayerIds] = React.useState<Set<string>>(() => new Set());
+  const [configs, setConfigs] = React.useState<ServiceAestheticConfig[]>([]);
+  const [configsError, setConfigsError] = React.useState<string | null>(null);
   const [hoveredZone, setHoveredZone] = React.useState<AestheticZoneId | null>(null);
 
   const [draft, setDraft] = React.useState<Draft | null>(null);
@@ -216,7 +214,6 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   const [confirmDiscard, setConfirmDiscard] = React.useState<null | (() => void)>(null);
   const [consentOpen, setConsentOpen] = React.useState(false);
   const [pendingConsent, setPendingConsent] = React.useState<PendingConsent | null>(null);
-  const presetRef = React.useRef<PointPreset>(DEFAULT_PRESET);
 
   // Photo behind the map
   const [backdropEnabled, setBackdropEnabled] = React.useState(false);
@@ -259,6 +256,14 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     }
   }, [patientId]);
 
+  // Services that can be marked; only needed to add layers, so a failure doesn't block the sheet
+  React.useEffect(() => {
+    if (!canRegister) return;
+    fetchServiceAestheticConfigs()
+      .then(setConfigs)
+      .catch((error) => setConfigsError(getErrorMessage(error)));
+  }, [canRegister]);
+
   React.useEffect(() => {
     load().then((list) => {
       if (!list) return;
@@ -281,12 +286,17 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   }, [isDirty]);
 
   // ── Derived ──
-  const points = React.useMemo(() => draft?.points ?? current?.points ?? [], [draft, current]);
-  // Body points are placed on a figure: it stays fixed once the session has any
+  const layers = React.useMemo(() => draft?.layers ?? current?.layers ?? [], [draft, current]);
+  const placed = React.useMemo(() => placeMarks(layers), [layers]);
+  const visiblePlaced = React.useMemo(() => (hiddenLayerIds.size ? placed.filter((p) => !hiddenLayerIds.has(p.layer.id)) : placed), [placed, hiddenLayerIds]);
+  const marks = React.useMemo(() => placed.map((p) => p.mark), [placed]);
+  // Body marks are placed on a figure: it stays fixed once the session has any
   const figure = draft?.bodyFigure ?? current?.bodyFigure ?? figureFrom(sessions);
-  const canChangeFigure = isEditing && !points.some((p) => VIEW_REGION[p.view] === 'body');
-  const pointNumbers = React.useMemo(() => new Map(points.map((p, i) => [p.id, i + 1])), [points]);
-  const selectedPoint = points.find((p) => p.id === selectedPointId) ?? null;
+  const canChangeFigure = isEditing && !marks.some((m) => VIEW_REGION[m.view] === 'body');
+  const selectedPlaced = placed.find((p) => p.mark.id === selectedPointId) ?? null;
+  const selectedPoint = selectedPlaced?.mark ?? null;
+  const activeLayerIndex = isEditing ? layers.findIndex((l) => l.id === activeLayerId) : -1;
+  const activeLayer = activeLayerIndex >= 0 ? layers[activeLayerIndex] : null;
   const allPhotos = React.useMemo<PhotoRef[]>(
     () => sessions.flatMap((session) => session.photos.map((photo) => ({ photo, session }))),
     [sessions],
@@ -350,7 +360,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     setSaveError(null);
     setShowValidation(false);
     setSelectedPointId(null);
-    presetRef.current = next.points.length ? pickPreset(next.points[next.points.length - 1]) : DEFAULT_PRESET;
+    setActiveLayerId(next.layers[next.layers.length - 1]?.id ?? null);
   }
 
   function startNewSession(list: AestheticSession[]) {
@@ -362,7 +372,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
       doctorName,
       appointmentId,
       notes: '',
-      points: [],
+      layers: [],
       bodyFigure: figureFrom(list),
     });
   }
@@ -376,7 +386,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
       doctorName: session.doctorName,
       appointmentId: session.appointmentId,
       notes: session.notes,
-      points: session.points,
+      layers: session.layers,
       bodyFigure: session.bodyFigure ?? figureFrom(list),
     });
   }
@@ -426,25 +436,75 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
 
   const updateDraft = (patch: Partial<Draft>) => setDraft((d) => (d ? { ...d, ...patch } : d));
 
-  function updatePoint(id: string, patch: Partial<AestheticPoint>) {
-    setDraft((d) => {
-      if (!d) return d;
-      const nextPoints = d.points.map((p) => (p.id === id ? { ...p, ...patch } : p));
-      const edited = nextPoints.find((p) => p.id === id);
-      if (edited) presetRef.current = pickPreset(edited);
-      return { ...d, points: nextPoints };
+  const updateLayers = (update: (layers: AestheticLayer[]) => AestheticLayer[]) =>
+    setDraft((d) => (d ? { ...d, layers: update(d.layers) } : d));
+
+  function updatePoint(id: string, patch: Partial<AestheticMark>) {
+    updateLayers((list) => list.map((layer) => (
+      layer.marks.some((m) => m.id === id) ? { ...layer, marks: layer.marks.map((m) => (m.id === id ? { ...m, ...patch } : m)) } : layer
+    )));
+  }
+
+  function toggleLayerVisibility(id: string) {
+    setHiddenLayerIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
   }
 
-  function addPoint(x: number, y: number, zone: AestheticZoneId | null) {
-    const point: AestheticPoint = { id: newAestheticPointId(), view, x, y, zone, ...presetRef.current };
-    setDraft((d) => (d ? { ...d, points: [...d.points, point] } : d));
-    setSelectedPointId(point.id);
+  /** A layer being marked with, or whose mark is picked, can't stay hidden */
+  function showLayer(id: string) {
+    setHiddenLayerIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+  }
+
+  function activateLayer(id: string) {
+    setActiveLayerId(id);
+    showLayer(id);
+  }
+
+  function updateLayer(id: string, patch: Partial<AestheticLayer>) {
+    updateLayers((list) => list.map((layer) => (layer.id === id ? { ...layer, ...patch } : layer)));
+  }
+
+  function addLayer(config: ServiceAestheticConfig) {
+    const layer = newLayer(config);
+    updateLayers((list) => [...list, layer]);
+    setActiveLayerId(layer.id);
+    setSelectedPointId(null);
+  }
+
+  function removeLayer(id: string) {
+    const removed = layers.find((l) => l.id === id);
+    updateLayers((list) => list.filter((l) => l.id !== id));
+    if (removed?.marks.some((m) => m.id === selectedPointId)) setSelectedPointId(null);
+    if (activeLayerId === id) setActiveLayerId(layers.find((l) => l.id !== id)?.id ?? null);
+  }
+
+  /** A new mark starts with the quantity of the layer's last one, else the service's default */
+  function addMark(mark: Omit<AestheticMark, 'id' | 'quantity'>) {
+    if (!activeLayer) return;
+    const config = configs.find((c) => c.serviceId === activeLayer.serviceId);
+    const quantity = activeLayer.marks[activeLayer.marks.length - 1]?.quantity ?? config?.defaultQuantity ?? null;
+    const created: AestheticMark = { id: newAestheticMarkId(), quantity, ...mark };
+    showLayer(activeLayer.id);
+    updateLayers((list) => list.map((layer) => (layer.id === activeLayer.id ? { ...layer, marks: [...layer.marks, created] } : layer)));
+    setSelectedPointId(created.id);
     setTab('points');
   }
 
+  const addPoint = (x: number, y: number, zone: AestheticZoneId | null) => addMark({ kind: 'point', view, x, y, zone });
+  const addArea = (polygon: [number, number][], x: number, y: number, zone: AestheticZoneId | null) => addMark({ kind: 'area', view, x, y, polygon, zone });
+  const addLine = (ends: [number, number][], x: number, y: number, zone: AestheticZoneId | null) => addMark({ kind: 'line', view, x, y, polygon: ends, zone });
+
   function deletePoint(id: string) {
-    setDraft((d) => (d ? { ...d, points: d.points.filter((p) => p.id !== id) } : d));
+    updateLayers((list) => list.map((layer) => ({ ...layer, marks: layer.marks.filter((m) => m.id !== id) })));
     setSelectedPointId((s) => (s === id ? null : s));
   }
 
@@ -453,7 +513,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     if (!backdropTouchedRef.current) setBackdropEnabled(true);
     setPendingPhotos((prev) => [
       ...prev,
-      ...files.map((file) => ({ key: newAestheticPointId(), file, kind, view: photoView, previewUrl: URL.createObjectURL(file) })),
+      ...files.map((file) => ({ key: newLocalId('photo'), file, kind, view: photoView, previewUrl: URL.createObjectURL(file) })),
     ]);
   }
 
@@ -477,10 +537,10 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
           doctorName: draft.doctorName,
           appointmentId: draft.appointmentId,
           notes: draft.notes,
-          points: draft.points,
+          layers: draft.layers,
           bodyFigure: draft.bodyFigure,
         },
-        pendingPhotos.map(({ file, kind, view: photoView, alignment }) => ({ file, kind, view: photoView, alignment })),
+        pendingPhotos.map(({ key, file, kind, view: photoView, alignment }) => ({ key, file, kind, view: photoView, alignment })),
         removedPhotoIds,
         draft.sessionId,
         pendingConsent ? { input: pendingConsent.input, signature: pendingConsent.signature, signedAt: pendingConsent.signedAt } : undefined,
@@ -494,10 +554,31 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
         onChanged?.();
         onClose();
       },
-      onError: (error) => setSaveError(getErrorMessage(error)),
+      onError: (error) => {
+        if (error instanceof AestheticPartialSaveError) keepWhatWasSaved(error);
+        else setSaveError(getErrorMessage(error));
+      },
       showErrorToast: false,
     },
   );
+
+  /**
+   * The session got stored but a photo, a removal or the consent did not: keep editing the stored
+   * session with only what is left, so saving again finishes the job instead of creating it twice.
+   */
+  function keepWhatWasSaved(error: AestheticPartialSaveError) {
+    setDraft((d) => (d ? { ...d, sessionId: error.sessionId } : d));
+    setPendingPhotos((prev) => {
+      prev.filter((p) => error.uploadedPhotoKeys.includes(p.key)).forEach((p) => URL.revokeObjectURL(p.previewUrl));
+      return prev.filter((p) => !error.uploadedPhotoKeys.includes(p.key));
+    });
+    setRemovedPhotoIds((prev) => prev.filter((id) => !error.removedPhotoIds.includes(id)));
+    if (error.consentSaved) removePendingConsent();
+    setSaveError(t('session.partialSave', { error: error.message }));
+    setShownId(error.sessionId);
+    onChanged?.();
+    load();
+  }
 
   // Closing the sheet (×, Esc, outside click) goes through the unsaved-changes check
   React.useEffect(() => {
@@ -513,13 +594,15 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
       document.getElementById('aes-session-date')?.focus();
       return;
     }
-    const incomplete = draft.points.find(isPointIncomplete);
-    if (incomplete) {
+    const incompleteMarks = placeMarks(draft.layers).filter((p) => isMarkIncomplete(p.mark));
+    if (incompleteMarks.length) {
+      const first = incompleteMarks[0];
       setShowValidation(true);
-      setSaveError(t('session.incompletePoints', { count: draft.points.filter(isPointIncomplete).length }));
+      setSaveError(t('session.incompleteMarks', { count: incompleteMarks.length }));
       setTab('points');
-      setView(incomplete.view);
-      setSelectedPointId(incomplete.id);
+      setView(first.mark.view);
+      activateLayer(first.layer.id);
+      setSelectedPointId(first.mark.id);
       return;
     }
     if (effectiveConsent?.allowsClinicalPhotos === false && photoCount > 0) {
@@ -542,7 +625,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
       return;
     }
     if (!current) return;
-    const updated = await signAestheticConsent(patientId, current.id, input, signature);
+    const updated = await signAestheticConsent(patientId, current, input, signature, signedAt);
     setSessions((list) => list.map((s) => (s.id === updated.id ? updated : s)));
     toast({ title: t('consent.toastSigned') });
     onChanged?.();
@@ -561,7 +644,9 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
         setPendingPhotos((prev) => prev.map((p) => (p.key === alignmentEdit.photoId ? { ...p, alignment: alignmentEdit.alignment } : p)));
         return null;
       }
-      return saveAestheticPhotoAlignment(patientId, alignmentEdit.photoId, alignmentEdit.alignment);
+      const owner = sessions.find((s) => s.photos.some((p) => p.id === alignmentEdit.photoId));
+      if (!owner) throw new Error(t('sheet.notFound'));
+      return saveAestheticPhotoAlignment(owner, alignmentEdit.photoId, alignmentEdit.alignment);
     },
     {
       onSuccess: (session) => {
@@ -574,20 +659,25 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     },
   );
 
-  /** Opens the point's row (switching to its view), or closes it when already open */
-  function selectFromList(point: AestheticPoint) {
-    if (selectedPointId === point.id) {
+  /** Opens the mark's row (switching to its view), or closes it when already open */
+  function selectFromList({ mark, layer }: PlacedMark) {
+    if (selectedPointId === mark.id) {
       setSelectedPointId(null);
       return;
     }
-    setView(point.view);
-    setSelectedPointId(point.id);
+    setView(mark.view);
+    setSelectedPointId(mark.id);
+    showLayer(layer.id);
+    if (isEditing) setActiveLayerId(layer.id);
   }
 
-  /** A point picked on the map opens its row in the points tab */
+  /** A mark picked on the map opens its row in the layers tab (and marks with its layer from then on) */
   function selectFromMap(id: string | null) {
     setSelectedPointId(id);
-    if (id) setTab('points');
+    if (!id) return;
+    setTab('points');
+    const owner = placed.find((p) => p.mark.id === id);
+    if (owner && isEditing) setActiveLayerId(owner.layer.id);
   }
 
   /** Shows a zone picked in the history: switches to the first view that draws it */
@@ -598,10 +688,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     if (target) setView(target);
   }
 
-  const defaultProcedure = React.useMemo(() => {
-    const names = [...new Set(points.map((p) => p.productName.trim()).filter(Boolean))];
-    return names.join(', ');
-  }, [points]);
+  const defaultProcedure = React.useMemo(() => [...new Set(layers.map(layerTitle).filter(Boolean))].join(', '), [layers]);
 
   // ── Render ──
   const consentBadge = effectiveConsent ? (
@@ -693,7 +780,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   }
 
   const dateInvalid = showValidation && !draft?.date;
-  const invalidPointIds = showValidation ? new Set(points.filter(isPointIncomplete).map((p) => p.id)) : undefined;
+  const invalidMarkIds = showValidation ? new Set(marks.filter(isMarkIncomplete).map((m) => m.id)) : undefined;
 
   const sessionFields = draft && (
     <div className="grid shrink-0 gap-3 border-b px-6 py-3 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)_minmax(0,1.4fr)]">
@@ -733,7 +820,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
 
   const regionIcons: Record<AestheticMapRegion, React.ElementType> = { face: ScanFace, body: PersonStanding };
   const regionOptions: RailOption<AestheticMapRegion>[] = MAP_REGIONS.map((r) => {
-    const count = points.filter((p) => VIEW_REGION[p.view] === r).length;
+    const count = marks.filter((m) => VIEW_REGION[m.view] === r).length;
     return {
       id: r,
       icon: regionIcons[r],
@@ -798,24 +885,55 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
             onStartAdjust={() => backdropRef && setAlignmentEdit({ photoId: backdropRef.photo.id, alignment: backdropRef.photo.alignment ?? backdropFit ?? DEFAULT_PHOTO_ALIGNMENT })}
           />
         </MapRail>
-        {/* Legend floats over the top-right corner, out of the way of the drawing */}
-        <div className="pointer-events-none absolute right-0 top-0 z-10 flex flex-col gap-1 rounded-lg bg-card/80 px-2 py-1.5 text-[11px] text-muted-foreground backdrop-blur-sm">
-          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-card" style={{ backgroundColor: UNIT_COLORS.U }} />{t('map.legendToxin')}</span>
-          <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-card" style={{ backgroundColor: UNIT_COLORS.mL }} />{t('map.legendFiller')}</span>
-        </div>
+        {/* Legend (one entry per service) floats over the top-right corner, out of the way of the drawing */}
+        {/* A click on an entry shows or hides that layer's marks */}
+        {layers.length > 0 && tab !== 'zones' && (
+          <div className="absolute right-0 top-0 z-10 flex max-w-[45%] flex-col items-stretch gap-0.5 rounded-lg bg-card/80 px-1 py-1 text-[11px] text-muted-foreground backdrop-blur-sm">
+            {layers.map((layer, index) => {
+              const hidden = hiddenLayerIds.has(layer.id);
+              const name = layerTitle(layer);
+              return (
+                <button
+                  key={layer.id}
+                  type="button"
+                  onClick={() => toggleLayerVisibility(layer.id)}
+                  aria-pressed={!hidden}
+                  title={hidden ? t('layers.show', { name }) : t('layers.hide', { name })}
+                  className={cn(
+                    'inline-flex min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-muted/60',
+                    layer.id === activeLayer?.id && 'font-semibold text-foreground',
+                    hidden && 'text-muted-foreground/60 line-through',
+                  )}
+                >
+                  <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white dark:ring-card', hidden && 'opacity-30')} style={{ backgroundColor: layerColor(layer, index) }} />
+                  <span className="min-w-0 flex-1 truncate">{name}</span>
+                  {hidden ? <EyeOff className="h-3 w-3 shrink-0" aria-hidden /> : <Eye className="h-3 w-3 shrink-0 opacity-50" aria-hidden />}
+                </button>
+              );
+            })}
+            {hiddenLayerIds.size > 0 && layers.some((l) => hiddenLayerIds.has(l.id)) && (
+              <button type="button" onClick={() => setHiddenLayerIds(new Set())} className="rounded px-1 py-0.5 text-left font-medium text-foreground underline-offset-2 hover:underline">
+                {t('layers.showAll')}
+              </button>
+            )}
+          </div>
+        )}
         <AestheticMap
           view={view}
           figure={figure}
-          points={tab === 'zones' ? [] : points}
-          pointNumbers={pointNumbers}
-          selectedPointId={selectedPointId}
+          marks={tab === 'zones' ? [] : visiblePlaced}
+          selectedMarkId={selectedPointId}
           readOnly={!isEditing || tab === 'zones'}
-          invalidPointIds={invalidPointIds}
+          invalidMarkIds={invalidMarkIds}
           highlightZones={tab === 'zones' ? (zoneHighlight ? [zoneHighlight] : []) : selectedPoint?.zone ? [selectedPoint.zone] : []}
-          onAddPoint={isEditing ? addPoint : undefined}
-          onMovePoint={isEditing ? (id, x, y, zone) => updatePoint(id, { x, y, zone }) : undefined}
-          onSelectPoint={selectFromMap}
-          onDeletePoint={isEditing ? deletePoint : undefined}
+          tool={activeLayer?.markingTool}
+          toolColor={activeLayer ? layerColor(activeLayer, activeLayerIndex) : undefined}
+          onAddPoint={isEditing && activeLayer ? addPoint : undefined}
+          onAddArea={isEditing && activeLayer ? addArea : undefined}
+          onAddLine={isEditing && activeLayer ? addLine : undefined}
+          onMoveMark={isEditing ? (id, position, zone) => updatePoint(id, { ...position, zone }) : undefined}
+          onSelectMark={selectFromMap}
+          onDeleteMark={isEditing ? deletePoint : undefined}
           backdrop={showBackdrop && backdropRef && backdropUrl ? {
             photoId: backdropRef.photo.id,
             url: backdropUrl,
@@ -834,7 +952,9 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
           {isEditing && tab !== 'zones' && (
             <p className="flex items-start justify-center gap-1.5 text-center text-[11px] leading-snug text-muted-foreground">
               <MousePointerClick className="mt-px h-3.5 w-3.5 shrink-0" />
-              {t('map.hint')}
+              {!activeLayer
+                ? t('map.hintNoLayer')
+                : t(activeLayer.markingTool === 'area' ? 'map.hintArea' : activeLayer.markingTool === 'line' ? 'map.hintLine' : 'map.hintPoint', { service: layerTitle(activeLayer) })}
             </p>
           )}
           {region === 'body' && <p className="text-center text-[10px] text-muted-foreground/70">{t('credits')}</p>}
@@ -844,7 +964,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   );
 
   const tabs: { id: Tab; label: string; icon: React.ElementType; badge?: React.ReactNode }[] = [
-    { id: 'points', label: t('tabs.points'), icon: ListOrdered, badge: points.length ? <TabCount count={points.length} /> : undefined },
+    { id: 'points', label: t('tabs.layers'), icon: Layers, badge: layers.length ? <TabCount count={layers.length} /> : undefined },
     { id: 'photos', label: t('tabs.photos'), icon: Camera, badge: photoCount ? <TabCount count={photoCount} /> : undefined },
     {
       id: 'consent',
@@ -863,42 +983,50 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   const tabContent = (
     <div className="flex min-w-0 flex-1 flex-col gap-3">
       {tab === 'points' && (
-        // Side by side the selected point's form takes the side panel (the map stays in view); stacked, it opens under its row
-        sideBySide && selectedPoint ? (
+        // Side by side the selected mark's form takes the side panel (the map stays in view); stacked, it opens under its row
+        sideBySide && selectedPlaced ? (
           <div key="point-detail" className="flex flex-col duration-150 animate-in fade-in slide-in-from-right-2">
-            {/* The way back and the point's header stay on top while the fields scroll */}
+            {/* The way back and the mark's header stay on top while the fields scroll */}
             <div className="sticky top-0 z-20 flex h-10 items-center bg-background">
               <Button type="button" size="sm" variant="ghost" className="-ml-2 h-8 text-muted-foreground" onClick={() => setSelectedPointId(null)}>
                 <ChevronLeft className="mr-1 h-4 w-4" />
-                {t('point.backToList')}
+                {t('mark.backToList')}
               </Button>
             </div>
-            <PointDetailCard
-              point={selectedPoint}
-              number={pointNumbers.get(selectedPoint.id)}
+            <MarkDetailCard
+              placed={selectedPlaced}
               readOnly={!isEditing}
               showErrors={showValidation}
-              onChange={(patch) => updatePoint(selectedPoint.id, patch)}
-              onDelete={() => deletePoint(selectedPoint.id)}
+              onChange={(patch) => updatePoint(selectedPlaced.mark.id, patch)}
+              onDelete={() => deletePoint(selectedPlaced.mark.id)}
               stickyHeader
             />
           </div>
         ) : (
-          <PointsSummary
-            points={points}
-            pointNumbers={pointNumbers}
-            selectedPointId={selectedPointId}
+          <LayersPanel
+            layers={layers}
+            placed={placed}
+            configs={configs}
+            configsError={configsError}
+            activeLayerId={activeLayer?.id ?? null}
+            selectedMarkId={selectedPointId}
+            hiddenLayerIds={hiddenLayerIds}
+            onToggleLayerVisibility={toggleLayerVisibility}
             isEditing={isEditing}
             showErrors={showValidation}
-            onSelectPoint={selectFromList}
-            renderDetail={sideBySide ? undefined : (point) => (
-              <PointDetailCard
-                point={point}
-                number={pointNumbers.get(point.id)}
+            onAddLayer={addLayer}
+            onRemoveLayer={removeLayer}
+            onActivateLayer={(id) => { activateLayer(id); setSelectedPointId(null); }}
+            onChangeLayer={updateLayer}
+            onChangeMark={updatePoint}
+            onSelectMark={selectFromList}
+            renderDetail={sideBySide ? undefined : (p) => (
+              <MarkDetailCard
+                placed={p}
                 readOnly={!isEditing}
                 showErrors={showValidation}
-                onChange={(patch) => updatePoint(point.id, patch)}
-                onDelete={() => deletePoint(point.id)}
+                onChange={(patch) => updatePoint(p.mark.id, patch)}
+                onDelete={() => deletePoint(p.mark.id)}
                 embedded
               />
             )}
@@ -951,16 +1079,13 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     </div>
   );
 
-  const unitTotals = aestheticUnitTotals(points);
+  const totals = unitTotals(layers);
   const footer = (
     <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-t px-6 py-3">
       <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{t('map.pointsTitle', { count: points.length })}</span>
-        {unitTotals.map(({ unit, quantity }) => (
-          <span key={unit} className="inline-flex items-center gap-1.5 font-medium text-foreground">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: UNIT_COLORS[unit] }} aria-hidden />
-            {formatQuantity(quantity)} {unit}
-          </span>
+        <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{t('layers.marks', { count: marks.length })}</span>
+        {totals.map(({ unit, quantity }) => (
+          <span key={unit} className="font-medium text-foreground">{formatQuantity(quantity)} {unit}</span>
         ))}
         {photoCount > 0 && <span className="inline-flex items-center gap-1"><Camera className="h-3.5 w-3.5" />{t('sheet.photoCount', { count: photoCount })}</span>}
         {consentBadge}
@@ -1033,9 +1158,4 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
       </AlertDialog>
     </div>
   );
-}
-
-function pickPreset(point: AestheticPoint): PointPreset {
-  const { serviceId, productName, quantity, unit, lot, lotExpiry, depth, technique } = point;
-  return { serviceId, productName, quantity, unit, lot, lotExpiry, depth, technique };
 }

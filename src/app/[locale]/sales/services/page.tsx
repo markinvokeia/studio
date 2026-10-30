@@ -44,6 +44,7 @@ import * as z from 'zod';
 import { ServicesColumnsWrapper } from './columns';
 import { useDebounce } from '@/hooks/use-debounce';
 import { ServiceImageUploader, uploadPendingServiceImage } from '@/components/services/service-image-uploader';
+import { ServiceAestheticConfigPanel } from '@/components/services/service-aesthetic-config';
 
 import { setServiceBookableOnline } from '@/services/services';
 
@@ -1130,6 +1131,10 @@ export default function ServicesPage() {
                               </div>
                             }
                           />
+                          {/* Saves with its own call: the service upsert doesn't carry it */}
+                          <div className="rounded-lg border p-3">
+                            <ServiceAestheticConfigPanel key={selectedService.id} serviceId={selectedService.id} canManage={canUpdate} />
+                          </div>
                           {canUpdate && (
                             <div className="flex gap-2 pt-2">
                               <Button type="submit" disabled={isSavingDetail}>

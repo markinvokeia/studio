@@ -441,7 +441,8 @@
     "ReportBalanceMensual": "Balance Mensual",
     "Sedes": "Sedes",
     "PatientsPortal": "Portal del Paciente",
-    "PrescriptionTemplates": "Plantillas de Receta"
+    "PrescriptionTemplates": "Plantillas de Receta",
+    "MeasurementUnits": "Unidades de medida"
   },
   "TVDisplayPage": {
     "title": "Pantalla TV",
@@ -10123,7 +10124,8 @@
       "consent": "Consentimiento",
       "zones": "Por zona",
       "points": "Puntos",
-      "notes": "Notas"
+      "notes": "Notas",
+      "layers": "Servicios"
     },
     "regions": {
       "face": "Cara",
@@ -10207,10 +10209,6 @@
       "none": "Sin zona",
       "withSide": "{zone} ({side})"
     },
-    "units": {
-      "U": "U",
-      "mL": "mL"
-    },
     "depths": {
       "intradermal": "Intradérmica",
       "subcutaneous": "Subcutánea",
@@ -10227,14 +10225,8 @@
     "map": {
       "pointLabel": "Punto {number}: {product}, {zone}",
       "viewsLabel": "Vista",
-      "legendToxin": "Toxina (U)",
-      "legendFiller": "Relleno (mL)",
-      "hint": "Haz clic en el mapa para añadir un punto (copia el producto del último). Arrástralo para moverlo; Supr borra el seleccionado.",
       "empty": "Esta sesión no tiene puntos de inyección.",
-      "emptyEditing": "Haz clic en la cara o el cuerpo para marcar el primer punto de inyección.",
-      "totals": "Totales por producto",
-      "pointsTitle": "{count, plural, one {# punto} other {# puntos}}",
-      "incompletePoint": "Falta producto o cantidad",
+      "incompletePoint": "Falta la cantidad",
       "regionsLabel": "Región del cuerpo",
       "regionWithCount": "{region} ({count})",
       "figureLabel": "Figura del cuerpo",
@@ -10258,20 +10250,24 @@
         "saveAlignment": "Guardar alineación",
         "saveError": "No se ha podido guardar la alineación",
         "settings": "Ajustes de la foto"
+      },
+      "hintPoint": "Haz clic en el mapa para marcar un punto de {service}. Arrástralo para moverlo; Supr borra el seleccionado.",
+      "hintArea": "Haz clic para marcar el contorno del área de {service}; ciérrala en el primer vértice, con doble clic o Intro. Esc cancela.",
+      "hintNoLayer": "Añade un servicio en la lista para empezar a marcar.",
+      "area": {
+        "drawing": "{count, plural, one {# vértice} other {# vértices}}",
+        "cancel": "Cancelar",
+        "finish": "Cerrar área"
+      },
+      "hintLine": "Haz clic en un extremo del hilo de {service} y después en el otro. Se ajusta solo a vertical u horizontal; mantén Mayús para trazarlo libre. Esc cancela.",
+      "line": {
+        "drawing": "Haz clic en el otro extremo del hilo",
+        "snapped": "Haz clic en el otro extremo · {axis, select, vertical {vertical} horizontal {horizontal} other {libre}}"
       }
     },
     "point": {
       "noProduct": "Sin producto",
-      "delete": "Eliminar punto",
-      "product": "Producto",
-      "productSearch": "Buscar en el catálogo...",
-      "productNoResults": "No se encontraron productos.",
-      "productLoading": "Cargando...",
-      "productPick": "Elegir del catálogo",
-      "productName": "Nombre del producto",
-      "productNamePlaceholder": "O escribe el producto",
       "quantity": "Cantidad",
-      "unit": "Unidad",
       "lot": "Lote",
       "lotExpiry": "Vencimiento del lote",
       "depth": "Profundidad",
@@ -10279,8 +10275,6 @@
       "zone": "Zona",
       "notes": "Notas",
       "notSet": "Sin indicar",
-      "backToList": "Volver a los puntos",
-      "productRequired": "Introduce el producto",
       "quantityRequired": "Introduce una cantidad mayor que 0"
     },
     "photos": {
@@ -10369,10 +10363,10 @@
         "12": "Últimos 12 meses",
         "all": "Todo el historial"
       },
-      "empty": "No hay puntos registrados en este período.",
+      "empty": "No hay marcas registradas en este período.",
       "sessions": "{count, plural, one {# sesión} other {# sesiones}}",
       "last": "última el {date}",
-      "points": "{count, plural, one {# punto} other {# puntos}}",
+      "points": "{count, plural, one {# marca} other {# marcas}}",
       "selectHint": "Haz clic en una zona para ubicarla en el mapa."
     },
     "session": {
@@ -10388,8 +10382,9 @@
       "notes": "Notas de la sesión",
       "notesPlaceholder": "Valoración, comentarios del paciente, indicaciones postratamiento...",
       "dateRequired": "Indica la fecha de la sesión.",
-      "incompletePoints": "{count, plural, one {A # punto le falta producto o cantidad.} other {A # puntos les falta producto o cantidad.}}",
-      "photosNotAllowed": "El consentimiento no autoriza fotos clínicas: quita las fotos para guardar."
+      "photosNotAllowed": "El consentimiento no autoriza fotos clínicas: quita las fotos para guardar.",
+      "incompleteMarks": "{count, plural, one {A # marca le falta la cantidad.} other {A # marcas les falta la cantidad.}}",
+      "partialSave": "La sesión se ha guardado, pero no todo: {error}. Revísalo y vuelve a guardar para terminar."
     },
     "toast": {
       "created": "Sesión estética creada",
@@ -10430,10 +10425,135 @@
       "photoCount": "{count, plural, one {# foto} other {# fotos}}"
     },
     "timeline": {
-      "points": "Puntos",
-      "products": "Productos",
+      "points": "Marcas",
+      "products": "Servicios",
       "zones": "Zonas",
       "notes": "Notas"
+    },
+    "layers": {
+      "empty": "Esta sesión no tiene servicios marcados.",
+      "emptyEditing": "Añade el servicio que vas a aplicar y marca en el mapa dónde se aplicó.",
+      "add": "Añadir servicio",
+      "noConfigs": "No hay servicios configurados para la ficha estética. Actívalos en Ventas → Servicios, sección «Ficha estética».",
+      "allUsed": "Ya has añadido todos los servicios configurados.",
+      "active": "Marcando",
+      "remove": "Quitar servicio",
+      "removeTitle": "¿Quitar {name}?",
+      "removeDescription": "{count, plural, one {Se borra # marca de la sesión.} other {Se borran # marcas de la sesión.}}",
+      "attributesHint": "Lo que introduzcas aquí vale para todas sus marcas; cada marca lo puede cambiar.",
+      "product": "Producto / marca",
+      "productPlaceholder": "P. ej.: Botox 100 U",
+      "marks": "{count, plural, one {# marca} other {# marcas}}",
+      "noMarks": "Todavía no hay puntos: haz clic en el mapa para marcarlos.",
+      "noMarksArea": "Todavía no hay áreas: dibújalas en el mapa.",
+      "noMarksLine": "Todavía no hay hilos: trázalos en el mapa.",
+      "show": "Mostrar {name} en el mapa",
+      "hide": "Ocultar {name} del mapa",
+      "showAll": "Mostrar todas"
+    },
+    "mark": {
+      "delete": "Eliminar marca",
+      "backToList": "Volver a los servicios",
+      "overrides": "Solo para esta marca",
+      "overridesHint": "Si lo dejas vacío se usa lo del servicio.",
+      "resetOverrides": "Usar lo del servicio",
+      "customized": "Propia",
+      "point": "Punto",
+      "area": "Área",
+      "quantityArea": "Cantidad total en el área",
+      "quantityOf": "Cantidad de la marca {number}",
+      "inherited": "Del servicio: {value}",
+      "line": "Hilo",
+      "quantityLine": "Cantidad en el hilo",
+      "orientation": {
+        "vertical": "vertical",
+        "horizontal": "horizontal",
+        "oblique": "oblicuo"
+      }
+    },
+    "serviceConfig": {
+      "title": "Ficha estética",
+      "description": "Se marca en la ficha estética del paciente, con su unidad y su herramienta.",
+      "unit": "Unidad de medida",
+      "unitPick": "Selecciona una unidad",
+      "noUnits": "No hay unidades activas. Créalas en Catálogo de la Clínica → Unidades de medida.",
+      "tool": "Se marca con",
+      "tools": {
+        "point": "Puntos",
+        "area": "Áreas",
+        "line": "Línea"
+      },
+      "toolHints": {
+        "point": "Cada clic en el mapa es un punto de aplicación (p. ej.: toxina, labios).",
+        "area": "Se dibuja el contorno de la zona tratada (p. ej.: vitaminas en una parte de la frente).",
+        "line": "Cada marca es una línea entre dos extremos (hilos tensores), vertical u horizontal."
+      },
+      "defaultQuantity": "Cantidad inicial por marca",
+      "save": "Guardar",
+      "discard": "Descartar",
+      "saved": "Configuración estética guardada",
+      "saveError": "No se ha podido guardar la configuración estética"
+    }
+  },
+  "MeasurementUnitsPage": {
+    "title": "Unidades de medida",
+    "description": "Unidades en que se registran las dosis de los servicios estéticos (unidad, ml, mg, cc…).",
+    "add": "Nueva unidad",
+    "loadError": "No se han podido cargar las unidades",
+    "retry": "Inténtalo de nuevo",
+    "empty": "Todavía no hay unidades de medida.",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "columns": {
+      "name": "Nombre",
+      "symbol": "Símbolo",
+      "code": "Código",
+      "step": "Paso",
+      "status": "Estado"
+    },
+    "status": {
+      "active": "Activa",
+      "inactive": "Inactiva"
+    },
+    "form": {
+      "createTitle": "Nueva unidad de medida",
+      "editTitle": "Editar unidad de medida",
+      "description": "El símbolo es lo que se ve junto a cada cantidad.",
+      "name": "Nombre",
+      "namePlaceholder": "Mililitro",
+      "symbol": "Símbolo",
+      "symbolPlaceholder": "ml",
+      "code": "Código",
+      "codeHint": "Identificador único, sin espacios.",
+      "step": "Paso de la cantidad",
+      "stepHint": "1 para unidades enteras, 0,05 para ml…",
+      "active": "Activa",
+      "activeHint": "Las inactivas no se ofrecen al configurar servicios.",
+      "cancel": "Cancelar",
+      "save": "Guardar"
+    },
+    "validation": {
+      "codeRequired": "Introduce un código",
+      "codeFormat": "Solo letras, números, guion y guion bajo",
+      "nameRequired": "Introduce un nombre",
+      "symbolRequired": "Introduce un símbolo",
+      "stepInvalid": "Introduce un número mayor que 0"
+    },
+    "toast": {
+      "created": "Unidad creada",
+      "updated": "Unidad actualizada",
+      "deleted": "Unidad eliminada",
+      "deactivated": "La unidad está en uso: ha quedado inactiva",
+      "deleteError": "No se ha podido eliminar la unidad",
+      "saveError": "No se ha podido guardar la unidad"
+    },
+    "deleteDialog": {
+      "title": "¿Seguro que quieres eliminar {name}?",
+      "description": "La unidad se borra del catálogo.",
+      "inUse": "La usan servicios o sesiones, así que no se borra: queda inactiva y las sesiones antiguas la siguen mostrando.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar",
+      "deactivate": "Desactivar"
     }
   }
 }

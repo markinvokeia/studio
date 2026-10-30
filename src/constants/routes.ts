@@ -552,4 +552,22 @@ export const API_ROUTES = {
         LIST:   '/subscriptions',
         CREATE: '/subscriptions',
     },
+    // Ficha estética — flujo n8n "Aesthetic Record" (database/scripts/151)
+    AESTHETIC_RECORD: {
+        SESSIONS:         '/aesthetic/sessions',
+        SESSION_SAVE:     '/aesthetic/sessions/save',
+        SESSION_DELETE:   '/aesthetic/sessions/delete',
+        PHOTO_UPLOAD:     '/aesthetic/photos/upload',
+        PHOTO_DELETE:     '/aesthetic/photos/delete',
+        PHOTO_ALIGNMENT:  '/aesthetic/photos/alignment',
+        CONSENT_SIGN:     '/aesthetic/consent/sign',
+        FILE:             '/aesthetic/file',
+        SERVICE_CONFIGS:  '/services/aesthetic-config',
+        SERVICE_CONFIG_SAVE: '/services/aesthetic-config/save',
+    },
+    MEASUREMENT_UNITS: {
+        LIST:   '/measurement-units',
+        SAVE:   '/measurement-units/save',
+        DELETE: '/measurement-units/delete',
+    },
 };

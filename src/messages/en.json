@@ -441,7 +441,8 @@
     "ReportBalanceMensual": "Monthly Balance",
     "Sedes": "Branches",
     "PatientsPortal": "Patient Portal",
-    "PrescriptionTemplates": "Prescription Templates"
+    "PrescriptionTemplates": "Prescription Templates",
+    "MeasurementUnits": "Measurement Units"
   },
   "TVDisplayPage": {
     "title": "TV Display",
@@ -10123,7 +10124,8 @@
       "consent": "Consent",
       "zones": "By zone",
       "points": "Points",
-      "notes": "Notes"
+      "notes": "Notes",
+      "layers": "Services"
     },
     "regions": {
       "face": "Face",
@@ -10207,10 +10209,6 @@
       "none": "No zone",
       "withSide": "{zone} ({side})"
     },
-    "units": {
-      "U": "U",
-      "mL": "mL"
-    },
     "depths": {
       "intradermal": "Intradermal",
       "subcutaneous": "Subcutaneous",
@@ -10227,14 +10225,8 @@
     "map": {
       "pointLabel": "Point {number}: {product}, {zone}",
       "viewsLabel": "View",
-      "legendToxin": "Toxin (U)",
-      "legendFiller": "Filler (mL)",
-      "hint": "Click the map to add a point (it copies the last one's product). Drag to move it; Delete removes the selected one.",
       "empty": "No injection points in this session.",
-      "emptyEditing": "Click the face or body map to mark the first injection point.",
-      "totals": "Totals per product",
-      "pointsTitle": "{count, plural, one {# point} other {# points}}",
-      "incompletePoint": "Missing product or quantity",
+      "incompletePoint": "Quantity missing",
       "regionsLabel": "Body region",
       "regionWithCount": "{region} ({count})",
       "figureLabel": "Body figure",
@@ -10258,20 +10250,24 @@
         "saveAlignment": "Save alignment",
         "saveError": "Could not save the alignment",
         "settings": "Photo settings"
+      },
+      "hintPoint": "Click the map to mark a point of {service}. Drag it to move it; Delete removes the selected one.",
+      "hintArea": "Click to mark the outline of the {service} area; close it on the first vertex, with a double click or Enter. Esc cancels.",
+      "hintNoLayer": "Add a service in the list to start marking.",
+      "area": {
+        "drawing": "{count, plural, one {# vertex} other {# vertices}}",
+        "cancel": "Cancel",
+        "finish": "Close area"
+      },
+      "hintLine": "Click one end of the {service} thread, then the other. It snaps to vertical or horizontal; hold Shift to draw it freely. Esc cancels.",
+      "line": {
+        "drawing": "Click the other end of the thread",
+        "snapped": "Click the other end · {axis, select, vertical {vertical} horizontal {horizontal} other {free}}"
       }
     },
     "point": {
       "noProduct": "No product",
-      "delete": "Delete point",
-      "product": "Product",
-      "productSearch": "Search the catalog...",
-      "productNoResults": "No products found.",
-      "productLoading": "Loading...",
-      "productPick": "Pick from catalog",
-      "productName": "Product name",
-      "productNamePlaceholder": "Or type the product",
       "quantity": "Quantity",
-      "unit": "Unit",
       "lot": "Lot",
       "lotExpiry": "Lot expiry",
       "depth": "Depth",
@@ -10279,8 +10275,6 @@
       "zone": "Zone",
       "notes": "Notes",
       "notSet": "Not set",
-      "backToList": "Back to points",
-      "productRequired": "Enter the product",
       "quantityRequired": "Enter a quantity greater than 0"
     },
     "photos": {
@@ -10369,10 +10363,10 @@
         "12": "Last 12 months",
         "all": "All history"
       },
-      "empty": "No points recorded in this period.",
+      "empty": "No marks recorded in this period.",
       "sessions": "{count, plural, one {# session} other {# sessions}}",
       "last": "last on {date}",
-      "points": "{count, plural, one {# point} other {# points}}",
+      "points": "{count, plural, one {# mark} other {# marks}}",
       "selectHint": "Click a zone to locate it on the map."
     },
     "session": {
@@ -10388,8 +10382,9 @@
       "notes": "Session notes",
       "notesPlaceholder": "Assessment, patient feedback, post-treatment instructions...",
       "dateRequired": "Enter the session date.",
-      "incompletePoints": "{count, plural, one {# point is missing product or quantity.} other {# points are missing product or quantity.}}",
-      "photosNotAllowed": "The consent does not allow clinical photos: remove the photos to save."
+      "photosNotAllowed": "The consent does not allow clinical photos: remove the photos to save.",
+      "incompleteMarks": "{count, plural, one {# mark is missing its quantity.} other {# marks are missing their quantity.}}",
+      "partialSave": "The session was saved, but not everything: {error}. Check it and save again to finish."
     },
     "toast": {
       "created": "Aesthetic session created",
@@ -10430,10 +10425,135 @@
       "photoCount": "{count, plural, one {# photo} other {# photos}}"
     },
     "timeline": {
-      "points": "Points",
-      "products": "Products",
+      "points": "Marks",
+      "products": "Services",
       "zones": "Zones",
       "notes": "Notes"
+    },
+    "layers": {
+      "empty": "This session has no services marked.",
+      "emptyEditing": "Add the service you are applying and mark on the map where it went.",
+      "add": "Add service",
+      "noConfigs": "No services are set up for the aesthetic record. Turn them on in Sales → Services, “Aesthetic record” section.",
+      "allUsed": "All the configured services are already added.",
+      "active": "Marking",
+      "remove": "Remove service",
+      "removeTitle": "Remove {name}?",
+      "removeDescription": "{count, plural, one {# mark is deleted from the session.} other {# marks are deleted from the session.}}",
+      "attributesHint": "What you enter here applies to all its marks; each mark can change it.",
+      "product": "Product / brand",
+      "productPlaceholder": "E.g. Botox 100 U",
+      "marks": "{count, plural, one {# mark} other {# marks}}",
+      "noMarks": "No points yet: click the map to mark them.",
+      "noMarksArea": "No areas yet: draw them on the map.",
+      "noMarksLine": "No threads yet: draw them on the map.",
+      "show": "Show {name} on the map",
+      "hide": "Hide {name} from the map",
+      "showAll": "Show all"
+    },
+    "mark": {
+      "delete": "Delete mark",
+      "backToList": "Back to services",
+      "overrides": "Only for this mark",
+      "overridesHint": "Left empty, the service’s value is used.",
+      "resetOverrides": "Use the service’s",
+      "customized": "Own",
+      "point": "Point",
+      "area": "Area",
+      "quantityArea": "Total quantity in the area",
+      "quantityOf": "Quantity of mark {number}",
+      "inherited": "From the service: {value}",
+      "line": "Thread",
+      "quantityLine": "Quantity in the thread",
+      "orientation": {
+        "vertical": "vertical",
+        "horizontal": "horizontal",
+        "oblique": "oblique"
+      }
+    },
+    "serviceConfig": {
+      "title": "Aesthetic record",
+      "description": "Marked on the patient’s aesthetic record, with its unit and its tool.",
+      "unit": "Measurement unit",
+      "unitPick": "Pick a unit",
+      "noUnits": "There are no active units. Create them in Clinic Catalog → Measurement Units.",
+      "tool": "Marked with",
+      "tools": {
+        "point": "Points",
+        "area": "Areas",
+        "line": "Line"
+      },
+      "toolHints": {
+        "point": "Each click on the map is an application point (e.g. toxin, lips).",
+        "area": "The outline of the treated zone is drawn (e.g. vitamins on part of the forehead).",
+        "line": "Each mark is a line between two ends (threads), vertical or horizontal."
+      },
+      "defaultQuantity": "Starting quantity per mark",
+      "save": "Save",
+      "discard": "Discard",
+      "saved": "Aesthetic settings saved",
+      "saveError": "Could not save the aesthetic settings"
+    }
+  },
+  "MeasurementUnitsPage": {
+    "title": "Measurement Units",
+    "description": "Units the doses of aesthetic services are recorded in (unit, ml, mg, cc…).",
+    "add": "New unit",
+    "loadError": "Could not load the units",
+    "retry": "Retry",
+    "empty": "There are no measurement units yet.",
+    "edit": "Edit",
+    "delete": "Delete",
+    "columns": {
+      "name": "Name",
+      "symbol": "Symbol",
+      "code": "Code",
+      "step": "Step",
+      "status": "Status"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "form": {
+      "createTitle": "New measurement unit",
+      "editTitle": "Edit measurement unit",
+      "description": "The symbol is what shows next to each quantity.",
+      "name": "Name",
+      "namePlaceholder": "Milliliter",
+      "symbol": "Symbol",
+      "symbolPlaceholder": "ml",
+      "code": "Code",
+      "codeHint": "Unique identifier, no spaces.",
+      "step": "Quantity step",
+      "stepHint": "1 for whole units, 0.05 for ml…",
+      "active": "Active",
+      "activeHint": "Inactive units are not offered when setting up services.",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "validation": {
+      "codeRequired": "Enter a code",
+      "codeFormat": "Only letters, numbers, hyphen and underscore",
+      "nameRequired": "Enter a name",
+      "symbolRequired": "Enter a symbol",
+      "stepInvalid": "Enter a number greater than 0"
+    },
+    "toast": {
+      "created": "Unit created",
+      "updated": "Unit updated",
+      "deleted": "Unit deleted",
+      "deactivated": "The unit is in use: it was deactivated",
+      "deleteError": "Could not delete the unit",
+      "saveError": "Could not save the unit"
+    },
+    "deleteDialog": {
+      "title": "Delete {name}?",
+      "description": "The unit is removed from the catalog.",
+      "inUse": "Services or sessions use it, so it is not deleted: it becomes inactive and old sessions still show it.",
+      "cancel": "Cancel",
+      "confirm": "Delete",
+      "deactivate": "Deactivate"
     }
   }
 }
