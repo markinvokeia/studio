@@ -1,0 +1,22 @@
+{
+  "id": "cashier.miscellaneous-categories",
+  "summary": "Cash income and expense categories.",
+  "purpose": "They classify miscellaneous movements and define whether they are income or expense, so they show up organized in the reports.",
+  "elements": {
+    "cashier.miscellaneous-categories.section.first-row": {
+      "label": "Category"
+    },
+    "cashier.miscellaneous-categories.section.row": {
+      "label": "Category"
+    },
+    "cashier.miscellaneous-categories.btn.row-edit": {
+      "label": "Edit"
+    },
+    "cashier.miscellaneous-categories.btn.row-delete": {
+      "label": "Delete"
+    },
+    "cashier.miscellaneous-categories.btn.delete-confirm": {
+      "label": "Confirm deletion"
+    }
+  }
+}

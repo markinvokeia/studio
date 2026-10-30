@@ -1,0 +1,16 @@
+{
+  "id": "system.errors",
+  "summary": "Error log.",
+  "purpose": "Recorded technical errors, useful for reporting them to support.",
+  "elements": {
+    "system.errors.section.first-row": {
+      "label": "The most recent"
+    },
+    "system.errors.section.row": {
+      "label": "Record"
+    },
+    "system.errors.section.detail": {
+      "label": "Details"
+    }
+  }
+}

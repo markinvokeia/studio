@@ -1,6 +1,8 @@
 'use client';
 
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { useHelpScope } from '@/components/help/help-scope';
+import { composeHelpId } from '@/lib/help/help-id';
 import { UserFinancial } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Eye, EyeOff, FileText, Printer } from 'lucide-react';
@@ -28,6 +30,7 @@ export function UserFinancialSummaryStats({
   variant = 'patient',
 }: UserFinancialSummaryStatsProps) {
   const tPatient = useTranslations('UsersPage');
+  const helpScope = useHelpScope();
   const tProvider = useTranslations('ProvidersPage');
   const t = variant === 'provider' ? tProvider : tPatient;
 
@@ -66,7 +69,7 @@ export function UserFinancialSummaryStats({
   ];
 
   return (
-    <Collapsible open={isOpen} className="mb-2">
+    <Collapsible data-help-id={composeHelpId(helpScope, 'section', 'finance-summary')} open={isOpen} className="mb-2">
       <div className="flex items-center justify-between pt-2 pb-1">
         <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">
           {t('stats.title')}
@@ -85,6 +88,7 @@ export function UserFinancialSummaryStats({
           {onViewStatement && (
             <button
               type="button"
+              data-help-id={composeHelpId(helpScope, 'btn', 'finance-statement')}
               className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               onClick={onViewStatement}
             >
@@ -94,6 +98,7 @@ export function UserFinancialSummaryStats({
           )}
           <button
             type="button"
+            data-help-id={composeHelpId(helpScope, 'btn', 'finance-print')}
             className="flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
             onClick={onPrint}
           >

@@ -1,0 +1,48 @@
+{
+  "id": "purchases.providers.account",
+  "title": "View a provider's account",
+  "summary": "Quotes, Invoices and Payments tabs: what we asked them for, what they invoiced us and what we paid them.",
+  "module": "Purchases",
+  "group": "Purchases from the provider",
+  "inputs": {
+    "query": "Name, email or tax ID"
+  },
+  "keywords": [
+    "provider account",
+    "debt with provider",
+    "what we owe them"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Purchases → Providers",
+      "details": "Labs, suppliers and services the clinic buys from; with their account: quotes, invoices and payments."
+    },
+    {
+      "id": "search",
+      "title": "Find the provider",
+      "details": "By name, email or tax ID."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record"
+    },
+    {
+      "id": "quotes",
+      "title": "Quotes"
+    },
+    {
+      "id": "invoices",
+      "title": "Invoices"
+    },
+    {
+      "id": "row",
+      "title": "An invoice",
+      "details": "Tap it to see its details."
+    },
+    {
+      "id": "payments",
+      "title": "Payments"
+    }
+  ]
+}

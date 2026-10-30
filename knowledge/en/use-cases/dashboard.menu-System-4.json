@@ -1,0 +1,78 @@
+{
+  "id": "dashboard.menu-System-4",
+  "title": "Get to know System: Configurations, Notifications and more",
+  "summary": "Tour of Configurations, Notifications, Audit Log, Access Log, Error Log and Import Data: what each screen is for.",
+  "module": "Dashboard",
+  "group": "Menu",
+  "keywords": [
+    "system",
+    "what's in system",
+    "configurations",
+    "notifications",
+    "audit log",
+    "access log",
+    "error log",
+    "import data"
+  ],
+  "steps": [
+    {
+      "id": "section",
+      "title": "System",
+      "details": "We'll go through Configurations, Notifications, Audit Log, Access Log, Error Log and Import Data."
+    },
+    {
+      "id": "go-system.config",
+      "title": "Menu → System → Configurations"
+    },
+    {
+      "id": "page-system.config",
+      "title": "Configurations",
+      "details": "Technical configuration keys (integrations, messaging, behavior). Administrators only. It has 4 guides in «Guide me on this screen»."
+    },
+    {
+      "id": "go-system.notification-settings",
+      "title": "Menu → System → Notifications"
+    },
+    {
+      "id": "page-system.notification-settings",
+      "title": "Notifications",
+      "details": "Which internal notifications each person gets and through which channel. It has 1 guide in «Guide me on this screen»."
+    },
+    {
+      "id": "go-system.audit",
+      "title": "Menu → System → Audit Log"
+    },
+    {
+      "id": "page-system.audit",
+      "title": "Audit Log",
+      "details": "History of changes to the data: what was modified, by whom and when. It has 1 guide in «Guide me on this screen»."
+    },
+    {
+      "id": "go-system.access",
+      "title": "Menu → System → Access Log"
+    },
+    {
+      "id": "page-system.access",
+      "title": "Access Log",
+      "details": "Who signed in to the system, when and from where. It has 1 guide in «Guide me on this screen»."
+    },
+    {
+      "id": "go-system.errors",
+      "title": "Menu → System → Error Log"
+    },
+    {
+      "id": "page-system.errors",
+      "title": "Error Log",
+      "details": "Recorded technical errors, useful for reporting them to support. It has 1 guide in «Guide me on this screen»."
+    },
+    {
+      "id": "go-system.import",
+      "title": "Menu → System → Import Data"
+    },
+    {
+      "id": "page-system.import",
+      "title": "Import Data",
+      "details": "Wizard to import patients and other data from Excel or CSV: it maps columns, validates and only then imports. It has 2 guides in «Guide me on this screen»."
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "id": "config.provider-groups.delete",
+  "title": "Eliminar el grupo de proveedores",
+  "module": "Configuración de Negocio",
+  "summary": "Borrar un grupo de proveedores (pide confirmación).",
+  "screens": [
+    "config.provider-groups"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "eliminar grupo de proveedores",
+    "borrar grupo de proveedores",
+    "quitar grupo de proveedores"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/provider-groups",
+      "title": "Menú → Configuración de Negocio → Grupos de Proveedores",
+      "details": "Agrupaciones de proveedores para ordenar compras y reportes."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "config.provider-groups.filter.search",
+      "title": "Buscá el grupo de proveedores",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "config.provider-groups.section.first-row",
+      "title": "Elegí el grupo de proveedores",
+      "details": "Tocalo en la lista para ver su detalle.",
+      "until": "config.provider-groups.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "delete",
+      "action": "click",
+      "target": "config.provider-groups.btn.delete",
+      "title": "Eliminar",
+      "until": "config.provider-groups.btn.confirm-action"
+    },
+    {
+      "id": "ok",
+      "action": "confirm",
+      "target": "config.provider-groups.btn.confirm-action",
+      "title": "Confirmar",
+      "details": "No se puede deshacer."
+    }
+  ]
+}

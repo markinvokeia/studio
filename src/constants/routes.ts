@@ -556,4 +556,32 @@ export const API_ROUTES = {
         LIST:   '/subscriptions',
         CREATE: '/subscriptions',
     },
+    /**
+     * Asistente guiado (workflows generados por scripts/n8n/generate-help-workflows.mjs).
+     * Ver docs/onboarding-asistente.md.
+     */
+    HELP: {
+        /** Estado de cada paso, derivado de los datos reales (`help_onboarding_status()`). */
+        ONBOARDING_STATUS:   '/help/onboarding/status',
+        /** Omitir / reactivar un paso o guardar una nota de implementador. */
+        ONBOARDING_PROGRESS: '/help/onboarding/progress',
+        /** RAG sobre el catálogo + OpenAI. Devuelve respuesta, links y guía validados. */
+        ASSISTANT_CHAT:      '/help/assistant/chat',
+        /** 👍/👎 de una respuesta: alimenta la cola de preguntas sin resolver. */
+        ASSISTANT_FEEDBACK:  '/help/assistant/feedback',
+        /** Versión del catálogo publicado en la BD del cliente. */
+        CATALOG_VERSION:     '/help/catalog/version',
+        /** Publica el catálogo que trae este frontend (requiere HELP_CATALOG_SYNC). */
+        CATALOG_SYNC:        '/help/catalog/sync',
+        /** Pide el video de un caso de uso (lo genera el worker de scripts/videos). */
+        VIDEO_REQUEST:       '/help/videos/request',
+        /** Videos publicados, uno por guía, en el idioma pedido (o el español). */
+        VIDEOS:              '/help/videos',
+        /** Panel de métricas del asistente (HELP_INSIGHTS_VIEW). */
+        INSIGHTS:            '/help/insights',
+        /** Resolver/ignorar una pregunta o cambiar el estado de un ticket. */
+        SUPPORT_UPDATE:      '/help/support/update',
+        /** Ajustes del asistente que fija la clínica (mascota visible). */
+        SETTINGS:            '/help/settings',
+    },
 };

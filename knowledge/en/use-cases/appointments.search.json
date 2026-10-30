@@ -1,0 +1,38 @@
+{
+  "id": "appointments.search",
+  "title": "Find an appointment",
+  "summary": "Find a patient's appointments on any date.",
+  "module": "Calendar",
+  "inputs": {
+    "query": "Patient's name, phone or ID"
+  },
+  "keywords": [
+    "search",
+    "find",
+    "where is",
+    "when do they have",
+    "a patient's appointments",
+    "next appointment"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Appointments",
+      "details": "The calendar shows appointments by room and doctor."
+    },
+    {
+      "id": "search",
+      "title": "Find appointment"
+    },
+    {
+      "id": "query",
+      "title": "Type the patient or the title",
+      "details": "By the patient's name, phone, email or ID, or by the appointment title. It searches all dates; choosing a result takes the calendar to that day and opens the appointment."
+    },
+    {
+      "id": "result",
+      "title": "Choose the appointment",
+      "details": "You see the past and future appointments that match. Choosing one takes the calendar to that day and opens the appointment."
+    }
+  ]
+}

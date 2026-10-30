@@ -215,6 +215,7 @@ export function CalendarSearchPanel({
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
           </span>
           <Input
+            data-help-id="appointments.filter.appointments"
             ref={inputRef}
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
@@ -284,7 +285,7 @@ export function CalendarSearchPanel({
         )}
       </div>
 
-      <div className="flex-1 space-y-3 overflow-y-auto p-2">
+      <div data-help-id="appointments.section.search-results" className="flex-1 space-y-3 overflow-y-auto p-2">
         {trimmed.length === 0 ? (
           <p className="py-8 text-center text-sm text-muted-foreground">{t('hint')}</p>
         ) : needsMoreChars ? (

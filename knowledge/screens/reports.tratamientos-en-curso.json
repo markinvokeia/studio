@@ -1,0 +1,67 @@
+{
+  "id": "reports.tratamientos-en-curso",
+  "status": "draft",
+  "summary": "Tratamientos en curso.",
+  "purpose": "Tratamientos de varias etapas que todavía no terminaron, para hacerles seguimiento.",
+  "useCases": [
+    "reports.tratamientos-en-curso.overview"
+  ],
+  "tips": [
+    "Elegí los filtros y tocá «Generar»: el reporte no se calcula solo."
+  ],
+  "elements": {
+    "reports.tratamientos-en-curso.section.filters": {
+      "label": "Filtros",
+      "description": "Estado y profesional."
+    },
+    "reports.tratamientos-en-curso.btn.generate": {
+      "label": "Generar",
+      "description": "Calcula el reporte."
+    },
+    "reports.tratamientos-en-curso.section.empty": {
+      "label": "Sin datos"
+    },
+    "reports.tratamientos-en-curso.section.kpi": {
+      "label": "Indicadores",
+      "description": "Total, activos, completados y tasa de completado."
+    },
+    "reports.tratamientos-en-curso.section.results": {
+      "label": "Resultados",
+      "description": "Avance de cada tratamiento y la próxima etapa pendiente."
+    },
+    "reports.tratamientos-en-curso.section.table": {
+      "label": "Detalle"
+    },
+    "reports.tratamientos-en-curso.section.export": {
+      "label": "Exportar e imprimir"
+    },
+    "reports.tratamientos-en-curso.btn.export": {
+      "label": "Exportar",
+      "description": "Excel, CSV o PDF."
+    },
+    "reports.tratamientos-en-curso.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.tratamientos-en-curso.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.tratamientos-en-curso.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.tratamientos-en-curso.btn.print": {
+      "label": "Imprimir"
+    },
+    "reports.tratamientos-en-curso.filter.period": {
+      "label": "Período"
+    },
+    "reports.tratamientos-en-curso.section.period-options": {
+      "label": "Opciones de período"
+    },
+    "reports.tratamientos-en-curso.filter.currency": {
+      "label": "Moneda"
+    },
+    "reports.tratamientos-en-curso.filter.currency-filter": {
+      "label": "Moneda"
+    }
+  }
+}

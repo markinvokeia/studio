@@ -1,0 +1,179 @@
+{
+  "id": "workspace",
+  "summary": "My Workspace: the doctor's schedule and the clinical panel of the patient they're seeing.",
+  "purpose": "For the doctor: see their appointments for the day (or a period or calendar), pick the patient and, without leaving, review alerts, record, sessions and odontogram, complete the clinical session, prescribe and ask the AI clinical agent.",
+  "tips": [
+    "The schedule refreshes every minute on its own and lets you know when an appointment comes in, changes, is rescheduled or reassigned to you.",
+    "There's only one clinical session per patient per day, and it's completed from the day of the appointment.",
+    "When the clinical session is saved, the appointment becomes Completed.",
+    "In «My calendars» you see a room's appointments even if they're not yours."
+  ],
+  "elements": {
+    "workspace.section.agenda": {
+      "label": "Today's schedule",
+      "description": "The doctor's appointments in time order."
+    },
+    "workspace.btn.refresh": {
+      "label": "Refresh"
+    },
+    "workspace.filter.date": {
+      "label": "Day or period",
+      "description": "Today, tomorrow, this week, next 7 days, this month, next month, last month or a day/period on the calendar."
+    },
+    "workspace.section.date-options": {
+      "label": "Date options"
+    },
+    "workspace.filter.date-today": {
+      "label": "Today"
+    },
+    "workspace.filter.date-tomorrow": {
+      "label": "Tomorrow"
+    },
+    "workspace.filter.date-week": {
+      "label": "This week"
+    },
+    "workspace.filter.date-next7": {
+      "label": "Next 7 days"
+    },
+    "workspace.filter.date-month": {
+      "label": "This month"
+    },
+    "workspace.filter.date-nextMonth": {
+      "label": "Next month"
+    },
+    "workspace.filter.date-prevMonth": {
+      "label": "Last month"
+    },
+    "workspace.btn.today": {
+      "label": "Today",
+      "description": "Goes back to today's schedule."
+    },
+    "workspace.tab.assigned": {
+      "label": "Assigned to me",
+      "description": "The appointments where you're the doctor."
+    },
+    "workspace.tab.calendars": {
+      "label": "My calendars",
+      "description": "The appointments of a room you have access to."
+    },
+    "workspace.filter.calendar": {
+      "label": "Calendar"
+    },
+    "workspace.section.appointments": {
+      "label": "Appointments",
+      "description": "Tap one to open the patient panel."
+    },
+    "workspace.section.appointment": {
+      "label": "Appointment"
+    },
+    "workspace.section.focus": {
+      "label": "Patient in focus"
+    },
+    "workspace.btn.patient-alerts": {
+      "label": "Alerts",
+      "description": "The patient's allergies and ailments."
+    },
+    "workspace.btn.patient-file": {
+      "label": "Patient record"
+    },
+    "workspace.tab.sessions": {
+      "label": "Clinical sessions"
+    },
+    "workspace.tab.odontogram": {
+      "label": "Odontogram"
+    },
+    "workspace.section.timeline": {
+      "label": "Timeline",
+      "description": "Previous sessions; the most recent one open."
+    },
+    "workspace.section.odontogram": {
+      "label": "Odontogram"
+    },
+    "workspace.btn.session": {
+      "label": "Complete clinical session",
+      "description": "One per patient per day, from the day of the appointment. When saved, the appointment becomes Completed."
+    },
+    "workspace.btn.prescribe": {
+      "label": "Prescribe"
+    },
+    "workspace.btn.agent-chat": {
+      "label": "Ask the agent",
+      "description": "The appointment's AI clinical agent."
+    },
+    "workspace.section.agent-chat": {
+      "label": "Clinical agent"
+    },
+    "workspace.field.session-date": {
+      "label": "Session date"
+    },
+    "workspace.field.session-doctor": {
+      "label": "Doctor"
+    },
+    "workspace.field.session-procedure": {
+      "label": "Procedure",
+      "description": "What was done today."
+    },
+    "workspace.field.session-diagnosis": {
+      "label": "Diagnosis"
+    },
+    "workspace.field.session-notes": {
+      "label": "Notes"
+    },
+    "workspace.field.session-next-plan": {
+      "label": "Next session plan"
+    },
+    "workspace.field.session-treatments": {
+      "label": "Treatments",
+      "description": "Those from the quote that were done today."
+    },
+    "workspace.field.session-attachments": {
+      "label": "Attachments"
+    },
+    "workspace.field.session-discharge": {
+      "label": "Discharge"
+    },
+    "workspace.field.rx-template": {
+      "label": "Prescription template"
+    },
+    "workspace.field.rx-date": {
+      "label": "Date"
+    },
+    "workspace.field.rx-doctor": {
+      "label": "Doctor"
+    },
+    "workspace.field.rx-diagnosis": {
+      "label": "Diagnosis"
+    },
+    "workspace.field.rx-notes": {
+      "label": "Notes"
+    },
+    "workspace.btn.rx-add-medication": {
+      "label": "Add medication"
+    },
+    "workspace.field.rx-medication": {
+      "label": "Medication"
+    },
+    "workspace.field.rx-dosage": {
+      "label": "Dose"
+    },
+    "workspace.field.rx-frequency": {
+      "label": "Frequency"
+    },
+    "workspace.field.rx-duration": {
+      "label": "Duration (days)"
+    },
+    "workspace.field.rx-quantity": {
+      "label": "Quantity"
+    },
+    "workspace.field.rx-instructions": {
+      "label": "Instructions"
+    },
+    "workspace.btn.rx-print": {
+      "label": "Print prescription"
+    },
+    "workspace.btn.submit": {
+      "label": "Save",
+      "description": "Save the clinical session or the prescription."
+    }
+  }
+}

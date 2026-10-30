@@ -1,0 +1,50 @@
+{
+  "id": "workspace.agent",
+  "title": "Consultar al agente clínico con IA",
+  "module": "Mi Consultorio",
+  "summary": "Preguntar por el último procedimiento, lo que toca hoy o las alertas del paciente, y pedirle que prepare la sesión.",
+  "screens": [
+    "workspace"
+  ],
+  "keywords": [
+    "agente",
+    "ia",
+    "inteligencia artificial",
+    "asistente clinico",
+    "resumen clinico",
+    "dictar",
+    "que toca hoy",
+    "ultimo procedimiento"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/workspace",
+      "title": "Menú → Mi Consultorio",
+      "details": "La vista del profesional: su agenda y el panel clínico del paciente que atiende."
+    },
+    {
+      "id": "select",
+      "action": "highlight",
+      "target": "workspace.section.appointment",
+      "title": "Elegí la cita del paciente",
+      "until": "workspace.section.focus",
+      "autoClick": true,
+      "details": "Tocá la cita en la agenda: a la derecha se abre el panel del paciente. Si no ves citas, cambiá el día o el período arriba."
+    },
+    {
+      "id": "open",
+      "action": "click",
+      "target": "workspace.btn.agent-chat",
+      "title": "Consulta al agente"
+    },
+    {
+      "id": "chat",
+      "action": "highlight",
+      "target": "workspace.section.agent-chat",
+      "title": "Agente clínico",
+      "details": "Conoce la cita y la historia del paciente. Usá los atajos (lo último que se hizo, qué toca hoy, alertas) o escribí y dictá tu pregunta. Puede preparar la sesión clínica o marcar el odontograma: siempre lo revisás vos antes de guardar."
+    }
+  ]
+}

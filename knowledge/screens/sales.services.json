@@ -1,0 +1,76 @@
+{
+  "id": "sales.services",
+  "status": "draft",
+  "summary": "Catálogo de servicios y tratamientos con precio y duración.",
+  "purpose": "Se eligen al agendar, presupuestar y facturar. La duración define el largo del turno; los servicios con flujo tienen pasos (sesiones).",
+  "prerequisites": [
+    "config.clinics"
+  ],
+  "tips": [
+    "Marcá 'Agendable online' para que el paciente lo pueda reservar desde el portal."
+  ],
+  "useCases": [
+    "onboarding.service",
+    "sales.services.overview",
+    "sales.services.create",
+    "sales.services.edit",
+    "sales.services.delete",
+    "sales.services.steps"
+  ],
+  "elements": {
+    "sales.services.field.name": {
+      "description": "Nombre del servicio."
+    },
+    "sales.services.field.price": {
+      "description": "Precio de lista."
+    },
+    "sales.services.field.currency": {
+      "description": "Moneda del precio."
+    },
+    "sales.services.field.duration_minutes": {
+      "description": "Duración del turno en minutos."
+    },
+    "sales.services.field.category_id": {
+      "description": "Categoría para agrupar en listados y reportes."
+    },
+    "sales.services.field.bookable_online": {
+      "description": "El paciente lo puede reservar desde el portal."
+    },
+    "sales.services.field.service_type": {
+      "description": "Servicio con flujo: tratamiento en varios pasos/sesiones."
+    },
+    "sales.services.section.first-row": {
+      "label": "Primero de la lista"
+    },
+    "sales.services.section.row": {
+      "label": "Registro"
+    },
+    "sales.services.section.detail": {
+      "label": "Ficha"
+    },
+    "sales.services.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "sales.services.btn.delete-confirm": {
+      "label": "Confirmar eliminación"
+    },
+    "sales.services.field.color": {
+      "label": "Color",
+      "description": "Color de la cita en la agenda."
+    },
+    "sales.services.field.description": {
+      "label": "Descripción"
+    },
+    "sales.services.field.indications": {
+      "label": "Indicaciones",
+      "description": "Lo que se le avisa al paciente antes de la cita."
+    },
+    "sales.services.field.is_active": {
+      "label": "Activo"
+    },
+    "sales.services.btn.add-step": {
+      "label": "Agregar etapa"
+    }
+  }
+}

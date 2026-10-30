@@ -427,7 +427,7 @@ export default function MiscellaneousTransactionsPage() {
                     <div onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                <Button data-help-id="cashier.miscellaneous-transactions.btn.row-actions" variant="ghost" className="h-8 w-8 p-0">
                                     <span className="sr-only">{t('actions.openMenu')}</span>
                                     <MoreHorizontal className="h-4 w-4" />
                                 </Button>
@@ -435,6 +435,7 @@ export default function MiscellaneousTransactionsPage() {
                             <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
                                 <DropdownMenuItem
+                                    data-help-id="cashier.miscellaneous-transactions.btn.row-edit"
                                     onClick={() => canModify && handleEdit(transaction)}
                                     disabled={!canModify}
                                     title={canModify ? undefined : t('actions.editDisabledClosedSession')}
@@ -442,6 +443,7 @@ export default function MiscellaneousTransactionsPage() {
                                     {t('actions.edit')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
+                                    data-help-id="cashier.miscellaneous-transactions.btn.row-delete"
                                     onClick={() => canModify && handleDelete(transaction)}
                                     disabled={!canModify}
                                     title={canModify ? undefined : t('actions.deleteDisabledClosedSession')}
@@ -697,6 +699,7 @@ export default function MiscellaneousTransactionsPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogAction
+                            data-help-id="cashier.miscellaneous-transactions.btn.delete-confirm"
                             onClick={(e) => {
                                 // Keep the dialog open until the request settles
                                 e.preventDefault();

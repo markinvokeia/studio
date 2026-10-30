@@ -1,0 +1,84 @@
+{
+  "id": "sales.quotes",
+  "summary": "Patient quotes.",
+  "purpose": "The treatment plan with prices for the patient to approve; once confirmed it's invoiced, booked and charged.",
+  "tips": [
+    "They can be sent by email or WhatsApp for the patient to confirm."
+  ],
+  "elements": {
+    "sales.quotes.section.detail-header": {
+      "label": "Document summary"
+    },
+    "sales.quotes.section.first-row": {
+      "label": "First document in the list"
+    },
+    "sales.quotes.section.row": {
+      "label": "ID"
+    },
+    "sales.quotes.btn.row-actions": {
+      "label": "Row actions"
+    },
+    "sales.quotes.btn.export": {
+      "label": "Export",
+      "description": "Excel or CSV."
+    },
+    "sales.quotes.section.export": {
+      "label": "Export format"
+    },
+    "sales.quotes.btn.export-run": {
+      "label": "Download"
+    },
+    "sales.quotes.field.doc-email-to": {
+      "label": "Recipients",
+      "description": "Emails separated by commas."
+    },
+    "sales.quotes.btn.doc-email-send": {
+      "label": "Send by email"
+    },
+    "sales.quotes.detail.section.first-row": {
+      "label": "First line"
+    },
+    "sales.quotes.detail.section.row": {
+      "label": "Line"
+    },
+    "sales.quotes.detail.btn.new": {
+      "label": "Add"
+    },
+    "sales.quotes.btn.filters": {
+      "label": "Filters"
+    },
+    "sales.quotes.section.filters": {
+      "label": "Filter options"
+    },
+    "sales.quotes.btn.row-print": {
+      "label": "Print"
+    },
+    "sales.quotes.btn.row-email": {
+      "label": "Send by email"
+    },
+    "sales.quotes.btn.row-edit": {
+      "label": "Edit"
+    },
+    "sales.quotes.btn.row-confirm": {
+      "label": "Confirm"
+    },
+    "sales.quotes.btn.row-reject": {
+      "label": "Reject"
+    },
+    "sales.quotes.btn.row-delete": {
+      "label": "Delete"
+    },
+    "sales.quotes.section.billing": {
+      "label": "What to invoice"
+    },
+    "sales.quotes.btn.billing-add-item": {
+      "label": "Add line"
+    },
+    "sales.quotes.btn.billing-submit": {
+      "label": "Create invoice"
+    },
+    "sales.quotes.field.user_id": {
+      "label": "Patient"
+    }
+  }
+}

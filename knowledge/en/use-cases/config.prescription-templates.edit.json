@@ -1,0 +1,54 @@
+{
+  "id": "config.prescription-templates.edit",
+  "title": "Edit the prescription template",
+  "summary": "Change the details of an existing prescription template.",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "edit prescription template",
+    "modify prescription template",
+    "change prescription template"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Prescription Templates",
+      "details": "Common prescriptions with medications and instructions; they're chosen when prescribing."
+    },
+    {
+      "id": "search",
+      "title": "Find the prescription template"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the prescription template",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "edit",
+      "title": "Edit"
+    },
+    {
+      "id": "name",
+      "title": "Name"
+    },
+    {
+      "id": "description",
+      "title": "Description"
+    },
+    {
+      "id": "content_html",
+      "title": "Content"
+    },
+    {
+      "id": "is_active",
+      "title": "Active"
+    },
+    {
+      "id": "save",
+      "title": "Save changes"
+    }
+  ]
+}

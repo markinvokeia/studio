@@ -1,0 +1,63 @@
+{
+  "id": "reports.ocupacion-agenda",
+  "summary": "Schedule occupancy.",
+  "purpose": "Appointment analysis: how many were completed, canceled or no-shows, and how many ended in a quote or session.",
+  "tips": [
+    "Choose the filters and tap «Generate»: the report isn't calculated on its own."
+  ],
+  "elements": {
+    "reports.ocupacion-agenda.section.filters": {
+      "label": "Filters",
+      "description": "Doctor, calendar, branch, status and service."
+    },
+    "reports.ocupacion-agenda.btn.generate": {
+      "label": "Generate",
+      "description": "Calculates the report."
+    },
+    "reports.ocupacion-agenda.section.empty": {
+      "label": "No data"
+    },
+    "reports.ocupacion-agenda.section.kpi": {
+      "label": "Indicators",
+      "description": "Total appointments, completed and canceled rates, no-shows, with quote, with session, average duration and unattended."
+    },
+    "reports.ocupacion-agenda.section.results": {
+      "label": "Results",
+      "description": "Charts by status, day, hour and doctor, and the details."
+    },
+    "reports.ocupacion-agenda.section.table": {
+      "label": "Details"
+    },
+    "reports.ocupacion-agenda.section.export": {
+      "label": "Export and print"
+    },
+    "reports.ocupacion-agenda.btn.export": {
+      "label": "Export",
+      "description": "Excel, CSV or PDF."
+    },
+    "reports.ocupacion-agenda.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.ocupacion-agenda.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.ocupacion-agenda.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.ocupacion-agenda.btn.print": {
+      "label": "Print"
+    },
+    "reports.ocupacion-agenda.filter.period": {
+      "label": "Period"
+    },
+    "reports.ocupacion-agenda.section.period-options": {
+      "label": "Period options"
+    },
+    "reports.ocupacion-agenda.filter.currency": {
+      "label": "Currency"
+    },
+    "reports.ocupacion-agenda.filter.currency-filter": {
+      "label": "Currency"
+    }
+  }
+}

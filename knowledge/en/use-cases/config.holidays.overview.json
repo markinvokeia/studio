@@ -1,0 +1,50 @@
+{
+  "id": "config.holidays.overview",
+  "title": "Tour Exception Schedules",
+  "summary": "Holidays, one-off or recurring closures, or days with different hours. They override the regular hours.",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "exception schedules",
+    "exception schedule",
+    "view exception schedule",
+    "what is exception schedule"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Exception Schedules",
+      "details": "Holidays, one-off or recurring closures, or days with different hours. They override the regular hours."
+    },
+    {
+      "id": "search",
+      "title": "Find the exception schedule"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the exception schedule",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "detail",
+      "title": "Details",
+      "details": "The details of the chosen record."
+    },
+    {
+      "id": "edit",
+      "title": "Edit"
+    },
+    {
+      "id": "delete",
+      "title": "Delete",
+      "details": "Asks for confirmation."
+    },
+    {
+      "id": "new",
+      "title": "Create",
+      "details": "Adds a new exception schedule."
+    }
+  ]
+}

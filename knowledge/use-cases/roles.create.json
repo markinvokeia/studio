@@ -1,0 +1,45 @@
+{
+  "id": "roles.create",
+  "title": "Crear un rol",
+  "module": "Sistema",
+  "summary": "Alta de un rol.",
+  "screens": [
+    "roles"
+  ],
+  "inputs": {
+    "name": "Nombre"
+  },
+  "keywords": [
+    "nuevo rol",
+    "crear rol"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/roles",
+      "title": "Menú → Sistema → Roles",
+      "details": "Los perfiles de acceso (Recepción, Doctor, Administración…): cada uno agrupa permisos."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "roles.btn.new",
+      "title": "Crear",
+      "until": "roles.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "roles.field.name",
+      "title": "Nombre",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "roles.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

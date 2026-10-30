@@ -1,0 +1,39 @@
+{
+  "id": "config.provider-groups.delete",
+  "title": "Delete the provider group",
+  "summary": "Delete a provider group (asks for confirmation).",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "delete provider group",
+    "remove provider group",
+    "clear provider group"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Provider Groups",
+      "details": "Groupings of providers to organize purchases and reports."
+    },
+    {
+      "id": "search",
+      "title": "Find the provider group"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the provider group",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "delete",
+      "title": "Delete"
+    },
+    {
+      "id": "ok",
+      "title": "Confirm",
+      "details": "This can't be undone."
+    }
+  ]
+}

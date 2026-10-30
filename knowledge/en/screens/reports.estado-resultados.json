@@ -1,0 +1,63 @@
+{
+  "id": "reports.estado-resultados",
+  "summary": "Income statement.",
+  "purpose": "Income minus expenses for the period: the clinic's financial result.",
+  "tips": [
+    "Choose the filters and tap «Generate»: the report isn't calculated on its own."
+  ],
+  "elements": {
+    "reports.estado-resultados.section.filters": {
+      "label": "Filters",
+      "description": "Currency."
+    },
+    "reports.estado-resultados.btn.generate": {
+      "label": "Generate",
+      "description": "Calculates the report."
+    },
+    "reports.estado-resultados.section.empty": {
+      "label": "No data"
+    },
+    "reports.estado-resultados.section.kpi": {
+      "label": "Indicators",
+      "description": "Margin for the period."
+    },
+    "reports.estado-resultados.section.results": {
+      "label": "Results",
+      "description": "Income, expenses and result."
+    },
+    "reports.estado-resultados.section.table": {
+      "label": "Details"
+    },
+    "reports.estado-resultados.section.export": {
+      "label": "Export and print"
+    },
+    "reports.estado-resultados.btn.export": {
+      "label": "Export",
+      "description": "Excel, CSV or PDF."
+    },
+    "reports.estado-resultados.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.estado-resultados.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.estado-resultados.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.estado-resultados.btn.print": {
+      "label": "Print"
+    },
+    "reports.estado-resultados.filter.period": {
+      "label": "Period"
+    },
+    "reports.estado-resultados.section.period-options": {
+      "label": "Period options"
+    },
+    "reports.estado-resultados.filter.currency": {
+      "label": "Currency"
+    },
+    "reports.estado-resultados.filter.currency-filter": {
+      "label": "Currency"
+    }
+  }
+}

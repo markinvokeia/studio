@@ -1,0 +1,20 @@
+{
+  "id": "system.access",
+  "status": "draft",
+  "summary": "Registro de accesos.",
+  "purpose": "Quién entró al sistema, cuándo y desde dónde.",
+  "useCases": [
+    "system.access.overview"
+  ],
+  "elements": {
+    "system.access.section.first-row": {
+      "label": "El más reciente"
+    },
+    "system.access.section.row": {
+      "label": "Registro"
+    },
+    "system.access.section.detail": {
+      "label": "Detalle"
+    }
+  }
+}

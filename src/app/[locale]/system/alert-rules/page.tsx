@@ -383,6 +383,8 @@ export default function AlertRulesPage() {
             whatsapp_template_id: rule.whatsapp_template_id ? parseInt(rule.whatsapp_template_id) : undefined,
             user_id_field: (rule as any).user_id_field || '',
             event_field: rule.event_field || '',
+            // El backend manda null cuando la regla no tiene recurrencia: el esquema sólo acepta un valor o nada.
+            recurrence_type: rule.recurrence_type ?? undefined,
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -415,6 +417,8 @@ export default function AlertRulesPage() {
             whatsapp_template_id: rule.whatsapp_template_id ? parseInt(rule.whatsapp_template_id) : undefined,
             user_id_field: (rule as any).user_id_field || '',
             event_field: rule.event_field || '',
+            // El backend manda null cuando la regla no tiene recurrencia: el esquema sólo acepta un valor o nada.
+            recurrence_type: rule.recurrence_type ?? undefined,
         });
         setSubmissionError(null);
         setIsDialogOpen(true);
@@ -575,17 +579,17 @@ export default function AlertRulesPage() {
                     <div onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0" aria-busy={testRule.isPending(String(rule.id)) || undefined}>
+                            <Button data-help-id="system.alert-rules.btn.row-actions" variant="ghost" className="h-8 w-8 p-0" aria-busy={testRule.isPending(String(rule.id)) || undefined}>
                                 <span className="sr-only">{t('columns.actions')}</span>
                                 <MoreHorizontal className="h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>{t('columns.actions')}</DropdownMenuLabel>
-                            {canUpdate && <DropdownMenuItem onClick={() => handleEdit(rule)}>{t('columns.edit')}</DropdownMenuItem>}
-                            {canCreate && <DropdownMenuItem onClick={() => handleDuplicate(rule)}>{t('columns.duplicate')}</DropdownMenuItem>}
-                            {canUpdate && <DropdownMenuItem onClick={() => handleTest(rule)} disabled={testRule.isPending(String(rule.id))}>{t('columns.test')}</DropdownMenuItem>}
-                            {canDelete && <DropdownMenuItem onClick={() => { setDeletingRule(rule); setIsDeleteDialogOpen(true); }} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
+                            {canUpdate && <DropdownMenuItem data-help-id="system.alert-rules.btn.row-edit" onClick={() => handleEdit(rule)}>{t('columns.edit')}</DropdownMenuItem>}
+                            {canCreate && <DropdownMenuItem data-help-id="system.alert-rules.btn.row-duplicate" onClick={() => handleDuplicate(rule)}>{t('columns.duplicate')}</DropdownMenuItem>}
+                            {canUpdate && <DropdownMenuItem data-help-id="system.alert-rules.btn.row-test" onClick={() => handleTest(rule)} disabled={testRule.isPending(String(rule.id))}>{t('columns.test')}</DropdownMenuItem>}
+                            {canDelete && <DropdownMenuItem data-help-id="system.alert-rules.btn.row-delete" onClick={() => { setDeletingRule(rule); setIsDeleteDialogOpen(true); }} className="text-destructive">{t('columns.delete')}</DropdownMenuItem>}
                         </DropdownMenuContent>
                     </DropdownMenu>
                     </div>
@@ -642,7 +646,7 @@ export default function AlertRulesPage() {
 
     const rightPanel = selectedRule ? (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="system.alert-rules.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="header-icon-circle flex-none"><BotMessageSquare className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
@@ -652,12 +656,12 @@ export default function AlertRulesPage() {
                     {selectedRule && (
                         <div className="flex gap-1 flex-none">
                             {canUpdate && (
-                                <Button size="sm" variant="outline" onClick={() => handleEdit(selectedRule)}>
+                                <Button data-help-id="system.alert-rules.btn.edit" size="sm" variant="outline" onClick={() => handleEdit(selectedRule)}>
                                     <Pencil className="h-4 w-4 mr-1" />{t('columns.edit')}
                                 </Button>
                             )}
                             {canDelete && (
-                                <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('columns.delete')} onClick={() => { setDeletingRule(selectedRule); setIsDeleteDialogOpen(true); }}>
+                                <Button data-help-id="system.alert-rules.btn.delete" size="sm" variant="outline" className="text-destructive hover:text-destructive" aria-label={t('columns.delete')} onClick={() => { setDeletingRule(selectedRule); setIsDeleteDialogOpen(true); }}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             )}

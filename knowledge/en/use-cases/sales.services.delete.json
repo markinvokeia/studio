@@ -1,0 +1,38 @@
+{
+  "id": "sales.services.delete",
+  "title": "Delete a service",
+  "summary": "Remove it from the list (asks for confirmation). If it's already been used, better deactivate it.",
+  "module": "Sales",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "delete service",
+    "remove service"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Sales → Services",
+      "details": "What the clinic offers and charges: price, currency, calendar duration, color, category and whether it can be booked online. It's the price list for quotes, invoices and appointments."
+    },
+    {
+      "id": "search",
+      "title": "Find the service"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the service",
+      "details": "Tap it to open their record."
+    },
+    {
+      "id": "delete",
+      "title": "Delete"
+    },
+    {
+      "id": "ok",
+      "title": "Confirm",
+      "details": "This can't be undone."
+    }
+  ]
+}

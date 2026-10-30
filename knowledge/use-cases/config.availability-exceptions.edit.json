@@ -1,0 +1,95 @@
+{
+  "id": "config.availability-exceptions.edit",
+  "title": "Editar la excepción",
+  "module": "Configuración de Negocio",
+  "summary": "Cambiar los datos de una excepción existente.",
+  "screens": [
+    "config.availability-exceptions"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "editar excepción",
+    "modificar excepción",
+    "cambiar excepción"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/availability-exceptions",
+      "title": "Menú → Configuración de Negocio → Excepciones de Disponibilidad",
+      "details": "Días puntuales en que un profesional no atiende (licencia, congreso) o atiende fuera de su disponibilidad habitual."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "config.availability-exceptions.filter.search",
+      "title": "Buscá la excepción",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "config.availability-exceptions.section.first-row",
+      "title": "Elegí la excepción",
+      "details": "Tocalo en la lista para ver su detalle.",
+      "until": "config.availability-exceptions.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "edit",
+      "action": "click",
+      "target": "config.availability-exceptions.btn.edit",
+      "title": "Editar",
+      "until": "config.availability-exceptions.btn.submit",
+      "skipIfMissing": true
+    },
+    {
+      "id": "user_id",
+      "action": "highlight",
+      "target": "config.availability-exceptions.field.user_id",
+      "title": "Profesional"
+    },
+    {
+      "id": "dates",
+      "action": "highlight",
+      "target": "config.availability-exceptions.field.dates",
+      "title": "Fechas",
+      "details": "Uno o varios días."
+    },
+    {
+      "id": "is_available",
+      "action": "highlight",
+      "target": "config.availability-exceptions.field.is_available",
+      "title": "¿Disponible?",
+      "details": "Desmarcado: no atiende esos días. Marcado: atiende extra en ese horario.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "start_time",
+      "action": "highlight",
+      "target": "config.availability-exceptions.field.start_time",
+      "title": "Desde",
+      "details": "Vacío: todo el día.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "end_time",
+      "action": "highlight",
+      "target": "config.availability-exceptions.field.end_time",
+      "title": "Hasta",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.availability-exceptions.btn.submit",
+      "title": "Guardar cambios"
+    }
+  ]
+}

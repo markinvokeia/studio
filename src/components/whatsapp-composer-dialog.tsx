@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useHelpScope } from '@/components/help/help-scope';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { useCommunicationTemplates, substituteTokens } from '@/hooks/useCommunicationTemplates';
+import { composeHelpId } from '@/lib/help/help-id';
 import { WHATSAPP_TEMPLATE_DEFAULTS } from '@/lib/whatsapp-template-defaults';
 
 interface WhatsAppComposerDialogProps {
@@ -37,6 +39,7 @@ export function WhatsAppComposerDialog({
   treatmentContext,
 }: WhatsAppComposerDialogProps) {
   const t = useTranslations('WhatsAppComposerDialog');
+  const helpScope = useHelpScope();
   const { toast } = useToast();
 
   const clinic = useClinicInfo();
@@ -101,13 +104,14 @@ export function WhatsAppComposerDialog({
 
         <div className="space-y-4 px-6 py-4">
           <div className="space-y-2">
-            <Label htmlFor="whatsapp-phone">{t('phone')}</Label>
+            <Label htmlFor="whatsapp-phone" data-help-id={composeHelpId(helpScope, 'field', 'whatsapp-phone')}>{t('phone')}</Label>
             <Input id="whatsapp-phone" value={phone} readOnly className="bg-muted/50" />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="whatsapp-message">{t('message')}</Label>
             <Textarea
+              data-help-id={composeHelpId(helpScope, 'field', 'whatsapp-message')}
               id="whatsapp-message"
               value={message}
               onChange={(event) => setMessage(event.target.value)}
@@ -122,7 +126,7 @@ export function WhatsAppComposerDialog({
             <X className="h-4 w-4 mr-1" />
             {t('cancel')}
           </DialogCancelButton>
-          <Button onClick={handleOpenWhatsApp} disabled={!normalizedPhone || isOpening}>
+          <Button data-help-id={composeHelpId(helpScope, 'btn', 'whatsapp-open')} onClick={handleOpenWhatsApp} disabled={!normalizedPhone || isOpening}>
             <Send className="h-4 w-4 mr-1" />
             {isOpening ? t('opening') : t('open')}
           </Button>

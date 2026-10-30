@@ -1,0 +1,79 @@
+{
+  "id": "patients.whatsapp-reminder",
+  "title": "Enviar un recordatorio por WhatsApp",
+  "module": "Pacientes",
+  "summary": "Más acciones → Enviar recordatorio: plantilla aprobada de cumpleaños, recordatorio de cita o vencimiento de factura.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Agenda y comunicación",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "recordatorio",
+    "plantilla de whatsapp",
+    "recordar cita",
+    "felicitar cumpleaños",
+    "vencimiento de factura"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.more-menu",
+      "title": "Más acciones",
+      "details": "Comunicación, estado del paciente y preferencias.",
+      "until": "patients.btn.whatsapp-reminder"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "patients.btn.whatsapp-reminder",
+      "title": "Enviar recordatorio",
+      "details": "Requiere WhatsApp conectado en la clínica.",
+      "until": "patients.field.whatsapp-template",
+      "skipIfMissing": true
+    },
+    {
+      "id": "template",
+      "action": "highlight",
+      "target": "patients.field.whatsapp-template",
+      "title": "Plantilla",
+      "details": "Cumpleaños, recordatorio de cita (elegís la cita) o factura por vencer (elegís la factura)."
+    },
+    {
+      "id": "send",
+      "action": "confirm",
+      "target": "patients.btn.whatsapp-template-send",
+      "title": "Enviar",
+      "details": "Se envía al tocarlo y queda en el historial de comunicaciones."
+    }
+  ]
+}

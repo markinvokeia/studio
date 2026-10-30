@@ -1,0 +1,34 @@
+{
+  "id": "tv-display.next-patient",
+  "title": "Call the next patient",
+  "summary": "«Next» buttons per room: the TV shows that room's next patient.",
+  "module": "TV Display",
+  "keywords": [
+    "next patient",
+    "call patient",
+    "patient caller",
+    "slot"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → TV Display",
+      "details": "The waiting room screen: shows who's being called in each room, promotional videos and music."
+    },
+    {
+      "id": "preview",
+      "title": "Preview",
+      "details": "Who's being called now in each room."
+    },
+    {
+      "id": "rooms",
+      "title": "Quick actions",
+      "details": "It shows with the screen on and appointments for the day."
+    },
+    {
+      "id": "next",
+      "title": "Next",
+      "details": "Calls that room's next patient: it shows on the TV as soon as you tap it."
+    }
+  ]
+}

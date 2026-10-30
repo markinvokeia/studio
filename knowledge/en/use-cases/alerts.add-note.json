@@ -1,0 +1,35 @@
+{
+  "id": "alerts.add-note",
+  "title": "Add a note to an alert",
+  "summary": "Leave a comment for the team on the alert.",
+  "module": "Alerts Center",
+  "inputs": {
+    "note": "Note text"
+  },
+  "keywords": [
+    "note",
+    "comment",
+    "write down",
+    "remark"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Alerts Center",
+      "details": "What the system detected with the alert rules and the team needs to work on."
+    },
+    {
+      "id": "open",
+      "title": "Add note",
+      "details": "Tap the alert's note icon. Do it on the alert you want to work on."
+    },
+    {
+      "id": "note",
+      "title": "Note"
+    },
+    {
+      "id": "save",
+      "title": "Add"
+    }
+  ]
+}

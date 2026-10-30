@@ -767,3 +767,22 @@ export const PATIENT_PORTAL_PERMISSIONS = {
 } as const;
 
 export type PatientPortalPermission = (typeof PATIENT_PORTAL_PERMISSIONS)[keyof typeof PATIENT_PORTAL_PERMISSIONS];
+
+/**
+ * Asistente guiado de Invoke (onboarding + ayuda contextual). Ver
+ * docs/onboarding-asistente.md y database/scripts/140_20261023_help-assistant-and-onboarding.sql.
+ */
+export const HELP_PERMISSIONS = {
+  /** Abrir el asistente: chat de ayuda, "¿Qué es esto?" y guías paso a paso. */
+  ASSISTANT_USE:     'HELP_ASSISTANT_USE',
+  /** Ver la checklist de onboarding de la clínica. */
+  ONBOARDING_VIEW:   'HELP_ONBOARDING_VIEW',
+  /** Omitir pasos y dejar notas internas (modo implementador). */
+  ONBOARDING_MANAGE: 'HELP_ONBOARDING_MANAGE',
+  /** Publicar en la BD del cliente el catálogo que trae el frontend desplegado. */
+  CATALOG_SYNC:      'HELP_CATALOG_SYNC',
+  /** Panel de métricas: preguntas, resolución, tickets, videos y onboarding. */
+  INSIGHTS_VIEW:     'HELP_INSIGHTS_VIEW',
+} as const;
+
+export type HelpPermission = (typeof HELP_PERMISSIONS)[keyof typeof HELP_PERMISSIONS];

@@ -1,0 +1,34 @@
+{
+  "id": "system.communication-history.overview",
+  "title": "Check the Alert History",
+  "summary": "Each email, WhatsApp or SMS sent: to whom, when, with which template and whether it was delivered.",
+  "module": "System",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "communications sent",
+    "message history",
+    "emails sent"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Alert History",
+      "details": "Each email, WhatsApp or SMS sent: to whom, when, with which template and whether it was delivered."
+    },
+    {
+      "id": "search",
+      "title": "Search"
+    },
+    {
+      "id": "pick",
+      "title": "The most recent",
+      "details": "Tap it to see the details."
+    },
+    {
+      "id": "detail",
+      "title": "Details"
+    }
+  ]
+}

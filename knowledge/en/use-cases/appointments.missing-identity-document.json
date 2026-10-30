@@ -1,0 +1,51 @@
+{
+  "id": "appointments.missing-identity-document",
+  "title": "Add the missing document to change an appointment's status",
+  "module": "Calendar",
+  "summary": "If the clinic requires a document for that status, the change is blocked: \"Got it\" opens the patient's details to add it and try again.",
+  "inputs": {
+    "identity_document": "ID document"
+  },
+  "keywords": [
+    "missing document",
+    "can't complete the appointment",
+    "id document",
+    "identity card",
+    "status blocked"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Appointments"
+    },
+    {
+      "id": "open-menu",
+      "title": "Right-click the appointment",
+      "details": "The appointment's menu opens."
+    },
+    {
+      "id": "status-menu",
+      "title": "Change status"
+    },
+    {
+      "id": "status",
+      "title": "Choose the status",
+      "details": "If the patient has no document and the clinic requires it for that status, the change is not made and the notice shows up."
+    },
+    {
+      "id": "notice",
+      "title": "Got it",
+      "details": "Opens the patient's details (the same pencil as the appointment). \"Close\" only dismisses the notice."
+    },
+    {
+      "id": "document",
+      "title": "ID document",
+      "details": "Enter the patient's document."
+    },
+    {
+      "id": "save",
+      "title": "Save the patient's details",
+      "details": "Then change the appointment status again: it is no longer blocked."
+    }
+  ]
+}

@@ -112,7 +112,7 @@ export function QuickPatientSearch() {
     <>
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button
+        <Button data-help-id="rail.btn.patient"
           variant="ghost"
           size="icon"
           className="rounded-xl h-10 w-10 bg-muted/60 text-muted-foreground hover:bg-muted"
@@ -122,7 +122,7 @@ export function QuickPatientSearch() {
           <UserSearch className="h-5 w-5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent
+      <PopoverContent data-help-id="rail.section.patient-search"
         side="left"
         align="start"
         sideOffset={8}

@@ -1,0 +1,76 @@
+{
+  "id": "system.config.create",
+  "title": "Crear una configuración",
+  "module": "Sistema",
+  "summary": "Alta de una configuración.",
+  "screens": [
+    "system.config"
+  ],
+  "inputs": {
+    "key": "Clave",
+    "value": "Valor"
+  },
+  "keywords": [
+    "nueva configuración",
+    "nuevo configuración",
+    "crear configuración"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/config",
+      "title": "Menú → Sistema → Configuraciones",
+      "details": "Parámetros técnicos del sistema (clave y valor). Cambiarlos afecta el funcionamiento: hacelo sólo si sabés qué controla cada clave."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "system.config.btn.new",
+      "title": "Crear",
+      "until": "system.config.field.key"
+    },
+    {
+      "id": "key",
+      "action": "fill",
+      "target": "system.config.field.key",
+      "title": "Clave",
+      "value": "{{values.key}}"
+    },
+    {
+      "id": "value",
+      "action": "fill",
+      "target": "system.config.field.value",
+      "title": "Valor",
+      "value": "{{values.value}}"
+    },
+    {
+      "id": "data_type",
+      "action": "highlight",
+      "target": "system.config.field.data_type",
+      "title": "Tipo de dato",
+      "skipIfMissing": true
+    },
+    {
+      "id": "description",
+      "action": "highlight",
+      "target": "system.config.field.description",
+      "title": "Descripción",
+      "skipIfMissing": true
+    },
+    {
+      "id": "is_public",
+      "action": "highlight",
+      "target": "system.config.field.is_public",
+      "title": "Público",
+      "details": "Visible para la app sin permisos especiales.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "system.config.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

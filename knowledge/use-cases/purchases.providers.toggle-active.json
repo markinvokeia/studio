@@ -1,0 +1,52 @@
+{
+  "id": "purchases.providers.toggle-active",
+  "title": "Activar o desactivar un proveedor",
+  "module": "Compras",
+  "summary": "Se aplica al tocarlo; un proveedor inactivo no aparece para nuevas compras.",
+  "screens": [
+    "purchases.providers"
+  ],
+  "group": "Comunicación y estado",
+  "inputs": {
+    "query": "Nombre, correo o RUT"
+  },
+  "keywords": [
+    "desactivar proveedor",
+    "activar proveedor",
+    "dar de baja proveedor"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/purchases/providers",
+      "title": "Menú → Compras → Proveedores",
+      "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "purchases.providers.filter.search",
+      "title": "Buscá el proveedor",
+      "details": "Por nombre, correo o RUT.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "purchases.providers.section.first-row",
+      "title": "Abrí su ficha",
+      "until": "purchases.providers.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "toggle",
+      "action": "confirm",
+      "target": "purchases.providers.btn.toggle-active",
+      "title": "Activar / Desactivar",
+      "details": "Se aplica al tocarlo. Su historial se conserva."
+    }
+  ]
+}

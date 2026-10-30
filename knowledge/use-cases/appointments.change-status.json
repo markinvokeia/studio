@@ -1,0 +1,60 @@
+{
+  "id": "appointments.change-status",
+  "title": "Cambiar el estado de una cita",
+  "module": "Agenda",
+  "summary": "Confirmada, llegó, en curso, completada, no asistió: desde el menú de la cita.",
+  "screens": [
+    "appointments"
+  ],
+  "keywords": [
+    "estado",
+    "confirmar",
+    "confirmada",
+    "llego",
+    "llegó",
+    "en curso",
+    "completada",
+    "no asistio",
+    "no vino",
+    "check in",
+    "atendido"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/appointments",
+      "title": "Menú → Citas",
+      "details": "La agenda muestra las citas por consultorio y profesional."
+    },
+    {
+      "id": "open-menu",
+      "action": "highlight",
+      "target": "appointments.section.event",
+      "title": "Clic derecho sobre la cita",
+      "until": [
+        "appointments.btn.status-confirmed",
+        "appointments.btn.change-status"
+      ],
+      "blocking": true,
+      "details": "Se abre el menú de la cita. Si no la ves, cambiá de día con las flechas o usá Buscar cita."
+    },
+    {
+      "id": "status-menu",
+      "action": "highlight",
+      "target": "appointments.btn.change-status",
+      "title": "Cambiar estado",
+      "skipIfMissing": true,
+      "until": "appointments.btn.status-confirmed",
+      "details": "Pasá el mouse por Cambiar estado para ver los estados."
+    },
+    {
+      "id": "status",
+      "action": "highlight",
+      "target": "appointments.btn.status-confirmed",
+      "title": "Elegí el estado nuevo",
+      "doneOnClose": true,
+      "details": "Confirmada: avisó que viene. Llegó: está en la sala. En curso: se lo está atendiendo. Completada: terminó la consulta. No asistió: no vino ni avisó. Sólo se habilitan los cambios permitidos desde el estado actual."
+    }
+  ]
+}

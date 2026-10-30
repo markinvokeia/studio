@@ -1,0 +1,41 @@
+{
+  "id": "system.alert-rules.overview",
+  "title": "Tour Alert Rules",
+  "summary": "What creates an alert and when: the event's table and date, days before or after, recurrence, priority and the email, WhatsApp or SMS templates that are sent.",
+  "module": "System",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "alert rules",
+    "rule"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Alert Rules",
+      "details": "What creates an alert and when: the event's table and date, days before or after, recurrence, priority and the email, WhatsApp or SMS templates that are sent."
+    },
+    {
+      "id": "search",
+      "title": "Find the rule"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the rule"
+    },
+    {
+      "id": "detail",
+      "title": "Details"
+    },
+    {
+      "id": "edit",
+      "title": "Edit"
+    },
+    {
+      "id": "delete",
+      "title": "Delete",
+      "details": "Asks for confirmation."
+    }
+  ]
+}

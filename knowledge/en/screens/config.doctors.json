@@ -1,0 +1,72 @@
+{
+  "id": "config.doctors",
+  "summary": "The clinic's physicians and dentists.",
+  "purpose": "Each doctor has their user, color, default room and branch, services they perform, availability and signature for prescriptions.",
+  "tips": [
+    "The number of doctors depends on the license.",
+    "Availability is entered in the Availability tab or in Doctor Availability."
+  ],
+  "elements": {
+    "config.doctors.field.name": {
+      "description": "First and last name."
+    },
+    "config.doctors.field.email": {
+      "description": "Email: it's the username to sign in to Invoke."
+    },
+    "config.doctors.field.color": {
+      "description": "Color of their appointments on the calendar."
+    },
+    "config.doctors.field.calendar_source_id": {
+      "description": "Room suggested when booking with them."
+    },
+    "config.doctors.field.active_sede_id": {
+      "description": "Branch they work at by default."
+    },
+    "config.doctors.tab.availability": {
+      "description": "Days and hours they see patients."
+    },
+    "config.doctors.tab.services": {
+      "description": "Services they perform (filters what can be booked with them)."
+    },
+    "config.doctors.tab.signature": {
+      "description": "Signature shown on prescriptions and instructions."
+    },
+    "config.doctors.section.first-row": {
+      "label": "First in the list"
+    },
+    "config.doctors.section.row": {
+      "label": "Record"
+    },
+    "config.doctors.section.detail": {
+      "label": "Record"
+    },
+    "config.doctors.btn.initial-password": {
+      "label": "Initial password"
+    },
+    "config.doctors.detail.field.name": {
+      "label": "Name"
+    },
+    "config.doctors.detail.field.email": {
+      "label": "Email"
+    },
+    "config.doctors.detail.btn.submit": {
+      "label": "Save"
+    },
+    "config.doctors.tab.details": {
+      "label": "Details",
+      "description": "Name, contact, active branch, color and Google calendar."
+    },
+    "config.doctors.tab.calendars": {
+      "label": "Calendars",
+      "description": "Which rooms they work in."
+    },
+    "config.doctors.tab.exceptions": {
+      "label": "Exceptions",
+      "description": "Leave and extra days."
+    },
+    "config.doctors.tab.preferences": {
+      "label": "Preferences",
+      "description": "The doctor's calendar view and notifications."
+    }
+  }
+}

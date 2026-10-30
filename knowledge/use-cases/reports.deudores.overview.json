@@ -1,0 +1,99 @@
+{
+  "id": "reports.deudores.overview",
+  "title": "Usar el reporte Deudores",
+  "module": "Reportes",
+  "summary": "La deuda de pacientes por antigüedad: herramienta de cobranza.",
+  "screens": [
+    "reports.deudores"
+  ],
+  "keywords": [
+    "deudores",
+    "quién debe",
+    "deuda de pacientes",
+    "cobranza"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/reports/deudores",
+      "title": "Menú → Reportes → Deudores",
+      "details": "La deuda de pacientes por antigüedad: herramienta de cobranza."
+    },
+    {
+      "id": "currency-filter",
+      "action": "highlight",
+      "target": "reports.deudores.filter.currency-filter",
+      "title": "Moneda",
+      "details": "Sólo si la clínica trabaja con dos monedas: todas o una.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "reports.deudores.section.filters",
+      "title": "Filtros",
+      "details": "Moneda, antigüedad y deuda mínima."
+    },
+    {
+      "id": "generate",
+      "action": "click",
+      "target": "reports.deudores.btn.generate",
+      "title": "Generar",
+      "details": "Calcula el reporte con los filtros elegidos.",
+      "until": [
+        "reports.deudores.section.results",
+        "reports.deudores.section.empty"
+      ]
+    },
+    {
+      "id": "empty",
+      "action": "highlight",
+      "target": "reports.deudores.section.empty",
+      "title": "Sin datos",
+      "details": "No hay datos para esos filtros: probá con otro período.",
+      "onlyIf": "reports.deudores.section.empty",
+      "skipIfMissing": true
+    },
+    {
+      "id": "kpis",
+      "action": "highlight",
+      "target": "reports.deudores.section.kpi",
+      "title": "Indicadores",
+      "details": "Total de deuda, cantidad de deudores, vencida más de 90 días y corriente 0-30 días.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "results",
+      "action": "highlight",
+      "target": "reports.deudores.section.results",
+      "title": "Resultados",
+      "details": "Cada deudor con su deuda por tramo de antigüedad.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "table",
+      "action": "highlight",
+      "target": "reports.deudores.section.table",
+      "title": "Detalle",
+      "details": "Ordená por columna tocando el encabezado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "export",
+      "action": "highlight",
+      "target": "reports.deudores.btn.export",
+      "title": "Exportar",
+      "details": "Excel, CSV o PDF con lo que estás viendo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "reports.deudores.btn.print",
+      "title": "Imprimir",
+      "details": "Con el encabezado de la clínica.",
+      "skipIfMissing": true
+    }
+  ]
+}

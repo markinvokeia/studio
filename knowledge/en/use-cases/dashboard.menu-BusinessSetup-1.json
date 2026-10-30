@@ -1,0 +1,68 @@
+{
+  "id": "dashboard.menu-BusinessSetup-1",
+  "title": "Get to know Business Setup: Clinic Details, Clinic Preferences and more",
+  "summary": "Tour of Clinic Details, Clinic Preferences, Patient Portal, Branches and Schedules: what each screen is for.",
+  "module": "Dashboard",
+  "group": "Menu",
+  "keywords": [
+    "business setup",
+    "what's in business setup",
+    "clinic details",
+    "clinic preferences",
+    "patient portal",
+    "branches",
+    "schedules"
+  ],
+  "steps": [
+    {
+      "id": "section",
+      "title": "Business Setup",
+      "details": "We'll go through Clinic Details, Clinic Preferences, Patient Portal, Branches and Schedules."
+    },
+    {
+      "id": "go-config.clinics",
+      "title": "Menu → Business Setup → Clinic Details"
+    },
+    {
+      "id": "page-config.clinics",
+      "title": "Clinic Details",
+      "details": "It's the first thing to set up. The name and logo show on quotes, invoices, reminders and the patient portal; the main currency is the one for prices and the cash register. It has 3 guides in «Guide me on this screen»."
+    },
+    {
+      "id": "go-config.clinic-prefs",
+      "title": "Menu → Business Setup → Clinic Preferences"
+    },
+    {
+      "id": "page-config.clinic-prefs",
+      "title": "Clinic Preferences",
+      "details": "How things work: discounts, how payments and quotes behave and other settings that affect the whole team. It has 2 guides in «Guide me on this screen»."
+    },
+    {
+      "id": "go-config.patients-portal",
+      "title": "Menu → Business Setup → Patient Portal"
+    },
+    {
+      "id": "page-config.patients-portal",
+      "title": "Patient Portal",
+      "details": "Defines what the patient sees and can do online: book appointments, choose services, see prices, welcome message and video. It has 1 guide in «Guide me on this screen»."
+    },
+    {
+      "id": "go-config.sedes",
+      "title": "Menu → Business Setup → Branches"
+    },
+    {
+      "id": "page-config.sedes",
+      "title": "Branches",
+      "details": "Each branch groups its rooms and its office hours. Patients choose a branch when booking online and the team works with an active branch. It has 7 guides in «Guide me on this screen»."
+    },
+    {
+      "id": "go-config.schedules",
+      "title": "Menu → Business Setup → Schedules"
+    },
+    {
+      "id": "page-config.schedules",
+      "title": "Schedules",
+      "details": "Limits on which days and times appointments can be given at the branch. It's combined with each doctor's availability. It has 5 guides in «Guide me on this screen»."
+    }
+  ]
+}

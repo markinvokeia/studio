@@ -1,0 +1,56 @@
+{
+  "id": "config.clinic-prefs",
+  "summary": "General clinic preferences.",
+  "purpose": "How things work: discounts, how payments and quotes behave and other settings that affect the whole team.",
+  "tips": [
+    "They affect every user: change them with the team in the loop."
+  ],
+  "elements": {
+    "config.clinic-prefs.section.discounts": {
+      "label": "Discounts",
+      "description": "Enables discounts on quotes and invoices, capped by percentage or amount."
+    },
+    "config.clinic-prefs.section.identity-document": {
+      "label": "ID document",
+      "description": "Whether it's required when registering patients."
+    },
+    "config.clinic-prefs.section.duplicate-contact": {
+      "label": "Duplicate contacts",
+      "description": "Whether the same phone or email is allowed on two patients (families). Affects WhatsApp and the portal."
+    },
+    "config.clinic-prefs.section.automation": {
+      "label": "Automation",
+      "description": "Automatic messages the system sends."
+    },
+    "config.clinic-prefs.section.alert-email": {
+      "label": "Alert emails",
+      "description": "Whether alerts send their email to the patient on their own."
+    },
+    "config.clinic-prefs.section.assistant": {
+      "label": "Guided assistant",
+      "description": "Mascot visible or only the help icon."
+    },
+    "config.clinic-prefs.section.google-calendar": {
+      "label": "Google Calendar",
+      "description": "Calendar sync with Google Calendar."
+    },
+    "config.clinic-prefs.btn.save": {
+      "label": "Save"
+    },
+    "config.clinic-prefs.field.identity_document_required": {
+      "label": "Require ID document",
+      "description": "The patient record can't be saved without a document."
+    },
+    "config.clinic-prefs.field.identity_document_warn": {
+      "label": "Require it to change an appointment's status",
+      "description": "The appointment can't move to the chosen statuses if the patient has no document; cancelling is never blocked."
+    },
+    "config.clinic-prefs.field.identity_document_warn_statuses": {
+      "label": "Statuses that require the document",
+      "description": "Which statuses ask for it (Completed by default)."
+    }
+  },
+  "useCases": [
+    "config.clinic-prefs.identity-document"
+  ]
+}

@@ -1,0 +1,139 @@
+{
+  "id": "patients.appointment",
+  "title": "Agendar una cita desde la ficha",
+  "module": "Pacientes",
+  "summary": "Crear → Cita: la tarjeta de cita sale con el paciente ya cargado.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Agenda y comunicación",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente",
+    "services": "Servicios",
+    "date": "Fecha AAAA-MM-DD",
+    "time": "Hora HH:MM",
+    "notes": "Notas",
+    "doctor": "Profesional (ej. Dra. Lucía Fernández)",
+    "calendar": "Consultorio"
+  },
+  "keywords": [
+    "agendar",
+    "cita",
+    "turno",
+    "reservar",
+    "nueva cita"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.create-menu",
+      "title": "Crear",
+      "details": "Todo lo que se puede crear para este paciente: clínico, financiero y agenda.",
+      "until": "patients.btn.new-appointment"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "patients.btn.new-appointment",
+      "title": "Cita",
+      "details": "Abre la tarjeta de nueva cita para este paciente.",
+      "until": "appointments.btn.save"
+    },
+    {
+      "id": "services",
+      "action": "fill",
+      "target": "appointments.field.services",
+      "title": "Servicios",
+      "value": "{{values.services}}",
+      "optional": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "doctor",
+      "action": "fill",
+      "target": "appointments.field.doctor",
+      "title": "Doctor",
+      "skipIfMissing": true,
+      "value": "{{values.doctor}}",
+      "ask": true
+    },
+    {
+      "id": "calendar",
+      "action": "fill",
+      "target": "appointments.field.calendar",
+      "title": "Calendario",
+      "skipIfMissing": true,
+      "value": "{{values.calendar}}",
+      "ask": true
+    },
+    {
+      "id": "date",
+      "action": "fill",
+      "target": "appointments.field.date",
+      "title": "Fecha",
+      "value": "{{values.date}}",
+      "optional": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "time",
+      "action": "fill",
+      "target": "appointments.field.time",
+      "title": "Hora",
+      "value": "{{values.time}}",
+      "optional": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "notes",
+      "action": "fill",
+      "target": "appointments.field.notes",
+      "title": "Notas",
+      "value": "{{values.notes}}",
+      "optional": true,
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "appointments.btn.save",
+      "title": "Guardar la cita",
+      "details": "Se avisa si el horario está ocupado o fuera de la agenda."
+    },
+    {
+      "id": "future-confirm",
+      "action": "confirm",
+      "target": "appointments.btn.future-confirm",
+      "title": "Confirmar la nueva hora",
+      "details": "Sólo aparece si el paciente ya tiene citas marcadas: las lista y pregunta si le das esta hora igual. «Sí» guarda la cita nueva.",
+      "skipIfMissing": true
+    }
+  ]
+}

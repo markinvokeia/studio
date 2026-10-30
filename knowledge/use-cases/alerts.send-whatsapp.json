@@ -1,0 +1,39 @@
+{
+  "id": "alerts.send-whatsapp",
+  "title": "Avisar al paciente por WhatsApp desde una alerta",
+  "module": "Centro de Alertas",
+  "summary": "Mandar la plantilla de WhatsApp de la regla al paciente de la alerta.",
+  "screens": [
+    "alerts"
+  ],
+  "keywords": [
+    "whatsapp",
+    "mensaje",
+    "avisar al paciente",
+    "recordatorio por whatsapp"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/alerts",
+      "title": "Menú → Centro de Alertas",
+      "details": "Lo que el sistema detectó con las reglas de alertas y el equipo tiene que trabajar."
+    },
+    {
+      "id": "alert",
+      "action": "highlight",
+      "target": "alerts.section.alert",
+      "title": "Elegí la alerta",
+      "details": "El mensaje sale con la plantilla de la regla y los datos de la alerta (paciente, fecha, monto…).",
+      "skipIfMissing": true
+    },
+    {
+      "id": "send",
+      "action": "confirm",
+      "target": "alerts.btn.send-whatsapp",
+      "title": "Enviar WhatsApp",
+      "details": "Se envía al tocarlo. Deshabilitado si el paciente no tiene teléfono o la regla no tiene plantilla de WhatsApp. Queda en el historial de la alerta."
+    }
+  ]
+}

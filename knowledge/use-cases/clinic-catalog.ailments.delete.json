@@ -1,0 +1,56 @@
+{
+  "id": "clinic-catalog.ailments.delete",
+  "title": "Eliminar el padecimiento",
+  "module": "Catálogo de la Clínica",
+  "summary": "Borrarlo del catálogo (pide confirmación).",
+  "screens": [
+    "clinic-catalog.ailments"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "eliminar padecimiento",
+    "borrar padecimiento"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/clinic-catalog/ailments",
+      "title": "Menú → Catálogo de la Clínica → Padecimientos",
+      "details": "Las enfermedades y condiciones que se cargan en la anamnesis; las de nivel de alerta alto aparecen como alerta en la ficha del paciente."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "clinic-catalog.ailments.filter.search",
+      "title": "Buscá el padecimiento",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "clinic-catalog.ailments.section.first-row",
+      "title": "Elegí el padecimiento",
+      "until": "clinic-catalog.ailments.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "delete",
+      "action": "click",
+      "target": "clinic-catalog.ailments.btn.delete",
+      "title": "Eliminar",
+      "until": "clinic-catalog.ailments.btn.delete-confirm"
+    },
+    {
+      "id": "ok",
+      "action": "confirm",
+      "target": "clinic-catalog.ailments.btn.delete-confirm",
+      "title": "Confirmar",
+      "details": "No se puede deshacer."
+    }
+  ]
+}

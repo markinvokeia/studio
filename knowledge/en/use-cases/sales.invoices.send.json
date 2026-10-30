@@ -1,0 +1,47 @@
+{
+  "id": "sales.invoices.send",
+  "title": "Print or email an invoice",
+  "summary": "Print the invoice or send it to the patient as a PDF.",
+  "module": "Sales",
+  "inputs": {
+    "query": "Invoice number"
+  },
+  "keywords": [
+    "print invoice",
+    "send invoice",
+    "email invoice"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Sales → Invoices",
+      "details": "What the patient is charged: it comes from a confirmed quote, a quick payment or is entered directly."
+    },
+    {
+      "id": "search",
+      "title": "Find the invoice",
+      "details": "By document number."
+    },
+    {
+      "id": "pick",
+      "title": "Open the invoice",
+      "details": "Tap it in the list. The guide continues once its details open."
+    },
+    {
+      "id": "print",
+      "title": "Print"
+    },
+    {
+      "id": "email",
+      "title": "Send by email"
+    },
+    {
+      "id": "to",
+      "title": "Recipients"
+    },
+    {
+      "id": "send",
+      "title": "Send"
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "id": "reports.cobros-dia.overview",
+  "title": "Usar el reporte Cobros del Día",
+  "module": "Reportes",
+  "summary": "Todo lo cobrado en el período por medio de pago, profesional y sede: para controlar la caja del día.",
+  "screens": [
+    "reports.cobros-dia"
+  ],
+  "keywords": [
+    "cobros del día",
+    "qué se cobró hoy",
+    "cobros por medio de pago"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/reports/cobros-dia",
+      "title": "Menú → Reportes → Cobros del Día",
+      "details": "Todo lo cobrado en el período por medio de pago, profesional y sede: para controlar la caja del día."
+    },
+    {
+      "id": "period",
+      "action": "highlight",
+      "target": "reports.cobros-dia.filter.period",
+      "title": "Período",
+      "details": "Hoy, esta semana, este mes, el mes pasado, este año o un rango propio.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "currency",
+      "action": "highlight",
+      "target": "reports.cobros-dia.filter.currency",
+      "title": "Moneda",
+      "details": "Muestra los montos en la moneda elegida.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "currency-filter",
+      "action": "highlight",
+      "target": "reports.cobros-dia.filter.currency-filter",
+      "title": "Moneda",
+      "details": "Sólo si la clínica trabaja con dos monedas: todas o una.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "reports.cobros-dia.section.filters",
+      "title": "Filtros",
+      "details": "Moneda."
+    },
+    {
+      "id": "generate",
+      "action": "click",
+      "target": "reports.cobros-dia.btn.generate",
+      "title": "Generar",
+      "details": "Calcula el reporte con los filtros elegidos.",
+      "until": [
+        "reports.cobros-dia.section.results",
+        "reports.cobros-dia.section.empty"
+      ]
+    },
+    {
+      "id": "empty",
+      "action": "highlight",
+      "target": "reports.cobros-dia.section.empty",
+      "title": "Sin datos",
+      "details": "No hay datos para esos filtros: probá con otro período.",
+      "onlyIf": "reports.cobros-dia.section.empty",
+      "skipIfMissing": true
+    },
+    {
+      "id": "kpis",
+      "action": "highlight",
+      "target": "reports.cobros-dia.section.kpi",
+      "title": "Indicadores",
+      "details": "Cantidad de cobros y total cobrado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "results",
+      "action": "highlight",
+      "target": "reports.cobros-dia.section.results",
+      "title": "Resultados",
+      "details": "Gráficos por medio de pago y por hora, y el detalle de cada cobro.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "table",
+      "action": "highlight",
+      "target": "reports.cobros-dia.section.table",
+      "title": "Detalle",
+      "details": "Ordená por columna tocando el encabezado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "export",
+      "action": "highlight",
+      "target": "reports.cobros-dia.btn.export",
+      "title": "Exportar",
+      "details": "Excel, CSV o PDF con lo que estás viendo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "reports.cobros-dia.btn.print",
+      "title": "Imprimir",
+      "details": "Con el encabezado de la clínica.",
+      "skipIfMissing": true
+    }
+  ]
+}

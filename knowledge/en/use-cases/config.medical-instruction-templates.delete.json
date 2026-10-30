@@ -1,0 +1,39 @@
+{
+  "id": "config.medical-instruction-templates.delete",
+  "title": "Delete the instruction template",
+  "summary": "Delete an instruction template (asks for confirmation).",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "delete instruction template",
+    "remove instruction template",
+    "clear instruction template"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Medical Instruction Templates",
+      "details": "Base instruction texts (post-op, care) with patient variables; they're chosen when giving an instruction."
+    },
+    {
+      "id": "search",
+      "title": "Find the instruction template"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the instruction template",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "delete",
+      "title": "Delete"
+    },
+    {
+      "id": "ok",
+      "title": "Confirm",
+      "details": "This can't be undone."
+    }
+  ]
+}

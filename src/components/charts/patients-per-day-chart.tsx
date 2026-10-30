@@ -147,7 +147,7 @@ export function PatientsPerDayChart({ data, isLoading, className }: PatientsPerD
   }, [points]);
 
   return (
-    <Card className={className}>
+    <Card data-help-id="dashboard.section.patients-per-day" className={className}>
       <CardHeader className="flex-row items-start gap-3 space-y-0 border-b py-3.5">
         <div className="min-w-0 flex-1">
           <CardTitle className="text-sm font-extrabold tracking-tight">

@@ -1,0 +1,63 @@
+{
+  "id": "reports.cierre-caja",
+  "summary": "Cash closing report.",
+  "purpose": "Each cash session in the period: opening, payments per payment method, expenses and closing differences.",
+  "tips": [
+    "Choose the filters and tap «Generate»: the report isn't calculated on its own."
+  ],
+  "elements": {
+    "reports.cierre-caja.section.filters": {
+      "label": "Filters",
+      "description": "Cash register, user and currency."
+    },
+    "reports.cierre-caja.btn.generate": {
+      "label": "Generate",
+      "description": "Calculates the report."
+    },
+    "reports.cierre-caja.section.empty": {
+      "label": "No data"
+    },
+    "reports.cierre-caja.section.kpi": {
+      "label": "Indicators",
+      "description": "Sessions in the period and their totals."
+    },
+    "reports.cierre-caja.section.results": {
+      "label": "Results",
+      "description": "One row per session: who opened it, when, what was declared against what the system recorded and the difference."
+    },
+    "reports.cierre-caja.section.table": {
+      "label": "Details"
+    },
+    "reports.cierre-caja.section.export": {
+      "label": "Export and print"
+    },
+    "reports.cierre-caja.btn.export": {
+      "label": "Export",
+      "description": "Excel, CSV or PDF."
+    },
+    "reports.cierre-caja.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.cierre-caja.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.cierre-caja.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.cierre-caja.btn.print": {
+      "label": "Print"
+    },
+    "reports.cierre-caja.filter.period": {
+      "label": "Period"
+    },
+    "reports.cierre-caja.section.period-options": {
+      "label": "Period options"
+    },
+    "reports.cierre-caja.filter.currency": {
+      "label": "Currency"
+    },
+    "reports.cierre-caja.filter.currency-filter": {
+      "label": "Currency"
+    }
+  }
+}

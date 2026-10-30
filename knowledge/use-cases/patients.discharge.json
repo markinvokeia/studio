@@ -1,0 +1,86 @@
+{
+  "id": "patients.discharge",
+  "title": "Dar de alta a un paciente",
+  "module": "Pacientes",
+  "summary": "Más acciones → Dar alta: elegir hasta cuándo (1, 3, 6 o 12 meses o una fecha). Readmitir quita el alta.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Estado del paciente",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "alta",
+    "dar de alta",
+    "alta médica",
+    "readmitir",
+    "fin de tratamiento"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.more-menu",
+      "title": "Más acciones",
+      "until": "patients.btn.discharge"
+    },
+    {
+      "id": "item",
+      "action": "confirm",
+      "target": "patients.btn.discharge",
+      "title": "Dar alta / Readmitir",
+      "details": "Si el paciente no tiene alta, abre el diálogo. Si ya la tiene, dice «Readmitir» y la quita al tocarlo."
+    },
+    {
+      "id": "options",
+      "action": "highlight",
+      "target": "patients.field.discharge-options",
+      "title": "Opciones rápidas",
+      "details": "Alta por 1, 3, 6 o 12 meses: completa la fecha.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "date",
+      "action": "highlight",
+      "target": "patients.field.discharge-date",
+      "title": "Fecha de alta",
+      "details": "O elegí una fecha a mano.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "patients.btn.discharge-save",
+      "title": "Guardar",
+      "details": "El paciente queda de alta hasta esa fecha; se ve en el encabezado de la ficha.",
+      "skipIfMissing": true
+    }
+  ]
+}

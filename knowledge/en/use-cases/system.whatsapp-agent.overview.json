@@ -1,0 +1,40 @@
+{
+  "id": "system.whatsapp-agent.overview",
+  "title": "Set up the WhatsApp Agent",
+  "summary": "The agent that replies to patients over WhatsApp: whether it's on and during which hours.",
+  "module": "System",
+  "keywords": [
+    "whatsapp agent",
+    "bot",
+    "automatic replies"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → WhatsApp Agent",
+      "details": "The agent that replies to patients over WhatsApp: whether it's on and during which hours."
+    },
+    {
+      "id": "agent",
+      "title": "Agent"
+    },
+    {
+      "id": "hours",
+      "title": "Hours",
+      "details": "Outside office hours it replies with the away message."
+    },
+    {
+      "id": "enabled",
+      "title": "Agent enabled"
+    },
+    {
+      "id": "hours-on",
+      "title": "Apply hours"
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "Changes don't apply until you save."
+    }
+  ]
+}

@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
 import { API_ROUTES } from '@/constants/routes';
+import { composeHelpId } from '@/lib/help/help-id';
 import type { InvoiceItem, Order, Quote, QuoteItem, Service } from '@/lib/types';
 import { cn, formatDate, sortQuoteItems, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
@@ -27,6 +28,7 @@ import { calculateQuoteFinancialSummary, fetchQuoteInvoicesForFinancials } from 
 import { useToast } from '@/hooks/use-toast';
 import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { FormattedNumberInput } from '@/components/ui/formatted-number-input';
+import { useHelpScope } from '@/components/help/help-scope';
 import { addDays, parseISO } from 'date-fns';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
@@ -186,6 +188,7 @@ export function QuoteBillingDialog({
 }: QuoteBillingDialogProps) {
   const t = useTranslations('QuoteBillingDialog');
   const tQuotes = useTranslations('QuotesPage');
+  const helpScope = useHelpScope();
   const { toast } = useToast();
 
   const schema = React.useMemo(() => getSchema(t), [t]);
@@ -493,7 +496,7 @@ export function QuoteBillingDialog({
                 </div>
               </div>
             </DialogHeader>
-            <DialogBody className="space-y-4 py-4 px-6">
+            <DialogBody data-help-id={composeHelpId(helpScope, 'section', 'billing')} className="space-y-4 py-4 px-6">
               {submissionError && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
@@ -556,7 +559,7 @@ export function QuoteBillingDialog({
                           <p className="text-sm font-semibold">{t('items.title')}</p>
                           <p className="text-xs text-muted-foreground">{t('items.description')}</p>
                         </div>
-                        <Button type="button" variant="outline" size="sm" onClick={handleAddItem} disabled={!canAddMoreLines}>
+                        <Button data-help-id={composeHelpId(helpScope, 'btn', 'billing-add-item')} type="button" variant="outline" size="sm" onClick={handleAddItem} disabled={!canAddMoreLines}>
                           <Plus className="mr-2 h-4 w-4" />
                           {t('items.add')}
                         </Button>
@@ -805,7 +808,7 @@ export function QuoteBillingDialog({
               <DialogCancelButton variant="outline">
                 {t('cancel')}
               </DialogCancelButton>
-              <Button type="submit" disabled={isSubmitting || isLoadingContext || pendingQuoteAmount <= 0}>
+              <Button data-help-id={composeHelpId(helpScope, 'btn', 'billing-submit')} type="submit" disabled={isSubmitting || isLoadingContext || pendingQuoteAmount <= 0}>
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {t('save')}
               </Button>

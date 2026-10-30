@@ -1,0 +1,91 @@
+{
+  "id": "patients.create",
+  "title": "Register a patient",
+  "summary": "Register a patient with their contact details. The phone is used for WhatsApp reminders.",
+  "module": "Patients",
+  "group": "List and registration",
+  "inputs": {
+    "name": "First and last name",
+    "phone": "Phone with country code",
+    "email": "Email",
+    "identity_document_type": "Document type",
+    "identity_document": "ID document",
+    "birth_date": "Date of birth YYYY-MM-DD",
+    "sex": "Sex",
+    "mutual_society_id": "Mutual society",
+    "doctor_id": "Default doctor"
+  },
+  "keywords": [
+    "patient",
+    "patient registration",
+    "new patient",
+    "register patient",
+    "create patient"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "new",
+      "title": "New patient",
+      "details": "Opens the new patient form. Your license may limit new patients per month."
+    },
+    {
+      "id": "name",
+      "title": "First and last name",
+      "details": "As it will appear on appointments, quotes and invoices."
+    },
+    {
+      "id": "phone",
+      "title": "Phone",
+      "details": "With country code. Without a phone they don't get reminders or WhatsApp messages."
+    },
+    {
+      "id": "email",
+      "title": "Email",
+      "details": "Optional: enables sending quotes and invoices by email."
+    },
+    {
+      "id": "doctype",
+      "title": "Document type",
+      "details": "ID card, passport or other."
+    },
+    {
+      "id": "document",
+      "title": "ID",
+      "details": "Recommended for invoicing and to avoid duplicate patients."
+    },
+    {
+      "id": "birth",
+      "title": "Date of birth",
+      "details": "Shows the age on the record and enables the birthday greeting."
+    },
+    {
+      "id": "sex",
+      "title": "Sex"
+    },
+    {
+      "id": "society",
+      "title": "Mutual society or plan",
+      "details": "For agreement prices and billing."
+    },
+    {
+      "id": "doctor",
+      "title": "Default doctor",
+      "details": "It's suggested when booking an appointment for them."
+    },
+    {
+      "id": "dependent",
+      "title": "Are they a dependent?",
+      "details": "Check it if they're a minor or in a guardian's care: notices go to the responsible contact."
+    },
+    {
+      "id": "save",
+      "title": "Save the patient",
+      "details": "Creates the patient. From their record you can now book, quote and charge."
+    }
+  ]
+}

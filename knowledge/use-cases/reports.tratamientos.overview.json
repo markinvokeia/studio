@@ -1,0 +1,98 @@
+{
+  "id": "reports.tratamientos.overview",
+  "title": "Usar el reporte Tratamientos Realizados",
+  "module": "Reportes",
+  "summary": "Detalle de los tratamientos hechos en el período.",
+  "screens": [
+    "reports.tratamientos"
+  ],
+  "keywords": [
+    "tratamientos realizados",
+    "qué se hizo",
+    "prestaciones"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/reports/tratamientos",
+      "title": "Menú → Reportes → Tratamientos Realizados",
+      "details": "Detalle de los tratamientos hechos en el período."
+    },
+    {
+      "id": "period",
+      "action": "highlight",
+      "target": "reports.tratamientos.filter.period",
+      "title": "Período",
+      "details": "Hoy, esta semana, este mes, el mes pasado, este año o un rango propio.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "filters",
+      "action": "highlight",
+      "target": "reports.tratamientos.section.filters",
+      "title": "Filtros",
+      "details": "Período."
+    },
+    {
+      "id": "generate",
+      "action": "click",
+      "target": "reports.tratamientos.btn.generate",
+      "title": "Generar",
+      "details": "Calcula el reporte con los filtros elegidos.",
+      "until": [
+        "reports.tratamientos.section.results",
+        "reports.tratamientos.section.empty"
+      ]
+    },
+    {
+      "id": "empty",
+      "action": "highlight",
+      "target": "reports.tratamientos.section.empty",
+      "title": "Sin datos",
+      "details": "No hay datos para esos filtros: probá con otro período.",
+      "onlyIf": "reports.tratamientos.section.empty",
+      "skipIfMissing": true
+    },
+    {
+      "id": "kpis",
+      "action": "highlight",
+      "target": "reports.tratamientos.section.kpi",
+      "title": "Indicadores",
+      "details": "Total de tratamientos, total facturado, precio promedio y categorías.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "results",
+      "action": "highlight",
+      "target": "reports.tratamientos.section.results",
+      "title": "Resultados",
+      "details": "Por categoría y el detalle de cada tratamiento.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "table",
+      "action": "highlight",
+      "target": "reports.tratamientos.section.table",
+      "title": "Detalle",
+      "details": "Ordená por columna tocando el encabezado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "export",
+      "action": "highlight",
+      "target": "reports.tratamientos.btn.export",
+      "title": "Exportar",
+      "details": "Excel, CSV o PDF con lo que estás viendo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "print",
+      "action": "highlight",
+      "target": "reports.tratamientos.btn.print",
+      "title": "Imprimir",
+      "details": "Con el encabezado de la clínica.",
+      "skipIfMissing": true
+    }
+  ]
+}

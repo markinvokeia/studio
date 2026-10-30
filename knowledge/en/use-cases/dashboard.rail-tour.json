@@ -1,0 +1,80 @@
+{
+  "id": "dashboard.rail-tour",
+  "title": "Tour the side bar",
+  "summary": "The bar on the right is on every screen: each button opens its own thing without leaving where you are.",
+  "module": "Dashboard",
+  "group": "Side bar",
+  "keywords": [
+    "side bar",
+    "quick access",
+    "widget",
+    "right bar"
+  ],
+  "steps": [
+    {
+      "id": "expand",
+      "title": "Open the bar",
+      "details": "If it's closed, it's the little tab at the top right."
+    },
+    {
+      "id": "rail",
+      "title": "Quick access",
+      "details": "From top to bottom: patient, branch, cash register, TV, charge, alerts, exchange rate, inbox, notes and the assistant."
+    },
+    {
+      "id": "patient",
+      "title": "Patient",
+      "details": "You search for a patient and open their quick record."
+    },
+    {
+      "id": "sede",
+      "title": "Branch",
+      "details": "The branch you work at (if there's more than one)."
+    },
+    {
+      "id": "cash",
+      "title": "Cash register",
+      "details": "Your cash register's status: open or closed."
+    },
+    {
+      "id": "tv",
+      "title": "TV",
+      "details": "The waiting room screen."
+    },
+    {
+      "id": "bill",
+      "title": "Charge",
+      "details": "Quick payment."
+    },
+    {
+      "id": "alerts",
+      "title": "Alerts",
+      "details": "What's pending in the Alerts Center."
+    },
+    {
+      "id": "exchange",
+      "title": "Rate",
+      "details": "The cash register's exchange rate."
+    },
+    {
+      "id": "inbox",
+      "title": "Inbox",
+      "details": "Your notifications."
+    },
+    {
+      "id": "notes",
+      "title": "Notes",
+      "details": "Your sticky notes."
+    },
+    {
+      "id": "assistant",
+      "title": "Assistant",
+      "details": "If you hid the mascot, it's asleep here."
+    },
+    {
+      "id": "collapse",
+      "title": "Close the bar",
+      "details": "A tab stays at the top right and lets you know when something new comes in."
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "id": "config.sequences",
+  "status": "draft",
+  "summary": "Numeración de documentos.",
+  "purpose": "Prefijos y próximos números de presupuestos, facturas y demás comprobantes.",
+  "tips": [
+    "Cambiar una secuencia no renumera los documentos ya emitidos."
+  ],
+  "useCases": [
+    "config.sequences.overview",
+    "config.sequences.create",
+    "config.sequences.edit",
+    "config.sequences.delete"
+  ],
+  "elements": {
+    "config.sequences.section.first-row": {
+      "label": "Primer registro de la lista"
+    },
+    "config.sequences.section.row": {
+      "label": "Registro"
+    },
+    "config.sequences.section.detail": {
+      "label": "Detalle"
+    },
+    "config.sequences.btn.edit": {
+      "label": "Editar"
+    },
+    "config.sequences.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "config.sequences.btn.confirm-action": {
+      "label": "Confirmar",
+      "description": "No se puede deshacer."
+    },
+    "config.sequences.field.name": {
+      "label": "Nombre"
+    },
+    "config.sequences.field.document_type": {
+      "label": "Tipo de documento",
+      "description": "Factura, presupuesto, orden o pago."
+    },
+    "config.sequences.field.pattern": {
+      "label": "Patrón",
+      "description": "Ej.: FAC-{YYYY}-{MM}-{COUNTER:4}. Tocá una variable para agregarla."
+    },
+    "config.sequences.field.reset_period": {
+      "label": "Reinicio",
+      "description": "Nunca, anual, mensual o diario."
+    },
+    "config.sequences.field.current_counter": {
+      "label": "Contador actual",
+      "description": "El último número usado; el próximo documento usa el siguiente."
+    },
+    "config.sequences.field.is_active": {
+      "label": "Activa"
+    }
+  }
+}

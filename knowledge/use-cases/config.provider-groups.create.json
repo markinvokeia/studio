@@ -1,0 +1,61 @@
+{
+  "id": "config.provider-groups.create",
+  "title": "Crear un grupo de proveedores",
+  "module": "Configuración de Negocio",
+  "summary": "Alta de un grupo de proveedores.",
+  "screens": [
+    "config.provider-groups"
+  ],
+  "inputs": {
+    "name": "Nombre"
+  },
+  "keywords": [
+    "nuevo grupo de proveedores",
+    "nueva grupo de proveedores",
+    "crear grupo de proveedores",
+    "agregar grupo de proveedores"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/provider-groups",
+      "title": "Menú → Configuración de Negocio → Grupos de Proveedores",
+      "details": "Agrupaciones de proveedores para ordenar compras y reportes."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "config.provider-groups.btn.new",
+      "title": "Crear",
+      "until": "config.provider-groups.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "config.provider-groups.field.name",
+      "title": "Nombre",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "description",
+      "action": "highlight",
+      "target": "config.provider-groups.field.description",
+      "title": "Descripción",
+      "skipIfMissing": true
+    },
+    {
+      "id": "is_active",
+      "action": "highlight",
+      "target": "config.provider-groups.field.is_active",
+      "title": "Activo",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.provider-groups.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}
