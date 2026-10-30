@@ -26,8 +26,16 @@ export interface PhotoRef {
   session: AestheticSession;
 }
 
+/** A photo offered to the comparison: stored, or taken in the open edit and not saved yet */
+export interface ComparePhoto {
+  photo: Pick<AestheticPhoto, 'id' | 'kind' | 'view'>;
+  date: string;
+  /** Object URL of a photo that is not saved yet (its `photo.id` is the pending key) */
+  previewUrl?: string;
+}
+
 /** Default pair: the oldest "before" and the newest "after" of the same view */
-function pickDefaultPair(refs: PhotoRef[]): [string | undefined, string | undefined] {
+function pickDefaultPair(refs: ComparePhoto[]): [string | undefined, string | undefined] {
   for (const view of MAP_VIEWS) {
     const ofView = refs.filter((r) => r.photo.view === view);
     const before = ofView.find((r) => r.photo.kind === 'before');
@@ -37,8 +45,20 @@ function pickDefaultPair(refs: PhotoRef[]): [string | undefined, string | undefi
   return [refs[0]?.photo.id, refs[refs.length - 1]?.photo.id];
 }
 
-function CompareImage({ fileId, alt }: { fileId: string | undefined; alt: string }) {
-  const url = useAestheticFileUrl(fileId);
+/** Where a photo that was just added goes, with the best partner for it: "before" on the left, "after" on the right */
+function pickPairFor(added: ComparePhoto, refs: ComparePhoto[]): { leftId: string; rightId: string } | null {
+  const others = refs.filter((r) => r !== added && r.photo.view === added.photo.view);
+  if (added.photo.kind === 'after') {
+    const before = others.find((r) => r.photo.kind === 'before');
+    return before ? { leftId: before.photo.id, rightId: added.photo.id } : null;
+  }
+  const after = [...others].reverse().find((r) => r.photo.kind === 'after');
+  return after ? { leftId: added.photo.id, rightId: after.photo.id } : null;
+}
+
+function CompareImage({ fileId, previewUrl, alt }: { fileId: string | undefined; previewUrl?: string; alt: string }) {
+  const storedUrl = useAestheticFileUrl(previewUrl ? undefined : fileId);
+  const url = previewUrl ?? storedUrl;
   if (url === undefined) return <Skeleton className="absolute inset-0 rounded-none" />;
   if (!url) {
     return (
@@ -52,8 +72,8 @@ function CompareImage({ fileId, alt }: { fileId: string | undefined; alt: string
 }
 
 interface PhotoCompareProps {
-  /** Every photo of the patient, oldest first */
-  photos: PhotoRef[];
+  /** Every photo of the patient, oldest first, plus the ones not saved yet */
+  photos: ComparePhoto[];
   /** Section title; the comparison mode switch sits next to it */
   title: string;
 }
@@ -65,6 +85,19 @@ export function PhotoCompare({ photos, title }: PhotoCompareProps) {
   const [rightId, setRightId] = React.useState<string | undefined>(defaultB);
   const [position, setPosition] = React.useState(50);
   const [mode, setMode] = React.useState<CompareMode>('sideBySide');
+  const knownUnsavedRef = React.useRef<Set<string>>(new Set(photos.filter((r) => r.previewUrl).map((r) => r.photo.id)));
+
+  // A photo just taken goes straight into the comparison, against the best photo of its view
+  React.useEffect(() => {
+    const unsaved = photos.filter((r) => r.previewUrl);
+    const added = unsaved.filter((r) => !knownUnsavedRef.current.has(r.photo.id)).pop();
+    knownUnsavedRef.current = new Set(unsaved.map((r) => r.photo.id));
+    const pair = added && pickPairFor(added, photos);
+    if (pair) {
+      setLeftId(pair.leftId);
+      setRightId(pair.rightId);
+    }
+  }, [photos]);
 
   // Fall back to the defaults when the selected photos disappear (session switched or photo removed)
   React.useEffect(() => {
@@ -81,20 +114,21 @@ export function PhotoCompare({ photos, title }: PhotoCompareProps) {
     );
   }
 
-  const describe = (ref: PhotoRef) =>
+  const describe = (ref: ComparePhoto) =>
     t('photos.optionLabel', {
-      date: formatDisplayDate(ref.session.date),
+      date: formatDisplayDate(ref.date),
       kind: t(`photos.kinds.${ref.photo.kind}`),
       view: t(`views.${ref.photo.view}`),
-    });
+    }) + (ref.previewUrl ? ` · ${t('photos.pending')}` : '');
   const left = photos.find((r) => r.photo.id === leftId);
   const right = photos.find((r) => r.photo.id === rightId);
 
   /** Kind and date of a photo, on a dark chip readable over any image */
-  const chip = (ref: PhotoRef | undefined, className?: string) => ref && (
+  const chip = (ref: ComparePhoto | undefined, className?: string) => ref && (
     <span className={cn('pointer-events-none absolute inline-flex items-center gap-1.5 rounded-md bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm', className)}>
       <span className={cn('h-1.5 w-1.5 rounded-full', KIND_DOT[ref.photo.kind])} aria-hidden />
-      {t(`photos.kinds.${ref.photo.kind}`)} · {formatDisplayDate(ref.session.date)}
+      {t(`photos.kinds.${ref.photo.kind}`)} · {formatDisplayDate(ref.date)}
+      {ref.previewUrl && <span className="rounded bg-white/20 px-1 text-[10px] uppercase tracking-wide">{t('photos.pending')}</span>}
     </span>
   );
 
@@ -145,16 +179,16 @@ export function PhotoCompare({ photos, title }: PhotoCompareProps) {
         <div className="grid w-full grid-cols-2 gap-2 self-center" style={{ maxWidth: `min(42rem, calc(${COMPARE_MAX_HEIGHT} * 1.5))` }}>
           {[left, right].map((ref, i) => (
             <div key={i} className="relative aspect-[3/4] overflow-hidden rounded-2xl border bg-muted">
-              <CompareImage fileId={ref?.photo.id} alt={ref ? describe(ref) : ''} />
+              <CompareImage fileId={ref?.photo.id} previewUrl={ref?.previewUrl} alt={ref ? describe(ref) : ''} />
               {chip(ref, 'bottom-2 left-2')}
             </div>
           ))}
         </div>
       ) : (
         <div className="relative mx-auto aspect-[3/4] w-full select-none overflow-hidden rounded-2xl border bg-muted" style={{ maxWidth: `min(28rem, calc(${COMPARE_MAX_HEIGHT} * 0.75))` }}>
-          <CompareImage fileId={right?.photo.id} alt={right ? describe(right) : ''} />
+          <CompareImage fileId={right?.photo.id} previewUrl={right?.previewUrl} alt={right ? describe(right) : ''} />
           <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}>
-            <CompareImage fileId={left?.photo.id} alt={left ? describe(left) : ''} />
+            <CompareImage fileId={left?.photo.id} previewUrl={left?.previewUrl} alt={left ? describe(left) : ''} />
           </div>
           <div className="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.25)]" style={{ left: `${position}%` }} aria-hidden>
             <span className="absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-slate-700 shadow-md ring-1 ring-black/10">

@@ -116,6 +116,8 @@ export interface AestheticPhotoUpload {
   file: File;
   kind: AestheticPhotoKind;
   view: AestheticMapView;
+  /** Placement behind the map, when it was adjusted before the photo was saved */
+  alignment?: AestheticPhotoAlignment;
 }
 
 export type AestheticConsentInput = Omit<AestheticConsent, 'signatureFileId' | 'signedAt'>;
@@ -158,6 +160,7 @@ export async function upsertAestheticSession(
       fileName: upload.file.name,
       mimeType: upload.file.type,
       createdAt: now,
+      ...(upload.alignment && { alignment: upload.alignment }),
     });
   }
 

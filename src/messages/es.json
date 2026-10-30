@@ -10242,14 +10242,14 @@
       "loadError": "No se pudo cargar el mapa del cuerpo.",
       "backdrop": {
         "toggle": "Foto de fondo",
-        "noPhotos": "No hay fotos guardadas de esta vista",
+        "noPhotos": "No hay fotos de esta vista",
         "photo": "Foto que se muestra detrás del mapa",
         "option": "{kind} · {date}",
         "opacity": "Opacidad",
         "hideArt": "Ocultar dibujo",
         "align": "Alinear foto",
         "adjust": "Ajustar alineación",
-        "notAligned": "Esta foto todavía no está alineada: alineala para que las zonas coincidan con la cara o el cuerpo.",
+        "notAligned": "Esta foto se colocó automáticamente: revisá la alineación para que las zonas coincidan con la cara o el cuerpo.",
         "adjustHint": "Arrastrá la foto para moverla y usá la rueda (o el control) para el zoom, hasta que ojos, nariz y boca coincidan con el dibujo.",
         "zoom": "Zoom",
         "rotation": "Rotación",
@@ -10279,6 +10279,7 @@
       "zone": "Zona",
       "notes": "Notas",
       "notSet": "Sin indicar",
+      "backToList": "Volver a los puntos",
       "productRequired": "Ingresá el producto",
       "quantityRequired": "Ingresá una cantidad mayor a 0"
     },
@@ -10421,6 +10422,11 @@
       "notFound": "Esta sesión estética ya no existe.",
       "noNotes": "Esta sesión no tiene notas.",
       "close": "Cerrar",
+      "previousSession": "Sesión anterior",
+      "previousSessionWithDate": "Sesión anterior ({date})",
+      "nextSession": "Sesión siguiente",
+      "nextSessionWithDate": "Sesión siguiente ({date})",
+      "position": "{index} de {total}",
       "photoCount": "{count, plural, one {# foto} other {# fotos}}"
     },
     "timeline": {

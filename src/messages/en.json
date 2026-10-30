@@ -10242,14 +10242,14 @@
       "loadError": "The body map couldn't be loaded.",
       "backdrop": {
         "toggle": "Photo behind",
-        "noPhotos": "There are no saved photos of this view",
+        "noPhotos": "There are no photos of this view",
         "photo": "Photo shown behind the map",
         "option": "{kind} · {date}",
         "opacity": "Opacity",
         "hideArt": "Hide drawing",
         "align": "Align photo",
         "adjust": "Adjust alignment",
-        "notAligned": "This photo is not aligned yet: align it so the zones match the face or body.",
+        "notAligned": "This photo was placed automatically: check its alignment so the zones match the face or body.",
         "adjustHint": "Drag the photo to move it and use the wheel (or the slider) to zoom, until the eyes, nose and mouth line up with the drawing.",
         "zoom": "Zoom",
         "rotation": "Rotation",
@@ -10279,6 +10279,7 @@
       "zone": "Zone",
       "notes": "Notes",
       "notSet": "Not set",
+      "backToList": "Back to points",
       "productRequired": "Enter the product",
       "quantityRequired": "Enter a quantity greater than 0"
     },
@@ -10421,6 +10422,11 @@
       "notFound": "This aesthetic session no longer exists.",
       "noNotes": "This session has no notes.",
       "close": "Close",
+      "previousSession": "Previous session",
+      "previousSessionWithDate": "Previous session ({date})",
+      "nextSession": "Next session",
+      "nextSessionWithDate": "Next session ({date})",
+      "position": "{index} of {total}",
       "photoCount": "{count, plural, one {# photo} other {# photos}}"
     },
     "timeline": {

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { CalendarDays, Camera, CheckCircle2, CircleAlert, FileSignature, History, ListOrdered, MapPin, Mars, MousePointerClick, NotebookPen, Pencil, PersonStanding, ScanFace, Sparkles, Stethoscope, Venus } from 'lucide-react';
+import { CalendarDays, Camera, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, FileSignature, History, ListOrdered, MapPin, Mars, MousePointerClick, NotebookPen, Pencil, PersonStanding, ScanFace, Sparkles, Stethoscope, Venus } from 'lucide-react';
 
 import {
   AlertDialog,
@@ -46,20 +46,22 @@ import { ConsentDialog } from './consent-dialog';
 import { ConsentPanel } from './consent-panel';
 import { AestheticMap } from './aesthetic-map';
 import { BODY_FIGURES, getViewZoneIds, MAP_REGIONS, MAP_VIEWS, REGION_VIEWS, UNIT_COLORS, VIEW_REGION } from './map-templates';
-import { DEFAULT_PHOTO_ALIGNMENT, PhotoBackdropAdjust, PhotoBackdropToolbar } from './photo-backdrop-controls';
-import type { PhotoRef } from './photo-compare';
+import { MapRail, RailGroup, type RailOption } from './map-rail';
+import { DEFAULT_PHOTO_ALIGNMENT, PhotoBackdropAdjust, PhotoBackdropToolbar, type BackdropRef } from './photo-backdrop-controls';
+import type { ComparePhoto, PhotoRef } from './photo-compare';
 import { PhotosPanel, type PendingPhoto } from './photos-panel';
 import { PointDetailCard } from './point-detail-card';
 import { isPointIncomplete, PointsSummary } from './points-summary';
 import { useAestheticFileUrl } from './use-aesthetic-file-url';
+import { VIEW_ICONS } from './view-icons';
 import { formatQuantity, ZoneHistory } from './zone-history';
 
 type Tab = 'points' | 'photos' | 'consent' | 'zones' | 'notes';
 
 /** Width of the sheet body from which the map and the tabs sit side by side */
 const SIDE_BY_SIDE_MIN_WIDTH = 760;
-/** Room left for the map drawing once the sheet header, the session fields, the tabs and the footer are on screen */
-const MAP_MAX_HEIGHT = 'max(18rem, calc(100dvh - 22rem))';
+/** Room left for the map drawing once the sheet header, the session fields, the tabs, the footer and the map's hint are on screen */
+const MAP_MAX_HEIGHT = 'max(18rem, calc(100dvh - 19rem))';
 /** Photos and their comparison go in two columns from this body width */
 const WIDE_PHOTOS_MIN_WIDTH = 640;
 
@@ -92,50 +94,6 @@ export function aestheticUnitTotals(points: AestheticPoint[]): { unit: Aesthetic
   const totals = new Map<AestheticDoseUnit, number>();
   for (const point of points) totals.set(point.unit, (totals.get(point.unit) ?? 0) + (point.quantity ?? 0));
   return [...totals.entries()].filter(([, quantity]) => quantity > 0).map(([unit, quantity]) => ({ unit, quantity }));
-}
-
-function Segmented<T extends string>({ value, options, onChange, ariaLabel, disabled, title, stretch, iconOnly, className }: {
-  value: T;
-  /** `title` is the option's tooltip (defaults to the label when `iconOnly`); `badge` follows the icon */
-  options: { id: T; label: string; title?: string; icon?: React.ElementType; badge?: React.ReactNode }[];
-  onChange: (value: T) => void;
-  ariaLabel: string;
-  disabled?: boolean;
-  title?: string;
-  /** Fill the row, with equal-width options */
-  stretch?: boolean;
-  /** Show only the icons (and badges); the label becomes the accessible name and tooltip */
-  iconOnly?: boolean;
-  className?: string;
-}) {
-  return (
-    <div role="tablist" aria-label={ariaLabel} title={title} className={cn('max-w-full overflow-x-auto rounded-lg border bg-muted/40 p-0.5 [scrollbar-width:none]', stretch ? 'grid auto-cols-fr grid-flow-col' : 'inline-flex', className)}>
-      {options.map(({ id, label, title: optionTitle, icon: Icon, badge }) => (
-        <button
-          key={id}
-          type="button"
-          role="tab"
-          aria-selected={value === id}
-          disabled={disabled && value !== id}
-          onClick={() => onChange(id)}
-          aria-label={iconOnly ? label : undefined}
-          title={optionTitle ?? (iconOnly ? label : undefined)}
-          className={cn(
-            'inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-md py-1.5 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-            iconOnly ? 'px-2' : 'px-3',
-            // The dark theme's primary is a dark grey: fall back to the foreground there
-            value === id
-              ? 'bg-primary text-primary-foreground shadow-sm dark:bg-foreground dark:text-background'
-              : 'text-muted-foreground hover:bg-background/60 hover:text-foreground',
-          )}
-        >
-          {Icon && <Icon className="h-3.5 w-3.5" />}
-          {!iconOnly && label}
-          {badge}
-        </button>
-      ))}
-    </div>
-  );
 }
 
 function TabBar<T extends string>({ value, options, onChange, ariaLabel }: {
@@ -228,7 +186,10 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   const { hasPermission } = usePermissions();
   const canRegister = !readOnly && hasPermission(AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION);
 
-  const bodyRef = React.useRef<HTMLDivElement>(null);
+  // The body only mounts once the sessions have loaded, so it is tracked as state: a plain ref would
+  // be empty when the width observer is set up and the layout would never switch to side by side
+  const [bodyEl, setBodyEl] = React.useState<HTMLDivElement | null>(null);
+  const bodyRef = React.useMemo(() => ({ current: bodyEl }), [bodyEl]);
   const bodyWidth = usePanelWidth(bodyRef);
   const sideBySide = bodyWidth >= SIDE_BY_SIDE_MIN_WIDTH;
 
@@ -259,14 +220,23 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
 
   // Photo behind the map
   const [backdropEnabled, setBackdropEnabled] = React.useState(false);
+  /** Once the user flips the backdrop switch, taking photos no longer turns it on */
+  const backdropTouchedRef = React.useRef(false);
   /** Photo picked for each view; a view without a pick uses its preferred photo */
   const [backdropChoice, setBackdropChoice] = React.useState<Partial<Record<AestheticMapView, string>>>({});
   const [backdropOpacity, setBackdropOpacity] = React.useState(0.85);
   const [backdropHideArt, setBackdropHideArt] = React.useState(false);
+  /** Where the map placed the photos that have no alignment of their own yet, by photo id */
+  const [autoFits, setAutoFits] = React.useState<Record<string, AestheticPhotoAlignment>>({});
   const [alignmentEdit, setAlignmentEdit] = React.useState<{ photoId: string; alignment: AestheticPhotoAlignment } | null>(null);
 
   const isEditing = draft !== null;
-  const current = sessionId ? sessions.find((s) => s.id === sessionId) ?? null : null;
+  /** Session on screen: the one the sheet opened with, then the one reached with previous/next */
+  const [shownId, setShownId] = React.useState<string | null>(sessionId ?? null);
+  const current = shownId ? sessions.find((s) => s.id === shownId) ?? null : null;
+  const currentIndex = current ? sessions.indexOf(current) : -1;
+  const previousSession = currentIndex > 0 ? sessions[currentIndex - 1] : null;
+  const nextSession = currentIndex >= 0 ? sessions[currentIndex + 1] ?? null : null;
   const isDirty = isEditing && (draftKey(draft) !== initialDraftKey || pendingPhotos.length > 0 || removedPhotoIds.length > 0 || pendingConsent !== null);
 
   /** Body figure of a new session: the one used last, else the patient's sex */
@@ -322,19 +292,48 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     [sessions],
   );
   const shownPhotos = (current?.photos ?? []).filter((p) => !removedPhotoIds.includes(p.id));
+  /** Photos offered to the comparison: the stored ones (minus those removed in this edit) and the ones not saved yet */
+  const comparePhotos = React.useMemo<ComparePhoto[]>(() => {
+    const pendingDate = draft?.date ?? current?.date ?? toLocalISOString(new Date());
+    return [
+      ...allPhotos.filter((ref) => !removedPhotoIds.includes(ref.photo.id)).map((ref) => ({ photo: ref.photo, date: ref.session.date })),
+      ...pendingPhotos.map((p) => ({ photo: { id: p.key, kind: p.kind, view: p.view }, date: pendingDate, previewUrl: p.previewUrl })),
+    ];
+  }, [allPhotos, removedPhotoIds, pendingPhotos, draft?.date, current?.date]);
   const photoCount = shownPhotos.length + pendingPhotos.length;
   const notes = draft ? draft.notes : current?.notes ?? '';
 
-  /** Saved photos of the view: the session's own first ("before" ahead), then the newest sessions */
-  const backdropCandidates = React.useMemo(() => {
-    const rank = (ref: PhotoRef) => (ref.session.id === current?.id ? (ref.photo.kind === 'before' ? 0 : 1) : 2);
-    return allPhotos
+  /** Photos of the view, saved or not yet: the session's own first ("before" ahead), then the newest sessions */
+  const backdropCandidates = React.useMemo<BackdropRef[]>(() => {
+    const pendingDate = draft?.date ?? current?.date ?? toLocalISOString(new Date());
+    const stored = allPhotos
       .filter((ref) => ref.photo.view === view && !removedPhotoIds.includes(ref.photo.id) && ref.session.consent?.allowsClinicalPhotos !== false)
-      .sort((a, b) => rank(a) - rank(b) || b.session.date.localeCompare(a.session.date) || b.photo.createdAt.localeCompare(a.photo.createdAt));
-  }, [allPhotos, view, removedPhotoIds, current?.id]);
+      .map((ref) => ({
+        ref: { photo: ref.photo, date: ref.session.date } as BackdropRef,
+        own: ref.session.id === current?.id,
+        createdAt: ref.photo.createdAt,
+      }));
+    // A photo taken in this edit belongs to the session being edited and is the newest of all
+    const unsaved = pendingPhotos
+      .filter((p) => p.view === view)
+      .map((p) => ({
+        ref: { photo: { id: p.key, kind: p.kind, view: p.view, alignment: p.alignment }, date: pendingDate, previewUrl: p.previewUrl } as BackdropRef,
+        own: true,
+        createdAt: '￿',
+      }));
+    const rank = (c: { ref: BackdropRef; own: boolean }) => (c.own ? (c.ref.photo.kind === 'before' ? 0 : 1) : 2);
+    return [...stored, ...unsaved]
+      .sort((a, b) => rank(a) - rank(b) || b.ref.date.localeCompare(a.ref.date) || b.createdAt.localeCompare(a.createdAt))
+      .map((c) => c.ref);
+  }, [allPhotos, pendingPhotos, view, removedPhotoIds, current?.id, current?.date, draft?.date]);
   const backdropRef = backdropCandidates.find((ref) => ref.photo.id === backdropChoice[view]) ?? backdropCandidates[0] ?? null;
   const showBackdrop = backdropEnabled && !!backdropRef;
-  const backdropUrl = useAestheticFileUrl(showBackdrop ? backdropRef?.photo.id : undefined);
+  const storedBackdropUrl = useAestheticFileUrl(showBackdrop && !backdropRef?.previewUrl ? backdropRef?.photo.id : undefined);
+  const backdropUrl = backdropRef?.previewUrl ?? storedBackdropUrl;
+  const backdropFit = backdropRef ? autoFits[backdropRef.photo.id] : undefined;
+  const handleBackdropFit = React.useCallback((photoId: string, alignment: AestheticPhotoAlignment) => {
+    setAutoFits((prev) => (prev[photoId]?.scale === alignment.scale ? prev : { ...prev, [photoId]: alignment }));
+  }, []);
   const editingAlignment = alignmentEdit && alignmentEdit.photoId === backdropRef?.photo.id ? alignmentEdit.alignment : null;
   /** Consent that applies to what is on screen: the one signed in this edit, else the stored one (none for a new session) */
   const effectiveConsent: AestheticConsent | null = pendingConsent
@@ -414,6 +413,17 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     else guardUnsaved(endEditing);
   }
 
+  /** Shows another session; an open edit ends first, asking before dropping unsaved changes */
+  function goToSession(target: AestheticSession) {
+    guardUnsaved(() => {
+      if (isEditing) endEditing();
+      setShownId(target.id);
+      setSelectedPointId(null);
+      setPinnedZone(null);
+      setAlignmentEdit(null);
+    });
+  }
+
   const updateDraft = (patch: Partial<Draft>) => setDraft((d) => (d ? { ...d, ...patch } : d));
 
   function updatePoint(id: string, patch: Partial<AestheticPoint>) {
@@ -439,6 +449,8 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   }
 
   function addPhotos(files: File[], kind: AestheticPhotoKind, photoView: AestheticMapView) {
+    // The first photos show up behind the map by themselves, ready to place the points on them
+    if (!backdropTouchedRef.current) setBackdropEnabled(true);
     setPendingPhotos((prev) => [
       ...prev,
       ...files.map((file) => ({ key: newAestheticPointId(), file, kind, view: photoView, previewUrl: URL.createObjectURL(file) })),
@@ -468,7 +480,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
           points: draft.points,
           bodyFigure: draft.bodyFigure,
         },
-        pendingPhotos.map(({ file, kind, view: photoView }) => ({ file, kind, view: photoView })),
+        pendingPhotos.map(({ file, kind, view: photoView, alignment }) => ({ file, kind, view: photoView, alignment })),
         removedPhotoIds,
         draft.sessionId,
         pendingConsent ? { input: pendingConsent.input, signature: pendingConsent.signature, signedAt: pendingConsent.signedAt } : undefined,
@@ -544,12 +556,18 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   const saveAlignment = useAsyncAction(
     async () => {
       if (!alignmentEdit) return null;
+      // A photo not saved yet keeps its alignment with the edit and stores it along with the session
+      if (pendingPhotos.some((p) => p.key === alignmentEdit.photoId)) {
+        setPendingPhotos((prev) => prev.map((p) => (p.key === alignmentEdit.photoId ? { ...p, alignment: alignmentEdit.alignment } : p)));
+        return null;
+      }
       return saveAestheticPhotoAlignment(patientId, alignmentEdit.photoId, alignmentEdit.alignment);
     },
     {
       onSuccess: (session) => {
-        if (session) setSessions((prev) => prev.map((s) => (s.id === session.id ? session : s)));
         setAlignmentEdit(null);
+        if (!session) return;
+        setSessions((prev) => prev.map((s) => (s.id === session.id ? session : s)));
         toast({ title: t('toast.alignmentSaved') });
       },
       errorTitle: t('map.backdrop.saveError'),
@@ -616,6 +634,33 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
           </div>
         )}
       </div>
+      {current && sessions.length > 1 && (
+        <div className="flex shrink-0 items-center gap-0.5">
+          {([['previous', previousSession, ChevronLeft], ['next', nextSession, ChevronRight]] as const).map(([dir, target, Icon]) => {
+            const label = target
+              ? t(`sheet.${dir}SessionWithDate`, { date: formatDisplayDate(target.date) })
+              : t(`sheet.${dir}Session`);
+            return (
+              <Button
+                key={dir}
+                type="button"
+                size="icon"
+                variant="ghost"
+                className={cn('h-8 w-8', dir === 'next' && 'order-last')}
+                disabled={!target || save.isPending}
+                onClick={() => target && goToSession(target)}
+                aria-label={label}
+                title={label}
+              >
+                <Icon className="h-4 w-4" />
+              </Button>
+            );
+          })}
+          <span className="min-w-[3.5rem] text-center text-xs tabular-nums text-muted-foreground" aria-live="polite">
+            {t('sheet.position', { index: currentIndex + 1, total: sessions.length })}
+          </span>
+        </div>
+      )}
       {!isEditing && current && canRegister && (
         <Button size="sm" variant="outline" className="shrink-0" onClick={() => startEditing(current)}>
           <Pencil className="mr-1.5 h-3.5 w-3.5" />
@@ -625,11 +670,11 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     </div>
   );
 
-  if (isLoading || loadError || (sessionId && !current) || (!sessionId && !isEditing)) {
+  if (isLoading || loadError || (shownId && !current) || (!shownId && !isEditing)) {
     return (
       <div className="flex h-full flex-col">
         <div className="flex shrink-0 items-center gap-3 border-b px-6 py-4 pr-24">
-          <SheetTitle className="text-base font-semibold">{sessionId ? t('sheet.title') : t('sheet.newTitle')}</SheetTitle>
+          <SheetTitle className="text-base font-semibold">{shownId ? t('sheet.title') : t('sheet.newTitle')}</SheetTitle>
         </div>
         <div className="flex flex-1 flex-col gap-3 p-6">
           {isLoading ? (
@@ -639,7 +684,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
             </>
           ) : (
             <Alert variant="destructive">
-              <AlertDescription>{loadError ?? (sessionId ? t('sheet.notFound') : t('consent.noPermission'))}</AlertDescription>
+              <AlertDescription>{loadError ?? (shownId ? t('sheet.notFound') : t('consent.noPermission'))}</AlertDescription>
             </Alert>
           )}
         </div>
@@ -687,7 +732,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   );
 
   const regionIcons: Record<AestheticMapRegion, React.ElementType> = { face: ScanFace, body: PersonStanding };
-  const regionOptions = MAP_REGIONS.map((r) => {
+  const regionOptions: RailOption<AestheticMapRegion>[] = MAP_REGIONS.map((r) => {
     const count = points.filter((p) => VIEW_REGION[p.view] === r).length;
     return {
       id: r,
@@ -696,55 +741,21 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
       badge: count ? <span className="text-[10px] font-semibold tabular-nums">{count}</span> : undefined,
     };
   });
-  const viewOptions = REGION_VIEWS[region].map((v) => ({ id: v, label: t(`viewsShort.${v}`), title: t(`views.${v}`) }));
+  const viewOptions: RailOption<AestheticMapView>[] = REGION_VIEWS[region].map((v) => ({
+    id: v,
+    label: t(`views.${v}`),
+    icon: VIEW_ICONS[v],
+  }));
   const figureIcons: Record<AestheticBodyFigure, React.ElementType> = { female: Venus, male: Mars };
+  const figureOptions: RailOption<AestheticBodyFigure>[] = BODY_FIGURES.map((f) => ({ id: f, label: t(`figures.${f}`), icon: figureIcons[f] }));
   const zoneHighlight = hoveredZone ?? pinnedZone;
 
   const mapColumn = (
     // Side by side the map stays in view while the tabs scroll; its height is capped so it fits on screen
     <div
-      className={cn('flex w-full flex-col gap-3 rounded-2xl border bg-card p-3 shadow-sm', sideBySide && 'sticky top-0 max-w-[440px] shrink-0 self-start')}
+      className={cn('flex min-w-0 flex-col gap-2 rounded-2xl border bg-card p-3 shadow-sm', sideBySide ? 'sticky top-0 flex-1 self-start' : 'w-full')}
       style={{ '--aes-map-max-h': MAP_MAX_HEIGHT } as React.CSSProperties}
     >
-      {/* Region, view, figure and backdrop share one row so the map starts high on screen */}
-      <div className="flex items-center gap-1.5">
-        <Segmented
-          value={region}
-          options={regionOptions}
-          onChange={(r) => setView(lastViewByRegionRef.current[r])}
-          ariaLabel={t('map.regionsLabel')}
-          iconOnly
-          className="shrink-0"
-        />
-        <Segmented value={view} options={viewOptions} onChange={setView} ariaLabel={t('map.viewsLabel')} stretch className="min-w-0 flex-1" />
-        {region === 'body' && (
-          <Segmented
-            value={figure}
-            options={BODY_FIGURES.map((f) => ({ id: f, label: t(`figures.${f}`), icon: figureIcons[f] }))}
-            onChange={(f) => updateDraft({ bodyFigure: f })}
-            ariaLabel={t('map.figureLabel')}
-            disabled={!canChangeFigure}
-            title={isEditing && !canChangeFigure ? t('map.figureLocked') : undefined}
-            iconOnly
-            className="shrink-0"
-          />
-        )}
-        <PhotoBackdropToolbar
-          candidates={backdropCandidates}
-          enabled={backdropEnabled}
-          onEnabledChange={setBackdropEnabled}
-          selected={backdropRef}
-          onSelect={(photoId) => setBackdropChoice((prev) => ({ ...prev, [view]: photoId }))}
-          url={backdropUrl}
-          opacity={backdropOpacity}
-          onOpacityChange={setBackdropOpacity}
-          hideArt={backdropHideArt}
-          onHideArtChange={setBackdropHideArt}
-          canAdjust={canRegister && tab !== 'zones'}
-          isAdjusting={!!editingAlignment}
-          onStartAdjust={() => backdropRef && setAlignmentEdit({ photoId: backdropRef.photo.id, alignment: backdropRef.photo.alignment ?? DEFAULT_PHOTO_ALIGNMENT })}
-        />
-      </div>
       {editingAlignment && (
         <PhotoBackdropAdjust
           alignment={editingAlignment}
@@ -752,44 +763,83 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
           onCancel={() => setAlignmentEdit(null)}
           onSave={() => saveAlignment.run()}
           isSaving={saveAlignment.isPending}
+          resetTo={backdropFit}
         />
       )}
-      <AestheticMap
-        view={view}
-        figure={figure}
-        points={tab === 'zones' ? [] : points}
-        pointNumbers={pointNumbers}
-        selectedPointId={selectedPointId}
-        readOnly={!isEditing || tab === 'zones'}
-        invalidPointIds={invalidPointIds}
-        highlightZones={tab === 'zones' ? (zoneHighlight ? [zoneHighlight] : []) : selectedPoint?.zone ? [selectedPoint.zone] : []}
-        onAddPoint={isEditing ? addPoint : undefined}
-        onMovePoint={isEditing ? (id, x, y, zone) => updatePoint(id, { x, y, zone }) : undefined}
-        onSelectPoint={selectFromMap}
-        onDeletePoint={isEditing ? deletePoint : undefined}
-        backdrop={showBackdrop && backdropRef && backdropUrl ? {
-          url: backdropUrl,
-          alignment: editingAlignment ?? backdropRef.photo.alignment ?? DEFAULT_PHOTO_ALIGNMENT,
-          opacity: editingAlignment ? Math.min(backdropOpacity, 0.7) : backdropOpacity,
-          hideArt: backdropHideArt && !editingAlignment,
-        } : null}
-        adjustingBackdrop={!!editingAlignment}
-        onBackdropChange={(alignment) => setAlignmentEdit((prev) => (prev ? { ...prev, alignment } : prev))}
-        className={cn('mx-auto w-full', region === 'body' ? 'max-w-[260px]' : 'max-w-[400px]')}
-      />
-      <div className="flex flex-col gap-1.5 border-t pt-2.5">
-        <div className="flex items-center justify-center gap-4 text-[11px] text-muted-foreground">
+      <div className="relative">
+        {/* Region, view, figure and backdrop float over the map's left edge, icon only */}
+        <MapRail className="absolute left-0 top-0 z-10">
+          <RailGroup value={region} options={regionOptions} onChange={(r) => setView(lastViewByRegionRef.current[r])} ariaLabel={t('map.regionsLabel')} />
+          <RailGroup value={view} options={viewOptions} onChange={setView} ariaLabel={t('map.viewsLabel')} />
+          {region === 'body' && (
+            <RailGroup
+              value={figure}
+              options={figureOptions}
+              onChange={(f) => updateDraft({ bodyFigure: f })}
+              ariaLabel={t('map.figureLabel')}
+              disabled={!canChangeFigure}
+              disabledReason={isEditing && !canChangeFigure ? t('map.figureLocked') : undefined}
+            />
+          )}
+          <PhotoBackdropToolbar
+            vertical
+            candidates={backdropCandidates}
+            enabled={backdropEnabled}
+            onEnabledChange={(enabled) => { backdropTouchedRef.current = true; setBackdropEnabled(enabled); }}
+            selected={backdropRef}
+            onSelect={(photoId) => setBackdropChoice((prev) => ({ ...prev, [view]: photoId }))}
+            url={backdropUrl}
+            opacity={backdropOpacity}
+            onOpacityChange={setBackdropOpacity}
+            hideArt={backdropHideArt}
+            onHideArtChange={setBackdropHideArt}
+            canAdjust={canRegister && tab !== 'zones'}
+            isAdjusting={!!editingAlignment}
+            onStartAdjust={() => backdropRef && setAlignmentEdit({ photoId: backdropRef.photo.id, alignment: backdropRef.photo.alignment ?? backdropFit ?? DEFAULT_PHOTO_ALIGNMENT })}
+          />
+        </MapRail>
+        {/* Legend floats over the top-right corner, out of the way of the drawing */}
+        <div className="pointer-events-none absolute right-0 top-0 z-10 flex flex-col gap-1 rounded-lg bg-card/80 px-2 py-1.5 text-[11px] text-muted-foreground backdrop-blur-sm">
           <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-card" style={{ backgroundColor: UNIT_COLORS.U }} />{t('map.legendToxin')}</span>
           <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full ring-2 ring-white dark:ring-card" style={{ backgroundColor: UNIT_COLORS.mL }} />{t('map.legendFiller')}</span>
         </div>
-        {isEditing && tab !== 'zones' && (
-          <p className="flex items-start justify-center gap-1.5 text-center text-[11px] leading-snug text-muted-foreground">
-            <MousePointerClick className="mt-px h-3.5 w-3.5 shrink-0" />
-            {t('map.hint')}
-          </p>
-        )}
-        {region === 'body' && <p className="text-center text-[10px] text-muted-foreground/70">{t('credits')}</p>}
+        <AestheticMap
+          view={view}
+          figure={figure}
+          points={tab === 'zones' ? [] : points}
+          pointNumbers={pointNumbers}
+          selectedPointId={selectedPointId}
+          readOnly={!isEditing || tab === 'zones'}
+          invalidPointIds={invalidPointIds}
+          highlightZones={tab === 'zones' ? (zoneHighlight ? [zoneHighlight] : []) : selectedPoint?.zone ? [selectedPoint.zone] : []}
+          onAddPoint={isEditing ? addPoint : undefined}
+          onMovePoint={isEditing ? (id, x, y, zone) => updatePoint(id, { x, y, zone }) : undefined}
+          onSelectPoint={selectFromMap}
+          onDeletePoint={isEditing ? deletePoint : undefined}
+          backdrop={showBackdrop && backdropRef && backdropUrl ? {
+            photoId: backdropRef.photo.id,
+            url: backdropUrl,
+            alignment: editingAlignment ?? backdropRef.photo.alignment ?? backdropFit ?? null,
+            opacity: editingAlignment ? Math.min(backdropOpacity, 0.7) : backdropOpacity,
+            hideArt: backdropHideArt && !editingAlignment,
+          } : null}
+          adjustingBackdrop={!!editingAlignment}
+          onBackdropFit={handleBackdropFit}
+          onBackdropChange={(alignment) => setAlignmentEdit((prev) => (prev ? { ...prev, alignment } : prev))}
+          className={cn('mx-auto w-full', region === 'body' ? 'max-w-[420px]' : 'max-w-[640px]')}
+        />
       </div>
+      {(isEditing && tab !== 'zones') || region === 'body' ? (
+        <div className="flex flex-col gap-1 border-t pt-2">
+          {isEditing && tab !== 'zones' && (
+            <p className="flex items-start justify-center gap-1.5 text-center text-[11px] leading-snug text-muted-foreground">
+              <MousePointerClick className="mt-px h-3.5 w-3.5 shrink-0" />
+              {t('map.hint')}
+            </p>
+          )}
+          {region === 'body' && <p className="text-center text-[10px] text-muted-foreground/70">{t('credits')}</p>}
+        </div>
+      ) : null}
     </div>
   );
 
@@ -813,25 +863,47 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   const tabContent = (
     <div className="flex min-w-0 flex-1 flex-col gap-3">
       {tab === 'points' && (
-        <PointsSummary
-          points={points}
-          pointNumbers={pointNumbers}
-          selectedPointId={selectedPointId}
-          isEditing={isEditing}
-          showErrors={showValidation}
-          onSelectPoint={selectFromList}
-          renderDetail={(point) => (
+        // Side by side the selected point's form takes the side panel (the map stays in view); stacked, it opens under its row
+        sideBySide && selectedPoint ? (
+          <div key="point-detail" className="flex flex-col duration-150 animate-in fade-in slide-in-from-right-2">
+            {/* The way back and the point's header stay on top while the fields scroll */}
+            <div className="sticky top-0 z-20 flex h-10 items-center bg-background">
+              <Button type="button" size="sm" variant="ghost" className="-ml-2 h-8 text-muted-foreground" onClick={() => setSelectedPointId(null)}>
+                <ChevronLeft className="mr-1 h-4 w-4" />
+                {t('point.backToList')}
+              </Button>
+            </div>
             <PointDetailCard
-              point={point}
-              number={pointNumbers.get(point.id)}
+              point={selectedPoint}
+              number={pointNumbers.get(selectedPoint.id)}
               readOnly={!isEditing}
               showErrors={showValidation}
-              onChange={(patch) => updatePoint(point.id, patch)}
-              onDelete={() => deletePoint(point.id)}
-              embedded
+              onChange={(patch) => updatePoint(selectedPoint.id, patch)}
+              onDelete={() => deletePoint(selectedPoint.id)}
+              stickyHeader
             />
-          )}
-        />
+          </div>
+        ) : (
+          <PointsSummary
+            points={points}
+            pointNumbers={pointNumbers}
+            selectedPointId={selectedPointId}
+            isEditing={isEditing}
+            showErrors={showValidation}
+            onSelectPoint={selectFromList}
+            renderDetail={sideBySide ? undefined : (point) => (
+              <PointDetailCard
+                point={point}
+                number={pointNumbers.get(point.id)}
+                readOnly={!isEditing}
+                showErrors={showValidation}
+                onChange={(patch) => updatePoint(point.id, patch)}
+                onDelete={() => deletePoint(point.id)}
+                embedded
+              />
+            )}
+          />
+        )
       )}
 
       {tab === 'photos' && (
@@ -841,7 +913,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
           pending={pendingPhotos}
           isEditing={isEditing}
           consent={effectiveConsent}
-          allPhotos={allPhotos}
+          allPhotos={comparePhotos}
           onAddFiles={addPhotos}
           onRemoveStored={(id) => setRemovedPhotoIds((prev) => [...prev, id])}
           onRemovePending={removePendingPhoto}
@@ -913,12 +985,17 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
       <div className="shrink-0 px-4 pt-2">
         <TabBar value={tab} options={tabs} onChange={setTab} ariaLabel={t('tabs.label')} />
       </div>
-      <div ref={bodyRef} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4">
+      {/* The gutter stays reserved so a scrollbar showing up never narrows the content */}
+      <div ref={setBodyEl} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 [scrollbar-gutter:stable]">
         {saveError && <Alert variant="destructive"><AlertDescription>{saveError}</AlertDescription></Alert>}
         {showsMap ? (
-          <div className={cn('flex gap-4', sideBySide ? 'flex-row items-start' : 'flex-col')}>
+          <div className={cn('flex gap-4', sideBySide ? 'min-h-0 flex-1 flex-row items-start' : 'flex-col')}>
             {mapColumn}
-            {tabContent}
+            {/* Beside the map the tabs are a side panel as tall as the body, scrolling on its own:
+                opening or closing a point never changes the body's height */}
+            <div className={cn('min-w-0', sideBySide ? 'flex min-h-0 w-[clamp(20rem,38%,28rem)] shrink-0 flex-col self-stretch overflow-y-auto overflow-x-clip [scrollbar-gutter:stable]' : 'w-full')}>
+              {tabContent}
+            </div>
           </div>
         ) : tabContent}
       </div>

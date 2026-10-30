@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 import type { AestheticConsent, AestheticMapView, AestheticPhoto, AestheticPhotoKind } from '@/lib/types';
 import type { AestheticPhotoUpload } from '@/services/aesthetic-record';
 import { MAP_VIEWS } from './map-templates';
-import { KIND_DOT, PhotoCompare, type PhotoRef } from './photo-compare';
+import { KIND_DOT, PhotoCompare, type ComparePhoto } from './photo-compare';
 import { useAestheticFileUrl } from './use-aesthetic-file-url';
 
 const PHOTO_KINDS: AestheticPhotoKind[] = ['before', 'after'];
@@ -103,8 +103,8 @@ interface PhotosPanelProps {
   isEditing: boolean;
   /** Consent of the session (signed or about to be saved); it decides whether photos may be taken */
   consent: AestheticConsent | null;
-  /** Every stored photo of the patient for the comparison, oldest first */
-  allPhotos: PhotoRef[];
+  /** Every photo of the patient for the comparison, oldest first, including the ones not saved yet */
+  allPhotos: ComparePhoto[];
   onAddFiles: (files: File[], kind: AestheticPhotoKind, view: AestheticMapView) => void;
   onRemoveStored: (id: string) => void;
   onRemovePending: (key: string) => void;

@@ -30,9 +30,11 @@ interface PointDetailCardProps {
   onDelete: () => void;
   /** Rendered inside its row of the points list: no card chrome nor header (the row shows it) */
   embedded?: boolean;
+  /** The header sticks under a 2.5rem bar at the top of the scrolling panel that holds the card */
+  stickyHeader?: boolean;
 }
 
-export function PointDetailCard({ point, number, readOnly = false, showErrors = false, onChange, onDelete, embedded = false }: PointDetailCardProps) {
+export function PointDetailCard({ point, number, readOnly = false, showErrors = false, onChange, onDelete, embedded = false, stickyHeader = false }: PointDetailCardProps) {
   const t = useTranslations('AestheticRecord');
   const zoneLabel = useZoneLabel();
   const zones = React.useMemo(() => getViewZoneIds(point.view), [point.view]);
@@ -41,7 +43,8 @@ export function PointDetailCard({ point, number, readOnly = false, showErrors = 
   const quantityInvalid = showErrors && (point.quantity == null || point.quantity <= 0);
 
   const header = (
-    <div className="flex items-center gap-2">
+    // Sticky, it spans the card's padding so the fields scroll under a solid band
+    <div className={cn('flex items-center gap-2', stickyHeader && 'sticky top-10 z-10 -mx-4 -mt-4 rounded-t-2xl border-b bg-card px-4 py-3')}>
       <span
         className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white"
         style={{ backgroundColor: UNIT_COLORS[point.unit] }}

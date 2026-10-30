@@ -13,20 +13,28 @@ import { Switch } from '@/components/ui/switch';
 
 import { cn, formatDisplayDate } from '@/lib/utils';
 
-import type { AestheticPhotoAlignment } from '@/lib/types';
+import type { AestheticPhoto, AestheticPhotoAlignment } from '@/lib/types';
 import { BACKDROP_MAX_SCALE, BACKDROP_MIN_SCALE } from './aesthetic-map';
-import { KIND_DOT, type PhotoRef } from './photo-compare';
+import { KIND_DOT } from './photo-compare';
 
 export const DEFAULT_PHOTO_ALIGNMENT: AestheticPhotoAlignment = { x: 0.5, y: 0.5, scale: 1, rotation: 0, mirrored: false };
 
 const MAX_ROTATION = 45;
 
+/** A photo that can sit behind the map: stored, or taken in the open edit and not saved yet */
+export interface BackdropRef {
+  photo: Pick<AestheticPhoto, 'id' | 'kind' | 'view' | 'alignment'>;
+  date: string;
+  /** Object URL of a photo that is not saved yet (its `photo.id` is the pending key) */
+  previewUrl?: string;
+}
+
 interface PhotoBackdropToolbarProps {
   /** Photos of the current view, the preferred one first */
-  candidates: PhotoRef[];
+  candidates: BackdropRef[];
   enabled: boolean;
   onEnabledChange: (enabled: boolean) => void;
-  selected: PhotoRef | null;
+  selected: BackdropRef | null;
   onSelect: (photoId: string) => void;
   /** `undefined` while loading, `null` when the file is not in this browser */
   url: string | null | undefined;
@@ -37,9 +45,11 @@ interface PhotoBackdropToolbarProps {
   canAdjust: boolean;
   isAdjusting: boolean;
   onStartAdjust: () => void;
+  /** Stacked in the map's rail instead of laid out in a row */
+  vertical?: boolean;
 }
 
-/** Icon buttons that fit in the map's view row: the photo switch and its settings */
+/** Icon buttons for the map's controls: the photo switch and its settings */
 export function PhotoBackdropToolbar({
   candidates,
   enabled,
@@ -54,26 +64,30 @@ export function PhotoBackdropToolbar({
   canAdjust,
   isAdjusting,
   onStartAdjust,
+  vertical = false,
 }: PhotoBackdropToolbarProps) {
   const t = useTranslations('AestheticRecord');
   const hasPhotos = candidates.length > 0;
   const isOn = enabled && hasPhotos;
-  const describe = (ref: PhotoRef) =>
-    t('map.backdrop.option', { kind: t(`photos.kinds.${ref.photo.kind}`), date: formatDisplayDate(ref.session.date) });
+  const describe = (ref: BackdropRef) =>
+    t('map.backdrop.option', { kind: t(`photos.kinds.${ref.photo.kind}`), date: formatDisplayDate(ref.date) }) + (ref.previewUrl ? ` · ${t('photos.pending')}` : '');
   const toggleLabel = hasPhotos ? t('map.backdrop.toggle') : t('map.backdrop.noPhotos');
 
+  const size = vertical ? 'h-9 w-9' : 'h-8 w-8';
+  const idleVariant = vertical ? 'ghost' : 'outline';
+
   return (
-    <div className="flex shrink-0 items-center gap-1">
+    <div className={cn('flex shrink-0 gap-1', vertical ? 'flex-col rounded-xl border bg-card/90 p-0.5 shadow-sm backdrop-blur-sm' : 'items-center')}>
       <Button
         type="button"
         size="icon"
-        variant={isOn ? 'default' : 'outline'}
+        variant={isOn ? 'default' : idleVariant}
         aria-pressed={isOn}
         onClick={() => onEnabledChange(!enabled)}
         disabled={!hasPhotos || isAdjusting}
         aria-label={toggleLabel}
         title={toggleLabel}
-        className="h-8 w-8"
+        className={size}
       >
         <ImageIcon className="h-3.5 w-3.5" />
       </Button>
@@ -83,9 +97,9 @@ export function PhotoBackdropToolbar({
             <Button
               type="button"
               size="icon"
-              variant="outline"
+              variant={idleVariant}
               disabled={isAdjusting}
-              className="relative h-8 w-8"
+              className={cn('relative', size)}
               aria-label={t('map.backdrop.settings')}
               title={t('map.backdrop.settings')}
             >
@@ -93,7 +107,7 @@ export function PhotoBackdropToolbar({
               {url && !selected?.photo.alignment && <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-amber-500" aria-hidden />}
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="flex w-72 flex-col gap-3 p-3">
+          <PopoverContent side={vertical ? 'right' : 'bottom'} align={vertical ? 'start' : 'end'} className="flex w-72 flex-col gap-3 p-3">
             {candidates.length > 1 ? (
               <Select value={selected?.photo.id} onValueChange={onSelect}>
                 <SelectTrigger className="h-8 text-xs" aria-label={t('map.backdrop.photo')}>
@@ -160,10 +174,12 @@ interface PhotoBackdropAdjustProps {
   onCancel: () => void;
   onSave: () => void;
   isSaving: boolean;
+  /** Placement "reset" goes back to (the automatic fit of the photo) */
+  resetTo?: AestheticPhotoAlignment;
 }
 
 /** Shown under the map controls only while a photo is being aligned */
-export function PhotoBackdropAdjust({ alignment, onChange, onCancel, onSave, isSaving }: PhotoBackdropAdjustProps) {
+export function PhotoBackdropAdjust({ alignment, onChange, onCancel, onSave, isSaving, resetTo = DEFAULT_PHOTO_ALIGNMENT }: PhotoBackdropAdjustProps) {
   const t = useTranslations('AestheticRecord');
 
   return (
@@ -209,7 +225,7 @@ export function PhotoBackdropAdjust({ alignment, onChange, onCancel, onSave, isS
           type="button"
           size="sm"
           variant="ghost"
-          onClick={() => onChange({ ...DEFAULT_PHOTO_ALIGNMENT, mirrored: alignment.mirrored })}
+          onClick={() => onChange({ ...resetTo, mirrored: alignment.mirrored })}
           disabled={isSaving}
           className="h-8"
         >

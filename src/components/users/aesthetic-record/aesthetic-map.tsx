@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 import type { AestheticBodyFigure, AestheticMapView, AestheticPhotoAlignment, AestheticPoint, AestheticZoneId } from '@/lib/types';
-import { UNIT_COLORS, type MapArtwork } from './map-templates';
+import { isFaceView, UNIT_COLORS, type MapArtwork } from './map-templates';
 import { useMapArtwork } from './use-map-artwork';
 import { useZoneLabel } from './use-zone-label';
 
@@ -32,15 +32,32 @@ const WHEEL_ZOOM_SPEED = 0.0015;
 
 /** Photo shown behind the template */
 export interface MapBackdrop {
+  photoId: string;
   url: string;
-  alignment: AestheticPhotoAlignment;
+  /** `null` while the photo has no alignment of its own: the map places it with {@link fitBackdrop} */
+  alignment: AestheticPhotoAlignment | null;
   /** 0–1 */
   opacity: number;
   /** Hide the line art, keeping zones and points */
   hideArt: boolean;
 }
 
+const CENTERED_ALIGNMENT: AestheticPhotoAlignment = { x: 0.5, y: 0.5, scale: 1, rotation: 0, mirrored: false };
+
 export const clampBackdropScale = (scale: number) => Math.min(BACKDROP_MAX_SCALE, Math.max(BACKDROP_MIN_SCALE, scale));
+
+/**
+ * First placement of a photo that was never aligned. Photos of the face frame it to fill the
+ * shot, so they cover the whole template (no empty bands, centred); photos of the body show
+ * the whole figure, so they are only fitted inside it. Fine tuning stays manual.
+ */
+export function fitBackdrop(view: AestheticMapView, image: { width: number; height: number }, template: { width: number; height: number }): AestheticPhotoAlignment {
+  const aspect = image.height / image.width;
+  const contained = Math.min(template.width, template.height / aspect);
+  const covering = Math.max(template.width, template.height / aspect);
+  const scale = isFaceView(view) ? Math.round(clampBackdropScale(covering / contained) * 100) / 100 : 1;
+  return { x: 0.5, y: 0.5, scale, rotation: 0, mirrored: false };
+}
 
 interface AestheticMapProps {
   view: AestheticMapView;
@@ -61,6 +78,8 @@ interface AestheticMapProps {
   onSelectPoint: (id: string | null) => void;
   onDeletePoint?: (id: string) => void;
   backdrop?: MapBackdrop | null;
+  /** The map worked out where to put a backdrop photo that has no alignment yet */
+  onBackdropFit?: (photoId: string, alignment: AestheticPhotoAlignment) => void;
   /** Dragging and the wheel move and zoom the backdrop instead of touching points */
   adjustingBackdrop?: boolean;
   onBackdropChange?: (alignment: AestheticPhotoAlignment) => void;
@@ -126,9 +145,10 @@ function MapCanvas({
   onMovePoint,
   onSelectPoint,
   onDeletePoint,
-  backdrop,
+  backdrop: backdropProp,
   adjustingBackdrop = false,
   onBackdropChange,
+  onBackdropFit,
   className,
 }: Omit<AestheticMapProps, 'figure'> & { artwork: MapArtwork }) {
   const t = useTranslations('AestheticRecord');
@@ -143,8 +163,14 @@ function MapCanvas({
   const scale = W / BASE_WIDTH;
   const viewPoints = points.filter((p) => p.view === view);
   const highlighted = new Set(highlightZones ?? []);
+  const imageSize = useImageSize(backdropProp?.url);
+  const fit = React.useMemo(() => (imageSize ? fitBackdrop(view, imageSize, { width: W, height: H }) : null), [imageSize, view, W, H]);
+  const backdrop = backdropProp && { ...backdropProp, alignment: backdropProp.alignment ?? fit ?? CENTERED_ALIGNMENT };
   const adjusting = adjustingBackdrop && !!backdrop && !!onBackdropChange;
-  const imageSize = useImageSize(backdrop?.url);
+  const fitPhotoId = backdropProp && !backdropProp.alignment ? backdropProp.photoId : undefined;
+  React.useEffect(() => {
+    if (fit && fitPhotoId) onBackdropFit?.(fitPhotoId, fit);
+  }, [fit, fitPhotoId, onBackdropFit]);
   const panRef = React.useRef<PanState | null>(null);
   const clipId = `aes-map-clip-${React.useId().replace(/:/g, '')}`;
 
