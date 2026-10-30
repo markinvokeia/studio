@@ -10263,6 +10263,13 @@
       "line": {
         "drawing": "Haz clic en el otro extremo del hilo",
         "snapped": "Haz clic en el otro extremo · {axis, select, vertical {vertical} horizontal {horizontal} other {libre}}"
+      },
+      "zoom": {
+        "label": "Zoom del mapa",
+        "in": "Acercar (+)",
+        "out": "Alejar (−)",
+        "fit": "Ver todo (0)",
+        "hint": "Rueda o pellizco: zoom · Espacio + arrastrar o botón central: mover"
       }
     },
     "point": {
@@ -10422,7 +10429,8 @@
       "nextSession": "Sesión siguiente",
       "nextSessionWithDate": "Sesión siguiente ({date})",
       "position": "{index} de {total}",
-      "photoCount": "{count, plural, one {# foto} other {# fotos}}"
+      "photoCount": "{count, plural, one {# foto} other {# fotos}}",
+      "patient": "Paciente"
     },
     "timeline": {
       "points": "Marcas",
@@ -10493,6 +10501,12 @@
       "discard": "Descartar",
       "saved": "Configuración estética guardada",
       "saveError": "No se ha podido guardar la configuración estética"
+    },
+    "panels": {
+      "collapse": "Contraer paneles",
+      "expand": "Expandir paneles",
+      "properties": "Propiedades",
+      "closeProperties": "Cerrar propiedades"
     }
   },
   "MeasurementUnitsPage": {

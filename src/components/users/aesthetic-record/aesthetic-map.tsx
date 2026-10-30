@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
+import { Scan, ZoomIn, ZoomOut } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,6 +40,51 @@ const ZONE_DASH = '3 3';
 export const BACKDROP_MIN_SCALE = 0.3;
 export const BACKDROP_MAX_SCALE = 4;
 const WHEEL_ZOOM_SPEED = 0.0015;
+
+/** Zoom of the workspace, relative to the whole drawing fitted in the box */
+export const MAP_MAX_ZOOM = 8;
+const ZOOM_STEP = 1.5;
+/** Trackpad pinches arrive as wheel events with Ctrl and small deltas: they need a faster rate */
+const PINCH_WHEEL_SPEED = 0.01;
+
+/** What the workspace shows: the zoom and the viewBox point at the centre of the box */
+interface MapZoom {
+  k: number;
+  cx: number;
+  cy: number;
+}
+
+interface ViewFrame extends MapZoom {
+  /** The svg's viewBox */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const clampAxis = (centre: number, size: number, start: number, length: number) =>
+  size >= length ? start + length / 2 : Math.min(start + length - size / 2, Math.max(start + size / 2, centre));
+
+/**
+ * viewBox for a zoom. It takes the box's aspect, so at 1x it is what `meet` would show (the whole
+ * drawing, centred) and zoomed in the drawing fills the box; the centre never lets the drawing leave it.
+ */
+function viewFrame(zoom: MapZoom | null, box: { width: number; height: number } | null, art: { x: number; y: number; width: number; height: number }): ViewFrame {
+  const k = zoom?.k ?? 1;
+  const aspect = box && box.width > 0 && box.height > 0 ? box.width / box.height : art.width / art.height;
+  const w = Math.max(art.width, art.height * aspect) / k;
+  const h = w / aspect;
+  const cx = clampAxis(zoom?.cx ?? art.x + art.width / 2, w, art.x, art.width);
+  const cy = clampAxis(zoom?.cy ?? art.y + art.height / 2, h, art.y, art.height);
+  return { k, cx, cy, x: cx - w / 2, y: cy - h / 2, w, h };
+}
+
+/** Pan with Space or the middle button, or two fingers that also zoom */
+type ZoomGesture =
+  | { kind: 'pan'; pointerId: number; startX: number; startY: number; frame: ViewFrame }
+  | { kind: 'pinch'; ids: [number, number]; distance: number; midX: number; midY: number; frame: ViewFrame };
+
+const isTyping = (target: EventTarget | null) => target instanceof HTMLElement && !!target.closest('input, textarea, select, [contenteditable]');
 
 /** Photo shown behind the template */
 export interface MapBackdrop {
@@ -99,23 +145,25 @@ interface AestheticMapProps {
   /** Dragging and the wheel move and zoom the backdrop instead of touching points */
   adjustingBackdrop?: boolean;
   onBackdropChange?: (alignment: AestheticPhotoAlignment) => void;
+  /** Fit the drawing inside the parent's box (its width and height) instead of following the width; it can then be zoomed */
+  fill?: boolean;
   className?: string;
 }
 
-export function AestheticMap({ view, figure, className, ...rest }: AestheticMapProps) {
+export function AestheticMap({ view, figure, className, fill = false, ...rest }: AestheticMapProps) {
   const t = useTranslations('AestheticRecord');
   const { artwork, error, retry } = useMapArtwork(view, figure);
 
   if (error) {
     return (
-      <div className={cn('flex aspect-[1/2] w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed p-4 text-center', className)}>
+      <div className={cn('flex w-full flex-col items-center justify-center gap-2 rounded-2xl border border-dashed p-4 text-center', fill ? 'h-full' : 'aspect-[1/2]', className)}>
         <p className="text-xs text-muted-foreground">{t('map.loadError')}</p>
         <Button size="sm" variant="outline" onClick={retry}>{t('retry')}</Button>
       </div>
     );
   }
-  if (!artwork) return <Skeleton className={cn('aspect-[1/2] w-full rounded-2xl', className)} />;
-  return <MapCanvas view={view} artwork={artwork} className={className} {...rest} />;
+  if (!artwork) return <Skeleton className={cn('w-full rounded-2xl', fill ? 'h-full' : 'aspect-[1/2]', className)} />;
+  return <MapCanvas view={view} artwork={artwork} fill={fill} className={className} {...rest} />;
 }
 
 /** Natural size of an image, `null` until it loads */
@@ -169,6 +217,7 @@ function MapCanvas({
   adjustingBackdrop = false,
   onBackdropChange,
   onBackdropFit,
+  fill = false,
   className,
 }: Omit<AestheticMapProps, 'figure'> & { artwork: MapArtwork }) {
   const t = useTranslations('AestheticRecord');
@@ -180,7 +229,26 @@ function MapCanvas({
   const [hoveredZone, setHoveredZone] = React.useState<AestheticZoneId | null>(null);
 
   const { x: X, y: Y, width: W, height: H } = artwork.viewBox;
-  const scale = W / BASE_WIDTH;
+
+  // ── Zoom ──
+  // It moves the viewBox, so the drawing, the photo and the marks zoom together and every
+  // client → drawing conversion (through the CTM) keeps working as it is
+  const zoomable = fill;
+  const [zoomState, setZoomState] = React.useState<MapZoom | null>(null);
+  /** Latest zoom, for the events that come faster than the renders (wheel, pinch) */
+  const zoomRef = React.useRef<MapZoom | null>(null);
+  const [box, setBox] = React.useState<{ width: number; height: number } | null>(null);
+  const zoom = zoomable ? zoomState : null;
+  const frame = viewFrame(zoom, zoomable ? box : null, artwork.viewBox);
+  const [spaceHeld, setSpaceHeld] = React.useState(false);
+  const [panning, setPanning] = React.useState(false);
+  const gestureRef = React.useRef<ZoomGesture | null>(null);
+  const touchesRef = React.useRef(new Map<number, { x: number; y: number }>());
+  const hoverRef = React.useRef(false);
+
+  /** Sizes of the template (its corners) follow the drawing; marks keep their size on screen at any zoom */
+  const artScale = W / BASE_WIDTH;
+  const scale = artScale / frame.k;
   const viewMarks = marks.filter((m) => m.mark.view === view);
   /** Vertices of the area (or the start of the line) being drawn, normalized, and where the pointer is to preview the next edge */
   const [draftArea, setDraftArea] = React.useState<[number, number][] | null>(null);
@@ -201,6 +269,175 @@ function MapCanvas({
     if (fit && fitPhotoId) onBackdropFit?.(fitPhotoId, fit);
   }, [fit, fitPhotoId, onBackdropFit]);
   const panRef = React.useRef<PanState | null>(null);
+
+  React.useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg || !zoomable) return;
+    const observer = new ResizeObserver(() => {
+      const rect = svg.getBoundingClientRect();
+      setBox({ width: rect.width, height: rect.height });
+    });
+    observer.observe(svg);
+    return () => observer.disconnect();
+  }, [zoomable]);
+
+  function applyZoom(next: MapZoom | null) {
+    // Kept clamped, so a pan past the edge doesn't have to be undone before moving back
+    const clamped = next && next.k > 1.001 ? (({ k, cx, cy }) => ({ k, cx, cy }))(viewFrame(next, box, artwork.viewBox)) : null;
+    zoomRef.current = clamped;
+    setZoomState(clamped);
+  }
+
+  // Each view starts showing the whole drawing
+  React.useEffect(() => { applyZoom(null); }, [view]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Zooms by `factor` keeping still the drawing point under `client` (the box's centre when not given) */
+  function zoomAround(factor: number, client?: { x: number; y: number }) {
+    const current = viewFrame(zoomRef.current, box, artwork.viewBox);
+    const k = Math.min(MAP_MAX_ZOOM, Math.max(1, current.k * factor));
+    const rect = svgRef.current?.getBoundingClientRect();
+    const fx = client && rect?.width ? (client.x - rect.left) / rect.width : 0.5;
+    const fy = client && rect?.height ? (client.y - rect.top) / rect.height : 0.5;
+    const ax = current.x + fx * current.w;
+    const ay = current.y + fy * current.h;
+    const w = (current.w * current.k) / k;
+    const h = (current.h * current.k) / k;
+    applyZoom({ k, cx: ax - fx * w + w / 2, cy: ay - fy * h + h / 2 });
+  }
+
+  // Latest functions for the native listeners
+  const zoomApiRef = React.useRef({ zoomAround, applyZoom });
+  React.useEffect(() => { zoomApiRef.current = { zoomAround, applyZoom }; });
+
+  // The wheel zooms towards the pointer (the workspace has no scroll of its own). While the photo is
+  // being aligned the wheel is its zoom instead. React's onWheel is passive, hence the native listener.
+  React.useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg || !zoomable || adjustingBackdrop) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+      zoomApiRef.current.zoomAround(Math.exp(-delta * (e.ctrlKey ? PINCH_WHEEL_SPEED : WHEEL_ZOOM_SPEED)), { x: e.clientX, y: e.clientY });
+    };
+    svg.addEventListener('wheel', onWheel, { passive: false });
+    return () => svg.removeEventListener('wheel', onWheel);
+  }, [zoomable, adjustingBackdrop]);
+
+  // Over the map: Space held pans, + and − zoom, 0 shows the whole drawing
+  React.useEffect(() => {
+    if (!zoomable) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (isTyping(e.target) || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (!hoverRef.current && !svgRef.current?.contains(document.activeElement)) return;
+      const api = zoomApiRef.current;
+      if (e.key === ' ') {
+        // A focused mark takes Space to select itself
+        if (e.defaultPrevented) return;
+        e.preventDefault();
+        setSpaceHeld(true);
+      } else if (e.key === '+' || e.key === '=') {
+        e.preventDefault();
+        api.zoomAround(ZOOM_STEP);
+      } else if (e.key === '-' || e.key === '_') {
+        e.preventDefault();
+        api.zoomAround(1 / ZOOM_STEP);
+      } else if (e.key === '0') {
+        e.preventDefault();
+        api.applyZoom(null);
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => { if (e.key === ' ') setSpaceHeld(false); };
+    const onBlur = () => setSpaceHeld(false);
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, [zoomable]);
+
+  /** Runs before the marks' handlers: a pan or a pinch takes the pointer from them */
+  function handleZoomPointerDown(e: React.PointerEvent<SVGSVGElement>) {
+    if (!zoomable) return;
+    const svg = svgRef.current;
+    if (e.pointerType === 'touch') {
+      touchesRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (touchesRef.current.size === 1) suppressClickRef.current = false;
+      if (touchesRef.current.size !== 2) return;
+      // A second finger: what the first one started (a tap, a drag) is dropped and both zoom and pan
+      e.stopPropagation();
+      setDrag(null);
+      panRef.current = null;
+      suppressClickRef.current = true;
+      const [[idA, a], [idB, b]] = [...touchesRef.current.entries()];
+      svg?.setPointerCapture(e.pointerId);
+      gestureRef.current = {
+        kind: 'pinch',
+        ids: [idA, idB],
+        distance: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
+        midX: (a.x + b.x) / 2,
+        midY: (a.y + b.y) / 2,
+        frame: viewFrame(zoomRef.current, box, artwork.viewBox),
+      };
+      return;
+    }
+    if (e.button === 1 || (spaceHeld && e.button === 0)) {
+      e.preventDefault();
+      e.stopPropagation();
+      svg?.setPointerCapture(e.pointerId);
+      gestureRef.current = { kind: 'pan', pointerId: e.pointerId, startX: e.clientX, startY: e.clientY, frame: viewFrame(zoomRef.current, box, artwork.viewBox) };
+      setPanning(true);
+      return;
+    }
+    // A new press: a click held back by the last gesture doesn't swallow this one
+    suppressClickRef.current = false;
+  }
+
+  /** `true` when the move belonged to a pan or a pinch */
+  function handleZoomPointerMove(e: React.PointerEvent<SVGSVGElement>): boolean {
+    if (touchesRef.current.has(e.pointerId)) touchesRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const gesture = gestureRef.current;
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!gesture || !rect?.width) return false;
+    const start = gesture.frame;
+    const unitsPerPx = start.w / rect.width;
+    if (gesture.kind === 'pan') {
+      if (gesture.pointerId !== e.pointerId) return false;
+      applyZoom({ k: start.k, cx: start.cx - (e.clientX - gesture.startX) * unitsPerPx, cy: start.cy - (e.clientY - gesture.startY) * unitsPerPx });
+      return true;
+    }
+    const a = touchesRef.current.get(gesture.ids[0]);
+    const b = touchesRef.current.get(gesture.ids[1]);
+    if (!a || !b) return true;
+    // The drawing point under the fingers' first midpoint follows their midpoint, scaled by their spread
+    const k = Math.min(MAP_MAX_ZOOM, Math.max(1, (start.k * Math.hypot(a.x - b.x, a.y - b.y)) / gesture.distance));
+    const anchorX = start.x + (gesture.midX - rect.left) * unitsPerPx;
+    const anchorY = start.y + (gesture.midY - rect.top) * unitsPerPx;
+    const w = (start.w * start.k) / k;
+    const h = (start.h * start.k) / k;
+    const px = w / rect.width;
+    const x = anchorX - ((a.x + b.x) / 2 - rect.left) * px;
+    const y = anchorY - ((a.y + b.y) / 2 - rect.top) * px;
+    applyZoom({ k, cx: x + w / 2, cy: y + h / 2 });
+    return true;
+  }
+
+  /** `true` when the release ended a pan or a pinch */
+  function handleZoomPointerUp(e: React.PointerEvent<SVGSVGElement>): boolean {
+    touchesRef.current.delete(e.pointerId);
+    const gesture = gestureRef.current;
+    if (!gesture) return false;
+    if (gesture.kind === 'pan' ? gesture.pointerId !== e.pointerId : !gesture.ids.includes(e.pointerId)) return gesture.kind === 'pinch';
+    if (svgRef.current?.hasPointerCapture(e.pointerId)) svgRef.current.releasePointerCapture(e.pointerId);
+    gestureRef.current = null;
+    setPanning(false);
+    // Space + drag ends in a click on the map: it must not add a point
+    suppressClickRef.current = true;
+    return true;
+  }
+
   const clipId = `aes-map-clip-${React.useId().replace(/:/g, '')}`;
 
   /** Client coordinates → viewBox coordinates, clamped to the artwork */
@@ -236,6 +473,12 @@ function MapCanvas({
     }
     if (adjusting) return;
     if (!isDrafting && (e.target as Element).closest('[data-point-id]')) return;
+    // Filling its box the svg is wider or taller than the drawing: a click beside it adds nothing
+    const raw = toSvgPointRaw(e.clientX, e.clientY);
+    if (raw && (raw.x < X || raw.x > X + W || raw.y < Y || raw.y > Y + H)) {
+      if (!isDrafting) onSelectMark(null);
+      return;
+    }
     const p = toSvgPoint(e.clientX, e.clientY);
     if (drawingArea) {
       if (p) addAreaVertex(p);
@@ -415,6 +658,7 @@ function MapCanvas({
   }
 
   function handlePointerMove(e: React.PointerEvent<SVGSVGElement>) {
+    if (handleZoomPointerMove(e)) return;
     if ((drawingArea || drawingLine) && draftArea?.length) {
       const p = toSvgPoint(e.clientX, e.clientY);
       if (p) setCursor({ ...p, free: e.shiftKey });
@@ -434,6 +678,7 @@ function MapCanvas({
   }
 
   function handlePointerUp(e: React.PointerEvent<SVGSVGElement>) {
+    if (handleZoomPointerUp(e)) return;
     if (panRef.current?.pointerId === e.pointerId) {
       svgRef.current?.releasePointerCapture(e.pointerId);
       panRef.current = null;
@@ -466,11 +711,13 @@ function MapCanvas({
       onDeleteMark(mark.id);
       return;
     }
+    // Zoomed in, the arrows move the mark less: the same distance on screen
+    const nudge = KEYBOARD_STEP / frame.k;
     const delta: Record<string, [number, number]> = {
-      ArrowLeft: [-KEYBOARD_STEP, 0],
-      ArrowRight: [KEYBOARD_STEP, 0],
-      ArrowUp: [0, -KEYBOARD_STEP * (W / H)],
-      ArrowDown: [0, KEYBOARD_STEP * (W / H)],
+      ArrowLeft: [-nudge, 0],
+      ArrowRight: [nudge, 0],
+      ArrowUp: [0, -nudge * (W / H)],
+      ArrowDown: [0, nudge * (W / H)],
     };
     const step = delta[e.key];
     if (!step || !onMoveMark) return;
@@ -545,35 +792,43 @@ function MapCanvas({
   const artStyle = onPhoto ? { filter: 'drop-shadow(0 0 1px rgb(0 0 0 / 0.7))' } : undefined;
 
   return (
-    <div className={cn('flex flex-col gap-1', className)}>
+    <div className={cn('flex flex-col gap-1', fill && 'h-full min-h-0', className)}>
+      <div className={cn('relative', fill && 'flex min-h-0 flex-1 flex-col')}>
       <svg
         ref={svgRef}
-        viewBox={`${X} ${Y} ${W} ${H}`}
+        viewBox={`${frame.x} ${frame.y} ${frame.w} ${frame.h}`}
         role="img"
         aria-label={t(`views.${view}`)}
         tabIndex={adjusting ? 0 : undefined}
         className={cn(
-          'h-auto max-h-[var(--aes-map-max-h,none)] w-full touch-none select-none rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring',
-          adjusting ? 'cursor-move' : !readOnly && 'cursor-crosshair',
+          'w-full touch-none select-none rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          // Filling, the default `meet` keeps the drawing whole and centred in the box
+          fill ? 'min-h-0 flex-1' : 'h-auto max-h-[var(--aes-map-max-h,none)]',
+          adjusting ? 'cursor-move' : panning ? 'cursor-grabbing' : spaceHeld ? 'cursor-grab' : !readOnly && 'cursor-crosshair',
         )}
         onClick={handleBackgroundClick}
         onDoubleClick={() => drawingArea && finishArea()}
-        onPointerLeave={() => setCursor(null)}
+        onPointerEnter={() => { hoverRef.current = true; }}
+        onPointerLeave={() => { hoverRef.current = false; setCursor(null); }}
+        onPointerDownCapture={handleZoomPointerDown}
+        // The middle button would start the browser's autoscroll
+        onMouseDown={(e) => { if (zoomable && e.button === 1) e.preventDefault(); }}
         onPointerDown={handleBackdropPointerDown}
         onKeyDown={handleBackdropKeyDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerCancel={() => {
+        onPointerCancel={(e) => {
+          handleZoomPointerUp(e);
           panRef.current = null;
           setDrag(null);
         }}
       >
         <defs>
           <clipPath id={clipId}>
-            <rect x={X} y={Y} width={W} height={H} rx={16 * scale} />
+            <rect x={X} y={Y} width={W} height={H} rx={16 * artScale} />
           </clipPath>
         </defs>
-        <rect x={X} y={Y} width={W} height={H} rx={16 * scale} className="fill-muted/30" />
+        <rect x={X} y={Y} width={W} height={H} rx={16 * artScale} className={fill ? 'fill-card' : 'fill-muted/30'} />
         {backdropImage && <g clipPath={`url(#${clipId})`}>{backdropImage}</g>}
 
         {/* Same layering for face and body: zones below the line art so its strokes stay crisp */}
@@ -645,7 +900,7 @@ function MapCanvas({
                 onKeyDown={(e) => handleMarkKeyDown(e, mark)}
                 className={cn(
                   'outline-none [&:focus-visible>.mark-ring]:stroke-ring',
-                  isDrafting ? 'pointer-events-none' : !readOnly ? 'cursor-grab' : 'cursor-pointer',
+                  isDrafting || spaceHeld || panning ? 'pointer-events-none' : !readOnly ? 'cursor-grab' : 'cursor-pointer',
                   isDragging && 'cursor-grabbing',
                 )}
               >
@@ -743,6 +998,27 @@ function MapCanvas({
           );
         })()}
       </svg>
+      {zoomable && (
+        <div
+          role="group"
+          aria-label={t('map.zoom.label')}
+          className="absolute bottom-2 right-2 z-10 flex items-center gap-0.5 rounded-lg border bg-card/90 p-0.5 text-xs shadow-sm backdrop-blur-sm"
+        >
+          <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={frame.k <= 1} onClick={() => zoomAround(1 / ZOOM_STEP)} aria-label={t('map.zoom.out')} title={t('map.zoom.out')}>
+            <ZoomOut className="h-3.5 w-3.5" />
+          </Button>
+          <span className="min-w-[2.75rem] text-center font-medium tabular-nums text-muted-foreground" title={t('map.zoom.hint')} aria-live="polite">
+            {Math.round(frame.k * 100)}%
+          </span>
+          <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={frame.k >= MAP_MAX_ZOOM} onClick={() => zoomAround(ZOOM_STEP)} aria-label={t('map.zoom.in')} title={t('map.zoom.in')}>
+            <ZoomIn className="h-3.5 w-3.5" />
+          </Button>
+          <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={frame.k <= 1} onClick={() => applyZoom(null)} aria-label={t('map.zoom.fit')} title={t('map.zoom.fit')}>
+            <Scan className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+      </div>
       {draftArea && draftArea.length > 0 && drawingLine ? (
         <div className="flex flex-wrap items-center justify-center gap-2 text-xs" aria-live="polite">
           <span className="text-muted-foreground">{lineAxis ? t('map.line.snapped', { axis: lineAxis }) : t('map.line.drawing')}</span>

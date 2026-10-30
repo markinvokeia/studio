@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { CalendarDays, Camera, CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, Eye, EyeOff, FileSignature, History, Layers, MapPin, Mars, MousePointerClick, NotebookPen, Pencil, PersonStanding, ScanFace, Sparkles, Stethoscope, Venus } from 'lucide-react';
+import { CalendarDays, Camera, CheckCircle2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CircleAlert, Eye, EyeOff, FileSignature, History, Layers, MapPin, Mars, MousePointerClick, NotebookPen, Pencil, PersonStanding, ScanFace, Stethoscope, UserRound, Venus, X } from 'lucide-react';
 
 import {
   AlertDialog,
@@ -62,12 +62,12 @@ import { ZoneHistory } from './zone-history';
 
 type Tab = 'points' | 'photos' | 'consent' | 'zones' | 'notes';
 
-/** Width of the sheet body from which the map and the tabs sit side by side */
+/** Width of the workspace from which the panels dock beside the canvas */
 const SIDE_BY_SIDE_MIN_WIDTH = 760;
-/** Room left for the map drawing once the sheet header, the session fields, the tabs, the footer and the map's hint are on screen */
-const MAP_MAX_HEIGHT = 'max(18rem, calc(100dvh - 19rem))';
-/** Photos and their comparison go in two columns from this body width */
+/** Photos and their comparison go in two columns from this panel width */
 const WIDE_PHOTOS_MIN_WIDTH = 640;
+/** Tabs whose panel needs more room than a list (photos side by side, the signed consent) */
+const WIDE_TABS: Tab[] = ['photos', 'consent'];
 
 interface Draft {
   sessionId?: string;
@@ -88,32 +88,45 @@ interface PendingConsent extends AestheticConsentUpload {
   previewUrl: string;
 }
 
-function TabBar<T extends string>({ value, options, onChange, ariaLabel }: {
+interface PanelTabOption<T extends string> {
+  id: T;
+  label: string;
+  icon: React.ElementType;
+  badge?: React.ReactNode;
+}
+
+/** Tabs of the docked panel: the open one shows its name, the others only their icon (the name is the tooltip) */
+function PanelTabs<T extends string>({ value, options, onChange, ariaLabel, className }: {
   value: T;
-  options: { id: T; label: string; icon: React.ElementType; badge?: React.ReactNode }[];
+  options: PanelTabOption<T>[];
   onChange: (value: T) => void;
   ariaLabel: string;
+  className?: string;
 }) {
   return (
-    <div role="tablist" aria-label={ariaLabel} className="flex max-w-full gap-1 overflow-x-auto border-b [scrollbar-width:none]">
-      {options.map(({ id, label, icon: Icon, badge }) => (
-        <button
-          key={id}
-          type="button"
-          role="tab"
-          aria-selected={value === id}
-          onClick={() => onChange(id)}
-          className={cn(
-            '-mb-px inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors',
-            // The dark theme's primary is a dark grey: fall back to the foreground there
-            value === id ? 'border-primary text-primary dark:border-foreground dark:text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground',
-          )}
-        >
-          <Icon className="h-4 w-4" />
-          {label}
-          {badge}
-        </button>
-      ))}
+    <div role="tablist" aria-label={ariaLabel} className={cn('flex min-w-0 items-end gap-0.5 overflow-x-auto [scrollbar-width:none]', className)}>
+      {options.map(({ id, label, icon: Icon, badge }) => {
+        const selected = value === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={selected}
+            aria-label={label}
+            title={label}
+            onClick={() => onChange(id)}
+            className={cn(
+              '-mb-px inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-t-md border border-b-0 px-2.5 text-xs font-medium transition-colors',
+              selected ? 'border-border bg-card text-foreground' : 'border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+            )}
+          >
+            <Icon className="h-3.5 w-3.5 shrink-0" />
+            {selected && <span>{label}</span>}
+            {badge}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -144,7 +157,7 @@ export interface AestheticSessionSheetProps {
   onChanged?: () => void;
 }
 
-/** Creates, shows and edits one aesthetic session: the map stays in view and the session's parts are tabs beside it */
+/** Creates, shows and edits one aesthetic session: the map fills the workspace and the session's parts are docked panels beside it */
 export function AestheticSessionSheet({ open, onOpenChange, ...panelProps }: AestheticSessionSheetProps) {
   // The panel swaps this for a check of its unsaved changes
   const closeRequestRef = React.useRef<(() => void) | null>(null);
@@ -178,12 +191,17 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   const { hasPermission } = usePermissions();
   const canRegister = !readOnly && hasPermission(AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION);
 
-  // The body only mounts once the sessions have loaded, so it is tracked as state: a plain ref would
+  // The workspace only mounts once the sessions have loaded, so it is tracked as state: a plain ref would
   // be empty when the width observer is set up and the layout would never switch to side by side
   const [bodyEl, setBodyEl] = React.useState<HTMLDivElement | null>(null);
   const bodyRef = React.useMemo(() => ({ current: bodyEl }), [bodyEl]);
   const bodyWidth = usePanelWidth(bodyRef);
   const sideBySide = bodyWidth >= SIDE_BY_SIDE_MIN_WIDTH;
+  const [dockEl, setDockEl] = React.useState<HTMLElement | null>(null);
+  const dockRef = React.useMemo(() => ({ current: dockEl }), [dockEl]);
+  const dockWidth = usePanelWidth(dockRef);
+  /** The docked panels folded to a strip of icons, leaving the canvas the whole width */
+  const [dockCollapsed, setDockCollapsed] = React.useState(false);
 
   const [sessions, setSessions] = React.useState<AestheticSession[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -691,69 +709,133 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   const defaultProcedure = React.useMemo(() => [...new Set(layers.map(layerTitle).filter(Boolean))].join(', '), [layers]);
 
   // ── Render ──
-  const consentBadge = effectiveConsent ? (
-    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 font-medium text-emerald-700 dark:text-emerald-400">
-      <CheckCircle2 className="h-3 w-3" />{t('consent.signedBadge')}
-    </span>
-  ) : (
-    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 font-medium text-amber-700 dark:text-amber-400">
-      <CircleAlert className="h-3 w-3" />{t('consent.missingBadge')}
-    </span>
-  );
-
   const headerTitle = isEditing ? (draft.sessionId ? draft.title || t('sheet.editTitle') : t('sheet.newTitle')) : current?.title ?? t('sheet.title');
+  const totals = unitTotals(layers);
+  const dateInvalid = showValidation && !draft?.date;
+  const chip = 'inline-flex h-7 min-w-0 shrink-0 items-center gap-1.5 rounded-md border bg-background px-2 text-xs text-muted-foreground transition-colors';
+  /** Opens a panel, unfolding the dock when it is folded */
+  const openTab = (next: Tab) => {
+    setTab(next);
+    setDockCollapsed(false);
+  };
+
   const header = (
-    <div className="flex shrink-0 items-start gap-3 border-b px-6 py-4 pr-24">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
-        <Sparkles className="h-4 w-4" />
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex min-w-0 items-center gap-2">
-          <SheetTitle className="truncate text-base font-semibold">{headerTitle}</SheetTitle>
-          {isEditing && draft.sessionId && <Badge className="shrink-0">{t('editing')}</Badge>}
-        </div>
-        {!isEditing && current && (
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />{formatDisplayDate(current.date)}</span>
-            {current.doctorName && (
-              <span className="inline-flex min-w-0 items-center gap-1"><Stethoscope className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{current.doctorName}</span></span>
-            )}
-          </div>
+    <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b px-4 py-2.5 pr-24">
+      {/* What the session holds; each one opens its panel */}
+      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+        <button type="button" onClick={() => openTab('points')} title={t('tabs.layers')} className={cn(chip, 'hover:bg-muted hover:text-foreground', tab === 'points' && 'border-foreground/25 text-foreground')}>
+          <MapPin className="h-3.5 w-3.5 shrink-0" />
+          {t('layers.marks', { count: marks.length })}
+          {totals.map(({ unit, quantity }) => (
+            <span key={unit} className="font-semibold tabular-nums text-foreground">· {formatQuantity(quantity)} {unit}</span>
+          ))}
+        </button>
+        <button type="button" onClick={() => openTab('photos')} title={t('tabs.photos')} className={cn(chip, 'hover:bg-muted hover:text-foreground', tab === 'photos' && 'border-foreground/25 text-foreground')}>
+          <Camera className="h-3.5 w-3.5 shrink-0" />
+          {t('sheet.photoCount', { count: photoCount })}
+        </button>
+        <button
+          type="button"
+          onClick={() => openTab('consent')}
+          title={t('tabs.consent')}
+          className={cn(
+            chip,
+            effectiveConsent ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-400' : 'border-amber-500/30 bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:text-amber-400',
+            'font-medium',
+          )}
+        >
+          {effectiveConsent ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> : <CircleAlert className="h-3.5 w-3.5 shrink-0" />}
+          {effectiveConsent ? t('consent.signedBadge') : t('consent.missingBadge')}
+        </button>
+        {patientName && (
+          <span className={chip} title={t('sheet.patient')}>
+            <UserRound className="h-3.5 w-3.5 shrink-0" />
+            <span className="max-w-[12rem] truncate text-foreground">{patientName}</span>
+          </span>
         )}
       </div>
-      {current && sessions.length > 1 && (
-        <div className="flex shrink-0 items-center gap-0.5">
-          {([['previous', previousSession, ChevronLeft], ['next', nextSession, ChevronRight]] as const).map(([dir, target, Icon]) => {
-            const label = target
-              ? t(`sheet.${dir}SessionWithDate`, { date: formatDisplayDate(target.date) })
-              : t(`sheet.${dir}Session`);
-            return (
-              <Button
-                key={dir}
-                type="button"
-                size="icon"
-                variant="ghost"
-                className={cn('h-8 w-8', dir === 'next' && 'order-last')}
-                disabled={!target || save.isPending}
-                onClick={() => target && goToSession(target)}
-                aria-label={label}
-                title={label}
-              >
-                <Icon className="h-4 w-4" />
-              </Button>
-            );
-          })}
-          <span className="min-w-[3.5rem] text-center text-xs tabular-nums text-muted-foreground" aria-live="polite">
-            {t('sheet.position', { index: currentIndex + 1, total: sessions.length })}
-          </span>
-        </div>
-      )}
-      {!isEditing && current && canRegister && (
-        <Button size="sm" variant="outline" className="shrink-0" onClick={() => startEditing(current)}>
-          <Pencil className="mr-1.5 h-3.5 w-3.5" />
-          {t('editSession')}
-        </Button>
-      )}
+
+      {/* The session itself: date, professional and title */}
+      <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+        {isEditing ? (
+          <>
+            <SheetTitle className="sr-only">{headerTitle}</SheetTitle>
+            {draft.sessionId && <Badge className="shrink-0">{t('editing')}</Badge>}
+            <Input
+              id="aes-session-date"
+              type="date"
+              value={draft.date}
+              onChange={(e) => updateDraft({ date: e.target.value })}
+              disabled={save.isPending}
+              aria-label={t('session.date')}
+              title={dateInvalid ? t('session.dateRequired') : t('session.date')}
+              aria-invalid={dateInvalid || undefined}
+              className={cn('h-8 w-[9.5rem] text-xs', dateInvalid && 'border-destructive focus-visible:ring-destructive')}
+            />
+            <DoctorSelector
+              value={draft.doctorId}
+              selectedDoctorName={draft.doctorName}
+              onValueChange={(id, doctor) => updateDraft({ doctorId: id || undefined, doctorName: doctor?.name })}
+              triggerText={t('session.doctorPick')}
+              placeholder={t('session.doctorSearch')}
+              emptyText={t('session.doctorEmpty')}
+              loadingText={t('session.doctorLoading')}
+              disabled={save.isPending}
+              className="h-8 w-48 text-xs"
+            />
+            <Input
+              id="aes-session-title"
+              value={draft.title}
+              onChange={(e) => updateDraft({ title: e.target.value })}
+              disabled={save.isPending}
+              placeholder={t('session.title')}
+              aria-label={t('session.title')}
+              className="h-8 w-52 text-xs"
+            />
+          </>
+        ) : current && (
+          <>
+            <span className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground"><CalendarDays className="h-3.5 w-3.5" />{formatDisplayDate(current.date)}</span>
+            {current.doctorName && (
+              <span className="inline-flex min-w-0 max-w-[12rem] items-center gap-1 text-xs text-muted-foreground"><Stethoscope className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{current.doctorName}</span></span>
+            )}
+            <SheetTitle className="min-w-0 max-w-[18rem] truncate text-sm font-semibold">{headerTitle}</SheetTitle>
+          </>
+        )}
+        {current && sessions.length > 1 && (
+          <div className="flex shrink-0 items-center">
+            {([['previous', previousSession, ChevronLeft], ['next', nextSession, ChevronRight]] as const).map(([dir, target, Icon]) => {
+              const label = target
+                ? t(`sheet.${dir}SessionWithDate`, { date: formatDisplayDate(target.date) })
+                : t(`sheet.${dir}Session`);
+              return (
+                <Button
+                  key={dir}
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className={cn('h-7 w-7', dir === 'next' && 'order-last')}
+                  disabled={!target || save.isPending}
+                  onClick={() => target && goToSession(target)}
+                  aria-label={label}
+                  title={label}
+                >
+                  <Icon className="h-4 w-4" />
+                </Button>
+              );
+            })}
+            <span className="min-w-[3rem] text-center text-[11px] tabular-nums text-muted-foreground" aria-live="polite">
+              {t('sheet.position', { index: currentIndex + 1, total: sessions.length })}
+            </span>
+          </div>
+        )}
+        {!isEditing && current && canRegister && (
+          <Button size="sm" variant="outline" className="h-8 shrink-0" onClick={() => startEditing(current)}>
+            <Pencil className="mr-1.5 h-3.5 w-3.5" />
+            {t('editSession')}
+          </Button>
+        )}
+      </div>
     </div>
   );
 
@@ -779,44 +861,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     );
   }
 
-  const dateInvalid = showValidation && !draft?.date;
   const invalidMarkIds = showValidation ? new Set(marks.filter(isMarkIncomplete).map((m) => m.id)) : undefined;
-
-  const sessionFields = draft && (
-    <div className="grid shrink-0 gap-3 border-b px-6 py-3 sm:grid-cols-[minmax(0,10rem)_minmax(0,1fr)_minmax(0,1.4fr)]">
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="aes-session-date" className={cn('text-xs', dateInvalid && 'text-destructive')}>{t('session.date')}</Label>
-        <Input
-          id="aes-session-date"
-          type="date"
-          value={draft.date}
-          onChange={(e) => updateDraft({ date: e.target.value })}
-          disabled={save.isPending}
-          aria-invalid={dateInvalid || undefined}
-          aria-describedby={dateInvalid ? 'aes-session-date-error' : undefined}
-          className="h-9"
-        />
-        {dateInvalid && <p id="aes-session-date-error" className="text-xs font-medium text-destructive">{t('session.dateRequired')}</p>}
-      </div>
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <Label className="text-xs">{t('session.doctor')}</Label>
-        <DoctorSelector
-          value={draft.doctorId}
-          selectedDoctorName={draft.doctorName}
-          onValueChange={(id, doctor) => updateDraft({ doctorId: id || undefined, doctorName: doctor?.name })}
-          triggerText={t('session.doctorPick')}
-          placeholder={t('session.doctorSearch')}
-          emptyText={t('session.doctorEmpty')}
-          loadingText={t('session.doctorLoading')}
-          disabled={save.isPending}
-        />
-      </div>
-      <div className="flex min-w-0 flex-col gap-1.5">
-        <Label htmlFor="aes-session-title" className="text-xs">{t('session.title')}</Label>
-        <Input id="aes-session-title" value={draft.title} onChange={(e) => updateDraft({ title: e.target.value })} disabled={save.isPending} className="h-9" />
-      </div>
-    </div>
-  );
 
   const regionIcons: Record<AestheticMapRegion, React.ElementType> = { face: ScanFace, body: PersonStanding };
   const regionOptions: RailOption<AestheticMapRegion>[] = MAP_REGIONS.map((r) => {
@@ -837,129 +882,131 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   const figureOptions: RailOption<AestheticBodyFigure>[] = BODY_FIGURES.map((f) => ({ id: f, label: t(`figures.${f}`), icon: figureIcons[f] }));
   const zoneHighlight = hoveredZone ?? pinnedZone;
 
-  const mapColumn = (
-    // Side by side the map stays in view while the tabs scroll; its height is capped so it fits on screen
-    <div
-      className={cn('flex min-w-0 flex-col gap-2 rounded-2xl border bg-card p-3 shadow-sm', sideBySide ? 'sticky top-0 flex-1 self-start' : 'w-full')}
-      style={{ '--aes-map-max-h': MAP_MAX_HEIGHT } as React.CSSProperties}
-    >
-      {editingAlignment && (
-        <PhotoBackdropAdjust
-          alignment={editingAlignment}
-          onChange={(alignment) => setAlignmentEdit((prev) => (prev ? { ...prev, alignment } : prev))}
-          onCancel={() => setAlignmentEdit(null)}
-          onSave={() => saveAlignment.run()}
-          isSaving={saveAlignment.isPending}
-          resetTo={backdropFit}
-        />
-      )}
-      <div className="relative">
-        {/* Region, view, figure and backdrop float over the map's left edge, icon only */}
-        <MapRail className="absolute left-0 top-0 z-10">
-          <RailGroup value={region} options={regionOptions} onChange={(r) => setView(lastViewByRegionRef.current[r])} ariaLabel={t('map.regionsLabel')} />
-          <RailGroup value={view} options={viewOptions} onChange={setView} ariaLabel={t('map.viewsLabel')} />
-          {region === 'body' && (
-            <RailGroup
-              value={figure}
-              options={figureOptions}
-              onChange={(f) => updateDraft({ bodyFigure: f })}
-              ariaLabel={t('map.figureLabel')}
-              disabled={!canChangeFigure}
-              disabledReason={isEditing && !canChangeFigure ? t('map.figureLocked') : undefined}
-            />
-          )}
-          <PhotoBackdropToolbar
-            vertical
-            candidates={backdropCandidates}
-            enabled={backdropEnabled}
-            onEnabledChange={(enabled) => { backdropTouchedRef.current = true; setBackdropEnabled(enabled); }}
-            selected={backdropRef}
-            onSelect={(photoId) => setBackdropChoice((prev) => ({ ...prev, [view]: photoId }))}
-            url={backdropUrl}
-            opacity={backdropOpacity}
-            onOpacityChange={setBackdropOpacity}
-            hideArt={backdropHideArt}
-            onHideArtChange={setBackdropHideArt}
-            canAdjust={canRegister && tab !== 'zones'}
-            isAdjusting={!!editingAlignment}
-            onStartAdjust={() => backdropRef && setAlignmentEdit({ photoId: backdropRef.photo.id, alignment: backdropRef.photo.alignment ?? backdropFit ?? DEFAULT_PHOTO_ALIGNMENT })}
+  const canvas = (
+    <div className={cn('flex min-w-0', sideBySide ? 'min-h-0 flex-1' : 'h-[min(72dvh,44rem)] min-h-[22rem] shrink-0 border-b')}>
+      {/* Tools: region, view, figure and the photo behind the map */}
+      <MapRail className="shrink-0 items-center overflow-y-auto border-r bg-card px-1.5 py-2 [scrollbar-width:none]">
+        <RailGroup value={region} options={regionOptions} onChange={(r) => setView(lastViewByRegionRef.current[r])} ariaLabel={t('map.regionsLabel')} />
+        <RailGroup value={view} options={viewOptions} onChange={setView} ariaLabel={t('map.viewsLabel')} />
+        {region === 'body' && (
+          <RailGroup
+            value={figure}
+            options={figureOptions}
+            onChange={(f) => updateDraft({ bodyFigure: f })}
+            ariaLabel={t('map.figureLabel')}
+            disabled={!canChangeFigure}
+            disabledReason={isEditing && !canChangeFigure ? t('map.figureLocked') : undefined}
           />
-        </MapRail>
-        {/* Legend (one entry per service) floats over the top-right corner, out of the way of the drawing */}
-        {/* A click on an entry shows or hides that layer's marks */}
-        {layers.length > 0 && tab !== 'zones' && (
-          <div className="absolute right-0 top-0 z-10 flex max-w-[45%] flex-col items-stretch gap-0.5 rounded-lg bg-card/80 px-1 py-1 text-[11px] text-muted-foreground backdrop-blur-sm">
-            {layers.map((layer, index) => {
-              const hidden = hiddenLayerIds.has(layer.id);
-              const name = layerTitle(layer);
-              return (
-                <button
-                  key={layer.id}
-                  type="button"
-                  onClick={() => toggleLayerVisibility(layer.id)}
-                  aria-pressed={!hidden}
-                  title={hidden ? t('layers.show', { name }) : t('layers.hide', { name })}
-                  className={cn(
-                    'inline-flex min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-muted/60',
-                    layer.id === activeLayer?.id && 'font-semibold text-foreground',
-                    hidden && 'text-muted-foreground/60 line-through',
-                  )}
-                >
-                  <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white dark:ring-card', hidden && 'opacity-30')} style={{ backgroundColor: layerColor(layer, index) }} />
-                  <span className="min-w-0 flex-1 truncate">{name}</span>
-                  {hidden ? <EyeOff className="h-3 w-3 shrink-0" aria-hidden /> : <Eye className="h-3 w-3 shrink-0 opacity-50" aria-hidden />}
-                </button>
-              );
-            })}
-            {hiddenLayerIds.size > 0 && layers.some((l) => hiddenLayerIds.has(l.id)) && (
-              <button type="button" onClick={() => setHiddenLayerIds(new Set())} className="rounded px-1 py-0.5 text-left font-medium text-foreground underline-offset-2 hover:underline">
-                {t('layers.showAll')}
-              </button>
-            )}
+        )}
+        <PhotoBackdropToolbar
+          vertical
+          candidates={backdropCandidates}
+          enabled={backdropEnabled}
+          onEnabledChange={(enabled) => { backdropTouchedRef.current = true; setBackdropEnabled(enabled); }}
+          selected={backdropRef}
+          onSelect={(photoId) => setBackdropChoice((prev) => ({ ...prev, [view]: photoId }))}
+          url={backdropUrl}
+          opacity={backdropOpacity}
+          onOpacityChange={setBackdropOpacity}
+          hideArt={backdropHideArt}
+          onHideArtChange={setBackdropHideArt}
+          canAdjust={canRegister && tab !== 'zones'}
+          isAdjusting={!!editingAlignment}
+          onStartAdjust={() => backdropRef && setAlignmentEdit({ photoId: backdropRef.photo.id, alignment: backdropRef.photo.alignment ?? backdropFit ?? DEFAULT_PHOTO_ALIGNMENT })}
+        />
+      </MapRail>
+
+      <div className="relative flex min-w-0 flex-1 flex-col bg-muted/40">
+        {editingAlignment && (
+          <div className="shrink-0 border-b bg-card p-2">
+            <PhotoBackdropAdjust
+              alignment={editingAlignment}
+              onChange={(alignment) => setAlignmentEdit((prev) => (prev ? { ...prev, alignment } : prev))}
+              onCancel={() => setAlignmentEdit(null)}
+              onSave={() => saveAlignment.run()}
+              isSaving={saveAlignment.isPending}
+              resetTo={backdropFit}
+            />
           </div>
         )}
-        <AestheticMap
-          view={view}
-          figure={figure}
-          marks={tab === 'zones' ? [] : visiblePlaced}
-          selectedMarkId={selectedPointId}
-          readOnly={!isEditing || tab === 'zones'}
-          invalidMarkIds={invalidMarkIds}
-          highlightZones={tab === 'zones' ? (zoneHighlight ? [zoneHighlight] : []) : selectedPoint?.zone ? [selectedPoint.zone] : []}
-          tool={activeLayer?.markingTool}
-          toolColor={activeLayer ? layerColor(activeLayer, activeLayerIndex) : undefined}
-          onAddPoint={isEditing && activeLayer ? addPoint : undefined}
-          onAddArea={isEditing && activeLayer ? addArea : undefined}
-          onAddLine={isEditing && activeLayer ? addLine : undefined}
-          onMoveMark={isEditing ? (id, position, zone) => updatePoint(id, { ...position, zone }) : undefined}
-          onSelectMark={selectFromMap}
-          onDeleteMark={isEditing ? deletePoint : undefined}
-          backdrop={showBackdrop && backdropRef && backdropUrl ? {
-            photoId: backdropRef.photo.id,
-            url: backdropUrl,
-            alignment: editingAlignment ?? backdropRef.photo.alignment ?? backdropFit ?? null,
-            opacity: editingAlignment ? Math.min(backdropOpacity, 0.7) : backdropOpacity,
-            hideArt: backdropHideArt && !editingAlignment,
-          } : null}
-          adjustingBackdrop={!!editingAlignment}
-          onBackdropFit={handleBackdropFit}
-          onBackdropChange={(alignment) => setAlignmentEdit((prev) => (prev ? { ...prev, alignment } : prev))}
-          className={cn('mx-auto w-full', region === 'body' ? 'max-w-[420px]' : 'max-w-[640px]')}
-        />
-      </div>
-      {(isEditing && tab !== 'zones') || region === 'body' ? (
-        <div className="flex flex-col gap-1 border-t pt-2">
-          {isEditing && tab !== 'zones' && (
-            <p className="flex items-start justify-center gap-1.5 text-center text-[11px] leading-snug text-muted-foreground">
-              <MousePointerClick className="mt-px h-3.5 w-3.5 shrink-0" />
-              {!activeLayer
-                ? t('map.hintNoLayer')
-                : t(activeLayer.markingTool === 'area' ? 'map.hintArea' : activeLayer.markingTool === 'line' ? 'map.hintLine' : 'map.hintPoint', { service: layerTitle(activeLayer) })}
-            </p>
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          {/* Legend (one entry per service) floats over the top-right corner; a click shows or hides that layer's marks */}
+          {layers.length > 0 && tab !== 'zones' && (
+            <div className="absolute right-2 top-2 z-10 flex max-w-[40%] flex-col items-stretch gap-0.5 rounded-lg border bg-card/85 p-1 text-[11px] text-muted-foreground shadow-sm backdrop-blur-sm">
+              {layers.map((layer, index) => {
+                const hidden = hiddenLayerIds.has(layer.id);
+                const name = layerTitle(layer);
+                return (
+                  <button
+                    key={layer.id}
+                    type="button"
+                    onClick={() => toggleLayerVisibility(layer.id)}
+                    aria-pressed={!hidden}
+                    title={hidden ? t('layers.show', { name }) : t('layers.hide', { name })}
+                    className={cn(
+                      'inline-flex min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-left transition-colors hover:bg-muted/60',
+                      layer.id === activeLayer?.id && 'font-semibold text-foreground',
+                      hidden && 'text-muted-foreground/60 line-through',
+                    )}
+                  >
+                    <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full ring-2 ring-white dark:ring-card', hidden && 'opacity-30')} style={{ backgroundColor: layerColor(layer, index) }} />
+                    <span className="min-w-0 flex-1 truncate">{name}</span>
+                    {hidden ? <EyeOff className="h-3 w-3 shrink-0" aria-hidden /> : <Eye className="h-3 w-3 shrink-0 opacity-50" aria-hidden />}
+                  </button>
+                );
+              })}
+              {layers.some((l) => hiddenLayerIds.has(l.id)) && (
+                <button type="button" onClick={() => setHiddenLayerIds(new Set())} className="rounded px-1 py-0.5 text-left font-medium text-foreground underline-offset-2 hover:underline">
+                  {t('layers.showAll')}
+                </button>
+              )}
+            </div>
           )}
-          {region === 'body' && <p className="text-center text-[10px] text-muted-foreground/70">{t('credits')}</p>}
+          <AestheticMap
+            fill
+            view={view}
+            figure={figure}
+            marks={tab === 'zones' ? [] : visiblePlaced}
+            selectedMarkId={selectedPointId}
+            readOnly={!isEditing || tab === 'zones'}
+            invalidMarkIds={invalidMarkIds}
+            highlightZones={tab === 'zones' ? (zoneHighlight ? [zoneHighlight] : []) : selectedPoint?.zone ? [selectedPoint.zone] : []}
+            tool={activeLayer?.markingTool}
+            toolColor={activeLayer ? layerColor(activeLayer, activeLayerIndex) : undefined}
+            onAddPoint={isEditing && activeLayer ? addPoint : undefined}
+            onAddArea={isEditing && activeLayer ? addArea : undefined}
+            onAddLine={isEditing && activeLayer ? addLine : undefined}
+            onMoveMark={isEditing ? (id, position, zone) => updatePoint(id, { ...position, zone }) : undefined}
+            onSelectMark={selectFromMap}
+            onDeleteMark={isEditing ? deletePoint : undefined}
+            backdrop={showBackdrop && backdropRef && backdropUrl ? {
+              photoId: backdropRef.photo.id,
+              url: backdropUrl,
+              alignment: editingAlignment ?? backdropRef.photo.alignment ?? backdropFit ?? null,
+              opacity: editingAlignment ? Math.min(backdropOpacity, 0.7) : backdropOpacity,
+              hideArt: backdropHideArt && !editingAlignment,
+            } : null}
+            adjustingBackdrop={!!editingAlignment}
+            onBackdropFit={handleBackdropFit}
+            onBackdropChange={(alignment) => setAlignmentEdit((prev) => (prev ? { ...prev, alignment } : prev))}
+            className="min-h-0 flex-1 p-3 pb-1"
+          />
         </div>
-      ) : null}
+        {/* Status bar: what a click does now, and the artwork's credits */}
+        {((isEditing && tab !== 'zones') || region === 'body') && (
+          <div className="flex shrink-0 items-center gap-3 border-t bg-card px-3 py-1 text-[11px] leading-snug text-muted-foreground">
+            {isEditing && tab !== 'zones' && (
+              <p className="flex min-w-0 flex-1 items-start gap-1.5">
+                <MousePointerClick className="mt-px h-3.5 w-3.5 shrink-0" />
+                {!activeLayer
+                  ? t('map.hintNoLayer')
+                  : t(activeLayer.markingTool === 'area' ? 'map.hintArea' : activeLayer.markingTool === 'line' ? 'map.hintLine' : 'map.hintPoint', { service: layerTitle(activeLayer) })}
+              </p>
+            )}
+            {region === 'body' && <p className="ml-auto shrink-0 text-[10px] text-muted-foreground/70">{t('credits')}</p>}
+          </div>
+        )}
+      </div>
     </div>
   );
 
@@ -978,31 +1025,11 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     { id: 'notes', label: t('tabs.notes'), icon: NotebookPen, badge: notes.trim() ? <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" aria-hidden /> : undefined },
   ];
 
-  // The map goes with the points and the zone history; photos, consent and notes use the full width
-  const showsMap = tab === 'points' || tab === 'zones';
   const tabContent = (
     <div className="flex min-w-0 flex-1 flex-col gap-3">
+      {saveError && <Alert variant="destructive"><AlertDescription>{saveError}</AlertDescription></Alert>}
       {tab === 'points' && (
-        // Side by side the selected mark's form takes the side panel (the map stays in view); stacked, it opens under its row
-        sideBySide && selectedPlaced ? (
-          <div key="point-detail" className="flex flex-col duration-150 animate-in fade-in slide-in-from-right-2">
-            {/* The way back and the mark's header stay on top while the fields scroll */}
-            <div className="sticky top-0 z-20 flex h-10 items-center bg-background">
-              <Button type="button" size="sm" variant="ghost" className="-ml-2 h-8 text-muted-foreground" onClick={() => setSelectedPointId(null)}>
-                <ChevronLeft className="mr-1 h-4 w-4" />
-                {t('mark.backToList')}
-              </Button>
-            </div>
-            <MarkDetailCard
-              placed={selectedPlaced}
-              readOnly={!isEditing}
-              showErrors={showValidation}
-              onChange={(patch) => updatePoint(selectedPlaced.mark.id, patch)}
-              onDelete={() => deletePoint(selectedPlaced.mark.id)}
-              stickyHeader
-            />
-          </div>
-        ) : (
+          // Docked, the selected mark's properties are a sub-panel under the list; stacked, they open under its row
           <LayersPanel
             layers={layers}
             placed={placed}
@@ -1031,13 +1058,12 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
               />
             )}
           />
-        )
       )}
 
       {tab === 'photos' && (
         <PhotosPanel
           photos={shownPhotos}
-          wide={bodyWidth >= WIDE_PHOTOS_MIN_WIDTH}
+          wide={(sideBySide ? dockWidth : bodyWidth) >= WIDE_PHOTOS_MIN_WIDTH}
           pending={pendingPhotos}
           isEditing={isEditing}
           consent={effectiveConsent}
@@ -1079,50 +1105,84 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     </div>
   );
 
-  const totals = unitTotals(layers);
   const footer = (
-    <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-t px-6 py-3">
-      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{t('layers.marks', { count: marks.length })}</span>
-        {totals.map(({ unit, quantity }) => (
-          <span key={unit} className="font-medium text-foreground">{formatQuantity(quantity)} {unit}</span>
-        ))}
-        {photoCount > 0 && <span className="inline-flex items-center gap-1"><Camera className="h-3.5 w-3.5" />{t('sheet.photoCount', { count: photoCount })}</span>}
-        {consentBadge}
-      </div>
-      <div className="ml-auto flex shrink-0 items-center gap-2">
-        {isEditing ? (
-          <>
-            <Button type="button" variant="outline" onClick={cancelEditing} disabled={save.isPending}>{t('cancel')}</Button>
-            <Button type="button" onClick={handleSave} loading={save.isPending}>{t('save')}</Button>
-          </>
-        ) : (
-          <Button type="button" variant="outline" onClick={close}>{t('sheet.close')}</Button>
-        )}
-      </div>
+    <div className="flex shrink-0 items-center justify-end gap-2 border-t px-4 py-2">
+      {isEditing ? (
+        <>
+          <Button type="button" size="sm" variant="outline" onClick={cancelEditing} disabled={save.isPending}>{t('cancel')}</Button>
+          <Button type="button" size="sm" onClick={handleSave} loading={save.isPending}>{t('save')}</Button>
+        </>
+      ) : (
+        <Button type="button" size="sm" variant="outline" onClick={close}>{t('sheet.close')}</Button>
+      )}
     </div>
+  );
+
+  const properties = tab === 'points' && selectedPlaced && (
+    <section aria-label={t('panels.properties')} className="flex max-h-[55%] shrink-0 flex-col border-t">
+      <div className="flex h-8 shrink-0 items-center justify-between gap-2 border-b bg-muted/40 pl-3 pr-1">
+        <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('panels.properties')}</h3>
+        <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => setSelectedPointId(null)} aria-label={t('panels.closeProperties')} title={t('panels.closeProperties')}>
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <div className="min-h-0 overflow-y-auto [scrollbar-gutter:stable]">
+        <MarkDetailCard
+          key={selectedPlaced.mark.id}
+          placed={selectedPlaced}
+          readOnly={!isEditing}
+          showErrors={showValidation}
+          onChange={(patch) => updatePoint(selectedPlaced.mark.id, patch)}
+          onDelete={() => deletePoint(selectedPlaced.mark.id)}
+          panel
+        />
+      </div>
+    </section>
+  );
+
+  // Docked beside the canvas, like an editor's panels: tabs on top, the open panel scrolling on its own,
+  // the mark's properties under it. Folded, only the tabs' icons stay.
+  const dock = dockCollapsed ? (
+    <aside className="flex w-11 shrink-0 flex-col items-center gap-1 border-l bg-card py-2" aria-label={t('tabs.label')}>
+      <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground" onClick={() => setDockCollapsed(false)} aria-label={t('panels.expand')} title={t('panels.expand')}>
+        <ChevronsLeft className="h-4 w-4" />
+      </Button>
+      <div className="my-1 h-px w-6 bg-border" />
+      {tabs.map(({ id, label, icon: Icon }) => (
+        <Button key={id} type="button" size="icon" variant="ghost" className={cn('h-8 w-8', tab === id ? 'bg-muted text-foreground' : 'text-muted-foreground')} onClick={() => openTab(id)} aria-label={label} title={label}>
+          <Icon className="h-4 w-4" />
+        </Button>
+      ))}
+    </aside>
+  ) : (
+    <aside
+      ref={setDockEl}
+      className={cn('flex min-h-0 shrink-0 flex-col border-l bg-card transition-[width] duration-200', WIDE_TABS.includes(tab) ? 'w-[clamp(22rem,46%,40rem)]' : 'w-[clamp(18rem,32%,25rem)]')}
+    >
+      <div className="flex shrink-0 items-end gap-1 border-b bg-muted/40 pl-1.5 pr-1 pt-1">
+        <PanelTabs value={tab} options={tabs} onChange={setTab} ariaLabel={t('tabs.label')} className="flex-1" />
+        <Button type="button" size="icon" variant="ghost" className="mb-0.5 h-7 w-7 shrink-0 text-muted-foreground" onClick={() => setDockCollapsed(true)} aria-label={t('panels.collapse')} title={t('panels.collapse')}>
+          <ChevronsRight className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-clip p-3 [scrollbar-gutter:stable]">{tabContent}</div>
+      {properties}
+    </aside>
   );
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       {header}
-      {sessionFields}
-      <div className="shrink-0 px-4 pt-2">
-        <TabBar value={tab} options={tabs} onChange={setTab} ariaLabel={t('tabs.label')} />
-      </div>
-      {/* The gutter stays reserved so a scrollbar showing up never narrows the content */}
-      <div ref={setBodyEl} className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4 [scrollbar-gutter:stable]">
-        {saveError && <Alert variant="destructive"><AlertDescription>{saveError}</AlertDescription></Alert>}
-        {showsMap ? (
-          <div className={cn('flex gap-4', sideBySide ? 'min-h-0 flex-1 flex-row items-start' : 'flex-col')}>
-            {mapColumn}
-            {/* Beside the map the tabs are a side panel as tall as the body, scrolling on its own:
-                opening or closing a point never changes the body's height */}
-            <div className={cn('min-w-0', sideBySide ? 'flex min-h-0 w-[clamp(20rem,38%,28rem)] shrink-0 flex-col self-stretch overflow-y-auto overflow-x-clip [scrollbar-gutter:stable]' : 'w-full')}>
-              {tabContent}
+      <div ref={setBodyEl} className={cn('flex min-h-0 flex-1', sideBySide ? 'flex-row' : 'flex-col overflow-y-auto')}>
+        {canvas}
+        {sideBySide ? dock : (
+          <div className="flex flex-col">
+            <div className="sticky top-0 z-20 shrink-0 border-b bg-muted/40 px-1.5 pt-1">
+              <PanelTabs value={tab} options={tabs} onChange={setTab} ariaLabel={t('tabs.label')} />
             </div>
+            <div className="p-3">{tabContent}</div>
           </div>
-        ) : tabContent}
+        )}
       </div>
       {footer}
 

@@ -205,8 +205,15 @@ export function LayersPanel({
               if (config) onAddLayer(config);
             }}
           >
-            <SelectTrigger className="h-9 border-dashed" aria-label={t('layers.add')}>
-              <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground"><Plus className="h-4 w-4" />{t('layers.add')}</span>
+            <SelectTrigger
+              className="h-9 border-dashed bg-transparent text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-muted/40 hover:text-foreground data-[state=open]:border-foreground/30 data-[state=open]:text-foreground"
+              aria-label={t('layers.add')}
+            >
+              {/* A div, not a span: the trigger clamps its direct spans to one block line, stacking the icon over the text */}
+              <div className="flex min-w-0 items-center gap-2 font-medium">
+                <Plus className="h-4 w-4 shrink-0" />
+                <span className="truncate">{t('layers.add')}</span>
+              </div>
             </SelectTrigger>
             <SelectContent>
               {available.map((config) => (

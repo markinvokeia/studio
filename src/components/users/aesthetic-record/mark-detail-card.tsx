@@ -32,10 +32,12 @@ interface MarkDetailCardProps {
   embedded?: boolean;
   /** The header sticks under a 2.5rem bar at the top of the scrolling panel that holds the card */
   stickyHeader?: boolean;
+  /** Fills a docked sub-panel: header and fields without the card's border */
+  panel?: boolean;
 }
 
 /** One mark: its quantity and zone, and the layer's attributes it changes for itself */
-export function MarkDetailCard({ placed, readOnly = false, showErrors = false, onChange, onDelete, embedded = false, stickyHeader = false }: MarkDetailCardProps) {
+export function MarkDetailCard({ placed, readOnly = false, showErrors = false, onChange, onDelete, embedded = false, stickyHeader = false, panel = false }: MarkDetailCardProps) {
   const t = useTranslations('AestheticRecord');
   const zoneLabel = useZoneLabel();
   const { mark, layer, color, number } = placed;
@@ -69,7 +71,11 @@ export function MarkDetailCard({ placed, readOnly = false, showErrors = false, o
     </div>
   );
 
-  const shell = embedded ? 'flex flex-col gap-3 border-t bg-muted/20 p-3' : 'flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm';
+  const shell = embedded
+    ? 'flex flex-col gap-3 border-t bg-muted/20 p-3'
+    : panel
+      ? 'flex flex-col gap-3 p-3'
+      : 'flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm';
 
   if (readOnly) {
     const rows: [string, string | undefined, boolean][] = [
@@ -99,7 +105,7 @@ export function MarkDetailCard({ placed, readOnly = false, showErrors = false, o
   }
 
   return (
-    <div className={cn(shell, !embedded && quantityInvalid && 'border-destructive/60')}>
+    <div className={cn(shell, !embedded && !panel && quantityInvalid && 'border-destructive/60')}>
       {!embedded && header}
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2">

@@ -10263,6 +10263,13 @@
       "line": {
         "drawing": "Click the other end of the thread",
         "snapped": "Click the other end · {axis, select, vertical {vertical} horizontal {horizontal} other {free}}"
+      },
+      "zoom": {
+        "label": "Map zoom",
+        "in": "Zoom in (+)",
+        "out": "Zoom out (−)",
+        "fit": "Show all (0)",
+        "hint": "Wheel or pinch: zoom · Space + drag or middle button: pan"
       }
     },
     "point": {
@@ -10422,7 +10429,8 @@
       "nextSession": "Next session",
       "nextSessionWithDate": "Next session ({date})",
       "position": "{index} of {total}",
-      "photoCount": "{count, plural, one {# photo} other {# photos}}"
+      "photoCount": "{count, plural, one {# photo} other {# photos}}",
+      "patient": "Patient"
     },
     "timeline": {
       "points": "Marks",
@@ -10493,6 +10501,12 @@
       "discard": "Discard",
       "saved": "Aesthetic settings saved",
       "saveError": "Could not save the aesthetic settings"
+    },
+    "panels": {
+      "collapse": "Collapse panels",
+      "expand": "Expand panels",
+      "properties": "Properties",
+      "closeProperties": "Close properties"
     }
   },
   "MeasurementUnitsPage": {
