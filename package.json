@@ -25,6 +25,7 @@
     "videos:build": "node scripts/videos/build-videos.mjs",
     "videos:publish": "node scripts/videos/publish-videos.mjs",
     "videos:link-drive": "node scripts/videos/link-drive-videos.mjs",
+    "videos:export-sql": "HELP_VIDEO_SQL=database/scripts/seed_help_videos.sql HELP_VIDEOS_DRIVE_FOLDER=${HELP_VIDEOS_DRIVE_FOLDER:-1ln7f3NVm-YDPcfggyAnXQHiO8L-XmmS8} node scripts/videos/link-drive-videos.mjs",
     "videos:worker": "node scripts/videos/worker.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

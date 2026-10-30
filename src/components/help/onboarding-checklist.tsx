@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, Check, ChevronRight, Circle, Compass, PlayCircle, SkipForward, Undo2 } from 'lucide-react';
+import { AlertTriangle, Check, ChevronRight, Circle, Compass, PlayCircle, SkipForward, Undo2, Video } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils';
 import { isAbortError } from '@/services/api';
 import { getOnboardingStatus, updateOnboardingProgress } from '@/services/help-assistant';
 import { useHelpAssistant } from '@/stores/help-assistant-store';
+import { useHelpVideo, useHelpVideoList } from '@/stores/help-video-store';
 
 import { HELP_PERMISSIONS } from '@/constants/permissions';
 import type { HelpCatalog, HelpJourneyStep, OnboardingStepState } from '@/lib/types';
@@ -30,12 +31,18 @@ interface OnboardingChecklistProps {
 
 export function OnboardingChecklist({ catalog, onPendingChange }: OnboardingChecklistProps) {
   const t = useTranslations('HelpAssistant.onboarding');
+  const tChat = useTranslations('HelpAssistant.chat');
   const router = useRouter();
   const locale = useLocale();
   const { route } = useCurrentHelpRoute();
   const { hasPermission } = usePermissions();
   const refreshKey = useHelpAssistant((s) => s.onboardingRefreshKey);
   const refreshOnboarding = useHelpAssistant((s) => s.refreshOnboarding);
+  // Videos grabados (en el idioma de la app o el español): "Ver video" junto a "Guiarme".
+  const videos = useHelpVideoList((s) => s.byLocale[locale]);
+  const loadVideos = useHelpVideoList((s) => s.load);
+  React.useEffect(() => { loadVideos(locale); }, [loadVideos, locale]);
+  const openVideo = useHelpVideo((s) => s.open);
 
   const [states, setStates] = React.useState<Record<string, OnboardingStepState>>({});
   const [isLoading, setIsLoading] = React.useState(true);
@@ -155,6 +162,18 @@ export function OnboardingChecklist({ catalog, onPendingChange }: OnboardingChec
                         <Button size="sm" className="h-7 gap-1 px-2 text-xs" onClick={() => guide(step)}>
                           <PlayCircle className="h-3.5 w-3.5" />
                           {done ? t('guideAgain') : t('guideMe')}
+                        </Button>
+                      )}
+                      {step.useCaseId && videos?.[step.useCaseId] && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 gap-1 px-2 text-xs"
+                          aria-label={tChat('watchVideoOf', { title: step.title })}
+                          onClick={() => openVideo({ ...videos[step.useCaseId!], title: step.title })}
+                        >
+                          <Video className="h-3.5 w-3.5" />
+                          {tChat('watchVideo')}
                         </Button>
                       )}
                       <Button size="sm" variant={step.useCaseId ? 'ghost' : 'outline'} className="h-7 gap-1 px-2 text-xs" onClick={() => goTo(step)}>
