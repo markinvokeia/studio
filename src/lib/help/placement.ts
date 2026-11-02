@@ -106,6 +106,20 @@ export function menuRectOf(el: Element): Rect | null {
   return r.height > el.getBoundingClientRect().height + 4 ? toRect(r) : null;
 }
 
+/**
+ * Desplegables abiertos (combobox, select, menú) que no contienen a `target`: mientras la
+ * persona elige una opción, la barra y la lista de pasos de la guía no los tapan.
+ */
+export function openDropdownRects(target: Element | null): Rect[] {
+  const rects: Rect[] = [];
+  document.querySelectorAll<HTMLElement>('[data-radix-popper-content-wrapper], [role="listbox"]').forEach((el) => {
+    if ((target && el.contains(target)) || el.closest('[data-help-ignore]') || el.querySelector('[role="tooltip"]')) return;
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) rects.push(toRect(r));
+  });
+  return rects;
+}
+
 /** Dónde se para la mascota para señalar una opción de un menú: al costado del menú, a la altura de la opción. */
 export function placeGuideMascotBesideMenu(target: DOMRect | Rect, menu: Rect, size: number, obstacles: Rect[] = []): { x: number; y: number } {
   const midY = target.top + target.height / 2 - size / 2;

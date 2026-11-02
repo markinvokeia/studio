@@ -32,11 +32,18 @@ import { useHelpAssistant, type GuideRun, type GuideStepStatus, type HelpAssista
 import { navItems, type NavItem } from '@/config/nav';
 import type { HelpGuideStep } from '@/lib/types';
 
-export type GuideErrorCode = 'targetNotFound' | 'navigationFailed';
+/**
+ * `noPermission`: la pantalla del menú no está permitida, o lo que se busca no apareció
+ * después de esperar (un menú, tab o botón que la persona no ve por permisos). Así no
+ * parece que la mascota se confundió, y se ofrece el video de la guía como alternativa.
+ */
+export type GuideErrorCode = 'targetNotFound' | 'navigationFailed' | 'noPermission';
 
 interface GuideRunnerDeps {
   navigate: (route: string) => void;
   currentPath: () => string;
+  /** ¿La persona ve este ítem del menú? (mismo criterio que el sidebar). */
+  canSeeNavItem: (item: NavItem) => boolean;
 }
 
 let deps: GuideRunnerDeps | null = null;
@@ -175,6 +182,17 @@ function blockedNow(guide: GuideRun): boolean {
   return guide.statuses[guide.current] === 'waiting' && isBlockingStep(guide.steps[guide.current]);
 }
 
+/**
+ * ¿La persona puede abrir la pantalla desde el menú? null si la ruta no está en el menú
+ * (un detalle, una pantalla sin ítem): ahí no se sabe y se intenta igual.
+ */
+function canOpenRoute(route: string): boolean | null {
+  const group = menuGroupFor(route);
+  const leaf = group ? group.items!.find((sub) => sub.href === route) : navItems.find((item) => item.href === route && !item.items?.length);
+  if (!leaf) return null;
+  return (!group || deps!.canSeeNavItem(group)) && deps!.canSeeNavItem(leaf);
+}
+
 /** Grupo del menú lateral que contiene la ruta (o null si es un ítem de primer nivel). */
 function menuGroupFor(route: string): NavItem | null {
   return navItems.find((item) => item.items?.some((sub) => sub.href === route)) ?? null;
@@ -206,7 +224,8 @@ async function openFromMenu(step: HelpGuideStep, route: string, signal: AbortSig
     hoverElement(groupEl.control);
   }
   const leaf = await waitForHelpTarget(leafId, { signal, timeoutMs: group ? MENU_OPEN_TIMEOUT_MS : 300 });
-  if (!leaf) return false;
+  // Sin la opción en el menú no queda señalando el grupo: se navega directo.
+  if (!leaf) { store().setSpotlight(null); return false; }
   point(leafId);
   await helpSleep(paced(group ? MENU_POINT_MS * 0.7 : MENU_POINT_MS), signal);
   pressElement(leaf.control);
@@ -236,6 +255,7 @@ async function execute(rawStep: HelpGuideStep, signal: AbortSignal): Promise<Ste
     store().setSpotlight(null);
     const route = step.route ?? '/';
     if (deps.currentPath() !== route) {
+      if (canOpenRoute(route) === false) return { status: 'failed', error: 'noPermission' };
       const viaMenu = await openFromMenu(step, route, signal);
       const { currentPath } = deps;
       // Por el menú, la navegación ya se pidió: sólo se espera (y se reintenta si se perdió).
@@ -264,7 +284,9 @@ async function execute(rawStep: HelpGuideStep, signal: AbortSignal): Promise<Ste
   // la pantalla, sin permiso), se salta en un momento y el aviso quedaría colgado en el globo.
   const wait = () => waitForHelpTarget(step.target!, { signal, timeoutMs });
   const target = canSkip && settled ? await wait() : await withNotice('loadingElement', wait);
-  if (!target) return canSkip ? { status: 'skipped' } : { status: 'failed', error: 'targetNotFound' };
+  // Tras la espera (la pantalla pudo estar cargando) sigue sin aparecer: lo más probable es
+  // que la persona no tenga permiso para verlo.
+  if (!target) return canSkip ? { status: 'skipped' } : { status: 'failed', error: 'noPermission' };
 
   switch (step.action) {
     case 'click':

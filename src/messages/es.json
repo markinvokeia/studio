@@ -10296,7 +10296,9 @@
       "guideLost": "Se cerró lo que te estaba mostrando. Tocame y retomamos la guía.",
       "guideError": {
         "targetNotFound": "Uy, no encuentro ese elemento en la pantalla. Puede que falte un permiso. ¿Reintentamos o lo salteamos?",
-        "navigationFailed": "Uy, no pude abrir la pantalla. Puede que no tengas permiso para verla."
+        "navigationFailed": "Uy, no pude abrir la pantalla. Puede que no tengas permiso para verla.",
+        "noPermission": "Upps, al parecer no tenés permisos para continuar. Pedile a un administrador que te los habilite.",
+        "noPermissionVideo": "Upps, al parecer no tenés permisos para continuar. Si querés, podés ver el video de esta guía."
       },
       "appError": "Uy, algo no salió bien. Fijate el mensaje.",
       "loading": {
@@ -10326,7 +10328,8 @@
       "stepsLabel": "Pasos de la guía",
       "goTo": "Ir a: {title}",
       "yourTurn": "te toca",
-      "waitingForYou": "Esperando que lo hagas"
+      "waitingForYou": "Esperando que lo hagas",
+      "watchVideo": "Ver video"
     },
     "back": "Volver",
     "voiceOn": "Activar la voz",

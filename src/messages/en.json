@@ -10296,7 +10296,9 @@
       "guideLost": "What I was showing you closed. Tap me and we’ll pick up the guide again.",
       "guideError": {
         "targetNotFound": "Oops, I can't find that element on the screen. A permission may be missing. Retry or skip it?",
-        "navigationFailed": "Oops, I couldn't open the screen. You may not have permission to see it."
+        "navigationFailed": "Oops, I couldn't open the screen. You may not have permission to see it.",
+        "noPermission": "Oops, it looks like you don't have permission to continue. Ask an administrator to grant it.",
+        "noPermissionVideo": "Oops, it looks like you don't have permission to continue. If you like, you can watch this guide's video instead."
       },
       "appError": "Oops, something went wrong. Check the message.",
       "loading": {
@@ -10326,7 +10328,8 @@
       "stepsLabel": "Guide steps",
       "goTo": "Go to: {title}",
       "yourTurn": "your turn",
-      "waitingForYou": "Waiting for you to do it"
+      "waitingForYou": "Waiting for you to do it",
+      "watchVideo": "Watch video"
     },
     "back": "Back",
     "voiceOn": "Turn voice on",

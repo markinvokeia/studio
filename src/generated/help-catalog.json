@@ -1,5 +1,5 @@
 {
- "version": "9c69ca6f95468258",
+ "version": "1e3cdb96df7b2d7c",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -28574,7 +28574,7 @@
     },
     {
      "action": "highlight",
-     "details": "Si escondiste la mascota, acá está dormida.",
+     "details": "Abre el asistente. Si escondiste la mascota, acá te saluda cada tanto: tocala y vuelve.",
      "id": "assistant",
      "skipIfMissing": true,
      "target": "rail.section.assistant",

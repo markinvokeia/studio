@@ -104,7 +104,7 @@
       "action": "highlight",
       "target": "rail.section.assistant",
       "title": "Asistente",
-      "details": "Si escondiste la mascota, acá está dormida.",
+      "details": "Abre el asistente. Si escondiste la mascota, acá te saluda cada tanto: tocala y vuelve.",
       "skipIfMissing": true
     },
     {

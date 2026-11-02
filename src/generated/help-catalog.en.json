@@ -1,5 +1,5 @@
 {
- "version": "0dab5c04d65d6b83",
+ "version": "40c0c609a849eeab",
  "locale": "en",
  "journey": [
   {
@@ -28488,7 +28488,7 @@
     },
     {
      "action": "highlight",
-     "details": "If you hid the mascot, it's asleep here.",
+     "details": "Opens the assistant. If you hid the mascot, it waves at you from here now and then: tap it and it comes back.",
      "id": "assistant",
      "skipIfMissing": true,
      "target": "rail.section.assistant",
