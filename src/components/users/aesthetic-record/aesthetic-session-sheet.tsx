@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { CalendarDays, Camera, CheckCircle2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CircleAlert, Eye, EyeOff, FileSignature, History, Layers, MapPin, Mars, MousePointerClick, NotebookPen, Pencil, PersonStanding, ScanFace, Stethoscope, UserRound, Venus, X } from 'lucide-react';
+import { CalendarDays, Camera, CheckCircle2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, CircleAlert, Columns2, Eye, EyeOff, FileSignature, History, Layers, Map as MapIcon, MapPin, Mars, MousePointerClick, NotebookPen, Pencil, PersonStanding, ScanFace, Stethoscope, UserRound, Venus, X } from 'lucide-react';
 
 import {
   AlertDialog,
@@ -53,21 +53,22 @@ import { LayersPanel } from './layers-panel';
 import { BODY_FIGURES, getViewZoneIds, MAP_REGIONS, MAP_VIEWS, REGION_VIEWS, VIEW_REGION } from './map-templates';
 import { MapRail, RailGroup, type RailOption } from './map-rail';
 import { DEFAULT_PHOTO_ALIGNMENT, PhotoBackdropAdjust, PhotoBackdropToolbar, type BackdropRef } from './photo-backdrop-controls';
-import type { ComparePhoto, PhotoRef } from './photo-compare';
+import { PhotoCompare, type ComparePhoto, type PhotoRef } from './photo-compare';
 import { PhotosPanel, type PendingPhoto } from './photos-panel';
 import { MarkDetailCard } from './mark-detail-card';
 import { useAestheticFileUrl } from './use-aesthetic-file-url';
+import { useAestheticViewPrefs } from './use-aesthetic-view-prefs';
 import { VIEW_ICONS } from './view-icons';
 import { ZoneHistory } from './zone-history';
 
 type Tab = 'points' | 'photos' | 'consent' | 'zones' | 'notes';
+/** What the canvas shows: the map to mark on, or the before and after of the view with the marks */
+type CanvasMode = 'map' | 'compare';
 
 /** Width of the workspace from which the panels dock beside the canvas */
 const SIDE_BY_SIDE_MIN_WIDTH = 760;
-/** Photos and their comparison go in two columns from this panel width */
-const WIDE_PHOTOS_MIN_WIDTH = 640;
 /** Tabs whose panel needs more room than a list (photos side by side, the signed consent) */
-const WIDE_TABS: Tab[] = ['photos', 'consent'];
+const WIDE_TABS: Tab[] = ['consent'];
 
 interface Draft {
   sessionId?: string;
@@ -136,6 +137,43 @@ function TabCount({ count }: { count: number }) {
   return <span className="rounded-full bg-muted px-1.5 text-[10px] font-semibold leading-4 text-muted-foreground">{count}</span>;
 }
 
+/** One side of the before and after: the photo where it sits behind the map, the drawing hidden and the session's marks over it */
+function ComparedMap({ photo: ref, view, figure, marks, selectedMarkId, onSelectMark, fit, onFit }: {
+  photo: ComparePhoto;
+  view: AestheticMapView;
+  figure: AestheticBodyFigure;
+  marks: PlacedMark[];
+  selectedMarkId: string | null;
+  onSelectMark: (id: string | null) => void;
+  /** Where the map placed the photo when it has no alignment of its own */
+  fit: AestheticPhotoAlignment | undefined;
+  onFit: (photoId: string, alignment: AestheticPhotoAlignment) => void;
+}) {
+  const t = useTranslations('AestheticRecord');
+  const storedUrl = useAestheticFileUrl(ref.previewUrl ? undefined : ref.photo.id);
+  const url = ref.previewUrl ?? storedUrl;
+  if (url === undefined) return <Skeleton className="m-3 flex-1 rounded-2xl" />;
+  return (
+    <>
+      <AestheticMap
+        fill
+        readOnly
+        view={view}
+        figure={figure}
+        marks={marks}
+        selectedMarkId={selectedMarkId}
+        onSelectMark={onSelectMark}
+        backdrop={url ? { photoId: ref.photo.id, url, alignment: ref.photo.alignment ?? fit ?? null, opacity: 1, hideArt: true } : null}
+        onBackdropFit={onFit}
+        className="min-h-0 flex-1 p-2"
+      />
+      {url === null && (
+        <p className="pointer-events-none absolute inset-x-2 bottom-12 rounded-md bg-card/90 px-2 py-1 text-center text-[11px] text-muted-foreground">{t('photos.unavailable')}</p>
+      )}
+    </>
+  );
+}
+
 export interface AestheticSessionSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -197,16 +235,18 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   const bodyRef = React.useMemo(() => ({ current: bodyEl }), [bodyEl]);
   const bodyWidth = usePanelWidth(bodyRef);
   const sideBySide = bodyWidth >= SIDE_BY_SIDE_MIN_WIDTH;
-  const [dockEl, setDockEl] = React.useState<HTMLElement | null>(null);
-  const dockRef = React.useMemo(() => ({ current: dockEl }), [dockEl]);
-  const dockWidth = usePanelWidth(dockRef);
+  /** How this user likes to see the record (photo behind the map, folded panels…), kept in the browser */
+  const [viewPrefs, setViewPref] = useAestheticViewPrefs();
   /** The docked panels folded to a strip of icons, leaving the canvas the whole width */
-  const [dockCollapsed, setDockCollapsed] = React.useState(false);
+  const dockCollapsed = viewPrefs.dockCollapsed;
+  const setDockCollapsed = (collapsed: boolean) => setViewPref('dockCollapsed', collapsed);
 
   const [sessions, setSessions] = React.useState<AestheticSession[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
   const [tab, setTab] = React.useState<Tab>('points');
+  const [canvasMode, setCanvasMode] = React.useState<CanvasMode>('map');
+  const comparing = canvasMode === 'compare';
   const [view, setView] = React.useState<AestheticMapView>('front');
   const region = VIEW_REGION[view];
   // Switching region returns to the view last used in it
@@ -234,13 +274,11 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   const [pendingConsent, setPendingConsent] = React.useState<PendingConsent | null>(null);
 
   // Photo behind the map
-  const [backdropEnabled, setBackdropEnabled] = React.useState(false);
-  /** Once the user flips the backdrop switch, taking photos no longer turns it on */
-  const backdropTouchedRef = React.useRef(false);
+  // Off by default; until the user flips the switch (ever, in this browser), taking photos turns it on
+  const [backdropEnabled, setBackdropEnabled] = React.useState(viewPrefs.backdropEnabled ?? false);
   /** Photo picked for each view; a view without a pick uses its preferred photo */
   const [backdropChoice, setBackdropChoice] = React.useState<Partial<Record<AestheticMapView, string>>>({});
-  const [backdropOpacity, setBackdropOpacity] = React.useState(0.85);
-  const [backdropHideArt, setBackdropHideArt] = React.useState(false);
+  const { backdropOpacity, backdropHideArt } = viewPrefs;
   /** Where the map placed the photos that have no alignment of their own yet, by photo id */
   const [autoFits, setAutoFits] = React.useState<Record<string, AestheticPhotoAlignment>>({});
   const [alignmentEdit, setAlignmentEdit] = React.useState<{ photoId: string; alignment: AestheticPhotoAlignment } | null>(null);
@@ -325,9 +363,10 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     const pendingDate = draft?.date ?? current?.date ?? toLocalISOString(new Date());
     return [
       ...allPhotos.filter((ref) => !removedPhotoIds.includes(ref.photo.id)).map((ref) => ({ photo: ref.photo, date: ref.session.date })),
-      ...pendingPhotos.map((p) => ({ photo: { id: p.key, kind: p.kind, view: p.view }, date: pendingDate, previewUrl: p.previewUrl })),
+      ...pendingPhotos.map((p) => ({ photo: { id: p.key, kind: p.kind, view: p.view, alignment: p.alignment }, date: pendingDate, previewUrl: p.previewUrl })),
     ];
   }, [allPhotos, removedPhotoIds, pendingPhotos, draft?.date, current?.date]);
+  const viewComparePhotos = React.useMemo(() => comparePhotos.filter((ref) => ref.photo.view === view), [comparePhotos, view]);
   const photoCount = shownPhotos.length + pendingPhotos.length;
   const notes = draft ? draft.notes : current?.notes ?? '';
 
@@ -528,7 +567,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
 
   function addPhotos(files: File[], kind: AestheticPhotoKind, photoView: AestheticMapView) {
     // The first photos show up behind the map by themselves, ready to place the points on them
-    if (!backdropTouchedRef.current) setBackdropEnabled(true);
+    if (viewPrefs.backdropEnabled === undefined) setBackdropEnabled(true);
     setPendingPhotos((prev) => [
       ...prev,
       ...files.map((file) => ({ key: newLocalId('photo'), file, kind, view: photoView, previewUrl: URL.createObjectURL(file) })),
@@ -684,6 +723,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
       return;
     }
     setView(mark.view);
+    setCanvasMode('map');
     setSelectedPointId(mark.id);
     showLayer(layer.id);
     if (isEditing) setActiveLayerId(layer.id);
@@ -701,6 +741,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   /** Shows a zone picked in the history: switches to the first view that draws it */
   function showZone(zone: AestheticZoneId | null) {
     setPinnedZone(zone);
+    if (zone) setCanvasMode('map');
     if (!zone || getViewZoneIds(view).includes(zone)) return;
     const target = MAP_VIEWS.find((v) => getViewZoneIds(v).includes(zone));
     if (target) setView(target);
@@ -713,6 +754,19 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   const totals = unitTotals(layers);
   const dateInvalid = showValidation && !draft?.date;
   const chip = 'inline-flex h-7 min-w-0 shrink-0 items-center gap-1.5 rounded-md border bg-background px-2 text-xs text-muted-foreground transition-colors';
+  /** Switches what the canvas shows; an alignment being adjusted is dropped, its tools are the map's */
+  function changeCanvasMode(next: CanvasMode) {
+    if (next === 'compare') setAlignmentEdit(null);
+    setCanvasMode(next);
+  }
+  /** Compares from the photos tab: on the map's view, or on the first view with two photos when it has fewer */
+  function openComparison() {
+    if (viewComparePhotos.length < 2) {
+      const target = MAP_VIEWS.find((v) => comparePhotos.filter((ref) => ref.photo.view === v).length >= 2);
+      if (target) setView(target);
+    }
+    changeCanvasMode('compare');
+  }
   /** Opens a panel, unfolding the dock when it is folded */
   const openTab = (next: Tab) => {
     setTab(next);
@@ -882,6 +936,32 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   const figureOptions: RailOption<AestheticBodyFigure>[] = BODY_FIGURES.map((f) => ({ id: f, label: t(`figures.${f}`), icon: figureIcons[f] }));
   const zoneHighlight = hoveredZone ?? pinnedZone;
 
+  const canvasModeSwitch = (
+    <div role="tablist" aria-label={t('canvas.modeLabel')} className="inline-flex shrink-0 rounded-lg border bg-card/90 p-0.5 shadow-sm backdrop-blur-sm">
+      {([['map', MapIcon], ['compare', Columns2]] as const).map(([id, Icon]) => (
+        <button
+          key={id}
+          type="button"
+          role="tab"
+          aria-selected={canvasMode === id}
+          onClick={() => changeCanvasMode(id)}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
+            canvasMode === id
+              ? 'bg-primary text-primary-foreground shadow-sm dark:bg-foreground dark:text-background'
+              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+          )}
+        >
+          <Icon className="h-3.5 w-3.5" />
+          {t(`canvas.modes.${id}`)}
+          {id === 'compare' && viewComparePhotos.length > 0 && (
+            <span className={cn('text-[10px] tabular-nums', canvasMode === id ? 'opacity-80' : 'text-muted-foreground')}>{viewComparePhotos.length}</span>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+
   const canvas = (
     <div className={cn('flex min-w-0', sideBySide ? 'min-h-0 flex-1' : 'h-[min(72dvh,44rem)] min-h-[22rem] shrink-0 border-b')}>
       {/* Tools: region, view, figure and the photo behind the map */}
@@ -898,22 +978,22 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
             disabledReason={isEditing && !canChangeFigure ? t('map.figureLocked') : undefined}
           />
         )}
-        <PhotoBackdropToolbar
+        {!comparing && <PhotoBackdropToolbar
           vertical
           candidates={backdropCandidates}
           enabled={backdropEnabled}
-          onEnabledChange={(enabled) => { backdropTouchedRef.current = true; setBackdropEnabled(enabled); }}
+          onEnabledChange={(enabled) => { setViewPref('backdropEnabled', enabled); setBackdropEnabled(enabled); }}
           selected={backdropRef}
           onSelect={(photoId) => setBackdropChoice((prev) => ({ ...prev, [view]: photoId }))}
           url={backdropUrl}
           opacity={backdropOpacity}
-          onOpacityChange={setBackdropOpacity}
+          onOpacityChange={(opacity) => setViewPref('backdropOpacity', opacity)}
           hideArt={backdropHideArt}
-          onHideArtChange={setBackdropHideArt}
+          onHideArtChange={(hideArt) => setViewPref('backdropHideArt', hideArt)}
           canAdjust={canRegister && tab !== 'zones'}
           isAdjusting={!!editingAlignment}
           onStartAdjust={() => backdropRef && setAlignmentEdit({ photoId: backdropRef.photo.id, alignment: backdropRef.photo.alignment ?? backdropFit ?? DEFAULT_PHOTO_ALIGNMENT })}
-        />
+        />}
       </MapRail>
 
       <div className="relative flex min-w-0 flex-1 flex-col bg-muted/40">
@@ -929,7 +1009,30 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
             />
           </div>
         )}
+        {comparing ? (
+          <PhotoCompare
+            photos={viewComparePhotos}
+            viewLabel={t(`views.${view}`)}
+            leading={canvasModeSwitch}
+            mode={viewPrefs.compareMode}
+            onModeChange={(mode) => setViewPref('compareMode', mode)}
+            renderOnMap={(ref) => (
+              <ComparedMap
+                photo={ref}
+                view={view}
+                figure={figure}
+                marks={visiblePlaced}
+                selectedMarkId={selectedPointId}
+                onSelectMark={selectFromMap}
+                fit={autoFits[ref.photo.id]}
+                onFit={handleBackdropFit}
+              />
+            )}
+            className="min-h-0 flex-1 p-2"
+          />
+        ) : (
         <div className="relative flex min-h-0 flex-1 flex-col">
+          <div className="absolute left-2 top-2 z-10">{canvasModeSwitch}</div>
           {/* Legend (one entry per service) floats over the top-right corner; a click shows or hides that layer's marks */}
           {layers.length > 0 && tab !== 'zones' && (
             <div className="absolute right-2 top-2 z-10 flex max-w-[40%] flex-col items-stretch gap-0.5 rounded-lg border bg-card/85 p-1 text-[11px] text-muted-foreground shadow-sm backdrop-blur-sm">
@@ -992,10 +1095,11 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
             className="min-h-0 flex-1 p-3 pb-1"
           />
         </div>
+        )}
         {/* Status bar: what a click does now, and the artwork's credits */}
-        {((isEditing && tab !== 'zones') || region === 'body') && (
+        {((isEditing && tab !== 'zones' && !comparing) || region === 'body') && (
           <div className="flex shrink-0 items-center gap-3 border-t bg-card px-3 py-1 text-[11px] leading-snug text-muted-foreground">
-            {isEditing && tab !== 'zones' && (
+            {isEditing && tab !== 'zones' && !comparing && (
               <p className="flex min-w-0 flex-1 items-start gap-1.5">
                 <MousePointerClick className="mt-px h-3.5 w-3.5 shrink-0" />
                 {!activeLayer
@@ -1063,11 +1167,10 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
       {tab === 'photos' && (
         <PhotosPanel
           photos={shownPhotos}
-          wide={(sideBySide ? dockWidth : bodyWidth) >= WIDE_PHOTOS_MIN_WIDTH}
           pending={pendingPhotos}
           isEditing={isEditing}
           consent={effectiveConsent}
-          allPhotos={comparePhotos}
+          onCompare={comparePhotos.length >= 2 ? openComparison : undefined}
           onAddFiles={addPhotos}
           onRemoveStored={(id) => setRemovedPhotoIds((prev) => [...prev, id])}
           onRemovePending={removePendingPhoto}
@@ -1156,7 +1259,6 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     </aside>
   ) : (
     <aside
-      ref={setDockEl}
       className={cn('flex min-h-0 shrink-0 flex-col border-l bg-card transition-[width] duration-200', WIDE_TABS.includes(tab) ? 'w-[clamp(22rem,46%,40rem)]' : 'w-[clamp(18rem,32%,25rem)]')}
     >
       <div className="flex shrink-0 items-end gap-1 border-b bg-muted/40 pl-1.5 pr-1 pt-1">

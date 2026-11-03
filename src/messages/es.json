@@ -10296,12 +10296,9 @@
       "pending": "Sin guardar",
       "remove": "Quitar foto {label}",
       "unavailable": "No disponible en este dispositivo",
-      "compareTitle": "Antes y después",
-      "compareNeedsTwo": "Agregá al menos dos fotos para compararlas.",
       "compareLeft": "Foto izquierda",
       "compareRight": "Foto derecha",
       "compareSlider": "Posición del divisor de la comparación",
-      "optionLabel": "{date} · {kind} · {view}",
       "optionLabelShort": "{kind} · {view}",
       "forbiddenByConsent": "El paciente no autorizó fotos clínicas en el consentimiento.",
       "forbiddenRemove": "El consentimiento no autoriza fotos clínicas: quitá las fotos de esta sesión.",
@@ -10310,12 +10307,16 @@
       "marketingNotAllowed": "No autorizadas para difusión",
       "compareModeLabel": "Modo de comparación",
       "compareModes": {
+        "onMap": "Sobre el mapa",
         "sideBySide": "Lado a lado",
         "slider": "Deslizar"
       },
       "newView": "Vista de las fotos nuevas",
       "addKind": "Agregar fotos de \"{kind}\" ({view})",
-      "emptyKind": "Sin fotos"
+      "emptyKind": "Sin fotos",
+      "compareNeedsTwoOfView": "Agregá al menos dos fotos de la vista {view} para compararlas.",
+      "optionLabelDate": "{kind} · {date}",
+      "compareOpen": "Comparar"
     },
     "consent": {
       "badge": "Consentimiento",
@@ -10507,6 +10508,13 @@
       "expand": "Expandir paneles",
       "properties": "Propiedades",
       "closeProperties": "Cerrar propiedades"
+    },
+    "canvas": {
+      "modeLabel": "Contenido del lienzo",
+      "modes": {
+        "map": "Mapa",
+        "compare": "Antes y después"
+      }
     }
   },
   "MeasurementUnitsPage": {

@@ -10296,12 +10296,9 @@
       "pending": "Unsaved",
       "remove": "Remove photo {label}",
       "unavailable": "Not available on this device",
-      "compareTitle": "Before and after",
-      "compareNeedsTwo": "Add at least two photos to compare them.",
       "compareLeft": "Left photo",
       "compareRight": "Right photo",
       "compareSlider": "Comparison divider position",
-      "optionLabel": "{date} · {kind} · {view}",
       "optionLabelShort": "{kind} · {view}",
       "forbiddenByConsent": "The patient did not allow clinical photos in the consent.",
       "forbiddenRemove": "The consent does not allow clinical photos: remove the photos from this session.",
@@ -10310,12 +10307,16 @@
       "marketingNotAllowed": "Not allowed for marketing use",
       "compareModeLabel": "Comparison mode",
       "compareModes": {
+        "onMap": "On the map",
         "sideBySide": "Side by side",
         "slider": "Slider"
       },
       "newView": "View of new photos",
       "addKind": "Add \"{kind}\" photos ({view})",
-      "emptyKind": "No photos"
+      "emptyKind": "No photos",
+      "compareNeedsTwoOfView": "Add at least two photos of the {view} view to compare them.",
+      "optionLabelDate": "{kind} · {date}",
+      "compareOpen": "Compare"
     },
     "consent": {
       "badge": "Consent",
@@ -10507,6 +10508,13 @@
       "expand": "Expand panels",
       "properties": "Properties",
       "closeProperties": "Close properties"
+    },
+    "canvas": {
+      "modeLabel": "Canvas content",
+      "modes": {
+        "map": "Map",
+        "compare": "Before and after"
+      }
     }
   },
   "MeasurementUnitsPage": {

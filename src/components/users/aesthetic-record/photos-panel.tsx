@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { CircleAlert, ImageOff, ImagePlus, Megaphone, X } from 'lucide-react';
+import { CircleAlert, Columns2, ImageOff, ImagePlus, Megaphone, X } from 'lucide-react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
 import type { AestheticConsent, AestheticMapView, AestheticPhoto, AestheticPhotoKind } from '@/lib/types';
 import type { AestheticPhotoUpload } from '@/services/aesthetic-record';
 import { MAP_VIEWS } from './map-templates';
-import { KIND_DOT, PhotoCompare, type ComparePhoto } from './photo-compare';
+import { KIND_DOT } from './photo-compare';
 import { useAestheticFileUrl } from './use-aesthetic-file-url';
 
 const PHOTO_KINDS: AestheticPhotoKind[] = ['before', 'after'];
@@ -103,16 +103,14 @@ interface PhotosPanelProps {
   isEditing: boolean;
   /** Consent of the session (signed or about to be saved); it decides whether photos may be taken */
   consent: AestheticConsent | null;
-  /** Every photo of the patient for the comparison, oldest first, including the ones not saved yet */
-  allPhotos: ComparePhoto[];
   onAddFiles: (files: File[], kind: AestheticPhotoKind, view: AestheticMapView) => void;
   onRemoveStored: (id: string) => void;
   onRemovePending: (key: string) => void;
-  /** Room for the session photos and the comparison side by side */
-  wide?: boolean;
+  /** Shows the before and after on the canvas, in place of the map */
+  onCompare?: () => void;
 }
 
-export function PhotosPanel({ photos, pending, isEditing, consent, allPhotos, onAddFiles, onRemoveStored, onRemovePending, wide = false }: PhotosPanelProps) {
+export function PhotosPanel({ photos, pending, isEditing, consent, onAddFiles, onRemoveStored, onRemovePending, onCompare }: PhotosPanelProps) {
   const t = useTranslations('AestheticRecord');
   const inputRef = React.useRef<HTMLInputElement>(null);
   /** Kind of the column whose "add" tile opened the file picker */
@@ -130,7 +128,7 @@ export function PhotosPanel({ photos, pending, isEditing, consent, allPhotos, on
   }
 
   return (
-    <div className={cn('grid items-start gap-4', wide && 'grid-cols-[minmax(0,5fr)_minmax(0,6fr)]')}>
+    <>
       <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 flex-col gap-0.5">
@@ -142,8 +140,14 @@ export function PhotosPanel({ photos, pending, isEditing, consent, allPhotos, on
               </span>
             )}
           </div>
+          {onCompare && (
+            <Button type="button" size="sm" variant="outline" className="h-8 shrink-0" onClick={onCompare}>
+              <Columns2 className="mr-1.5 h-3.5 w-3.5" />
+              {t('photos.compareOpen')}
+            </Button>
+          )}
           {canAdd && (
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2">
               <Label htmlFor="aes-photo-view" className="text-xs text-muted-foreground">{t('photos.newView')}</Label>
               <Select value={view} onValueChange={(v) => setView(v as AestheticMapView)}>
                 <SelectTrigger id="aes-photo-view" className="h-8 w-auto min-w-[120px] text-xs"><SelectValue /></SelectTrigger>
@@ -240,11 +244,7 @@ export function PhotosPanel({ photos, pending, isEditing, consent, allPhotos, on
         />
       </section>
 
-      <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4 shadow-sm">
-        <PhotoCompare photos={allPhotos} title={t('photos.compareTitle')} />
-      </section>
-
       {lightbox && <ImageLightbox src={lightbox.src} alt={lightbox.alt} open onClose={() => setLightbox(null)} />}
-    </div>
+    </>
   );
 }

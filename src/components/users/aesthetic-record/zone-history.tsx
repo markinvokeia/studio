@@ -113,23 +113,25 @@ export function ZoneHistory({ sessions, selectedZone, onHoverZone, onSelectZone 
                   onPointerEnter={() => onHoverZone?.(zone)}
                   onPointerLeave={() => onHoverZone?.(null)}
                   className={cn(
-                    'flex w-full flex-col gap-1.5 px-3 py-2.5 text-left transition-colors hover:bg-muted/40 disabled:cursor-default sm:flex-row sm:items-start sm:gap-4',
+                    // Always stacked: the panel is narrow even on wide screens, so a side column would squeeze the chips
+                    'flex w-full flex-col gap-1.5 px-3 py-2.5 text-left transition-colors hover:bg-muted/40 disabled:cursor-default',
                     isSelected && 'bg-primary/5',
                   )}
                 >
-                  <div className="min-w-0 sm:w-48 sm:shrink-0">
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground">{row.key === NO_ZONE_KEY ? t('zones.none') : zoneLabel(row.key)}</p>
                     <p className="text-[11px] text-muted-foreground">
                       {t('zoneHistory.sessions', { count: row.sessionIds.size })} · {t('zoneHistory.last', { date: formatDisplayDate(row.lastDate) })}
                     </p>
                   </div>
-                  <div className="flex flex-1 flex-wrap gap-1.5">
+                  <div className="flex min-w-0 flex-wrap gap-1.5">
                     {row.products.map((product) => (
-                      <Badge key={`${product.name}|${product.unit}`} variant="outline" className="gap-1.5 font-normal">
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: product.color }} aria-hidden />
-                        <span className={cn(!product.name && 'italic text-muted-foreground')}>{product.name || t('point.noProduct')}</span>
-                        <span className="font-semibold">{formatQuantity(product.quantity)} {product.unit}</span>
-                        <span className="text-muted-foreground">· {t('zoneHistory.points', { count: product.points })}</span>
+                      // Each chip stays on one line; only a long service name gets cut
+                      <Badge key={`${product.name}|${product.unit}`} variant="outline" className="max-w-full gap-1.5 whitespace-nowrap font-normal" title={product.name || undefined}>
+                        <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: product.color }} aria-hidden />
+                        <span className={cn('min-w-0 truncate', !product.name && 'italic text-muted-foreground')}>{product.name || t('point.noProduct')}</span>
+                        <span className="shrink-0 font-semibold tabular-nums">{formatQuantity(product.quantity)} {product.unit}</span>
+                        <span className="shrink-0 text-muted-foreground">· {t('zoneHistory.points', { count: product.points })}</span>
                       </Badge>
                     ))}
                   </div>
