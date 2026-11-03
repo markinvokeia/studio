@@ -2497,15 +2497,44 @@ export interface AestheticPhoto {
   alignment?: AestheticPhotoAlignment;
 }
 
-export interface AestheticConsent {
-  signedAt: string;
-  signerName: string;
-  procedure: string;
+/** Consent text of a service; its `{{variables}}` are filled in when the patient signs */
+export interface ServiceConsentTemplate {
+  serviceId: string;
+  title: string;
+  body: string;
+  updatedAt: string;
+}
+
+/** Drawn on the pad, or a previous signature of the same patient used again */
+export type AestheticSignatureSource = 'drawn' | 'reused';
+
+/** Signed consent of one service of the session */
+export interface AestheticServiceConsent {
+  serviceId: string;
+  serviceName: string;
+  title: string;
   /** Rendered consent text, frozen at signing time */
   text: string;
+  /** Version of the service's template it was rendered from; absent for the generic text */
+  templateUpdatedAt?: string;
+  /** One signature can cover several services of the session */
+  signatureId: string;
+  signatureFileId: string;
+  signatureSource: AestheticSignatureSource;
+  /** For a reused signature, the drawn one it comes from */
+  reusedFromSignatureId?: string;
+  signerName: string;
+  signedAt: string;
   allowsClinicalPhotos: boolean;
   allowsMarketingPhotos: boolean;
-  signatureFileId: string;
+}
+
+/** Photo permissions of the session: those given with its last signature */
+export interface AestheticPhotoConsent {
+  allowsClinicalPhotos: boolean;
+  allowsMarketingPhotos: boolean;
+  signerName: string;
+  signedAt: string;
 }
 
 export interface AestheticSession {
@@ -2520,7 +2549,9 @@ export interface AestheticSession {
   notes: string;
   layers: AestheticLayer[];
   photos: AestheticPhoto[];
-  consent: AestheticConsent | null;
+  /** One per service of the session that was signed */
+  consents: AestheticServiceConsent[];
+  photoConsent: AestheticPhotoConsent | null;
   /** Body figure the body points were placed on (their coordinates depend on it) */
   bodyFigure?: AestheticBodyFigure;
   createdAt: string;

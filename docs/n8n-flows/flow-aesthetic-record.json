@@ -2,7 +2,7 @@
   "name": "Aesthetic Record",
   "nodes": [
     {
-      "id": "3a8e77c3-fe09-41e1-a091-85e8aa003ac5",
+      "id": "48826e6c-0a68-40a6-9122-919c7bb50b13",
       "name": "Nota",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -13,7 +13,7 @@
       "parameters": {
         "width": 420,
         "height": 420,
-        "content": "## Aesthetic Record — ficha estética\n\nFlujo NUEVO (no reemplaza nada). Requiere database/scripts/151_20261030_aesthetic-record.sql.\n\nUnidades de medida, configuración estética del servicio (unidad + herramienta punto/área), sesiones con capas por servicio y marcas, fotos y consentimiento (binarios en Drive).\n\nErrores: 'AESTHETIC:<CODIGO>|<detalle>' ⇒ 400 { success:false, code, detail }.\n\nGenerado por scripts/n8n/generate-aesthetic-record-workflow.mjs — no editar a mano."
+        "content": "## Aesthetic Record — ficha estética\n\nFlujo NUEVO (no reemplaza nada). Requiere database/scripts/151, 152 y 154.\n\nUnidades de medida, configuración estética del servicio (unidad + herramienta punto/área), plantilla de consentimiento por servicio, sesiones con capas por servicio y marcas, fotos y un consentimiento firmado por servicio (binarios en Drive; una firma se puede reutilizar).\n\nErrores: 'AESTHETIC:<CODIGO>|<detalle>' ⇒ 400 { success:false, code, detail }.\n\nGenerado por scripts/n8n/generate-aesthetic-record-workflow.mjs — no editar a mano."
       }
     },
     {
@@ -23,7 +23,7 @@
       "parameters": {
         "jsCode": "// Las funciones lanzan 'AESTHETIC:<CODIGO>|<detalle>'. Cualquier otro error\n// (conexión, constraint inesperada) sale como UNKNOWN con el mensaje crudo.\nconst raw = $json.error?.message ?? $json.error ?? $json.message ?? '';\nconst text = String(raw);\nconst match = text.match(/AESTHETIC:([A-Z_]+)(?:\\|(.*))?/);\nreturn [{ json: {\n  success: false,\n  code: match ? match[1] : 'UNKNOWN',\n  detail: match && match[2] ? match[2].trim() : null,\n  message: text || 'Error',\n} }];"
       },
-      "id": "f62d3650-f650-4ea8-b77b-91e11ca44370",
+      "id": "9b399027-ed00-469d-9086-59553ff182da",
       "position": [
         1400,
         1400
@@ -40,7 +40,7 @@
           "responseCode": 400
         }
       },
-      "id": "9630b20f-6cf8-4f19-86c4-6a242000e4ff",
+      "id": "57fa0e09-1054-402a-bc78-3079d4b30348",
       "position": [
         1640,
         1400
@@ -50,7 +50,7 @@
       "name": "GET measurement-units",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "1c119209-e788-4487-8912-fd4c034e4915",
+      "webhookId": "e8138621-9892-4a27-9407-eefcde26b8ec",
       "parameters": {
         "path": "measurement-units",
         "authentication": "jwtAuth",
@@ -65,7 +65,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "4f5d3102-470f-4328-8f37-988fc697f3fe",
+      "id": "c747eb0d-3041-4874-a2a8-82ce5db841e4",
       "position": [
         0,
         0
@@ -88,7 +88,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "fbd7e575-1ce5-4393-aaac-c7e383c28068",
+      "id": "285fa144-807f-4064-98c7-cae0b108d92c",
       "position": [
         240,
         0
@@ -105,7 +105,7 @@
           "responseCode": 200
         }
       },
-      "id": "e320e1cf-4aca-4cd1-bb18-917811a2314b",
+      "id": "ecff5904-d666-4888-aa46-8b041c12c476",
       "position": [
         480,
         0
@@ -115,7 +115,7 @@
       "name": "POST measurement-units/save",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "edf7f525-5907-40dc-bc06-4782a9be11db",
+      "webhookId": "8f0cf020-0b20-413d-bc0e-ce920aa16c50",
       "parameters": {
         "httpMethod": "POST",
         "path": "measurement-units/save",
@@ -131,7 +131,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "722db1d4-9d85-4194-b20e-4886948254cc",
+      "id": "0c54faa1-ab84-4aa0-8df8-46074831327e",
       "position": [
         0,
         220
@@ -156,7 +156,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "c869f734-9b25-4fb8-89e9-73534b939185",
+      "id": "dc78404c-fcb5-4c78-a32d-fde323cef074",
       "position": [
         240,
         220
@@ -173,7 +173,7 @@
           "responseCode": 200
         }
       },
-      "id": "062055ab-0171-4d35-af7c-87739d3a1499",
+      "id": "a3f67326-c156-46ca-962e-8faf93bd6343",
       "position": [
         480,
         220
@@ -183,7 +183,7 @@
       "name": "POST measurement-units/delete",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "b78944e1-eb66-4e17-af0e-74ed93e9c570",
+      "webhookId": "6c4f3706-5441-4b8d-ba5c-2e0d94d6d9f0",
       "parameters": {
         "httpMethod": "POST",
         "path": "measurement-units/delete",
@@ -199,7 +199,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "4a58e9e5-17af-419c-940f-d30411394333",
+      "id": "be6124f1-b371-4230-a2bd-41c0c7ca39ee",
       "position": [
         0,
         440
@@ -224,7 +224,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "6885ddb5-a47e-4aa1-8bb9-5696963db974",
+      "id": "24bc0e7f-c579-4e34-8d47-dae010c2b13c",
       "position": [
         240,
         440
@@ -241,7 +241,7 @@
           "responseCode": 200
         }
       },
-      "id": "7615970e-5b1b-4d46-abc8-86887bf15a9e",
+      "id": "0888daeb-41bd-4d88-a901-cef44a2a35c5",
       "position": [
         480,
         440
@@ -251,7 +251,7 @@
       "name": "GET services/aesthetic-config",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "1cb9d17d-c4da-4327-a662-62d474b79a7a",
+      "webhookId": "1b1d3b13-ac72-4ad1-8689-d240be21c04e",
       "parameters": {
         "path": "services/aesthetic-config",
         "authentication": "jwtAuth",
@@ -266,7 +266,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "488afc8f-4d38-4f9d-9190-93293d981769",
+      "id": "36d6a52c-09bd-4833-afd7-45edb4a6cea5",
       "position": [
         0,
         660
@@ -289,7 +289,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "c81d4449-16eb-4cb4-b6ff-11cabb5030d5",
+      "id": "50708cd7-c1e1-4f3e-98cb-c43098aad978",
       "position": [
         240,
         660
@@ -306,7 +306,7 @@
           "responseCode": 200
         }
       },
-      "id": "8ce04cdf-f8c4-48cb-917a-883b42bae15e",
+      "id": "b83af88e-3152-4081-94fa-1d8ded05214b",
       "position": [
         480,
         660
@@ -316,7 +316,7 @@
       "name": "POST services/aesthetic-config/save",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "e7b762ba-a454-4fc8-ab16-e813dca33d56",
+      "webhookId": "33deb1f7-1fb9-40f1-a30a-9f86aa3987cf",
       "parameters": {
         "httpMethod": "POST",
         "path": "services/aesthetic-config/save",
@@ -332,7 +332,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "2a78be61-4931-4b24-b7a1-038f7e4db03a",
+      "id": "a586da83-7a55-4e40-bbbf-8e476257e4dc",
       "position": [
         0,
         880
@@ -357,7 +357,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "32081619-e0ba-449e-aa4e-07c5604ab2a8",
+      "id": "27d80477-0ff6-4b4a-8c24-f856c3c31ff8",
       "position": [
         240,
         880
@@ -374,17 +374,150 @@
           "responseCode": 200
         }
       },
-      "id": "c29d1f78-a145-4b50-9e3d-2c2daac402df",
+      "id": "3cedf8c5-48e5-413c-939b-2bf5d2ac3a49",
       "position": [
         480,
         880
       ]
     },
     {
+      "name": "GET services/consent-templates",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "07a5c24b-81e8-4026-84c0-f5bd97e90e03",
+      "parameters": {
+        "path": "services/consent-templates",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "id": "ed31c7e7-8d15-4076-b780-81d859022d57",
+      "position": [
+        0,
+        1100
+      ]
+    },
+    {
+      "name": "GET services/consent-templates · SQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.service_consent_templates_list();",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput",
+      "id": "494a144f-b909-4853-adda-3133d785a783",
+      "position": [
+        240,
+        1100
+      ]
+    },
+    {
+      "name": "GET services/consent-templates · OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, templates: $input.all().map(i => i.json).filter(t => t.service_id != null) } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "78bc9cce-6c5a-45a4-a190-3248e7946b65",
+      "position": [
+        480,
+        1100
+      ]
+    },
+    {
+      "name": "POST services/consent-templates/save",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "613bb58a-543f-40bc-ae7a-1258ae52c8ec",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "services/consent-templates/save",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "id": "9537bc2d-ee76-4a14-b912-d75ad46a4993",
+      "position": [
+        0,
+        1320
+      ]
+    },
+    {
+      "name": "POST services/consent-templates/save · SQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.service_consent_template_save($1::jsonb, NULLIF($2, '')::uuid);",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($json.body ?? {}), $('POST services/consent-templates/save').first().json.jwtPayload?.userId ?? ''] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput",
+      "id": "2134e5c7-bd93-4ffd-9581-ddc61dbf9e92",
+      "position": [
+        240,
+        1320
+      ]
+    },
+    {
+      "name": "POST services/consent-templates/save · OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, template: $json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "460bf927-7633-4285-819a-205c739cef00",
+      "position": [
+        480,
+        1320
+      ]
+    },
+    {
       "name": "GET aesthetic/sessions",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "c8015100-54a4-4de6-94ca-3b99122f88e1",
+      "webhookId": "fc5e79a7-7b7a-4888-a031-421c27e95656",
       "parameters": {
         "path": "aesthetic/sessions",
         "authentication": "jwtAuth",
@@ -399,10 +532,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "90d56be2-6faa-4df0-befa-cccbda1e4e52",
+      "id": "0d5c0f8d-e1bc-48ae-a892-e117424f8b82",
       "position": [
         0,
-        1100
+        1540
       ]
     },
     {
@@ -424,10 +557,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "ec05d6b4-0c45-4436-b91a-567c3297f63e",
+      "id": "4c71b3e5-5946-4776-af98-c456c5a910d8",
       "position": [
         240,
-        1100
+        1540
       ]
     },
     {
@@ -441,17 +574,17 @@
           "responseCode": 200
         }
       },
-      "id": "12e6e4c1-e3e2-47ff-86b5-c312683e52fc",
+      "id": "115e3fdf-f198-4dd9-9ab5-7e29d1cd42ea",
       "position": [
         480,
-        1100
+        1540
       ]
     },
     {
       "name": "POST aesthetic/sessions/save",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "a2decee3-49b5-478a-937b-fa31a6515697",
+      "webhookId": "6cfb2a50-9e16-4bbd-8c9d-e6fede29e21a",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/sessions/save",
@@ -467,10 +600,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "14c9bdca-36df-479d-b1d4-3a026e91de2d",
+      "id": "5c504b7a-7b7e-4e94-8924-5479aec0830e",
       "position": [
         0,
-        1320
+        1760
       ]
     },
     {
@@ -492,10 +625,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "bb6606d4-e864-45b3-952b-d5237fe99153",
+      "id": "2b9ee47f-99c8-4b6c-813f-78677b91629b",
       "position": [
         240,
-        1320
+        1760
       ]
     },
     {
@@ -509,17 +642,17 @@
           "responseCode": 200
         }
       },
-      "id": "af0ec93a-7572-4308-8d32-438a31b21fc4",
+      "id": "1a8c9802-df90-4a82-a3b5-ca57342dcc78",
       "position": [
         480,
-        1320
+        1760
       ]
     },
     {
       "name": "POST aesthetic/sessions/delete",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "168ac276-318f-4252-8711-085326017e43",
+      "webhookId": "f2c24bbc-df85-406f-852c-7132c762d1e9",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/sessions/delete",
@@ -535,10 +668,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "fa88ab89-4761-4abb-bdb7-159fb08fbc35",
+      "id": "8ba54885-ceb2-4452-86a4-ce6aa7acaa28",
       "position": [
         0,
-        1540
+        1980
       ]
     },
     {
@@ -560,10 +693,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "fab5a3ed-def7-48f3-99f3-ab36feeddad1",
+      "id": "c552c1f3-23c8-4beb-a033-cf22f746b353",
       "position": [
         240,
-        1540
+        1980
       ]
     },
     {
@@ -577,17 +710,17 @@
           "responseCode": 200
         }
       },
-      "id": "bb27353d-1821-4ed7-b6b5-0c0cced98710",
+      "id": "9db1f720-ec8c-4fc0-a20c-7454cda1c6db",
       "position": [
         480,
-        1540
+        1980
       ]
     },
     {
       "name": "POST aesthetic/photos/alignment",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "94ddbc95-3cc5-4672-8a26-821ad8fc35b1",
+      "webhookId": "664b87c7-4909-4f20-85a2-3c66dc649e5e",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/photos/alignment",
@@ -603,10 +736,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "433ce87a-c412-413b-924d-3fbd62fd2626",
+      "id": "1c406dc7-abdb-4dbf-a228-1d876bae132e",
       "position": [
         0,
-        1760
+        2200
       ]
     },
     {
@@ -628,10 +761,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "981a8657-956e-4b5f-afe3-8878bc282983",
+      "id": "a85af149-fda0-4f2e-8074-0c260eb8f72a",
       "position": [
         240,
-        1760
+        2200
       ]
     },
     {
@@ -645,17 +778,17 @@
           "responseCode": 200
         }
       },
-      "id": "dafea372-d4d4-4b24-92c0-d8716fea80f6",
+      "id": "3981cc88-574e-4c97-8694-b664d774c27d",
       "position": [
         480,
-        1760
+        2200
       ]
     },
     {
       "name": "POST aesthetic/photos/upload",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "4af46944-de8f-436e-a6cc-9144b75d85c5",
+      "webhookId": "32faa8e0-84ac-4478-bcc5-a6e1d170fa79",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/photos/upload",
@@ -673,10 +806,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "1cb37c62-e6e8-4cd8-b015-4cc16e77d0b6",
+      "id": "ebd0b197-5e20-415b-97d2-3ad7119a6f8c",
       "position": [
         0,
-        1980
+        2420
       ]
     },
     {
@@ -687,10 +820,10 @@
         "jsCode": "const item = $('POST aesthetic/photos/upload').first();\nconst body = item.json.body ?? {};\nconst binary = item.binary?.data0 ?? item.binary?.data;\nif (!binary) throw new Error('AESTHETIC:FILE_REQUIRED|');\nconst sessionId = String(body.session_id ?? '').trim();\nif (!/^[0-9]+$/.test(sessionId)) throw new Error('AESTHETIC:SESSION_NOT_FOUND|' + sessionId);\nconst kind = String(body.kind ?? '');\nif (!['before', 'after'].includes(kind)) throw new Error('AESTHETIC:INVALID_PHOTO_KIND|' + kind);\nif (!/^image\\/(jpeg|png|webp|heic|heif)$/.test(binary.mimeType ?? '')) throw new Error('AESTHETIC:INVALID_FILE_TYPE|' + binary.mimeType);\nreturn [{\n  json: {\n    session_id: sessionId,\n    kind,\n    view: String(body.view ?? 'front'),\n    alignment: body.alignment ? String(body.alignment) : '',\n    file_name: binary.fileName ?? 'foto',\n    mime_type: binary.mimeType,\n  },\n  binary: { file: binary },\n}];"
       },
       "onError": "continueErrorOutput",
-      "id": "ebab3e4d-7f61-4a35-861e-26d21852fca0",
+      "id": "202418b2-b3a4-4051-ba86-fa8889f30321",
       "position": [
         240,
-        1980
+        2420
       ]
     },
     {
@@ -720,10 +853,10 @@
           "name": "Google Drive account 2"
         }
       },
-      "id": "dfa292e2-204d-4e76-86e9-23c51dfafced",
+      "id": "352397c8-1c22-4fc8-919c-6d779c9f0adc",
       "position": [
         480,
-        1980
+        2420
       ]
     },
     {
@@ -745,10 +878,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "e525dd97-9583-4a75-8a6a-7edb53686764",
+      "id": "a5946525-abd6-447d-831d-12a67a166445",
       "position": [
         720,
-        1980
+        2420
       ]
     },
     {
@@ -762,17 +895,17 @@
           "responseCode": 200
         }
       },
-      "id": "00247b41-e388-4506-8419-f215abdf37f3",
+      "id": "edd2c29d-e616-4e7b-aece-df23717a495c",
       "position": [
         960,
-        1980
+        2420
       ]
     },
     {
       "name": "POST aesthetic/photos/delete",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "fa94020d-6931-40e7-8fa7-7dfa2a58ea13",
+      "webhookId": "da7ce4fb-fda0-47e9-b23f-89b3c227290f",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/photos/delete",
@@ -788,10 +921,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "b935c50f-7ea4-4afc-9433-7d4f8203fb07",
+      "id": "9719bb55-d39c-4dcd-beba-810c3b700932",
       "position": [
         0,
-        2200
+        2640
       ]
     },
     {
@@ -813,10 +946,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "b723cbff-e6c0-42ce-8f43-1a793061a5a4",
+      "id": "e1746bf5-29b9-40eb-a2d2-71ed54554d1b",
       "position": [
         240,
-        2200
+        2640
       ]
     },
     {
@@ -833,7 +966,7 @@
           },
           "conditions": [
             {
-              "id": "31071743-3f87-485f-a5ee-d3011b817fc7",
+              "id": "defe995a-f6ab-4115-8a0a-3063ad839d5f",
               "operator": {
                 "type": "string",
                 "operation": "notEmpty",
@@ -847,10 +980,10 @@
         },
         "options": {}
       },
-      "id": "b965ee25-8879-4f53-9493-70142472703e",
+      "id": "32d0b95e-2612-4f20-adf4-15fbbfaf952f",
       "position": [
         480,
-        2200
+        2640
       ]
     },
     {
@@ -873,10 +1006,10 @@
         }
       },
       "onError": "continueRegularOutput",
-      "id": "fa2d91ce-8872-463e-ac6c-2b07964ad27b",
+      "id": "7160fabd-d3da-42fe-a5ae-f627dd119067",
       "position": [
         720,
-        2200
+        2640
       ]
     },
     {
@@ -890,20 +1023,20 @@
           "responseCode": 200
         }
       },
-      "id": "763e1163-a82c-4fcd-a6f4-f75c8b4311ca",
+      "id": "c0be198f-ccbc-4ef4-8437-4201263e83dc",
       "position": [
         960,
-        2200
+        2640
       ]
     },
     {
-      "name": "POST aesthetic/consent/sign",
+      "name": "POST aesthetic/consents/sign",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "663cb89c-5b35-4799-bcf9-2eb178378efd",
+      "webhookId": "cccb2b8f-ed26-4b36-b193-5480b55850ae",
       "parameters": {
         "httpMethod": "POST",
-        "path": "aesthetic/consent/sign",
+        "path": "aesthetic/consents/sign",
         "authentication": "jwtAuth",
         "responseMode": "responseNode",
         "options": {
@@ -918,33 +1051,33 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "9f8cbb6a-4d3d-4f15-9d96-9c05026a3484",
+      "id": "29119006-501e-401c-9a29-b8f94522e022",
       "position": [
         0,
-        2420
+        2860
       ]
     },
     {
-      "name": "Consent · validar",
+      "name": "Consents · validar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "parameters": {
-        "jsCode": "const item = $('POST aesthetic/consent/sign').first();\nconst body = item.json.body ?? {};\nconst binary = item.binary?.data0 ?? item.binary?.data;\nif (!binary) throw new Error('AESTHETIC:FILE_REQUIRED|');\nconst sessionId = String(body.session_id ?? '').trim();\nif (!/^[0-9]+$/.test(sessionId)) throw new Error('AESTHETIC:SESSION_NOT_FOUND|' + sessionId);\nlet consent;\ntry { consent = JSON.parse(body.consent ?? '{}'); } catch { throw new Error('AESTHETIC:INVALID_CONSENT|'); }\nreturn [{\n  json: { session_id: sessionId, consent: JSON.stringify(consent), mime_type: binary.mimeType ?? 'image/png' },\n  binary: { file: binary },\n}];"
+        "jsCode": "const item = $('POST aesthetic/consents/sign').first();\nconst body = item.json.body ?? {};\nconst binary = item.binary?.data0 ?? item.binary?.data;\nif (!binary) throw new Error('AESTHETIC:FILE_REQUIRED|');\nconst sessionId = String(body.session_id ?? '').trim();\nif (!/^[0-9]+$/.test(sessionId)) throw new Error('AESTHETIC:SESSION_NOT_FOUND|' + sessionId);\nlet signing;\ntry { signing = JSON.parse(body.signing ?? '{}'); } catch { throw new Error('AESTHETIC:INVALID_CONSENT|'); }\nif (!/^image\\/(png|jpeg|webp)$/.test(binary.mimeType ?? '')) throw new Error('AESTHETIC:INVALID_FILE_TYPE|' + binary.mimeType);\ndelete signing.reuseSignatureId;\nreturn [{\n  json: { session_id: sessionId, signing: JSON.stringify(signing), mime_type: binary.mimeType },\n  binary: { file: binary },\n}];"
       },
       "onError": "continueErrorOutput",
-      "id": "065e2000-db5f-48fe-9489-fa3762b48d3a",
+      "id": "442b3db9-d63e-4029-b9ce-104462a310d6",
       "position": [
         240,
-        2420
+        2860
       ]
     },
     {
-      "name": "Consent · subir firma",
+      "name": "Consents · subir firma",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "parameters": {
         "inputDataFieldName": "file",
-        "name": "={{ 'aesthetic_signature_' + $json.session_id + '.png' }}",
+        "name": "={{ 'aesthetic_signature_' + $json.session_id + '_' + Date.now() + '.png' }}",
         "driveId": {
           "__rl": true,
           "mode": "list",
@@ -965,21 +1098,21 @@
           "name": "Google Drive account 2"
         }
       },
-      "id": "3d5cd00f-647f-4514-8220-caf5d3c84754",
+      "id": "678c929e-ee90-4c4e-aef6-5956844d5c3b",
       "position": [
         480,
-        2420
+        2860
       ]
     },
     {
-      "name": "Consent · guardar",
+      "name": "Consents · guardar",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT * FROM public.aesthetic_consent_save($1::bigint, $2::jsonb, $3, $4, NULLIF($5, '')::uuid);",
+        "query": "SELECT public.aesthetic_consents_sign($1::bigint, $2::jsonb, $3, $4, NULLIF($5, '')::uuid) AS session;",
         "options": {
-          "queryReplacement": "={{ (() => { const v = $('Consent · validar').first().json; return [v.session_id, v.consent, $json.id, v.mime_type, $('POST aesthetic/consent/sign').first().json.jwtPayload?.userId ?? '']; })() }}"
+          "queryReplacement": "={{ (() => { const v = $('Consents · validar').first().json; return [v.session_id, v.signing, $json.id, v.mime_type, $('POST aesthetic/consents/sign').first().json.jwtPayload?.userId ?? '']; })() }}"
         }
       },
       "credentials": {
@@ -990,94 +1123,102 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "5607c577-5b32-4408-8280-d8c9b359237d",
+      "id": "436cd4c3-feed-489e-ba20-18a7dad96b39",
       "position": [
         720,
-        2420
+        2860
       ]
     },
     {
-      "name": "Consent · ¿firma anterior?",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "a5739942-5f6e-4a08-846b-7873a0586a3f",
-              "operator": {
-                "type": "string",
-                "operation": "notEmpty",
-                "singleValue": true
-              },
-              "leftValue": "={{ $json.previous_drive_file_id }}",
-              "rightValue": ""
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "53b441bc-369d-4957-83be-c1e8e9428f8e",
-      "position": [
-        960,
-        2420
-      ]
-    },
-    {
-      "name": "Consent · borrar firma anterior",
-      "type": "n8n-nodes-base.googleDrive",
-      "typeVersion": 3,
-      "parameters": {
-        "operation": "deleteFile",
-        "fileId": {
-          "__rl": true,
-          "mode": "id",
-          "value": "={{ $json.previous_drive_file_id }}"
-        },
-        "options": {}
-      },
-      "credentials": {
-        "googleDriveOAuth2Api": {
-          "id": "k3vQaAkau21se8nC",
-          "name": "Google Drive account 2"
-        }
-      },
-      "onError": "continueRegularOutput",
-      "id": "36d38c0f-bdfa-4070-8632-a7e7973a3fd1",
-      "position": [
-        1200,
-        2420
-      ]
-    },
-    {
-      "name": "Consent · OK",
+      "name": "Consents · OK",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ { success: true, consent: $('Consent · guardar').first().json.consent } }}",
+        "responseBody": "={{ { success: true, session: $json.session } }}",
         "options": {
           "responseCode": 200
         }
       },
-      "id": "c45f115b-5bbd-4dd9-bcee-ebf8d8b8b2d8",
+      "id": "41553756-e421-43ab-bf6e-8b7756faf0ed",
       "position": [
-        1440,
-        2420
+        960,
+        2860
+      ]
+    },
+    {
+      "name": "POST aesthetic/consents/reuse",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "10275759-061c-4139-912b-783aeec2f45c",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aesthetic/consents/reuse",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "id": "d6528910-d242-47b8-836f-fd7ee623f8ca",
+      "position": [
+        0,
+        3080
+      ]
+    },
+    {
+      "name": "POST aesthetic/consents/reuse · SQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT public.aesthetic_consents_sign(NULLIF($1, '')::bigint, $2::jsonb, NULL, NULL, NULLIF($3, '')::uuid) AS session;",
+        "options": {
+          "queryReplacement": "={{ [String($json.body.session_id ?? \"\"), JSON.stringify($json.body.signing ?? {}), $('POST aesthetic/consents/reuse').first().json.jwtPayload?.userId ?? ''] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput",
+      "id": "7ab81b66-52c4-4f03-946c-5a174a589bfd",
+      "position": [
+        240,
+        3080
+      ]
+    },
+    {
+      "name": "POST aesthetic/consents/reuse · OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, session: $json.session } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "bc771d63-9a3d-410f-b2b3-e712d652ecf2",
+      "position": [
+        480,
+        3080
       ]
     },
     {
       "name": "GET aesthetic/file",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "d8737329-6776-409e-8c15-1d1a387a640f",
+      "webhookId": "2d4b2f1e-561b-419d-8236-9fd44e3c7ce6",
       "parameters": {
         "path": "aesthetic/file",
         "authentication": "jwtAuth",
@@ -1092,10 +1233,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "a9754a9b-9cf5-474c-bd76-c70838d2dd79",
+      "id": "8d75a8b0-0626-42ee-a5d3-ca6c15b993d8",
       "position": [
         0,
-        2640
+        3300
       ]
     },
     {
@@ -1117,10 +1258,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "a4939fe6-bd12-453a-af60-bdebd6669f81",
+      "id": "979ca1a5-d05e-445c-8602-8664b5ec3195",
       "position": [
         240,
-        2640
+        3300
       ]
     },
     {
@@ -1137,7 +1278,7 @@
           },
           "conditions": [
             {
-              "id": "3e40c037-7c90-467d-a0f2-790db2c7f267",
+              "id": "8f72effb-2583-4420-880d-a574472e8603",
               "operator": {
                 "type": "string",
                 "operation": "notEmpty",
@@ -1151,10 +1292,10 @@
         },
         "options": {}
       },
-      "id": "7733bfa3-937a-465c-84fd-390171881328",
+      "id": "5faf8740-7b1a-4aa8-9a00-108c50d846c3",
       "position": [
         480,
-        2640
+        3300
       ]
     },
     {
@@ -1178,10 +1319,10 @@
           "name": "Google Drive account 2"
         }
       },
-      "id": "b0ee5e52-f1ed-4298-a665-ea5161d79156",
+      "id": "d7a93980-83f4-46fd-9ec0-ac1d942d6906",
       "position": [
         720,
-        2640
+        3300
       ]
     },
     {
@@ -1196,10 +1337,10 @@
           "responseCode": 200
         }
       },
-      "id": "1b49412e-4c0b-4393-aea6-2b7542d68fdd",
+      "id": "cce9b2d5-0daf-4a14-a91e-4d0bc034e648",
       "position": [
         960,
-        2640
+        3300
       ]
     },
     {
@@ -1213,10 +1354,10 @@
           "responseCode": 404
         }
       },
-      "id": "dd911120-d434-4e22-a8c9-b0d4cf73b79f",
+      "id": "8f5808eb-e8a7-4ff5-a301-dad2ac2d1519",
       "position": [
         720,
-        2760
+        3420
       ]
     }
   ],
@@ -1364,6 +1505,64 @@
         [
           {
             "node": "POST services/aesthetic-config/save · OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET services/consent-templates": {
+      "main": [
+        [
+          {
+            "node": "GET services/consent-templates · SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET services/consent-templates · SQL": {
+      "main": [
+        [
+          {
+            "node": "GET services/consent-templates · OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST services/consent-templates/save": {
+      "main": [
+        [
+          {
+            "node": "POST services/consent-templates/save · SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST services/consent-templates/save · SQL": {
+      "main": [
+        [
+          {
+            "node": "POST services/consent-templates/save · OK",
             "type": "main",
             "index": 0
           }
@@ -1609,22 +1808,22 @@
         ]
       ]
     },
-    "POST aesthetic/consent/sign": {
+    "POST aesthetic/consents/sign": {
       "main": [
         [
           {
-            "node": "Consent · validar",
+            "node": "Consents · validar",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Consent · validar": {
+    "Consents · validar": {
       "main": [
         [
           {
-            "node": "Consent · subir firma",
+            "node": "Consents · subir firma",
             "type": "main",
             "index": 0
           }
@@ -1638,22 +1837,22 @@
         ]
       ]
     },
-    "Consent · subir firma": {
+    "Consents · subir firma": {
       "main": [
         [
           {
-            "node": "Consent · guardar",
+            "node": "Consents · guardar",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Consent · guardar": {
+    "Consents · guardar": {
       "main": [
         [
           {
-            "node": "Consent · ¿firma anterior?",
+            "node": "Consents · OK",
             "type": "main",
             "index": 0
           }
@@ -1667,29 +1866,29 @@
         ]
       ]
     },
-    "Consent · ¿firma anterior?": {
+    "POST aesthetic/consents/reuse": {
       "main": [
         [
           {
-            "node": "Consent · borrar firma anterior",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Consent · OK",
+            "node": "POST aesthetic/consents/reuse · SQL",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Consent · borrar firma anterior": {
+    "POST aesthetic/consents/reuse · SQL": {
       "main": [
         [
           {
-            "node": "Consent · OK",
+            "node": "POST aesthetic/consents/reuse · OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
             "type": "main",
             "index": 0
           }

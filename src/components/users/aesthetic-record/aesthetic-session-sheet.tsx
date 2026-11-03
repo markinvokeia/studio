@@ -35,18 +35,19 @@ import {
   AestheticPartialSaveError,
   fetchAestheticSessions,
   fetchServiceAestheticConfigs,
+  fetchServiceConsentTemplates,
   newAestheticMarkId,
   newLocalId,
   saveAestheticPhotoAlignment,
-  signAestheticConsent,
+  signAestheticConsents,
   upsertAestheticSession,
-  type AestheticConsentInput,
-  type AestheticConsentUpload,
+  type AestheticConsentSigning,
 } from '@/services/aesthetic-record';
 
-import type { AestheticBodyFigure, AestheticConsent, AestheticLayer, AestheticMapRegion, AestheticMapView, AestheticMark, AestheticPhotoAlignment, AestheticPhotoKind, AestheticSession, AestheticZoneId, ServiceAestheticConfig } from '@/lib/types';
-import { ConsentDialog } from './consent-dialog';
-import { ConsentPanel } from './consent-panel';
+import type { AestheticBodyFigure, AestheticLayer, AestheticMapRegion, AestheticMapView, AestheticMark, AestheticPhotoAlignment, AestheticPhotoConsent, AestheticPhotoKind, AestheticSession, AestheticZoneId, ServiceAestheticConfig, ServiceConsentTemplate } from '@/lib/types';
+import { ConsentDialog, type ConsentDialogResult, type PreviousSignature } from './consent-dialog';
+import { ConsentPanel, type PendingSigning } from './consent-panel';
+import { unsignedLayers } from './consent-template';
 import { AestheticMap } from './aesthetic-map';
 import { formatQuantity, isMarkIncomplete, layerColor, layerTitle, newLayer, placeMarks, unitTotals, type PlacedMark } from './layers';
 import { LayersPanel } from './layers-panel';
@@ -84,10 +85,9 @@ interface Draft {
 
 const draftKey = (draft: Draft) => JSON.stringify(draft);
 
-/** Consent signed during the edit, saved together with the session */
-interface PendingConsent extends AestheticConsentUpload {
-  previewUrl: string;
-}
+/** Drops the local previews of the signatures drawn in an edit */
+const revokeSigningPreviews = (list: PendingSigning[]) =>
+  list.forEach((p) => { if (p.previewUrl && !p.signing.reuseKey) URL.revokeObjectURL(p.previewUrl); });
 
 interface PanelTabOption<T extends string> {
   id: T;
@@ -270,8 +270,10 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   /** A save was blocked by missing fields: mark them in red until editing ends */
   const [showValidation, setShowValidation] = React.useState(false);
   const [confirmDiscard, setConfirmDiscard] = React.useState<null | (() => void)>(null);
-  const [consentOpen, setConsentOpen] = React.useState(false);
-  const [pendingConsent, setPendingConsent] = React.useState<PendingConsent | null>(null);
+  /** Services ticked in the consent dialog; null while it is closed */
+  const [signServiceIds, setSignServiceIds] = React.useState<string[] | null>(null);
+  const [pendingSignings, setPendingSignings] = React.useState<PendingSigning[]>([]);
+  const [consentTemplates, setConsentTemplates] = React.useState<ServiceConsentTemplate[]>([]);
 
   // Photo behind the map
   // Off by default; until the user flips the switch (ever, in this browser), taking photos turns it on
@@ -290,7 +292,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   const currentIndex = current ? sessions.indexOf(current) : -1;
   const previousSession = currentIndex > 0 ? sessions[currentIndex - 1] : null;
   const nextSession = currentIndex >= 0 ? sessions[currentIndex + 1] ?? null : null;
-  const isDirty = isEditing && (draftKey(draft) !== initialDraftKey || pendingPhotos.length > 0 || removedPhotoIds.length > 0 || pendingConsent !== null);
+  const isDirty = isEditing && (draftKey(draft) !== initialDraftKey || pendingPhotos.length > 0 || removedPhotoIds.length > 0 || pendingSignings.length > 0);
 
   /** Body figure of a new session: the one used last, else the patient's sex */
   const figureFrom = React.useCallback(
@@ -318,6 +320,8 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     fetchServiceAestheticConfigs()
       .then(setConfigs)
       .catch((error) => setConfigsError(getErrorMessage(error)));
+    // Without them each service is signed with the generic text
+    fetchServiceConsentTemplates().then(setConsentTemplates).catch(() => undefined);
   }, [canRegister]);
 
   React.useEffect(() => {
@@ -374,7 +378,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   const backdropCandidates = React.useMemo<BackdropRef[]>(() => {
     const pendingDate = draft?.date ?? current?.date ?? toLocalISOString(new Date());
     const stored = allPhotos
-      .filter((ref) => ref.photo.view === view && !removedPhotoIds.includes(ref.photo.id) && ref.session.consent?.allowsClinicalPhotos !== false)
+      .filter((ref) => ref.photo.view === view && !removedPhotoIds.includes(ref.photo.id) && ref.session.photoConsent?.allowsClinicalPhotos !== false)
       .map((ref) => ({
         ref: { photo: ref.photo, date: ref.session.date } as BackdropRef,
         own: ref.session.id === current?.id,
@@ -402,10 +406,26 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     setAutoFits((prev) => (prev[photoId]?.scale === alignment.scale ? prev : { ...prev, [photoId]: alignment }));
   }, []);
   const editingAlignment = alignmentEdit && alignmentEdit.photoId === backdropRef?.photo.id ? alignmentEdit.alignment : null;
-  /** Consent that applies to what is on screen: the one signed in this edit, else the stored one (none for a new session) */
-  const effectiveConsent: AestheticConsent | null = pendingConsent
-    ? { ...pendingConsent.input, signedAt: pendingConsent.signedAt, signatureFileId: '' }
-    : current?.consent ?? null;
+  /** Stored consents of the session on screen (none for a new one) */
+  const storedConsents = React.useMemo(() => (draft && !draft.sessionId ? [] : current?.consents ?? []), [draft, current]);
+  /** Photo permissions in force: those of the last signature of this edit, else the stored ones */
+  const lastSigning = pendingSignings[pendingSignings.length - 1]?.signing;
+  const photoConsent: AestheticPhotoConsent | null = lastSigning
+    ? { allowsClinicalPhotos: lastSigning.allowsClinicalPhotos, allowsMarketingPhotos: lastSigning.allowsMarketingPhotos, signerName: lastSigning.signerName, signedAt: lastSigning.signedAt }
+    : draft && !draft.sessionId ? null : current?.photoConsent ?? null;
+  const signableCount = layers.filter((l) => l.serviceId).length;
+  const missingConsents = unsignedLayers(layers, [...storedConsents, ...pendingSignings.flatMap((p) => p.signing.consents)]);
+  /** Last signature the patient gave, offered to sign again without drawing it: one of this edit first */
+  const previousSignature = React.useMemo<PreviousSignature | null>(() => {
+    const drawn = [...pendingSignings].reverse().find((p) => p.signing.signature && !p.signing.reuseKey);
+    if (drawn?.signing.signature && drawn.previewUrl) {
+      return { kind: 'pending', key: drawn.signing.key, file: drawn.signing.signature, previewUrl: drawn.previewUrl, signerName: drawn.signing.signerName, signedAt: drawn.signing.signedAt };
+    }
+    const last = sessions.flatMap((s) => s.consents).sort((a, b) => b.signedAt.localeCompare(a.signedAt))[0];
+    return last
+      ? { kind: 'stored', signatureId: last.reusedFromSignatureId ?? last.signatureId, fileId: last.signatureFileId, signerName: last.signerName, signedAt: last.signedAt }
+      : null;
+  }, [pendingSignings, sessions]);
 
   // ── Editing ──
   function beginEditing(next: Draft) {
@@ -413,7 +433,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     setInitialDraftKey(draftKey(next));
     setPendingPhotos([]);
     setRemovedPhotoIds([]);
-    setPendingConsent(null);
+    setPendingSignings([]);
     setSaveError(null);
     setShowValidation(false);
     setSelectedPointId(null);
@@ -450,11 +470,11 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
 
   function endEditing() {
     pendingPhotos.forEach((p) => URL.revokeObjectURL(p.previewUrl));
-    if (pendingConsent) URL.revokeObjectURL(pendingConsent.previewUrl);
+    revokeSigningPreviews(pendingSignings);
     setDraft(null);
     setPendingPhotos([]);
     setRemovedPhotoIds([]);
-    setPendingConsent(null);
+    setPendingSignings([]);
     setSaveError(null);
     setShowValidation(false);
     setSelectedPointId(null);
@@ -469,7 +489,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
   function close() {
     guardUnsaved(() => {
       pendingPhotos.forEach((p) => URL.revokeObjectURL(p.previewUrl));
-      if (pendingConsent) URL.revokeObjectURL(pendingConsent.previewUrl);
+      revokeSigningPreviews(pendingSignings);
       onClose();
     });
   }
@@ -600,13 +620,18 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
         pendingPhotos.map(({ key, file, kind, view: photoView, alignment }) => ({ key, file, kind, view: photoView, alignment })),
         removedPhotoIds,
         draft.sessionId,
-        pendingConsent ? { input: pendingConsent.input, signature: pendingConsent.signature, signedAt: pendingConsent.signedAt } : undefined,
+        pendingSignings.map((p) => p.signing),
       );
     },
     {
       onSuccess: (saved) => {
         if (!saved) return;
-        toast({ title: draft?.sessionId ? t('toast.updated') : t('toast.created') });
+        // Saving without every consent signed is allowed, but it is said
+        const unsigned = unsignedLayers(saved.layers, saved.consents).length;
+        toast({
+          title: draft?.sessionId ? t('toast.updated') : t('toast.created'),
+          description: unsigned ? t('consent.savedWithMissing', { count: unsigned }) : undefined,
+        });
         endEditing();
         onChanged?.();
         onClose();
@@ -630,7 +655,17 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
       return prev.filter((p) => !error.uploadedPhotoKeys.includes(p.key));
     });
     setRemovedPhotoIds((prev) => prev.filter((id) => !error.removedPhotoIds.includes(id)));
-    if (error.consentSaved) removePendingConsent();
+    setPendingSignings((prev) => {
+      revokeSigningPreviews(prev.filter((p) => error.savedSigningKeys.includes(p.signing.key)));
+      return prev
+        .filter((p) => !error.savedSigningKeys.includes(p.signing.key))
+        .map((p) => {
+          // A signing left that reuses one now stored points to its stored signature instead
+          const storedId = p.signing.reuseKey ? error.signatureIdByKey[p.signing.reuseKey] : undefined;
+          if (!storedId) return p;
+          return { signing: { ...p.signing, reuseKey: undefined, signature: undefined, reuseSignatureId: storedId }, fileId: `consentsig_${storedId}` };
+        });
+    });
     setSaveError(t('session.partialSave', { error: error.message }));
     setShownId(error.sessionId);
     onChanged?.();
@@ -662,7 +697,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
       setSelectedPointId(first.mark.id);
       return;
     }
-    if (effectiveConsent?.allowsClinicalPhotos === false && photoCount > 0) {
+    if (photoConsent?.allowsClinicalPhotos === false && photoCount > 0) {
       setShowValidation(true);
       setSaveError(t('session.photosNotAllowed'));
       setTab('photos');
@@ -672,25 +707,48 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     save.run();
   }
 
-  /** While editing, the consent waits for the session save; on a saved session it is stored right away */
-  async function submitConsent(input: AestheticConsentInput, signature: File) {
-    const signedAt = toLocalISOString(new Date());
+  /** While editing, the consents wait for the session save; on a saved session they are stored right away */
+  async function submitConsent(result: ConsentDialogResult) {
+    const { reuse } = result;
+    const signing: AestheticConsentSigning = {
+      key: newLocalId('signing'),
+      signerName: result.signerName,
+      signedAt: toLocalISOString(new Date()),
+      allowsClinicalPhotos: result.allowsClinicalPhotos,
+      allowsMarketingPhotos: result.allowsMarketingPhotos,
+      consents: result.consents,
+      signature: reuse?.kind === 'pending' ? reuse.file : result.signature,
+      reuseSignatureId: reuse?.kind === 'stored' ? reuse.signatureId : undefined,
+      reuseKey: reuse?.kind === 'pending' ? reuse.key : undefined,
+    };
+    const toastTitle = t('consent.toastSigned', { count: result.consents.length });
     if (isEditing) {
-      if (pendingConsent) URL.revokeObjectURL(pendingConsent.previewUrl);
-      setPendingConsent({ input, signature, signedAt, previewUrl: URL.createObjectURL(signature) });
-      toast({ title: t('consent.toastPending') });
+      const pending: PendingSigning = {
+        signing,
+        previewUrl: reuse?.kind === 'pending' ? reuse.previewUrl : result.signature ? URL.createObjectURL(result.signature) : undefined,
+        fileId: reuse?.kind === 'stored' ? reuse.fileId : undefined,
+      };
+      setPendingSignings((prev) => [...prev, pending]);
+      toast({ title: toastTitle, description: t('consent.toastPending') });
       return;
     }
     if (!current) return;
-    const updated = await signAestheticConsent(patientId, current, input, signature, signedAt);
+    const updated = await signAestheticConsents(current, signing);
     setSessions((list) => list.map((s) => (s.id === updated.id ? updated : s)));
-    toast({ title: t('consent.toastSigned') });
+    toast({ title: toastTitle });
     onChanged?.();
   }
 
-  function removePendingConsent() {
-    if (pendingConsent) URL.revokeObjectURL(pendingConsent.previewUrl);
-    setPendingConsent(null);
+  /** Drops a signing of this edit; one reusing its signature keeps the image and uploads it on its own */
+  function removePendingSigning(key: string) {
+    setPendingSignings((prev) => {
+      const removed = prev.find((p) => p.signing.key === key);
+      const reusedByOthers = prev.some((p) => p.signing.reuseKey === key);
+      if (removed && !reusedByOthers) revokeSigningPreviews([removed]);
+      return prev
+        .filter((p) => p.signing.key !== key)
+        .map((p) => (p.signing.reuseKey === key ? { ...p, signing: { ...p.signing, reuseKey: undefined } } : p));
+    });
   }
 
   const saveAlignment = useAsyncAction(
@@ -747,8 +805,6 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
     if (target) setView(target);
   }
 
-  const defaultProcedure = React.useMemo(() => [...new Set(layers.map(layerTitle).filter(Boolean))].join(', '), [layers]);
-
   // ── Render ──
   const headerTitle = isEditing ? (draft.sessionId ? draft.title || t('sheet.editTitle') : t('sheet.newTitle')) : current?.title ?? t('sheet.title');
   const totals = unitTotals(layers);
@@ -794,12 +850,15 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
           title={t('tabs.consent')}
           className={cn(
             chip,
-            effectiveConsent ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-400' : 'border-amber-500/30 bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:text-amber-400',
-            'font-medium',
+            signableCount === 0
+              ? 'hover:bg-muted hover:text-foreground'
+              : missingConsents.length
+                ? 'border-amber-500/30 bg-amber-500/10 font-medium text-amber-700 hover:bg-amber-500/15 dark:text-amber-400'
+                : 'border-emerald-500/30 bg-emerald-500/10 font-medium text-emerald-700 hover:bg-emerald-500/15 dark:text-emerald-400',
           )}
         >
-          {effectiveConsent ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> : <CircleAlert className="h-3.5 w-3.5 shrink-0" />}
-          {effectiveConsent ? t('consent.signedBadge') : t('consent.missingBadge')}
+          {signableCount > 0 && !missingConsents.length ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> : signableCount > 0 ? <CircleAlert className="h-3.5 w-3.5 shrink-0" /> : <FileSignature className="h-3.5 w-3.5 shrink-0" />}
+          {signableCount === 0 ? t('consent.badge') : missingConsents.length ? t('consent.missingBadgeCount', { count: missingConsents.length }) : t('consent.signedBadge')}
         </button>
         {patientName && (
           <span className={chip} title={t('sheet.patient')}>
@@ -1121,9 +1180,11 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
       id: 'consent',
       label: t('tabs.consent'),
       icon: FileSignature,
-      badge: effectiveConsent
-        ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" aria-label={t('consent.signedBadge')} />
-        : <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-label={t('consent.missingBadge')} />,
+      badge: signableCount === 0
+        ? undefined
+        : missingConsents.length
+          ? <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-label={t('consent.missingBadgeCount', { count: missingConsents.length })} />
+          : <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" aria-label={t('consent.signedBadge')} />,
     },
     { id: 'zones', label: t('tabs.zones'), icon: History },
     { id: 'notes', label: t('tabs.notes'), icon: NotebookPen, badge: notes.trim() ? <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60" aria-hidden /> : undefined },
@@ -1169,7 +1230,7 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
           photos={shownPhotos}
           pending={pendingPhotos}
           isEditing={isEditing}
-          consent={effectiveConsent}
+          consent={photoConsent}
           onCompare={comparePhotos.length >= 2 ? openComparison : undefined}
           onAddFiles={addPhotos}
           onRemoveStored={(id) => setRemovedPhotoIds((prev) => [...prev, id])}
@@ -1179,13 +1240,15 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
 
       {tab === 'consent' && (
         <ConsentPanel
-          consent={effectiveConsent}
-          pendingSignatureUrl={pendingConsent?.previewUrl}
+          layers={layers}
+          consents={storedConsents}
+          pending={pendingSignings}
+          photoConsent={photoConsent}
           isEditing={isEditing}
           canSign={canRegister}
           signDisabledReason={!canRegister ? t('consent.noPermission') : undefined}
-          onSign={() => setConsentOpen(true)}
-          onRemovePending={save.isPending ? undefined : removePendingConsent}
+          onSign={setSignServiceIds}
+          onRemovePending={save.isPending ? undefined : removePendingSigning}
         />
       )}
 
@@ -1289,12 +1352,17 @@ function AestheticSessionPanel({ patientId, patientName, patientSex, sessionId, 
       {footer}
 
       <ConsentDialog
-        open={consentOpen}
-        onOpenChange={setConsentOpen}
+        open={signServiceIds !== null}
+        onOpenChange={(next) => { if (!next) setSignServiceIds(null); }}
+        layers={layers}
+        initialServiceIds={signServiceIds ?? []}
+        templates={consentTemplates}
         patientName={patientName}
         doctorName={draft ? draft.doctorName : current?.doctorName}
-        defaultProcedure={defaultProcedure}
+        sessionDate={draft?.date || current?.date || formatDate(new Date())}
         hasPhotos={photoCount > 0}
+        photoDefaults={photoConsent ?? undefined}
+        previousSignature={previousSignature}
         onSubmit={submitConsent}
       />
 

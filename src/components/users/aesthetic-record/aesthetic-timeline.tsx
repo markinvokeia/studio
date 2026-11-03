@@ -7,6 +7,7 @@ import { Camera, CheckCircle2, CircleAlert } from 'lucide-react';
 import { fetchAestheticSessions } from '@/services/aesthetic-record';
 
 import type { AestheticSession, AestheticZoneId } from '@/lib/types';
+import { unsignedLayers } from './consent-template';
 import { formatQuantity, layerColor, layerQuantity, layerTitle, unitTotals } from './layers';
 import { useZoneLabel } from './use-zone-label';
 
@@ -52,6 +53,7 @@ export function AestheticSessionDetails({ session }: { session: AestheticSession
     [marks, zoneLabel],
   );
   const totals = unitTotals(session.layers);
+  const missing = unsignedLayers(session.layers, session.consents).length;
 
   return (
     <>
@@ -91,15 +93,15 @@ export function AestheticSessionDetails({ session }: { session: AestheticSession
         </p>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        {session.consent ? (
+        {session.layers.some((l) => l.serviceId) && (missing ? (
+          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 font-medium text-amber-700 dark:text-amber-400">
+            <CircleAlert className="h-3 w-3" />{t('consent.missingBadgeCount', { count: missing })}
+          </span>
+        ) : (
           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 font-medium text-emerald-700 dark:text-emerald-400">
             <CheckCircle2 className="h-3 w-3" />{t('consent.signedBadge')}
           </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 font-medium text-amber-700 dark:text-amber-400">
-            <CircleAlert className="h-3 w-3" />{t('consent.missingBadge')}
-          </span>
-        )}
+        ))}
         {session.photos.length > 0 && (
           <span className="inline-flex items-center gap-1 text-muted-foreground">
             <Camera className="h-3.5 w-3.5" />{t('sheet.photoCount', { count: session.photos.length })}

@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import { cn } from '@/lib/utils';
 
-import type { AestheticConsent, AestheticMapView, AestheticPhoto, AestheticPhotoKind } from '@/lib/types';
+import type { AestheticMapView, AestheticPhotoConsent, AestheticPhoto, AestheticPhotoKind } from '@/lib/types';
 import type { AestheticPhotoUpload } from '@/services/aesthetic-record';
 import { MAP_VIEWS } from './map-templates';
 import { KIND_DOT } from './photo-compare';
@@ -101,8 +101,8 @@ interface PhotosPanelProps {
   photos: AestheticPhoto[];
   pending: PendingPhoto[];
   isEditing: boolean;
-  /** Consent of the session (signed or about to be saved); it decides whether photos may be taken */
-  consent: AestheticConsent | null;
+  /** Photo permissions of the session (signed or about to be saved); they decide whether photos may be taken */
+  consent: AestheticPhotoConsent | null;
   onAddFiles: (files: File[], kind: AestheticPhotoKind, view: AestheticMapView) => void;
   onRemoveStored: (id: string) => void;
   onRemovePending: (key: string) => void;

@@ -6,7 +6,8 @@
  *   node scripts/n8n/generate-aesthetic-record-workflow.mjs
  *
  * Es un flujo NUEVO: no modifica ningún endpoint existente. La lógica vive en
- * las funciones SQL de database/scripts/151_20261030_aesthetic-record.sql; acá
+ * las funciones SQL de database/scripts/151_20261030_aesthetic-record.sql (y 154
+ * para el consentimiento por servicio); acá
  * sólo hay webhooks, Drive y respuestas.
  *
  * Endpoints (API_ROUTES.AESTHETIC_RECORD en src/constants/routes.ts):
@@ -21,8 +22,11 @@
  *   POST aesthetic/photos/upload           multipart: session_id, kind, view, alignment?, data
  *   POST aesthetic/photos/delete           { id }
  *   POST aesthetic/photos/alignment        { id, alignment | null }
- *   POST aesthetic/consent/sign            multipart: session_id, consent (JSON), data (firma)
- *   GET  aesthetic/file?id=                binario de 'photo_<id>' o 'signature_<session_id>'
+ *   GET  services/consent-templates        plantilla de consentimiento de cada servicio (154)
+ *   POST services/consent-templates/save   { service_id, title, body } (body vacío ⇒ se borra)
+ *   POST aesthetic/consents/sign           multipart: session_id, signing (JSON), data (firma dibujada)
+ *   POST aesthetic/consents/reuse          { session_id, signing } con signing.reuseSignatureId
+ *   GET  aesthetic/file?id=                binario de 'photo_<id>', 'consentsig_<id>' o 'signature_<session_id>' (151)
  *
  * Errores: las funciones lanzan 'AESTHETIC:<CODIGO>|<detalle>' ⇒ 400 { success:false, code, detail, message }.
  */
@@ -212,6 +216,25 @@ simple({
   body: '={{ { success: true, ...$json } }}',
 });
 
+// ─── Plantilla de consentimiento del servicio (154) ─────────────────────────
+
+simple({
+  webhookName: 'GET services/consent-templates',
+  path: 'services/consent-templates',
+  method: 'GET',
+  query: 'SELECT * FROM public.service_consent_templates_list();',
+  body: '={{ { success: true, templates: $input.all().map(i => i.json).filter(t => t.service_id != null) } }}',
+});
+
+simple({
+  webhookName: 'POST services/consent-templates/save',
+  path: 'services/consent-templates/save',
+  method: 'POST',
+  query: "SELECT * FROM public.service_consent_template_save($1::jsonb, NULLIF($2, '')::uuid);",
+  params: `={{ [JSON.stringify($json.body ?? {}), ${user('POST services/consent-templates/save')}] }}`,
+  body: '={{ { success: true, template: $json } }}',
+});
+
 // ─── Sesiones ────────────────────────────────────────────────────────────────
 
 simple({
@@ -308,32 +331,41 @@ return [{
   link(drive, ok);
 }
 
+// Consentimiento por servicio (154): una firma dibujada cubre uno o más servicios de la
+// sesión. Las firmas no se borran de Drive: pueden estar reutilizadas.
 {
   const top = y();
-  const WH = 'POST aesthetic/consent/sign';
-  const wh = add(webhook(WH, 'aesthetic/consent/sign', 'POST', { binaryPropertyName: 'data', rawBody: false }), [0, top]);
-  const check = add(code('Consent · validar', takeUpload(WH, `let consent;
-try { consent = JSON.parse(body.consent ?? '{}'); } catch { throw new Error('AESTHETIC:INVALID_CONSENT|'); }
+  const WH = 'POST aesthetic/consents/sign';
+  const wh = add(webhook(WH, 'aesthetic/consents/sign', 'POST', { binaryPropertyName: 'data', rawBody: false }), [0, top]);
+  const check = add(code('Consents · validar', takeUpload(WH, `let signing;
+try { signing = JSON.parse(body.signing ?? '{}'); } catch { throw new Error('AESTHETIC:INVALID_CONSENT|'); }
+if (!/^image\\/(png|jpeg|webp)$/.test(binary.mimeType ?? '')) throw new Error('AESTHETIC:INVALID_FILE_TYPE|' + binary.mimeType);
+delete signing.reuseSignatureId;
 return [{
-  json: { session_id: sessionId, consent: JSON.stringify(consent), mime_type: binary.mimeType ?? 'image/png' },
+  json: { session_id: sessionId, signing: JSON.stringify(signing), mime_type: binary.mimeType },
   binary: { file: binary },
 }];`), { onError: 'continueErrorOutput' }), [240, top]);
-  const up = add(driveUpload('Consent · subir firma', "={{ 'aesthetic_signature_' + $json.session_id + '.png' }}"), [480, top]);
-  const save = add(pg('Consent · guardar', "SELECT * FROM public.aesthetic_consent_save($1::bigint, $2::jsonb, $3, $4, NULLIF($5, '')::uuid);",
-    `={{ (() => { const v = $('Consent · validar').first().json; return [v.session_id, v.consent, $json.id, v.mime_type, ${user(WH)}]; })() }}`), [720, top]);
-  const has = add(ifNotEmpty('Consent · ¿firma anterior?', '={{ $json.previous_drive_file_id }}'), [960, top]);
-  const drive = add(driveDelete('Consent · borrar firma anterior', '={{ $json.previous_drive_file_id }}'), [1200, top]);
-  const ok = add(respond('Consent · OK', "={{ { success: true, consent: $('Consent · guardar').first().json.consent } }}"), [1440, top]);
+  const up = add(driveUpload('Consents · subir firma', "={{ 'aesthetic_signature_' + $json.session_id + '_' + Date.now() + '.png' }}"), [480, top]);
+  const save = add(pg('Consents · guardar', "SELECT public.aesthetic_consents_sign($1::bigint, $2::jsonb, $3, $4, NULLIF($5, '')::uuid) AS session;",
+    `={{ (() => { const v = $('Consents · validar').first().json; return [v.session_id, v.signing, $json.id, v.mime_type, ${user(WH)}]; })() }}`), [720, top]);
+  const ok = add(respond('Consents · OK', '={{ { success: true, session: $json.session } }}'), [960, top]);
   chain(wh, check);
   link(check, up, 0);
   link(check, MAP_ERROR, 1);
   link(up, save);
-  link(save, has, 0);
+  link(save, ok, 0);
   link(save, MAP_ERROR, 1);
-  link(has, drive, 0);
-  link(has, ok, 1);
-  link(drive, ok);
 }
+
+// Misma firma que una anterior del paciente: no se sube nada, apunta al mismo archivo
+simple({
+  webhookName: 'POST aesthetic/consents/reuse',
+  path: 'aesthetic/consents/reuse',
+  method: 'POST',
+  query: "SELECT public.aesthetic_consents_sign(NULLIF($1, '')::bigint, $2::jsonb, NULL, NULL, NULLIF($3, '')::uuid) AS session;",
+  params: `={{ [String($json.body.session_id ?? ""), JSON.stringify($json.body.signing ?? {}), ${user('POST aesthetic/consents/reuse')}] }}`,
+  body: '={{ { success: true, session: $json.session } }}',
+});
 
 // ─── Descarga de archivos ────────────────────────────────────────────────────
 
@@ -377,9 +409,9 @@ nodes.unshift({
     height: 420,
     content: `## Aesthetic Record — ficha estética
 
-Flujo NUEVO (no reemplaza nada). Requiere database/scripts/151_20261030_aesthetic-record.sql.
+Flujo NUEVO (no reemplaza nada). Requiere database/scripts/151, 152 y 154.
 
-Unidades de medida, configuración estética del servicio (unidad + herramienta punto/área), sesiones con capas por servicio y marcas, fotos y consentimiento (binarios en Drive).
+Unidades de medida, configuración estética del servicio (unidad + herramienta punto/área), plantilla de consentimiento por servicio, sesiones con capas por servicio y marcas, fotos y un consentimiento firmado por servicio (binarios en Drive; una firma se puede reutilizar).
 
 Errores: 'AESTHETIC:<CODIGO>|<detalle>' ⇒ 400 { success:false, code, detail }.
 
