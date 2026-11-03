@@ -10,10 +10,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -27920,
-        7968
+        -29424,
+        12800
       ],
-      "id": "365d380c-c7fa-4e6f-b825-5436dca88f31",
+      "id": "b565116b-854d-42bf-a989-79e45c5d5cc6",
       "name": "Sticky Note12"
     },
     {
@@ -25,10 +25,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -28848,
-        9088
+        -30352,
+        13920
       ],
-      "id": "139139a6-5f01-4f5e-a253-b050fb0dfe44",
+      "id": "c4f1dacc-f77b-476f-af12-0a01e9334444",
       "name": "Sticky Note28"
     },
     {
@@ -54,10 +54,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -28208,
-        9184
+        -29712,
+        14016
       ],
-      "id": "14960edc-e6f8-4a62-9b18-e7554c69de78",
+      "id": "13031625-e5e4-4b23-abe2-460a79978386",
       "name": "Success31"
     },
     {
@@ -69,10 +69,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -28192,
-        9424
+        -29696,
+        14256
       ],
-      "id": "abd9bb1f-54d0-47f5-80a9-5a6ad0c88a8a",
+      "id": "daa90205-02b2-4afb-9193-2553e3b4d9f6",
       "name": "Error39"
     },
     {
@@ -104,10 +104,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -28560,
-        9248
+        -30064,
+        14080
       ],
-      "id": "4554db7a-fdde-40ff-a03f-5e8f4741b5a3",
+      "id": "83b16c1d-ebe4-4136-bbfc-95ca39e6fc09",
       "name": "If15"
     },
     {
@@ -207,10 +207,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -28384,
-        9200
+        -29888,
+        14032
       ],
-      "id": "f4988614-8d4a-48bb-b7f6-be744700173b",
+      "id": "22aa41e3-337d-4265-b1bb-a2192ebb3d59",
       "name": "Update rows in a table12",
       "alwaysOutputData": true,
       "credentials": {
@@ -250,10 +250,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -28560,
-        9648
+        -30064,
+        14480
       ],
-      "id": "0552fe73-5116-4814-ba3e-4b8995825fc9",
+      "id": "e3a3d847-7844-461b-ae25-5f953cc43a0e",
       "name": "Delete rows in a table6",
       "alwaysOutputData": false,
       "credentials": {
@@ -287,10 +287,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -28336,
-        9552
+        -29840,
+        14384
       ],
-      "id": "72823ed5-f013-4302-8a55-ca8fa50d60f9",
+      "id": "0136c8c0-1613-4f89-82a8-2444d897e4bd",
       "name": "Success32"
     },
     {
@@ -302,10 +302,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -28336,
-        9712
+        -29840,
+        14544
       ],
-      "id": "089f5820-a41d-4593-8f43-4a6bd67f4ee3",
+      "id": "f9c4aff4-d8d7-4ee3-b381-3dd07adf3805",
       "name": "Error40"
     },
     {
@@ -319,10 +319,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -28400,
-        9392
+        -29904,
+        14224
       ],
-      "id": "60aa4b53-c595-4a0d-8402-ec016a93ce6d",
+      "id": "5c933db5-0b44-436c-9186-7c94048d6414",
       "name": "Insert rows in a table13",
       "alwaysOutputData": true,
       "credentials": {
@@ -346,10 +346,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -28784,
-        9264
+        -30288,
+        14096
       ],
-      "id": "8c1bb735-f8e8-4caa-873e-30f1c3f23e48",
+      "id": "e37be0d8-5cfc-4b1d-b61c-328306b99617",
       "name": "clinicschedules/upsert",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -373,10 +373,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -28768,
-        9648
+        -30272,
+        14480
       ],
-      "id": "8a3d8d2c-d8d5-4d09-8c70-f4ac89fae35c",
+      "id": "ac160925-0910-4902-8d7e-5afc72c35dff",
       "name": "clinicschedules/delete",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -395,10 +395,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -27920,
-        9088
+        -29424,
+        13920
       ],
-      "id": "90c7000a-45c3-46a5-a6fe-0ef22ed8718a",
+      "id": "d24c22f2-0930-436c-aa04-f0c09251e6bd",
       "name": "Sticky Note29"
     },
     {
@@ -424,10 +424,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -27280,
-        9200
+        -28784,
+        14032
       ],
-      "id": "4df5e902-339a-4d4b-aa1d-8e0a664885dd",
+      "id": "eed008ec-d8b2-4fcb-b675-d53b26b2cca0",
       "name": "Success33"
     },
     {
@@ -439,10 +439,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -27264,
-        9440
+        -28768,
+        14272
       ],
-      "id": "e48139bd-c54f-43ae-a757-68d01c55ef92",
+      "id": "ac6464a9-0eb7-4e5d-9282-14cf25562ec8",
       "name": "Error41"
     },
     {
@@ -474,10 +474,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -27632,
-        9264
+        -29136,
+        14096
       ],
-      "id": "8bc21698-2ba2-4c1a-a853-47e63d435ba8",
+      "id": "8928cf2c-d28b-4982-a3e3-3f96edcb36a3",
       "name": "If16"
     },
     {
@@ -491,10 +491,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -27456,
-        9216
+        -28960,
+        14048
       ],
-      "id": "2f4f0741-06f7-4ec3-9577-7a2e4fa64f8b",
+      "id": "2f5c464d-6ef6-4818-aeb1-f1d9ee331be5",
       "name": "Update rows in a table13",
       "alwaysOutputData": true,
       "credentials": {
@@ -534,10 +534,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -27632,
-        9664
+        -29136,
+        14496
       ],
-      "id": "42d7badd-208c-49d4-aa8c-69baccddd44f",
+      "id": "1ea7092d-7c86-42a7-9ee0-904ecd815295",
       "name": "Delete rows in a table7",
       "alwaysOutputData": false,
       "credentials": {
@@ -571,10 +571,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -27408,
-        9568
+        -28912,
+        14400
       ],
-      "id": "a4c26bd9-233f-4c0f-a78a-6572cc824b95",
+      "id": "04e37cc7-c3e5-4f15-9090-ce02b69f7ff3",
       "name": "Success34"
     },
     {
@@ -586,10 +586,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -27408,
-        9728
+        -28912,
+        14560
       ],
-      "id": "9993e9dd-ae7e-4f9b-b2cf-323f2ab757a5",
+      "id": "14c18f93-8fe9-4340-86d9-ca5c720a774f",
       "name": "Error42"
     },
     {
@@ -605,10 +605,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -27856,
-        9280
+        -29360,
+        14112
       ],
-      "id": "f22b7732-a493-4c72-8efe-8f214605c9b5",
+      "id": "2a1bcc54-86eb-44d6-bf67-f6db42143a97",
       "name": "feriados/upsert",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -632,10 +632,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -27840,
-        9664
+        -29344,
+        14496
       ],
-      "id": "71ad5a77-624b-4206-b87c-4330c92c1858",
+      "id": "11a533a2-8f16-4379-ad37-0266c255df8e",
       "name": "feriados/delete",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -656,10 +656,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -27488,
-        9392
+        -28992,
+        14224
       ],
-      "id": "f629d59f-50de-4d7f-98b7-4d02a0fe0480",
+      "id": "f98690ac-5cb6-4075-ab63-8b28d68e2c40",
       "name": "Insert rows in a table14",
       "alwaysOutputData": true,
       "credentials": {
@@ -679,10 +679,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -29808,
-        9088
+        -31312,
+        13920
       ],
-      "id": "c0944c5d-e5c5-4e38-8dbd-030b10be3b42",
+      "id": "09d3deec-72bf-4a8b-a91f-b60cf9df5a73",
       "name": "Sticky Note30"
     },
     {
@@ -708,10 +708,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -29088,
-        9168
+        -30592,
+        14000
       ],
-      "id": "5ae127ea-5cab-48e2-8b76-38c449c4e01f",
+      "id": "ae018e35-37e9-4d8a-b257-2339e83a7824",
       "name": "Success35"
     },
     {
@@ -723,10 +723,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -29088,
-        9360
+        -30592,
+        14192
       ],
-      "id": "3d086915-2fef-48e1-8c8b-342cc06d81e7",
+      "id": "c289ca40-2aa1-4448-b031-3086a1886974",
       "name": "Error43"
     },
     {
@@ -758,10 +758,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -29520,
-        9648
+        -31024,
+        14480
       ],
-      "id": "a1f8ee51-a611-47ba-aa00-6550a16da6e3",
+      "id": "4536a57e-2e78-4106-b32a-d63f7f2f9d95",
       "name": "Delete rows in a table9",
       "alwaysOutputData": false,
       "credentials": {
@@ -795,10 +795,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -29296,
-        9552
+        -30800,
+        14384
       ],
-      "id": "7247d0c8-1396-41b6-909f-7838b9c04df2",
+      "id": "ef48c3ce-08cf-405a-bbe4-15635992655c",
       "name": "Success36"
     },
     {
@@ -810,10 +810,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -29296,
-        9712
+        -30800,
+        14544
       ],
-      "id": "80f92183-125d-4afb-860b-54993bd9123e",
+      "id": "4a517dca-9f20-486e-ab7b-0c1d83cd575b",
       "name": "Error44"
     },
     {
@@ -829,10 +829,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -29744,
-        9264
+        -31248,
+        14096
       ],
-      "id": "52d84fdf-aa5c-47dc-b489-2baf6c8ff79d",
+      "id": "09c0e0b3-b135-4a4d-8c92-2c48f08fb7a7",
       "name": "calendarios/upsert",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -856,10 +856,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -29728,
-        9648
+        -31232,
+        14480
       ],
-      "id": "c316400e-9e88-4968-9938-c9236891c904",
+      "id": "7178e1ce-2d0a-4afb-9207-7cde53651107",
       "name": "calendarios/delete",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -882,10 +882,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -29600,
-        7376
+        -31104,
+        12208
       ],
-      "id": "26389b38-d226-4f76-8be7-c51ea61b0f66",
+      "id": "d0fab43f-7b4c-467f-b188-ccf865005c92",
       "name": "appointments_availability",
       "webhookId": "eb33142c-381c-4676-a79b-cb34b4775f46",
       "credentials": {
@@ -904,11 +904,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -29856,
-        5712
+        -31360,
+        10544
       ],
       "typeVersion": 1,
-      "id": "34a0d088-2849-41e1-b0a0-0b9f8f79be89",
+      "id": "6532c3f5-1414-4c96-9934-2f953c3a27ff",
       "name": "Sticky Note39"
     },
     {
@@ -924,10 +924,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -29760,
-        8080
+        -31264,
+        12912
       ],
-      "id": "f688f518-802a-4b72-b727-e226c91f4f41",
+      "id": "50875e85-e795-4167-b0d4-21ba3d17b1fa",
       "name": "availability_rules/upsert",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -951,10 +951,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -29760,
-        8560
+        -31264,
+        13392
       ],
-      "id": "04068f62-1cc6-4e12-97b8-8ad4017eeeb9",
+      "id": "81302ad1-e3c8-4937-8690-2c1f71a90964",
       "name": "availability_rules/delete",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -977,10 +977,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -29760,
-        8816
+        -31264,
+        13648
       ],
-      "id": "c3e6336e-b576-4a69-9b24-f9bec87c807e",
+      "id": "90436b78-3bdf-4f4b-9c35-6c499614f75d",
       "name": "availability_rules/search",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -1001,10 +1001,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -29552,
-        8816
+        -31056,
+        13648
       ],
-      "id": "5d3a155e-e2d9-4a01-9839-49e859d01741",
+      "id": "06f61e9e-dfa4-4142-9f46-6de6719d251d",
       "name": "Select availability_rules",
       "credentials": {
         "postgres": {
@@ -1026,10 +1026,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -28816,
-        8080
+        -30320,
+        12912
       ],
-      "id": "474c143f-1b38-49c6-b4a5-10cc2d0c41f1",
+      "id": "516c41f8-b44b-4fb3-8fea-b0d1f3c89ae9",
       "name": "availability_exceptions/upsert1",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1053,10 +1053,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -28816,
-        8576
+        -30320,
+        13408
       ],
-      "id": "67bcac1b-e5b3-4f5e-b420-04a866f3e962",
+      "id": "a1a86ab8-b7b1-4cff-ae69-4d996b9acbb1",
       "name": "availability_exceptions/delete1",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1079,10 +1079,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -28816,
-        8832
+        -30320,
+        13664
       ],
-      "id": "9fd32daa-4dd9-4c00-bf19-8b5d18df87c7",
+      "id": "f69de1f5-5765-48bd-a6b0-08721742fa8b",
       "name": "availability_exceptions/search1",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -1103,10 +1103,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -28608,
-        8832
+        -30112,
+        13664
       ],
-      "id": "5532cb88-e3b1-4978-a157-2259a892e688",
+      "id": "ef0c3b1f-3cdc-478f-a4fa-7b719e5ac741",
       "name": "Select availability_exceptions",
       "credentials": {
         "postgres": {
@@ -1125,10 +1125,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -29808,
-        7968
+        -31312,
+        12800
       ],
-      "id": "02b1ab72-b0ba-42e6-8bcd-5f3913dc1428",
+      "id": "762f45f6-9bbb-468a-af22-93fac14afd35",
       "name": "Sticky Note40"
     },
     {
@@ -1154,10 +1154,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -29104,
-        8048
+        -30608,
+        12880
       ],
-      "id": "bbacfcd9-d48c-46b7-b9b1-5d749ab08f1b",
+      "id": "c67111aa-67a9-4a99-8116-1113d6453b0b",
       "name": "Success47"
     },
     {
@@ -1169,10 +1169,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -29104,
-        8224
+        -30608,
+        13056
       ],
-      "id": "dd97daf5-44d4-48e8-946e-1dcf74269993",
+      "id": "f08c0b73-7d6b-452d-bf27-e42aada77f03",
       "name": "Error57"
     },
     {
@@ -1204,10 +1204,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -29536,
-        8064
+        -31040,
+        12896
       ],
-      "id": "a5796962-5be2-4d0f-a6d4-c0eb691a7a68",
+      "id": "59106140-3964-4e64-9b03-b390e57da3db",
       "name": "If24"
     },
     {
@@ -1221,10 +1221,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -29344,
-        8032
+        -30848,
+        12864
       ],
-      "id": "d9d141b0-a1ef-45a7-8c2b-200b96fd22fd",
+      "id": "ac4fe646-c701-426c-81f5-8a8572bcf162",
       "name": "Update rows in a table19",
       "alwaysOutputData": false,
       "credentials": {
@@ -1246,10 +1246,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -29344,
-        8224
+        -30848,
+        13056
       ],
-      "id": "e73db33f-f157-4069-9ff3-be3f5941aa1f",
+      "id": "3551a898-b70f-4048-89d6-c1050d5d11ec",
       "name": "Insert rows in a table20",
       "alwaysOutputData": false,
       "credentials": {
@@ -1289,10 +1289,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -29552,
-        8560
+        -31056,
+        13392
       ],
-      "id": "30cd5ad7-ddcd-427c-8d1d-a3dae6b2c38d",
+      "id": "4aec5208-8aa2-4488-bd60-86ee9a5caa39",
       "name": "Delete rows in a table17",
       "alwaysOutputData": false,
       "credentials": {
@@ -1326,10 +1326,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -29328,
-        8464
+        -30832,
+        13296
       ],
-      "id": "5e643bdf-eb6d-4df3-820c-da4b562dae1c",
+      "id": "d3f7ee1f-f159-4156-8ac2-1ef7b92529e9",
       "name": "Success50"
     },
     {
@@ -1341,10 +1341,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -29328,
-        8624
+        -30832,
+        13456
       ],
-      "id": "61d038aa-8b15-40dc-b080-6c30fb619be8",
+      "id": "84e19f0e-8a30-476f-abc5-cd0426aa3caf",
       "name": "Error58"
     },
     {
@@ -1354,10 +1354,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -29360,
-        8816
+        -30864,
+        13648
       ],
-      "id": "1867dd95-c2b8-4da2-bfdf-2d5b63c3fc96",
+      "id": "f41695f1-46d9-495a-bfc0-04c6609fc63f",
       "name": "Code31"
     },
     {
@@ -1370,10 +1370,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -28864,
-        7968
+        -30368,
+        12800
       ],
-      "id": "86484086-84c7-481d-a975-78d52c9f152c",
+      "id": "11628204-a8da-4383-ad94-4f6fdc3fd5d1",
       "name": "Sticky Note41"
     },
     {
@@ -1399,10 +1399,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -28160,
-        8064
+        -29664,
+        12896
       ],
-      "id": "0954d769-339a-484f-ab4c-2d29f13291f7",
+      "id": "1cdb9508-1bf6-4ef0-b769-7f3ee5624e71",
       "name": "Success51"
     },
     {
@@ -1414,10 +1414,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -28208,
-        8240
+        -29712,
+        13072
       ],
-      "id": "e2fabeac-1af0-4c85-88ed-333257e415e3",
+      "id": "4b46ab3c-36b7-4008-8dec-1e96dbfbfd5e",
       "name": "Error1"
     },
     {
@@ -1449,10 +1449,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -28576,
-        8064
+        -30080,
+        12896
       ],
-      "id": "e104b868-faf2-4697-bd35-34b49b5db6e7",
+      "id": "c1c2ac6f-cc67-4501-9f05-0044ddc5e493",
       "name": "If25"
     },
     {
@@ -1466,10 +1466,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -28400,
-        8048
+        -29904,
+        12880
       ],
-      "id": "60dc343a-0cc3-4d03-ab53-dea483ffee32",
+      "id": "c866984e-aa84-4a39-b7a2-a6b3e8f04186",
       "name": "Update rows in a table20",
       "alwaysOutputData": false,
       "credentials": {
@@ -1491,10 +1491,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -28400,
-        8240
+        -29904,
+        13072
       ],
-      "id": "0ea05b19-aa6d-4863-ad58-9f2b70a31823",
+      "id": "2d8a13aa-35be-4e5d-9fe5-b78a5aefc649",
       "name": "Insert rows in a table21",
       "alwaysOutputData": false,
       "credentials": {
@@ -1534,10 +1534,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -28608,
-        8576
+        -30112,
+        13408
       ],
-      "id": "626bb1f1-e9dc-4b2e-a763-3822e74aebec",
+      "id": "05a03110-f7bd-4cf8-8135-d0eb27827320",
       "name": "Delete rows in a table18",
       "alwaysOutputData": false,
       "credentials": {
@@ -1571,10 +1571,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -28384,
-        8480
+        -29888,
+        13312
       ],
-      "id": "dc436d91-322b-4ae8-b370-a8ab692a6657",
+      "id": "2b0f2697-9fc5-4166-9d4a-d09eb807c3b4",
       "name": "Success52"
     },
     {
@@ -1586,10 +1586,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -28384,
-        8640
+        -29888,
+        13472
       ],
-      "id": "fb331bd3-864d-4091-a556-61f294ce2aa7",
+      "id": "cbb5b55d-c227-4486-a226-e939b44ac0e7",
       "name": "Error59"
     },
     {
@@ -1599,10 +1599,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -28416,
-        8832
+        -29920,
+        13664
       ],
-      "id": "a471747d-0fc1-4aa1-8de0-ac2a4268e7e7",
+      "id": "11c1d3b1-00a0-446a-96ff-696ec6654de2",
       "name": "Code32"
     },
     {
@@ -1618,10 +1618,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -27840,
-        8160
+        -29344,
+        12992
       ],
-      "id": "a260801b-3d21-4efd-847a-4b307c490652",
+      "id": "d008eea4-020b-422e-ba00-ee39406a1c92",
       "name": "users_appointments",
       "webhookId": "1839386e-e795-4387-809a-504b88e6fd49",
       "credentials": {
@@ -1649,10 +1649,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -27376,
-        8096
+        -28880,
+        12928
       ],
-      "id": "b8ae60b6-1b24-4c90-9a29-dc9645be0a69",
+      "id": "8303ef52-e6a6-4af0-b470-6ec08c2e302c",
       "name": "Respond to Webhook1"
     },
     {
@@ -1665,10 +1665,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -27376,
-        8240
+        -28880,
+        13072
       ],
-      "id": "6997ff9f-6974-46e6-9793-5e3c82b53618",
+      "id": "92750ea6-f731-4547-bbd2-ec8f5447cf53",
       "name": "Error: Information incorrect1"
     },
     {
@@ -1679,13 +1679,13 @@
           "queryReplacement": "={{ [$json.query.startingDateAndTime, $json.query.endingDateAndTime, $json.query.calendar_source_ids || $json.query.calendar_ids, $json.query.user_id, $json.query.appointment_id, $json.query.doctor_id] }}"
         }
       },
-      "id": "aae174ed-c1e2-4830-9a3d-fc9d51ac3cd0",
+      "id": "dec0e534-aadd-4273-b272-3247b29e9b47",
       "name": "Get_Appointments",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -27600,
-        8160
+        -29104,
+        12992
       ],
       "executeOnce": false,
       "alwaysOutputData": true,
@@ -1716,10 +1716,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -29008,
-        6816
+        -30512,
+        11648
       ],
-      "id": "648da28f-c3b6-44a7-8001-fc2c246a4a74",
+      "id": "a3c678b1-db54-4111-8791-b9e3194750b4",
       "name": "Respond to Webhook2"
     },
     {
@@ -1732,10 +1732,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -29008,
-        7008
+        -30512,
+        11840
       ],
-      "id": "fb2dc528-2747-4157-8d83-386b06c10444",
+      "id": "3d60cb68-6437-4e37-9509-dc7d187f7f23",
       "name": "Error: Information incorrect2"
     },
     {
@@ -1752,10 +1752,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -29600,
-        6928
+        -31104,
+        11760
       ],
-      "id": "4774474e-2de8-4d0b-975e-fa68b8dcd8ac",
+      "id": "06cd7ead-af3e-40db-a05f-1ab065f440f1",
       "name": "appointments/delete",
       "webhookId": "a8c39cbb-a3e2-418f-b9db-a7b14333e627",
       "credentials": {
@@ -1779,10 +1779,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -28528,
-        6928
+        -30032,
+        11760
       ],
-      "id": "bfd4cd47-d121-4ca5-b761-b28c86adeb4c",
+      "id": "92a6e495-3aeb-40e1-a074-99728f36387e",
       "name": "appointments/update_color",
       "webhookId": "a8c39cbb-a3e2-418f-b9db-a7b14333e627",
       "credentials": {
@@ -1811,10 +1811,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -27968,
-        6816
+        -29472,
+        11648
       ],
-      "id": "6e478a66-4fff-46ec-b70e-678c8e968379",
+      "id": "699cc024-ae81-4881-8071-50e78e413876",
       "name": "Respond to Webhook3"
     },
     {
@@ -1827,10 +1827,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -27968,
-        7008
+        -29472,
+        11840
       ],
-      "id": "c4783718-7139-4f8e-b7ee-0b898533317c",
+      "id": "4134e04d-defb-40a6-9ba4-407602354c9d",
       "name": "Error: Information incorrect3"
     },
     {
@@ -1997,10 +1997,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -29328,
-        6928
+        -30832,
+        11760
       ],
-      "id": "87b91c5d-f837-4f54-90fe-cf39896b0c81",
+      "id": "0a3974bc-de82-4d11-8849-958cb8288f70",
       "name": "Cancel_Patient_Appointment",
       "alwaysOutputData": false,
       "credentials": {
@@ -2175,10 +2175,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -28272,
-        6928
+        -29776,
+        11760
       ],
-      "id": "73ee0e40-5a52-4655-9bc7-6fdad6c2d615",
+      "id": "b3e2306f-28df-4c12-bba2-c0b9b8be6b71",
       "name": "Update_Appointment_Color",
       "alwaysOutputData": false,
       "credentials": {
@@ -2218,10 +2218,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -28288,
-        6384
+        -29792,
+        11216
       ],
-      "id": "3eee14b8-1a17-4e8d-b58b-0e155de8872c",
+      "id": "2c7cdf9d-bf73-4f8d-9f03-2ff03ffc71d0",
       "name": "If a existing event1"
     },
     {
@@ -2252,10 +2252,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -28656,
-        6080
+        -30160,
+        10912
       ],
-      "id": "0f88ec5d-84c6-471c-a643-9d56b3062186",
+      "id": "a563c88b-f59c-4bfe-a662-697a2cc51d92",
       "name": "Is Available1"
     },
     {
@@ -2267,10 +2267,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -29360,
-        6368
+        -30864,
+        11200
       ],
-      "id": "0083104a-3db6-43e0-b2f2-6e788d73b70f",
+      "id": "9eed7dd2-4ff0-4c9f-aa6b-5d07a08468b1",
       "name": "Execute a SQL query",
       "credentials": {
         "postgres": {
@@ -2293,10 +2293,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -29600,
-        6368
+        -31104,
+        11200
       ],
-      "id": "a6281a3a-3cc2-4aa1-8c99-36d45c966900",
+      "id": "85706e7c-cfe2-4de6-b4c9-b896c9015247",
       "name": "appointments/upsert",
       "webhookId": "a8c39cbb-a3e2-418f-b9db-a7b14333e627",
       "credentials": {
@@ -2325,10 +2325,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -25680,
-        6176
+        -27184,
+        11008
       ],
-      "id": "5afcb7f7-c8b0-4b83-b21d-d3cb61ae9d5f",
+      "id": "88aed8c9-a418-400a-aa74-aaffc23ef51a",
       "name": "Respond to Webhook"
     },
     {
@@ -2341,10 +2341,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -25712,
-        6496
+        -27216,
+        11328
       ],
-      "id": "1aa3de6e-6852-4bb0-bd95-8a49db45ce85",
+      "id": "0b9dd623-a2df-48bc-9d4c-c8a0ad040285",
       "name": "Error: Information incorrect"
     },
     {
@@ -2652,10 +2652,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -26992,
-        6080
+        -28496,
+        10912
       ],
-      "id": "2e19a7b7-cf12-4ef4-802c-1a06202a45c9",
+      "id": "414c4fd3-a3d3-449a-8f98-c7a948a2b974",
       "name": "Update rows in a appointments",
       "alwaysOutputData": false,
       "credentials": {
@@ -2713,10 +2713,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -29104,
-        6368
+        -30608,
+        11200
       ],
-      "id": "b462a7a1-ca5b-4b8d-9f4c-294f9d06cdbf",
+      "id": "34df11b8-deaf-4d25-9e7f-0996fd689f9c",
       "name": "Check Availability"
     },
     {
@@ -2771,10 +2771,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -26176,
-        5984
+        -27680,
+        10816
       ],
-      "id": "9dda9881-96c1-4926-9aae-241594c8c1a7",
+      "id": "76b90760-e98d-44e8-a381-253dd2554e2d",
       "name": "Insert rows in a table1",
       "alwaysOutputData": false,
       "credentials": {
@@ -2792,10 +2792,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -26416,
-        5984
+        -27920,
+        10816
       ],
-      "id": "7056db4e-4a4f-424a-875b-8c5eba531669",
+      "id": "02a583a7-1fc3-41a9-9bc6-5a18ba9558f3",
       "name": "prepare_services_data"
     },
     {
@@ -2827,10 +2827,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -28032,
-        6256
+        -29536,
+        11088
       ],
-      "id": "8f3dffb9-1ec4-4325-ad09-2659b948c866",
+      "id": "c8f4d44b-8c36-46f4-a623-011f55522871",
       "name": "Delete table or rows",
       "credentials": {
         "postgres": {
@@ -2850,10 +2850,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -27792,
-        6192
+        -29296,
+        11024
       ],
-      "id": "c4bbc2f7-6570-4b0d-8f62-a162aa7adbe2",
+      "id": "631e9872-a8d2-40af-af0b-34efb4dbea55",
       "name": "Find_Appointment",
       "credentials": {
         "postgres": {
@@ -2899,10 +2899,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -27568,
-        6272
+        -29072,
+        11104
       ],
-      "id": "cfefd74f-990c-4fc9-bd40-98b43be72f70",
+      "id": "f5fe9484-6306-46b0-9e4c-833c342e6ee4",
       "name": "If_Same_Calendar"
     },
     {
@@ -3069,10 +3069,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -27312,
-        6368
+        -28816,
+        11200
       ],
-      "id": "5743b659-01ea-4fb6-9198-f5bbb0c118ec",
+      "id": "f4b81102-53ec-4002-a3cc-b4306d7def6b",
       "name": "Cancel_appointment",
       "alwaysOutputData": false,
       "credentials": {
@@ -3389,10 +3389,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -26992,
-        6576
+        -28496,
+        11408
       ],
-      "id": "c9943594-59f5-42a5-8ef5-f1dc532f5cb8",
+      "id": "9548ff84-1743-4cad-b9ba-ecebbfdea7e1",
       "name": "Insert_Appointment",
       "alwaysOutputData": false,
       "credentials": {
@@ -3441,10 +3441,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -26704,
-        6272
+        -28208,
+        11104
       ],
-      "id": "13c359b3-e1df-41e4-bee7-c8b9c7b4f8e8",
+      "id": "ea1ab41f-9f72-4c8f-a0b8-7070d7d0d906",
       "name": "Tiene_servicios"
     },
     {
@@ -3454,10 +3454,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -25904,
-        6176
+        -27408,
+        11008
       ],
-      "id": "517a8e12-7d19-4267-97b1-8a10f3f9128f",
+      "id": "5a31c9de-01c1-4d4d-9fca-11ba59c733eb",
       "name": "Format output"
     },
     {
@@ -3468,13 +3468,13 @@
           "queryReplacement": "={{ [$('appointments/upsert').first().json.body.quote_id, $('appointments/upsert').first().json.body.patient_id] }}"
         }
       },
-      "id": "4c0cb18f-a7c7-4f36-ad65-9e064513d2a7",
+      "id": "1619c35c-4976-4bea-98a3-62462f8004a4",
       "name": "Crear Orden",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -25200,
-        5936
+        -26704,
+        10768
       ],
       "credentials": {
         "postgres": {
@@ -3491,13 +3491,13 @@
           "queryReplacement": "={{ [$json.id, $('appointments/upsert').first().json.body.start, $('appointments/upsert').first().json.body.quote_id] }}"
         }
       },
-      "id": "5d4a6127-3980-43ed-9345-2239fd16ceee",
+      "id": "1624804b-0ba3-4e25-b1a2-f5825aafc821",
       "name": "Crear Order Items",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -24960,
-        5936
+        -26464,
+        10768
       ],
       "credentials": {
         "postgres": {
@@ -3531,13 +3531,13 @@
         },
         "options": {}
       },
-      "id": "3ad7713f-4729-4703-af33-bb9435f94237",
+      "id": "2b628834-dd60-491a-bada-78b086cbb12f",
       "name": "IF: ¿Tiene quote_id?1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        -25680,
-        5952
+        -27184,
+        10784
       ]
     },
     {
@@ -3548,13 +3548,13 @@
           "queryReplacement": "={{ [$('appointments/upsert').first().json.body.quote_id] }}"
         }
       },
-      "id": "b3c557ba-f41b-492e-bfc6-df2b0fa86eb1",
+      "id": "4cfe7b71-aeb9-44cc-9245-1680e846eda7",
       "name": "Confirmar Quote1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -25440,
-        5936
+        -26944,
+        10768
       ],
       "alwaysOutputData": false,
       "credentials": {
@@ -3576,10 +3576,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -27824,
-        8352
+        -29328,
+        13184
       ],
-      "id": "0ee74f39-667d-4ccc-90e1-bf61799998e7",
+      "id": "25404f7b-b166-4685-ae46-026a1958d02c",
       "name": "users_appointments_noauth",
       "webhookId": "1839386e-e795-4387-809a-504b88e6fd49"
     },
@@ -3590,10 +3590,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -27616,
-        8352
+        -29120,
+        13184
       ],
-      "id": "76b19b94-de3e-4f9a-8797-09454ed3d266",
+      "id": "fa287180-a4d8-43eb-881b-9ef898b25898",
       "name": "Code in JavaScript",
       "disabled": true
     },
@@ -3609,10 +3609,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -29600,
-        7504
+        -31104,
+        12336
       ],
-      "id": "a1a48408-2ed5-4a35-a379-15fb1138c818",
+      "id": "3588e4e7-7d9f-4180-ba75-716854914be1",
       "name": "appointments_availability_noauth",
       "webhookId": "eb33142c-381c-4676-a79b-cb34b4775f46"
     },
@@ -3629,10 +3629,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -29600,
-        7072
+        -31104,
+        11904
       ],
-      "id": "53ff92b6-60c8-48d7-b657-b60c5fc7d2d1",
+      "id": "6942542f-f950-4ffd-aa71-f135a270763d",
       "name": "appointments/delete_noauth",
       "webhookId": "a8c39cbb-a3e2-418f-b9db-a7b14333e627"
     },
@@ -3649,10 +3649,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -29520,
-        5008
+        -31024,
+        9840
       ],
-      "id": "31b5c8e4-2d4f-4f03-9fdf-ae2c76ce8b87",
+      "id": "8e42765b-1612-480c-a099-84530c936d4d",
       "name": "appointments/upsert_noauth",
       "webhookId": "a8c39cbb-a3e2-418f-b9db-a7b14333e627"
     },
@@ -3685,10 +3685,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -28192,
-        4864
+        -29696,
+        9696
       ],
-      "id": "e611b06a-9252-4a34-8926-a3b150f795a4",
+      "id": "1a305f9f-13a6-4d82-b934-7169ee294043",
       "name": "If a existing event2"
     },
     {
@@ -3700,10 +3700,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -27760,
-        4480
+        -29264,
+        9312
       ],
-      "id": "6d9029a2-ad45-47fe-a0a4-fb725e53865a",
+      "id": "8e2f41a2-c46d-410d-aa93-4730e9984290",
       "name": "availability_error2"
     },
     {
@@ -3734,10 +3734,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -28016,
-        4448
+        -29520,
+        9280
       ],
-      "id": "43e9c055-8473-4685-b9f6-32d3b3042be0",
+      "id": "dc666d63-6abd-4428-9273-68f3a12bfcba",
       "name": "Is Available2"
     },
     {
@@ -3854,10 +3854,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -28256,
-        4496
+        -29760,
+        9328
       ],
-      "id": "8d3ba55e-e5d2-418d-9e50-7b2fb48afe86",
+      "id": "52daf0e7-c9e1-41df-9ee2-70b652140b8f",
       "name": "Call_Get_Availability_Upsert2"
     },
     {
@@ -3869,10 +3869,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -28768,
-        4848
+        -30272,
+        9680
       ],
-      "id": "b38cd7df-14d9-44e4-a89d-6c31df8d2b84",
+      "id": "ff9ce179-fe85-4ba1-b71a-e67d6b3257fd",
       "name": "Execute a SQL query1",
       "credentials": {
         "postgres": {
@@ -3900,10 +3900,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -25584,
-        4656
+        -27088,
+        9488
       ],
-      "id": "66c52683-7e97-4dec-be61-364d598d20b4",
+      "id": "edbc28f7-aa11-4312-8d3e-ecdabafd0409",
       "name": "Respond to Webhook4"
     },
     {
@@ -3916,10 +3916,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -25584,
-        4960
+        -27088,
+        9792
       ],
-      "id": "c8f2525d-4c91-4980-b05b-8bfa10ec82d5",
+      "id": "0b7d1efc-74cb-4fd9-91bd-4a8057e5877f",
       "name": "Error: Information incorrect4"
     },
     {
@@ -4225,10 +4225,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -26896,
-        4560
+        -28400,
+        9392
       ],
-      "id": "4406b698-efdf-4e6e-87db-0b81e3e3e88f",
+      "id": "b7ebbba2-5c13-405a-9935-3392741e02c4",
       "name": "Update rows in a appointments1",
       "alwaysOutputData": false,
       "credentials": {
@@ -4286,10 +4286,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -28512,
-        4848
+        -30016,
+        9680
       ],
-      "id": "8bfcc322-84c2-431e-a132-1232a09a09f2",
+      "id": "293fa9aa-4624-4ef4-9e58-d12d5aebd34d",
       "name": "Check Availability1"
     },
     {
@@ -4344,10 +4344,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -26080,
-        4464
+        -27584,
+        9296
       ],
-      "id": "c2dbfd03-3b68-4d0b-8e9d-b485c5738f76",
+      "id": "9c5938ed-1e86-47d1-820e-6cd9563b1252",
       "name": "Insert rows in a table",
       "alwaysOutputData": false,
       "credentials": {
@@ -4365,10 +4365,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -26320,
-        4464
+        -27824,
+        9296
       ],
-      "id": "f1e130d7-7372-4ea4-868c-ee1d97722c0f",
+      "id": "50a4e38d-9dcb-4e19-bad4-1af84652bb04",
       "name": "prepare_services_data1"
     },
     {
@@ -4400,10 +4400,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -27936,
-        4736
+        -29440,
+        9568
       ],
-      "id": "a48213b9-e76d-425f-a449-9c06af5af215",
+      "id": "77f7bb39-6b86-4799-a404-6f08aab06e0b",
       "name": "Delete table or rows1",
       "credentials": {
         "postgres": {
@@ -4423,10 +4423,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -27696,
-        4672
+        -29200,
+        9504
       ],
-      "id": "815ee3ab-b5c5-4448-9ab4-f0a84010de6d",
+      "id": "1ac7c7f8-264c-41b7-be93-ed9f4992c7a8",
       "name": "Find_Appointment1",
       "credentials": {
         "postgres": {
@@ -4463,10 +4463,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -27472,
-        4752
+        -28976,
+        9584
       ],
-      "id": "efa8ba39-85b7-4b3c-9d47-e0181abc0203",
+      "id": "0d9224c8-dda5-4241-bd7b-5a746d1eaa73",
       "name": "If_Same_Calendar1"
     },
     {
@@ -4633,10 +4633,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -27216,
-        4848
+        -28720,
+        9680
       ],
-      "id": "6aeb4e94-6447-4a85-8b23-47847fe18d30",
+      "id": "9bfc01c3-cf10-4672-9e74-8b30a10214b8",
       "name": "Cancel_appointment1",
       "alwaysOutputData": false,
       "credentials": {
@@ -4899,10 +4899,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -26896,
-        5056
+        -28400,
+        9888
       ],
-      "id": "3c57b5e5-9d24-412b-9427-f3b2b1b9fb12",
+      "id": "f0f461f4-c174-4f70-b844-e99e275a56a3",
       "name": "Insert_Appointment1",
       "alwaysOutputData": false,
       "credentials": {
@@ -4951,10 +4951,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -26608,
-        4752
+        -28112,
+        9584
       ],
-      "id": "87ac76e9-14d8-4fad-a53b-c8e100c4294d",
+      "id": "0076f10d-eae8-4907-b1fe-d368544579c6",
       "name": "Tiene_servicios1"
     },
     {
@@ -4964,10 +4964,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -25808,
-        4656
+        -27312,
+        9488
       ],
-      "id": "ddfe902b-65fa-4217-9264-d6379e0e3538",
+      "id": "69cc6c59-bfc8-42f4-8849-8e6fa229b0b6",
       "name": "Format output1"
     },
     {
@@ -4978,13 +4978,13 @@
           "queryReplacement": "={{ [$('appointments/upsert_noauth').first().json.body.quote_id, $('appointments/upsert_noauth').first().json.body.patient_id] }}"
         }
       },
-      "id": "90b6dcd8-c494-4d3c-a8fe-b49dcf6008dc",
+      "id": "c7095eb6-6709-4f7f-a316-22d6d81ed5c3",
       "name": "Crear Orden1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -25104,
-        4416
+        -26608,
+        9248
       ],
       "credentials": {
         "postgres": {
@@ -5001,13 +5001,13 @@
           "queryReplacement": "={{ [$json.id, $('appointments/upsert_noauth').first().json.body.start, $('appointments/upsert_noauth').first().json.body.quote_id] }}"
         }
       },
-      "id": "c85d16b3-e240-4954-a588-9e67ea50546d",
+      "id": "98263494-201a-405c-8f87-53e11b5243af",
       "name": "Crear Order Items1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -24864,
-        4416
+        -26368,
+        9248
       ],
       "credentials": {
         "postgres": {
@@ -5041,13 +5041,13 @@
         },
         "options": {}
       },
-      "id": "c3b16ec4-de5f-4d7e-a545-e4518b4a7eb1",
+      "id": "dd879cff-9fde-4556-885d-400d0a964b10",
       "name": "IF: ¿Tiene quote_id?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        -25584,
-        4432
+        -27088,
+        9264
       ]
     },
     {
@@ -5058,13 +5058,13 @@
           "queryReplacement": "={{ [$('appointments/upsert_noauth').first().json.body.quote_id] }}"
         }
       },
-      "id": "6b6f43b8-56c8-4a95-9a1d-bd98e0aa37db",
+      "id": "809658ef-ca3a-455e-9ae6-3546bde877a6",
       "name": "Confirmar Quote",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -25344,
-        4416
+        -26848,
+        9248
       ],
       "alwaysOutputData": false,
       "credentials": {
@@ -5103,10 +5103,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -29552,
-        9200
+        -31056,
+        14032
       ],
-      "id": "033a1852-c59b-4cec-88cb-11cd5745a555",
+      "id": "97e17849-a5ab-44ae-90b0-1962123820a4",
       "name": "If"
     },
     {
@@ -5228,10 +5228,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -29344,
-        9120
+        -30848,
+        13952
       ],
-      "id": "4e0bd045-0961-488f-b694-d84a0da54bba",
+      "id": "f82c5181-48a3-479d-97e1-8b8b74015947",
       "name": "update rows in a calendar_sources",
       "alwaysOutputData": true,
       "credentials": {
@@ -5359,10 +5359,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -29344,
-        9360
+        -30848,
+        14192
       ],
-      "id": "74f39f6b-06c4-4df5-8cde-dc48ca7e35b0",
+      "id": "8937f5c4-168b-4b6c-abda-6fefc5e73503",
       "name": "Insert rows in a table2",
       "alwaysOutputData": true,
       "credentials": {
@@ -5487,10 +5487,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -28864,
-        6208
+        -30368,
+        11040
       ],
-      "id": "3be19f4d-834a-499b-a923-66eff5041a3a",
+      "id": "b0955ab7-fe2f-4d10-9479-9ec077849f0e",
       "name": "Call_Get_Availability_Calendar"
     },
     {
@@ -5504,10 +5504,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -28288,
-        6096
+        -29792,
+        10928
       ],
-      "id": "e3dae9fd-5ca6-4904-ad12-08181c248a28",
+      "id": "f34657a2-69fd-4af5-9698-c88e916262e5",
       "name": "Error: Information incorrect5"
     },
     {
@@ -5624,10 +5624,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -29296,
-        7472
+        -30800,
+        12304
       ],
-      "id": "e2100d9a-bcef-4dec-8748-b8452f454613",
+      "id": "a8481d2d-e1a3-4353-9c09-b51d5c975028",
       "name": "Call_Get_Availability_Calendar1"
     },
     {
@@ -5640,10 +5640,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        -26976,
-        7968
+        -28480,
+        12800
       ],
-      "id": "57b2a605-99e4-4390-b8df-a55fea94bca4",
+      "id": "868cef02-cb1b-45d1-9164-023159a7dd82",
       "name": "Sticky Note"
     },
     {
@@ -5675,10 +5675,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -26240,
-        8080
+        -27744,
+        12912
       ],
-      "id": "1c32804a-c857-4ffb-bca2-7f49153bdb54",
+      "id": "71bf19b2-303e-44b1-86aa-06aa5501f3d2",
       "name": "Success"
     },
     {
@@ -5690,10 +5690,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -26240,
-        8256
+        -27744,
+        13088
       ],
-      "id": "41f4ee37-174f-427a-94dd-479cbd694bfa",
+      "id": "137a5d90-bbd4-43ba-9e80-f05ac2659973",
       "name": "Error"
     },
     {
@@ -5725,10 +5725,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -26704,
-        8160
+        -28208,
+        12992
       ],
-      "id": "43ec1122-8b1c-4dd6-b61f-95f59efe239f",
+      "id": "f7358757-63a3-4f24-b7fc-f66fc3e114fc",
       "name": "If26"
     },
     {
@@ -5754,10 +5754,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -26464,
-        8464
+        -27968,
+        13296
       ],
-      "id": "04d40b6f-575d-42f4-8882-434f75b47aae",
+      "id": "ff0b2a8f-4894-4f44-b827-1ab939f196a7",
       "name": "Success53",
       "disabled": true
     },
@@ -5770,10 +5770,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -26464,
-        8624
+        -27968,
+        13456
       ],
-      "id": "d4dc5150-053e-4a01-9796-33cf940492a5",
+      "id": "17d4d555-aa5e-4251-927f-b9fe906a1ffe",
       "name": "Error60",
       "disabled": true
     },
@@ -5790,10 +5790,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -26912,
-        8160
+        -28416,
+        12992
       ],
-      "id": "ccca7d63-6528-488e-bec0-4cef5b3021fb",
+      "id": "ff9fc932-be68-46af-9b00-ee8eb7c75b3b",
       "name": "calendar_settings/upsert",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -5816,10 +5816,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -26896,
-        8560
+        -28400,
+        13392
       ],
-      "id": "f77ba2aa-9566-418c-94ea-24ccccedc851",
+      "id": "c3d87750-3de6-46fc-8db6-00b8edeec7c9",
       "name": "calendar_settings/delete",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -5842,10 +5842,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -26896,
-        8928
+        -28400,
+        13760
       ],
-      "id": "dfab1222-f2ba-47e8-a9f4-9d10afe2df8c",
+      "id": "15c1f428-4a07-4fb9-9686-a849e67e6efd",
       "name": "calendar_settings/search",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5888,7 +5888,10 @@
             "slot_duration": "={{ $json.body.slot_duration }}",
             "mode": "={{ $json.body.mode }}",
             "hidden_weekdays": "={{ $json.body.hidden_weekdays }}",
-            "color_by_status": "={{ $json.body.color_by_status }}"
+            "color_by_status": "={{ $json.body.color_by_status }}",
+            "visible_hours_mode": "={{ ['full', 'custom', 'clinic'].includes($json.body.visible_hours_mode) ? $json.body.visible_hours_mode : 'full' }}",
+            "visible_hours_start": "={{ $json.body.visible_hours_start || null }}",
+            "visible_hours_end": "={{ $json.body.visible_hours_end || null }}"
           },
           "matchingColumns": [
             "id"
@@ -6073,6 +6076,36 @@
               "type": "array",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "visible_hours_mode",
+              "displayName": "visible_hours_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "visible_hours_start",
+              "displayName": "visible_hours_start",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "visible_hours_end",
+              "displayName": "visible_hours_end",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -6083,10 +6116,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -26480,
-        8064
+        -27984,
+        12896
       ],
-      "id": "27dc88e6-ed61-4441-9983-3699baedb8a7",
+      "id": "432d547a-888b-477b-a8f5-a64719602aa4",
       "name": "Update calendar_settings",
       "alwaysOutputData": false,
       "credentials": {
@@ -6129,7 +6162,10 @@
             "slot_duration": "={{ $json.body.slot_duration }}",
             "mode": "={{ $json.body.mode }}",
             "hidden_weekdays": "={{ $json.body.hidden_weekdays }}",
-            "color_by_status": "={{ $json.body.color_by_status }}"
+            "color_by_status": "={{ $json.body.color_by_status }}",
+            "visible_hours_mode": "={{ ['full', 'custom', 'clinic'].includes($json.body.visible_hours_mode) ? $json.body.visible_hours_mode : 'full' }}",
+            "visible_hours_start": "={{ $json.body.visible_hours_start || null }}",
+            "visible_hours_end": "={{ $json.body.visible_hours_end || null }}"
           },
           "matchingColumns": [
             "id"
@@ -6314,6 +6350,36 @@
               "type": "boolean",
               "canBeUsedToMatch": true,
               "removed": false
+            },
+            {
+              "id": "visible_hours_mode",
+              "displayName": "visible_hours_mode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "visible_hours_start",
+              "displayName": "visible_hours_start",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "visible_hours_end",
+              "displayName": "visible_hours_end",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
             }
           ],
           "attemptToConvertTypes": false,
@@ -6324,10 +6390,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -26480,
-        8256
+        -27984,
+        13088
       ],
-      "id": "e7ed9bf6-d096-454c-a183-0b45c0ee20d4",
+      "id": "abb9b3f2-794f-474b-bc50-efc129e04ab5",
       "name": "Insert calendar_settings",
       "alwaysOutputData": false,
       "credentials": {
@@ -6367,10 +6433,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -26688,
-        8560
+        -28192,
+        13392
       ],
-      "id": "772ebbfc-9f95-4383-a86e-63c21c3c55d2",
+      "id": "df6c8924-9dc2-453c-9f0c-93263bfa9db1",
       "name": "Delete calendar_settings",
       "alwaysOutputData": false,
       "credentials": {
@@ -6385,7 +6451,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT\n  c.id,\n  c.user_id,\n  c.default_view,\n  c.grouped_by,\n  c.check_availability,\n  c.filter_doctors_by_service,\n  c.created_at,\n  c.updated_at,\n  c.hour_height,\n  c.event_label_format,\n  c.default_sede,\n  c.block_unavailable,\n  c.inline_appointment_creation,\n  c.inline_draft_live_preview,\n  c.slot_duration,\n  c.mode,\n  c.hidden_weekdays,\n  c.color_by_status\nFROM\n  calendar_settings c\nINNER JOIN users u ON c.user_id = u.id\nWHERE\n  COALESCE($1, '') = '' OR\n  (\n    u.id = $1\n  )\nORDER BY\n  c.created_at DESC\nLIMIT 1;",
+        "query": "SELECT\n  c.id,\n  c.user_id,\n  c.default_view,\n  c.grouped_by,\n  c.check_availability,\n  c.filter_doctors_by_service,\n  c.created_at,\n  c.updated_at,\n  c.hour_height,\n  c.event_label_format,\n  c.default_sede,\n  c.block_unavailable,\n  c.inline_appointment_creation,\n  c.inline_draft_live_preview,\n  c.slot_duration,\n  c.mode,\n  c.hidden_weekdays,\n  c.color_by_status,\n  c.visible_hours_mode,\n  to_char(c.visible_hours_start, 'HH24:MI') AS visible_hours_start,\n  to_char(c.visible_hours_end, 'HH24:MI') AS visible_hours_end\nFROM\n  calendar_settings c\nINNER JOIN users u ON c.user_id = u.id\nWHERE\n  COALESCE($1, '') = '' OR\n  (\n    u.id = $1\n  )\nORDER BY\n  c.created_at DESC\nLIMIT 1;",
         "options": {
           "queryReplacement": "={{ [ $json.query.user_id || $json.jwtPayload.userId || null ] }}"
         }
@@ -6393,10 +6459,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -26688,
-        8928
+        -28192,
+        13760
       ],
-      "id": "8143b502-9e14-4448-9f84-1fbad0ed7197",
+      "id": "54960a7f-4e2e-4224-9ab8-cf0ce12ca46f",
       "name": "Select calendar_settings",
       "alwaysOutputData": true,
       "credentials": {
@@ -6425,10 +6491,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -26432,
-        8848
+        -27936,
+        13680
       ],
-      "id": "09bac535-33df-46c7-ad31-d5b0a269c8ca",
+      "id": "90bc29af-39a3-4ce4-b68f-8507ff8b3d78",
       "name": "Respond to Webhook5"
     },
     {
@@ -6441,10 +6507,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -26432,
-        9008
+        -27936,
+        13840
       ],
-      "id": "778cf4e5-1216-49b9-936c-40b4190b378f",
+      "id": "f8a184a2-4466-4cdd-9e49-79f14b32792a",
       "name": "Error: Information incorrect6"
     },
     {
@@ -6456,11 +6522,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -24160,
-        6416
+        -25664,
+        11248
       ],
       "typeVersion": 1,
-      "id": "19b787a5-cf2c-4bbd-8727-b96a34c53c63",
+      "id": "c494454a-246d-4314-a2b1-281e4c39e088",
       "name": "Flow Documentation1"
     },
     {
@@ -6472,11 +6538,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -24176,
-        5760
+        -25680,
+        10592
       ],
       "typeVersion": 1,
-      "id": "6641994b-e940-4796-b186-376eb4871ca0",
+      "id": "c5b3f86f-195d-452e-872b-ea64ebbdea82",
       "name": "Flow Documentation"
     },
     {
@@ -6486,10 +6552,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -23264,
-        5984
+        -24768,
+        10816
       ],
-      "id": "da381ad7-076e-4ed7-8a3f-50063a5ed9c2",
+      "id": "d355c0c5-c096-4fd4-acd1-282e60d2770a",
       "name": "Parse Input"
     },
     {
@@ -6501,10 +6567,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -23040,
-        5984
+        -24544,
+        10816
       ],
-      "id": "c11eb6af-51db-4b94-9f78-84d91cfb95c1",
+      "id": "ef9e8869-b8d7-40fc-aa15-e4cc919aa69d",
       "name": "Load Current Appointment",
       "credentials": {
         "postgres": {
@@ -6520,10 +6586,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -22816,
-        5984
+        -24320,
+        10816
       ],
-      "id": "43051bcf-9956-44d6-9f4b-4354d757dbbd",
+      "id": "adfb753c-ceec-4856-9f0d-10e738669746",
       "name": "Check Current Status"
     },
     {
@@ -6554,10 +6620,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        -22608,
-        5984
+        -24112,
+        10816
       ],
-      "id": "b1ca4729-c577-49d9-a247-034172d63013",
+      "id": "2f62ea88-2b69-40f6-a27a-16196612bd20",
       "name": "Has Error?"
     },
     {
@@ -6571,10 +6637,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        -22384,
-        5856
+        -23888,
+        10688
       ],
-      "id": "098a46ea-af8a-47cb-b4f4-b0ff0cb31da5",
+      "id": "eaa2e289-5614-4441-a978-f4445099b8ef",
       "name": "Respond Error"
     },
     {
@@ -6586,10 +6652,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -22384,
-        6096
+        -23888,
+        10928
       ],
-      "id": "8a1e3ac4-caaf-48b3-9727-a41c3512ece4",
+      "id": "26c0649c-bb7c-409a-9638-6c44b1f8c4f5",
       "name": "Apply Update + Log",
       "credentials": {
         "postgres": {
@@ -6605,10 +6671,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -22176,
-        6096
+        -23680,
+        10928
       ],
-      "id": "a7f64038-9da8-4a54-a4d6-db02bf921690",
+      "id": "27bff0ed-7435-4ee0-b54c-287a5561fac9",
       "name": "Build Response"
     },
     {
@@ -6622,10 +6688,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        -21952,
-        6096
+        -23456,
+        10928
       ],
-      "id": "7a27a641-64e2-4f01-9ef8-9a35ba0ded4d",
+      "id": "f053e215-c7bc-4739-adf7-179c8647e851",
       "name": "Respond 200"
     },
     {
@@ -6635,10 +6701,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -23232,
-        7328
+        -24736,
+        12160
       ],
-      "id": "77228660-a032-4bbe-b8d7-1161e2e8f598",
+      "id": "c96ee1d6-b69a-4fb6-9f34-b705a3984e04",
       "name": "Parse Query",
       "disabled": true
     },
@@ -6651,10 +6717,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -23008,
-        7328
+        -24512,
+        12160
       ],
-      "id": "bcfaf339-ea63-4840-b920-3b071cd2efaf",
+      "id": "6148841b-effe-437f-9d13-af1f36805be8",
       "name": "Load Reminders",
       "credentials": {
         "postgres": {
@@ -6673,11 +6739,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -24160,
-        7136
+        -25664,
+        11968
       ],
       "typeVersion": 1,
-      "id": "4b52d6de-0dd0-4c18-9ba0-87bb3caf47d3",
+      "id": "30aca06e-d936-41e0-adee-117c6dfe8725",
       "name": "Flow Documentation2",
       "disabled": true
     },
@@ -6691,10 +6757,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -23440,
-        7328
+        -24944,
+        12160
       ],
-      "id": "8edab772-04f1-41a3-8a9c-9cc896c13598",
+      "id": "74cadbf5-ebc0-468f-bcbe-79ea1446bab8",
       "name": "Webhook2",
       "webhookId": "reminders-get",
       "credentials": {
@@ -6716,10 +6782,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        -22784,
-        7328
+        -24288,
+        12160
       ],
-      "id": "0bc94c3b-94a0-4f31-b948-bea3827f43a3",
+      "id": "e4fd49b8-ae1a-446a-b908-e1d6368ca254",
       "name": "Respond 201",
       "disabled": true
     },
@@ -6734,10 +6800,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -23008,
-        8560
+        -24512,
+        13392
       ],
-      "id": "a12ebe81-0893-4ee9-877f-524b1a69a9e8",
+      "id": "fb835fc5-1678-44f4-9bd0-45d2adadb157",
       "name": "Delete Reminder",
       "credentials": {
         "postgres": {
@@ -6811,10 +6877,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -22784,
-        8720
+        -24288,
+        13552
       ],
-      "id": "a02fef62-c7b6-4f60-9df3-a4f2fbff407a",
+      "id": "85367854-54f5-438b-864c-62f66e4c2a11",
       "name": "Push calendar_changed (reminder delete)",
       "disabled": true
     },
@@ -6829,10 +6895,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        -22560,
-        8560
+        -24064,
+        13392
       ],
-      "id": "e98451f6-ae06-4454-a299-2297eb4d3eae",
+      "id": "a33a5d14-41b3-4057-a7d8-c070aa2b33ab",
       "name": "Respond",
       "disabled": true
     },
@@ -6845,11 +6911,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -24160,
-        8432
+        -25664,
+        13264
       ],
       "typeVersion": 1,
-      "id": "92ada397-368e-4bf7-a0a3-975b5d2acf88",
+      "id": "ed965834-9a1e-463e-aa68-c34f731c70d3",
       "name": "Flow Documentation4"
     },
     {
@@ -6863,10 +6929,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -23440,
-        8560
+        -24944,
+        13392
       ],
-      "id": "351e48da-cf77-4944-aced-058c9c883a87",
+      "id": "a9fe03bc-5e01-49c5-8b8d-d8009696ac16",
       "name": "Webhook4",
       "webhookId": "reminders-delete",
       "credentials": {
@@ -6884,10 +6950,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -23232,
-        8560
+        -24736,
+        13392
       ],
-      "id": "3130d569-e62b-4973-a35c-37d43d6aed10",
+      "id": "d3deb467-b438-42d0-82d5-2d020dbc551e",
       "name": "Parse Input3",
       "disabled": true
     },
@@ -6898,10 +6964,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -22784,
-        8560
+        -24288,
+        13392
       ],
-      "id": "00faa4da-56cb-42bc-86fa-7bf4c74fd20c",
+      "id": "80919cc5-72e9-4c9d-8403-609f38dab203",
       "name": "Build Response3",
       "disabled": true
     },
@@ -6918,10 +6984,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -25856,
-        8144
+        -27360,
+        12976
       ],
-      "id": "a0f9b57c-6952-4cfd-88e7-5f8e809cbebf",
+      "id": "e316398f-f5b2-47a1-b76e-3362ec3041bb",
       "name": "GET appointments/filter-ids",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -6940,11 +7006,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -25968,
-        7968
+        -27472,
+        12800
       ],
       "typeVersion": 1,
-      "id": "367feec2-8d4e-442a-941f-c155cc1c27c4",
+      "id": "e73242d7-ddee-4b5e-ba20-b170316d8aa9",
       "name": "Sticky Note1"
     },
     {
@@ -6958,10 +7024,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -25440,
-        8144
+        -26944,
+        12976
       ],
-      "id": "5c04c282-7133-4299-8e56-64128abb5e74",
+      "id": "0412b42e-4568-4eb3-9a57-9cf7f5f9c6c5",
       "name": "Get appointments ids",
       "alwaysOutputData": true,
       "credentials": {
@@ -6978,10 +7044,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -25232,
-        8144
+        -26736,
+        12976
       ],
-      "id": "3ee04ee1-86b5-47d1-9ebd-5a640d34780f",
+      "id": "db7b6449-0702-4cd3-9e55-10c4481504ff",
       "name": "Format output2"
     },
     {
@@ -6991,10 +7057,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -25648,
-        8144
+        -27152,
+        12976
       ],
-      "id": "2901e660-3efd-47dc-8d1c-bf23c3939f05",
+      "id": "a3a61dc5-e5ab-4ee4-96f0-c18b90a1500b",
       "name": "Code in JavaScript1"
     },
     {
@@ -7004,10 +7070,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -25232,
-        8352
+        -26736,
+        13184
       ],
-      "id": "121c947a-b755-4970-8936-5dbeeaa793d5",
+      "id": "a09089a1-fc97-4124-8469-b822624a86db",
       "name": "Format output3"
     },
     {
@@ -7023,10 +7089,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -25856,
-        8352
+        -27360,
+        13184
       ],
-      "id": "76b10301-b5be-436e-8f26-17eb875f1193",
+      "id": "e910139c-d905-493d-823a-40c3a42bf3fe",
       "name": "GET appointments/bulk-reassign-doctor",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -7047,10 +7113,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -25440,
-        8352
+        -26944,
+        13184
       ],
-      "id": "56fc3728-5e3e-4cb6-baee-243c05703946",
+      "id": "cfbd80a3-cf1e-4b0e-bde1-35661b49791e",
       "name": "Update appointments",
       "alwaysOutputData": true,
       "credentials": {
@@ -7068,10 +7134,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -25648,
-        8352
+        -27152,
+        13184
       ],
-      "id": "4af108de-9e17-42ee-ae1e-ac6bea8da05b",
+      "id": "c235e5b4-a0fe-411b-affe-39e3a4c3ce28",
       "name": "Code in JavaScript2"
     },
     {
@@ -7085,10 +7151,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -23488,
-        5984
+        -24992,
+        10816
       ],
-      "id": "82f2f3c7-6c28-4cc8-bee9-5bd417833692",
+      "id": "c7195c97-80cb-44eb-9c03-9b05c4b0fae0",
       "name": "POST appointments/update_status",
       "webhookId": "appointments-update-status",
       "credentials": {
@@ -7109,10 +7175,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -21952,
-        6272
+        -23456,
+        11104
       ],
-      "id": "f3dec26e-9fa0-4609-8ec7-02f61ddacb38",
+      "id": "4f5b8541-14f0-4633-80aa-658d33737e7b",
       "name": "Insert Update Notification",
       "credentials": {
         "postgres": {
@@ -7132,10 +7198,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -22176,
-        6272
+        -23680,
+        11104
       ],
-      "id": "1e93e257-f982-4dc5-a6d8-852e76d4377a",
+      "id": "e5d0f6ac-bc2e-4058-8082-8e18e69eb4e0",
       "name": "Get appointment data",
       "credentials": {
         "postgres": {
@@ -7155,10 +7221,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -26704,
-        6672
+        -28208,
+        11504
       ],
-      "id": "92ee85f1-2c6c-4e5a-a638-337f44c1e0a8",
+      "id": "51e9b68c-3fee-478d-b1f8-1a23f9fde24f",
       "name": "Get appointment data1",
       "credentials": {
         "postgres": {
@@ -7178,10 +7244,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -26480,
-        6672
+        -27984,
+        11504
       ],
-      "id": "5a094728-ae09-448d-bb84-77589f76a028",
+      "id": "d022a079-5c7b-4b1c-b628-61c7887c2845",
       "name": "Insert Create Notification",
       "credentials": {
         "postgres": {
@@ -7254,10 +7320,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -21504,
-        6272
+        -23008,
+        11104
       ],
-      "id": "442f3f43-9582-46f1-b77a-a861a89fedc4",
+      "id": "2d1ce440-a68d-447c-ae27-76f367530563",
       "name": "Push event"
     },
     {
@@ -7324,10 +7390,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -26032,
-        6672
+        -27536,
+        11504
       ],
-      "id": "15a3d693-40a7-47f8-a5de-09d5244c9a74",
+      "id": "1936a463-a3ea-4652-b155-a031156bc87e",
       "name": "Push event1"
     },
     {
@@ -7338,13 +7404,13 @@
           "queryReplacement": "={{ $json.query.user_id }}"
         }
       },
-      "id": "43ef253a-944d-4fb6-81f0-f245cdd43350",
+      "id": "d368ba96-939b-4e36-95da-8619d8a539ea",
       "name": "Count cancelled appointments",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.4,
       "position": [
-        -25536,
-        9152
+        -27040,
+        13984
       ],
       "credentials": {
         "postgres": {
@@ -7359,13 +7425,13 @@
         "responseBody": "={{ { \"user_id\": $('GET user_cancelled_appointments_count').item.json.query.user_id, \"cancelled_count\": ($json.cancelled_count || 0) } }}",
         "options": {}
       },
-      "id": "2689b1bc-106b-4430-9f51-0dd6e281d523",
+      "id": "41ae829e-cfd2-4d1e-9989-5aa7d49bea30",
       "name": "Respond1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        -25280,
-        9152
+        -26784,
+        13984
       ]
     },
     {
@@ -7377,11 +7443,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -25936,
-        8896
+        -27440,
+        13728
       ],
       "typeVersion": 1,
-      "id": "46346763-8e0a-4fdb-b2bb-b8995defcedb",
+      "id": "1a4f7305-4f98-482e-a69f-0137a4a5245d",
       "name": "Sticky Note2"
     },
     {
@@ -7391,13 +7457,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "93c51c8a-3217-419b-96e4-c549b738650e",
+      "id": "87ee405d-98bc-42d9-9a24-12d240670ccc",
       "name": "GET user_cancelled_appointments_count",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -25808,
-        9152
+        -27312,
+        13984
       ],
       "webhookId": "user-cancelled-appointments-count",
       "credentials": {
@@ -7420,10 +7486,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -27808,
-        8688
+        -29312,
+        13520
       ],
-      "id": "7a4d28ca-1c87-44e5-9dcb-03a7f5136f6b",
+      "id": "1e49a949-7767-470b-9485-035c08e2731e",
       "name": "user_active_appointments",
       "webhookId": "1839386e-e795-4387-809a-504b88e6fd49",
       "credentials": {
@@ -7451,10 +7517,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -27344,
-        8704
+        -28848,
+        13536
       ],
-      "id": "5a5904d9-e9f3-47c8-87ed-e1380164a8ce",
+      "id": "a49ae295-91bd-46a3-8a7c-60873ca06b63",
       "name": "Respond to Webhook6",
       "disabled": true
     },
@@ -7468,10 +7534,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -27344,
-        8848
+        -28848,
+        13680
       ],
-      "id": "6087d451-bc4d-4cc3-9f08-dd1d94be1ce2",
+      "id": "caa160da-e365-44b9-9696-aad07a78acd7",
       "name": "Error: Information incorrect7",
       "disabled": true
     },
@@ -7488,10 +7554,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -27808,
-        8880
+        -29312,
+        13712
       ],
-      "id": "361efbd3-a7ef-4abe-91d7-d094d344437d",
+      "id": "91933fa9-4fea-4fc1-88fd-245017f089f6",
       "name": "users_active_appointments",
       "webhookId": "1839386e-e795-4387-809a-504b88e6fd49",
       "credentials": {
@@ -7510,13 +7576,13 @@
           "queryReplacement": "={{ [$json.query.startingDateAndTime, $json.query.endingDateAndTime, $json.query.calendar_source_ids || $json.query.calendar_ids, $json.query.user_id, $json.query.appointment_id, $json.query.doctor_id] }}"
         }
       },
-      "id": "78679115-3a3f-4dc5-aaec-dc5162006614",
+      "id": "5553f85f-1fe4-48b8-b00e-493cc14e01cf",
       "name": "Get_users_active_appointments",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -27568,
-        8784
+        -29072,
+        13616
       ],
       "executeOnce": false,
       "alwaysOutputData": true,
@@ -7540,10 +7606,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -23040,
-        6704
+        -24544,
+        11536
       ],
-      "id": "e41b5d51-af57-4ad4-adbf-36ac4e593a13",
+      "id": "f37145f0-98d2-4707-9355-7b5db300f8cf",
       "name": "Load Original",
       "credentials": {
         "postgres": {
@@ -7559,10 +7625,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -22816,
-        6704
+        -24320,
+        11536
       ],
-      "id": "bbfbfe5a-3c2d-49a3-bfaa-e77e5f982ba6",
+      "id": "3eb85e7b-4435-4bc4-bd73-30924299d587",
       "name": "Validate Eligibility"
     },
     {
@@ -7576,10 +7642,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -22384,
-        6816
+        -23888,
+        11648
       ],
-      "id": "a32c508d-37cd-4220-afe2-613c0603ff18",
+      "id": "b460c41c-1145-4bb7-8c08-eb4af368aebc",
       "name": "Apply Reschedule",
       "credentials": {
         "postgres": {
@@ -7599,10 +7665,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -23488,
-        6704
+        -24992,
+        11536
       ],
-      "id": "746b137e-799c-458d-864c-bc71d4bb2eee",
+      "id": "72952fce-0f89-42dd-9ffe-0537c212e367",
       "name": "Webhook1",
       "webhookId": "appointments-reschedule",
       "credentials": {
@@ -7619,10 +7685,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -23264,
-        6704
+        -24768,
+        11536
       ],
-      "id": "d3428e36-58e6-4edd-9f22-5a72211e7193",
+      "id": "f3b66a58-fc6b-452d-a07d-6a9147266484",
       "name": "Parse Input1"
     },
     {
@@ -7653,10 +7719,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        -22608,
-        6704
+        -24112,
+        11536
       ],
-      "id": "18b62191-451a-4382-8d4b-e58328f0f57b",
+      "id": "f463eb62-df78-4054-b18d-36ab09aa5c68",
       "name": "Has Error?1"
     },
     {
@@ -7670,10 +7736,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        -22384,
-        6576
+        -23888,
+        11408
       ],
-      "id": "7c22440c-9e72-4d35-b64d-ae7dad2c95be",
+      "id": "3a5d2e2a-189d-4514-8dfb-ab304f29cc90",
       "name": "Respond Error1"
     },
     {
@@ -7683,10 +7749,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -22160,
-        6816
+        -23664,
+        11648
       ],
-      "id": "d05a274c-0ed0-497e-a9b6-2eecb6112a4a",
+      "id": "e619637e-2339-4e94-8fb7-3dd1270b78c6",
       "name": "Build Response1"
     },
     {
@@ -7700,10 +7766,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        -21936,
-        6816
+        -23440,
+        11648
       ],
-      "id": "6ecc57f4-1d85-47c0-adb0-f84044d1d783",
+      "id": "e536d464-2c3a-4b32-9e2d-84245601ba26",
       "name": "Respond "
     },
     {
@@ -7717,10 +7783,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -23440,
-        7952
+        -24944,
+        12784
       ],
-      "id": "07685626-8759-437a-92fc-faf2577e1067",
+      "id": "5067dbb1-13ac-47a5-a339-fb8985e35a8c",
       "name": "Webhook",
       "webhookId": "reminders-upsert",
       "credentials": {
@@ -7738,10 +7804,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -23200,
-        7952
+        -24704,
+        12784
       ],
-      "id": "0c4c0b4c-789c-49a4-8298-6e5e33478b1b",
+      "id": "618de144-66e6-4a60-a53d-51541a9331b0",
       "name": "Validate Input",
       "disabled": true
     },
@@ -7756,10 +7822,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -22960,
-        7952
+        -24464,
+        12784
       ],
-      "id": "821679ed-cedf-414a-98c3-7b615c1f64f1",
+      "id": "fc94a8f9-1098-4f07-9575-41ea3d205550",
       "name": "Upsert Reminder",
       "alwaysOutputData": true,
       "credentials": {
@@ -7777,10 +7843,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -22736,
-        7952
+        -24240,
+        12784
       ],
-      "id": "ce5df879-ed70-4e44-8383-cb7272292092",
+      "id": "ef0a83c4-bfcf-453a-a1b4-e9866e29f60a",
       "name": "Check Ownership",
       "disabled": true
     },
@@ -7812,10 +7878,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        -22512,
-        7952
+        -24016,
+        12784
       ],
-      "id": "e79a50f4-b074-452a-b913-37c70ca32165",
+      "id": "9065bd6e-4030-43ee-bdaf-22338d57ef07",
       "name": "Has Error? (Reminder Ownership)",
       "disabled": true
     },
@@ -7883,10 +7949,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -22288,
-        8208
+        -23792,
+        13040
       ],
-      "id": "71368acf-da7f-41d5-befb-5e7d272ec8f7",
+      "id": "cf900988-c2b7-4244-b118-9268e191da68",
       "name": "Push calendar_changed (reminder upsert)",
       "disabled": true
     },
@@ -7901,10 +7967,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        -22288,
-        8048
+        -23792,
+        12880
       ],
-      "id": "d285a4ed-e7a9-4c2c-b4bc-234bb92c661e",
+      "id": "f0a65253-45ce-4e0d-8b59-d746849471cf",
       "name": "Respond 403",
       "disabled": true
     },
@@ -7917,11 +7983,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -24160,
-        7696
+        -25664,
+        12528
       ],
       "typeVersion": 1,
-      "id": "8b3b70e5-e7d3-4b0e-94c8-8ca7f0536abd",
+      "id": "cf2b2442-b9a2-48cc-8698-611def362d2d",
       "name": "Flow Documentation3"
     },
     {
@@ -7935,10 +8001,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        -22288,
-        7856
+        -23792,
+        12688
       ],
-      "id": "3abd90ac-3909-41ac-95d9-50da9ecd28d1",
+      "id": "0c756cf5-2cfd-4354-a03f-a057dba94d24",
       "name": "Respond 202",
       "disabled": true
     },
@@ -7953,10 +8019,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -21712,
-        6960
+        -23216,
+        11792
       ],
-      "id": "ebd9ce97-023b-4007-b185-b7f88fe5e8a1",
+      "id": "bc4aa962-6127-4cf6-9975-6b655683ef98",
       "name": "Insert Reschedule Notification",
       "credentials": {
         "postgres": {
@@ -8029,10 +8095,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -21264,
-        6960
+        -22768,
+        11792
       ],
-      "id": "a289842d-9fec-4c4e-afe9-35351b0d20fd",
+      "id": "b8c4e3ed-83fc-4730-a9b8-a31b04d3d83e",
       "name": "Push Reschedule Event"
     },
     {
@@ -8046,10 +8112,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -25024,
-        8512
+        -26528,
+        13344
       ],
-      "id": "49cbd93f-e201-419d-a972-0d9657d6a1c6",
+      "id": "8edf683d-996a-43be-b4bd-f23feec0744b",
       "name": "Insert Reassign Notification",
       "credentials": {
         "postgres": {
@@ -8122,10 +8188,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -24576,
-        8512
+        -26080,
+        13344
       ],
-      "id": "3e8c69b6-c18f-4e12-9843-0487c3f82c42",
+      "id": "a5357cc1-ad78-4fa6-bc32-2bb7963e949f",
       "name": "Push Reassign Event"
     },
     {
@@ -8139,10 +8205,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -22160,
-        6960
+        -23664,
+        11792
       ],
-      "id": "a3174721-5a10-4a9f-8519-75ef7c58e12c",
+      "id": "c19d25ee-5b5b-4f85-a693-5f4c1b5c0d39",
       "name": "Get Reschedule Appointment Data",
       "credentials": {
         "postgres": {
@@ -8158,10 +8224,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -21936,
-        6960
+        -23440,
+        11792
       ],
-      "id": "7ef6d32d-12f0-48ea-b57f-74ab60cefe50",
+      "id": "7f7388fa-1c3b-43ea-b4f8-1d794d8ecd71",
       "name": "Merge Reschedule Context"
     },
     {
@@ -8175,10 +8241,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -25232,
-        8512
+        -26736,
+        13344
       ],
-      "id": "e1bf1c2c-f4eb-4778-8a8a-923a3ea26c9a",
+      "id": "ff05b99e-e73a-405a-88ae-4bbf39b301c1",
       "name": "Get Reassign Appointment Data",
       "credentials": {
         "postgres": {
@@ -8198,10 +8264,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -26704,
-        6496
+        -28208,
+        11328
       ],
-      "id": "821d8d5b-4373-497d-b7ab-640e4cefefa0",
+      "id": "59e70b56-11eb-4e4c-9bd7-8ac38c08df5b",
       "name": "Get Edit Appointment Data",
       "credentials": {
         "postgres": {
@@ -8221,10 +8287,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -26480,
-        6496
+        -27984,
+        11328
       ],
-      "id": "2497f9d8-3f50-4147-b9bf-fb0436265340",
+      "id": "14624845-d19f-4b98-aa6a-d7f66baf9a81",
       "name": "Insert Edit Notification",
       "credentials": {
         "postgres": {
@@ -8297,10 +8363,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        -26032,
-        6496
+        -27536,
+        11328
       ],
-      "id": "9411445a-34f4-499c-8e6b-3a4ffcc69d3e",
+      "id": "afc5548c-9bba-4a16-b2a2-20e1d0fbd120",
       "name": "Push Edit Event"
     },
     {
@@ -8312,10 +8378,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -29280,
-        5008
+        -30784,
+        9840
       ],
-      "id": "7ded5531-e5f9-41f0-ad49-bc2ad0447cc9",
+      "id": "291356a0-8fb9-44be-a7f0-6fdb0dbd1acd",
       "name": "Check Online Booking Enabled",
       "credentials": {
         "postgres": {
@@ -8353,10 +8419,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -29040,
-        5008
+        -30544,
+        9840
       ],
-      "id": "21a454db-a80d-45fe-aa62-c42f9d4e5b21",
+      "id": "3c389f05-a635-4ee8-ac27-d5ef2fddd53c",
       "name": "Online Booking Enabled?"
     },
     {
@@ -8368,10 +8434,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -28768,
-        5136
+        -30272,
+        9968
       ],
-      "id": "6c4a1d8f-7996-4603-a4e3-b8117353f34c",
+      "id": "2eb73c5e-991b-482c-bd6a-8721059a17f3",
       "name": "Online Booking Disabled Message"
     },
     {
@@ -8384,10 +8450,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -28544,
-        5136
+        -30048,
+        9968
       ],
-      "id": "5e496f61-5a06-4c1d-a1c7-83883903b2c8",
+      "id": "b938a963-fb6f-45d6-9f05-8e1f37a93dbc",
       "name": "Respond 403 Online Booking Disabled"
     },
     {
@@ -8396,13 +8462,13 @@
         "query": "SELECT\n  a.id,\n  TO_CHAR(a.start_datetime, 'YYYY-MM-DD HH24:MI:SS') AS start_datetime,\n  TO_CHAR(a.end_datetime, 'YYYY-MM-DD HH24:MI:SS') AS end_datetime,\n  a.description,\n  a.summary,\n  a.color,\n  a.calendar_source_id,\n  a.google_event_id,\n  a.status,\n  a.updated_at,\n  p.email AS patient_email,\n  d.email AS doctor_email,\n  cs.google_calendar_id\nFROM public.appointments a\nINNER JOIN public.calendar_sources cs\n  ON cs.id = a.calendar_source_id\nLEFT JOIN public.users p\n  ON a.patient_id = p.id\nLEFT JOIN public.users d\n  ON a.assignee_id = d.id\nWHERE NULLIF(BTRIM(a.google_event_id), '') IS NULL\n  AND COALESCE(a.status, '') NOT IN ('cancelled', 'canceled', 'deleted')\n  AND cs.is_active IS TRUE\n  AND NULLIF(BTRIM(cs.google_calendar_id), '') IS NOT NULL\nORDER BY a.start_datetime ASC\nLIMIT 100;",
         "options": {}
       },
-      "id": "b5fc026e-01bc-4b63-9a7e-4c581f8ae9cb",
+      "id": "c0fcb942-3696-4cda-8b01-3c678cb355a2",
       "name": "Find appointments without GCal ID",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.3,
       "position": [
-        -28960,
-        10336
+        -30464,
+        15168
       ],
       "credentials": {
         "postgres": {
@@ -8426,13 +8492,13 @@
           "summary": "={{ $json.summary }}"
         }
       },
-      "id": "e7a42b9c-07b4-477d-855f-96959b93edf7",
+      "id": "93eadbdf-2746-4436-8000-ea0fe701f523",
       "name": "Create GCal Event1",
       "type": "n8n-nodes-base.googleCalendar",
       "typeVersion": 1.3,
       "position": [
-        -28704,
-        10336
+        -30208,
+        15168
       ],
       "credentials": {
         "googleCalendarOAuth2Api": {
@@ -8449,13 +8515,13 @@
           "queryReplacement": "={{ [ $json.id, $('Find appointments without GCal ID').item.json.id ] }}"
         }
       },
-      "id": "8f9426bf-e845-43bf-b7f2-c7ebfc82114c",
+      "id": "8531f8bf-2b79-412c-87fc-b76a01ad0d58",
       "name": "Save GCal ID to DB1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.3,
       "position": [
-        -28448,
-        10336
+        -29952,
+        15168
       ],
       "credentials": {
         "postgres": {
@@ -8473,11 +8539,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -29808,
-        9952
+        -31312,
+        14784
       ],
       "typeVersion": 1,
-      "id": "7fc49afe-9c39-4692-8e14-14586ef607aa",
+      "id": "7bbfbc53-ed7e-47ab-acdb-0b6c2e60aae4",
       "name": "Sticky Note3"
     },
     {
@@ -8490,13 +8556,13 @@
           ]
         }
       },
-      "id": "642c5f16-06a6-49f9-a003-3c4575044f5f",
+      "id": "bda9e8bb-c777-4364-970d-3749f07907eb",
       "name": "Every hour",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -29696,
-        10336
+        -31200,
+        15168
       ]
     },
     {
@@ -8505,13 +8571,13 @@
         "channelName": "appointments_sync_channel",
         "options": {}
       },
-      "id": "7af946c4-a93b-4be9-a33b-70e34f4796f4",
+      "id": "1fc6375c-7ad5-434a-923a-35048916e45c",
       "name": "Postgres Trigger1",
       "type": "n8n-nodes-base.postgresTrigger",
       "typeVersion": 1,
       "position": [
-        -29696,
-        10832
+        -31200,
+        15664
       ],
       "credentials": {
         "postgres": {
@@ -8564,13 +8630,13 @@
         },
         "options": {}
       },
-      "id": "b948a4d6-6b9e-484c-a1b1-9a739035b774",
+      "id": "803758f1-525f-4132-a29c-e647bcdbc57c",
       "name": "Is Canceled?1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -28224,
-        10832
+        -29728,
+        15664
       ]
     },
     {
@@ -8598,13 +8664,13 @@
         },
         "options": {}
       },
-      "id": "32b972b0-3632-472a-a74b-cf11b22f85ce",
+      "id": "759678c9-ed45-40c9-8a85-ea36d9b74405",
       "name": "Is Google Event ID empty?1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -28000,
-        10944
+        -29504,
+        15776
       ]
     },
     {
@@ -8632,13 +8698,13 @@
         },
         "options": {}
       },
-      "id": "f9b179f6-a4fd-442b-a6ff-947901b0a84c",
+      "id": "ae8ae62f-22b5-42a2-aa78-7cb9c41d45fd",
       "name": "Has Gcal Event?1",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -28000,
-        10656
+        -29504,
+        15488
       ]
     },
     {
@@ -8656,13 +8722,13 @@
           "summary": "={{ $('Fetch_Appointment_Data1').item.json.summary }}"
         }
       },
-      "id": "2f145597-b0c9-4630-9d06-106aa6fae2fd",
+      "id": "e74cf569-b08e-4516-ab89-626672b8c3c1",
       "name": "Create GCal Event2",
       "type": "n8n-nodes-base.googleCalendar",
       "typeVersion": 1.3,
       "position": [
-        -27760,
-        10832
+        -29264,
+        15664
       ],
       "credentials": {
         "googleCalendarOAuth2Api": {
@@ -8693,13 +8759,13 @@
           "summary": "={{ $('Fetch_Appointment_Data1').item.json.summary }}"
         }
       },
-      "id": "d7fe4be3-40cf-4dfe-b1a5-b9475de7b944",
+      "id": "cae292fe-aa2b-42e7-8756-183baddc50f7",
       "name": "Update GCal Event1",
       "type": "n8n-nodes-base.googleCalendar",
       "typeVersion": 1.3,
       "position": [
-        -27760,
-        11056
+        -29264,
+        15888
       ],
       "credentials": {
         "googleCalendarOAuth2Api": {
@@ -8716,13 +8782,13 @@
           "queryReplacement": "={{ [ $json.id, $('Fetch_Appointment_Data1').item.json.id ] }}"
         }
       },
-      "id": "b35663cb-d048-48fe-853f-9641ca471ec5",
+      "id": "b14ff8da-5935-4d17-819b-86973d18986c",
       "name": "Save GCal ID to DB2",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.3,
       "position": [
-        -27520,
-        10832
+        -29024,
+        15664
       ],
       "credentials": {
         "postgres": {
@@ -8742,13 +8808,13 @@
         "eventId": "={{ $('Fetch_Appointment_Data1').item.json.google_event_id }}",
         "options": {}
       },
-      "id": "af84c3a1-eacc-444f-91e9-9655a2b4ddca",
+      "id": "63ee861d-da92-4434-a943-48e39462891e",
       "name": "Delete GCal Event1",
       "type": "n8n-nodes-base.googleCalendar",
       "typeVersion": 1.3,
       "position": [
-        -27520,
-        10624
+        -29024,
+        15456
       ],
       "credentials": {
         "googleCalendarOAuth2Api": {
@@ -8766,13 +8832,13 @@
           "queryReplacement": "={{ $json.calendar_source_id }}"
         }
       },
-      "id": "b4a32291-1504-4857-bece-cfe98c716089",
+      "id": "2a69dfb8-0ea7-4d69-8c3f-46f0c379f723",
       "name": "Get_calendar_data1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.3,
       "position": [
-        -28752,
-        10832
+        -30256,
+        15664
       ],
       "credentials": {
         "postgres": {
@@ -8819,10 +8885,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        -28544,
-        10832
+        -30048,
+        15664
       ],
-      "id": "7b38acf1-fbd6-4020-b320-48a0f21632e9",
+      "id": "340707cc-db57-4411-b039-deb1c05eb850",
       "name": "If2"
     },
     {
@@ -8833,13 +8899,13 @@
           "queryReplacement": "={{ $('Postgres Trigger1').item.json.payload }}"
         }
       },
-      "id": "23a628aa-e55f-4715-b01c-4d8975f5c278",
+      "id": "6cfd3d59-6492-4de1-ac8b-ba3148910370",
       "name": "Fetch_Appointment_Data1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.3,
       "position": [
-        -28976,
-        10832
+        -30480,
+        15664
       ],
       "credentials": {
         "postgres": {
@@ -8859,13 +8925,13 @@
           ]
         }
       },
-      "id": "e71f05d4-c442-4418-9670-4de25f2108d4",
+      "id": "8a6bcaf6-997b-49cd-8dbc-06d18e3d589b",
       "name": "Schedule Trigger1",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
       "position": [
-        -29680,
-        11280
+        -31184,
+        16112
       ]
     },
     {
@@ -8874,13 +8940,13 @@
         "query": "SELECT id, google_calendar_id\nFROM public.calendar_sources\nWHERE is_active = true\n  AND google_calendar_id IS NOT NULL\n  AND google_calendar_id <> '';",
         "options": {}
       },
-      "id": "bb60ac77-089b-43b0-9b80-f8db0bdd7f32",
+      "id": "76c08222-c90c-491d-8f8b-a1e9896a5084",
       "name": "Get_Active_Calendars1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -28976,
-        11280
+        -30480,
+        16112
       ],
       "retryOnFail": true,
       "maxTries": 3,
@@ -8896,13 +8962,13 @@
       "parameters": {
         "options": {}
       },
-      "id": "274562c8-4e65-4c14-8b5e-8a871abf2daf",
+      "id": "79cfb8d4-009f-4094-a17d-2939d7ed2094",
       "name": "Loop_Calendars1",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
       "position": [
-        -28736,
-        11280
+        -30240,
+        16112
       ]
     },
     {
@@ -8921,13 +8987,13 @@
           "showDeleted": true
         }
       },
-      "id": "b8a56673-aa29-42e7-9360-a8bec51bc4ed",
+      "id": "2d7000f0-ebd9-4d1a-8944-3b948e4fd332",
       "name": "Get_Calendar_Events1",
       "type": "n8n-nodes-base.googleCalendar",
       "typeVersion": 1.3,
       "position": [
-        -28496,
-        11408
+        -30000,
+        16240
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -8942,13 +9008,13 @@
       "parameters": {
         "jsCode": "const calendarSourceId = $('Loop_Calendars1').item.json.id;\nconst items = $input.all();\n\nconst toNaive = (iso) => {\n  if (!iso) return null;\n  // Strip timezone: keep wall-clock time as YYYY-MM-DD HH:MM:SS\n  return iso.substring(0, 19).replace('T', ' ');\n};\n\n// Estados de la app: la cancelación se guarda como 'cancelled' y no existe\n// 'tentative' (se toma como pendiente de confirmar).\nconst mapStatus = (s) => {\n  if (s === 'cancelled') return 'cancelled';\n  if (s === 'tentative') return 'pending';\n  return 'scheduled';\n};\n\nconst valid = items\n  .filter((it) => it.json && it.json.id)\n  .map((it) => {\n    const ev = it.json;\n    const startIso = (ev.start && ev.start.dateTime)\n      ? ev.start.dateTime\n      : (ev.start && ev.start.date ? ev.start.date + 'T00:00:00' : null);\n    const endIso = (ev.end && ev.end.dateTime)\n      ? ev.end.dateTime\n      : (ev.end && ev.end.date ? ev.end.date + 'T00:00:00' : null);\n\n    return {\n      json: {\n        calendar_source_id: calendarSourceId,\n        google_event_id: ev.id,\n        summary: ev.summary || '(Sin título)',\n        status: mapStatus(ev.status),\n        start_datetime: toNaive(startIso),\n        end_datetime: toNaive(endIso),\n        color: ev.colorId || null,\n        notes: ev.description || null,\n      },\n    };\n  });\n\n// Always emit at least one item so the SplitInBatches loop continues\n// even when a calendar has no events. The Insert query filters out\n// items with null google_event_id.\nif (valid.length === 0) {\n  return [{\n    json: {\n      calendar_source_id: calendarSourceId,\n      google_event_id: null,\n      summary: null,\n      status: null,\n      start_datetime: null,\n      end_datetime: null,\n      color: null,\n      notes: null,\n    },\n  }];\n}\n\nreturn valid;\n"
       },
-      "id": "e0ecc55d-f145-4cb5-b6ec-ea2629f0d4ab",
+      "id": "9bfb75ed-56a3-47b2-876e-272ea9e5c7e7",
       "name": "Map_Events1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -28272,
-        11408
+        -29776,
+        16240
       ]
     },
     {
@@ -8959,13 +9025,13 @@
           "queryReplacement": "={{ [$json.calendar_source_id, $json.google_event_id, $json.summary, $json.status, $json.start_datetime, $json.end_datetime, $json.color, $json.notes] }}"
         }
       },
-      "id": "121d7a7d-bea6-4266-ba56-9b9c25e126b1",
+      "id": "3e8a3ecc-9982-4d9e-ad21-ca8fd2f1f3a5",
       "name": "Insert_If_Missing1",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -28048,
-        11408
+        -29552,
+        16240
       ],
       "alwaysOutputData": true,
       "retryOnFail": true,
@@ -9043,10 +9109,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -21952,
-        6464
+        -23456,
+        11296
       ],
-      "id": "0b20a9ee-f869-4551-8a0d-405f0cc3dfeb",
+      "id": "3e0ce776-baf9-451a-94ed-009be23f8573",
       "name": "Push calendar_changed (status)"
     },
     {
@@ -9113,10 +9179,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -26480,
-        6848
+        -27984,
+        11680
       ],
-      "id": "6083fb69-2094-4181-972d-a7b4cec68080",
+      "id": "ac2aee97-9439-4878-b111-59194422ef5f",
       "name": "Push calendar_changed (create)"
     },
     {
@@ -9183,10 +9249,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -21936,
-        7120
+        -23440,
+        11952
       ],
-      "id": "d0306dc4-b5ba-40f3-b583-44adada2ba1a",
+      "id": "606c78d8-657a-424e-a6c9-8e3e3cbbdf99",
       "name": "Push calendar_changed (reschedule)"
     },
     {
@@ -9253,10 +9319,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -25024,
-        8704
+        -26528,
+        13536
       ],
-      "id": "d37c90f3-14da-46f0-b159-cf6a5bee6c40",
+      "id": "c6e108b2-abeb-40b9-a675-92e59e8a435f",
       "name": "Push calendar_changed (reassign)"
     },
     {
@@ -9323,10 +9389,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -26480,
-        6272
+        -27984,
+        11104
       ],
-      "id": "c076fa18-d0d1-4dcc-9548-1542bf46ab27",
+      "id": "1e8d0fd4-6a15-45e3-9731-97cc88b0fa15",
       "name": "Push calendar_changed (edit)"
     },
     {
@@ -9393,10 +9459,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -29008,
-        7168
+        -30512,
+        12000
       ],
-      "id": "220ad166-30fd-48f8-9971-4dde7f31aaca",
+      "id": "8d7b0584-10c9-481f-ba51-6bbf74048085",
       "name": "Push calendar_changed (cancel)"
     },
     {
@@ -9463,10 +9529,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -27968,
-        7184
+        -29472,
+        12016
       ],
-      "id": "3896ab4c-864f-4bbd-908b-0d6520c72e0d",
+      "id": "0dc04ab5-2259-4336-9c40-f7435cc75e67",
       "name": "Push calendar_changed (color)"
     },
     {
@@ -9533,10 +9599,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -26992,
-        6368
+        -28496,
+        11200
       ],
-      "id": "74a475d8-53b6-4468-9065-e3e176b1dfc5",
+      "id": "1ac55ca9-25db-4bc1-b95b-ef255b179165",
       "name": "Push calendar_changed (move-old)"
     },
     {
@@ -9603,10 +9669,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        -26896,
-        4848
+        -28400,
+        9680
       ],
-      "id": "97e63fc8-5785-439f-aa9f-450a27d83942",
+      "id": "e962b368-04ed-4a0b-bed5-4826113eaa4f",
       "name": "Push calendar_changed (move-old-noauth)"
     },
     {
@@ -9622,10 +9688,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -26816,
-        9472
+        -28320,
+        14304
       ],
-      "id": "70abdb33-ae2d-4889-84c7-6d355f58ba36",
+      "id": "b7e6b1f9-f9e2-4c99-845e-633038c08eb3",
       "name": "appointments/search",
       "webhookId": "02bf7847-1450-4717-a453-08483b689aed",
       "credentials": {
@@ -9643,13 +9709,13 @@
           "queryReplacement": "={{ [$json.query.q, $json.query.calendar_source_ids || $json.query.calendar_ids || null, $json.query.limit || 50] }}"
         }
       },
-      "id": "87340ca1-8240-4838-8f31-93bbfced2dff",
+      "id": "b72bd188-61b6-4b48-a4f2-5f290cfcc815",
       "name": "Search_Appointments",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -26576,
-        9472
+        -28080,
+        14304
       ],
       "executeOnce": false,
       "alwaysOutputData": true,
@@ -9679,10 +9745,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -26336,
-        9376
+        -27840,
+        14208
       ],
-      "id": "0af98f51-8cfb-415b-a533-c31e33a5906f",
+      "id": "12d745aa-8259-429f-8742-ee70c9321032",
       "name": "Respond to Webhook (Search)"
     },
     {
@@ -9695,10 +9761,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -26336,
-        9568
+        -27840,
+        14400
       ],
-      "id": "365972c8-b693-495b-87b4-419c803a8b24",
+      "id": "640f104c-a5e0-44e5-9cf2-90a81294bf12",
       "name": "Error: Search invalid"
     },
     {
@@ -9710,10 +9776,10 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -26480,
-        9952
+        -27984,
+        14784
       ],
-      "id": "3dd7050a-bfe3-4f46-a3ee-2be8351e9eb2",
+      "id": "ba4644f7-9a23-474c-b982-57697d7b8619",
       "name": "Sticky Note — Calendar Status Display",
       "typeVersion": 1
     },
@@ -9729,10 +9795,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -25760,
-        10096
+        -27264,
+        14928
       ],
-      "id": "27149168-a47e-40e3-aa96-f3f919bc6010",
+      "id": "570f2a10-da91-4080-b533-acf29abb5a70",
       "name": "calendar_status_display/search",
       "webhookId": "818a6c49-88ae-4cd3-871d-38d7e4a3bcb4",
       "credentials": {
@@ -9751,10 +9817,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -25552,
-        10096
+        -27056,
+        14928
       ],
-      "id": "4b3e9871-c890-4f7b-b64a-ae2c76fb4751",
+      "id": "a0fedbd2-1561-4e74-8e1b-17f5ed18cac8",
       "name": "Select calendar_status_display",
       "alwaysOutputData": true,
       "credentials": {
@@ -9783,10 +9849,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -25328,
-        10000
+        -26832,
+        14832
       ],
-      "id": "772766ae-551f-44ad-a71f-b0d8e3760fb4",
+      "id": "70475b93-7041-41ea-b4b5-73d62625106c",
       "name": "Respond calendar_status_display search"
     },
     {
@@ -9799,10 +9865,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -25328,
-        10192
+        -26832,
+        15024
       ],
-      "id": "150cd2f0-3df8-48ec-8958-6492d081d2c1",
+      "id": "7568d52e-7779-43a4-a2ab-8abcd01df222",
       "name": "Error calendar_status_display search"
     },
     {
@@ -9818,10 +9884,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -25760,
-        10448
+        -27264,
+        15280
       ],
-      "id": "ef5861aa-0328-4bda-881e-b22a47cfa67a",
+      "id": "4f2f108b-cf8b-4bb1-892b-e1092661b0be",
       "name": "calendar_status_display/upsert",
       "webhookId": "66168ec1-43a7-44cd-8f4e-55602fb0082a",
       "credentials": {
@@ -9842,10 +9908,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -25552,
-        10448
+        -27056,
+        15280
       ],
-      "id": "115bbfff-f33c-431f-89a8-4ce1ad003a76",
+      "id": "46aac966-35ce-4307-83c1-6af1226c501a",
       "name": "Upsert calendar_status_display",
       "alwaysOutputData": true,
       "credentials": {
@@ -9865,10 +9931,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -25328,
-        10352
+        -26832,
+        15184
       ],
-      "id": "e824e029-0384-4d8a-85f8-1bdd04307447",
+      "id": "3d036e12-ff91-400f-a575-28547c1b078e",
       "name": "Success calendar_status_display upsert"
     },
     {
@@ -9880,10 +9946,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -25328,
-        10544
+        -26832,
+        15376
       ],
-      "id": "fe493c3d-2dbd-44ca-8e10-9f08065fd4a4",
+      "id": "7e4b6725-0202-4c88-bfb7-cf431d94d734",
       "name": "Error calendar_status_display upsert"
     },
     {
@@ -9896,10 +9962,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -25104,
-        10352
+        -26608,
+        15184
       ],
-      "id": "9a14422b-3f13-40da-881f-0b39b6e38836",
+      "id": "0aa0ff91-53c7-48aa-ae6e-9380d72795ad",
       "name": "Respond calendar_status_display upsert"
     },
     {
@@ -9912,10 +9978,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -25104,
-        10544
+        -26608,
+        15376
       ],
-      "id": "309a6f10-b50b-4569-a5f4-9ec7ab1c22f6",
+      "id": "36ae4acf-78f9-4681-b9fc-bf633ac85e5e",
       "name": "Respond calendar_status_display upsert error"
     },
     {
@@ -9931,10 +9997,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -25760,
-        10832
+        -27264,
+        15664
       ],
-      "id": "0acdbc44-3388-434d-8ce7-a60b7044ce22",
+      "id": "fd2b1f0e-0f59-429a-b134-a02b5fc08a53",
       "name": "calendar_status_display/delete",
       "webhookId": "17ae5baf-94e7-4556-bd54-a8922333c063",
       "credentials": {
@@ -9955,10 +10021,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -25552,
-        10832
+        -27056,
+        15664
       ],
-      "id": "4911dcf5-2a01-4e9b-90da-39dafbcdde93",
+      "id": "c9cfa504-b084-4110-b88c-a7bacd9753e8",
       "name": "Delete calendar_status_display",
       "alwaysOutputData": true,
       "credentials": {
@@ -9978,10 +10044,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -25328,
-        10736
+        -26832,
+        15568
       ],
-      "id": "00ed003f-8753-4676-964e-523c2842ee25",
+      "id": "f6162c44-9052-4910-9227-02d8230a79ad",
       "name": "Success calendar_status_display delete"
     },
     {
@@ -9993,10 +10059,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -25328,
-        10928
+        -26832,
+        15760
       ],
-      "id": "ae43bc41-8748-4994-91b4-bedfbc41bddd",
+      "id": "ef2b07cf-b0e7-420a-b5c1-1745721c7dbe",
       "name": "Error calendar_status_display delete"
     },
     {
@@ -10009,10 +10075,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -25104,
-        10736
+        -26608,
+        15568
       ],
-      "id": "3daed2cf-1222-4a72-b816-c311b3d257a8",
+      "id": "2f0ca3ca-faaa-4d5f-86f8-b0e57a668875",
       "name": "Respond calendar_status_display delete"
     },
     {
@@ -10025,10 +10091,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -25104,
-        10928
+        -26608,
+        15760
       ],
-      "id": "e1a6d136-3208-47ef-8f4a-8e135efe1c30",
+      "id": "5b799676-6c58-4c5e-b418-a57ca842396b",
       "name": "Respond calendar_status_display delete error"
     },
     {
@@ -10060,10 +10126,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -26256,
-        6496
+        -27760,
+        11328
       ],
-      "id": "e96596b0-a492-4afe-b391-f852e9419016",
+      "id": "6cb75805-f34b-47a4-b040-5fd0e923882a",
       "name": "IF: ¿Notificación creada? (edit)"
     },
     {
@@ -10095,10 +10161,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -26256,
-        6672
+        -27760,
+        11504
       ],
-      "id": "84b00b1e-a499-4972-bbf3-0b00f558f141",
+      "id": "ea96abc5-706b-4560-962a-b48f0d67ea8b",
       "name": "IF: ¿Notificación creada? (create)"
     },
     {
@@ -10130,10 +10196,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -21728,
-        6272
+        -23232,
+        11104
       ],
-      "id": "0cf01c46-b857-4d7a-a374-2ac41bfba615",
+      "id": "f1eb767b-9186-4304-970a-07c861543d64",
       "name": "IF: ¿Notificación creada? (status)"
     },
     {
@@ -10165,10 +10231,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -21488,
-        6960
+        -22992,
+        11792
       ],
-      "id": "88e2c09d-18fe-4152-bde1-334bd47fd4b0",
+      "id": "6099c9e2-c4a8-4b78-a2b9-898da25c0c30",
       "name": "IF: ¿Notificación creada? (reschedule)"
     },
     {
@@ -10200,10 +10266,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -24800,
-        8512
+        -26304,
+        13344
       ],
-      "id": "58e61038-24d2-45ab-a059-5bf56b945cb5",
+      "id": "6021925c-0e67-4bd4-b519-7d6eacbe15b9",
       "name": "IF: ¿Notificación creada? (reassign)"
     },
     {
@@ -10215,10 +10281,10 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        -26480,
-        11088
+        -27984,
+        15920
       ],
-      "id": "238fb0ea-974e-49eb-82ad-997131435b0d",
+      "id": "52c46b13-091e-433b-9f93-0e4c0583fa0c",
       "name": "Sticky Note — Calendar Color Source",
       "typeVersion": 1
     },
@@ -10234,10 +10300,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -25760,
-        11232
+        -27264,
+        16064
       ],
-      "id": "84239033-c4bb-48eb-9f50-e520eddff01b",
+      "id": "12ad0eea-a013-4a72-ad1d-8c6172075cd7",
       "name": "calendar_color_source/search",
       "webhookId": "080b9954-5c72-45b0-84da-157a6ba5760d",
       "credentials": {
@@ -10256,10 +10322,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -25552,
-        11232
+        -27056,
+        16064
       ],
-      "id": "e77c6df9-f7f5-4d9e-82d4-c220886526f3",
+      "id": "df3a2381-4a74-42f8-9ef1-94295cbaefa0",
       "name": "Select calendar_color_source",
       "alwaysOutputData": true,
       "credentials": {
@@ -10288,10 +10354,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -25328,
-        11136
+        -26832,
+        15968
       ],
-      "id": "5b13216d-394e-4d5a-8dc0-52ee49184fbd",
+      "id": "275fed0b-a1cc-468f-b353-74c6344bdf73",
       "name": "Respond calendar_color_source search"
     },
     {
@@ -10304,10 +10370,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -25328,
-        11328
+        -26832,
+        16160
       ],
-      "id": "9840e5b5-0b3e-438f-a24e-4a6a20f09d16",
+      "id": "868e1267-6121-4df4-ba67-b6b2296d48e8",
       "name": "Error calendar_color_source search"
     },
     {
@@ -10323,10 +10389,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -25760,
-        11584
+        -27264,
+        16416
       ],
-      "id": "bedf5e4b-6183-4bc4-aae5-bb8db31d7029",
+      "id": "85462a97-b301-4e6c-863c-ab6c0f5094b4",
       "name": "calendar_color_source/upsert",
       "webhookId": "c74f1e17-6e0c-43bb-b459-611690091d6d",
       "credentials": {
@@ -10347,10 +10413,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -25552,
-        11584
+        -27056,
+        16416
       ],
-      "id": "e5931711-7b9f-4107-8d88-67bb92fcb032",
+      "id": "18954cb8-a602-4c8f-8ac4-33c4e4cf6b3b",
       "name": "Upsert calendar_color_source",
       "alwaysOutputData": true,
       "credentials": {
@@ -10370,10 +10436,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -25328,
-        11488
+        -26832,
+        16320
       ],
-      "id": "5511c9ab-fe9f-46ee-9e0c-79707169ff73",
+      "id": "64a62a49-4505-43db-a386-43cbb65e2c36",
       "name": "Success calendar_color_source upsert"
     },
     {
@@ -10385,10 +10451,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -25328,
-        11680
+        -26832,
+        16512
       ],
-      "id": "ee1e28d1-0f70-43ac-a264-bfa57465cd66",
+      "id": "6f6ca4fe-024d-4c87-a401-5a08c75697ae",
       "name": "Error calendar_color_source upsert"
     },
     {
@@ -10401,10 +10467,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -25104,
-        11488
+        -26608,
+        16320
       ],
-      "id": "74446269-5f80-48af-ba6f-c91900e8949f",
+      "id": "f25e720c-8f2a-41e5-85da-62cbc8ccb6fb",
       "name": "Respond calendar_color_source upsert"
     },
     {
@@ -10417,10 +10483,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -25104,
-        11680
+        -26608,
+        16512
       ],
-      "id": "5d0af050-fbaa-41b7-85c7-1f7e6ac88d18",
+      "id": "6a477fd3-f1cd-4764-abf1-c4adfb0c9e08",
       "name": "Respond calendar_color_source upsert error"
     },
     {
@@ -10436,10 +10502,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -25760,
-        11968
+        -27264,
+        16800
       ],
-      "id": "1e448681-42c9-43a7-b4ca-03d403e2f172",
+      "id": "5969aed0-1c5c-42dd-9170-79014172ae40",
       "name": "calendar_color_source/delete",
       "webhookId": "277a6811-751e-4534-8a65-e0a7fbc50227",
       "credentials": {
@@ -10460,10 +10526,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -25552,
-        11968
+        -27056,
+        16800
       ],
-      "id": "c26c93a4-8c8c-43a8-8498-ee76d1e3f82d",
+      "id": "b04a5e16-2029-4842-9082-964427050bab",
       "name": "Delete calendar_color_source",
       "alwaysOutputData": true,
       "credentials": {
@@ -10483,10 +10549,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -25328,
-        11872
+        -26832,
+        16704
       ],
-      "id": "cdbf4669-d068-42e1-8209-dae06bb4284a",
+      "id": "73ef3fc3-17a5-4396-8b0a-a4f7dc648b13",
       "name": "Success calendar_color_source delete"
     },
     {
@@ -10498,10 +10564,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        -25328,
-        12064
+        -26832,
+        16896
       ],
-      "id": "83d3e6de-4a57-408f-aa64-c384c3f9e0fe",
+      "id": "c617a8d3-2289-4ac5-9116-e13c066998cf",
       "name": "Error calendar_color_source delete"
     },
     {
@@ -10514,10 +10580,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        -25104,
-        11872
+        -26608,
+        16704
       ],
-      "id": "a3390c32-f0e6-4a87-afd6-74686117d0d3",
+      "id": "1ccb63fa-f0ed-4335-8400-dab5878cee96",
       "name": "Respond calendar_color_source delete"
     },
     {
@@ -10530,10 +10596,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        -25104,
-        12064
+        -26608,
+        16896
       ],
-      "id": "606ae36c-682b-4e0f-8f1c-e57bbe4984ae",
+      "id": "57af71a5-f5db-4265-8fbc-da9861e68793",
       "name": "Respond calendar_color_source delete error"
     },
     {
@@ -10542,13 +10608,13 @@
         "query": "-- Modo de sincronización con Google Calendar (script 133):\n-- none | from_google | to_google | both. Sin la clave ⇒ none.\nSELECT COALESCE(\n  (SELECT LOWER(BTRIM(sc.value)) FROM public.system_configurations sc\n   WHERE sc.key = 'google_calendar_sync_mode' LIMIT 1),\n  'none'\n) AS sync_mode;",
         "options": {}
       },
-      "id": "2e73df75-a0e2-490a-94f1-74432a889c27",
+      "id": "e359c8a2-47ec-40fd-86fd-da6541dc7c09",
       "name": "GCal Sync Mode (backfill)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -29472,
-        10336
+        -30976,
+        15168
       ],
       "credentials": {
         "postgres": {
@@ -10582,13 +10648,13 @@
         },
         "options": {}
       },
-      "id": "2ff82457-e1c6-4c1c-af39-7405fbc76e1d",
+      "id": "e0b63494-e83e-4a5f-94df-e1248bce3aa9",
       "name": "Sync backfill enabled?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -29248,
-        10336
+        -30752,
+        15168
       ]
     },
     {
@@ -10597,13 +10663,13 @@
         "query": "-- Modo de sincronización con Google Calendar (script 133):\n-- none | from_google | to_google | both. Sin la clave ⇒ none.\nSELECT COALESCE(\n  (SELECT LOWER(BTRIM(sc.value)) FROM public.system_configurations sc\n   WHERE sc.key = 'google_calendar_sync_mode' LIMIT 1),\n  'none'\n) AS sync_mode;",
         "options": {}
       },
-      "id": "79d61b34-f5e0-491e-92ce-fa47adbbe268",
+      "id": "02eb663a-8f52-4610-8e08-828f1cd678ed",
       "name": "GCal Sync Mode (push)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -29472,
-        10832
+        -30976,
+        15664
       ],
       "credentials": {
         "postgres": {
@@ -10637,13 +10703,13 @@
         },
         "options": {}
       },
-      "id": "44596c95-b8b2-413f-879b-c81bfef5f127",
+      "id": "abc2c6d4-6350-4453-8f3e-92cd007f0efb",
       "name": "Sync push enabled?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -29248,
-        10832
+        -30752,
+        15664
       ]
     },
     {
@@ -10652,13 +10718,13 @@
         "query": "-- Modo de sincronización con Google Calendar (script 133):\n-- none | from_google | to_google | both. Sin la clave ⇒ none.\nSELECT COALESCE(\n  (SELECT LOWER(BTRIM(sc.value)) FROM public.system_configurations sc\n   WHERE sc.key = 'google_calendar_sync_mode' LIMIT 1),\n  'none'\n) AS sync_mode;",
         "options": {}
       },
-      "id": "6440ca72-91b7-410f-a49c-36ec73875d14",
+      "id": "c9c414a3-de27-4d93-a072-58af95a52b97",
       "name": "GCal Sync Mode (pull)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        -29456,
-        11280
+        -30960,
+        16112
       ],
       "credentials": {
         "postgres": {
@@ -10692,13 +10758,13 @@
         },
         "options": {}
       },
-      "id": "e1d8f111-eaba-4641-b9f6-ffeddbbc617d",
+      "id": "8072f4ff-1f0f-43fc-ad98-4469abd88f5d",
       "name": "Sync pull enabled?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        -29232,
-        11280
+        -30736,
+        16112
       ]
     }
   ],
@@ -14041,7 +14107,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "886ab2c0-717d-492e-bdd7-535c3680abec",
+  "versionId": "fcfe2cf3-a019-462f-931e-b6c6f017c73a",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"

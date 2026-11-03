@@ -1249,6 +1249,15 @@ export type CalendarSettings = {
    *  change the date range fetched, only which day columns are rendered.
    *  Default []. */
   hidden_weekdays?: number[];
+  /** Hours shown on the day/week grid: 'full' (whole day), 'custom'
+   *  (`visible_hours_start`..`visible_hours_end`) or 'clinic' (the clinic's
+   *  working hours for the days on screen). Purely visual. Default 'full'.
+   *  See VISIBLE_HOURS_MODES. */
+  visible_hours_mode?: string;
+  /** Last custom range ("HH:mm"; end may be "24:00"). Kept while another mode
+   *  is selected so switching back to 'custom' restores it. */
+  visible_hours_start?: string | null;
+  visible_hours_end?: string | null;
 };
 
 export type Sede = {
@@ -3362,10 +3371,19 @@ export interface DuplicateContactOwner {
   /** Documento de identidad (o RUT) para distinguir homónimos y familiares. */
   document?: string | null;
   birth_date?: string | null;
+  phone_number?: string | null;
+  is_dependent?: boolean;
+  /** Tutor, si la ficha es de un dependiente. */
+  responsible_name?: string | null;
+  /** Tiene el rol paciente: solo esas fichas se pueden elegir para una cita. `undefined` = el backend no lo informó. */
+  is_patient?: boolean;
 }
 
+/** Campo por el que una ficha existente coincide con el alta en curso. */
+export type PatientMatchField = 'identity_document' | 'phone' | 'email';
+
 /** Dueños del contacto repetido, por campo. */
-export type DuplicateContactOwners = Partial<Record<'email' | 'phone', DuplicateContactOwner[]>>;
+export type DuplicateContactOwners = Partial<Record<PatientMatchField, DuplicateContactOwner[]>>;
 
 /** `unique_conflict` de `/users/upsert`: campos que no se pueden repetir y, si se sabe, quién los tiene. */
 export interface UniqueConflict {

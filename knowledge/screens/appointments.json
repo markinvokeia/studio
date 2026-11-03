@@ -359,6 +359,30 @@
       "label": "Ocultar días",
       "description": "Oculta los días elegidos como columnas en las vistas de día y semana. Es solo visual, para ganar espacio: no afecta la disponibilidad ni los días en que se pueden agendar citas."
     },
+    "appointments.field.visible-hours-mode": {
+      "label": "Franja horaria visible",
+      "description": "Elige qué horas muestran las vistas de día y semana: Vista completa (el día entero, la opción inicial), Rango personalizado (solo las horas que elijas) u Horario laboral de la clínica (el horario cargado en Configuración → Horarios para los días en pantalla, con feriados y excepciones; se ven las citas y los espacios libres). Es solo visual y se guarda por usuario: no cambia citas ni horarios de atención."
+    },
+    "appointments.field.visible-hours-start": {
+      "label": "Hora de inicio de la franja",
+      "description": "Primera hora que muestra la agenda con Rango personalizado."
+    },
+    "appointments.field.visible-hours-end": {
+      "label": "Hora de fin de la franja",
+      "description": "Última hora que muestra la agenda con Rango personalizado. Tiene que ser posterior a la de inicio."
+    },
+    "appointments.btn.visible-hours-apply": {
+      "label": "Aplicar rango",
+      "description": "Guarda el rango personalizado y recorta la agenda en el acto. Se habilita solo si la hora de fin es posterior a la de inicio."
+    },
+    "appointments.section.visible-hours-notice": {
+      "label": "Aviso de citas fuera de la franja",
+      "description": "Aparece abajo de la agenda cuando hay citas que quedan fuera de la franja horaria visible. «Ver todas las horas» muestra el día completo por un momento (sin cambiar la preferencia) y «Volver a la franja» lo deshace."
+    },
+    "appointments.btn.visible-hours-toggle": {
+      "label": "Ver todas las horas / Volver a la franja",
+      "description": "Alterna temporalmente entre la franja horaria elegida y el día completo. No se guarda: al volver a abrir la agenda se aplica la preferencia."
+    },
     "appointments.field.color-by-status": {
       "label": "Color por estado",
       "description": "Las citas muestran su estado con color. Si la cita tiene una etiqueta de color propia o el color de su servicio, lo conserva y el estado aparece como una franja en el borde izquierdo. Si solo hereda el color del doctor o del consultorio, toda la cita se pinta con el color del estado. Algunos estados están configurados para pintar siempre la cita sin importar esta preferencia — ver Configuración → Colores de Calendario."
@@ -414,6 +438,34 @@
     "appointments.btn.missing-document-dismiss": {
       "label": "Cerrar",
       "description": "Descarta el aviso de documento faltante sin abrir los datos del paciente."
+    },
+    "appointments.section.existing-patient-hint": {
+      "label": "Aviso de ficha existente",
+      "description": "Aparece al crear un paciente desde la cita si ya hay fichas con la misma cédula o el mismo teléfono. Lista cada ficha una vez, con qué dato coincidió, su cédula y su teléfono."
+    },
+    "appointments.btn.review-patient-matches": {
+      "label": "Ver coincidencias",
+      "description": "Abre las fichas que coinciden para elegir la correcta en vez de crear un duplicado."
+    },
+    "appointments.btn.use-existing-patient": {
+      "label": "Usar este paciente",
+      "description": "Toma la ficha existente para la cita. Si lo cargado en el alta le agrega datos, el formulario pasa a completar esa ficha; si no, se vincula enseguida."
+    },
+    "appointments.section.completing-existing": {
+      "label": "Completando la ficha existente",
+      "description": "Resume qué datos del alta se agregaron a la ficha elegida (marcados como «Agregado») y cuáles no coinciden: en esos se mantiene lo de la ficha. «Guardar y usar en la cita» actualiza esa misma ficha, sin crear otra."
+    },
+    "appointments.btn.use-existing-without-changes": {
+      "label": "Usar sin guardar cambios",
+      "description": "Vincula la ficha elegida a la cita tal como está, descartando lo cargado en el alta."
+    },
+    "appointments.btn.back-to-new-patient": {
+      "label": "Volver al alta nueva",
+      "description": "Descarta la ficha elegida y vuelve al alta con los datos que se habían cargado."
+    },
+    "appointments.section.patient-matches": {
+      "label": "Fichas que coinciden",
+      "description": "Pacientes que ya tienen el mismo documento, correo o teléfono, con documento, nacimiento y tutor para distinguir a la persona de un familiar. Se abre al revisar coincidencias o al guardar un alta repetida."
     },
     "appointments.field.identity_document": {
       "label": "Documento de identidad",

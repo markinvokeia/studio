@@ -1,5 +1,5 @@
 {
- "version": "1e3cdb96df7b2d7c",
+ "version": "a85525cd106ec7fd",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -3211,6 +3211,13 @@
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Descarta la ficha elegida y vuelve al alta con los datos que se habían cargado.",
+     "id": "appointments.btn.back-to-new-patient",
+     "kind": "btn",
+     "label": "Volver al alta nueva",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "description": "Seleccionar varias citas y reasignarlas.",
      "id": "appointments.btn.bulk",
      "kind": "btn",
@@ -3497,6 +3504,13 @@
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Abre las fichas que coinciden para elegir la correcta en vez de crear un duplicado.",
+     "id": "appointments.btn.review-patient-matches",
+     "kind": "btn",
+     "label": "Ver coincidencias",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "id": "appointments.btn.save",
      "kind": "btn",
      "label": "Guardar la cita",
@@ -3606,11 +3620,39 @@
      "source": "knowledge/screens/appointments.json"
     },
     {
+     "description": "Toma la ficha existente para la cita. Si lo cargado en el alta le agrega datos, el formulario pasa a completar esa ficha; si no, se vincula enseguida.",
+     "id": "appointments.btn.use-existing-patient",
+     "kind": "btn",
+     "label": "Usar este paciente",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Vincula la ficha elegida a la cita tal como está, descartando lo cargado en el alta.",
+     "id": "appointments.btn.use-existing-without-changes",
+     "kind": "btn",
+     "label": "Usar sin guardar cambios",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "description": "Día, varios días, semana, mes o lista.",
      "id": "appointments.btn.view",
      "kind": "btn",
      "label": "Vista",
      "source": "src/components/calendar/calendar-view-menu.tsx"
+    },
+    {
+     "description": "Guarda el rango personalizado y recorta la agenda en el acto. Se habilita solo si la hora de fin es posterior a la de inicio.",
+     "id": "appointments.btn.visible-hours-apply",
+     "kind": "btn",
+     "label": "Aplicar rango",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Alterna temporalmente entre la franja horaria elegida y el día completo. No se guarda: al volver a abrir la agenda se aplica la preferencia.",
+     "id": "appointments.btn.visible-hours-toggle",
+     "kind": "btn",
+     "label": "Ver todas las horas / Volver a la franja",
+     "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
      "description": "Alto de las franjas horarias.",
@@ -3945,6 +3987,27 @@
      "source": "src/components/sales/quotes/QuoteFormDialog.tsx"
     },
     {
+     "description": "Última hora que muestra la agenda con Rango personalizado. Tiene que ser posterior a la de inicio.",
+     "id": "appointments.field.visible-hours-end",
+     "kind": "field",
+     "label": "Hora de fin de la franja",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Elige qué horas muestran las vistas de día y semana: Vista completa (el día entero, la opción inicial), Rango personalizado (solo las horas que elijas) u Horario laboral de la clínica (el horario cargado en Configuración → Horarios para los días en pantalla, con feriados y excepciones; se ven las citas y los espacios libres). Es solo visual y se guarda por usuario: no cambia citas ni horarios de atención.",
+     "id": "appointments.field.visible-hours-mode",
+     "kind": "field",
+     "label": "Franja horaria visible",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Primera hora que muestra la agenda con Rango personalizado.",
+     "id": "appointments.field.visible-hours-start",
+     "kind": "field",
+     "label": "Hora de inicio de la franja",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "description": "Nombre, teléfono, email o documento del paciente, o título de la cita.",
      "id": "appointments.filter.appointments",
      "kind": "filter",
@@ -3989,10 +4052,24 @@
      "source": "src/components/calendar/Calendar.tsx"
     },
     {
+     "description": "Resume qué datos del alta se agregaron a la ficha elegida (marcados como «Agregado») y cuáles no coinciden: en esos se mantiene lo de la ficha. «Guardar y usar en la cita» actualiza esa misma ficha, sin crear otra.",
+     "id": "appointments.section.completing-existing",
+     "kind": "section",
+     "label": "Completando la ficha existente",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "description": "Clic derecho: menú de la cita. Arrastrar: mover. Borde: duración.",
      "id": "appointments.section.event",
      "kind": "section",
      "label": "Cita",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Aparece al crear un paciente desde la cita si ya hay fichas con la misma cédula o el mismo teléfono. Lista cada ficha una vez, con qué dato coincidió, su cédula y su teléfono.",
+     "id": "appointments.section.existing-patient-hint",
+     "kind": "section",
+     "label": "Aviso de ficha existente",
      "source": "knowledge/screens/appointments.json"
     },
     {
@@ -4001,6 +4078,13 @@
      "kind": "section",
      "label": "Huecos disponibles",
      "source": "src/components/calendar/calendar-gaps-panel.tsx"
+    },
+    {
+     "description": "Pacientes que ya tienen el mismo documento, correo o teléfono, con documento, nacimiento y tutor para distinguir a la persona de un familiar. Se abre al revisar coincidencias o al guardar un alta repetida.",
+     "id": "appointments.section.patient-matches",
+     "kind": "section",
+     "label": "Fichas que coinciden",
+     "source": "knowledge/screens/appointments.json"
     },
     {
      "description": "Resumen con editar e historial.",
@@ -4022,6 +4106,13 @@
      "kind": "section",
      "label": "Configuración del Calendario",
      "source": "src/components/calendar/calendar-settings-popover.tsx"
+    },
+    {
+     "description": "Aparece abajo de la agenda cuando hay citas que quedan fuera de la franja horaria visible. «Ver todas las horas» muestra el día completo por un momento (sin cambiar la preferencia) y «Volver a la franja» lo deshace.",
+     "id": "appointments.section.visible-hours-notice",
+     "kind": "section",
+     "label": "Aviso de citas fuera de la franja",
+     "source": "src/app/[locale]/appointments/page.tsx"
     }
    ],
    "id": "appointments",
@@ -7550,10 +7641,28 @@
   {
    "elements": [
     {
+     "id": "appointments.btn.back-to-new-patient",
+     "kind": "btn",
+     "label": "Volver al alta nueva",
+     "source": "src/components/patients/patient-info-tab.tsx"
+    },
+    {
+     "id": "appointments.btn.review-patient-matches",
+     "kind": "btn",
+     "label": "Ver coincidencias",
+     "source": "src/components/patients/patient-info-tab.tsx"
+    },
+    {
      "id": "appointments.btn.save",
      "kind": "btn",
      "label": "Reagendar",
      "source": "src/components/appointments/AppointmentFormDialog.tsx"
+    },
+    {
+     "id": "appointments.btn.use-existing-without-changes",
+     "kind": "btn",
+     "label": "Usar sin guardar cambios",
+     "source": "src/components/patients/patient-info-tab.tsx"
     },
     {
      "id": "appointments.field.calendar",
@@ -7596,6 +7705,18 @@
      "kind": "field",
      "label": "Hora",
      "source": "src/components/appointments/AppointmentFormDialog.tsx"
+    },
+    {
+     "id": "appointments.section.completing-existing",
+     "kind": "section",
+     "label": "Completando la ficha de {name}",
+     "source": "src/components/patients/patient-info-tab.tsx"
+    },
+    {
+     "id": "appointments.section.existing-patient-hint",
+     "kind": "section",
+     "label": "{count, plural, one {Ya hay una ficha con estos datos} other {Ya hay # fichas con estos datos}}",
+     "source": "src/components/patients/patient-info-tab.tsx"
     },
     {
      "id": "billing-wizard.section.wizard",

@@ -49,6 +49,7 @@ import { CalendarGapOverlays } from './calendar-gap-overlay';
 import { CalendarDraftPreviewBand } from './calendar-draft-preview';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isRangeBlocked, isSlotBlocked, type Gap, type BlockedRange } from './calendar-gaps';
+import { VisibleHoursClip, type VisibleHoursRange } from './calendar-visible-hours';
 
 interface CalendarDayViewMobileProps {
   currentDate: Date;
@@ -80,6 +81,8 @@ interface CalendarDayViewMobileProps {
   onEventResize?: CalendarEventDropHandler;
   /** Days of week (0=Sunday…6=Saturday) to hide as slides. Default []. */
   hiddenWeekdays?: number[];
+  /** Franja horaria visible; null/undefined = el día completo. */
+  visibleHours?: VisibleHoursRange | null;
 }
 
 export function CalendarDayViewMobile({
@@ -110,6 +113,7 @@ export function CalendarDayViewMobile({
   onEventDrop,
   onEventResize,
   hiddenWeekdays,
+  visibleHours,
 }: CalendarDayViewMobileProps) {
   const t = useTranslations('Calendar');
   const [api, setApi] = React.useState<CarouselApi>();
@@ -161,11 +165,13 @@ export function CalendarDayViewMobile({
   const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * hourSlotHeight;
 
   const timeGridScrollRef = React.useRef<HTMLDivElement>(null);
+  const windowStartMin = visibleHours?.startMin ?? 0;
+  const windowEndMin = visibleHours?.endMin ?? MINUTES_IN_DAY;
   React.useLayoutEffect(() => {
     if (timeGridScrollRef.current) {
-      timeGridScrollRef.current.scrollTop = DEFAULT_SCROLL_HOUR * hourSlotHeight;
+      timeGridScrollRef.current.scrollTop = (Math.max(0, DEFAULT_SCROLL_HOUR * 60 - windowStartMin) / 60) * hourSlotHeight;
     }
-  }, [hourSlotHeight]);
+  }, [hourSlotHeight, windowStartMin]);
 
   // ── Arrastre táctil ─────────────────────────────────────────────────────
   const slotForSnap = slotMinutes && slotMinutes > 0 ? slotMinutes : DEFAULT_SLOT_DURATION;
@@ -189,14 +195,14 @@ export function CalendarDayViewMobile({
     let endMin: number;
     if (gesture.mode === 'move') {
       startMin = snapMinutesFromOffset(offsetY - gesture.grabOffsetY, hourSlotHeight, slotForSnap);
-      startMin = Math.min(startMin, MINUTES_IN_DAY - durationMin);
+      startMin = Math.max(windowStartMin, Math.min(startMin, windowEndMin - durationMin));
       endMin = startMin + durationMin;
     } else if (gesture.mode === 'resize-end') {
       startMin = gesture.originalStart.getHours() * 60 + gesture.originalStart.getMinutes();
-      endMin = Math.max(startMin + slotForSnap, Math.min(snapMinutesFromOffset(offsetY, hourSlotHeight, slotForSnap), MINUTES_IN_DAY));
+      endMin = Math.max(startMin + slotForSnap, Math.min(snapMinutesFromOffset(offsetY, hourSlotHeight, slotForSnap), windowEndMin));
     } else {
       endMin = gesture.originalEnd.getHours() * 60 + gesture.originalEnd.getMinutes();
-      startMin = Math.min(Math.max(0, snapMinutesFromOffset(offsetY, hourSlotHeight, slotForSnap)), endMin - slotForSnap);
+      startMin = Math.min(Math.max(windowStartMin, snapMinutesFromOffset(offsetY, hourSlotHeight, slotForSnap)), endMin - slotForSnap);
     }
 
     const start = dateFromDayMinutes(day, startMin);
@@ -211,7 +217,7 @@ export function CalendarDayViewMobile({
       target: isResize ? gesture.sourceTarget : target,
       candidate: { start, end, invalid: enforcesBlocked && isRangeBlocked(blockedRanges, start, end, groupValue) },
     };
-  }, [blockedRanges, hourSlotHeight, slotForSnap]);
+  }, [blockedRanges, hourSlotHeight, slotForSnap, windowStartMin, windowEndMin]);
 
   const handleDragCommit = React.useCallback((result: Parameters<CalendarEventDropHandler>[0]) => {
     if (result.mode === 'move') onEventDrop?.(result);
@@ -473,6 +479,7 @@ export function CalendarDayViewMobile({
 
       {/* Scrollable time grid with carousel */}
       <div className="flex-1 overflow-y-auto" data-testid="calendar-mobile-time-grid" ref={timeGridScrollRef}>
+        <VisibleHoursClip range={visibleHours} hourSlotHeight={hourSlotHeight}>
         <div
           style={{ minHeight: `${24 * hourSlotHeight}px`, '--hour-slot-height': `${hourSlotHeight}px` } as React.CSSProperties}
         >
@@ -581,6 +588,7 @@ export function CalendarDayViewMobile({
             </Carousel>
           </div>
         </div>
+        </VisibleHoursClip>
       </div>
     </div>
   );

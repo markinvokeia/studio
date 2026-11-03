@@ -1,5 +1,5 @@
 {
- "version": "40c0c609a849eeab",
+ "version": "e50538504037cd2e",
  "locale": "en",
  "journey": [
   {
@@ -3125,6 +3125,13 @@
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Discards the chosen record and goes back to the new patient form with the details entered.",
+     "id": "appointments.btn.back-to-new-patient",
+     "kind": "btn",
+     "label": "Back to new patient",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "description": "Select several appointments and reassign them.",
      "id": "appointments.btn.bulk",
      "kind": "btn",
@@ -3411,6 +3418,13 @@
      "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
+     "description": "Opens the matching records so you can pick the right one instead of creating a duplicate.",
+     "id": "appointments.btn.review-patient-matches",
+     "kind": "btn",
+     "label": "View matches",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "id": "appointments.btn.save",
      "kind": "btn",
      "label": "Save the appointment",
@@ -3520,11 +3534,39 @@
      "source": "knowledge/screens/appointments.json"
     },
     {
+     "description": "Uses the existing record for the appointment. If the details entered add something to it, the form switches to completing that record; otherwise it is linked right away.",
+     "id": "appointments.btn.use-existing-patient",
+     "kind": "btn",
+     "label": "Use this patient",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Links the chosen record to the appointment as it is, discarding what was entered.",
+     "id": "appointments.btn.use-existing-without-changes",
+     "kind": "btn",
+     "label": "Use without saving changes",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "description": "Day, several days, week, month or list.",
      "id": "appointments.btn.view",
      "kind": "btn",
      "label": "View",
      "source": "src/components/calendar/calendar-view-menu.tsx"
+    },
+    {
+     "description": "Saves the custom range and trims the calendar right away. Only enabled when the end time is later than the start time.",
+     "id": "appointments.btn.visible-hours-apply",
+     "kind": "btn",
+     "label": "Apply range",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Temporarily switches between your visible hours and the whole day. Not saved: reopening the calendar applies the preference.",
+     "id": "appointments.btn.visible-hours-toggle",
+     "kind": "btn",
+     "label": "Show all hours / Back to visible hours",
+     "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
      "description": "Height of the time slots.",
@@ -3859,6 +3901,27 @@
      "source": "src/components/sales/quotes/QuoteFormDialog.tsx"
     },
     {
+     "description": "Last hour the calendar shows with Custom range. It must be later than the start time.",
+     "id": "appointments.field.visible-hours-end",
+     "kind": "field",
+     "label": "Visible hours end",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Chooses which hours the day and week views show: Full view (the whole day, the initial option), Custom range (only the hours you pick) or Clinic working hours (the hours set in Setup → Schedules for the days on screen, with holidays and exceptions; booked appointments and free slots both show). It's only visual and saved per user: it doesn't change appointments or opening hours.",
+     "id": "appointments.field.visible-hours-mode",
+     "kind": "field",
+     "label": "Visible hours",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "First hour the calendar shows with Custom range.",
+     "id": "appointments.field.visible-hours-start",
+     "kind": "field",
+     "label": "Visible hours start",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "description": "Patient's name, phone, email or ID, or the appointment title.",
      "id": "appointments.filter.appointments",
      "kind": "filter",
@@ -3903,10 +3966,24 @@
      "source": "src/components/calendar/Calendar.tsx"
     },
     {
+     "description": "Summarizes which entered details were added to the chosen record (marked \"Added\") and which don't match: for those the record's value is kept. \"Save and use for appointment\" updates that same record without creating another.",
+     "id": "appointments.section.completing-existing",
+     "kind": "section",
+     "label": "Completing the existing record",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "description": "Right-click: appointment menu. Drag: move. Edge: duration.",
      "id": "appointments.section.event",
      "kind": "section",
      "label": "Appointment",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
+     "description": "Shown when creating a patient from the appointment if records with the same ID or phone already exist. Lists each record once, with what matched, its ID and its phone.",
+     "id": "appointments.section.existing-patient-hint",
+     "kind": "section",
+     "label": "Existing record notice",
      "source": "knowledge/screens/appointments.json"
     },
     {
@@ -3915,6 +3992,13 @@
      "kind": "section",
      "label": "Available slots",
      "source": "src/components/calendar/calendar-gaps-panel.tsx"
+    },
+    {
+     "description": "Patients who already have the same ID, email or phone, with ID, birth date and guardian to tell the person apart from a relative. Opens when reviewing matches or when saving a duplicate.",
+     "id": "appointments.section.patient-matches",
+     "kind": "section",
+     "label": "Matching records",
+     "source": "knowledge/screens/appointments.json"
     },
     {
      "description": "Summary with edit and history.",
@@ -3936,6 +4020,13 @@
      "kind": "section",
      "label": "Calendar Settings",
      "source": "src/components/calendar/calendar-settings-popover.tsx"
+    },
+    {
+     "description": "Shows at the bottom of the calendar when some appointments fall outside the visible hours. \"Show all hours\" shows the whole day for a moment (without changing the preference) and \"Back to visible hours\" undoes it.",
+     "id": "appointments.section.visible-hours-notice",
+     "kind": "section",
+     "label": "Appointments outside the visible hours notice",
+     "source": "src/app/[locale]/appointments/page.tsx"
     }
    ],
    "id": "appointments",
@@ -7464,10 +7555,28 @@
   {
    "elements": [
     {
+     "id": "appointments.btn.back-to-new-patient",
+     "kind": "btn",
+     "label": "Back to new patient",
+     "source": "src/components/patients/patient-info-tab.tsx"
+    },
+    {
+     "id": "appointments.btn.review-patient-matches",
+     "kind": "btn",
+     "label": "View matches",
+     "source": "src/components/patients/patient-info-tab.tsx"
+    },
+    {
      "id": "appointments.btn.save",
      "kind": "btn",
      "label": "Reschedule",
      "source": "src/components/appointments/AppointmentFormDialog.tsx"
+    },
+    {
+     "id": "appointments.btn.use-existing-without-changes",
+     "kind": "btn",
+     "label": "Use without saving changes",
+     "source": "src/components/patients/patient-info-tab.tsx"
     },
     {
      "id": "appointments.field.calendar",
@@ -7510,6 +7619,18 @@
      "kind": "field",
      "label": "Time",
      "source": "src/components/appointments/AppointmentFormDialog.tsx"
+    },
+    {
+     "id": "appointments.section.completing-existing",
+     "kind": "section",
+     "label": "Completing {name}'s record",
+     "source": "src/components/patients/patient-info-tab.tsx"
+    },
+    {
+     "id": "appointments.section.existing-patient-hint",
+     "kind": "section",
+     "label": "{count, plural, one {A record with these details already exists} other {# records with these details already exist}}",
+     "source": "src/components/patients/patient-info-tab.tsx"
     },
     {
      "id": "billing-wizard.section.wizard",

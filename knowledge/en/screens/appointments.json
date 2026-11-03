@@ -332,6 +332,30 @@
       "label": "Hide days",
       "description": "Hides the chosen days as columns in the day and week views. It's only visual, to save space: it doesn't affect availability or the days appointments can be booked."
     },
+    "appointments.field.visible-hours-mode": {
+      "label": "Visible hours",
+      "description": "Chooses which hours the day and week views show: Full view (the whole day, the initial option), Custom range (only the hours you pick) or Clinic working hours (the hours set in Setup → Schedules for the days on screen, with holidays and exceptions; booked appointments and free slots both show). It's only visual and saved per user: it doesn't change appointments or opening hours."
+    },
+    "appointments.field.visible-hours-start": {
+      "label": "Visible hours start",
+      "description": "First hour the calendar shows with Custom range."
+    },
+    "appointments.field.visible-hours-end": {
+      "label": "Visible hours end",
+      "description": "Last hour the calendar shows with Custom range. It must be later than the start time."
+    },
+    "appointments.btn.visible-hours-apply": {
+      "label": "Apply range",
+      "description": "Saves the custom range and trims the calendar right away. Only enabled when the end time is later than the start time."
+    },
+    "appointments.section.visible-hours-notice": {
+      "label": "Appointments outside the visible hours notice",
+      "description": "Shows at the bottom of the calendar when some appointments fall outside the visible hours. \"Show all hours\" shows the whole day for a moment (without changing the preference) and \"Back to visible hours\" undoes it."
+    },
+    "appointments.btn.visible-hours-toggle": {
+      "label": "Show all hours / Back to visible hours",
+      "description": "Temporarily switches between your visible hours and the whole day. Not saved: reopening the calendar applies the preference."
+    },
     "appointments.field.color-by-status": {
       "label": "Color by status",
       "description": "Appointments show their status with color. If the appointment has its own color label or its service's color, it keeps it and the status shows as a strip on the left edge. If it only inherits the doctor's or room's color, the whole appointment is painted with the status color. Some statuses are set to always paint the appointment regardless of this preference — see Setup → Calendar Colors."
@@ -387,6 +411,34 @@
     "appointments.btn.missing-document-dismiss": {
       "label": "Close",
       "description": "Dismisses the missing document notice without opening the patient's details."
+    },
+    "appointments.section.existing-patient-hint": {
+      "label": "Existing record notice",
+      "description": "Shown when creating a patient from the appointment if records with the same ID or phone already exist. Lists each record once, with what matched, its ID and its phone."
+    },
+    "appointments.btn.review-patient-matches": {
+      "label": "View matches",
+      "description": "Opens the matching records so you can pick the right one instead of creating a duplicate."
+    },
+    "appointments.btn.use-existing-patient": {
+      "label": "Use this patient",
+      "description": "Uses the existing record for the appointment. If the details entered add something to it, the form switches to completing that record; otherwise it is linked right away."
+    },
+    "appointments.section.completing-existing": {
+      "label": "Completing the existing record",
+      "description": "Summarizes which entered details were added to the chosen record (marked \"Added\") and which don't match: for those the record's value is kept. \"Save and use for appointment\" updates that same record without creating another."
+    },
+    "appointments.btn.use-existing-without-changes": {
+      "label": "Use without saving changes",
+      "description": "Links the chosen record to the appointment as it is, discarding what was entered."
+    },
+    "appointments.btn.back-to-new-patient": {
+      "label": "Back to new patient",
+      "description": "Discards the chosen record and goes back to the new patient form with the details entered."
+    },
+    "appointments.section.patient-matches": {
+      "label": "Matching records",
+      "description": "Patients who already have the same ID, email or phone, with ID, birth date and guardian to tell the person apart from a relative. Opens when reviewing matches or when saving a duplicate."
     },
     "appointments.field.identity_document": {
       "label": "ID document",

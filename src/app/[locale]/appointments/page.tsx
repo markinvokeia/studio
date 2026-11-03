@@ -15,7 +15,8 @@ import { CalendarViewMenu } from '@/components/calendar/calendar-view-menu';
 import { CalendarZoomMenu } from '@/components/calendar/calendar-zoom-menu';
 import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, filterExceptionsForSede, gapKey, suggestEnableWindow, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
 import { filterEventsByDayAndGroup } from '@/components/calendar/calendar-utils';
-import { DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, DURATION_PRESET_MINUTES, HOUR_SLOT_HEIGHT, MINUTES_IN_DAY } from '@/components/calendar/calendar-constants';
+import { DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, DEFAULT_VISIBLE_HOURS_MODE, DURATION_PRESET_MINUTES, HOUR_SLOT_HEIGHT, MINUTES_IN_DAY } from '@/components/calendar/calendar-constants';
+import { clinicVisibleHoursRange, countEventsOutsideVisibleHours, customVisibleHoursRange, isOutsideVisibleHours, type ClinicHoursScope, type VisibleHoursRange } from '@/components/calendar/calendar-visible-hours';
 import { ReminderFormDialog, type ReminderFormValues } from '@/components/appointments/ReminderFormDialog';
 import { ReminderPanel } from '@/components/appointments/ReminderPanel';
 import { useCalendarBreakpoint } from '@/hooks/use-calendar-breakpoint';
@@ -80,7 +81,7 @@ import { useSlotAvailability } from '@/hooks/use-slot-availability';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
-import { AlertTriangle, Ban, BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarClock, CalendarDays, Clock, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Search, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
+import { AlarmClock, AlertTriangle, Ban, BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarClock, CalendarDays, Clock, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Search, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import * as React from 'react';
@@ -1605,6 +1606,17 @@ export default function AppointmentsPage() {
     const [inlineCancelledCount, setInlineCancelledCount] = React.useState(0);
     // "New patient" full-form dialog opened from the inline draft's patient picker.
     const [inlineCreatePatient, setInlineCreatePatient] = React.useState<{ open: boolean; initialName: string }>({ open: false, initialName: '' });
+    // Patient from that dialog (newly created or an existing record picked on a cédula/phone match).
+    const applyPatientToInlineDraft = (patient: UserType) => {
+        setInlineDraft((d) => {
+            if (!d) return d;
+            // Same default-doctor rule as picking an existing patient.
+            const defaultDoctor = !d.doctor && patient.doctor_id
+                ? doctors.find((doc) => String(doc.id) === String(patient.doctor_id)) ?? null
+                : null;
+            return { ...d, patient, ...(defaultDoctor ? { doctor: defaultDoctor } : {}) };
+        });
+    };
     // Backend availability check for the inline card (room + doctor over the whole
     // duration). Same setting and endpoint as the full appointment form; informative only.
     const inlineAvailability = useSlotAvailability(
@@ -4583,6 +4595,74 @@ export default function AppointmentsPage() {
         [effectiveEvents],
     );
 
+    // ── Franja horaria visible (preferencia del usuario) ─────────────────────
+    // Solo recorta lo que se ve en las vistas con horas: no toca citas ni horarios.
+    const visibleHoursMode = calendarSettings?.visible_hours_mode ?? DEFAULT_VISIBLE_HOURS_MODE;
+    const isTimeGridView = ['day', '2-day', '3-day', '4-day', '5-day', '6-day', 'week'].includes(currentView);
+    // Días de la rejilla: el rango cargado sin los días ocultos (si se ocultan todos,
+    // la vista los muestra igual).
+    const visibleHoursDays = React.useMemo(() => {
+        if (!isTimeGridView || !fetchRange?.start || !fetchRange?.end) return [];
+        let days: Date[];
+        try {
+            days = eachDayOfInterval({ start: fetchRange.start, end: fetchRange.end });
+        } catch {
+            return [];
+        }
+        const hidden = calendarSettings?.hidden_weekdays ?? [];
+        const shown = days.filter((day) => !hidden.includes(day.getDay()));
+        return shown.length > 0 ? shown : days;
+    }, [isTimeGridView, fetchRange, calendarSettings?.hidden_weekdays]);
+
+    const preferredVisibleHours = React.useMemo<VisibleHoursRange | null>(() => {
+        if (!isTimeGridView) return null;
+        if (visibleHoursMode === 'custom') {
+            return customVisibleHoursRange(calendarSettings?.visible_hours_start, calendarSettings?.visible_hours_end);
+        }
+        if (visibleHoursMode !== 'clinic' || clinicSchedules.length === 0) return null;
+        // Agrupado por consultorio: la jornada de la sede de cada columna en pantalla.
+        // Si no, la de la línea de tiempo (sede por defecto), igual que el bloqueo.
+        const scopes: ClinicHoursScope[] = effectiveGroupBy === 'calendar' && effectiveGroupingColumns.length > 0
+            ? effectiveGroupingColumns.map((col) => {
+                const cal = calendars.find((c) => String(c.id) === String(col.value));
+                const sedeId = cal?.sede_id ? String(cal.sede_id) : '';
+                return { schedules: schedulesForSede(sedeId), exceptions: exceptionsForSede(sedeId || timelineSede) };
+            })
+            : [{ schedules: effectiveSchedules, exceptions: exceptionsForSede(timelineSede) }];
+        return clinicVisibleHoursRange(visibleHoursDays, scopes);
+    }, [isTimeGridView, visibleHoursMode, calendarSettings?.visible_hours_start, calendarSettings?.visible_hours_end, clinicSchedules.length, effectiveGroupBy, effectiveGroupingColumns, calendars, schedulesForSede, exceptionsForSede, timelineSede, effectiveSchedules, visibleHoursDays]);
+
+    // "Ver todas las horas" desde el aviso: es temporal (no se guarda) y se apaga al
+    // cambiar la preferencia, para que el cambio se vea en el acto.
+    const [showAllHours, setShowAllHours] = React.useState(false);
+    React.useEffect(() => {
+        setShowAllHours(false);
+    }, [visibleHoursMode, calendarSettings?.visible_hours_start, calendarSettings?.visible_hours_end]);
+    const visibleHours = showAllHours ? null : preferredVisibleHours;
+
+    const visibleHoursDayKeys = React.useMemo(
+        () => new Set(visibleHoursDays.map((day) => format(day, 'yyyy-MM-dd'))),
+        [visibleHoursDays],
+    );
+    const hiddenByVisibleHoursCount = React.useMemo(
+        () => (preferredVisibleHours ? countEventsOutsideVisibleHours(gridEvents, preferredVisibleHours, visibleHoursDayKeys) : 0),
+        [preferredVisibleHours, gridEvents, visibleHoursDayKeys],
+    );
+
+    // Una cita elegida en "Buscar cita" que cae fuera de la franja se mostraría
+    // recortada: se abre la vista completa. Se resuelve una vez por elección, cuando
+    // la cita ya está cargada (puede llegar después, al navegar a otra semana).
+    const revealedFocusNonceRef = React.useRef<number | null>(null);
+    React.useEffect(() => {
+        if (!focusedEvent || !preferredVisibleHours || revealedFocusNonceRef.current === focusedEvent.nonce) return;
+        const event = gridEvents.find((e) => String(e.id) === String(focusedEvent.id));
+        if (!event) return;
+        revealedFocusNonceRef.current = focusedEvent.nonce;
+        const start = typeof event.start === 'string' ? parseISO(event.start) : event.start;
+        const end = typeof event.end === 'string' ? parseISO(event.end) : event.end;
+        if (isValid(start) && isValid(end) && isOutsideVisibleHours(start, end, preferredVisibleHours)) setShowAllHours(true);
+    }, [focusedEvent, gridEvents, preferredVisibleHours]);
+
     /**
      * Lo que realmente ocupa la agenda a efectos de "Buscar huecos".
      *
@@ -5452,6 +5532,31 @@ export default function AppointmentsPage() {
                                 onClose={handleCloseSearch}
                             />
                         )}
+                        {/* Aviso de la franja horaria: cuántas citas quedan fuera y acceso
+                            temporal a la vista completa. Cede el lugar al error de carga. */}
+                        {!appointmentsError && preferredVisibleHours && (showAllHours || hiddenByVisibleHoursCount > 0) && (
+                            <div
+                                className="absolute bottom-3 left-1/2 z-40 flex w-max max-w-[92%] -translate-x-1/2 items-center gap-2 rounded-full border bg-card/95 py-1 pl-3 pr-1 text-xs text-muted-foreground shadow-lg backdrop-blur"
+                                role="status"
+                                data-help-id="appointments.section.visible-hours-notice"
+                            >
+                                <AlarmClock className="h-3.5 w-3.5 shrink-0" />
+                                <span>
+                                    {showAllHours
+                                        ? tCalendar('visibleHours.showingAll')
+                                        : tCalendar('visibleHours.outsideCount', { count: hiddenByVisibleHoursCount })}
+                                </span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 shrink-0 rounded-full px-2.5 text-xs font-medium text-primary"
+                                    data-help-id="appointments.btn.visible-hours-toggle"
+                                    onClick={() => setShowAllHours((v) => !v)}
+                                >
+                                    {showAllHours ? tCalendar('visibleHours.backToRange') : tCalendar('visibleHours.showAll')}
+                                </Button>
+                            </div>
+                        )}
                         {appointmentsError && (
                             <div className="absolute bottom-3 left-1/2 z-40 flex w-[min(92%,28rem)] -translate-x-1/2 items-center gap-2 rounded-lg border border-destructive/30 bg-card/95 px-3 py-2 text-xs text-destructive shadow-lg backdrop-blur">
                                 <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -5467,6 +5572,7 @@ export default function AppointmentsPage() {
                             hourSlotHeight={hourSlotHeight}
                             slotMinutes={slotDuration}
                             hiddenWeekdays={calendarSettings?.hidden_weekdays}
+                            visibleHours={visibleHours}
                             events={gridEvents}
                             allDayEvents={allDayEvents}
                             focusDate={searchFocusDate}
@@ -6156,16 +6262,9 @@ export default function AppointmentsPage() {
                 onOpenChange={(o) => setInlineCreatePatient((s) => ({ ...s, open: o }))}
                 initialName={inlineCreatePatient.initialName}
                 showCancelAction={isCustomMode}
-                onCreated={(created) => {
-                    setInlineDraft((d) => {
-                        if (!d) return d;
-                        // Same default-doctor rule as picking an existing patient.
-                        const defaultDoctor = !d.doctor && created.doctor_id
-                            ? doctors.find((doc) => String(doc.id) === String(created.doctor_id)) ?? null
-                            : null;
-                        return { ...d, patient: created, ...(defaultDoctor ? { doctor: defaultDoctor } : {}) };
-                    });
-                }}
+                onCreated={applyPatientToInlineDraft}
+                // Cédula/teléfono de una ficha existente: recepción la elige y sigue con la cita.
+                onSelectExisting={applyPatientToInlineDraft}
             />
             <AlertDialog
                 open={isInlineDiscardConfirmOpen}

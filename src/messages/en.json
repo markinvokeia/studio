@@ -730,6 +730,10 @@
     "dateToBeforeFrom": "End date must be after start date",
     "exportError": "Error exporting data"
   },
+  "PhoneInput": {
+    "ambiguous": "It can also be read as a number from {country} ({number}).",
+    "useAlternative": "Use +{callingCode}"
+  },
   "DataTablePagination": {
     "selected": "{count, plural, one {# selected} other {# selected}} of {total} row(s).",
     "rowsPerPage": "Rows per page",
@@ -997,6 +1001,16 @@
       "blockUnavailable": "Block out-of-office hours",
       "colorByStatus": "Show appointment status with color",
       "hiddenWeekdays": "Hide days in day/week view",
+      "visibleHours": "Visible hours",
+      "visibleHoursOptions": {
+        "full": "Full view",
+        "custom": "Custom range",
+        "clinic": "Clinic working hours"
+      },
+      "visibleHoursStart": "Start time",
+      "visibleHoursEnd": "End time",
+      "visibleHoursApply": "Apply",
+      "visibleHoursInvalid": "The end time must be later than the start time.",
       "weekdayAbbr": {
         "0": "Sun",
         "1": "Mon",
@@ -1020,7 +1034,8 @@
         "inlineAppointmentCreation": "Clicking a slot creates the appointment inline on the calendar with a card, without opening the modal. The Create button always opens the modal.",
         "inlineDraftLivePreview": "The inline appointment card floats next to the appointment, which is previewed on the calendar as you fill it in, so you can see how it fits in the free slots. Changing the date moves the calendar to that day. Tablet and desktop only.",
         "colorByStatus": "Appointments show their status with color. If the appointment has its own color tag or its service has a color, it keeps that color and the status appears as a stripe on the left edge. If it only inherits the doctor's or the consulting room's color, the whole appointment is painted with the status color. Some statuses are configured to always paint the appointment regardless of this switch — see Settings → Calendar Colors.",
-        "hiddenWeekdays": "Hides the selected days as columns in the day/week views. Purely visual to save space — it doesn't affect availability or which days appointments can be booked on."
+        "hiddenWeekdays": "Hides the selected days as columns in the day/week views. Purely visual to save space — it doesn't affect availability or which days appointments can be booked on.",
+        "visibleHours": "Chooses which hours the day and week views show. Full view shows the whole day; Custom range shows only the hours you pick; Clinic working hours uses the hours set for the clinic on the days on screen (with holidays and exceptions), showing both booked appointments and free slots. Purely visual: it doesn't change appointments or opening hours, and it's saved for your user only."
       }
     },
     "newAppointment": "New Appointment",
@@ -5797,6 +5812,12 @@
       "moveTo": "Move to…",
       "duration": "Duration",
       "minutes": "{minutes} min"
+    },
+    "visibleHours": {
+      "outsideCount": "{count, plural, one {# appointment outside the visible hours} other {# appointments outside the visible hours}}",
+      "showAll": "Show all hours",
+      "showingAll": "Showing all hours",
+      "backToRange": "Back to visible hours"
     }
   },
   "Reminders": {
@@ -9722,6 +9743,59 @@
     "conflictDescription": "This information already exists and can't be repeated. Check whether the person is already registered.",
     "conflictNoOwner": "{field} is already registered.",
     "understood": "Understood"
+  },
+  "PatientMatch": {
+    "useExisting": "Use this patient",
+    "review": "View matches",
+    "createAnyway": "Create anyway",
+    "notPatient": "Not a patient",
+    "phone": "Phone: {value}",
+    "dependentOf": "Dependent of {name}",
+    "selectedTitle": "Existing patient selected",
+    "selectedDescription": "{name}'s record will be used; no new record was created.",
+    "completedTitle": "Record updated",
+    "completedDescription": "{name}'s details were completed and the record will be used for the appointment.",
+    "matchedBy": {
+      "identity_document": "Same ID",
+      "phone": "Same phone",
+      "email": "Same email"
+    },
+    "hint": {
+      "title": "{count, plural, one {A record with these details already exists} other {# records with these details already exist}}",
+      "more": "{count, plural, one {and 1 more record} other {and # more records}}"
+    },
+    "lookup": {
+      "title": "This patient may already be registered",
+      "description": "We found records with the same details you're entering.",
+      "hint": "If it's the same person, use their record and continue with the appointment. If it's a relative sharing the phone, continue creating the patient.",
+      "cancel": "Continue creating"
+    },
+    "warning": {
+      "title": "This phone is already registered",
+      "description": "Another patient already uses this phone number.",
+      "hint": "If it's the same person, use their record and continue with the appointment. If it's a relative sharing the phone, you can create it anyway.",
+      "cancel": "Review details"
+    },
+    "conflict": {
+      "title": "This patient is already registered",
+      "description": "Some details already belong to another record and can't be repeated.",
+      "hint": "Use the existing record to continue with the appointment, or review the details if they were entered incorrectly.",
+      "cancel": "Review details"
+    },
+    "completing": {
+      "dialogTitle": "Complete {name}'s record",
+      "dialogDescription": "This record will be used for the appointment. Review the added details before saving.",
+      "title": "Completing {name}'s record",
+      "added": "Added what the record was missing: {fields}.",
+      "differingIntro": "What you entered in these fields doesn't match the record; the record's value is kept:",
+      "differingValue": "{field}: you entered \"{typed}\", the record has \"{existing}\".",
+      "differingField": "{field}: what you entered differs from the record.",
+      "hint": "Review the details and save to use this record for the appointment. No new patient is created.",
+      "useWithoutChanges": "Use without saving changes",
+      "backToNew": "Back to new patient",
+      "addedBadge": "Added",
+      "saveAndUse": "Save and use for appointment"
+    }
   },
   "CalendarColorsPage": {
     "title": "Calendar Colors",

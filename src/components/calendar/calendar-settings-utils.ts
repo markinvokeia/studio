@@ -1,7 +1,7 @@
 import { CalendarSettings } from '@/lib/types';
 import api from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
-import { CALENDAR_MODES, DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, SLOT_DURATION_OPTIONS } from './calendar-constants';
+import { CALENDAR_MODES, DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, DEFAULT_VISIBLE_HOURS_MODE, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, SLOT_DURATION_OPTIONS, VISIBLE_HOURS_MODES } from './calendar-constants';
 
 export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   default_view: 'week',
@@ -17,6 +17,9 @@ export const DEFAULT_CALENDAR_SETTINGS: CalendarSettings = {
   color_by_status: DEFAULT_COLOR_BY_STATUS,
   mode: DEFAULT_CALENDAR_MODE,
   hidden_weekdays: [],
+  visible_hours_mode: DEFAULT_VISIBLE_HOURS_MODE,
+  visible_hours_start: null,
+  visible_hours_end: null,
 };
 
 const normalizeBoolean = (value: unknown, defaultValue: boolean): boolean => {
@@ -58,6 +61,25 @@ const normalizeHiddenWeekdays = (value: unknown): number[] => {
   return days.length >= 7 ? [] : days;
 };
 
+/** "HH:mm" (00:00–24:00) a minutos desde medianoche; null si no es una hora válida.
+ *  Acepta lo que devuelve Postgres para `time` ("09:00:00"). */
+export const visibleHourToMinutes = (value: unknown): number | null => {
+  if (typeof value !== 'string') return null;
+  const match = /^(\d{1,2}):(\d{2})/.exec(value.trim());
+  if (!match) return null;
+  const minutes = Number(match[1]) * 60 + Number(match[2]);
+  return Number(match[2]) < 60 && minutes >= 0 && minutes <= 24 * 60 ? minutes : null;
+};
+
+/** Minutos desde medianoche a "HH:mm" (1440 => "24:00"). */
+export const minutesToVisibleHour = (minutes: number): string =>
+  `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+
+const normalizeVisibleHour = (value: unknown): string | null => {
+  const minutes = visibleHourToMinutes(value);
+  return minutes === null ? null : minutesToVisibleHour(minutes);
+};
+
 /** Claves que identifican una fila de calendar_settings. Sirven para distinguir la
  *  fila real del envoltorio de la respuesta ({data: …}, {result: …}, …), que hasta
  *  ahora se tomaba como si fuera la fila: al no tener ninguna de estas claves,
@@ -78,6 +100,7 @@ const CALENDAR_SETTINGS_ROW_KEYS = [
   'color_by_status',
   'mode',
   'hidden_weekdays',
+  'visible_hours_mode',
   'user_id',
 ] as const;
 
@@ -159,6 +182,12 @@ export const normalizeCalendarSettings = (data: unknown): CalendarSettings | nul
         ? rawSettings.mode
         : DEFAULT_CALENDAR_SETTINGS.mode,
     hidden_weekdays: normalizeHiddenWeekdays((rawSettings as { hidden_weekdays?: unknown }).hidden_weekdays),
+    visible_hours_mode:
+      typeof rawSettings.visible_hours_mode === 'string' && (VISIBLE_HOURS_MODES as readonly string[]).includes(rawSettings.visible_hours_mode)
+        ? rawSettings.visible_hours_mode
+        : DEFAULT_CALENDAR_SETTINGS.visible_hours_mode,
+    visible_hours_start: normalizeVisibleHour(rawSettings.visible_hours_start),
+    visible_hours_end: normalizeVisibleHour(rawSettings.visible_hours_end),
   };
 };
 

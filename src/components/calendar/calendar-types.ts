@@ -1,3 +1,5 @@
+import type { VisibleHoursRange } from './calendar-visible-hours';
+
 export type CalendarView = 'day' | 'week' | 'month' | 'year' | '2-day' | '3-day' | '4-day' | '5-day' | '6-day' | 'schedule';
 
 export type CalendarGroupBy = 'none' | 'doctor' | 'calendar';
@@ -226,6 +228,9 @@ export interface CalendarProps {
    *  grid (desktop and mobile). Purely visual — doesn't change the fetched date
    *  range or availability. Default []. */
   hiddenWeekdays?: number[];
+  /** Franja horaria visible de las vistas con horas (preferencia
+   *  `visible_hours_mode`, ya resuelta por la página). null/undefined = día completo. */
+  visibleHours?: VisibleHoursRange | null;
   onViewChange?: (view: CalendarView) => void;
   groupBy?: CalendarGroupBy;
   groupingColumns?: CalendarGroupingColumn[];

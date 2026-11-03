@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import {
+  AlarmClock,
   AlertTriangle,
   Ban,
   Building2,
@@ -33,8 +34,8 @@ import { cn } from '@/lib/utils';
 import { CalendarSettings, Sede } from '@/lib/types';
 import api, { isAbortError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
-import { CALENDAR_MODES, DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, HOUR_SLOT_HEIGHT_OPTIONS, SLOT_DURATION_OPTIONS } from './calendar-constants';
-import { DEFAULT_CALENDAR_SETTINGS, normalizeCalendarSettings } from './calendar-settings-utils';
+import { CALENDAR_MODES, DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, DEFAULT_VISIBLE_HOURS_END, DEFAULT_VISIBLE_HOURS_MODE, DEFAULT_VISIBLE_HOURS_START, EVENT_LABEL_FORMATS, HOUR_SLOT_HEIGHT, HOUR_SLOT_HEIGHT_OPTIONS, SLOT_DURATION_OPTIONS, VISIBLE_HOURS_MODES, VISIBLE_HOURS_STEP_MINUTES } from './calendar-constants';
+import { DEFAULT_CALENDAR_SETTINGS, minutesToVisibleHour, normalizeCalendarSettings, visibleHourToMinutes } from './calendar-settings-utils';
 
 interface CalendarSettingsFormProps {
   onSettingsChange?: (settings: CalendarSettings) => void;
@@ -51,6 +52,12 @@ interface CalendarSettingsFormProps {
 }
 
 const ALL_SEDES_VALUE = '__all__';
+
+/** Opciones de los selectores del rango personalizado: 00:00…24:00 cada 30 min. */
+const VISIBLE_HOUR_OPTIONS = Array.from(
+  { length: (24 * 60) / VISIBLE_HOURS_STEP_MINUTES + 1 },
+  (_, i) => minutesToVisibleHour(i * VISIBLE_HOURS_STEP_MINUTES),
+);
 
 /** Label row with a representative icon and a clickable "?" help hint. */
 function SettingHeader({
@@ -239,6 +246,31 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
     if (next.length >= 7) return;
     updateSettings({ hidden_weekdays: next });
   };
+  // Franja visible. El rango personalizado se edita como borrador y solo se guarda
+  // con "Aplicar" cuando el fin es posterior al inicio; el modo se guarda al elegirlo.
+  const visibleHoursMode = settings.visible_hours_mode ?? DEFAULT_VISIBLE_HOURS_MODE;
+  const savedStart = settings.visible_hours_start ?? DEFAULT_VISIBLE_HOURS_START;
+  const savedEnd = settings.visible_hours_end ?? DEFAULT_VISIBLE_HOURS_END;
+  const [rangeDraft, setRangeDraft] = React.useState({ start: savedStart, end: savedEnd });
+  React.useEffect(() => {
+    setRangeDraft({ start: savedStart, end: savedEnd });
+  }, [savedStart, savedEnd]);
+  const draftStartMin = visibleHourToMinutes(rangeDraft.start) ?? 0;
+  const draftEndMin = visibleHourToMinutes(rangeDraft.end) ?? 0;
+  const isRangeValid = draftEndMin > draftStartMin;
+  const isRangeDirty = rangeDraft.start !== settings.visible_hours_start || rangeDraft.end !== settings.visible_hours_end;
+  const changeVisibleHoursMode = (mode: string) => {
+    // Al pasar a "personalizado" se guarda también el rango (el último del usuario
+    // o 09:00–17:00), así la agenda se recorta en el acto.
+    updateSettings(mode === 'custom'
+      ? { visible_hours_mode: mode, visible_hours_start: savedStart, visible_hours_end: savedEnd }
+      : { visible_hours_mode: mode });
+  };
+  const applyVisibleRange = () => {
+    if (!isRangeValid) return;
+    updateSettings({ visible_hours_start: rangeDraft.start, visible_hours_end: rangeDraft.end });
+  };
+
   // Custom mode forces calendar grouping (one agenda at a time) and the default
   // event label, so only those selectors are hidden. Sede remains configurable.
   const isCustomMode = (settings.mode ?? DEFAULT_CALENDAR_MODE) === 'custom';
@@ -430,6 +462,75 @@ export function CalendarSettingsForm({ onSettingsChange, className, showTitle = 
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <SettingHeader icon={AlarmClock} label={t('visibleHours')} help={t('help.visibleHours')} htmlFor="visible-hours-mode" />
+          <Select
+            value={visibleHoursMode}
+            onValueChange={changeVisibleHoursMode}
+            disabled={isLocked}
+          >
+            <SelectTrigger id="visible-hours-mode" data-help-id={helpId('visible-hours-mode')} className="h-9 text-xs bg-card border-border/50 shadow-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {VISIBLE_HOURS_MODES.map((opt) => (
+                <SelectItem key={opt} value={opt} className="text-xs">
+                  {t(`visibleHoursOptions.${opt}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {visibleHoursMode === 'custom' && (
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center gap-1.5">
+                <Select
+                  value={rangeDraft.start}
+                  onValueChange={(val) => setRangeDraft((r) => ({ ...r, start: val }))}
+                  disabled={isLocked}
+                >
+                  <SelectTrigger aria-label={t('visibleHoursStart')} data-help-id={helpId('visible-hours-start')} className="h-8 text-xs bg-card border-border/50 shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VISIBLE_HOUR_OPTIONS.slice(0, -1).map((opt) => (
+                      <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-xs text-muted-foreground">–</span>
+                <Select
+                  value={rangeDraft.end}
+                  onValueChange={(val) => setRangeDraft((r) => ({ ...r, end: val }))}
+                  disabled={isLocked}
+                >
+                  <SelectTrigger aria-label={t('visibleHoursEnd')} data-help-id={helpId('visible-hours-end')} className="h-8 text-xs bg-card border-border/50 shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {VISIBLE_HOUR_OPTIONS.slice(1).map((opt) => (
+                      <SelectItem key={opt} value={opt} className="text-xs">{opt}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-8 shrink-0 px-2.5 text-xs"
+                  data-help-id={composeHelpId(helpScope, 'btn', 'visible-hours-apply')}
+                  onClick={applyVisibleRange}
+                  disabled={isLocked || !isRangeValid || !isRangeDirty}
+                  loading={save.isPending}
+                >
+                  {t('visibleHoursApply')}
+                </Button>
+              </div>
+              {!isRangeValid && (
+                <p className="text-[11px] text-destructive" role="alert">{t('visibleHoursInvalid')}</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { UserSelector } from '@/components/ui/user-selector';
+import { PatientCreateDialog } from '@/components/patients/patient-create-dialog';
 import {
     Dialog,
     DialogBody,
@@ -48,7 +49,7 @@ import { AlertTriangle, CalendarDays, Check, ChevronsUpDown, ClipboardList, Cloc
 import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { usePatientView } from '@/stores/patient-view-store';
 import { usePermissions } from '@/hooks/usePermissions';
-import { PATIENT_FINANCIAL_VIEW_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
+import { PATIENT_FINANCIAL_VIEW_PERMISSIONS, PATIENTS_PERMISSIONS, SALES_PERMISSIONS } from '@/constants/permissions';
 import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -153,6 +154,10 @@ export function AppointmentFormDialog({
     // el mismo permiso que el alta desde el catálogo. Ocultar el botón es UX: quien manda
     // es el backend, que tiene que rechazar el upsert sin SALES_SERVICES_CREATE.
     const canCreateService = hasPermission(SALES_PERMISSIONS.SERVICES_CREATE);
+    // Alta de paciente con el formulario completo (cédula incluida), que detecta fichas con la
+    // misma cédula/teléfono y deja elegir la existente. Sin el permiso queda el alta rápida.
+    const canCreatePatient = hasPermission(PATIENTS_PERMISSIONS.CREATE);
+    const [createPatient, setCreatePatient] = React.useState<{ open: boolean; initialName: string }>({ open: false, initialName: '' });
     const tAccount = useTranslations('AccountStatement');
     const tPanelAccount = useTranslations('AppointmentPanel');
     const isReschedule = mode === 'reschedule';
@@ -178,6 +183,31 @@ export function AppointmentFormDialog({
     });
 
     const [errors, setErrors] = React.useState<string[]>([]);
+
+    /** Paciente elegido en el selector, creado o tomado de una ficha existente al darlo de alta. */
+    const applyPatient = (user: UserType) => {
+        setHasBeenEdited(true);
+        setAppointment(prev => {
+            const next = { ...prev, user };
+            // Patient's default doctor — only when no doctor was chosen yet,
+            // so it never overrides a manual selection.
+            if (!prev.doctor && user.doctor_id) {
+                const defaultDoctor = allDoctors.find(d => String(d.id) === String(user.doctor_id))
+                    ?? (user.doctor_name
+                        ? { id: String(user.doctor_id), name: user.doctor_name, email: '', phone_number: '', is_active: true, avatar: '' } as UserType
+                        : null);
+                if (defaultDoctor) {
+                    next.doctor = defaultDoctor;
+                    if (!prev.calendar && defaultDoctor.calendar_source_id) {
+                        const defaultCalendar = calendars.find(c => String(c.id) === String(defaultDoctor.calendar_source_id)) ?? null;
+                        if (defaultCalendar) next.calendar = defaultCalendar;
+                    }
+                }
+            }
+            return next;
+        });
+        setErrors(prev => prev.filter(err => err !== 'user'));
+    };
 
     const [originalCalendarId, setOriginalCalendarId] = React.useState<string | undefined>(undefined);
 
@@ -1327,30 +1357,11 @@ export function AppointmentFormDialog({
                                         value={appointment.user?.id}
                                         selectedUserName={appointment.user?.name}
                                         onValueChange={(_, user) => {
-                                            if (user) {
-                                                setHasBeenEdited(true);
-                                                setAppointment(prev => {
-                                                    const next = { ...prev, user };
-                                                    // Patient's default doctor — only when no doctor was chosen yet,
-                                                    // so it never overrides a manual selection.
-                                                    if (!prev.doctor && user.doctor_id) {
-                                                        const defaultDoctor = allDoctors.find(d => String(d.id) === String(user.doctor_id))
-                                                            ?? (user.doctor_name
-                                                                ? { id: String(user.doctor_id), name: user.doctor_name, email: '', phone_number: '', is_active: true, avatar: '' } as UserType
-                                                                : null);
-                                                        if (defaultDoctor) {
-                                                            next.doctor = defaultDoctor;
-                                                            if (!prev.calendar && defaultDoctor.calendar_source_id) {
-                                                                const defaultCalendar = calendars.find(c => String(c.id) === String(defaultDoctor.calendar_source_id)) ?? null;
-                                                                if (defaultCalendar) next.calendar = defaultCalendar;
-                                                            }
-                                                        }
-                                                    }
-                                                    return next;
-                                                });
-                                                setErrors(prev => prev.filter(err => err !== 'user'));
-                                            }
+                                            if (user) applyPatient(user);
                                         }}
+                                        onRequestCreate={canCreatePatient
+                                            ? (name) => setCreatePatient({ open: true, initialName: name })
+                                            : undefined}
                                         disabled={readOnlyFields?.user || isLoadingQuotes}
                                         triggerText={t('createDialog.selectUser')}
                                         placeholder={t('createDialog.searchUserPlaceholder')}
@@ -1962,6 +1973,16 @@ export function AppointmentFormDialog({
                     onCancel={() => setFutureConfirm(null)}
                 />
             )}
+
+            <PatientCreateDialog
+                open={createPatient.open}
+                onOpenChange={(open) => setCreatePatient((s) => ({ ...s, open }))}
+                initialName={createPatient.initialName}
+                // Botón Cancelar + confirmación al cerrar (Escape, X) con datos cargados.
+                showCancelAction
+                onCreated={applyPatient}
+                onSelectExisting={applyPatient}
+            />
         </>
     );
 }

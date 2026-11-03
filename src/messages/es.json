@@ -730,6 +730,10 @@
     "dateToBeforeFrom": "La fecha de fin debe ser posterior a la de inicio",
     "exportError": "Error al exportar los datos"
   },
+  "PhoneInput": {
+    "ambiguous": "También puede ser un número de {country} ({number}).",
+    "useAlternative": "Usar +{callingCode}"
+  },
   "DataTablePagination": {
     "selected": "{count, plural, one {# seleccionado} other {# seleccionados}} de {total} fila(s).",
     "rowsPerPage": "Filas por página",
@@ -997,6 +1001,16 @@
       "blockUnavailable": "Bloquear horarios fuera de atención",
       "colorByStatus": "Mostrar el estado de la cita con color",
       "hiddenWeekdays": "Ocultar días en vista de día/semana",
+      "visibleHours": "Franja horaria visible",
+      "visibleHoursOptions": {
+        "full": "Vista completa",
+        "custom": "Rango personalizado",
+        "clinic": "Horario laboral de la clínica"
+      },
+      "visibleHoursStart": "Hora de inicio",
+      "visibleHoursEnd": "Hora de fin",
+      "visibleHoursApply": "Aplicar",
+      "visibleHoursInvalid": "La hora de fin tiene que ser posterior a la de inicio.",
       "weekdayAbbr": {
         "0": "Dom",
         "1": "Lun",
@@ -1020,7 +1034,8 @@
         "inlineAppointmentCreation": "Al hacer clic en un slot crea la cita directamente en el calendario con un card, sin abrir el modal. El botón Crear siempre abre el modal.",
         "inlineDraftLivePreview": "La tarjeta de cita inline se abre al lado de la cita, que se ve en el calendario mientras la completás, para ver cómo entra en los huecos. Al cambiar la fecha el calendario se mueve a ese día. Solo en tablet y escritorio.",
         "colorByStatus": "Las citas muestran su estado con color. Si la cita tiene una etiqueta de color propia o el color de su servicio, lo conserva y el estado aparece como una franja en el borde izquierdo. Si solo hereda el color del doctor o del consultorio, toda la cita se pinta con el color del estado. Algunos estados están configurados para pintar siempre la cita sin importar esta preferencia — ver Configuración → Colores de Calendario.",
-        "hiddenWeekdays": "Oculta los días elegidos como columnas en las vistas de día y semana. Es solo visual, para ganar espacio: no afecta la disponibilidad ni los días en que se pueden agendar citas."
+        "hiddenWeekdays": "Oculta los días elegidos como columnas en las vistas de día y semana. Es solo visual, para ganar espacio: no afecta la disponibilidad ni los días en que se pueden agendar citas.",
+        "visibleHours": "Elige qué horas muestran las vistas de día y semana. Vista completa muestra el día entero; Rango personalizado, solo las horas que elijas; Horario laboral de la clínica usa el horario cargado para la clínica en los días en pantalla (con feriados y excepciones) y muestra tanto las citas reservadas como los espacios libres. Es solo visual: no cambia citas ni horarios de atención, y se guarda solo para tu usuario."
       }
     },
     "newAppointment": "Nueva Cita",
@@ -5797,6 +5812,12 @@
       "moveTo": "Mover a…",
       "duration": "Duración",
       "minutes": "{minutes} min"
+    },
+    "visibleHours": {
+      "outsideCount": "{count, plural, one {# cita fuera de la franja horaria} other {# citas fuera de la franja horaria}}",
+      "showAll": "Ver todas las horas",
+      "showingAll": "Mostrando todas las horas",
+      "backToRange": "Volver a la franja"
     }
   },
   "Reminders": {
@@ -9722,6 +9743,59 @@
     "conflictDescription": "Estos datos ya existen y no pueden repetirse. Revise si la persona ya está registrada.",
     "conflictNoOwner": "{field} ya está registrado.",
     "understood": "Entendido"
+  },
+  "PatientMatch": {
+    "useExisting": "Usar este paciente",
+    "review": "Ver coincidencias",
+    "createAnyway": "Crear de todos modos",
+    "notPatient": "No es paciente",
+    "phone": "Tel.: {value}",
+    "dependentOf": "A cargo de {name}",
+    "selectedTitle": "Paciente existente seleccionado",
+    "selectedDescription": "Se usará la ficha de {name}; no se creó una nueva.",
+    "completedTitle": "Ficha actualizada",
+    "completedDescription": "Se completaron los datos de {name} y se usará en la cita.",
+    "matchedBy": {
+      "identity_document": "Misma cédula",
+      "phone": "Mismo teléfono",
+      "email": "Mismo correo"
+    },
+    "hint": {
+      "title": "{count, plural, one {Ya hay una ficha con estos datos} other {Ya hay # fichas con estos datos}}",
+      "more": "{count, plural, one {y 1 ficha más} other {y # fichas más}}"
+    },
+    "lookup": {
+      "title": "Puede que este paciente ya esté registrado",
+      "description": "Encontramos fichas con los mismos datos que está cargando.",
+      "hint": "Si es la misma persona, use su ficha y siga con la cita. Si es un familiar que comparte el teléfono, siga con el alta.",
+      "cancel": "Seguir con el alta"
+    },
+    "warning": {
+      "title": "Este teléfono ya está registrado",
+      "description": "Otro paciente ya usa este número de teléfono.",
+      "hint": "Si es la misma persona, use su ficha y siga con la cita. Si es un familiar que comparte el teléfono, puede crearlo de todos modos.",
+      "cancel": "Revisar datos"
+    },
+    "conflict": {
+      "title": "Este paciente ya está registrado",
+      "description": "Algunos datos ya pertenecen a otra ficha y no pueden repetirse.",
+      "hint": "Use la ficha existente para seguir con la cita, o revise los datos si se cargaron mal.",
+      "cancel": "Revisar datos"
+    },
+    "completing": {
+      "dialogTitle": "Completar ficha de {name}",
+      "dialogDescription": "Se usará esta ficha en la cita. Revise los datos agregados antes de guardar.",
+      "title": "Completando la ficha de {name}",
+      "added": "Se agregó lo que la ficha no tenía: {fields}.",
+      "differingIntro": "Lo cargado en estos campos no coincide con la ficha; se mantiene lo de la ficha:",
+      "differingValue": "{field}: se cargó «{typed}», la ficha tiene «{existing}».",
+      "differingField": "{field}: lo cargado es distinto de lo que tiene la ficha.",
+      "hint": "Revise los datos y guarde para usar esta ficha en la cita. No se crea un paciente nuevo.",
+      "useWithoutChanges": "Usar sin guardar cambios",
+      "backToNew": "Volver al alta nueva",
+      "addedBadge": "Agregado",
+      "saveAndUse": "Guardar y usar en la cita"
+    }
   },
   "CalendarColorsPage": {
     "title": "Colores de Calendario",

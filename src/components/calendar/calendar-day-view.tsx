@@ -11,7 +11,7 @@ import type { Locale } from 'date-fns';
 import { addDays, format, isSameDay, set } from 'date-fns';
 
 import { CalendarAllDayBand } from './calendar-all-day-band';
-import { DEFAULT_SCROLL_HOUR, HOUR_SLOT_HEIGHT } from './calendar-constants';
+import { HOUR_SLOT_HEIGHT } from './calendar-constants';
 import type { CalendarEvent, CalendarSlotClickHandler, CalendarSlotContextMenuContext, CalendarSlotContextMenuRenderer, CalendarView } from './calendar-types';
 import {
   filterEventsByDay,
@@ -30,6 +30,7 @@ import { CalendarDraftPreviewBand } from './calendar-draft-preview';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isSlotBlocked } from './calendar-gaps';
 import type { Gap, BlockedRange } from './calendar-gaps';
+import { useTimeGridScroll, VisibleHoursClip, type VisibleHoursRange } from './calendar-visible-hours';
 
 interface CalendarDayViewProps {
   currentDate: Date;
@@ -59,6 +60,8 @@ interface CalendarDayViewProps {
   onToggleTimeColumn?: (value: boolean) => void;
   /** Days of week (0=Sunday…6=Saturday) to hide as columns. Default []. */
   hiddenWeekdays?: number[];
+  /** Franja horaria visible; null/undefined = el día completo. */
+  visibleHours?: VisibleHoursRange | null;
 }
 
 export function CalendarDayView({
@@ -86,6 +89,7 @@ export function CalendarDayView({
   showTimeColumn = false,
   onToggleTimeColumn,
   hiddenWeekdays,
+  visibleHours,
 }: CalendarDayViewProps) {
   const t = useTranslations('Calendar');
   const startDay = view === 'week'
@@ -106,21 +110,7 @@ export function CalendarDayView({
   const showTimeIndicator = days.some((day) => isSameDay(day, currentTime));
 
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
-  const didInitialScrollRef = React.useRef(false);
-  const prevHourRef = React.useRef(hourSlotHeight);
-  React.useLayoutEffect(() => {
-    const c = scrollContainerRef.current;
-    if (!c) return;
-    if (!didInitialScrollRef.current) {
-      c.scrollTop = DEFAULT_SCROLL_HOUR * hourSlotHeight;
-      didInitialScrollRef.current = true;
-    } else if (prevHourRef.current && prevHourRef.current !== hourSlotHeight) {
-      // Preserve the time at the viewport top when the slot height changes (zoom).
-      const topTimeMin = (c.scrollTop / prevHourRef.current) * 60;
-      c.scrollTop = (topTimeMin / 60) * hourSlotHeight;
-    }
-    prevHourRef.current = hourSlotHeight;
-  }, [hourSlotHeight]);
+  useTimeGridScroll(scrollContainerRef, hourSlotHeight, visibleHours?.startMin);
 
   const slotDateFromEvent = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -185,6 +175,7 @@ export function CalendarDayView({
             onEventClick={onEventClick}
           />
         </div>
+        <VisibleHoursClip range={visibleHours} hourSlotHeight={hourSlotHeight}>
         <div className="day-view-body" style={{ '--num-days': days.length, '--hour-slot-height': `${hourSlotHeight}px` } as any}>
           <CalendarTimeColumn visible={showTimeColumn} />
           {days.map((day) => (
@@ -246,6 +237,7 @@ export function CalendarDayView({
             </div>
           )}
         </div>
+        </VisibleHoursClip>
       </div>
     </div>
   );

@@ -1687,4 +1687,72 @@ test.describe('Citas', () => {
       await expect(page.getByText(/Paso del plan #\d+/)).toBeVisible();
     });
   });
+
+  test.describe('Franja horaria visible', () => {
+    test('mobile: la rejilla muestra la franja activa (no queda vacía)', async ({ page }, testInfo) => {
+      test.skip(testInfo.project.name !== 'mobile-chrome', 'La rejilla recortada se valida en el layout mobile');
+
+      await page.route(/\/calendar_settings\/search(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            default_view: 'day',
+            grouped_by: 'none',
+            check_availability: false,
+            filter_doctors_by_service: false,
+            block_unavailable: false,
+            hour_height: 96,
+            slot_duration: 15,
+            event_label_format: 'time_patient_service',
+            default_sede: '',
+            mode: 'invoke',
+            visible_hours_mode: 'custom',
+            visible_hours_start: '07:00',
+            visible_hours_end: '13:00',
+          }),
+        });
+      });
+
+      // Los ajustes se piden al cargar la página: hay que recargar con el mock activo.
+      await page.reload();
+      await page.getByRole('button', { name: T.today }).waitFor({ state: 'visible', timeout: 30_000 });
+
+      await expect(page.locator('.visible-hours-clip').first()).toBeVisible();
+      // El efecto de scroll inicial lleva la rejilla a las 08:00 (o al tope si la
+      // franja no da para tanto): se normaliza para medir el recorte desde arriba.
+      await page.getByTestId('calendar-mobile-time-grid').evaluate((element) => { element.scrollTop = 0; });
+
+      // Todo en una sola lectura del DOM: la banda de todo el día puede aparecer
+      // cuando terminan de cargar los datos y desplaza la rejilla.
+      const geometry = await page.evaluate(() => {
+        const clipRect = document.querySelector('.visible-hours-clip')!.getBoundingClientRect();
+        const gridRect = document.querySelector('[data-testid="calendar-mobile-time-grid"]')!.getBoundingClientRect();
+        const labels = [...document.querySelectorAll<HTMLElement>('.column-hour-rail-label, .time-slot-label')];
+        const visible = labels
+          .filter((el) => {
+            const rect = el.getBoundingClientRect();
+            return rect.height > 0 && rect.top >= clipRect.top - 2 && rect.bottom <= clipRect.bottom + 2;
+          })
+          .map((el) => el.textContent?.trim() ?? '');
+        return {
+          clipTop: clipRect.top,
+          gridTop: gridRect.top,
+          clipHeight: clipRect.height,
+          fullDayHeight: document.querySelector('.visible-hours-clip .day-column-content')?.getBoundingClientRect().height ?? 0,
+          visibleHours: [...new Set(visible)],
+        };
+      });
+
+      // Regresión: el margin negativo del recorte colapsaba a través del contenedor y
+      // dejaba la franja entera por encima del área visible (rejilla vacía).
+      expect(geometry.clipTop).toBeCloseTo(geometry.gridTop, 0);
+      expect(geometry.clipHeight).toBeGreaterThan(0);
+      // Solo se muestra la franja (6 h), no la rejilla de 24 h.
+      expect(geometry.clipHeight).toBeLessThan(geometry.fullDayHeight);
+
+      // Solo las horas de la franja (07:00–13:00) quedan visibles.
+      expect(geometry.visibleHours).toEqual(['7', '8', '9', '10', '11', '12']);
+    });
+  });
 });
