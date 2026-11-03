@@ -35,7 +35,7 @@ import { CalendarDraftPreviewBand } from './calendar-draft-preview';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isRangeBlocked, isSlotBlocked } from './calendar-gaps';
 import type { Gap, BlockedRange } from './calendar-gaps';
-import { useTimeGridScroll, VisibleHoursClip, type VisibleHoursRange } from './calendar-visible-hours';
+import { useFittedHourSlotHeight, useTimeGridScroll, VisibleHoursClip, type VisibleHoursRange } from './calendar-visible-hours';
 
 /** Referencia estable para columnas sin eventos: evita un array nuevo por celda. */
 const EMPTY_EVENTS: CalendarEvent[] = [];
@@ -103,7 +103,7 @@ export function CalendarDayViewGrouped({
   onEventContextMenuOpen,
   onSlotClick,
   renderSlotContextMenu,
-  hourSlotHeight = HOUR_SLOT_HEIGHT,
+  hourSlotHeight: baseHourSlotHeight = HOUR_SLOT_HEIGHT,
   slotMinutes,
   gaps,
   selectedGapKey,
@@ -168,10 +168,19 @@ export function CalendarDayViewGrouped({
     return map;
   }, [days, columns, events, groupBy]);
 
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const headerRef = React.useRef<HTMLDivElement>(null);
+  // Con una franja activa la hora se estira para que la rejilla llene el alto libre.
+  const hourSlotHeight = useFittedHourSlotHeight({
+    scrollRef: scrollContainerRef,
+    headerRef,
+    hourSlotHeight: baseHourSlotHeight,
+    range: visibleHours,
+  });
+
   const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * hourSlotHeight;
   const showTimeIndicator = days.some((day) => isSameDay(day, currentTime));
 
-  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   useTimeGridScroll(scrollContainerRef, hourSlotHeight, visibleHours?.startMin);
   // Topes del arrastre: la cita no puede terminar fuera de la franja visible.
   const windowStartMin = visibleHours?.startMin ?? 0;
@@ -308,7 +317,7 @@ export function CalendarDayViewGrouped({
         style={{ minWidth: contentMinWidth }}
       >
         {/* Header: date row */}
-        <div className="day-view-header-wrapper">
+        <div className="day-view-header-wrapper" ref={headerRef}>
           <div
             className="day-view-header-dates-grouped"
             style={{ gridTemplateColumns: `${gutterTrack}repeat(${days.length}, minmax(${groupedDayMinWidth}px, 1fr))` }}

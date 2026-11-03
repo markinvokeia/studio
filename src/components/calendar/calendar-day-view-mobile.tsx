@@ -49,7 +49,7 @@ import { CalendarGapOverlays } from './calendar-gap-overlay';
 import { CalendarDraftPreviewBand } from './calendar-draft-preview';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isRangeBlocked, isSlotBlocked, type Gap, type BlockedRange } from './calendar-gaps';
-import { VisibleHoursClip, type VisibleHoursRange } from './calendar-visible-hours';
+import { useFittedHourSlotHeight, VisibleHoursClip, type VisibleHoursRange } from './calendar-visible-hours';
 
 interface CalendarDayViewMobileProps {
   currentDate: Date;
@@ -102,7 +102,7 @@ export function CalendarDayViewMobile({
   onEventContextMenuOpen,
   onSlotClick,
   renderSlotContextMenu,
-  hourSlotHeight = HOUR_SLOT_HEIGHT,
+  hourSlotHeight: baseHourSlotHeight = HOUR_SLOT_HEIGHT,
   gaps,
   selectedGapKey,
   onGapClick,
@@ -162,11 +162,18 @@ export function CalendarDayViewMobile({
     }));
   }, [isGrouped, days, groupingColumns, events, groupBy, dateLocale]);
 
-  const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * hourSlotHeight;
-
   const timeGridScrollRef = React.useRef<HTMLDivElement>(null);
   const windowStartMin = visibleHours?.startMin ?? 0;
   const windowEndMin = visibleHours?.endMin ?? MINUTES_IN_DAY;
+  // Ojo: acá el scroller no tiene cabecera sticky adentro (fecha y banda de todo el
+  // día viven fuera), así que su alto es directamente el alto útil de la rejilla.
+  // Con una franja activa la hora se estira para llenarlo.
+  const hourSlotHeight = useFittedHourSlotHeight({
+    scrollRef: timeGridScrollRef,
+    hourSlotHeight: baseHourSlotHeight,
+    range: visibleHours,
+  });
+  const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * hourSlotHeight;
   React.useLayoutEffect(() => {
     if (timeGridScrollRef.current) {
       timeGridScrollRef.current.scrollTop = (Math.max(0, DEFAULT_SCROLL_HOUR * 60 - windowStartMin) / 60) * hourSlotHeight;

@@ -1754,5 +1754,56 @@ test.describe('Citas', () => {
       // Solo las horas de la franja (07:00–13:00) quedan visibles.
       expect(geometry.visibleHours).toEqual(['7', '8', '9', '10', '11', '12']);
     });
+
+    test('con franja activa la hora se estira para llenar el alto disponible', async ({ page }) => {
+      await page.route(/\/calendar_settings\/search(?:\?.*)?$/, async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            default_view: 'day',
+            grouped_by: 'none',
+            check_availability: false,
+            filter_doctors_by_service: false,
+            block_unavailable: false,
+            hour_height: 60,
+            slot_duration: 15,
+            event_label_format: 'time_patient_service',
+            default_sede: '',
+            mode: 'invoke',
+            visible_hours_mode: 'custom',
+            visible_hours_start: '07:00',
+            visible_hours_end: '13:00',
+          }),
+        });
+      });
+      // Zoom neutro: el alto base (60 px/h) queda por debajo del fit en ambos layouts.
+      await page.evaluate(() => window.localStorage.setItem('calendar-zoom', '1'));
+      await page.reload();
+      await page.getByRole('button', { name: T.today }).waitFor({ state: 'visible', timeout: 30_000 });
+      await page.evaluate(() => {
+        const scroller = document.querySelector<HTMLElement>('[data-testid="calendar-mobile-time-grid"]');
+        if (scroller) scroller.scrollTop = 0;
+      });
+
+      const info = await page.evaluate(() => {
+        const clip = document.querySelector('.visible-hours-clip')!.getBoundingClientRect();
+        const scroller = document.querySelector<HTMLElement>('[data-testid="calendar-mobile-time-grid"]')
+          ?? document.querySelector<HTMLElement>('.day-view-container')!;
+        const header = document.querySelector<HTMLElement>('.day-view-header-wrapper');
+        const railSlot = document.querySelector<HTMLElement>('.column-hour-rail-slot');
+        return {
+          clipHeight: clip.height,
+          // En escritorio la cabecera sticky vive dentro del scroller y no es alto útil.
+          viewportHeight: scroller.clientHeight - (header?.offsetHeight ?? 0),
+          hourPx: railSlot ? parseFloat(getComputedStyle(railSlot).height) : 0,
+        };
+      });
+
+      // La franja (6 h) entra completa: no queda hueco ni scroll vertical por 1 px.
+      expect(info.hourPx).toBeGreaterThan(60);
+      expect(info.clipHeight).toBeGreaterThan(info.viewportHeight - 4);
+      expect(info.clipHeight).toBeLessThanOrEqual(info.viewportHeight);
+    });
   });
 });

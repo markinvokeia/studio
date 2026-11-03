@@ -30,7 +30,7 @@ import { CalendarDraftPreviewBand } from './calendar-draft-preview';
 import { CalendarBlockedOverlays } from './calendar-blocked-overlay';
 import { isSlotBlocked } from './calendar-gaps';
 import type { Gap, BlockedRange } from './calendar-gaps';
-import { useTimeGridScroll, VisibleHoursClip, type VisibleHoursRange } from './calendar-visible-hours';
+import { useFittedHourSlotHeight, useTimeGridScroll, VisibleHoursClip, type VisibleHoursRange } from './calendar-visible-hours';
 
 interface CalendarDayViewProps {
   currentDate: Date;
@@ -80,7 +80,7 @@ export function CalendarDayView({
   onEventContextMenuOpen,
   onSlotClick,
   renderSlotContextMenu,
-  hourSlotHeight = HOUR_SLOT_HEIGHT,
+  hourSlotHeight: baseHourSlotHeight = HOUR_SLOT_HEIGHT,
   slotMinutes,
   gaps,
   selectedGapKey,
@@ -106,10 +106,20 @@ export function CalendarDayView({
   const timeSlots = generateTimeSlots();
   const [contextSlot, setContextSlot] = React.useState<CalendarSlotContextMenuContext | null>(null);
 
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const headerRef = React.useRef<HTMLDivElement>(null);
+  // Con una franja activa la hora se estira para que la rejilla llene el alto libre;
+  // sin franja se usa tal cual el alto configurado (× zoom).
+  const hourSlotHeight = useFittedHourSlotHeight({
+    scrollRef: scrollContainerRef,
+    headerRef,
+    hourSlotHeight: baseHourSlotHeight,
+    range: visibleHours,
+  });
+
   const currentTimePosition = (currentTime.getHours() + currentTime.getMinutes() / 60) * hourSlotHeight;
   const showTimeIndicator = days.some((day) => isSameDay(day, currentTime));
 
-  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
   useTimeGridScroll(scrollContainerRef, hourSlotHeight, visibleHours?.startMin);
 
   const slotDateFromEvent = (day: Date, e: React.MouseEvent<HTMLDivElement>) => {
@@ -144,7 +154,7 @@ export function CalendarDayView({
   return (
     <div className="day-view-container" ref={scrollContainerRef}>
       <div className="day-view-scroll-content">
-        <div className="day-view-header-wrapper">
+        <div className="day-view-header-wrapper" ref={headerRef}>
           <div
             className="day-view-header-dates"
             style={{ gridTemplateColumns: `60px repeat(${days.length}, 1fr)` }}

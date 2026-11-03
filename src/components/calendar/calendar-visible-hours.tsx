@@ -5,7 +5,7 @@ import { format, isValid, parseISO } from 'date-fns';
 
 import { ClinicException, ClinicSchedule } from '@/lib/types';
 
-import { DEFAULT_SCROLL_HOUR, MINUTES_IN_DAY } from './calendar-constants';
+import { DEFAULT_SCROLL_HOUR, MAX_FIT_HOUR_SLOT_HEIGHT, MINUTES_IN_DAY } from './calendar-constants';
 import { getAvailableIntervals } from './calendar-gaps';
 import { visibleHourToMinutes } from './calendar-settings-utils';
 import type { CalendarEvent } from './calendar-types';
@@ -162,4 +162,56 @@ export function useTimeGridScroll(
     prevHourRef.current = hourSlotHeight;
     prevStartRef.current = startMin;
   }, [scrollRef, hourSlotHeight, startMin]);
+}
+
+interface FittedHourSlotHeightOptions {
+  /** Contenedor con scroll de la rejilla (`.day-view-container` o el scroller mobile). */
+  scrollRef: React.RefObject<HTMLElement | null>;
+  /** Cabecera sticky dentro del contenedor, si la hay (escritorio). Su alto no es
+   *  alto útil: el recorte empieza debajo. */
+  headerRef?: React.RefObject<HTMLElement | null>;
+  /** Alto de hora base: preferencia del usuario × zoom. */
+  hourSlotHeight: number;
+  /** Franja visible activa; null = día completo (no se ajusta). */
+  range?: VisibleHoursRange | null;
+}
+
+/**
+ * Alto de hora que hace que la franja visible llene el alto disponible ("fit").
+ *
+ * Solo estira (`max`), nunca encoge: si la franja ya es más alta que el contenedor
+ * se conserva el alto configurado y aparece scroll vertical, igual que sin franja.
+ * Con una franja activa, entonces, el zoom puede ampliar pero no reducir por debajo
+ * del fit; el resultado nunca pasa de `MAX_FIT_HOUR_SLOT_HEIGHT`. Sin franja
+ * (`range` null) devuelve el alto base sin tocar nada.
+ */
+export function useFittedHourSlotHeight({
+  scrollRef,
+  headerRef,
+  hourSlotHeight,
+  range,
+}: FittedHourSlotHeightOptions): number {
+  const [availablePx, setAvailablePx] = React.useState(0);
+
+  React.useLayoutEffect(() => {
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) return;
+    const measure = () => {
+      setAvailablePx(scrollEl.clientHeight - (headerRef?.current?.offsetHeight ?? 0));
+    };
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    // Cambia el contenedor al redimensionar la ventana/paneles y la cabecera cuando
+    // aparece la banda de todo el día o cambia una etiqueta.
+    const observer = new ResizeObserver(measure);
+    observer.observe(scrollEl);
+    if (headerRef?.current) observer.observe(headerRef.current);
+    return () => observer.disconnect();
+  }, [scrollRef, headerRef]);
+
+  if (!range || range.endMin <= range.startMin || availablePx <= 0) return hourSlotHeight;
+  const rangeMinutes = range.endMin - range.startMin;
+  // `floor` para que la franja entre entera y no nazca un scroll de 1 px.
+  const fitted = Math.floor((availablePx * 60) / rangeMinutes);
+  return Math.max(hourSlotHeight, Math.min(fitted, MAX_FIT_HOUR_SLOT_HEIGHT));
 }
