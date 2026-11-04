@@ -19,13 +19,16 @@
  *   GET  aesthetic/sessions?patient_id=    sesiones completas del paciente
  *   POST aesthetic/sessions/save           { session } (capas y marcas; sin fotos)
  *   POST aesthetic/sessions/delete         { id } (borrado lógico)
- *   POST aesthetic/photos/upload           multipart: session_id, kind, view, alignment?, data
+ *   POST aesthetic/photos/upload           multipart: session_id, kind, view, source?, alignment?, data
  *   POST aesthetic/photos/delete           { id }
  *   POST aesthetic/photos/alignment        { id, alignment | null }
  *   GET  services/consent-templates        plantilla de consentimiento de cada servicio (154)
  *   POST services/consent-templates/save   { service_id, title, body } (body vacío ⇒ se borra)
  *   POST aesthetic/consents/sign           multipart: session_id, signing (JSON), data (firma dibujada)
  *   POST aesthetic/consents/reuse          { session_id, signing } con signing.reuseSignatureId
+ *   POST aesthetic/sessions/close          { id, notes? } → sólo desde "Por cerrar" (155)
+ *   POST aesthetic/sessions/void           { id, reason } (155)
+ *   POST aesthetic/notes/add               { session_id, body, kind: note|amendment } (155)
  *   GET  aesthetic/file?id=                binario de 'photo_<id>', 'consentsig_<id>' o 'signature_<session_id>' (151)
  *
  * Errores: las funciones lanzan 'AESTHETIC:<CODIGO>|<detalle>' ⇒ 400 { success:false, code, detail, message }.
@@ -264,6 +267,34 @@ simple({
   body: '={{ { success: true, ...$json } }}',
 });
 
+// Sesión guiada (155): cierre, anulación y notas con hora
+simple({
+  webhookName: 'POST aesthetic/sessions/close',
+  path: 'aesthetic/sessions/close',
+  method: 'POST',
+  query: "SELECT public.aesthetic_session_close(NULLIF($1, '')::bigint, $2::jsonb, NULLIF($3, '')::uuid) AS session;",
+  params: `={{ [String($json.body.id ?? ""), JSON.stringify($json.body.notes != null ? { notes: String($json.body.notes) } : {}), ${user('POST aesthetic/sessions/close')}] }}`,
+  body: '={{ { success: true, session: $json.session } }}',
+});
+
+simple({
+  webhookName: 'POST aesthetic/sessions/void',
+  path: 'aesthetic/sessions/void',
+  method: 'POST',
+  query: "SELECT public.aesthetic_session_void(NULLIF($1, '')::bigint, $2, NULLIF($3, '')::uuid) AS session;",
+  params: `={{ [String($json.body.id ?? ""), String($json.body.reason ?? ""), ${user('POST aesthetic/sessions/void')}] }}`,
+  body: '={{ { success: true, session: $json.session } }}',
+});
+
+simple({
+  webhookName: 'POST aesthetic/notes/add',
+  path: 'aesthetic/notes/add',
+  method: 'POST',
+  query: "SELECT public.aesthetic_note_add(NULLIF($1, '')::bigint, $2::jsonb, NULLIF($3, '')::uuid) AS session;",
+  params: `={{ [String($json.body.session_id ?? ""), JSON.stringify({ body: String($json.body.body ?? ""), kind: String($json.body.kind ?? "note") }), ${user('POST aesthetic/notes/add')}] }}`,
+  body: '={{ { success: true, session: $json.session } }}',
+});
+
 simple({
   webhookName: 'POST aesthetic/photos/alignment',
   path: 'aesthetic/photos/alignment',
@@ -297,6 +328,7 @@ return [{
     session_id: sessionId,
     kind,
     view: String(body.view ?? 'front'),
+    source: ['camera', 'upload', 'qr'].includes(String(body.source ?? '')) ? String(body.source) : 'upload',
     alignment: body.alignment ? String(body.alignment) : '',
     file_name: binary.fileName ?? 'foto',
     mime_type: binary.mimeType,
@@ -304,8 +336,8 @@ return [{
   binary: { file: binary },
 }];`), { onError: 'continueErrorOutput' }), [240, top]);
   const up = add(driveUpload('Photo · subir a Drive', "={{ 'aesthetic_' + $json.session_id + '_' + $json.file_name }}"), [480, top]);
-  const save = add(pg('Photo · guardar', "SELECT public.aesthetic_photo_add($1::bigint, $2, $3, $4, $5, $6, $7, NULLIF($8, '')::jsonb, NULLIF($9, '')::uuid) AS photo;",
-    `={{ (() => { const v = $('Photo · validar').first().json; return [v.session_id, v.kind, v.view, v.file_name, v.mime_type, $json.id, $json.webViewLink ?? '', v.alignment, ${user(WH)}]; })() }}`), [720, top]);
+  const save = add(pg('Photo · guardar', "SELECT public.aesthetic_photo_add($1::bigint, $2, $3, $4, $5, $6, $7, NULLIF($8, '')::jsonb, NULLIF($9, '')::uuid, $10) AS photo;",
+    `={{ (() => { const v = $('Photo · validar').first().json; return [v.session_id, v.kind, v.view, v.file_name, v.mime_type, $json.id, $json.webViewLink ?? '', v.alignment, ${user(WH)}, v.source]; })() }}`), [720, top]);
   const ok = add(respond('Photo · OK', '={{ { success: true, photo: $json.photo } }}'), [960, top]);
   chain(wh, check);
   link(check, up, 0);
@@ -409,7 +441,7 @@ nodes.unshift({
     height: 420,
     content: `## Aesthetic Record — ficha estética
 
-Flujo NUEVO (no reemplaza nada). Requiere database/scripts/151, 152 y 154.
+Flujo NUEVO (no reemplaza nada). Requiere database/scripts/151, 152, 154 y 155.
 
 Unidades de medida, configuración estética del servicio (unidad + herramienta punto/área), plantilla de consentimiento por servicio, sesiones con capas por servicio y marcas, fotos y un consentimiento firmado por servicio (binarios en Drive; una firma se puede reutilizar).
 

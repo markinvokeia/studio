@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import type { AestheticBodyFigure, AestheticMapView, AestheticMark, AestheticMarkKind, AestheticPhotoAlignment, AestheticZoneId } from '@/lib/types';
 import { layerTitle, polygonCentroid, type PlacedMark } from './layers';
 import { isFaceView, type MapArtwork } from './map-templates';
+import { Hint } from './hint';
 import { useMapArtwork } from './use-map-artwork';
 import { useZoneLabel } from './use-zone-label';
 
@@ -147,6 +148,16 @@ interface AestheticMapProps {
   onBackdropChange?: (alignment: AestheticPhotoAlignment) => void;
   /** Fit the drawing inside the parent's box (its width and height) instead of following the width; it can then be zoomed */
   fill?: boolean;
+  /** Shaded model drawn instead of the line art (face views); hidden with the art over a photo */
+  illustration?: React.ReactNode;
+  /** Dashed outline of every zone; off, a zone only shows when highlighted or under the pointer */
+  zoneOutlines?: boolean;
+  /** Name of each zone written over it */
+  zoneLabels?: boolean;
+  /** Marks of an earlier session, dashed and faded, for reference only */
+  ghostMarks?: PlacedMark[];
+  /** A click on a zone that adds nothing (selection tool, read-only) */
+  onZoneClick?: (zone: AestheticZoneId) => void;
   className?: string;
 }
 
@@ -190,6 +201,8 @@ interface PanState {
 interface DragState {
   id: string;
   kind: AestheticMarkKind;
+  /** One vertex of an area or one end of a line, instead of the whole mark */
+  vertex?: number;
   startX: number;
   startY: number;
   x: number;
@@ -218,6 +231,11 @@ function MapCanvas({
   onBackdropChange,
   onBackdropFit,
   fill = false,
+  illustration,
+  zoneOutlines = true,
+  zoneLabels = false,
+  ghostMarks,
+  onZoneClick,
   className,
 }: Omit<AestheticMapProps, 'figure'> & { artwork: MapArtwork }) {
   const t = useTranslations('AestheticRecord');
@@ -490,6 +508,8 @@ function MapCanvas({
     }
     if (readOnly || !onAddPoint) {
       onSelectMark(null);
+      const zone = p && onZoneClick ? zoneAt(p.x, p.y) : null;
+      if (zone) onZoneClick?.(zone);
       return;
     }
     if (!p) return;
@@ -581,6 +601,24 @@ function MapCanvas({
     // A point follows the pointer; an area or a line moves by the pointer's offset
     const at = mark.kind === 'point' ? fromNormalized(mark.x, mark.y) : p;
     setDrag({ id: mark.id, kind: mark.kind, startX: p.x, startY: p.y, x: at.x, y: at.y, moved: false });
+  }
+
+  /** Grabbing a vertex of the selected area (or an end of its line) reshapes it */
+  function handleVertexPointerDown(e: React.PointerEvent, mark: AestheticMark, vertex: number) {
+    if (isDrafting || readOnly || !onMoveMark) return;
+    e.stopPropagation();
+    const p = toSvgPoint(e.clientX, e.clientY);
+    if (!p) return;
+    svgRef.current?.setPointerCapture(e.pointerId);
+    setDrag({ id: mark.id, kind: mark.kind, vertex, startX: p.x, startY: p.y, x: p.x, y: p.y, moved: false });
+  }
+
+  /** The mark's outline with the dragged vertex where the pointer is; its number moves to the new centre */
+  function reshaped(mark: AestheticMark, vertex: number, at: { x: number; y: number }): Pick<AestheticMark, 'x' | 'y' | 'polygon'> & { at: { x: number; y: number } } {
+    const n = toNormalized(at.x, at.y);
+    const polygon = (mark.polygon ?? []).map((v, i) => (i === vertex ? [n.x, n.y] as [number, number] : v));
+    const [x, y] = mark.kind === 'area' ? polygonCentroid(polygon) : [(polygon[0][0] + polygon[1][0]) / 2, (polygon[0][1] + polygon[1][1]) / 2];
+    return { x, y, polygon, at: fromNormalized(x, y) };
   }
 
   /** Mark moved by (dx, dy), normalized; areas and lines stay inside the template */
@@ -688,7 +726,10 @@ function MapCanvas({
     svgRef.current?.releasePointerCapture(e.pointerId);
     suppressClickRef.current = true;
     const placed = marks.find((m) => m.mark.id === drag.id);
-    if (drag.moved && placed) {
+    if (drag.moved && placed && drag.vertex != null) {
+      const { at, ...position } = reshaped(placed.mark, drag.vertex, { x: drag.x, y: drag.y });
+      onMoveMark?.(drag.id, position, zoneAt(at.x, at.y));
+    } else if (drag.moved && placed) {
       const { at, ...position } = drag.kind === 'point'
         ? translated(placed.mark, (drag.x - X) / W - placed.mark.x, (drag.y - Y) / H - placed.mark.y)
         : translated(placed.mark, (drag.x - drag.startX) / W, (drag.y - drag.startY) / H);
@@ -748,9 +789,11 @@ function MapCanvas({
             ? 'fill-amber-400/30 stroke-amber-500'
             : isHovered
               ? 'fill-amber-300/20 stroke-amber-500/70'
-              : backdrop
-                ? cn('fill-transparent', shape.inert ? 'stroke-white/35' : 'stroke-white/70')
-                : cn('fill-transparent', shape.inert ? 'stroke-foreground/15 dark:stroke-foreground/25' : 'stroke-foreground/30 dark:stroke-foreground/45'),
+              : !zoneOutlines
+                ? 'fill-transparent stroke-transparent'
+                : backdrop || illustration
+                  ? cn('fill-white/5', shape.inert ? 'stroke-white/40' : 'stroke-white/85')
+                  : cn('fill-transparent', shape.inert ? 'stroke-foreground/15 dark:stroke-foreground/25' : 'stroke-foreground/30 dark:stroke-foreground/45'),
         )}
         strokeWidth={1}
         strokeDasharray={isHighlighted ? undefined : ZONE_DASH}
@@ -831,9 +874,14 @@ function MapCanvas({
         <rect x={X} y={Y} width={W} height={H} rx={16 * artScale} className={fill ? 'fill-card' : 'fill-muted/30'} />
         {backdropImage && <g clipPath={`url(#${clipId})`}>{backdropImage}</g>}
 
+        {illustration && (
+          <g clipPath={`url(#${clipId})`} pointerEvents="none" display={backdrop?.hideArt ? 'none' : undefined}>{illustration}</g>
+        )}
+
         {/* Same layering for face and body: zones below the line art so its strokes stay crisp */}
         <g pointerEvents={adjusting ? 'none' : undefined}>{zoneShapes}</g>
-        <g pointerEvents="none" style={artStyle} display={backdrop?.hideArt ? 'none' : undefined}>
+        {zoneLabels && <ZoneLabels shapes={artwork.zones} shapeRefs={shapeRefs} label={zoneLabel} scale={scale} />}
+        <g pointerEvents="none" style={artStyle} display={backdrop?.hideArt || illustration ? 'none' : undefined}>
           {artwork.details.map((shape) => (
             <path
               key={shape.key}
@@ -865,6 +913,19 @@ function MapCanvas({
           ))}
         </g>
 
+        {/* An earlier session's marks: dashed and faded, under today's */}
+        {ghostMarks && ghostMarks.length > 0 && (
+          <g pointerEvents="none" opacity={0.6}>
+            {ghostMarks.filter((g) => g.mark.view === view).map(({ mark, color }) => {
+              const at = fromNormalized(mark.x, mark.y);
+              const points = mark.polygon?.map(([x, y]) => { const v = fromNormalized(x, y); return `${v.x},${v.y}`; }).join(' ');
+              if (mark.kind === 'area' && points) return <polygon key={mark.id} points={points} fill={color} fillOpacity={0.08} stroke={color} strokeWidth={1.4} strokeDasharray="4 3" vectorEffect="non-scaling-stroke" />;
+              if (mark.kind === 'line' && points) return <polyline key={mark.id} points={points} fill="none" stroke={color} strokeWidth={2} strokeDasharray="5 4" strokeLinecap="round" vectorEffect="non-scaling-stroke" />;
+              return <circle key={mark.id} cx={at.x} cy={at.y} r={r * 1.05} fill="none" stroke={color} strokeWidth={1.5} strokeDasharray="3 2.5" vectorEffect="non-scaling-stroke" />;
+            })}
+          </g>
+        )}
+
         {/* Marks: areas first, then lines, so the points stay clickable on top of them */}
         <g pointerEvents={adjusting ? 'none' : undefined} opacity={adjusting ? 0.5 : undefined}>
           {[...viewMarks].sort((a, b) => KIND_ORDER[a.mark.kind] - KIND_ORDER[b.mark.kind]).map(({ mark, layer, color, number }) => {
@@ -878,10 +939,16 @@ function MapCanvas({
             });
             let at = fromNormalized(mark.x, mark.y);
             let offset: { x: number; y: number } | null = null;
-            if (isDragging) {
+            let shape = mark;
+            if (isDragging && drag.vertex != null) {
+              const live = reshaped(mark, drag.vertex, { x: drag.x, y: drag.y });
+              shape = { ...mark, polygon: live.polygon };
+              at = live.at;
+            } else if (isDragging) {
               if (drag.kind === 'point') at = { x: drag.x, y: drag.y };
               else offset = { x: drag.x - drag.startX, y: drag.y - drag.startY };
             }
+            const editableVertices = isSelected && !readOnly && !!onMoveMark && !isDrafting && shape.kind !== 'point' && !!shape.polygon;
             return (
               <g
                 key={mark.id}
@@ -905,10 +972,10 @@ function MapCanvas({
                 )}
               >
                 <title>{label}</title>
-                {mark.kind === 'area' && mark.polygon ? (
+                {shape.kind === 'area' && shape.polygon ? (
                   <>
                     <polygon
-                      points={mark.polygon.map(([x, y]) => { const v = fromNormalized(x, y); return `${v.x},${v.y}`; }).join(' ')}
+                      points={shape.polygon.map(([x, y]) => { const v = fromNormalized(x, y); return `${v.x},${v.y}`; }).join(' ')}
                       fill={color}
                       fillOpacity={isSelected ? 0.4 : 0.25}
                       stroke={isInvalid || isSelected ? undefined : color}
@@ -922,9 +989,9 @@ function MapCanvas({
                       {number}
                     </text>
                   </>
-                ) : mark.kind === 'line' && mark.polygon?.length === 2 ? (
+                ) : shape.kind === 'line' && shape.polygon?.length === 2 ? (
                   <LineMark
-                    ends={mark.polygon.map(([x, y]) => fromNormalized(x, y))}
+                    ends={shape.polygon.map(([x, y]) => fromNormalized(x, y))}
                     at={at}
                     color={color}
                     number={number}
@@ -949,6 +1016,22 @@ function MapCanvas({
                     </text>
                   </>
                 )}
+                {editableVertices && shape.polygon!.map(([x, y], i) => {
+                  const v = fromNormalized(x, y);
+                  return (
+                    <circle
+                      key={`v${i}`}
+                      cx={v.x}
+                      cy={v.y}
+                      r={4.5 * scale}
+                      fill="white"
+                      stroke={color}
+                      strokeWidth={2 * scale}
+                      className="cursor-move"
+                      onPointerDown={(e) => handleVertexPointerDown(e, mark, i)}
+                    />
+                  );
+                })}
               </g>
             );
           })}
@@ -1004,18 +1087,26 @@ function MapCanvas({
           aria-label={t('map.zoom.label')}
           className="absolute bottom-2 right-2 z-10 flex items-center gap-0.5 rounded-lg border bg-card/90 p-0.5 text-xs shadow-sm backdrop-blur-sm"
         >
-          <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={frame.k <= 1} onClick={() => zoomAround(1 / ZOOM_STEP)} aria-label={t('map.zoom.out')} title={t('map.zoom.out')}>
-            <ZoomOut className="h-3.5 w-3.5" />
-          </Button>
-          <span className="min-w-[2.75rem] text-center font-medium tabular-nums text-muted-foreground" title={t('map.zoom.hint')} aria-live="polite">
-            {Math.round(frame.k * 100)}%
-          </span>
-          <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={frame.k >= MAP_MAX_ZOOM} onClick={() => zoomAround(ZOOM_STEP)} aria-label={t('map.zoom.in')} title={t('map.zoom.in')}>
-            <ZoomIn className="h-3.5 w-3.5" />
-          </Button>
-          <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={frame.k <= 1} onClick={() => applyZoom(null)} aria-label={t('map.zoom.fit')} title={t('map.zoom.fit')}>
-            <Scan className="h-3.5 w-3.5" />
-          </Button>
+          <Hint label={t('map.zoom.out')} description={t('flow.hints.zoomOut')} side="top">
+            <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={frame.k <= 1} onClick={() => zoomAround(1 / ZOOM_STEP)} aria-label={t('map.zoom.out')}>
+              <ZoomOut className="h-3.5 w-3.5" />
+            </Button>
+          </Hint>
+          <Hint label={t('map.zoom.label')} description={t('map.zoom.hint')} side="top">
+            <span className="min-w-[2.75rem] text-center font-medium tabular-nums text-muted-foreground" aria-live="polite">
+              {Math.round(frame.k * 100)}%
+            </span>
+          </Hint>
+          <Hint label={t('map.zoom.in')} description={t('flow.hints.zoomIn')} side="top">
+            <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={frame.k >= MAP_MAX_ZOOM} onClick={() => zoomAround(ZOOM_STEP)} aria-label={t('map.zoom.in')}>
+              <ZoomIn className="h-3.5 w-3.5" />
+            </Button>
+          </Hint>
+          <Hint label={t('map.zoom.fit')} description={t('flow.hints.zoomFit')} side="top">
+            <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={frame.k <= 1} onClick={() => applyZoom(null)} aria-label={t('map.zoom.fit')}>
+              <Scan className="h-3.5 w-3.5" />
+            </Button>
+          </Hint>
         </div>
       )}
       </div>
@@ -1065,5 +1156,51 @@ function LineMark({ ends: [a, b], at, color, number, scale, ringClassName }: {
         {number}
       </text>
     </>
+  );
+}
+
+/** Zone names over the drawing, at the centre of each shape (measured once it is rendered) */
+function ZoneLabels({ shapes, shapeRefs, label, scale }: {
+  shapes: MapArtwork['zones'];
+  shapeRefs: React.MutableRefObject<Map<string, SVGPathElement>>;
+  label: (zone: AestheticZoneId) => string;
+  scale: number;
+}) {
+  const [centres, setCentres] = React.useState<{ key: string; zone: AestheticZoneId; x: number; y: number }[]>([]);
+  React.useLayoutEffect(() => {
+    const next: { key: string; zone: AestheticZoneId; x: number; y: number }[] = [];
+    for (const shape of shapes) {
+      const el = shapeRefs.current.get(shape.key);
+      if (!el || shape.inert) continue;
+      const box = el.getBBox();
+      // The mirrored copy of a bilateral zone is drawn with a transform: its centre too
+      let x = box.x + box.width / 2;
+      const y = box.y + box.height / 2;
+      const m = /translate\(([-\d.]+) 0\) scale\(-1 1\)/.exec(shape.transform ?? '');
+      if (m) x = Number(m[1]) - x;
+      next.push({ key: shape.key, zone: shape.zone, x, y });
+    }
+    setCentres(next);
+  }, [shapes, shapeRefs]);
+  return (
+    <g pointerEvents="none">
+      {centres.map((c) => (
+        <text
+          key={c.key}
+          x={c.x}
+          y={c.y}
+          dy="0.35em"
+          textAnchor="middle"
+          fontSize={5.4 * scale}
+          className="fill-foreground font-semibold"
+          stroke="white"
+          strokeOpacity={0.85}
+          strokeWidth={2.2 * scale}
+          paintOrder="stroke"
+        >
+          {label(c.zone).replace(/ \(.*\)$/, '')}
+        </text>
+      ))}
+    </g>
   );
 }

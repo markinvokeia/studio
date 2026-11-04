@@ -3,7 +3,8 @@
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { AestheticSessionSheet } from '@/components/users/aesthetic-record/aesthetic-session-sheet';
-import { AestheticSessionDetails, aestheticSessionPreview, useAestheticSessions } from '@/components/users/aesthetic-record/aesthetic-timeline';
+import { AestheticSessionDetails, AestheticStatusChip, aestheticSessionPreview, useAestheticSessions } from '@/components/users/aesthetic-record/aesthetic-timeline';
+import { isOpenStatus } from '@/components/users/aesthetic-record/session-status';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
 import { getProcedure } from '@/components/users/dental-record/odontogram-catalog';
 import { groupTeethByCondition } from '@/components/users/dental-record/odontogram-state';
@@ -1979,7 +1980,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     const [isOdontogramDialogOpen, setIsOdontogramDialogOpen] = React.useState(false);
     const [isOdontogramViewerOpen, setIsOdontogramViewerOpen] = React.useState(false);
     /** Sheet of an aesthetic session: `sessionId` null creates one */
-    const [aestheticSheet, setAestheticSheet] = React.useState<{ sessionId: string | null; edit: boolean } | null>(null);
+    const [aestheticSheet, setAestheticSheet] = React.useState<{ sessionId: string | null } | null>(null);
     const [deletingAesthetic, setDeletingAesthetic] = React.useState<AestheticSession | null>(null);
     const [editingSession, setEditingSession] = React.useState<PatientSession | null>(null);
     const [deletingSession, setDeletingSession] = React.useState<PatientSession | null>(null);
@@ -2123,7 +2124,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     React.useEffect(() => {
         if (!canManageAesthetic) return;
         if (createAestheticTrigger > 0) {
-            setAestheticSheet({ sessionId: null, edit: true });
+            setAestheticSheet({ sessionId: null });
             onAestheticTriggerConsumed?.();
         }
     }, [createAestheticTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -2522,7 +2523,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                     {t('sessionTypeOdontogram')}
                                 </DropdownMenuItem>
                                 {canManageAesthetic && (
-                                    <DropdownMenuItem onClick={() => setAestheticSheet({ sessionId: null, edit: true })}>
+                                    <DropdownMenuItem onClick={() => setAestheticSheet({ sessionId: null })}>
                                         <Sparkles className="h-4 w-4 mr-2" />
                                         {t('sessionTypeAesthetic')}
                                     </DropdownMenuItem>
@@ -2753,6 +2754,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                     {t('sessionTypeAesthetic')}
                                                                 </Badge>
                                                                 <span className="text-xs font-medium text-foreground">{formatDate(aesthetic.date)}</span>
+                                                                <AestheticStatusChip status={aesthetic.status} completeness={aesthetic.completeness} />
                                                                 {isLinkedToAppointment && (
                                                                     <Badge variant="default" className="rounded-full text-[10px] shadow-sm dark:border-link/40 dark:bg-link/20 dark:text-link">
                                                                         {t('currentAppointmentBadge')}
@@ -2770,37 +2772,26 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                     <div className="flex flex-wrap items-center gap-2 pt-1">
                                                         <Button
                                                             type="button"
-                                                            variant="outline"
+                                                            variant={canManageAesthetic && isOpenStatus(aesthetic.status) ? 'default' : 'outline'}
                                                             size="sm"
                                                             className="h-7 gap-1.5 text-xs"
-                                                            onClick={() => setAestheticSheet({ sessionId: aesthetic.id, edit: false })}
+                                                            onClick={() => setAestheticSheet({ sessionId: aesthetic.id })}
                                                         >
-                                                            <Eye className="h-3.5 w-3.5" />
-                                                            {t('viewAestheticSession')}
+                                                            {canManageAesthetic && isOpenStatus(aesthetic.status) ? <Edit3 className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                                            {canManageAesthetic && isOpenStatus(aesthetic.status) ? tAesthetic('flow.timeline.continue') : t('viewAestheticSession')}
                                                         </Button>
-                                                        {canManageAesthetic && (
-                                                            <>
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="outline"
-                                                                    size="sm"
-                                                                    className="h-7 gap-1.5 text-xs"
-                                                                    onClick={() => setAestheticSheet({ sessionId: aesthetic.id, edit: true })}
-                                                                >
-                                                                    <Edit3 className="h-3.5 w-3.5" />
-                                                                    {tPage('common.edit')}
-                                                                </Button>
-                                                                <Button
-                                                                    type="button"
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    className="h-7 gap-1.5 text-xs text-destructive hover:text-destructive"
-                                                                    onClick={() => setDeletingAesthetic(aesthetic)}
-                                                                >
-                                                                    <Trash2 className="h-3.5 w-3.5" />
-                                                                    {tPage('common.delete')}
-                                                                </Button>
-                                                            </>
+                                                        {/* A closed session is part of the clinical record: it is amended, not deleted */}
+                                                        {canManageAesthetic && isOpenStatus(aesthetic.status) && (
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-7 gap-1.5 text-xs text-destructive hover:text-destructive"
+                                                                onClick={() => setDeletingAesthetic(aesthetic)}
+                                                            >
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                                {tPage('common.delete')}
+                                                            </Button>
                                                         )}
                                                     </div>
                                                 </TimelineRow>
@@ -3088,7 +3079,6 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                     patientName={userName}
                     patientSex={patientSex}
                     sessionId={aestheticSheet?.sessionId ?? null}
-                    startEditing={aestheticSheet?.edit}
                     doctorId={aestheticDefaults?.doctorId}
                     doctorName={aestheticDefaults?.doctorName}
                     appointmentId={aestheticDefaults?.appointmentId}

@@ -2,7 +2,7 @@
   "name": "Aesthetic Record",
   "nodes": [
     {
-      "id": "48826e6c-0a68-40a6-9122-919c7bb50b13",
+      "id": "96c081a1-ce20-49a7-a011-682e1e549f46",
       "name": "Nota",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -13,7 +13,7 @@
       "parameters": {
         "width": 420,
         "height": 420,
-        "content": "## Aesthetic Record — ficha estética\n\nFlujo NUEVO (no reemplaza nada). Requiere database/scripts/151, 152 y 154.\n\nUnidades de medida, configuración estética del servicio (unidad + herramienta punto/área), plantilla de consentimiento por servicio, sesiones con capas por servicio y marcas, fotos y un consentimiento firmado por servicio (binarios en Drive; una firma se puede reutilizar).\n\nErrores: 'AESTHETIC:<CODIGO>|<detalle>' ⇒ 400 { success:false, code, detail }.\n\nGenerado por scripts/n8n/generate-aesthetic-record-workflow.mjs — no editar a mano."
+        "content": "## Aesthetic Record — ficha estética\n\nFlujo NUEVO (no reemplaza nada). Requiere database/scripts/151, 152, 154 y 155.\n\nUnidades de medida, configuración estética del servicio (unidad + herramienta punto/área), plantilla de consentimiento por servicio, sesiones con capas por servicio y marcas, fotos y un consentimiento firmado por servicio (binarios en Drive; una firma se puede reutilizar).\n\nErrores: 'AESTHETIC:<CODIGO>|<detalle>' ⇒ 400 { success:false, code, detail }.\n\nGenerado por scripts/n8n/generate-aesthetic-record-workflow.mjs — no editar a mano."
       }
     },
     {
@@ -23,7 +23,7 @@
       "parameters": {
         "jsCode": "// Las funciones lanzan 'AESTHETIC:<CODIGO>|<detalle>'. Cualquier otro error\n// (conexión, constraint inesperada) sale como UNKNOWN con el mensaje crudo.\nconst raw = $json.error?.message ?? $json.error ?? $json.message ?? '';\nconst text = String(raw);\nconst match = text.match(/AESTHETIC:([A-Z_]+)(?:\\|(.*))?/);\nreturn [{ json: {\n  success: false,\n  code: match ? match[1] : 'UNKNOWN',\n  detail: match && match[2] ? match[2].trim() : null,\n  message: text || 'Error',\n} }];"
       },
-      "id": "9b399027-ed00-469d-9086-59553ff182da",
+      "id": "52655cac-12aa-4ec4-892d-91fd297d5cf4",
       "position": [
         1400,
         1400
@@ -40,7 +40,7 @@
           "responseCode": 400
         }
       },
-      "id": "57fa0e09-1054-402a-bc78-3079d4b30348",
+      "id": "a3effddb-44ba-4f44-9da4-ba61d4e35c54",
       "position": [
         1640,
         1400
@@ -50,7 +50,7 @@
       "name": "GET measurement-units",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "e8138621-9892-4a27-9407-eefcde26b8ec",
+      "webhookId": "f42a4171-98aa-42b0-ac94-8438b174f861",
       "parameters": {
         "path": "measurement-units",
         "authentication": "jwtAuth",
@@ -65,7 +65,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "c747eb0d-3041-4874-a2a8-82ce5db841e4",
+      "id": "285ecc6a-293a-4af1-a6d3-3813208bf953",
       "position": [
         0,
         0
@@ -88,7 +88,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "285fa144-807f-4064-98c7-cae0b108d92c",
+      "id": "c78af3e6-22d7-4c9b-8a3a-3605d43ba19a",
       "position": [
         240,
         0
@@ -105,7 +105,7 @@
           "responseCode": 200
         }
       },
-      "id": "ecff5904-d666-4888-aa46-8b041c12c476",
+      "id": "88637371-59be-44b9-8354-49c76f1561ff",
       "position": [
         480,
         0
@@ -115,7 +115,7 @@
       "name": "POST measurement-units/save",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "8f0cf020-0b20-413d-bc0e-ce920aa16c50",
+      "webhookId": "26c2607c-ab76-4a16-92f3-b5fa48255242",
       "parameters": {
         "httpMethod": "POST",
         "path": "measurement-units/save",
@@ -131,7 +131,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "0c54faa1-ab84-4aa0-8df8-46074831327e",
+      "id": "220ba9a0-4a79-45c6-a9e1-563d66adc6df",
       "position": [
         0,
         220
@@ -156,7 +156,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "dc78404c-fcb5-4c78-a32d-fde323cef074",
+      "id": "7922030d-41aa-4994-b74c-da52b6c41b1f",
       "position": [
         240,
         220
@@ -173,7 +173,7 @@
           "responseCode": 200
         }
       },
-      "id": "a3f67326-c156-46ca-962e-8faf93bd6343",
+      "id": "4183d573-ca50-4157-8b55-9692cc5e4fc6",
       "position": [
         480,
         220
@@ -183,7 +183,7 @@
       "name": "POST measurement-units/delete",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "6c4f3706-5441-4b8d-ba5c-2e0d94d6d9f0",
+      "webhookId": "22895c66-b1d0-4cd3-ae73-c33b44a7c29f",
       "parameters": {
         "httpMethod": "POST",
         "path": "measurement-units/delete",
@@ -199,7 +199,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "be6124f1-b371-4230-a2bd-41c0c7ca39ee",
+      "id": "dd30cab5-bbae-424b-a51e-4ed8529d7f6e",
       "position": [
         0,
         440
@@ -224,7 +224,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "24bc0e7f-c579-4e34-8d47-dae010c2b13c",
+      "id": "23a852ad-3be9-4b6f-833f-aa03573f96d6",
       "position": [
         240,
         440
@@ -241,7 +241,7 @@
           "responseCode": 200
         }
       },
-      "id": "0888daeb-41bd-4d88-a901-cef44a2a35c5",
+      "id": "173f5673-27f3-4f31-b758-c2d484f60cd4",
       "position": [
         480,
         440
@@ -251,7 +251,7 @@
       "name": "GET services/aesthetic-config",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "1b1d3b13-ac72-4ad1-8689-d240be21c04e",
+      "webhookId": "15920ecb-baf8-4175-a2cd-014be8f08daa",
       "parameters": {
         "path": "services/aesthetic-config",
         "authentication": "jwtAuth",
@@ -266,7 +266,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "36d6a52c-09bd-4833-afd7-45edb4a6cea5",
+      "id": "5f4fa2cd-fa32-47b8-b2be-3279e813af6d",
       "position": [
         0,
         660
@@ -289,7 +289,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "50708cd7-c1e1-4f3e-98cb-c43098aad978",
+      "id": "276f4626-98fb-44cf-a764-49236a2ac8cf",
       "position": [
         240,
         660
@@ -306,7 +306,7 @@
           "responseCode": 200
         }
       },
-      "id": "b83af88e-3152-4081-94fa-1d8ded05214b",
+      "id": "10be2aa0-2ea7-4586-a424-934bf4c2e4b9",
       "position": [
         480,
         660
@@ -316,7 +316,7 @@
       "name": "POST services/aesthetic-config/save",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "33deb1f7-1fb9-40f1-a30a-9f86aa3987cf",
+      "webhookId": "525a706f-ea8e-45e7-9141-e494eeba6dbb",
       "parameters": {
         "httpMethod": "POST",
         "path": "services/aesthetic-config/save",
@@ -332,7 +332,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "a586da83-7a55-4e40-bbbf-8e476257e4dc",
+      "id": "ccaffa8f-0fe5-4dc0-95f4-a529e5deccd7",
       "position": [
         0,
         880
@@ -357,7 +357,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "27d80477-0ff6-4b4a-8c24-f856c3c31ff8",
+      "id": "c82aec5f-c988-40b3-a405-47e8bbe3ed23",
       "position": [
         240,
         880
@@ -374,7 +374,7 @@
           "responseCode": 200
         }
       },
-      "id": "3cedf8c5-48e5-413c-939b-2bf5d2ac3a49",
+      "id": "3a3e8ef5-e865-456c-9227-7b38dca7be50",
       "position": [
         480,
         880
@@ -384,7 +384,7 @@
       "name": "GET services/consent-templates",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "07a5c24b-81e8-4026-84c0-f5bd97e90e03",
+      "webhookId": "e8e3e5f3-fd8a-4266-b5bf-3c1b69d097b4",
       "parameters": {
         "path": "services/consent-templates",
         "authentication": "jwtAuth",
@@ -399,7 +399,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "ed31c7e7-8d15-4076-b780-81d859022d57",
+      "id": "a0290136-9f4a-4e70-8b8c-fd0a9d57625e",
       "position": [
         0,
         1100
@@ -422,7 +422,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "494a144f-b909-4853-adda-3133d785a783",
+      "id": "92b6855b-2c0d-4ac1-b8da-40ae0c4c169a",
       "position": [
         240,
         1100
@@ -439,7 +439,7 @@
           "responseCode": 200
         }
       },
-      "id": "78bc9cce-6c5a-45a4-a190-3248e7946b65",
+      "id": "1c6ef560-632a-4829-a709-9c5d70885b37",
       "position": [
         480,
         1100
@@ -449,7 +449,7 @@
       "name": "POST services/consent-templates/save",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "613bb58a-543f-40bc-ae7a-1258ae52c8ec",
+      "webhookId": "e881b821-a68d-4b5f-a224-0ecab73f3c6a",
       "parameters": {
         "httpMethod": "POST",
         "path": "services/consent-templates/save",
@@ -465,7 +465,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "9537bc2d-ee76-4a14-b912-d75ad46a4993",
+      "id": "8f106a8d-f695-447c-b000-0dde39453196",
       "position": [
         0,
         1320
@@ -490,7 +490,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "2134e5c7-bd93-4ffd-9581-ddc61dbf9e92",
+      "id": "4ef13f85-80b6-44ae-bdb7-f177b916b9e9",
       "position": [
         240,
         1320
@@ -507,7 +507,7 @@
           "responseCode": 200
         }
       },
-      "id": "460bf927-7633-4285-819a-205c739cef00",
+      "id": "85a263ab-f66a-4785-9429-cca09fcfa4fd",
       "position": [
         480,
         1320
@@ -517,7 +517,7 @@
       "name": "GET aesthetic/sessions",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "fc5e79a7-7b7a-4888-a031-421c27e95656",
+      "webhookId": "b92840c7-f448-4b53-b949-acf59a0dffd5",
       "parameters": {
         "path": "aesthetic/sessions",
         "authentication": "jwtAuth",
@@ -532,7 +532,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "0d5c0f8d-e1bc-48ae-a892-e117424f8b82",
+      "id": "af40d6f6-dc9d-4015-b910-9128946c0548",
       "position": [
         0,
         1540
@@ -557,7 +557,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "4c71b3e5-5946-4776-af98-c456c5a910d8",
+      "id": "54ba56b6-690c-48df-a9d1-ef04ef648e0b",
       "position": [
         240,
         1540
@@ -574,7 +574,7 @@
           "responseCode": 200
         }
       },
-      "id": "115e3fdf-f198-4dd9-9ab5-7e29d1cd42ea",
+      "id": "1b4164d2-2616-475a-af36-1562a7bb5d1a",
       "position": [
         480,
         1540
@@ -584,7 +584,7 @@
       "name": "POST aesthetic/sessions/save",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "6cfb2a50-9e16-4bbd-8c9d-e6fede29e21a",
+      "webhookId": "69aebec2-744d-4270-8933-e1e66e54957c",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/sessions/save",
@@ -600,7 +600,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "5c504b7a-7b7e-4e94-8924-5479aec0830e",
+      "id": "3abb1ce8-2e83-4557-812f-8a16a622e099",
       "position": [
         0,
         1760
@@ -625,7 +625,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "2b9ee47f-99c8-4b6c-813f-78677b91629b",
+      "id": "5cffb28e-6993-46ba-97bd-b7f821377731",
       "position": [
         240,
         1760
@@ -642,7 +642,7 @@
           "responseCode": 200
         }
       },
-      "id": "1a8c9802-df90-4a82-a3b5-ca57342dcc78",
+      "id": "e265cdd2-a233-4851-a815-09f75d704a18",
       "position": [
         480,
         1760
@@ -652,7 +652,7 @@
       "name": "POST aesthetic/sessions/delete",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "f2c24bbc-df85-406f-852c-7132c762d1e9",
+      "webhookId": "93068225-3f3b-49ab-823f-7836ec6696fc",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/sessions/delete",
@@ -668,7 +668,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "8ba54885-ceb2-4452-86a4-ce6aa7acaa28",
+      "id": "621192d0-4365-4cdc-8177-21f33521614a",
       "position": [
         0,
         1980
@@ -693,7 +693,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "c552c1f3-23c8-4beb-a033-cf22f746b353",
+      "id": "f5635fb3-7243-4859-8042-1e713ea8c575",
       "position": [
         240,
         1980
@@ -710,17 +710,221 @@
           "responseCode": 200
         }
       },
-      "id": "9db1f720-ec8c-4fc0-a20c-7454cda1c6db",
+      "id": "eaf96725-eb21-42cf-aeb9-da335147f89a",
       "position": [
         480,
         1980
       ]
     },
     {
+      "name": "POST aesthetic/sessions/close",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "8ef8cb7d-b2ac-43e7-ad0d-178d8e0d6bd1",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aesthetic/sessions/close",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "id": "7d4b4456-2eb1-4917-a459-e70b4dc14835",
+      "position": [
+        0,
+        2200
+      ]
+    },
+    {
+      "name": "POST aesthetic/sessions/close · SQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT public.aesthetic_session_close(NULLIF($1, '')::bigint, $2::jsonb, NULLIF($3, '')::uuid) AS session;",
+        "options": {
+          "queryReplacement": "={{ [String($json.body.id ?? \"\"), JSON.stringify($json.body.notes != null ? { notes: String($json.body.notes) } : {}), $('POST aesthetic/sessions/close').first().json.jwtPayload?.userId ?? ''] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput",
+      "id": "89eee75c-414e-4ab9-bc68-c13f05f8aee2",
+      "position": [
+        240,
+        2200
+      ]
+    },
+    {
+      "name": "POST aesthetic/sessions/close · OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, session: $json.session } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "69536f98-fd54-4f3b-9c80-daabe78f20ef",
+      "position": [
+        480,
+        2200
+      ]
+    },
+    {
+      "name": "POST aesthetic/sessions/void",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "152bf052-130a-4b6f-bbc4-388aba23af8f",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aesthetic/sessions/void",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "id": "c5ab5fac-be99-4baf-92b1-398df1cad28d",
+      "position": [
+        0,
+        2420
+      ]
+    },
+    {
+      "name": "POST aesthetic/sessions/void · SQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT public.aesthetic_session_void(NULLIF($1, '')::bigint, $2, NULLIF($3, '')::uuid) AS session;",
+        "options": {
+          "queryReplacement": "={{ [String($json.body.id ?? \"\"), String($json.body.reason ?? \"\"), $('POST aesthetic/sessions/void').first().json.jwtPayload?.userId ?? ''] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput",
+      "id": "95aede9a-383a-416d-8bc4-f9119d7002ac",
+      "position": [
+        240,
+        2420
+      ]
+    },
+    {
+      "name": "POST aesthetic/sessions/void · OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, session: $json.session } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "79ec1aef-899c-46af-b16e-ba42a9633a5c",
+      "position": [
+        480,
+        2420
+      ]
+    },
+    {
+      "name": "POST aesthetic/notes/add",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "70f3e762-eb9a-4287-bda9-435d85108465",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aesthetic/notes/add",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "id": "948eff5d-ae22-4409-a44b-a2be8cb467f9",
+      "position": [
+        0,
+        2640
+      ]
+    },
+    {
+      "name": "POST aesthetic/notes/add · SQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT public.aesthetic_note_add(NULLIF($1, '')::bigint, $2::jsonb, NULLIF($3, '')::uuid) AS session;",
+        "options": {
+          "queryReplacement": "={{ [String($json.body.session_id ?? \"\"), JSON.stringify({ body: String($json.body.body ?? \"\"), kind: String($json.body.kind ?? \"note\") }), $('POST aesthetic/notes/add').first().json.jwtPayload?.userId ?? ''] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput",
+      "id": "6c246270-1ec1-4a62-bd80-83bc64bc1171",
+      "position": [
+        240,
+        2640
+      ]
+    },
+    {
+      "name": "POST aesthetic/notes/add · OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, session: $json.session } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "069a285a-45ad-4048-8374-13a87db49882",
+      "position": [
+        480,
+        2640
+      ]
+    },
+    {
       "name": "POST aesthetic/photos/alignment",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "664b87c7-4909-4f20-85a2-3c66dc649e5e",
+      "webhookId": "759acd6c-81da-403a-aa26-251f8b046271",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/photos/alignment",
@@ -736,10 +940,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "1c406dc7-abdb-4dbf-a228-1d876bae132e",
+      "id": "08ea6475-6be2-4afe-8999-2922f37c2acb",
       "position": [
         0,
-        2200
+        2860
       ]
     },
     {
@@ -761,10 +965,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "a85af149-fda0-4f2e-8074-0c260eb8f72a",
+      "id": "b97220a6-5f05-405d-a840-f57aa96dc17f",
       "position": [
         240,
-        2200
+        2860
       ]
     },
     {
@@ -778,17 +982,17 @@
           "responseCode": 200
         }
       },
-      "id": "3981cc88-574e-4c97-8694-b664d774c27d",
+      "id": "ecdf4174-402c-4c34-a79b-ab74ac6420e9",
       "position": [
         480,
-        2200
+        2860
       ]
     },
     {
       "name": "POST aesthetic/photos/upload",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "32faa8e0-84ac-4478-bcc5-a6e1d170fa79",
+      "webhookId": "7e1a013d-da32-4a4e-b8b2-7d8e292051fb",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/photos/upload",
@@ -806,10 +1010,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "ebd0b197-5e20-415b-97d2-3ad7119a6f8c",
+      "id": "2f826939-ae2b-4026-b22c-09902dde8527",
       "position": [
         0,
-        2420
+        3080
       ]
     },
     {
@@ -817,13 +1021,13 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "parameters": {
-        "jsCode": "const item = $('POST aesthetic/photos/upload').first();\nconst body = item.json.body ?? {};\nconst binary = item.binary?.data0 ?? item.binary?.data;\nif (!binary) throw new Error('AESTHETIC:FILE_REQUIRED|');\nconst sessionId = String(body.session_id ?? '').trim();\nif (!/^[0-9]+$/.test(sessionId)) throw new Error('AESTHETIC:SESSION_NOT_FOUND|' + sessionId);\nconst kind = String(body.kind ?? '');\nif (!['before', 'after'].includes(kind)) throw new Error('AESTHETIC:INVALID_PHOTO_KIND|' + kind);\nif (!/^image\\/(jpeg|png|webp|heic|heif)$/.test(binary.mimeType ?? '')) throw new Error('AESTHETIC:INVALID_FILE_TYPE|' + binary.mimeType);\nreturn [{\n  json: {\n    session_id: sessionId,\n    kind,\n    view: String(body.view ?? 'front'),\n    alignment: body.alignment ? String(body.alignment) : '',\n    file_name: binary.fileName ?? 'foto',\n    mime_type: binary.mimeType,\n  },\n  binary: { file: binary },\n}];"
+        "jsCode": "const item = $('POST aesthetic/photos/upload').first();\nconst body = item.json.body ?? {};\nconst binary = item.binary?.data0 ?? item.binary?.data;\nif (!binary) throw new Error('AESTHETIC:FILE_REQUIRED|');\nconst sessionId = String(body.session_id ?? '').trim();\nif (!/^[0-9]+$/.test(sessionId)) throw new Error('AESTHETIC:SESSION_NOT_FOUND|' + sessionId);\nconst kind = String(body.kind ?? '');\nif (!['before', 'after'].includes(kind)) throw new Error('AESTHETIC:INVALID_PHOTO_KIND|' + kind);\nif (!/^image\\/(jpeg|png|webp|heic|heif)$/.test(binary.mimeType ?? '')) throw new Error('AESTHETIC:INVALID_FILE_TYPE|' + binary.mimeType);\nreturn [{\n  json: {\n    session_id: sessionId,\n    kind,\n    view: String(body.view ?? 'front'),\n    source: ['camera', 'upload', 'qr'].includes(String(body.source ?? '')) ? String(body.source) : 'upload',\n    alignment: body.alignment ? String(body.alignment) : '',\n    file_name: binary.fileName ?? 'foto',\n    mime_type: binary.mimeType,\n  },\n  binary: { file: binary },\n}];"
       },
       "onError": "continueErrorOutput",
-      "id": "202418b2-b3a4-4051-ba86-fa8889f30321",
+      "id": "16adb0f3-cbf6-4e25-871c-b35dc2b577b1",
       "position": [
         240,
-        2420
+        3080
       ]
     },
     {
@@ -853,10 +1057,10 @@
           "name": "Google Drive account 2"
         }
       },
-      "id": "352397c8-1c22-4fc8-919c-6d779c9f0adc",
+      "id": "aca5e758-277a-4de9-b0f1-4ca6e2023589",
       "position": [
         480,
-        2420
+        3080
       ]
     },
     {
@@ -865,9 +1069,9 @@
       "typeVersion": 2.6,
       "parameters": {
         "operation": "executeQuery",
-        "query": "SELECT public.aesthetic_photo_add($1::bigint, $2, $3, $4, $5, $6, $7, NULLIF($8, '')::jsonb, NULLIF($9, '')::uuid) AS photo;",
+        "query": "SELECT public.aesthetic_photo_add($1::bigint, $2, $3, $4, $5, $6, $7, NULLIF($8, '')::jsonb, NULLIF($9, '')::uuid, $10) AS photo;",
         "options": {
-          "queryReplacement": "={{ (() => { const v = $('Photo · validar').first().json; return [v.session_id, v.kind, v.view, v.file_name, v.mime_type, $json.id, $json.webViewLink ?? '', v.alignment, $('POST aesthetic/photos/upload').first().json.jwtPayload?.userId ?? '']; })() }}"
+          "queryReplacement": "={{ (() => { const v = $('Photo · validar').first().json; return [v.session_id, v.kind, v.view, v.file_name, v.mime_type, $json.id, $json.webViewLink ?? '', v.alignment, $('POST aesthetic/photos/upload').first().json.jwtPayload?.userId ?? '', v.source]; })() }}"
         }
       },
       "credentials": {
@@ -878,10 +1082,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "a5946525-abd6-447d-831d-12a67a166445",
+      "id": "3d4c7464-d381-4ef6-a9cc-33289829a9eb",
       "position": [
         720,
-        2420
+        3080
       ]
     },
     {
@@ -895,17 +1099,17 @@
           "responseCode": 200
         }
       },
-      "id": "edd2c29d-e616-4e7b-aece-df23717a495c",
+      "id": "33d87bfc-4f0b-4187-82a6-a29d6cbcd7ac",
       "position": [
         960,
-        2420
+        3080
       ]
     },
     {
       "name": "POST aesthetic/photos/delete",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "da7ce4fb-fda0-47e9-b23f-89b3c227290f",
+      "webhookId": "5cbcd0ea-626d-4e75-a38b-154265ffb695",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/photos/delete",
@@ -921,10 +1125,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "9719bb55-d39c-4dcd-beba-810c3b700932",
+      "id": "c235620a-2d15-4ab1-a783-59957f8b69d0",
       "position": [
         0,
-        2640
+        3300
       ]
     },
     {
@@ -946,10 +1150,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "e1746bf5-29b9-40eb-a2d2-71ed54554d1b",
+      "id": "ed525c03-ebf5-459d-a289-77ee17057cd7",
       "position": [
         240,
-        2640
+        3300
       ]
     },
     {
@@ -966,7 +1170,7 @@
           },
           "conditions": [
             {
-              "id": "defe995a-f6ab-4115-8a0a-3063ad839d5f",
+              "id": "8960ae17-a5bc-4f46-ba80-a5cb1a430e86",
               "operator": {
                 "type": "string",
                 "operation": "notEmpty",
@@ -980,10 +1184,10 @@
         },
         "options": {}
       },
-      "id": "32d0b95e-2612-4f20-adf4-15fbbfaf952f",
+      "id": "c3955b74-8b00-468f-97b9-e2a6960c7059",
       "position": [
         480,
-        2640
+        3300
       ]
     },
     {
@@ -1006,10 +1210,10 @@
         }
       },
       "onError": "continueRegularOutput",
-      "id": "7160fabd-d3da-42fe-a5ae-f627dd119067",
+      "id": "4de4a114-9877-4124-92ea-ed850c0abebe",
       "position": [
         720,
-        2640
+        3300
       ]
     },
     {
@@ -1023,17 +1227,17 @@
           "responseCode": 200
         }
       },
-      "id": "c0be198f-ccbc-4ef4-8437-4201263e83dc",
+      "id": "620d152a-5c13-4f3d-b8d3-f3a5d54f5457",
       "position": [
         960,
-        2640
+        3300
       ]
     },
     {
       "name": "POST aesthetic/consents/sign",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "cccb2b8f-ed26-4b36-b193-5480b55850ae",
+      "webhookId": "c4bd13f2-fd9c-4ad5-8c59-222869de5fc2",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/consents/sign",
@@ -1051,10 +1255,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "29119006-501e-401c-9a29-b8f94522e022",
+      "id": "890c28c3-f751-473a-a0d7-7f15974d06b3",
       "position": [
         0,
-        2860
+        3520
       ]
     },
     {
@@ -1065,10 +1269,10 @@
         "jsCode": "const item = $('POST aesthetic/consents/sign').first();\nconst body = item.json.body ?? {};\nconst binary = item.binary?.data0 ?? item.binary?.data;\nif (!binary) throw new Error('AESTHETIC:FILE_REQUIRED|');\nconst sessionId = String(body.session_id ?? '').trim();\nif (!/^[0-9]+$/.test(sessionId)) throw new Error('AESTHETIC:SESSION_NOT_FOUND|' + sessionId);\nlet signing;\ntry { signing = JSON.parse(body.signing ?? '{}'); } catch { throw new Error('AESTHETIC:INVALID_CONSENT|'); }\nif (!/^image\\/(png|jpeg|webp)$/.test(binary.mimeType ?? '')) throw new Error('AESTHETIC:INVALID_FILE_TYPE|' + binary.mimeType);\ndelete signing.reuseSignatureId;\nreturn [{\n  json: { session_id: sessionId, signing: JSON.stringify(signing), mime_type: binary.mimeType },\n  binary: { file: binary },\n}];"
       },
       "onError": "continueErrorOutput",
-      "id": "442b3db9-d63e-4029-b9ce-104462a310d6",
+      "id": "a855982a-e306-4aca-884d-4769cc30fa62",
       "position": [
         240,
-        2860
+        3520
       ]
     },
     {
@@ -1098,10 +1302,10 @@
           "name": "Google Drive account 2"
         }
       },
-      "id": "678c929e-ee90-4c4e-aef6-5956844d5c3b",
+      "id": "38f25800-f382-4e4b-ab46-8bc4beac8bad",
       "position": [
         480,
-        2860
+        3520
       ]
     },
     {
@@ -1123,10 +1327,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "436cd4c3-feed-489e-ba20-18a7dad96b39",
+      "id": "7afef675-c3f7-4cff-baa6-276cb7994acb",
       "position": [
         720,
-        2860
+        3520
       ]
     },
     {
@@ -1140,17 +1344,17 @@
           "responseCode": 200
         }
       },
-      "id": "41553756-e421-43ab-bf6e-8b7756faf0ed",
+      "id": "f0c0cef0-b4b2-46e4-9696-0e071b607c58",
       "position": [
         960,
-        2860
+        3520
       ]
     },
     {
       "name": "POST aesthetic/consents/reuse",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "10275759-061c-4139-912b-783aeec2f45c",
+      "webhookId": "4c8cc1a5-3e6d-41ba-b944-d9d6e082bb6a",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/consents/reuse",
@@ -1166,10 +1370,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "d6528910-d242-47b8-836f-fd7ee623f8ca",
+      "id": "e76005aa-f55d-4c6a-9e00-490dda2539e2",
       "position": [
         0,
-        3080
+        3740
       ]
     },
     {
@@ -1191,10 +1395,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "7ab81b66-52c4-4f03-946c-5a174a589bfd",
+      "id": "cfd4c258-7ad3-4381-a5ca-d1a7eb70f8f7",
       "position": [
         240,
-        3080
+        3740
       ]
     },
     {
@@ -1208,17 +1412,17 @@
           "responseCode": 200
         }
       },
-      "id": "bc771d63-9a3d-410f-b2b3-e712d652ecf2",
+      "id": "e8d872bd-ec95-422a-86b3-c3116d6a958e",
       "position": [
         480,
-        3080
+        3740
       ]
     },
     {
       "name": "GET aesthetic/file",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "2d4b2f1e-561b-419d-8236-9fd44e3c7ce6",
+      "webhookId": "90d34aa5-8be8-4887-8bc1-1f1dfa3e48e1",
       "parameters": {
         "path": "aesthetic/file",
         "authentication": "jwtAuth",
@@ -1233,10 +1437,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "8d75a8b0-0626-42ee-a5d3-ca6c15b993d8",
+      "id": "5aba305c-8c51-4c16-9d86-84da441be00d",
       "position": [
         0,
-        3300
+        3960
       ]
     },
     {
@@ -1258,10 +1462,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "979ca1a5-d05e-445c-8602-8664b5ec3195",
+      "id": "ff78a3a0-e50d-4229-bc61-0ca19a5795be",
       "position": [
         240,
-        3300
+        3960
       ]
     },
     {
@@ -1278,7 +1482,7 @@
           },
           "conditions": [
             {
-              "id": "8f72effb-2583-4420-880d-a574472e8603",
+              "id": "6145ef10-572d-41d2-b4a8-8f2d883f2f09",
               "operator": {
                 "type": "string",
                 "operation": "notEmpty",
@@ -1292,10 +1496,10 @@
         },
         "options": {}
       },
-      "id": "5faf8740-7b1a-4aa8-9a00-108c50d846c3",
+      "id": "54139f11-423c-47af-8016-500ede8162ad",
       "position": [
         480,
-        3300
+        3960
       ]
     },
     {
@@ -1319,10 +1523,10 @@
           "name": "Google Drive account 2"
         }
       },
-      "id": "d7a93980-83f4-46fd-9ec0-ac1d942d6906",
+      "id": "57f66e27-3e29-4d88-a5b3-1720d99a4524",
       "position": [
         720,
-        3300
+        3960
       ]
     },
     {
@@ -1337,10 +1541,10 @@
           "responseCode": 200
         }
       },
-      "id": "cce9b2d5-0daf-4a14-a91e-4d0bc034e648",
+      "id": "332ebc25-b44c-4b8e-96a5-86c281fc09f6",
       "position": [
         960,
-        3300
+        3960
       ]
     },
     {
@@ -1354,10 +1558,10 @@
           "responseCode": 404
         }
       },
-      "id": "8f5808eb-e8a7-4ff5-a301-dad2ac2d1519",
+      "id": "b66f24c3-1103-4cc2-95a9-24ea4abaf6a9",
       "position": [
         720,
-        3420
+        4080
       ]
     }
   ],
@@ -1650,6 +1854,93 @@
         [
           {
             "node": "POST aesthetic/sessions/delete · OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST aesthetic/sessions/close": {
+      "main": [
+        [
+          {
+            "node": "POST aesthetic/sessions/close · SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST aesthetic/sessions/close · SQL": {
+      "main": [
+        [
+          {
+            "node": "POST aesthetic/sessions/close · OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST aesthetic/sessions/void": {
+      "main": [
+        [
+          {
+            "node": "POST aesthetic/sessions/void · SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST aesthetic/sessions/void · SQL": {
+      "main": [
+        [
+          {
+            "node": "POST aesthetic/sessions/void · OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST aesthetic/notes/add": {
+      "main": [
+        [
+          {
+            "node": "POST aesthetic/notes/add · SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST aesthetic/notes/add · SQL": {
+      "main": [
+        [
+          {
+            "node": "POST aesthetic/notes/add · OK",
             "type": "main",
             "index": 0
           }

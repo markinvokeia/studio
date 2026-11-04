@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useToast } from '@/hooks/use-toast';
@@ -24,7 +25,18 @@ interface Draft {
   unitId: string;
   markingTool: AestheticMarkKind;
   defaultQuantity: string;
+  maxPerSession: string;
+  minIntervalDays: string;
+  followUpDays: string;
+  followUpLabel: string;
+  aftercare: string;
 }
+
+const EMPTY_EXTRAS = { maxPerSession: '', minIntervalDays: '', followUpDays: '', followUpLabel: '', aftercare: '' };
+const numberText = (value: number | null) => (value != null ? String(value) : '');
+const numberOrNull = (value: string) => (value.trim() === '' ? null : Number(value));
+/** Empty, or a number greater than 0 (whole when `integer`) */
+const isValidNumber = (value: string, integer = false) => value.trim() === '' || (Number(value) > 0 && (!integer || Number.isInteger(Number(value))));
 
 const TOOLS: { id: AestheticMarkKind; icon: React.ElementType }[] = [
   { id: 'point', icon: MapPin },
@@ -59,8 +71,18 @@ export function ServiceAestheticConfigPanel({ serviceId, canManage = false }: Se
         if (!active) return;
         const config = configs.find((c) => c.serviceId === serviceId);
         const next: Draft = config
-          ? { enabled: true, unitId: config.unitId, markingTool: config.markingTool, defaultQuantity: config.defaultQuantity != null ? String(config.defaultQuantity) : '' }
-          : { enabled: false, unitId: unitList.find((u) => u.isActive)?.id ?? '', markingTool: 'point', defaultQuantity: '' };
+          ? {
+            enabled: true,
+            unitId: config.unitId,
+            markingTool: config.markingTool,
+            defaultQuantity: numberText(config.defaultQuantity),
+            maxPerSession: numberText(config.maxPerSession),
+            minIntervalDays: numberText(config.minIntervalDays),
+            followUpDays: numberText(config.followUpDays),
+            followUpLabel: config.followUpLabel ?? '',
+            aftercare: config.aftercare ?? '',
+          }
+          : { enabled: false, unitId: unitList.find((u) => u.isActive)?.id ?? '', markingTool: 'point', defaultQuantity: '', ...EMPTY_EXTRAS };
         setUnits(unitList);
         setSaved(next);
         setDraft(next);
@@ -75,7 +97,12 @@ export function ServiceAestheticConfigPanel({ serviceId, canManage = false }: Se
         enabled: next.enabled,
         unitId: next.unitId || undefined,
         markingTool: next.markingTool,
-        defaultQuantity: next.defaultQuantity === '' ? null : Number(next.defaultQuantity),
+        defaultQuantity: numberOrNull(next.defaultQuantity),
+        maxPerSession: numberOrNull(next.maxPerSession),
+        minIntervalDays: numberOrNull(next.minIntervalDays),
+        followUpDays: numberOrNull(next.followUpDays),
+        followUpLabel: next.followUpLabel.trim(),
+        aftercare: next.aftercare.trim(),
       });
       return next;
     },
@@ -94,8 +121,11 @@ export function ServiceAestheticConfigPanel({ serviceId, canManage = false }: Se
   const update = (patch: Partial<Draft>) => setDraft((d) => (d ? { ...d, ...patch } : d));
   const isDirty = JSON.stringify(draft) !== JSON.stringify(saved);
   const unit = units.find((u) => u.id === draft.unitId);
-  const quantityInvalid = draft.defaultQuantity !== '' && !(Number(draft.defaultQuantity) > 0);
-  const canSave = isDirty && !quantityInvalid && (!draft.enabled || !!draft.unitId);
+  const quantityInvalid = !isValidNumber(draft.defaultQuantity);
+  const maxInvalid = !isValidNumber(draft.maxPerSession);
+  const intervalInvalid = !isValidNumber(draft.minIntervalDays, true);
+  const followUpInvalid = !isValidNumber(draft.followUpDays, true);
+  const canSave = isDirty && !quantityInvalid && !maxInvalid && !intervalInvalid && !followUpInvalid && (!draft.enabled || !!draft.unitId);
   const disabled = !canManage || save.isPending;
   // Inactive units stay listed only when the service already uses them
   const unitOptions = units.filter((u) => u.isActive || u.id === saved.unitId);
@@ -169,6 +199,39 @@ export function ServiceAestheticConfigPanel({ serviceId, canManage = false }: Se
             </div>
           </div>
           <p className="text-[11px] text-muted-foreground sm:col-span-3">{t(`toolHints.${draft.markingTool}`)}</p>
+
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`aes-config-max-${serviceId}`} className={cn('text-xs', maxInvalid && 'text-destructive')}>{t('maxPerSession')}</Label>
+            <div className="flex items-center gap-2">
+              <Input id={`aes-config-max-${serviceId}`} type="number" inputMode="decimal" min={0} step={unit?.step ?? 'any'} value={draft.maxPerSession} onChange={(e) => update({ maxPerSession: e.target.value })} disabled={disabled} aria-invalid={maxInvalid || undefined} className="h-9" />
+              {unit && <span className="shrink-0 text-sm text-muted-foreground">{unit.symbol}</span>}
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`aes-config-interval-${serviceId}`} className={cn('text-xs', intervalInvalid && 'text-destructive')}>{t('minIntervalDays')}</Label>
+            <div className="flex items-center gap-2">
+              <Input id={`aes-config-interval-${serviceId}`} type="number" inputMode="numeric" min={1} step={1} value={draft.minIntervalDays} onChange={(e) => update({ minIntervalDays: e.target.value })} disabled={disabled} aria-invalid={intervalInvalid || undefined} className="h-9" />
+              <span className="shrink-0 text-sm text-muted-foreground">{t('days')}</span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor={`aes-config-followup-${serviceId}`} className={cn('text-xs', followUpInvalid && 'text-destructive')}>{t('followUpDays')}</Label>
+            <div className="flex items-center gap-2">
+              <Input id={`aes-config-followup-${serviceId}`} type="number" inputMode="numeric" min={1} step={1} value={draft.followUpDays} onChange={(e) => update({ followUpDays: e.target.value })} disabled={disabled} aria-invalid={followUpInvalid || undefined} className="h-9" />
+              <span className="shrink-0 text-sm text-muted-foreground">{t('days')}</span>
+            </div>
+          </div>
+          {draft.followUpDays.trim() !== '' && (
+            <div className="flex flex-col gap-1.5 sm:col-span-3">
+              <Label htmlFor={`aes-config-followup-label-${serviceId}`} className="text-xs">{t('followUpLabel')}</Label>
+              <Input id={`aes-config-followup-label-${serviceId}`} value={draft.followUpLabel} onChange={(e) => update({ followUpLabel: e.target.value })} placeholder={t('followUpLabelPlaceholder')} disabled={disabled} className="h-9" />
+            </div>
+          )}
+          <div className="flex flex-col gap-1.5 sm:col-span-3">
+            <Label htmlFor={`aes-config-aftercare-${serviceId}`} className="text-xs">{t('aftercare')}</Label>
+            <Textarea id={`aes-config-aftercare-${serviceId}`} value={draft.aftercare} onChange={(e) => update({ aftercare: e.target.value })} placeholder={t('aftercarePlaceholder')} rows={3} disabled={disabled} className="text-sm" />
+            <p className="text-[11px] text-muted-foreground">{t('limitsHint')}</p>
+          </div>
         </div>
       )}
 

@@ -2427,6 +2427,17 @@ export interface ServiceAestheticConfig {
   defaultQuantity: number | null;
   defaultDepth?: AestheticDepth;
   defaultTechnique?: AestheticTechnique;
+  /** List price of the service, for the suggested charge at closing */
+  price: number | null;
+  /** Most that should be applied in one session; going over warns, it doesn't block */
+  maxPerSession: number | null;
+  /** Days that should pass between two applications on the same zone */
+  minIntervalDays: number | null;
+  /** Follow-up visit proposed at closing, `followUpDays` after the session */
+  followUpDays: number | null;
+  followUpLabel: string | null;
+  /** Aftercare instructions sent to the patient at closing */
+  aftercare: string | null;
 }
 
 /** Set once on the layer for all its marks; a mark that sets one overrides the layer's */
@@ -2452,6 +2463,9 @@ export interface AestheticMark extends AestheticSharedAttributes {
   zone: AestheticZoneId | null;
   /** In an area, the total applied over it */
   quantity: number | null;
+  /** When and by whom it was placed (activity log) */
+  createdAt?: string;
+  createdBy?: string;
 }
 
 /** One service applied in the session, with the marks where it went */
@@ -2473,6 +2487,9 @@ export interface AestheticLayer extends AestheticSharedAttributes {
 
 export type AestheticPhotoKind = 'before' | 'after';
 
+/** How a photo got into the session */
+export type AestheticPhotoSource = 'camera' | 'upload' | 'qr';
+
 /** Placement of a photo under the map template of its view */
 export interface AestheticPhotoAlignment {
   /** Photo centre, as a fraction (0–1) of the template width and height */
@@ -2493,6 +2510,8 @@ export interface AestheticPhoto {
   fileName: string;
   mimeType: string;
   createdAt: string;
+  source?: AestheticPhotoSource;
+  takenAt?: string;
   /** Set once the photo was aligned to be shown behind the map */
   alignment?: AestheticPhotoAlignment;
 }
@@ -2527,6 +2546,8 @@ export interface AestheticServiceConsent {
   signedAt: string;
   allowsClinicalPhotos: boolean;
   allowsMarketingPhotos: boolean;
+  /** SHA-256 of the title and text as signed */
+  contentSha256?: string;
 }
 
 /** Photo permissions of the session: those given with its last signature */
@@ -2535,6 +2556,40 @@ export interface AestheticPhotoConsent {
   allowsMarketingPhotos: boolean;
   signerName: string;
   signedAt: string;
+}
+
+/**
+ * Computed on the server from what the session holds, never picked:
+ * draft → consented → in_treatment → ready_to_close → closed (or void before closing)
+ */
+export type AestheticSessionStatus = 'draft' | 'consented' | 'in_treatment' | 'ready_to_close' | 'closed' | 'void';
+
+/** Timestamped note of the session; once closed only amendments are added, nothing is erased */
+export interface AestheticSessionNote {
+  id: string;
+  body: string;
+  kind: 'note' | 'amendment';
+  createdAt: string;
+  createdByName?: string;
+}
+
+export type AestheticSessionEventType =
+  | 'created'
+  | 'consent_signed'
+  | 'photo_added'
+  | 'photo_removed'
+  | 'note_added'
+  | 'amendment_added'
+  | 'closed'
+  | 'voided';
+
+/** Activity log entry */
+export interface AestheticSessionEvent {
+  id: string;
+  type: AestheticSessionEventType;
+  payload: Record<string, unknown>;
+  at: string;
+  actorName?: string;
 }
 
 export interface AestheticSession {
@@ -2554,6 +2609,17 @@ export interface AestheticSession {
   photoConsent: AestheticPhotoConsent | null;
   /** Body figure the body points were placed on (their coordinates depend on it) */
   bodyFigure?: AestheticBodyFigure;
+  status: AestheticSessionStatus;
+  /** 0–100, a quarter per completed step */
+  completeness: number;
+  /** 1: recorded before the guided flow (no consent-first rule) */
+  flowVersion: number;
+  closedAt?: string;
+  closedByName?: string;
+  voidedAt?: string;
+  voidReason?: string;
+  sessionNotes: AestheticSessionNote[];
+  events: AestheticSessionEvent[];
   createdAt: string;
   updatedAt: string;
 }

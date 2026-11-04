@@ -10516,7 +10516,16 @@
       "save": "Guardar",
       "discard": "Descartar",
       "saved": "Configuración estética guardada",
-      "saveError": "No se pudo guardar la configuración estética"
+      "saveError": "No se pudo guardar la configuración estética",
+      "maxPerSession": "Máximo por sesión",
+      "minIntervalDays": "Intervalo mínimo en una zona",
+      "followUpDays": "Próxima cita sugerida",
+      "days": "días",
+      "followUpLabel": "Nombre de la próxima cita",
+      "followUpLabelPlaceholder": "Ej.: Control de toxina",
+      "aftercare": "Indicaciones posteriores",
+      "aftercarePlaceholder": "Lo que se le envía a la paciente al cerrar la sesión…",
+      "limitsHint": "El máximo y el intervalo avisan durante el marcado, no bloquean."
     },
     "consentTemplate": {
       "title": "Consentimiento informado",
@@ -10560,6 +10569,446 @@
       "modes": {
         "map": "Mapa",
         "compare": "Antes y después"
+      }
+    },
+    "flow": {
+      "stepOf": "Paso {step} de 4",
+      "back": "Volver",
+      "steps": {
+        "consent": "Consentimiento",
+        "photos": "Fotos de hoy",
+        "treatment": "Tratamiento",
+        "close": "Cierre"
+      },
+      "status": {
+        "draft": "Borrador",
+        "consented": "Consentida",
+        "in_treatment": "En tratamiento",
+        "ready_to_close": "Por cerrar",
+        "closed": "Cerrada",
+        "void": "Anulada"
+      },
+      "header": {
+        "subtitle": "Sesión {number} · {date}",
+        "steps": "Pasos de la sesión",
+        "lockedTreatment": "Firmá el consentimiento de al menos un servicio para marcar",
+        "completeness": "Completitud {value} %"
+      },
+      "missing": {
+        "closed": "Sesión cerrada. Solo lectura.",
+        "void": "Sesión anulada. Solo lectura.",
+        "pickServices": "Elegí los servicios de hoy",
+        "signConsents": "{count, plural, one {Falta firmar el consentimiento de {service}} other {Faltan firmar # consentimientos}}",
+        "takePhoto": "Falta al menos una foto de hoy",
+        "markServices": "Falta marcar {services}",
+        "ready": "Todo listo para cerrar la sesión"
+      },
+      "save": {
+        "saving": "Guardando…",
+        "justNow": "Guardado ahora",
+        "secondsAgo": "Guardado hace {seconds} s",
+        "minutesAgo": "Guardado hace {minutes} min",
+        "error": "No se pudo guardar",
+        "upToDate": "Todo guardado",
+        "notCreated": "Se guarda al primer cambio",
+        "readOnly": "Solo lectura",
+        "closed": "Cerrada · solo lectura",
+        "voided": "Anulada · solo lectura"
+      },
+      "leave": {
+        "title": "¿Cerrar sin guardar el último cambio?",
+        "description": "No se pudo guardar: {error}. Si cerrás ahora, ese cambio se pierde.",
+        "descriptionGeneric": "Hay un cambio que todavía no se guardó.",
+        "stay": "Seguir en la sesión",
+        "confirm": "Cerrar igual"
+      },
+      "consent": {
+        "title": "¿Qué se hace hoy? Elegí los servicios y firmá sus consentimientos",
+        "lead": "El marcado de cada servicio se habilita en cuanto su consentimiento está firmado. La sesión se guarda sola como borrador.",
+        "services": "Servicios de hoy",
+        "selected": "{count, plural, =0 {Ninguno elegido} one {# elegido} other {# elegidos}}",
+        "fromLastSession": "Última sesión ({date})",
+        "perMark": "{quantity} {unit} por marca",
+        "signed": "Firmado",
+        "consents": "Consentimientos",
+        "pendingCount": "{count, plural, one {# pendiente} other {# pendientes}}",
+        "allSigned": "Todos firmados",
+        "pickFirst": "Elegí al menos un servicio para ver su consentimiento.",
+        "pending": "Pendiente",
+        "signedAt": "Firmado {date}",
+        "reusedOn": "Vigente del {date}",
+        "reuse": "Usar el del {date}",
+        "reused": "Se reutilizó el consentimiento vigente. La plantilla no cambió desde esa firma.",
+        "reuseError": "No se pudo reutilizar el consentimiento",
+        "showText": "Ver texto",
+        "authorizationsOnce": "Las autorizaciones se marcan una sola vez para todos los consentimientos pendientes.",
+        "authorizationHints": {
+          "risksExplained": "obligatorio",
+          "allowsClinicalPhotos": "necesario para tomar fotos",
+          "allowsMarketingPhotos": "opcional"
+        },
+        "signerName": "Firma de",
+        "signHere": "Firmá acá con el dedo o el lápiz",
+        "clearSignature": "Borrar firma",
+        "storedSeparately": "Cada consentimiento se guardó por separado, con su texto y su versión.",
+        "hasMarks": "{service} ya tiene marcas. Borralas en el tratamiento para quitarlo.",
+        "readyHint": "Consentimientos completos. Ya podés tomar las fotos y marcar.",
+        "partialHint": "Ya podés marcar los servicios firmados; los demás siguen bloqueados.",
+        "continueHint": "Continuar se habilita cuando todos los servicios elegidos estén firmados.",
+        "treatSigned": "Marcar los firmados",
+        "continue": "Continuar a fotos"
+      },
+      "photos": {
+        "title": "Fotos de hoy",
+        "titleHistory": "Fotos de hoy y evolución desde la primera sesión",
+        "lead": "Es la primera sesión de la paciente, así que no hay comparación. Tomá las vistas que vayas a necesitar.",
+        "leadHistory": "La foto de hoy es la más reciente. Se compara con cualquier sesión anterior, incluida la inicial del {date}.",
+        "anyViewHint": "Con una foto de cualquier vista ya podés avanzar. La de hoy también sirve de fondo para marcar.",
+        "takenToday": "Tomada hoy",
+        "pending": "Pendiente",
+        "previousCount": "{count, plural, one {# anterior} other {# anteriores}}",
+        "uploading": "Subiendo…",
+        "blockedTitle": "Falta la autorización de fotos",
+        "blockedHint": "La paciente tiene que autorizar las fotos para su historia clínica en el paso de consentimiento. Sin esa autorización la cámara queda bloqueada.",
+        "goToConsent": "Ir a consentimiento",
+        "todayOf": "Foto de hoy · {view}",
+        "ghostHint": "La cámara muestra la foto del {date} como guía translúcida, para repetir pose, distancia y luz.",
+        "firstSessionHint": "Primera sesión: estas fotos quedan como referencia inicial para las próximas sesiones.",
+        "noneToday": "No se tomaron fotos de esta vista.",
+        "take": "Tomar foto",
+        "upload": "Subir",
+        "dropHint": "También podés arrastrar una o varias imágenes hasta acá.",
+        "previousOf": "Sesiones anteriores · {view}",
+        "todayAlt": "Foto de hoy, {view}",
+        "todayLabel": "Hoy · {date}",
+        "today": "Hoy",
+        "noHistory": "Sin sesiones anteriores",
+        "noHistoryHint": "Todavía no hay con qué comparar. Desde la próxima sesión vas a poder comparar con esta foto.",
+        "modes": {
+          "slider": "Deslizador",
+          "side": "Lado a lado",
+          "overlay": "Superponer"
+        },
+        "compareInitial": "Comparar con la inicial",
+        "compareWith": "Comparar hoy con…",
+        "initial": "Inicial",
+        "sessionN": "Sesión {number}",
+        "baseLabel": "{label} · {date} · hace {days} días",
+        "daysAgo": "hace {days} días",
+        "marksOf": "Marcas de {label}",
+        "marksToday": "Marcas de hoy",
+        "todayOpacity": "Opacidad de hoy",
+        "align": "Alinear",
+        "aligned": "Alineada con la plantilla",
+        "notAligned": "Sin alinear: tocá los ojos (o el ojo y el mentón) para que la comparación coincida",
+        "alignBase": "Alinear la foto de {label}",
+        "retake": "Repetir",
+        "remove": "Quitar foto",
+        "removeTitle": "¿Quitar esta foto?",
+        "removeDescription": "Se borra de la sesión de hoy. Las fotos de sesiones anteriores no cambian.",
+        "removeError": "No se pudo quitar la foto",
+        "saved": "Foto de {view} guardada",
+        "uploadError": "No se pudo subir la foto",
+        "notAnImage": "Ese archivo no es una imagen. Elegí una foto JPG, PNG o HEIC.",
+        "continue": "Continuar a tratamiento",
+        "cameraTitle": "Foto de hoy · {view}",
+        "cameraHint": "Encuadrá la cara dentro de la guía.",
+        "cameraGhostHint": "Encuadrá la cara dentro de la guía y repetí la pose de la foto anterior, que se ve translúcida.",
+        "cameraStarting": "Abriendo la cámara…",
+        "cameraUnavailable": "La cámara en vivo no está disponible",
+        "cameraUnavailableHint": "Podés abrir la cámara del dispositivo o elegir una foto.",
+        "systemCamera": "Abrir cámara del dispositivo",
+        "shutter": "Capturar",
+        "preview": "Vista previa",
+        "usePhoto": "Usar foto"
+      },
+      "align": {
+        "title": "Alinear la foto con dos toques",
+        "rightEye": "Tocá el ojo derecho de la paciente (a tu izquierda).",
+        "leftEye": "Ahora tocá el ojo izquierdo.",
+        "eye": "Tocá el ojo.",
+        "chin": "Ahora tocá la punta del mentón.",
+        "done": "Listo. Revisá el resultado a la derecha y guardá.",
+        "result": "Foto alineada",
+        "resultHint": "Acá vas a ver la foto ubicada sobre la plantilla.",
+        "restart": "Empezar de nuevo",
+        "clear": "Quitar alineación",
+        "save": "Guardar alineación"
+      },
+      "treatment": {
+        "tools": "Herramientas",
+        "toolNames": {
+          "select": "Seleccionar y mover ({key})",
+          "point": "Punto ({key})",
+          "area": "Área ({key})",
+          "line": "Línea ({key})"
+        },
+        "undo": "Deshacer (Ctrl+Z)",
+        "redo": "Rehacer (Ctrl+Shift+Z)",
+        "showZones": "Ver zonas",
+        "showPrevious": "Ver sesión anterior ({date})",
+        "background": "Fondo",
+        "model": {
+          "female": "Modelo F",
+          "male": "Modelo M"
+        },
+        "todayPhoto": "Foto de hoy",
+        "noPhotoOfView": "Todavía no hay foto de hoy de esta vista. Mientras tanto se marca sobre el modelo.",
+        "skinTone": "Fototipo",
+        "tones": {
+          "light": "Piel clara",
+          "medium": "Piel media",
+          "dark": "Piel oscura"
+        },
+        "services": "Servicios",
+        "unsigned": "Sin firma",
+        "unsignedHint": "Falta firmar el consentimiento de {service}",
+        "unsignedToast": "Falta firmar el consentimiento de {service}.",
+        "unsignedRow": "Falta firmar el consentimiento",
+        "sign": "Firmar",
+        "noServices": "Elegí los servicios de hoy en el paso de consentimiento.",
+        "readOnlyHint": "Sesión en solo lectura",
+        "hintSelect": "Tocá una marca para editarla o arrastrala para moverla. Tocá una zona para ver su historial.",
+        "hint": {
+          "point": "Tocá la cara para poner un punto de {service} ({quantity} {unit})",
+          "area": "Tocá para dibujar el contorno del área de {service}; cerralo en el primer vértice",
+          "line": "Tocá el inicio y el final de la línea de {service}"
+        },
+        "panel": "Panel de la sesión",
+        "tabs": {
+          "summary": "Resumen",
+          "notes": "Notas ({count})",
+          "history": "Historial"
+        },
+        "noMarks": "Sin marcas todavía",
+        "expiry": "Vence",
+        "toClose": "Ir al cierre",
+        "markLabel": "{service}, {mark}",
+        "less": "Restar",
+        "more": "Sumar",
+        "inArea": "en el área",
+        "markNote": "Nota de esta marca",
+        "mirror": "Espejo",
+        "zoneHistory": "Historial de la zona",
+        "intervalWarning": "La última aplicación en esta zona fue hace {days} días. Intervalo mínimo sugerido: {min} días.",
+        "maxWarning": "El total del servicio ({total} {unit}) supera el máximo por sesión configurado ({max} {unit}).",
+        "lotExpired": "El lote venció el {date}.",
+        "lastTime": "Última vez en esta zona: {date}, {quantity} {unit}.",
+        "photoBackground": "Foto de hoy de fondo · {view}",
+        "photoOpacity": "Opacidad",
+        "goTakePhoto": "Tomar la foto",
+        "fromService": "Del servicio:",
+        "expires": "vence {date}",
+        "defaultDose": "dosis {quantity} {unit}"
+      },
+      "notes": {
+        "placeholder": "Escribí una nota de la sesión",
+        "dictate": "Dictar",
+        "listening": "Escuchando…",
+        "add": "Agregar nota",
+        "empty": "Todavía no hay notas. Cada nota queda con su hora y su autor.",
+        "error": "No se pudo agregar la nota",
+        "dictationUnavailable": "El dictado no está disponible en este navegador.",
+        "dictationError": "No se pudo usar el micrófono.",
+        "quick": {
+          "topicalAnesthesia": "Anestesia tópica",
+          "ice": "Hielo aplicado",
+          "noIncidents": "Sin incidencias",
+          "mildBruise": "Hematoma leve",
+          "toleratesWell": "Paciente tolera bien"
+        }
+      },
+      "history": {
+        "firstSession": "Primera sesión: todavía no hay historial por zona.",
+        "hint": "Últimos 12 meses en esta vista. Tocá una zona (con la herramienta Seleccionar) o una marca para filtrar.",
+        "all": "Ver todas",
+        "noneInZone": "Sin aplicaciones anteriores en esta zona."
+      },
+      "close": {
+        "title": "Revisá y cerrá la sesión",
+        "lead": "El resumen se arma solo con lo que registraste. Podés corregir cualquier dato antes de cerrar.",
+        "checks": {
+          "consents": "Consentimientos firmados",
+          "photos": "Al menos una foto de hoy",
+          "marks": "Cada servicio con marcas y cantidad"
+        },
+        "ok": "Listo",
+        "missing": "Falta",
+        "applied": "Tratamiento aplicado",
+        "service": "Servicio",
+        "total": "Total",
+        "lot": "lote {lot}",
+        "noMarks": "Sin marcas",
+        "todayPhotos": "Fotos de hoy",
+        "summary": "Resumen de la sesión",
+        "summaryHint": "Evaluación, indicaciones y comentarios. Se puede editar hasta cerrar.",
+        "sessionNotes": "Notas de la sesión",
+        "lots": "Consumo por lote",
+        "consumed": "Aplicado",
+        "noLot": "Sin lote",
+        "stockHint": "El consumo queda registrado con la sesión. El descuento automático de stock se conecta cuando la clínica use inventario.",
+        "charge": "Cobro sugerido",
+        "suggestedTotal": "Total sugerido",
+        "bill": "Cobrar",
+        "aftercareAndNext": "Indicaciones y próxima cita",
+        "aftercareHint": "{count, plural, one {Indicaciones posteriores de # servicio, listas para enviar.} other {Indicaciones posteriores de # servicios, listas para enviar.}}",
+        "sendWhatsApp": "Enviar por WhatsApp",
+        "noPhone": "La paciente no tiene teléfono cargado",
+        "noAftercare": "Los servicios de hoy no tienen indicaciones posteriores configuradas.",
+        "aftercareGreeting": "Hola {name}, estas son las indicaciones para después de tu sesión:",
+        "noFollowUp": "Ningún servicio de hoy tiene una próxima cita sugerida.",
+        "followUpDefault": "Control de {service}",
+        "followUpWhen": "{date} · en {days} días",
+        "schedule": "Agendar",
+        "scheduled": "Agendada",
+        "scheduledToast": "Próxima cita agendada",
+        "activity": "Registro de actividad",
+        "activityCount": "{count, plural, one {# registro} other {# registros}}",
+        "readyHint": "Al cerrar, la sesión queda en solo lectura.",
+        "void": "Anular sesión",
+        "voidTitle": "¿Anular la sesión?",
+        "voidDescription": "La sesión queda en solo lectura con el motivo. No se borra nada.",
+        "voidReason": "Motivo",
+        "voidError": "No se pudo anular la sesión",
+        "voidedToast": "Sesión anulada",
+        "backToTreatment": "Volver al tratamiento",
+        "close": "Cerrar sesión",
+        "confirmTitle": "¿Cerrar la sesión?",
+        "confirmDescription": "Queda en solo lectura. Las correcciones posteriores se hacen como enmienda con motivo, sin borrar lo original.",
+        "closeError": "No se pudo cerrar la sesión",
+        "closedToast": "Sesión cerrada",
+        "closedTitle": "Sesión {number} cerrada",
+        "closedLead": "Cerrada el {date} por {name}. Quedó en solo lectura; las correcciones se hacen como enmienda.",
+        "voidedTitle": "Sesión anulada",
+        "voidedLead": "Motivo: {reason}",
+        "viewMap": "Ver el mapa",
+        "viewPhotos": "Ver las fotos",
+        "amendments": "Enmiendas",
+        "amendmentsHint": "Cada enmienda queda con fecha, hora y autor. Lo registrado originalmente no se modifica.",
+        "amendmentPlaceholder": "Qué se corrige y por qué",
+        "addAmendment": "Agregar enmienda",
+        "amendmentAdded": "Enmienda registrada"
+      },
+      "events": {
+        "created": "Se creó la sesión",
+        "consent_signed": "Firmó el consentimiento de {service}",
+        "photo_added": "Foto de {view}",
+        "photo_removed": "Se quitó una foto de {view}",
+        "note_added": "Nota agregada",
+        "amendment_added": "Enmienda agregada",
+        "closed": "Sesión cerrada",
+        "voided": "Sesión anulada"
+      },
+      "timeline": {
+        "continue": "Continuar sesión",
+        "voidReason": "Motivo de anulación"
+      },
+      "hints": {
+        "region": {
+          "face": "Marcar sobre el rostro: frente y los dos perfiles.",
+          "body": "Marcar sobre el cuerpo: vista anterior y posterior."
+        },
+        "view": "Cambia la vista del lienzo. Cada vista guarda sus propias marcas ({count, plural, =0 {ninguna todavía} one {# en esta vista} other {# en esta vista}}).",
+        "model": {
+          "face": {
+            "female": "Modelo femenino",
+            "male": "Modelo masculino",
+            "description": "Marcar sobre la ilustración en lugar de la foto. Las marcas quedan en el mismo lugar con cualquier fondo."
+          },
+          "body": {
+            "female": "Figura femenina",
+            "male": "Figura masculina",
+            "description": "Figura del cuerpo de esta sesión. Se fija cuando ya hay marcas en el cuerpo."
+          }
+        },
+        "todayPhoto": "Usa la foto tomada hoy en esta vista como fondo para marcar. Las capas de los tratamientos se dibujan encima.",
+        "todayPhotoMissing": "Usa la foto de hoy como fondo. Esta vista todavía no tiene foto: tomala en el paso 2.",
+        "tone": "Fototipo del modelo. Sólo cambia cómo se ve la ilustración.",
+        "goTakePhoto": "Vuelve al paso 2 para tomar la foto de esta vista.",
+        "photoOpacity": "Hacé la foto más transparente para que las marcas resalten.",
+        "align": "Tocá los dos ojos (o el ojo y el mentón en perfil) para ubicar la foto sobre la plantilla, así las marcas caen en su lugar.",
+        "tools": {
+          "select": {
+            "label": "Seleccionar y mover",
+            "description": "Tocá una marca para editarla o arrastrala para moverla; con una marca seleccionada, arrastrá sus vértices. Tocá una zona vacía para ver su historial."
+          },
+          "point": {
+            "label": "Punto",
+            "description": "Cada toque pone un punto con la dosis por defecto del servicio activo. Ideal para toxina."
+          },
+          "area": {
+            "label": "Área",
+            "description": "Tocá para sumar vértices y cerrá en el primero (o con Enter). Para rellenos, bioestimuladores y mesoterapia."
+          },
+          "line": {
+            "label": "Línea",
+            "description": "Tocá el inicio y el final. Para hilos tensores o recorridos de cánula."
+          }
+        },
+        "undo": {
+          "label": "Deshacer",
+          "description": "Revierte el último cambio en las marcas."
+        },
+        "redo": {
+          "label": "Rehacer",
+          "description": "Vuelve a aplicar lo que deshiciste."
+        },
+        "zones": {
+          "label": "Ver zonas",
+          "description": "Muestra los límites y los nombres de las zonas anatómicas. En la herramienta Área se encienden solas."
+        },
+        "previous": {
+          "label": "Ver sesión anterior",
+          "description": "Muestra punteadas las marcas de la sesión del {date}, como referencia."
+        },
+        "chip": "Tocá para marcar con este servicio ({tool}). Total aplicado: {total} en {count, plural, one {# marca} other {# marcas}}.",
+        "chipLocked": "Bloqueado: falta firmar su consentimiento en el paso 1.",
+        "layerVisibility": "Muestra u oculta esta capa en el lienzo. No borra las marcas.",
+        "step": "Paso {step}: {name}",
+        "steps": {
+          "consent": "Elegir los servicios de hoy y firmar un consentimiento por servicio.",
+          "photos": "Tomar las fotos de hoy y compararlas con sesiones anteriores.",
+          "treatment": "Marcar puntos, áreas y líneas por servicio, y anotar.",
+          "close": "Revisar el resumen, cobrar, agendar la próxima cita y cerrar."
+        },
+        "stepDone": "Completo.",
+        "completeness": "Un cuarto por cada paso completo: consentimiento, fotos, tratamiento y cierre.",
+        "status": {
+          "draft": "Se eligen servicios y se firman los consentimientos.",
+          "consented": "Todos los servicios están firmados: ya se puede marcar.",
+          "in_treatment": "Hay marcas registradas.",
+          "ready_to_close": "Cada servicio tiene marcas con cantidad y hay al menos una foto de hoy.",
+          "closed": "Solo lectura; las correcciones se hacen como enmienda.",
+          "void": "Anulada antes de cerrar; solo lectura."
+        },
+        "editor": {
+          "close": "Deselecciona la marca.",
+          "less": "Resta {step} {unit}.",
+          "more": "Suma {step} {unit}.",
+          "quick": "{value} {unit}",
+          "quickDescription": "Pone esta cantidad en la marca.",
+          "mirror": "Copia la marca al lado opuesto de la cara (o al otro perfil).",
+          "zoneHistory": "Muestra las aplicaciones anteriores en esta zona.",
+          "delete": "Borra la marca. Se puede deshacer con Ctrl+Z."
+        },
+        "zoomOut": "También con la rueda del mouse o pellizcando.",
+        "zoomIn": "También con la rueda del mouse o pellizcando.",
+        "zoomFit": "Vuelve a mostrar el dibujo entero.",
+        "photos": {
+          "take": "Abre la cámara con la guía de encuadre y la foto anterior como referencia.",
+          "upload": "Elegí una o varias fotos del dispositivo para esta vista.",
+          "modes": {
+            "slider": "Arrastrá la cortina para pasar de una foto a la otra.",
+            "side": "Las dos fotos una al lado de la otra.",
+            "overlay": "La foto de hoy encima de la anterior, con opacidad ajustable."
+          },
+          "compareInitial": "Compara hoy con la primera sesión ({date}).",
+          "alreadyInitial": "Ya estás comparando con la sesión inicial.",
+          "marksBase": "Dibuja encima las marcas de esa sesión.",
+          "marksToday": "Dibuja encima las marcas de hoy.",
+          "retake": "Toma otra foto de esta vista; la más reciente es la de hoy.",
+          "remove": "Borra esta foto de la sesión de hoy."
+        }
       }
     }
   },

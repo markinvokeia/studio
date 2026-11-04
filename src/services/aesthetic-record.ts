@@ -1,13 +1,14 @@
 import { API_ROUTES } from '@/constants/routes';
 import type {
   AestheticBodyFigure,
+  AestheticPhotoSource,
+  AestheticSessionStatus,
   AestheticDepth,
   AestheticLayer,
   AestheticMapView,
   AestheticMarkKind,
   AestheticPhoto,
   AestheticPhotoAlignment,
-  AestheticPhotoKind,
   AestheticSession,
   AestheticTechnique,
   MeasurementUnit,
@@ -17,14 +18,18 @@ import type {
 import { api } from '@/services/api';
 
 // Flujo n8n "Aesthetic Record" (docs/n8n-flows/flow-aesthetic-record.json) sobre las
-// tablas de database/scripts/151 y 154. Las sesiones vienen ya con la forma de
-// AestheticSession; las fotos y las firmas se suben aparte, después de guardar la sesión.
+// tablas de database/scripts/151, 154 y 155. Las sesiones vienen ya con la forma de
+// AestheticSession. La sesión guiada se autoguarda: capas y marcas con cada cambio, y
+// firmas, fotos y notas en el momento, cada una con su endpoint.
 
 /** n8n a veces envuelve la respuesta en un array */
 const unwrap = <T>(data: unknown): T => (Array.isArray(data) ? data[0] : data) as T;
 
 const optional = <T extends string>(value: unknown): T | undefined => (value == null || value === '' ? undefined : (value as T));
 const numberOrNull = (value: unknown): number | null => (value == null || value === '' ? null : Number(value));
+const textOrNull = (value: unknown): string | null => (typeof value === 'string' && value.trim() ? value : null);
+
+const STATUSES: AestheticSessionStatus[] = ['draft', 'consented', 'in_treatment', 'ready_to_close', 'closed', 'void'];
 
 let localIdSeq = 0;
 /** Id of something not saved yet (a mark, a pending photo); the backend assigns the real one */
@@ -58,16 +63,30 @@ function normalizeSession(raw: AestheticSession): AestheticSession {
         y: Number(mark.y),
         zone: mark.zone ?? null,
         quantity: numberOrNull(mark.quantity),
+        createdAt: optional(mark.createdAt),
+        createdBy: optional(mark.createdBy),
       })),
     })),
-    photos: raw.photos ?? [],
+    photos: (raw.photos ?? []).map((photo) => ({ ...photo, source: optional<AestheticPhotoSource>(photo.source), takenAt: optional(photo.takenAt) })),
     consents: (raw.consents ?? []).map((consent) => ({
       ...consent,
       templateUpdatedAt: optional(consent.templateUpdatedAt),
       reusedFromSignatureId: optional(consent.reusedFromSignatureId),
       signatureSource: consent.signatureSource === 'reused' ? 'reused' : 'drawn',
+      contentSha256: optional(consent.contentSha256),
     })),
     photoConsent: raw.photoConsent ?? null,
+    // 155 stores both (and closes the sessions recorded before it). A backend without 155 sends
+    // neither: taking that as "closed" would lock a session right after its first autosave
+    status: STATUSES.includes(raw.status) ? raw.status : 'draft',
+    completeness: Number(raw.completeness) || 0,
+    flowVersion: Number(raw.flowVersion) || 1,
+    closedAt: optional(raw.closedAt),
+    closedByName: optional(raw.closedByName),
+    voidedAt: optional(raw.voidedAt),
+    voidReason: optional(raw.voidReason),
+    sessionNotes: raw.sessionNotes ?? [],
+    events: (raw.events ?? []).map((event) => ({ ...event, payload: event.payload ?? {} })),
   };
 }
 
@@ -148,6 +167,12 @@ export async function fetchServiceAestheticConfigs(): Promise<ServiceAestheticCo
     defaultQuantity: numberOrNull(c.default_quantity),
     defaultDepth: optional<AestheticDepth>(c.default_depth),
     defaultTechnique: optional<AestheticTechnique>(c.default_technique),
+    price: numberOrNull(c.service_price),
+    maxPerSession: numberOrNull(c.max_per_session),
+    minIntervalDays: numberOrNull(c.min_interval_days),
+    followUpDays: numberOrNull(c.follow_up_days),
+    followUpLabel: textOrNull(c.follow_up_label),
+    aftercare: textOrNull(c.aftercare),
   }));
 }
 
@@ -156,6 +181,11 @@ export interface ServiceAestheticConfigInput {
   unitId?: string;
   markingTool: AestheticMarkKind;
   defaultQuantity: number | null;
+  maxPerSession: number | null;
+  minIntervalDays: number | null;
+  followUpDays: number | null;
+  followUpLabel: string;
+  aftercare: string;
 }
 
 /** Separate call made after the service itself is saved: the service upsert doesn't know about it */
@@ -166,6 +196,11 @@ export async function saveServiceAestheticConfig(serviceId: string, input: Servi
     unit_id: input.unitId ? Number(input.unitId) : null,
     marking_tool: input.markingTool,
     default_quantity: input.defaultQuantity,
+    max_per_session: input.maxPerSession,
+    min_interval_days: input.minIntervalDays,
+    follow_up_days: input.followUpDays,
+    follow_up_label: input.followUpLabel,
+    aftercare: input.aftercare,
   });
 }
 
@@ -207,64 +242,6 @@ export interface AestheticSessionInput {
   bodyFigure: AestheticBodyFigure;
 }
 
-export interface AestheticPhotoUpload {
-  /** Local key of the pending photo, reported back when a later step fails */
-  key: string;
-  file: File;
-  kind: AestheticPhotoKind;
-  view: AestheticMapView;
-  /** Placement behind the map, when it was adjusted before the photo was saved */
-  alignment?: AestheticPhotoAlignment;
-}
-
-/** Consent of one service as the patient reads it, before it is signed */
-export interface AestheticConsentDraft {
-  serviceId: string;
-  serviceName: string;
-  title: string;
-  text: string;
-  templateUpdatedAt?: string;
-}
-
-/**
- * What the patient signs at once: one or more services of the session with the same signature.
- * While the session is edited it waits for the save, since its services must be stored first.
- */
-export interface AestheticConsentSigning {
-  /** Local key, reported back when a later step of the save fails */
-  key: string;
-  signerName: string;
-  signedAt: string;
-  allowsClinicalPhotos: boolean;
-  allowsMarketingPhotos: boolean;
-  consents: AestheticConsentDraft[];
-  /** Drawn signature; also kept on a signing that reuses one of the same edit, in case that one is dropped */
-  signature?: File;
-  /** A stored signature of the patient, used again */
-  reuseSignatureId?: string;
-  /** The drawn signature of another signing of this edit, not stored yet */
-  reuseKey?: string;
-}
-
-/**
- * The session was stored but a photo, a removal or a consent was not. The sheet keeps
- * editing the stored session with what is left, so a retry doesn't create it twice.
- */
-export class AestheticPartialSaveError extends Error {
-  constructor(
-    readonly sessionId: string,
-    readonly uploadedPhotoKeys: string[],
-    readonly removedPhotoIds: string[],
-    readonly savedSigningKeys: string[],
-    /** Stored signature of each saved signing, for the ones left that reuse it */
-    readonly signatureIdByKey: Record<string, string>,
-    cause: unknown,
-  ) {
-    super(cause instanceof Error ? cause.message : String(cause));
-    this.name = 'AestheticPartialSaveError';
-  }
-}
-
 function sessionPayload(patientId: string, input: AestheticSessionInput, sessionId?: string) {
   return {
     id: sessionId ?? null,
@@ -299,102 +276,22 @@ function sessionPayload(patientId: string, input: AestheticSessionInput, session
         depth: mark.depth ?? null,
         technique: mark.technique ?? null,
         notes: mark.notes ?? null,
+        createdAt: mark.createdAt ?? null,
+        createdBy: mark.createdBy ?? null,
       })),
     })),
   };
 }
 
-async function uploadPhoto(sessionId: string, upload: AestheticPhotoUpload): Promise<AestheticPhoto> {
-  const form = new FormData();
-  form.append('session_id', sessionId);
-  form.append('kind', upload.kind);
-  form.append('view', upload.view);
-  if (upload.alignment) form.append('alignment', JSON.stringify(upload.alignment));
-  form.append('data', upload.file, upload.file.name);
-  const data = unwrap<{ photo: AestheticPhoto }>(await api.post(API_ROUTES.AESTHETIC_RECORD.PHOTO_UPLOAD, form));
-  return data.photo;
-}
-
-async function deletePhoto(photoId: string): Promise<void> {
-  await api.post(API_ROUTES.AESTHETIC_RECORD.PHOTO_DELETE, { id: photoId });
-  forgetFile(photoId);
-}
-
-/** Stores a signing: uploads the drawn signature, or points to the reused one. Returns the whole session */
-async function storeSigning(sessionId: string, signing: AestheticConsentSigning, reuseSignatureId?: string): Promise<AestheticSession> {
-  const payload = {
-    signerName: signing.signerName,
-    signedAt: signing.signedAt,
-    allowsClinicalPhotos: signing.allowsClinicalPhotos,
-    allowsMarketingPhotos: signing.allowsMarketingPhotos,
-    consents: signing.consents,
-  };
-  let data: { session: AestheticSession };
-  if (reuseSignatureId) {
-    data = unwrap(await api.post(API_ROUTES.AESTHETIC_RECORD.CONSENTS_REUSE, {
-      session_id: Number(sessionId),
-      signing: { ...payload, reuseSignatureId: Number(reuseSignatureId) },
-    }));
-  } else {
-    if (!signing.signature) throw new Error('Missing signature');
-    const form = new FormData();
-    form.append('session_id', sessionId);
-    form.append('signing', JSON.stringify(payload));
-    form.append('data', signing.signature, signing.signature.name || 'signature.png');
-    data = unwrap(await api.post(API_ROUTES.AESTHETIC_RECORD.CONSENTS_SIGN, form));
-  }
-  return normalizeSession(data.session);
-}
-
 /**
- * Creates the session (no `sessionId`) or replaces its fields, layers and marks; then uploads the
- * new photos, removes the dropped ones and stores the consents signed during the edit, in order:
- * one may reuse the signature drawn in an earlier one.
+ * Autosave: creates the session as a draft (no `sessionId`) or replaces its fields, layers and marks.
+ * The server recomputes its status and rejects marks of a service without a signed consent.
  */
-export async function upsertAestheticSession(
-  patientId: string,
-  input: AestheticSessionInput,
-  newPhotos: AestheticPhotoUpload[],
-  removedPhotoIds: string[],
-  sessionId?: string,
-  newSignings: AestheticConsentSigning[] = [],
-): Promise<AestheticSession> {
-  const saved = unwrap<{ session: AestheticSession }>(
+export async function saveAestheticSession(patientId: string, input: AestheticSessionInput, sessionId?: string): Promise<AestheticSession> {
+  const data = unwrap<{ session: AestheticSession }>(
     await api.post(API_ROUTES.AESTHETIC_RECORD.SESSION_SAVE, { session: sessionPayload(patientId, input, sessionId) }),
   );
-  let session = normalizeSession(saved.session);
-
-  const uploaded: string[] = [];
-  const removed: string[] = [];
-  const signed: string[] = [];
-  // A service taken out of the session after it was signed has nothing to sign anymore
-  const serviceIds = new Set(input.layers.map((l) => l.serviceId).filter(Boolean));
-  const signatureIdByKey = new Map<string, string>();
-  try {
-    for (const upload of newPhotos) {
-      session.photos = [...session.photos, await uploadPhoto(session.id, upload)];
-      uploaded.push(upload.key);
-    }
-    for (const id of removedPhotoIds) {
-      await deletePhoto(id);
-      removed.push(id);
-      session.photos = session.photos.filter((p) => p.id !== id);
-    }
-    for (const signing of newSignings) {
-      const consents = signing.consents.filter((c) => serviceIds.has(c.serviceId));
-      if (consents.length) {
-        // Reusing a signing of this edit that was left with nothing to sign uploads its drawn image instead
-        const reuseId = signing.reuseSignatureId ?? (signing.reuseKey ? signatureIdByKey.get(signing.reuseKey) : undefined);
-        session = await storeSigning(session.id, { ...signing, consents }, reuseId);
-        const id = session.consents.find((c) => c.serviceId === consents[0].serviceId)?.signatureId;
-        if (id) signatureIdByKey.set(signing.key, id);
-      }
-      signed.push(signing.key);
-    }
-  } catch (error) {
-    throw new AestheticPartialSaveError(session.id, uploaded, removed, signed, Object.fromEntries(signatureIdByKey), error);
-  }
-  return session;
+  return normalizeSession(data.session);
 }
 
 /** Deletes the session (soft: its photos and signature stay in the clinic's storage) */
@@ -402,12 +299,54 @@ export async function deleteAestheticSession(_patientId: string, sessionId: stri
   await api.post(API_ROUTES.AESTHETIC_RECORD.SESSION_DELETE, { id: Number(sessionId) });
 }
 
-/** Signs consents of a session already stored */
-export function signAestheticConsents(session: AestheticSession, signing: AestheticConsentSigning): Promise<AestheticSession> {
-  return storeSigning(session.id, signing, signing.reuseSignatureId);
+/** Closes a session that is ready to close: it becomes read-only. `notes` is the summary as edited */
+export async function closeAestheticSession(sessionId: string, notes: string): Promise<AestheticSession> {
+  const data = unwrap<{ session: AestheticSession }>(await api.post(API_ROUTES.AESTHETIC_RECORD.SESSION_CLOSE, { id: Number(sessionId), notes }));
+  return normalizeSession(data.session);
 }
 
-/** Stores (or clears, with `null`) how a photo sits behind the map; it is not part of the session edit */
+/** Cancels a session before it is closed, with the reason */
+export async function voidAestheticSession(sessionId: string, reason: string): Promise<AestheticSession> {
+  const data = unwrap<{ session: AestheticSession }>(await api.post(API_ROUTES.AESTHETIC_RECORD.SESSION_VOID, { id: Number(sessionId), reason }));
+  return normalizeSession(data.session);
+}
+
+/** Timestamped note while the session is open; an amendment once it is closed */
+export async function addAestheticNote(sessionId: string, body: string, kind: 'note' | 'amendment'): Promise<AestheticSession> {
+  const data = unwrap<{ session: AestheticSession }>(
+    await api.post(API_ROUTES.AESTHETIC_RECORD.NOTE_ADD, { session_id: Number(sessionId), body, kind }),
+  );
+  return normalizeSession(data.session);
+}
+
+// ──── Photos ────
+
+export interface AestheticPhotoUpload {
+  file: File;
+  view: AestheticMapView;
+  source: AestheticPhotoSource;
+  alignment?: AestheticPhotoAlignment;
+}
+
+/** Uploads a photo of today right away; it is always a "before" (taken before treating) */
+export async function uploadAestheticPhoto(sessionId: string, upload: AestheticPhotoUpload): Promise<AestheticPhoto> {
+  const form = new FormData();
+  form.append('session_id', sessionId);
+  form.append('kind', 'before');
+  form.append('view', upload.view);
+  form.append('source', upload.source);
+  if (upload.alignment) form.append('alignment', JSON.stringify(upload.alignment));
+  form.append('data', upload.file, upload.file.name);
+  const data = unwrap<{ photo: AestheticPhoto }>(await api.post(API_ROUTES.AESTHETIC_RECORD.PHOTO_UPLOAD, form));
+  return { ...data.photo, source: optional<AestheticPhotoSource>(data.photo.source), takenAt: optional(data.photo.takenAt) };
+}
+
+export async function deleteAestheticPhoto(photoId: string): Promise<void> {
+  await api.post(API_ROUTES.AESTHETIC_RECORD.PHOTO_DELETE, { id: photoId });
+  forgetFile(photoId);
+}
+
+/** Stores (or clears, with `null`) how a photo sits behind the map */
 export async function saveAestheticPhotoAlignment(
   session: AestheticSession,
   photoId: string,
@@ -419,4 +358,54 @@ export async function saveAestheticPhotoAlignment(
     // An undefined alignment is dropped when serialized
     photos: session.photos.map((p) => (p.id === photoId ? { ...p, alignment: alignment ?? undefined } : p)),
   };
+}
+
+// ──── Consents ────
+
+/** Consent of one service as the patient reads it, before it is signed */
+export interface AestheticConsentDraft {
+  serviceId: string;
+  serviceName: string;
+  title: string;
+  text: string;
+  templateUpdatedAt?: string;
+}
+
+/** What the patient signs at once: one or more services of the session with the same signature */
+export interface AestheticConsentSigning {
+  signerName: string;
+  signedAt: string;
+  allowsClinicalPhotos: boolean;
+  allowsMarketingPhotos: boolean;
+  consents: AestheticConsentDraft[];
+  /** Drawn now */
+  signature?: File;
+  /** Or a stored signature of the patient, used again (a consent still in force) */
+  reuseSignatureId?: string;
+}
+
+/** Signs consents of a stored session (its services must be saved first). Returns the whole session */
+export async function signAestheticConsents(sessionId: string, signing: AestheticConsentSigning): Promise<AestheticSession> {
+  const payload = {
+    signerName: signing.signerName,
+    signedAt: signing.signedAt,
+    allowsClinicalPhotos: signing.allowsClinicalPhotos,
+    allowsMarketingPhotos: signing.allowsMarketingPhotos,
+    consents: signing.consents,
+  };
+  let data: { session: AestheticSession };
+  if (signing.reuseSignatureId) {
+    data = unwrap(await api.post(API_ROUTES.AESTHETIC_RECORD.CONSENTS_REUSE, {
+      session_id: Number(sessionId),
+      signing: { ...payload, reuseSignatureId: Number(signing.reuseSignatureId) },
+    }));
+  } else {
+    if (!signing.signature) throw new Error('Missing signature');
+    const form = new FormData();
+    form.append('session_id', sessionId);
+    form.append('signing', JSON.stringify(payload));
+    form.append('data', signing.signature, signing.signature.name || 'signature.png');
+    data = unwrap(await api.post(API_ROUTES.AESTHETIC_RECORD.CONSENTS_SIGN, form));
+  }
+  return normalizeSession(data.session);
 }

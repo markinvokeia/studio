@@ -2,12 +2,16 @@ import { MapPin, Minus, Shapes, type LucideIcon } from 'lucide-react';
 
 import type {
   AestheticLayer,
+  AestheticMapView,
   AestheticMark,
   AestheticMarkKind,
   AestheticSharedAttributes,
   ServiceAestheticConfig,
 } from '@/lib/types';
+import { toLocalISOString } from '@/lib/utils';
 import { newLocalId } from '@/services/aesthetic-record';
+
+import { parseZoneId } from './map-templates';
 
 /** Colors for layers whose service has none in the catalog, by layer position */
 const FALLBACK_COLORS = ['#7c3aed', '#0d9488', '#e11d48', '#d97706', '#2563eb', '#65a30d', '#db2777', '#0891b2'];
@@ -55,11 +59,10 @@ export interface PlacedMark {
   number: number;
 }
 
-/** Marks of every layer, numbered in order (layer by layer) */
+/** Marks of every layer, numbered per service (1, 2, 3… in each layer) */
 export function placeMarks(layers: AestheticLayer[]): PlacedMark[] {
-  let number = 0;
   return layers.flatMap((layer, layerIndex) =>
-    layer.marks.map((mark) => ({ mark, layer, layerIndex, color: layerColor(layer, layerIndex), number: ++number })),
+    layer.marks.map((mark, i) => ({ mark, layer, layerIndex, color: layerColor(layer, layerIndex), number: i + 1 })),
   );
 }
 
@@ -113,4 +116,32 @@ export function polygonCentroid(polygon: [number, number][]): [number, number] {
     return [polygon.reduce((s, p) => s + p[0], 0) / n, polygon.reduce((s, p) => s + p[1], 0) / n];
   }
   return [cx / (3 * area), cy / (3 * area)];
+}
+
+/** The view on the other side: the two profiles swap, front and body views mirror onto themselves */
+const MIRROR_VIEW: Record<AestheticMapView, AestheticMapView> = { front: 'front', left: 'right', right: 'left', bodyFront: 'bodyFront', bodyBack: 'bodyBack' };
+
+/**
+ * Copy of a mark on the symmetric side of the face (or body). The left profile is the right one
+ * mirrored, so a profile mark keeps its coordinates and changes view; elsewhere x is mirrored.
+ */
+export function mirrorMark(mark: AestheticMark): AestheticMark {
+  const view = MIRROR_VIEW[mark.view];
+  const flip = view === mark.view;
+  const fx = (x: number) => (flip ? 1 - x : x);
+  let zone = mark.zone;
+  if (zone) {
+    const { base, side } = parseZoneId(zone);
+    if (side) zone = `${base}.${side === 'left' ? 'right' : 'left'}`;
+  }
+  return {
+    ...mark,
+    id: newLocalId('mark'),
+    view,
+    x: fx(mark.x),
+    polygon: mark.polygon?.map(([x, y]) => [fx(x), y] as [number, number]),
+    zone,
+    createdAt: toLocalISOString(new Date()),
+    createdBy: undefined,
+  };
 }

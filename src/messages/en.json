@@ -10516,7 +10516,16 @@
       "save": "Save",
       "discard": "Discard",
       "saved": "Aesthetic settings saved",
-      "saveError": "Could not save the aesthetic settings"
+      "saveError": "Could not save the aesthetic settings",
+      "maxPerSession": "Maximum per session",
+      "minIntervalDays": "Minimum interval on a zone",
+      "followUpDays": "Suggested next visit",
+      "days": "days",
+      "followUpLabel": "Name of the next visit",
+      "followUpLabelPlaceholder": "E.g. Toxin check-up",
+      "aftercare": "Aftercare instructions",
+      "aftercarePlaceholder": "What is sent to the patient when the session is closed…",
+      "limitsHint": "The maximum and the interval warn while marking; they don't block."
     },
     "consentTemplate": {
       "title": "Informed consent",
@@ -10560,6 +10569,446 @@
       "modes": {
         "map": "Map",
         "compare": "Before and after"
+      }
+    },
+    "flow": {
+      "stepOf": "Step {step} of 4",
+      "back": "Back",
+      "steps": {
+        "consent": "Consent",
+        "photos": "Today's photos",
+        "treatment": "Treatment",
+        "close": "Closing"
+      },
+      "status": {
+        "draft": "Draft",
+        "consented": "Consented",
+        "in_treatment": "In treatment",
+        "ready_to_close": "Ready to close",
+        "closed": "Closed",
+        "void": "Void"
+      },
+      "header": {
+        "subtitle": "Session {number} · {date}",
+        "steps": "Session steps",
+        "lockedTreatment": "Sign the consent of at least one service to start marking",
+        "completeness": "{value}% complete"
+      },
+      "missing": {
+        "closed": "Session closed. Read only.",
+        "void": "Session voided. Read only.",
+        "pickServices": "Pick today's services",
+        "signConsents": "{count, plural, one {The consent for {service} is not signed yet} other {# consents are not signed yet}}",
+        "takePhoto": "At least one photo of today is missing",
+        "markServices": "Still to mark: {services}",
+        "ready": "Everything is ready to close the session"
+      },
+      "save": {
+        "saving": "Saving…",
+        "justNow": "Saved just now",
+        "secondsAgo": "Saved {seconds} s ago",
+        "minutesAgo": "Saved {minutes} min ago",
+        "error": "Couldn't save",
+        "upToDate": "All saved",
+        "notCreated": "Saved on the first change",
+        "readOnly": "Read only",
+        "closed": "Closed · read only",
+        "voided": "Voided · read only"
+      },
+      "leave": {
+        "title": "Close without saving the last change?",
+        "description": "It couldn't be saved: {error}. If you close now, that change is lost.",
+        "descriptionGeneric": "There is a change that hasn't been saved yet.",
+        "stay": "Stay in the session",
+        "confirm": "Close anyway"
+      },
+      "consent": {
+        "title": "What's being done today? Pick the services and sign their consents",
+        "lead": "Marking a service is enabled as soon as its consent is signed. The session saves itself as a draft.",
+        "services": "Today's services",
+        "selected": "{count, plural, =0 {None picked} one {# picked} other {# picked}}",
+        "fromLastSession": "Last session ({date})",
+        "perMark": "{quantity} {unit} per mark",
+        "signed": "Signed",
+        "consents": "Consents",
+        "pendingCount": "{count, plural, one {# pending} other {# pending}}",
+        "allSigned": "All signed",
+        "pickFirst": "Pick at least one service to see its consent.",
+        "pending": "Pending",
+        "signedAt": "Signed {date}",
+        "reusedOn": "In force since {date}",
+        "reuse": "Use the one from {date}",
+        "reused": "The consent in force was reused. Its template hasn't changed since it was signed.",
+        "reuseError": "Couldn't reuse the consent",
+        "showText": "Show text",
+        "authorizationsOnce": "The authorizations are ticked once for all the pending consents.",
+        "authorizationHints": {
+          "risksExplained": "required",
+          "allowsClinicalPhotos": "needed to take photos",
+          "allowsMarketingPhotos": "optional"
+        },
+        "signerName": "Signed by",
+        "signHere": "Sign here with a finger or a stylus",
+        "clearSignature": "Clear signature",
+        "storedSeparately": "Each consent was stored on its own, with its text and version.",
+        "hasMarks": "{service} already has marks. Delete them in the treatment step to remove it.",
+        "readyHint": "Consents complete. You can now take the photos and mark.",
+        "partialHint": "You can already mark the signed services; the others stay locked.",
+        "continueHint": "Continue is enabled once every picked service is signed.",
+        "treatSigned": "Mark the signed ones",
+        "continue": "Continue to photos"
+      },
+      "photos": {
+        "title": "Today's photos",
+        "titleHistory": "Today's photos and progress since the first session",
+        "lead": "This is the patient's first session, so there is nothing to compare with. Take the views you'll need.",
+        "leadHistory": "Today's photo is always the newest. It is compared with any earlier session, including the first one on {date}.",
+        "anyViewHint": "One photo of any view is enough to go on. Today's photo can also be the background for marking.",
+        "takenToday": "Taken today",
+        "pending": "Pending",
+        "previousCount": "{count, plural, one {# earlier} other {# earlier}}",
+        "uploading": "Uploading…",
+        "blockedTitle": "Photo authorization missing",
+        "blockedHint": "The patient must authorize photos for their clinical record in the consent step. Without it the camera stays locked.",
+        "goToConsent": "Go to consent",
+        "todayOf": "Today's photo · {view}",
+        "ghostHint": "The camera shows the photo from {date} as a see-through guide, to repeat pose, distance and light.",
+        "firstSessionHint": "First session: these photos become the starting reference for the next sessions.",
+        "noneToday": "No photos of this view were taken.",
+        "take": "Take photo",
+        "upload": "Upload",
+        "dropHint": "You can also drag one or more images here.",
+        "previousOf": "Earlier sessions · {view}",
+        "todayAlt": "Today's photo, {view}",
+        "todayLabel": "Today · {date}",
+        "today": "Today",
+        "noHistory": "No earlier sessions",
+        "noHistoryHint": "Nothing to compare with yet. From the next session on you'll be able to compare with this photo.",
+        "modes": {
+          "slider": "Slider",
+          "side": "Side by side",
+          "overlay": "Overlay"
+        },
+        "compareInitial": "Compare with the first one",
+        "compareWith": "Compare today with…",
+        "initial": "First",
+        "sessionN": "Session {number}",
+        "baseLabel": "{label} · {date} · {days} days ago",
+        "daysAgo": "{days} days ago",
+        "marksOf": "Marks of {label}",
+        "marksToday": "Today's marks",
+        "todayOpacity": "Today's opacity",
+        "align": "Align",
+        "aligned": "Aligned with the template",
+        "notAligned": "Not aligned: tap the eyes (or the eye and chin) so the comparison lines up",
+        "alignBase": "Align the photo of {label}",
+        "retake": "Retake",
+        "remove": "Remove photo",
+        "removeTitle": "Remove this photo?",
+        "removeDescription": "It is deleted from today's session. Photos of earlier sessions don't change.",
+        "removeError": "Couldn't remove the photo",
+        "saved": "{view} photo saved",
+        "uploadError": "Couldn't upload the photo",
+        "notAnImage": "That file isn't an image. Pick a JPG, PNG or HEIC photo.",
+        "continue": "Continue to treatment",
+        "cameraTitle": "Today's photo · {view}",
+        "cameraHint": "Frame the face inside the guide.",
+        "cameraGhostHint": "Frame the face inside the guide and repeat the pose of the earlier photo, shown see-through.",
+        "cameraStarting": "Opening the camera…",
+        "cameraUnavailable": "The live camera isn't available",
+        "cameraUnavailableHint": "You can open the device's camera or pick a photo.",
+        "systemCamera": "Open device camera",
+        "shutter": "Capture",
+        "preview": "Preview",
+        "usePhoto": "Use photo"
+      },
+      "align": {
+        "title": "Align the photo in two taps",
+        "rightEye": "Tap the patient's right eye (on your left).",
+        "leftEye": "Now tap the left eye.",
+        "eye": "Tap the eye.",
+        "chin": "Now tap the tip of the chin.",
+        "done": "Done. Check the result on the right and save.",
+        "result": "Aligned photo",
+        "resultHint": "The photo placed on the template will show here.",
+        "restart": "Start over",
+        "clear": "Remove alignment",
+        "save": "Save alignment"
+      },
+      "treatment": {
+        "tools": "Tools",
+        "toolNames": {
+          "select": "Select and move ({key})",
+          "point": "Point ({key})",
+          "area": "Area ({key})",
+          "line": "Line ({key})"
+        },
+        "undo": "Undo (Ctrl+Z)",
+        "redo": "Redo (Ctrl+Shift+Z)",
+        "showZones": "Show zones",
+        "showPrevious": "Show previous session ({date})",
+        "background": "Background",
+        "model": {
+          "female": "Model F",
+          "male": "Model M"
+        },
+        "todayPhoto": "Today's photo",
+        "noPhotoOfView": "There is no photo of today for this view yet. Meanwhile you mark on the model.",
+        "skinTone": "Skin type",
+        "tones": {
+          "light": "Light skin",
+          "medium": "Medium skin",
+          "dark": "Dark skin"
+        },
+        "services": "Services",
+        "unsigned": "Not signed",
+        "unsignedHint": "The consent for {service} is not signed yet",
+        "unsignedToast": "The consent for {service} is not signed yet.",
+        "unsignedRow": "Consent not signed yet",
+        "sign": "Sign",
+        "noServices": "Pick today's services in the consent step.",
+        "readOnlyHint": "Read-only session",
+        "hintSelect": "Tap a mark to edit it or drag it to move it. Tap a zone to see its history.",
+        "hint": {
+          "point": "Tap the face to place a {service} point ({quantity} {unit})",
+          "area": "Tap to draw the outline of the {service} area; close it on the first vertex",
+          "line": "Tap the start and the end of the {service} line"
+        },
+        "panel": "Session panel",
+        "tabs": {
+          "summary": "Summary",
+          "notes": "Notes ({count})",
+          "history": "History"
+        },
+        "noMarks": "No marks yet",
+        "expiry": "Expires",
+        "toClose": "Go to closing",
+        "markLabel": "{service}, {mark}",
+        "less": "Decrease",
+        "more": "Increase",
+        "inArea": "in the area",
+        "markNote": "Note for this mark",
+        "mirror": "Mirror",
+        "zoneHistory": "Zone history",
+        "intervalWarning": "The last application on this zone was {days} days ago. Suggested minimum interval: {min} days.",
+        "maxWarning": "The service total ({total} {unit}) is over the per-session maximum set ({max} {unit}).",
+        "lotExpired": "The lot expired on {date}.",
+        "lastTime": "Last time on this zone: {date}, {quantity} {unit}.",
+        "photoBackground": "Today's photo as background · {view}",
+        "photoOpacity": "Opacity",
+        "goTakePhoto": "Take the photo",
+        "fromService": "From the service:",
+        "expires": "expires {date}",
+        "defaultDose": "dose {quantity} {unit}"
+      },
+      "notes": {
+        "placeholder": "Write a session note",
+        "dictate": "Dictate",
+        "listening": "Listening…",
+        "add": "Add note",
+        "empty": "No notes yet. Each note keeps its time and author.",
+        "error": "Couldn't add the note",
+        "dictationUnavailable": "Dictation isn't available in this browser.",
+        "dictationError": "The microphone couldn't be used.",
+        "quick": {
+          "topicalAnesthesia": "Topical anesthesia",
+          "ice": "Ice applied",
+          "noIncidents": "No incidents",
+          "mildBruise": "Mild bruise",
+          "toleratesWell": "Patient tolerates well"
+        }
+      },
+      "history": {
+        "firstSession": "First session: no history by zone yet.",
+        "hint": "Last 12 months in this view. Tap a zone (with the Select tool) or a mark to filter.",
+        "all": "Show all",
+        "noneInZone": "No earlier applications on this zone."
+      },
+      "close": {
+        "title": "Review and close the session",
+        "lead": "The summary is built from what you recorded. You can fix anything before closing.",
+        "checks": {
+          "consents": "Consents signed",
+          "photos": "At least one photo of today",
+          "marks": "Every service with marks and quantity"
+        },
+        "ok": "Done",
+        "missing": "Missing",
+        "applied": "Treatment applied",
+        "service": "Service",
+        "total": "Total",
+        "lot": "lot {lot}",
+        "noMarks": "No marks",
+        "todayPhotos": "Today's photos",
+        "summary": "Session summary",
+        "summaryHint": "Assessment, instructions and comments. It can be edited until closing.",
+        "sessionNotes": "Session notes",
+        "lots": "Use by lot",
+        "consumed": "Applied",
+        "noLot": "No lot",
+        "stockHint": "The use is recorded with the session. Automatic stock deduction is connected once the clinic uses inventory.",
+        "charge": "Suggested charge",
+        "suggestedTotal": "Suggested total",
+        "bill": "Charge",
+        "aftercareAndNext": "Aftercare and next visit",
+        "aftercareHint": "{count, plural, one {Aftercare instructions for # service, ready to send.} other {Aftercare instructions for # services, ready to send.}}",
+        "sendWhatsApp": "Send via WhatsApp",
+        "noPhone": "The patient has no phone number",
+        "noAftercare": "Today's services have no aftercare instructions set.",
+        "aftercareGreeting": "Hi {name}, these are the instructions for after your session:",
+        "noFollowUp": "None of today's services has a suggested follow-up.",
+        "followUpDefault": "{service} check-up",
+        "followUpWhen": "{date} · in {days} days",
+        "schedule": "Schedule",
+        "scheduled": "Scheduled",
+        "scheduledToast": "Next visit scheduled",
+        "activity": "Activity log",
+        "activityCount": "{count, plural, one {# entry} other {# entries}}",
+        "readyHint": "Once closed, the session is read only.",
+        "void": "Void session",
+        "voidTitle": "Void the session?",
+        "voidDescription": "The session becomes read only, with the reason. Nothing is deleted.",
+        "voidReason": "Reason",
+        "voidError": "Couldn't void the session",
+        "voidedToast": "Session voided",
+        "backToTreatment": "Back to treatment",
+        "close": "Close session",
+        "confirmTitle": "Close the session?",
+        "confirmDescription": "It becomes read only. Later fixes are added as amendments with a reason, without erasing the original.",
+        "closeError": "Couldn't close the session",
+        "closedToast": "Session closed",
+        "closedTitle": "Session {number} closed",
+        "closedLead": "Closed on {date} by {name}. It is read only; fixes are added as amendments.",
+        "voidedTitle": "Session voided",
+        "voidedLead": "Reason: {reason}",
+        "viewMap": "See the map",
+        "viewPhotos": "See the photos",
+        "amendments": "Amendments",
+        "amendmentsHint": "Each amendment keeps its date, time and author. What was originally recorded doesn't change.",
+        "amendmentPlaceholder": "What is corrected and why",
+        "addAmendment": "Add amendment",
+        "amendmentAdded": "Amendment recorded"
+      },
+      "events": {
+        "created": "Session created",
+        "consent_signed": "Consent for {service} signed",
+        "photo_added": "{view} photo",
+        "photo_removed": "A {view} photo was removed",
+        "note_added": "Note added",
+        "amendment_added": "Amendment added",
+        "closed": "Session closed",
+        "voided": "Session voided"
+      },
+      "timeline": {
+        "continue": "Continue session",
+        "voidReason": "Void reason"
+      },
+      "hints": {
+        "region": {
+          "face": "Mark on the face: front and both profiles.",
+          "body": "Mark on the body: front and back views."
+        },
+        "view": "Changes the canvas view. Each view keeps its own marks ({count, plural, =0 {none yet} one {# in this view} other {# in this view}}).",
+        "model": {
+          "face": {
+            "female": "Female model",
+            "male": "Male model",
+            "description": "Mark on the illustration instead of the photo. Marks stay in place with any background."
+          },
+          "body": {
+            "female": "Female figure",
+            "male": "Male figure",
+            "description": "Body figure of this session. It is locked once the body has marks."
+          }
+        },
+        "todayPhoto": "Uses the photo taken today in this view as the marking background. The treatment layers are drawn on top.",
+        "todayPhotoMissing": "Uses today's photo as background. This view has no photo yet: take it in step 2.",
+        "tone": "Model skin type. It only changes how the illustration looks.",
+        "goTakePhoto": "Goes back to step 2 to take the photo of this view.",
+        "photoOpacity": "Make the photo more see-through so the marks stand out.",
+        "align": "Tap both eyes (or the eye and the chin on a profile) to place the photo on the template, so the marks land in the right place.",
+        "tools": {
+          "select": {
+            "label": "Select and move",
+            "description": "Tap a mark to edit it or drag it to move it; with a mark selected, drag its vertices. Tap an empty zone to see its history."
+          },
+          "point": {
+            "label": "Point",
+            "description": "Each tap places a point with the active service's default dose. Ideal for toxin."
+          },
+          "area": {
+            "label": "Area",
+            "description": "Tap to add vertices and close on the first one (or press Enter). For fillers, biostimulators and mesotherapy."
+          },
+          "line": {
+            "label": "Line",
+            "description": "Tap the start and the end. For threads or cannula paths."
+          }
+        },
+        "undo": {
+          "label": "Undo",
+          "description": "Reverts the last change to the marks."
+        },
+        "redo": {
+          "label": "Redo",
+          "description": "Applies again what you undid."
+        },
+        "zones": {
+          "label": "Show zones",
+          "description": "Shows the outlines and names of the anatomical zones. They turn on by themselves with the Area tool."
+        },
+        "previous": {
+          "label": "Show previous session",
+          "description": "Shows the marks of the {date} session, dashed, for reference."
+        },
+        "chip": "Tap to mark with this service ({tool}). Total applied: {total} in {count, plural, one {# mark} other {# marks}}.",
+        "chipLocked": "Locked: its consent must be signed in step 1.",
+        "layerVisibility": "Shows or hides this layer on the canvas. It doesn't delete the marks.",
+        "step": "Step {step}: {name}",
+        "steps": {
+          "consent": "Pick today's services and sign one consent per service.",
+          "photos": "Take today's photos and compare them with earlier sessions.",
+          "treatment": "Mark points, areas and lines per service, and take notes.",
+          "close": "Review the summary, charge, schedule the next visit and close."
+        },
+        "stepDone": "Done.",
+        "completeness": "A quarter per completed step: consent, photos, treatment and closing.",
+        "status": {
+          "draft": "Services are being picked and consents signed.",
+          "consented": "Every service is signed: marking is enabled.",
+          "in_treatment": "There are marks recorded.",
+          "ready_to_close": "Every service has marks with a quantity and there is at least one photo of today.",
+          "closed": "Read only; fixes are added as amendments.",
+          "void": "Voided before closing; read only."
+        },
+        "editor": {
+          "close": "Deselects the mark.",
+          "less": "Subtracts {step} {unit}.",
+          "more": "Adds {step} {unit}.",
+          "quick": "{value} {unit}",
+          "quickDescription": "Sets this quantity on the mark.",
+          "mirror": "Copies the mark to the other side of the face (or to the other profile).",
+          "zoneHistory": "Shows the earlier applications on this zone.",
+          "delete": "Deletes the mark. It can be undone with Ctrl+Z."
+        },
+        "zoomOut": "Also with the mouse wheel or a pinch.",
+        "zoomIn": "Also with the mouse wheel or a pinch.",
+        "zoomFit": "Shows the whole drawing again.",
+        "photos": {
+          "take": "Opens the camera with the framing guide and the earlier photo as reference.",
+          "upload": "Pick one or more photos from the device for this view.",
+          "modes": {
+            "slider": "Drag the curtain to go from one photo to the other.",
+            "side": "Both photos next to each other.",
+            "overlay": "Today's photo over the earlier one, with adjustable opacity."
+          },
+          "compareInitial": "Compares today with the first session ({date}).",
+          "alreadyInitial": "You are already comparing with the first session.",
+          "marksBase": "Draws that session's marks on top.",
+          "marksToday": "Draws today's marks on top.",
+          "retake": "Takes another photo of this view; the newest one is today's.",
+          "remove": "Deletes this photo from today's session."
+        }
       }
     }
   },

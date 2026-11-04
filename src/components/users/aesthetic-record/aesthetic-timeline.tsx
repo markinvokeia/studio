@@ -6,9 +6,12 @@ import { Camera, CheckCircle2, CircleAlert } from 'lucide-react';
 
 import { fetchAestheticSessions } from '@/services/aesthetic-record';
 
-import type { AestheticSession, AestheticZoneId } from '@/lib/types';
+import { cn } from '@/lib/utils';
+
+import type { AestheticSession, AestheticSessionStatus, AestheticZoneId } from '@/lib/types';
 import { unsignedLayers } from './consent-template';
 import { formatQuantity, layerColor, layerQuantity, layerTitle, unitTotals } from './layers';
+import { STATUS_CHIP } from './session-status';
 import { useZoneLabel } from './use-zone-label';
 
 /** Patient's aesthetic sessions for the timeline; `reload` after the sheet changes one */
@@ -33,9 +36,21 @@ export function useAestheticSessions(patientId: string, enabled: boolean) {
   return { sessions, reload };
 }
 
+/** Status of the session as a small chip (Borrador, En tratamiento, Cerrada…) */
+export function AestheticStatusChip({ status, completeness }: { status: AestheticSessionStatus; completeness?: number }) {
+  const t = useTranslations('AestheticRecord');
+  return (
+    <span className={cn('inline-flex items-center gap-1 rounded-full px-1.5 py-0 text-[10px] font-semibold leading-relaxed', STATUS_CHIP[status])}>
+      <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
+      {t(`flow.status.${status}`)}
+      {completeness != null && status !== 'closed' && status !== 'void' && <span className="tabular-nums opacity-75">· {completeness}%</span>}
+    </span>
+  );
+}
+
 /** Services applied in the session, e.g. "Toxina botulínica, Mesoterapia" */
 export function aestheticSessionPreview(session: AestheticSession): string {
-  return [...new Set(session.layers.map(layerTitle).filter(Boolean))].join(', ');
+  return [...new Set(session.layers.map((l) => l.serviceName).filter(Boolean))].join(', ');
 }
 
 /** Body of an expanded aesthetic session in the timeline: what was applied, where, and its consent and photos */
@@ -84,6 +99,12 @@ export function AestheticSessionDetails({ session }: { session: AestheticSession
         <p className="break-words text-foreground">
           <span className="text-muted-foreground">{t('session.doctor')}:</span>{' '}
           {session.doctorName}
+        </p>
+      )}
+      {session.status === 'void' && session.voidReason && (
+        <p className="break-words text-foreground">
+          <span className="text-muted-foreground">{t('flow.timeline.voidReason')}:</span>{' '}
+          {session.voidReason}
         </p>
       )}
       {session.notes.trim() && (
