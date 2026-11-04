@@ -14,6 +14,8 @@
  *   GET  measurement-units                 catálogo de unidades
  *   POST measurement-units/save            { unit }
  *   POST measurement-units/delete          { id } → borra o desactiva si está en uso
+ *   GET  services/units                    unidad de medida de cada servicio (156)
+ *   POST services/unit/save                { service_id, unit_id | null } (156)
  *   GET  services/aesthetic-config         servicios estéticos con unidad y herramienta
  *   POST services/aesthetic-config/save    { service_id, enabled, unit_id, marking_tool, … }
  *   GET  aesthetic/sessions?patient_id=    sesiones completas del paciente
@@ -197,6 +199,25 @@ simple({
   method: 'POST',
   query: 'SELECT * FROM public.measurement_unit_delete($1::integer);',
   params: '={{ [String($json.body.id ?? "")] }}',
+  body: '={{ { success: true, ...$json } }}',
+});
+
+// ─── Unidad de medida del servicio (156) ────────────────────────────────────
+
+simple({
+  webhookName: 'GET services/units',
+  path: 'services/units',
+  method: 'GET',
+  query: 'SELECT * FROM public.service_units_list();',
+  body: '={{ { success: true, units: $input.all().map(i => i.json).filter(u => u.service_id != null) } }}',
+});
+
+simple({
+  webhookName: 'POST services/unit/save',
+  path: 'services/unit/save',
+  method: 'POST',
+  query: "SELECT * FROM public.service_unit_save(NULLIF($1, '')::integer, NULLIF($2, '')::integer);",
+  params: '={{ [String($json.body.service_id ?? ""), $json.body.unit_id == null ? "" : String($json.body.unit_id)] }}',
   body: '={{ { success: true, ...$json } }}',
 });
 
@@ -441,7 +462,7 @@ nodes.unshift({
     height: 420,
     content: `## Aesthetic Record — ficha estética
 
-Flujo NUEVO (no reemplaza nada). Requiere database/scripts/151, 152, 154 y 155.
+Flujo NUEVO (no reemplaza nada). Requiere database/scripts/151, 152, 154, 155 y 156.
 
 Unidades de medida, configuración estética del servicio (unidad + herramienta punto/área), plantilla de consentimiento por servicio, sesiones con capas por servicio y marcas, fotos y un consentimiento firmado por servicio (binarios en Drive; una firma se puede reutilizar).
 

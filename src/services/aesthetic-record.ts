@@ -153,6 +153,17 @@ export async function deleteMeasurementUnit(id: string): Promise<{ deactivated: 
   return { deactivated: data?.deactivated === true };
 }
 
+/** Unit of measure of every service that has one, by service id */
+export async function fetchServiceUnits(): Promise<Map<string, string>> {
+  const data = unwrap<{ units?: Record<string, unknown>[] }>(await api.get(API_ROUTES.MEASUREMENT_UNITS.SERVICE_UNITS));
+  return new Map((data?.units ?? []).filter((u) => u.unit_id != null).map((u) => [String(u.service_id), String(u.unit_id)]));
+}
+
+/** Sets (or clears, with `null`) the service's unit; separate from the service upsert, which doesn't carry it */
+export async function saveServiceUnit(serviceId: string, unitId: string | null): Promise<void> {
+  await api.post(API_ROUTES.MEASUREMENT_UNITS.SERVICE_UNIT_SAVE, { service_id: Number(serviceId), unit_id: unitId ? Number(unitId) : null });
+}
+
 export async function fetchServiceAestheticConfigs(): Promise<ServiceAestheticConfig[]> {
   const data = unwrap<{ configs?: Record<string, unknown>[] }>(await api.get(API_ROUTES.AESTHETIC_RECORD.SERVICE_CONFIGS));
   return (data?.configs ?? []).map((c) => ({

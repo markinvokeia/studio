@@ -575,5 +575,8 @@ export const API_ROUTES = {
         LIST:   '/measurement-units',
         SAVE:   '/measurement-units/save',
         DELETE: '/measurement-units/delete',
+        /** Unit of each service (service_catalog.unit_id) */
+        SERVICE_UNITS: '/services/units',
+        SERVICE_UNIT_SAVE: '/services/unit/save',
     },
 };

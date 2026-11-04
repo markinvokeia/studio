@@ -2,7 +2,7 @@
   "name": "Aesthetic Record",
   "nodes": [
     {
-      "id": "96c081a1-ce20-49a7-a011-682e1e549f46",
+      "id": "bdb56051-2ae4-449f-8675-4780be763725",
       "name": "Nota",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -13,7 +13,7 @@
       "parameters": {
         "width": 420,
         "height": 420,
-        "content": "## Aesthetic Record — ficha estética\n\nFlujo NUEVO (no reemplaza nada). Requiere database/scripts/151, 152, 154 y 155.\n\nUnidades de medida, configuración estética del servicio (unidad + herramienta punto/área), plantilla de consentimiento por servicio, sesiones con capas por servicio y marcas, fotos y un consentimiento firmado por servicio (binarios en Drive; una firma se puede reutilizar).\n\nErrores: 'AESTHETIC:<CODIGO>|<detalle>' ⇒ 400 { success:false, code, detail }.\n\nGenerado por scripts/n8n/generate-aesthetic-record-workflow.mjs — no editar a mano."
+        "content": "## Aesthetic Record — ficha estética\n\nFlujo NUEVO (no reemplaza nada). Requiere database/scripts/151, 152, 154, 155 y 156.\n\nUnidades de medida, configuración estética del servicio (unidad + herramienta punto/área), plantilla de consentimiento por servicio, sesiones con capas por servicio y marcas, fotos y un consentimiento firmado por servicio (binarios en Drive; una firma se puede reutilizar).\n\nErrores: 'AESTHETIC:<CODIGO>|<detalle>' ⇒ 400 { success:false, code, detail }.\n\nGenerado por scripts/n8n/generate-aesthetic-record-workflow.mjs — no editar a mano."
       }
     },
     {
@@ -23,7 +23,7 @@
       "parameters": {
         "jsCode": "// Las funciones lanzan 'AESTHETIC:<CODIGO>|<detalle>'. Cualquier otro error\n// (conexión, constraint inesperada) sale como UNKNOWN con el mensaje crudo.\nconst raw = $json.error?.message ?? $json.error ?? $json.message ?? '';\nconst text = String(raw);\nconst match = text.match(/AESTHETIC:([A-Z_]+)(?:\\|(.*))?/);\nreturn [{ json: {\n  success: false,\n  code: match ? match[1] : 'UNKNOWN',\n  detail: match && match[2] ? match[2].trim() : null,\n  message: text || 'Error',\n} }];"
       },
-      "id": "52655cac-12aa-4ec4-892d-91fd297d5cf4",
+      "id": "200b1e4e-b9e6-4628-9011-8d243915ccc8",
       "position": [
         1400,
         1400
@@ -40,7 +40,7 @@
           "responseCode": 400
         }
       },
-      "id": "a3effddb-44ba-4f44-9da4-ba61d4e35c54",
+      "id": "d8359561-820f-4d82-b547-09144f56d8a1",
       "position": [
         1640,
         1400
@@ -50,7 +50,7 @@
       "name": "GET measurement-units",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "f42a4171-98aa-42b0-ac94-8438b174f861",
+      "webhookId": "5c72cc0a-6772-40eb-b7d0-4f8367f712ea",
       "parameters": {
         "path": "measurement-units",
         "authentication": "jwtAuth",
@@ -65,7 +65,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "285ecc6a-293a-4af1-a6d3-3813208bf953",
+      "id": "0d74009f-0f85-4178-886f-5e44f8f88879",
       "position": [
         0,
         0
@@ -88,7 +88,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "c78af3e6-22d7-4c9b-8a3a-3605d43ba19a",
+      "id": "c56a492c-c5af-4c33-973f-57f31b19fdda",
       "position": [
         240,
         0
@@ -105,7 +105,7 @@
           "responseCode": 200
         }
       },
-      "id": "88637371-59be-44b9-8354-49c76f1561ff",
+      "id": "54240f38-83be-474e-9232-cbf7f693b66f",
       "position": [
         480,
         0
@@ -115,7 +115,7 @@
       "name": "POST measurement-units/save",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "26c2607c-ab76-4a16-92f3-b5fa48255242",
+      "webhookId": "48cef59b-b67d-4a87-9f84-b69b684191d9",
       "parameters": {
         "httpMethod": "POST",
         "path": "measurement-units/save",
@@ -131,7 +131,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "220ba9a0-4a79-45c6-a9e1-563d66adc6df",
+      "id": "ae6f1007-0d36-436b-b941-8d71bb71397c",
       "position": [
         0,
         220
@@ -156,7 +156,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "7922030d-41aa-4994-b74c-da52b6c41b1f",
+      "id": "ccb34c0f-f600-418b-a31b-4d6d763de2cc",
       "position": [
         240,
         220
@@ -173,7 +173,7 @@
           "responseCode": 200
         }
       },
-      "id": "4183d573-ca50-4157-8b55-9692cc5e4fc6",
+      "id": "116f1444-a78f-4162-a304-fc2ae981eec6",
       "position": [
         480,
         220
@@ -183,7 +183,7 @@
       "name": "POST measurement-units/delete",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "22895c66-b1d0-4cd3-ae73-c33b44a7c29f",
+      "webhookId": "ba2f91d4-8441-479e-a9bd-22d52b11d47f",
       "parameters": {
         "httpMethod": "POST",
         "path": "measurement-units/delete",
@@ -199,7 +199,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "dd30cab5-bbae-424b-a51e-4ed8529d7f6e",
+      "id": "7d12f0a8-0f45-47ee-8d7c-093e86333a5d",
       "position": [
         0,
         440
@@ -224,7 +224,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "23a852ad-3be9-4b6f-833f-aa03573f96d6",
+      "id": "5841e443-231b-4939-ae53-49d4bc2b5feb",
       "position": [
         240,
         440
@@ -241,17 +241,150 @@
           "responseCode": 200
         }
       },
-      "id": "173f5673-27f3-4f31-b758-c2d484f60cd4",
+      "id": "23323df9-eaea-461d-9297-15ee3b83b52a",
       "position": [
         480,
         440
       ]
     },
     {
+      "name": "GET services/units",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "f2388057-5d6d-4b7b-9e8a-d97759edbf05",
+      "parameters": {
+        "path": "services/units",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "id": "fd015086-e620-4ed3-83dc-6a312aae6174",
+      "position": [
+        0,
+        660
+      ]
+    },
+    {
+      "name": "GET services/units · SQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.service_units_list();",
+        "options": {}
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput",
+      "id": "b8e01121-8651-40aa-b0a1-7c9203987a29",
+      "position": [
+        240,
+        660
+      ]
+    },
+    {
+      "name": "GET services/units · OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, units: $input.all().map(i => i.json).filter(u => u.service_id != null) } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "2e1816ba-066e-4811-92bb-8a4561c33d58",
+      "position": [
+        480,
+        660
+      ]
+    },
+    {
+      "name": "POST services/unit/save",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "beef166a-eb1d-4d00-b755-aadd1157771a",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "services/unit/save",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "id": "3842f2a9-6030-4c7c-b86e-c41be29ac763",
+      "position": [
+        0,
+        880
+      ]
+    },
+    {
+      "name": "POST services/unit/save · SQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.service_unit_save(NULLIF($1, '')::integer, NULLIF($2, '')::integer);",
+        "options": {
+          "queryReplacement": "={{ [String($json.body.service_id ?? \"\"), $json.body.unit_id == null ? \"\" : String($json.body.unit_id)] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "onError": "continueErrorOutput",
+      "id": "f78af8f3-c3ad-4a65-87a3-e91d5ee0930d",
+      "position": [
+        240,
+        880
+      ]
+    },
+    {
+      "name": "POST services/unit/save · OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, ...$json } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "043992f3-300c-406f-9f03-29f2143cbe1a",
+      "position": [
+        480,
+        880
+      ]
+    },
+    {
       "name": "GET services/aesthetic-config",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "15920ecb-baf8-4175-a2cd-014be8f08daa",
+      "webhookId": "b4396822-5f39-41e2-bd0b-5b7eb47f3977",
       "parameters": {
         "path": "services/aesthetic-config",
         "authentication": "jwtAuth",
@@ -266,10 +399,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "5f4fa2cd-fa32-47b8-b2be-3279e813af6d",
+      "id": "ad89ed68-bfbe-4fae-8747-93824a485e82",
       "position": [
         0,
-        660
+        1100
       ]
     },
     {
@@ -289,10 +422,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "276f4626-98fb-44cf-a764-49236a2ac8cf",
+      "id": "c88f5ebb-fa43-4c28-8dee-43d35a9cdd5a",
       "position": [
         240,
-        660
+        1100
       ]
     },
     {
@@ -306,17 +439,17 @@
           "responseCode": 200
         }
       },
-      "id": "10be2aa0-2ea7-4586-a424-934bf4c2e4b9",
+      "id": "275464c9-f064-4403-87f2-090361fe6241",
       "position": [
         480,
-        660
+        1100
       ]
     },
     {
       "name": "POST services/aesthetic-config/save",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "525a706f-ea8e-45e7-9141-e494eeba6dbb",
+      "webhookId": "cace4f5f-070a-43a9-b181-249ed076f670",
       "parameters": {
         "httpMethod": "POST",
         "path": "services/aesthetic-config/save",
@@ -332,10 +465,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "ccaffa8f-0fe5-4dc0-95f4-a529e5deccd7",
+      "id": "c862104d-15bb-4dbb-815a-b7a5260613aa",
       "position": [
         0,
-        880
+        1320
       ]
     },
     {
@@ -357,10 +490,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "c82aec5f-c988-40b3-a405-47e8bbe3ed23",
+      "id": "feeb5df1-4e56-4370-b421-647d765ab64e",
       "position": [
         240,
-        880
+        1320
       ]
     },
     {
@@ -374,17 +507,17 @@
           "responseCode": 200
         }
       },
-      "id": "3a3e8ef5-e865-456c-9227-7b38dca7be50",
+      "id": "6e7785a9-cf1d-440e-9443-1e298d333401",
       "position": [
         480,
-        880
+        1320
       ]
     },
     {
       "name": "GET services/consent-templates",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "e8e3e5f3-fd8a-4266-b5bf-3c1b69d097b4",
+      "webhookId": "9409d8f9-114d-4384-a0e6-3386541499b6",
       "parameters": {
         "path": "services/consent-templates",
         "authentication": "jwtAuth",
@@ -399,10 +532,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "a0290136-9f4a-4e70-8b8c-fd0a9d57625e",
+      "id": "ac68ae85-437a-4a01-9eaf-56066f385650",
       "position": [
         0,
-        1100
+        1540
       ]
     },
     {
@@ -422,10 +555,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "92b6855b-2c0d-4ac1-b8da-40ae0c4c169a",
+      "id": "ff73c36f-3608-46c5-9f19-ba68dfb1a7c7",
       "position": [
         240,
-        1100
+        1540
       ]
     },
     {
@@ -439,17 +572,17 @@
           "responseCode": 200
         }
       },
-      "id": "1c6ef560-632a-4829-a709-9c5d70885b37",
+      "id": "ec2c4a6e-2d31-4eba-ad89-911b8016d339",
       "position": [
         480,
-        1100
+        1540
       ]
     },
     {
       "name": "POST services/consent-templates/save",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "e881b821-a68d-4b5f-a224-0ecab73f3c6a",
+      "webhookId": "8de99bcf-1cfa-4618-8662-c14b3c7bf3d5",
       "parameters": {
         "httpMethod": "POST",
         "path": "services/consent-templates/save",
@@ -465,10 +598,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "8f106a8d-f695-447c-b000-0dde39453196",
+      "id": "972f0312-7d24-4f6e-98a4-28c977b00ece",
       "position": [
         0,
-        1320
+        1760
       ]
     },
     {
@@ -490,10 +623,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "4ef13f85-80b6-44ae-bdb7-f177b916b9e9",
+      "id": "31123adf-14e5-49d3-bd44-4303b8e82ded",
       "position": [
         240,
-        1320
+        1760
       ]
     },
     {
@@ -507,17 +640,17 @@
           "responseCode": 200
         }
       },
-      "id": "85a263ab-f66a-4785-9429-cca09fcfa4fd",
+      "id": "13bf2ba7-661e-4ff8-acab-a070e31b1fb9",
       "position": [
         480,
-        1320
+        1760
       ]
     },
     {
       "name": "GET aesthetic/sessions",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "b92840c7-f448-4b53-b949-acf59a0dffd5",
+      "webhookId": "811d068f-675e-46df-9bda-cdf542df76f9",
       "parameters": {
         "path": "aesthetic/sessions",
         "authentication": "jwtAuth",
@@ -532,10 +665,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "af40d6f6-dc9d-4015-b910-9128946c0548",
+      "id": "a0aeb1c4-2771-4e55-b596-51b15bc9bacd",
       "position": [
         0,
-        1540
+        1980
       ]
     },
     {
@@ -557,10 +690,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "54ba56b6-690c-48df-a9d1-ef04ef648e0b",
+      "id": "04ceb012-d00a-4063-a56b-6e38d3fcee84",
       "position": [
         240,
-        1540
+        1980
       ]
     },
     {
@@ -574,17 +707,17 @@
           "responseCode": 200
         }
       },
-      "id": "1b4164d2-2616-475a-af36-1562a7bb5d1a",
+      "id": "09d329d9-6149-4d36-99d1-ceb4364e9381",
       "position": [
         480,
-        1540
+        1980
       ]
     },
     {
       "name": "POST aesthetic/sessions/save",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "69aebec2-744d-4270-8933-e1e66e54957c",
+      "webhookId": "498b805d-9230-413f-b16d-edaa3e034e2b",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/sessions/save",
@@ -600,10 +733,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "3abb1ce8-2e83-4557-812f-8a16a622e099",
+      "id": "d0ea30be-ee35-44f3-af01-ca4c082f226a",
       "position": [
         0,
-        1760
+        2200
       ]
     },
     {
@@ -625,10 +758,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "5cffb28e-6993-46ba-97bd-b7f821377731",
+      "id": "c77fa3b3-b821-4aca-ade6-6c7d41163bc6",
       "position": [
         240,
-        1760
+        2200
       ]
     },
     {
@@ -642,17 +775,17 @@
           "responseCode": 200
         }
       },
-      "id": "e265cdd2-a233-4851-a815-09f75d704a18",
+      "id": "8071d849-4678-458d-8bd3-005e39123ed9",
       "position": [
         480,
-        1760
+        2200
       ]
     },
     {
       "name": "POST aesthetic/sessions/delete",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "93068225-3f3b-49ab-823f-7836ec6696fc",
+      "webhookId": "df900583-4eea-48fd-a549-e3b636c35050",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/sessions/delete",
@@ -668,10 +801,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "621192d0-4365-4cdc-8177-21f33521614a",
+      "id": "2a10c2a8-c9b0-4edd-b912-3e62fc51ad21",
       "position": [
         0,
-        1980
+        2420
       ]
     },
     {
@@ -693,10 +826,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "f5635fb3-7243-4859-8042-1e713ea8c575",
+      "id": "ea7355b0-e199-4cf4-ac05-3e353167c92d",
       "position": [
         240,
-        1980
+        2420
       ]
     },
     {
@@ -710,17 +843,17 @@
           "responseCode": 200
         }
       },
-      "id": "eaf96725-eb21-42cf-aeb9-da335147f89a",
+      "id": "a7c9dfc0-9642-4778-922d-b47b26492c9e",
       "position": [
         480,
-        1980
+        2420
       ]
     },
     {
       "name": "POST aesthetic/sessions/close",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "8ef8cb7d-b2ac-43e7-ad0d-178d8e0d6bd1",
+      "webhookId": "f03421a9-878c-493b-a831-62d84ef626ad",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/sessions/close",
@@ -736,10 +869,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "7d4b4456-2eb1-4917-a459-e70b4dc14835",
+      "id": "48ee362b-9a72-4248-ac1b-43a0721fc0cb",
       "position": [
         0,
-        2200
+        2640
       ]
     },
     {
@@ -761,10 +894,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "89eee75c-414e-4ab9-bc68-c13f05f8aee2",
+      "id": "9eaa68d9-fb5a-4e65-adb9-eae82baf3768",
       "position": [
         240,
-        2200
+        2640
       ]
     },
     {
@@ -778,17 +911,17 @@
           "responseCode": 200
         }
       },
-      "id": "69536f98-fd54-4f3b-9c80-daabe78f20ef",
+      "id": "b3faa76d-105c-492b-ac13-c1fc593d8d35",
       "position": [
         480,
-        2200
+        2640
       ]
     },
     {
       "name": "POST aesthetic/sessions/void",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "152bf052-130a-4b6f-bbc4-388aba23af8f",
+      "webhookId": "a9d9273b-bb93-42fa-ac4b-3b73ddaf03fc",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/sessions/void",
@@ -804,10 +937,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "c5ab5fac-be99-4baf-92b1-398df1cad28d",
+      "id": "e05d83e1-3169-4a93-9d90-3772805b5df2",
       "position": [
         0,
-        2420
+        2860
       ]
     },
     {
@@ -829,10 +962,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "95aede9a-383a-416d-8bc4-f9119d7002ac",
+      "id": "4040bf6d-04b5-4e5c-96da-33e701742d7f",
       "position": [
         240,
-        2420
+        2860
       ]
     },
     {
@@ -846,17 +979,17 @@
           "responseCode": 200
         }
       },
-      "id": "79ec1aef-899c-46af-b16e-ba42a9633a5c",
+      "id": "6ad2f669-94ee-4fd8-9369-48cf3402d0c3",
       "position": [
         480,
-        2420
+        2860
       ]
     },
     {
       "name": "POST aesthetic/notes/add",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "70f3e762-eb9a-4287-bda9-435d85108465",
+      "webhookId": "518d81cd-5c4c-4e66-8d19-4f63162da219",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/notes/add",
@@ -872,10 +1005,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "948eff5d-ae22-4409-a44b-a2be8cb467f9",
+      "id": "e9dd6147-8308-4fbf-96db-9c55967be5af",
       "position": [
         0,
-        2640
+        3080
       ]
     },
     {
@@ -897,10 +1030,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "6c246270-1ec1-4a62-bd80-83bc64bc1171",
+      "id": "dc3a9be7-0375-4335-b4a5-1a2818fd2c99",
       "position": [
         240,
-        2640
+        3080
       ]
     },
     {
@@ -914,17 +1047,17 @@
           "responseCode": 200
         }
       },
-      "id": "069a285a-45ad-4048-8374-13a87db49882",
+      "id": "4f571502-9b21-4951-a60d-7023181961c0",
       "position": [
         480,
-        2640
+        3080
       ]
     },
     {
       "name": "POST aesthetic/photos/alignment",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "759acd6c-81da-403a-aa26-251f8b046271",
+      "webhookId": "84b22c65-8681-474f-960c-084666813449",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/photos/alignment",
@@ -940,10 +1073,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "08ea6475-6be2-4afe-8999-2922f37c2acb",
+      "id": "d51f8f55-f772-440d-a841-fa724977cad2",
       "position": [
         0,
-        2860
+        3300
       ]
     },
     {
@@ -965,10 +1098,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "b97220a6-5f05-405d-a840-f57aa96dc17f",
+      "id": "7a5f26ba-9111-4375-845e-7b62dd8df2df",
       "position": [
         240,
-        2860
+        3300
       ]
     },
     {
@@ -982,17 +1115,17 @@
           "responseCode": 200
         }
       },
-      "id": "ecdf4174-402c-4c34-a79b-ab74ac6420e9",
+      "id": "38d5d2d4-fc42-471e-a8d7-07ce215cf2ce",
       "position": [
         480,
-        2860
+        3300
       ]
     },
     {
       "name": "POST aesthetic/photos/upload",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "7e1a013d-da32-4a4e-b8b2-7d8e292051fb",
+      "webhookId": "bf2f0981-7909-4197-a7aa-ec6de06489f0",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/photos/upload",
@@ -1010,10 +1143,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "2f826939-ae2b-4026-b22c-09902dde8527",
+      "id": "11e2e2eb-0cd7-4a83-9793-35c131277356",
       "position": [
         0,
-        3080
+        3520
       ]
     },
     {
@@ -1024,10 +1157,10 @@
         "jsCode": "const item = $('POST aesthetic/photos/upload').first();\nconst body = item.json.body ?? {};\nconst binary = item.binary?.data0 ?? item.binary?.data;\nif (!binary) throw new Error('AESTHETIC:FILE_REQUIRED|');\nconst sessionId = String(body.session_id ?? '').trim();\nif (!/^[0-9]+$/.test(sessionId)) throw new Error('AESTHETIC:SESSION_NOT_FOUND|' + sessionId);\nconst kind = String(body.kind ?? '');\nif (!['before', 'after'].includes(kind)) throw new Error('AESTHETIC:INVALID_PHOTO_KIND|' + kind);\nif (!/^image\\/(jpeg|png|webp|heic|heif)$/.test(binary.mimeType ?? '')) throw new Error('AESTHETIC:INVALID_FILE_TYPE|' + binary.mimeType);\nreturn [{\n  json: {\n    session_id: sessionId,\n    kind,\n    view: String(body.view ?? 'front'),\n    source: ['camera', 'upload', 'qr'].includes(String(body.source ?? '')) ? String(body.source) : 'upload',\n    alignment: body.alignment ? String(body.alignment) : '',\n    file_name: binary.fileName ?? 'foto',\n    mime_type: binary.mimeType,\n  },\n  binary: { file: binary },\n}];"
       },
       "onError": "continueErrorOutput",
-      "id": "16adb0f3-cbf6-4e25-871c-b35dc2b577b1",
+      "id": "200a1557-2950-4bed-ad60-85da95bfc4b3",
       "position": [
         240,
-        3080
+        3520
       ]
     },
     {
@@ -1057,10 +1190,10 @@
           "name": "Google Drive account 2"
         }
       },
-      "id": "aca5e758-277a-4de9-b0f1-4ca6e2023589",
+      "id": "54fdeb9c-f1b1-465c-9591-ae24a550c72a",
       "position": [
         480,
-        3080
+        3520
       ]
     },
     {
@@ -1082,10 +1215,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "3d4c7464-d381-4ef6-a9cc-33289829a9eb",
+      "id": "4ff80f13-4d83-402d-8a01-d6e173d6f380",
       "position": [
         720,
-        3080
+        3520
       ]
     },
     {
@@ -1099,17 +1232,17 @@
           "responseCode": 200
         }
       },
-      "id": "33d87bfc-4f0b-4187-82a6-a29d6cbcd7ac",
+      "id": "5f5368d7-fc65-4b4d-8430-4229248b9f8a",
       "position": [
         960,
-        3080
+        3520
       ]
     },
     {
       "name": "POST aesthetic/photos/delete",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "5cbcd0ea-626d-4e75-a38b-154265ffb695",
+      "webhookId": "15310d49-7ef1-4369-8cf4-c3d584882c77",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/photos/delete",
@@ -1125,10 +1258,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "c235620a-2d15-4ab1-a783-59957f8b69d0",
+      "id": "f143933c-95b1-4b6d-acb5-b3b186641df6",
       "position": [
         0,
-        3300
+        3740
       ]
     },
     {
@@ -1150,10 +1283,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "ed525c03-ebf5-459d-a289-77ee17057cd7",
+      "id": "0882dcf4-b39f-42ed-87ce-0af18a51aabf",
       "position": [
         240,
-        3300
+        3740
       ]
     },
     {
@@ -1170,7 +1303,7 @@
           },
           "conditions": [
             {
-              "id": "8960ae17-a5bc-4f46-ba80-a5cb1a430e86",
+              "id": "76da152d-9aee-45f4-b5e8-12e6b880ca8b",
               "operator": {
                 "type": "string",
                 "operation": "notEmpty",
@@ -1184,10 +1317,10 @@
         },
         "options": {}
       },
-      "id": "c3955b74-8b00-468f-97b9-e2a6960c7059",
+      "id": "8824f583-935d-4e0e-999c-b0b09cc5ff5b",
       "position": [
         480,
-        3300
+        3740
       ]
     },
     {
@@ -1210,10 +1343,10 @@
         }
       },
       "onError": "continueRegularOutput",
-      "id": "4de4a114-9877-4124-92ea-ed850c0abebe",
+      "id": "d043230a-004f-4647-b6ed-22454d6612f8",
       "position": [
         720,
-        3300
+        3740
       ]
     },
     {
@@ -1227,17 +1360,17 @@
           "responseCode": 200
         }
       },
-      "id": "620d152a-5c13-4f3d-b8d3-f3a5d54f5457",
+      "id": "e479a40c-d661-43a7-8d36-47d862a860a9",
       "position": [
         960,
-        3300
+        3740
       ]
     },
     {
       "name": "POST aesthetic/consents/sign",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "c4bd13f2-fd9c-4ad5-8c59-222869de5fc2",
+      "webhookId": "9d04e27b-1f34-493a-8a72-80136a2e7dc1",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/consents/sign",
@@ -1255,10 +1388,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "890c28c3-f751-473a-a0d7-7f15974d06b3",
+      "id": "1d17b9e5-a6a3-4013-aa04-2fa66253a009",
       "position": [
         0,
-        3520
+        3960
       ]
     },
     {
@@ -1269,10 +1402,10 @@
         "jsCode": "const item = $('POST aesthetic/consents/sign').first();\nconst body = item.json.body ?? {};\nconst binary = item.binary?.data0 ?? item.binary?.data;\nif (!binary) throw new Error('AESTHETIC:FILE_REQUIRED|');\nconst sessionId = String(body.session_id ?? '').trim();\nif (!/^[0-9]+$/.test(sessionId)) throw new Error('AESTHETIC:SESSION_NOT_FOUND|' + sessionId);\nlet signing;\ntry { signing = JSON.parse(body.signing ?? '{}'); } catch { throw new Error('AESTHETIC:INVALID_CONSENT|'); }\nif (!/^image\\/(png|jpeg|webp)$/.test(binary.mimeType ?? '')) throw new Error('AESTHETIC:INVALID_FILE_TYPE|' + binary.mimeType);\ndelete signing.reuseSignatureId;\nreturn [{\n  json: { session_id: sessionId, signing: JSON.stringify(signing), mime_type: binary.mimeType },\n  binary: { file: binary },\n}];"
       },
       "onError": "continueErrorOutput",
-      "id": "a855982a-e306-4aca-884d-4769cc30fa62",
+      "id": "da3544fa-7502-4af2-ab35-e2865b304b56",
       "position": [
         240,
-        3520
+        3960
       ]
     },
     {
@@ -1302,10 +1435,10 @@
           "name": "Google Drive account 2"
         }
       },
-      "id": "38f25800-f382-4e4b-ab46-8bc4beac8bad",
+      "id": "0fe1d801-b2eb-493e-9159-0e8e80c6ca0c",
       "position": [
         480,
-        3520
+        3960
       ]
     },
     {
@@ -1327,10 +1460,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "7afef675-c3f7-4cff-baa6-276cb7994acb",
+      "id": "346cc928-b6b5-4b8b-8ab9-b85a39731b76",
       "position": [
         720,
-        3520
+        3960
       ]
     },
     {
@@ -1344,17 +1477,17 @@
           "responseCode": 200
         }
       },
-      "id": "f0c0cef0-b4b2-46e4-9696-0e071b607c58",
+      "id": "6367e901-48c3-4ae3-a0f8-d10f4dcd327a",
       "position": [
         960,
-        3520
+        3960
       ]
     },
     {
       "name": "POST aesthetic/consents/reuse",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "4c8cc1a5-3e6d-41ba-b944-d9d6e082bb6a",
+      "webhookId": "73f1d0da-25f5-4178-8c8e-b16be29089c1",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/consents/reuse",
@@ -1370,10 +1503,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "e76005aa-f55d-4c6a-9e00-490dda2539e2",
+      "id": "338beba5-a8a5-404b-bde0-11a3f0b26391",
       "position": [
         0,
-        3740
+        4180
       ]
     },
     {
@@ -1395,10 +1528,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "cfd4c258-7ad3-4381-a5ca-d1a7eb70f8f7",
+      "id": "799b8bf1-3051-4394-b752-a087ec6583d2",
       "position": [
         240,
-        3740
+        4180
       ]
     },
     {
@@ -1412,17 +1545,17 @@
           "responseCode": 200
         }
       },
-      "id": "e8d872bd-ec95-422a-86b3-c3116d6a958e",
+      "id": "cf307557-c46e-4da8-9b24-2f2976e5bbf5",
       "position": [
         480,
-        3740
+        4180
       ]
     },
     {
       "name": "GET aesthetic/file",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "90d34aa5-8be8-4887-8bc1-1f1dfa3e48e1",
+      "webhookId": "1ff384a9-6cb5-44ac-902c-2269562a4ebc",
       "parameters": {
         "path": "aesthetic/file",
         "authentication": "jwtAuth",
@@ -1437,10 +1570,10 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "5aba305c-8c51-4c16-9d86-84da441be00d",
+      "id": "ca3601f9-db6a-40b2-9680-d0a371cea71f",
       "position": [
         0,
-        3960
+        4400
       ]
     },
     {
@@ -1462,10 +1595,10 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "ff78a3a0-e50d-4229-bc61-0ca19a5795be",
+      "id": "6f2dfbee-1b62-4ed7-bd7d-cf4e65ae6922",
       "position": [
         240,
-        3960
+        4400
       ]
     },
     {
@@ -1482,7 +1615,7 @@
           },
           "conditions": [
             {
-              "id": "6145ef10-572d-41d2-b4a8-8f2d883f2f09",
+              "id": "677fcd46-f728-4058-aeb4-89163d772ef9",
               "operator": {
                 "type": "string",
                 "operation": "notEmpty",
@@ -1496,10 +1629,10 @@
         },
         "options": {}
       },
-      "id": "54139f11-423c-47af-8016-500ede8162ad",
+      "id": "7e2ba74d-5760-4377-9817-2288cfad91f5",
       "position": [
         480,
-        3960
+        4400
       ]
     },
     {
@@ -1523,10 +1656,10 @@
           "name": "Google Drive account 2"
         }
       },
-      "id": "57f66e27-3e29-4d88-a5b3-1720d99a4524",
+      "id": "79c299dc-4252-46af-9d55-7b6c8753df33",
       "position": [
         720,
-        3960
+        4400
       ]
     },
     {
@@ -1541,10 +1674,10 @@
           "responseCode": 200
         }
       },
-      "id": "332ebc25-b44c-4b8e-96a5-86c281fc09f6",
+      "id": "9ff638e9-ab66-4c83-8c1a-c0502e2e4322",
       "position": [
         960,
-        3960
+        4400
       ]
     },
     {
@@ -1558,10 +1691,10 @@
           "responseCode": 404
         }
       },
-      "id": "b66f24c3-1103-4cc2-95a9-24ea4abaf6a9",
+      "id": "75f4f335-9596-4c55-a100-96132e170884",
       "position": [
         720,
-        4080
+        4520
       ]
     }
   ],
@@ -1651,6 +1784,64 @@
         [
           {
             "node": "POST measurement-units/delete · OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET services/units": {
+      "main": [
+        [
+          {
+            "node": "GET services/units · SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET services/units · SQL": {
+      "main": [
+        [
+          {
+            "node": "GET services/units · OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST services/unit/save": {
+      "main": [
+        [
+          {
+            "node": "POST services/unit/save · SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST services/unit/save · SQL": {
+      "main": [
+        [
+          {
+            "node": "POST services/unit/save · OK",
             "type": "main",
             "index": 0
           }

@@ -3795,7 +3795,9 @@
       "imagePendingTitle": "Service created, image was not",
       "imagePendingDescription": "Open the service from the list and upload the image from there.",
       "bookableOnlineFailedTitle": "Couldn't change online booking",
-      "bookableOnlineFailedDescription": "The service was saved, but the patient self-booking option stayed as it was. Please try again."
+      "bookableOnlineFailedDescription": "The service was saved, but the patient self-booking option stayed as it was. Please try again.",
+      "extrasFailedTitle": "The service was saved, but not its unit or its aesthetic setup",
+      "extrasPendingDescription": "Open the service in the list and pick the unit again, or mark it as an aesthetic service."
     },
     "validation": {
       "categoryRequired": "Category is required.",
@@ -3803,12 +3805,27 @@
       "durationInteger": "Duration must be an integer.",
       "nameRequired": "Name is required.",
       "priceNonNegative": "Price cannot be negative.",
-      "pricePositive": "Price must be positive."
+      "pricePositive": "Price must be positive.",
+      "unitRequiredForAesthetic": "An aesthetic service needs a unit of measure."
     },
     "tabs": {
       "details": "Detalles",
       "info": "Info",
-      "steps": "Steps"
+      "steps": "Steps",
+      "aesthetic": "Aesthetics"
+    },
+    "unit": {
+      "label": "Unit of measure",
+      "placeholder": "No unit",
+      "search": "Search unit…",
+      "empty": "There are no units. Create them in Clinic catalog → Units of measure.",
+      "clear": "Remove unit",
+      "help": "What applying or selling this service is measured in (U, ml, mg…)."
+    },
+    "aesthetic": {
+      "label": "Aesthetic service",
+      "description": "It is recorded on the patient's aesthetic record. Enables the Aesthetics tab to set up marking and consent.",
+      "turningOff": "When saved, the service stops showing on the aesthetic record. Sessions already recorded do not change."
     }
   },
   "ServicesColumns": {
@@ -10497,7 +10514,7 @@
     },
     "serviceConfig": {
       "title": "Aesthetic record",
-      "description": "Marked on the patient’s aesthetic record, with its unit and its tool.",
+      "description": "How it is marked on the patient's aesthetic record: tool, default dose, limits, next visit and aftercare.",
       "unit": "Measurement unit",
       "unitPick": "Pick a unit",
       "noUnits": "There are no active units. Create them in Clinic Catalog → Measurement Units.",
@@ -10525,7 +10542,9 @@
       "followUpLabelPlaceholder": "E.g. Toxin check-up",
       "aftercare": "Aftercare instructions",
       "aftercarePlaceholder": "What is sent to the patient when the session is closed…",
-      "limitsHint": "The maximum and the interval warn while marking; they don't block."
+      "limitsHint": "The maximum and the interval warn while marking; they don't block.",
+      "unitMissing": "Pick the service's unit of measure in the Details tab: the aesthetic record records doses with it.",
+      "notSavedYet": "Not saved yet: save so the service shows on the aesthetic record."
     },
     "consentTemplate": {
       "title": "Informed consent",

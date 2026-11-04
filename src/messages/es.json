@@ -3795,7 +3795,9 @@
       "imagePendingTitle": "El servicio se creó, pero la imagen no",
       "imagePendingDescription": "Abrí el servicio en el listado y subí la imagen desde ahí.",
       "bookableOnlineFailedTitle": "No se pudo cambiar la agenda online",
-      "bookableOnlineFailedDescription": "El servicio se guardó, pero la opción de que el paciente lo reserve quedó como estaba. Volvé a intentarlo."
+      "bookableOnlineFailedDescription": "El servicio se guardó, pero la opción de que el paciente lo reserve quedó como estaba. Volvé a intentarlo.",
+      "extrasFailedTitle": "El servicio se guardó, pero no su unidad o su configuración estética",
+      "extrasPendingDescription": "Abrí el servicio en el listado y volvé a elegir la unidad o marcalo como servicio de estética."
     },
     "validation": {
       "categoryRequired": "La categoría es obligatoria.",
@@ -3803,12 +3805,27 @@
       "durationInteger": "La duración debe ser un número entero.",
       "nameRequired": "El nombre es obligatorio.",
       "priceNonNegative": "El precio no puede ser negativo.",
-      "pricePositive": "El precio debe ser positivo."
+      "pricePositive": "El precio debe ser positivo.",
+      "unitRequiredForAesthetic": "Un servicio de estética necesita una unidad de medida."
     },
     "tabs": {
       "details": "Detalles",
       "info": "Info",
-      "steps": "Pasos"
+      "steps": "Pasos",
+      "aesthetic": "Estética"
+    },
+    "unit": {
+      "label": "Unidad de medida",
+      "placeholder": "Sin unidad",
+      "search": "Buscar unidad…",
+      "empty": "No hay unidades. Crealas en Catálogo de la clínica → Unidades de medida.",
+      "clear": "Quitar unidad",
+      "help": "En qué se mide lo que se aplica o se vende de este servicio (U, ml, mg…)."
+    },
+    "aesthetic": {
+      "label": "Servicio de estética",
+      "description": "Se registra en la ficha estética del paciente. Habilita la pestaña Estética para configurar el marcado y el consentimiento.",
+      "turningOff": "Al guardar, el servicio deja de aparecer en la ficha estética. Las sesiones ya registradas no cambian."
     }
   },
   "ServicesColumns": {
@@ -10497,7 +10514,7 @@
     },
     "serviceConfig": {
       "title": "Ficha estética",
-      "description": "Se marca en la ficha estética del paciente, con su unidad y su herramienta.",
+      "description": "Cómo se marca en la ficha estética del paciente: herramienta, dosis por defecto, límites, próxima cita e indicaciones.",
       "unit": "Unidad de medida",
       "unitPick": "Elegí una unidad",
       "noUnits": "No hay unidades activas. Creálas en Catálogo de la Clínica → Unidades de medida.",
@@ -10525,7 +10542,9 @@
       "followUpLabelPlaceholder": "Ej.: Control de toxina",
       "aftercare": "Indicaciones posteriores",
       "aftercarePlaceholder": "Lo que se le envía a la paciente al cerrar la sesión…",
-      "limitsHint": "El máximo y el intervalo avisan durante el marcado, no bloquean."
+      "limitsHint": "El máximo y el intervalo avisan durante el marcado, no bloquean.",
+      "unitMissing": "Elegí la unidad de medida del servicio en la pestaña Detalles: la ficha estética registra las dosis con ella.",
+      "notSavedYet": "Todavía no está guardado: guardá para que el servicio aparezca en la ficha estética."
     },
     "consentTemplate": {
       "title": "Consentimiento informado",

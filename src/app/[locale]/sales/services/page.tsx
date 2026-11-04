@@ -44,8 +44,17 @@ import * as z from 'zod';
 import { ServicesColumnsWrapper } from './columns';
 import { useDebounce } from '@/hooks/use-debounce';
 import { ServiceImageUploader, uploadPendingServiceImage } from '@/components/services/service-image-uploader';
-import { ServiceAestheticConfigPanel } from '@/components/services/service-aesthetic-config';
-import { ServiceConsentTemplatePanel } from '@/components/services/service-consent-template';
+import { ServiceAestheticTab } from '@/components/services/service-aesthetic-config';
+import { MeasurementUnitSelect } from '@/components/ui/measurement-unit-select';
+import {
+  fetchMeasurementUnits,
+  fetchServiceAestheticConfigs,
+  fetchServiceUnits,
+  saveServiceAestheticConfig,
+  saveServiceUnit,
+  type ServiceAestheticConfigInput,
+} from '@/services/aesthetic-record';
+import type { MeasurementUnit } from '@/lib/types';
 
 import { setServiceBookableOnline } from '@/services/services';
 
@@ -77,7 +86,22 @@ const serviceFormSchema = (t: (key: string) => string) => z.object({
     duration_minutes: z.coerce.number().int().positive(),
     notes: z.string().optional(),
   })).optional(),
-});
+  // Neither goes in the service upsert: each one is saved with its own call after it
+  unit_id: z.string().nullable().default(null),
+  is_aesthetic: z.boolean().default(false),
+}).refine((v) => !v.is_aesthetic || !!v.unit_id, { path: ['unit_id'], message: t('unitRequiredForAesthetic') });
+
+/** Aesthetic configuration a service starts with when it is marked as aesthetic; the rest is set in its tab */
+const DEFAULT_AESTHETIC_CONFIG: Omit<ServiceAestheticConfigInput, 'unitId'> = {
+  enabled: true,
+  markingTool: 'point',
+  defaultQuantity: null,
+  maxPerSession: null,
+  minIntervalDays: null,
+  followUpDays: null,
+  followUpLabel: '',
+  aftercare: '',
+};
 
 type ServiceFormValues = z.infer<ReturnType<typeof serviceFormSchema>>;
 
@@ -105,6 +129,8 @@ const defaultServiceFormValues = (): ServiceFormValues => ({
   bookable_online: false,
   service_type: 'single',
   treatment_steps: [],
+  unit_id: null,
+  is_aesthetic: false,
 });
 
 /** Filtro de estado del catálogo: 'all' no envía `is_active` al endpoint. */
@@ -160,7 +186,8 @@ async function upsertService(serviceData: ServiceFormValues, categories: Miscell
   // `bookable_online` se excluye a propósito: lo escribe su propio endpoint
   // (ver setServiceBookableOnline). Mandarlo acá además crearía dos escritores
   // de la misma columna, y este upsert no lo persiste.
-  const { bookable_online: _bookableOnline, ...payload } = serviceData;
+  // unit_id e is_aesthetic tampoco: tienen sus propios endpoints (services/unit/save, aesthetic-config/save).
+  const { bookable_online: _bookableOnline, unit_id: _unitId, is_aesthetic: _isAesthetic, ...payload } = serviceData;
   const responseData = await api.post(API_ROUTES.PURCHASES.SERVICES_UPSERT, { ...payload, category, is_sales: true });
   if (Array.isArray(responseData) && responseData.length > 0) {
     const firstItem = responseData[0];
@@ -197,7 +224,19 @@ async function deleteService(id: string) {
   return responseData;
 }
 
-function ServiceFormFields({ form, categories, onCategoryCreated, t, imageSlot }: { form: any; categories: MiscellaneousCategory[]; onCategoryCreated: (category: MiscellaneousCategory) => void; t: (key: string) => string; imageSlot?: React.ReactNode }) {
+function ServiceFormFields({ form, categories, onCategoryCreated, t, imageSlot, units, savedUnitId, aestheticSaved = false }: {
+  form: any;
+  categories: MiscellaneousCategory[];
+  onCategoryCreated: (category: MiscellaneousCategory) => void;
+  t: (key: string) => string;
+  imageSlot?: React.ReactNode;
+  units: MeasurementUnit[];
+  /** Unit stored for the service (kept in the list even if it was deactivated) */
+  savedUnitId?: string | null;
+  /** The service is aesthetic in the database: turning it off removes its configuration on save */
+  aestheticSaved?: boolean;
+}) {
+  const isAesthetic = form.watch('is_aesthetic');
   return (
     <>
       <div className="grid grid-cols-2 gap-3">
@@ -227,6 +266,26 @@ function ServiceFormFields({ form, categories, onCategoryCreated, t, imageSlot }
             <FormControl><CurrencySelect value={field.value} onChange={(v) => { if (v) field.onChange(v); }} placeholder={t('createDialog.selectCurrency')} /></FormControl><FormMessage /></FormItem>
         )} />
       </div>
+      {/* Unidad de medida del servicio: no es sólo de estética, la usan otros módulos */}
+      <FormField control={form.control} name="unit_id" render={({ field }) => (
+        <FormItem>
+          <FormLabel>{t('unit.label')}</FormLabel>
+          <FormControl>
+            <MeasurementUnitSelect
+              units={units}
+              value={field.value}
+              onChange={field.onChange}
+              savedUnitId={savedUnitId}
+              placeholder={t('unit.placeholder')}
+              searchPlaceholder={t('unit.search')}
+              emptyText={t('unit.empty')}
+              clearLabel={isAesthetic ? undefined : t('unit.clear')}
+            />
+          </FormControl>
+          <p className="text-xs text-muted-foreground">{t('unit.help')}</p>
+          <FormMessage />
+        </FormItem>
+      )} />
       <FormField control={form.control} name="description" render={({ field }) => (
         <FormItem><FormLabel>{t('createDialog.descriptionLabel')}</FormLabel><FormControl><Textarea placeholder={t('createDialog.descriptionPlaceholder')} className="resize-none" rows={2} {...field} /></FormControl><FormMessage /></FormItem>
       )} />
@@ -278,6 +337,23 @@ function ServiceFormFields({ form, categories, onCategoryCreated, t, imageSlot }
               }}
             />
           </FormControl>
+        </FormItem>
+      )} />
+      {/* Servicio de estética: habilita su pestaña (cómo se marca en la ficha estética y su consentimiento) */}
+      <FormField control={form.control} name="is_aesthetic" render={({ field }) => (
+        <FormItem className="flex flex-col gap-2 rounded-lg border p-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <FormLabel className="text-sm">{t('aesthetic.label')}</FormLabel>
+              <p className="text-xs text-muted-foreground">{t('aesthetic.description')}</p>
+            </div>
+            <FormControl>
+              <Switch checked={field.value} onCheckedChange={(v) => form.setValue('is_aesthetic', v, { shouldDirty: true, shouldValidate: form.formState.isSubmitted })} />
+            </FormControl>
+          </div>
+          {aestheticSaved && !field.value && (
+            <p className="text-xs text-amber-700 dark:text-amber-400">{t('aesthetic.turningOff')}</p>
+          )}
         </FormItem>
       )} />
     </>
@@ -785,6 +861,11 @@ export default function ServicesPage() {
    * antes de guardar porque el endpoint necesita el id del servicio.
    */
   const [pendingImage, setPendingImage] = React.useState<File | null>(null);
+  // Unidad de medida y servicios estéticos: no vienen en el listado de servicios, se leen aparte
+  const [units, setUnits] = React.useState<MeasurementUnit[]>([]);
+  const [serviceUnits, setServiceUnits] = React.useState<Map<string, string>>(() => new Map());
+  const [aestheticIds, setAestheticIds] = React.useState<Set<string>>(() => new Set());
+  const [extrasLoaded, setExtrasLoaded] = React.useState(false);
 
   const canCreate = hasPermission(SALES_PERMISSIONS.SERVICES_CREATE);
   const canUpdate = hasPermission(SALES_PERMISSIONS.SERVICES_UPDATE);
@@ -844,6 +925,26 @@ export default function ServicesPage() {
     getMiscellaneousCategories().then(setCategories);
   }, []);
 
+  // Units of measure, the unit of each service and which services are aesthetic
+  React.useEffect(() => {
+    let active = true;
+    Promise.allSettled([fetchMeasurementUnits(), fetchServiceUnits(), fetchServiceAestheticConfigs()]).then(([unitList, unitMap, configs]) => {
+      if (!active) return;
+      if (unitList.status === 'fulfilled') setUnits(unitList.value);
+      if (unitMap.status === 'fulfilled') setServiceUnits(unitMap.value);
+      if (configs.status === 'fulfilled') setAestheticIds(new Set(configs.value.map((c) => c.serviceId)));
+      setExtrasLoaded(true);
+    });
+    return () => { active = false; };
+  }, []);
+
+  // Selected before those loaded (deep link): fill in the two fields once they arrive
+  React.useEffect(() => {
+    if (!extrasLoaded || !selectedService) return;
+    if (!detailForm.getFieldState('unit_id').isDirty) detailForm.setValue('unit_id', serviceUnits.get(selectedService.id) ?? null);
+    if (!detailForm.getFieldState('is_aesthetic').isDirty) detailForm.setValue('is_aesthetic', aestheticIds.has(selectedService.id));
+  }, [extrasLoaded]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleCategoryCreated = React.useCallback((category: MiscellaneousCategory) => {
     setCategories(prev => [...prev, category]);
   }, []);
@@ -851,10 +952,8 @@ export default function ServicesPage() {
   // Populate detail form when selection changes (categories already loaded from mount)
   React.useEffect(() => {
     if (!selectedService) return;
-    // Reset tab immediately for non-workflow services
-    if ((selectedService.service_type || 'single') !== 'workflow') {
-      setActiveTab('details');
-    }
+    // A new service opens on its details
+    setActiveTab('details');
     // Prefer category_id from API; fall back to matching by name in case the API omits the id field
     const categoryId = selectedService.category_id
       || categories.find(c => c.name === selectedService.category)?.id
@@ -873,6 +972,8 @@ export default function ServicesPage() {
       bookable_online: selectedService.bookable_online ?? false,
       service_type: selectedService.service_type || 'single',
       treatment_steps: selectedService.treatment_steps || [],
+      unit_id: serviceUnits.get(selectedService.id) ?? null,
+      is_aesthetic: aestheticIds.has(selectedService.id),
     });
     setDetailError(null);
   }, [selectedService, categories]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -904,6 +1005,41 @@ export default function ServicesPage() {
     }
   };
 
+  /**
+   * Unit of measure and aesthetic flag of a saved service, each through its own endpoint. Turning
+   * aesthetic off goes first (a service can't lose its unit while it is aesthetic). Returns false
+   * when something didn't stick, after telling the user.
+   */
+  async function saveServiceExtras(serviceId: string, values: ServiceFormValues, before: { unitId: string | null; isAesthetic: boolean }): Promise<boolean> {
+    try {
+      if (before.isAesthetic && !values.is_aesthetic) {
+        await saveServiceAestheticConfig(serviceId, { ...DEFAULT_AESTHETIC_CONFIG, enabled: false });
+      }
+      if ((values.unit_id ?? null) !== before.unitId) {
+        await saveServiceUnit(serviceId, values.unit_id ?? null);
+      }
+      if (!before.isAesthetic && values.is_aesthetic) {
+        await saveServiceAestheticConfig(serviceId, { ...DEFAULT_AESTHETIC_CONFIG, unitId: values.unit_id ?? undefined });
+      }
+      setServiceUnits((prev) => {
+        const next = new Map(prev);
+        if (values.unit_id) next.set(serviceId, values.unit_id);
+        else next.delete(serviceId);
+        return next;
+      });
+      setAestheticIds((prev) => {
+        const next = new Set(prev);
+        if (values.is_aesthetic) next.add(serviceId);
+        else next.delete(serviceId);
+        return next;
+      });
+      return true;
+    } catch (error) {
+      toast({ variant: 'destructive', title: t('toast.extrasFailedTitle'), description: error instanceof Error ? error.message : t('toast.genericError') });
+      return false;
+    }
+  }
+
   const onCreateSubmit = async (values: ServiceFormValues) => {
     setCreateError(null);
     try {
@@ -927,6 +1063,13 @@ export default function ServicesPage() {
           title: t('toast.bookableOnlineFailedTitle'),
           description: t('toast.bookableOnlineFailedDescription'),
         });
+      }
+
+      // Unidad de medida y estética también esperan al id
+      if (newId && (values.unit_id || values.is_aesthetic)) {
+        await saveServiceExtras(newId, values, { unitId: null, isAesthetic: false });
+      } else if (!newId && (values.unit_id || values.is_aesthetic)) {
+        toast({ variant: 'destructive', title: t('toast.extrasFailedTitle'), description: t('toast.extrasPendingDescription') });
       }
 
       // La imagen también espera al id. Si el backend no lo devolvió se avisa
@@ -966,6 +1109,13 @@ export default function ServicesPage() {
           variant: 'destructive',
           title: t('toast.bookableOnlineFailedTitle'),
           description: t('toast.bookableOnlineFailedDescription'),
+        });
+      }
+
+      if (values.id) {
+        await saveServiceExtras(values.id, values, {
+          unitId: serviceUnits.get(values.id) ?? null,
+          isAesthetic: aestheticIds.has(values.id),
         });
       }
 
@@ -1015,9 +1165,15 @@ export default function ServicesPage() {
   const watchedServiceType = detailForm.watch('service_type');
   React.useEffect(() => {
     if (watchedServiceType !== 'workflow') {
-      setActiveTab('details');
+      setActiveTab((tab) => (tab === 'steps' ? 'details' : tab));
     }
   }, [watchedServiceType]);
+
+  // Same for the aesthetic tab when the service stops being aesthetic
+  const watchedAesthetic = detailForm.watch('is_aesthetic');
+  React.useEffect(() => {
+    if (!watchedAesthetic) setActiveTab((tab) => (tab === 'aesthetic' ? 'details' : tab));
+  }, [watchedAesthetic]);
 
   useDeepLink<Service>({
     tabMap: { 'Detalles': 'details' },
@@ -1111,6 +1267,9 @@ export default function ServicesPage() {
                         {detailForm.watch('service_type') === 'workflow' && (
                           <TabsTrigger value="steps">{t('tabs.steps')}</TabsTrigger>
                         )}
+                        {watchedAesthetic && (
+                          <TabsTrigger value="aesthetic">{t('tabs.aesthetic')}</TabsTrigger>
+                        )}
                       </TabsList>
                       <div className="flex-1 overflow-auto mt-4">
                         <TabsContent value="details" className="m-0 space-y-3">
@@ -1131,14 +1290,10 @@ export default function ServicesPage() {
                                 <ServiceImageUploader serviceId={selectedService.id} canManage={canUpdate} />
                               </div>
                             }
+                            units={units}
+                            savedUnitId={serviceUnits.get(selectedService.id) ?? null}
+                            aestheticSaved={aestheticIds.has(selectedService.id)}
                           />
-                          {/* Saves with its own call: the service upsert doesn't carry it */}
-                          <div className="rounded-lg border p-3">
-                            <ServiceAestheticConfigPanel key={selectedService.id} serviceId={selectedService.id} canManage={canUpdate} />
-                          </div>
-                          <div className="rounded-lg border p-3">
-                            <ServiceConsentTemplatePanel key={selectedService.id} serviceId={selectedService.id} serviceName={selectedService.name} canManage={canUpdate} />
-                          </div>
                           {canUpdate && (
                             <div className="flex gap-2 pt-2">
                               <Button type="submit" disabled={isSavingDetail}>
@@ -1149,6 +1304,23 @@ export default function ServicesPage() {
                         </TabsContent>
                         <TabsContent value="steps" className="m-0 space-y-3">
                           <TreatmentStepsTab key={selectedService.id} serviceId={selectedService.id} t={t} />
+                        </TabsContent>
+                        {/* Se guarda con sus propias llamadas: el upsert del servicio no la lleva */}
+                        <TabsContent value="aesthetic" className="m-0 space-y-3">
+                          <ServiceAestheticTab
+                            key={selectedService.id}
+                            serviceId={selectedService.id}
+                            serviceName={selectedService.name}
+                            unitId={detailForm.watch('unit_id') ?? null}
+                            units={units}
+                            canManage={canUpdate}
+                            onSaved={() => {
+                              // Saving the tab makes it aesthetic (and stores the unit picked in Details)
+                              const unitId = detailForm.getValues('unit_id');
+                              setAestheticIds((prev) => new Set(prev).add(selectedService.id));
+                              if (unitId) setServiceUnits((prev) => new Map(prev).set(selectedService.id, unitId));
+                            }}
+                          />
                         </TabsContent>
                       </div>
                     </Tabs>
@@ -1193,6 +1365,7 @@ export default function ServicesPage() {
                       />
                     </div>
                   }
+                  units={units}
                 />
               </DialogBody>
               <DialogFooter>
