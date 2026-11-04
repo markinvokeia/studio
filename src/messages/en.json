@@ -10675,7 +10675,14 @@
         "partialHint": "You can already mark the signed services; the others stay locked.",
         "continueHint": "Continue is enabled once every picked service is signed.",
         "treatSigned": "Mark the signed ones",
-        "continue": "Continue to photos"
+        "continue": "Continue to photos",
+        "clinicalAllowed": "Clinical photos allowed",
+        "clinicalDeclined": "Clinical photos not allowed",
+        "marketingAllowed": "Marketing use allowed",
+        "marketingDeclined": "Marketing use not allowed",
+        "sessionPermissions": "This session's photo permissions: {permissions}.",
+        "reuseKeeps": "Using it keeps this session's permissions: {permissions}.",
+        "reuseInherits": "Using it gives the session that signature's permissions: {permissions}."
       },
       "photos": {
         "title": "Today's photos",
@@ -10689,6 +10696,8 @@
         "uploading": "Uploading…",
         "blockedTitle": "Photo authorization missing",
         "blockedHint": "The patient must authorize photos for their clinical record in the consent step. Without it the camera stays locked.",
+        "declinedTitle": "Clinical photos not authorized",
+        "declinedHint": "The signed consent does not authorize clinical photos, so the camera stays locked and the session can be closed without them.",
         "goToConsent": "Go to consent",
         "todayOf": "Today's photo · {view}",
         "ghostHint": "The camera shows the photo from {date} as a see-through guide, to repeat pose, distance and light.",
@@ -10849,6 +10858,8 @@
         "checks": {
           "consents": "Consents signed",
           "photos": "At least one photo of today",
+          "photosDeclined": "Photos not authorized in the consent",
+          "photosBodyOnly": "Photos not needed: body treatment only",
           "marks": "Every service with marks and quantity"
         },
         "ok": "Done",
@@ -11029,6 +11040,43 @@
           "remove": "Deletes this photo from today's session."
         }
       }
+    },
+    "errors": {
+      "generic": "The action couldn't be completed. Please try again.",
+      "sessionClosed": "This session is already closed: someone else closed it, or it was closed in another tab. It can no longer be changed.",
+      "sessionVoided": "This session has been voided: someone else voided it, or it was voided in another tab. It can no longer be changed.",
+      "sessionStateChanged": "This session's status has changed and this action no longer applies. Close the record and open it again.",
+      "unsavedLost": "Your latest changes weren't saved.",
+      "codes": {
+        "CONSENT_REQUIRED": "There are marks on a service without a signed consent. Sign the consent before marking.",
+        "CONSENT_SERVICES_REQUIRED": "Pick at least one service to sign its consent.",
+        "CONSENT_SERVICE_NOT_IN_SESSION": "One of the services being signed is no longer in this session. Check today's services.",
+        "CONSENT_TEXT_REQUIRED": "The consent text of one of the services is missing.",
+        "DATE_REQUIRED": "The session date is missing.",
+        "DUPLICATE_SERVICE_LAYER": "A service appears twice in this session. Remove the duplicate.",
+        "FILE_REQUIRED": "No file was received. Please try again.",
+        "INVALID_AREA": "One of the marked areas is not valid. Draw it again.",
+        "INVALID_CONSENT": "The consent data is not valid. Sign it again.",
+        "INVALID_FILE_TYPE": "That file type isn't supported. Use a JPG or PNG image.",
+        "INVALID_LINE": "One of the marked lines is not valid. Draw it again.",
+        "INVALID_NOTE_KIND": "That note type is not valid.",
+        "INVALID_PHOTO_KIND": "That photo type is not valid.",
+        "INVALID_TOOL": "The chosen marking tool is not valid.",
+        "NOTE_REQUIRED": "Write the text of the note.",
+        "NOT_READY_TO_CLOSE": "The session can't be closed yet. Check what is missing in the closing step.",
+        "PATIENT_REQUIRED": "The session's patient is missing.",
+        "PHOTO_NOT_FOUND": "That photo no longer exists. Someone else may have removed it.",
+        "SERVICE_NOT_FOUND": "That service no longer exists.",
+        "SESSION_NOT_FOUND": "This session no longer exists. Someone else may have deleted it.",
+        "SIGNATURE_NOT_FOUND": "The previous signature couldn't be found. Ask the patient to sign again.",
+        "SIGNER_REQUIRED": "The signer's name is missing.",
+        "UNIT_DUPLICATE_CODE": "A unit with that code already exists.",
+        "UNIT_INVALID_STEP": "The unit's step must be greater than zero.",
+        "UNIT_NOT_FOUND": "That unit of measure no longer exists.",
+        "UNIT_REQUIRED": "An aesthetic service needs a unit of measure.",
+        "UNIT_REQUIRED_FIELDS": "Fill in the unit's code, name and symbol.",
+        "VOID_REASON_REQUIRED": "Write the reason for voiding."
+      }
     }
   },
   "MeasurementUnitsPage": {
@@ -11071,6 +11119,7 @@
     "validation": {
       "codeRequired": "Enter a code",
       "codeFormat": "Only letters, numbers, hyphen and underscore",
+      "codeDuplicate": "A unit with this code already exists",
       "nameRequired": "Enter a name",
       "symbolRequired": "Enter a symbol",
       "stepInvalid": "Enter a number greater than 0"

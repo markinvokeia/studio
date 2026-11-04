@@ -10675,7 +10675,14 @@
         "partialHint": "Ya podés marcar los servicios firmados; los demás siguen bloqueados.",
         "continueHint": "Continuar se habilita cuando todos los servicios elegidos estén firmados.",
         "treatSigned": "Marcar los firmados",
-        "continue": "Continuar a fotos"
+        "continue": "Continuar a fotos",
+        "clinicalAllowed": "Fotos clínicas autorizadas",
+        "clinicalDeclined": "Fotos clínicas no autorizadas",
+        "marketingAllowed": "Difusión autorizada",
+        "marketingDeclined": "Difusión no autorizada",
+        "sessionPermissions": "Permisos de fotos de esta sesión: {permissions}.",
+        "reuseKeeps": "Al usarlo se mantienen los permisos de esta sesión: {permissions}.",
+        "reuseInherits": "Al usarlo, la sesión toma los permisos de esa firma: {permissions}."
       },
       "photos": {
         "title": "Fotos de hoy",
@@ -10689,6 +10696,8 @@
         "uploading": "Subiendo…",
         "blockedTitle": "Falta la autorización de fotos",
         "blockedHint": "La paciente tiene que autorizar las fotos para su historia clínica en el paso de consentimiento. Sin esa autorización la cámara queda bloqueada.",
+        "declinedTitle": "Fotos clínicas no autorizadas",
+        "declinedHint": "El consentimiento firmado no autoriza fotos clínicas: la cámara queda bloqueada y la sesión se puede cerrar sin ellas.",
         "goToConsent": "Ir a consentimiento",
         "todayOf": "Foto de hoy · {view}",
         "ghostHint": "La cámara muestra la foto del {date} como guía translúcida, para repetir pose, distancia y luz.",
@@ -10849,6 +10858,8 @@
         "checks": {
           "consents": "Consentimientos firmados",
           "photos": "Al menos una foto de hoy",
+          "photosDeclined": "Fotos no autorizadas en el consentimiento",
+          "photosBodyOnly": "Fotos no necesarias: tratamiento solo corporal",
           "marks": "Cada servicio con marcas y cantidad"
         },
         "ok": "Listo",
@@ -11029,6 +11040,43 @@
           "remove": "Borra esta foto de la sesión de hoy."
         }
       }
+    },
+    "errors": {
+      "generic": "No se pudo completar la acción. Intentá de nuevo.",
+      "sessionClosed": "Esta sesión ya está cerrada: la cerró otra persona o se cerró desde otra pestaña. No admite cambios.",
+      "sessionVoided": "Esta sesión está anulada: la anuló otra persona o se anuló desde otra pestaña. No admite cambios.",
+      "sessionStateChanged": "El estado de esta sesión cambió y esta acción ya no corresponde. Cerrá la ficha y volvé a abrirla.",
+      "unsavedLost": "Tus últimos cambios no se guardaron.",
+      "codes": {
+        "CONSENT_REQUIRED": "Hay marcas de un servicio sin consentimiento firmado. Firmá el consentimiento antes de marcar.",
+        "CONSENT_SERVICES_REQUIRED": "Elegí al menos un servicio para firmar su consentimiento.",
+        "CONSENT_SERVICE_NOT_IN_SESSION": "Uno de los servicios a firmar ya no está en esta sesión. Revisá los servicios de hoy.",
+        "CONSENT_TEXT_REQUIRED": "Falta el texto del consentimiento de uno de los servicios.",
+        "DATE_REQUIRED": "Falta la fecha de la sesión.",
+        "DUPLICATE_SERVICE_LAYER": "Un servicio está repetido en esta sesión. Quitá el duplicado.",
+        "FILE_REQUIRED": "No llegó ningún archivo. Intentá de nuevo.",
+        "INVALID_AREA": "Una de las áreas marcadas no es válida. Dibujala de nuevo.",
+        "INVALID_CONSENT": "Los datos del consentimiento no son válidos. Firmalo de nuevo.",
+        "INVALID_FILE_TYPE": "Ese tipo de archivo no está admitido. Usá una imagen JPG o PNG.",
+        "INVALID_LINE": "Una de las líneas marcadas no es válida. Dibujala de nuevo.",
+        "INVALID_NOTE_KIND": "Ese tipo de nota no es válido.",
+        "INVALID_PHOTO_KIND": "Ese tipo de foto no es válido.",
+        "INVALID_TOOL": "La herramienta de marcado elegida no es válida.",
+        "NOTE_REQUIRED": "Escribí el texto de la nota.",
+        "NOT_READY_TO_CLOSE": "La sesión todavía no se puede cerrar. Revisá lo que falta en el paso de cierre.",
+        "PATIENT_REQUIRED": "Falta el paciente de la sesión.",
+        "PHOTO_NOT_FOUND": "Esa foto ya no existe. Puede que otra persona la haya quitado.",
+        "SERVICE_NOT_FOUND": "Ese servicio ya no existe.",
+        "SESSION_NOT_FOUND": "Esta sesión ya no existe. Puede que otra persona la haya eliminado.",
+        "SIGNATURE_NOT_FOUND": "No se encontró la firma anterior. Pedile al paciente que firme de nuevo.",
+        "SIGNER_REQUIRED": "Falta el nombre de quien firma.",
+        "UNIT_DUPLICATE_CODE": "Ya existe una unidad con ese código.",
+        "UNIT_INVALID_STEP": "El incremento de la unidad tiene que ser mayor que cero.",
+        "UNIT_NOT_FOUND": "Esa unidad de medida ya no existe.",
+        "UNIT_REQUIRED": "Un servicio estético necesita una unidad de medida.",
+        "UNIT_REQUIRED_FIELDS": "Completá el código, el nombre y el símbolo de la unidad.",
+        "VOID_REASON_REQUIRED": "Escribí el motivo de la anulación."
+      }
     }
   },
   "MeasurementUnitsPage": {
@@ -11071,6 +11119,7 @@
     "validation": {
       "codeRequired": "Ingresá un código",
       "codeFormat": "Solo letras, números, guion y guion bajo",
+      "codeDuplicate": "Ya existe una unidad con este código",
       "nameRequired": "Ingresá un nombre",
       "symbolRequired": "Ingresá un símbolo",
       "stepInvalid": "Ingresá un número mayor a 0"

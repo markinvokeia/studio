@@ -31,10 +31,11 @@ import { addAestheticNote, closeAestheticSession, voidAestheticSession } from '@
 import { useBillingWizard } from '@/stores/billing-wizard-store';
 
 import type { AestheticSessionEvent, Calendar as CalendarType, User } from '@/lib/types';
+import { isSessionLockedError } from './aesthetic-errors';
 import { formatQuantity, layerColor, layerQuantity } from './layers';
 import { PHOTO_VIEWS, sessionPhotoOf } from './photo-utils';
 import { useSessionFlow } from './session-flow-context';
-import { addDaysToDate, missingText, nextMissing } from './session-status';
+import { addDaysToDate, missingText, nextMissing, photoExemption } from './session-status';
 import { useAestheticFileUrl } from './use-aesthetic-file-url';
 import { useZoneLabel } from './use-zone-label';
 
@@ -44,7 +45,7 @@ export function StepClose() {
   const { hasPermission, hasAnyPermission } = usePermissions();
   const { open: openBillingWizard } = useBillingWizard();
   const flow = useSessionFlow();
-  const { draft, updateDraft, stored, done, status, readOnly, canRegister, configFor, goToStep, ensureSaved, applyServer, patientId, patientName, facts } = flow;
+  const { draft, updateDraft, stored, done, status, readOnly, canRegister, configFor, goToStep, ensureSaved, applyServer, reportError, patientId, patientName, facts } = flow;
   const zoneLabel = useZoneLabel();
   const ready = status === 'ready_to_close';
   const closed = stored?.status === 'closed';
@@ -85,6 +86,9 @@ export function StepClose() {
     {
       onSuccess: (session) => { applyServer(session); setConfirmClose(false); toast({ title: t('flow.close.closedToast') }); },
       errorTitle: t('flow.close.closeError'),
+      describeError: reportError,
+      // Someone else closed or voided it: the sheet goes read-only, and this dialog would cover its notice
+      onError: (error) => { if (isSessionLockedError(error)) setConfirmClose(false); },
     },
   );
   const voidSession = useAsyncAction(
@@ -92,6 +96,8 @@ export function StepClose() {
     {
       onSuccess: (session) => { applyServer(session); setVoidOpen(false); toast({ title: t('flow.close.voidedToast') }); },
       errorTitle: t('flow.close.voidError'),
+      describeError: reportError,
+      onError: (error) => { if (isSessionLockedError(error)) setVoidOpen(false); },
     },
   );
   const amend = useAsyncAction(
@@ -99,6 +105,7 @@ export function StepClose() {
     {
       onSuccess: (session) => { if (session) applyServer(session); setAmendment(''); toast({ title: t('flow.close.amendmentAdded') }); },
       errorTitle: t('flow.notes.error'),
+      describeError: reportError,
     },
   );
 
@@ -116,9 +123,10 @@ export function StepClose() {
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
   }
 
+  const exemption = facts.photos.length ? null : photoExemption(facts);
   const checklist: [string, boolean, 1 | 2 | 3][] = [
     [t('flow.close.checks.consents'), done[1], 1],
-    [t('flow.close.checks.photos'), done[2], 2],
+    [exemption === 'declined' ? t('flow.close.checks.photosDeclined') : exemption === 'bodyOnly' ? t('flow.close.checks.photosBodyOnly') : t('flow.close.checks.photos'), done[2], 2],
     [t('flow.close.checks.marks'), done[3], 3],
   ];
   const amendments = (stored?.sessionNotes ?? []).filter((n) => n.kind === 'amendment');

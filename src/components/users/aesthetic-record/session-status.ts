@@ -1,6 +1,8 @@
-import type { AestheticLayer, AestheticPhoto, AestheticServiceConsent, AestheticSessionStatus } from '@/lib/types';
+import type { AestheticLayer, AestheticPhoto, AestheticPhotoConsent, AestheticServiceConsent, AestheticSessionStatus } from '@/lib/types';
 
-// Same rule as aesthetic_session_recompute() (database/scripts/155): the screen shows it while
+import { VIEW_REGION } from './map-templates';
+
+// Same rule as aesthetic_session_recompute() (database/scripts/157): the screen shows it while
 // the autosave is on its way, the server stores it.
 
 export type SessionStep = 1 | 2 | 3 | 4;
@@ -10,6 +12,8 @@ export interface SessionFacts {
   layers: AestheticLayer[];
   consents: Pick<AestheticServiceConsent, 'serviceId'>[];
   photos: Pick<AestheticPhoto, 'id'>[];
+  /** Permissions of the session's last signature; `null` until something is signed */
+  photoConsent: Pick<AestheticPhotoConsent, 'allowsClinicalPhotos'> | null;
   closed: boolean;
   voided: boolean;
 }
@@ -24,12 +28,24 @@ export const layerMarked = (layer: AestheticLayer) => layer.marks.some((m) => (m
 
 export const treatmentComplete = (layers: AestheticLayer[]) => layers.length > 0 && layers.every(layerMarked);
 
+export type PhotoExemption = 'declined' | 'bodyOnly';
+
+/** Why the session doesn't need a photo: the camera is locked, or photos (face only) don't apply to what was treated */
+export function photoExemption({ layers, photoConsent }: Pick<SessionFacts, 'layers' | 'photoConsent'>): PhotoExemption | null {
+  if (photoConsent?.allowsClinicalPhotos === false) return 'declined';
+  const marks = layers.flatMap((l) => l.marks);
+  return marks.length > 0 && marks.every((m) => VIEW_REGION[m.view] === 'body') ? 'bodyOnly' : null;
+}
+
+export const photosComplete = (facts: Pick<SessionFacts, 'layers' | 'photos' | 'photoConsent'>) =>
+  facts.photos.length > 0 || photoExemption(facts) !== null;
+
 export function computeStatus(facts: SessionFacts): AestheticSessionStatus {
   if (facts.voided) return 'void';
   if (facts.closed) return 'closed';
   const anyMark = facts.layers.some((l) => l.marks.length > 0);
   if (anyMark) {
-    return consentComplete(facts) && treatmentComplete(facts.layers) && facts.photos.length > 0 ? 'ready_to_close' : 'in_treatment';
+    return consentComplete(facts) && treatmentComplete(facts.layers) && photosComplete(facts) ? 'ready_to_close' : 'in_treatment';
   }
   return consentComplete(facts) ? 'consented' : 'draft';
 }
@@ -38,7 +54,7 @@ export function computeStatus(facts: SessionFacts): AestheticSessionStatus {
 export function stepsDone(facts: SessionFacts): Record<SessionStep, boolean> {
   return {
     1: consentComplete(facts),
-    2: facts.photos.length > 0,
+    2: photosComplete(facts),
     3: treatmentComplete(facts.layers),
     4: facts.closed,
   };
@@ -66,7 +82,7 @@ export function nextMissing(facts: SessionFacts, layerName: (layer: AestheticLay
   if (!facts.layers.length) return { key: 'pickServices' };
   const unsigned = facts.layers.filter((l) => !isServiceSigned(facts.consents, l.serviceId));
   if (unsigned.length) return { key: 'signConsents', count: unsigned.length, service: layerName(unsigned[0]) };
-  if (!facts.photos.length) return { key: 'takePhoto' };
+  if (!photosComplete(facts)) return { key: 'takePhoto' };
   const unmarked = facts.layers.filter((l) => !layerMarked(l));
   if (unmarked.length) return { key: 'markServices', services: unmarked.map(layerName).join(', ') };
   return { key: 'ready' };

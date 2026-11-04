@@ -21,7 +21,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 import { AESTHETIC_RECORD_PERMISSIONS } from '@/constants/permissions';
 import { usePermissions } from '@/hooks/usePermissions';
-import { getErrorMessage } from '@/lib/error-utils';
 import { cn, formatDate, formatDisplayDate } from '@/lib/utils';
 import {
   fetchAestheticSessions,
@@ -31,6 +30,7 @@ import {
 } from '@/services/aesthetic-record';
 
 import type { AestheticBodyFigure, AestheticLayer, AestheticSession, ServiceAestheticConfig, ServiceConsentTemplate } from '@/lib/types';
+import { isSessionLockedError, useAestheticErrorMessage } from './aesthetic-errors';
 import type { FaceTone } from './face-models/face-illustration';
 import { Hint, HintProvider } from './hint';
 import { layerTitle } from './layers';
@@ -124,6 +124,7 @@ function SessionFlow({ patientId, patientName, patientSex, sessionId, doctorId, 
   const { hasPermission } = usePermissions();
   const canRegister = !readOnlyProp && hasPermission(AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION);
   const sex: AestheticBodyFigure = patientSex ?? 'female';
+  const describeError = useAestheticErrorMessage();
 
   const [sessions, setSessions] = React.useState<AestheticSession[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -139,6 +140,8 @@ function SessionFlow({ patientId, patientName, patientSex, sessionId, doctorId, 
   const [future, setFuture] = React.useState<AestheticLayer[][]>([]);
   const [saveState, setSaveState] = React.useState<SaveState>({ kind: 'idle' });
   const [confirmLeave, setConfirmLeave] = React.useState(false);
+  /** Why nothing can be saved anymore: someone else closed, voided or deleted this session */
+  const [lockNotice, setLockNotice] = React.useState<string | null>(null);
   const [modelSex, setModelSex] = React.useState<AestheticBodyFigure>(sex);
   const [modelTone, setModelToneState] = React.useState<FaceTone>(() => {
     if (typeof window === 'undefined') return 'light';
@@ -179,9 +182,9 @@ function SessionFlow({ patientId, patientName, patientSex, sessionId, doctorId, 
         sessionIdRef.current = session?.id;
         setStep(session ? resumeStep(factsOf(next.layers, session)) : 1);
       })
-      .catch((error) => { if (active) setLoadError(getErrorMessage(error)); })
+      .catch((error) => { if (active) setLoadError(describeError(error)); })
       .finally(() => { if (active) setLoading(false); });
-    fetchServiceAestheticConfigs().then((list) => { if (active) setConfigs(list); }).catch((error) => { if (active) setConfigsError(getErrorMessage(error)); });
+    fetchServiceAestheticConfigs().then((list) => { if (active) setConfigs(list); }).catch((error) => { if (active) setConfigsError(describeError(error)); });
     // Without them each service is signed with the generic text
     fetchServiceConsentTemplates().then((list) => { if (active) setTemplates(list); }).catch(() => undefined);
     return () => { active = false; };
@@ -190,7 +193,7 @@ function SessionFlow({ patientId, patientName, patientSex, sessionId, doctorId, 
 
   const closed = stored?.status === 'closed';
   const voided = stored?.status === 'void';
-  const readOnly = !canRegister || closed || voided;
+  const readOnly = !canRegister || closed || voided || !!lockNotice;
 
   // ── Autosave ──
   // One save at a time; changes made meanwhile go in the next one. The local layers stay the
@@ -202,6 +205,34 @@ function SessionFlow({ patientId, patientName, patientSex, sessionId, doctorId, 
   const inFlightRef = React.useRef<Promise<unknown> | null>(null);
   /** Something was saved while the sheet was open: the patient's timeline reloads when it closes */
   const savedAnyRef = React.useRef(false);
+
+  // Someone else closed, voided or deleted the session: retrying can't work, so the sheet stops
+  // saving, says why and shows what the server has
+  const lockedRef = React.useRef(false);
+  const reportError = React.useCallback((error: unknown): string => {
+    const message = describeError(error);
+    if (!isSessionLockedError(error) || lockedRef.current) return message;
+    lockedRef.current = true;
+    const current = draftRef.current;
+    const lostChanges = !!current && draftKey(current) !== savedKeyRef.current;
+    setLockNotice(lostChanges ? `${message} ${t('errors.unsavedLost')}` : message);
+    setSaveState({ kind: 'idle' });
+    savedAnyRef.current = true;
+    fetchAestheticSessions(patientId)
+      .then((list) => {
+        setSessions(list);
+        const session = list.find((s) => s.id === sessionIdRef.current);
+        if (!session) return;
+        const next = draftFrom(session, current?.bodyFigure ?? sex);
+        setStored(session);
+        savedKeyRef.current = draftKey(next);
+        draftRef.current = next;
+        setDraft(next);
+      })
+      // The sheet stays read-only with what it has on screen
+      .catch(() => undefined);
+    return message;
+  }, [describeError, patientId, sex, t]);
 
   const saveOnce = React.useCallback(async (current: SessionDraft) => {
     const key = draftKey(current);
@@ -231,13 +262,14 @@ function SessionFlow({ patientId, patientName, patientSex, sessionId, doctorId, 
       try {
         await run;
       } catch (error) {
-        setSaveState({ kind: 'error', message: getErrorMessage(error) });
+        const message = reportError(error);
+        setSaveState(isSessionLockedError(error) ? { kind: 'idle' } : { kind: 'error', message });
         throw error;
       } finally {
         inFlightRef.current = null;
       }
     }
-  }, [saveOnce, t]);
+  }, [saveOnce, reportError, t]);
 
   const currentKey = draft ? draftKey(draft) : '';
   React.useEffect(() => {
@@ -395,6 +427,7 @@ function SessionFlow({ patientId, patientName, patientSex, sessionId, doctorId, 
     ensureSaved,
     saveState,
     retrySave: () => { ensureSaved().catch(() => undefined); },
+    reportError,
     modelSex,
     setModelSex,
     modelTone,
@@ -406,6 +439,11 @@ function SessionFlow({ patientId, patientName, patientSex, sessionId, doctorId, 
       <HintProvider>
       <div className="flex h-full min-h-0 flex-col">
         <FlowHeader signedAny={signedAny} leaving={leaving} />
+        {lockNotice && (
+          <Alert variant="destructive" className="shrink-0 rounded-none border-x-0 border-t-0">
+            <AlertDescription>{lockNotice}</AlertDescription>
+          </Alert>
+        )}
         <div className={cn('min-h-0 flex-1', step === 3 ? 'flex flex-col overflow-hidden' : 'overflow-y-auto')}>
           {step === 1 && <StepConsent />}
           {step === 2 && <StepPhotos />}
@@ -436,6 +474,7 @@ function factsOf(layers: AestheticLayer[], session: AestheticSession | null): Se
     layers,
     consents: session?.consents ?? [],
     photos: session?.photos ?? [],
+    photoConsent: session?.photoConsent ?? null,
     closed: session?.status === 'closed',
     voided: session?.status === 'void',
   };

@@ -142,9 +142,11 @@ export interface MeasurementUnitInput {
 }
 
 export async function saveMeasurementUnit(input: MeasurementUnitInput): Promise<void> {
-  await api.post(API_ROUTES.MEASUREMENT_UNITS.SAVE, {
+  const data = unwrap<{ unit?: { id?: unknown } }>(await api.post(API_ROUTES.MEASUREMENT_UNITS.SAVE, {
     unit: { id: input.id ?? null, code: input.code, name: input.name, symbol: input.symbol, step: input.step, is_active: input.isActive },
-  });
+  }));
+  // A 200 without the saved row means nothing was saved (the flow before its 2026-11-04 fix answers this way on errors)
+  if (data?.unit?.id == null) throw new Error('The measurement unit was not saved');
 }
 
 /** Deletes the unit, or deactivates it when a service or a session uses it */

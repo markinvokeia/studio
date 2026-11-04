@@ -1114,6 +1114,7 @@ export default function UsersPage() {
       setPatientConditions([]);
       setCreateSessionTrigger(0);
       setCreateOdontogramTrigger(0);
+      setCreateAestheticTrigger(0);
       setCreateDocumentTrigger(0);
       setCreateMedicalInstructionTrigger(0);
       setCreatePrescriptionTrigger(0);
@@ -1513,6 +1514,7 @@ export default function UsersPage() {
                             createSessionTrigger={createSessionTrigger}
                             createOdontogramTrigger={createOdontogramTrigger}
                             createAestheticTrigger={createAestheticTrigger}
+                            onAestheticTriggerConsumed={() => setCreateAestheticTrigger(0)}
                             patientSex={selectedUser.sex}
                             sessionPrefill={sessionPrefill}
                             editSessionId={editSessionId}

@@ -18,18 +18,18 @@ import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 
 import { useToast } from '@/hooks/use-toast';
-import { getErrorMessage } from '@/lib/error-utils';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { deleteAestheticPhoto, saveAestheticPhotoAlignment, uploadAestheticPhoto } from '@/services/aesthetic-record';
 
 import type { AestheticPhoto, AestheticPhotoAlignment, AestheticPhotoSource, AestheticSession } from '@/lib/types';
+import { useAestheticErrorMessage } from './aesthetic-errors';
 import { AlignedPhoto } from './aligned-photo';
 import { CameraCaptureDialog, FramingGuide, type CapturedPhoto } from './camera-capture-dialog';
 import { placeMarks } from './layers';
 import { PhotoAlignDialog } from './photo-align-dialog';
 import { GUIDE_ALIGNMENT, PHOTO_VIEWS, prepareUpload, sessionPhotoOf, type PhotoView } from './photo-utils';
 import { useSessionFlow } from './session-flow-context';
-import { daysBetween } from './session-status';
+import { daysBetween, isOpenStatus } from './session-status';
 import { Hint } from './hint';
 import { useAestheticFileUrl } from './use-aesthetic-file-url';
 
@@ -47,7 +47,8 @@ export function StepPhotos() {
   const t = useTranslations('AestheticRecord');
   const { toast } = useToast();
   const flow = useSessionFlow();
-  const { stored, draft, previousSessions, readOnly, goToStep, updateSession, ensureSaved } = flow;
+  const { stored, draft, previousSessions, readOnly, goToStep, updateSession, ensureSaved, reportError } = flow;
+  const describeError = useAestheticErrorMessage();
   const [view, setView] = React.useState<PhotoView>('front');
   const [cameraOpen, setCameraOpen] = React.useState(false);
   const [uploading, setUploading] = React.useState<Partial<Record<PhotoView, number>>>({});
@@ -60,6 +61,7 @@ export function StepPhotos() {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const photosAllowed = stored?.photoConsent?.allowsClinicalPhotos === true;
+  const photosDeclined = stored?.photoConsent?.allowsClinicalPhotos === false;
   const todayPhotos = stored?.photos ?? [];
   const todayOf = (v: PhotoView) => sessionPhotoOf({ photos: todayPhotos }, v);
   const historyOf = React.useCallback((v: PhotoView): HistoryPhoto[] => previousSessions
@@ -88,7 +90,7 @@ export function StepPhotos() {
       }
       toast({ title: t('flow.photos.saved', { view: viewLabel(target) }) });
     } catch (error) {
-      toast({ variant: 'destructive', title: t('flow.photos.uploadError'), description: getErrorMessage(error) });
+      toast({ variant: 'destructive', title: t('flow.photos.uploadError'), description: reportError(error) });
     } finally {
       setUploading((u) => ({ ...u, [target]: 0 }));
     }
@@ -103,7 +105,8 @@ export function StepPhotos() {
       updateSession(owner.id, (s) => ({ ...s, photos: s.photos.map((p) => (p.id === aligning.photo.id ? { ...p, alignment: alignment ?? undefined } : p)) }));
       toast({ title: t('toast.alignmentSaved') });
     } catch (error) {
-      toast({ variant: 'destructive', title: t('map.backdrop.saveError'), description: getErrorMessage(error) });
+      // The photo may belong to an earlier session: only this session's own errors lock the sheet
+      toast({ variant: 'destructive', title: t('map.backdrop.saveError'), description: owner.id === stored?.id ? reportError(error) : describeError(error) });
       throw error;
     }
   }
@@ -116,7 +119,7 @@ export function StepPhotos() {
       await deleteAestheticPhoto(photo.id);
       updateSession(stored.id, (s) => ({ ...s, photos: s.photos.filter((p) => p.id !== photo.id) }));
     } catch (error) {
-      toast({ variant: 'destructive', title: t('flow.photos.removeError'), description: getErrorMessage(error) });
+      toast({ variant: 'destructive', title: t('flow.photos.removeError'), description: reportError(error) });
     }
   }
 
@@ -144,9 +147,9 @@ export function StepPhotos() {
       <div className="flex flex-wrap items-center gap-5 rounded-2xl border-2 border-dashed bg-card p-5">
         <div className="relative aspect-[300/380] w-40 shrink-0 overflow-hidden rounded-xl bg-muted"><FramingGuide view={view} /></div>
         <div className="flex min-w-[220px] flex-1 flex-col gap-2">
-          <h3 className="flex items-center gap-2 text-[15px] font-semibold"><Lock className="h-4 w-4" />{t('flow.photos.blockedTitle')}</h3>
-          <p className="text-sm text-muted-foreground">{t('flow.photos.blockedHint')}</p>
-          {!readOnly && <div><Button type="button" onClick={() => goToStep(1)}>{t('flow.photos.goToConsent')}</Button></div>}
+          <h3 className="flex items-center gap-2 text-[15px] font-semibold"><Lock className="h-4 w-4" />{photosDeclined ? t('flow.photos.declinedTitle') : t('flow.photos.blockedTitle')}</h3>
+          <p className="text-sm text-muted-foreground">{photosDeclined ? t('flow.photos.declinedHint') : t('flow.photos.blockedHint')}</p>
+          {!readOnly && !photosDeclined && <div><Button type="button" onClick={() => goToStep(1)}>{t('flow.photos.goToConsent')}</Button></div>}
         </div>
       </div>
     );
@@ -233,7 +236,8 @@ export function StepPhotos() {
           <Hint label={t('flow.photos.marksToday')} description={t('flow.hints.photos.marksToday')}>
             <label className="flex items-center gap-2"><Switch checked={showMarks.today} onCheckedChange={(v) => setShowMarks((m) => ({ ...m, today: v }))} /><MapPin className="h-3.5 w-3.5" />{t('flow.photos.marksToday')}</label>
           </Hint>
-          {base && !readOnly && (
+          {/* The earlier session is usually closed, and a closed session doesn't change */}
+          {base && !readOnly && isOpenStatus(base.session.status) && (
             <span className="ml-auto">
               <Hint label={t('flow.photos.alignBase', { label: sessionLabel(base) })} description={t('flow.hints.align')}>
                 <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setAligning({ photo: base.photo, sessionId: base.session.id })}>
@@ -312,7 +316,7 @@ export function StepPhotos() {
         ghost={history[history.length - 1]?.photo ?? null}
         onCapture={({ file, framed }: CapturedPhoto) => upload([file], view, 'camera', framed)}
       />
-      {aligning && (
+      {aligning && !readOnly && (
         <PhotoAlignDialog
           open
           onOpenChange={(open) => { if (!open) setAligning(null); }}

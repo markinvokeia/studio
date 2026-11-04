@@ -19,11 +19,10 @@ import { Label } from '@/components/ui/label';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useToast } from '@/hooks/use-toast';
-import { getErrorMessage } from '@/lib/error-utils';
 import { cn, formatDate, formatDateTime, formatDisplayDate, toLocalISOString } from '@/lib/utils';
 import { signAestheticConsents, type AestheticConsentDraft } from '@/services/aesthetic-record';
 
-import type { AestheticLayer, AestheticMarkKind, AestheticServiceConsent, ServiceAestheticConfig } from '@/lib/types';
+import type { AestheticLayer, AestheticMarkKind, AestheticPhotoConsent, AestheticServiceConsent, ServiceAestheticConfig } from '@/lib/types';
 import { printConsent } from './consent-print';
 import { renderConsentTemplate } from './consent-template';
 import { formatQuantity, layerColor, layerTitle, newLayer } from './layers';
@@ -145,32 +144,48 @@ export function StepConsent() {
         setPadKey((k) => k + 1);
         form.reset({ ...form.getValues(), risksExplained: false, signature: undefined });
       },
-      onError: (error) => setSignError(getErrorMessage(error)),
+      onError: (error) => setSignError(flow.reportError(error)),
       showErrorToast: false,
     },
   );
 
+  const permissionsText = (consent: Pick<AestheticPhotoConsent, 'allowsClinicalPhotos' | 'allowsMarketingPhotos'>) => [
+    t(consent.allowsClinicalPhotos ? 'flow.consent.clinicalAllowed' : 'flow.consent.clinicalDeclined'),
+    t(consent.allowsMarketingPhotos ? 'flow.consent.marketingAllowed' : 'flow.consent.marketingDeclined'),
+  ].join(' · ');
+
+  // Reusing never changes what the patient decided in this session: it keeps the permissions of
+  // the session's last signature, or takes those of the reused one if nothing is signed yet. The
+  // server enforces it (database/scripts/158); these values only say the same.
   const reuse = useAsyncAction(
     async (layer: AestheticLayer) => {
       const previous = reusableFor(layer);
       if (!previous) return null;
+      const permissions = stored?.photoConsent ?? previous;
       const sessionId = await flow.ensureSaved();
       return signAestheticConsents(sessionId, {
         signerName: previous.signerName,
         signedAt: toLocalISOString(new Date()),
-        allowsClinicalPhotos: previous.allowsClinicalPhotos,
-        allowsMarketingPhotos: previous.allowsMarketingPhotos,
+        allowsClinicalPhotos: permissions.allowsClinicalPhotos,
+        allowsMarketingPhotos: permissions.allowsMarketingPhotos,
         consents: [consentDraft(layer)],
-        reuseSignatureId: previous.reusedFromSignatureId ?? previous.signatureId,
+        reuseSignatureId: previous.signatureId,
       });
     },
     {
       onSuccess: (session) => {
         if (!session) return;
         flow.applyServer(session);
-        toast({ title: t('flow.consent.reused') });
+        const permissions = session.photoConsent;
+        toast({ title: t('flow.consent.reused'), description: permissions ? t('flow.consent.sessionPermissions', { permissions: permissionsText(permissions) }) : undefined });
+        // The next signature drawn starts from what the session has now
+        if (permissions) {
+          form.setValue('allowsClinicalPhotos', permissions.allowsClinicalPhotos);
+          form.setValue('allowsMarketingPhotos', permissions.allowsMarketingPhotos);
+        }
       },
       errorTitle: t('flow.consent.reuseError'),
+      describeError: flow.reportError,
     },
   );
 
@@ -286,6 +301,9 @@ export function StepConsent() {
           </div>
 
           {layers.length === 0 && <p className="py-2 text-sm text-muted-foreground">{t('flow.consent.pickFirst')}</p>}
+          {stored?.photoConsent && (
+            <p className="text-xs text-muted-foreground">{t('flow.consent.sessionPermissions', { permissions: permissionsText(stored.photoConsent) })}</p>
+          )}
 
           {layers.map((layer, index) => {
             const signed = consents.find((c) => c.serviceId === layer.serviceId);
@@ -319,6 +337,13 @@ export function StepConsent() {
                     </Button>
                   )}
                 </div>
+                {reusable && (
+                  <p className="text-xs text-muted-foreground">
+                    {stored?.photoConsent
+                      ? t('flow.consent.reuseKeeps', { permissions: permissionsText(stored.photoConsent) })
+                      : t('flow.consent.reuseInherits', { permissions: permissionsText(reusable) })}
+                  </p>
+                )}
                 {isOpen && text && (
                   <div className="max-h-52 overflow-y-auto rounded-lg bg-muted/50 p-3 text-xs leading-relaxed text-foreground">
                     <p className="mb-1.5 font-semibold">{text.title}</p>

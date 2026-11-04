@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { CONSENT_VARIABLES, consentToken, renderConsentTemplate, unknownConsentVariables } from '@/components/users/aesthetic-record/consent-template';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useToast } from '@/hooks/use-toast';
-import { getErrorMessage } from '@/lib/error-utils';
+import { useAestheticErrorMessage } from '@/components/users/aesthetic-record/aesthetic-errors';
 import { formatDate, formatDisplayDate } from '@/lib/utils';
 import { fetchServiceConsentTemplates, saveServiceConsentTemplate } from '@/services/aesthetic-record';
 
@@ -40,6 +40,7 @@ export function ServiceConsentTemplatePanel({ serviceId, serviceName, canManage 
   const [saved, setSaved] = React.useState<Draft | null>(null);
   const [draft, setDraft] = React.useState<Draft | null>(null);
   const [loadError, setLoadError] = React.useState<string | null>(null);
+  const describeError = useAestheticErrorMessage();
   const [showPreview, setShowPreview] = React.useState(false);
 
   React.useEffect(() => {
@@ -54,9 +55,9 @@ export function ServiceConsentTemplatePanel({ serviceId, serviceName, canManage 
         setSaved(next);
         setDraft(next);
       })
-      .catch((error) => { if (active) setLoadError(getErrorMessage(error)); });
+      .catch((error) => { if (active) setLoadError(describeError(error)); });
     return () => { active = false; };
-  }, [serviceId]);
+  }, [serviceId, describeError]);
 
   const save = useAsyncAction(
     async (next: Draft) => {
@@ -70,6 +71,7 @@ export function ServiceConsentTemplatePanel({ serviceId, serviceName, canManage 
         toast({ title: next.body ? t('consentTemplate.saved') : t('consentTemplate.removed') });
       },
       errorTitle: t('consentTemplate.saveError'),
+      describeError,
     },
   );
 

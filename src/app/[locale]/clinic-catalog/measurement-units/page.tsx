@@ -22,7 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
-import { getErrorMessage } from '@/lib/error-utils';
+import { useAestheticErrorMessage } from '@/components/users/aesthetic-record/aesthetic-errors';
 import { deleteMeasurementUnit, fetchMeasurementUnits, saveMeasurementUnit } from '@/services/aesthetic-record';
 
 import { CLINIC_CATALOG_PERMISSIONS } from '@/constants/permissions';
@@ -52,6 +52,7 @@ export default function MeasurementUnitsPage() {
   const [units, setUnits] = React.useState<MeasurementUnit[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [loadError, setLoadError] = React.useState<string | null>(null);
+  const describeError = useAestheticErrorMessage();
   const [editing, setEditing] = React.useState<MeasurementUnit | 'new' | null>(null);
   const [deleting, setDeleting] = React.useState<MeasurementUnit | null>(null);
   const [submissionError, setSubmissionError] = React.useState<string | null>(null);
@@ -63,11 +64,11 @@ export default function MeasurementUnitsPage() {
     try {
       setUnits(await fetchMeasurementUnits());
     } catch (error) {
-      setLoadError(getErrorMessage(error));
+      setLoadError(describeError(error));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [describeError]);
 
   React.useEffect(() => { load(); }, [load]);
 
@@ -85,10 +86,22 @@ export default function MeasurementUnitsPage() {
         setEditing(null);
         load();
       },
-      onError: (error) => setSubmissionError(getErrorMessage(error)),
+      onError: (error) => setSubmissionError(describeError(error)),
       showErrorToast: false,
     },
   );
+
+  function submit(values: UnitFormValues) {
+    const editingId = editing && editing !== 'new' ? editing.id : null;
+    const code = values.code.toLowerCase();
+    // Instant feedback from the list on screen; the server still rejects it if the list is stale
+    if (units.some((unit) => unit.id !== editingId && unit.code.toLowerCase() === code)) {
+      form.setError('code', { message: t('validation.codeDuplicate') });
+      return;
+    }
+    setSubmissionError(null);
+    save.run(values);
+  }
 
   const remove = useAsyncAction(
     (unit: MeasurementUnit) => deleteMeasurementUnit(unit.id),
@@ -99,6 +112,7 @@ export default function MeasurementUnitsPage() {
         load();
       },
       errorTitle: t('toast.deleteError'),
+      describeError,
     },
   );
 
@@ -193,7 +207,7 @@ export default function MeasurementUnitsPage() {
             <DialogDescription>{t('form.description')}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit((values) => save.run(values))} className="flex min-h-0 flex-col">
+            <form onSubmit={form.handleSubmit(submit)} className="flex min-h-0 flex-col">
               <DialogBody className="space-y-4 px-6 py-4">
                 {submissionError && (
                   <Alert variant="destructive">

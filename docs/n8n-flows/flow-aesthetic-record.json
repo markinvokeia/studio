@@ -2,7 +2,7 @@
   "name": "Aesthetic Record",
   "nodes": [
     {
-      "id": "bdb56051-2ae4-449f-8675-4780be763725",
+      "id": "0095c095-6bc5-4293-7a79-923bdf54e8c6",
       "name": "Nota",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
@@ -21,12 +21,12 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "parameters": {
-        "jsCode": "// Las funciones lanzan 'AESTHETIC:<CODIGO>|<detalle>'. Cualquier otro error\n// (conexión, constraint inesperada) sale como UNKNOWN con el mensaje crudo.\nconst raw = $json.error?.message ?? $json.error ?? $json.message ?? '';\nconst text = String(raw);\nconst match = text.match(/AESTHETIC:([A-Z_]+)(?:\\|(.*))?/);\nreturn [{ json: {\n  success: false,\n  code: match ? match[1] : 'UNKNOWN',\n  detail: match && match[2] ? match[2].trim() : null,\n  message: text || 'Error',\n} }];"
+        "jsCode": "// Las funciones lanzan 'AESTHETIC:<CODIGO>|<detalle>'. Cualquier otro error\n// (conexión, constraint inesperada) sale como UNKNOWN con el mensaje crudo.\n// El texto no viene siempre en el mismo sitio: Postgres da { message, error: {...} } con el texto en\n// la raíz (error es una copia sin message), y Code da error como string. Sólo se miran estos campos:\n// la salida de error trae también el ítem de entrada, con el body que mandó el usuario.\nconst texts = [];\nconst seen = new Set();\nconst walk = (value) => {\n  if (typeof value === 'string') { if (value.trim()) texts.push(value); return; }\n  if (!value || typeof value !== 'object' || seen.has(value)) return;\n  seen.add(value);\n  for (const key of ['message', 'description', 'cause', 'error']) walk(value[key]);\n  for (const child of Object.values(value)) walk(child);\n};\nfor (const key of ['message', 'error', 'description', 'cause', 'details']) walk($json[key]);\nconst serialize = (value) => { try { return JSON.stringify(value) ?? ''; } catch { return ''; } };\nconst text = texts.find((t) => t.includes('AESTHETIC:')) ?? texts[0] ?? serialize($json.error);\nconst match = text.match(/AESTHETIC:([A-Z_]+)(?:\\|(.*))?/);\nreturn [{ json: {\n  success: false,\n  code: match ? match[1] : 'UNKNOWN',\n  detail: match && match[2] ? match[2].trim() : null,\n  message: text || 'Error',\n} }];"
       },
-      "id": "200b1e4e-b9e6-4628-9011-8d243915ccc8",
+      "id": "f3fe7436-b694-bc22-5373-9053924fe6d6",
       "position": [
         1400,
-        1400
+        -300
       ]
     },
     {
@@ -40,17 +40,17 @@
           "responseCode": 400
         }
       },
-      "id": "d8359561-820f-4d82-b547-09144f56d8a1",
+      "id": "3cc56fbc-2943-f95d-3cb3-9c75c3ad2533",
       "position": [
         1640,
-        1400
+        -300
       ]
     },
     {
       "name": "GET measurement-units",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "5c72cc0a-6772-40eb-b7d0-4f8367f712ea",
+      "webhookId": "5ba13129-da26-76e4-976b-ac5ee8870d9e",
       "parameters": {
         "path": "measurement-units",
         "authentication": "jwtAuth",
@@ -65,7 +65,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "0d74009f-0f85-4178-886f-5e44f8f88879",
+      "id": "d08eccc4-9a53-4123-3e7c-48d5d35cc375",
       "position": [
         0,
         0
@@ -88,7 +88,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "c56a492c-c5af-4c33-973f-57f31b19fdda",
+      "id": "a72185ed-8e76-b681-e240-634ce051357f",
       "position": [
         240,
         0
@@ -105,7 +105,7 @@
           "responseCode": 200
         }
       },
-      "id": "54240f38-83be-474e-9232-cbf7f693b66f",
+      "id": "660e60be-692d-09c9-9b5b-85b1a7c4b125",
       "position": [
         480,
         0
@@ -115,7 +115,7 @@
       "name": "POST measurement-units/save",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "48cef59b-b67d-4a87-9f84-b69b684191d9",
+      "webhookId": "21a01a86-cac2-c5a5-8f38-7a9b5c5a850f",
       "parameters": {
         "httpMethod": "POST",
         "path": "measurement-units/save",
@@ -131,7 +131,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "ae6f1007-0d36-436b-b941-8d71bb71397c",
+      "id": "7393120b-7738-11ab-fb1a-9d59bfde07f2",
       "position": [
         0,
         220
@@ -154,9 +154,8 @@
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "ccb34c0f-f600-418b-a31b-4d6d763de2cc",
+      "id": "6da8c612-7fc2-206a-cd6a-9df3ebdfbac9",
       "position": [
         240,
         220
@@ -173,7 +172,7 @@
           "responseCode": 200
         }
       },
-      "id": "116f1444-a78f-4162-a304-fc2ae981eec6",
+      "id": "80189044-adbf-2773-5a69-aa2e9433d150",
       "position": [
         480,
         220
@@ -183,7 +182,7 @@
       "name": "POST measurement-units/delete",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "ba2f91d4-8441-479e-a9bd-22d52b11d47f",
+      "webhookId": "083a5e7c-8f13-a973-4aab-01bcafbf9767",
       "parameters": {
         "httpMethod": "POST",
         "path": "measurement-units/delete",
@@ -199,7 +198,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "7d12f0a8-0f45-47ee-8d7c-093e86333a5d",
+      "id": "f21e6d8f-7ab2-8355-0f5e-3d8a0939f4ff",
       "position": [
         0,
         440
@@ -222,9 +221,8 @@
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "5841e443-231b-4939-ae53-49d4bc2b5feb",
+      "id": "c6f5f885-d0a3-288f-0b02-249adf2baba1",
       "position": [
         240,
         440
@@ -241,7 +239,7 @@
           "responseCode": 200
         }
       },
-      "id": "23323df9-eaea-461d-9297-15ee3b83b52a",
+      "id": "70f9b538-4f14-3987-2a93-36390a60303d",
       "position": [
         480,
         440
@@ -251,7 +249,7 @@
       "name": "GET services/units",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "f2388057-5d6d-4b7b-9e8a-d97759edbf05",
+      "webhookId": "e45d6723-3839-9a1d-aa70-2d1958585dee",
       "parameters": {
         "path": "services/units",
         "authentication": "jwtAuth",
@@ -266,7 +264,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "fd015086-e620-4ed3-83dc-6a312aae6174",
+      "id": "2da626e2-10ce-8f15-f22f-c7cdf8069e76",
       "position": [
         0,
         660
@@ -289,7 +287,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "b8e01121-8651-40aa-b0a1-7c9203987a29",
+      "id": "610f9308-d50a-66d1-d055-685d2f31034e",
       "position": [
         240,
         660
@@ -306,7 +304,7 @@
           "responseCode": 200
         }
       },
-      "id": "2e1816ba-066e-4811-92bb-8a4561c33d58",
+      "id": "ad3114db-935d-639d-c1c8-12944ef39253",
       "position": [
         480,
         660
@@ -316,7 +314,7 @@
       "name": "POST services/unit/save",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "beef166a-eb1d-4d00-b755-aadd1157771a",
+      "webhookId": "6f2b2006-6e4a-164b-5dd7-0e68ffde5276",
       "parameters": {
         "httpMethod": "POST",
         "path": "services/unit/save",
@@ -332,7 +330,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "3842f2a9-6030-4c7c-b86e-c41be29ac763",
+      "id": "b92ef778-a7d1-c7a8-fc3d-8c564b2813f1",
       "position": [
         0,
         880
@@ -355,9 +353,8 @@
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "f78af8f3-c3ad-4a65-87a3-e91d5ee0930d",
+      "id": "cd5a40d4-6b7a-2d40-69a7-857a2a259215",
       "position": [
         240,
         880
@@ -374,7 +371,7 @@
           "responseCode": 200
         }
       },
-      "id": "043992f3-300c-406f-9f03-29f2143cbe1a",
+      "id": "ab40f78a-b5c9-8c04-1c42-4bbeafdd634e",
       "position": [
         480,
         880
@@ -384,7 +381,7 @@
       "name": "GET services/aesthetic-config",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "b4396822-5f39-41e2-bd0b-5b7eb47f3977",
+      "webhookId": "c280a55e-225b-ddff-7b2e-4b87a62d5725",
       "parameters": {
         "path": "services/aesthetic-config",
         "authentication": "jwtAuth",
@@ -399,7 +396,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "ad89ed68-bfbe-4fae-8747-93824a485e82",
+      "id": "5c67b4d2-a72b-dff9-ea55-f0514f3a17a7",
       "position": [
         0,
         1100
@@ -422,7 +419,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "c88f5ebb-fa43-4c28-8dee-43d35a9cdd5a",
+      "id": "86768511-c4b0-e07f-8a43-7fd98abf6f9a",
       "position": [
         240,
         1100
@@ -439,7 +436,7 @@
           "responseCode": 200
         }
       },
-      "id": "275464c9-f064-4403-87f2-090361fe6241",
+      "id": "361094b3-33aa-8d82-adb5-44f03cec0474",
       "position": [
         480,
         1100
@@ -449,7 +446,7 @@
       "name": "POST services/aesthetic-config/save",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "cace4f5f-070a-43a9-b181-249ed076f670",
+      "webhookId": "513dbda3-e60e-3909-03cd-78842bb0a380",
       "parameters": {
         "httpMethod": "POST",
         "path": "services/aesthetic-config/save",
@@ -465,7 +462,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "c862104d-15bb-4dbb-815a-b7a5260613aa",
+      "id": "a4049d8a-7d83-355c-33fc-9fcd8a0cfb8a",
       "position": [
         0,
         1320
@@ -488,9 +485,8 @@
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "feeb5df1-4e56-4370-b421-647d765ab64e",
+      "id": "2f04c5a5-1c06-b4d2-c676-0a1ecc055d78",
       "position": [
         240,
         1320
@@ -507,7 +503,7 @@
           "responseCode": 200
         }
       },
-      "id": "6e7785a9-cf1d-440e-9443-1e298d333401",
+      "id": "412281f1-78d6-f0fd-8900-ba5748d1417d",
       "position": [
         480,
         1320
@@ -517,7 +513,7 @@
       "name": "GET services/consent-templates",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "9409d8f9-114d-4384-a0e6-3386541499b6",
+      "webhookId": "7f1a68fa-3011-f2b9-bb63-fa06bfd1b0f0",
       "parameters": {
         "path": "services/consent-templates",
         "authentication": "jwtAuth",
@@ -532,7 +528,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "ac68ae85-437a-4a01-9eaf-56066f385650",
+      "id": "cb9d7374-15d6-9504-1890-46745c289def",
       "position": [
         0,
         1540
@@ -555,7 +551,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "ff73c36f-3608-46c5-9f19-ba68dfb1a7c7",
+      "id": "92ebebbc-d16f-4245-cba7-dfa0872f9e70",
       "position": [
         240,
         1540
@@ -572,7 +568,7 @@
           "responseCode": 200
         }
       },
-      "id": "ec2c4a6e-2d31-4eba-ad89-911b8016d339",
+      "id": "dcf20bf4-02b7-eb64-8d76-37323b14e556",
       "position": [
         480,
         1540
@@ -582,7 +578,7 @@
       "name": "POST services/consent-templates/save",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "8de99bcf-1cfa-4618-8662-c14b3c7bf3d5",
+      "webhookId": "b046482d-0192-a32e-2a64-b1ca1b86dd67",
       "parameters": {
         "httpMethod": "POST",
         "path": "services/consent-templates/save",
@@ -598,7 +594,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "972f0312-7d24-4f6e-98a4-28c977b00ece",
+      "id": "eec848d1-9842-0616-9d95-aad68827d66e",
       "position": [
         0,
         1760
@@ -621,9 +617,8 @@
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "31123adf-14e5-49d3-bd44-4303b8e82ded",
+      "id": "2f5ec824-775f-b3ee-7001-6688e89b6c30",
       "position": [
         240,
         1760
@@ -640,7 +635,7 @@
           "responseCode": 200
         }
       },
-      "id": "13bf2ba7-661e-4ff8-acab-a070e31b1fb9",
+      "id": "7d128b9d-6709-d94e-d437-a4d706724147",
       "position": [
         480,
         1760
@@ -650,7 +645,7 @@
       "name": "GET aesthetic/sessions",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "811d068f-675e-46df-9bda-cdf542df76f9",
+      "webhookId": "6cd0d5f5-6de9-fcfd-1d6e-cb5a2cf9dbc9",
       "parameters": {
         "path": "aesthetic/sessions",
         "authentication": "jwtAuth",
@@ -665,7 +660,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "a0aeb1c4-2771-4e55-b596-51b15bc9bacd",
+      "id": "34aad462-87f3-9849-7423-c489d166435c",
       "position": [
         0,
         1980
@@ -688,9 +683,8 @@
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "04ceb012-d00a-4063-a56b-6e38d3fcee84",
+      "id": "7e3d1b8f-2c10-ed73-b283-58a96ce079dc",
       "position": [
         240,
         1980
@@ -707,7 +701,7 @@
           "responseCode": 200
         }
       },
-      "id": "09d329d9-6149-4d36-99d1-ceb4364e9381",
+      "id": "e0dc7d6d-a715-dda2-f8a5-f03852df03d3",
       "position": [
         480,
         1980
@@ -717,7 +711,7 @@
       "name": "POST aesthetic/sessions/save",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "498b805d-9230-413f-b16d-edaa3e034e2b",
+      "webhookId": "c5544c95-1f9a-2f02-800d-f837154688bb",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/sessions/save",
@@ -733,7 +727,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "d0ea30be-ee35-44f3-af01-ca4c082f226a",
+      "id": "a26769fa-29ce-0fcc-d827-ff9c18bf3652",
       "position": [
         0,
         2200
@@ -756,9 +750,8 @@
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "c77fa3b3-b821-4aca-ade6-6c7d41163bc6",
+      "id": "5acce633-1656-a2da-19b0-35daf6c616c9",
       "position": [
         240,
         2200
@@ -775,7 +768,7 @@
           "responseCode": 200
         }
       },
-      "id": "8071d849-4678-458d-8bd3-005e39123ed9",
+      "id": "d5f730fb-3689-b80b-0e4c-cec1aea247df",
       "position": [
         480,
         2200
@@ -785,7 +778,7 @@
       "name": "POST aesthetic/sessions/delete",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "df900583-4eea-48fd-a549-e3b636c35050",
+      "webhookId": "319701b6-f2a4-272b-c98a-0dfea8b98f20",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/sessions/delete",
@@ -801,7 +794,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "2a10c2a8-c9b0-4edd-b912-3e62fc51ad21",
+      "id": "3b630148-0ca4-51b6-274d-bcf0812f7883",
       "position": [
         0,
         2420
@@ -824,9 +817,8 @@
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "ea7355b0-e199-4cf4-ac05-3e353167c92d",
+      "id": "d868f339-d2ee-4c7a-4129-cd0b31e1c5a3",
       "position": [
         240,
         2420
@@ -843,7 +835,7 @@
           "responseCode": 200
         }
       },
-      "id": "a7c9dfc0-9642-4778-922d-b47b26492c9e",
+      "id": "3cce63a7-b9b9-b16f-c3c6-affdba426e96",
       "position": [
         480,
         2420
@@ -853,7 +845,7 @@
       "name": "POST aesthetic/sessions/close",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "f03421a9-878c-493b-a831-62d84ef626ad",
+      "webhookId": "3b2c9dcd-6906-326a-75bb-a244680e2215",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/sessions/close",
@@ -869,7 +861,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "48ee362b-9a72-4248-ac1b-43a0721fc0cb",
+      "id": "049a8fec-6750-712d-d4f1-6b0f8c153aae",
       "position": [
         0,
         2640
@@ -892,9 +884,8 @@
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "9eaa68d9-fb5a-4e65-adb9-eae82baf3768",
+      "id": "a5892050-f1b9-4b03-596e-16cd63993bdd",
       "position": [
         240,
         2640
@@ -911,7 +902,7 @@
           "responseCode": 200
         }
       },
-      "id": "b3faa76d-105c-492b-ac13-c1fc593d8d35",
+      "id": "cbd17ad2-b9e4-9b08-f277-b519fe417d58",
       "position": [
         480,
         2640
@@ -921,7 +912,7 @@
       "name": "POST aesthetic/sessions/void",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "a9d9273b-bb93-42fa-ac4b-3b73ddaf03fc",
+      "webhookId": "cd20462d-6205-be61-d910-0ea1e0244d0c",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/sessions/void",
@@ -937,7 +928,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "e05d83e1-3169-4a93-9d90-3772805b5df2",
+      "id": "00dca711-eae3-c6ba-c15f-00388fc215f4",
       "position": [
         0,
         2860
@@ -960,9 +951,8 @@
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "4040bf6d-04b5-4e5c-96da-33e701742d7f",
+      "id": "3b057a68-a234-4fed-8050-7212705a2d43",
       "position": [
         240,
         2860
@@ -979,7 +969,7 @@
           "responseCode": 200
         }
       },
-      "id": "6ad2f669-94ee-4fd8-9369-48cf3402d0c3",
+      "id": "c39924fb-eadb-c19f-90ac-72f22b276962",
       "position": [
         480,
         2860
@@ -989,7 +979,7 @@
       "name": "POST aesthetic/notes/add",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "518d81cd-5c4c-4e66-8d19-4f63162da219",
+      "webhookId": "549d6164-363e-418f-faf9-2ab10754f292",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/notes/add",
@@ -1005,7 +995,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "e9dd6147-8308-4fbf-96db-9c55967be5af",
+      "id": "57b89733-4c04-9f5c-2e91-c76ef6d3f511",
       "position": [
         0,
         3080
@@ -1028,9 +1018,8 @@
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "dc3a9be7-0375-4335-b4a5-1a2818fd2c99",
+      "id": "3b924e86-3e51-8b3f-4d67-888d59e5d67e",
       "position": [
         240,
         3080
@@ -1047,7 +1036,7 @@
           "responseCode": 200
         }
       },
-      "id": "4f571502-9b21-4951-a60d-7023181961c0",
+      "id": "7859238c-eca2-6333-3935-4a200b2773ab",
       "position": [
         480,
         3080
@@ -1057,7 +1046,7 @@
       "name": "POST aesthetic/photos/alignment",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "84b22c65-8681-474f-960c-084666813449",
+      "webhookId": "2b8d105a-c3e2-289c-2a73-c20bc93f3e96",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/photos/alignment",
@@ -1073,7 +1062,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "d51f8f55-f772-440d-a841-fa724977cad2",
+      "id": "dd33c8e5-51fe-6bde-4c8d-0aae36c63da2",
       "position": [
         0,
         3300
@@ -1096,9 +1085,8 @@
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "7a5f26ba-9111-4375-845e-7b62dd8df2df",
+      "id": "a8929214-6c5c-5f1c-e1ad-aeb24486c752",
       "position": [
         240,
         3300
@@ -1115,7 +1103,7 @@
           "responseCode": 200
         }
       },
-      "id": "38d5d2d4-fc42-471e-a8d7-07ce215cf2ce",
+      "id": "dcf1988c-e7bd-7b8e-6f5e-f3df60c29039",
       "position": [
         480,
         3300
@@ -1125,7 +1113,7 @@
       "name": "POST aesthetic/photos/upload",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "bf2f0981-7909-4197-a7aa-ec6de06489f0",
+      "webhookId": "d1d40c94-b8a7-a960-0e69-f593e102b3ec",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/photos/upload",
@@ -1143,7 +1131,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "11e2e2eb-0cd7-4a83-9793-35c131277356",
+      "id": "af4de623-176d-9d62-90c2-8eccdf9efc23",
       "position": [
         0,
         3520
@@ -1157,7 +1145,7 @@
         "jsCode": "const item = $('POST aesthetic/photos/upload').first();\nconst body = item.json.body ?? {};\nconst binary = item.binary?.data0 ?? item.binary?.data;\nif (!binary) throw new Error('AESTHETIC:FILE_REQUIRED|');\nconst sessionId = String(body.session_id ?? '').trim();\nif (!/^[0-9]+$/.test(sessionId)) throw new Error('AESTHETIC:SESSION_NOT_FOUND|' + sessionId);\nconst kind = String(body.kind ?? '');\nif (!['before', 'after'].includes(kind)) throw new Error('AESTHETIC:INVALID_PHOTO_KIND|' + kind);\nif (!/^image\\/(jpeg|png|webp|heic|heif)$/.test(binary.mimeType ?? '')) throw new Error('AESTHETIC:INVALID_FILE_TYPE|' + binary.mimeType);\nreturn [{\n  json: {\n    session_id: sessionId,\n    kind,\n    view: String(body.view ?? 'front'),\n    source: ['camera', 'upload', 'qr'].includes(String(body.source ?? '')) ? String(body.source) : 'upload',\n    alignment: body.alignment ? String(body.alignment) : '',\n    file_name: binary.fileName ?? 'foto',\n    mime_type: binary.mimeType,\n  },\n  binary: { file: binary },\n}];"
       },
       "onError": "continueErrorOutput",
-      "id": "200a1557-2950-4bed-ad60-85da95bfc4b3",
+      "id": "b392570c-c98a-0f46-f064-1b18f1233ae5",
       "position": [
         240,
         3520
@@ -1190,7 +1178,7 @@
           "name": "Google Drive account 2"
         }
       },
-      "id": "54fdeb9c-f1b1-465c-9591-ae24a550c72a",
+      "id": "a98f441f-9074-ae2c-4c74-896ff6fb5155",
       "position": [
         480,
         3520
@@ -1213,9 +1201,8 @@
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "4ff80f13-4d83-402d-8a01-d6e173d6f380",
+      "id": "3694f6b1-f531-7280-ce42-b2632ac6b06e",
       "position": [
         720,
         3520
@@ -1232,7 +1219,7 @@
           "responseCode": 200
         }
       },
-      "id": "5f5368d7-fc65-4b4d-8430-4229248b9f8a",
+      "id": "7687f4f3-01c1-3dd6-d042-2ef59a81e14e",
       "position": [
         960,
         3520
@@ -1242,7 +1229,7 @@
       "name": "POST aesthetic/photos/delete",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "15310d49-7ef1-4369-8cf4-c3d584882c77",
+      "webhookId": "c6edf19d-35a4-278e-d236-181bdc6976b7",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/photos/delete",
@@ -1258,7 +1245,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "f143933c-95b1-4b6d-acb5-b3b186641df6",
+      "id": "dd2ae6ca-de8e-7444-a3e8-bf49b6a1f621",
       "position": [
         0,
         3740
@@ -1281,9 +1268,8 @@
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "0882dcf4-b39f-42ed-87ce-0af18a51aabf",
+      "id": "52534435-d7b8-bd17-0a98-48a4ac44f9dc",
       "position": [
         240,
         3740
@@ -1303,7 +1289,7 @@
           },
           "conditions": [
             {
-              "id": "76da152d-9aee-45f4-b5e8-12e6b880ca8b",
+              "id": "7df06e8b-9c9e-3bda-7bad-4d027bc85f02",
               "operator": {
                 "type": "string",
                 "operation": "notEmpty",
@@ -1317,7 +1303,7 @@
         },
         "options": {}
       },
-      "id": "8824f583-935d-4e0e-999c-b0b09cc5ff5b",
+      "id": "af99c29a-692e-3c9f-28fe-d76ee1829644",
       "position": [
         480,
         3740
@@ -1343,7 +1329,7 @@
         }
       },
       "onError": "continueRegularOutput",
-      "id": "d043230a-004f-4647-b6ed-22454d6612f8",
+      "id": "040ca4d9-8581-48b3-59bb-a0ba19fe4a21",
       "position": [
         720,
         3740
@@ -1360,7 +1346,7 @@
           "responseCode": 200
         }
       },
-      "id": "e479a40c-d661-43a7-8d36-47d862a860a9",
+      "id": "0c507777-a901-2dbb-3740-4223b5faa50b",
       "position": [
         960,
         3740
@@ -1370,7 +1356,7 @@
       "name": "POST aesthetic/consents/sign",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "9d04e27b-1f34-493a-8a72-80136a2e7dc1",
+      "webhookId": "6db79142-55b4-efc9-59f9-552f501adbe8",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/consents/sign",
@@ -1388,7 +1374,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "1d17b9e5-a6a3-4013-aa04-2fa66253a009",
+      "id": "ea07aeec-5c08-a1c5-3b07-1562bb300e49",
       "position": [
         0,
         3960
@@ -1402,7 +1388,7 @@
         "jsCode": "const item = $('POST aesthetic/consents/sign').first();\nconst body = item.json.body ?? {};\nconst binary = item.binary?.data0 ?? item.binary?.data;\nif (!binary) throw new Error('AESTHETIC:FILE_REQUIRED|');\nconst sessionId = String(body.session_id ?? '').trim();\nif (!/^[0-9]+$/.test(sessionId)) throw new Error('AESTHETIC:SESSION_NOT_FOUND|' + sessionId);\nlet signing;\ntry { signing = JSON.parse(body.signing ?? '{}'); } catch { throw new Error('AESTHETIC:INVALID_CONSENT|'); }\nif (!/^image\\/(png|jpeg|webp)$/.test(binary.mimeType ?? '')) throw new Error('AESTHETIC:INVALID_FILE_TYPE|' + binary.mimeType);\ndelete signing.reuseSignatureId;\nreturn [{\n  json: { session_id: sessionId, signing: JSON.stringify(signing), mime_type: binary.mimeType },\n  binary: { file: binary },\n}];"
       },
       "onError": "continueErrorOutput",
-      "id": "da3544fa-7502-4af2-ab35-e2865b304b56",
+      "id": "d988b5b7-4dfe-62eb-c91a-d0c7af0f9cc8",
       "position": [
         240,
         3960
@@ -1435,7 +1421,7 @@
           "name": "Google Drive account 2"
         }
       },
-      "id": "0fe1d801-b2eb-493e-9159-0e8e80c6ca0c",
+      "id": "384d87cf-4be4-512e-99ad-b61593a47ca5",
       "position": [
         480,
         3960
@@ -1458,9 +1444,8 @@
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "346cc928-b6b5-4b8b-8ab9-b85a39731b76",
+      "id": "6d86a9c0-aab0-7471-e951-f6d998e59c5e",
       "position": [
         720,
         3960
@@ -1477,7 +1462,7 @@
           "responseCode": 200
         }
       },
-      "id": "6367e901-48c3-4ae3-a0f8-d10f4dcd327a",
+      "id": "bf3288eb-d8b9-9457-dcfd-bfd9f9d04f9e",
       "position": [
         960,
         3960
@@ -1487,7 +1472,7 @@
       "name": "POST aesthetic/consents/reuse",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "73f1d0da-25f5-4178-8c8e-b16be29089c1",
+      "webhookId": "a694ed43-7e8c-2ddf-1e28-5e7759b11eef",
       "parameters": {
         "httpMethod": "POST",
         "path": "aesthetic/consents/reuse",
@@ -1503,7 +1488,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "338beba5-a8a5-404b-bde0-11a3f0b26391",
+      "id": "1610c39f-aca4-609d-95bf-9a70a6a34bd0",
       "position": [
         0,
         4180
@@ -1526,9 +1511,8 @@
           "name": "Postgres account"
         }
       },
-      "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "799b8bf1-3051-4394-b752-a087ec6583d2",
+      "id": "c5475669-b9bf-c149-0131-32789846b46e",
       "position": [
         240,
         4180
@@ -1545,7 +1529,7 @@
           "responseCode": 200
         }
       },
-      "id": "cf307557-c46e-4da8-9b24-2f2976e5bbf5",
+      "id": "893ca377-42de-ebc2-d80c-da0e883ccc15",
       "position": [
         480,
         4180
@@ -1555,7 +1539,7 @@
       "name": "GET aesthetic/file",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "webhookId": "1ff384a9-6cb5-44ac-902c-2269562a4ebc",
+      "webhookId": "a335bba0-2a92-ca4f-b578-59f0aa9cecc4",
       "parameters": {
         "path": "aesthetic/file",
         "authentication": "jwtAuth",
@@ -1570,7 +1554,7 @@
           "name": "JWT Auth account"
         }
       },
-      "id": "ca3601f9-db6a-40b2-9680-d0a371cea71f",
+      "id": "b38e8014-5cb8-cefb-e978-695f1b8dd96c",
       "position": [
         0,
         4400
@@ -1595,7 +1579,7 @@
       },
       "alwaysOutputData": true,
       "onError": "continueErrorOutput",
-      "id": "6f2dfbee-1b62-4ed7-bd7d-cf4e65ae6922",
+      "id": "cca02d61-4e1a-e47a-9a9c-97989f93c68f",
       "position": [
         240,
         4400
@@ -1615,7 +1599,7 @@
           },
           "conditions": [
             {
-              "id": "677fcd46-f728-4058-aeb4-89163d772ef9",
+              "id": "052717cc-4231-9c55-8d79-8c09658ffd58",
               "operator": {
                 "type": "string",
                 "operation": "notEmpty",
@@ -1629,7 +1613,7 @@
         },
         "options": {}
       },
-      "id": "7e2ba74d-5760-4377-9817-2288cfad91f5",
+      "id": "31976824-e7f0-f907-5378-361be8ba5810",
       "position": [
         480,
         4400
@@ -1656,7 +1640,7 @@
           "name": "Google Drive account 2"
         }
       },
-      "id": "79c299dc-4252-46af-9d55-7b6c8753df33",
+      "id": "a7bd2469-318b-135b-db08-7ca9c1525fcd",
       "position": [
         720,
         4400
@@ -1674,7 +1658,7 @@
           "responseCode": 200
         }
       },
-      "id": "9ff638e9-ab66-4c83-8c1a-c0502e2e4322",
+      "id": "1cd28b18-e5d0-0360-06c9-68be7f52cd1b",
       "position": [
         960,
         4400
@@ -1691,7 +1675,7 @@
           "responseCode": 404
         }
       },
-      "id": "75f4f335-9596-4c55-a100-96132e170884",
+      "id": "8355688b-f9b9-35cd-f0ce-ba39092046dc",
       "position": [
         720,
         4520

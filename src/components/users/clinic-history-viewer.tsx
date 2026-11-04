@@ -64,6 +64,7 @@ import { AESTHETIC_RECORD_PERMISSIONS, BUSINESS_CONFIG_PERMISSIONS, CLINICAL_HIS
 import { AllergyItem, ClinicDocument, FamilyHistoryItem, MedicationCatalogItem, MedicationItem, PatientHabits as PatientHabitsType, PersonalHistoryItem, SessionAttachmentDocument, useClinicHistory } from '@/hooks/useClinicHistory';
 import { AestheticBodyFigure, AestheticSession, Appointment, AppointmentStatus, Calendar, CancellationReason, PatientSession, SessionPrefillData } from '@/lib/types';
 import { cn, formatDisplayDateWithWeekday } from '@/lib/utils';
+import { isSessionLockedError, useAestheticErrorMessage } from '@/components/users/aesthetic-record/aesthetic-errors';
 import { deleteAestheticSession } from '@/services/aesthetic-record';
 import { api } from '@/services/api';
 import { addYears, format, isBefore, isValid, parseISO } from 'date-fns';
@@ -134,6 +135,8 @@ interface ClinicHistoryViewerProps {
     createSessionTrigger?: number;
     createOdontogramTrigger?: number;
     createAestheticTrigger?: number;
+    /** The parent must reset its counter here, or the next mount opens a new draft */
+    onAestheticTriggerConsumed?: () => void;
     /** Patient's sex, for the body figure of their first aesthetic session */
     patientSex?: AestheticBodyFigure | null;
     sessionPrefill?: SessionPrefillData | null;
@@ -148,7 +151,7 @@ interface ClinicHistoryViewerProps {
     readOnly?: boolean;
 }
 
-export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, createAestheticTrigger = 0, patientSex, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, onEditAppointment, refreshAppointmentsTrigger = 0, isDoctorMode = false, readOnly = false }: ClinicHistoryViewerProps) {
+export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0, createOdontogramTrigger = 0, createAestheticTrigger = 0, onAestheticTriggerConsumed, patientSex, sessionPrefill, onSessionCreated, editSessionId, onClinicalDataChange, onEditAppointment, refreshAppointmentsTrigger = 0, isDoctorMode = false, readOnly = false }: ClinicHistoryViewerProps) {
     const {
         patientSessions,
         isLoadingPatientSessions,
@@ -311,11 +314,14 @@ export function ClinicHistoryViewer({ userId, userName, createSessionTrigger = 0
         }
     }, [createOdontogramTrigger]);
 
+    // One-shot: this viewer remounts when the tab changes, so an unconsumed counter would open a new
+    // draft on every return to the tab, even for another patient.
     React.useEffect(() => {
         if (createAestheticTrigger > 0) {
             setLocalAestheticTrigger(t => t + 1);
+            onAestheticTriggerConsumed?.();
         }
-    }, [createAestheticTrigger]);
+    }, [createAestheticTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <div className="pt-1">
@@ -2245,6 +2251,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
         }
     );
 
+    const describeAestheticError = useAestheticErrorMessage();
     const deleteAestheticAction = useAsyncAction(
         async () => {
             if (deletingAesthetic) await deleteAestheticSession(userId, deletingAesthetic.id);
@@ -2256,6 +2263,13 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                 await reloadAestheticSessions();
             },
             errorTitle: tAesthetic('deleteDialog.errorTitle'),
+            describeError: describeAestheticError,
+            // Someone else closed or deleted it: the list was out of date, and the button goes away with it
+            onError: (error) => {
+                if (!isSessionLockedError(error)) return;
+                setDeletingAesthetic(null);
+                reloadAestheticSessions();
+            },
         }
     );
 

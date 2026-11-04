@@ -36,7 +36,7 @@
  * Errores: las funciones lanzan 'AESTHETIC:<CODIGO>|<detalle>' ⇒ 400 { success:false, code, detail, message }.
  */
 
-import { randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -49,11 +49,17 @@ const PG_CREDENTIALS = { postgres: { id: '6b7Sjdnppbfve8ka', name: 'Postgres acc
 const JWT_CREDENTIALS = { jwtAuth: { id: 'C6sB1r7ab5H5EmJj', name: 'JWT Auth account' } };
 const DRIVE_CREDENTIALS = { googleDriveOAuth2Api: { id: 'k3vQaAkau21se8nC', name: 'Google Drive account 2' } };
 
+// Ids derivados del nombre: la misma entrada genera siempre el mismo JSON.
+const stableId = (seed) => {
+  const hex = createHash('sha1').update(`aesthetic-record:${seed}`).digest('hex');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+};
+
 const nodes = [];
 const connections = {};
 
 function add(node, position) {
-  nodes.push({ ...node, id: randomUUID(), position });
+  nodes.push({ ...node, id: stableId(`node:${node.name}`), position });
   return node.name;
 }
 
@@ -71,7 +77,7 @@ const webhook = (name, path, method, extraOptions = {}) => ({
   name,
   type: 'n8n-nodes-base.webhook',
   typeVersion: 2.1,
-  webhookId: randomUUID(),
+  webhookId: stableId(`webhook:${name}`),
   parameters: {
     ...(method === 'GET' ? {} : { httpMethod: method }),
     path,
@@ -84,13 +90,19 @@ const webhook = (name, path, method, extraOptions = {}) => ({
 
 // n8n lee los parámetros ($1, $2…) de `options.queryReplacement` (Postgres v2.x).
 // onError: la rama 1 lleva a "Map error" (400 con el código de la función).
-const pg = (name, query, queryReplacement) => ({
+//
+// alwaysOutputData sólo en lecturas que pueden dar 0 filas (sin él, un SELECT vacío corta el flujo y
+// el webhook no responde). Con él, un error emite TAMBIÉN un ítem {} por la salida 0, así que corren
+// las dos ramas y gana la del nodo más arriba en el lienzo (executionOrder v1). Las escrituras
+// devuelven una fila o lanzan, y no lo llevan: era lo que convertía un error en
+// 200 { success: true, unit: {} }.
+const pg = (name, query, queryReplacement, { mayBeEmpty = false } = {}) => ({
   name,
   type: 'n8n-nodes-base.postgres',
   typeVersion: 2.6,
   parameters: { operation: 'executeQuery', query, options: queryReplacement ? { queryReplacement } : {} },
   credentials: PG_CREDENTIALS,
-  alwaysOutputData: true,
+  ...(mayBeEmpty ? { alwaysOutputData: true } : {}),
   onError: 'continueErrorOutput',
 });
 
@@ -110,7 +122,7 @@ const ifNotEmpty = (name, leftValue) => ({
   parameters: {
     conditions: {
       options: { caseSensitive: true, leftValue: '', typeValidation: 'loose', version: 2 },
-      conditions: [{ id: randomUUID(), operator: { type: 'string', operation: 'notEmpty', singleValue: true }, leftValue, rightValue: '' }],
+      conditions: [{ id: stableId(`condition:${name}`), operator: { type: 'string', operation: 'notEmpty', singleValue: true }, leftValue, rightValue: '' }],
       combinator: 'and',
     },
     options: {},
@@ -146,28 +158,43 @@ const user = (webhookName) => USER.replace('%WEBHOOK%', webhookName);
 
 // ─── Errores compartidos ─────────────────────────────────────────────────────
 
+// Por encima de todos los nodos a propósito: una lectura con alwaysOutputData (ver pg) ejecuta las dos
+// ramas al fallar, y este 400 tiene que responder antes que su OK. El segundo Respond se ignora.
 const MAP_ERROR = add(code('Map error', `// Las funciones lanzan 'AESTHETIC:<CODIGO>|<detalle>'. Cualquier otro error
 // (conexión, constraint inesperada) sale como UNKNOWN con el mensaje crudo.
-const raw = $json.error?.message ?? $json.error ?? $json.message ?? '';
-const text = String(raw);
+// El texto no viene siempre en el mismo sitio: Postgres da { message, error: {...} } con el texto en
+// la raíz (error es una copia sin message), y Code da error como string. Sólo se miran estos campos:
+// la salida de error trae también el ítem de entrada, con el body que mandó el usuario.
+const texts = [];
+const seen = new Set();
+const walk = (value) => {
+  if (typeof value === 'string') { if (value.trim()) texts.push(value); return; }
+  if (!value || typeof value !== 'object' || seen.has(value)) return;
+  seen.add(value);
+  for (const key of ['message', 'description', 'cause', 'error']) walk(value[key]);
+  for (const child of Object.values(value)) walk(child);
+};
+for (const key of ['message', 'error', 'description', 'cause', 'details']) walk($json[key]);
+const serialize = (value) => { try { return JSON.stringify(value) ?? ''; } catch { return ''; } };
+const text = texts.find((t) => t.includes('AESTHETIC:')) ?? texts[0] ?? serialize($json.error);
 const match = text.match(/AESTHETIC:([A-Z_]+)(?:\\|(.*))?/);
 return [{ json: {
   success: false,
   code: match ? match[1] : 'UNKNOWN',
   detail: match && match[2] ? match[2].trim() : null,
   message: text || 'Error',
-} }];`), [1400, 1400]);
-const ERROR = add(respond('Error', '={{ $json }}', 400), [1640, 1400]);
+} }];`), [1400, -300]);
+const ERROR = add(respond('Error', '={{ $json }}', 400), [1640, -300]);
 link(MAP_ERROR, ERROR);
 
 let row = 0;
 const y = () => row++ * 220;
 
 /** Endpoint de una sola consulta: webhook → SQL → respuesta */
-function simple({ webhookName, path, method, query, params, body }) {
+function simple({ webhookName, path, method, query, params, body, mayBeEmpty }) {
   const top = y();
   const wh = add(webhook(webhookName, path, method), [0, top]);
-  const q = add(pg(`${webhookName} · SQL`, query, params), [240, top]);
+  const q = add(pg(`${webhookName} · SQL`, query, params, { mayBeEmpty }), [240, top]);
   const ok = add(respond(`${webhookName} · OK`, body), [480, top]);
   chain(wh, q);
   link(q, ok, 0);
@@ -181,6 +208,7 @@ simple({
   path: 'measurement-units',
   method: 'GET',
   query: 'SELECT * FROM public.measurement_units_list();',
+  mayBeEmpty: true,
   body: "={{ { success: true, units: $input.all().map(i => i.json).filter(u => u.id != null) } }}",
 });
 
@@ -209,6 +237,7 @@ simple({
   path: 'services/units',
   method: 'GET',
   query: 'SELECT * FROM public.service_units_list();',
+  mayBeEmpty: true,
   body: '={{ { success: true, units: $input.all().map(i => i.json).filter(u => u.service_id != null) } }}',
 });
 
@@ -228,6 +257,7 @@ simple({
   path: 'services/aesthetic-config',
   method: 'GET',
   query: 'SELECT * FROM public.service_aesthetic_config_list();',
+  mayBeEmpty: true,
   body: '={{ { success: true, configs: $input.all().map(i => i.json).filter(c => c.service_id != null) } }}',
 });
 
@@ -247,6 +277,7 @@ simple({
   path: 'services/consent-templates',
   method: 'GET',
   query: 'SELECT * FROM public.service_consent_templates_list();',
+  mayBeEmpty: true,
   body: '={{ { success: true, templates: $input.all().map(i => i.json).filter(t => t.service_id != null) } }}',
 });
 
@@ -425,7 +456,7 @@ simple({
 {
   const top = y();
   const wh = add(webhook('GET aesthetic/file', 'aesthetic/file', 'GET'), [0, top]);
-  const read = add(pg('File · buscar', 'SELECT * FROM public.aesthetic_file_get($1);', '={{ [String($json.query.id ?? "")] }}'), [240, top]);
+  const read = add(pg('File · buscar', 'SELECT * FROM public.aesthetic_file_get($1);', '={{ [String($json.query.id ?? "")] }}', { mayBeEmpty: true }), [240, top]);
   const has = add(ifNotEmpty('File · ¿existe?', '={{ $json.drive_file_id }}'), [480, top]);
   const download = add({
     name: 'File · descargar de Drive',
@@ -452,7 +483,7 @@ simple({
 // ─── Nota ────────────────────────────────────────────────────────────────────
 
 nodes.unshift({
-  id: randomUUID(),
+  id: stableId('node:Nota'),
   name: 'Nota',
   type: 'n8n-nodes-base.stickyNote',
   typeVersion: 1,

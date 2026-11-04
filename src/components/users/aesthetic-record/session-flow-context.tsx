@@ -83,6 +83,8 @@ export interface SessionFlowValue {
   ensureSaved: () => Promise<string>;
   saveState: SaveState;
   retrySave: () => void;
+  /** Text for an error of this session; if someone else closed, voided or deleted it, also turns the sheet read-only */
+  reportError: (error: unknown) => string;
 
   /** Model shown behind the map: sex and skin tone (a view preference) */
   modelSex: AestheticBodyFigure;

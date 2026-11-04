@@ -272,6 +272,11 @@ export function PatientDetailSheet({
     }
   }, [clinicalHistoryDefaultView, resolveInitialTab, open, userId]);
 
+  // A pending "new aesthetic session" belongs to the patient it was asked for
+  React.useEffect(() => {
+    setCreateAestheticTrigger(0);
+  }, [open, userId]);
+
   // The Finance tab's account statement needs the full width to render without horizontal
   // scroll — maximize the sheet whenever that tab becomes active (bumping the signal each
   // time so re-entering the tab re-maximizes; the user can still restore via the toggle).
@@ -496,7 +501,7 @@ export function PatientDetailSheet({
             />
           ) : undefined}
           anamnesisContent={<AnamnesisViewer userId={userId} readOnly={isReadOnly} />}
-          clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} createAestheticTrigger={createAestheticTrigger} refreshAppointmentsTrigger={apptRefreshTrigger} onEditAppointment={canManageAppointments ? setEditingAppointment : undefined} readOnly={isReadOnly} />}
+          clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} createAestheticTrigger={createAestheticTrigger} onAestheticTriggerConsumed={() => setCreateAestheticTrigger(0)} refreshAppointmentsTrigger={apptRefreshTrigger} onEditAppointment={canManageAppointments ? setEditingAppointment : undefined} readOnly={isReadOnly} />}
           treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} readOnly={isReadOnly} />}
           medicalInstructionsContent={<PatientIndicationsTab userId={userId} userName={userName} createTrigger={createMedicalInstructionTrigger} createPrescriptionTrigger={createPrescriptionTrigger} readOnly={isReadOnly} lockDoctor={isDoctorMode} />}
           documentsContent={<DocumentsViewer userId={userId} createTrigger={createDocumentTrigger} readOnly={isReadOnly} />}

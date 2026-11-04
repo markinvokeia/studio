@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ServiceConsentTemplatePanel } from '@/components/services/service-consent-template';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useToast } from '@/hooks/use-toast';
-import { getErrorMessage } from '@/lib/error-utils';
+import { useAestheticErrorMessage } from '@/components/users/aesthetic-record/aesthetic-errors';
 import { cn } from '@/lib/utils';
 import { fetchServiceAestheticConfigs, saveServiceAestheticConfig } from '@/services/aesthetic-record';
 
@@ -88,6 +88,7 @@ export function ServiceAestheticConfigPanel({ serviceId, unitId, units, canManag
   /** The service already has an aesthetic configuration stored */
   const [exists, setExists] = React.useState(false);
   const [loadError, setLoadError] = React.useState<string | null>(null);
+  const describeError = useAestheticErrorMessage();
 
   React.useEffect(() => {
     let active = true;
@@ -112,9 +113,9 @@ export function ServiceAestheticConfigPanel({ serviceId, unitId, units, canManag
         setSaved(next);
         setDraft(next);
       })
-      .catch((error) => { if (active) setLoadError(getErrorMessage(error)); });
+      .catch((error) => { if (active) setLoadError(describeError(error)); });
     return () => { active = false; };
-  }, [serviceId]);
+  }, [serviceId, describeError]);
 
   const save = useAsyncAction(
     async (next: Draft) => {
@@ -139,6 +140,7 @@ export function ServiceAestheticConfigPanel({ serviceId, unitId, units, canManag
         onSaved?.();
       },
       errorTitle: t('saveError'),
+      describeError,
     },
   );
 

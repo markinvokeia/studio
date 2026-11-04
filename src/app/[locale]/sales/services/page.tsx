@@ -45,6 +45,7 @@ import { ServicesColumnsWrapper } from './columns';
 import { useDebounce } from '@/hooks/use-debounce';
 import { ServiceImageUploader, uploadPendingServiceImage } from '@/components/services/service-image-uploader';
 import { ServiceAestheticTab } from '@/components/services/service-aesthetic-config';
+import { useAestheticErrorMessage } from '@/components/users/aesthetic-record/aesthetic-errors';
 import { MeasurementUnitSelect } from '@/components/ui/measurement-unit-select';
 import {
   fetchMeasurementUnits,
@@ -865,6 +866,7 @@ export default function ServicesPage() {
   const [units, setUnits] = React.useState<MeasurementUnit[]>([]);
   const [serviceUnits, setServiceUnits] = React.useState<Map<string, string>>(() => new Map());
   const [aestheticIds, setAestheticIds] = React.useState<Set<string>>(() => new Set());
+  const describeAestheticError = useAestheticErrorMessage();
   const [extrasLoaded, setExtrasLoaded] = React.useState(false);
 
   const canCreate = hasPermission(SALES_PERMISSIONS.SERVICES_CREATE);
@@ -1035,7 +1037,7 @@ export default function ServicesPage() {
       });
       return true;
     } catch (error) {
-      toast({ variant: 'destructive', title: t('toast.extrasFailedTitle'), description: error instanceof Error ? error.message : t('toast.genericError') });
+      toast({ variant: 'destructive', title: t('toast.extrasFailedTitle'), description: describeAestheticError(error) });
       return false;
     }
   }

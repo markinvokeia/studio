@@ -49,7 +49,7 @@ export function StepTreatment() {
   const t = useTranslations('AestheticRecord');
   const { toast } = useToast();
   const flow = useSessionFlow();
-  const { draft, setLayers, stored, readOnly, previousSessions, configFor, modelSex, setModelSex, modelTone, setModelTone, updateDraft, undo, redo, canUndo, canRedo, goToStep, updateSession } = flow;
+  const { draft, setLayers, stored, readOnly, previousSessions, configFor, modelSex, setModelSex, modelTone, setModelTone, updateDraft, undo, redo, canUndo, canRedo, goToStep, updateSession, reportError } = flow;
   const layers = draft.layers;
   const consents = stored?.consents ?? [];
 
@@ -96,7 +96,7 @@ export function StepTreatment() {
       updateSession(stored.id, (s) => ({ ...s, photos: s.photos.map((p) => (p.id === todayPhoto.id ? { ...p, alignment: alignment ?? undefined } : p)) }));
       toast({ title: t('toast.alignmentSaved') });
     } catch (error) {
-      toast({ variant: 'destructive', title: t('map.backdrop.saveError'), description: error instanceof Error ? error.message : undefined });
+      toast({ variant: 'destructive', title: t('map.backdrop.saveError'), description: reportError(error) });
       throw error;
     }
   }
@@ -501,7 +501,7 @@ export function StepTreatment() {
           )}
         </div>
       </aside>
-      {aligning && todayPhoto && (
+      {aligning && todayPhoto && !readOnly && (
         <PhotoAlignDialog
           open
           onOpenChange={(open) => { if (!open) setAligning(false); }}
@@ -681,7 +681,7 @@ function NotesPanel() {
   const t = useTranslations('AestheticRecord');
   const locale = useLocale();
   const { toast } = useToast();
-  const { stored, readOnly, ensureSaved, applyServer } = useSessionFlow();
+  const { stored, readOnly, ensureSaved, applyServer, reportError } = useSessionFlow();
   const [text, setText] = React.useState('');
   const [listening, setListening] = React.useState(false);
   const notes = (stored?.sessionNotes ?? []).filter((n) => n.kind === 'note');
@@ -691,6 +691,7 @@ function NotesPanel() {
     {
       onSuccess: (session) => { applyServer(session); setText(''); },
       errorTitle: t('flow.notes.error'),
+      describeError: reportError,
     },
   );
 
