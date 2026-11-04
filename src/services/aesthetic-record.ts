@@ -85,6 +85,14 @@ function normalizeSession(raw: AestheticSession): AestheticSession {
     closedByName: optional(raw.closedByName),
     voidedAt: optional(raw.voidedAt),
     voidReason: optional(raw.voidReason),
+    invoice: raw.invoice
+      ? {
+        ...raw.invoice,
+        total: Number(raw.invoice.total) || 0,
+        paidAmount: Number(raw.invoice.paidAmount) || 0,
+        serviceIds: raw.invoice.serviceIds ?? [],
+      }
+      : null,
     sessionNotes: raw.sessionNotes ?? [],
     events: (raw.events ?? []).map((event) => ({ ...event, payload: event.payload ?? {} })),
   };
@@ -284,6 +292,7 @@ function sessionPayload(patientId: string, input: AestheticSessionInput, session
         polygon: mark.kind !== 'point' ? mark.polygon : null,
         zone: mark.zone,
         quantity: mark.quantity,
+        productName: mark.productName ?? null,
         lot: mark.lot ?? null,
         lotExpiry: mark.lotExpiry ?? null,
         depth: mark.depth ?? null,
@@ -325,6 +334,15 @@ export async function voidAestheticSession(sessionId: string, reason: string): P
 }
 
 /** Timestamped note while the session is open; an amendment once it is closed */
+/**
+ * Ties a sales invoice to the session. Also works on a closed one. Linking the same invoice again
+ * changes nothing and returns the session up to date, which is how its amounts refresh after a payment.
+ */
+export async function linkAestheticInvoice(sessionId: string, invoiceId: string): Promise<AestheticSession> {
+  const data = unwrap<{ session: AestheticSession }>(await api.post(API_ROUTES.AESTHETIC_RECORD.SESSION_LINK_INVOICE, { id: Number(sessionId), invoice_id: Number(invoiceId) }));
+  return normalizeSession(data.session);
+}
+
 export async function addAestheticNote(sessionId: string, body: string, kind: 'note' | 'amendment'): Promise<AestheticSession> {
   const data = unwrap<{ session: AestheticSession }>(
     await api.post(API_ROUTES.AESTHETIC_RECORD.NOTE_ADD, { session_id: Number(sessionId), body, kind }),

@@ -73,7 +73,7 @@ export type MissingItem =
   | { key: 'pickServices' }
   | { key: 'signConsents'; count: number; service: string }
   | { key: 'takePhoto' }
-  | { key: 'markServices'; services: string }
+  | { key: 'markServices'; services: string; count: number }
   | { key: 'ready' };
 
 export function nextMissing(facts: SessionFacts, layerName: (layer: AestheticLayer) => string): MissingItem {
@@ -84,7 +84,7 @@ export function nextMissing(facts: SessionFacts, layerName: (layer: AestheticLay
   if (unsigned.length) return { key: 'signConsents', count: unsigned.length, service: layerName(unsigned[0]) };
   if (!photosComplete(facts)) return { key: 'takePhoto' };
   const unmarked = facts.layers.filter((l) => !layerMarked(l));
-  if (unmarked.length) return { key: 'markServices', services: unmarked.map(layerName).join(', ') };
+  if (unmarked.length) return { key: 'markServices', services: unmarked.map(layerName).join(', '), count: unmarked.length };
   return { key: 'ready' };
 }
 
@@ -131,4 +131,13 @@ export function missingText(t: Translate, missing: MissingItem): string {
     case 'markServices': return t('flow.missing.markServices', { services: missing.services });
     default: return t(`flow.missing.${missing.key}`);
   }
+}
+
+/** Services still named one by one in the short sentence; with more, only how many */
+const MAX_NAMED_SERVICES = 2;
+
+/** Same sentence for a tight space: a long list of services becomes a count */
+export function missingSummary(t: Translate, missing: MissingItem): string {
+  if (missing.key === 'markServices' && missing.count > MAX_NAMED_SERVICES) return t('flow.missing.markServicesCount', { count: missing.count });
+  return missingText(t, missing);
 }

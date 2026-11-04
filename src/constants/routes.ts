@@ -559,6 +559,7 @@ export const API_ROUTES = {
         SESSION_DELETE:   '/aesthetic/sessions/delete',
         SESSION_CLOSE:    '/aesthetic/sessions/close',
         SESSION_VOID:     '/aesthetic/sessions/void',
+        SESSION_LINK_INVOICE: '/aesthetic/sessions/link_invoice',
         NOTE_ADD:         '/aesthetic/notes/add',
         PHOTO_UPLOAD:     '/aesthetic/photos/upload',
         PHOTO_DELETE:     '/aesthetic/photos/delete',

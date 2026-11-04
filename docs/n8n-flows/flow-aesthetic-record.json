@@ -976,6 +976,73 @@
       ]
     },
     {
+      "name": "POST aesthetic/sessions/link_invoice",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "9aabc1d3-ce9e-7409-076d-698d3de9a901",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aesthetic/sessions/link_invoice",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "id": "84c2db37-8bb6-fcfe-bda3-8132d0583102",
+      "position": [
+        0,
+        3080
+      ]
+    },
+    {
+      "name": "POST aesthetic/sessions/link_invoice · SQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT public.aesthetic_session_link_invoice(NULLIF($1, '')::bigint, NULLIF($2, '')::integer, NULLIF($3, '')::uuid) AS session;",
+        "options": {
+          "queryReplacement": "={{ [String($json.body.id ?? \"\"), String($json.body.invoice_id ?? \"\"), $('POST aesthetic/sessions/link_invoice').first().json.jwtPayload?.userId ?? ''] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "31aa29b9-3ba1-0642-c838-dec636060161",
+      "position": [
+        240,
+        3080
+      ]
+    },
+    {
+      "name": "POST aesthetic/sessions/link_invoice · OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, session: $json.session } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "fecb29a0-7adc-0572-b95d-bda154a8f1ee",
+      "position": [
+        480,
+        3080
+      ]
+    },
+    {
       "name": "POST aesthetic/notes/add",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
@@ -998,7 +1065,7 @@
       "id": "57b89733-4c04-9f5c-2e91-c76ef6d3f511",
       "position": [
         0,
-        3080
+        3300
       ]
     },
     {
@@ -1022,7 +1089,7 @@
       "id": "3b924e86-3e51-8b3f-4d67-888d59e5d67e",
       "position": [
         240,
-        3080
+        3300
       ]
     },
     {
@@ -1039,7 +1106,7 @@
       "id": "7859238c-eca2-6333-3935-4a200b2773ab",
       "position": [
         480,
-        3080
+        3300
       ]
     },
     {
@@ -1065,7 +1132,7 @@
       "id": "dd33c8e5-51fe-6bde-4c8d-0aae36c63da2",
       "position": [
         0,
-        3300
+        3520
       ]
     },
     {
@@ -1089,7 +1156,7 @@
       "id": "a8929214-6c5c-5f1c-e1ad-aeb24486c752",
       "position": [
         240,
-        3300
+        3520
       ]
     },
     {
@@ -1106,7 +1173,7 @@
       "id": "dcf1988c-e7bd-7b8e-6f5e-f3df60c29039",
       "position": [
         480,
-        3300
+        3520
       ]
     },
     {
@@ -1134,7 +1201,7 @@
       "id": "af4de623-176d-9d62-90c2-8eccdf9efc23",
       "position": [
         0,
-        3520
+        3740
       ]
     },
     {
@@ -1148,7 +1215,7 @@
       "id": "b392570c-c98a-0f46-f064-1b18f1233ae5",
       "position": [
         240,
-        3520
+        3740
       ]
     },
     {
@@ -1181,7 +1248,7 @@
       "id": "a98f441f-9074-ae2c-4c74-896ff6fb5155",
       "position": [
         480,
-        3520
+        3740
       ]
     },
     {
@@ -1205,7 +1272,7 @@
       "id": "3694f6b1-f531-7280-ce42-b2632ac6b06e",
       "position": [
         720,
-        3520
+        3740
       ]
     },
     {
@@ -1222,7 +1289,7 @@
       "id": "7687f4f3-01c1-3dd6-d042-2ef59a81e14e",
       "position": [
         960,
-        3520
+        3740
       ]
     },
     {
@@ -1248,7 +1315,7 @@
       "id": "dd2ae6ca-de8e-7444-a3e8-bf49b6a1f621",
       "position": [
         0,
-        3740
+        3960
       ]
     },
     {
@@ -1272,7 +1339,7 @@
       "id": "52534435-d7b8-bd17-0a98-48a4ac44f9dc",
       "position": [
         240,
-        3740
+        3960
       ]
     },
     {
@@ -1306,7 +1373,7 @@
       "id": "af99c29a-692e-3c9f-28fe-d76ee1829644",
       "position": [
         480,
-        3740
+        3960
       ]
     },
     {
@@ -1332,7 +1399,7 @@
       "id": "040ca4d9-8581-48b3-59bb-a0ba19fe4a21",
       "position": [
         720,
-        3740
+        3960
       ]
     },
     {
@@ -1349,7 +1416,7 @@
       "id": "0c507777-a901-2dbb-3740-4223b5faa50b",
       "position": [
         960,
-        3740
+        3960
       ]
     },
     {
@@ -1377,7 +1444,7 @@
       "id": "ea07aeec-5c08-a1c5-3b07-1562bb300e49",
       "position": [
         0,
-        3960
+        4180
       ]
     },
     {
@@ -1391,7 +1458,7 @@
       "id": "d988b5b7-4dfe-62eb-c91a-d0c7af0f9cc8",
       "position": [
         240,
-        3960
+        4180
       ]
     },
     {
@@ -1424,7 +1491,7 @@
       "id": "384d87cf-4be4-512e-99ad-b61593a47ca5",
       "position": [
         480,
-        3960
+        4180
       ]
     },
     {
@@ -1448,7 +1515,7 @@
       "id": "6d86a9c0-aab0-7471-e951-f6d998e59c5e",
       "position": [
         720,
-        3960
+        4180
       ]
     },
     {
@@ -1465,7 +1532,7 @@
       "id": "bf3288eb-d8b9-9457-dcfd-bfd9f9d04f9e",
       "position": [
         960,
-        3960
+        4180
       ]
     },
     {
@@ -1491,7 +1558,7 @@
       "id": "1610c39f-aca4-609d-95bf-9a70a6a34bd0",
       "position": [
         0,
-        4180
+        4400
       ]
     },
     {
@@ -1515,7 +1582,7 @@
       "id": "c5475669-b9bf-c149-0131-32789846b46e",
       "position": [
         240,
-        4180
+        4400
       ]
     },
     {
@@ -1532,7 +1599,7 @@
       "id": "893ca377-42de-ebc2-d80c-da0e883ccc15",
       "position": [
         480,
-        4180
+        4400
       ]
     },
     {
@@ -1557,7 +1624,7 @@
       "id": "b38e8014-5cb8-cefb-e978-695f1b8dd96c",
       "position": [
         0,
-        4400
+        4620
       ]
     },
     {
@@ -1582,7 +1649,7 @@
       "id": "cca02d61-4e1a-e47a-9a9c-97989f93c68f",
       "position": [
         240,
-        4400
+        4620
       ]
     },
     {
@@ -1616,7 +1683,7 @@
       "id": "31976824-e7f0-f907-5378-361be8ba5810",
       "position": [
         480,
-        4400
+        4620
       ]
     },
     {
@@ -1643,7 +1710,7 @@
       "id": "a7bd2469-318b-135b-db08-7ca9c1525fcd",
       "position": [
         720,
-        4400
+        4620
       ]
     },
     {
@@ -1661,7 +1728,7 @@
       "id": "1cd28b18-e5d0-0360-06c9-68be7f52cd1b",
       "position": [
         960,
-        4400
+        4620
       ]
     },
     {
@@ -1678,7 +1745,7 @@
       "id": "8355688b-f9b9-35cd-f0ce-ba39092046dc",
       "position": [
         720,
-        4520
+        4740
       ]
     }
   ],
@@ -2087,6 +2154,35 @@
         [
           {
             "node": "POST aesthetic/sessions/void · OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST aesthetic/sessions/link_invoice": {
+      "main": [
+        [
+          {
+            "node": "POST aesthetic/sessions/link_invoice · SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST aesthetic/sessions/link_invoice · SQL": {
+      "main": [
+        [
+          {
+            "node": "POST aesthetic/sessions/link_invoice · OK",
             "type": "main",
             "index": 0
           }

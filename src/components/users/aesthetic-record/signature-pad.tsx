@@ -4,6 +4,7 @@ import React from 'react';
 
 import { cn } from '@/lib/utils';
 
+/** Points as fractions of the pad's width, on both axes, so resizing it never distorts the strokes */
 type Stroke = [number, number][];
 
 interface SignaturePadProps {
@@ -20,6 +21,9 @@ interface SignaturePadProps {
 
 const EXPORT_WIDTH = 900;
 const EXPORT_HEIGHT = 300;
+const EXPORT_MARGIN = 24;
+/** A small signature is enlarged at most this much relative to the pad */
+const EXPORT_MAX_ZOOM = 2;
 
 /** Inline pad: signed with the finger, a stylus or the mouse, right on the consent step */
 export function SignaturePad({ onChange, resetKey = 0, placeholder, label, invalid, disabled, className }: SignaturePadProps) {
@@ -40,8 +44,8 @@ export function SignaturePad({ onChange, resetKey = 0, placeholder, label, inval
     ctx.lineJoin = 'round';
     for (const stroke of strokesRef.current) {
       ctx.beginPath();
-      stroke.forEach(([x, y], i) => (i ? ctx.lineTo(x * width, y * height) : ctx.moveTo(x * width, y * height)));
-      if (stroke.length === 1) ctx.lineTo(stroke[0][0] * width + 0.5, stroke[0][1] * height);
+      stroke.forEach(([x, y], i) => (i ? ctx.lineTo(x * width, y * width) : ctx.moveTo(x * width, y * width)));
+      if (stroke.length === 1) ctx.lineTo(stroke[0][0] * width + 0.5, stroke[0][1] * width);
       ctx.stroke();
     }
   }, []);
@@ -70,7 +74,7 @@ export function SignaturePad({ onChange, resetKey = 0, placeholder, label, inval
 
   function point(e: React.PointerEvent<HTMLCanvasElement>): [number, number] {
     const rect = e.currentTarget.getBoundingClientRect();
-    return [(e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.height];
+    return [(e.clientX - rect.left) / rect.width, (e.clientY - rect.top) / rect.width];
   }
 
   function exportFile() {
@@ -85,9 +89,23 @@ export function SignaturePad({ onChange, resetKey = 0, placeholder, label, inval
     ctx.lineWidth = 4;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+    // Whatever the pad's size, the image has one format: the strokes fitted and centered, undistorted
+    const points = strokesRef.current.flat();
+    const minX = Math.min(...points.map(([x]) => x));
+    const maxX = Math.max(...points.map(([x]) => x));
+    const minY = Math.min(...points.map(([, y]) => y));
+    const maxY = Math.max(...points.map(([, y]) => y));
+    const scale = Math.min(
+      EXPORT_WIDTH * EXPORT_MAX_ZOOM,
+      (EXPORT_WIDTH - 2 * EXPORT_MARGIN) / Math.max(maxX - minX, 1e-6),
+      (EXPORT_HEIGHT - 2 * EXPORT_MARGIN) / Math.max(maxY - minY, 1e-6),
+    );
+    const toX = (x: number) => (EXPORT_WIDTH - (maxX - minX) * scale) / 2 + (x - minX) * scale;
+    const toY = (y: number) => (EXPORT_HEIGHT - (maxY - minY) * scale) / 2 + (y - minY) * scale;
     for (const stroke of strokesRef.current) {
       ctx.beginPath();
-      stroke.forEach(([x, y], i) => (i ? ctx.lineTo(x * out.width, y * out.height) : ctx.moveTo(x * out.width, y * out.height)));
+      stroke.forEach(([x, y], i) => (i ? ctx.lineTo(toX(x), toY(y)) : ctx.moveTo(toX(x), toY(y))));
+      if (stroke.length === 1) ctx.lineTo(toX(stroke[0][0]) + 0.5, toY(stroke[0][1]));
       ctx.stroke();
     }
     out.toBlob((blob) => {
@@ -109,7 +127,7 @@ export function SignaturePad({ onChange, resetKey = 0, placeholder, label, inval
         ref={canvasRef}
         aria-label={label}
         role="img"
-        className="block h-full w-full cursor-crosshair rounded-xl"
+        className="absolute inset-0 h-full w-full cursor-crosshair rounded-xl"
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId);
           currentRef.current = [point(e)];

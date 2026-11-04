@@ -50,6 +50,33 @@ export const hasOverrides = (mark: AestheticMark) => SHARED_ATTRIBUTES.some((key
 /** Name a layer is shown with: the product when there is one, else the service */
 export const layerTitle = (layer: AestheticLayer) => layer.productName.trim() || layer.serviceName;
 
+/** Product of the mark: its own when it set one, the layer's otherwise */
+export const resolveMarkProduct = (layer: AestheticLayer, mark: AestheticMark) => mark.productName?.trim() || layer.productName.trim();
+
+/** One product and lot used in a layer, with what was consumed of it */
+export interface LayerLot {
+  key: string;
+  productName: string;
+  lot?: string;
+  lotExpiry?: string;
+  quantity: number;
+}
+
+/** What the layer's marks actually used; a layer without marks shows what is loaded on it */
+export function layerLots(layer: AestheticLayer): LayerLot[] {
+  if (!layer.marks.length) return [{ key: 'layer', productName: layer.productName.trim(), lot: layer.lot, lotExpiry: layer.lotExpiry, quantity: 0 }];
+  const lots = new Map<string, LayerLot>();
+  for (const mark of layer.marks) {
+    const { lot, lotExpiry } = resolveMark(layer, mark);
+    const productName = resolveMarkProduct(layer, mark);
+    const key = JSON.stringify([productName, lot ?? '', lotExpiry ?? '']);
+    const entry = lots.get(key) ?? { key, productName, lot, lotExpiry, quantity: 0 };
+    entry.quantity += mark.quantity ?? 0;
+    lots.set(key, entry);
+  }
+  return [...lots.values()];
+}
+
 /** A mark placed on the map, with the layer it belongs to and its number in the session */
 export interface PlacedMark {
   mark: AestheticMark;

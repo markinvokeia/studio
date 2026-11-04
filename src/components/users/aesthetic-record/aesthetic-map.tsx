@@ -1085,10 +1085,10 @@ function MapCanvas({
         <div
           role="group"
           aria-label={t('map.zoom.label')}
-          className="absolute bottom-2 right-2 z-10 flex items-center gap-0.5 rounded-lg border bg-card/90 p-0.5 text-xs shadow-sm backdrop-blur-sm"
+          className="absolute bottom-2 right-2 z-10 flex items-center gap-0.5 rounded-lg border bg-card/90 p-0.5 text-xs shadow-sm backdrop-blur-sm max-sm:flex-col-reverse max-sm:[&>span:nth-child(2)]:hidden"
         >
           <Hint label={t('map.zoom.out')} description={t('flow.hints.zoomOut')} side="top">
-            <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={frame.k <= 1} onClick={() => zoomAround(1 / ZOOM_STEP)} aria-label={t('map.zoom.out')}>
+            <Button type="button" size="icon" variant="ghost" className="h-7 w-7 max-sm:h-9 max-sm:w-9" disabled={frame.k <= 1} onClick={() => zoomAround(1 / ZOOM_STEP)} aria-label={t('map.zoom.out')}>
               <ZoomOut className="h-3.5 w-3.5" />
             </Button>
           </Hint>
@@ -1098,12 +1098,12 @@ function MapCanvas({
             </span>
           </Hint>
           <Hint label={t('map.zoom.in')} description={t('flow.hints.zoomIn')} side="top">
-            <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={frame.k >= MAP_MAX_ZOOM} onClick={() => zoomAround(ZOOM_STEP)} aria-label={t('map.zoom.in')}>
+            <Button type="button" size="icon" variant="ghost" className="h-7 w-7 max-sm:h-9 max-sm:w-9" disabled={frame.k >= MAP_MAX_ZOOM} onClick={() => zoomAround(ZOOM_STEP)} aria-label={t('map.zoom.in')}>
               <ZoomIn className="h-3.5 w-3.5" />
             </Button>
           </Hint>
           <Hint label={t('map.zoom.fit')} description={t('flow.hints.zoomFit')} side="top">
-            <Button type="button" size="icon" variant="ghost" className="h-7 w-7" disabled={frame.k <= 1} onClick={() => applyZoom(null)} aria-label={t('map.zoom.fit')}>
+            <Button type="button" size="icon" variant="ghost" className="h-7 w-7 max-sm:h-9 max-sm:w-9" disabled={frame.k <= 1} onClick={() => applyZoom(null)} aria-label={t('map.zoom.fit')}>
               <Scan className="h-3.5 w-3.5" />
             </Button>
           </Hint>

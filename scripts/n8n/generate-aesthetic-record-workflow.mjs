@@ -30,6 +30,7 @@
  *   POST aesthetic/consents/reuse          { session_id, signing } con signing.reuseSignatureId
  *   POST aesthetic/sessions/close          { id, notes? } → sólo desde "Por cerrar" (155)
  *   POST aesthetic/sessions/void           { id, reason } (155)
+ *   POST aesthetic/sessions/link_invoice   { id, invoice_id } → también con la sesión cerrada (161)
  *   POST aesthetic/notes/add               { session_id, body, kind: note|amendment } (155)
  *   GET  aesthetic/file?id=                binario de 'photo_<id>', 'consentsig_<id>' o 'signature_<session_id>' (151)
  *
@@ -335,6 +336,15 @@ simple({
   method: 'POST',
   query: "SELECT public.aesthetic_session_void(NULLIF($1, '')::bigint, $2, NULLIF($3, '')::uuid) AS session;",
   params: `={{ [String($json.body.id ?? ""), String($json.body.reason ?? ""), ${user('POST aesthetic/sessions/void')}] }}`,
+  body: '={{ { success: true, session: $json.session } }}',
+});
+
+simple({
+  webhookName: 'POST aesthetic/sessions/link_invoice',
+  path: 'aesthetic/sessions/link_invoice',
+  method: 'POST',
+  query: "SELECT public.aesthetic_session_link_invoice(NULLIF($1, '')::bigint, NULLIF($2, '')::integer, NULLIF($3, '')::uuid) AS session;",
+  params: `={{ [String($json.body.id ?? ""), String($json.body.invoice_id ?? ""), ${user('POST aesthetic/sessions/link_invoice')}] }}`,
   body: '={{ { success: true, session: $json.session } }}',
 });
 

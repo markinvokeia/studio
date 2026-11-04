@@ -2452,6 +2452,8 @@ export interface AestheticSharedAttributes {
 
 export interface AestheticMark extends AestheticSharedAttributes {
   id: string;
+  /** Product used on this mark; empty: the layer's */
+  productName?: string;
   kind: AestheticMarkKind;
   view: AestheticMapView;
   /** Point: its position. Area/line: where its number sits (centroid/midpoint). Relative to the template (0..1), so it survives any render size */
@@ -2592,6 +2594,20 @@ export interface AestheticSessionEvent {
   actorName?: string;
 }
 
+export interface AestheticSessionInvoice {
+  id: string;
+  docNo: string;
+  total: number;
+  paidAmount: number;
+  currency: string;
+  status: string;
+  /** unpaid | partially_paid | paid */
+  paymentState: string;
+  createdAt: string;
+  /** Services it bills, to warn about the ones added afterwards */
+  serviceIds: string[];
+}
+
 export interface AestheticSession {
   id: string;
   patientId: string;
@@ -2618,6 +2634,8 @@ export interface AestheticSession {
   closedByName?: string;
   voidedAt?: string;
   voidReason?: string;
+  /** Its sales invoice, with the amounts as they are now. At most one per session */
+  invoice?: AestheticSessionInvoice | null;
   sessionNotes: AestheticSessionNote[];
   events: AestheticSessionEvent[];
   createdAt: string;

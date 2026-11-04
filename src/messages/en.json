@@ -10383,7 +10383,6 @@
       "reusedBadge": "Reused signature",
       "reusedPrintNote": "Signature reused from a previous consent",
       "missingForService": "Consent not signed",
-      "hideText": "Hide text",
       "missingCount": "{count, plural, one {# treatment without consent} other {# treatments without consent}}",
       "allSigned": "Every treatment has its consent signed",
       "perServiceHint": "Each treatment applied needs its own signed consent.",
@@ -10483,7 +10482,7 @@
       "removeDescription": "{count, plural, one {# mark is deleted from the session.} other {# marks are deleted from the session.}}",
       "attributesHint": "What you enter here applies to all its marks; each mark can change it.",
       "product": "Product / brand",
-      "productPlaceholder": "E.g. Botox 100 U",
+      "productPlaceholder": "E.g. brand and presentation",
       "marks": "{count, plural, one {# mark} other {# marks}}",
       "noMarks": "No points yet: click the map to mark them.",
       "noMarksArea": "No areas yet: draw them on the map.",
@@ -10591,7 +10590,6 @@
       }
     },
     "flow": {
-      "stepOf": "Step {step} of 4",
       "back": "Back",
       "steps": {
         "consent": "Consent",
@@ -10620,6 +10618,7 @@
         "signConsents": "{count, plural, one {The consent for {service} is not signed yet} other {# consents are not signed yet}}",
         "takePhoto": "At least one photo of today is missing",
         "markServices": "Still to mark: {services}",
+        "markServicesCount": "{count, plural, one {# service still to mark} other {# services still to mark}}",
         "ready": "Everything is ready to close the session"
       },
       "save": {
@@ -10643,12 +10642,10 @@
       },
       "consent": {
         "title": "What's being done today? Pick the services and sign their consents",
-        "lead": "Marking a service is enabled as soon as its consent is signed. The session saves itself as a draft.",
         "services": "Today's services",
         "selected": "{count, plural, =0 {None picked} one {# picked} other {# picked}}",
         "fromLastSession": "Last session ({date})",
         "perMark": "{quantity} {unit} per mark",
-        "signed": "Signed",
         "consents": "Consents",
         "pendingCount": "{count, plural, one {# pending} other {# pending}}",
         "allSigned": "All signed",
@@ -10687,8 +10684,6 @@
       "photos": {
         "title": "Today's photos",
         "titleHistory": "Today's photos and progress since the first session",
-        "lead": "This is the patient's first session, so there is nothing to compare with. Take the views you'll need.",
-        "leadHistory": "Today's photo is always the newest. It is compared with any earlier session, including the first one on {date}.",
         "anyViewHint": "One photo of any view is enough to go on. Today's photo can also be the background for marking.",
         "takenToday": "Taken today",
         "pending": "Pending",
@@ -10722,7 +10717,7 @@
         "initial": "First",
         "sessionN": "Session {number}",
         "baseLabel": "{label} · {date} · {days} days ago",
-        "daysAgo": "{days} days ago",
+        "daysAgo": "{days, plural, =0 {today} =1 {1 day ago} other {# days ago}}",
         "marksOf": "Marks of {label}",
         "marksToday": "Today's marks",
         "todayOpacity": "Today's opacity",
@@ -10748,7 +10743,8 @@
         "systemCamera": "Open device camera",
         "shutter": "Capture",
         "preview": "Preview",
-        "usePhoto": "Use photo"
+        "usePhoto": "Use photo",
+        "previousShort": "Earlier sessions"
       },
       "align": {
         "title": "Align the photo in two taps",
@@ -10793,6 +10789,10 @@
         "unsignedHint": "The consent for {service} is not signed yet",
         "unsignedToast": "The consent for {service} is not signed yet.",
         "unsignedRow": "Consent not signed yet",
+        "marksCount": "{count, plural, =0 {No marks} one {# mark} other {# marks}}",
+        "lotExpiredShort": "Lot expired",
+        "servicesBack": "Previous services",
+        "servicesForward": "More services",
         "sign": "Sign",
         "noServices": "Pick today's services in the consent step.",
         "readOnlyHint": "Read-only session",
@@ -10826,8 +10826,15 @@
         "photoOpacity": "Opacity",
         "goTakePhoto": "Take the photo",
         "fromService": "From the service:",
+        "markSupplyChange": "Change for this mark",
+        "markSupplyOwn": "Only for this mark",
+        "markSupplyReset": "Use the service's",
+        "noServiceSupply": "no product or lot loaded",
+        "markExpiryInherited": "This lot uses the service's expiry ({date}). If it differs, enter it.",
         "expires": "expires {date}",
-        "defaultDose": "dose {quantity} {unit}"
+        "defaultDose": "dose {quantity} {unit}",
+        "showPhotoPanel": "Show photo controls",
+        "hidePhotoPanel": "Hide photo controls"
       },
       "notes": {
         "placeholder": "Write a session note",
@@ -10854,7 +10861,6 @@
       },
       "close": {
         "title": "Review and close the session",
-        "lead": "The summary is built from what you recorded. You can fix anything before closing.",
         "checks": {
           "consents": "Consents signed",
           "photos": "At least one photo of today",
@@ -10862,11 +10868,8 @@
           "photosBodyOnly": "Photos not needed: body treatment only",
           "marks": "Every service with marks and quantity"
         },
-        "ok": "Done",
         "missing": "Missing",
         "applied": "Treatment applied",
-        "service": "Service",
-        "total": "Total",
         "lot": "lot {lot}",
         "noMarks": "No marks",
         "todayPhotos": "Today's photos",
@@ -10917,7 +10920,32 @@
         "amendmentsHint": "Each amendment keeps its date, time and author. What was originally recorded doesn't change.",
         "amendmentPlaceholder": "What is corrected and why",
         "addAmendment": "Add amendment",
-        "amendmentAdded": "Amendment recorded"
+        "amendmentAdded": "Amendment recorded",
+        "billing": {
+          "invoice": "Invoice",
+          "issuedOn": "Issued on {date}",
+          "issuedNoAccess": "This session has already been invoiced.",
+          "total": "Total",
+          "paid": "Paid",
+          "balance": "Balance",
+          "payments": "Payments",
+          "payment": "Payment",
+          "loadingPayments": "Loading payments...",
+          "paymentsError": "The payments could not be loaded.",
+          "retry": "Retry",
+          "payBalance": "Charge balance",
+          "printInvoice": "Print invoice",
+          "printReceipt": "Print receipt",
+          "notInvoiced": "Not on the invoice: {services}.",
+          "linkError": "The invoice could not be linked to the session",
+          "unlinked": "The invoice was created but is not linked to this session.",
+          "startError": "The charge could not be started",
+          "states": {
+            "unpaid": "Unpaid",
+            "partially_paid": "Partially paid",
+            "paid": "Paid"
+          }
+        }
       },
       "events": {
         "created": "Session created",
@@ -10927,7 +10955,8 @@
         "note_added": "Note added",
         "amendment_added": "Amendment added",
         "closed": "Session closed",
-        "voided": "Session voided"
+        "voided": "Session voided",
+        "invoice_linked": "Invoice {doc} linked"
       },
       "timeline": {
         "continue": "Continue session",
@@ -11015,8 +11044,6 @@
           "close": "Deselects the mark.",
           "less": "Subtracts {step} {unit}.",
           "more": "Adds {step} {unit}.",
-          "quick": "{value} {unit}",
-          "quickDescription": "Sets this quantity on the mark.",
           "mirror": "Copies the mark to the other side of the face (or to the other profile).",
           "zoneHistory": "Shows the earlier applications on this zone.",
           "delete": "Deletes the mark. It can be undone with Ctrl+Z."
@@ -11039,7 +11066,8 @@
           "retake": "Takes another photo of this view; the newest one is today's.",
           "remove": "Deletes this photo from today's session."
         }
-      }
+      },
+      "closeDialog": "Close"
     },
     "errors": {
       "generic": "The action couldn't be completed. Please try again.",
@@ -11075,7 +11103,9 @@
         "UNIT_NOT_FOUND": "That unit of measure no longer exists.",
         "UNIT_REQUIRED": "An aesthetic service needs a unit of measure.",
         "UNIT_REQUIRED_FIELDS": "Fill in the unit's code, name and symbol.",
-        "VOID_REASON_REQUIRED": "Write the reason for voiding."
+        "VOID_REASON_REQUIRED": "Write the reason for voiding.",
+        "INVOICE_ALREADY_LINKED": "This session already has another invoice.",
+        "INVOICE_NOT_FOUND": "The invoice does not exist or belongs to another patient."
       }
     }
   },

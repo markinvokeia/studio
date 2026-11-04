@@ -8,7 +8,7 @@ import { isTimeoutError } from '@/services/api';
 // reaches the screen as a 400 { success: false, code, detail, message }. Every code has its text in
 // AestheticRecord.errors.codes; anything else gets the generic one, never the raw message.
 
-/** Every code raised in database/scripts/151–158 and the flow, except SESSION_CLOSED (it depends on its detail) */
+/** Every code raised in database/scripts/151–161 and the flow, except SESSION_CLOSED (it depends on its detail) */
 const TRANSLATED_CODES = [
   'CONSENT_REQUIRED',
   'CONSENT_SERVICES_REQUIRED',
@@ -24,6 +24,8 @@ const TRANSLATED_CODES = [
   'INVALID_NOTE_KIND',
   'INVALID_PHOTO_KIND',
   'INVALID_TOOL',
+  'INVOICE_ALREADY_LINKED',
+  'INVOICE_NOT_FOUND',
   'NOTE_REQUIRED',
   'NOT_READY_TO_CLOSE',
   'PATIENT_REQUIRED',

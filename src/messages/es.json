@@ -10383,7 +10383,6 @@
       "reusedBadge": "Firma reutilizada",
       "reusedPrintNote": "Firma reutilizada de un consentimiento anterior",
       "missingForService": "Consentimiento sin firmar",
-      "hideText": "Ocultar texto",
       "missingCount": "{count, plural, one {# tratamiento sin consentimiento} other {# tratamientos sin consentimiento}}",
       "allSigned": "Todos los tratamientos tienen su consentimiento firmado",
       "perServiceHint": "Cada tratamiento aplicado necesita su propio consentimiento firmado.",
@@ -10483,7 +10482,7 @@
       "removeDescription": "{count, plural, one {Se borra # marca de la sesión.} other {Se borran # marcas de la sesión.}}",
       "attributesHint": "Lo que cargues acá vale para todas sus marcas; cada marca lo puede cambiar.",
       "product": "Producto / marca",
-      "productPlaceholder": "Ej.: Botox 100 U",
+      "productPlaceholder": "Ej.: marca y presentación",
       "marks": "{count, plural, one {# marca} other {# marcas}}",
       "noMarks": "Todavía no hay puntos: hacé clic en el mapa para marcarlos.",
       "noMarksArea": "Todavía no hay áreas: dibujalas en el mapa.",
@@ -10591,7 +10590,6 @@
       }
     },
     "flow": {
-      "stepOf": "Paso {step} de 4",
       "back": "Volver",
       "steps": {
         "consent": "Consentimiento",
@@ -10620,6 +10618,7 @@
         "signConsents": "{count, plural, one {Falta firmar el consentimiento de {service}} other {Faltan firmar # consentimientos}}",
         "takePhoto": "Falta al menos una foto de hoy",
         "markServices": "Falta marcar {services}",
+        "markServicesCount": "{count, plural, one {Falta marcar # servicio} other {Faltan marcar # servicios}}",
         "ready": "Todo listo para cerrar la sesión"
       },
       "save": {
@@ -10643,12 +10642,10 @@
       },
       "consent": {
         "title": "¿Qué se hace hoy? Elegí los servicios y firmá sus consentimientos",
-        "lead": "El marcado de cada servicio se habilita en cuanto su consentimiento está firmado. La sesión se guarda sola como borrador.",
         "services": "Servicios de hoy",
         "selected": "{count, plural, =0 {Ninguno elegido} one {# elegido} other {# elegidos}}",
         "fromLastSession": "Última sesión ({date})",
         "perMark": "{quantity} {unit} por marca",
-        "signed": "Firmado",
         "consents": "Consentimientos",
         "pendingCount": "{count, plural, one {# pendiente} other {# pendientes}}",
         "allSigned": "Todos firmados",
@@ -10687,8 +10684,6 @@
       "photos": {
         "title": "Fotos de hoy",
         "titleHistory": "Fotos de hoy y evolución desde la primera sesión",
-        "lead": "Es la primera sesión de la paciente, así que no hay comparación. Tomá las vistas que vayas a necesitar.",
-        "leadHistory": "La foto de hoy es la más reciente. Se compara con cualquier sesión anterior, incluida la inicial del {date}.",
         "anyViewHint": "Con una foto de cualquier vista ya podés avanzar. La de hoy también sirve de fondo para marcar.",
         "takenToday": "Tomada hoy",
         "pending": "Pendiente",
@@ -10722,7 +10717,7 @@
         "initial": "Inicial",
         "sessionN": "Sesión {number}",
         "baseLabel": "{label} · {date} · hace {days} días",
-        "daysAgo": "hace {days} días",
+        "daysAgo": "{days, plural, =0 {hoy} =1 {hace 1 día} other {hace # días}}",
         "marksOf": "Marcas de {label}",
         "marksToday": "Marcas de hoy",
         "todayOpacity": "Opacidad de hoy",
@@ -10748,7 +10743,8 @@
         "systemCamera": "Abrir cámara del dispositivo",
         "shutter": "Capturar",
         "preview": "Vista previa",
-        "usePhoto": "Usar foto"
+        "usePhoto": "Usar foto",
+        "previousShort": "Sesiones anteriores"
       },
       "align": {
         "title": "Alinear la foto con dos toques",
@@ -10793,6 +10789,10 @@
         "unsignedHint": "Falta firmar el consentimiento de {service}",
         "unsignedToast": "Falta firmar el consentimiento de {service}.",
         "unsignedRow": "Falta firmar el consentimiento",
+        "marksCount": "{count, plural, =0 {Sin marcas} one {# marca} other {# marcas}}",
+        "lotExpiredShort": "Lote vencido",
+        "servicesBack": "Servicios anteriores",
+        "servicesForward": "Más servicios",
         "sign": "Firmar",
         "noServices": "Elegí los servicios de hoy en el paso de consentimiento.",
         "readOnlyHint": "Sesión en solo lectura",
@@ -10826,8 +10826,15 @@
         "photoOpacity": "Opacidad",
         "goTakePhoto": "Tomar la foto",
         "fromService": "Del servicio:",
+        "markSupplyChange": "Cambiar en esta marca",
+        "markSupplyOwn": "Solo en esta marca",
+        "markSupplyReset": "Usar los del servicio",
+        "noServiceSupply": "sin producto ni lote cargados",
+        "markExpiryInherited": "Este lote usa el vencimiento del servicio ({date}). Si es otro, cargalo.",
         "expires": "vence {date}",
-        "defaultDose": "dosis {quantity} {unit}"
+        "defaultDose": "dosis {quantity} {unit}",
+        "showPhotoPanel": "Mostrar controles de la foto",
+        "hidePhotoPanel": "Ocultar controles de la foto"
       },
       "notes": {
         "placeholder": "Escribí una nota de la sesión",
@@ -10854,7 +10861,6 @@
       },
       "close": {
         "title": "Revisá y cerrá la sesión",
-        "lead": "El resumen se arma solo con lo que registraste. Podés corregir cualquier dato antes de cerrar.",
         "checks": {
           "consents": "Consentimientos firmados",
           "photos": "Al menos una foto de hoy",
@@ -10862,11 +10868,8 @@
           "photosBodyOnly": "Fotos no necesarias: tratamiento solo corporal",
           "marks": "Cada servicio con marcas y cantidad"
         },
-        "ok": "Listo",
         "missing": "Falta",
         "applied": "Tratamiento aplicado",
-        "service": "Servicio",
-        "total": "Total",
         "lot": "lote {lot}",
         "noMarks": "Sin marcas",
         "todayPhotos": "Fotos de hoy",
@@ -10917,7 +10920,32 @@
         "amendmentsHint": "Cada enmienda queda con fecha, hora y autor. Lo registrado originalmente no se modifica.",
         "amendmentPlaceholder": "Qué se corrige y por qué",
         "addAmendment": "Agregar enmienda",
-        "amendmentAdded": "Enmienda registrada"
+        "amendmentAdded": "Enmienda registrada",
+        "billing": {
+          "invoice": "Factura",
+          "issuedOn": "Emitida el {date}",
+          "issuedNoAccess": "Esta sesión ya está facturada.",
+          "total": "Total",
+          "paid": "Pagado",
+          "balance": "Saldo",
+          "payments": "Pagos",
+          "payment": "Pago",
+          "loadingPayments": "Cargando pagos...",
+          "paymentsError": "No se pudieron cargar los pagos.",
+          "retry": "Reintentar",
+          "payBalance": "Cobrar saldo",
+          "printInvoice": "Imprimir factura",
+          "printReceipt": "Imprimir recibo",
+          "notInvoiced": "No están en la factura: {services}.",
+          "linkError": "No se pudo vincular la factura a la sesión",
+          "unlinked": "La factura se creó pero no quedó vinculada a esta sesión.",
+          "startError": "No se pudo iniciar el cobro",
+          "states": {
+            "unpaid": "Sin pagar",
+            "partially_paid": "Pago parcial",
+            "paid": "Pagada"
+          }
+        }
       },
       "events": {
         "created": "Se creó la sesión",
@@ -10927,7 +10955,8 @@
         "note_added": "Nota agregada",
         "amendment_added": "Enmienda agregada",
         "closed": "Sesión cerrada",
-        "voided": "Sesión anulada"
+        "voided": "Sesión anulada",
+        "invoice_linked": "Se vinculó la factura {doc}"
       },
       "timeline": {
         "continue": "Continuar sesión",
@@ -11015,8 +11044,6 @@
           "close": "Deselecciona la marca.",
           "less": "Resta {step} {unit}.",
           "more": "Suma {step} {unit}.",
-          "quick": "{value} {unit}",
-          "quickDescription": "Pone esta cantidad en la marca.",
           "mirror": "Copia la marca al lado opuesto de la cara (o al otro perfil).",
           "zoneHistory": "Muestra las aplicaciones anteriores en esta zona.",
           "delete": "Borra la marca. Se puede deshacer con Ctrl+Z."
@@ -11039,7 +11066,8 @@
           "retake": "Toma otra foto de esta vista; la más reciente es la de hoy.",
           "remove": "Borra esta foto de la sesión de hoy."
         }
-      }
+      },
+      "closeDialog": "Cerrar"
     },
     "errors": {
       "generic": "No se pudo completar la acción. Intentá de nuevo.",
@@ -11075,7 +11103,9 @@
         "UNIT_NOT_FOUND": "Esa unidad de medida ya no existe.",
         "UNIT_REQUIRED": "Un servicio estético necesita una unidad de medida.",
         "UNIT_REQUIRED_FIELDS": "Completá el código, el nombre y el símbolo de la unidad.",
-        "VOID_REASON_REQUIRED": "Escribí el motivo de la anulación."
+        "VOID_REASON_REQUIRED": "Escribí el motivo de la anulación.",
+        "INVOICE_ALREADY_LINKED": "Esta sesión ya tiene otra factura.",
+        "INVOICE_NOT_FOUND": "La factura no existe o es de otro paciente."
       }
     }
   },

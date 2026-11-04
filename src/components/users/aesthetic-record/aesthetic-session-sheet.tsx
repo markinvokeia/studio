@@ -20,6 +20,7 @@ import { ResizableSheet, SheetTitle } from '@/components/ui/resizable-sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { AESTHETIC_RECORD_PERMISSIONS } from '@/constants/permissions';
+import { usePanelWidth } from '@/hooks/use-panel-width';
 import { usePermissions } from '@/hooks/usePermissions';
 import { cn, formatDate, formatDisplayDate } from '@/lib/utils';
 import {
@@ -37,6 +38,7 @@ import { layerTitle } from './layers';
 import {
   computeCompleteness,
   computeStatus,
+  missingSummary,
   missingText,
   nextMissing,
   resumeStep,
@@ -437,14 +439,15 @@ function SessionFlow({ patientId, patientName, patientSex, sessionId, doctorId, 
   return (
     <SessionFlowContext.Provider value={value}>
       <HintProvider>
-      <div className="flex h-full min-h-0 flex-col">
+      {/* 16px fields on a phone: with less, iOS zooms the page on focus */}
+      <div className="flex h-full min-h-0 flex-col max-sm:[&_input]:text-base max-sm:[&_textarea]:text-base">
         <FlowHeader signedAny={signedAny} leaving={leaving} />
         {lockNotice && (
           <Alert variant="destructive" className="shrink-0 rounded-none border-x-0 border-t-0">
             <AlertDescription>{lockNotice}</AlertDescription>
           </Alert>
         )}
-        <div className={cn('min-h-0 flex-1', step === 3 ? 'flex flex-col overflow-hidden' : 'overflow-y-auto')}>
+        <div className={cn('min-h-0 flex-1', 'flex flex-col overflow-hidden')}>
           {step === 1 && <StepConsent />}
           {step === 2 && <StepPhotos />}
           {step === 3 && <StepTreatment />}
@@ -484,19 +487,30 @@ function factsOf(layers: AestheticLayer[], session: AestheticSession | null): Se
 
 const STEP_LABELS: Record<SessionStep, string> = { 1: 'consent', 2: 'photos', 3: 'treatment', 4: 'close' };
 
+/** Width of the header's content (the sheet is resizable, so the viewport says nothing) */
+const HEADER_ONE_ROW_WIDTH = 1100;
+const HEADER_COMPACT_WIDTH = 608;
+
 function FlowHeader({ signedAny, leaving }: { signedAny: boolean; leaving: boolean }) {
   const t = useTranslations('AestheticRecord');
   const flow = React.useContext(SessionFlowContext)!;
   const { draft, step, goToStep, done, status, completeness, facts, patientName, sessionNumber } = flow;
   const missing = nextMissing(facts, layerTitle);
+  const missingFull = missingText(t, missing);
+  const missingShort = missingSummary(t, missing);
   const initials = (patientName ?? '').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('');
   const radius = 15;
   const circumference = 2 * Math.PI * radius;
 
+  const headerRef = React.useRef<HTMLElement>(null);
+  const width = usePanelWidth(headerRef);
+  const oneRow = width >= HEADER_ONE_ROW_WIDTH;
+  const compact = width > 0 && width < HEADER_COMPACT_WIDTH;
+
   return (
-    <header className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-2 border-b bg-card px-4 py-2.5 pr-24">
-      <div className="flex min-w-0 items-center gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-pink-500 text-sm font-semibold text-white" aria-hidden>
+    <header ref={headerRef} className={cn('relative flex shrink-0 items-center border-b bg-card', compact ? 'flex-wrap gap-x-2 gap-y-1.5 py-2 pl-3 pr-12' : 'gap-x-5 gap-y-2 px-4 py-2.5 pr-24', !compact && (oneRow ? 'flex-nowrap' : 'flex-wrap'))}>
+      <div className={cn('flex min-w-0 items-center', compact ? 'flex-[1_1_0] gap-2' : 'gap-3')}>
+        <span className={cn('flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-pink-500 font-semibold text-white', compact ? 'h-8 w-8 text-xs' : 'h-10 w-10 text-sm')} aria-hidden>
           {initials || '·'}
         </span>
         <div className="min-w-0">
@@ -508,14 +522,15 @@ function FlowHeader({ signedAny, leaving }: { signedAny: boolean; leaving: boole
         </div>
       </div>
 
-      <nav aria-label={t('flow.header.steps')} className="order-3 flex min-w-0 flex-[1_1_100%] items-center gap-1 overflow-x-auto [scrollbar-width:none] xl:order-none xl:flex-[1_1_480px] xl:justify-center">
+      <nav aria-label={t('flow.header.steps')} className={cn('flex items-center gap-1 overflow-x-auto [justify-content:safe_center] [scrollbar-width:none]', oneRow ? 'flex-[1_0_auto]' : 'order-last min-w-0 basis-full', compact && '-mr-9')}>
         {SESSION_STEPS.map((n, i) => {
           const locked = n === 3 && !flow.readOnly && !signedAny && !flow.stored?.layers.some((l) => l.marks.length);
           const isOn = step === n;
           return (
             <React.Fragment key={n}>
-              {i > 0 && <span className="h-px w-4 shrink-0 bg-border" aria-hidden />}
+              {i > 0 && <span className={cn('h-px shrink-0 bg-border', compact ? 'min-w-2 flex-1' : 'w-4')} aria-hidden />}
               <Hint
+                className="shrink-0"
                 label={t('flow.hints.step', { step: n, name: t(`flow.steps.${STEP_LABELS[n]}`) })}
                 description={locked ? t('flow.header.lockedTreatment') : `${t(`flow.hints.steps.${STEP_LABELS[n]}`)}${done[n] ? ` ${t('flow.hints.stepDone')}` : ''}`}
               >
@@ -525,7 +540,8 @@ function FlowHeader({ signedAny, leaving }: { signedAny: boolean; leaving: boole
                 aria-current={isOn ? 'step' : undefined}
                 aria-disabled={locked || undefined}
                 className={cn(
-                  'inline-flex shrink-0 items-center gap-2 rounded-full py-1 pl-1 pr-3 text-[13px] font-medium transition-colors',
+                  'inline-flex items-center gap-2 whitespace-nowrap rounded-full py-1 pl-1 pr-3 text-[13px] font-medium transition-colors',
+                  compact && !isOn && 'pr-1',
                   isOn ? 'bg-violet-500/10 text-violet-700 dark:text-violet-300' : 'text-muted-foreground hover:bg-muted',
                   locked && 'cursor-not-allowed opacity-55 hover:bg-transparent',
                 )}
@@ -538,7 +554,7 @@ function FlowHeader({ signedAny, leaving }: { signedAny: boolean; leaving: boole
                 >
                   {done[n] && !isOn ? <Check className="h-3.5 w-3.5" /> : locked ? <Lock className="h-3 w-3" /> : n}
                 </span>
-                <span className={cn(!isOn && 'hidden sm:inline')}>{t(`flow.steps.${STEP_LABELS[n]}`)}</span>
+                <span className={cn(compact && !isOn && 'hidden')}>{t(`flow.steps.${STEP_LABELS[n]}`)}</span>
               </button>
               </Hint>
             </React.Fragment>
@@ -546,7 +562,8 @@ function FlowHeader({ signedAny, leaving }: { signedAny: boolean; leaving: boole
         })}
       </nav>
 
-      <div className="ml-auto flex min-w-0 items-center gap-3">
+      <div className={cn('ml-auto flex items-center gap-3', oneRow || compact ? 'shrink-0' : 'min-w-0')}>
+        {!compact && (
         <Hint label={t('flow.header.completeness', { value: completeness })} description={t('flow.hints.completeness')}>
         <svg viewBox="0 0 38 38" className="h-9 w-9 shrink-0" role="img" aria-label={t('flow.header.completeness', { value: completeness })}>
           <circle cx="19" cy="19" r={radius} fill="none" className="stroke-muted" strokeWidth="4" />
@@ -564,7 +581,8 @@ function FlowHeader({ signedAny, leaving }: { signedAny: boolean; leaving: boole
           <text x="19" y="22.5" textAnchor="middle" fontSize="9.5" fontWeight="600" className="fill-foreground">{completeness}%</text>
         </svg>
         </Hint>
-        <div className="min-w-0">
+        )}
+        <div className={cn('min-w-0', compact && 'flex flex-col items-end')}>
           <Hint label={t(`flow.status.${status}`)} description={t(`flow.hints.status.${status}`)}>
           <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold', STATUS_CHIP[status])}>
             <span className="h-1.5 w-1.5 rounded-full bg-current" aria-hidden />
@@ -573,8 +591,19 @@ function FlowHeader({ signedAny, leaving }: { signedAny: boolean; leaving: boole
           </Hint>
           <SaveIndicator leaving={leaving} />
         </div>
-        <p className="hidden max-w-[15rem] text-xs leading-snug text-muted-foreground lg:block" aria-live="polite">{missingText(t, missing)}</p>
+        {!compact && (
+          <Hint label={missingFull} className={oneRow ? 'w-40' : 'max-w-[15rem]'}>
+            <p className="line-clamp-2 text-xs leading-snug text-muted-foreground" aria-live="polite">{missingShort}</p>
+          </Hint>
+        )}
       </div>
+
+      {/* On a phone the ring gives way to a thin bar along the header */}
+      {compact && (
+        <div role="progressbar" aria-label={t('flow.header.completeness', { value: completeness })} aria-valuenow={completeness} aria-valuemin={0} aria-valuemax={100} className="absolute inset-x-0 bottom-0 h-0.5 bg-muted">
+          <div className="h-full bg-violet-600 transition-[width] duration-300" style={{ width: `${completeness}%` }} />
+        </div>
+      )}
     </header>
   );
 }

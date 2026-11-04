@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 
+import { usePanelWidth } from '@/hooks/use-panel-width';
 import { useToast } from '@/hooks/use-toast';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { deleteAestheticPhoto, saveAestheticPhotoAlignment, uploadAestheticPhoto } from '@/services/aesthetic-record';
@@ -35,6 +36,16 @@ import { useAestheticFileUrl } from './use-aesthetic-file-url';
 
 type CompareMode = 'slider' | 'side' | 'overlay';
 const COMPARE_MODES: CompareMode[] = ['slider', 'side', 'overlay'];
+
+/** Panel width from which views, photo and sessions sit side by side and the step stops scrolling */
+const WIDE_WIDTH = 860;
+/** Panel width under which it is a phone: the photo takes the whole width and the views fit in a row */
+const COMPACT_WIDTH = 640;
+/** Area that sizes the photo: `cq` units let the box fit both its width and its height */
+const STAGE = 'flex items-center justify-center gap-2.5 [container-type:size]';
+const PHOTO_BOX = 'relative aspect-[300/380] overflow-hidden rounded-2xl bg-muted';
+const PHOTO_WIDTH = 'w-[min(100cqw,calc(100cqh*300/380))]';
+const HALF_PHOTO_WIDTH = 'w-[min(calc(50cqw-5px),calc(100cqh*300/380))]';
 
 interface HistoryPhoto {
   session: AestheticSession;
@@ -59,6 +70,13 @@ export function StepPhotos() {
   const [mode, setMode] = React.useState<CompareMode>('slider');
   const [showMarks, setShowMarks] = React.useState<{ base: boolean; today: boolean }>({ base: false, today: false });
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const rootRef = React.useRef<HTMLDivElement>(null);
+  const width = usePanelWidth(rootRef);
+  const wide = width === 0 || width >= WIDE_WIDTH;
+  const compact = width > 0 && width < COMPACT_WIDTH;
+  const stageClass = cn(STAGE, wide ? 'min-h-0 flex-1' : compact ? 'aspect-[300/380] w-full shrink-0' : 'h-[60vh] shrink-0');
+  // Side by side on a phone, two half-width photos: no more height than they need
+  const sideStageClass = compact ? cn(STAGE, 'aspect-[610/380] w-full shrink-0') : stageClass;
 
   const photosAllowed = stored?.photoConsent?.allowsClinicalPhotos === true;
   const photosDeclined = stored?.photoConsent?.allowsClinicalPhotos === false;
@@ -180,22 +198,18 @@ export function StepPhotos() {
             {!readOnly && <span className="text-xs text-muted-foreground">{t('flow.photos.dropHint')}</span>}
           </div>
         </div>
-        {history.length > 0 && (
-          <div>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t('flow.photos.previousOf', { view: viewLabel(view) })}</p>
-            <Timeline items={history} today={null} selectedId={null} label={sessionLabel} todayDate={draft.date} />
-          </div>
-        )}
       </>
     );
   } else if (!history.length) {
     body = (
       <>
-        <div className="relative h-[min(60vh,560px)] overflow-hidden rounded-2xl bg-muted">
-          <AlignedPhoto photoId={today.id} view={view} alignment={today.alignment} alt={t('flow.photos.todayAlt', { view: viewLabel(view) })} />
-          <span className="absolute bottom-3 left-3 rounded-full bg-black/70 px-2.5 py-1 text-xs font-medium text-white backdrop-blur">{t('flow.photos.todayLabel', { date: formatDisplayDate(draft.date) })}</span>
+        <div className={stageClass}>
+          <div className={cn(PHOTO_BOX, PHOTO_WIDTH)}>
+            <AlignedPhoto photoId={today.id} view={view} alignment={today.alignment} alt={t('flow.photos.todayAlt', { view: viewLabel(view) })} />
+            <span className="absolute bottom-3 left-3 rounded-full bg-black/70 px-2.5 py-1 text-xs font-medium text-white backdrop-blur">{t('flow.photos.todayLabel', { date: formatDisplayDate(draft.date) })}</span>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           <span className="rounded-full bg-violet-500/10 px-2 py-0.5 text-[11px] font-semibold text-violet-700 dark:text-violet-300">{t('flow.photos.noHistory')}</span>
           <span className="text-xs text-muted-foreground">{t('flow.photos.noHistoryHint')}</span>
           <span className="flex-1" />
@@ -210,7 +224,7 @@ export function StepPhotos() {
     const todayMarks = showMarks.today ? placeMarks(draft.layers) : undefined;
     body = (
       <>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2 max-sm:order-1 max-sm:[&>span:has(button)]:flex-1 max-sm:[&>span:last-child]:flex-none max-sm:[&>span:not(:last-child)>button]:w-full">
           <div role="group" aria-label={t('photos.compareModeLabel')} className="inline-flex gap-0.5 rounded-xl border bg-muted/50 p-0.5">
             {COMPARE_MODES.map((m) => (
               <Hint key={m} label={t(`flow.photos.modes.${m}`)} description={t(`flow.hints.photos.modes.${m}`)}>
@@ -220,7 +234,7 @@ export function StepPhotos() {
               </Hint>
             ))}
           </div>
-          <span className="flex-1" />
+          <span className="flex-1 max-sm:hidden" />
           <Hint label={t('flow.photos.compareInitial')} description={base?.number === 1 ? t('flow.hints.photos.alreadyInitial') : t('flow.hints.photos.compareInitial', { date: formatDisplayDate(history[0].session.date) })}>
             <Button type="button" size="sm" variant="outline" disabled={base?.number === 1} onClick={() => setBaseBySession((b) => ({ ...b, [view]: history[0].session.id }))}>
               {t('flow.photos.compareInitial')}
@@ -228,8 +242,8 @@ export function StepPhotos() {
           </Hint>
           <TodayPhotoActions photo={today} readOnly={readOnly} canCapture={canCapture} onRetake={() => setCameraOpen(true)} onAlign={() => stored && setAligning({ photo: today, sessionId: stored.id })} onRemove={() => setRemoving(today)} />
         </div>
-        {base && <Comparison mode={mode} base={base.photo} today={today} view={view} baseLabel={baseLabel} todayLabel={todayLabel} baseMarks={baseMarks} todayMarks={todayMarks} />}
-        <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+        {base && <Comparison stageClass={stageClass} sideStageClass={sideStageClass} mode={mode} base={base.photo} today={today} view={view} baseLabel={baseLabel} todayLabel={todayLabel} baseMarks={baseMarks} todayMarks={todayMarks} />}
+        <div className="flex shrink-0 flex-wrap items-center gap-4 text-xs text-muted-foreground max-sm:order-2">
           <Hint label={t('flow.photos.marksOf', { label: base ? sessionLabel(base) : '' })} description={t('flow.hints.photos.marksBase')}>
             <label className="flex items-center gap-2"><Switch checked={showMarks.base} onCheckedChange={(v) => setShowMarks((m) => ({ ...m, base: v }))} /><MapPin className="h-3.5 w-3.5" />{t('flow.photos.marksOf', { label: base ? sessionLabel(base) : '' })}</label>
           </Hint>
@@ -247,53 +261,57 @@ export function StepPhotos() {
             </span>
           )}
         </div>
-        <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t('flow.photos.compareWith')}</p>
-          <Timeline
-            items={history}
-            today={today}
-            selectedId={base?.session.id ?? null}
-            label={sessionLabel}
-            todayDate={draft.date}
-            onSelect={(id) => setBaseBySession((b) => ({ ...b, [view]: id }))}
-          />
-        </div>
       </>
     );
   }
 
+  const showHistory = history.length > 0 && (photosAllowed || todayPhotos.length > 0);
+
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-5 p-4 sm:p-6">
-      <div>
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{t('flow.stepOf', { step: 2 })}</p>
-        <h2 className="text-xl font-semibold leading-tight">{previousSessions.length ? t('flow.photos.titleHistory') : t('flow.photos.title')}</h2>
-        <p className="mt-1 max-w-[68ch] text-sm text-muted-foreground">
-          {previousSessions.length ? t('flow.photos.leadHistory', { date: formatDisplayDate(previousSessions[0].date) }) : t('flow.photos.lead')}
-        </p>
-      </div>
-
-      <div className="flex flex-wrap items-start gap-5">
-        <div role="tablist" aria-label={t('photos.view')} className="flex w-full gap-2.5 overflow-x-auto md:w-72 md:flex-col">
-          {PHOTO_VIEWS.map((v) => (
-            <ViewSlot
-              key={v}
-              view={v}
-              label={viewLabel(v)}
-              photo={todayOf(v)}
-              uploading={(uploading[v] ?? 0) > 0}
-              previousCount={historyOf(v).length}
-              selected={view === v}
-              onSelect={() => setView(v)}
-            />
-          ))}
-          <p className="hidden px-0.5 text-xs text-muted-foreground md:block">{t('flow.photos.anyViewHint')}</p>
+    <div ref={rootRef} className="flex min-h-0 flex-1 flex-col">
+      <div className={cn('flex min-h-0 flex-1 flex-col gap-3 p-3.5', !wide && 'overflow-y-auto')}>
+        <h2 className="shrink-0 text-base font-semibold leading-tight">{previousSessions.length ? t('flow.photos.titleHistory') : t('flow.photos.title')}</h2>
+        <div className={cn('flex gap-3.5', wide ? 'min-h-0 flex-1' : 'flex-col')}>
+          <div role="tablist" aria-label={t('photos.view')} className={cn('shrink-0 gap-2', wide ? 'flex w-56 flex-col gap-2.5 overflow-y-auto' : compact ? 'grid w-full grid-cols-3' : 'flex w-full gap-2.5 overflow-x-auto')}>
+            {PHOTO_VIEWS.map((v) => (
+              <ViewSlot
+                key={v}
+                view={v}
+                label={viewLabel(v)}
+                photo={todayOf(v)}
+                uploading={(uploading[v] ?? 0) > 0}
+                previousCount={historyOf(v).length}
+                selected={view === v}
+                wide={wide}
+                tile={compact}
+                onSelect={() => setView(v)}
+              />
+            ))}
+            {wide && <p className="px-0.5 text-xs text-muted-foreground">{t('flow.photos.anyViewHint')}</p>}
+          </div>
+          <div className={cn('flex min-w-0 flex-1 flex-col gap-2.5', wide && 'min-h-0')}>{body}</div>
+          {showHistory && (
+            <div className={cn('flex shrink-0 flex-col gap-2', wide ? 'min-h-0 w-[10.5rem]' : 'w-full')}>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                {today ? t('flow.photos.compareWith') : wide ? t('flow.photos.previousShort') : t('flow.photos.previousOf', { view: viewLabel(view) })}
+              </p>
+              <Timeline
+                items={history}
+                today={today}
+                selectedId={today ? base?.session.id ?? null : null}
+                label={sessionLabel}
+                todayDate={draft.date}
+                vertical={wide}
+                onSelect={today ? (id) => setBaseBySession((b) => ({ ...b, [view]: id })) : undefined}
+              />
+            </div>
+          )}
         </div>
-        <div className="flex min-w-0 flex-[1_1_560px] flex-col gap-3">{body}</div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-end gap-3">
+      <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t bg-card px-3.5 py-2.5">
         <Button type="button" variant="outline" onClick={() => goToStep(1)}>{t('flow.back')}</Button>
-        <Button type="button" onClick={() => goToStep(3)} disabled={!readOnly && !flow.facts.consents.length}>{t('flow.photos.continue')}</Button>
+        <Button type="button" className={cn(compact && 'flex-1')} onClick={() => goToStep(3)} disabled={!readOnly && !flow.facts.consents.length}>{t('flow.photos.continue')}</Button>
       </div>
 
       <input
@@ -372,13 +390,16 @@ function TodayPhotoActions({ photo, readOnly, canCapture, onRetake, onAlign, onR
   );
 }
 
-function ViewSlot({ view, label, photo, uploading, previousCount, selected, onSelect }: {
+function ViewSlot({ view, label, photo, uploading, previousCount, selected, wide, tile, onSelect }: {
   view: PhotoView;
   label: string;
   photo: AestheticPhoto | null;
   uploading: boolean;
   previousCount: number;
   selected: boolean;
+  wide: boolean;
+  /** One of three in a row: the photo on top and the text below it */
+  tile: boolean;
   onSelect: () => void;
 }) {
   const t = useTranslations('AestheticRecord');
@@ -390,18 +411,20 @@ function ViewSlot({ view, label, photo, uploading, previousCount, selected, onSe
       aria-selected={selected}
       onClick={onSelect}
       className={cn(
-        'flex min-w-[220px] items-center gap-3 rounded-xl border-[1.5px] bg-card p-2.5 text-left transition-colors md:min-w-0',
+        'flex rounded-xl border-[1.5px] bg-card transition-colors',
+        tile ? 'min-w-0 flex-col gap-1 p-1.5 text-center' : 'shrink-0 items-center gap-3 p-2.5 text-left',
+        !wide && !tile && 'min-w-[220px]',
         selected ? 'border-violet-600 shadow-[0_0_0_3px_rgb(124_58_237/0.15)]' : 'hover:border-foreground/25',
       )}
     >
-      <span className="relative grid h-[74px] w-[58px] shrink-0 place-items-center overflow-hidden rounded-lg bg-muted text-muted-foreground">
+      <span className={cn('relative grid shrink-0 place-items-center overflow-hidden rounded-lg bg-muted text-muted-foreground', tile ? 'h-16 w-full' : 'h-[74px] w-[58px]')}>
         {/* eslint-disable-next-line @next/next/no-img-element -- stored photo (object URL) */}
         {photo && url ? <img src={url} alt="" className="h-full w-full object-cover" /> : <Camera className="h-5 w-5" />}
         {uploading && <span className="absolute inset-0 grid place-items-center bg-black/40 text-[10px] font-medium text-white">{t('flow.photos.uploading')}</span>}
       </span>
       <span className="min-w-0">
-        <b className="block text-sm font-semibold">{label}</b>
-        <span className="text-xs text-muted-foreground">
+        <b className={cn('block font-semibold', tile ? 'text-xs leading-tight' : 'text-sm')}>{label}</b>
+        <span className={cn('text-muted-foreground', tile ? 'block text-[11px] leading-tight' : 'text-xs')}>
           {photo ? t('flow.photos.takenToday') : t('flow.photos.pending')}
           {previousCount > 0 && ` · ${t('flow.photos.previousCount', { count: previousCount })}`}
         </span>
@@ -411,17 +434,18 @@ function ViewSlot({ view, label, photo, uploading, previousCount, selected, onSe
   );
 }
 
-function Timeline({ items, today, selectedId, label, todayDate, onSelect }: {
+function Timeline({ items, today, selectedId, label, todayDate, vertical, onSelect }: {
   items: HistoryPhoto[];
   today: AestheticPhoto | null;
   selectedId: string | null;
   label: (h: HistoryPhoto) => string;
   todayDate: string;
+  vertical?: boolean;
   onSelect?: (sessionId: string) => void;
 }) {
   const t = useTranslations('AestheticRecord');
   return (
-    <div className="flex gap-2.5 overflow-x-auto pb-1">
+    <div className={cn('flex gap-2.5', vertical ? 'min-h-0 flex-1 flex-col overflow-y-auto' : 'overflow-x-auto pb-1')}>
       {items.map((h) => (
         <button
           key={h.session.id}
@@ -430,7 +454,8 @@ function Timeline({ items, today, selectedId, label, todayDate, onSelect }: {
           disabled={!onSelect}
           aria-pressed={selectedId === h.session.id}
           className={cn(
-            'flex w-24 shrink-0 flex-col gap-1 rounded-xl border-[1.5px] bg-card p-1.5 text-left disabled:cursor-default',
+            'flex shrink-0 flex-col gap-1 rounded-xl border-[1.5px] bg-card p-1.5 text-left disabled:cursor-default',
+            vertical ? 'w-full' : 'w-24',
             selectedId === h.session.id ? 'border-violet-600 shadow-[0_0_0_3px_rgb(124_58_237/0.15)]' : 'hover:border-foreground/25',
           )}
         >
@@ -443,7 +468,7 @@ function Timeline({ items, today, selectedId, label, todayDate, onSelect }: {
         </button>
       ))}
       {today && (
-        <div className="flex w-24 shrink-0 flex-col gap-1 rounded-xl border-[1.5px] border-violet-600 bg-card p-1.5">
+        <div className={cn('flex shrink-0 flex-col gap-1 rounded-xl border-[1.5px] border-violet-600 bg-card p-1.5', vertical ? 'w-full' : 'w-24')}>
           <span className="relative block aspect-[4/5] overflow-hidden rounded-lg bg-muted">
             <AlignedPhoto photoId={today.id} view={today.view} alignment={today.alignment} alt={t('flow.photos.today')} />
           </span>
@@ -456,7 +481,9 @@ function Timeline({ items, today, selectedId, label, todayDate, onSelect }: {
 }
 
 /** Today against an earlier session: a curtain, side by side, or one over the other */
-function Comparison({ mode, base, today, view, baseLabel, todayLabel, baseMarks, todayMarks }: {
+function Comparison({ stageClass, sideStageClass, mode, base, today, view, baseLabel, todayLabel, baseMarks, todayMarks }: {
+  stageClass: string;
+  sideStageClass: string;
   mode: CompareMode;
   base: AestheticPhoto;
   today: AestheticPhoto;
@@ -471,7 +498,7 @@ function Comparison({ mode, base, today, view, baseLabel, todayLabel, baseMarks,
   const [opacity, setOpacity] = React.useState(50);
   const boxRef = React.useRef<HTMLDivElement>(null);
   const draggingRef = React.useRef(false);
-  const tag = 'absolute bottom-3 rounded-full bg-black/70 px-2.5 py-1 text-xs font-medium text-white backdrop-blur';
+  const tag = 'absolute bottom-3 max-w-[calc(100%-1.25rem)] truncate rounded-full bg-black/70 px-2.5 py-1 text-xs font-medium text-white backdrop-blur';
 
   const move = (clientX: number) => {
     const rect = boxRef.current?.getBoundingClientRect();
@@ -480,9 +507,9 @@ function Comparison({ mode, base, today, view, baseLabel, todayLabel, baseMarks,
 
   if (mode === 'side') {
     return (
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className={sideStageClass}>
         {[[base, baseLabel, baseMarks], [today, todayLabel, todayMarks]].map(([photo, label, marks]) => (
-          <div key={(photo as AestheticPhoto).id} className="relative aspect-[300/380] overflow-hidden rounded-2xl bg-muted">
+          <div key={(photo as AestheticPhoto).id} className={cn(PHOTO_BOX, HALF_PHOTO_WIDTH)}>
             <AlignedPhoto photoId={(photo as AestheticPhoto).id} view={view} alignment={(photo as AestheticPhoto).alignment} marks={marks as typeof baseMarks} alt={label as string} />
             <span className={cn(tag, 'left-2.5')}>{label as string}</span>
           </div>
@@ -493,9 +520,10 @@ function Comparison({ mode, base, today, view, baseLabel, todayLabel, baseMarks,
 
   return (
     <>
+      <div className={stageClass}>
       <div
         ref={boxRef}
-        className="relative mx-auto aspect-[300/380] max-h-[62vh] w-full touch-none select-none overflow-hidden rounded-2xl bg-muted"
+        className={cn(PHOTO_BOX, PHOTO_WIDTH, 'touch-pan-y select-none')}
         onPointerDown={(e) => {
           if (mode !== 'slider') return;
           e.currentTarget.setPointerCapture(e.pointerId);
@@ -504,6 +532,7 @@ function Comparison({ mode, base, today, view, baseLabel, todayLabel, baseMarks,
         }}
         onPointerMove={(e) => { if (draggingRef.current) move(e.clientX); }}
         onPointerUp={() => { draggingRef.current = false; }}
+        onPointerCancel={() => { draggingRef.current = false; }}
       >
         <div className="absolute inset-0"><AlignedPhoto photoId={base.id} view={view} alignment={base.alignment} marks={baseMarks} alt={baseLabel} /></div>
         <div className="absolute inset-0" style={mode === 'slider' ? { clipPath: `inset(0 0 0 ${position}%)` } : undefined}>
@@ -516,7 +545,7 @@ function Comparison({ mode, base, today, view, baseLabel, todayLabel, baseMarks,
         )}
         {mode === 'slider' ? (
           <>
-            <span className={cn(tag, 'left-3')}>{baseLabel}</span>
+            <span className={cn(tag, 'left-3 max-sm:bottom-11')}>{baseLabel}</span>
             <span className={cn(tag, 'right-3')}>{todayLabel}</span>
           </>
         ) : (
@@ -534,8 +563,9 @@ function Comparison({ mode, base, today, view, baseLabel, todayLabel, baseMarks,
           />
         )}
       </div>
+      </div>
       {mode === 'overlay' && (
-        <label className="flex items-center gap-3 text-xs text-muted-foreground">
+        <label className="flex shrink-0 items-center gap-3 text-xs text-muted-foreground">
           {t('flow.photos.todayOpacity')}
           <input type="range" min={0} max={100} value={opacity} onChange={(e) => setOpacity(Number(e.target.value))} className="flex-1 accent-violet-600" />
         </label>

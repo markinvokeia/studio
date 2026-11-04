@@ -3,11 +3,13 @@
 import React from 'react';
 import { subMonths } from 'date-fns';
 import { useLocale, useTranslations } from 'next-intl';
-import { Camera, Crosshair, Eye, EyeOff, History, ImageIcon, Lock, MapPin, Mic, Minus, MousePointer2, PersonStanding, Redo2, ScanFace, ScanLine, Shapes, Undo2 } from 'lucide-react';
+import { AlertTriangle, Camera, ChevronLeft, ChevronRight, Crosshair, Eye, EyeOff, History, ImageIcon, Lock, MapPin, Mic, Minus, MousePointer2, PersonStanding, Redo2, ScanFace, ScanLine, Shapes, SlidersHorizontal, Undo2, X } from 'lucide-react';
 
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 
 import { useAsyncAction } from '@/hooks/use-async-action';
@@ -20,7 +22,7 @@ import type { AestheticBodyFigure, AestheticLayer, AestheticMapRegion, Aesthetic
 import { AestheticMap } from './aesthetic-map';
 import { FACE_TONE_PALETTES, FACE_TONES, FaceIllustration } from './face-models/face-illustration';
 import { Hint } from './hint';
-import { formatQuantity, layerColor, layerQuantity, mirrorMark, placeMarks } from './layers';
+import { formatQuantity, layerColor, layerQuantity, mirrorMark, placeMarks, resolveMark } from './layers';
 import { getViewZoneIds, isFaceView, REGION_VIEWS, VIEW_REGION } from './map-templates';
 import { MarkEditor } from './mark-editor';
 import { PhotoAlignDialog } from './photo-align-dialog';
@@ -42,6 +44,8 @@ const TOOLS: { id: Tool; icon: React.ElementType; key: string }[] = [
 const QUICK_NOTES = ['topicalAnesthesia', 'ice', 'noIncidents', 'mildBruise', 'toleratesWell'] as const;
 /** Below this width the panel goes under the canvas */
 const STACK_WIDTH = 820;
+/** Panel width under which it is a phone */
+const COMPACT_WIDTH = 640;
 
 const isTyping = (target: EventTarget | null) => target instanceof HTMLElement && !!target.closest('input, textarea, select, [contenteditable], [role="combobox"]');
 
@@ -54,16 +58,23 @@ export function StepTreatment() {
   const consents = stored?.consents ?? [];
 
   const containerRef = React.useRef<HTMLDivElement>(null);
-  const stacked = usePanelWidth(containerRef) < STACK_WIDTH;
+  const panelWidth = usePanelWidth(containerRef);
+  const stacked = panelWidth < STACK_WIDTH;
+  const compact = panelWidth > 0 && panelWidth < COMPACT_WIDTH;
 
   const [view, setView] = React.useState<AestheticMapView>('front');
   const region = VIEW_REGION[view];
   const [tool, setTool] = React.useState<Tool>(() => layers.find((l) => isServiceSigned(consents, l.serviceId))?.markingTool ?? 'point');
   const [activeLayerId, setActiveLayerId] = React.useState<string | null>(() => layers.find((l) => isServiceSigned(consents, l.serviceId))?.id ?? layers[0]?.id ?? null);
+  /** The service open in the summary: it follows the active service and the selected mark */
+  const [openLayerId, setOpenLayerId] = React.useState<string | null>(activeLayerId);
   const [hidden, setHidden] = React.useState<Set<string>>(() => new Set());
   // Today's photo is the background as soon as there is one: marking goes on the patient's own face
   const [background, setBackground] = React.useState<'model' | 'photo'>(() => (stored?.photos.length ? 'photo' : 'model'));
   const [photoOpacity, setPhotoOpacity] = React.useState(1);
+  /** Until someone touches it, open except on a phone, where it would push the map down */
+  const [photoPanelChoice, setPhotoPanelChoice] = React.useState<boolean | null>(null);
+  const photoPanelOpen = photoPanelChoice ?? !compact;
   const [aligning, setAligning] = React.useState(false);
   const [showZones, setShowZones] = React.useState(false);
   const [showGhost, setShowGhost] = React.useState(false);
@@ -132,6 +143,7 @@ export function StepTreatment() {
     };
     setLayers((list) => list.map((l) => (l.id === activeLayer.id ? { ...l, marks: [...l.marks, created] } : l)));
     setHidden((h) => { if (!h.has(activeLayer.id)) return h; const n = new Set(h); n.delete(activeLayer.id); return n; });
+    setOpenLayerId(activeLayer.id);
     setSelectedId(created.id);
     // A point takes one tap: the panel waits until the mark itself is tapped
     setEditorOpen(false);
@@ -145,7 +157,18 @@ export function StepTreatment() {
     if (copy.view !== view) setView(copy.view);
   }
 
+  /** A card opened in the summary activates its service, unless its consent is missing */
+  function openLayerCard(id: string | null) {
+    setOpenLayerId(id);
+    const layer = layers.find((l) => l.id === id);
+    if (!layer || layer.id === activeLayerId || !isServiceSigned(consents, layer.serviceId)) return;
+    setActiveLayerId(layer.id);
+    setTool(layer.markingTool);
+    setSelectedId(null);
+  }
+
   function pickLayer(layer: AestheticLayer) {
+    setOpenLayerId(layer.id);
     if (!isServiceSigned(consents, layer.serviceId)) {
       toast({ title: t('flow.treatment.unsignedToast', { service: layer.serviceName }) });
       return;
@@ -162,6 +185,7 @@ export function StepTreatment() {
     const owner = placed.find((p) => p.mark.id === id);
     if (owner) {
       if (owner.mark.view !== view) setView(owner.mark.view);
+      setOpenLayerId(owner.layer.id);
       if (isServiceSigned(consents, owner.layer.serviceId)) setActiveLayerId(owner.layer.id);
       setHidden((h) => { if (!h.has(owner.layer.id)) return h; const n = new Set(h); n.delete(owner.layer.id); return n; });
     }
@@ -223,7 +247,7 @@ export function StepTreatment() {
           : t(`flow.treatment.hint.${tool}`, { service: activeLayer.serviceName, quantity: formatQuantity(configFor(activeLayer)?.defaultQuantity ?? 0), unit: activeLayer.unitSymbol });
 
   const floating = 'absolute z-10 rounded-2xl border bg-card/95 shadow-lg backdrop-blur-sm';
-  const segment = (on: boolean) => cn('h-8 whitespace-nowrap rounded-lg px-2.5 text-xs font-medium transition-colors disabled:opacity-40', on ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground');
+  const segment = (on: boolean) => cn('h-8 whitespace-nowrap rounded-lg text-xs font-medium transition-colors disabled:opacity-40', compact ? 'px-2' : 'px-2.5', on ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground');
   const faceViews = REGION_VIEWS.face;
   const bodyViews = REGION_VIEWS.body;
 
@@ -240,59 +264,12 @@ export function StepTreatment() {
       onMirror={mirrorSelected}
       onZoneHistory={() => focusZone(selected.mark.zone)}
       onClose={() => setEditorOpen(false)}
-      floating={!stacked}
+      floating
     />
   );
 
-  const stage = (
-    <div ref={stageRef} className={cn('relative min-w-0 overflow-hidden bg-muted/50 [background-image:radial-gradient(hsl(var(--border))_1px,transparent_1.2px)] [background-size:22px_22px]', stacked ? 'h-[68vh] shrink-0' : 'flex-1')}>
-      <AestheticMap
-        fill
-        view={view}
-        figure={draft.bodyFigure}
-        marks={visible}
-        selectedMarkId={selectedId}
-        readOnly={readOnly}
-        tool={tool === 'select' ? 'point' : tool}
-        toolColor={activeLayer ? layerColor(activeLayer, activeIndex) : undefined}
-        onAddPoint={canMark && tool === 'point' ? (x, y, zone) => addMark({ kind: 'point', view, x, y, zone }) : undefined}
-        onAddArea={canMark && tool === 'area' ? (polygon, x, y, zone) => addMark({ kind: 'area', view, x, y, polygon, zone }) : undefined}
-        onAddLine={canMark && tool === 'line' ? (ends, x, y, zone) => addMark({ kind: 'line', view, x, y, polygon: ends, zone }) : undefined}
-        onMoveMark={readOnly ? undefined : (id, position, zone) => updateMark(id, { ...position, zone })}
-        onSelectMark={selectMark}
-        onDeleteMark={readOnly ? undefined : deleteMark}
-        onZoneClick={(zone) => focusZone(zone)}
-        highlightZones={zoneFocus ? [zoneFocus] : selected?.mark.zone ? [selected.mark.zone] : []}
-        zoneOutlines={showZones || tool === 'area'}
-        zoneLabels={showZones && isFaceView(view)}
-        ghostMarks={ghostMarks}
-        illustration={isFaceView(view) && !showPhoto ? <FaceIllustration view={view} sex={modelSex} tone={modelTone} /> : undefined}
-        backdrop={showPhoto && todayPhoto && photoUrl ? { photoId: todayPhoto.id, url: photoUrl, alignment: todayPhoto.alignment ?? null, opacity: photoOpacity, hideArt: true } : null}
-        className="h-full px-16 pb-24 pt-16"
-      />
-
-      {/* View, background and skin tone */}
-      <div className={cn(floating, 'left-1/2 top-3 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-1.5 p-1.5')}>
-        <div role="group" aria-label={t('map.regionsLabel')} className="flex gap-0.5">
-          {([['face', ScanFace], ['body', PersonStanding]] as [AestheticMapRegion, React.ElementType][]).map(([r, Icon]) => (
-            <Hint key={r} label={t(`regions.${r}`)} description={t(`flow.hints.region.${r}`)}>
-              <button type="button" className={segment(region === r)} onClick={() => setView(REGION_VIEWS[r][0])} aria-pressed={region === r} aria-label={t(`regions.${r}`)}>
-                <Icon className="h-4 w-4" />
-              </button>
-            </Hint>
-          ))}
-        </div>
-        <span className="h-5 w-px bg-border" aria-hidden />
-        <div role="group" aria-label={t('map.viewsLabel')} className="flex gap-0.5">
-          {(region === 'face' ? faceViews : bodyViews).map((v) => (
-            <Hint key={v} label={t(`views.${v}`)} description={t('flow.hints.view', { count: placed.filter((p) => p.mark.view === v).length })}>
-              <button type="button" className={segment(view === v)} onClick={() => { setView(v); setSelectedId(null); }} aria-pressed={view === v}>
-                {t(`viewsShort.${v}`)}
-              </button>
-            </Hint>
-          ))}
-        </div>
-        <span className="h-5 w-px bg-border" aria-hidden />
+  const backgroundOptions = (
+    <>
         <div role="group" aria-label={t('flow.treatment.background')} className="flex gap-0.5">
           {(['female', 'male'] as AestheticBodyFigure[]).map((sex) => {
             const lockedFigure = region === 'body' && placed.some((p) => VIEW_REGION[p.mark.view] === 'body') && draft.bodyFigure !== sex;
@@ -334,8 +311,8 @@ export function StepTreatment() {
         </div>
         {region === 'face' && background === 'model' && (
           <>
-            <span className="hidden h-5 w-px bg-border sm:block" aria-hidden />
-            <div role="group" aria-label={t('flow.treatment.skinTone')} className="hidden gap-0.5 sm:flex">
+            <span className="h-5 w-px bg-border" aria-hidden />
+            <div role="group" aria-label={t('flow.treatment.skinTone')} className="flex gap-0.5">
               {FACE_TONES.map((tone) => (
                 <Hint key={tone} label={t(`flow.treatment.tones.${tone}`)} description={t('flow.hints.tone')}>
                   <button type="button" className={segment(modelTone === tone)} onClick={() => setModelTone(tone)} aria-pressed={modelTone === tone} aria-label={t(`flow.treatment.tones.${tone}`)}>
@@ -346,12 +323,81 @@ export function StepTreatment() {
             </div>
           </>
         )}
-      </div>
+    </>
+  );
 
+  const viewBar = (
+    <>
+      {/* View, background and skin tone */}
+      <div className={compact ? 'flex shrink-0 items-center gap-1 border-b bg-card p-1.5' : stacked ? 'flex shrink-0 flex-wrap items-center justify-center gap-x-1.5 gap-y-1 border-b bg-card p-1.5' : cn(floating, 'inset-x-3 top-3 mx-auto flex w-fit max-w-[calc(100%-1.5rem)] flex-wrap items-center justify-center gap-1.5 p-1.5')}>
+        <div role="group" aria-label={t('map.regionsLabel')} className="flex gap-0.5">
+          {([['face', ScanFace], ['body', PersonStanding]] as [AestheticMapRegion, React.ElementType][]).map(([r, Icon]) => (
+            <Hint key={r} label={t(`regions.${r}`)} description={t(`flow.hints.region.${r}`)}>
+              <button type="button" className={segment(region === r)} onClick={() => setView(REGION_VIEWS[r][0])} aria-pressed={region === r} aria-label={t(`regions.${r}`)}>
+                <Icon className="h-4 w-4" />
+              </button>
+            </Hint>
+          ))}
+        </div>
+        <span className="h-5 w-px bg-border" aria-hidden />
+        <div role="group" aria-label={t('map.viewsLabel')} className={cn('flex gap-0.5', compact && 'min-w-0 overflow-x-auto [scrollbar-width:none]')}>
+          {(region === 'face' ? faceViews : bodyViews).map((v) => (
+            <Hint key={v} label={t(`views.${v}`)} description={t('flow.hints.view', { count: placed.filter((p) => p.mark.view === v).length })}>
+              <button type="button" className={segment(view === v)} onClick={() => { setView(v); setSelectedId(null); }} aria-pressed={view === v}>
+                {t(`viewsShort.${v}`)}
+              </button>
+            </Hint>
+          ))}
+        </div>
+        {compact ? (
+          // Modal: the tap that dismisses it must not reach the map and place a mark
+          <Popover modal>
+            <PopoverTrigger asChild>
+              <button type="button" className="ml-auto grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground" aria-label={t('flow.treatment.background')}>
+                <SlidersHorizontal className="h-4 w-4" />
+              </button>
+            </PopoverTrigger>
+            {/* Without moving focus, or the first option's tooltip opens over the others */}
+            <PopoverContent align="end" onOpenAutoFocus={(event) => event.preventDefault()} className="flex w-auto max-w-[calc(100vw-1rem)] flex-wrap items-center gap-1.5 p-1.5">
+              {backgroundOptions}
+            </PopoverContent>
+          </Popover>
+        ) : (
+          <>
+            <span className="h-5 w-px bg-border" aria-hidden />
+            {backgroundOptions}
+          </>
+        )}
+      </div>
+    </>
+  );
+
+  const photoPanelButton = (
+    <>
       {/* Today's photo as background: how see-through it is and its alignment with the template */}
-      {region === 'face' && background === 'photo' && (
-        <div className={cn(floating, 'right-3 top-16 flex w-56 flex-col gap-2 p-3', stacked && 'top-[7.5rem]')}>
-          <p className="flex items-center gap-1.5 text-xs font-semibold"><ImageIcon className="h-3.5 w-3.5" />{t('flow.treatment.photoBackground', { view: t(`viewsShort.${view}`) })}</p>
+      {region === 'face' && background === 'photo' && !photoPanelOpen && (
+        <div className={cn(floating, 'p-1', stacked ? 'right-2 top-2' : 'right-3 top-16')}>
+          <Hint label={t('flow.treatment.showPhotoPanel')} side="left">
+            <button type="button" aria-label={t('flow.treatment.showPhotoPanel')} aria-expanded={false} onClick={() => setPhotoPanelChoice(true)} className="relative grid h-8 w-8 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground">
+              <ImageIcon className="h-4 w-4" />
+              {!photoMissing && !todayPhoto?.alignment && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-amber-500" aria-hidden />}
+            </button>
+          </Hint>
+        </div>
+      )}
+    </>
+  );
+
+  const photoPanel = (
+    <>
+      {region === 'face' && background === 'photo' && photoPanelOpen && (
+        <div className={stacked ? 'flex shrink-0 flex-col gap-2 border-b bg-card px-3 py-2' : cn(floating, 'right-3 top-16 flex w-56 flex-col gap-2 p-3')}>
+          <div className="flex items-center gap-1.5">
+            <p className="flex min-w-0 flex-1 items-center gap-1.5 text-xs font-semibold"><ImageIcon className="h-3.5 w-3.5 shrink-0" />{t('flow.treatment.photoBackground', { view: t(`viewsShort.${view}`) })}</p>
+            <button type="button" aria-label={t('flow.treatment.hidePhotoPanel')} title={t('flow.treatment.hidePhotoPanel')} aria-expanded onClick={() => setPhotoPanelChoice(false)} className="-mr-1 -mt-1 grid h-6 w-6 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
           {photoMissing ? (
             <>
               <p className="text-xs text-muted-foreground">{t('flow.treatment.noPhotoOfView')}</p>
@@ -383,9 +429,13 @@ export function StepTreatment() {
           )}
         </div>
       )}
+    </>
+  );
 
+  const toolbar = (
+    <>
       {/* Tools */}
-      <div role="toolbar" aria-label={t('flow.treatment.tools')} className={cn(floating, 'left-3 top-1/2 flex -translate-y-1/2 flex-col gap-0.5 p-1.5', stacked && 'bottom-20 top-auto left-1/2 -translate-x-1/2 translate-y-0 flex-row')}>
+      <div role="toolbar" aria-label={t('flow.treatment.tools')} className={stacked ? 'flex shrink-0 items-center justify-between gap-0.5 overflow-x-auto border-t bg-card px-2 py-1 max-sm:[&_button]:h-9 max-sm:[&_button]:w-9' : cn(floating, 'left-3 top-1/2 flex -translate-y-1/2 flex-col gap-0.5 p-1.5')}>
         {TOOLS.map(({ id, icon: Icon, key }) => (
           <ToolButton
             key={id}
@@ -400,10 +450,10 @@ export function StepTreatment() {
             <Icon className="h-5 w-5" />
           </ToolButton>
         ))}
-        <span className={cn('bg-border', stacked ? 'mx-1 w-px' : 'my-1 h-px')} aria-hidden />
+        <span className={cn('shrink-0 bg-border', stacked ? 'h-5 w-px' : 'my-1 h-px')} aria-hidden />
         <ToolButton side={stacked ? 'top' : 'right'} label={t('flow.hints.undo.label')} description={t('flow.hints.undo.description')} shortcut="Ctrl+Z" disabled={!canUndo} onClick={undo}><Undo2 className="h-5 w-5" /></ToolButton>
         <ToolButton side={stacked ? 'top' : 'right'} label={t('flow.hints.redo.label')} description={t('flow.hints.redo.description')} shortcut="Ctrl+Shift+Z" disabled={!canRedo} onClick={redo}><Redo2 className="h-5 w-5" /></ToolButton>
-        <span className={cn('bg-border', stacked ? 'mx-1 w-px' : 'my-1 h-px')} aria-hidden />
+        <span className={cn('shrink-0 bg-border', stacked ? 'h-5 w-px' : 'my-1 h-px')} aria-hidden />
         <ToolButton side={stacked ? 'top' : 'right'} label={t('flow.hints.zones.label')} description={t('flow.hints.zones.description')} on={showZones} onClick={() => setShowZones((v) => !v)}><ScanLine className="h-5 w-5" /></ToolButton>
         {previous && (
           <ToolButton
@@ -417,17 +467,20 @@ export function StepTreatment() {
           </ToolButton>
         )}
       </div>
+    </>
+  );
 
-      {/* The selected mark's data, beside the mark (on a narrow screen it goes in the panel below) */}
-      {!stacked && editor && selected && (
-        <MarkPopover stageRef={stageRef} markId={selected.mark.id}>{editor}</MarkPopover>
-      )}
-
+  const hintBar = (
+    <>
       {/* What a tap does now */}
-      <div className={cn(floating, 'bottom-[4.5rem] left-1/2 max-w-[calc(100%-1.5rem)] -translate-x-1/2 truncate px-3.5 py-1.5 text-xs text-muted-foreground', stacked && 'bottom-[8.5rem]')} aria-live="polite">{hint}</div>
+      <div className={stacked ? 'line-clamp-2 shrink-0 border-b bg-card px-3 py-1 text-center text-[11px] leading-snug text-muted-foreground' : cn(floating, 'bottom-[4.5rem] left-1/2 max-w-[calc(100%-1.5rem)] -translate-x-1/2 truncate px-3.5 py-1.5 text-xs text-muted-foreground')} aria-live="polite">{hint}</div>
+    </>
+  );
 
+  const chips = (
+    <>
       {/* One chip per service: the active layer and its visibility */}
-      <div role="group" aria-label={t('flow.treatment.services')} className={cn(floating, 'bottom-3 left-1/2 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 gap-1 overflow-x-auto p-1.5')}>
+      <ChipScroller label={t('flow.treatment.services')} activeId={activeLayerId} className={stacked ? 'shrink-0 border-t bg-card p-1' : cn(floating, 'inset-x-3 bottom-3 mx-auto w-fit max-w-[calc(100%-1.5rem)] p-1.5')}>
         {layers.length === 0 && <span className="px-3 py-2 text-xs text-muted-foreground">{t('flow.treatment.noServices')}</span>}
         {layers.map((layer, index) => {
           const signed = isServiceSigned(consents, layer.serviceId);
@@ -437,20 +490,22 @@ export function StepTreatment() {
           return (
             <div
               key={layer.id}
+              data-layer-chip={layer.id}
               className={cn('flex h-11 shrink-0 items-center gap-1 rounded-xl border-[1.5px] border-transparent pl-3 pr-1', activeLayerId === layer.id && 'bg-[color-mix(in_srgb,var(--c)_10%,transparent)]', !signed && 'opacity-60')}
               style={{ '--c': color, borderColor: activeLayerId === layer.id ? color : undefined } as React.CSSProperties}
             >
               <Hint
+                className="self-stretch"
                 side="top"
                 label={layer.serviceName}
                 description={signed
                   ? t('flow.hints.chip', { total, count: layer.marks.length, tool: t(`flow.hints.tools.${layer.markingTool}.label`) })
                   : t('flow.hints.chipLocked')}
               >
-                <button type="button" className="flex items-center gap-2 text-[13px] font-medium" onClick={() => pickLayer(layer)} aria-pressed={activeLayerId === layer.id}>
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} aria-hidden />
-                  {layer.serviceName}
-                  <span className="text-xs font-medium tabular-nums text-muted-foreground">{signed ? total : t('flow.treatment.unsigned')}</span>
+                <button type="button" className="flex h-full items-center gap-2 text-[13px] font-medium" onClick={() => pickLayer(layer)} aria-pressed={activeLayerId === layer.id}>
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} aria-hidden />
+                  <span className="max-w-[10rem] truncate">{layer.serviceName}</span>
+                  <span className="whitespace-nowrap text-xs font-medium tabular-nums text-muted-foreground">{signed ? total : t('flow.treatment.unsigned')}</span>
                   {!signed && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
                 </button>
               </Hint>
@@ -468,15 +523,77 @@ export function StepTreatment() {
             </div>
           );
         })}
-      </div>
+      </ChipScroller>
+    </>
+  );
+
+  const stage = (
+    <div ref={stageRef} className={cn('relative min-w-0 overflow-hidden bg-muted/50 [background-image:radial-gradient(hsl(var(--border))_1px,transparent_1.2px)] [background-size:22px_22px]', stacked ? 'min-h-56 flex-1' : 'flex-1')}>
+      <AestheticMap
+        fill
+        view={view}
+        figure={draft.bodyFigure}
+        marks={visible}
+        selectedMarkId={selectedId}
+        readOnly={readOnly}
+        tool={tool === 'select' ? 'point' : tool}
+        toolColor={activeLayer ? layerColor(activeLayer, activeIndex) : undefined}
+        onAddPoint={canMark && tool === 'point' ? (x, y, zone) => addMark({ kind: 'point', view, x, y, zone }) : undefined}
+        onAddArea={canMark && tool === 'area' ? (polygon, x, y, zone) => addMark({ kind: 'area', view, x, y, polygon, zone }) : undefined}
+        onAddLine={canMark && tool === 'line' ? (ends, x, y, zone) => addMark({ kind: 'line', view, x, y, polygon: ends, zone }) : undefined}
+        onMoveMark={readOnly ? undefined : (id, position, zone) => updateMark(id, { ...position, zone })}
+        onSelectMark={selectMark}
+        onDeleteMark={readOnly ? undefined : deleteMark}
+        onZoneClick={(zone) => focusZone(zone)}
+        highlightZones={zoneFocus ? [zoneFocus] : selected?.mark.zone ? [selected.mark.zone] : []}
+        zoneOutlines={showZones || tool === 'area'}
+        zoneLabels={showZones && isFaceView(view)}
+        ghostMarks={ghostMarks}
+        illustration={isFaceView(view) && !showPhoto ? <FaceIllustration view={view} sex={modelSex} tone={modelTone} /> : undefined}
+        backdrop={showPhoto && todayPhoto && photoUrl ? { photoId: todayPhoto.id, url: photoUrl, alignment: todayPhoto.alignment ?? null, opacity: photoOpacity, hideArt: true } : null}
+        className={stacked ? 'h-full p-2' : 'h-full px-16 pb-24 pt-16'}
+      />
+
+      {photoPanelButton}
+      {/* The selected mark's data, beside the mark (on a narrow screen it comes up from the bottom) */}
+      {!stacked && editor && selected && (
+        <MarkPopover stageRef={stageRef} markId={selected.mark.id}>{editor}</MarkPopover>
+      )}
+      {!stacked && <>{viewBar}{photoPanel}{toolbar}{hintBar}{chips}</>}
+
     </div>
   );
 
 
+  const asideRef = React.useRef<HTMLElement>(null);
+  const openTab = (id: PanelTab) => {
+    setTab(id);
+    const scroller = containerRef.current;
+    const panel = asideRef.current;
+    if (!stacked || !scroller || !panel) return;
+    scroller.scrollTo({ top: scroller.scrollTop + panel.getBoundingClientRect().top - scroller.getBoundingClientRect().top, behavior: 'smooth' });
+  };
+
+  const toClose = (
+    <div className="shrink-0 border-t bg-card p-3.5 max-sm:p-2.5">
+      <Button type="button" className="w-full" onClick={() => goToStep(4)}>{t('flow.treatment.toClose')}</Button>
+    </div>
+  );
+
   return (
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
     <div ref={containerRef} className={cn('flex min-h-0 flex-1', stacked ? 'flex-col overflow-y-auto' : 'flex-row')}>
-      {stage}
-      <aside aria-label={t('flow.treatment.panel')} className={cn('flex min-h-0 flex-col bg-card', stacked ? 'border-t' : 'w-[clamp(18rem,28%,22rem)] shrink-0 border-l')}>
+      {stacked ? (
+        <div className="flex h-[calc(100%-2.75rem)] min-h-[28rem] shrink-0 flex-col">
+          {viewBar}
+          {photoPanel}
+          {hintBar}
+          {stage}
+          {toolbar}
+          {chips}
+        </div>
+      ) : stage}
+      <aside ref={asideRef} aria-label={t('flow.treatment.panel')} className={cn('flex flex-col bg-card', stacked ? 'shrink-0 border-t' : 'min-h-0 w-[clamp(18rem,28%,22rem)] shrink-0 border-l')}>
         <div role="tablist" className="flex shrink-0 border-b px-2.5">
           {(['summary', 'notes', 'history'] as PanelTab[]).map((id) => (
             <button
@@ -484,7 +601,7 @@ export function StepTreatment() {
               type="button"
               role="tab"
               aria-selected={tab === id}
-              onClick={() => setTab(id)}
+              onClick={() => openTab(id)}
               className={cn('-mb-px border-b-2 px-2.5 py-3 text-[13px] font-medium', tab === id ? 'border-violet-600 text-foreground' : 'border-transparent text-muted-foreground')}
             >
               {t(`flow.treatment.tabs.${id}`, { count: stored?.sessionNotes.length ?? 0 })}
@@ -492,14 +609,11 @@ export function StepTreatment() {
           ))}
         </div>
         <div className={cn('flex flex-col gap-3 p-3.5', !stacked && 'min-h-0 flex-1 overflow-y-auto')}>
-          {stacked && editor}
-          {tab === 'summary' && <SummaryPanel selectedId={selectedId} onSelect={selectMark} />}
+          {tab === 'summary' && <SummaryPanel selectedId={selectedId} onSelect={selectMark} openLayerId={openLayerId} onOpenLayer={openLayerCard} followSelection={!stacked} />}
           {tab === 'notes' && <NotesPanel />}
           {tab === 'history' && <ZoneHistoryPanel zone={zoneFocus} view={view} onClear={() => setZoneFocus(null)} />}
-          {tab === 'summary' && !readOnly && (
-            <Button type="button" onClick={() => goToStep(4)}>{t('flow.treatment.toClose')}</Button>
-          )}
         </div>
+        {!stacked && tab === 'summary' && !readOnly && toClose}
       </aside>
       {aligning && todayPhoto && !readOnly && (
         <PhotoAlignDialog
@@ -510,6 +624,12 @@ export function StepTreatment() {
           onSave={saveAlignment}
         />
       )}
+    </div>
+    {stacked && !readOnly && toClose}
+    {/* Without room beside the mark, its data comes up from the bottom, leaving the map in sight */}
+    {stacked && editor && (
+      <div className="absolute inset-x-0 bottom-0 z-30 mx-auto max-h-[62%] w-full max-w-lg overflow-y-auto p-2">{editor}</div>
+    )}
     </div>
   );
 }
@@ -572,6 +692,77 @@ function MarkPopover({ stageRef, markId, children }: { stageRef: React.RefObject
   );
 }
 
+/** How far an arrow moves the chips, as a share of what is visible */
+const CHIP_SCROLL_SHARE = 0.7;
+
+/**
+ * Row of chips that scrolls sideways without a scrollbar (it would make the bar taller, over the
+ * hint above it): arrows and a fade only on the sides with more chips, and the active one centered.
+ */
+function ChipScroller({ label, activeId, className, children }: { label: string; activeId: string | null; className?: string; children: React.ReactNode }) {
+  const t = useTranslations('AestheticRecord');
+  const scrollerRef = React.useRef<HTMLDivElement>(null);
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const [more, setMore] = React.useState({ before: false, after: false });
+
+  const measure = React.useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const before = el.scrollLeft > 1;
+    const after = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+    setMore((m) => (m.before === before && m.after === after ? m : { before, after }));
+  }, []);
+
+  React.useEffect(() => {
+    const scroller = scrollerRef.current;
+    const content = contentRef.current;
+    if (!scroller || !content) return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(scroller);
+    observer.observe(content);
+    measure();
+    return () => observer.disconnect();
+  }, [measure]);
+
+  React.useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller || !activeId) return;
+    const chip = scroller.querySelector<HTMLElement>(`[data-layer-chip="${CSS.escape(activeId)}"]`);
+    if (!chip) return;
+    scroller.scrollTo({ left: chip.offsetLeft - (scroller.clientWidth - chip.offsetWidth) / 2, behavior: 'smooth' });
+  }, [activeId]);
+
+  const shift = (direction: 1 | -1) => {
+    const scroller = scrollerRef.current;
+    scroller?.scrollBy({ left: direction * scroller.clientWidth * CHIP_SCROLL_SHARE, behavior: 'smooth' });
+  };
+  const arrow = 'grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground';
+  const fade = `linear-gradient(to right, ${more.before ? 'transparent, black 1.5rem' : 'black'}, ${more.after ? 'black calc(100% - 1.5rem), transparent' : 'black'})`;
+
+  return (
+    <div role="group" aria-label={label} className={cn('flex items-center gap-0.5', className)}>
+      {more.before && (
+        <button type="button" className={arrow} onClick={() => shift(-1)} aria-label={t('flow.treatment.servicesBack')}>
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+      )}
+      <div
+        ref={scrollerRef}
+        onScroll={measure}
+        className="relative min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        style={{ maskImage: fade, WebkitMaskImage: fade }}
+      >
+        <div ref={contentRef} className="flex w-max gap-1">{children}</div>
+      </div>
+      {more.after && (
+        <button type="button" className={arrow} onClick={() => shift(1)} aria-label={t('flow.treatment.servicesForward')}>
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 function ToolButton({ label, description, shortcut, side = 'right', on, disabled, onClick, children }: {
   label: string;
   description?: string;
@@ -598,8 +789,17 @@ function ToolButton({ label, description, shortcut, side = 'right', on, disabled
   );
 }
 
-/** Each service with its total, its marks, and the product and lot loaded once for all of them */
-function SummaryPanel({ selectedId, onSelect }: { selectedId: string | null; onSelect: (id: string) => void }) {
+interface SummaryPanelProps {
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  openLayerId: string | null;
+  onOpenLayer: (id: string | null) => void;
+  /** The panel scrolls to the open card or selected mark (not when it sits below the map: it would pull the view off it) */
+  followSelection: boolean;
+}
+
+/** Each service as a card, one open at a time: its total and marks, and the product and lot loaded once for all of them */
+function SummaryPanel({ selectedId, onSelect, openLayerId, onOpenLayer, followSelection }: SummaryPanelProps) {
   const t = useTranslations('AestheticRecord');
   const zoneLabel = useZoneLabel();
   const { draft, setLayers, stored, readOnly, goToStep } = useSessionFlow();
@@ -607,63 +807,111 @@ function SummaryPanel({ selectedId, onSelect }: { selectedId: string | null; onS
   const updateLayer = (id: string, patch: Partial<AestheticLayer>) =>
     setLayers((list) => list.map((l) => (l.id === id ? { ...l, ...patch } : l)), { skipHistory: true });
 
+  const listRef = React.useRef<HTMLDivElement>(null);
+  const follow = React.useCallback(() => {
+    const list = listRef.current;
+    if (!followSelection || !list) return;
+    const row = selectedId ? list.querySelector(`[data-mark-row="${CSS.escape(selectedId)}"]`) : null;
+    const card = openLayerId ? list.querySelector(`[data-layer-card="${CSS.escape(openLayerId)}"]`) : null;
+    (row ?? card)?.scrollIntoView({ block: 'nearest' });
+  }, [followSelection, openLayerId, selectedId]);
+  React.useEffect(follow, [follow]);
+
   if (!draft.layers.length) return <p className="text-xs text-muted-foreground">{t('flow.treatment.noServices')}</p>;
   return (
-    <>
+    <Accordion
+      ref={listRef}
+      type="single"
+      collapsible
+      value={openLayerId ?? ''}
+      onValueChange={(value) => onOpenLayer(value || null)}
+      // Only when the cards stop moving do they sit where they will stay
+      onAnimationEnd={(e) => { if (e.animationName.startsWith('accordion')) follow(); }}
+      className="flex flex-col gap-3"
+    >
       {draft.layers.map((layer, index) => {
         const color = layerColor(layer, index);
         const signed = isServiceSigned(consents, layer.serviceId);
+        const isOpen = openLayerId === layer.id;
+        const lotExpired = [layer.lotExpiry, ...layer.marks.map((m) => m.lotExpiry)].some((date) => !!date && date < draft.date);
+        const lotMissing = signed && layer.marks.some((m) => !resolveMark(layer, m).lot);
+        const details = [
+          t('flow.treatment.marksCount', { count: layer.marks.length }),
+          layer.productName.trim(),
+          layer.lot && t('flow.close.lot', { lot: layer.lot }),
+        ].filter(Boolean).join(' · ');
         return (
-          <div key={layer.id} className="overflow-hidden rounded-xl border">
-            <div className="flex items-center gap-2 bg-muted/50 px-3 py-2.5">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} aria-hidden />
-              <b className="min-w-0 flex-1 truncate text-[13px] font-semibold">{layer.serviceName}</b>
-              <span className="text-[13px] font-semibold tabular-nums">{formatQuantity(layerQuantity(layer))} {layer.unitSymbol}</span>
-            </div>
-            {!signed && (
-              <div className="flex items-center gap-2 border-t px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-                <Lock className="h-3.5 w-3.5" />{t('flow.treatment.unsignedRow')}
-                {!readOnly && <Button type="button" size="sm" variant="ghost" className="ml-auto h-7 text-xs" onClick={() => goToStep(1)}>{t('flow.treatment.sign')}</Button>}
-              </div>
-            )}
-            {layer.marks.map((mark, i) => (
-              <button
-                key={mark.id}
-                type="button"
-                onClick={() => onSelect(mark.id)}
-                className={cn('flex w-full items-center gap-2 border-t px-3 py-1.5 text-left text-xs hover:bg-muted/60', selectedId === mark.id && 'bg-violet-500/10')}
-              >
-                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: color }}>{i + 1}</span>
-                <span className="min-w-0 flex-1 truncate">
-                  {mark.zone ? zoneLabel(mark.zone) : t('zones.none')}
-                  {mark.view !== 'front' && <span className="text-muted-foreground"> · {t(`viewsShort.${mark.view}`)}</span>}
-                </span>
-                <span className={cn('tabular-nums', (mark.quantity ?? 0) <= 0 && 'font-semibold text-destructive')}>
-                  {mark.quantity != null ? `${formatQuantity(mark.quantity)} ${layer.unitSymbol}` : t('map.incompletePoint')}
-                </span>
-              </button>
-            ))}
-            {signed && !layer.marks.length && <p className="border-t px-3 py-2 text-xs text-muted-foreground">{t('flow.treatment.noMarks')}</p>}
-            {signed && (
-              <div className="grid grid-cols-2 gap-2 border-t px-3 py-2.5">
-                <div className="col-span-2 flex flex-col gap-1">
-                  <Label htmlFor={`aes-product-${layer.id}`} className="text-[11px] text-muted-foreground">{t('layers.product')}</Label>
-                  <Input id={`aes-product-${layer.id}`} value={layer.productName} placeholder={t('layers.productPlaceholder')} disabled={readOnly} onChange={(e) => updateLayer(layer.id, { productName: e.target.value })} className="h-8 text-xs" />
+          <AccordionItem key={layer.id} value={layer.id} data-layer-card={layer.id} className="overflow-hidden rounded-xl border">
+            <AccordionTrigger className="min-w-0 gap-2 bg-muted/50 px-3 py-2.5 text-left hover:no-underline">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-semibold">{layer.serviceName}</span>
+                {!isOpen && signed && <span className="block truncate text-[11px] font-normal text-muted-foreground">{details}</span>}
+                {!signed && (
+                  <span className="flex items-center gap-1 text-[11px] font-normal text-amber-700 dark:text-amber-400">
+                    <Lock className="h-3 w-3 shrink-0" /><span className="truncate">{t('flow.treatment.unsigned')}</span>
+                  </span>
+                )}
+                {(lotExpired || lotMissing) && (
+                  <span className={cn('flex items-center gap-1 text-[11px] font-medium', lotExpired ? 'text-destructive' : 'text-amber-700 dark:text-amber-400')}>
+                    <AlertTriangle className="h-3 w-3 shrink-0" /><span className="truncate">{lotExpired ? t('flow.treatment.lotExpiredShort') : t('flow.close.noLot')}</span>
+                  </span>
+                )}
+              </span>
+              <span className="whitespace-nowrap text-[13px] font-semibold tabular-nums">{formatQuantity(layerQuantity(layer))} {layer.unitSymbol}</span>
+            </AccordionTrigger>
+            <AccordionContent className="pb-0">
+              {!signed && (
+                <div className="flex items-center gap-2 border-t px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                  <Lock className="h-3.5 w-3.5" />{t('flow.treatment.unsignedRow')}
+                  {!readOnly && <Button type="button" size="sm" variant="ghost" className="ml-auto h-7 text-xs" onClick={() => goToStep(1)}>{t('flow.treatment.sign')}</Button>}
                 </div>
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor={`aes-lot-${layer.id}`} className="text-[11px] text-muted-foreground">{t('point.lot')}</Label>
-                  <Input id={`aes-lot-${layer.id}`} value={layer.lot ?? ''} disabled={readOnly} onChange={(e) => updateLayer(layer.id, { lot: e.target.value || undefined })} className="h-8 text-xs" />
+              )}
+              {signed && (
+                <div className="grid grid-cols-2 gap-2 border-t px-3 py-2.5">
+                  <div className="col-span-2 flex flex-col gap-1">
+                    <Label htmlFor={`aes-product-${layer.id}`} className="text-[11px] text-muted-foreground">{t('layers.product')}</Label>
+                    <Input id={`aes-product-${layer.id}`} value={layer.productName} placeholder={t('layers.productPlaceholder')} disabled={readOnly} onChange={(e) => updateLayer(layer.id, { productName: e.target.value })} className="h-8 text-xs" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor={`aes-lot-${layer.id}`} className="text-[11px] text-muted-foreground">{t('point.lot')}</Label>
+                    <Input id={`aes-lot-${layer.id}`} value={layer.lot ?? ''} disabled={readOnly} onChange={(e) => updateLayer(layer.id, { lot: e.target.value || undefined })} className="h-8 text-xs" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label htmlFor={`aes-exp-${layer.id}`} className="text-[11px] text-muted-foreground">{t('flow.treatment.expiry')}</Label>
+                    <Input id={`aes-exp-${layer.id}`} type="date" value={layer.lotExpiry ?? ''} disabled={readOnly} onChange={(e) => updateLayer(layer.id, { lotExpiry: e.target.value || undefined })} className="h-8 text-xs" />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <Label htmlFor={`aes-exp-${layer.id}`} className="text-[11px] text-muted-foreground">{t('flow.treatment.expiry')}</Label>
-                  <Input id={`aes-exp-${layer.id}`} type="date" value={layer.lotExpiry ?? ''} disabled={readOnly} onChange={(e) => updateLayer(layer.id, { lotExpiry: e.target.value || undefined })} className="h-8 text-xs" />
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+              {layer.marks.map((mark, i) => (
+                <button
+                  key={mark.id}
+                  type="button"
+                  data-mark-row={mark.id}
+                  onClick={() => onSelect(mark.id)}
+                  className={cn('flex w-full items-center gap-2 border-t px-3 py-1.5 text-left text-xs hover:bg-muted/60', selectedId === mark.id && 'bg-violet-500/10')}
+                >
+                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: color }}>{i + 1}</span>
+                  <span className="min-w-0 flex-1 truncate">
+                    {mark.zone ? zoneLabel(mark.zone) : t('zones.none')}
+                    {mark.view !== 'front' && <span className="text-muted-foreground"> · {t(`viewsShort.${mark.view}`)}</span>}
+                    {(mark.productName || mark.lot) && (
+                      <span className="block truncate text-[11px] text-muted-foreground">
+                        {[mark.productName, mark.lot && t('flow.close.lot', { lot: mark.lot })].filter(Boolean).join(' · ')}
+                      </span>
+                    )}
+                  </span>
+                  <span className={cn('tabular-nums', (mark.quantity ?? 0) <= 0 && 'font-semibold text-destructive')}>
+                    {mark.quantity != null ? `${formatQuantity(mark.quantity)} ${layer.unitSymbol}` : t('map.incompletePoint')}
+                  </span>
+                </button>
+              ))}
+              {signed && !layer.marks.length && <p className="border-t px-3 py-2 text-xs text-muted-foreground">{t('flow.treatment.noMarks')}</p>}
+            </AccordionContent>
+          </AccordionItem>
         );
       })}
-    </>
+    </Accordion>
   );
 }
 

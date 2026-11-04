@@ -28,6 +28,7 @@ import {
   linkInvoiceToAppointment,
   linkInvoiceToClinicSession,
   linkInvoiceToOdontogramSession,
+  fetchInvoicePayments,
 } from '@/services/billing-links';
 
 import { BillingWizardStepper, type WizardStep } from './wizard-stepper';
@@ -349,21 +350,7 @@ async function fetchInvoicePaymentsForConfirmation(
   fallbackCurrency: string,
 ): Promise<CreatedPayment[]> {
   try {
-    const endpoint = isSales ? API_ROUTES.SALES.INVOICE_PAYMENTS : API_ROUTES.PURCHASES.INVOICE_PAYMENTS;
-    const data = await api.get(endpoint, { invoice_id: invoiceId, is_sales: isSales ? 'true' : 'false' });
-    const raw = Array.isArray(data) ? data : (data.payments || data.data || []);
-    return raw
-      .filter((p: any) => p?.status !== 'failed' && (p?.transaction_id || p?.id))
-      .map((p: any) => ({
-        docNo: p.doc_no || p.payment_doc_no || undefined,
-        transactionId: p.transaction_id ? String(p.transaction_id) : String(p.id),
-        transactionType: p.transaction_type || 'direct_payment',
-        methodName: p.payment_method_name || p.method || p.payment_method || undefined,
-        amount: Math.abs(Number(p.amount_applied ?? p.amount ?? 0)),
-        currency: p.currency || fallbackCurrency,
-        date: p.payment_date || p.created_at || undefined,
-        notes: p.notes || undefined,
-      }));
+    return await fetchInvoicePayments(invoiceId, isSales, fallbackCurrency);
   } catch {
     return [];
   }
@@ -729,6 +716,7 @@ export function BillingWizardModal() {
       );
       setResolvedInvoice(invoice);
       linkInvoiceToContext(invoice.id);
+      await context?.onInvoiceCreated?.(invoice.id);
 
       if (action === 'invoice-only') {
         setConfirmationData({
@@ -749,7 +737,7 @@ export function BillingWizardModal() {
     } finally {
       setIsProcessing(false);
     }
-  }, [effectivePatientId, editableItems, freeformCurrency, freeformSedeId, isSales, steps.length, onSuccess, linkInvoiceToContext,
+  }, [context, effectivePatientId, editableItems, freeformCurrency, freeformSedeId, isSales, steps.length, onSuccess, linkInvoiceToContext,
       discounts.enabled, discounts.scope, freeformDiscount]);
 
   const handlePaymentSuccess = React.useCallback(

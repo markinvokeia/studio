@@ -4,6 +4,8 @@ import React from 'react';
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
+import { cn } from '@/lib/utils';
+
 /** Shared provider of the hints: a short delay so they show while exploring a toolbar, not on every pass */
 export function HintProvider({ children }: { children: React.ReactNode }) {
   return <TooltipProvider delayDuration={250} skipDelayDuration={400}>{children}</TooltipProvider>;
@@ -17,6 +19,8 @@ interface HintProps {
   /** Keyboard shortcut, e.g. "P" or "Ctrl+Z" */
   shortcut?: string;
   side?: 'top' | 'right' | 'bottom' | 'left';
+  /** Classes of the wrapping span, which is what a flex parent sizes */
+  className?: string;
   children: React.ReactNode;
 }
 
@@ -24,11 +28,11 @@ interface HintProps {
  * Tooltip of a toolbar control: its name, what it does and its shortcut. It wraps the control in a
  * span so a disabled button (which gets no pointer events) still explains itself.
  */
-export function Hint({ label, description, shortcut, side = 'bottom', children }: HintProps) {
+export function Hint({ label, description, shortcut, side = 'bottom', className, children }: HintProps) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="inline-flex">{children}</span>
+        <span className={cn('inline-flex', className)}>{children}</span>
       </TooltipTrigger>
       <TooltipContent side={side} className="max-w-[16rem] px-3 py-2">
         <p className="flex items-center gap-2 text-xs font-semibold">

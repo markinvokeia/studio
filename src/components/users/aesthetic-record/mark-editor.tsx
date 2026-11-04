@@ -6,12 +6,13 @@ import { AlertTriangle, FlipHorizontal2, History, Info, Minus, Plus, Trash2, X }
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import { cn, formatDisplayDate } from '@/lib/utils';
 
 import type { AestheticDepth, AestheticMark, AestheticSession, AestheticTechnique, AestheticZoneId, ServiceAestheticConfig } from '@/lib/types';
-import { formatQuantity, layerQuantity, MARK_KIND_ICONS, type PlacedMark } from './layers';
+import { formatQuantity, layerQuantity, MARK_KIND_ICONS, resolveMark, type PlacedMark } from './layers';
 import { DEPTHS, getViewZoneIds, TECHNIQUES } from './map-templates';
 import { daysBetween } from './session-status';
 import { Hint } from './hint';
@@ -19,13 +20,6 @@ import { useZoneLabel } from './use-zone-label';
 
 const NO_ZONE = '__none__';
 const INHERIT = '__inherit__';
-
-/** Quick doses around the service's default: half, the default, one and a half and double */
-export function quickQuantities(config: ServiceAestheticConfig | undefined, step: number): number[] {
-  const base = config?.defaultQuantity ?? step;
-  const round = (v: number) => Math.max(step, Math.round(v / step) * step);
-  return [...new Set([0.5, 1, 1.5, 2].map((f) => Number(round(base * f).toFixed(4))))];
-}
 
 /** Last application of the same service on the same zone, in an earlier session */
 export function lastApplication(previousSessions: AestheticSession[], serviceId: string | undefined, zone: AestheticZoneId | null): { date: string; quantity: number } | null {
@@ -57,7 +51,7 @@ interface MarkEditorProps {
   floating?: boolean;
 }
 
-/** The selected mark: dose with − / + / quick values, zone, depth, technique and note, with inline warnings */
+/** The selected mark: dose, its own product and lot if they differ from the service's, zone, depth, technique and note, with inline warnings */
 export function MarkEditor({ placed, config, sessionDate, previousSessions, readOnly, onChange, onDelete, onMirror, onZoneHistory, onClose, floating = false }: MarkEditorProps) {
   const t = useTranslations('AestheticRecord');
   const zoneLabel = useZoneLabel();
@@ -77,8 +71,16 @@ export function MarkEditor({ placed, config, sessionDate, previousSessions, read
   const intervalWarning = !!config?.minIntervalDays && intervalDays != null && intervalDays < config.minIntervalDays;
   const total = layerQuantity(layer);
   const overMax = config?.maxPerSession != null && total > config.maxPerSession;
-  const lotExpired = !!layer.lotExpiry && layer.lotExpiry < sessionDate;
+  const { lotExpiry } = resolveMark(layer, mark);
+  const lotExpired = !!lotExpiry && lotExpiry < sessionDate;
   const label = `${t(`mark.${mark.kind}`)} ${number}`;
+  const hasOwnSupply = !!(mark.productName || mark.lot || mark.lotExpiry);
+  const [editingSupply, setEditingSupply] = React.useState(hasOwnSupply);
+  const ownSupply = [
+    mark.productName,
+    mark.lot && t('flow.close.lot', { lot: mark.lot }),
+    mark.lotExpiry && t('flow.treatment.expires', { date: formatDisplayDate(mark.lotExpiry) }),
+  ].filter((v): v is string => !!v);
   /** What the mark takes from its service: product, lot and expiry are loaded once, in the summary */
   const serviceDefaults = [
     layer.productName.trim(),
@@ -102,11 +104,49 @@ export function MarkEditor({ placed, config, sessionDate, previousSessions, read
         </Hint>
       </div>
 
-      {serviceDefaults.length > 0 && (
-        <p className="-mt-1 rounded-lg bg-muted/60 px-2.5 py-1.5 text-[11px] leading-snug text-muted-foreground">
-          <span className="font-medium text-foreground">{t('flow.treatment.fromService')}</span> {serviceDefaults.join(' · ')}
+      <div className="-mt-1 flex flex-col gap-1.5 rounded-lg bg-muted/60 px-2.5 py-1.5 text-[11px] leading-snug text-muted-foreground">
+        <p>
+          <span className="font-medium text-foreground">{t('flow.treatment.fromService')}</span> {serviceDefaults.length ? serviceDefaults.join(' · ') : t('flow.treatment.noServiceSupply')}
         </p>
-      )}
+        {readOnly ? (
+          ownSupply.length > 0 && <p><span className="font-medium text-foreground">{t('flow.treatment.markSupplyOwn')}:</span> {ownSupply.join(' · ')}</p>
+        ) : !editingSupply ? (
+          <button type="button" className="self-start font-medium text-violet-700 hover:underline dark:text-violet-300" onClick={() => setEditingSupply(true)}>{t('flow.treatment.markSupplyChange')}</button>
+        ) : (
+          <div className="flex flex-col gap-2 border-t pt-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-medium text-foreground">{t('flow.treatment.markSupplyOwn')}</span>
+              <button
+                type="button"
+                className="font-medium text-violet-700 hover:underline dark:text-violet-300"
+                onClick={() => {
+                  if (hasOwnSupply) onChange({ productName: undefined, lot: undefined, lotExpiry: undefined });
+                  setEditingSupply(false);
+                }}
+              >
+                {t('flow.treatment.markSupplyReset')}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              <div className="col-span-2 flex flex-col gap-1">
+                <Label htmlFor={`aes-mark-product-${mark.id}`} className="text-[11px] text-muted-foreground">{t('layers.product')}</Label>
+                <Input id={`aes-mark-product-${mark.id}`} value={mark.productName ?? ''} placeholder={layer.productName.trim() || t('layers.productPlaceholder')} onChange={(e) => onChange({ productName: e.target.value || undefined }, { skipHistory: true })} className="h-8 bg-card text-xs" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label htmlFor={`aes-mark-lot-${mark.id}`} className="text-[11px] text-muted-foreground">{t('point.lot')}</Label>
+                <Input id={`aes-mark-lot-${mark.id}`} value={mark.lot ?? ''} placeholder={layer.lot} onChange={(e) => onChange({ lot: e.target.value || undefined }, { skipHistory: true })} className="h-8 bg-card text-xs" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <Label htmlFor={`aes-mark-exp-${mark.id}`} className="text-[11px] text-muted-foreground">{t('flow.treatment.expiry')}</Label>
+                <Input id={`aes-mark-exp-${mark.id}`} type="date" value={mark.lotExpiry ?? ''} onChange={(e) => onChange({ lotExpiry: e.target.value || undefined }, { skipHistory: true })} className="h-8 bg-card px-1.5 text-xs" />
+              </div>
+            </div>
+            {mark.lot && !mark.lotExpiry && layer.lotExpiry && (
+              <p className="text-amber-700 dark:text-amber-400">{t('flow.treatment.markExpiryInherited', { date: formatDisplayDate(layer.lotExpiry) })}</p>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="flex items-center gap-1.5">
         <Hint label={t('flow.treatment.less')} description={t('flow.hints.editor.less', { step: formatQuantity(step), unit: layer.unitSymbol })}>
@@ -132,21 +172,6 @@ export function MarkEditor({ placed, config, sessionDate, previousSessions, read
         </Hint>
         <span className="text-sm text-muted-foreground">{layer.unitSymbol}{mark.kind === 'area' ? ` ${t('flow.treatment.inArea')}` : ''}</span>
       </div>
-      {!readOnly && (
-        <div className="flex flex-wrap gap-1">
-          {quickQuantities(config, step).map((q) => (
-            <Hint key={q} label={t('flow.hints.editor.quick', { value: formatQuantity(q), unit: layer.unitSymbol })} description={t('flow.hints.editor.quickDescription')}>
-            <button
-              type="button"
-              onClick={() => setQuantity(q)}
-              className={cn('h-7 rounded-lg border px-2.5 text-xs tabular-nums', mark.quantity === q ? 'border-violet-600 bg-violet-500/10 text-violet-700 dark:text-violet-300' : 'border-transparent bg-muted text-muted-foreground hover:text-foreground')}
-            >
-              {formatQuantity(q)}
-            </button>
-            </Hint>
-          ))}
-        </div>
-      )}
 
       <Select value={mark.zone ?? NO_ZONE} onValueChange={(v) => onChange({ zone: v === NO_ZONE ? null : (v as AestheticZoneId) })} disabled={readOnly}>
         <SelectTrigger className="h-9 text-xs" aria-label={t('point.zone')}><SelectValue /></SelectTrigger>
@@ -186,7 +211,7 @@ export function MarkEditor({ placed, config, sessionDate, previousSessions, read
       {overMax && (
         <Warning>{t('flow.treatment.maxWarning', { total: formatQuantity(total), max: formatQuantity(config!.maxPerSession!), unit: layer.unitSymbol })}</Warning>
       )}
-      {lotExpired && <Warning>{t('flow.treatment.lotExpired', { date: formatDisplayDate(layer.lotExpiry) })}</Warning>}
+      {lotExpired && <Warning>{t('flow.treatment.lotExpired', { date: formatDisplayDate(lotExpiry) })}</Warning>}
       {last && !intervalWarning && (
         <p className="flex items-start gap-2 rounded-lg bg-blue-500/10 px-2.5 py-2 text-xs text-blue-700 dark:text-blue-300">
           <Info className="mt-px h-3.5 w-3.5 shrink-0" />
