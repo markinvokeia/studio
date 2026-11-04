@@ -9521,6 +9521,9 @@
       "availableCount": "{count, plural, =0 {No times available} one {# time available} other {# times available}}",
       "closedDay": "The clinic is closed that day. Try another one.",
       "noneAvailable": "No times left that day. Try another one.",
+      "windowLimit": "For now, you can book up to {date}.",
+      "windowLastDay": "There are no times left today, and it's the last day you can book here. Contact the clinic for a later date.",
+      "windowExceeded": "For now, you can only book up to {date}. Contact the clinic for a later date.",
       "slotTaken": "Time unavailable",
       "reasonLabel": "What's going on?",
       "reasonPlaceholder": "Briefly tell us the reason: discomfort, check-up, urgent care…",
@@ -9955,6 +9958,17 @@
       "showPricing": {
         "label": "Show duration and prices",
         "help": "The patient sees each service's price and the total time and cost of what they picked. When off they only see the names: the duration is still used to book the right slot, but it isn't shown, and prices never leave the system."
+      },
+      "bookingWindow": {
+        "label": "How far ahead patients can book",
+        "help": "Limits the dates patients see in the portal, including when rescheduling. It doesn't affect clinic staff, who can schedule any date from the calendar.",
+        "unitLabel": "Unit",
+        "days": "Days from today",
+        "months": "Calendar months",
+        "daysHint": "Counted from the day the patient opens the portal.",
+        "monthsHint": "1 is the current month only; 2 runs through the end of next month. Fewer days are left to choose from near the end of each month.",
+        "preview": "Today, a patient could book up to {date}.",
+        "invalid": "Enter a number between 1 and {max}."
       }
     },
     "qr": {

@@ -14,6 +14,18 @@
       "label": "Booking services",
       "description": "Which services can be booked online."
     },
+    "config.patients-portal.section.booking-window": {
+      "label": "How far ahead patients can book",
+      "description": "The last date a patient can pick in the portal. It doesn't limit clinic staff."
+    },
+    "config.patients-portal.field.booking-window-value": {
+      "label": "Amount",
+      "description": "How many days or months, depending on the chosen unit."
+    },
+    "config.patients-portal.field.booking-window-unit": {
+      "label": "Unit",
+      "description": "Days count from today. Months count calendar months: with 1, patients can only book in the current month."
+    },
     "config.patients-portal.section.presentation": {
       "label": "Presentation",
       "description": "Texts and details the patient sees."

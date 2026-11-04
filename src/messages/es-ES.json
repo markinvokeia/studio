@@ -9521,6 +9521,9 @@
       "availableCount": "{count, plural, =0 {Sin horarios libres} one {# horario libre} other {# horarios libres}}",
       "closedDay": "Ese día la clínica no atiende. Prueba con otro.",
       "noneAvailable": "No quedan horarios libres ese día. Prueba con otro.",
+      "windowLimit": "Por ahora se puede reservar hasta el {date}.",
+      "windowLastDay": "Hoy ya no quedan horarios y es el último día que se puede reservar por aquí. Ponte en contacto con la clínica para una fecha posterior.",
+      "windowExceeded": "Por ahora solo se puede reservar hasta el {date}. Ponte en contacto con la clínica para una fecha posterior.",
       "slotTaken": "Horario no disponible",
       "reasonLabel": "¿Qué te pasa?",
       "reasonPlaceholder": "Cuéntanos brevemente el motivo de la consulta: molestia, control, urgencia…",
@@ -9955,6 +9958,17 @@
       "showPricing": {
         "label": "Mostrar duración y precios",
         "help": "El paciente ve el precio de cada servicio y el total de tiempo y dinero de lo que ha elegido. Si está desactivado solo ve los nombres: la duración se sigue usando para reservar el hueco correcto en la agenda, pero no se le muestra, y los precios tampoco salen del sistema."
+      },
+      "bookingWindow": {
+        "label": "Hasta cuándo puede reservar el paciente",
+        "help": "Limita las fechas que el paciente ve en el portal, también al cambiar una cita. No afecta al personal de la clínica, que puede reservar en cualquier fecha desde la agenda.",
+        "unitLabel": "Unidad",
+        "days": "Días desde hoy",
+        "months": "Meses naturales",
+        "daysHint": "Cuenta desde el día en que el paciente entra al portal.",
+        "monthsHint": "1 es solo el mes en curso; 2 llega hasta el final del mes siguiente. Al final de cada mes quedan menos días para elegir.",
+        "preview": "Hoy, un paciente podría reservar hasta el {date}.",
+        "invalid": "Introduce un número entre 1 y {max}."
       }
     },
     "qr": {

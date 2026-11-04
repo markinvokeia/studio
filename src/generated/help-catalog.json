@@ -1,5 +1,5 @@
 {
- "version": "a85525cd106ec7fd",
+ "version": "67119b47be23f922",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -6798,6 +6798,20 @@
      "source": "src/app/[locale]/config/patients-portal/page.tsx"
     },
     {
+     "description": "Días cuenta desde hoy. Meses cuenta meses calendario: con 1 sólo se puede reservar en el mes en curso.",
+     "id": "config.patients-portal.field.booking-window-unit",
+     "kind": "field",
+     "label": "Unidad",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
+     "description": "Cuántos días o meses, según la unidad elegida.",
+     "id": "config.patients-portal.field.booking-window-value",
+     "kind": "field",
+     "label": "Cantidad",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
      "description": "Si el portal está habilitado y qué pueden hacer los pacientes (reservar, cancelar, ver documentos).",
      "id": "config.patients-portal.section.access",
      "kind": "section",
@@ -6809,6 +6823,13 @@
      "id": "config.patients-portal.section.booking-services",
      "kind": "section",
      "label": "Servicios de la reserva",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
+     "description": "Última fecha que el paciente puede elegir en el portal. No limita al personal de la clínica.",
+     "id": "config.patients-portal.section.booking-window",
+     "kind": "section",
+     "label": "Hasta cuándo puede reservar el paciente",
      "source": "src/app/[locale]/config/patients-portal/page.tsx"
     },
     {

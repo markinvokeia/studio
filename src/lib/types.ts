@@ -3222,6 +3222,10 @@ export type PublicClinicInfo = {
    * `null` ⇒ la cita se crea sin servicio y con la duración genérica.
    */
   default_service: BookableService | null;
+  /** Unidad de la ventana de reserva. Ver `getBookingLimitDate`. */
+  booking_window_unit: PatientBookingWindowUnit;
+  /** Tamaño de la ventana de reserva, en `booking_window_unit`. */
+  booking_window_value: number;
   /** Horarios de atención de la clínica, si no están cargados por sede. */
   schedules?: PublicClinicSchedule[];
 };
@@ -3391,6 +3395,9 @@ export interface UniqueConflict {
   owners: DuplicateContactOwners;
 }
 
+/** `days`: desde hoy. `months`: meses calendario, el actual cuenta como el primero. */
+export type PatientBookingWindowUnit = 'days' | 'months';
+
 /** Ajustes de Configuración → Portal del Paciente. */
 export type PatientPortalConfig = {
   patient_portal_enabled: boolean;
@@ -3405,6 +3412,9 @@ export type PatientPortalConfig = {
   default_service_id: string;
   /** Muestra precios y duraciones en el portal. Sólo presentación. */
   show_pricing: boolean;
+  /** Hasta qué fecha puede reservar el paciente. Ver `getBookingLimitDate`. */
+  booking_window_unit: PatientBookingWindowUnit;
+  booking_window_value: number;
   welcome_video_url: string;
   welcome_message: string;
 };

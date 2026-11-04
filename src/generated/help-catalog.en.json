@@ -1,5 +1,5 @@
 {
- "version": "e50538504037cd2e",
+ "version": "bb1126610a89faaf",
  "locale": "en",
  "journey": [
   {
@@ -6712,6 +6712,20 @@
      "source": "src/app/[locale]/config/patients-portal/page.tsx"
     },
     {
+     "description": "Days count from today. Months count calendar months: with 1, patients can only book in the current month.",
+     "id": "config.patients-portal.field.booking-window-unit",
+     "kind": "field",
+     "label": "Unit",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
+     "description": "How many days or months, depending on the chosen unit.",
+     "id": "config.patients-portal.field.booking-window-value",
+     "kind": "field",
+     "label": "Amount",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
      "description": "Whether the portal is enabled and what patients can do (book, cancel, see documents).",
      "id": "config.patients-portal.section.access",
      "kind": "section",
@@ -6723,6 +6737,13 @@
      "id": "config.patients-portal.section.booking-services",
      "kind": "section",
      "label": "Booking services",
+     "source": "src/app/[locale]/config/patients-portal/page.tsx"
+    },
+    {
+     "description": "The last date a patient can pick in the portal. It doesn't limit clinic staff.",
+     "id": "config.patients-portal.section.booking-window",
+     "kind": "section",
+     "label": "How far ahead patients can book",
      "source": "src/app/[locale]/config/patients-portal/page.tsx"
     },
     {

@@ -1,4 +1,9 @@
 import { API_ROUTES } from '@/constants/routes';
+import {
+  DEFAULT_BOOKING_WINDOW_UNIT,
+  DEFAULT_BOOKING_WINDOW_VALUE,
+  parseBookingWindow,
+} from '@/lib/patient-booking-window';
 import type { PatientPortalConfig } from '@/lib/types';
 import { api, type ApiRequestOptions } from '@/services/api';
 
@@ -21,6 +26,8 @@ export const DEFAULT_PATIENT_PORTAL_CONFIG: PatientPortalConfig = {
   service_selection_enabled: false,
   default_service_id: '',
   show_pricing: false,
+  booking_window_unit: DEFAULT_BOOKING_WINDOW_UNIT,
+  booking_window_value: DEFAULT_BOOKING_WINDOW_VALUE,
   welcome_video_url: '',
   welcome_message: '',
 };
@@ -31,6 +38,8 @@ export async function fetchPatientPortalConfig(options?: ApiRequestOptions): Pro
 
   if (!raw) return DEFAULT_PATIENT_PORTAL_CONFIG;
 
+  const bookingWindow = parseBookingWindow(raw.booking_window_unit, raw.booking_window_value);
+
   return {
     patient_portal_enabled: raw.patient_portal_enabled === true,
     online_booking_enabled: raw.online_booking_enabled !== false,
@@ -40,6 +49,8 @@ export async function fetchPatientPortalConfig(options?: ApiRequestOptions): Pro
     // nombre y duración); acá sólo interesa el id, que es lo que se guarda.
     default_service_id: raw.default_service?.id != null ? String(raw.default_service.id) : '',
     show_pricing: raw.show_pricing === true,
+    booking_window_unit: bookingWindow.unit,
+    booking_window_value: bookingWindow.value,
     welcome_video_url: raw.welcome_video_url ?? '',
     welcome_message: raw.welcome_message ?? '',
   };
@@ -52,6 +63,8 @@ export async function updatePatientPortalConfig(config: PatientPortalConfig, opt
     appointments_only: config.appointments_only,
     service_selection_enabled: config.service_selection_enabled,
     show_pricing: config.show_pricing,
+    booking_window_unit: config.booking_window_unit,
+    booking_window_value: config.booking_window_value,
     // El id es entero en la BD; vacío ⇒ NULL ⇒ la reserva se crea sin servicio.
     default_service_id: config.default_service_id ? Number(config.default_service_id) : null,
     // Cadena vacía ⇒ NULL en la BD ⇒ el portal cae a sus valores por defecto
