@@ -154,6 +154,12 @@ export const AESTHETIC_RECORD_PERMISSIONS = {
   REGISTER_SESSION: 'AESTHETIC_RECORD_REGISTER_SESSION',
 } as const;
 
+/** Periodontograma (database/scripts/162): mismos roles que el odontograma */
+export const PERIO_RECORD_PERMISSIONS = {
+  VIEW: 'PERIO_RECORD_VIEW',
+  REGISTER_SESSION: 'PERIO_RECORD_REGISTER_SESSION',
+} as const;
+
 export const TIMELINE_PERMISSIONS = {
   VIEW: 'TIMELINE_VIEW',
   CREATE: 'CLINICAL_SESSION_CREATE',

@@ -96,6 +96,10 @@
     "workspace.btn.prescribe": {
       "label": "Prescribe"
     },
+    "workspace.btn.periodontogram": {
+      "label": "Periodontal chart",
+      "description": "Opens a new periodontal chart for the appointment's patient, linked to that appointment."
+    },
     "workspace.btn.agent-chat": {
       "label": "Ask the agent",
       "description": "The appointment's AI clinical agent."

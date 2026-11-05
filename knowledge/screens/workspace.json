@@ -109,6 +109,10 @@
     "workspace.btn.prescribe": {
       "label": "Recetar"
     },
+    "workspace.btn.periodontogram": {
+      "label": "Periodontograma",
+      "description": "Abre un periodontograma nuevo para el paciente de la cita, ligado a esa cita."
+    },
     "workspace.btn.agent-chat": {
       "label": "Consulta al agente",
       "description": "Agente clínico con IA de la cita."

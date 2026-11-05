@@ -29,6 +29,10 @@ interface WhatsAppComposerDialogProps {
   phone: string;
   recipientName?: string;
   treatmentContext?: { serviceName: string; missedStep: string; missedDate?: string };
+  /** Message already written (e.g. the periodontal report); replaces the template */
+  initialMessage?: string;
+  /** WhatsApp was opened with the message */
+  onSent?: () => void;
 }
 
 export function WhatsAppComposerDialog({
@@ -37,6 +41,8 @@ export function WhatsAppComposerDialog({
   phone,
   recipientName,
   treatmentContext,
+  initialMessage,
+  onSent,
 }: WhatsAppComposerDialogProps) {
   const t = useTranslations('WhatsAppComposerDialog');
   const helpScope = useHelpScope();
@@ -61,14 +67,16 @@ export function WhatsAppComposerDialog({
       missed_step: treatmentContext?.missedStep || '',
       missed_date: treatmentContext?.missedDate || '',
     };
-    if (treatmentContext) {
+    if (initialMessage) {
+      setMessage(initialMessage);
+    } else if (treatmentContext) {
       const tpl = commTemplates['TREATMENT_INTERRUPTED_WHATSAPP'];
       setMessage(substituteTokens(tpl?.body_text || WHATSAPP_TEMPLATE_DEFAULTS.whatsapp_treatment_interrupted, vars));
     } else {
       const tpl = commTemplates['PATIENT_GENERAL_WHATSAPP'];
       setMessage(substituteTokens(tpl?.body_text || WHATSAPP_TEMPLATE_DEFAULTS.whatsapp_patient_general, vars));
     }
-  }, [open, clinic, commTemplates, recipientName, treatmentContext]);
+  }, [open, clinic, commTemplates, recipientName, treatmentContext, initialMessage]);
 
   const handleOpenWhatsApp = async () => {
     if (!normalizedPhone || isOpening) return;
@@ -78,6 +86,7 @@ export function WhatsAppComposerDialog({
     try {
       const url = `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
       window.open(url, '_blank', 'noopener');
+      onSent?.();
       onOpenChange(false);
     } catch {
       toast({

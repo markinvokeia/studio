@@ -145,6 +145,10 @@
     "patients.btn.new-odontogram": {
       "label": "Odontogram session"
     },
+    "patients.btn.new-periodontogram": {
+      "label": "Periodontal chart",
+      "description": "Opens the clinical record with a new periodontal chart: guided probing, site by site."
+    },
     "patients.btn.new-indication": {
       "label": "Medical instruction"
     },
@@ -323,6 +327,10 @@
     },
     "patients.btn.timeline-add-odontogram": {
       "label": "Odontogram"
+    },
+    "patients.btn.timeline-add-periodontogram": {
+      "label": "Periodontal chart",
+      "description": "Probing at 6 sites per tooth (depth, bleeding, gingival margin, furcations and mobility). It saves automatically and is closed with a signature."
     },
     "patients.section.odontogram-create": {
       "label": "New odontogram session"

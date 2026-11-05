@@ -1207,6 +1207,14 @@
    "description": "Payment Methods (Métodos de Pago)"
   },
   {
+   "code": "PERIO_RECORD_REGISTER_SESSION",
+   "constant": "PERIO_RECORD_PERMISSIONS.REGISTER_SESSION"
+  },
+  {
+   "code": "PERIO_RECORD_VIEW",
+   "constant": "PERIO_RECORD_PERMISSIONS.VIEW"
+  },
+  {
    "code": "PERMISSIONS_CREATE",
    "constant": "SYSTEM_PERMISSIONS.PERMISSIONS_CREATE"
   },
@@ -8514,6 +8522,13 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "Abre la historia clínica con un periodontograma nuevo: sondaje guiado, sitio por sitio.",
+     "id": "patients.btn.new-periodontogram",
+     "kind": "btn",
+     "label": "Periodontograma",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "description": "Dinero a cuenta.",
      "id": "patients.btn.new-prepaid",
      "kind": "btn",
@@ -8649,6 +8664,13 @@
      "id": "patients.btn.timeline-add-odontogram",
      "kind": "btn",
      "label": "Odontograma",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Sondaje de 6 sitios por pieza (profundidad, sangrado, margen gingival, furcas y movilidad). Se guarda solo y se cierra con firma.",
+     "id": "patients.btn.timeline-add-periodontogram",
+     "kind": "btn",
+     "label": "Periodontograma",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -17996,6 +18018,13 @@
      "id": "workspace.btn.patient-file",
      "kind": "btn",
      "label": "Ficha del paciente",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "description": "Abre un periodontograma nuevo para el paciente de la cita, ligado a esa cita.",
+     "id": "workspace.btn.periodontogram",
+     "kind": "btn",
+     "label": "Periodontograma",
      "source": "src/components/dashboard/doctor-workspace.tsx"
     },
     {

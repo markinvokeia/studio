@@ -1208,6 +1208,14 @@
    "description": "Payment Methods (Métodos de Pago)"
   },
   {
+   "code": "PERIO_RECORD_REGISTER_SESSION",
+   "constant": "PERIO_RECORD_PERMISSIONS.REGISTER_SESSION"
+  },
+  {
+   "code": "PERIO_RECORD_VIEW",
+   "constant": "PERIO_RECORD_PERMISSIONS.VIEW"
+  },
+  {
    "code": "PERMISSIONS_CREATE",
    "constant": "SYSTEM_PERMISSIONS.PERMISSIONS_CREATE"
   },
@@ -8427,6 +8435,13 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "Opens the clinical record with a new periodontal chart: guided probing, site by site.",
+     "id": "patients.btn.new-periodontogram",
+     "kind": "btn",
+     "label": "Periodontal chart",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "description": "Money on account.",
      "id": "patients.btn.new-prepaid",
      "kind": "btn",
@@ -8562,6 +8577,13 @@
      "id": "patients.btn.timeline-add-odontogram",
      "kind": "btn",
      "label": "Odontogram",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Probing at 6 sites per tooth (depth, bleeding, gingival margin, furcations and mobility). It saves automatically and is closed with a signature.",
+     "id": "patients.btn.timeline-add-periodontogram",
+     "kind": "btn",
+     "label": "Periodontal chart",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -17909,6 +17931,13 @@
      "id": "workspace.btn.patient-file",
      "kind": "btn",
      "label": "Patient record",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "description": "Opens a new periodontal chart for the appointment's patient, linked to that appointment.",
+     "id": "workspace.btn.periodontogram",
+     "kind": "btn",
+     "label": "Periodontal chart",
      "source": "src/components/dashboard/doctor-workspace.tsx"
     },
     {

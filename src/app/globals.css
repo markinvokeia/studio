@@ -958,3 +958,53 @@ div[role="combobox"][aria-invalid="true"] {
   --odo-sel: #251D3D;
   --odo-hover: #221E2F;
 }
+
+/* ── Periodontograma: curvas, sangrado/supuración/placa y severidad de la bolsa ── */
+:root {
+  --perio-gm: #2563EB;
+  --perio-pd: #E11D48;
+  --perio-pocket: rgba(225, 29, 72, .13);
+  --perio-bop: #DC2626;
+  --perio-sup: #F59E0B;
+  --perio-pl: #0891B2;
+  --perio-s4: #F59E0B;
+  --perio-s4-soft: #FEF3C7;
+  --perio-s5: #EA580C;
+  --perio-s5-soft: #FFEDD5;
+  --perio-s6: #DC2626;
+  --perio-s6-soft: #FEE2E2;
+  --perio-ghost: #A49DBA;
+  --perio-grid: #EEEAF5;
+  --perio-dict: #7C3AED;
+  --perio-missing: #D97706;
+  --perio-missing-soft: rgba(245, 158, 11, .16);
+  --perio-better: #16A34A;
+  --perio-better-soft: #DCFCE7;
+  --perio-better-strong: rgba(22, 163, 74, .32);
+  --perio-worse: #DC2626;
+  --perio-worse-strong: rgba(220, 38, 38, .3);
+}
+.dark {
+  --perio-gm: #60A5FA;
+  --perio-pd: #FB7185;
+  --perio-pocket: rgba(251, 113, 133, .16);
+  --perio-bop: #F87171;
+  --perio-sup: #FBBF24;
+  --perio-pl: #22D3EE;
+  --perio-s4: #FBBF24;
+  --perio-s4-soft: #3A2E10;
+  --perio-s5: #FB923C;
+  --perio-s5-soft: #3B2213;
+  --perio-s6: #F87171;
+  --perio-s6-soft: #3A1919;
+  --perio-ghost: #6E6787;
+  --perio-grid: #262134;
+  --perio-dict: #A78BFA;
+  --perio-missing: #FBBF24;
+  --perio-missing-soft: rgba(251, 191, 36, .14);
+  --perio-better: #4ADE80;
+  --perio-better-soft: #12301D;
+  --perio-better-strong: rgba(74, 222, 128, .3);
+  --perio-worse: #F87171;
+  --perio-worse-strong: rgba(248, 113, 113, .3);
+}

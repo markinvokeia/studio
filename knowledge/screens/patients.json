@@ -181,6 +181,10 @@
     "patients.btn.new-odontogram": {
       "label": "Sesión de odontograma"
     },
+    "patients.btn.new-periodontogram": {
+      "label": "Periodontograma",
+      "description": "Abre la historia clínica con un periodontograma nuevo: sondaje guiado, sitio por sitio."
+    },
     "patients.btn.new-indication": {
       "label": "Indicación médica"
     },
@@ -359,6 +363,10 @@
     },
     "patients.btn.timeline-add-odontogram": {
       "label": "Odontograma"
+    },
+    "patients.btn.timeline-add-periodontogram": {
+      "label": "Periodontograma",
+      "description": "Sondaje de 6 sitios por pieza (profundidad, sangrado, margen gingival, furcas y movilidad). Se guarda solo y se cierra con firma."
     },
     "patients.section.odontogram-create": {
       "label": "Nueva sesión de odontograma"

@@ -1,0 +1,642 @@
+{
+  "name": "Perio Record",
+  "nodes": [
+    {
+      "id": "aefdaedc-909b-6a4d-4a02-2ea6b61cf8ab",
+      "name": "Nota",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        -40
+      ],
+      "parameters": {
+        "width": 420,
+        "height": 340,
+        "content": "## Perio Record — periodontograma\n\nFlujo NUEVO (no reemplaza nada). Requiere database/scripts/162 (periodontograma), 163 (diagnóstico) y 164 (cierre: factura y enmiendas).\n\nPeriodontogramas del paciente: piezas (estado, movilidad, furcas) y seis sitios por pieza (PS, MG, sangrado, supuración, placa). El estado, la completitud y los índices los calcula la base.\n\nErrores: 'PERIO:<CODIGO>|<detalle>' ⇒ 400 { success:false, code, detail }.\n\nGenerado por scripts/n8n/generate-perio-record-workflow.mjs — no editar a mano."
+      }
+    },
+    {
+      "name": "Map error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "// Las funciones lanzan 'PERIO:<CODIGO>|<detalle>'. Cualquier otro error\n// (conexión, constraint inesperada) sale como UNKNOWN con el mensaje crudo.\n// Postgres da { message, error: {...} } con el texto en la raíz y Code da error como string:\n// sólo se miran estos campos (la salida de error trae también el body que mandó el usuario).\nconst texts = [];\nconst seen = new Set();\nconst walk = (value) => {\n  if (typeof value === 'string') { if (value.trim()) texts.push(value); return; }\n  if (!value || typeof value !== 'object' || seen.has(value)) return;\n  seen.add(value);\n  for (const key of ['message', 'description', 'cause', 'error']) walk(value[key]);\n  for (const child of Object.values(value)) walk(child);\n};\nfor (const key of ['message', 'error', 'description', 'cause', 'details']) walk($json[key]);\nconst serialize = (value) => { try { return JSON.stringify(value) ?? ''; } catch { return ''; } };\nconst text = texts.find((t) => t.includes('PERIO:')) ?? texts[0] ?? serialize($json.error);\nconst match = text.match(/PERIO:([A-Z_]+)(?:\\|(.*))?/);\nreturn [{ json: {\n  success: false,\n  code: match ? match[1] : 'UNKNOWN',\n  detail: match && match[2] ? match[2].trim() : null,\n  message: text || 'Error',\n} }];"
+      },
+      "id": "e199d157-eab1-feae-9848-feb0c9d76312",
+      "position": [
+        1000,
+        -300
+      ]
+    },
+    {
+      "name": "Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "c7bae5f3-a978-032e-5059-bf9106a98199",
+      "position": [
+        1240,
+        -300
+      ]
+    },
+    {
+      "name": "GET perio/exams",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "5d3ffcb9-1ed8-f76b-c4ca-9b9e97e4d0d8",
+      "parameters": {
+        "path": "perio/exams",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "id": "449bbb5d-ae5b-9939-ecae-921fe83957b3",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "GET perio/exams · SQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT public.perio_exams_list(NULLIF($1, '')::uuid) AS exams;",
+        "options": {
+          "queryReplacement": "={{ [String($json.query.patient_id ?? \"\")] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "478f6e1d-775f-7180-83f5-6c68b5ac59fc",
+      "position": [
+        240,
+        0
+      ]
+    },
+    {
+      "name": "GET perio/exams · OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, exams: $json.exams ?? [] } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "d0ccede0-1f80-2a58-183f-9cad01c67028",
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "name": "POST perio/exams/save",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "45a857c2-38bb-dce8-3fc4-72f9bed59350",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "perio/exams/save",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "id": "d077b2e6-5cde-8f40-e852-c5d3c194efc4",
+      "position": [
+        0,
+        220
+      ]
+    },
+    {
+      "name": "POST perio/exams/save · SQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT public.perio_exam_save($1::jsonb, NULLIF($2, '')::uuid) AS exam;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($json.body.exam ?? {}), $('POST perio/exams/save').first().json.jwtPayload?.userId ?? ''] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "07050d81-f297-c9b2-fc5a-ef118ff86abb",
+      "position": [
+        240,
+        220
+      ]
+    },
+    {
+      "name": "POST perio/exams/save · OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, exam: $json.exam } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "97be5dc6-c999-1649-e5ac-d0f4f7ffbed2",
+      "position": [
+        480,
+        220
+      ]
+    },
+    {
+      "name": "POST perio/exams/close",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "b4c9c341-5ca8-ab7e-3ebb-9573bc6fbc95",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "perio/exams/close",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "id": "67acb969-6e1d-e9ea-037e-67acf64225e0",
+      "position": [
+        0,
+        440
+      ]
+    },
+    {
+      "name": "POST perio/exams/close · SQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT public.perio_exam_close(NULLIF($1, '')::bigint, NULLIF($2, '')::uuid) AS exam;",
+        "options": {
+          "queryReplacement": "={{ [String($json.body.id ?? \"\"), $('POST perio/exams/close').first().json.jwtPayload?.userId ?? ''] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "e106e628-f57d-416b-7492-7139ef6eff9c",
+      "position": [
+        240,
+        440
+      ]
+    },
+    {
+      "name": "POST perio/exams/close · OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, exam: $json.exam } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "7073fcce-2a6a-ae7f-bed7-571f264f4153",
+      "position": [
+        480,
+        440
+      ]
+    },
+    {
+      "name": "POST perio/exams/delete",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "c05e3bd7-709d-b488-0e21-7a73a6298134",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "perio/exams/delete",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "id": "c57322b0-7602-48f3-14c5-2457b711ae97",
+      "position": [
+        0,
+        660
+      ]
+    },
+    {
+      "name": "POST perio/exams/delete · SQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM public.perio_exam_delete(NULLIF($1, '')::bigint, NULLIF($2, '')::uuid);",
+        "options": {
+          "queryReplacement": "={{ [String($json.body.id ?? \"\"), $('POST perio/exams/delete').first().json.jwtPayload?.userId ?? ''] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "822901fb-3660-073e-9a33-f55b7e6285f9",
+      "position": [
+        240,
+        660
+      ]
+    },
+    {
+      "name": "POST perio/exams/delete · OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, id: $json.id, deleted: $json.deleted } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "6b311bc3-5937-5f39-fdb3-e584efe19c7a",
+      "position": [
+        480,
+        660
+      ]
+    },
+    {
+      "name": "POST perio/exams/link-invoice",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "27185fba-ff71-96a2-cb51-f575e5647d46",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "perio/exams/link-invoice",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "id": "19db4560-0e7c-dd47-93f3-e221162aa053",
+      "position": [
+        0,
+        880
+      ]
+    },
+    {
+      "name": "POST perio/exams/link-invoice · SQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT public.perio_exam_link_invoice(NULLIF($1, '')::bigint, NULLIF($2, '')::integer, NULLIF($3, '')::uuid) AS exam;",
+        "options": {
+          "queryReplacement": "={{ [String($json.body.id ?? \"\"), String($json.body.invoice_id ?? \"\"), $('POST perio/exams/link-invoice').first().json.jwtPayload?.userId ?? ''] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "41818e0f-91d9-fabd-e968-d3a0bbc300e1",
+      "position": [
+        240,
+        880
+      ]
+    },
+    {
+      "name": "POST perio/exams/link-invoice · OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, exam: $json.exam } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "cc275e70-4365-5e8d-9b49-58b01c26b0e5",
+      "position": [
+        480,
+        880
+      ]
+    },
+    {
+      "name": "POST perio/exams/amend",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "webhookId": "267b4fec-fcf2-f0a5-8b72-38de0a69ee9d",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "perio/exams/amend",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "id": "90891e24-5e0e-0092-4ff2-1ab0d0fabe75",
+      "position": [
+        0,
+        1100
+      ]
+    },
+    {
+      "name": "POST perio/exams/amend · SQL",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT public.perio_exam_amend(NULLIF($1, '')::bigint, $2, NULLIF($3, '')::uuid) AS exam;",
+        "options": {
+          "queryReplacement": "={{ [String($json.body.id ?? \"\"), String($json.body.body ?? \"\"), $('POST perio/exams/amend').first().json.jwtPayload?.userId ?? ''] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "id": "1cac0094-cfe8-c0f1-560a-3c6ba05cc985",
+      "position": [
+        240,
+        1100
+      ]
+    },
+    {
+      "name": "POST perio/exams/amend · OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, exam: $json.exam } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "ea112fe0-b91a-b743-9173-db46e35b9d18",
+      "position": [
+        480,
+        1100
+      ]
+    }
+  ],
+  "connections": {
+    "Map error": {
+      "main": [
+        [
+          {
+            "node": "Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET perio/exams": {
+      "main": [
+        [
+          {
+            "node": "GET perio/exams · SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET perio/exams · SQL": {
+      "main": [
+        [
+          {
+            "node": "GET perio/exams · OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST perio/exams/save": {
+      "main": [
+        [
+          {
+            "node": "POST perio/exams/save · SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST perio/exams/save · SQL": {
+      "main": [
+        [
+          {
+            "node": "POST perio/exams/save · OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST perio/exams/close": {
+      "main": [
+        [
+          {
+            "node": "POST perio/exams/close · SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST perio/exams/close · SQL": {
+      "main": [
+        [
+          {
+            "node": "POST perio/exams/close · OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST perio/exams/delete": {
+      "main": [
+        [
+          {
+            "node": "POST perio/exams/delete · SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST perio/exams/delete · SQL": {
+      "main": [
+        [
+          {
+            "node": "POST perio/exams/delete · OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST perio/exams/link-invoice": {
+      "main": [
+        [
+          {
+            "node": "POST perio/exams/link-invoice · SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST perio/exams/link-invoice · SQL": {
+      "main": [
+        [
+          {
+            "node": "POST perio/exams/link-invoice · OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST perio/exams/amend": {
+      "main": [
+        [
+          {
+            "node": "POST perio/exams/amend · SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST perio/exams/amend · SQL": {
+      "main": [
+        [
+          {
+            "node": "POST perio/exams/amend · OK",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Map error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null
+}
