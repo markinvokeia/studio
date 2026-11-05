@@ -1,5 +1,5 @@
 {
- "version": "2b14401b2be1cad6",
+ "version": "edaffcd2f547df7f",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -110,11 +110,13 @@
   },
   {
    "code": "AESTHETIC_RECORD_REGISTER_SESSION",
-   "constant": "AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION"
+   "constant": "AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION",
+   "description": "Crear y completar sesiones de estética: consentimiento, fotos, marcas, cierre, anulación y enmiendas."
   },
   {
    "code": "AESTHETIC_RECORD_VIEW",
-   "constant": "AESTHETIC_RECORD_PERMISSIONS.VIEW"
+   "constant": "AESTHETIC_RECORD_PERMISSIONS.VIEW",
+   "description": "Ver las sesiones de estética en la línea de tiempo del paciente y abrirlas en solo lectura."
   },
   {
    "code": "ALERT_CATEGORIES_CREATE",
@@ -5121,18 +5123,47 @@
   {
    "elements": [
     {
+     "description": "Si está en uso, queda inactiva en lugar de borrarse.",
+     "id": "clinic-catalog.measurement-units.btn.delete",
+     "kind": "btn",
+     "label": "Eliminar",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "id": "clinic-catalog.measurement-units.btn.delete-confirm",
+     "kind": "btn",
+     "label": "Confirmar",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "description": "Cambia los datos de esa unidad o la deja inactiva.",
+     "id": "clinic-catalog.measurement-units.btn.edit",
+     "kind": "btn",
+     "label": "Editar",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "description": "Agrega una unidad con su nombre, símbolo, código y paso.",
+     "id": "clinic-catalog.measurement-units.btn.new",
+     "kind": "btn",
+     "label": "Nueva unidad",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
      "id": "clinic-catalog.measurement-units.btn.submit",
      "kind": "btn",
      "label": "Guardar",
      "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
     },
     {
+     "description": "Identificador único: letras, números, guion y guion bajo.",
      "id": "clinic-catalog.measurement-units.field.code",
      "kind": "field",
      "label": "Código",
      "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
     },
     {
+     "description": "Las inactivas no se ofrecen al configurar servicios.",
      "id": "clinic-catalog.measurement-units.field.isActive",
      "kind": "field",
      "label": "Activa",
@@ -5145,15 +5176,31 @@
      "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
     },
     {
+     "description": "Cuánto cambian + y − al marcar: 1 para enteras, 0,05 para ml.",
      "id": "clinic-catalog.measurement-units.field.step",
      "kind": "field",
      "label": "Paso de la cantidad",
      "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
     },
     {
+     "description": "Lo que se ve junto a cada cantidad.",
      "id": "clinic-catalog.measurement-units.field.symbol",
      "kind": "field",
      "label": "Símbolo",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "description": "Cada fila muestra el símbolo, el código, el paso y si la unidad está activa.",
+     "id": "clinic-catalog.measurement-units.section.first-row",
+     "kind": "section",
+     "label": "Primera de la lista",
+     "source": "knowledge/screens/clinic-catalog.measurement-units.json"
+    },
+    {
+     "description": "Todas las unidades de la clínica; al configurar un servicio solo se ofrecen las activas.",
+     "id": "clinic-catalog.measurement-units.section.table",
+     "kind": "section",
+     "label": "Unidades",
      "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
     }
    ],
@@ -5163,9 +5210,21 @@
    "permissions": [
     "CATALOG_UNITS_VIEW_LIST"
    ],
+   "prerequisites": [],
+   "purpose": "Cada servicio de estética necesita una unidad: es la que aparece junto a cada cantidad en la ficha estética, y su paso define cuánto cambian los botones + y − al marcar.",
    "route": "/clinic-catalog/measurement-units",
-   "status": "auto",
-   "title": "Unidades de medida"
+   "status": "draft",
+   "summary": "Unidades en que se registran las dosis de los servicios (U, ml, mg, cc…).",
+   "tips": [
+    "Una unidad en uso no se borra: queda inactiva y las sesiones viejas la siguen mostrando."
+   ],
+   "title": "Unidades de medida",
+   "useCases": [
+    "clinic-catalog.measurement-units.overview",
+    "clinic-catalog.measurement-units.create",
+    "clinic-catalog.measurement-units.edit",
+    "clinic-catalog.measurement-units.delete"
+   ]
   },
   {
    "elements": [
@@ -7742,6 +7801,366 @@
   {
    "elements": [
     {
+     "description": "Quién hizo qué y cuándo en la sesión.",
+     "id": "aesthetic-session.btn.activity",
+     "kind": "btn",
+     "label": "Actividad",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Queda en solo lectura.",
+     "id": "aesthetic-session.btn.close-confirm",
+     "kind": "btn",
+     "label": "Confirmar cierre",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Se habilita con todo firmado, la foto y las marcas completas.",
+     "id": "aesthetic-session.btn.close-session",
+     "kind": "btn",
+     "label": "Cerrar sesión",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Compara con la primera sesión.",
+     "id": "aesthetic-session.btn.compare-initial",
+     "kind": "btn",
+     "label": "Comparar con la inicial",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Agrega los servicios de la sesión anterior.",
+     "id": "aesthetic-session.btn.from-last-session",
+     "kind": "btn",
+     "label": "Última sesión",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Ajusta la foto al mapa para que coincidan las zonas.",
+     "id": "aesthetic-session.btn.photo-align",
+     "kind": "btn",
+     "label": "Alinear foto",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Cámara con guía de encuadre y la última foto translúcida.",
+     "id": "aesthetic-session.btn.photo-take",
+     "kind": "btn",
+     "label": "Tomar foto",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Desde el dispositivo.",
+     "id": "aesthetic-session.btn.photo-upload",
+     "kind": "btn",
+     "label": "Subir foto",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Reutiliza un consentimiento ya firmado de ese servicio.",
+     "id": "aesthetic-session.btn.reuse",
+     "kind": "btn",
+     "label": "Usar firma anterior",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Firma todos los servicios pendientes de una vez.",
+     "id": "aesthetic-session.btn.sign",
+     "kind": "btn",
+     "label": "Firmar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Lo aplicado, cobro, próxima cita y cierre.",
+     "id": "aesthetic-session.btn.step-close",
+     "kind": "btn",
+     "label": "Paso Cierre",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Servicios de hoy y firma.",
+     "id": "aesthetic-session.btn.step-consent",
+     "kind": "btn",
+     "label": "Paso Consentimiento",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Fotos por vista y comparación.",
+     "id": "aesthetic-session.btn.step-photos",
+     "kind": "btn",
+     "label": "Paso Fotos de hoy",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Mapa con las marcas. Con candado hasta que haya un consentimiento firmado.",
+     "id": "aesthetic-session.btn.step-treatment",
+     "kind": "btn",
+     "label": "Paso Tratamiento",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "aesthetic-session.btn.to-close",
+     "kind": "btn",
+     "label": "Ir al cierre",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Se habilita con todos los servicios firmados.",
+     "id": "aesthetic-session.btn.to-photos",
+     "kind": "btn",
+     "label": "Continuar a fotos",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "aesthetic-session.btn.to-treatment",
+     "kind": "btn",
+     "label": "Continuar al tratamiento",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Va al tratamiento de los servicios ya firmados, aunque falte firmar otros.",
+     "id": "aesthetic-session.btn.treat-signed",
+     "kind": "btn",
+     "label": "Marcar los firmados",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Con motivo; queda en solo lectura, sin borrar nada.",
+     "id": "aesthetic-session.btn.void",
+     "kind": "btn",
+     "label": "Anular sesión",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "aesthetic-session.btn.void-confirm",
+     "kind": "btn",
+     "label": "Confirmar anulación",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Sin esta autorización la cámara queda bloqueada y se puede cerrar sin fotos.",
+     "id": "aesthetic-session.field.allowsClinicalPhotos",
+     "kind": "field",
+     "label": "Fotos para la historia clínica",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Opcional.",
+     "id": "aesthetic-session.field.allowsMarketingPhotos",
+     "kind": "field",
+     "label": "Fotos para difusión",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Obligatorio para firmar.",
+     "id": "aesthetic-session.field.risksExplained",
+     "kind": "field",
+     "label": "Riesgos explicados",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "El paciente o su responsable.",
+     "id": "aesthetic-session.field.signerName",
+     "kind": "field",
+     "label": "Quién firma",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "aesthetic-session.field.void-reason",
+     "kind": "field",
+     "label": "Motivo de anulación",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Correcciones de una sesión cerrada, sin borrar lo original.",
+     "id": "aesthetic-session.section.amendments",
+     "kind": "section",
+     "label": "Enmiendas",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Servicios, zonas, totales, lotes consumidos y fotos de hoy.",
+     "id": "aesthetic-session.section.applied",
+     "kind": "section",
+     "label": "Tratamiento aplicado",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Cobrar la sesión; luego, la factura vinculada con su saldo y pagos.",
+     "id": "aesthetic-session.section.billing",
+     "kind": "section",
+     "label": "Cobro",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Deslizador, lado a lado o superpuestas.",
+     "id": "aesthetic-session.section.compare-modes",
+     "kind": "section",
+     "label": "Modo de comparación",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "El texto del servicio con los datos del paciente. Lo firmado se guarda tal cual, con huella SHA-256.",
+     "id": "aesthetic-session.section.consent-text",
+     "kind": "section",
+     "label": "Texto del consentimiento",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Enviar las indicaciones por WhatsApp y agendar el control sugerido.",
+     "id": "aesthetic-session.section.follow-up",
+     "kind": "section",
+     "label": "Indicaciones y próxima cita",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Encabezado de la sesión: paciente, número de sesión y los cuatro pasos.",
+     "id": "aesthetic-session.section.header",
+     "kind": "section",
+     "label": "Sesión de estética",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Se cargan una vez por servicio y valen para todas sus marcas.",
+     "id": "aesthetic-session.section.layer-supply",
+     "kind": "section",
+     "label": "Producto y lote",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Servicio activo, total y visibilidad. Sin firma, con candado.",
+     "id": "aesthetic-session.section.layers",
+     "kind": "section",
+     "label": "Servicios",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Donde se marca lo aplicado; la zona se detecta sola.",
+     "id": "aesthetic-session.section.map",
+     "kind": "section",
+     "label": "Mapa",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Cantidad, zona, profundidad, técnica, nota, espejo y producto o lote propio. Los avisos de máximo, intervalo y lote vencido no bloquean.",
+     "id": "aesthetic-session.section.mark-editor",
+     "kind": "section",
+     "label": "Datos de la marca",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Avisos que llevan al paso que los resuelve.",
+     "id": "aesthetic-session.section.missing",
+     "kind": "section",
+     "label": "Lo que falta",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Resumen, notas e historial por zona.",
+     "id": "aesthetic-session.section.panel",
+     "kind": "section",
+     "label": "Panel lateral",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Fotos de esta vista en otras sesiones.",
+     "id": "aesthetic-session.section.photo-history",
+     "kind": "section",
+     "label": "Sesiones anteriores",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "La foto de hoy y la comparación con otra sesión.",
+     "id": "aesthetic-session.section.photo-stage",
+     "kind": "section",
+     "label": "Foto de la vista",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Frente, perfil izquierdo y derecho.",
+     "id": "aesthetic-session.section.photo-views",
+     "kind": "section",
+     "label": "Vistas de las fotos",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Estado de la sesión, porcentaje (25 % por paso), último guardado y qué falta.",
+     "id": "aesthetic-session.section.progress",
+     "kind": "section",
+     "label": "Estado y avance",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Servicios de estética a realizar y el estado de sus consentimientos.",
+     "id": "aesthetic-session.section.services",
+     "kind": "section",
+     "label": "Servicios de hoy",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Fecha de la sesión (no futura) y quién la realiza.",
+     "id": "aesthetic-session.section.session-data",
+     "kind": "section",
+     "label": "Fecha y profesional",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Texto que queda en la línea de tiempo.",
+     "id": "aesthetic-session.section.session-summary",
+     "kind": "section",
+     "label": "Resumen de la sesión",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Autorizaciones, quién firma y la firma.",
+     "id": "aesthetic-session.section.signature",
+     "kind": "section",
+     "label": "Firma",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Con el dedo, lápiz o mouse.",
+     "id": "aesthetic-session.section.signature-pad",
+     "kind": "section",
+     "label": "Área de firma",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Seleccionar, punto, área, línea, deshacer, rehacer, zonas y marcas de la sesión anterior.",
+     "id": "aesthetic-session.section.tools",
+     "kind": "section",
+     "label": "Herramientas",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Rostro o cuerpo, la vista y el fondo (modelo o foto de hoy).",
+     "id": "aesthetic-session.section.views",
+     "kind": "section",
+     "label": "Región, vista y fondo",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Lo aplicado en cada zona en sesiones anteriores.",
+     "id": "aesthetic-session.tab.history",
+     "kind": "tab",
+     "label": "Historial",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Notas con hora, con dictado y frases frecuentes.",
+     "id": "aesthetic-session.tab.notes",
+     "kind": "tab",
+     "label": "Notas",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Cada servicio con su total, marcas, producto y lote.",
+     "id": "aesthetic-session.tab.summary",
+     "kind": "tab",
+     "label": "Resumen",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "id": "appointments.btn.back-to-new-patient",
      "kind": "btn",
      "label": "Volver al alta nueva",
@@ -8025,6 +8444,13 @@
      "source": "src/app/[locale]/patients/page.tsx"
     },
     {
+     "description": "Crea una sesión de estética: consentimiento, fotos, tratamiento y cierre.",
+     "id": "patients.btn.new-aesthetic",
+     "kind": "btn",
+     "label": "Sesión estética",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "id": "patients.btn.new-appointment",
      "kind": "btn",
      "label": "Cita",
@@ -8174,6 +8600,13 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "Nueva sesión de estética desde la línea de tiempo.",
+     "id": "patients.btn.timeline-add-aesthetic",
+     "kind": "btn",
+     "label": "Estética",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "id": "patients.btn.timeline-add-clinical",
      "kind": "btn",
      "label": "Sesión clínica",
@@ -8189,6 +8622,13 @@
      "id": "patients.btn.timeline-filters",
      "kind": "btn",
      "label": "Filtrar eventos",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Abre la sesión de estética; una cerrada o anulada, en solo lectura.",
+     "id": "patients.btn.timeline-open-aesthetic",
+     "kind": "btn",
+     "label": "Continuar sesión",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -9009,7 +9449,7 @@
     "PATIENTS_VIEW_LIST"
    ],
    "prerequisites": [],
-   "purpose": "Buscar, registrar y editar pacientes. La ficha reúne todo lo del paciente: datos y notas, anamnesis, línea de tiempo clínica, planes de tratamiento, indicaciones y recetas, documentos, y su cuenta (presupuestos, facturas y pagos). Desde «Crear» y «Más acciones» se registran sesiones, se cobra, se agenda y se le escribe.",
+   "purpose": "Buscar, registrar y editar pacientes. La ficha reúne todo lo del paciente: datos y notas, anamnesis, línea de tiempo clínica (también las sesiones de estética), planes de tratamiento, indicaciones y recetas, documentos, y su cuenta (presupuestos, facturas y pagos). Desde «Crear» y «Más acciones» se registran sesiones, se cobra, se agenda y se le escribe.",
    "route": "/patients",
    "status": "draft",
    "summary": "Listado de pacientes y su ficha completa: datos, historia clínica y finanzas.",
@@ -9019,7 +9459,10 @@
     "Las alergias y padecimientos de la anamnesis aparecen como alerta en el encabezado de la ficha.",
     "La sección Finanzas se ve como cuenta corriente (Personalizado) o en pestañas (Normal), según tus Preferencias.",
     "Cobro rápido, prepago y pagos necesitan una caja abierta.",
-    "Readmitir y Activar/Desactivar se aplican al tocarlos, sin diálogo previo."
+    "Readmitir y Activar/Desactivar se aplican al tocarlos, sin diálogo previo.",
+    "La sesión de estética se guarda sola y se retoma en el primer paso que falta. Cerrada, queda en solo lectura y sólo admite enmiendas.",
+    "En estética, sin firma no se puede marcar el servicio. Sin autorización de fotos clínicas la cámara se bloquea y se puede cerrar sin fotos.",
+    "Los avisos de máximo por sesión, intervalo mínimo y lote vencido informan, pero no bloquean."
    ],
    "title": "Pacientes",
    "useCases": [
@@ -9049,7 +9492,12 @@
     "patients.whatsapp",
     "patients.whatsapp-reminder",
     "patients.discharge",
-    "patients.toggle-active"
+    "patients.toggle-active",
+    "patients.aesthetic-session",
+    "patients.aesthetic-consent",
+    "patients.aesthetic-photos",
+    "patients.aesthetic-treatment",
+    "patients.aesthetic-close"
    ]
   },
   {
@@ -15347,6 +15795,30 @@
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
+     "id": "sales.services.btn.aesthetic-save",
+     "kind": "btn",
+     "label": "Guardar configuración estética",
+     "source": "src/components/services/service-aesthetic-config.tsx"
+    },
+    {
+     "id": "sales.services.btn.consent-from-generic",
+     "kind": "btn",
+     "label": "Partir del genérico",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "id": "sales.services.btn.consent-preview",
+     "kind": "btn",
+     "label": "Vista previa",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "id": "sales.services.btn.consent-save",
+     "kind": "btn",
+     "label": "Guardar consentimiento",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
      "description": "Pide confirmación.",
      "id": "sales.services.btn.delete",
      "kind": "btn",
@@ -15378,6 +15850,46 @@
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
+     "description": "Se envían por WhatsApp al cerrar la sesión.",
+     "id": "sales.services.field.aesthetic-aftercare",
+     "kind": "field",
+     "label": "Indicaciones posteriores",
+     "source": "src/components/services/service-aesthetic-config.tsx"
+    },
+    {
+     "id": "sales.services.field.aesthetic-default-quantity",
+     "kind": "field",
+     "label": "Cantidad inicial por marca",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "description": "Días hasta el control que se ofrece agendar al cerrar.",
+     "id": "sales.services.field.aesthetic-follow-up-days",
+     "kind": "field",
+     "label": "Próxima cita sugerida",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "id": "sales.services.field.aesthetic-follow-up-label",
+     "kind": "field",
+     "label": "Nombre de la próxima cita",
+     "source": "src/components/services/service-aesthetic-config.tsx"
+    },
+    {
+     "description": "Avisa, no bloquea.",
+     "id": "sales.services.field.aesthetic-max-per-session",
+     "kind": "field",
+     "label": "Máximo por sesión",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "description": "Avisa, no bloquea.",
+     "id": "sales.services.field.aesthetic-min-interval",
+     "kind": "field",
+     "label": "Intervalo mínimo en una zona",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
      "description": "El paciente lo puede reservar desde el portal.",
      "id": "sales.services.field.bookable_online",
      "kind": "field",
@@ -15397,6 +15909,18 @@
      "kind": "field",
      "label": "Color",
      "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
+     "id": "sales.services.field.consent-body",
+     "kind": "field",
+     "label": "Texto del consentimiento",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "id": "sales.services.field.consent-title",
+     "kind": "field",
+     "label": "Título del documento",
+     "source": "knowledge/screens/sales.services.json"
     },
     {
      "description": "Moneda del precio.",
@@ -15432,6 +15956,7 @@
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
+     "description": "Lo suma a la ficha estética y habilita la pestaña Estética.",
      "id": "sales.services.field.is_aesthetic",
      "kind": "field",
      "label": "Servicio de estética",
@@ -15459,6 +15984,7 @@
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
+     "description": "En qué se mide lo que se aplica o se vende (U, ml, mg…). Obligatoria en un servicio de estética.",
      "id": "sales.services.field.unit_id",
      "kind": "field",
      "label": "Unidad de medida",
@@ -15469,6 +15995,34 @@
      "kind": "filter",
      "label": "Filtrar aquí...",
      "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
+     "description": "Herramienta, dosis, límites, próxima cita e indicaciones. Se guarda aparte del servicio.",
+     "id": "sales.services.section.aesthetic-config",
+     "kind": "section",
+     "label": "Ficha estética",
+     "source": "src/components/services/service-aesthetic-config.tsx"
+    },
+    {
+     "description": "Puntos, áreas o línea.",
+     "id": "sales.services.section.aesthetic-tool",
+     "kind": "section",
+     "label": "Se marca con",
+     "source": "src/components/services/service-aesthetic-config.tsx"
+    },
+    {
+     "description": "Texto propio del servicio. Sin texto se usa el genérico; cambiarlo sólo afecta a las firmas nuevas.",
+     "id": "sales.services.section.consent-template",
+     "kind": "section",
+     "label": "Consentimiento",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "description": "Paciente, profesional, servicio, producto y fecha.",
+     "id": "sales.services.section.consent-variables",
+     "kind": "section",
+     "label": "Variables",
+     "source": "knowledge/screens/sales.services.json"
     },
     {
      "id": "sales.services.section.detail",
@@ -15489,6 +16043,7 @@
      "source": "knowledge/screens/sales.services.json"
     },
     {
+     "description": "Cómo se marca en la ficha estética y su consentimiento.",
      "id": "sales.services.tab.aesthetic",
      "kind": "tab",
      "label": "Estética",
@@ -15521,7 +16076,8 @@
    "status": "draft",
    "summary": "Catálogo de servicios y tratamientos con precio y duración.",
    "tips": [
-    "Marcá 'Agendable online' para que el paciente lo pueda reservar desde el portal."
+    "Marcá 'Agendable online' para que el paciente lo pueda reservar desde el portal.",
+    "Para usarlo en la ficha estética: elegí la unidad de medida, marcá «Servicio de estética», guardá y completá la pestaña Estética."
    ],
    "title": "Servicios",
    "useCases": [
@@ -15530,7 +16086,9 @@
     "sales.services.create",
     "sales.services.edit",
     "sales.services.delete",
-    "sales.services.steps"
+    "sales.services.steps",
+    "sales.services.aesthetic",
+    "sales.services.consent-template"
    ]
   },
   {
@@ -17318,6 +17876,13 @@
   {
    "elements": [
     {
+     "description": "Abre la sesión de estética vinculada a esta cita y su profesional.",
+     "id": "workspace.btn.aesthetic",
+     "kind": "btn",
+     "label": "Sesión estética",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
      "description": "Agente clínico con IA de la cita.",
      "id": "workspace.btn.agent-chat",
      "kind": "btn",
@@ -17718,7 +18283,8 @@
     "workspace.complete-session",
     "workspace.prescribe",
     "workspace.odontogram",
-    "workspace.agent"
+    "workspace.agent",
+    "workspace.aesthetic-session"
    ]
   }
  ],
@@ -22030,6 +22596,257 @@
    ],
    "summary": "Las caras de cada pieza (oclusal, mesial, distal…) que se eligen en el odontograma.",
    "title": "Recorrer Superficies Dentales"
+  },
+  {
+   "id": "clinic-catalog.measurement-units.create",
+   "inputs": {
+    "code": "Código único, sin espacios",
+    "name": "Nombre",
+    "step": "Paso de la cantidad, como número (1, 0.05)",
+    "symbol": "Símbolo (ej. ml, U)"
+   },
+   "keywords": [
+    "nueva unidad de medida",
+    "agregar unidad",
+    "crear unidad"
+   ],
+   "module": "Catálogo de la Clínica",
+   "screens": [
+    "clinic-catalog.measurement-units"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "En qué se registran las dosis de los servicios de estética (U, ml, mg, cc…).",
+     "id": "go",
+     "route": "/clinic-catalog/measurement-units",
+     "title": "Menú → Catálogo de la Clínica → Unidades de medida"
+    },
+    {
+     "action": "click",
+     "details": "Agrega una unidad con su nombre, símbolo, código y paso.",
+     "id": "new",
+     "target": "clinic-catalog.measurement-units.btn.new",
+     "title": "Nueva unidad",
+     "until": "clinic-catalog.measurement-units.field.name"
+    },
+    {
+     "action": "fill",
+     "id": "name",
+     "target": "clinic-catalog.measurement-units.field.name",
+     "title": "Nombre",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "fill",
+     "details": "Lo que se ve junto a cada cantidad.",
+     "id": "symbol",
+     "target": "clinic-catalog.measurement-units.field.symbol",
+     "title": "Símbolo",
+     "value": "{{values.symbol}}"
+    },
+    {
+     "action": "fill",
+     "details": "Identificador único: letras, números, guion y guion bajo.",
+     "id": "code",
+     "target": "clinic-catalog.measurement-units.field.code",
+     "title": "Código",
+     "value": "{{values.code}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Cuánto cambian los botones + y − al marcar: 1 para unidades enteras, 0,05 para ml.",
+     "id": "step",
+     "optional": true,
+     "target": "clinic-catalog.measurement-units.field.step",
+     "title": "Paso de la cantidad",
+     "value": "{{values.step}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Las inactivas no se ofrecen al configurar servicios.",
+     "id": "active",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.field.isActive",
+     "title": "Activa"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "clinic-catalog.measurement-units.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Alta en el catálogo de unidades de medida.",
+   "title": "Agregar una unidad de medida"
+  },
+  {
+   "id": "clinic-catalog.measurement-units.delete",
+   "inputs": {},
+   "keywords": [
+    "eliminar unidad",
+    "borrar unidad"
+   ],
+   "module": "Catálogo de la Clínica",
+   "screens": [
+    "clinic-catalog.measurement-units"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "En qué se registran las dosis de los servicios de estética (U, ml, mg, cc…).",
+     "id": "go",
+     "route": "/clinic-catalog/measurement-units",
+     "title": "Menú → Catálogo de la Clínica → Unidades de medida"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá la papelera de la unidad.",
+     "id": "delete",
+     "target": "clinic-catalog.measurement-units.btn.delete",
+     "title": "Eliminar",
+     "until": "clinic-catalog.measurement-units.btn.delete-confirm"
+    },
+    {
+     "action": "confirm",
+     "details": "Si la usan servicios o sesiones no se borra: queda inactiva y las sesiones viejas la siguen mostrando.",
+     "id": "ok",
+     "target": "clinic-catalog.measurement-units.btn.delete-confirm",
+     "title": "Confirmar"
+    }
+   ],
+   "summary": "Borrarla del catálogo; si está en uso, queda inactiva.",
+   "title": "Eliminar una unidad de medida"
+  },
+  {
+   "id": "clinic-catalog.measurement-units.edit",
+   "inputs": {},
+   "keywords": [
+    "editar unidad",
+    "cambiar símbolo",
+    "desactivar unidad"
+   ],
+   "module": "Catálogo de la Clínica",
+   "screens": [
+    "clinic-catalog.measurement-units"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "En qué se registran las dosis de los servicios de estética (U, ml, mg, cc…).",
+     "id": "go",
+     "route": "/clinic-catalog/measurement-units",
+     "title": "Menú → Catálogo de la Clínica → Unidades de medida"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá el lápiz de la unidad que querés cambiar.",
+     "id": "edit",
+     "target": "clinic-catalog.measurement-units.btn.edit",
+     "title": "Editar",
+     "until": "clinic-catalog.measurement-units.field.name"
+    },
+    {
+     "action": "highlight",
+     "id": "name",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.field.name",
+     "title": "Nombre"
+    },
+    {
+     "action": "highlight",
+     "details": "Lo que se ve junto a cada cantidad.",
+     "id": "symbol",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.field.symbol",
+     "title": "Símbolo"
+    },
+    {
+     "action": "highlight",
+     "details": "Cuánto cambian + y − al marcar: 1 para enteras, 0,05 para ml.",
+     "id": "step",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.field.step",
+     "title": "Paso de la cantidad"
+    },
+    {
+     "action": "highlight",
+     "details": "Inactiva deja de ofrecerse sin afectar lo ya registrado.",
+     "id": "active",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.field.isActive",
+     "title": "Activa"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "clinic-catalog.measurement-units.btn.submit",
+     "title": "Guardar cambios"
+    }
+   ],
+   "summary": "Cambiar sus datos o desactivarla.",
+   "title": "Editar una unidad de medida"
+  },
+  {
+   "id": "clinic-catalog.measurement-units.overview",
+   "inputs": {},
+   "keywords": [
+    "unidades de medida",
+    "unidad",
+    "ml",
+    "mg",
+    "qué es el paso"
+   ],
+   "module": "Catálogo de la Clínica",
+   "screens": [
+    "clinic-catalog.measurement-units"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "En qué se registran las dosis de los servicios de estética (U, ml, mg, cc…).",
+     "id": "go",
+     "route": "/clinic-catalog/measurement-units",
+     "title": "Menú → Catálogo de la Clínica → Unidades de medida"
+    },
+    {
+     "action": "highlight",
+     "details": "Nombre, símbolo (lo que se ve junto a cada cantidad), código, paso y estado.",
+     "id": "table",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.section.table",
+     "title": "Unidades"
+    },
+    {
+     "action": "highlight",
+     "details": "Cambia los datos de esa unidad o la deja inactiva.",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.btn.edit",
+     "title": "Editar"
+    },
+    {
+     "action": "highlight",
+     "details": "Si está en uso, no se borra: queda inactiva.",
+     "id": "delete",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.btn.delete",
+     "title": "Eliminar"
+    },
+    {
+     "action": "highlight",
+     "details": "Agrega una unidad con su nombre, símbolo, código y paso.",
+     "id": "new",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.btn.new",
+     "title": "Nueva unidad"
+    }
+   ],
+   "summary": "Las unidades en que se registran las dosis y cómo se usan.",
+   "title": "Recorrer Unidades de medida"
   },
   {
    "id": "clinic-catalog.medications.create",
@@ -29914,6 +30731,816 @@
    ],
    "summary": "El agente confirma turnos y responde a los pacientes por WhatsApp. Se activa acá; el número lo conecta el equipo de Invoke.",
    "title": "Activar el agente de WhatsApp"
+  },
+  {
+   "group": "Ficha estética",
+   "id": "patients.aesthetic-close",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "cerrar sesión estética",
+    "cobrar estética",
+    "facturar sesión",
+    "indicaciones posteriores",
+    "agendar control",
+    "próxima cita",
+    "anular sesión",
+    "enmienda",
+    "corregir sesión cerrada",
+    "consumo de lote"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "id": "clinical",
+     "target": "patients.tab.clinical",
+     "title": "Historia clínica",
+     "until": "patients.tab.clinical-history"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "target": "patients.tab.clinical-history",
+     "title": "Línea de tiempo",
+     "until": "patients.section.timeline"
+    },
+    {
+     "action": "highlight",
+     "details": "Se reconoce por el estado (Borrador, En tratamiento, Por cerrar, Cerrada…). Al tocarla se despliega. Si el paciente no tiene ninguna, primero hay que crearla con Crear → Sesión estética.",
+     "id": "session",
+     "target": "patients.section.timeline",
+     "title": "Tocá la sesión de estética",
+     "until": "patients.btn.timeline-open-aesthetic"
+    },
+    {
+     "action": "click",
+     "details": "Retoma en el primer paso que falta. Una sesión cerrada o anulada se abre en solo lectura.",
+     "id": "open",
+     "target": "patients.btn.timeline-open-aesthetic",
+     "title": "Continuar sesión",
+     "until": "aesthetic-session.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Paso 4.",
+     "id": "close-step",
+     "target": "aesthetic-session.btn.step-close",
+     "title": "Cierre"
+    },
+    {
+     "action": "highlight",
+     "details": "Tocá cada aviso para ir al paso que lo resuelve.",
+     "id": "missing",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.missing",
+     "title": "Lo que falta"
+    },
+    {
+     "action": "highlight",
+     "details": "Cada servicio con sus zonas, el total, los lotes consumidos y las fotos de hoy. Un lote vencido se ve en rojo.",
+     "id": "applied",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.applied",
+     "title": "Tratamiento aplicado"
+    },
+    {
+     "action": "highlight",
+     "details": "Texto libre que queda en la línea de tiempo del paciente, junto con las notas tomadas durante la sesión.",
+     "id": "summary",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.session-summary",
+     "title": "Resumen de la sesión"
+    },
+    {
+     "action": "highlight",
+     "details": "«Cobrar» abre el cobro con los servicios de la sesión ya cargados. La factura queda vinculada: acá se ve su total, lo pagado, el saldo y los pagos, y se pueden imprimir. Cobrar no es obligatorio para cerrar.",
+     "id": "billing",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.billing",
+     "title": "Cobro"
+    },
+    {
+     "action": "highlight",
+     "details": "Envía por WhatsApp las indicaciones posteriores de cada servicio y agenda el control con la fecha sugerida. Ambos se configuran en la pestaña Estética del servicio.",
+     "id": "follow-up",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.follow-up",
+     "title": "Indicaciones y próxima cita"
+    },
+    {
+     "action": "highlight",
+     "details": "Quién y cuándo firmó, subió fotos, agregó notas o cerró.",
+     "id": "activity",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.activity",
+     "title": "Actividad"
+    },
+    {
+     "action": "highlight",
+     "details": "Pide un motivo y deja la sesión en solo lectura. No se borra nada. Sólo una sesión abierta se puede eliminar, desde la línea de tiempo.",
+     "id": "void",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.void",
+     "title": "Anular sesión"
+    },
+    {
+     "action": "highlight",
+     "details": "En una sesión cerrada, las correcciones se agregan como enmienda, sin borrar lo original.",
+     "id": "amendments",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.amendments",
+     "title": "Enmiendas"
+    },
+    {
+     "action": "highlight",
+     "details": "Pide confirmación. Requiere todo firmado, una foto (salvo que no aplique) y cada servicio con al menos una marca con cantidad.",
+     "id": "close",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.close-session",
+     "title": "Cerrar sesión"
+    }
+   ],
+   "summary": "Revisar lo aplicado, cobrar, enviar indicaciones, agendar el control y cerrar; después, enmiendas o anulación.",
+   "title": "Cerrar, cobrar o anular una sesión de estética"
+  },
+  {
+   "group": "Ficha estética",
+   "id": "patients.aesthetic-consent",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "consentimiento",
+    "consentimiento informado",
+    "firma",
+    "firmar",
+    "autorización de fotos",
+    "reutilizar firma",
+    "imprimir consentimiento"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente: clínico, financiero y agenda.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-aesthetic"
+    },
+    {
+     "action": "click",
+     "details": "Abre el flujo guiado de una sesión nueva. No se guarda nada hasta que elijas un servicio.",
+     "id": "item",
+     "target": "patients.btn.new-aesthetic",
+     "title": "Sesión estética",
+     "until": "aesthetic-session.section.header"
+    },
+    {
+     "action": "highlight",
+     "details": "El estado sale de los datos: Borrador, Consentida, En tratamiento, Por cerrar. Cada paso completo suma 25 %. Al lado dice qué falta y cuándo se guardó: todo se guarda solo.",
+     "id": "progress",
+     "target": "aesthetic-session.section.progress",
+     "title": "Estado y avance"
+    },
+    {
+     "action": "highlight",
+     "details": "Fecha de la sesión (no puede ser futura) y quién la realiza. Desde Mi Consultorio ya vienen de la cita.",
+     "id": "data",
+     "target": "aesthetic-session.section.session-data",
+     "title": "Fecha y profesional"
+    },
+    {
+     "action": "highlight",
+     "details": "Marcá lo que se hace hoy. Sólo aparecen los servicios de estética; si falta uno, se configura en Ventas → Servicios. «Última sesión» agrega los de la vez anterior.",
+     "id": "services",
+     "target": "aesthetic-session.section.services",
+     "title": "Servicios de hoy"
+    },
+    {
+     "action": "highlight",
+     "details": "Si el paciente ya firmó este servicio, podés usar esa firma en lugar de pedirla otra vez. Nunca cambia una autorización que ya se dio en esta sesión.",
+     "id": "reuse",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.reuse",
+     "title": "Reutilizar una firma"
+    },
+    {
+     "action": "highlight",
+     "details": "El del servicio, con los datos del paciente ya puestos; «Ver texto» muestra el de otro servicio. Si el servicio no tiene plantilla propia, se usa el texto genérico. Lo firmado queda guardado tal cual, con su huella SHA-256.",
+     "id": "text",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.consent-text",
+     "title": "Texto del consentimiento"
+    },
+    {
+     "action": "highlight",
+     "details": "Obligatorio. Las autorizaciones se marcan una sola vez para todos los consentimientos pendientes.",
+     "id": "risks",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.field.risksExplained",
+     "title": "Riesgos explicados"
+    },
+    {
+     "action": "highlight",
+     "details": "Sin esta autorización la cámara queda bloqueada y la sesión se puede cerrar sin fotos.",
+     "id": "clinical-photos",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.field.allowsClinicalPhotos",
+     "title": "Fotos para la historia clínica"
+    },
+    {
+     "action": "highlight",
+     "details": "Opcional: autoriza usarlas con fines de difusión.",
+     "id": "marketing-photos",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.field.allowsMarketingPhotos",
+     "title": "Fotos para difusión"
+    },
+    {
+     "action": "highlight",
+     "details": "Por defecto, el paciente; cambialo si firma un responsable.",
+     "id": "signer",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.field.signerName",
+     "title": "Quién firma"
+    },
+    {
+     "action": "highlight",
+     "details": "Firmá con el dedo, lápiz o mouse.",
+     "id": "pad",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.signature-pad",
+     "title": "Firma"
+    },
+    {
+     "action": "confirm",
+     "details": "Firma todos los servicios pendientes de una vez. Lo firmado ya no se modifica.",
+     "id": "sign",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.sign",
+     "title": "Firmar"
+    },
+    {
+     "action": "highlight",
+     "details": "Se habilita con todos los servicios firmados. Si falta firmar alguno, «Marcar los firmados» lleva directo al tratamiento de los que ya están.",
+     "id": "continue",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.to-photos",
+     "title": "Continuar a fotos"
+    }
+   ],
+   "summary": "Elegir los servicios de hoy, marcar las autorizaciones de fotos y firmar, o usar una firma anterior.",
+   "title": "Firmar o reutilizar el consentimiento de estética"
+  },
+  {
+   "group": "Ficha estética",
+   "id": "patients.aesthetic-photos",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "fotos",
+    "foto antes y después",
+    "antes y después",
+    "comparar fotos",
+    "evolución",
+    "alinear foto",
+    "cámara"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "id": "clinical",
+     "target": "patients.tab.clinical",
+     "title": "Historia clínica",
+     "until": "patients.tab.clinical-history"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "target": "patients.tab.clinical-history",
+     "title": "Línea de tiempo",
+     "until": "patients.section.timeline"
+    },
+    {
+     "action": "highlight",
+     "details": "Se reconoce por el estado (Borrador, En tratamiento, Por cerrar, Cerrada…). Al tocarla se despliega. Si el paciente no tiene ninguna, primero hay que crearla con Crear → Sesión estética.",
+     "id": "session",
+     "target": "patients.section.timeline",
+     "title": "Tocá la sesión de estética",
+     "until": "patients.btn.timeline-open-aesthetic"
+    },
+    {
+     "action": "click",
+     "details": "Retoma en el primer paso que falta. Una sesión cerrada o anulada se abre en solo lectura.",
+     "id": "open",
+     "target": "patients.btn.timeline-open-aesthetic",
+     "title": "Continuar sesión",
+     "until": "aesthetic-session.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Paso 2. Con una foto de cualquier vista ya alcanza; no hace falta si el paciente no autorizó fotos o si todas las marcas son en el cuerpo.",
+     "id": "photos",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.step-photos",
+     "title": "Fotos de hoy"
+    },
+    {
+     "action": "highlight",
+     "details": "Frente, perfil izquierdo y derecho, cada una con su foto de hoy y las anteriores.",
+     "id": "views",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.photo-views",
+     "title": "Vistas"
+    },
+    {
+     "action": "highlight",
+     "details": "Abre la cámara con una guía de encuadre y, si hay, la última foto translúcida para repetir pose, distancia y luz.",
+     "id": "take",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.photo-take",
+     "title": "Tomar foto"
+    },
+    {
+     "action": "highlight",
+     "details": "Elegí imágenes del dispositivo, o arrastralas hasta acá.",
+     "id": "upload",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.photo-upload",
+     "title": "Subir"
+    },
+    {
+     "action": "highlight",
+     "details": "Con una foto de hoy y otra anterior de la misma vista, acá se comparan.",
+     "id": "stage",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.photo-stage",
+     "title": "Foto de la vista"
+    },
+    {
+     "action": "highlight",
+     "details": "Deslizador, lado a lado o superpuestas con opacidad. Abajo se pueden mostrar las marcas de cada sesión encima de la foto.",
+     "id": "modes",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.compare-modes",
+     "title": "Modo de comparación"
+    },
+    {
+     "action": "highlight",
+     "details": "Vuelve a la primera sesión; en la columna de anteriores se elige cualquier otra.",
+     "id": "initial",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.compare-initial",
+     "title": "Comparar con la inicial"
+    },
+    {
+     "action": "highlight",
+     "details": "Las fotos de esta vista en sesiones anteriores, con su fecha y hace cuántos días.",
+     "id": "history",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.photo-history",
+     "title": "Sesiones anteriores"
+    },
+    {
+     "action": "highlight",
+     "details": "Ajusta la foto al mapa (ojos, nariz, boca) para que las zonas coincidan cuando se use de fondo.",
+     "id": "align",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.photo-align",
+     "title": "Alinear"
+    },
+    {
+     "action": "highlight",
+     "details": "Lleva al tratamiento. La foto de hoy también sirve de fondo para marcar.",
+     "id": "continue",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.to-treatment",
+     "title": "Continuar"
+    }
+   ],
+   "summary": "Fotos de hoy por vista, alinearlas con el mapa y comparar la evolución con sesiones anteriores.",
+   "title": "Tomar y comparar fotos de estética"
+  },
+  {
+   "group": "Ficha estética",
+   "id": "patients.aesthetic-session",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "estética",
+    "sesión estética",
+    "ficha estética",
+    "botox",
+    "toxina",
+    "relleno",
+    "ácido hialurónico",
+    "hilos tensores",
+    "mesoterapia",
+    "registrar tratamiento estético"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente: clínico, financiero y agenda.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-aesthetic"
+    },
+    {
+     "action": "click",
+     "details": "Abre el flujo guiado de una sesión nueva. No se guarda nada hasta que elijas un servicio.",
+     "id": "item",
+     "target": "patients.btn.new-aesthetic",
+     "title": "Sesión estética",
+     "until": "aesthetic-session.section.header"
+    },
+    {
+     "action": "highlight",
+     "details": "El estado sale de los datos: Borrador, Consentida, En tratamiento, Por cerrar. Cada paso completo suma 25 %. Al lado dice qué falta y cuándo se guardó: todo se guarda solo.",
+     "id": "progress",
+     "target": "aesthetic-session.section.progress",
+     "title": "Estado y avance"
+    },
+    {
+     "action": "highlight",
+     "details": "Fecha de la sesión (no puede ser futura) y quién la realiza. Desde Mi Consultorio ya vienen de la cita.",
+     "id": "data",
+     "target": "aesthetic-session.section.session-data",
+     "title": "Fecha y profesional"
+    },
+    {
+     "action": "highlight",
+     "details": "Marcá lo que se hace hoy. Sólo aparecen los servicios de estética; si falta uno, se configura en Ventas → Servicios. «Última sesión» agrega los de la vez anterior.",
+     "id": "services",
+     "target": "aesthetic-session.section.services",
+     "title": "Servicios de hoy"
+    },
+    {
+     "action": "highlight",
+     "details": "Aparece al elegir un servicio: riesgos explicados, autorizaciones de fotos, quién firma y la firma. Sin firma no se puede marcar ese servicio.",
+     "id": "sign-area",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.signature",
+     "title": "Firmar el consentimiento"
+    },
+    {
+     "action": "confirm",
+     "details": "Firma todos los servicios pendientes de una vez. Lo firmado ya no se modifica.",
+     "id": "sign",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.sign",
+     "title": "Firmar"
+    },
+    {
+     "action": "click",
+     "details": "Paso 2. Con una foto de cualquier vista ya alcanza; no hace falta si el paciente no autorizó fotos o si todas las marcas son en el cuerpo.",
+     "id": "photos",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.step-photos",
+     "title": "Fotos de hoy"
+    },
+    {
+     "action": "highlight",
+     "details": "Frente, perfil izquierdo y derecho, cada una con su foto de hoy y las anteriores.",
+     "id": "views",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.photo-views",
+     "title": "Vistas"
+    },
+    {
+     "action": "highlight",
+     "details": "Abre la cámara con una guía de encuadre y, si hay, la última foto translúcida para repetir pose, distancia y luz.",
+     "id": "take",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.photo-take",
+     "title": "Tomar foto"
+    },
+    {
+     "action": "click",
+     "details": "Paso 3. Queda con candado hasta que haya al menos un consentimiento firmado.",
+     "id": "treatment",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.step-treatment",
+     "title": "Tratamiento"
+    },
+    {
+     "action": "highlight",
+     "details": "Elegí el servicio abajo y tocá el rostro o el cuerpo. Cada marca necesita una cantidad mayor que 0. Hay una guía aparte con todas las herramientas.",
+     "id": "map",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.map",
+     "title": "Marcá en el mapa"
+    },
+    {
+     "action": "click",
+     "details": "Paso 4: lo aplicado, el resumen, el cobro y la próxima cita.",
+     "id": "close-step",
+     "target": "aesthetic-session.btn.step-close",
+     "title": "Cierre"
+    },
+    {
+     "action": "confirm",
+     "details": "Se habilita cuando los consentimientos, la foto y las marcas están completos. Después queda en solo lectura y sólo admite enmiendas.",
+     "id": "close",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.close-session",
+     "title": "Cerrar sesión"
+    }
+   ],
+   "summary": "El flujo completo en cuatro pasos, con guardado automático: consentimiento, fotos, tratamiento y cierre.",
+   "title": "Registrar una sesión de estética"
+  },
+  {
+   "group": "Ficha estética",
+   "id": "patients.aesthetic-treatment",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "mapa facial",
+    "mapa corporal",
+    "marcar puntos",
+    "puntos de aplicación",
+    "área",
+    "línea",
+    "hilos",
+    "dosis",
+    "unidades",
+    "lote",
+    "vencimiento",
+    "simetría",
+    "espejo",
+    "historial por zona",
+    "deshacer"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "id": "clinical",
+     "target": "patients.tab.clinical",
+     "title": "Historia clínica",
+     "until": "patients.tab.clinical-history"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "target": "patients.tab.clinical-history",
+     "title": "Línea de tiempo",
+     "until": "patients.section.timeline"
+    },
+    {
+     "action": "highlight",
+     "details": "Se reconoce por el estado (Borrador, En tratamiento, Por cerrar, Cerrada…). Al tocarla se despliega. Si el paciente no tiene ninguna, primero hay que crearla con Crear → Sesión estética.",
+     "id": "session",
+     "target": "patients.section.timeline",
+     "title": "Tocá la sesión de estética",
+     "until": "patients.btn.timeline-open-aesthetic"
+    },
+    {
+     "action": "click",
+     "details": "Retoma en el primer paso que falta. Una sesión cerrada o anulada se abre en solo lectura.",
+     "id": "open",
+     "target": "patients.btn.timeline-open-aesthetic",
+     "title": "Continuar sesión",
+     "until": "aesthetic-session.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Queda con candado hasta que haya al menos un consentimiento firmado.",
+     "id": "treatment",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.step-treatment",
+     "title": "Tratamiento"
+    },
+    {
+     "action": "highlight",
+     "details": "Rostro o cuerpo, la vista, y qué se ve detrás: el modelo (con su tono de piel) o la foto de hoy.",
+     "id": "views",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.views",
+     "title": "Región, vista y fondo"
+    },
+    {
+     "action": "highlight",
+     "details": "Lo que marques va a este servicio; el ojo lo oculta o lo muestra. Los que no están firmados aparecen con candado y no se pueden marcar.",
+     "id": "layers",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.layers",
+     "title": "Servicio activo"
+    },
+    {
+     "action": "highlight",
+     "details": "Seleccionar y mover, punto, área y línea, deshacer y rehacer (Ctrl+Z), ver las zonas y ver las marcas de la sesión anterior. Cada servicio arranca con la herramienta que tiene configurada.",
+     "id": "tools",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.tools",
+     "title": "Herramientas"
+    },
+    {
+     "action": "highlight",
+     "details": "Un punto: un toque. Un área: tocá los vértices y cerrá en el primero o con Enter. Una línea: tocá el inicio y el final. La zona se detecta sola. Tocar una zona vacía con Seleccionar muestra su historial.",
+     "id": "map",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.map",
+     "title": "Mapa"
+    },
+    {
+     "action": "highlight",
+     "details": "Aparece al seleccionar una marca: cantidad, zona, profundidad, técnica y nota. «Espejo» la duplica del otro lado y «Cambiar en esta marca» usa otro producto o lote. Avisa si se pasa del máximo, si no se respetó el intervalo o si el lote venció, pero no bloquea.",
+     "id": "editor",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.mark-editor",
+     "title": "Datos de la marca"
+    },
+    {
+     "action": "click",
+     "details": "Cada servicio con su total y sus marcas. Tocá uno para cargar producto, lote y vencimiento una sola vez para todas sus marcas.",
+     "id": "summary",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.tab.summary",
+     "title": "Resumen"
+    },
+    {
+     "action": "click",
+     "details": "Notas con hora mientras trabajás, con dictado por voz y frases frecuentes.",
+     "id": "notes",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.tab.notes",
+     "title": "Notas"
+    },
+    {
+     "action": "click",
+     "details": "Lo aplicado en cada zona en sesiones anteriores (últimos 12 meses).",
+     "id": "history",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.tab.history",
+     "title": "Historial"
+    },
+    {
+     "action": "highlight",
+     "details": "Cuando terminaste de marcar.",
+     "id": "to-close",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.to-close",
+     "title": "Ir al cierre"
+    }
+   ],
+   "summary": "Puntos, áreas y líneas sobre rostro o cuerpo, con dosis, lote, notas e historial por zona.",
+   "title": "Marcar el tratamiento en el mapa de estética"
   },
   {
    "group": "Historia clínica",
@@ -40510,6 +42137,261 @@
    "title": "Imprimir o enviar un presupuesto por correo"
   },
   {
+   "id": "sales.services.aesthetic",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "servicio de estética",
+    "servicio estético",
+    "ficha estética",
+    "herramienta de marcado",
+    "dosis por defecto",
+    "máximo por sesión",
+    "intervalo mínimo",
+    "próxima cita sugerida",
+    "indicaciones posteriores",
+    "unidad del servicio"
+   ],
+   "module": "Ventas",
+   "screens": [
+    "sales.services"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Un servicio aparece en la ficha estética sólo si está marcado como servicio de estética.",
+     "id": "go",
+     "route": "/sales/services",
+     "title": "Menú → Ventas → Servicios"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "sales.services.filter.search",
+     "title": "Buscá el servicio",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocalo para abrir su ficha.",
+     "id": "pick",
+     "target": "sales.services.section.first-row",
+     "title": "Elegí el servicio",
+     "until": "sales.services.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "details",
+     "skipIfMissing": true,
+     "target": "sales.services.tab.details",
+     "title": "Datos"
+    },
+    {
+     "action": "highlight",
+     "details": "En qué se mide lo que se aplica (U, ml, mg…). Es obligatoria para un servicio de estética. Las unidades se crean en Catálogo de la Clínica → Unidades de medida.",
+     "id": "unit",
+     "target": "sales.services.field.unit_id",
+     "title": "Unidad de medida"
+    },
+    {
+     "action": "highlight",
+     "details": "Lo suma a la ficha estética y habilita la pestaña Estética. Si lo apagás, deja de aparecer para sesiones nuevas; las ya registradas no cambian.",
+     "id": "flag",
+     "target": "sales.services.field.is_aesthetic",
+     "title": "Servicio de estética"
+    },
+    {
+     "action": "confirm",
+     "details": "Guarda la unidad y la marca de estética. La configuración de la pestaña Estética se guarda aparte.",
+     "id": "save-service",
+     "skipIfMissing": true,
+     "target": "sales.services.btn.submit",
+     "title": "Guardar el servicio"
+    },
+    {
+     "action": "click",
+     "details": "Cómo se registra este servicio en la ficha estética.",
+     "id": "tab",
+     "skipIfMissing": true,
+     "target": "sales.services.tab.aesthetic",
+     "title": "Estética",
+     "until": "sales.services.section.aesthetic-config"
+    },
+    {
+     "action": "highlight",
+     "details": "Puntos (cada toque es una aplicación: toxina, labios), áreas (contorno de la zona: mesoterapia) o línea (dos extremos: hilos tensores).",
+     "id": "tool",
+     "skipIfMissing": true,
+     "target": "sales.services.section.aesthetic-tool",
+     "title": "Se marca con"
+    },
+    {
+     "action": "highlight",
+     "details": "Con la que arranca cada marca nueva; después se ajusta.",
+     "id": "qty",
+     "skipIfMissing": true,
+     "target": "sales.services.field.aesthetic-default-quantity",
+     "title": "Cantidad inicial por marca"
+    },
+    {
+     "action": "highlight",
+     "details": "Avisa al superarlo durante el marcado; no bloquea.",
+     "id": "max",
+     "skipIfMissing": true,
+     "target": "sales.services.field.aesthetic-max-per-session",
+     "title": "Máximo por sesión"
+    },
+    {
+     "action": "highlight",
+     "details": "Días que deberían pasar entre aplicaciones en la misma zona. También sólo avisa.",
+     "id": "interval",
+     "skipIfMissing": true,
+     "target": "sales.services.field.aesthetic-min-interval",
+     "title": "Intervalo mínimo en una zona"
+    },
+    {
+     "action": "highlight",
+     "details": "A cuántos días se ofrece agendar el control al cerrar la sesión; se le puede poner un nombre.",
+     "id": "follow",
+     "skipIfMissing": true,
+     "target": "sales.services.field.aesthetic-follow-up-days",
+     "title": "Próxima cita sugerida"
+    },
+    {
+     "action": "highlight",
+     "details": "Lo que se le puede enviar al paciente por WhatsApp al cerrar la sesión.",
+     "id": "aftercare",
+     "skipIfMissing": true,
+     "target": "sales.services.field.aesthetic-aftercare",
+     "title": "Indicaciones posteriores"
+    },
+    {
+     "action": "confirm",
+     "details": "Aparece al haber cambios. Hasta guardar por primera vez, el servicio no sale en la ficha estética.",
+     "id": "save",
+     "skipIfMissing": true,
+     "target": "sales.services.btn.aesthetic-save",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Unidad de medida, cómo se marca en el mapa, dosis inicial, límites, próxima cita e indicaciones posteriores.",
+   "title": "Configurar un servicio de estética"
+  },
+  {
+   "id": "sales.services.consent-template",
+   "inputs": {
+    "query": "Buscar"
+   },
+   "keywords": [
+    "plantilla de consentimiento",
+    "texto del consentimiento",
+    "consentimiento del servicio",
+    "variables",
+    "vista previa consentimiento"
+   ],
+   "module": "Ventas",
+   "screens": [
+    "sales.services"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Cada servicio de estética puede tener su propio consentimiento.",
+     "id": "go",
+     "route": "/sales/services",
+     "title": "Menú → Ventas → Servicios"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "sales.services.filter.search",
+     "title": "Buscá el servicio",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocalo para abrir su ficha.",
+     "id": "pick",
+     "target": "sales.services.section.first-row",
+     "title": "Elegí el servicio",
+     "until": "sales.services.section.detail"
+    },
+    {
+     "action": "click",
+     "details": "Si no está, primero marcá el servicio como servicio de estética en Datos.",
+     "id": "tab",
+     "skipIfMissing": true,
+     "target": "sales.services.tab.aesthetic",
+     "title": "Estética",
+     "until": "sales.services.section.consent-template"
+    },
+    {
+     "action": "highlight",
+     "details": "Sin texto propio se usa el genérico. Cambiarlo sólo afecta a las firmas nuevas: lo ya firmado queda como estaba.",
+     "id": "section",
+     "skipIfMissing": true,
+     "target": "sales.services.section.consent-template",
+     "title": "Consentimiento"
+    },
+    {
+     "action": "highlight",
+     "id": "title",
+     "skipIfMissing": true,
+     "target": "sales.services.field.consent-title",
+     "title": "Título del documento"
+    },
+    {
+     "action": "highlight",
+     "details": "Carga el texto genérico para editarlo. Sólo aparece con el texto vacío.",
+     "id": "generic",
+     "skipIfMissing": true,
+     "target": "sales.services.btn.consent-from-generic",
+     "title": "Partir del genérico"
+    },
+    {
+     "action": "highlight",
+     "details": "Lo que se le muestra al paciente antes de firmar.",
+     "id": "body",
+     "skipIfMissing": true,
+     "target": "sales.services.field.consent-body",
+     "title": "Texto"
+    },
+    {
+     "action": "highlight",
+     "details": "Se reemplazan al firmar: paciente, profesional, servicio, producto y fecha. Una variable desconocida no deja guardar.",
+     "id": "variables",
+     "skipIfMissing": true,
+     "target": "sales.services.section.consent-variables",
+     "title": "Variables"
+    },
+    {
+     "action": "highlight",
+     "details": "Cómo queda con datos de ejemplo.",
+     "id": "preview",
+     "skipIfMissing": true,
+     "target": "sales.services.btn.consent-preview",
+     "title": "Vista previa"
+    },
+    {
+     "action": "confirm",
+     "details": "Aparece al haber cambios.",
+     "id": "save",
+     "skipIfMissing": true,
+     "target": "sales.services.btn.consent-save",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Texto propio del consentimiento, con variables del paciente, profesional y servicio, y vista previa.",
+   "title": "Escribir el consentimiento de un servicio de estética"
+  },
+  {
    "id": "sales.services.create",
    "inputs": {
     "category": "Categoría (ej. Otros servicios)",
@@ -43756,6 +45638,74 @@
    ],
    "summary": "Tema, qué consultorios mostrar, cada cuánto se actualiza, videos promocionales, dónde va la columna de video y música.",
    "title": "Configurar la pantalla TV"
+  },
+  {
+   "id": "workspace.aesthetic-session",
+   "inputs": {},
+   "keywords": [
+    "estética",
+    "sesión estética",
+    "ficha estética",
+    "botox",
+    "toxina",
+    "relleno",
+    "consentimiento"
+   ],
+   "module": "Mi Consultorio",
+   "screens": [
+    "workspace"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "La vista del profesional: su agenda y el panel clínico del paciente que atiende.",
+     "id": "go",
+     "route": "/workspace",
+     "title": "Menú → Mi Consultorio"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá la cita en la agenda: a la derecha se abre el panel del paciente. Si no ves citas, cambiá el día o el período arriba.",
+     "id": "select",
+     "target": "workspace.section.appointment",
+     "title": "Elegí la cita del paciente",
+     "until": "workspace.section.focus"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Abre el flujo con la cita y el profesional ya cargados. Si está deshabilitado, la cita no permite editar sesiones (por ejemplo, es de otro día).",
+     "id": "open",
+     "target": "workspace.btn.aesthetic",
+     "title": "Sesión estética",
+     "until": "aesthetic-session.section.header"
+    },
+    {
+     "action": "highlight",
+     "details": "Marcá lo que se hace hoy. Sólo aparecen los servicios de estética; si falta uno, se configura en Ventas → Servicios. «Última sesión» agrega los de la vez anterior.",
+     "id": "services",
+     "target": "aesthetic-session.section.services",
+     "title": "Servicios de hoy"
+    },
+    {
+     "action": "highlight",
+     "details": "Sin firma no se puede marcar ese servicio.",
+     "id": "sign-area",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.signature",
+     "title": "Firmar el consentimiento"
+    },
+    {
+     "action": "highlight",
+     "details": "Consentimiento, Fotos de hoy, Tratamiento y Cierre. Todo se guarda solo y la sesión queda en la línea de tiempo del paciente. Las guías de Pacientes explican cada paso.",
+     "id": "steps",
+     "target": "aesthetic-session.section.header",
+     "title": "Los cuatro pasos"
+    }
+   ],
+   "summary": "Abrir el flujo guiado desde Mi Consultorio: la sesión queda vinculada a la cita y al profesional.",
+   "title": "Registrar una sesión de estética desde la cita"
   },
   {
    "id": "workspace.agent",

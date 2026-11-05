@@ -128,7 +128,7 @@ export default function MeasurementUnitsPage() {
             </div>
           </div>
           {canCreate && (
-            <Button size="sm" onClick={() => openForm('new')}>
+            <Button data-help-id="clinic-catalog.measurement-units.btn.new" size="sm" onClick={() => openForm('new')}>
               <Plus className="mr-1.5 h-4 w-4" />
               {t('add')}
             </Button>
@@ -153,7 +153,7 @@ export default function MeasurementUnitsPage() {
           ) : units.length === 0 ? (
             <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">{t('empty')}</p>
           ) : (
-            <div className="overflow-x-auto rounded-lg border">
+            <div data-help-id="clinic-catalog.measurement-units.section.table" className="overflow-x-auto rounded-lg border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -166,8 +166,8 @@ export default function MeasurementUnitsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {units.map((unit) => (
-                    <TableRow key={unit.id}>
+                  {units.map((unit, index) => (
+                    <TableRow key={unit.id} data-help-id={index === 0 ? 'clinic-catalog.measurement-units.section.first-row' : undefined}>
                       <TableCell className="font-medium">{unit.name}</TableCell>
                       <TableCell>{unit.symbol}</TableCell>
                       <TableCell className="hidden font-mono text-xs text-muted-foreground sm:table-cell">{unit.code}</TableCell>
@@ -179,12 +179,12 @@ export default function MeasurementUnitsPage() {
                         <TableCell>
                           <div className="flex items-center justify-end gap-1">
                             {canUpdate && (
-                              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openForm(unit)} aria-label={t('edit')} title={t('edit')}>
+                              <Button data-help-id="clinic-catalog.measurement-units.btn.edit" size="icon" variant="ghost" className="h-8 w-8" onClick={() => openForm(unit)} aria-label={t('edit')} title={t('edit')}>
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
                             )}
                             {canDelete && (unit.isActive || !unit.inUse) && (
-                              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleting(unit)} aria-label={t('delete')} title={t('delete')}>
+                              <Button data-help-id="clinic-catalog.measurement-units.btn.delete" size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleting(unit)} aria-label={t('delete')} title={t('delete')}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             )}
@@ -275,7 +275,7 @@ export default function MeasurementUnitsPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={remove.isPending}>{t('deleteDialog.cancel')}</AlertDialogCancel>
-            <Button variant="destructive" loading={remove.isPending} onClick={() => deleting && remove.run(deleting)}>
+            <Button data-help-id="clinic-catalog.measurement-units.btn.delete-confirm" variant="destructive" loading={remove.isPending} onClick={() => deleting && remove.run(deleting)}>
               {deleting?.inUse ? t('deleteDialog.deactivate') : t('deleteDialog.confirm')}
             </Button>
           </AlertDialogFooter>

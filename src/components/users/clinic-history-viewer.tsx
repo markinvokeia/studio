@@ -2575,7 +2575,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                     {t('sessionTypeOdontogram')}
                                 </DropdownMenuItem>
                                 {canManageAesthetic && (
-                                    <DropdownMenuItem onClick={() => setAestheticSheet({ sessionId: null })}>
+                                    <DropdownMenuItem data-help-id={composeHelpId(helpScope, 'btn', 'timeline-add-aesthetic')} onClick={() => setAestheticSheet({ sessionId: null })}>
                                         <Sparkles className="h-4 w-4 mr-2" />
                                         {t('sessionTypeAesthetic')}
                                     </DropdownMenuItem>
@@ -2828,6 +2828,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                 variant={canManageAesthetic && isOpenStatus(aesthetic.status) ? 'default' : 'outline'}
                                                                 size="sm"
                                                                 className="h-7 gap-1.5 text-xs"
+                                                                data-help-id={composeHelpId(helpScope, 'btn', 'timeline-open-aesthetic')}
                                                                 onClick={() => setAestheticSheet({ sessionId: aesthetic.id })}
                                                             >
                                                                 {canManageAesthetic && isOpenStatus(aesthetic.status) ? <Edit3 className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}

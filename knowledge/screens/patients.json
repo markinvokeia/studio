@@ -2,7 +2,7 @@
   "id": "patients",
   "status": "draft",
   "summary": "Listado de pacientes y su ficha completa: datos, historia clínica y finanzas.",
-  "purpose": "Buscar, registrar y editar pacientes. La ficha reúne todo lo del paciente: datos y notas, anamnesis, línea de tiempo clínica, planes de tratamiento, indicaciones y recetas, documentos, y su cuenta (presupuestos, facturas y pagos). Desde «Crear» y «Más acciones» se registran sesiones, se cobra, se agenda y se le escribe.",
+  "purpose": "Buscar, registrar y editar pacientes. La ficha reúne todo lo del paciente: datos y notas, anamnesis, línea de tiempo clínica (también las sesiones de estética), planes de tratamiento, indicaciones y recetas, documentos, y su cuenta (presupuestos, facturas y pagos). Desde «Crear» y «Más acciones» se registran sesiones, se cobra, se agenda y se le escribe.",
   "prerequisites": [],
   "tips": [
     "El teléfono con código de país habilita los recordatorios por WhatsApp.",
@@ -10,7 +10,10 @@
     "Las alergias y padecimientos de la anamnesis aparecen como alerta en el encabezado de la ficha.",
     "La sección Finanzas se ve como cuenta corriente (Personalizado) o en pestañas (Normal), según tus Preferencias.",
     "Cobro rápido, prepago y pagos necesitan una caja abierta.",
-    "Readmitir y Activar/Desactivar se aplican al tocarlos, sin diálogo previo."
+    "Readmitir y Activar/Desactivar se aplican al tocarlos, sin diálogo previo.",
+    "La sesión de estética se guarda sola y se retoma en el primer paso que falta. Cerrada, queda en solo lectura y sólo admite enmiendas.",
+    "En estética, sin firma no se puede marcar el servicio. Sin autorización de fotos clínicas la cámara se bloquea y se puede cerrar sin fotos.",
+    "Los avisos de máximo por sesión, intervalo mínimo y lote vencido informan, pero no bloquean."
   ],
   "useCases": [
     "patients.search",
@@ -39,7 +42,12 @@
     "patients.whatsapp",
     "patients.whatsapp-reminder",
     "patients.discharge",
-    "patients.toggle-active"
+    "patients.toggle-active",
+    "patients.aesthetic-session",
+    "patients.aesthetic-consent",
+    "patients.aesthetic-photos",
+    "patients.aesthetic-treatment",
+    "patients.aesthetic-close"
   ],
   "elements": {
     "patients.btn.new": {
@@ -602,6 +610,222 @@
     "patients.field.odontogram-search": {
       "label": "Buscar condición",
       "description": "Todo el catálogo de condiciones, por nombre o código, y filtrado por categoría."
+    },
+    "patients.btn.new-aesthetic": {
+      "label": "Sesión estética",
+      "description": "Crea una sesión de estética: consentimiento, fotos, tratamiento y cierre."
+    },
+    "patients.btn.timeline-add-aesthetic": {
+      "label": "Estética",
+      "description": "Nueva sesión de estética desde la línea de tiempo."
+    },
+    "patients.btn.timeline-open-aesthetic": {
+      "label": "Continuar sesión",
+      "description": "Abre la sesión de estética; una cerrada o anulada, en solo lectura."
+    },
+    "aesthetic-session.section.header": {
+      "label": "Sesión de estética",
+      "description": "Encabezado de la sesión: paciente, número de sesión y los cuatro pasos."
+    },
+    "aesthetic-session.btn.step-consent": {
+      "label": "Paso Consentimiento",
+      "description": "Servicios de hoy y firma."
+    },
+    "aesthetic-session.btn.step-photos": {
+      "label": "Paso Fotos de hoy",
+      "description": "Fotos por vista y comparación."
+    },
+    "aesthetic-session.btn.step-treatment": {
+      "label": "Paso Tratamiento",
+      "description": "Mapa con las marcas. Con candado hasta que haya un consentimiento firmado."
+    },
+    "aesthetic-session.btn.step-close": {
+      "label": "Paso Cierre",
+      "description": "Lo aplicado, cobro, próxima cita y cierre."
+    },
+    "aesthetic-session.section.progress": {
+      "label": "Estado y avance",
+      "description": "Estado de la sesión, porcentaje (25 % por paso), último guardado y qué falta."
+    },
+    "aesthetic-session.section.session-data": {
+      "label": "Fecha y profesional",
+      "description": "Fecha de la sesión (no futura) y quién la realiza."
+    },
+    "aesthetic-session.section.services": {
+      "label": "Servicios de hoy",
+      "description": "Servicios de estética a realizar y el estado de sus consentimientos."
+    },
+    "aesthetic-session.btn.from-last-session": {
+      "label": "Última sesión",
+      "description": "Agrega los servicios de la sesión anterior."
+    },
+    "aesthetic-session.btn.reuse": {
+      "label": "Usar firma anterior",
+      "description": "Reutiliza un consentimiento ya firmado de ese servicio."
+    },
+    "aesthetic-session.section.consent-text": {
+      "label": "Texto del consentimiento",
+      "description": "El texto del servicio con los datos del paciente. Lo firmado se guarda tal cual, con huella SHA-256."
+    },
+    "aesthetic-session.section.signature": {
+      "label": "Firma",
+      "description": "Autorizaciones, quién firma y la firma."
+    },
+    "aesthetic-session.field.risksExplained": {
+      "label": "Riesgos explicados",
+      "description": "Obligatorio para firmar."
+    },
+    "aesthetic-session.field.allowsClinicalPhotos": {
+      "label": "Fotos para la historia clínica",
+      "description": "Sin esta autorización la cámara queda bloqueada y se puede cerrar sin fotos."
+    },
+    "aesthetic-session.field.allowsMarketingPhotos": {
+      "label": "Fotos para difusión",
+      "description": "Opcional."
+    },
+    "aesthetic-session.field.signerName": {
+      "label": "Quién firma",
+      "description": "El paciente o su responsable."
+    },
+    "aesthetic-session.section.signature-pad": {
+      "label": "Área de firma",
+      "description": "Con el dedo, lápiz o mouse."
+    },
+    "aesthetic-session.btn.sign": {
+      "label": "Firmar",
+      "description": "Firma todos los servicios pendientes de una vez."
+    },
+    "aesthetic-session.btn.treat-signed": {
+      "label": "Marcar los firmados",
+      "description": "Va al tratamiento de los servicios ya firmados, aunque falte firmar otros."
+    },
+    "aesthetic-session.btn.to-photos": {
+      "label": "Continuar a fotos",
+      "description": "Se habilita con todos los servicios firmados."
+    },
+    "aesthetic-session.section.photo-views": {
+      "label": "Vistas de las fotos",
+      "description": "Frente, perfil izquierdo y derecho."
+    },
+    "aesthetic-session.section.photo-stage": {
+      "label": "Foto de la vista",
+      "description": "La foto de hoy y la comparación con otra sesión."
+    },
+    "aesthetic-session.btn.photo-take": {
+      "label": "Tomar foto",
+      "description": "Cámara con guía de encuadre y la última foto translúcida."
+    },
+    "aesthetic-session.btn.photo-upload": {
+      "label": "Subir foto",
+      "description": "Desde el dispositivo."
+    },
+    "aesthetic-session.btn.photo-align": {
+      "label": "Alinear foto",
+      "description": "Ajusta la foto al mapa para que coincidan las zonas."
+    },
+    "aesthetic-session.section.compare-modes": {
+      "label": "Modo de comparación",
+      "description": "Deslizador, lado a lado o superpuestas."
+    },
+    "aesthetic-session.btn.compare-initial": {
+      "label": "Comparar con la inicial",
+      "description": "Compara con la primera sesión."
+    },
+    "aesthetic-session.section.photo-history": {
+      "label": "Sesiones anteriores",
+      "description": "Fotos de esta vista en otras sesiones."
+    },
+    "aesthetic-session.btn.to-treatment": {
+      "label": "Continuar al tratamiento"
+    },
+    "aesthetic-session.section.views": {
+      "label": "Región, vista y fondo",
+      "description": "Rostro o cuerpo, la vista y el fondo (modelo o foto de hoy)."
+    },
+    "aesthetic-session.section.tools": {
+      "label": "Herramientas",
+      "description": "Seleccionar, punto, área, línea, deshacer, rehacer, zonas y marcas de la sesión anterior."
+    },
+    "aesthetic-session.section.map": {
+      "label": "Mapa",
+      "description": "Donde se marca lo aplicado; la zona se detecta sola."
+    },
+    "aesthetic-session.section.layers": {
+      "label": "Servicios",
+      "description": "Servicio activo, total y visibilidad. Sin firma, con candado."
+    },
+    "aesthetic-session.section.mark-editor": {
+      "label": "Datos de la marca",
+      "description": "Cantidad, zona, profundidad, técnica, nota, espejo y producto o lote propio. Los avisos de máximo, intervalo y lote vencido no bloquean."
+    },
+    "aesthetic-session.section.panel": {
+      "label": "Panel lateral",
+      "description": "Resumen, notas e historial por zona."
+    },
+    "aesthetic-session.tab.summary": {
+      "label": "Resumen",
+      "description": "Cada servicio con su total, marcas, producto y lote."
+    },
+    "aesthetic-session.tab.notes": {
+      "label": "Notas",
+      "description": "Notas con hora, con dictado y frases frecuentes."
+    },
+    "aesthetic-session.tab.history": {
+      "label": "Historial",
+      "description": "Lo aplicado en cada zona en sesiones anteriores."
+    },
+    "aesthetic-session.section.layer-supply": {
+      "label": "Producto y lote",
+      "description": "Se cargan una vez por servicio y valen para todas sus marcas."
+    },
+    "aesthetic-session.btn.to-close": {
+      "label": "Ir al cierre"
+    },
+    "aesthetic-session.section.missing": {
+      "label": "Lo que falta",
+      "description": "Avisos que llevan al paso que los resuelve."
+    },
+    "aesthetic-session.section.applied": {
+      "label": "Tratamiento aplicado",
+      "description": "Servicios, zonas, totales, lotes consumidos y fotos de hoy."
+    },
+    "aesthetic-session.section.session-summary": {
+      "label": "Resumen de la sesión",
+      "description": "Texto que queda en la línea de tiempo."
+    },
+    "aesthetic-session.section.billing": {
+      "label": "Cobro",
+      "description": "Cobrar la sesión; luego, la factura vinculada con su saldo y pagos."
+    },
+    "aesthetic-session.section.follow-up": {
+      "label": "Indicaciones y próxima cita",
+      "description": "Enviar las indicaciones por WhatsApp y agendar el control sugerido."
+    },
+    "aesthetic-session.btn.activity": {
+      "label": "Actividad",
+      "description": "Quién hizo qué y cuándo en la sesión."
+    },
+    "aesthetic-session.btn.void": {
+      "label": "Anular sesión",
+      "description": "Con motivo; queda en solo lectura, sin borrar nada."
+    },
+    "aesthetic-session.field.void-reason": {
+      "label": "Motivo de anulación"
+    },
+    "aesthetic-session.btn.void-confirm": {
+      "label": "Confirmar anulación"
+    },
+    "aesthetic-session.btn.close-session": {
+      "label": "Cerrar sesión",
+      "description": "Se habilita con todo firmado, la foto y las marcas completas."
+    },
+    "aesthetic-session.btn.close-confirm": {
+      "label": "Confirmar cierre",
+      "description": "Queda en solo lectura."
+    },
+    "aesthetic-session.section.amendments": {
+      "label": "Enmiendas",
+      "description": "Correcciones de una sesión cerrada, sin borrar lo original."
     }
   }
 }

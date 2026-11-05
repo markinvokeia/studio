@@ -147,12 +147,12 @@ export function StepPhotos() {
   const captureActions = (
     <div className="flex flex-wrap items-center gap-2">
       <Hint label={t('flow.photos.take')} description={t('flow.hints.photos.take')}>
-        <Button type="button" onClick={() => setCameraOpen(true)} disabled={!canCapture || busy}>
+        <Button data-help-id="aesthetic-session.btn.photo-take" type="button" onClick={() => setCameraOpen(true)} disabled={!canCapture || busy}>
           <Camera className="mr-1.5 h-4 w-4" />{t('flow.photos.take')}
         </Button>
       </Hint>
       <Hint label={t('flow.photos.upload')} description={t('flow.hints.photos.upload')}>
-        <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={!canCapture || busy} loading={busy}>
+        <Button data-help-id="aesthetic-session.btn.photo-upload" type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={!canCapture || busy} loading={busy}>
           <Upload className="mr-1.5 h-4 w-4" />{t('flow.photos.upload')}
         </Button>
       </Hint>
@@ -225,7 +225,7 @@ export function StepPhotos() {
     body = (
       <>
         <div className="flex shrink-0 flex-wrap items-center gap-2 max-sm:order-1 max-sm:[&>span:has(button)]:flex-1 max-sm:[&>span:last-child]:flex-none max-sm:[&>span:not(:last-child)>button]:w-full">
-          <div role="group" aria-label={t('photos.compareModeLabel')} className="inline-flex gap-0.5 rounded-xl border bg-muted/50 p-0.5">
+          <div data-help-id="aesthetic-session.section.compare-modes" role="group" aria-label={t('photos.compareModeLabel')} className="inline-flex gap-0.5 rounded-xl border bg-muted/50 p-0.5">
             {COMPARE_MODES.map((m) => (
               <Hint key={m} label={t(`flow.photos.modes.${m}`)} description={t(`flow.hints.photos.modes.${m}`)}>
                 <button type="button" onClick={() => setMode(m)} aria-pressed={mode === m} className={cn('h-8 rounded-lg px-3 text-xs font-medium', mode === m ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground')}>
@@ -236,7 +236,7 @@ export function StepPhotos() {
           </div>
           <span className="flex-1 max-sm:hidden" />
           <Hint label={t('flow.photos.compareInitial')} description={base?.number === 1 ? t('flow.hints.photos.alreadyInitial') : t('flow.hints.photos.compareInitial', { date: formatDisplayDate(history[0].session.date) })}>
-            <Button type="button" size="sm" variant="outline" disabled={base?.number === 1} onClick={() => setBaseBySession((b) => ({ ...b, [view]: history[0].session.id }))}>
+            <Button data-help-id="aesthetic-session.btn.compare-initial" type="button" size="sm" variant="outline" disabled={base?.number === 1} onClick={() => setBaseBySession((b) => ({ ...b, [view]: history[0].session.id }))}>
               {t('flow.photos.compareInitial')}
             </Button>
           </Hint>
@@ -272,7 +272,7 @@ export function StepPhotos() {
       <div className={cn('flex min-h-0 flex-1 flex-col gap-3 p-3.5', !wide && 'overflow-y-auto')}>
         <h2 className="shrink-0 text-base font-semibold leading-tight">{previousSessions.length ? t('flow.photos.titleHistory') : t('flow.photos.title')}</h2>
         <div className={cn('flex gap-3.5', wide ? 'min-h-0 flex-1' : 'flex-col')}>
-          <div role="tablist" aria-label={t('photos.view')} className={cn('shrink-0 gap-2', wide ? 'flex w-56 flex-col gap-2.5 overflow-y-auto' : compact ? 'grid w-full grid-cols-3' : 'flex w-full gap-2.5 overflow-x-auto')}>
+          <div data-help-id="aesthetic-session.section.photo-views" role="tablist" aria-label={t('photos.view')} className={cn('shrink-0 gap-2', wide ? 'flex w-56 flex-col gap-2.5 overflow-y-auto' : compact ? 'grid w-full grid-cols-3' : 'flex w-full gap-2.5 overflow-x-auto')}>
             {PHOTO_VIEWS.map((v) => (
               <ViewSlot
                 key={v}
@@ -289,9 +289,9 @@ export function StepPhotos() {
             ))}
             {wide && <p className="px-0.5 text-xs text-muted-foreground">{t('flow.photos.anyViewHint')}</p>}
           </div>
-          <div className={cn('flex min-w-0 flex-1 flex-col gap-2.5', wide && 'min-h-0')}>{body}</div>
+          <div data-help-id="aesthetic-session.section.photo-stage" className={cn('flex min-w-0 flex-1 flex-col gap-2.5', wide && 'min-h-0')}>{body}</div>
           {showHistory && (
-            <div className={cn('flex shrink-0 flex-col gap-2', wide ? 'min-h-0 w-[10.5rem]' : 'w-full')}>
+            <div data-help-id="aesthetic-session.section.photo-history" className={cn('flex shrink-0 flex-col gap-2', wide ? 'min-h-0 w-[10.5rem]' : 'w-full')}>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 {today ? t('flow.photos.compareWith') : wide ? t('flow.photos.previousShort') : t('flow.photos.previousOf', { view: viewLabel(view) })}
               </p>
@@ -311,7 +311,7 @@ export function StepPhotos() {
 
       <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t bg-card px-3.5 py-2.5">
         <Button type="button" variant="outline" onClick={() => goToStep(1)}>{t('flow.back')}</Button>
-        <Button type="button" className={cn(compact && 'flex-1')} onClick={() => goToStep(3)} disabled={!readOnly && !flow.facts.consents.length}>{t('flow.photos.continue')}</Button>
+        <Button data-help-id="aesthetic-session.btn.to-treatment" type="button" className={cn(compact && 'flex-1')} onClick={() => goToStep(3)} disabled={!readOnly && !flow.facts.consents.length}>{t('flow.photos.continue')}</Button>
       </div>
 
       <input
@@ -372,7 +372,7 @@ function TodayPhotoActions({ photo, readOnly, canCapture, onRetake, onAlign, onR
   return (
     <>
       <Hint label={t('flow.photos.align')} description={`${photo.alignment ? t('flow.photos.aligned') : t('flow.photos.notAligned')}. ${t('flow.hints.align')}`}>
-        <Button type="button" size="sm" variant="outline" onClick={onAlign}>
+        <Button data-help-id="aesthetic-session.btn.photo-align" type="button" size="sm" variant="outline" onClick={onAlign}>
           <Crosshair className="mr-1 h-3.5 w-3.5" />{t('flow.photos.align')}
         </Button>
       </Hint>

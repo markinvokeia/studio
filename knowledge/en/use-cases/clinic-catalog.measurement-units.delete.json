@@ -1,0 +1,28 @@
+{
+  "id": "clinic-catalog.measurement-units.delete",
+  "title": "Delete a measurement unit",
+  "summary": "Remove it from the catalog; if it's in use, it becomes inactive.",
+  "module": "Clinic Catalog",
+  "inputs": {},
+  "keywords": [
+    "delete unit",
+    "remove unit"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic Catalog → Measurement Units",
+      "details": "What doses of aesthetic services are recorded in (U, ml, mg, cc…)."
+    },
+    {
+      "id": "delete",
+      "title": "Delete",
+      "details": "Tap the unit's trash icon."
+    },
+    {
+      "id": "ok",
+      "title": "Confirm",
+      "details": "If services or sessions use it, it isn't deleted: it becomes inactive and old sessions keep showing it."
+    }
+  ]
+}

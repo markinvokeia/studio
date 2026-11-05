@@ -90,7 +90,7 @@ export function MarkEditor({ placed, config, sessionDate, previousSessions, read
   ].filter((v): v is string => !!v);
 
   return (
-    <section aria-label={t('flow.treatment.markLabel', { service: layer.serviceName, mark: label })} className={cn('flex flex-col gap-2.5 rounded-2xl border bg-card p-3', floating ? 'shadow-[0_8px_30px_rgb(30_26_51/0.18)]' : 'shadow-sm')}>
+    <section data-help-id="aesthetic-session.section.mark-editor" aria-label={t('flow.treatment.markLabel', { service: layer.serviceName, mark: label })} className={cn('flex flex-col gap-2.5 rounded-2xl border bg-card p-3', floating ? 'shadow-[0_8px_30px_rgb(30_26_51/0.18)]' : 'shadow-sm')}>
       <div className="flex items-center gap-2">
         <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: color }}>{number}</span>
         <div className="min-w-0 flex-1">
