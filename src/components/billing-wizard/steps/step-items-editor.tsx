@@ -209,7 +209,7 @@ export function StepItemsEditor({
           {/* Column headers */}
           <div
             className={cn(
-              'grid gap-2 px-3 py-1 text-xs font-medium text-muted-foreground',
+              'grid gap-2 px-3 py-1 text-xs font-medium text-muted-foreground max-sm:hidden',
               discounts.showLineDiscount
                 ? 'grid-cols-[1fr_56px_88px_76px_auto_32px]'
                 : 'grid-cols-[1fr_64px_96px_80px_32px]',
@@ -230,12 +230,12 @@ export function StepItemsEditor({
                 className={cn(
                   'grid gap-2 items-center px-3 py-2 bg-background',
                   discounts.showLineDiscount
-                    ? 'grid-cols-[1fr_56px_88px_76px_auto_32px]'
-                    : 'grid-cols-[1fr_64px_96px_80px_32px]',
+                    ? 'grid-cols-[1fr_56px_88px_76px_auto_32px] max-sm:grid-cols-[56px_minmax(64px,1fr)_auto_auto_32px]'
+                    : 'grid-cols-[1fr_64px_96px_80px_32px] max-sm:grid-cols-[64px_minmax(72px,1fr)_auto_32px]',
                 )}
               >
                 {/* Service name */}
-                <span className="text-sm truncate min-w-0">{item.service_name}</span>
+                <span className="text-sm truncate min-w-0 max-sm:col-span-full">{item.service_name}</span>
 
                 {/* Quantity */}
                 <Input

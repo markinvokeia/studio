@@ -1,5 +1,5 @@
 {
- "version": "67119b47be23f922",
+ "version": "a0ba1623583403dc",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -107,6 +107,14 @@
    "code": "ACCESS_LOG_VIEW_MENU",
    "constant": "SYSTEM_PERMISSIONS.ACCESS_LOG_VIEW_MENU",
    "description": "Access Log"
+  },
+  {
+   "code": "AESTHETIC_RECORD_REGISTER_SESSION",
+   "constant": "AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION"
+  },
+  {
+   "code": "AESTHETIC_RECORD_VIEW",
+   "constant": "AESTHETIC_RECORD_PERMISSIONS.VIEW"
   },
   {
    "code": "ALERT_CATEGORIES_CREATE",
@@ -573,6 +581,23 @@
    "code": "CATALOG_MEDICATIONS_VIEW_MENU",
    "constant": "CLINIC_CATALOG_PERMISSIONS.MEDICATIONS_VIEW_MENU",
    "description": "Medications (Medicamentos)"
+  },
+  {
+   "code": "CATALOG_UNITS_CREATE",
+   "constant": "CLINIC_CATALOG_PERMISSIONS.UNITS_CREATE"
+  },
+  {
+   "code": "CATALOG_UNITS_DELETE",
+   "constant": "CLINIC_CATALOG_PERMISSIONS.UNITS_DELETE"
+  },
+  {
+   "code": "CATALOG_UNITS_UPDATE",
+   "constant": "CLINIC_CATALOG_PERMISSIONS.UNITS_UPDATE"
+  },
+  {
+   "code": "CATALOG_UNITS_VIEW_LIST",
+   "constant": "CLINIC_CATALOG_PERMISSIONS.UNITS_VIEW_LIST",
+   "description": "Measurement units (Unidades de medida) of the aesthetic services"
   },
   {
    "code": "CATALOG_VIEW_MENU",
@@ -2197,6 +2222,12 @@
      "id": "nav.clinic-catalog.dental-surfaces",
      "kind": "nav",
      "label": "Superficies Dentales"
+    },
+    {
+     "description": "/clinic-catalog/measurement-units",
+     "id": "nav.clinic-catalog.measurement-units",
+     "kind": "nav",
+     "label": "Unidades de medida"
     },
     {
      "description": "/clinic-catalog/medications",
@@ -5086,6 +5117,55 @@
     "clinic-catalog.dental-surfaces.edit",
     "clinic-catalog.dental-surfaces.delete"
    ]
+  },
+  {
+   "elements": [
+    {
+     "id": "clinic-catalog.measurement-units.btn.submit",
+     "kind": "btn",
+     "label": "Guardar",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "id": "clinic-catalog.measurement-units.field.code",
+     "kind": "field",
+     "label": "Código",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "id": "clinic-catalog.measurement-units.field.isActive",
+     "kind": "field",
+     "label": "Activa",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "id": "clinic-catalog.measurement-units.field.name",
+     "kind": "field",
+     "label": "Nombre",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "id": "clinic-catalog.measurement-units.field.step",
+     "kind": "field",
+     "label": "Paso de la cantidad",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "id": "clinic-catalog.measurement-units.field.symbol",
+     "kind": "field",
+     "label": "Símbolo",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    }
+   ],
+   "id": "clinic-catalog.measurement-units",
+   "inMenu": true,
+   "module": "Catálogo de la Clínica",
+   "permissions": [
+    "CATALOG_UNITS_VIEW_LIST"
+   ],
+   "route": "/clinic-catalog/measurement-units",
+   "status": "auto",
+   "title": "Unidades de medida"
   },
   {
    "elements": [
@@ -15296,6 +15376,12 @@
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
+     "id": "sales.services.field.is_aesthetic",
+     "kind": "field",
+     "label": "Servicio de estética",
+     "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
      "description": "Nombre del servicio.",
      "id": "sales.services.field.name",
      "kind": "field",
@@ -15314,6 +15400,12 @@
      "id": "sales.services.field.service_type",
      "kind": "field",
      "label": "Servicio con Flujo",
+     "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
+     "id": "sales.services.field.unit_id",
+     "kind": "field",
+     "label": "Unidad de medida",
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
@@ -15339,6 +15431,12 @@
      "kind": "section",
      "label": "Registro",
      "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "id": "sales.services.tab.aesthetic",
+     "kind": "tab",
+     "label": "Estética",
+     "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
      "id": "sales.services.tab.details",

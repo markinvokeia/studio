@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { BellRing, CalendarIcon, CheckCircle, ChevronDown, ClipboardList, CreditCard, FileText, Mail, MoreHorizontal, Pill, Plus, Receipt, SlidersHorizontal, Smile, Stethoscope, ToggleLeft, Upload, XCircle, Zap } from 'lucide-react';
+import { BellRing, CalendarIcon, CheckCircle, ChevronDown, ClipboardList, CreditCard, FileText, Mail, MoreHorizontal, Pill, Plus, Receipt, SlidersHorizontal, Smile, Stethoscope, Sparkles, ToggleLeft, Upload, XCircle, Zap } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import {
@@ -31,6 +31,7 @@ export interface PatientActionsMenuProps {
   // Clinical "create" actions — only shown when provided.
   onCreateClinicalSession?: () => void;
   onCreateOdontogram?: () => void;
+  onCreateAestheticSession?: () => void;
   onCreateMedicalInstruction?: () => void;
   onCreatePrescription?: () => void;
   onCreateDocument?: () => void;
@@ -70,6 +71,7 @@ export function PatientActionsMenu({
   showActivate = true,
   onCreateClinicalSession,
   onCreateOdontogram,
+  onCreateAestheticSession,
   onCreateMedicalInstruction,
   onCreatePrescription,
   onCreateDocument,
@@ -89,7 +91,7 @@ export function PatientActionsMenu({
   // Help ids con el scope de la pantalla (patients.btn.create-menu…).
   const helpScope = useHelpScope();
   const hid = (name: string) => composeHelpId(helpScope, 'btn', name);
-  const hasClinicalCreate = !!(onCreateClinicalSession || onCreateOdontogram || onCreateMedicalInstruction || onCreatePrescription || onCreateDocument);
+  const hasClinicalCreate = !!(onCreateClinicalSession || onCreateOdontogram || onCreateAestheticSession || onCreateMedicalInstruction || onCreatePrescription || onCreateDocument);
   const hasFinancialCreate = !!(onQuickBill || onCreateQuote || onCreateInvoice || onCreatePrepaid);
   const hasAgendaCreate = !!onCreateAppointment;
   const hasCreateMenu = hasClinicalCreate || hasFinancialCreate || hasAgendaCreate;
@@ -126,6 +128,11 @@ export function PatientActionsMenu({
                   {onCreateOdontogram && (
                     <DropdownMenuItem data-help-id={hid('new-odontogram')} onClick={onCreateOdontogram}>
                       <Smile className="h-4 w-4 mr-2 text-purple-600" />Sesión de odontograma
+                    </DropdownMenuItem>
+                  )}
+                  {onCreateAestheticSession && (
+                    <DropdownMenuItem onClick={onCreateAestheticSession}>
+                      <Sparkles className="h-4 w-4 mr-2 text-rose-500" />{t('PatientActionsMenu.createAestheticSession')}
                     </DropdownMenuItem>
                   )}
                   {onCreateMedicalInstruction && (

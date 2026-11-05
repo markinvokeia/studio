@@ -1,5 +1,5 @@
 {
- "version": "bb1126610a89faaf",
+ "version": "cf34f95229db8289",
  "locale": "en",
  "journey": [
   {
@@ -108,6 +108,14 @@
    "code": "ACCESS_LOG_VIEW_MENU",
    "constant": "SYSTEM_PERMISSIONS.ACCESS_LOG_VIEW_MENU",
    "description": "Access Log"
+  },
+  {
+   "code": "AESTHETIC_RECORD_REGISTER_SESSION",
+   "constant": "AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION"
+  },
+  {
+   "code": "AESTHETIC_RECORD_VIEW",
+   "constant": "AESTHETIC_RECORD_PERMISSIONS.VIEW"
   },
   {
    "code": "ALERT_CATEGORIES_CREATE",
@@ -574,6 +582,23 @@
    "code": "CATALOG_MEDICATIONS_VIEW_MENU",
    "constant": "CLINIC_CATALOG_PERMISSIONS.MEDICATIONS_VIEW_MENU",
    "description": "Medications (Medicamentos)"
+  },
+  {
+   "code": "CATALOG_UNITS_CREATE",
+   "constant": "CLINIC_CATALOG_PERMISSIONS.UNITS_CREATE"
+  },
+  {
+   "code": "CATALOG_UNITS_DELETE",
+   "constant": "CLINIC_CATALOG_PERMISSIONS.UNITS_DELETE"
+  },
+  {
+   "code": "CATALOG_UNITS_UPDATE",
+   "constant": "CLINIC_CATALOG_PERMISSIONS.UNITS_UPDATE"
+  },
+  {
+   "code": "CATALOG_UNITS_VIEW_LIST",
+   "constant": "CLINIC_CATALOG_PERMISSIONS.UNITS_VIEW_LIST",
+   "description": "Measurement units (Unidades de medida) of the aesthetic services"
   },
   {
    "code": "CATALOG_VIEW_MENU",
@@ -2188,6 +2213,11 @@
      "id": "nav.clinic-catalog.dental-surfaces",
      "kind": "nav",
      "label": "Dental Surfaces"
+    },
+    {
+     "id": "nav.clinic-catalog.measurement-units",
+     "kind": "nav",
+     "label": "Measurement Units"
     },
     {
      "id": "nav.clinic-catalog.medications",
@@ -5000,6 +5030,55 @@
     "clinic-catalog.dental-surfaces.edit",
     "clinic-catalog.dental-surfaces.delete"
    ]
+  },
+  {
+   "elements": [
+    {
+     "id": "clinic-catalog.measurement-units.btn.submit",
+     "kind": "btn",
+     "label": "Save",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "id": "clinic-catalog.measurement-units.field.code",
+     "kind": "field",
+     "label": "Code",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "id": "clinic-catalog.measurement-units.field.isActive",
+     "kind": "field",
+     "label": "Active",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "id": "clinic-catalog.measurement-units.field.name",
+     "kind": "field",
+     "label": "Name",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "id": "clinic-catalog.measurement-units.field.step",
+     "kind": "field",
+     "label": "Quantity step",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "id": "clinic-catalog.measurement-units.field.symbol",
+     "kind": "field",
+     "label": "Symbol",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    }
+   ],
+   "id": "clinic-catalog.measurement-units",
+   "inMenu": true,
+   "module": "Clinic Catalog",
+   "permissions": [
+    "CATALOG_UNITS_VIEW_LIST"
+   ],
+   "route": "/clinic-catalog/measurement-units",
+   "status": "auto",
+   "title": "Measurement Units"
   },
   {
    "elements": [
@@ -15210,6 +15289,12 @@
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
+     "id": "sales.services.field.is_aesthetic",
+     "kind": "field",
+     "label": "Aesthetic service",
+     "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
      "description": "Service name.",
      "id": "sales.services.field.name",
      "kind": "field",
@@ -15228,6 +15313,12 @@
      "id": "sales.services.field.service_type",
      "kind": "field",
      "label": "Workflow Service",
+     "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
+     "id": "sales.services.field.unit_id",
+     "kind": "field",
+     "label": "Unit of measure",
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
@@ -15253,6 +15344,12 @@
      "kind": "section",
      "label": "Record",
      "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "id": "sales.services.tab.aesthetic",
+     "kind": "tab",
+     "label": "Aesthetics",
+     "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
      "id": "sales.services.tab.details",

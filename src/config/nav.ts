@@ -50,6 +50,7 @@ import {
   Pill,
   Radiation,
   Receipt,
+  Ruler,
   Scale,
   Settings,
   Share2,
@@ -199,12 +200,14 @@ export const navItems: NavItem[] = [
       CLINIC_CATALOG_PERMISSIONS.MEDICATIONS_VIEW_LIST,
       CLINIC_CATALOG_PERMISSIONS.DENTAL_COND_VIEW_LIST,
       CLINIC_CATALOG_PERMISSIONS.DENTAL_SURF_VIEW_LIST,
+      CLINIC_CATALOG_PERMISSIONS.UNITS_VIEW_LIST,
     ],
     items: [
       { title: 'Ailments', href: '/clinic-catalog/ailments', icon: HeartPulse, isChidren: true, requiredPermission: CLINIC_CATALOG_PERMISSIONS.CONDITIONS_VIEW_LIST },
       { title: 'Medications', href: '/clinic-catalog/medications', icon: Pill, isChidren: true, requiredPermission: CLINIC_CATALOG_PERMISSIONS.MEDICATIONS_VIEW_LIST },
       { title: 'DentalConditions', href: '/clinic-catalog/dental-conditions', icon: Smile, isChidren: true, requiredPermission: CLINIC_CATALOG_PERMISSIONS.DENTAL_COND_VIEW_LIST },
       { title: 'DentalSurfaces', href: '/clinic-catalog/dental-surfaces', icon: Layers, isChidren: true, requiredPermission: CLINIC_CATALOG_PERMISSIONS.DENTAL_SURF_VIEW_LIST },
+      { title: 'MeasurementUnits', href: '/clinic-catalog/measurement-units', icon: Ruler, isChidren: true, requiredPermission: CLINIC_CATALOG_PERMISSIONS.UNITS_VIEW_LIST },
     ],
   },
   {

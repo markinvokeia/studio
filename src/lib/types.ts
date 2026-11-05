@@ -2344,6 +2344,335 @@ export type OdontogramSnapshot = {
   archivosAdjuntos?: OdontogramAttachment[];
 };
 
+// ──── Aesthetic record (face map) ────
+
+/** Region of the body a map view belongs to */
+export type AestheticMapRegion = 'face' | 'body';
+
+/**
+ * Template shown on the map. Face views keep their original ids (`front`, `left`, `right`);
+ * profiles are named after the patient's visible side.
+ */
+export type AestheticMapView = 'front' | 'left' | 'right' | 'bodyFront' | 'bodyBack';
+
+export type AestheticBodyFigure = 'female' | 'male';
+
+/** Patient's side (not the viewer's) */
+export type AestheticSide = 'left' | 'right';
+
+/** Zones drawn on the face templates */
+export type AestheticFaceZone =
+  | 'forehead'
+  | 'glabella'
+  | 'temple'
+  | 'crowsFeet'
+  | 'tearTrough'
+  | 'cheek'
+  | 'nose'
+  | 'nasolabial'
+  | 'upperLip'
+  | 'lowerLip'
+  | 'marionette'
+  | 'masseter'
+  | 'jawline'
+  | 'chin'
+  | 'neck';
+
+/** Muscle panels of the body map (Open Muscle Map `muscleId`s) */
+export type AestheticBodyMuscle =
+  | 'sternocleidomastoid'
+  | 'trapezius'
+  | 'anterior_deltoid'
+  | 'lateral_deltoid'
+  | 'posterior_deltoid'
+  | 'pectoralis_major'
+  | 'biceps_brachii'
+  | 'brachialis'
+  | 'serratus_anterior'
+  | 'rectus_abdominis'
+  | 'external_oblique'
+  | 'forearm_flexors'
+  | 'tensor_fasciae_latae'
+  | 'iliopsoas'
+  | 'hip_adductors'
+  | 'sartorius'
+  | 'rectus_femoris'
+  | 'vastus_lateralis'
+  | 'vastus_medialis'
+  | 'patella_region'
+  | 'tibialis_anterior'
+  | 'gastrocnemius'
+  | 'fibularis_group'
+  | 'soleus'
+  | 'posterior_rotator_cuff'
+  | 'triceps_brachii'
+  | 'latissimus_dorsi'
+  | 'erector_spinae'
+  | 'forearm_extensors'
+  | 'gluteus_medius'
+  | 'gluteus_maximus'
+  | 'iliotibial_tract'
+  | 'biceps_femoris'
+  | 'medial_hamstrings'
+  | 'popliteal_region'
+  | 'achilles_tendon'
+  | 'patellar_tendon_region';
+
+export type AestheticZoneBase = AestheticFaceZone | AestheticBodyMuscle;
+
+/** Midline zones are bare (`chin`); bilateral ones carry the patient's side (`crowsFeet.left`) */
+export type AestheticZoneId = AestheticZoneBase | `${AestheticZoneBase}.${AestheticSide}`;
+
+export type AestheticDepth = 'intradermal' | 'subcutaneous' | 'supraperiosteal' | 'intramuscular';
+
+export type AestheticTechnique = 'bolus' | 'linearRetrograde' | 'fanning' | 'microdroplets' | 'cannula';
+
+/** `point`: one click; `area`: a polygon drawn over the template; `line`: two ends (threads), snapped to vertical/horizontal */
+export type AestheticMarkKind = 'point' | 'area' | 'line';
+
+/** Dose unit of the catalog (`measurement_units`) */
+export interface MeasurementUnit {
+  id: string;
+  code: string;
+  name: string;
+  symbol: string;
+  /** Step of the quantity field (1 for whole units, 0.05 for ml…) */
+  step: number;
+  isActive: boolean;
+  sortOrder: number;
+  /** Used by a service or a session: it can only be deactivated */
+  inUse: boolean;
+}
+
+/** How a service is marked on the aesthetic record */
+export interface ServiceAestheticConfig {
+  serviceId: string;
+  serviceName: string;
+  serviceColor: string | null;
+  isActive: boolean;
+  unitId: string;
+  unitSymbol: string;
+  unitStep: number;
+  markingTool: AestheticMarkKind;
+  /** Quantity a new mark starts with */
+  defaultQuantity: number | null;
+  defaultDepth?: AestheticDepth;
+  defaultTechnique?: AestheticTechnique;
+  /** List price of the service, for the suggested charge at closing */
+  price: number | null;
+  /** Most that should be applied in one session; going over warns, it doesn't block */
+  maxPerSession: number | null;
+  /** Days that should pass between two applications on the same zone */
+  minIntervalDays: number | null;
+  /** Follow-up visit proposed at closing, `followUpDays` after the session */
+  followUpDays: number | null;
+  followUpLabel: string | null;
+  /** Aftercare instructions sent to the patient at closing */
+  aftercare: string | null;
+}
+
+/** Set once on the layer for all its marks; a mark that sets one overrides the layer's */
+export interface AestheticSharedAttributes {
+  lot?: string;
+  /** yyyy-MM-dd */
+  lotExpiry?: string;
+  depth?: AestheticDepth;
+  technique?: AestheticTechnique;
+  notes?: string;
+}
+
+export interface AestheticMark extends AestheticSharedAttributes {
+  id: string;
+  /** Product used on this mark; empty: the layer's */
+  productName?: string;
+  kind: AestheticMarkKind;
+  view: AestheticMapView;
+  /** Point: its position. Area/line: where its number sits (centroid/midpoint). Relative to the template (0..1), so it survives any render size */
+  x: number;
+  y: number;
+  /** Area outline or the line's two ends, `[x, y]` pairs relative to the template */
+  polygon?: [number, number][];
+  /** Zone under the mark; null when it was placed outside every zone */
+  zone: AestheticZoneId | null;
+  /** In an area, the total applied over it */
+  quantity: number | null;
+  /** When and by whom it was placed (activity log) */
+  createdAt?: string;
+  createdBy?: string;
+}
+
+/** One service applied in the session, with the marks where it went */
+export interface AestheticLayer extends AestheticSharedAttributes {
+  id: string;
+  serviceId?: string;
+  serviceName: string;
+  /** Color of the service in the catalog */
+  color?: string | null;
+  /** Brand or product, free text */
+  productName: string;
+  /** Copied from the service when the layer is created, so later config changes don't rewrite old sessions */
+  unitId?: string;
+  unitSymbol: string;
+  unitStep: number;
+  markingTool: AestheticMarkKind;
+  marks: AestheticMark[];
+}
+
+export type AestheticPhotoKind = 'before' | 'after';
+
+/** How a photo got into the session */
+export type AestheticPhotoSource = 'camera' | 'upload' | 'qr';
+
+/** Placement of a photo under the map template of its view */
+export interface AestheticPhotoAlignment {
+  /** Photo centre, as a fraction (0–1) of the template width and height */
+  x: number;
+  y: number;
+  /** Size relative to the photo fitted inside the template (1 = fully contained) */
+  scale: number;
+  /** Degrees, clockwise */
+  rotation: number;
+  /** Flipped horizontally (front cameras mirror the picture) */
+  mirrored: boolean;
+}
+
+export interface AestheticPhoto {
+  id: string;
+  kind: AestheticPhotoKind;
+  view: AestheticMapView;
+  fileName: string;
+  mimeType: string;
+  createdAt: string;
+  source?: AestheticPhotoSource;
+  takenAt?: string;
+  /** Set once the photo was aligned to be shown behind the map */
+  alignment?: AestheticPhotoAlignment;
+}
+
+/** Consent text of a service; its `{{variables}}` are filled in when the patient signs */
+export interface ServiceConsentTemplate {
+  serviceId: string;
+  title: string;
+  body: string;
+  updatedAt: string;
+}
+
+/** Drawn on the pad, or a previous signature of the same patient used again */
+export type AestheticSignatureSource = 'drawn' | 'reused';
+
+/** Signed consent of one service of the session */
+export interface AestheticServiceConsent {
+  serviceId: string;
+  serviceName: string;
+  title: string;
+  /** Rendered consent text, frozen at signing time */
+  text: string;
+  /** Version of the service's template it was rendered from; absent for the generic text */
+  templateUpdatedAt?: string;
+  /** One signature can cover several services of the session */
+  signatureId: string;
+  signatureFileId: string;
+  signatureSource: AestheticSignatureSource;
+  /** For a reused signature, the drawn one it comes from */
+  reusedFromSignatureId?: string;
+  signerName: string;
+  signedAt: string;
+  allowsClinicalPhotos: boolean;
+  allowsMarketingPhotos: boolean;
+  /** SHA-256 of the title and text as signed */
+  contentSha256?: string;
+}
+
+/** Photo permissions of the session: those given with its last signature */
+export interface AestheticPhotoConsent {
+  allowsClinicalPhotos: boolean;
+  allowsMarketingPhotos: boolean;
+  signerName: string;
+  signedAt: string;
+}
+
+/**
+ * Computed on the server from what the session holds, never picked:
+ * draft → consented → in_treatment → ready_to_close → closed (or void before closing)
+ */
+export type AestheticSessionStatus = 'draft' | 'consented' | 'in_treatment' | 'ready_to_close' | 'closed' | 'void';
+
+/** Timestamped note of the session; once closed only amendments are added, nothing is erased */
+export interface AestheticSessionNote {
+  id: string;
+  body: string;
+  kind: 'note' | 'amendment';
+  createdAt: string;
+  createdByName?: string;
+}
+
+export type AestheticSessionEventType =
+  | 'created'
+  | 'consent_signed'
+  | 'photo_added'
+  | 'photo_removed'
+  | 'note_added'
+  | 'amendment_added'
+  | 'closed'
+  | 'voided';
+
+/** Activity log entry */
+export interface AestheticSessionEvent {
+  id: string;
+  type: AestheticSessionEventType;
+  payload: Record<string, unknown>;
+  at: string;
+  actorName?: string;
+}
+
+export interface AestheticSessionInvoice {
+  id: string;
+  docNo: string;
+  total: number;
+  paidAmount: number;
+  currency: string;
+  status: string;
+  /** unpaid | partially_paid | paid */
+  paymentState: string;
+  createdAt: string;
+  /** Services it bills, to warn about the ones added afterwards */
+  serviceIds: string[];
+}
+
+export interface AestheticSession {
+  id: string;
+  patientId: string;
+  /** yyyy-MM-dd */
+  date: string;
+  title: string;
+  doctorId?: string;
+  doctorName?: string;
+  appointmentId?: string;
+  notes: string;
+  layers: AestheticLayer[];
+  photos: AestheticPhoto[];
+  /** One per service of the session that was signed */
+  consents: AestheticServiceConsent[];
+  photoConsent: AestheticPhotoConsent | null;
+  /** Body figure the body points were placed on (their coordinates depend on it) */
+  bodyFigure?: AestheticBodyFigure;
+  status: AestheticSessionStatus;
+  /** 0–100, a quarter per completed step */
+  completeness: number;
+  /** 1: recorded before the guided flow (no consent-first rule) */
+  flowVersion: number;
+  closedAt?: string;
+  closedByName?: string;
+  voidedAt?: string;
+  voidReason?: string;
+  /** Its sales invoice, with the amounts as they are now. At most one per session */
+  invoice?: AestheticSessionInvoice | null;
+  sessionNotes: AestheticSessionNote[];
+  events: AestheticSessionEvent[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type StickyNoteColor = 'yellow' | 'pink' | 'blue' | 'green' | 'purple' | 'orange';
 
 export type StickyNote = {
