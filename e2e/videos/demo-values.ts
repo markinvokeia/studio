@@ -115,7 +115,7 @@ const BASE_VALUES: Record<string, Record<string, unknown>> = {
   'clinic-catalog.dental-surfaces.delete': { demo: true },
   'clinic-catalog.dental-surfaces.edit': { demo: true },
   'clinic-catalog.dental-surfaces.overview': { demo: true },
-  'clinic-catalog.measurement-units.create': { name: 'Mililitro', symbol: 'ml', code: 'ml-e2e', step: 0.05, demo: true },
+  'clinic-catalog.measurement-units.create': { name: 'Mililitro', symbol: 'ml', code: 'mililitro', step: 0.05, demo: true },
   'clinic-catalog.measurement-units.delete': { demo: true },
   'clinic-catalog.measurement-units.edit': { demo: true },
   'clinic-catalog.measurement-units.overview': { demo: true },

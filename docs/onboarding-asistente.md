@@ -440,17 +440,20 @@ pnpm videos:worker    # video a demanda (el chat ya no los pide; queda para pedi
 
 | Variable | Para qué |
 | --- | --- |
-| `HELP_VIDEO_DEMO_TENANT=1` + `E2E_BASE_URL` | Obligatorio para grabar: sólo contra el tenant demo (datos sintéticos de `e2e/videos/demo-values.ts`). |
+| `E2E_BASE_URL` | App contra la que se graba. El grabador no comprueba el entorno: usa el backend que tenga configurado esa app. |
 | `HELP_VIDEO_USE_CASES` | Casos a grabar/armar/publicar (por defecto, todos). |
-| `HELP_VIDEO_CONFIRM=1` | Pulsa el OK al final (crea los datos en el demo). |
+| `HELP_VIDEO_NO_CONFIRM=1` | No pulsa el OK. **Sin esta variable lo pulsa** y crea, edita o borra datos reales, salvo en las guías de `KEEPS_EXISTING`/`SENDS_TO_PEOPLE` (`e2e/utils/help.ts`). |
+| `HELP_VIDEO_ANY_ROW=1` | Editar/eliminar sobre la primera fila, sin buscar ni pulsar el OK: para cuando el alta no se puede crear (licencia, backend). |
+| `HELP_VIDEO_BURN_SUBTITLES=1` | Quema los subtítulos en la imagen (por defecto no: taparían la pantalla). |
 | `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID`, `ELEVENLABS_MODEL` | Narración (caché por texto en `videos/cache`). Sin clave, sale sin voz. |
 | `HELP_VIDEOS_BUCKET` | Bucket de GCS (`gcloud` autenticado; el bucket necesita CORS para los subtítulos). Sin bucket va a `public/help-videos/` (sólo desarrollo). |
 | `HELP_API_URL`, `HELP_API_TOKEN` | n8n del cliente y JWT de un usuario técnico con `HELP_CATALOG_SYNC` (registro, cola, job nocturno). |
 
 El grabador maneja la guía por `window.__invokeHelp`, que el asistente expone
 sólo con `localStorage['invoke-help:automation'] = '1'`. Los subtítulos siempre
-salen como `.vtt` (los muestra el reproductor del chat) y como pista del mp4; si
-el ffmpeg tiene libass, además se queman en la imagen. `videos/` no se versiona.
+salen como `.vtt` (los muestra el reproductor del chat) y como pista del mp4.
+`videos/` no se versiona. La grabación también pone al usuario en avisos tipo
+notificación y publica el catálogo si el usuario tiene `HELP_CATALOG_SYNC`.
 
 ### Videos en el chat (prueba de concepto con Google Drive)
 
@@ -479,7 +482,9 @@ nombre es la clave: `<caso>-<locale>.mp4`, con `<caso>` = id de la guía
 3. `HELP_VIDEOS_DRIVE_FOLDER=<id> HELP_API_URL=… HELP_API_TOKEN=… pnpm videos:link-drive`:
    lee la carpeta pública, toma el id de Drive de cada archivo y lo registra en
    `help_videos` (`POST help/videos/register`, url `https://drive.google.com/file/d/<id>/view`).
-   `HELP_VIDEO_DRY_RUN=1` sólo lista. Volver a correrlo reemplaza el enlace.
+   `HELP_VIDEO_DRY_RUN=1` sólo lista. Volver a correrlo reemplaza enlace, título y duración;
+   los archivos sin metadatos locales (`videos/out`) se saltean para no pisar lo publicado.
+   `HELP_VIDEO_ONLY_UPLOAD=1` enlaza sólo los archivos que están en `videos/drive-upload`.
 4. El agente (`help-assistant-chat.json`) devuelve `videos` de las guías propuestas, de
    las de la pantalla actual y de su recorrido, en el idioma del usuario si hay.
 

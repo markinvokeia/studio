@@ -1,5 +1,5 @@
 {
- "version": "9fed24f8e0243683",
+ "version": "9360c10e6315807f",
  "locale": "en",
  "journey": [
   {
@@ -5049,12 +5049,14 @@
      "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
     },
     {
+     "description": "Changes that unit's details or makes it inactive.",
      "id": "clinic-catalog.measurement-units.btn.edit",
      "kind": "btn",
      "label": "Edit",
      "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
     },
     {
+     "description": "Adds a unit with its name, symbol, code and step.",
      "id": "clinic-catalog.measurement-units.btn.new",
      "kind": "btn",
      "label": "New unit",
@@ -5101,12 +5103,14 @@
      "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
     },
     {
+     "description": "Each row shows the symbol, code, step and whether the unit is active.",
      "id": "clinic-catalog.measurement-units.section.first-row",
      "kind": "section",
      "label": "First in the list",
      "source": "knowledge/screens/clinic-catalog.measurement-units.json"
     },
     {
+     "description": "All the clinic's units; only active ones are offered when setting up a service.",
      "id": "clinic-catalog.measurement-units.section.table",
      "kind": "section",
      "label": "Units",
@@ -22421,6 +22425,7 @@
     },
     {
      "action": "click",
+     "details": "Adds a unit with its name, symbol, code and step.",
      "id": "new",
      "target": "clinic-catalog.measurement-units.btn.new",
      "title": "New unit",
@@ -22618,6 +22623,7 @@
     },
     {
      "action": "highlight",
+     "details": "Changes that unit's details or makes it inactive.",
      "id": "edit",
      "skipIfMissing": true,
      "target": "clinic-catalog.measurement-units.btn.edit",
@@ -22633,6 +22639,7 @@
     },
     {
      "action": "highlight",
+     "details": "Adds a unit with its name, symbol, code and step.",
      "id": "new",
      "skipIfMissing": true,
      "target": "clinic-catalog.measurement-units.btn.new",

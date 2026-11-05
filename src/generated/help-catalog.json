@@ -1,5 +1,5 @@
 {
- "version": "5b860509429b0a54",
+ "version": "e232ec996779a3d0",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -5136,12 +5136,14 @@
      "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
     },
     {
+     "description": "Cambia los datos de esa unidad o la deja inactiva.",
      "id": "clinic-catalog.measurement-units.btn.edit",
      "kind": "btn",
      "label": "Editar",
      "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
     },
     {
+     "description": "Agrega una unidad con su nombre, símbolo, código y paso.",
      "id": "clinic-catalog.measurement-units.btn.new",
      "kind": "btn",
      "label": "Nueva unidad",
@@ -5188,12 +5190,14 @@
      "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
     },
     {
+     "description": "Cada fila muestra el símbolo, el código, el paso y si la unidad está activa.",
      "id": "clinic-catalog.measurement-units.section.first-row",
      "kind": "section",
      "label": "Primera de la lista",
      "source": "knowledge/screens/clinic-catalog.measurement-units.json"
     },
     {
+     "description": "Todas las unidades de la clínica; al configurar un servicio solo se ofrecen las activas.",
      "id": "clinic-catalog.measurement-units.section.table",
      "kind": "section",
      "label": "Unidades",
@@ -22508,6 +22512,7 @@
     },
     {
      "action": "click",
+     "details": "Agrega una unidad con su nombre, símbolo, código y paso.",
      "id": "new",
      "target": "clinic-catalog.measurement-units.btn.new",
      "title": "Nueva unidad",
@@ -22705,6 +22710,7 @@
     },
     {
      "action": "highlight",
+     "details": "Cambia los datos de esa unidad o la deja inactiva.",
      "id": "edit",
      "skipIfMissing": true,
      "target": "clinic-catalog.measurement-units.btn.edit",
@@ -22720,6 +22726,7 @@
     },
     {
      "action": "highlight",
+     "details": "Agrega una unidad con su nombre, símbolo, código y paso.",
      "id": "new",
      "skipIfMissing": true,
      "target": "clinic-catalog.measurement-units.btn.new",

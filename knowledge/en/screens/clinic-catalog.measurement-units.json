@@ -7,16 +7,20 @@
   ],
   "elements": {
     "clinic-catalog.measurement-units.btn.new": {
-      "label": "New unit"
+      "label": "New unit",
+      "description": "Adds a unit with its name, symbol, code and step."
     },
     "clinic-catalog.measurement-units.section.table": {
-      "label": "Units"
+      "label": "Units",
+      "description": "All the clinic's units; only active ones are offered when setting up a service."
     },
     "clinic-catalog.measurement-units.section.first-row": {
-      "label": "First in the list"
+      "label": "First in the list",
+      "description": "Each row shows the symbol, code, step and whether the unit is active."
     },
     "clinic-catalog.measurement-units.btn.edit": {
-      "label": "Edit"
+      "label": "Edit",
+      "description": "Changes that unit's details or makes it inactive."
     },
     "clinic-catalog.measurement-units.btn.delete": {
       "label": "Delete",

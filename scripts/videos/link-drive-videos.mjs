@@ -8,12 +8,14 @@
  *   HELP_VIDEOS_DRIVE_FOLDER  id de la carpeta (compartida "cualquiera con el enlace")
  *   HELP_API_URL / HELP_API_TOKEN  ver help-api.mjs
  *   HELP_VIDEO_DRY_RUN=1      sólo lista lo que registraría
+ *   HELP_VIDEO_ONLY_UPLOAD=1  sólo los archivos que están en videos/drive-upload (la tanda nueva)
  *
  * Los títulos y duraciones salen de videos/out/<caso>-<locale>.json (o de la
- * grabación en videos/raw). Volver a correrlo reemplaza el enlace de cada guía.
+ * grabación en videos/raw). Volver a correrlo reemplaza enlace, título y duración
+ * de cada guía; sin esos metadatos el archivo se saltea, para no pisar lo publicado.
  */
 
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -46,8 +48,9 @@ function readJson(file) {
 }
 
 const files = await listFolder(FOLDER);
-const videos = files.filter((f) => VIDEO_NAME.test(f.name));
-console.log(`[videos] ${files.length} archivos en Drive, ${videos.length} videos con nombre <caso>-<locale>.mp4`);
+const upload = process.env.HELP_VIDEO_ONLY_UPLOAD === '1' ? new Set(readdirSync(join(ROOT, 'videos', 'drive-upload'))) : null;
+const videos = files.filter((f) => VIDEO_NAME.test(f.name) && (!upload || upload.has(f.name)));
+console.log(`[videos] ${files.length} archivos en Drive, ${videos.length} videos para enlazar`);
 for (const f of files.filter((x) => !VIDEO_NAME.test(x.name) && x.name.endsWith('.mp4'))) {
   console.warn(`[videos] se ignora ${f.name}: el nombre tiene que ser <caso>-<locale>.mp4`);
 }
@@ -55,7 +58,8 @@ for (const f of files.filter((x) => !VIDEO_NAME.test(x.name) && x.name.endsWith(
 let failed = 0;
 for (const file of videos) {
   const [, useCaseId, locale] = file.name.match(VIDEO_NAME);
-  const meta = readJson(join(OUT, `${useCaseId}-${locale}.json`)) ?? readJson(join(RAW, `${useCaseId}.json`)) ?? {};
+  const meta = readJson(join(OUT, `${useCaseId}-${locale}.json`)) ?? readJson(join(RAW, `${useCaseId}${locale === 'es' ? '' : `.${locale}`}.json`));
+  if (!meta) { console.warn(`[videos] se saltea ${file.name}: sin metadatos locales`); continue; }
   const body = {
     use_case_id: useCaseId,
     locale,

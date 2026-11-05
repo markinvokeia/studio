@@ -172,6 +172,15 @@ export interface DriveOptions {
    * un registro que no creó la corrida.
    */
   expectRow?: string;
+  /** Decide OK por OK en vez de `confirm`: una sesión que firma pero no se cierra. */
+  confirmStep?: (step: Step) => boolean;
+  /**
+   * El gesto de la persona al terminar de leer un paso (elegir un servicio, firmar). Una vez por
+   * paso. En un paso que espera a la persona, `true` reemplaza al clic sobre el elemento señalado.
+   */
+  personActs?: (page: Page, step: Step) => Promise<boolean>;
+  /** Pasos con varios elementos iguales donde va el primero (lo más reciente), no el último visible. */
+  firstMatch?: string[];
 }
 
 export interface DriveResult {
@@ -189,7 +198,8 @@ const state = (page: Page) => page.evaluate(() => window.__invokeHelp!.state());
 
 /** Corre una guía con el asistente real y devuelve cómo terminó. Falla si un paso falla. */
 export async function driveGuide(page: Page, id: string, options: DriveOptions = {}): Promise<DriveResult> {
-  const { values = {}, mode = 'test', confirm = false, beforeClick, onStep, onConfirm, screenTour, expectRow } = options;
+  const { values = {}, mode = 'test', confirm = false, beforeClick, onStep, onConfirm, screenTour, expectRow, confirmStep, personActs, firstMatch } = options;
+  const acted = new Set<number>();
   const normalizeRow = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
   let rowChecked = false;
   const filesSet = new Set<number>();
@@ -243,7 +253,11 @@ export async function driveGuide(page: Page, id: string, options: DriveOptions =
     lastKey = key;
 
     if (status === 'waiting' && step.action === 'confirm') {
-      if (!confirm) { outcome = 'confirm'; stoppedAt = step.id; break; }
+      if (!(confirmStep ? confirmStep(step) : confirm)) { outcome = 'confirm'; stoppedAt = step.id; break; }
+      if (personActs && !acted.has(index)) {
+        acted.add(index);
+        await personActs(page, step);
+      }
       // Un OK que no avanza (validación, error del backend) no se pulsa para siempre.
       const clicks = (confirmClicks.get(index) ?? 0) + 1;
       confirmClicks.set(index, clicks);
@@ -264,7 +278,9 @@ export async function driveGuide(page: Page, id: string, options: DriveOptions =
         .filter((el) => (el as HTMLElement).offsetParent !== null && (el.getAttribute('aria-invalid') === 'true' || (el.textContent ?? '').trim() !== ''))
         .map((el) => el.closest('[data-help-item]')?.getAttribute('data-help-item') ?? el.getAttribute('data-help-id') ?? el.getAttribute('name') ?? (el.textContent ?? '?').trim().slice(0, 60))
         .filter((v, i, all) => all.indexOf(v) === i));
-      if (invalid.length) throw new Error(`${id}: el OK «${step.title}» dejó campos inválidos: ${invalid.join(', ')}`);
+      // La firma de estética vacía el formulario al guardar y los campos quedan en rojo aunque salió bien:
+      // ahí lo que confirma el guardado son los pasos siguientes (se destraban o se saltan).
+      if (invalid.length && !personActs) throw new Error(`${id}: el OK «${step.title}» dejó campos inválidos: ${invalid.join(', ')}`);
       // El backend rechazó el guardado (aviso rojo) o el diálogo muestra un error (límite de la
       // licencia, por ejemplo): tampoco se guardó nada.
       // (Sólo mensajes con texto: el asterisco rojo de los obligatorios usa el mismo color.)
@@ -304,9 +320,11 @@ export async function driveGuide(page: Page, id: string, options: DriveOptions =
       // El paso dice qué gesto es ("Clic derecho sobre la cita"): ese primero. Un clic izquierdo
       // ahí abre otra cosa (la tarjeta de la cita) y la guía creería que ya se abrió el menú.
       const rightFirst = /clic derecho|right-click/i.test(`${step.title} ${step.details ?? ''}`);
-      if (sameKeyFor === 0) {
+      if (sameKeyFor === 0 && personActs && !acted.has(index) && (acted.add(index), await personActs(page, step))) {
+        // La persona ya hizo lo suyo: sólo falta que aparezca lo que el paso espera.
+      } else if (sameKeyFor === 0) {
         if (beforeClick) await beforeClick(page, step.target!);
-        await clickTarget(page, step.target!, rightFirst ? 'right' : 'left');
+        await clickTarget(page, step.target!, rightFirst ? 'right' : 'left', firstMatch?.includes(step.target!));
       } else if (sameKeyFor === 8) {
         await clickTarget(page, step.target!, rightFirst ? 'left' : 'right');
       } else if (sameKeyFor > 20) {
@@ -316,6 +334,10 @@ export async function driveGuide(page: Page, id: string, options: DriveOptions =
       continue;
     }
 
+    if (personActs && !acted.has(index)) {
+      acted.add(index);
+      await personActs(page, step);
+    }
     await page.evaluate(() => window.__invokeHelp!.next());
     await page.waitForTimeout(250);
   }
@@ -346,8 +368,9 @@ export async function driveGuide(page: Page, id: string, options: DriveOptions =
   return { outcome, stoppedAt, skipped: pick('skipped'), done: pick('done') };
 }
 
-async function clickTarget(page: Page, target: string, button: 'left' | 'right' = 'left') {
-  const el = page.locator(`[data-help-id="${target}"]:visible, [data-help-item="${target}"]:visible`).last();
+async function clickTarget(page: Page, target: string, button: 'left' | 'right' = 'left', first = false) {
+  const all = page.locator(`[data-help-id="${target}"]:visible, [data-help-item="${target}"]:visible`);
+  const el = first ? all.first() : all.last();
   await el.scrollIntoViewIfNeeded().catch(() => {});
   // Como una persona: primero el mouse sobre el elemento. Si la mascota quedó encima de lo
   // que señala, al pasar el puntero deja pasar el clic (sin el movimiento, Playwright ve

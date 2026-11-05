@@ -15,16 +15,20 @@
   ],
   "elements": {
     "clinic-catalog.measurement-units.btn.new": {
-      "label": "Nueva unidad"
+      "label": "Nueva unidad",
+      "description": "Agrega una unidad con su nombre, símbolo, código y paso."
     },
     "clinic-catalog.measurement-units.section.table": {
-      "label": "Unidades"
+      "label": "Unidades",
+      "description": "Todas las unidades de la clínica; al configurar un servicio solo se ofrecen las activas."
     },
     "clinic-catalog.measurement-units.section.first-row": {
-      "label": "Primera de la lista"
+      "label": "Primera de la lista",
+      "description": "Cada fila muestra el símbolo, el código, el paso y si la unidad está activa."
     },
     "clinic-catalog.measurement-units.btn.edit": {
-      "label": "Editar"
+      "label": "Editar",
+      "description": "Cambia los datos de esa unidad o la deja inactiva."
     },
     "clinic-catalog.measurement-units.btn.delete": {
       "label": "Eliminar",

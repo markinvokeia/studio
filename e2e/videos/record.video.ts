@@ -31,7 +31,9 @@ import { demoValuesFor } from './demo-values';
 const OUT_DIR = join(process.cwd(), 'videos', 'raw');
 const SELECTED = (process.env.HELP_VIDEO_USE_CASES ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 const wanted = (id: string) => !SELECTED.length || SELECTED.some((s) => id === s || (s.endsWith('.') && id.startsWith(s)));
-const CONFIRM = process.env.HELP_VIDEO_NO_CONFIRM !== '1';
+/** Editar/eliminar sobre la primera fila que haya, sin buscar ni pulsar el OK: para altas que no se pueden crear (licencia, backend). */
+const ANY_ROW = process.env.HELP_VIDEO_ANY_ROW === '1';
+const CONFIRM = process.env.HELP_VIDEO_NO_CONFIRM !== '1' && !ANY_ROW;
 const INTRO_MS = 2500;
 const VIEWPORT = { width: 1280, height: 720 };
 /** Pantallas sin recorrido grabado (fuera de alcance por ahora). */
@@ -52,7 +54,10 @@ interface Outro { title: string; summary?: string; purpose?: string; tips: strin
 interface Recording { id: string; title: string; module?: string; route: string; values?: Record<string, unknown>; screenTour?: string; outro?: Outro }
 
 const RECORDINGS: Recording[] = [
-  ...runOrder(USE_CASES).map((u) => ({ id: u.id, title: u.title, module: u.module, route: useCaseRoute(u), values: DEMO_VALUES[u.id] })),
+  ...runOrder(USE_CASES).map((u) => {
+    const { query: _query, ...withoutQuery } = DEMO_VALUES[u.id] ?? {};
+    return { id: u.id, title: u.title, module: u.module, route: useCaseRoute(u), values: ANY_ROW ? withoutQuery : DEMO_VALUES[u.id] };
+  }),
   ...MENU_SCREENS.filter((s) => !SKIP_TOURS.has(s.id)).map((s) => ({
     id: `tour.${s.id}`,
     title: VIDEO_TEXT.tour(s.title ?? s.id),
@@ -153,6 +158,80 @@ async function showClick(page: Page, target: string) {
   await page.waitForTimeout(900);
 }
 
+/**
+ * Sesión de estética: autoguarda y sus pantallas dependen de lo anterior, así que la guía sólo
+ * señala. Para que el video muestre el flujo completo, acá se hace lo que haría la persona
+ * (crea la sesión en el paciente de demo-values). Sólo se firma: el cierre queda sin pulsar.
+ */
+const SESSION = 'aesthetic-session';
+const checkField = async (page: Page, name: string) => {
+  const box = page.locator(`[data-help-id="${SESSION}.field.${name}"]:visible`).first();
+  if ((await box.getAttribute('aria-checked').catch(() => null)) !== 'true') await box.click({ timeout: 5000 });
+  await page.waitForTimeout(500);
+};
+const AESTHETIC_GESTURES: Record<string, (page: Page) => Promise<void>> = {
+  // El primer servicio sin elegir de la lista.
+  services: async (page) => {
+    await page.locator(`[data-help-id="${SESSION}.section.services"] button[aria-pressed="false"]:enabled`).first().click({ timeout: 5000 });
+    await page.waitForTimeout(2000);
+  },
+  risks: (page) => checkField(page, 'risksExplained'),
+  'clinical-photos': (page) => checkField(page, 'allowsClinicalPhotos'),
+  pad: signPad,
+  // La guía general no frena en cada campo: autorizaciones y trazo justo antes de firmar.
+  sign: async (page) => {
+    await checkField(page, 'risksExplained');
+    await checkField(page, 'allowsClinicalPhotos');
+    // Con firma, el recuadro ya muestra el botón para borrarla.
+    if (!(await page.locator(`[data-help-id="${SESSION}.section.signature-pad"]:visible button`).count())) await signPad(page);
+  },
+  // En la línea de tiempo se despliega la sesión de estética más reciente (no lo que caiga al medio).
+  session: async (page) => {
+    await page.locator('[data-help-id="patients.section.timeline"]').getByText(/^(Estética|Aesthetic)/).first().click({ timeout: 5000 });
+    await page.waitForTimeout(800);
+  },
+  // Una marca en el medio del mapa y, con la herramienta de selección, se elige: abre su editor.
+  map: async (page) => {
+    const box = await page.locator(`[data-help-id="${SESSION}.section.map"]:visible`).boundingBox();
+    if (!box) return;
+    const [x, y] = [box.x + box.width / 2, box.y + box.height * 0.4];
+    await page.mouse.click(x, y);
+    await page.waitForTimeout(1500);
+    await page.locator(`[data-help-id="${SESSION}.section.tools"]:visible button`).first().click({ timeout: 5000 });
+    await page.waitForTimeout(500);
+    await page.mouse.click(x, y);
+    await page.waitForTimeout(1500);
+  },
+  // «Ir al cierre» se ve desde la pestaña Resumen (la guía de fotos tiene otro paso `history`, sin pestañas).
+  history: async (page) => {
+    const summary = page.locator(`[data-help-id="${SESSION}.tab.summary"]:visible`).first();
+    if (!(await summary.count())) return;
+    await summary.click({ timeout: 5000 });
+    await page.waitForTimeout(800);
+  },
+};
+/** El trazo va directo al recuadro: la mascota y la lista de pasos suelen quedar encima y se llevarían el mouse. */
+async function signPad(page: Page) {
+  await page.locator(`[data-help-id="${SESSION}.section.signature-pad"]:visible canvas`).first().evaluate(async (node) => {
+    const canvas = node as HTMLCanvasElement;
+    canvas.setPointerCapture = () => {};
+    canvas.releasePointerCapture = () => {};
+    const box = canvas.getBoundingClientRect();
+    const send = (type: string, x: number, y: number) => canvas.dispatchEvent(new PointerEvent(type, {
+      bubbles: true, pointerId: 1, pointerType: 'mouse', buttons: 1, clientX: box.x + box.width * x, clientY: box.y + box.height * y,
+    }));
+    const stroke = [[0.25, 0.6], [0.32, 0.3], [0.38, 0.7], [0.46, 0.35], [0.54, 0.65], [0.62, 0.4], [0.72, 0.55]];
+    send('pointerdown', stroke[0][0], stroke[0][1]);
+    for (const [x, y] of stroke.slice(1)) {
+      send('pointermove', x, y);
+      await new Promise((r) => setTimeout(r, 120));
+    }
+    send('pointerup', stroke[stroke.length - 1][0], stroke[stroke.length - 1][1]);
+  });
+  await page.waitForTimeout(800);
+}
+const usesAestheticSession = (id: string) => /^patients\.aesthetic-|^workspace\.aesthetic-session$/.test(id);
+
 let alertsAsToast = false;
 /** Avisos de alertas en modo Notificación (no Modal): un modal en el medio arruina la grabación. */
 async function ensureToastAlerts(page: Page) {
@@ -210,6 +289,15 @@ async function record(browser: Browser, baseURL: string, rec: Recording) {
     // Editar y eliminar sólo sobre lo que creó la guía de alta (valor `query` de demo-values).
     expectRow: /\.(edit|delete)$/.test(rec.id) && typeof rec.values?.query === 'string' ? rec.values.query : undefined,
     beforeClick: showClick,
+    ...(usesAestheticSession(rec.id) && CONFIRM ? {
+      confirmStep: (step: { id: string }) => step.id === 'sign',
+      personActs: async (p: Page, step: { id: string }) => {
+        const gesture = AESTHETIC_GESTURES[step.id];
+        await gesture?.(p);
+        return !!gesture;
+      },
+      firstMatch: ['patients.btn.timeline-open-aesthetic'],
+    } : {}),
     onStep: (step, index) => segments.push({ index, title: step.title, description: step.description, details: step.details, action: step.action, t: Date.now() - t0 + INTRO_MS }),
   });
   // En el OK sin confirmar se muestra el clic igual, para que se vea dónde termina.
