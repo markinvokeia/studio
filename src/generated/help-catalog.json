@@ -1,5 +1,5 @@
 {
- "version": "b6b4e0a45d59ab4c",
+ "version": "16030fcf4f1f2859",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -3237,6 +3237,13 @@
   {
    "elements": [
     {
+     "description": "Abre el formulario del dependiente. Si su cédula o su teléfono ya son de otra ficha, podés vincular esa ficha en vez de crear otra.",
+     "id": "appointments.btn.add-dependent",
+     "kind": "btn",
+     "label": "Nuevo dependiente",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "description": "Panel para elegir qué consultorio ver (modo personalizado).",
      "id": "appointments.btn.agendas",
      "kind": "btn",
@@ -4113,6 +4120,13 @@
      "source": "src/components/calendar/calendar-gaps-panel.tsx"
     },
     {
+     "description": "Las personas a cargo del paciente. En un alta quedan sin guardar hasta pulsar Guardar; si alguna falla, el paciente queda guardado y la fila muestra el motivo para corregirla y reintentar. No aparece si el paciente es dependiente.",
+     "id": "appointments.section.patient-dependents",
+     "kind": "section",
+     "label": "Pacientes a cargo",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "description": "Pacientes que ya tienen el mismo documento, correo o teléfono, con documento, nacimiento y tutor para distinguir a la persona de un familiar. Se abre al revisar coincidencias o al guardar un alta repetida.",
      "id": "appointments.section.patient-matches",
      "kind": "section",
@@ -4168,6 +4182,7 @@
     "Hacé clic en un horario libre para crear una cita ahí mismo, o clic derecho para crear un recordatorio o una nota.",
     "Cancelar no es eliminar: una cancelación con su motivo queda en el historial y en los reportes; eliminar es para citas cargadas por error.",
     "Operaciones en lotes reasigna muchas citas a otro profesional de una sola vez (vacaciones, licencias).",
+    "Al crear un paciente desde la cita podés cargar sus dependientes en el mismo formulario: se guardan todos con Guardar. Al editarlo, cada cambio en los dependientes se guarda en el momento.",
     "La vista por defecto, la agrupación, el tamaño de las horas y las reglas al agendar se configuran en Ajustes de la agenda (engranaje); son por usuario y se guardan solas."
    ],
    "title": "Citas",

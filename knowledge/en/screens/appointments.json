@@ -8,6 +8,7 @@
     "Click a free slot to create an appointment right there, or right-click to create a reminder or a note.",
     "Canceling is not deleting: a cancellation with its reason stays in the history and in the reports; deleting is for appointments entered by mistake.",
     "Bulk operations reassign many appointments to another doctor at once (vacations, leave).",
+    "When you create a patient from the appointment you can add their dependents in the same form: Save stores them all. When you edit the patient, each change to their dependents is saved right away.",
     "The default view, grouping, hour size and booking rules are set in Calendar settings (gear); they are per user and save automatically."
   ],
   "elements": {
@@ -427,6 +428,14 @@
     "appointments.section.completing-existing": {
       "label": "Completing the existing record",
       "description": "Summarizes which entered details were added to the chosen record (marked \"Added\") and which don't match: for those the record's value is kept. \"Save and use for appointment\" updates that same record without creating another."
+    },
+    "appointments.section.patient-dependents": {
+      "label": "Patients in their care",
+      "description": "The people in this patient's care. When creating a patient they stay unsaved until you press Save; if one fails, the patient stays saved and the row shows the reason so you can fix it and try again. Hidden if the patient is a dependent."
+    },
+    "appointments.btn.add-dependent": {
+      "label": "New dependent",
+      "description": "Opens the dependent's form. If their ID or phone already belongs to another record, you can link that record instead of creating another."
     },
     "appointments.btn.use-existing-without-changes": {
       "label": "Use without saving changes",

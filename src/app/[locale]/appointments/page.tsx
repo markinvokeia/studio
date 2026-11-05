@@ -6262,6 +6262,7 @@ export default function AppointmentsPage() {
                 onOpenChange={(o) => setInlineCreatePatient((s) => ({ ...s, open: o }))}
                 initialName={inlineCreatePatient.initialName}
                 showCancelAction={isCustomMode}
+                withDependents
                 onCreated={applyPatientToInlineDraft}
                 // Cédula/teléfono de una ficha existente: recepción la elige y sigue con la cita.
                 onSelectExisting={applyPatientToInlineDraft}

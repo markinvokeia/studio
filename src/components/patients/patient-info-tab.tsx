@@ -281,6 +281,13 @@ export function ResponsibleContactField({
   );
 }
 
+/** Lo que el formulario de un dependiente sin guardar le entrega a quien guarda el borrador. */
+export interface DependentDraftFormData {
+  values: UserFormValues;
+  groupIds: string[];
+  doctorName: string;
+}
+
 interface PatientInfoTabProps {
   /** Patient to edit. Omit to run in create mode (empty form, upsert creates a new patient). */
   userId?: string;
@@ -292,8 +299,11 @@ interface PatientInfoTabProps {
   showNotes?: boolean;
   /** Prefill for the name field in create mode (e.g. the search query typed by the user). */
   initialName?: string;
-  /** Called after a successful save with the updated (or newly created) patient. */
-  onSaved?: (updated: User) => void;
+  /**
+   * Called after a successful save with the updated (or newly created) patient. Si devuelve
+   * una promesa, el botón Guardar sigue ocupado hasta que termine.
+   */
+  onSaved?: (updated: User) => void | Promise<void>;
   /** Show the guarded Cancel action supplied by dialog hosts in custom calendar mode. */
   showCancelAction?: boolean;
   /**
@@ -335,7 +345,23 @@ interface PatientInfoTabProps {
    * elegir esa ficha (recibe el paciente existente) en vez de crear un duplicado. Sin esto
    * el formulario solo advierte o bloquea. Solo aplica en modo alta.
    */
-  onSelectExisting?: (user: User) => void;
+  onSelectExisting?: (user: User) => void | Promise<void>;
+  /**
+   * Dependiente que todavía no se guarda porque su tutor tampoco existe: el formulario valida
+   * y entrega los datos en vez de llamar al backend. Requiere `initialResponsible`.
+   */
+  draftDependent?: {
+    initial?: DependentDraftFormData;
+    onSubmit: (data: DependentDraftFormData) => void;
+  };
+  /**
+   * Lugar para los dependientes del paciente, debajo de la casilla "dependiente" (no se
+   * muestra si está marcada). Es una función porque el contenido vuelve a usar este
+   * formulario, y un import directo sería circular.
+   */
+  renderDependents?: (context: { patient: User | null; guardianName: string }) => React.ReactNode;
+  /** Hay dependientes cargados sin guardar: mientras tanto el paciente no puede ser dependiente. */
+  lockDependentCheckbox?: boolean;
   /** Avisa al host que el alta pasó a completar una ficha existente (su nombre) o volvió (`null`). */
   onCompletingChange?: (name: string | null) => void;
   /** El alta del tutor le sacó a esta ficha su teléfono/correo: el host puede refrescar lo que muestra. */
@@ -369,6 +395,9 @@ export function PatientInfoTab({
   initialContact,
   adoptDependentId,
   onSelectExisting,
+  draftDependent,
+  renderDependents,
+  lockDependentCheckbox = false,
   onCompletingChange,
   onContactMoved,
 }: PatientInfoTabProps) {
@@ -393,10 +422,10 @@ export function PatientInfoTab({
   // de otro tutor mientras la pestaña lo espera en la lista).
   const presetResponsible = isCreateMode ? initialResponsible : undefined;
   const [responsibleContactName, setResponsibleContactName] = React.useState(presetResponsible?.name ?? '');
-  const [doctorDisplayName, setDoctorDisplayName] = React.useState('');
+  const [doctorDisplayName, setDoctorDisplayName] = React.useState(draftDependent?.initial?.doctorName ?? '');
   const [groupsDirty, setGroupsDirty] = React.useState(false);
   // Create mode: groups picked before the patient exists, assigned right after the upsert.
-  const [pendingGroupIds, setPendingGroupIds] = React.useState<string[]>([]);
+  const [pendingGroupIds, setPendingGroupIds] = React.useState<string[]>(draftDependent?.initial?.groupIds ?? []);
   // Otro paciente ya usa este teléfono/correo: se pide confirmación antes de guardar.
   const [duplicateWarning, setDuplicateWarning] = React.useState<{ owners: DuplicateContactOwners; data: UserFormValues } | null>(null);
   // Dato que no se puede repetir: modal en vez de texto inline, que no se ve con el form scrolleado.
@@ -409,7 +438,7 @@ export function PatientInfoTab({
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const { hasPermission } = usePermissions();
   const notifyPatientUpdated = usePatientView((s) => s.notifyPatientUpdated);
-  const canSelectExisting = isCreateMode && !!onSelectExisting && !presetResponsible && !completing;
+  const canSelectExisting = isCreateMode && !!onSelectExisting && (!presetResponsible || !!draftDependent) && !completing;
   const completingName = completing?.user.name ?? null;
   React.useEffect(() => {
     onCompletingChange?.(completingName);
@@ -419,7 +448,7 @@ export function PatientInfoTab({
   const onInvalidSubmit = useInvalidSubmitToast();
   const infoForm = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t, { identityDocumentRequired, originalName: user?.name })),
-    defaultValues: {
+    defaultValues: draftDependent?.initial?.values ?? {
       id: '', name: initialName || '', email: initialContact?.email || '', phone: initialContact?.phone || '', identity_document: '', identity_document_type: 'cedula_uy', birth_date: '', address: initialContact?.address || '',
       notes: '', is_active: true, mutual_society_id: '',
       is_dependent: !!presetResponsible, responsible_contact_id: presetResponsible?.id ?? null,
@@ -518,6 +547,10 @@ export function PatientInfoTab({
     const data = presetResponsible
       ? { ...formData, is_dependent: true, responsible_contact_id: presetResponsible.id }
       : formData;
+    if (draftDependent) {
+      draftDependent.onSubmit({ values: data, groupIds: pendingGroupIds, doctorName: doctorDisplayName });
+      return;
+    }
     const adoptDependentIds = adoptDependentId ? [adoptDependentId, ...adoptIds] : adoptIds;
     const adoptedToast = adoptIds.length > 0
       ? { title: t('DuplicateContact.adopt.successTitle'), description: t('DuplicateContact.adopt.successDescription', { count: adoptIds.length }) }
@@ -552,7 +585,7 @@ export function PatientInfoTab({
             console.error('Failed to assign groups to the new patient:', groupsError);
           }
         }
-        onSaved?.(created ?? {
+        await onSaved?.(created ?? {
           id: resolvedId,
           name: normalizePersonName(data.name),
           email: data.email || '',
@@ -597,8 +630,8 @@ export function PatientInfoTab({
       setUser(updated);
       infoForm.reset(data);
       // Ficha existente completada desde una cita: se usa en la cita en vez de crear otra.
-      if (completing) onSelectExisting?.(updated);
-      else onSaved?.(updated);
+      if (completing) await onSelectExisting?.(updated);
+      else await onSaved?.(updated);
     } catch (e: any) {
       const duplicateOwners = getDuplicateContactWarning(e);
       const conflict = getUniqueConflict(getUpsertErrorPayload(e));
@@ -641,8 +674,9 @@ export function PatientInfoTab({
     const existing = fetched?.id === String(owner.id) ? fetched : null;
     setPatientMatch(null);
     // Sin la ficha completa no se puede guardar encima (el upsert reescribe todo) y sin
-    // permiso de edición tampoco: se vincula como está.
-    if (!existing || !hasPermission(PATIENTS_PERMISSIONS.UPDATE)) {
+    // permiso de edición tampoco: se vincula como está. Un borrador de dependiente tampoco
+    // completa la ficha: solo la pone a cargo del tutor.
+    if (!existing || !hasPermission(PATIENTS_PERMISSIONS.UPDATE) || draftDependent) {
       linkExisting(existing ?? matchOwnerToUser(owner));
       return;
     }
@@ -752,7 +786,16 @@ export function PatientInfoTab({
           save footer sits right below them — hugging the form when it's short,
           pinned to the bottom edge when the form overflows. No content shows
           through the footer. */}
-      <form onSubmit={infoForm.handleSubmit((data) => handleSave(data), onInvalidSubmit)} className="flex max-h-full min-h-0 flex-col">
+      {/* `stopPropagation`: este formulario se abre dentro de otro (tutor, dependiente) y React
+          sube el `submit` por el árbol de componentes aunque la ventana esté en un portal.
+          Sin esto, guardar el de adentro también enviaría el de afuera. */}
+      <form
+        onSubmit={(event) => {
+          event.stopPropagation();
+          return infoForm.handleSubmit((data) => handleSave(data), onInvalidSubmit)(event);
+        }}
+        className="flex max-h-full min-h-0 flex-col"
+      >
         {/* El scroll va en este div y no en el `fieldset`: Chrome no hace scrollable
             la caja de un fieldset —renderiza su contenido en una caja anónima—, así
             que con `overflow-y-auto` sobre el fieldset la rueda no hacía nada y su
@@ -973,10 +1016,13 @@ export function PatientInfoTab({
             {!isPortal && showDependentField && (
               <FormField control={infoForm.control} name="is_dependent" render={({ field }) => (
                 <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!!presetResponsible} /></FormControl>
+                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!!presetResponsible || lockDependentCheckbox} /></FormControl>
                   <FormLabel>{t('UsersPage.createDialog.isDependent')}</FormLabel>
                 </FormItem>
               )} />
+            )}
+            {!isPortal && showDependentField && lockDependentCheckbox && (
+              <p className="text-xs text-muted-foreground">{t('UsersPage.dependents.draft.checkboxLocked')}</p>
             )}
             {!isPortal && showDependentField && isDependent ? (
               <ResponsibleContactField
@@ -989,6 +1035,10 @@ export function PatientInfoTab({
                 onContactMoved={onContactMoved}
               />
             ) : null}
+            {!isPortal && !isDependent && renderDependents?.({
+              patient: user,
+              guardianName: normalizePersonName(infoForm.watch('name') ?? ''),
+            })}
             {showNotes && (
               <FormField control={infoForm.control} name="notes" render={({ field }) => (
                 <FormItem>
@@ -1022,7 +1072,9 @@ export function PatientInfoTab({
             <Button type="submit" size="sm" disabled={isSaving || (isPortal && !isDirty)}>
               {isSaving
                 ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('UsersPage.notes.saving')}</>
-                : completing ? t('PatientMatch.completing.saveAndUse') : t('UsersPage.notes.save')}
+                : completing
+                  ? t('PatientMatch.completing.saveAndUse')
+                  : draftDependent ? t('UsersPage.dependents.draft.submit') : t('UsersPage.notes.save')}
             </Button>
           </div>
         )}

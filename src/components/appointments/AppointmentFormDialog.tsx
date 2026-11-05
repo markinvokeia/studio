@@ -1980,6 +1980,7 @@ export function AppointmentFormDialog({
                 initialName={createPatient.initialName}
                 // Botón Cancelar + confirmación al cerrar (Escape, X) con datos cargados.
                 showCancelAction
+                withDependents
                 onCreated={applyPatient}
                 onSelectExisting={applyPatient}
             />

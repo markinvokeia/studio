@@ -14,6 +14,7 @@
     "Hacé clic en un horario libre para crear una cita ahí mismo, o clic derecho para crear un recordatorio o una nota.",
     "Cancelar no es eliminar: una cancelación con su motivo queda en el historial y en los reportes; eliminar es para citas cargadas por error.",
     "Operaciones en lotes reasigna muchas citas a otro profesional de una sola vez (vacaciones, licencias).",
+    "Al crear un paciente desde la cita podés cargar sus dependientes en el mismo formulario: se guardan todos con Guardar. Al editarlo, cada cambio en los dependientes se guarda en el momento.",
     "La vista por defecto, la agrupación, el tamaño de las horas y las reglas al agendar se configuran en Ajustes de la agenda (engranaje); son por usuario y se guardan solas."
   ],
   "useCases": [
@@ -454,6 +455,14 @@
     "appointments.section.completing-existing": {
       "label": "Completando la ficha existente",
       "description": "Resume qué datos del alta se agregaron a la ficha elegida (marcados como «Agregado») y cuáles no coinciden: en esos se mantiene lo de la ficha. «Guardar y usar en la cita» actualiza esa misma ficha, sin crear otra."
+    },
+    "appointments.section.patient-dependents": {
+      "label": "Pacientes a cargo",
+      "description": "Las personas a cargo del paciente. En un alta quedan sin guardar hasta pulsar Guardar; si alguna falla, el paciente queda guardado y la fila muestra el motivo para corregirla y reintentar. No aparece si el paciente es dependiente."
+    },
+    "appointments.btn.add-dependent": {
+      "label": "Nuevo dependiente",
+      "description": "Abre el formulario del dependiente. Si su cédula o su teléfono ya son de otra ficha, podés vincular esa ficha en vez de crear otra."
     },
     "appointments.btn.use-existing-without-changes": {
       "label": "Usar sin guardar cambios",

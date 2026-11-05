@@ -1,5 +1,5 @@
 {
- "version": "b4138377425878b8",
+ "version": "80b2be0aee8bb787",
  "locale": "en",
  "journey": [
   {
@@ -3150,6 +3150,13 @@
   {
    "elements": [
     {
+     "description": "Opens the dependent's form. If their ID or phone already belongs to another record, you can link that record instead of creating another.",
+     "id": "appointments.btn.add-dependent",
+     "kind": "btn",
+     "label": "New dependent",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "description": "Panel to choose which room to view (custom mode).",
      "id": "appointments.btn.agendas",
      "kind": "btn",
@@ -4026,6 +4033,13 @@
      "source": "src/components/calendar/calendar-gaps-panel.tsx"
     },
     {
+     "description": "The people in this patient's care. When creating a patient they stay unsaved until you press Save; if one fails, the patient stays saved and the row shows the reason so you can fix it and try again. Hidden if the patient is a dependent.",
+     "id": "appointments.section.patient-dependents",
+     "kind": "section",
+     "label": "Patients in their care",
+     "source": "knowledge/screens/appointments.json"
+    },
+    {
      "description": "Patients who already have the same ID, email or phone, with ID, birth date and guardian to tell the person apart from a relative. Opens when reviewing matches or when saving a duplicate.",
      "id": "appointments.section.patient-matches",
      "kind": "section",
@@ -4081,6 +4095,7 @@
     "Click a free slot to create an appointment right there, or right-click to create a reminder or a note.",
     "Canceling is not deleting: a cancellation with its reason stays in the history and in the reports; deleting is for appointments entered by mistake.",
     "Bulk operations reassign many appointments to another doctor at once (vacations, leave).",
+    "When you create a patient from the appointment you can add their dependents in the same form: Save stores them all. When you edit the patient, each change to their dependents is saved right away.",
     "The default view, grouping, hour size and booking rules are set in Calendar settings (gear); they are per user and save automatically."
    ],
    "title": "Appointments",
