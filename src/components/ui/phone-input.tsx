@@ -23,6 +23,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '.';
+import { CountryFlag } from './country-flag';
 import { ScrollArea } from './scroll-area';
 
 export type PhoneInputProps = Omit<React.ComponentPropsWithoutRef<typeof Input>, 'onChange'> & {
@@ -154,7 +155,14 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
               aria-expanded={open}
               className="w-max justify-start rounded-e-none"
             >
-              {country ? `+${getCountryCallingCode(country)}` : 'Select country'}
+              {country ? (
+                <>
+                  <CountryFlag country={country} alt={country} />
+                  {`+${getCountryCallingCode(country)}`}
+                </>
+              ) : (
+                'Select country'
+              )}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
@@ -172,6 +180,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
                         onSelect={() => handleCountryChange(c.value)}
                       >
                         <Check className={cn('mr-2 h-4 w-4', country === c.value ? 'opacity-100' : 'opacity-0')} />
+                        <CountryFlag country={c.value} className="mr-2" />
                         {c.label}
                         <span className="ml-auto text-gray-400">{`+${getCountryCallingCode(c.value)}`}</span>
                       </CommandItem>
