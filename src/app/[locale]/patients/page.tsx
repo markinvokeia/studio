@@ -52,6 +52,7 @@ import { ResponsibleMatchHint } from '@/components/patients/responsible-match-hi
 import { PatientActionsMenu } from '@/components/patients/patient-actions-menu';
 import { DuplicateContactDialog, UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
 import {
+  fetchPatientById,
   getDependantContactInfo,
   getDuplicateContactWarning,
   getMutualSocietiesList,
@@ -164,6 +165,11 @@ function mapApiUser(apiUser: any): User {
     is_active: apiUser.is_active !== undefined ? apiUser.is_active : true,
     internal_id: apiUser.internal_id ?? null,
     identity_document: apiUser.identity_document,
+    // El formulario de la ficha se arma con esta fila y el guardado la reescribe entera: lo que
+    // no se copie acá se muestra vacío (o cédula) y se pisa al guardar.
+    identity_document_type: apiUser.identity_document_type || undefined,
+    address: apiUser.address || '',
+    sex: apiUser.sex ?? null,
     birth_date: formatBirthDate(apiUser.birth_date || apiUser.birthday),
     avatar: apiUser.avatar || `https://picsum.photos/seed/${apiUser.id || Math.random()}/40/40`,
     total_invoiced: apiUser.total_invoiced,
@@ -810,6 +816,23 @@ export default function UsersPage() {
     setIsRefreshing(false);
   }, [pagination, columnFilters, date, showDebtors, showOnlyActive]);
 
+  /** La ficha abierta cedió su contacto a un tutor: la cabecera la muestra sin esperar otra selección. */
+  const refreshSelectedContact = React.useCallback(async (userId: string) => {
+    const fresh = await fetchPatientById(userId);
+    if (fresh?.id !== userId) return;
+    setSelectedUser((prev) => (prev?.id === userId
+      ? {
+        ...prev,
+        email: fresh.email,
+        phone_number: fresh.phone_number,
+        is_dependent: fresh.is_dependent,
+        responsible_contact_id: fresh.responsible_contact_id,
+        responsible_contact_name: fresh.responsible_contact_name,
+        responsible_phone_number: fresh.responsible_phone_number,
+      }
+      : prev));
+  }, []);
+
   const loadUserRoles = React.useCallback(async (userId: string) => {
     setIsRolesLoading(true);
     setSelectedUserRoles([]);
@@ -1195,6 +1218,9 @@ export default function UsersPage() {
           sex: data.sex ?? null,
         });
       }
+      if (selectedUser && adoptDependentIds.includes(selectedUser.id)) {
+        void refreshSelectedContact(selectedUser.id);
+      }
       setIsDialogOpen(false);
       if (!isEditing) {
         setPagination(prev => ({ ...prev, pageIndex: 0 }));
@@ -1507,6 +1533,10 @@ export default function UsersPage() {
                             onSaved={(updated) => {
                               setSelectedUser(updated)
                               loadUsers()
+                            }}
+                            onContactMoved={() => {
+                              void refreshSelectedContact(selectedUser.id)
+                              void loadUsers()
                             }}
                           />
                         }

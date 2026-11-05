@@ -338,6 +338,8 @@ interface PatientInfoTabProps {
   onSelectExisting?: (user: User) => void;
   /** Avisa al host que el alta pasó a completar una ficha existente (su nombre) o volvió (`null`). */
   onCompletingChange?: (name: string | null) => void;
+  /** El alta del tutor le sacó a esta ficha su teléfono/correo: el host puede refrescar lo que muestra. */
+  onContactMoved?: () => void;
 }
 
 /** Padding del área de campos y del pie de guardado, por host. */
@@ -368,6 +370,7 @@ export function PatientInfoTab({
   adoptDependentId,
   onSelectExisting,
   onCompletingChange,
+  onContactMoved,
 }: PatientInfoTabProps) {
   const padding = VARIANT_PADDING[variant];
   const isCreateMode = !userId && !userProp;
@@ -431,6 +434,7 @@ export function PatientInfoTab({
     phone: infoForm.watch('phone') ?? '',
   });
   const isDirty = infoForm.formState.isDirty || groupsDirty;
+  const loadedUserIdRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     onDirtyChange?.(isDirty);
@@ -440,34 +444,47 @@ export function PatientInfoTab({
     onDirtyChange?.(false);
   }, [onDirtyChange]);
 
+  // La lista llega aparte de la ficha: que se recargue no tiene que tocar el formulario.
+  React.useEffect(() => {
+    if (mutualSocietiesProp) setMutualSocieties(mutualSocietiesProp);
+  }, [mutualSocietiesProp]);
+
+  const hasSocietiesProp = !!mutualSocietiesProp;
   React.useEffect(() => {
     let active = true;
-    const applyUser = (u: User | null, societies: MutualSociety[]) => {
+    const applyUser = (u: User | null, societies: MutualSociety[] | null) => {
       if (!active) return;
-      setMutualSocieties(societies);
+      if (societies) setMutualSocieties(societies);
       if (u) {
         setUser(u);
-        setResponsibleContactName(u.responsible_contact_name || '');
-        setDoctorDisplayName(u.doctor_name || '');
-        infoForm.reset(userToFormValues(u));
+        // La misma ficha puede volver a llegar mientras se edita (el host refrescó sus datos):
+        // se actualiza lo que no se tocó y se conserva lo que la persona ya cambió.
+        const sameRecord = loadedUserIdRef.current === u.id;
+        loadedUserIdRef.current = u.id;
+        const { dirtyFields } = infoForm.formState;
+        if (!sameRecord || !dirtyFields.responsible_contact_id) {
+          setResponsibleContactName(u.responsible_contact_name || '');
+        }
+        if (!sameRecord || !dirtyFields.doctor_id) {
+          setDoctorDisplayName(u.doctor_name || '');
+        }
+        infoForm.reset(userToFormValues(u), { keepDirtyValues: sameRecord });
       }
       setIsLoading(false);
     };
 
     if (userProp) {
       // Preloaded: only fetch societies if they weren't provided.
-      const societiesPromise = mutualSocietiesProp ? Promise.resolve(mutualSocietiesProp) : getMutualSocietiesList();
-      societiesPromise.then((soc) => applyUser(userProp, soc));
+      (hasSocietiesProp ? Promise.resolve(null) : getMutualSocietiesList()).then((soc) => applyUser(userProp, soc));
     } else if (!userId) {
       // Create mode: empty form, only the societies list is needed.
-      const societiesPromise = mutualSocietiesProp ? Promise.resolve(mutualSocietiesProp) : getMutualSocietiesList();
-      societiesPromise.then((soc) => applyUser(null, soc));
+      (hasSocietiesProp ? Promise.resolve(null) : getMutualSocietiesList()).then((soc) => applyUser(null, soc));
     } else {
       setIsLoading(true);
       Promise.all([fetchPatientById(userId), getMutualSocietiesList()]).then(([fetchedUser, soc]) => applyUser(fetchedUser, soc));
     }
     return () => { active = false; };
-  }, [userId, userProp, mutualSocietiesProp, infoForm]);
+  }, [userId, userProp, hasSocietiesProp, infoForm]);
 
   React.useEffect(() => {
     if (!isDependent && infoForm.getValues('responsible_contact_id') !== null) {
@@ -933,12 +950,18 @@ export function PatientInfoTab({
             <FormField control={infoForm.control} name="mutual_society_id" render={({ field }) => (
               <FormItem>
                 <FormLabel>{t('UsersPage.mutualSociety.select')}{addedMark('mutual_society_id')}</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || ''}>
+                {/* Si el valor llega antes que su opción (la lista carga aparte), el Select dispara un
+                    cambio con '' y guardar borraría la mutualista. Elegir "Sin asignar" manda 'none'. */}
+                <Select onValueChange={(value) => { if (value) field.onChange(value); }} value={field.value || ''}>
                   <FormControl>
                     <SelectTrigger><SelectValue placeholder={t('UsersPage.mutualSociety.select')} /></SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     <SelectItem value="none">{t('UsersPage.mutualSociety.none')}</SelectItem>
+                    {/* Mientras no llega la lista, o si la mutualista de la ficha ya no está activa. */}
+                    {field.value && field.value !== 'none' && !mutualSocieties.some((ms) => String(ms.id) === field.value) && (
+                      <SelectItem value={field.value}>{user?.mutual_society_name || t('Common.loading')}</SelectItem>
+                    )}
                     {mutualSocieties.map((ms) => (
                       <SelectItem key={ms.id} value={String(ms.id)}>{ms.name}</SelectItem>
                     ))}
@@ -963,6 +986,7 @@ export function PatientInfoTab({
                 onDisplayNameChange={setResponsibleContactName}
                 showCancelAction={showCancelAction}
                 locked={!!presetResponsible}
+                onContactMoved={onContactMoved}
               />
             ) : null}
             {showNotes && (
