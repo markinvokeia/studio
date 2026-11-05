@@ -66,7 +66,7 @@
       "action": "highlight",
       "target": "patients.section.odontogram-create",
       "title": "Odontograma",
-      "details": "Elegí una condición y tocá la pieza o cara. Al guardar queda como sesión en la línea de tiempo.",
+      "details": "Tocá la cara de la pieza y después la condición en el inspector de la derecha; con «Registrar como» elegís si es indicado, existente o hecho hoy. También podés dictarlo arriba: queda propuesto hasta que confirmes.",
       "doneOnClose": true
     }
   ]

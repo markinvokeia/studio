@@ -570,6 +570,38 @@
     "patients.btn.prepaid-confirm": {
       "label": "Confirmar pago anticipado",
       "description": "Segunda confirmación del pago anticipado: al aceptarla se registra el saldo a favor."
+    },
+    "patients.section.odontogram-dictation": {
+      "label": "Dictado de hallazgos",
+      "description": "Barra para dictar o escribir lo que se ve («caries OM en 16, corona indicada en 14»). Invoke lo propone en los dientes y no se registra hasta confirmar."
+    },
+    "patients.field.odontogram-dictation": {
+      "label": "Texto dictado",
+      "description": "Pieza, condición, caras y estado: «indicada», «existente» o «hoy». Admite rangos para puentes («del 24 al 26»)."
+    },
+    "patients.btn.odontogram-propose": {
+      "label": "Proponer",
+      "description": "Convierte el texto en propuestas punteadas sobre los dientes; lo que ya estaba registrado se descarta solo."
+    },
+    "patients.btn.odontogram-confirm-proposals": {
+      "label": "Confirmar todo",
+      "description": "Registra en el odontograma todas las propuestas de la bandeja. «Descartar» las saca sin guardar nada."
+    },
+    "patients.section.odontogram-inspector": {
+      "label": "Inspector de la pieza",
+      "description": "Con una pieza elegida: sus caras, cómo registrar, las condiciones y lo que ya tiene. Sin pieza, el estado de toda la boca."
+    },
+    "patients.field.odontogram-record-as": {
+      "label": "Registrar como",
+      "description": "Indicado (rojo, por hacer), Existente (azul, ya estaba) o Hecho hoy (verde, realizado en esta sesión). Define el color y el estado de lo que marques."
+    },
+    "patients.section.odontogram-tiles": {
+      "label": "Condiciones frecuentes",
+      "description": "Un toque registra la condición en la pieza o caras elegidas. El pincel de cada ficha la deja activa para marcar varias piezas seguidas."
+    },
+    "patients.field.odontogram-search": {
+      "label": "Buscar condición",
+      "description": "Todo el catálogo de condiciones, por nombre o código, y filtrado por categoría."
     }
   }
 }

@@ -44,7 +44,7 @@
     {
       "id": "chart",
       "title": "Odontogram",
-      "details": "Choose a condition and tap the tooth or surface. When saved it stays as a session on the timeline."
+      "details": "Tap the tooth surface, then the condition in the inspector on the right; “Record as” sets whether it is indicated, existing or done today. You can also dictate it at the top: it stays proposed until you confirm."
     }
   ]
 }

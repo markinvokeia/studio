@@ -174,6 +174,38 @@
     "workspace.btn.submit": {
       "label": "Save",
       "description": "Save the clinical session or the prescription."
+    },
+    "workspace.section.odontogram-dictation": {
+      "label": "Dictate findings",
+      "description": "Bar to dictate or type what you see (“caries OM en 16, corona indicada en 14”). Invoke proposes it on the teeth and nothing is recorded until you confirm."
+    },
+    "workspace.field.odontogram-dictation": {
+      "label": "Dictated text",
+      "description": "Tooth, condition, surfaces and status: “indicada”, “existente” or “hoy”. Accepts ranges for bridges (“del 24 al 26”)."
+    },
+    "workspace.btn.odontogram-propose": {
+      "label": "Propose",
+      "description": "Turns the text into dashed proposals on the teeth; anything already recorded is dropped automatically."
+    },
+    "workspace.btn.odontogram-confirm-proposals": {
+      "label": "Confirm all",
+      "description": "Records every proposal of the tray on the odontogram. “Discard” removes them without saving anything."
+    },
+    "workspace.section.odontogram-inspector": {
+      "label": "Tooth inspector",
+      "description": "With a tooth selected: its surfaces, how to record, the conditions and what it already has. With no tooth, the state of the whole mouth."
+    },
+    "workspace.field.odontogram-record-as": {
+      "label": "Record as",
+      "description": "Indicated (red, to do), Existing (blue, already there) or Done today (green, done in this session). Sets the color and status of what you mark."
+    },
+    "workspace.section.odontogram-tiles": {
+      "label": "Frequent conditions",
+      "description": "One tap records the condition on the selected tooth or surfaces. The brush on each tile keeps it active to mark several teeth in a row."
+    },
+    "workspace.field.odontogram-search": {
+      "label": "Search condition",
+      "description": "The whole condition catalog, by name or code, filtered by category."
     }
   }
 }

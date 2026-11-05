@@ -7949,13 +7949,9 @@
     "editSession": "Editar Sesión",
     "noSessions": "Sin sesiones registradas",
     "noSessionsDesc": "Inicia una nueva sesión para comenzar el odontograma.",
-    "readOnly": "Solo lectura",
     "editing": "Editando",
     "prevSession": "Sesión anterior",
     "nextSession": "Sesión siguiente",
-    "selectToothHint": "Toca un diente para ver detalles y aplicar condiciones",
-    "clearTooth": "Limpiar diente",
-    "clearAll": "Limpiar odontograma",
     "fullscreen": "Pantalla completa",
     "exitFullscreen": "Salir de pantalla completa",
     "conditions": {
@@ -7995,16 +7991,6 @@
       "extrusion": "Extrusión",
       "post": "Perno"
     },
-    "perio": {
-      "probing": "Profundidad de bolsa",
-      "recession": "Recesión",
-      "bleeding": "Sangrado",
-      "suppuration": "Supuración",
-      "mobility": "Movilidad",
-      "furcation": "Furca",
-      "bop": "ISS",
-      "nic": "NIC"
-    },
     "session": {
       "newTitle": "Registrar Sesión",
       "editTitle": "Editar Sesión",
@@ -8023,7 +8009,6 @@
       "saveSuccess": "Sesión registrada",
       "saveError": "No se pudo guardar la sesión. Inténtalo nuevamente.",
       "attachment": "Adjunto",
-      "stateSummary": "Dientes y condiciones",
       "doctor": "Doctor",
       "doctorPlaceholder": "Seleccionar doctor",
       "doctorRequired": "Selecciona un doctor",
@@ -8046,8 +8031,7 @@
         "toastSuccess": "Paciente dado de alta correctamente",
         "dateRequired": "Debes seleccionar una fecha de alta."
       },
-      "defaultTitle": "Sesión Odontograma {date}",
-      "wholeToothShort": "pieza"
+      "defaultTitle": "Sesión Odontograma {date}"
     },
     "quickBilling": "Cobro Rápido",
     "categories": {
@@ -8080,86 +8064,19 @@
     "board": {
       "surfaceTitle": "Diente {tooth} - {surface}",
       "toothLabel": "Diente {tooth}",
-      "piece": "Pieza {tooth}",
-      "upperPiece": "Pieza superior",
-      "lowerPiece": "Pieza inferior",
-      "clickToZoom": "Haz clic en un diente para ampliarlo aquí",
-      "filter": {
-        "permanent": "Permanente",
-        "temporal": "Temporal",
-        "both": "Ambas"
-      },
-      "layout": {
-        "anatomical": "Arcada anatómica",
-        "traditional": "FDI tradicional"
-      },
-      "activeToolBanner": "Herramienta activa: <strong>{tool}</strong>. Haz clic en cualquier diente o superficie para aplicarla.",
-      "deactivateTool": "Desactivar herramienta",
-      "quadrant": {
-        "q1": "Permanente superior derecho (Q1)",
-        "q2": "Permanente superior izquierdo (Q2)",
-        "q3": "Permanente inferior izquierdo (Q3)",
-        "q4": "Permanente inferior derecho (Q4)",
-        "q5": "Temporal superior derecho (Q5)",
-        "q6": "Temporal superior izquierdo (Q6)",
-        "q7": "Temporal inferior izquierdo (Q7)",
-        "q8": "Temporal inferior derecho (Q8)"
-      }
-    },
-    "palette": {
-      "title": "Simbología",
-      "selectMode": "Modo selección",
-      "selectModeHint": "Modo puntero: selecciona un diente para ver sus detalles",
-      "search": "Buscar",
-      "searchHint": "Buscar procedimientos o símbolos",
-      "searchPlaceholder": "Buscar código o nombre...",
-      "clearSearch": "Limpiar búsqueda",
-      "categoryCount": "{category} ({count, plural, one {# símbolo} other {# símbolos}})",
-      "results": "Resultados ({count})",
-      "noResults": "No hay coincidencias.",
-      "closeCategory": "Cerrar categoría",
-      "pickCategory": "Toca una categoría para desplegar sus símbolos.",
-      "symbol": "Símbolo: {symbol}",
-      "appliesTo": {
-        "surface": "Superficies",
-        "tooth": "Pieza",
-        "both": "Ambas"
-      },
-      "legendTitle": "Simbología FDI:",
-      "legend": {
-        "amalgam": "Amalgama",
-        "resin": "Resina",
-        "required": "Requerida",
-        "caries": "Caries",
-        "missing": "Ausente",
-        "extraction": "Exodoncia"
-      }
-    },
-    "toothCard": {
-      "removeProcedure": "Quitar",
-      "temporal": "Pieza temporal",
-      "permanent": "Pieza permanente",
-      "undo": "Deshacer",
-      "quickAdd": "Patología o procedimiento para la pieza {tooth}",
-      "quickAddPlaceholder": "+ Selecciona una condición o tratamiento del listado FDI...",
-      "alreadyApplied": "(ya registrado)",
-      "summary": "Marcado en esta pieza",
-      "wholeTooth": "pieza",
-      "noMarks": "Aún no hay nada marcado en esta pieza.",
-      "notes": "Notas de la pieza",
-      "notesPlaceholder": "Diagnóstico, observaciones o notas de esta pieza..."
+      "piece": "Pieza {tooth}"
     },
     "autoNote": {
       "surfaceAdded": "D{tooth}({surface}): {label}",
       "surfaceRemoved": "D{tooth}({surface}): {label} eliminado",
       "toothAdded": "D{tooth}: {label} (pieza completa)",
       "toothRemoved": "D{tooth}: {label} eliminado",
-      "cleared": "D{tooth}: limpiado"
+      "cleared": "D{tooth}: limpiado",
+      "rangeAdded": "D{from}–{to}: {label}",
+      "statusChanged": "D{tooth}: {label} → {status}",
+      "voided": "D{tooth}: {label} anulado ({reason})"
     },
     "confirm": {
-      "clearAllTitle": "¿Limpiar el odontograma completo?",
-      "clearAllDescription": "Se quitarán todas las marcas de esta sesión. Puedes deshacerlo mientras sigas editando.",
-      "clearAllAction": "Sí, limpiar todo",
       "cancelTitle": "¿Descartar los cambios?",
       "cancelDescription": "Se perderán los cambios realizados en esta sesión.",
       "cancelAction": "Sí, descartar",
@@ -8521,6 +8438,196 @@
         "description": "Fractura general de la corona.",
         "symbol": "Zigzag amarillo"
       }
+    },
+    "status": {
+      "indicated": "Indicado",
+      "existing": "Existente",
+      "done": "Hecho hoy",
+      "indicatedLong": "Hallazgo / indicado",
+      "existingLong": "Existente",
+      "doneLong": "Realizado hoy",
+      "pending": "Propuesto por Invoke"
+    },
+    "toolbar": {
+      "label": "Herramientas",
+      "select": "Seleccionar (Esc)",
+      "brush": "Pincel (B): aplicar la misma condición pieza por pieza",
+      "eraser": "Borrador (E): quitar lo marcado hoy",
+      "undo": "Deshacer",
+      "redo": "Rehacer",
+      "undoShortcut": "Deshacer (Ctrl+Z)",
+      "redoShortcut": "Rehacer (Ctrl+Y)"
+    },
+    "workspace": {
+      "viewLabel": "Vista",
+      "views": {
+        "fdi": "Odontograma",
+        "arch": "Arcada",
+        "history": "Historial"
+      },
+      "dentitionLabel": "Dentición",
+      "dentition": {
+        "permanent": "Permanente",
+        "mixed": "Mixta",
+        "temporal": "Temporal"
+      },
+      "layersLabel": "Capas",
+      "layerToggle": "Mostrar u ocultar",
+      "quadrant": {
+        "q1": "Q1 · superior derecho",
+        "q2": "Q2 · superior izquierdo",
+        "q3": "Q3 · inferior izquierdo",
+        "q4": "Q4 · inferior derecho"
+      },
+      "archSeparator": "Superior ↑ · ↓ Inferior",
+      "archUpper": "Maxilar",
+      "archLower": "Mandíbula",
+      "archCount": {
+        "indicated": "{count} indicados",
+        "existing": "{count} existentes",
+        "done": "{count} hechos hoy"
+      },
+      "shortcuts": "Atajos: 16 ir a la pieza · O M D V P caras · B pincel · E borrador · / dictar · Shift+clic varias",
+      "history": {
+        "empty": "Todavía no hay sesiones de odontograma.",
+        "hint": "Así quedó la boca al guardar esa sesión. Es de solo lectura: nada se pisa, lo anulado queda con fecha y motivo."
+      },
+      "banner": {
+        "brush": "Pincel: {condition} como {status}",
+        "rangeFirst": "Toca la primera pieza del puente",
+        "rangeFrom": "Desde {tooth}: toca la pieza del otro extremo",
+        "brushSurfaces": "Toca superficies (otra vez para quitar)",
+        "brushTeeth": "Toca piezas (otra vez para quitar)",
+        "exit": "Salir (Esc)",
+        "eraser": "Borrador: toca una superficie o una pieza para quitar lo marcado hoy.",
+        "doneMode": "Estás registrando como realizado hoy.",
+        "backToFindings": "Volver a hallazgos"
+      },
+      "toast": {
+        "pickTooth": "Elige una pieza primero (tócala o escribe su número)",
+        "pickSurface": "{condition} va por cara: toca una o más superficies (O, M, D, V, P/L)",
+        "pickRangeEnd": "{condition}: toca la pieza del otro extremo",
+        "sameArch": "Las dos piezas tienen que estar en la misma arcada",
+        "recorded": "{condition} · {where} · {status}",
+        "brushNeedsSurface": "Con este pincel se marcan caras: toca una superficie",
+        "inheritedUseVoid": "Lo de sesiones anteriores no se borra: abre la pieza y usa «Anular» (queda registrado)",
+        "nothingToErase": "No hay marcas de hoy en esa pieza",
+        "erased": "Borrado en {where}",
+        "brushOn": "Pincel: {condition} como {status}. Toca las piezas; Esc para salir",
+        "invalidTooth": "{tooth} no es una pieza válida"
+      }
+    },
+    "inspector": {
+      "label": "Pieza seleccionada",
+      "recordAs": "Registrar como",
+      "bySurface": "Va por cara: elige las superficies primero",
+      "useAsBrush": "Usar como pincel",
+      "useAsBrushFor": "Usar {condition} como pincel",
+      "searchPlaceholder": "Buscar condición o tratamiento",
+      "scope": {
+        "surface": "por cara",
+        "tooth": "pieza"
+      },
+      "noResults": "Sin resultados",
+      "surfacesOf": "Superficies de la pieza {tooth}",
+      "fromEarlier": "De una sesión anterior",
+      "fromToday": "De esta sesión",
+      "dictated": "dictado",
+      "byAgent": "propuesto por Invoke",
+      "changeStatusTo": "Cambiar a {status}",
+      "void": "Anular (queda registrado)",
+      "remove": "Eliminar",
+      "temporalSuffix": "temporal",
+      "position": {
+        "q1": "Superior derecho · permanente",
+        "q2": "Superior izquierdo · permanente",
+        "q3": "Inferior izquierdo · permanente",
+        "q4": "Inferior derecho · permanente",
+        "q5": "Superior derecho · temporal",
+        "q6": "Superior izquierdo · temporal",
+        "q7": "Inferior izquierdo · temporal",
+        "q8": "Inferior derecho · temporal"
+      },
+      "prevTooth": "Pieza anterior",
+      "nextTooth": "Pieza siguiente",
+      "close": "Cerrar (Esc)",
+      "chosenSurfaces": "Caras: {surfaces}",
+      "clearSurfaces": "Limpiar caras",
+      "surfacesHint": "Toca las caras afectadas aquí o en el odontograma. Para corona, endodoncia o exodoncia no hace falta.",
+      "readOnlyHint": "Vista de solo lectura. Edita la sesión para marcar.",
+      "onThisTooth": "En esta pieza",
+      "healthy": "Sin registros. Pieza sana hasta ahora.",
+      "voidedAt": "Anulado el {date} · {reason}",
+      "toothNotes": "Notas de la pieza",
+      "toothNotesPlaceholder": "Diagnóstico u observaciones de la pieza {tooth}",
+      "multiTitle": "Piezas {teeth}",
+      "multiHint": "Lo que elijas se aplica a todas. «Puente fijo» une el rango.",
+      "multiSurfacesHint": "Para marcar caras en varias piezas, elige primero las caras en una de ellas.",
+      "mouthState": "Estado de la boca",
+      "teethWithMarks": "{count, plural, one {# pieza con registros} other {# piezas con registros}}",
+      "emptyMouth": "Sin registros todavía.",
+      "changesToday": "{count, plural, =0 {Sin cambios todavía en esta sesión} one {# marca nueva en esta sesión} other {# marcas nuevas en esta sesión}}",
+      "tipTitle": "Dos toques por marca:",
+      "tip": "toca la cara de la pieza en el odontograma y después la condición. Para repetir la misma condición en varias piezas, usa el pincel.",
+      "tiles": {
+        "caries": "Caries",
+        "resin": "Resina",
+        "endo-indicated": "Endodoncia",
+        "crown-indicated": "Corona",
+        "extraction-indicated": "Exodoncia",
+        "missing": "Ausente",
+        "implant-planned": "Implante",
+        "bridge-in-progress": "Puente fijo"
+      },
+      "concepts": {
+        "crown": "Corona",
+        "endo": "Endodoncia",
+        "implant": "Implante",
+        "extraction": "Exodoncia / ausente",
+        "bridge": "Puente fijo"
+      },
+      "backToFrequent": "Frecuentes"
+    },
+    "dictation": {
+      "label": "Dictado de hallazgos",
+      "placeholder": "Dicta o escribe: «caries OM en 16, corona indicada en 14, puente defectuoso del 24 al 26»",
+      "propose": "Proponer",
+      "empty": "Escribe o dicta los hallazgos, por ejemplo: «caries OM en 16, corona indicada en 14»",
+      "nothingFound": "No he encontrado piezas ni condiciones. Prueba: «caries mesial en 16»",
+      "allRecorded": "Todo eso ya estaba registrado en el odontograma",
+      "proposed": "{count, plural, one {Invoke propone # cambio} other {Invoke propone # cambios}}. Revísalos antes de confirmar.",
+      "duplicates": "{count, plural, one {# ya estaba registrado} other {# ya estaban registrados}}",
+      "unparsed": "No lo he entendido: «{text}»"
+    },
+    "proposals": {
+      "label": "Cambios propuestos",
+      "title": "{count, plural, one {Invoke propone # cambio} other {Invoke propone # cambios}}",
+      "confirm": "Confirmar todo",
+      "discard": "Descartar",
+      "remove": "Quitar",
+      "confirmed": "Cambios confirmados en el odontograma",
+      "pendingOnSave": "{count, plural, one {Queda # cambio propuesto sin confirmar} other {Quedan # cambios propuestos sin confirmar}}: confírmalos o descártalos antes de registrar la sesión."
+    },
+    "void": {
+      "title": "Anular la marca",
+      "description": "{condition} en la pieza {tooth} es de una sesión anterior: no se borra, queda anulada con fecha, autor y motivo.",
+      "reasonLabel": "Motivo",
+      "reasonPlaceholder": "Por ejemplo: error de carga, se rehízo en otra clínica",
+      "cancel": "Cancelar",
+      "confirm": "Anular",
+      "done": "Anulada: queda en el historial con fecha y autor"
+    },
+    "steps": {
+      "label": "Pasos de la sesión",
+      "chart": "Odontograma",
+      "register": "Registro",
+      "continue": "Continuar",
+      "back": "Volver al odontograma",
+      "summaryTitle": "Odontograma de esta sesión",
+      "edit": "Editar marcas"
+    },
+    "timeline": {
+      "openSession": "Abrir esta sesión del odontograma"
     }
   },
   "SecretarySessionNotification": {
@@ -11395,7 +11502,9 @@
       },
       "timeline": {
         "continue": "Continuar sesión",
-        "voidReason": "Motivo de anulación"
+        "voidReason": "Motivo de anulación",
+        "openPreview": "Abrir esta sesión",
+        "noMarks": "Sin marcas en el mapa"
       },
       "hints": {
         "region": {

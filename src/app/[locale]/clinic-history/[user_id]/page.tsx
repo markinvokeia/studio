@@ -37,6 +37,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
+import { OdontogramSessionPreview } from '@/components/users/dental-record/odontogram-session-preview';
 import { formatOdontogramEntries, getConditionLabel } from '@/components/users/dental-record/odontogram-state';
 import { ClinicSessionDialog, ClinicSessionFormData } from '@/components/clinic-session-dialog';
 import { API_ROUTES } from '@/constants/routes';
@@ -1742,6 +1743,8 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
     const userId = (params?.user_id as string) || initialUserId;
 
     const [activeView, setActiveView] = useState('anamnesis');
+    /** Odontogram session picked in the timeline: the odontogram tab opens on it */
+    const [odontogramSessionId, setOdontogramSessionId] = useState<string | undefined>(undefined);
 
     // Patient Search State
     const [patientSearchOpen, setPatientSearchOpen] = useState(false);
@@ -2209,7 +2212,14 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                                 </DropdownMenu>
                                             ) : null}
                                         </div>
-                                        <div className="space-y-2.5 text-sm">
+                                        <div className={cn(session.tipo_sesion === 'odontograma' && 'grid items-start gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]')}>
+                                        {session.tipo_sesion === 'odontograma' && (
+                                            <OdontogramSessionPreview
+                                                state={session.estado_odontograma}
+                                                onOpen={() => { setOdontogramSessionId(String(session.sesion_id)); setActiveView('odontogram'); }}
+                                            />
+                                        )}
+                                        <div className="min-w-0 space-y-2.5 text-sm">
                                             {session.diagnostico && (
                                                 <div className="flex items-start gap-2">
                                                     <span className="font-medium text-foreground shrink-0">{t('diagnosis')}:</span>
@@ -2289,6 +2299,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                                     </div>
                                                 </CollapsibleContent>
                                             </Collapsible>
+                                        </div>
                                         </div>
                                     </div>
                                 </div>
@@ -2396,6 +2407,7 @@ const DentalClinicalSystem = ({ userId: initialUserId }: { userId: string }) => 
                                     <DentalRecordViewer
                                         patientId={userId}
                                         patientName={selectedPatient?.name}
+                                        initialSessionId={odontogramSessionId}
                                     />
                                 </div>
                             )}

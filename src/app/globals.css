@@ -932,3 +932,29 @@ div[role="combobox"][aria-invalid="true"] {
 @media print {
   .help-content-zone > .ivm-peekzone-content { display: block; background: none; }
 }
+
+/* ── Odontograma: color por estado de la marca y dibujo de la pieza ─────────── */
+:root {
+  --odo-ind: #DC2626;
+  --odo-ex: #2563EB;
+  --odo-hoy: #16A34A;
+  --odo-pend: #7C3AED;
+  --odo-tooth: #FFFFFF;
+  --odo-tooth-line: #B7AECB;
+  --odo-root: #F3F0F9;
+  --odo-surf: #FFFFFF;
+  --odo-sel: #F3EEFF;
+  --odo-hover: #F1EEF8;
+}
+.dark {
+  --odo-ind: #F87171;
+  --odo-ex: #60A5FA;
+  --odo-hoy: #4ADE80;
+  --odo-pend: #A78BFA;
+  --odo-tooth: #2A2539;
+  --odo-tooth-line: #5E5677;
+  --odo-root: #221E2F;
+  --odo-surf: #2F2942;
+  --odo-sel: #251D3D;
+  --odo-hover: #221E2F;
+}

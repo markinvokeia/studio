@@ -2208,48 +2208,6 @@ export type QuoteClinicSession = {
   doctor_nombre: string | null;
 };
 
-// ──── Dental Record (Expediente Médico) ────
-
-export type ToothConditionType =
-  | 'healthy' | 'caries' | 'filling' | 'crown' | 'missing'
-  | 'implant' | 'root_canal' | 'bridge' | 'impacted' | 'extracted';
-
-export type ToothCondition = {
-  toothId: string;
-  condition: ToothConditionType;
-  surfaces?: ('occlusal' | 'mesial' | 'distal' | 'buccal' | 'lingual')[];
-  color?: string;
-  notes?: string;
-};
-
-export type SixPointMeasure = { MB: number; B: number; DB: number; ML: number; L: number; DL: number };
-export type SixPointBool = { MB: boolean; B: boolean; DB: boolean; ML: boolean; L: boolean; DL: boolean };
-
-export type ToothPerioData = {
-  toothId: string;
-  missing?: boolean;
-  implant?: boolean;
-  probing: SixPointMeasure;
-  recession: SixPointMeasure;
-  bleeding: SixPointBool;
-  suppuration: SixPointBool;
-  mobility: 0 | 1 | 2 | 3;
-  furcation: 0 | 1 | 2 | 3;
-};
-
-export type DentalRecordSession = {
-  id: string;
-  patient_id: string;
-  date: string;
-  label?: string;
-  doctor_id?: string;
-  doctor_name?: string;
-  odontogram: ToothCondition[];
-  periodontogram: ToothPerioData[];
-  notes?: string;
-  created_at: string;
-};
-
 // ──── Odontogram (interactive, session-based) ────
 
 /**
@@ -2316,6 +2274,39 @@ export type OdontogramToothState = {
   overlays?: OdontogramCondition[];
   /** Free-text clinical notes for this tooth */
   notes?: string;
+  /**
+   * Optional details of each mark, keyed by surface (`top`…`center`) or by `t:<condition>` for
+   * tooth-level marks. Older sessions have none: their status comes from the condition id.
+   */
+  meta?: Record<string, OdontogramMarkMeta>;
+  /** Marks inherited from an earlier session that were voided in this one (kept for the audit trail) */
+  voided?: OdontogramVoidedMark[];
+};
+
+/** Hallazgo / indicado · existente · realizado hoy */
+export type OdontogramMarkStatus = 'indicated' | 'existing' | 'done';
+
+/** Where a mark came from: the chart, dictation in the odontogram, or the doctor agent */
+export type OdontogramMarkSource = 'manual' | 'voice' | 'agent';
+
+export type OdontogramMarkMeta = {
+  st?: OdontogramMarkStatus;
+  /** ISO datetime the mark was recorded */
+  at?: string;
+  /** User id that recorded it */
+  by?: string;
+  src?: OdontogramMarkSource;
+  /** Groups the teeth of one bridge */
+  range?: string;
+};
+
+export type OdontogramVoidedMark = {
+  /** Surface or `t:<condition>`, same as the `meta` key */
+  slot: string;
+  condition: OdontogramCondition;
+  reason: string;
+  at: string;
+  by?: string;
 };
 
 /** Keyed by FDI tooth ID string (e.g. "16", "48") */

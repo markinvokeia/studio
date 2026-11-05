@@ -29,7 +29,7 @@
     {
       "id": "chart",
       "title": "Odontogram",
-      "details": "Tap a tooth to see and mark its status and its surfaces. What you mark today stays in an odontogram session for this appointment."
+      "details": "Tap the tooth surface, then the condition in the inspector; “Record as” sets whether it is indicated, existing or done today. What you dictate to the agent shows up as a proposal until you confirm it, and everything goes into this appointment's odontogram session."
     }
   ]
 }

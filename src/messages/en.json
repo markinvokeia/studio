@@ -7949,13 +7949,9 @@
     "editSession": "Edit Session",
     "noSessions": "No sessions recorded",
     "noSessionsDesc": "Start a new session to begin charting.",
-    "readOnly": "Read-only",
     "editing": "Editing",
     "prevSession": "Previous session",
     "nextSession": "Next session",
-    "selectToothHint": "Click a tooth to see details and apply conditions",
-    "clearTooth": "Clear tooth",
-    "clearAll": "Clear chart",
     "fullscreen": "Fullscreen",
     "exitFullscreen": "Exit fullscreen",
     "conditions": {
@@ -7995,16 +7991,6 @@
       "extrusion": "Extrusion",
       "post": "Post"
     },
-    "perio": {
-      "probing": "Probing Depth",
-      "recession": "Recession",
-      "bleeding": "Bleeding",
-      "suppuration": "Suppuration",
-      "mobility": "Mobility",
-      "furcation": "Furcation",
-      "bop": "BOP",
-      "nic": "CAL"
-    },
     "session": {
       "newTitle": "Register Session",
       "editTitle": "Edit Session",
@@ -8023,7 +8009,6 @@
       "saveSuccess": "Session registered",
       "saveError": "Could not save session. Please try again.",
       "attachment": "Attachment",
-      "stateSummary": "Teeth & conditions",
       "doctor": "Doctor",
       "doctorPlaceholder": "Select a doctor",
       "doctorRequired": "Please select a doctor",
@@ -8046,8 +8031,7 @@
         "toastSuccess": "Patient discharged successfully",
         "dateRequired": "You must select a discharge date."
       },
-      "defaultTitle": "Odontogram session {date}",
-      "wholeToothShort": "tooth"
+      "defaultTitle": "Odontogram session {date}"
     },
     "quickBilling": "Quick Billing",
     "categories": {
@@ -8080,86 +8064,19 @@
     "board": {
       "surfaceTitle": "Tooth {tooth} - {surface}",
       "toothLabel": "Tooth {tooth}",
-      "piece": "Tooth {tooth}",
-      "upperPiece": "Upper tooth",
-      "lowerPiece": "Lower tooth",
-      "clickToZoom": "Click a tooth to zoom here",
-      "filter": {
-        "permanent": "Permanent",
-        "temporal": "Primary",
-        "both": "Both"
-      },
-      "layout": {
-        "anatomical": "Anatomical arch",
-        "traditional": "Traditional FDI"
-      },
-      "activeToolBanner": "Active tool: <strong>{tool}</strong>. Click any tooth or surface to apply it.",
-      "deactivateTool": "Turn off tool",
-      "quadrant": {
-        "q1": "Permanent upper right (Q1)",
-        "q2": "Permanent upper left (Q2)",
-        "q3": "Permanent lower left (Q3)",
-        "q4": "Permanent lower right (Q4)",
-        "q5": "Primary upper right (Q5)",
-        "q6": "Primary upper left (Q6)",
-        "q7": "Primary lower left (Q7)",
-        "q8": "Primary lower right (Q8)"
-      }
-    },
-    "palette": {
-      "title": "Symbols",
-      "selectMode": "Select mode",
-      "selectModeHint": "Pointer mode: select a tooth to see its details",
-      "search": "Search",
-      "searchHint": "Search procedures or symbols",
-      "searchPlaceholder": "Search code or name...",
-      "clearSearch": "Clear search",
-      "categoryCount": "{category} ({count, plural, one {# symbol} other {# symbols}})",
-      "results": "Results ({count})",
-      "noResults": "No matches.",
-      "closeCategory": "Close category",
-      "pickCategory": "Tap a category to show its symbols.",
-      "symbol": "Symbol: {symbol}",
-      "appliesTo": {
-        "surface": "Surfaces",
-        "tooth": "Tooth",
-        "both": "Both"
-      },
-      "legendTitle": "FDI symbols:",
-      "legend": {
-        "amalgam": "Amalgam",
-        "resin": "Resin",
-        "required": "Required",
-        "caries": "Caries",
-        "missing": "Missing",
-        "extraction": "Extraction"
-      }
-    },
-    "toothCard": {
-      "removeProcedure": "Remove",
-      "temporal": "Primary tooth",
-      "permanent": "Permanent tooth",
-      "undo": "Undo",
-      "quickAdd": "Condition or procedure for tooth {tooth}",
-      "quickAddPlaceholder": "+ Select a condition or treatment from the FDI list...",
-      "alreadyApplied": "(already recorded)",
-      "summary": "Marked on this tooth",
-      "wholeTooth": "tooth",
-      "noMarks": "Nothing marked on this tooth yet.",
-      "notes": "Tooth notes",
-      "notesPlaceholder": "Diagnosis, observations or notes for this tooth..."
+      "piece": "Tooth {tooth}"
     },
     "autoNote": {
       "surfaceAdded": "D{tooth}({surface}): {label}",
       "surfaceRemoved": "D{tooth}({surface}): {label} removed",
       "toothAdded": "D{tooth}: {label} (whole tooth)",
       "toothRemoved": "D{tooth}: {label} removed",
-      "cleared": "D{tooth}: cleared"
+      "cleared": "D{tooth}: cleared",
+      "rangeAdded": "D{from}–{to}: {label}",
+      "statusChanged": "D{tooth}: {label} → {status}",
+      "voided": "D{tooth}: {label} voided ({reason})"
     },
     "confirm": {
-      "clearAllTitle": "Clear the whole odontogram?",
-      "clearAllDescription": "All marks in this session will be removed. You can undo it while you keep editing.",
-      "clearAllAction": "Yes, clear everything",
       "cancelTitle": "Discard changes?",
       "cancelDescription": "The changes made to this session will be lost.",
       "cancelAction": "Yes, discard",
@@ -8521,6 +8438,196 @@
         "description": "General crown fracture.",
         "symbol": "Yellow zigzag"
       }
+    },
+    "status": {
+      "indicated": "Indicated",
+      "existing": "Existing",
+      "done": "Done today",
+      "indicatedLong": "Finding / indicated",
+      "existingLong": "Existing",
+      "doneLong": "Done today",
+      "pending": "Proposed by Invoke"
+    },
+    "toolbar": {
+      "label": "Tools",
+      "select": "Select (Esc)",
+      "brush": "Brush (B): apply the same condition tooth by tooth",
+      "eraser": "Eraser (E): remove today's marks",
+      "undo": "Undo",
+      "redo": "Redo",
+      "undoShortcut": "Undo (Ctrl+Z)",
+      "redoShortcut": "Redo (Ctrl+Y)"
+    },
+    "workspace": {
+      "viewLabel": "View",
+      "views": {
+        "fdi": "Odontogram",
+        "arch": "Arch",
+        "history": "History"
+      },
+      "dentitionLabel": "Dentition",
+      "dentition": {
+        "permanent": "Permanent",
+        "mixed": "Mixed",
+        "temporal": "Primary"
+      },
+      "layersLabel": "Layers",
+      "layerToggle": "Show or hide",
+      "quadrant": {
+        "q1": "Q1 · upper right",
+        "q2": "Q2 · upper left",
+        "q3": "Q3 · lower left",
+        "q4": "Q4 · lower right"
+      },
+      "archSeparator": "Upper ↑ · ↓ Lower",
+      "archUpper": "Maxilla",
+      "archLower": "Mandible",
+      "archCount": {
+        "indicated": "{count} indicated",
+        "existing": "{count} existing",
+        "done": "{count} done today"
+      },
+      "shortcuts": "Shortcuts: 16 go to tooth · O M D V P surfaces · B brush · E eraser · / dictate · Shift+click several",
+      "history": {
+        "empty": "There are no odontogram sessions yet.",
+        "hint": "This is how the mouth was when that session was saved. It is read-only: nothing is overwritten, voided marks keep their date and reason."
+      },
+      "banner": {
+        "brush": "Brush: {condition} as {status}",
+        "rangeFirst": "Tap the first tooth of the bridge",
+        "rangeFrom": "From {tooth}: tap the tooth at the other end",
+        "brushSurfaces": "Tap surfaces (again to remove)",
+        "brushTeeth": "Tap teeth (again to remove)",
+        "exit": "Exit (Esc)",
+        "eraser": "Eraser: tap a surface or a tooth to remove what was marked today.",
+        "doneMode": "You are recording as done today.",
+        "backToFindings": "Back to findings"
+      },
+      "toast": {
+        "pickTooth": "Pick a tooth first (tap it or type its number)",
+        "pickSurface": "{condition} goes on a surface: tap one or more surfaces (O, M, D, B, P/L)",
+        "pickRangeEnd": "{condition}: tap the tooth at the other end",
+        "sameArch": "Both teeth must be in the same arch",
+        "recorded": "{condition} · {where} · {status}",
+        "brushNeedsSurface": "This brush marks surfaces: tap a surface",
+        "inheritedUseVoid": "Marks from earlier sessions are not deleted: open the tooth and use “Void” (it is logged)",
+        "nothingToErase": "No marks from today on that tooth",
+        "erased": "Erased on {where}",
+        "brushOn": "Brush: {condition} as {status}. Tap the teeth; Esc to exit",
+        "invalidTooth": "{tooth} is not a valid tooth"
+      }
+    },
+    "inspector": {
+      "label": "Selected tooth",
+      "recordAs": "Record as",
+      "bySurface": "Goes on a surface: pick the surfaces first",
+      "useAsBrush": "Use as brush",
+      "useAsBrushFor": "Use {condition} as brush",
+      "searchPlaceholder": "Search condition or treatment",
+      "scope": {
+        "surface": "per surface",
+        "tooth": "tooth"
+      },
+      "noResults": "No results",
+      "surfacesOf": "Surfaces of tooth {tooth}",
+      "fromEarlier": "From an earlier session",
+      "fromToday": "From this session",
+      "dictated": "dictated",
+      "byAgent": "proposed by Invoke",
+      "changeStatusTo": "Change to {status}",
+      "void": "Void (it is logged)",
+      "remove": "Delete",
+      "temporalSuffix": "(primary)",
+      "position": {
+        "q1": "Upper right · permanent",
+        "q2": "Upper left · permanent",
+        "q3": "Lower left · permanent",
+        "q4": "Lower right · permanent",
+        "q5": "Upper right · primary",
+        "q6": "Upper left · primary",
+        "q7": "Lower left · primary",
+        "q8": "Lower right · primary"
+      },
+      "prevTooth": "Previous tooth",
+      "nextTooth": "Next tooth",
+      "close": "Close (Esc)",
+      "chosenSurfaces": "Surfaces: {surfaces}",
+      "clearSurfaces": "Clear surfaces",
+      "surfacesHint": "Tap the affected surfaces here or on the odontogram. Crowns, root canals and extractions don't need them.",
+      "readOnlyHint": "Read-only view. Edit the session to mark.",
+      "onThisTooth": "On this tooth",
+      "healthy": "No records. Healthy tooth so far.",
+      "voidedAt": "Voided on {date} · {reason}",
+      "toothNotes": "Tooth notes",
+      "toothNotesPlaceholder": "Diagnosis or remarks for tooth {tooth}",
+      "multiTitle": "Teeth {teeth}",
+      "multiHint": "What you pick applies to all of them. “Fixed bridge” joins the range.",
+      "multiSurfacesHint": "To mark surfaces on several teeth, pick the surfaces on one of them first.",
+      "mouthState": "State of the mouth",
+      "teethWithMarks": "{count, plural, one {# tooth with records} other {# teeth with records}}",
+      "emptyMouth": "No records yet.",
+      "changesToday": "{count, plural, =0 {No changes in this session yet} one {# new mark in this session} other {# new marks in this session}}",
+      "tipTitle": "Two taps per mark:",
+      "tip": "tap the tooth surface on the odontogram, then the condition. To repeat the same condition on several teeth, use the brush.",
+      "tiles": {
+        "caries": "Caries",
+        "resin": "Resin",
+        "endo-indicated": "Root canal",
+        "crown-indicated": "Crown",
+        "extraction-indicated": "Extraction",
+        "missing": "Missing",
+        "implant-planned": "Implant",
+        "bridge-in-progress": "Fixed bridge"
+      },
+      "concepts": {
+        "crown": "Crown",
+        "endo": "Root canal",
+        "implant": "Implant",
+        "extraction": "Extraction / missing",
+        "bridge": "Fixed bridge"
+      },
+      "backToFrequent": "Frequent"
+    },
+    "dictation": {
+      "label": "Dictate findings",
+      "placeholder": "Dictate or type: “caries OM on 16, crown indicated on 14, defective bridge from 24 to 26”",
+      "propose": "Propose",
+      "empty": "Type or dictate the findings, for example: “caries OM on 16, crown indicated on 14”",
+      "nothingFound": "No teeth or conditions found. Try: “caries mesial en 16” (dictation is in Spanish)",
+      "allRecorded": "All of that was already on the odontogram",
+      "proposed": "{count, plural, one {Invoke proposes # change} other {Invoke proposes # changes}}. Review them before confirming.",
+      "duplicates": "{count, plural, one {# was already recorded} other {# were already recorded}}",
+      "unparsed": "Not understood: “{text}”"
+    },
+    "proposals": {
+      "label": "Proposed changes",
+      "title": "{count, plural, one {Invoke proposes # change} other {Invoke proposes # changes}}",
+      "confirm": "Confirm all",
+      "discard": "Discard",
+      "remove": "Remove",
+      "confirmed": "Changes confirmed on the odontogram",
+      "pendingOnSave": "{count, plural, one {# proposed change is not confirmed} other {# proposed changes are not confirmed}}: confirm or discard them before saving the session."
+    },
+    "void": {
+      "title": "Void the mark",
+      "description": "{condition} on tooth {tooth} comes from an earlier session: it is not deleted, it is voided with date, author and reason.",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "For example: data entry error, redone at another clinic",
+      "cancel": "Cancel",
+      "confirm": "Void",
+      "done": "Voided: it stays in the history with date and author"
+    },
+    "steps": {
+      "label": "Session steps",
+      "chart": "Odontogram",
+      "register": "Record",
+      "continue": "Continue",
+      "back": "Back to odontogram",
+      "summaryTitle": "This session's odontogram",
+      "edit": "Edit marks"
+    },
+    "timeline": {
+      "openSession": "Open this odontogram session"
     }
   },
   "SecretarySessionNotification": {
@@ -11395,7 +11502,9 @@
       },
       "timeline": {
         "continue": "Continue session",
-        "voidReason": "Void reason"
+        "voidReason": "Void reason",
+        "openPreview": "Open this session",
+        "noMarks": "No marks on the map"
       },
       "hints": {
         "region": {

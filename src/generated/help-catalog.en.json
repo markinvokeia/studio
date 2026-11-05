@@ -1,5 +1,5 @@
 {
- "version": "cf34f95229db8289",
+ "version": "69ea2fe424a74a23",
  "locale": "en",
  "journey": [
   {
@@ -8005,6 +8005,20 @@
      "source": "src/app/[locale]/patients/page.tsx"
     },
     {
+     "description": "Records every proposal of the tray on the odontogram. “Discard” removes them without saving anything.",
+     "id": "patients.btn.odontogram-confirm-proposals",
+     "kind": "btn",
+     "label": "Confirm all",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Turns the text into dashed proposals on the teeth; anything already recorded is dropped automatically.",
+     "id": "patients.btn.odontogram-propose",
+     "kind": "btn",
+     "label": "Propose",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "id": "patients.btn.plans-create-appointment",
      "kind": "btn",
      "label": "Book appointment",
@@ -8354,6 +8368,27 @@
      "kind": "field",
      "label": "Note",
      "source": "src/app/[locale]/patients/page.tsx"
+    },
+    {
+     "description": "Tooth, condition, surfaces and status: “indicada”, “existente” or “hoy”. Accepts ranges for bridges (“del 24 al 26”).",
+     "id": "patients.field.odontogram-dictation",
+     "kind": "field",
+     "label": "Dictated text",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Indicated (red, to do), Existing (blue, already there) or Done today (green, done in this session). Sets the color and status of what you mark.",
+     "id": "patients.field.odontogram-record-as",
+     "kind": "field",
+     "label": "Record as",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "The whole condition catalog, by name or code, filtered by category.",
+     "id": "patients.field.odontogram-search",
+     "kind": "field",
+     "label": "Search condition",
+     "source": "knowledge/screens/patients.json"
     },
     {
      "id": "patients.field.parent_id",
@@ -8738,6 +8773,27 @@
      "id": "patients.section.odontogram-create",
      "kind": "section",
      "label": "New odontogram session",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Bar to dictate or type what you see (“caries OM en 16, corona indicada en 14”). Invoke proposes it on the teeth and nothing is recorded until you confirm.",
+     "id": "patients.section.odontogram-dictation",
+     "kind": "section",
+     "label": "Dictate findings",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "With a tooth selected: its surfaces, how to record, the conditions and what it already has. With no tooth, the state of the whole mouth.",
+     "id": "patients.section.odontogram-inspector",
+     "kind": "section",
+     "label": "Tooth inspector",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "One tap records the condition on the selected tooth or surfaces. The brush on each tile keeps it active to mark several teeth in a row.",
+     "id": "patients.section.odontogram-tiles",
+     "kind": "section",
+     "label": "Frequent conditions",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -17182,6 +17238,20 @@
      "source": "knowledge/screens/workspace.json"
     },
     {
+     "description": "Records every proposal of the tray on the odontogram. “Discard” removes them without saving anything.",
+     "id": "workspace.btn.odontogram-confirm-proposals",
+     "kind": "btn",
+     "label": "Confirm all",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "Turns the text into dashed proposals on the teeth; anything already recorded is dropped automatically.",
+     "id": "workspace.btn.odontogram-propose",
+     "kind": "btn",
+     "label": "Propose",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
      "description": "The patient's allergies and ailments.",
      "id": "workspace.btn.patient-alerts",
      "kind": "btn",
@@ -17238,6 +17308,27 @@
      "kind": "btn",
      "label": "Today",
      "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "description": "Tooth, condition, surfaces and status: “indicada”, “existente” or “hoy”. Accepts ranges for bridges (“del 24 al 26”).",
+     "id": "workspace.field.odontogram-dictation",
+     "kind": "field",
+     "label": "Dictated text",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "Indicated (red, to do), Existing (blue, already there) or Done today (green, done in this session). Sets the color and status of what you mark.",
+     "id": "workspace.field.odontogram-record-as",
+     "kind": "field",
+     "label": "Record as",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "The whole condition catalog, by name or code, filtered by category.",
+     "id": "workspace.field.odontogram-search",
+     "kind": "field",
+     "label": "Search condition",
+     "source": "knowledge/screens/workspace.json"
     },
     {
      "id": "workspace.field.rx-date",
@@ -17459,6 +17550,27 @@
      "kind": "section",
      "label": "Odontogram",
      "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "description": "Bar to dictate or type what you see (“caries OM en 16, corona indicada en 14”). Invoke proposes it on the teeth and nothing is recorded until you confirm.",
+     "id": "workspace.section.odontogram-dictation",
+     "kind": "section",
+     "label": "Dictate findings",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "With a tooth selected: its surfaces, how to record, the conditions and what it already has. With no tooth, the state of the whole mouth.",
+     "id": "workspace.section.odontogram-inspector",
+     "kind": "section",
+     "label": "Tooth inspector",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "One tap records the condition on the selected tooth or surfaces. The brush on each tile keeps it active to mark several teeth in a row.",
+     "id": "workspace.section.odontogram-tiles",
+     "kind": "section",
+     "label": "Frequent conditions",
+     "source": "knowledge/screens/workspace.json"
     },
     {
      "description": "Previous sessions; the most recent one open.",
@@ -31495,7 +31607,7 @@
     },
     {
      "action": "highlight",
-     "details": "Choose a condition and tap the tooth or surface. When saved it stays as a session on the timeline.",
+     "details": "Tap the tooth surface, then the condition in the inspector on the right; “Record as” sets whether it is indicated, existing or done today. You can also dictate it at the top: it stays proposed until you confirm.",
      "doneOnClose": true,
      "id": "chart",
      "target": "patients.section.odontogram-create",
@@ -43862,7 +43974,7 @@
     },
     {
      "action": "highlight",
-     "details": "Tap a tooth to see and mark its status and its surfaces. What you mark today stays in an odontogram session for this appointment.",
+     "details": "Tap the tooth surface, then the condition in the inspector; “Record as” sets whether it is indicated, existing or done today. What you dictate to the agent shows up as a proposal until you confirm it, and everything goes into this appointment's odontogram session.",
      "id": "chart",
      "target": "workspace.section.odontogram",
      "title": "Odontogram"

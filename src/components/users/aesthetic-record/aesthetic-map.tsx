@@ -148,6 +148,8 @@ interface AestheticMapProps {
   onBackdropChange?: (alignment: AestheticPhotoAlignment) => void;
   /** Fit the drawing inside the parent's box (its width and height) instead of following the width; it can then be zoomed */
   fill?: boolean;
+  /** Zoom controls of a `fill` map; off for a static preview */
+  zoomControls?: boolean;
   /** Shaded model drawn instead of the line art (face views); hidden with the art over a photo */
   illustration?: React.ReactNode;
   /** Dashed outline of every zone; off, a zone only shows when highlighted or under the pointer */
@@ -231,6 +233,7 @@ function MapCanvas({
   onBackdropChange,
   onBackdropFit,
   fill = false,
+  zoomControls = true,
   illustration,
   zoneOutlines = true,
   zoneLabels = false,
@@ -251,7 +254,7 @@ function MapCanvas({
   // ── Zoom ──
   // It moves the viewBox, so the drawing, the photo and the marks zoom together and every
   // client → drawing conversion (through the CTM) keeps working as it is
-  const zoomable = fill;
+  const zoomable = fill && zoomControls;
   const [zoomState, setZoomState] = React.useState<MapZoom | null>(null);
   /** Latest zoom, for the events that come faster than the renders (wheel, pinch) */
   const zoomRef = React.useRef<MapZoom | null>(null);

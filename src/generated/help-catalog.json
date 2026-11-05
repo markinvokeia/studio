@@ -1,5 +1,5 @@
 {
- "version": "a0ba1623583403dc",
+ "version": "2b14401b2be1cad6",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -8092,6 +8092,20 @@
      "source": "src/app/[locale]/patients/page.tsx"
     },
     {
+     "description": "Registra en el odontograma todas las propuestas de la bandeja. «Descartar» las saca sin guardar nada.",
+     "id": "patients.btn.odontogram-confirm-proposals",
+     "kind": "btn",
+     "label": "Confirmar todo",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Convierte el texto en propuestas punteadas sobre los dientes; lo que ya estaba registrado se descarta solo.",
+     "id": "patients.btn.odontogram-propose",
+     "kind": "btn",
+     "label": "Proponer",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "id": "patients.btn.plans-create-appointment",
      "kind": "btn",
      "label": "Agendar cita",
@@ -8441,6 +8455,27 @@
      "kind": "field",
      "label": "Nota",
      "source": "src/app/[locale]/patients/page.tsx"
+    },
+    {
+     "description": "Pieza, condición, caras y estado: «indicada», «existente» o «hoy». Admite rangos para puentes («del 24 al 26»).",
+     "id": "patients.field.odontogram-dictation",
+     "kind": "field",
+     "label": "Texto dictado",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Indicado (rojo, por hacer), Existente (azul, ya estaba) o Hecho hoy (verde, realizado en esta sesión). Define el color y el estado de lo que marques.",
+     "id": "patients.field.odontogram-record-as",
+     "kind": "field",
+     "label": "Registrar como",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Todo el catálogo de condiciones, por nombre o código, y filtrado por categoría.",
+     "id": "patients.field.odontogram-search",
+     "kind": "field",
+     "label": "Buscar condición",
+     "source": "knowledge/screens/patients.json"
     },
     {
      "id": "patients.field.parent_id",
@@ -8825,6 +8860,27 @@
      "id": "patients.section.odontogram-create",
      "kind": "section",
      "label": "Nueva sesión de odontograma",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Barra para dictar o escribir lo que se ve («caries OM en 16, corona indicada en 14»). Invoke lo propone en los dientes y no se registra hasta confirmar.",
+     "id": "patients.section.odontogram-dictation",
+     "kind": "section",
+     "label": "Dictado de hallazgos",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Con una pieza elegida: sus caras, cómo registrar, las condiciones y lo que ya tiene. Sin pieza, el estado de toda la boca.",
+     "id": "patients.section.odontogram-inspector",
+     "kind": "section",
+     "label": "Inspector de la pieza",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Un toque registra la condición en la pieza o caras elegidas. El pincel de cada ficha la deja activa para marcar varias piezas seguidas.",
+     "id": "patients.section.odontogram-tiles",
+     "kind": "section",
+     "label": "Condiciones frecuentes",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -17269,6 +17325,20 @@
      "source": "knowledge/screens/workspace.json"
     },
     {
+     "description": "Registra en el odontograma todas las propuestas de la bandeja. «Descartar» las saca sin guardar nada.",
+     "id": "workspace.btn.odontogram-confirm-proposals",
+     "kind": "btn",
+     "label": "Confirmar todo",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "Convierte el texto en propuestas punteadas sobre los dientes; lo que ya estaba registrado se descarta solo.",
+     "id": "workspace.btn.odontogram-propose",
+     "kind": "btn",
+     "label": "Proponer",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
      "description": "Alergias y padecimientos del paciente.",
      "id": "workspace.btn.patient-alerts",
      "kind": "btn",
@@ -17325,6 +17395,27 @@
      "kind": "btn",
      "label": "Hoy",
      "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "description": "Pieza, condición, caras y estado: «indicada», «existente» o «hoy». Admite rangos para puentes («del 24 al 26»).",
+     "id": "workspace.field.odontogram-dictation",
+     "kind": "field",
+     "label": "Texto dictado",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "Indicado (rojo, por hacer), Existente (azul, ya estaba) o Hecho hoy (verde, realizado en esta sesión). Define el color y el estado de lo que marques.",
+     "id": "workspace.field.odontogram-record-as",
+     "kind": "field",
+     "label": "Registrar como",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "Todo el catálogo de condiciones, por nombre o código, y filtrado por categoría.",
+     "id": "workspace.field.odontogram-search",
+     "kind": "field",
+     "label": "Buscar condición",
+     "source": "knowledge/screens/workspace.json"
     },
     {
      "id": "workspace.field.rx-date",
@@ -17546,6 +17637,27 @@
      "kind": "section",
      "label": "Odontograma",
      "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
+     "description": "Barra para dictar o escribir lo que se ve («caries OM en 16, corona indicada en 14»). Invoke lo propone en los dientes y no se registra hasta confirmar.",
+     "id": "workspace.section.odontogram-dictation",
+     "kind": "section",
+     "label": "Dictado de hallazgos",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "Con una pieza elegida: sus caras, cómo registrar, las condiciones y lo que ya tiene. Sin pieza, el estado de toda la boca.",
+     "id": "workspace.section.odontogram-inspector",
+     "kind": "section",
+     "label": "Inspector de la pieza",
+     "source": "knowledge/screens/workspace.json"
+    },
+    {
+     "description": "Un toque registra la condición en la pieza o caras elegidas. El pincel de cada ficha la deja activa para marcar varias piezas seguidas.",
+     "id": "workspace.section.odontogram-tiles",
+     "kind": "section",
+     "label": "Condiciones frecuentes",
+     "source": "knowledge/screens/workspace.json"
     },
     {
      "description": "Sesiones anteriores; la más reciente abierta.",
@@ -31582,7 +31694,7 @@
     },
     {
      "action": "highlight",
-     "details": "Elegí una condición y tocá la pieza o cara. Al guardar queda como sesión en la línea de tiempo.",
+     "details": "Tocá la cara de la pieza y después la condición en el inspector de la derecha; con «Registrar como» elegís si es indicado, existente o hecho hoy. También podés dictarlo arriba: queda propuesto hasta que confirmes.",
      "doneOnClose": true,
      "id": "chart",
      "target": "patients.section.odontogram-create",
@@ -43949,7 +44061,7 @@
     },
     {
      "action": "highlight",
-     "details": "Tocá una pieza para ver y marcar su estado y sus superficies. Lo que marques hoy queda en una sesión de tipo odontograma de esta cita.",
+     "details": "Tocá la cara de la pieza y después la condición en el inspector; «Registrar como» define si es indicado, existente o hecho hoy. Lo dictado al agente aparece como propuesta hasta que lo confirmes, y todo queda en la sesión de odontograma de esta cita.",
      "id": "chart",
      "target": "workspace.section.odontogram",
      "title": "Odontograma"

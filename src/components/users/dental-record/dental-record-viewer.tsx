@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ImageLightbox } from '@/components/ui/image-viewer';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,48 +18,41 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import type {
-  OdontogramCondition,
   OdontogramMarcacion,
-  OdontogramProcedure,
   OdontogramSnapshot,
   OdontogramState,
-  OdontogramSurface,
-  ToothPerioData,
 } from '@/lib/types';
 import { upsertOdontogram, fetchDoctors, fetchOdontograms } from '@/services/dental-record';
 import { ensureDoctorOption } from '@/services/doctors';
 import { api } from '@/services/api';
 import { API_ROUTES } from '@/constants/routes';
 import type { DoctorOption } from '@/services/dental-record';
-import { getProcedure, getProcedureColor, getToothKind, isTemporalTooth, SURFACE_ABBR } from './odontogram-catalog';
+import { isTemporalTooth } from './odontogram-catalog';
 import {
-  applyMarcaciones,
-  clearTooth,
+  carryOverState,
   cloneState,
-  listOdontogramEntries,
-  setToothNotes,
-  toggleSurface,
-  toggleToothProcedure,
+  isInheritedMark,
+  listToothMarks,
+  marcacionesToProposals,
+  type ProposedMark,
 } from './odontogram-state';
-import { OdontogramBoard } from './odontogram-board';
-import { ProcedurePalette } from './procedure-palette';
-import { ToothDetailCard } from './tooth-detail-card';
-import { PeriodontogramView } from './periodontogram-view';
+import { type Dentition, OdontogramChart } from './odontogram-chart';
+import { type OdontogramView, OdontogramWorkspace } from './odontogram-workspace';
 import { SessionForm } from './session-form';
 import type { SessionFormValues } from './session-form';
 import { useTranslations } from 'next-intl';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
-import { usePanelWidth } from '@/hooks/use-panel-width';
+import { useAuth } from '@/context/AuthContext';
 import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
-  Eraser,
   ExternalLink,
   FileText,
   Image as ImageIcon,
   Maximize,
   Minimize,
+  Paperclip,
   Pencil,
   Plus,
   Stethoscope,
@@ -80,14 +75,8 @@ function formatLongSessionDate(dateStr: string) {
 /** Undo stack entries keep the auto-generated notes in sync with the chart */
 type EditSnapshot = { state: OdontogramState; notes: string };
 
-const MAX_UNDO_STEPS = 50;
-/** Container width from which the palette moves to a sticky right column (fixed width, so it never gets squeezed) */
-const SIDEBAR_LAYOUT_MIN_WIDTH = 900;
+const MAX_UNDO_STEPS = 60;
 
-type StateEntry = { toothId: string; label: string; color: string; detail?: string };
-type ToothSummary = { toothId: string; entries: StateEntry[]; notes?: string };
-
-type Mode = 'odontogram' | 'periodontogram';
 
 /** Outcome of an agent prefill request, reported back so the agent never claims a change that did not happen */
 export interface OdontogramPrefillResult {
@@ -115,6 +104,13 @@ interface DentalRecordViewerProps {
   /** When true: hides session history nav and auto-starts a new session on load */
   createMode?: boolean;
   onCancelCreate?: () => void;
+  /**
+   * Header of the sheet that hosts the viewer: the session steps and Cancelar go there instead of
+   * taking a row of their own. Without it they sit at the end of the odontogram's control row.
+   */
+  headerActionsTarget?: HTMLElement | null;
+  /** Session shown first (e.g. the one picked in the clinical timeline); the latest one otherwise */
+  initialSessionId?: string;
   /** When true, prevents creating new sessions (one already exists today for this patient) */
   blockNewSession?: boolean;
   blockNewSessionMessage?: string;
@@ -125,19 +121,13 @@ interface DentalRecordViewerProps {
   hideBillingWizard?: boolean;
 }
 
-export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartKey, onAutoStartHandled, autoStartDescription, autoStartNotes, autoStartNextSessionPlan, autoStartMarcaciones, onSessionSaved, createMode, onCancelCreate, blockNewSession, blockNewSessionMessage, appointmentId, autoNavigateToAppointmentSession, hideBillingWizard = false }: DentalRecordViewerProps) {
+export function DentalRecordViewer({ patientId, patientName, doctorId, doctorName, autoStartKey, onAutoStartHandled, autoStartDescription, autoStartNotes, autoStartNextSessionPlan, autoStartMarcaciones, onSessionSaved, createMode, onCancelCreate, blockNewSession, blockNewSessionMessage, appointmentId, autoNavigateToAppointmentSession, hideBillingWizard = false, headerActionsTarget, initialSessionId }: DentalRecordViewerProps) {
   const t = useTranslations('DentalRecord');
   const isMobile = useViewportNarrow(768);
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
+  const { user } = useAuth();
 
-  // The root element changes once loading finishes, so the measured ref follows it
-  const [rootEl, setRootEl] = useState<HTMLDivElement | null>(null);
-  const rootRef = useMemo(() => ({ current: rootEl }), [rootEl]);
-  const containerWidth = usePanelWidth(rootRef);
-  const useSidebarLayout = containerWidth >= SIDEBAR_LAYOUT_MIN_WIDTH;
-
-  const [mode] = useState<Mode>('odontogram');
   const [history, setHistory] = useState<OdontogramSnapshot[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const [isLoading, setIsLoading] = useState(true);
@@ -150,13 +140,23 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
   const [initialNotes, setInitialNotes] = useState('');
   const [nextSessionPlan, setNextSessionPlan] = useState('');
   const [undoStack, setUndoStack] = useState<EditSnapshot[]>([]);
-  const [perioData, setPerioData] = useState<ToothPerioData[]>([]);
-  const [selectedToothId, setSelectedToothId] = useState<string | null>(null);
-  const [activeProcedure, setActiveProcedure] = useState<OdontogramProcedure | null>(null);
+  const [redoStack, setRedoStack] = useState<EditSnapshot[]>([]);
+  /** Dictated or agent marks waiting for the professional to confirm them */
+  const [proposals, setProposals] = useState<ProposedMark[]>([]);
+  /** State of the session this edit starts from; its marks are voided instead of deleted */
+  const [baseState, setBaseState] = useState<OdontogramState | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [doctors, setDoctors] = useState<DoctorOption[]>([]);
   const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(null);
-  const [confirmAction, setConfirmAction] = useState<'cancel' | 'clearAll' | null>(null);
+  const [confirmAction, setConfirmAction] = useState<'cancel' | null>(null);
+  /**
+   * View and dentition picked by the user. They stay when moving between sessions (that is how
+   * sessions are compared); `null` until the user changes them, so the first one fits the chart.
+   */
+  const [chartView, setChartView] = useState<OdontogramView>('fdi');
+  const [chartDentition, setChartDentition] = useState<Dentition | null>(null);
+  /** 1: mark the odontogram · 2: register the session (date, doctor, notes, files, next visit) */
+  const [step, setStep] = useState<1 | 2>(1);
 
   useEffect(() => {
     setIsLoading(true);
@@ -172,6 +172,10 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
 
       if (autoNavigateToAppointmentSession && appointmentId) {
         const idx = snapshots.findIndex((s) => s.appointmentId === appointmentId);
+        if (idx >= 0) setHistoryIndex(idx);
+      }
+      if (initialSessionId) {
+        const idx = snapshots.findIndex((s) => s.id === initialSessionId);
         if (idx >= 0) setHistoryIndex(idx);
       }
     });
@@ -195,23 +199,15 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoStartKey, isLoading]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const saved = localStorage.getItem(`dental_perio_${patientId}`);
-    if (saved) {
-      try { setPerioData(JSON.parse(saved)); } catch { /* ignore */ }
-    }
-  }, [patientId]);
-
   const currentSnapshot = historyIndex >= 0 && historyIndex < history.length
     ? history[historyIndex] : null;
 
-  const isAtLatest = historyIndex === history.length - 1;
   const canGoBack = historyIndex > 0;
   const canGoForward = historyIndex < history.length - 1;
 
   const displayState: OdontogramState = isEditing ? editingState : (currentSnapshot?.state ?? {});
-  const hasUnsavedChanges = undoStack.length > 0 || notes !== initialNotes;
+  const hasUnsavedChanges = undoStack.length > 0 || notes !== initialNotes || proposals.length > 0;
+  const previousOfCurrent = historyIndex > 0 ? history[historyIndex - 1]?.state ?? null : null;
 
   // Resolve doctor name from snapshot (prefers stored name, falls back to local list)
   function resolveDoctorName(snapshot: OdontogramSnapshot): string | null {
@@ -223,59 +219,36 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     return null;
   }
 
-  // Condition label translator (unknown ids, e.g. from an AI prefill, are shown raw)
-  const getCondLabel = useCallback(
-    (c: OdontogramCondition | string): string => (getProcedure(c) ? t(`procedures.${c}.label`) : c),
-    [t],
-  );
 
-  /** One row per tooth (in FDI order) with its conditions and notes, for the read-mode summary */
-  function buildToothSummaries(state: OdontogramState): ToothSummary[] {
-    const byTooth = new Map<string, StateEntry[]>();
-    for (const entry of buildStateEntries(state)) {
-      byTooth.set(entry.toothId, [...(byTooth.get(entry.toothId) ?? []), entry]);
-    }
-    return Object.keys(state)
-      .sort((a, b) => Number(a) - Number(b))
-      .map((toothId) => ({ toothId, entries: byTooth.get(toothId) ?? [], notes: state[toothId]?.notes?.trim() }))
-      .filter((summary) => summary.entries.length > 0 || !!summary.notes);
-  }
-
-  function buildStateEntries(state: OdontogramState): StateEntry[] {
-    return listOdontogramEntries(state).map(({ toothId, condition, surface }) => ({
-      toothId,
-      label: getCondLabel(condition),
-      color: getProcedureColor(condition),
-      detail: surface ? SURFACE_ABBR[surface] : t('session.wholeToothShort'),
-    }));
-  }
-
-  function resetEditingSession(initialState: OdontogramState, initialNotesValue: string, initialPlan = '') {
+  function resetEditingSession(initialState: OdontogramState, initialNotesValue: string, initialPlan: string, base: OdontogramState | null) {
+    setStep(1);
     setEditingState(initialState);
+    setBaseState(base);
     setNotes(initialNotesValue);
     setInitialNotes(initialNotesValue);
     setNextSessionPlan(initialPlan);
     setUndoStack([]);
-    setActiveProcedure(null);
+    setRedoStack([]);
+    setProposals([]);
     setIsEditing(true);
-    setSelectedToothId(null);
     if (isMobile) setIsFullscreen(true);
   }
 
+  // A new session starts from the latest one: what was done there is existing now
   function handleStartNewSession(description?: string, notes?: string, marcaciones?: OdontogramMarcacion[], plan?: string) {
-    const base = currentSnapshot?.state ?? {};
-    const initialState = marcaciones?.length
-      ? applyMarcaciones(base, marcaciones)
-      : cloneState(base);
+    const latest = history[history.length - 1]?.state ?? null;
+    setHistoryIndex(history.length - 1);
     setEditingDefaultDescription(description || t('session.defaultTitle', { date: format(new Date(), 'dd/MM/yyyy HH:mm') }));
-    resetEditingSession(initialState, notes ?? '', plan ?? '');
+    resetEditingSession(latest ? carryOverState(latest) : {}, notes ?? '', plan ?? '', latest);
+    if (marcaciones?.length) setProposals(marcacionesToProposals(marcaciones));
   }
 
   function handleStartEditSession(snapshot: OdontogramSnapshot) {
+    const index = history.indexOf(snapshot);
     setEditingSessionId(snapshot.id ?? null);
     setEditingSnapshot(snapshot);
     setEditingDefaultDescription(snapshot.description || t('session.defaultTitle', { date: format(new Date(), 'dd/MM/yyyy HH:mm') }));
-    resetEditingSession(cloneState(snapshot.state), snapshot.notes ?? '', snapshot.planProximaCita ?? '');
+    resetEditingSession(cloneState(snapshot.state), snapshot.notes ?? '', snapshot.planProximaCita ?? '', index > 0 ? history[index - 1].state : null);
   }
 
   function appendNotes(current: string, extra?: string): string {
@@ -285,15 +258,16 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
   }
 
   /**
-   * Applies the agent's prefill without discarding work: merges into the session being edited,
-   * otherwise opens this appointment's odontogram session for editing, otherwise starts a new one.
+   * Applies the agent's prefill without discarding work: in the session being edited, otherwise in
+   * this appointment's odontogram session, otherwise in a new one. Its marks arrive as proposals:
+   * nothing is recorded until the professional confirms them.
    */
   function applyAgentPrefill(): OdontogramPrefillResult {
-    const marcaciones = autoStartMarcaciones ?? [];
+    const agentProposals = marcacionesToProposals(autoStartMarcaciones ?? []);
 
     if (isEditing) {
       const nextNotes = appendNotes(notes, autoStartNotes);
-      if (marcaciones.length > 0) commitEdit(applyMarcaciones(editingState, marcaciones));
+      if (agentProposals.length > 0) setProposals((prev) => [...prev, ...agentProposals]);
       if (nextNotes !== notes) setNotes(nextNotes);
       setNextSessionPlan((prev) => appendNotes(prev, autoStartNextSessionPlan));
       return { applied: true };
@@ -305,24 +279,20 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     if (appointmentSnapshot) {
       setHistoryIndex(history.indexOf(appointmentSnapshot));
       handleStartEditSession(appointmentSnapshot);
-      setEditingState(applyMarcaciones(appointmentSnapshot.state, marcaciones));
       setNotes(appendNotes(appointmentSnapshot.notes ?? '', autoStartNotes));
       setNextSessionPlan(appendNotes(appointmentSnapshot.planProximaCita ?? '', autoStartNextSessionPlan));
-      // The agent's marks can be undone back to the saved session
-      setUndoStack([{ state: cloneState(appointmentSnapshot.state), notes: appointmentSnapshot.notes ?? '' }]);
+      setProposals(agentProposals);
       return { applied: true };
     }
 
     if (blockNewSession) return { applied: false };
 
-    handleStartNewSession(autoStartDescription, autoStartNotes, marcaciones, autoStartNextSessionPlan);
-    if (marcaciones.length > 0) {
-      setUndoStack([{ state: cloneState(currentSnapshot?.state ?? {}), notes: autoStartNotes ?? '' }]);
-    }
+    handleStartNewSession(autoStartDescription, autoStartNotes, autoStartMarcaciones, autoStartNextSessionPlan);
     return { applied: true };
   }
 
   function clearEditingSession() {
+    setStep(1);
     setIsEditing(false);
     setIsFullscreen(false);
     setEditingState({});
@@ -332,9 +302,10 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     setInitialNotes('');
     setNextSessionPlan('');
     setUndoStack([]);
-    setActiveProcedure(null);
+    setRedoStack([]);
+    setProposals([]);
+    setBaseState(null);
     setEditingDefaultDescription('');
-    setSelectedToothId(null);
   }
 
   function handleCancelEditing() {
@@ -348,6 +319,8 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
   }
 
   const handleSave = useCallback(async (values: SessionFormValues) => {
+    // Dictated marks are only recorded once confirmed: saving would silently drop them
+    if (proposals.length > 0) throw new Error(t('proposals.pendingOnSave', { count: proposals.length }));
     await upsertOdontogram(
       patientId,
       {
@@ -363,10 +336,6 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
       values.files,
       editingSessionId ?? undefined,
     );
-
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`dental_perio_${patientId}`, JSON.stringify(perioData));
-    }
 
     if (values.shouldDischarge && values.dischargeDate) {
       try {
@@ -386,258 +355,163 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
     clearEditingSession();
     toast({ title: t('session.saveSuccess'), description: values.description });
     onSessionSaved?.();
-  }, [appointmentId, editingSessionId, editingSnapshot, editingState, onSessionSaved, patientId, perioData, t, toast]);
+  }, [appointmentId, editingSessionId, editingSnapshot, editingState, onSessionSaved, patientId, proposals.length, t, toast]);
 
   // Every chart edit records the previous state (and notes) so it can be undone
   function commitEdit(nextState: OdontogramState, noteEntry?: string) {
     setUndoStack((prev) => [...prev.slice(-(MAX_UNDO_STEPS - 1)), { state: editingState, notes }]);
+    setRedoStack([]);
     setEditingState(nextState);
     if (noteEntry) setNotes((prev) => (prev ? `${prev}\n${noteEntry}` : noteEntry));
-  }
-
-  function handleSurfaceApply(toothId: string, surface: OdontogramSurface, procedure?: OdontogramCondition) {
-    const procedureId = procedure ?? activeProcedure?.id;
-    if (!isEditing || !procedureId) return;
-    const { state, removed } = toggleSurface(editingState, toothId, surface, procedureId);
-    const params = { tooth: toothId, surface: SURFACE_ABBR[surface], label: getCondLabel(procedureId) };
-    commitEdit(state, removed ? t('autoNote.surfaceRemoved', params) : t('autoNote.surfaceAdded', params));
-  }
-
-  function handleToothApply(toothId: string, procedure: OdontogramCondition) {
-    if (!isEditing) return;
-    const { state, removed } = toggleToothProcedure(editingState, toothId, procedure);
-    const params = { tooth: toothId, label: getCondLabel(procedure) };
-    commitEdit(state, removed ? t('autoNote.toothRemoved', params) : t('autoNote.toothAdded', params));
-  }
-
-  function handleClearTooth(toothId: string) {
-    if (!isEditing) return;
-    commitEdit(clearTooth(editingState, toothId), t('autoNote.cleared', { tooth: toothId }));
-  }
-
-  function handleToothNotesChange(toothId: string, toothNotes: string) {
-    if (!isEditing) return;
-    setEditingState((prev) => setToothNotes(prev, toothId, toothNotes));
-  }
-
-  function handleClearAll() {
-    if (!isEditing) return;
-    commitEdit({});
-    setSelectedToothId(null);
-    setActiveProcedure(null);
   }
 
   function handleUndo() {
     const previous = undoStack[undoStack.length - 1];
     if (!previous) return;
     setUndoStack((prev) => prev.slice(0, -1));
+    setRedoStack((prev) => [...prev, { state: editingState, notes }]);
     setEditingState(previous.state);
     setNotes(previous.notes);
   }
 
-  function handleConfirm() {
-    if (confirmAction === 'cancel') handleCancelEditing();
-    if (confirmAction === 'clearAll') handleClearAll();
-    setConfirmAction(null);
+  function handleRedo() {
+    const next = redoStack[redoStack.length - 1];
+    if (!next) return;
+    setRedoStack((prev) => prev.slice(0, -1));
+    setUndoStack((prev) => [...prev, { state: editingState, notes }]);
+    setEditingState(next.state);
+    setNotes(next.notes);
   }
 
-  const handleSelectTooth = useCallback((id: string | null) => {
-    setSelectedToothId(id);
-  }, []);
-
-  const handleDeactivateTool = useCallback(() => setActiveProcedure(null), []);
+  function handleConfirm() {
+    if (confirmAction === 'cancel') handleCancelEditing();
+    setConfirmAction(null);
+  }
 
   // ── Loading ────────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div ref={setRootEl} className="flex items-center justify-center h-40">
+      <div className="flex items-center justify-center h-40">
         <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
       </div>
     );
   }
 
-  const selectedTooth = selectedToothId ? displayState[selectedToothId] : undefined;
-
-  // ── Session detail panel (read mode) ──────────────────────────────────────
-  const sessionReadPanel = !isEditing && currentSnapshot ? (() => {
-    const doctorName = resolveDoctorName(currentSnapshot);
-    const toothSummaries = buildToothSummaries(currentSnapshot.state);
-    const hasContent = !!currentSnapshot.notes || toothSummaries.length > 0 || !!doctorName
-      || (currentSnapshot.archivosAdjuntos?.length ?? 0) > 0;
-
-    if (!hasContent) return null;
-
-    return (
-      <div className="rounded-xl border bg-muted/20 p-3 flex flex-col gap-2">
-        {/* Header row: title + date + badge */}
-        <div className="flex items-start justify-between gap-2 flex-wrap">
-          <div className="flex flex-col gap-0.5 min-w-0">
-            <span className="text-sm font-semibold text-foreground leading-snug truncate max-w-xs">
-              {currentSnapshot.description || t('session.untitled')}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {formatLongSessionDate(currentSnapshot.date)}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {!isAtLatest && (
-              <Badge variant="secondary" className="text-xs">{t('readOnly')}</Badge>
-            )}
-            <span className="text-xs text-muted-foreground tabular-nums">
-              {historyIndex + 1} / {history.length}
-            </span>
-          </div>
+  // ── Session files: a button in the navigation header (the session's title, date and doctor are there too)
+  const shownDoctorName = currentSnapshot ? resolveDoctorName(currentSnapshot) : null;
+  const attachments = !isEditing ? currentSnapshot?.archivosAdjuntos ?? [] : [];
+  const attachmentsButton = attachments.length > 0 && (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button size="sm" variant="outline" className="h-7 shrink-0 gap-1.5 px-2 text-xs" title={t('session.files')} aria-label={t('session.files')}>
+          <Paperclip className="h-3.5 w-3.5" />
+          <span className="tabular-nums">{attachments.length}</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-64 p-2">
+        <p className="px-1.5 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('session.files')}</p>
+        <div className="flex flex-col gap-0.5">
+          {attachments.map((att, i) => {
+            const isImage = att.tipo?.startsWith('image/');
+            const label = att.diente_asociado ? t('board.toothLabel', { tooth: att.diente_asociado }) : t('session.attachment');
+            const rowClass = 'flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-left text-xs text-primary hover:bg-primary/10';
+            return isImage ? (
+              <button key={i} type="button" onClick={() => setLightbox({ src: att.ruta, alt: label })} className={rowClass}>
+                <ImageIcon className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{label}</span>
+              </button>
+            ) : (
+              <a key={i} href={att.ruta} target="_blank" rel="noopener noreferrer" className={rowClass}>
+                <FileText className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">{label}</span>
+                <ExternalLink className="ml-auto h-3 w-3 shrink-0 opacity-60" />
+              </a>
+            );
+          })}
         </div>
-
-        {/* Doctor */}
-        {doctorName && (
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <User className="h-3 w-3 shrink-0" />
-            <span>{doctorName}</span>
-          </div>
-        )}
-
-        {/* Odontogram state summary */}
-        {toothSummaries.length > 0 && (
-          <div className="bg-background rounded-lg border px-2.5 py-2 flex flex-col gap-1.5">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-              {t('session.stateSummary')}
-            </span>
-            <div className="flex flex-col divide-y divide-border/60">
-              {toothSummaries.map(({ toothId, entries, notes }) => {
-                const toothNumber = Number(toothId);
-                const kind = getToothKind(toothNumber);
-                return (
-                  <div key={toothId} className="flex items-start gap-3 py-2 first:pt-1 last:pb-0.5">
-                    <div className="flex w-24 shrink-0 flex-col">
-                      <span
-                        className={cn(
-                          'font-mono text-xs font-bold',
-                          isTemporalTooth(toothNumber) ? 'text-amber-600 dark:text-amber-400' : 'text-foreground',
-                        )}
-                      >
-                        {t('board.piece', { tooth: toothNumber })}
-                      </span>
-                      {kind && (
-                        <span className="text-[10px] leading-tight text-muted-foreground">{t(`toothNames.${kind}`)}</span>
-                      )}
-                    </div>
-                    <div className="flex min-w-0 flex-1 flex-col gap-1">
-                      {entries.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {entries.map((entry, i) => (
-                            <div
-                              key={i}
-                              className="flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs bg-muted/30"
-                              style={{ borderColor: `${entry.color}40` }}
-                            >
-                              <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
-                              <span className="text-foreground font-medium">{entry.label}</span>
-                              {entry.detail && (
-                                <span className="text-[10px] text-muted-foreground bg-muted rounded px-1">
-                                  {entry.detail}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {notes && (
-                        <p className="whitespace-pre-wrap text-[11px] italic leading-relaxed text-muted-foreground">{notes}</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Clinical notes */}
-        {currentSnapshot.notes && (
-          <div className="bg-background rounded-lg border overflow-hidden">
-            <div className="bg-muted/50 px-2.5 py-1.5 border-b">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-                {t('session.notes')}
-              </span>
-            </div>
-            <p className="text-xs text-foreground px-2.5 py-2 whitespace-pre-wrap leading-relaxed">
-              {currentSnapshot.notes}
-            </p>
-          </div>
-        )}
-
-        {/* Attachments */}
-        {currentSnapshot.archivosAdjuntos && currentSnapshot.archivosAdjuntos.length > 0 && (
-          <div className="flex flex-col gap-1.5">
-            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
-              {t('session.files')}
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {currentSnapshot.archivosAdjuntos.map((att, i) => {
-                const isImage = att.tipo?.startsWith('image/');
-                const label = att.diente_asociado
-                  ? t('board.toothLabel', { tooth: att.diente_asociado })
-                  : t('session.attachment');
-                if (isImage) {
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setLightbox({ src: att.ruta, alt: label })}
-                      className="flex items-center gap-1.5 text-xs text-primary bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-md px-2 py-1 transition-colors"
-                    >
-                      <ImageIcon className="h-3 w-3 shrink-0" />
-                      {label}
-                    </button>
-                  );
-                }
-                return (
-                  <a
-                    key={i}
-                    href={att.ruta}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-xs text-primary bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-md px-2 py-1 transition-colors"
-                  >
-                    <FileText className="h-3 w-3 shrink-0" />
-                    {label}
-                    <ExternalLink className="h-2.5 w-2.5 shrink-0 opacity-60" />
-                  </a>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  })() : null;
-
-  const board = (
-    <OdontogramBoard
-      state={displayState}
-      selectedToothId={selectedToothId}
-      onSelectTooth={handleSelectTooth}
-      activeProcedure={isEditing ? activeProcedure : null}
-      onSurfaceApply={handleSurfaceApply}
-      onToothApply={handleToothApply}
-      onDeactivateTool={handleDeactivateTool}
-      readOnly={!isEditing}
-    />
+      </PopoverContent>
+    </Popover>
   );
 
-  const toothCard = (isEditing || selectedToothId) && (
-    <ToothDetailCard
-      toothId={selectedToothId}
-      tooth={selectedTooth}
-      readOnly={!isEditing}
-      canUndo={undoStack.length > 0}
-      onUndo={handleUndo}
-      onClearTooth={handleClearTooth}
-      onToggleToothProcedure={handleToothApply}
-      onToggleSurface={handleSurfaceApply}
-      onNotesChange={handleToothNotesChange}
-    />
+  const billingButtonLabel = t('quickBilling');
+
+  // Dictated marks must be confirmed or discarded before the session can be registered
+  function goToRegister() {
+    if (proposals.length > 0) {
+      toast({ title: t('proposals.pendingOnSave', { count: proposals.length }) });
+      return;
+    }
+    setStep(2);
+  }
+
+  const stepControls = isEditing && (
+    <div className="flex items-center gap-2">
+      <nav aria-label={t('steps.label')} className="hidden items-center gap-1 sm:flex">
+        {([1, 2] as const).map((n) => (
+          <React.Fragment key={n}>
+            {n === 2 && <span className="h-px w-3 bg-border" aria-hidden />}
+            <button
+              type="button"
+              onClick={() => (n === 2 ? goToRegister() : setStep(1))}
+              aria-current={step === n ? 'step' : undefined}
+              className={cn(
+                'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full py-0.5 pl-0.5 pr-2.5 text-xs font-medium',
+                step === n ? 'bg-primary/10 text-primary dark:text-foreground' : 'text-muted-foreground hover:bg-muted',
+              )}
+            >
+              <span className={cn('grid h-5 w-5 place-items-center rounded-full border text-[11px] font-semibold', step === n ? 'border-primary bg-primary text-primary-foreground' : 'bg-muted')}>{n}</span>
+              {t(n === 1 ? 'steps.chart' : 'steps.register')}
+            </button>
+          </React.Fragment>
+        ))}
+      </nav>
+      <Button size="sm" variant="outline" onClick={requestCancelEditing} className="h-8 text-xs">
+        {t('session.cancel')}
+      </Button>
+      {step === 1 ? (
+        <Button size="sm" onClick={goToRegister} className="h-8 gap-1 text-xs">
+          {t('steps.continue')}
+          <ChevronRight className="h-3.5 w-3.5" />
+        </Button>
+      ) : (
+        <Button size="sm" variant="outline" onClick={() => setStep(1)} className="h-8 gap-1 text-xs">
+          <ChevronLeft className="h-3.5 w-3.5" />
+          {t('steps.back')}
+        </Button>
+      )}
+    </div>
+  );
+  // In fullscreen the sheet header is covered, so the controls stay inside the viewer
+  const portalTarget = isFullscreen ? null : headerActionsTarget ?? null;
+
+  const changesToday = isEditing
+    ? Object.keys(editingState).flatMap((id) => listToothMarks(id, editingState[id])).filter((m) => !isInheritedMark(baseState, m)).length
+    : 0;
+  const summaryDentition = Object.keys(editingState).some((id) => isTemporalTooth(Number(id))) ? 'mixed' : 'permanent';
+
+  const workspace = (
+      <OdontogramWorkspace
+        key={isEditing ? `edit-${editingSessionId ?? 'new'}` : `read-${currentSnapshot?.id ?? historyIndex}`}
+        state={displayState}
+        previousState={isEditing ? baseState : previousOfCurrent}
+        readOnly={!isEditing}
+        history={history}
+        proposals={proposals}
+        onProposalsChange={setProposals}
+        onChange={commitEdit}
+        onNotesChange={setEditingState}
+        canUndo={undoStack.length > 0}
+        canRedo={redoStack.length > 0}
+        onUndo={handleUndo}
+        onRedo={handleRedo}
+        userId={user?.id}
+        fitHeight={isEditing}
+        view={chartView}
+        onViewChange={setChartView}
+        dentition={chartDentition ?? undefined}
+        onDentitionChange={setChartDentition}
+        controlsExtra={isEditing && !portalTarget ? stepControls : undefined}
+      />
   );
 
   const sessionForm = isEditing && (
@@ -651,18 +525,14 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
       nextSessionPlan={nextSessionPlan}
       onNextSessionPlanChange={setNextSessionPlan}
       onSave={handleSave}
-      onCancel={requestCancelEditing}
       lockDoctorId={doctorId ?? editingSnapshot?.doctorId}
       lockDoctorName={doctorName || (editingSnapshot ? resolveDoctorName(editingSnapshot) ?? undefined : undefined)}
       isEdit={!!editingSessionId}
     />
   );
 
-  const billingButtonLabel = t('quickBilling');
-
   return (
     <div
-      ref={setRootEl}
       className={cn(
         'flex flex-col gap-3',
         isFullscreen ? 'fixed inset-0 z-50 bg-background p-4 overflow-auto' : 'h-full',
@@ -685,9 +555,12 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
 
             <div className="flex-1 min-w-0 overflow-hidden">
               {currentSnapshot ? (
-                <span className="text-xs font-medium text-foreground truncate block">
-                  {currentSnapshot.description || t('session.untitled')}
-                </span>
+                <>
+                  <span className="text-xs font-medium text-foreground truncate block">
+                    {currentSnapshot.description || t('session.untitled')}
+                  </span>
+                  {shownDoctorName && <span className="block truncate text-[11px] text-muted-foreground">{shownDoctorName}</span>}
+                </>
               ) : (
                 <span className="text-xs text-muted-foreground">{t('noSessions')}</span>
               )}
@@ -702,6 +575,8 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
             >
               <ChevronRight className="h-4 w-4" />
             </button>
+
+            {attachmentsButton}
 
             {!isEditing && currentSnapshot && (
               <Button size="sm" variant="ghost" onClick={() => handleStartEditSession(currentSnapshot)} className="h-7 w-7 p-0 shrink-0" title={t('editSession')} aria-label={t('editSession')}>
@@ -741,16 +616,22 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
         </div>
       ) : (
         /* Desktop: single row */
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
           <div className="flex-1 min-w-0">
             {currentSnapshot ? (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-sm font-semibold text-foreground truncate max-w-[200px]">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <span className="min-w-0 truncate text-sm font-semibold text-foreground" title={currentSnapshot.description || undefined}>
                   {currentSnapshot.description || t('session.untitled')}
                 </span>
                 <Badge variant="outline" className="text-xs shrink-0">
                   {formatLongSessionDate(currentSnapshot.date)}
                 </Badge>
+                {shownDoctorName && (
+                  <span className="flex min-w-0 max-w-[40%] shrink items-center gap-1 text-xs text-muted-foreground" title={shownDoctorName}>
+                    <User className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{shownDoctorName}</span>
+                  </span>
+                )}
                 {isEditing && (
                   <Badge className="text-xs shrink-0 bg-primary">{t('editing')}</Badge>
                 )}
@@ -786,6 +667,8 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
               </span>
             )}
           </div>
+
+          {attachmentsButton}
 
           {!isEditing && currentSnapshot && (
             <Button size="sm" variant="outline" onClick={() => handleStartEditSession(currentSnapshot)} className="gap-1.5 text-xs shrink-0">
@@ -825,23 +708,9 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
         </div>
       ))}
 
-      {/* ── Editing action buttons ── */}
-      {isEditing && (
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm" variant="ghost"
-            onClick={() => setConfirmAction('clearAll')}
-            disabled={Object.keys(editingState).length === 0}
-            className="gap-1.5 text-xs text-muted-foreground"
-          >
-            <Eraser className="h-3.5 w-3.5" />
-            {t('clearAll')}
-          </Button>
-          <Button size="sm" variant="outline" onClick={requestCancelEditing} className="text-xs">
-            {t('session.cancel')}
-          </Button>
-        </div>
-      )}
+      {/* ── Steps and Cancelar: in the sheet header when there is one ── */}
+      {stepControls && portalTarget && createPortal(stepControls, portalTarget)}
+      {stepControls && !portalTarget && step === 2 && <div className="flex justify-end">{stepControls}</div>}
 
       {/* ── Main chart area ── */}
       {history.length === 0 && !isEditing ? (
@@ -858,38 +727,26 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
             {t('newSession')}
           </Button>
         </div>
-      ) : mode === 'periodontogram' ? (
-        <div className="flex flex-col gap-3">
-          {sessionReadPanel}
-          <div className="opacity-80">
-            <OdontogramBoard state={displayState} selectedToothId={null} onSelectTooth={() => {}} readOnly />
-          </div>
-          <div className={cn(!isEditing && 'pointer-events-none opacity-60')}>
-            <PeriodontogramView teeth={perioData} onTeethChange={setPerioData} />
-          </div>
-        </div>
-      ) : isEditing && useSidebarLayout ? (
-        /* ── Wide container: chart + tooth card + form, palette as a sticky right column ── */
-        <div className="grid grid-cols-[minmax(0,1fr)_280px] items-start gap-4">
-          <div className="flex min-w-0 flex-col gap-4">
-            {board}
-            {toothCard}
+      ) : isEditing ? (
+        <>
+          {/* Step 1: the odontogram fills the available height. The form stays mounted (hidden) so
+              what was typed in it survives going back and forth */}
+          <div className={cn('min-h-0 flex-1', step !== 1 && 'hidden')}>{workspace}</div>
+          <div className={cn('grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)]', step !== 2 && 'hidden')}>
             {sessionForm}
+            <aside className="flex flex-col gap-2 rounded-2xl border bg-card p-4 lg:sticky lg:top-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-[11.5px] font-semibold uppercase tracking-wider text-muted-foreground">{t('steps.summaryTitle')}</h3>
+                <Button size="sm" variant="ghost" className="ml-auto h-7 text-xs" onClick={() => setStep(1)}>{t('steps.edit')}</Button>
+              </div>
+              <OdontogramChart state={editingState} dentition={summaryDentition} variant="mini" />
+              <p className="text-xs text-muted-foreground">{t('inspector.changesToday', { count: changesToday })}</p>
+            </aside>
           </div>
-          <div className="sticky top-4">
-            <ProcedurePalette activeProcedure={activeProcedure} onSelectProcedure={setActiveProcedure} variant="sidebar" />
-          </div>
-        </div>
+        </>
       ) : (
-        /* ── Narrow container or read mode: everything stacked ── */
         <div className="flex flex-col gap-4">
-          {!isEditing && sessionReadPanel}
-          {board}
-          {isEditing && (
-            <ProcedurePalette activeProcedure={activeProcedure} onSelectProcedure={setActiveProcedure} variant="stacked" />
-          )}
-          {toothCard}
-          {sessionForm}
+          {workspace}
         </div>
       )}
 
@@ -897,17 +754,13 @@ export function DentalRecordViewer({ patientId, patientName, doctorId, doctorNam
       <AlertDialog open={confirmAction !== null} onOpenChange={(open) => { if (!open) setConfirmAction(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {confirmAction === 'clearAll' ? t('confirm.clearAllTitle') : t('confirm.cancelTitle')}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmAction === 'clearAll' ? t('confirm.clearAllDescription') : t('confirm.cancelDescription')}
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t('confirm.cancelTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('confirm.cancelDescription')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{t('confirm.keepEditing')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirm} className="bg-destructive hover:bg-destructive/90">
-              {confirmAction === 'clearAll' ? t('confirm.clearAllAction') : t('confirm.cancelAction')}
+              {t('confirm.cancelAction')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

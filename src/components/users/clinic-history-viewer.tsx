@@ -3,9 +3,11 @@
 import { AppointmentPanel } from '@/components/appointments/AppointmentPanel';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { AestheticSessionSheet } from '@/components/users/aesthetic-record/aesthetic-session-sheet';
+import { AestheticSessionPreview } from '@/components/users/aesthetic-record/aesthetic-session-preview';
 import { AestheticSessionDetails, AestheticStatusChip, aestheticSessionPreview, useAestheticSessions } from '@/components/users/aesthetic-record/aesthetic-timeline';
 import { isOpenStatus } from '@/components/users/aesthetic-record/session-status';
 import { DentalRecordViewer } from '@/components/users/dental-record/dental-record-viewer';
+import { OdontogramSessionPreview } from '@/components/users/dental-record/odontogram-session-preview';
 import { getProcedure } from '@/components/users/dental-record/odontogram-catalog';
 import { groupTeethByCondition } from '@/components/users/dental-record/odontogram-state';
 import { useHelpScope } from '@/components/help/help-scope';
@@ -53,6 +55,7 @@ import { normalizeAppointmentStatus, normalizeCancellationReason } from '@/const
 import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { composeHelpId } from '@/lib/help/help-id';
+import { usePanelWidth } from '@/hooks/use-panel-width';
 import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
 import { getStatusIcon } from '@/components/appointments/status-icons';
 import { useAppointmentStatus } from '@/hooks/use-appointment-status';
@@ -1881,6 +1884,25 @@ function TimelineRow({ icon, summary, trailing, actions, expanded, onToggle, hig
     );
 }
 
+/** Below this width the session preview goes above its summary instead of beside it */
+const TIMELINE_SPLIT_MIN_WIDTH = 520;
+
+/**
+ * Body of a timeline session with a chart of its own (odontogram, aesthetic map, periodontogram):
+ * the preview on the left and the summary on the right.
+ */
+function TimelineSplit({ preview, children }: { preview: React.ReactNode; children: React.ReactNode }) {
+    const ref = React.useRef<HTMLDivElement>(null);
+    const width = usePanelWidth(ref);
+    const split = width === 0 || width >= TIMELINE_SPLIT_MIN_WIDTH;
+    return (
+        <div ref={ref} className={cn('grid gap-3', split ? 'grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] items-start' : 'grid-cols-1')}>
+            <div className="min-w-0">{preview}</div>
+            <div className="min-w-0 space-y-1">{children}</div>
+        </div>
+    );
+}
+
 // Treatment Timeline Component with CRUD
 export type TimelineFilter = 'all' | 'clinica' | 'odontograma' | 'estetica' | 'appointment';
 
@@ -1990,6 +2012,15 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
     const [isSessionDialogOpen, setIsSessionDialogOpen] = React.useState(false);
     const [isOdontogramDialogOpen, setIsOdontogramDialogOpen] = React.useState(false);
     const [isOdontogramViewerOpen, setIsOdontogramViewerOpen] = React.useState(false);
+    /** Session the odontogram viewer opens on (the one picked in the timeline) */
+    const [odontogramViewerSessionId, setOdontogramViewerSessionId] = React.useState<string | undefined>(undefined);
+    const openOdontogramViewer = (sessionId?: string) => {
+        setOdontogramViewerSessionId(sessionId);
+        setIsOdontogramViewerOpen(true);
+    };
+    /** Header slots of the odontogram sheets, where the viewer puts its steps and Cancelar */
+    const [odontogramCreateHeader, setOdontogramCreateHeader] = React.useState<HTMLDivElement | null>(null);
+    const [odontogramViewHeader, setOdontogramViewHeader] = React.useState<HTMLDivElement | null>(null);
     /** Sheet of an aesthetic session: `sessionId` null creates one */
     const [aestheticSheet, setAestheticSheet] = React.useState<{ sessionId: string | null } | null>(null);
     const [deletingAesthetic, setDeletingAesthetic] = React.useState<AestheticSession | null>(null);
@@ -2788,33 +2819,35 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                         </>
                                                     }
                                                 >
-                                                    <p className="break-words font-medium text-foreground">{aesthetic.title}</p>
-                                                    <AestheticSessionDetails session={aesthetic} />
-                                                    <div className="flex flex-wrap items-center gap-2 pt-1">
-                                                        <Button
-                                                            type="button"
-                                                            variant={canManageAesthetic && isOpenStatus(aesthetic.status) ? 'default' : 'outline'}
-                                                            size="sm"
-                                                            className="h-7 gap-1.5 text-xs"
-                                                            onClick={() => setAestheticSheet({ sessionId: aesthetic.id })}
-                                                        >
-                                                            {canManageAesthetic && isOpenStatus(aesthetic.status) ? <Edit3 className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                                                            {canManageAesthetic && isOpenStatus(aesthetic.status) ? tAesthetic('flow.timeline.continue') : t('viewAestheticSession')}
-                                                        </Button>
-                                                        {/* A closed session is part of the clinical record: it is amended, not deleted */}
-                                                        {canManageAesthetic && isOpenStatus(aesthetic.status) && (
+                                                    <TimelineSplit preview={<AestheticSessionPreview session={aesthetic} onOpen={() => setAestheticSheet({ sessionId: aesthetic.id })} />}>
+                                                        <p className="break-words font-medium text-foreground">{aesthetic.title}</p>
+                                                        <AestheticSessionDetails session={aesthetic} />
+                                                        <div className="flex flex-wrap items-center gap-2 pt-1">
                                                             <Button
                                                                 type="button"
-                                                                variant="ghost"
+                                                                variant={canManageAesthetic && isOpenStatus(aesthetic.status) ? 'default' : 'outline'}
                                                                 size="sm"
-                                                                className="h-7 gap-1.5 text-xs text-destructive hover:text-destructive"
-                                                                onClick={() => setDeletingAesthetic(aesthetic)}
+                                                                className="h-7 gap-1.5 text-xs"
+                                                                onClick={() => setAestheticSheet({ sessionId: aesthetic.id })}
                                                             >
-                                                                <Trash2 className="h-3.5 w-3.5" />
-                                                                {tPage('common.delete')}
+                                                                {canManageAesthetic && isOpenStatus(aesthetic.status) ? <Edit3 className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                                                {canManageAesthetic && isOpenStatus(aesthetic.status) ? tAesthetic('flow.timeline.continue') : t('viewAestheticSession')}
                                                             </Button>
-                                                        )}
-                                                    </div>
+                                                            {/* A closed session is part of the clinical record: it is amended, not deleted */}
+                                                            {canManageAesthetic && isOpenStatus(aesthetic.status) && (
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="h-7 gap-1.5 text-xs text-destructive hover:text-destructive"
+                                                                    onClick={() => setDeletingAesthetic(aesthetic)}
+                                                                >
+                                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                                    {tPage('common.delete')}
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </TimelineSplit>
                                                 </TimelineRow>
                                             );
                                         }
@@ -2884,41 +2917,8 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                             : [];
                                         const sessionPreview = session.procedimiento_realizado?.trim()
                                             || (isOdontogramSession ? t('odontogramUpdate') : t('noTitle'));
-                                        return (
-                                            <TimelineRow
-                                                key={key}
-                                                icon={sessionIcon}
-                                                expanded={isExpanded}
-                                                onToggle={canExpandSession ? () => toggleExpanded(key) : undefined}
-                                                highlighted={isLinkedToAppointment}
-                                                trailing={sessionColorDot}
-                                                summary={
-                                                    <>
-                                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                                            {sessionTypeBadge}
-                                                            <span className="text-xs font-medium text-foreground">{formatDate(session.fecha_sesion)}</span>
-                                                            {contextBadges}
-                                                            {!isDoctorMode && session.quote_doc_no && (
-                                                                <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
-                                                                    {session.quote_doc_no}
-                                                                </Badge>
-                                                            )}
-                                                            {!isDoctorMode && session.invoice_id && (
-                                                                <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0 leading-relaxed font-mono">
-                                                                    <FileText className="h-2.5 w-2.5 mr-0.5" />#{session.invoice_id}
-                                                                </Badge>
-                                                            )}
-                                                        </div>
-                                                        {!isExpanded && (
-                                                            <p className="mt-0.5 truncate text-xs text-muted-foreground">{sessionPreview}</p>
-                                                        )}
-                                                        {/* Sin despliegue (portal) el doctor queda visible en la cabecera. */}
-                                                        {!canExpandSession && sessionDoctorName && (
-                                                            <p className="truncate text-xs text-muted-foreground">{sessionDoctorName}</p>
-                                                        )}
-                                                    </>
-                                                }
-                                            >
+                                        const sessionDetails = (
+                                            <>
                                                 {odontogramGroups.length > 0 && (
                                                     <div className="space-y-0.5">
                                                         <p className="text-muted-foreground">{t('odontogramUpdate')}:</p>
@@ -3007,7 +3007,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                 variant="outline"
                                                                 size="sm"
                                                                 className="h-7 gap-1.5 text-xs"
-                                                                onClick={() => setIsOdontogramViewerOpen(true)}
+                                                                onClick={() => openOdontogramViewer(String(session.sesion_id))}
                                                             >
                                                                 <Smile className="h-3.5 w-3.5" />
                                                                 {t('viewOdontogram')}
@@ -3039,6 +3039,55 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                         )}
                                                     </div>
                                                 )}
+                                            </>
+                                        );
+                                        return (
+                                            <TimelineRow
+                                                key={key}
+                                                icon={sessionIcon}
+                                                expanded={isExpanded}
+                                                onToggle={canExpandSession ? () => toggleExpanded(key) : undefined}
+                                                highlighted={isLinkedToAppointment}
+                                                trailing={sessionColorDot}
+                                                summary={
+                                                    <>
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            {sessionTypeBadge}
+                                                            <span className="text-xs font-medium text-foreground">{formatDate(session.fecha_sesion)}</span>
+                                                            {contextBadges}
+                                                            {!isDoctorMode && session.quote_doc_no && (
+                                                                <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 px-1.5 py-0 leading-relaxed font-mono">
+                                                                    {session.quote_doc_no}
+                                                                </Badge>
+                                                            )}
+                                                            {!isDoctorMode && session.invoice_id && (
+                                                                <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-1.5 py-0 leading-relaxed font-mono">
+                                                                    <FileText className="h-2.5 w-2.5 mr-0.5" />#{session.invoice_id}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                        {!isExpanded && (
+                                                            <p className="mt-0.5 truncate text-xs text-muted-foreground">{sessionPreview}</p>
+                                                        )}
+                                                        {/* Sin despliegue (portal) el doctor queda visible en la cabecera. */}
+                                                        {!canExpandSession && sessionDoctorName && (
+                                                            <p className="truncate text-xs text-muted-foreground">{sessionDoctorName}</p>
+                                                        )}
+                                                    </>
+                                                }
+                                            >
+                                                {isOdontogramSession ? (
+                                                    <TimelineSplit
+                                                        preview={
+                                                            <OdontogramSessionPreview
+                                                                state={session.estado_odontograma}
+                                                                onOpen={() => openOdontogramViewer(String(session.sesion_id))}
+                                                            />
+                                                        }
+                                                    >
+                                                        {sessionDetails}
+                                                    </TimelineSplit>
+                                                ) : sessionDetails}
                                             </TimelineRow>
                                         );
                                     })}
@@ -3140,18 +3189,20 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
             <ResizableSheet
                 open={isOdontogramDialogOpen}
                 onOpenChange={setIsOdontogramDialogOpen}
-                defaultWidth={1000}
+                defaultWidth={1240}
                 minWidth={600}
+                maxWidth={1800}
                 storageKey="odontogram-create-sheet-width"
             >
                 <div data-help-id={composeHelpId(helpScope, 'section', 'odontogram-create')} className="flex flex-col h-full">
-                    <div className="px-6 py-4 border-b shrink-0">
-                        <SheetTitle className="flex items-center gap-2 text-base font-semibold">
+                    <div className="flex min-h-[57px] shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b py-2.5 pl-6 pr-24">
+                        <SheetTitle className="flex flex-1 items-center gap-2 text-base font-semibold">
                             <Smile className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
                             Nueva sesión — Odontograma
                         </SheetTitle>
+                        <div ref={setOdontogramCreateHeader} className="flex items-center" />
                     </div>
-                    <div className="flex-1 min-h-0 overflow-auto p-4">
+                    <div className="flex-1 min-h-0 overflow-auto px-4 py-3">
                         {isOdontogramDialogOpen && (
                             <DentalRecordViewer
                                 patientId={userId}
@@ -3162,6 +3213,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                     onRefreshAll?.(userId);
                                 }}
                                 onCancelCreate={() => setIsOdontogramDialogOpen(false)}
+                                headerActionsTarget={odontogramCreateHeader}
                             />
                         )}
                     </div>
@@ -3199,18 +3251,20 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
             <ResizableSheet
                 open={isOdontogramViewerOpen}
                 onOpenChange={setIsOdontogramViewerOpen}
-                defaultWidth={1000}
+                defaultWidth={1240}
                 minWidth={600}
+                maxWidth={1800}
                 storageKey="odontogram-view-sheet-width"
             >
                 <div className="flex flex-col h-full">
-                    <div className="px-6 py-4 border-b shrink-0 flex items-center gap-3">
-                        <SheetTitle className="flex items-center gap-2 text-base font-semibold flex-1">
+                    <div className="flex min-h-[57px] shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b py-2.5 pl-6 pr-24">
+                        <SheetTitle className="flex flex-1 items-center gap-2 text-base font-semibold">
                             <Smile className="h-4 w-4 text-purple-600 dark:text-purple-400 shrink-0" />
                             Odontograma
                         </SheetTitle>
+                        <div ref={setOdontogramViewHeader} className="flex items-center" />
                     </div>
-                    <div className="flex-1 min-h-0 overflow-auto p-4">
+                    <div className="flex-1 min-h-0 overflow-auto px-4 py-3">
                         {isOdontogramViewerOpen && (
                             <DentalRecordViewer
                                 patientId={userId}
@@ -3221,6 +3275,8 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                 }}
                                 blockNewSession={readOnly}
                                 blockNewSessionMessage={readOnly ? t('readOnlyMessage') : undefined}
+                                headerActionsTarget={odontogramViewHeader}
+                                initialSessionId={odontogramViewerSessionId}
                             />
                         )}
                     </div>
