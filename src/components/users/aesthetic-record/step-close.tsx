@@ -174,7 +174,7 @@ export function StepClose() {
           {(closed || stored?.invoice) && (
             <div className={cn(column, columns > 1 && 'flex-[2]')}>
               <SessionBillingCard items={billingItems} />
-              {closed && <section className="flex flex-col gap-2.5 rounded-2xl border bg-card p-3.5">
+              {closed && <section data-help-id="aesthetic-session.section.amendments" className="flex flex-col gap-2.5 rounded-2xl border bg-card p-3.5">
                 <h3 className="text-[15px] font-semibold">{t('flow.close.amendments')}</h3>
                 <p className="text-xs text-muted-foreground">{t('flow.close.amendmentsHint')}</p>
                 {amendments.map((n) => (
@@ -202,7 +202,7 @@ export function StepClose() {
 
   const appliedCard = <Summary rows={rows} note={photoNote} inlineHint={compact} />;
   const summaryCard = (
-    <section className="flex flex-[1_0_auto] flex-col gap-2 rounded-2xl border bg-card p-3.5">
+    <section data-help-id="aesthetic-session.section.session-summary" className="flex flex-[1_0_auto] flex-col gap-2 rounded-2xl border bg-card p-3.5">
       <Label htmlFor="aes-session-summary" className="text-[15px] font-semibold">{t('flow.close.summary')}</Label>
       <p className="text-xs text-muted-foreground">{t('flow.close.summaryHint')}</p>
       {/* With two columns the field takes the room left in the card (Textarea wraps it in its own div) */}
@@ -223,7 +223,7 @@ export function StepClose() {
   );
   const billingCard = <SessionBillingCard items={billingItems} />;
   const nextCard = (
-    <section className="flex flex-col gap-2 rounded-2xl border bg-card p-3.5">
+    <section data-help-id="aesthetic-session.section.follow-up" className="flex flex-col gap-2 rounded-2xl border bg-card p-3.5">
       <h3 className="text-[15px] font-semibold">{t('flow.close.aftercareAndNext')}</h3>
       {aftercare.length > 0 ? (
         <div className="flex flex-wrap items-center gap-2">
@@ -262,7 +262,7 @@ export function StepClose() {
 
       {/* Only what is missing: what is done already shows in the header's steps */}
       {stillMissing.length > 0 && (
-        <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1.5 border-b bg-amber-500/10 px-3.5 py-2">
+        <div data-help-id="aesthetic-session.section.missing" className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1.5 border-b bg-amber-500/10 px-3.5 py-2">
           {stillMissing.map(([label, , step]) => (
             <button key={label} type="button" className="flex items-center gap-2 text-[13px] hover:underline" onClick={() => goToStep(step)}>
               <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-400">{t('flow.close.missing')}</span>
@@ -287,16 +287,16 @@ export function StepClose() {
         <ActivityButton events={stored?.events ?? []} iconOnly={compact} />
         {!compact && <span className="flex-1" />}
         {!readOnly && stored && (compact ? (
-          <Button type="button" size="icon" variant="outline" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" aria-label={t('flow.close.void')} onClick={() => setVoidOpen(true)}>
+          <Button data-help-id="aesthetic-session.btn.void" type="button" size="icon" variant="outline" className="h-10 w-10 shrink-0 text-destructive hover:text-destructive" aria-label={t('flow.close.void')} onClick={() => setVoidOpen(true)}>
             <Ban className="h-4 w-4" />
           </Button>
         ) : (
-          <Button type="button" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setVoidOpen(true)}>
+          <Button data-help-id="aesthetic-session.btn.void" type="button" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setVoidOpen(true)}>
             <Ban className="mr-1.5 h-4 w-4" />{t('flow.close.void')}
           </Button>
         ))}
         <Button type="button" variant="outline" className={cn(compact && 'h-10 min-w-0 flex-1 px-2')} onClick={() => goToStep(3)}>{compact ? t('flow.back') : t('flow.close.backToTreatment')}</Button>
-        {!readOnly && <Button type="button" className={cn(compact && 'h-10 min-w-0 flex-1 px-2')} onClick={() => setConfirmClose(true)} disabled={!ready}>{t('flow.close.close')}</Button>}
+        {!readOnly && <Button data-help-id="aesthetic-session.btn.close-session" type="button" className={cn(compact && 'h-10 min-w-0 flex-1 px-2')} onClick={() => setConfirmClose(true)} disabled={!ready}>{t('flow.close.close')}</Button>}
       </div>
 
       <AlertDialog open={confirmClose} onOpenChange={(open) => { if (!close.isPending) setConfirmClose(open); }}>
@@ -307,7 +307,7 @@ export function StepClose() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={close.isPending}>{t('cancel')}</AlertDialogCancel>
-            <Button type="button" onClick={() => close.run()} loading={close.isPending}>{t('flow.close.close')}</Button>
+            <Button data-help-id="aesthetic-session.btn.close-confirm" type="button" onClick={() => close.run()} loading={close.isPending}>{t('flow.close.close')}</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -320,11 +320,11 @@ export function StepClose() {
           </DialogHeader>
           <DialogBody className="px-6 py-3">
             <Label htmlFor="aes-void-reason" className="text-xs">{t('flow.close.voidReason')}</Label>
-            <Textarea id="aes-void-reason" value={voidReason} onChange={(e) => setVoidReason(e.target.value)} rows={3} className="mt-1.5" disabled={voidSession.isPending} />
+            <Textarea data-help-id="aesthetic-session.field.void-reason" id="aes-void-reason" value={voidReason} onChange={(e) => setVoidReason(e.target.value)} rows={3} className="mt-1.5" disabled={voidSession.isPending} />
           </DialogBody>
           <DialogFooter>
             <DialogCancelButton disabled={voidSession.isPending}>{t('cancel')}</DialogCancelButton>
-            <Button type="button" variant="destructive" disabled={!voidReason.trim()} loading={voidSession.isPending} onClick={() => voidSession.run()}>{t('flow.close.void')}</Button>
+            <Button data-help-id="aesthetic-session.btn.void-confirm" type="button" variant="destructive" disabled={!voidReason.trim()} loading={voidSession.isPending} onClick={() => voidSession.run()}>{t('flow.close.void')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -354,7 +354,7 @@ function Summary({ rows, note, inlineHint }: { inlineHint?: boolean; rows: { lay
   const { stored, draft } = useSessionFlow();
   const photos = PHOTO_VIEWS.map((v) => (stored ? sessionPhotoOf(stored, v) : null)).filter((p): p is NonNullable<typeof p> => !!p);
   return (
-    <section className="flex flex-[1_0_auto] flex-col gap-2.5 rounded-2xl border bg-card p-3.5">
+    <section data-help-id="aesthetic-session.section.applied" className="flex flex-[1_0_auto] flex-col gap-2.5 rounded-2xl border bg-card p-3.5">
       <div className="flex items-center gap-1.5">
         <h3 className="text-[15px] font-semibold">{t('flow.close.applied')}</h3>
         {!inlineHint && (
@@ -430,11 +430,11 @@ function ActivityButton({ events, iconOnly }: { events: AestheticSessionEvent[];
   return (
     <>
       {iconOnly ? (
-        <Button type="button" size="icon" variant="outline" className="h-10 w-10 shrink-0" aria-label={`${t('flow.close.activity')} (${events.length})`} onClick={() => setOpen(true)}>
+        <Button data-help-id="aesthetic-session.btn.activity" type="button" size="icon" variant="outline" className="h-10 w-10 shrink-0" aria-label={`${t('flow.close.activity')} (${events.length})`} onClick={() => setOpen(true)}>
           <History className="h-4 w-4" />
         </Button>
       ) : (
-        <Button type="button" size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setOpen(true)}>
+        <Button data-help-id="aesthetic-session.btn.activity" type="button" size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setOpen(true)}>
           <History className="mr-1 h-3.5 w-3.5" />{t('flow.close.activity')} ({events.length})
         </Button>
       )}

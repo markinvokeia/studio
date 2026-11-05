@@ -12,15 +12,15 @@
  *   HELP_VIDEO_USE_CASES lista separada por comas (por defecto, todo lo grabado)
  *   HELP_VIDEO_LOCALE    sólo las grabaciones de ese idioma (es | en)
  *
- * Requiere ffmpeg/ffprobe. Si el ffmpeg tiene libass, además quema los
- * subtítulos en la imagen; si no, quedan como pista y como .vtt (los muestra
- * el reproductor del asistente).
+ * Requiere ffmpeg/ffprobe. Los subtítulos quedan como pista y como .vtt (los muestra
+ * el reproductor del asistente). No se queman: el texto ya está en el globo y taparían
+ * la pantalla. HELP_VIDEO_BURN_SUBTITLES=1 los quema si el ffmpeg tiene libass.
  */
 
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -37,7 +37,7 @@ const NARRATION_GAP_S = 0.25;
 /** Segundo de la intro que se usa como miniatura. */
 const POSTER_AT_S = '1.2';
 
-const run = (cmd, args) => execFileSync(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] }).toString();
+const run = (cmd, args) => execFileSync(cmd, args, { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] }).toString();
 
 function ffmpegHas(filter) {
   try { return run('ffmpeg', ['-hide_banner', '-filters']).split('\n').some((l) => l.trim().split(/\s+/)[1] === filter); } catch { return false; }
@@ -125,14 +125,15 @@ async function buildOne(key) {
   const audioCues = cues.filter((c) => c.audio);
   for (const c of audioCues) args.push('-i', c.audio);
 
-  const burn = ffmpegHas('subtitles');
+  const burn = process.env.HELP_VIDEO_BURN_SUBTITLES === '1' && ffmpegHas('subtitles');
   const filters = [
     `[0:v]${freeze > 0.05 ? `tpad=stop_mode=clone:stop_duration=${freeze.toFixed(2)},` : ''}null[v0]`,
     // La intro de la grabación ya trae el título y el logo de Invoke: no se superpone otro.
     `[v0]null[v1]`,
   ];
+  // Ruta relativa: en el filtro, el «:» de una ruta de Windows (C:...) separa opciones.
   filters.push(burn
-    ? `[v1]subtitles='${base}.srt':force_style='FontName=Plus Jakarta Sans,FontSize=18,PrimaryColour=&H00FFFFFF,BackColour=&H99000000,BorderStyle=4,MarginV=28'[vout]`
+    ? `[v1]subtitles='${relative(ROOT, `${base}.srt`).replace(/\\/g, '/')}':force_style='FontName=Plus Jakarta Sans,FontSize=18,PrimaryColour=&H00FFFFFF,BackColour=&H99000000,BorderStyle=4,MarginV=28'[vout]`
     : `[v1]null[vout]`);
   if (audioCues.length) {
     audioCues.forEach((c, i) => {

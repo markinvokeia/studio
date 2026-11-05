@@ -243,7 +243,7 @@ export function StepConsent() {
       <div ref={bodyRef} className={cn('flex min-h-0 flex-1 flex-col gap-3.5 p-3.5', !twoColumns && 'overflow-y-auto')}>
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <h2 className="min-w-0 text-base font-semibold leading-tight">{t('flow.consent.title')}</h2>
-          <div className={cn('flex flex-wrap items-center gap-2', compact && 'w-full flex-nowrap')}>
+          <div data-help-id="aesthetic-session.section.session-data" className={cn('flex flex-wrap items-center gap-2', compact && 'w-full flex-nowrap')}>
             <Input
               id="aes-session-date"
               type="date"
@@ -270,13 +270,14 @@ export function StepConsent() {
 
         <div className={cn('flex gap-3.5', twoColumns ? 'min-h-0 flex-1' : 'flex-col')}>
           {/* Services of today and the state of their consents */}
-          <section className={cn('flex min-w-0 flex-col gap-2.5 rounded-2xl border bg-card p-3.5', twoColumns && 'min-h-0 flex-[5] basis-0')} aria-labelledby="aes-services-title">
+          <section data-help-id="aesthetic-session.section.services" className={cn('flex min-w-0 flex-col gap-2.5 rounded-2xl border bg-card p-3.5', twoColumns && 'min-h-0 flex-[5] basis-0')} aria-labelledby="aes-services-title">
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               <h3 id="aes-services-title" className="text-[15px] font-semibold">{t('flow.consent.services')}</h3>
               <span className="text-xs text-muted-foreground">{t('flow.consent.selected', { count: layers.length })}</span>
               <span className="flex-1" />
               {!readOnly && lastWithServices && (
                 <Button
+                  data-help-id="aesthetic-session.btn.from-last-session"
                   type="button"
                   size="sm"
                   variant="outline"
@@ -344,7 +345,7 @@ export function StepConsent() {
                           ? t('flow.consent.reuseKeeps', { permissions: permissionsText(stored.photoConsent) })
                           : t('flow.consent.reuseInherits', { permissions: permissionsText(reusable) })}
                       >
-                        <Button type="button" size="sm" variant="outline" className="h-7 text-xs max-sm:h-9" disabled={busy} loading={reuse.isPending} onClick={() => reuse.run(layer)}>
+                        <Button data-help-id="aesthetic-session.btn.reuse" type="button" size="sm" variant="outline" className="h-7 text-xs max-sm:h-9" disabled={busy} loading={reuse.isPending} onClick={() => reuse.run(layer)}>
                           <Repeat className="mr-1 h-3 w-3" />
                           {t('flow.consent.reuse', { date: formatDisplayDate(reusable.signedAt) })}
                         </Button>
@@ -372,7 +373,7 @@ export function StepConsent() {
 
           {/* The text of the consent on top and, below it, the signature */}
           <div className={cn('flex min-w-0 flex-col gap-3.5', twoColumns && 'min-h-0 flex-[6] basis-0 overflow-y-auto')}>
-            <section ref={textRef} className={cn('flex min-w-0 flex-col gap-2 rounded-2xl border bg-card p-3.5', !twoColumns ? 'max-h-72' : showSignForm ? 'min-h-28 flex-[2] basis-0' : 'min-h-28 flex-1 basis-0')} aria-labelledby="aes-consents-title">
+            <section ref={textRef} data-help-id="aesthetic-session.section.consent-text" className={cn('flex min-w-0 flex-col gap-2 rounded-2xl border bg-card p-3.5', !twoColumns ? 'max-h-72' : showSignForm ? 'min-h-28 flex-[2] basis-0' : 'min-h-28 flex-1 basis-0')} aria-labelledby="aes-consents-title">
               <div className="flex shrink-0 items-start gap-2">
                 <div className="min-w-0 flex-1">
                   <h3 id="aes-consents-title" className="truncate text-[15px] font-semibold">{shownText?.title ?? t('flow.consent.consents')}</h3>
@@ -394,7 +395,7 @@ export function StepConsent() {
             )}
 
             {showSignForm && (
-              <section className={cn('flex min-w-0 flex-col gap-2.5 rounded-2xl border bg-card p-3.5', twoColumns && 'min-h-[20rem] flex-[3] basis-0')} aria-label={t('consent.signature')}>
+              <section data-help-id="aesthetic-session.section.signature" className={cn('flex min-w-0 flex-col gap-2.5 rounded-2xl border bg-card p-3.5', twoColumns && 'min-h-[20rem] flex-[3] basis-0')} aria-label={t('consent.signature')}>
               <Form {...form}>
                 <form id={SIGN_FORM_ID} onSubmit={form.handleSubmit(sign.run, onInvalid)} className={cn('flex flex-col gap-1.5', twoColumns && 'min-h-0 flex-1')}>
                   {signError && <Alert variant="destructive"><AlertDescription>{signError}</AlertDescription></Alert>}
@@ -445,7 +446,7 @@ export function StepConsent() {
                     name="signature"
                     render={({ fieldState }) => (
                       <FormItem className={cn('mb-0 flex flex-col', twoColumns && 'min-h-0 flex-1')}>
-                        <div className={cn('relative flex flex-col', twoColumns ? 'max-h-80 min-h-24 flex-1' : 'h-36')}>
+                        <div data-help-id="aesthetic-session.section.signature-pad" className={cn('relative flex flex-col', twoColumns ? 'max-h-80 min-h-24 flex-1' : 'h-36')}>
                           <SignaturePad
                             resetKey={padKey}
                             label={t('consent.signature')}
@@ -478,18 +479,18 @@ export function StepConsent() {
           {done[1] ? t('flow.consent.readyHint') : layers.some((l) => isServiceSigned(consents, l.serviceId)) ? t('flow.consent.partialHint') : t('flow.consent.continueHint')}
         </span>
         {!done[1] && layers.some((l) => isServiceSigned(consents, l.serviceId)) && (
-          <Button type="button" variant="outline" className={cn(compact && 'flex-1')} onClick={() => goToStep(3)}>
+          <Button data-help-id="aesthetic-session.btn.treat-signed" type="button" variant="outline" className={cn(compact && 'flex-1')} onClick={() => goToStep(3)}>
             <Lock className="mr-1.5 h-3.5 w-3.5" />
             {t('flow.consent.treatSigned')}
           </Button>
         )}
         {showSignForm ? (
-          <Button type="submit" form={SIGN_FORM_ID} className={cn(compact && 'flex-1')} loading={sign.isPending} disabled={reuse.isPending}>
+          <Button data-help-id="aesthetic-session.btn.sign" type="submit" form={SIGN_FORM_ID} className={cn(compact && 'flex-1')} loading={sign.isPending} disabled={reuse.isPending}>
             <FileSignature className="mr-1.5 h-4 w-4" />
             {t('consent.submit', { count: signable.length })}
           </Button>
         ) : (
-          <Button type="button" className={cn(compact && 'flex-1')} onClick={() => goToStep(2)} disabled={!done[1] && !readOnly}>{t('flow.consent.continue')}</Button>
+          <Button data-help-id="aesthetic-session.btn.to-photos" type="button" className={cn(compact && 'flex-1')} onClick={() => goToStep(2)} disabled={!done[1] && !readOnly}>{t('flow.consent.continue')}</Button>
         )}
       </div>
 

@@ -114,7 +114,7 @@ export function ServiceConsentTemplatePanel({ serviceId, serviceName, canManage 
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex min-w-0 items-start gap-2">
+      <div data-help-id="sales.services.section.consent-template" className="flex min-w-0 items-start gap-2">
         <FileSignature className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
         <div className="min-w-0">
           <Label htmlFor={`consent-tpl-body-${serviceId}`} className="text-sm font-medium">{t('consentTemplate.title')}</Label>
@@ -125,6 +125,7 @@ export function ServiceConsentTemplatePanel({ serviceId, serviceName, canManage 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor={`consent-tpl-title-${serviceId}`} className="text-xs">{t('consentTemplate.documentTitle')}</Label>
         <Input
+          data-help-id="sales.services.field.consent-title"
           id={`consent-tpl-title-${serviceId}`}
           value={draft.title}
           onChange={(e) => update({ title: e.target.value })}
@@ -139,12 +140,13 @@ export function ServiceConsentTemplatePanel({ serviceId, serviceName, canManage 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Label className="text-xs">{t('consentTemplate.body')}</Label>
           {canManage && !draft.body.trim() && (
-            <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => update({ body: genericText })} disabled={disabled}>
+            <Button data-help-id="sales.services.btn.consent-from-generic" type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => update({ body: genericText })} disabled={disabled}>
               {t('consentTemplate.startFromGeneric')}
             </Button>
           )}
         </div>
         <Textarea
+          data-help-id="sales.services.field.consent-body"
           ref={textareaRef}
           id={`consent-tpl-body-${serviceId}`}
           value={draft.body}
@@ -155,7 +157,7 @@ export function ServiceConsentTemplatePanel({ serviceId, serviceName, canManage 
           className="resize-y text-sm leading-relaxed"
         />
         {canManage && (
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div data-help-id="sales.services.section.consent-variables" className="flex flex-wrap items-center gap-1.5">
             <span className="text-[11px] text-muted-foreground">{t('consentTemplate.insertVariable')}</span>
             {CONSENT_VARIABLES.map((variable) => (
               <button
@@ -181,7 +183,7 @@ export function ServiceConsentTemplatePanel({ serviceId, serviceName, canManage 
 
       {draft.body.trim() && (
         <div className="flex flex-col gap-1.5">
-          <Button type="button" size="sm" variant="link" className="h-auto self-start p-0 text-xs" onClick={() => setShowPreview((v) => !v)}>
+          <Button data-help-id="sales.services.btn.consent-preview" type="button" size="sm" variant="link" className="h-auto self-start p-0 text-xs" onClick={() => setShowPreview((v) => !v)}>
             {showPreview ? t('consentTemplate.hidePreview') : t('consentTemplate.showPreview')}
           </Button>
           {showPreview && (
@@ -196,7 +198,7 @@ export function ServiceConsentTemplatePanel({ serviceId, serviceName, canManage 
       {canManage && isDirty && (
         <div className="flex justify-end gap-2">
           <Button type="button" size="sm" variant="ghost" onClick={() => setDraft(saved)} disabled={save.isPending}>{t('consentTemplate.discard')}</Button>
-          <Button type="button" size="sm" onClick={() => save.run(draft)} disabled={unknown.length > 0} loading={save.isPending}>{t('consentTemplate.save')}</Button>
+          <Button data-help-id="sales.services.btn.consent-save" type="button" size="sm" onClick={() => save.run(draft)} disabled={unknown.length > 0} loading={save.isPending}>{t('consentTemplate.save')}</Button>
         </div>
       )}
     </div>

@@ -119,7 +119,7 @@ export function SessionBillingCard({ items }: { items: BillingItem[] }) {
   const charge = items.reduce((sum, i) => sum + (i.price ?? 0), 0);
 
   return (
-    <section className="flex flex-col gap-2 rounded-2xl border bg-card p-3.5">
+    <section data-help-id="aesthetic-session.section.billing" className="flex flex-col gap-2 rounded-2xl border bg-card p-3.5">
       {unlinked && (
         <Alert variant="destructive">
           <AlertDescription className="flex flex-wrap items-center gap-2">

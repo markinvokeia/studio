@@ -8,6 +8,7 @@ import { PERSON_NAME_ISSUE_MESSAGES, resolveDependencyErrorCode } from '@/compon
 import { ResponsibleMatchHint } from '@/components/patients/responsible-match-hint';
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
+import { PhoneInput } from '@/components/ui/phone-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
@@ -358,12 +359,16 @@ export function UserSelector({
                                                     className="h-7 text-sm"
                                                     autoFocus
                                                 />
-                                                <Input
-                                                    value={createPhone}
-                                                    onChange={e => { setCreatePhone(e.target.value); setCreateError(null); }}
-                                                    placeholder="Teléfono"
-                                                    className="h-7 text-sm"
-                                                />
+                                                {/* El selector de país vive en un portal, pero sus teclas llegan por React al
+                                                    Command de afuera: sin cortarlas, Enter elegiría un paciente de la lista. */}
+                                                <div onKeyDown={e => e.stopPropagation()}>
+                                                    <PhoneInput
+                                                        value={createPhone}
+                                                        onChange={phone => { setCreatePhone(phone); setCreateError(null); }}
+                                                        placeholder="Teléfono"
+                                                        className="[&_[role=combobox]]:h-7 [&_[role=combobox]]:px-2 [&_input]:h-7"
+                                                    />
+                                                </div>
                                                 <Input
                                                     value={createEmail}
                                                     onChange={e => { setCreateEmail(e.target.value); setCreateError(null); }}

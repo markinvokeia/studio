@@ -18,7 +18,8 @@
     "workspace.complete-session",
     "workspace.prescribe",
     "workspace.odontogram",
-    "workspace.agent"
+    "workspace.agent",
+    "workspace.aesthetic-session"
   ],
   "elements": {
     "workspace.section.agenda": {
@@ -218,6 +219,10 @@
     "workspace.field.odontogram-search": {
       "label": "Buscar condición",
       "description": "Todo el catálogo de condiciones, por nombre o código, y filtrado por categoría."
+    },
+    "workspace.btn.aesthetic": {
+      "label": "Sesión estética",
+      "description": "Abre la sesión de estética vinculada a esta cita y su profesional."
     }
   }
 }

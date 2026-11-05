@@ -1,0 +1,71 @@
+{
+  "id": "sales.services.consent-template",
+  "title": "Write an aesthetic service's consent",
+  "summary": "Its own consent text, with patient, doctor and service variables, and a preview.",
+  "module": "Sales",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "consent template",
+    "consent text",
+    "service consent",
+    "variables",
+    "consent preview"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Sales → Services",
+      "details": "Each aesthetic service can have its own consent."
+    },
+    {
+      "id": "search",
+      "title": "Find the service"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the service",
+      "details": "Tap it to open its record."
+    },
+    {
+      "id": "tab",
+      "title": "Aesthetics",
+      "details": "If it is not there, first mark the service as an aesthetic service in Details."
+    },
+    {
+      "id": "section",
+      "title": "Consent",
+      "details": "Without its own text, the generic one is used. Changing it only affects new signatures: what's already signed stays as it was."
+    },
+    {
+      "id": "title",
+      "title": "Document title"
+    },
+    {
+      "id": "generic",
+      "title": "Start from the generic one",
+      "details": "Loads the generic text to edit it. It only appears when the text is empty."
+    },
+    {
+      "id": "body",
+      "title": "Text",
+      "details": "What the patient sees before signing."
+    },
+    {
+      "id": "variables",
+      "title": "Variables",
+      "details": "Replaced when signing: patient, doctor, service, product and date. An unknown variable prevents saving."
+    },
+    {
+      "id": "preview",
+      "title": "Preview",
+      "details": "How it looks with sample data."
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "Appears when there are changes."
+    }
+  ]
+}

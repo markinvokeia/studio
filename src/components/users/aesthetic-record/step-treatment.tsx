@@ -329,7 +329,7 @@ export function StepTreatment() {
   const viewBar = (
     <>
       {/* View, background and skin tone */}
-      <div className={compact ? 'flex shrink-0 items-center gap-1 border-b bg-card p-1.5' : stacked ? 'flex shrink-0 flex-wrap items-center justify-center gap-x-1.5 gap-y-1 border-b bg-card p-1.5' : cn(floating, 'inset-x-3 top-3 mx-auto flex w-fit max-w-[calc(100%-1.5rem)] flex-wrap items-center justify-center gap-1.5 p-1.5')}>
+      <div data-help-id="aesthetic-session.section.views" className={compact ? 'flex shrink-0 items-center gap-1 border-b bg-card p-1.5' : stacked ? 'flex shrink-0 flex-wrap items-center justify-center gap-x-1.5 gap-y-1 border-b bg-card p-1.5' : cn(floating, 'inset-x-3 top-3 mx-auto flex w-fit max-w-[calc(100%-1.5rem)] flex-wrap items-center justify-center gap-1.5 p-1.5')}>
         <div role="group" aria-label={t('map.regionsLabel')} className="flex gap-0.5">
           {([['face', ScanFace], ['body', PersonStanding]] as [AestheticMapRegion, React.ElementType][]).map(([r, Icon]) => (
             <Hint key={r} label={t(`regions.${r}`)} description={t(`flow.hints.region.${r}`)}>
@@ -435,7 +435,7 @@ export function StepTreatment() {
   const toolbar = (
     <>
       {/* Tools */}
-      <div role="toolbar" aria-label={t('flow.treatment.tools')} className={stacked ? 'flex shrink-0 items-center justify-between gap-0.5 overflow-x-auto border-t bg-card px-2 py-1 max-sm:[&_button]:h-9 max-sm:[&_button]:w-9' : cn(floating, 'left-3 top-1/2 flex -translate-y-1/2 flex-col gap-0.5 p-1.5')}>
+      <div data-help-id="aesthetic-session.section.tools" role="toolbar" aria-label={t('flow.treatment.tools')} className={stacked ? 'flex shrink-0 items-center justify-between gap-0.5 overflow-x-auto border-t bg-card px-2 py-1 max-sm:[&_button]:h-9 max-sm:[&_button]:w-9' : cn(floating, 'left-3 top-1/2 flex -translate-y-1/2 flex-col gap-0.5 p-1.5')}>
         {TOOLS.map(({ id, icon: Icon, key }) => (
           <ToolButton
             key={id}
@@ -528,7 +528,7 @@ export function StepTreatment() {
   );
 
   const stage = (
-    <div ref={stageRef} className={cn('relative min-w-0 overflow-hidden bg-muted/50 [background-image:radial-gradient(hsl(var(--border))_1px,transparent_1.2px)] [background-size:22px_22px]', stacked ? 'min-h-56 flex-1' : 'flex-1')}>
+    <div ref={stageRef} data-help-id="aesthetic-session.section.map" className={cn('relative min-w-0 overflow-hidden bg-muted/50 [background-image:radial-gradient(hsl(var(--border))_1px,transparent_1.2px)] [background-size:22px_22px]', stacked ? 'min-h-56 flex-1' : 'flex-1')}>
       <AestheticMap
         fill
         view={view}
@@ -576,7 +576,7 @@ export function StepTreatment() {
 
   const toClose = (
     <div className="shrink-0 border-t bg-card p-3.5 max-sm:p-2.5">
-      <Button type="button" className="w-full" onClick={() => goToStep(4)}>{t('flow.treatment.toClose')}</Button>
+      <Button data-help-id="aesthetic-session.btn.to-close" type="button" className="w-full" onClick={() => goToStep(4)}>{t('flow.treatment.toClose')}</Button>
     </div>
   );
 
@@ -593,11 +593,12 @@ export function StepTreatment() {
           {chips}
         </div>
       ) : stage}
-      <aside ref={asideRef} aria-label={t('flow.treatment.panel')} className={cn('flex flex-col bg-card', stacked ? 'shrink-0 border-t' : 'min-h-0 w-[clamp(18rem,28%,22rem)] shrink-0 border-l')}>
+      <aside ref={asideRef} data-help-id="aesthetic-session.section.panel" aria-label={t('flow.treatment.panel')} className={cn('flex flex-col bg-card', stacked ? 'shrink-0 border-t' : 'min-h-0 w-[clamp(18rem,28%,22rem)] shrink-0 border-l')}>
         <div role="tablist" className="flex shrink-0 border-b px-2.5">
           {(['summary', 'notes', 'history'] as PanelTab[]).map((id) => (
             <button
               key={id}
+              data-help-id={`aesthetic-session.tab.${id}`}
               type="button"
               role="tab"
               aria-selected={tab === id}
@@ -740,7 +741,7 @@ function ChipScroller({ label, activeId, className, children }: { label: string;
   const fade = `linear-gradient(to right, ${more.before ? 'transparent, black 1.5rem' : 'black'}, ${more.after ? 'black calc(100% - 1.5rem), transparent' : 'black'})`;
 
   return (
-    <div role="group" aria-label={label} className={cn('flex items-center gap-0.5', className)}>
+    <div data-help-id="aesthetic-session.section.layers" role="group" aria-label={label} className={cn('flex items-center gap-0.5', className)}>
       {more.before && (
         <button type="button" className={arrow} onClick={() => shift(-1)} aria-label={t('flow.treatment.servicesBack')}>
           <ChevronLeft className="h-4 w-4" />
@@ -868,7 +869,7 @@ function SummaryPanel({ selectedId, onSelect, openLayerId, onOpenLayer, followSe
                 </div>
               )}
               {signed && (
-                <div className="grid grid-cols-2 gap-2 border-t px-3 py-2.5">
+                <div data-help-id="aesthetic-session.section.layer-supply" className="grid grid-cols-2 gap-2 border-t px-3 py-2.5">
                   <div className="col-span-2 flex flex-col gap-1">
                     <Label htmlFor={`aes-product-${layer.id}`} className="text-[11px] text-muted-foreground">{t('layers.product')}</Label>
                     <Input id={`aes-product-${layer.id}`} value={layer.productName} placeholder={t('layers.productPlaceholder')} disabled={readOnly} onChange={(e) => updateLayer(layer.id, { productName: e.target.value })} className="h-8 text-xs" />

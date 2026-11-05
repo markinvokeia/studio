@@ -206,6 +206,10 @@
     "workspace.field.odontogram-search": {
       "label": "Search condition",
       "description": "The whole condition catalog, by name or code, filtered by category."
+    },
+    "workspace.btn.aesthetic": {
+      "label": "Aesthetic session",
+      "description": "Opens the aesthetic session linked to this appointment and its doctor."
     }
   }
 }

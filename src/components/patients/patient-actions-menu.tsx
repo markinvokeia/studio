@@ -131,7 +131,7 @@ export function PatientActionsMenu({
                     </DropdownMenuItem>
                   )}
                   {onCreateAestheticSession && (
-                    <DropdownMenuItem onClick={onCreateAestheticSession}>
+                    <DropdownMenuItem data-help-id={hid('new-aesthetic')} onClick={onCreateAestheticSession}>
                       <Sparkles className="h-4 w-4 mr-2 text-rose-500" />{t('PatientActionsMenu.createAestheticSession')}
                     </DropdownMenuItem>
                   )}

@@ -126,6 +126,11 @@ tiene que quedar cubierta entera:
 - Componentes compartidos entre pantallas (filtros de período, diálogos de sesión clínica,
   receta, ajustes de agenda): ids con el scope de la pantalla (`useHelpScope` +
   `composeHelpId`) y declarados en la ficha de cada pantalla (el extractor no los ve).
+- Flujo grande que se abre igual desde varias pantallas (la sesión de estética): scope propio
+  (`<HelpScopeProvider scope="aesthetic-session">`) y sus ids declarados en la ficha de la
+  pantalla principal; las guías de las demás pantallas usan los mismos ids.
+- Pantalla que autoguarda: los pasos sólo señalan (`highlight`), nunca `fill` ni `click` sobre
+  algo que cambie datos. Agregá la guía a `KEEPS_EXISTING` si actúa sobre registros reales.
 
 ### Lo que la guía no puede hacer por la persona
 
