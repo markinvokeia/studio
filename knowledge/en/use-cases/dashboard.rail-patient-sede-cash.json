@@ -1,0 +1,48 @@
+{
+  "id": "dashboard.rail-patient-sede-cash",
+  "title": "Side bar: patient, branch and cash register",
+  "summary": "Find a patient from any screen, change your working branch and view or open the cash register.",
+  "module": "Dashboard",
+  "group": "Side bar",
+  "keywords": [
+    "quick patient search",
+    "change branch",
+    "open cash register",
+    "quick record"
+  ],
+  "steps": [
+    {
+      "id": "expand",
+      "title": "Open the bar",
+      "details": "If it's closed, it's the little tab at the top right."
+    },
+    {
+      "id": "patient",
+      "title": "Patient",
+      "details": "Opens the quick search."
+    },
+    {
+      "id": "search",
+      "title": "Search",
+      "details": "Type a name, ID or phone and choose: their quick record opens with appointments, balance and actions. If they don't exist, you can register them from here."
+    },
+    {
+      "id": "sede",
+      "title": "Branch"
+    },
+    {
+      "id": "sede-list",
+      "title": "Choose the branch",
+      "details": "The calendar, the cash register and the lists are filtered by the chosen branch."
+    },
+    {
+      "id": "cash",
+      "title": "Cash register"
+    },
+    {
+      "id": "cash-panel",
+      "title": "Your cash register",
+      "details": "With an open cash register: its summary and access to the session. Without one: the button to open it. Without an open cash register you can't take cash."
+    }
+  ]
+}

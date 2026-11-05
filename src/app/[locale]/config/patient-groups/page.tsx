@@ -20,6 +20,7 @@ import { TwoPanelLayout } from '@/components/layout/two-panel-layout';
 import { PatientGroupExportButton, PatientGroupsExportAllButton } from '@/components/patients/patient-group-export-buttons';
 import { PatientGroupPatientsTab } from '@/components/patients/patient-group-patients-tab';
 import { PatientGroupServicesTab } from '@/components/patients/patient-group-services-tab';
+import { HelpScopeProvider } from '@/components/help/help-scope';
 import { BUSINESS_CONFIG_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAsyncAction } from '@/hooks/use-async-action';
@@ -360,7 +361,7 @@ export default function PatientGroupsPage() {
 
     const rightPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="config.patient-groups.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="header-icon-circle flex-none"><UsersRound className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
@@ -379,7 +380,7 @@ export default function PatientGroupsPage() {
                         <div className="flex items-center gap-1 flex-none">
                             <PatientGroupExportButton group={{ id: String(selectedPatientGroup.id), name: selectedPatientGroup.name }} />
                             {canDelete && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingPatientGroup(selectedPatientGroup); setIsDeleteDialogOpen(true); }}>
+                                <Button data-help-id="config.patient-groups.btn.delete" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingPatientGroup(selectedPatientGroup); setIsDeleteDialogOpen(true); }}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             )}
@@ -475,16 +476,20 @@ export default function PatientGroupsPage() {
                 </form>
             </Form>
                 </TabsContent>
+                <HelpScopeProvider scope="config.patient-groups.detail">
                 <TabsContent value="patients" className="mt-0 min-h-0 flex-1 flex-col p-4 data-[state=active]:flex">
                     {selectedPatientGroup && (
                         <PatientGroupPatientsTab groupId={String(selectedPatientGroup.id)} canManage={canUpdate} />
                     )}
                 </TabsContent>
+                </HelpScopeProvider>
+                <HelpScopeProvider scope="config.patient-groups.detail">
                 <TabsContent value="services" className="mt-0 min-h-0 flex-1 flex-col p-4 data-[state=active]:flex">
                     {selectedPatientGroup && (
                         <PatientGroupServicesTab groupId={String(selectedPatientGroup.id)} canManage={canUpdate} />
                     )}
                 </TabsContent>
+                </HelpScopeProvider>
             </Tabs>
         </Card>
     );

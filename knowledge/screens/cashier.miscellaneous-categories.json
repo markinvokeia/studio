@@ -1,0 +1,27 @@
+{
+  "id": "cashier.miscellaneous-categories",
+  "status": "draft",
+  "summary": "Categorías de ingresos y gastos de caja.",
+  "purpose": "Clasifican los movimientos varios y definen si son ingreso o gasto, para que salgan ordenados en los reportes.",
+  "elements": {
+    "cashier.miscellaneous-categories.section.first-row": {
+      "label": "Categoría"
+    },
+    "cashier.miscellaneous-categories.section.row": {
+      "label": "Categoría"
+    },
+    "cashier.miscellaneous-categories.btn.row-edit": {
+      "label": "Editar"
+    },
+    "cashier.miscellaneous-categories.btn.row-delete": {
+      "label": "Eliminar"
+    },
+    "cashier.miscellaneous-categories.btn.delete-confirm": {
+      "label": "Confirmar eliminación"
+    }
+  },
+  "useCases": [
+    "cashier.misc-category",
+    "cashier.misc-category-edit"
+  ]
+}

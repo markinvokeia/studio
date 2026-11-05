@@ -9,6 +9,8 @@ import { api, REQUEST_TIMEOUT_MS, type ApiRequestOptions } from '@/services/api'
  */
 export const ALERT_EMAIL_AUTO_SEND_KEY = 'alert_email_auto_send_enabled';
 export const GOOGLE_CALENDAR_SYNC_MODE_KEY = 'google_calendar_sync_mode';
+/** Asistente guiado: si la mascota se ve (database/scripts/142). Sin la clave, se ve. */
+export const HELP_MASCOT_VISIBLE_KEY = 'help_mascot_visible';
 
 export const GOOGLE_CALENDAR_SYNC_MODES: GoogleCalendarSyncMode[] = ['none', 'from_google', 'to_google', 'both'];
 
@@ -54,9 +56,15 @@ export function parseGoogleCalendarSyncMode(configs: SystemConfiguration[]): Goo
   return (GOOGLE_CALENDAR_SYNC_MODES as string[]).includes(value) ? (value as GoogleCalendarSyncMode) : 'none';
 }
 
+export function parseHelpMascotVisible(configs: SystemConfiguration[]): boolean {
+  const value = configs.find((c) => c.key === HELP_MASCOT_VISIBLE_KEY)?.value;
+  return String(value ?? 'true').trim().toLowerCase() !== 'false';
+}
+
 export const DEFAULT_CLINIC_AUTOMATION_SETTINGS: ClinicAutomationSettings = {
   alert_email_auto_send_enabled: false,
   google_calendar_sync_mode: 'none',
+  help_mascot_visible: true,
 };
 
 export async function fetchClinicAutomationSettings(options?: ApiRequestOptions): Promise<ClinicAutomationSettings> {
@@ -64,6 +72,7 @@ export async function fetchClinicAutomationSettings(options?: ApiRequestOptions)
   return {
     alert_email_auto_send_enabled: parseAlertEmailAutoSend(configs),
     google_calendar_sync_mode: parseGoogleCalendarSyncMode(configs),
+    help_mascot_visible: parseHelpMascotVisible(configs),
   };
 }
 
@@ -87,6 +96,14 @@ export async function updateClinicAutomationSettings(
       value: next.google_calendar_sync_mode,
       data_type: 'string',
       description: 'Sincronización con Google Calendar: none (no sincroniza), from_google (Google → app), to_google (app → Google), both (ambas).',
+    }, options);
+  }
+  if (next.help_mascot_visible !== previous.help_mascot_visible) {
+    await saveSystemConfig({
+      key: HELP_MASCOT_VISIBLE_KEY,
+      value: next.help_mascot_visible ? 'true' : 'false',
+      data_type: 'boolean',
+      description: 'Asistente guiado: si la mascota se ve en pantalla. Con false las guías funcionan igual (resaltado, globo, barra y lista de pasos) pero sin la mascota, y al asistente se entra por el ícono de ayuda.',
     }, options);
   }
 }

@@ -1,0 +1,94 @@
+{
+  "id": "dashboard.menu-Cashier",
+  "title": "Conocer Caja",
+  "module": "Panel de Control",
+  "summary": "Recorrido por Caja, Transacciones Misceláneas, Categorías de Productos y Servicios, Sesiones de Caja y Cajas Registradoras Físicas: para qué sirve cada pantalla.",
+  "screens": [
+    "dashboard"
+  ],
+  "group": "Menú",
+  "keywords": [
+    "caja",
+    "qué hay en caja",
+    "caja",
+    "transacciones misceláneas",
+    "categorías de productos y servicios",
+    "sesiones de caja",
+    "cajas registradoras físicas"
+  ],
+  "steps": [
+    {
+      "id": "section",
+      "action": "highlight",
+      "target": "nav.group.Cashier",
+      "title": "Caja",
+      "details": "Esta sección tiene 5 pantallas; las recorremos una por una.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "go-cashier",
+      "action": "navigate",
+      "route": "/cashier",
+      "title": "Menú → Caja → Caja"
+    },
+    {
+      "id": "page-cashier",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Caja",
+      "details": "Para cobrar o registrar movimientos tiene que haber una sesión de caja abierta. Se abre contando el efectivo inicial y se cierra contando el efectivo final: el sistema compara lo contado con lo registrado (arqueo) y deja el reporte de cierre. Tiene 5 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-cashier.miscellaneous-transactions",
+      "action": "navigate",
+      "route": "/cashier/miscellaneous-transactions",
+      "title": "Menú → Caja → Transacciones Misceláneas"
+    },
+    {
+      "id": "page-cashier.miscellaneous-transactions",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Transacciones Misceláneas",
+      "details": "Gastos menores (limpieza, librería, envíos), retiros o aportes de efectivo, con su categoría (que define si es ingreso o gasto), medio de pago y comprobante. Se registran en la sesión de caja abierta. Tiene 3 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-cashier.miscellaneous-categories",
+      "action": "navigate",
+      "route": "/cashier/miscellaneous-categories",
+      "title": "Menú → Caja → Categorías de Productos y Servicios"
+    },
+    {
+      "id": "page-cashier.miscellaneous-categories",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Categorías de Productos y Servicios",
+      "details": "Clasifican los movimientos varios y definen si son ingreso o gasto, para que salgan ordenados en los reportes. Tiene 2 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-cashier.sessions",
+      "action": "navigate",
+      "route": "/cashier/sessions",
+      "title": "Menú → Caja → Sesiones de Caja"
+    },
+    {
+      "id": "page-cashier.sessions",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Sesiones de Caja",
+      "details": "Cada apertura y cierre con su responsable, caja, conteos, movimientos y conciliación (sistema vs. declarado) por medio de pago. Tiene 1 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-cashier.cash-points",
+      "action": "navigate",
+      "route": "/cashier/cash-points",
+      "title": "Menú → Caja → Cajas Registradoras Físicas"
+    },
+    {
+      "id": "page-cashier.cash-points",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Cajas Registradoras Físicas",
+      "details": "Cada caja física (recepción, otra sede) tiene sus propias sesiones de apertura y cierre y pertenece a una sede. Tiene 2 guías en «Guiame en esta pantalla»."
+    }
+  ]
+}

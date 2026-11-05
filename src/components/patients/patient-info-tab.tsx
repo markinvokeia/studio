@@ -3,10 +3,11 @@
 import * as React from 'react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertTriangle, Check, ChevronsUpDown, Loader2, UserPlus } from 'lucide-react';
+import { AlertTriangle, Check, ChevronsUpDown, Loader2, UserCheck, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -20,6 +21,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { DuplicateContactDialog, UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
+import { groupCandidates, PatientMatchDialog, type PatientMatchState } from '@/components/patients/patient-match-dialog';
+import { useExistingPatientLookup } from '@/components/patients/use-existing-patient-lookup';
 import { PatientFormDialogShell } from '@/components/patients/patient-form-dialog-shell';
 import { PatientGroupsField, savePatientGroups } from '@/components/patients/patient-groups-field';
 import { useReadOnly } from '@/components/patient-portal/read-only-context';
@@ -27,10 +30,11 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
 import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
-import { cn } from '@/lib/utils';
+import { cn, formatDisplayDate } from '@/lib/utils';
 import { IDENTITY_DOCUMENT_TYPES } from '@/lib/identity-document';
+import { normalizePersonName } from '@/lib/person-name';
 import { useClinicPreferencesStore } from '@/stores/clinic-preferences-store';
-import type { DuplicateContactOwners, MutualSociety, UniqueConflict, User } from '@/lib/types';
+import type { DuplicateContactOwner, DuplicateContactOwners, IdentityDocumentType, MutualSociety, UniqueConflict, User } from '@/lib/types';
 import {
   fetchPatientById,
   findPatientByName,
@@ -39,12 +43,38 @@ import {
   getMutualSocietiesList,
   getUniqueConflict,
   getUpsertErrorPayload,
+  matchOwnerToUser,
+  mergeTypedIntoExisting,
+  userToFormValues,
+  type MergeablePatientField,
+  type PatientMergeResult,
   resolveUserUpsertError,
   searchGuardianPatients,
   upsertUser,
   userFormSchema,
   type UserFormValues,
 } from '@/components/patients/patient-form-utils';
+
+/** Etiqueta (clave i18n) de cada campo que se puede pasar del alta a una ficha existente. */
+const MERGE_FIELD_LABEL_KEYS: Record<MergeablePatientField | 'name', string> = {
+  name: 'UsersPage.createDialog.name',
+  identity_document: 'UsersPage.createDialog.identity_document',
+  phone: 'UsersPage.createDialog.phone',
+  email: 'UsersPage.createDialog.email',
+  birth_date: 'UsersPage.createDialog.birth_date',
+  sex: 'UsersPage.createDialog.sex',
+  address: 'UsersPage.createDialog.address',
+  mutual_society_id: 'UsersPage.mutualSociety.select',
+  doctor_id: 'UsersPage.createDialog.doctor',
+  notes: 'UsersPage.notes.title',
+};
+
+/** Alta convertida en "completar la ficha existente" tras elegirla desde una coincidencia. */
+interface CompletingExisting extends Omit<PatientMergeResult, 'values'> {
+  user: User;
+  /** Lo escrito en el alta, para volver a ella sin perderlo. */
+  typed: UserFormValues;
+}
 
 // ── Responsible contact (guardian) picker for dependents ─────────────────────
 export function ResponsibleContactField({
@@ -53,6 +83,7 @@ export function ResponsibleContactField({
   initialDisplayName,
   onDisplayNameChange,
   showCancelAction = false,
+  locked = false,
 }: {
   form: UseFormReturn<UserFormValues>;
   currentUserId?: string;
@@ -60,6 +91,8 @@ export function ResponsibleContactField({
   onDisplayNameChange?: (name: string) => void;
   /** Se propaga a la ventana de alta del tutor, igual que en el resto de los hosts. */
   showCancelAction?: boolean;
+  /** Tutor fijado por quien abrió el formulario: se muestra pero no se puede quitar ni cambiar. */
+  locked?: boolean;
 }) {
   const t = useTranslations();
   const { hasPermission } = usePermissions();
@@ -94,7 +127,7 @@ export function ResponsibleContactField({
         <FormItem>
           <div className="flex items-center justify-between gap-3">
             <FormLabel>{t('UsersPage.createDialog.responsibleContact')}</FormLabel>
-            {field.value && (
+            {field.value && !locked && (
               <Button type="button" variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs" onClick={() => { field.onChange(null); setDisplayName(''); }}>
                 {t('UsersPage.createDialog.clearResponsibleContact')}
               </Button>
@@ -103,7 +136,7 @@ export function ResponsibleContactField({
           <Popover open={isOpen} onOpenChange={(open) => { setIsOpen(open); if (!open) setQuery(''); }}>
             <PopoverTrigger asChild>
               <FormControl>
-                <Button type="button" variant="outline" role="combobox" className="w-full justify-between">
+                <Button type="button" variant="outline" role="combobox" className="w-full justify-between" disabled={locked}>
                   <span className="truncate">{displayName || t('UsersPage.createDialog.responsibleContactPlaceholder')}</span>
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -246,6 +279,19 @@ interface PatientInfoTabProps {
    * se puede volver a abrir a sí mismo.
    */
   showDependentField?: boolean;
+  /**
+   * Alta de un dependiente desde la ficha del tutor: el formulario arranca marcado
+   * como dependiente y con ese tutor elegido. Solo aplica en modo alta.
+   */
+  initialResponsible?: { id: string; name: string };
+  /**
+   * Alta desde una cita: si la cédula, el correo o el teléfono ya son de otra ficha, deja
+   * elegir esa ficha (recibe el paciente existente) en vez de crear un duplicado. Sin esto
+   * el formulario solo advierte o bloquea. Solo aplica en modo alta.
+   */
+  onSelectExisting?: (user: User) => void;
+  /** Avisa al host que el alta pasó a completar una ficha existente (su nombre) o volvió (`null`). */
+  onCompletingChange?: (name: string | null) => void;
 }
 
 /** Padding del área de campos y del pie de guardado, por host. */
@@ -271,6 +317,9 @@ export function PatientInfoTab({
   onDirtyChange,
   variant = 'tab',
   showDependentField = true,
+  initialResponsible,
+  onSelectExisting,
+  onCompletingChange,
 }: PatientInfoTabProps) {
   const padding = VARIANT_PADDING[variant];
   const isCreateMode = !userId && !userProp;
@@ -288,7 +337,11 @@ export function PatientInfoTab({
   const [isLoading, setIsLoading] = React.useState(!userProp);
   const [isSaving, setIsSaving] = React.useState(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
-  const [responsibleContactName, setResponsibleContactName] = React.useState('');
+  // Alta desde "Dependientes": el vínculo con el tutor es el motivo del alta, así que
+  // la casilla y el tutor quedan fijos (cambiarlos crearía un paciente suelto o colgado
+  // de otro tutor mientras la pestaña lo espera en la lista).
+  const presetResponsible = isCreateMode ? initialResponsible : undefined;
+  const [responsibleContactName, setResponsibleContactName] = React.useState(presetResponsible?.name ?? '');
   const [doctorDisplayName, setDoctorDisplayName] = React.useState('');
   const [groupsDirty, setGroupsDirty] = React.useState(false);
   // Create mode: groups picked before the patient exists, assigned right after the upsert.
@@ -297,18 +350,37 @@ export function PatientInfoTab({
   const [duplicateWarning, setDuplicateWarning] = React.useState<{ owners: DuplicateContactOwners; data: UserFormValues } | null>(null);
   // Dato que no se puede repetir: modal en vez de texto inline, que no se ve con el form scrolleado.
   const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
+  // Alta desde una cita: coincidencias con fichas existentes, con la opción de elegir una.
+  const [patientMatch, setPatientMatch] = React.useState<(PatientMatchState & { data?: UserFormValues }) | null>(null);
+  const savingRef = React.useRef(false);
+  // Ficha existente elegida en lugar del alta, con los datos del alta que le faltaban.
+  const [completing, setCompleting] = React.useState<CompletingExisting | null>(null);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+  const { hasPermission } = usePermissions();
+  const canSelectExisting = isCreateMode && !!onSelectExisting && !presetResponsible && !completing;
+  const completingName = completing?.user.name ?? null;
+  React.useEffect(() => {
+    onCompletingChange?.(completingName);
+  }, [completingName, onCompletingChange]);
 
   const identityDocumentRequired = useClinicPreferencesStore((s) => s.preferences.identity_document_required);
   const onInvalidSubmit = useInvalidSubmitToast();
   const infoForm = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema(t, { identityDocumentRequired })),
+    resolver: zodResolver(userFormSchema(t, { identityDocumentRequired, originalName: user?.name })),
     defaultValues: {
       id: '', name: initialName || '', email: '', phone: '', identity_document: '', identity_document_type: 'cedula_uy', birth_date: '', address: '',
-      notes: '', is_active: true, mutual_society_id: '', is_dependent: false, responsible_contact_id: null,
+      notes: '', is_active: true, mutual_society_id: '',
+      is_dependent: !!presetResponsible, responsible_contact_id: presetResponsible?.id ?? null,
       doctor_id: null, sex: null,
     },
   });
   const isDependent = infoForm.watch('is_dependent');
+  const existingMatches = useExistingPatientLookup({
+    enabled: canSelectExisting && !readOnly,
+    identityDocument: infoForm.watch('identity_document') ?? '',
+    identityDocumentType: infoForm.watch('identity_document_type') as IdentityDocumentType,
+    phone: infoForm.watch('phone') ?? '',
+  });
   const isDirty = infoForm.formState.isDirty || groupsDirty;
 
   React.useEffect(() => {
@@ -328,23 +400,7 @@ export function PatientInfoTab({
         setUser(u);
         setResponsibleContactName(u.responsible_contact_name || '');
         setDoctorDisplayName(u.doctor_name || '');
-        infoForm.reset({
-          id: u.id,
-          name: u.name,
-          email: u.email || '',
-          phone: u.phone_number || '',
-          identity_document: u.identity_document || '',
-          identity_document_type: u.identity_document_type || 'cedula_uy',
-          birth_date: u.birth_date || '',
-          address: u.address || '',
-          notes: u.notes || '',
-          is_active: u.is_active,
-          mutual_society_id: u.mutual_society_id ? String(u.mutual_society_id) : '',
-          is_dependent: u.is_dependent ?? false,
-          responsible_contact_id: u.responsible_contact_id || null,
-          doctor_id: u.doctor_id || null,
-          sex: u.sex ?? null,
-        });
+        infoForm.reset(userToFormValues(u));
       }
       setIsLoading(false);
     };
@@ -381,15 +437,28 @@ export function PatientInfoTab({
     return () => { cancelled = true; };
   }, [user]);
 
-  const handleSave = async (data: UserFormValues, confirmDuplicates = false) => {
+  const handleSave = async (formData: UserFormValues, confirmDuplicates = false) => {
+    const data = presetResponsible
+      ? { ...formData, is_dependent: true, responsible_contact_id: presetResponsible.id }
+      : formData;
+    // `isSaving` llega un render tarde: Enter + clic podría crear la ficha dos veces.
+    if (savingRef.current) return;
+    savingRef.current = true;
     setIsSaving(true);
     setSaveError(null);
     try {
-      if (isCreateMode) {
+      if (isCreateMode && !completing) {
         await upsertUser({ ...data, id: undefined }, { confirmDuplicates });
-        toast({ title: t('UsersPage.createDialog.createSuccessTitle'), description: t('UsersPage.createDialog.createSuccessDescription') });
         // The upsert response doesn't return the record — resolve the new id by name.
         const created = await findPatientByName(data.name);
+        // Sin id, quien abrió el alta (p. ej. la cita) no puede seleccionarlo: se avisa
+        // en vez de dejar el selector vacío sin explicación.
+        toast({
+          title: t('UsersPage.createDialog.createSuccessTitle'),
+          description: created?.id
+            ? t('UsersPage.createDialog.createSuccessDescription')
+            : t('UsersPage.createDialog.createdNotResolvedDescription'),
+        });
         if (created?.id && pendingGroupIds.length > 0) {
           try {
             await savePatientGroups(created.id, pendingGroupIds);
@@ -399,7 +468,7 @@ export function PatientInfoTab({
         }
         onSaved?.(created ?? {
           id: '',
-          name: data.name,
+          name: normalizePersonName(data.name),
           email: data.email || '',
           phone_number: data.phone || '',
           is_active: data.is_active,
@@ -416,7 +485,9 @@ export function PatientInfoTab({
         return;
       }
       await upsertUser(data, { confirmDuplicates });
-      toast({ title: t('UsersPage.createDialog.editSuccessTitle'), description: t('UsersPage.createDialog.editSuccessDescription') });
+      toast(completing
+        ? { title: t('PatientMatch.completedTitle'), description: t('PatientMatch.completedDescription', { name: data.name }) }
+        : { title: t('UsersPage.createDialog.editSuccessTitle'), description: t('UsersPage.createDialog.editSuccessDescription') });
       const updated: User = {
         ...(user as User),
         name: data.name,
@@ -438,11 +509,17 @@ export function PatientInfoTab({
       };
       setUser(updated);
       infoForm.reset(data);
-      onSaved?.(updated);
+      // Ficha existente completada desde una cita: se usa en la cita en vez de crear otra.
+      if (completing) onSelectExisting?.(updated);
+      else onSaved?.(updated);
     } catch (e: any) {
       const duplicateOwners = getDuplicateContactWarning(e);
       const conflict = getUniqueConflict(getUpsertErrorPayload(e));
-      if (duplicateOwners) {
+      if (canSelectExisting && (duplicateOwners || conflict)) {
+        setPatientMatch(duplicateOwners
+          ? { reason: 'warning', owners: duplicateOwners, data }
+          : { reason: 'conflict', owners: conflict!.owners, conflictedFields: conflict!.conflictedFields });
+      } else if (duplicateOwners) {
         setDuplicateWarning({ owners: duplicateOwners, data });
       } else if (conflict) {
         setUniqueConflict(conflict);
@@ -453,8 +530,125 @@ export function PatientInfoTab({
         );
       }
     } finally {
+      savingRef.current = false;
       setIsSaving(false);
     }
+  };
+
+  /** Vincula la ficha existente a la cita tal como está. */
+  const linkExisting = (selected: User) => {
+    toast({
+      title: t('PatientMatch.selectedTitle'),
+      description: t('PatientMatch.selectedDescription', { name: selected.name }),
+    });
+    onSelectExisting?.(selected);
+  };
+
+  /**
+   * Usa la ficha existente (traída completa: doctor por defecto, tutor). Si lo escrito en el
+   * alta le agrega algo, el formulario pasa a completar esa ficha: nada de lo cargado se
+   * pierde y se guarda sobre la misma ficha antes de vincularla a la cita.
+   */
+  const selectExisting = async (owner: DuplicateContactOwner) => {
+    const fetched = await fetchPatientById(String(owner.id));
+    const existing = fetched?.id === String(owner.id) ? fetched : null;
+    setPatientMatch(null);
+    // Sin la ficha completa no se puede guardar encima (el upsert reescribe todo) y sin
+    // permiso de edición tampoco: se vincula como está.
+    if (!existing || !hasPermission(PATIENTS_PERMISSIONS.UPDATE)) {
+      linkExisting(existing ?? matchOwnerToUser(owner));
+      return;
+    }
+    const typed = infoForm.getValues();
+    const { values, added, differing } = mergeTypedIntoExisting(userToFormValues(existing), typed);
+    if (!added.length && !differing.length) {
+      linkExisting(existing);
+      return;
+    }
+    setUser(existing);
+    setResponsibleContactName(existing.responsible_contact_name || '');
+    // El doctor elegido en el alta se conserva si la ficha no tenía uno.
+    if (!added.includes('doctor_id')) setDoctorDisplayName(existing.doctor_name || '');
+    // Se compara contra el alta vacía: cerrar la ventana sigue pidiendo confirmación.
+    infoForm.reset(values, { keepDefaultValues: true });
+    setCompleting({ user: existing, typed, added, differing });
+    scrollRef.current?.scrollTo({ top: 0 });
+  };
+
+  /** Descarta la ficha elegida y vuelve al alta con lo que se había escrito. */
+  const backToNewPatient = () => {
+    if (!completing) return;
+    setUser(null);
+    setResponsibleContactName('');
+    infoForm.reset(completing.typed, { keepDefaultValues: true });
+    setCompleting(null);
+  };
+
+  /** Valor legible de un campo en el resumen de diferencias. */
+  const formatMergeValue = (field: MergeablePatientField | 'name', value: string) =>
+    field === 'birth_date' ? formatDisplayDate(value) : value;
+
+  /** Marca junto a la etiqueta de un campo completado con lo escrito en el alta. */
+  const addedMark = (field: MergeablePatientField) =>
+    completing?.added.includes(field) ? (
+      <Badge variant="outline" className="ml-2 border-emerald-500/50 px-1.5 py-0 text-[10px] font-normal text-emerald-700 dark:text-emerald-400">
+        {t('PatientMatch.completing.addedBadge')}
+      </Badge>
+    ) : null;
+
+  // Coincidencias de cédula y teléfono juntas: la misma ficha aparece una sola vez.
+  const existingMatchOwners = { identity_document: existingMatches.identity_document, phone: existingMatches.phone };
+  const existingCandidates = groupCandidates(existingMatchOwners);
+  // El aviso va debajo del último campo que coincidió, cerca de donde se está escribiendo.
+  const existingMatchAnchor = existingMatches.phone.length ? 'phone' : 'identity_document';
+
+  /** Aviso con las fichas que ya tienen esa cédula o ese teléfono; abre el detalle para elegir. */
+  const renderExistingMatchHint = (field: 'identity_document' | 'phone') => {
+    if (field !== existingMatchAnchor || !existingCandidates.length) return null;
+    const shown = existingCandidates.slice(0, 3);
+    return (
+      <Alert className="border-amber-500/40 bg-amber-50 py-2 dark:bg-amber-950/30" data-help-id="appointments.section.existing-patient-hint">
+        <AlertTriangle className="h-4 w-4 !text-amber-600" />
+        <AlertDescription className="space-y-2 text-sm">
+          <p className="font-medium">{t('PatientMatch.hint.title', { count: existingCandidates.length })}</p>
+          <ul className="space-y-1">
+            {shown.map(({ owner, fields }) => (
+              <li key={owner.id} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span className="font-semibold">{owner.name}</span>
+                {fields.map((matched) => (
+                  <Badge key={matched} variant="outline" className="px-1.5 py-0 text-[10px] font-normal">
+                    {t(`PatientMatch.matchedBy.${matched}`)}
+                  </Badge>
+                ))}
+                {(owner.document || owner.phone_number) && (
+                  <span className="text-xs text-muted-foreground">
+                    {[
+                      owner.document && t('DuplicateContact.document', { value: owner.document }),
+                      owner.phone_number && t('PatientMatch.phone', { value: owner.phone_number }),
+                    ].filter(Boolean).join(' · ')}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+          {existingCandidates.length > shown.length && (
+            <p className="text-xs text-muted-foreground">
+              {t('PatientMatch.hint.more', { count: existingCandidates.length - shown.length })}
+            </p>
+          )}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7"
+            onClick={() => setPatientMatch({ reason: 'lookup', owners: existingMatchOwners })}
+            data-help-id="appointments.btn.review-patient-matches"
+          >
+            {t('PatientMatch.review')}
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
   };
 
   if (isLoading) {
@@ -478,11 +672,69 @@ export function PatientInfoTab({
             `scrollTop` se quedaba en 0 aunque `scrollHeight` superara al alto
             visible. Resultado: los campos de abajo quedaban recortados y sin forma
             de llegar a ellos. */}
-        <div className={cn('min-h-0 overflow-y-auto', padding.body)}>
+        <div ref={scrollRef} className={cn('min-h-0 overflow-y-auto', padding.body)}>
           {/* `fieldset disabled` desactiva de una sola vez todos los controles del
               portal del paciente. `min-w-0` neutraliza el `min-inline-size: min-content`
               que el navegador aplica a los fieldset y que rompería el flex. */}
           <fieldset disabled={readOnly} className="min-w-0 space-y-4">
+            {completing && (
+              <Alert className="border-sky-500/40 bg-sky-50 dark:bg-sky-950/30" data-help-id="appointments.section.completing-existing">
+                <UserCheck className="h-4 w-4 !text-sky-600" />
+                <AlertTitle>{t('PatientMatch.completing.title', { name: completing.user.name })}</AlertTitle>
+                <AlertDescription className="space-y-2 text-sm">
+                  {completing.added.length > 0 && (
+                    <p>
+                      {t('PatientMatch.completing.added', {
+                        fields: completing.added.map((field) => t(MERGE_FIELD_LABEL_KEYS[field])).join(', '),
+                      })}
+                    </p>
+                  )}
+                  {completing.differing.length > 0 && (
+                    <div>
+                      <p>{t('PatientMatch.completing.differingIntro')}</p>
+                      <ul className="ml-4 list-disc text-xs text-muted-foreground">
+                        {completing.differing.map(({ field, typed, existing }) => (
+                          <li key={field}>
+                            {typed !== null && existing !== null
+                              ? t('PatientMatch.completing.differingValue', {
+                                field: t(MERGE_FIELD_LABEL_KEYS[field]),
+                                typed: formatMergeValue(field, typed),
+                                existing: formatMergeValue(field, existing),
+                              })
+                              : t('PatientMatch.completing.differingField', { field: t(MERGE_FIELD_LABEL_KEYS[field]) })}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">{t('PatientMatch.completing.hint')}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7"
+                      disabled={isSaving}
+                      onClick={() => linkExisting(completing.user)}
+                      data-help-id="appointments.btn.use-existing-without-changes"
+                    >
+                      {t('PatientMatch.completing.useWithoutChanges')}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7"
+                      disabled={isSaving}
+                      onClick={backToNewPatient}
+                      data-help-id="appointments.btn.back-to-new-patient"
+                    >
+                      {t('PatientMatch.completing.backToNew')}
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
             {saveError && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
@@ -518,15 +770,16 @@ export function PatientInfoTab({
             )} />
             <FormField control={infoForm.control} name="identity_document" render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('UsersPage.createDialog.identity_document')}</FormLabel>
+                <FormLabel>{t('UsersPage.createDialog.identity_document')}{addedMark('identity_document')}</FormLabel>
                 <FormControl><Input placeholder={t('UsersPage.createDialog.identity_document_placeholder')} {...field} /></FormControl>
                 <FormMessage />
+                {renderExistingMatchHint('identity_document')}
               </FormItem>
             )} />
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField control={infoForm.control} name="birth_date" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('UsersPage.createDialog.birth_date')}</FormLabel>
+                  <FormLabel>{t('UsersPage.createDialog.birth_date')}{addedMark('birth_date')}</FormLabel>
                   <FormControl>
                     <DatePickerInput value={field.value} onChange={field.onChange} placeholder={t('UsersPage.createDialog.birth_date_placeholder')} disabledDays={(date: Date) => date > new Date() || date < new Date('1900-01-01')} />
                   </FormControl>
@@ -535,7 +788,7 @@ export function PatientInfoTab({
               )} />
               <FormField control={infoForm.control} name="sex" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('UsersPage.createDialog.sex')}</FormLabel>
+                  <FormLabel>{t('UsersPage.createDialog.sex')}{addedMark('sex')}</FormLabel>
                   <Select onValueChange={(value) => field.onChange(value === 'none' ? null : value)} value={field.value || 'none'}>
                     <FormControl>
                       <SelectTrigger><SelectValue placeholder={t('UsersPage.createDialog.sex')} /></SelectTrigger>
@@ -552,16 +805,17 @@ export function PatientInfoTab({
             </div>
             <FormField control={infoForm.control} name="phone" render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('UsersPage.createDialog.phone')}</FormLabel>
+                <FormLabel>{t('UsersPage.createDialog.phone')}{addedMark('phone')}</FormLabel>
                 <FormControl>
                   <PhoneInput {...field} defaultCountry="UY" placeholder={t('UsersPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
                 </FormControl>
                 <FormMessage />
+                {renderExistingMatchHint('phone')}
               </FormItem>
             )} />
             <FormField control={infoForm.control} name="email" render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('UsersPage.createDialog.email')}</FormLabel>
+                <FormLabel>{t('UsersPage.createDialog.email')}{addedMark('email')}</FormLabel>
                 <FormControl>
                   <Input type="email" placeholder={t('UsersPage.createDialog.emailPlaceholder')} {...field} disabled={lockEmail} />
                 </FormControl>
@@ -573,19 +827,19 @@ export function PatientInfoTab({
             )} />
             <FormField control={infoForm.control} name="address" render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('UsersPage.createDialog.address')}</FormLabel>
+                <FormLabel>{t('UsersPage.createDialog.address')}{addedMark('address')}</FormLabel>
                 <FormControl><Input placeholder={t('UsersPage.createDialog.addressPlaceholder')} {...field} /></FormControl>
                 <FormMessage />
               </FormItem>
             )} />
             {/* Grupos, doctor asignado, dependencia y estado son campos de gestión
                 interna: el paciente no los ve ni los edita en su portal. */}
-            {!isPortal && (userId
-              ? <PatientGroupsField patientId={userId} onDirtyChange={setGroupsDirty} />
+            {!isPortal && (userId || completing
+              ? <PatientGroupsField patientId={userId || completing!.user.id} onDirtyChange={setGroupsDirty} />
               : <PatientGroupsField value={pendingGroupIds} onChange={setPendingGroupIds} onDirtyChange={setGroupsDirty} />)}
             {!isPortal && <FormField control={infoForm.control} name="doctor_id" render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('UsersPage.createDialog.doctor')}</FormLabel>
+                <FormLabel>{t('UsersPage.createDialog.doctor')}{addedMark('doctor_id')}</FormLabel>
                 <FormControl>
                   <DoctorSelector
                     value={field.value || undefined}
@@ -608,7 +862,7 @@ export function PatientInfoTab({
             )} />}
             <FormField control={infoForm.control} name="mutual_society_id" render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('UsersPage.mutualSociety.select')}</FormLabel>
+                <FormLabel>{t('UsersPage.mutualSociety.select')}{addedMark('mutual_society_id')}</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value || ''}>
                   <FormControl>
                     <SelectTrigger><SelectValue placeholder={t('UsersPage.mutualSociety.select')} /></SelectTrigger>
@@ -626,7 +880,7 @@ export function PatientInfoTab({
             {!isPortal && showDependentField && (
               <FormField control={infoForm.control} name="is_dependent" render={({ field }) => (
                 <FormItem className="flex flex-row items-center space-x-3 space-y-0">
-                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                  <FormControl><Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={!!presetResponsible} /></FormControl>
                   <FormLabel>{t('UsersPage.createDialog.isDependent')}</FormLabel>
                 </FormItem>
               )} />
@@ -638,12 +892,13 @@ export function PatientInfoTab({
                 initialDisplayName={responsibleContactName}
                 onDisplayNameChange={setResponsibleContactName}
                 showCancelAction={showCancelAction}
+                locked={!!presetResponsible}
               />
             ) : null}
             {showNotes && (
               <FormField control={infoForm.control} name="notes" render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('UsersPage.notes.title')}</FormLabel>
+                  <FormLabel>{t('UsersPage.notes.title')}{addedMark('notes')}</FormLabel>
                   <FormControl>
                     <Textarea {...field} placeholder={t('UsersPage.notes.placeholder')} className="min-h-[100px] resize-none" />
                   </FormControl>
@@ -671,7 +926,9 @@ export function PatientInfoTab({
               </DialogCancelButton>
             )}
             <Button type="submit" size="sm" disabled={isSaving || (isPortal && !isDirty)}>
-              {isSaving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('UsersPage.notes.saving')}</> : t('UsersPage.notes.save')}
+              {isSaving
+                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('UsersPage.notes.saving')}</>
+                : completing ? t('PatientMatch.completing.saveAndUse') : t('UsersPage.notes.save')}
             </Button>
           </div>
         )}
@@ -686,6 +943,16 @@ export function PatientInfoTab({
         }}
       />
       <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
+      <PatientMatchDialog
+        match={patientMatch}
+        onSelect={selectExisting}
+        onCancel={() => setPatientMatch(null)}
+        onCreateAnyway={() => {
+          const pending = patientMatch?.data;
+          setPatientMatch(null);
+          if (pending) void handleSave(pending, true);
+        }}
+      />
     </Form>
   );
 }

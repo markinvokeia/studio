@@ -68,6 +68,7 @@ import { useFieldArray, useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { currencySchema } from '@/lib/currency';
 import { CurrencySelect } from '@/components/ui/currency-select';
+import { HelpScopeProvider } from '@/components/help/help-scope';
 import { convertAmount } from '@/lib/currency';
 import { useCurrencySettings } from '@/hooks/useCurrencySettings';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
@@ -1172,11 +1173,11 @@ function QuotesPageContent() {
 
     const quoteItemToolbarActions = selectedQuoteItem && canEditQuote ? (
         <div className="flex items-center gap-1.5">
-            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleEditQuoteItem(selectedQuoteItem)}>
+            <Button data-help-id="purchases.quotes.btn.item-edit" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleEditQuoteItem(selectedQuoteItem)}>
                 <Pencil className="h-3.5 w-3.5" />
                 {t('edit')}
             </Button>
-            <Button variant="destructive" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleDeleteQuoteItem(selectedQuoteItem)}>
+            <Button data-help-id="purchases.quotes.btn.item-delete" variant="destructive" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleDeleteQuoteItem(selectedQuoteItem)}>
                 <Trash2 className="h-3.5 w-3.5" />
                 {t('delete')}
             </Button>
@@ -1311,9 +1312,9 @@ function QuotesPageContent() {
                                         onClose={handleCloseDetails}
                                     />
                                 </CardHeader>
-                                <div className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
+                                <div data-help-id="purchases.quotes.section.actions" className="px-6 py-3 flex items-center gap-2 flex-wrap border-b bg-muted/30">
                                     {canUpdateQuote && selectedQuote.status.toLowerCase() === 'draft' && (
-                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleEditQuote(selectedQuote)}>
+                                        <Button data-help-id="purchases.quotes.btn.edit" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleEditQuote(selectedQuote)}>
                                             <Pencil className="h-3.5 w-3.5" />
                                             {t('edit')}
                                         </Button>
@@ -1324,6 +1325,7 @@ function QuotesPageContent() {
                                                 variant="default"
                                                 size="sm"
                                                 className="h-8 gap-1.5 bg-green-600 text-xs text-white hover:bg-green-700"
+                                                data-help-id="purchases.quotes.btn.confirm"
                                                 onClick={() => handleQuoteActionRequest(selectedQuote, 'confirm')}
                                             >
                                                 <CheckCircle className="h-3.5 w-3.5" />
@@ -1333,6 +1335,7 @@ function QuotesPageContent() {
                                                 variant="destructive"
                                                 size="sm"
                                                 className="h-8 gap-1.5 text-xs text-white"
+                                                data-help-id="purchases.quotes.btn.reject"
                                                 onClick={() => handleQuoteActionRequest(selectedQuote, 'reject')}
                                             >
                                                 <XCircle className="h-3.5 w-3.5" />
@@ -1345,6 +1348,7 @@ function QuotesPageContent() {
                                             variant="destructive"
                                             size="sm"
                                             className="h-8 gap-1.5 text-xs text-white"
+                                            data-help-id="purchases.quotes.btn.delete"
                                             onClick={() => handleDeleteQuote(selectedQuote)}
                                         >
                                             <Trash2 className="h-3.5 w-3.5" />
@@ -1352,19 +1356,19 @@ function QuotesPageContent() {
                                         </Button>
                                     )}
                                     {canPrint && (
-                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintQuote(selectedQuote)}>
+                                        <Button data-help-id="purchases.quotes.btn.print" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handlePrintQuote(selectedQuote)}>
                                             <Printer className="h-3.5 w-3.5" />
                                             {t('print')}
                                         </Button>
                                     )}
                                     {canSendEmail && (
-                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedQuote)}>
+                                        <Button data-help-id="purchases.quotes.btn.email" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleSendEmailClick(selectedQuote)}>
                                             <Send className="h-3.5 w-3.5" />
                                             {t('sendEmail')}
                                         </Button>
                                     )}
                                     {canInvoice && isQuoteReadyToInvoice && selectedOrderBelongsToQuote && !isLoadingOrderItems && hasServicesPendingInvoice && (
-                                        <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleInvoiceFromQuote}>
+                                        <Button data-help-id="purchases.quotes.btn.invoice" variant="outline" size="sm" className="h-8 gap-1.5 text-xs" onClick={handleInvoiceFromQuote}>
                                             <Receipt className="h-3.5 w-3.5" />
                                             {t('actions.invoice')}
                                         </Button>
@@ -1385,6 +1389,7 @@ function QuotesPageContent() {
                                         activeTabId={activeTab}
                                         onTabClick={(tab) => setActiveTab(tab.id)}
                                     />
+                                    <HelpScopeProvider scope="purchases.quotes.detail">
                                     <div className="flex-1 min-w-0 overflow-y-auto flex flex-col min-h-0 px-0 pt-4 pb-8 sm:py-3 sm:px-3">
                                         {activeTab === 'items' && (
                                             <div className="m-0 h-full flex flex-col">
@@ -1574,6 +1579,7 @@ function QuotesPageContent() {
                                             </div>
                                         )}
                                     </div>
+                                    </HelpScopeProvider>
                                 </CardContent>
                             </Card>
                         )
@@ -1699,11 +1705,11 @@ function QuotesPageContent() {
                                         />
                                     </div>
                                 )}
-                                <Card>
+                                <Card data-help-id="purchases.quotes.section.quote-items">
                                     <CardHeader>
                                         <div className="flex justify-between items-center">
                                             <CardTitle>{t('quoteDialog.items.title')}</CardTitle>
-                                            <Button type="button" size="sm" variant="outline" onClick={handleAddQuoteItem}>{t('quoteDialog.addItem')}</Button>
+                                            <Button data-help-id="purchases.quotes.btn.add-item" type="button" size="sm" variant="outline" onClick={handleAddQuoteItem}>{t('quoteDialog.addItem')}</Button>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="bg-card">
@@ -1924,7 +1930,7 @@ function QuotesPageContent() {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogAction onClick={confirmDeleteQuote} className="bg-destructive hover:bg-destructive/90">{t('deleteQuoteDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogAction data-help-id="purchases.quotes.btn.delete-confirm" onClick={confirmDeleteQuote} className="bg-destructive hover:bg-destructive/90">{t('deleteQuoteDialog.confirm')}</AlertDialogAction>
                         <AlertDialogCancel>{t('deleteQuoteDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -2120,7 +2126,7 @@ function QuotesPageContent() {
                         <AlertDialogDescription>{t('deleteItemDialog.description')}</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogAction onClick={confirmDeleteQuoteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogAction data-help-id="purchases.quotes.btn.item-delete-confirm" onClick={confirmDeleteQuoteItem} className="bg-destructive hover:bg-destructive/90">{t('deleteItemDialog.confirm')}</AlertDialogAction>
                         <AlertDialogCancel>{t('deleteItemDialog.cancel')}</AlertDialogCancel>
                     </AlertDialogFooter>
                 </AlertDialogContent>
@@ -2143,7 +2149,7 @@ function QuotesPageContent() {
                     </div>
                     <DialogFooter className="px-6 pb-4">
                         <Button variant="outline" onClick={() => setIsConfirmQuoteDialogOpen(false)}>{t('confirmDialog.cancel')}</Button>
-                        <Button onClick={handleConfirmQuoteAction}>{confirmingAction === 'confirm' ? t('confirmDialog.confirm') : t('confirmDialog.reject')}</Button>
+                        <Button data-help-id="purchases.quotes.btn.quote-action-confirm" onClick={handleConfirmQuoteAction}>{confirmingAction === 'confirm' ? t('confirmDialog.confirm') : t('confirmDialog.reject')}</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

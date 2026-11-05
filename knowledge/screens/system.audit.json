@@ -1,0 +1,20 @@
+{
+  "id": "system.audit",
+  "status": "draft",
+  "summary": "Registro de auditoría.",
+  "purpose": "Historial de cambios sobre los datos: qué se modificó, quién y cuándo.",
+  "useCases": [
+    "system.audit.overview"
+  ],
+  "elements": {
+    "system.audit.section.first-row": {
+      "label": "El más reciente"
+    },
+    "system.audit.section.row": {
+      "label": "Registro"
+    },
+    "system.audit.section.detail": {
+      "label": "Detalle"
+    }
+  }
+}

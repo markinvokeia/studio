@@ -1,0 +1,60 @@
+{
+  "id": "config.clinic-prefs.overview",
+  "title": "Set up Clinic Preferences",
+  "summary": "General clinic rules that change how other screens work.",
+  "module": "Business Setup",
+  "keywords": [
+    "clinic preferences",
+    "discounts",
+    "required document",
+    "duplicates",
+    "mascot"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Clinic Preferences",
+      "details": "General clinic rules that change how other screens work."
+    },
+    {
+      "id": "discounts",
+      "title": "Discounts",
+      "details": "Enables discounts on quotes and invoices, capped by percentage or amount."
+    },
+    {
+      "id": "identity-document",
+      "title": "ID document",
+      "details": "Whether it's required when registering patients."
+    },
+    {
+      "id": "duplicate-contact",
+      "title": "Duplicate contacts",
+      "details": "Whether the same phone or email is allowed on two patients (families). Affects WhatsApp and the portal."
+    },
+    {
+      "id": "automation",
+      "title": "Automation",
+      "details": "Automatic messages the system sends."
+    },
+    {
+      "id": "alert-email",
+      "title": "Alert emails",
+      "details": "Whether alerts send their email to the patient on their own."
+    },
+    {
+      "id": "assistant",
+      "title": "Guided assistant",
+      "details": "Mascot visible or only the help icon."
+    },
+    {
+      "id": "google-calendar",
+      "title": "Google Calendar",
+      "details": "Calendar sync with Google Calendar."
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "Changes don't apply until you save."
+    }
+  ]
+}

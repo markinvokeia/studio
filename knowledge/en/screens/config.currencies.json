@@ -1,0 +1,13 @@
+{
+  "id": "config.currencies",
+  "summary": "Currencies and exchange rates.",
+  "purpose": "The currencies you work with and the rate used to convert between the main and the secondary currency.",
+  "tips": [
+    "The main currency is set in Clinic Details."
+  ],
+  "elements": {
+    "config.currencies.section.rates": {
+      "label": "Rate history"
+    }
+  }
+}

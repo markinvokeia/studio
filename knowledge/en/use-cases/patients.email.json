@@ -1,0 +1,61 @@
+{
+  "id": "patients.email",
+  "title": "Email the patient",
+  "summary": "More actions → Send email: to, subject and message.",
+  "module": "Patients",
+  "group": "Scheduling and communication",
+  "inputs": {
+    "patient": "Patient's name, email or ID",
+    "subject": "Subject"
+  },
+  "keywords": [
+    "e-mail",
+    "email",
+    "send mail",
+    "write to the patient"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or ID."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide continues once their record is open."
+    },
+    {
+      "id": "menu",
+      "title": "More actions",
+      "details": "Communication, patient status and preferences."
+    },
+    {
+      "id": "item",
+      "title": "Send email",
+      "details": "It only shows if the patient (or their responsible contact) has an email."
+    },
+    {
+      "id": "to",
+      "title": "To"
+    },
+    {
+      "id": "subject",
+      "title": "Subject"
+    },
+    {
+      "id": "body",
+      "title": "Message"
+    },
+    {
+      "id": "send",
+      "title": "Send",
+      "details": "It stays in the communication history."
+    }
+  ]
+}

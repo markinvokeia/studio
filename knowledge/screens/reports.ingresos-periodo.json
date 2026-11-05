@@ -1,0 +1,67 @@
+{
+  "id": "reports.ingresos-periodo",
+  "status": "draft",
+  "summary": "Ingresos por período.",
+  "purpose": "Evolución de lo cobrado por día, semana o mes.",
+  "useCases": [
+    "reports.ingresos-periodo.overview"
+  ],
+  "tips": [
+    "Elegí los filtros y tocá «Generar»: el reporte no se calcula solo."
+  ],
+  "elements": {
+    "reports.ingresos-periodo.section.filters": {
+      "label": "Filtros",
+      "description": "«Agrupar por» (día, semana, mes) y moneda."
+    },
+    "reports.ingresos-periodo.btn.generate": {
+      "label": "Generar",
+      "description": "Calcula el reporte."
+    },
+    "reports.ingresos-periodo.section.empty": {
+      "label": "Sin datos"
+    },
+    "reports.ingresos-periodo.section.kpi": {
+      "label": "Indicadores",
+      "description": "Cantidad de cobros y el mejor período."
+    },
+    "reports.ingresos-periodo.section.results": {
+      "label": "Resultados",
+      "description": "Gráfico de evolución y tabla por período."
+    },
+    "reports.ingresos-periodo.section.table": {
+      "label": "Detalle"
+    },
+    "reports.ingresos-periodo.section.export": {
+      "label": "Exportar e imprimir"
+    },
+    "reports.ingresos-periodo.btn.export": {
+      "label": "Exportar",
+      "description": "Excel, CSV o PDF."
+    },
+    "reports.ingresos-periodo.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.ingresos-periodo.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.ingresos-periodo.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.ingresos-periodo.btn.print": {
+      "label": "Imprimir"
+    },
+    "reports.ingresos-periodo.filter.period": {
+      "label": "Período"
+    },
+    "reports.ingresos-periodo.section.period-options": {
+      "label": "Opciones de período"
+    },
+    "reports.ingresos-periodo.filter.currency": {
+      "label": "Moneda"
+    },
+    "reports.ingresos-periodo.filter.currency-filter": {
+      "label": "Moneda"
+    }
+  }
+}

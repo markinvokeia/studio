@@ -308,7 +308,7 @@ export default function MutualSocietiesPage() {
 
     const rightPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="config.mutual-societies.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center gap-2 min-w-0">
                     <div className="header-icon-circle flex-none"><Handshake className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
@@ -326,13 +326,13 @@ export default function MutualSocietiesPage() {
                     {selectedMutualSociety && !isEditing && (
                         <div className="flex gap-1 flex-none">
                             {canUpdate && (
-                                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                                <Button data-help-id="config.mutual-societies.btn.edit" variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                                     <Pencil className="h-4 w-4 mr-1" />
                                     <span className="hidden sm:inline">{tColumns('edit')}</span>
                                 </Button>
                             )}
                             {canDelete && (
-                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingMutualSociety(selectedMutualSociety); setIsDeleteDialogOpen(true); }}>
+                                <Button data-help-id="config.mutual-societies.btn.delete" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('deleteDialog.confirm')} onClick={() => { setDeletingMutualSociety(selectedMutualSociety); setIsDeleteDialogOpen(true); }}>
                                     <Trash2 className="h-4 w-4" />
                                 </Button>
                             )}

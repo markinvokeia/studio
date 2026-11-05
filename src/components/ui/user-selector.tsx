@@ -1,13 +1,17 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { DuplicateContactDialog, UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
+import { PERSON_NAME_ISSUE_MESSAGES } from '@/components/patients/patient-form-utils';
+import { ResponsibleMatchHint } from '@/components/patients/responsible-match-hint';
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { API_ROUTES } from '@/constants/routes';
 import { DuplicateContactOwners, UniqueConflict, User } from '@/lib/types';
+import { getPersonNameIssue, normalizePersonName } from '@/lib/person-name';
 import { cn } from '@/lib/utils';
 import { api } from '@/services/api';
 import { Check, ChevronsUpDown, Loader2, Plus } from 'lucide-react';
@@ -45,6 +49,7 @@ export function UserSelector({
     openCreateToken,
     onRequestCreate,
 }: UserSelectorProps) {
+    const t = useTranslations();
     const [open, setOpen] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
     const [users, setUsers] = React.useState<User[]>([]);
@@ -120,6 +125,11 @@ export function UserSelector({
                     avatar: '',
                     doctor_id: u.doctor_id ? String(u.doctor_id) : null,
                     doctor_name: u.doctor_name || undefined,
+                    is_dependent: u.is_dependent ?? u.is_dependant ?? false,
+                    responsible_contact_id: u.responsible_contact_id ? String(u.responsible_contact_id) : undefined,
+                    responsible_contact_name: u.responsible_contact_name || undefined,
+                    responsible_phone_number: u.responsible_phone_number || undefined,
+                    matched_by_responsible: u.matched_by_responsible === true,
                 })));
             } catch {
                 setUsers([]);
@@ -171,8 +181,14 @@ export function UserSelector({
     };
 
     const handleCreateUser = async (confirmDuplicates = false) => {
-        const name = createName.trim();
+        const name = normalizePersonName(createName);
         if (!name) return;
+        // Proveedores son empresas ("Dental 2000 S.A."): la regla de nombre es solo para pacientes.
+        const nameIssue = filterType === 'PACIENTE' ? getPersonNameIssue(name) : null;
+        if (nameIssue) {
+            setCreateError(t(PERSON_NAME_ISSUE_MESSAGES[nameIssue]));
+            return;
+        }
         setIsSaving(true);
         setCreateError(null);
         try {
@@ -193,6 +209,10 @@ export function UserSelector({
             }
             if (errPayload?.code === 'unique_conflict') {
                 setUniqueConflict({ conflictedFields: errPayload.conflictedFields ?? [], owners: errPayload.owners ?? {} });
+                return;
+            }
+            if (errPayload?.code === 'invalid_name') {
+                setCreateError(t('UsersPage.createDialog.validation.nameInvalid'));
                 return;
             }
             if (errPayload) {
@@ -229,6 +249,8 @@ export function UserSelector({
                 setDuplicateOwners(errPayload.owners);
             } else if (errPayload?.code === 'unique_conflict') {
                 setUniqueConflict({ conflictedFields: errPayload.conflictedFields ?? [], owners: errPayload.owners ?? {} });
+            } else if (errPayload?.code === 'invalid_name') {
+                setCreateError(t('UsersPage.createDialog.validation.nameInvalid'));
             } else {
                 setCreateError('Revisá que la información ingresada sea válida.');
             }
@@ -285,6 +307,7 @@ export function UserSelector({
                                                     {user.phone_number && (
                                                         <span className="text-xs text-muted-foreground truncate">{user.phone_number}</span>
                                                     )}
+                                                    <ResponsibleMatchHint user={user} />
                                                 </div>
                                             </CommandItem>
                                         ))}

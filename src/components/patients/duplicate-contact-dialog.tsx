@@ -17,9 +17,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 import { formatDisplayDate } from '@/lib/utils';
-import type { DuplicateContactOwner, DuplicateContactOwners, UniqueConflict } from '@/lib/types';
+import type { DuplicateContactOwner, DuplicateContactOwners, PatientMatchField, UniqueConflict } from '@/lib/types';
 
-type OwnerField = 'phone' | 'email';
+type OwnerField = PatientMatchField;
+const OWNER_FIELDS: readonly string[] = ['identity_document', 'phone', 'email'] satisfies OwnerField[];
 
 /** Lista de fichas que ya usan un teléfono/correo, con datos para distinguir personas. */
 function OwnersSection({ field, owners }: { field: OwnerField; owners: DuplicateContactOwner[] }) {
@@ -121,7 +122,7 @@ export function UniqueConflictDialog({ conflict, onClose }: UniqueConflictDialog
 
         <div className="max-h-[50vh] space-y-4 overflow-y-auto px-6 py-3">
           {conflict?.conflictedFields.map((field) => {
-            const owners = field === 'phone' || field === 'email' ? conflict.owners[field] : undefined;
+            const owners = OWNER_FIELDS.includes(field) ? conflict.owners[field as OwnerField] : undefined;
             if (owners?.length) {
               return <OwnersSection key={field} field={field as OwnerField} owners={owners} />;
             }

@@ -50,7 +50,7 @@ export function DashboardFilterBar({ serverDate }: DashboardFilterBarProps) {
           value={sedeId ?? CONSOLIDATED}
           onValueChange={(v) => setSedeId(v === CONSOLIDATED ? null : v)}
         >
-          <SelectTrigger className="h-8 w-auto gap-1.5 text-xs font-medium" aria-label={t('branch')}>
+          <SelectTrigger data-help-id="dashboard.filter.branch" className="h-8 w-auto gap-1.5 text-xs font-medium" aria-label={t('branch')}>
             <Building2 className="h-3.5 w-3.5 shrink-0 opacity-70" />
             <SelectValue />
           </SelectTrigger>

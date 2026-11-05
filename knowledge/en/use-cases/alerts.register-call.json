@@ -1,0 +1,44 @@
+{
+  "id": "alerts.register-call",
+  "title": "Log a call to the patient",
+  "summary": "Record that the patient was called about an alert: when and what was discussed.",
+  "module": "Alerts Center",
+  "inputs": {
+    "date": "Date and time YYYY-MM-DDTHH:MM",
+    "notes": "What was discussed"
+  },
+  "keywords": [
+    "call",
+    "i called",
+    "log call",
+    "phone",
+    "contacted"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Alerts Center",
+      "details": "What the system detected with the alert rules and the team needs to work on."
+    },
+    {
+      "id": "open",
+      "title": "Log call",
+      "details": "Tap the alert's phone icon. Do it on the alert you want to work on."
+    },
+    {
+      "id": "date",
+      "title": "Date and time",
+      "details": "Required: when the call was made. Without a date and time it can't be recorded."
+    },
+    {
+      "id": "notes",
+      "title": "Notes",
+      "details": "What was discussed, whether they answered, whether to call back."
+    },
+    {
+      "id": "save",
+      "title": "Log",
+      "details": "The alert becomes Action taken and the call stays in its history."
+    }
+  ]
+}

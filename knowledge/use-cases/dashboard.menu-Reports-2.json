@@ -1,0 +1,80 @@
+{
+  "id": "dashboard.menu-Reports-2",
+  "title": "Conocer Reportes: Producción por Doctor, Tratamientos Realizados y más",
+  "module": "Panel de Control",
+  "summary": "Recorrido por Producción por Doctor, Tratamientos Realizados, Comparativo de Producción y Honorarios: para qué sirve cada pantalla.",
+  "screens": [
+    "dashboard"
+  ],
+  "group": "Menú",
+  "keywords": [
+    "reportes",
+    "qué hay en reportes",
+    "producción por doctor",
+    "tratamientos realizados",
+    "comparativo de producción",
+    "honorarios"
+  ],
+  "steps": [
+    {
+      "id": "section",
+      "action": "highlight",
+      "target": "nav.group.Reports",
+      "title": "Reportes",
+      "details": "Recorremos Producción por Doctor, Tratamientos Realizados, Comparativo de Producción y Honorarios.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "go-reports.produccion-doctor",
+      "action": "navigate",
+      "route": "/reports/produccion-doctor",
+      "title": "Menú → Reportes → Producción por Doctor"
+    },
+    {
+      "id": "page-reports.produccion-doctor",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Producción por Doctor",
+      "details": "Lo que produjo cada profesional en el período: tratamientos facturados y su valor. Tiene 1 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-reports.tratamientos",
+      "action": "navigate",
+      "route": "/reports/tratamientos",
+      "title": "Menú → Reportes → Tratamientos Realizados"
+    },
+    {
+      "id": "page-reports.tratamientos",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Tratamientos Realizados",
+      "details": "Detalle de los tratamientos hechos en el período. Tiene 1 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-reports.comparativo-produccion",
+      "action": "navigate",
+      "route": "/reports/comparativo-produccion",
+      "title": "Menú → Reportes → Comparativo de Producción"
+    },
+    {
+      "id": "page-reports.comparativo-produccion",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Comparativo de Producción",
+      "details": "La producción mes a mes de los últimos 12 meses, por profesional. Tiene 1 guías en «Guiame en esta pantalla»."
+    },
+    {
+      "id": "go-reports.honorarios",
+      "action": "navigate",
+      "route": "/reports/honorarios",
+      "title": "Menú → Reportes → Honorarios"
+    },
+    {
+      "id": "page-reports.honorarios",
+      "action": "highlight",
+      "target": "app.section.page",
+      "title": "Honorarios",
+      "details": "Lo producido por cada profesional y lo que le corresponde según su porcentaje. Tiene 1 guías en «Guiame en esta pantalla»."
+    }
+  ]
+}

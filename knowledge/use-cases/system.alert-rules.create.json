@@ -1,0 +1,146 @@
+{
+  "id": "system.alert-rules.create",
+  "title": "Crear una regla",
+  "module": "Sistema",
+  "summary": "Alta de una regla.",
+  "screens": [
+    "system.alert-rules"
+  ],
+  "inputs": {
+    "name": "Nombre",
+    "code": "Código",
+    "category": "Nombre de la categoría (ej. Citas)",
+    "source_table": "Tabla de origen (ej. appointments)",
+    "table_id_field": "Campo de ID de la tabla (ej. id)"
+  },
+  "keywords": [
+    "nueva regla",
+    "nuevo regla",
+    "crear regla"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/alert-rules",
+      "title": "Menú → Sistema → Reglas de Alertas",
+      "details": "Qué genera una alerta y cuándo: tabla y fecha del evento, días antes o después, recurrencia, prioridad y las plantillas de correo, WhatsApp o SMS que se mandan."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "system.alert-rules.btn.new",
+      "title": "Crear",
+      "until": "system.alert-rules.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "system.alert-rules.field.name",
+      "title": "Nombre",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "code",
+      "action": "fill",
+      "target": "system.alert-rules.field.code",
+      "title": "Código",
+      "value": "{{values.code}}"
+    },
+    {
+      "id": "category_id",
+      "action": "fill",
+      "target": "system.alert-rules.field.category_id",
+      "title": "Categoría",
+      "details": "Obligatoria: en qué grupo del Centro de Alertas aparecen sus alertas.",
+      "value": "{{values.category}}"
+    },
+    {
+      "id": "source_table",
+      "action": "fill",
+      "target": "system.alert-rules.field.source_table",
+      "title": "Origen",
+      "details": "Obligatoria: de dónde salen los casos (citas, facturas, pacientes…).",
+      "value": "{{values.source_table}}"
+    },
+    {
+      "id": "table_id_field",
+      "action": "fill",
+      "target": "system.alert-rules.field.table_id_field",
+      "value": "{{values.table_id_field}}",
+      "title": "Campo de ID",
+      "details": "Obligatorio: la columna que identifica cada caso de la tabla (casi siempre «id»)."
+    },
+    {
+      "id": "event_field",
+      "action": "highlight",
+      "target": "system.alert-rules.field.event_field",
+      "title": "Fecha del evento",
+      "details": "La fecha contra la que se cuentan los días.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "days_before",
+      "action": "highlight",
+      "target": "system.alert-rules.field.days_before",
+      "title": "Días antes",
+      "skipIfMissing": true
+    },
+    {
+      "id": "days_after",
+      "action": "highlight",
+      "target": "system.alert-rules.field.days_after",
+      "title": "Días después",
+      "skipIfMissing": true
+    },
+    {
+      "id": "recurrence_type",
+      "action": "highlight",
+      "target": "system.alert-rules.field.recurrence_type",
+      "title": "Recurrencia",
+      "skipIfMissing": true
+    },
+    {
+      "id": "priority",
+      "action": "highlight",
+      "target": "system.alert-rules.field.priority",
+      "title": "Prioridad",
+      "skipIfMissing": true
+    },
+    {
+      "id": "email_template_id",
+      "action": "highlight",
+      "target": "system.alert-rules.field.email_template_id",
+      "title": "Plantilla de correo",
+      "skipIfMissing": true
+    },
+    {
+      "id": "whatsapp_template_id",
+      "action": "highlight",
+      "target": "system.alert-rules.field.whatsapp_template_id",
+      "title": "Plantilla de WhatsApp",
+      "skipIfMissing": true
+    },
+    {
+      "id": "auto_send_email",
+      "action": "highlight",
+      "target": "system.alert-rules.field.auto_send_email",
+      "title": "Enviar correo automático",
+      "details": "Si está marcado, el correo sale solo al generarse la alerta.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "is_active",
+      "action": "highlight",
+      "target": "system.alert-rules.field.is_active",
+      "title": "Activa",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "system.alert-rules.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

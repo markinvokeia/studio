@@ -875,3 +875,60 @@ div[role="combobox"][aria-invalid="true"] {
 .hover\:bg-primary:hover .text-muted-foreground {
   color: hsl(var(--primary-foreground)) !important;
 }
+
+/* ── Asistente guiado: spotlight ──────────────────────────────────────────
+   --help-level (1..5) lo sube el spotlight cada pocos segundos mientras el
+   elemento sigue sin atención: el borde titila cada vez más fuerte y rápido. */
+.help-spotlight-ring {
+  --help-level: 1;
+  --help-color: 263 67% 55%;
+  position: fixed;
+  pointer-events: none;
+  border-radius: 12px;
+  border: calc(2px + var(--help-level) * 0.5px) solid hsl(var(--help-color));
+  box-shadow:
+    0 0 0 9999px rgb(15 10 40 / 0.38),
+    0 0 calc(var(--help-level) * 6px) calc(var(--help-level) * 2px) hsl(var(--help-color) / 0.65);
+  animation: help-blink calc(1.5s - var(--help-level) * 0.18s) ease-in-out infinite;
+  transition: top 180ms ease-out, left 180ms ease-out, width 180ms ease-out, height 180ms ease-out;
+}
+/* Violeta siempre; rojo cuando señala algo obligatorio que falta o un campo con error. */
+.help-spotlight-ring[data-alert] { --help-color: 0 84% 58%; }
+
+@keyframes help-blink {
+  0%, 100% {
+    border-color: hsl(var(--help-color));
+    outline: 0 solid transparent;
+  }
+  50% {
+    border-color: hsl(var(--help-color) / 0.35);
+    box-shadow:
+      0 0 0 9999px rgb(15 10 40 / 0.38),
+      0 0 calc(var(--help-level) * 12px) calc(var(--help-level) * 5px) hsl(var(--help-color) / 0.85);
+  }
+}
+
+/* La mascota (src/components/invoke-mascot) es una capa flotante propia: no se imprime. */
+@media print {
+  .ivm-stage { display: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .help-spotlight-ring { animation: none !important; }
+}
+
+
+/* El riel derecho del header es el escondite de la mascota (MascotPeekZone): su contenido ocupa todo el alto. */
+.help-rail-zone > .ivm-peekzone-content { height: 100%; }
+/* Panel del contenido como escondite: el envoltorio ocupa el lugar del panel y es opaco
+   (con el mismo tinte de la página), así la mascota no se ve por los huecos entre tarjetas. */
+.help-content-zone > .ivm-peekzone-content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--page-tint, hsl(var(--background)));
+}
+@media print {
+  .help-content-zone > .ivm-peekzone-content { display: block; background: none; }
+}

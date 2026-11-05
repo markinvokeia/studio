@@ -1,0 +1,63 @@
+{
+  "id": "reports.facturacion-cobranza",
+  "summary": "Billing vs. collections.",
+  "purpose": "Compares what was invoiced with what was actually collected in the period.",
+  "tips": [
+    "Choose the filters and tap «Generate»: the report isn't calculated on its own."
+  ],
+  "elements": {
+    "reports.facturacion-cobranza.section.filters": {
+      "label": "Filters",
+      "description": "Currency."
+    },
+    "reports.facturacion-cobranza.btn.generate": {
+      "label": "Generate",
+      "description": "Calculates the report."
+    },
+    "reports.facturacion-cobranza.section.empty": {
+      "label": "No data"
+    },
+    "reports.facturacion-cobranza.section.kpi": {
+      "label": "Indicators",
+      "description": "Percentage collected of what was invoiced."
+    },
+    "reports.facturacion-cobranza.section.results": {
+      "label": "Results",
+      "description": "Invoiced vs. collected per period, and what's pending."
+    },
+    "reports.facturacion-cobranza.section.table": {
+      "label": "Details"
+    },
+    "reports.facturacion-cobranza.section.export": {
+      "label": "Export and print"
+    },
+    "reports.facturacion-cobranza.btn.export": {
+      "label": "Export",
+      "description": "Excel, CSV or PDF."
+    },
+    "reports.facturacion-cobranza.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.facturacion-cobranza.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.facturacion-cobranza.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.facturacion-cobranza.btn.print": {
+      "label": "Print"
+    },
+    "reports.facturacion-cobranza.filter.period": {
+      "label": "Period"
+    },
+    "reports.facturacion-cobranza.section.period-options": {
+      "label": "Period options"
+    },
+    "reports.facturacion-cobranza.filter.currency": {
+      "label": "Currency"
+    },
+    "reports.facturacion-cobranza.filter.currency-filter": {
+      "label": "Currency"
+    }
+  }
+}

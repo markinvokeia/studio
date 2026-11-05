@@ -3,6 +3,8 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { useHelpScope } from '@/components/help/help-scope';
+import { composeHelpId } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 import { BarChart2, Search } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -43,6 +45,8 @@ export function ReportShell({
   className,
 }: ReportShellProps) {
   const t = useTranslations('ReportShell');
+  const helpScope = useHelpScope();
+  const hid = (kind: 'section' | 'btn', name: string) => composeHelpId(helpScope, kind, name);
 
   const handleGenerate = useCallback(() => {
     onGenerate();
@@ -69,7 +73,7 @@ export function ReportShell({
             <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
           )}
         </div>
-        <div className="shrink-0 print:hidden">
+        <div data-help-id={hid('section', 'export')} className="shrink-0 print:hidden">
           <ReportExportActions
             onExportPDF={onExportPDF}
             onExportExcel={onExportExcel}
@@ -82,7 +86,7 @@ export function ReportShell({
       </div>
 
       {/* Filter bar */}
-      <Card className="print:hidden">
+      <Card data-help-id={hid('section', 'filters')} className="print:hidden">
         <CardContent className="p-3">
           {/*
             Mobile:  filter items → grid-cols-2 (2 per row, equal width)
@@ -98,6 +102,7 @@ export function ReportShell({
               {filters}
             </div>
             <Button
+              data-help-id={hid('btn', 'generate')}
               onClick={handleGenerate}
               disabled={isLoading}
               className="shrink-0 gap-2 w-full md:w-auto"
@@ -112,7 +117,7 @@ export function ReportShell({
 
       {/* Content or empty state */}
       {!hasData && !isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground print:hidden">
+        <div data-help-id={hid('section', 'empty')} className="flex flex-col items-center justify-center py-20 text-center text-muted-foreground print:hidden">
           <BarChart2 className="h-12 w-12 mb-3 opacity-20" />
           <p className="text-sm font-medium">{t('emptyTitle')}</p>
           <p className="text-xs mt-1">{t('emptySubtitle')}</p>
@@ -120,7 +125,10 @@ export function ReportShell({
       ) : (
         <>
           {hasData && <Separator className="print:hidden" />}
-          {children}
+          {/* Mismo layout que el contenedor padre: sólo agrega el help id de los resultados. */}
+          <div data-help-id={hid('section', 'results')} className="flex flex-col gap-4">
+            {children}
+          </div>
         </>
       )}
     </div>

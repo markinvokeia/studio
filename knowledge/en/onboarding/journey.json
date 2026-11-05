@@ -1,0 +1,64 @@
+{
+  "steps": [
+    {
+      "id": "business",
+      "title": "Clinic details",
+      "description": "Name, logo, contact and the currency you'll charge in."
+    },
+    {
+      "id": "sedes",
+      "title": "Branches",
+      "description": "At least one branch with its address. If you see patients in a single place, it's just one."
+    },
+    {
+      "id": "schedules",
+      "title": "Office hours",
+      "description": "The days and hours the branch is open. The calendar and the patient portal don't offer appointments outside these hours."
+    },
+    {
+      "id": "calendars",
+      "title": "Rooms",
+      "description": "Each room or chair is its own calendar within a branch."
+    },
+    {
+      "id": "doctors",
+      "title": "Doctors",
+      "description": "The physicians or dentists who see patients. Each one has their own user to sign in to Invoke."
+    },
+    {
+      "id": "availability",
+      "title": "Each doctor's availability",
+      "description": "Which days and at what hours each doctor sees patients. Without availability no gaps show up for booking."
+    },
+    {
+      "id": "services",
+      "title": "Services",
+      "description": "The catalog of treatments with their price and duration. The duration sets the appointment length."
+    },
+    {
+      "id": "first_appointment",
+      "title": "Test appointment",
+      "description": "Book a test appointment to see everything working together. With this the minimum is done!"
+    },
+    {
+      "id": "staff",
+      "title": "Administrative team",
+      "description": "Front desk and administration, each with their role."
+    },
+    {
+      "id": "payment_methods",
+      "title": "Payment methods",
+      "description": "Cash, cards, transfer: what's chosen when charging."
+    },
+    {
+      "id": "whatsapp",
+      "title": "WhatsApp",
+      "description": "Connect the WhatsApp agent to confirm appointments and reply to patients."
+    },
+    {
+      "id": "patients_import",
+      "title": "Import patients",
+      "description": "Bring your patients in from a spreadsheet so you don't enter them one by one."
+    }
+  ]
+}

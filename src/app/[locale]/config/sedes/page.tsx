@@ -340,7 +340,7 @@ export default function SedesPage() {
 
     const rightPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="config.sedes.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                         <div className="header-icon-circle flex-none"><Building2 className="h-5 w-5" /></div>
@@ -350,13 +350,13 @@ export default function SedesPage() {
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-none">
                         {selectedSede && !isEditing && canUpdate && (
-                            <Button variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
+                            <Button data-help-id="config.sedes.btn.edit" variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
                                 <Pencil className="h-3.5 w-3.5" />
                                 <span className="hidden sm:inline">{t('SedesPage.form.edit')}</span>
                             </Button>
                         )}
                         {selectedSede && !isEditing && canDelete && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('SedesPage.deleteDialog.delete')} onClick={() => { setDeletingSede(selectedSede); setIsDeleteDialogOpen(true); }}>
+                            <Button data-help-id="config.sedes.btn.delete" variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" aria-label={t('SedesPage.deleteDialog.delete')} onClick={() => { setDeletingSede(selectedSede); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}

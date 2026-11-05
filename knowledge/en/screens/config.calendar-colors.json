@@ -1,0 +1,20 @@
+{
+  "id": "config.calendar-colors",
+  "summary": "Calendar colors.",
+  "purpose": "Choose whether appointments are colored by room, doctor, service or status, and the palette for each appointment status.",
+  "tips": [
+    "Changes are previewed before saving."
+  ],
+  "elements": {
+    "config.calendar-colors.section.scopes": {
+      "label": "General or per calendar",
+      "description": "«General» applies to the whole calendar; each calendar can have its own."
+    },
+    "config.calendar-colors.btn.save": {
+      "label": "Save"
+    },
+    "config.calendar-colors.btn.restore-defaults": {
+      "label": "Restore colors"
+    }
+  }
+}

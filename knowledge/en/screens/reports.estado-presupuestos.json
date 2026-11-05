@@ -1,0 +1,63 @@
+{
+  "id": "reports.estado-presupuestos",
+  "summary": "Quote status.",
+  "purpose": "Quotes issued, accepted, rejected and pending, with their conversion rate.",
+  "tips": [
+    "Choose the filters and tap «Generate»: the report isn't calculated on its own."
+  ],
+  "elements": {
+    "reports.estado-presupuestos.section.filters": {
+      "label": "Filters",
+      "description": "Currency."
+    },
+    "reports.estado-presupuestos.btn.generate": {
+      "label": "Generate",
+      "description": "Calculates the report."
+    },
+    "reports.estado-presupuestos.section.empty": {
+      "label": "No data"
+    },
+    "reports.estado-presupuestos.section.kpi": {
+      "label": "Indicators",
+      "description": "Number of quotes, average days until accepted and conversion rate."
+    },
+    "reports.estado-presupuestos.section.results": {
+      "label": "Results",
+      "description": "Breakdown by status and the details of each quote."
+    },
+    "reports.estado-presupuestos.section.table": {
+      "label": "Details"
+    },
+    "reports.estado-presupuestos.section.export": {
+      "label": "Export and print"
+    },
+    "reports.estado-presupuestos.btn.export": {
+      "label": "Export",
+      "description": "Excel, CSV or PDF."
+    },
+    "reports.estado-presupuestos.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.estado-presupuestos.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.estado-presupuestos.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.estado-presupuestos.btn.print": {
+      "label": "Print"
+    },
+    "reports.estado-presupuestos.filter.period": {
+      "label": "Period"
+    },
+    "reports.estado-presupuestos.section.period-options": {
+      "label": "Period options"
+    },
+    "reports.estado-presupuestos.filter.currency": {
+      "label": "Currency"
+    },
+    "reports.estado-presupuestos.filter.currency-filter": {
+      "label": "Currency"
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "id": "system.alert-categories",
+  "status": "draft",
+  "summary": "Categorías de alertas.",
+  "purpose": "Agrupan las alertas (cobranza, recordatorios, seguimiento) para filtrarlas y priorizarlas.",
+  "prerequisites": [
+    "system.alert-rules"
+  ],
+  "useCases": [
+    "system.alert-categories.overview",
+    "system.alert-categories.create",
+    "system.alert-categories.edit",
+    "system.alert-categories.delete"
+  ],
+  "elements": {
+    "system.alert-categories.section.first-row": {
+      "label": "Primero de la lista"
+    },
+    "system.alert-categories.section.row": {
+      "label": "Registro"
+    },
+    "system.alert-categories.section.detail": {
+      "label": "Detalle"
+    },
+    "system.alert-categories.btn.edit": {
+      "label": "Editar"
+    },
+    "system.alert-categories.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "system.alert-categories.btn.confirm-action": {
+      "label": "Confirmar"
+    },
+    "system.alert-categories.field.name": {
+      "label": "Nombre"
+    },
+    "system.alert-categories.field.code": {
+      "label": "Código",
+      "description": "Identificador interno, sin espacios."
+    },
+    "system.alert-categories.field.color": {
+      "label": "Color"
+    },
+    "system.alert-categories.field.icon": {
+      "label": "Ícono"
+    },
+    "system.alert-categories.field.internal_category_id": {
+      "label": "Categoría interna",
+      "description": "A qué módulo pertenece."
+    },
+    "system.alert-categories.field.sort_order": {
+      "label": "Orden",
+      "description": "Posición en el Centro de Alertas."
+    },
+    "system.alert-categories.field.description": {
+      "label": "Descripción"
+    },
+    "system.alert-categories.field.is_active": {
+      "label": "Activa"
+    }
+  }
+}

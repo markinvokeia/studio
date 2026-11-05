@@ -1,0 +1,48 @@
+{
+  "id": "sales.payment-methods",
+  "status": "draft",
+  "summary": "Medios de pago disponibles al cobrar.",
+  "purpose": "Se eligen en cada cobro. Los equivalentes a efectivo cuentan para el arqueo de caja.",
+  "prerequisites": [],
+  "useCases": [
+    "onboarding.payment-method",
+    "sales.payment-methods.overview",
+    "sales.payment-methods.create",
+    "sales.payment-methods.edit",
+    "sales.payment-methods.delete"
+  ],
+  "elements": {
+    "sales.payment-methods.field.is_cash_equivalent": {
+      "description": "Si suma al efectivo de la caja física."
+    },
+    "sales.payment-methods.section.first-row": {
+      "label": "Primero de la lista"
+    },
+    "sales.payment-methods.section.row": {
+      "label": "Registro"
+    },
+    "sales.payment-methods.section.detail": {
+      "label": "Detalle"
+    },
+    "sales.payment-methods.btn.edit": {
+      "label": "Editar"
+    },
+    "sales.payment-methods.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "sales.payment-methods.btn.delete-confirm": {
+      "label": "Confirmar eliminación"
+    },
+    "sales.payment-methods.field.name": {
+      "label": "Nombre"
+    },
+    "sales.payment-methods.field.code": {
+      "label": "Código",
+      "description": "Corto, para reportes (EFE, TC, TRF)."
+    },
+    "sales.payment-methods.field.is_active": {
+      "label": "Activo"
+    }
+  }
+}

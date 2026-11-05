@@ -1,0 +1,52 @@
+{
+  "id": "system.config",
+  "status": "draft",
+  "summary": "Configuraciones del sistema.",
+  "purpose": "Claves de configuración técnica (integraciones, envíos, comportamiento). Sólo para administradores.",
+  "tips": [
+    "Un valor mal cargado puede cortar una integración: anotá el valor anterior antes de cambiarlo."
+  ],
+  "useCases": [
+    "system.config.overview",
+    "system.config.create",
+    "system.config.edit",
+    "system.config.delete"
+  ],
+  "elements": {
+    "system.config.section.first-row": {
+      "label": "Primero de la lista"
+    },
+    "system.config.section.row": {
+      "label": "Registro"
+    },
+    "system.config.section.detail": {
+      "label": "Detalle"
+    },
+    "system.config.btn.edit": {
+      "label": "Editar"
+    },
+    "system.config.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "system.config.btn.confirm-action": {
+      "label": "Confirmar"
+    },
+    "system.config.field.key": {
+      "label": "Clave"
+    },
+    "system.config.field.value": {
+      "label": "Valor"
+    },
+    "system.config.field.data_type": {
+      "label": "Tipo de dato"
+    },
+    "system.config.field.description": {
+      "label": "Descripción"
+    },
+    "system.config.field.is_public": {
+      "label": "Público",
+      "description": "Visible para la app sin permisos especiales."
+    }
+  }
+}

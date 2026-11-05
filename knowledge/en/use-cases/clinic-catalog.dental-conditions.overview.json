@@ -1,0 +1,46 @@
+{
+  "id": "clinic-catalog.dental-conditions.overview",
+  "title": "Tour Dental Conditions",
+  "summary": "What's marked on the odontogram (cavity, crown, missing…), with its color and visual code.",
+  "module": "Clinic Catalog",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "dental conditions",
+    "dental condition",
+    "catalog"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic Catalog → Dental Conditions",
+      "details": "What's marked on the odontogram (cavity, crown, missing…), with its color and visual code."
+    },
+    {
+      "id": "search",
+      "title": "Find the dental condition"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the dental condition"
+    },
+    {
+      "id": "detail",
+      "title": "Details"
+    },
+    {
+      "id": "edit",
+      "title": "Edit"
+    },
+    {
+      "id": "delete",
+      "title": "Delete",
+      "details": "Asks for confirmation."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    }
+  ]
+}

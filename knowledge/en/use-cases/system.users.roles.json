@@ -1,0 +1,33 @@
+{
+  "id": "system.users.roles",
+  "title": "Assign roles to a user",
+  "summary": "The user's Roles tab.",
+  "module": "System",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "user role",
+    "grant access",
+    "change a user's permissions"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Users"
+    },
+    {
+      "id": "search",
+      "title": "Find the user"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the user"
+    },
+    {
+      "id": "tab",
+      "title": "Roles",
+      "details": "Add or remove roles; each one adds permissions."
+    }
+  ]
+}

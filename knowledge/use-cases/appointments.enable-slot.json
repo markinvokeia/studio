@@ -1,0 +1,83 @@
+{
+  "id": "appointments.enable-slot",
+  "title": "Habilitar un horario fuera de atención",
+  "module": "Agenda",
+  "summary": "Clic derecho en un horario cerrado → Habilitar horario: abre esas horas sólo ese día, como horario de excepción.",
+  "screens": [
+    "appointments"
+  ],
+  "inputs": {
+    "start_time": "Desde (HH:MM)",
+    "end_time": "Hasta (HH:MM)",
+    "notes": "Motivo"
+  },
+  "keywords": [
+    "habilitar horario",
+    "abrir horario",
+    "horario extendido",
+    "fuera de horario",
+    "excepción",
+    "atender un sábado"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/appointments",
+      "title": "Menú → Citas",
+      "details": "La agenda muestra en gris lo que está fuera del horario de atención."
+    },
+    {
+      "id": "slot",
+      "action": "highlight",
+      "target": "appointments.section.calendar",
+      "title": "Clic derecho en un horario cerrado",
+      "details": "Sobre una franja gris (fuera de horario o con un cierre). En un horario abierto la opción no aparece.",
+      "blocking": true,
+      "until": "appointments.btn.slot-enable"
+    },
+    {
+      "id": "enable",
+      "action": "click",
+      "target": "appointments.btn.slot-enable",
+      "title": "Habilitar horario…",
+      "details": "Abre el horario de ese día con la hora en la que hiciste clic.",
+      "until": "appointments.enable-slot.field.start_time"
+    },
+    {
+      "id": "start",
+      "action": "fill",
+      "target": "appointments.enable-slot.field.start_time",
+      "value": "{{values.start_time}}",
+      "optional": true,
+      "title": "Desde",
+      "details": "Hora en la que empieza el horario habilitado."
+    },
+    {
+      "id": "end",
+      "action": "fill",
+      "target": "appointments.enable-slot.field.end_time",
+      "value": "{{values.end_time}}",
+      "optional": true,
+      "title": "Hasta",
+      "details": "Tiene que ser posterior a «Desde». Abajo se ve qué cambia y cómo queda el horario del día."
+    },
+    {
+      "id": "notes",
+      "action": "fill",
+      "target": "appointments.enable-slot.field.notes",
+      "value": "{{values.notes}}",
+      "optional": true,
+      "skipIfMissing": true,
+      "title": "Motivo",
+      "details": "Opcional. Se guarda como nota del horario de excepción (ej.: horario extendido por cirugía)."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "appointments.enable-slot.btn.submit",
+      "title": "Habilitar",
+      "details": "Sólo cambia ese día. Queda en Configuración → Horarios de excepción, donde se puede revisar o quitar."
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "id": "purchases.invoices.confirm",
+  "title": "Confirm an invoice",
+  "summary": "Move an invoice from draft to confirmed; only then can it be paid.",
+  "module": "Purchases",
+  "inputs": {
+    "query": "Invoice number"
+  },
+  "keywords": [
+    "confirm invoice",
+    "issue invoice",
+    "post invoice"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Purchases → Purchase Invoices",
+      "details": "What the clinic owes a provider: it comes from a purchase quote or is entered/imported directly."
+    },
+    {
+      "id": "search",
+      "title": "Find the invoice",
+      "details": "By document number."
+    },
+    {
+      "id": "pick",
+      "title": "Open the invoice",
+      "details": "Tap it in the list. The guide continues once its details open."
+    },
+    {
+      "id": "confirm",
+      "title": "Confirm",
+      "details": "Drafts only."
+    },
+    {
+      "id": "ok",
+      "title": "Confirm invoice",
+      "details": "Once confirmed its items can no longer be edited."
+    }
+  ]
+}

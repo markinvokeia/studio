@@ -442,7 +442,8 @@
     "Sedes": "Branches",
     "PatientsPortal": "Patient Portal",
     "PrescriptionTemplates": "Prescription Templates",
-    "MeasurementUnits": "Measurement Units"
+    "MeasurementUnits": "Measurement Units",
+    "HelpInsights": "Assistant Insights"
   },
   "TVDisplayPage": {
     "title": "TV Display",
@@ -730,6 +731,10 @@
     "dateToBeforeFrom": "End date must be after start date",
     "exportError": "Error exporting data"
   },
+  "PhoneInput": {
+    "ambiguous": "It can also be read as a number from {country} ({number}).",
+    "useAlternative": "Use +{callingCode}"
+  },
   "DataTablePagination": {
     "selected": "{count, plural, one {# selected} other {# selected}} of {total} row(s).",
     "rowsPerPage": "Rows per page",
@@ -997,6 +1002,16 @@
       "blockUnavailable": "Block out-of-office hours",
       "colorByStatus": "Show appointment status with color",
       "hiddenWeekdays": "Hide days in day/week view",
+      "visibleHours": "Visible hours",
+      "visibleHoursOptions": {
+        "full": "Full view",
+        "custom": "Custom range",
+        "clinic": "Clinic working hours"
+      },
+      "visibleHoursStart": "Start time",
+      "visibleHoursEnd": "End time",
+      "visibleHoursApply": "Apply",
+      "visibleHoursInvalid": "The end time must be later than the start time.",
       "weekdayAbbr": {
         "0": "Sun",
         "1": "Mon",
@@ -1020,7 +1035,8 @@
         "inlineAppointmentCreation": "Clicking a slot creates the appointment inline on the calendar with a card, without opening the modal. The Create button always opens the modal.",
         "inlineDraftLivePreview": "The inline appointment card floats next to the appointment, which is previewed on the calendar as you fill it in, so you can see how it fits in the free slots. Changing the date moves the calendar to that day. Tablet and desktop only.",
         "colorByStatus": "Appointments show their status with color. If the appointment has its own color tag or its service has a color, it keeps that color and the status appears as a stripe on the left edge. If it only inherits the doctor's or the consulting room's color, the whole appointment is painted with the status color. Some statuses are configured to always paint the appointment regardless of this switch — see Settings → Calendar Colors.",
-        "hiddenWeekdays": "Hides the selected days as columns in the day/week views. Purely visual to save space — it doesn't affect availability or which days appointments can be booked on."
+        "hiddenWeekdays": "Hides the selected days as columns in the day/week views. Purely visual to save space — it doesn't affect availability or which days appointments can be booked on.",
+        "visibleHours": "Chooses which hours the day and week views show. Full view shows the whole day; Custom range shows only the hours you pick; Clinic working hours uses the hours set for the clinic on the days on screen (with holidays and exceptions), showing both booked appointments and free slots. Purely visual: it doesn't change appointments or opening hours, and it's saved for your user only."
       }
     },
     "newAppointment": "New Appointment",
@@ -1418,6 +1434,13 @@
     "errorDesc": "An error occurred while updating the appointment status.",
     "cancelSubmenu": "Cancel…",
     "otherReason": "Other reason…"
+  },
+  "MissingIdentityDocumentDialog": {
+    "title": "Identity document required",
+    "description": "The appointment can't be marked as \"{status}\" because {patient} has no identity document on file. Add it to the patient's record and try again.",
+    "descriptionNoName": "The appointment can't be marked as \"{status}\" because the patient has no identity document on file. Add it to the patient's record and try again.",
+    "close": "Got it",
+    "dismiss": "Close"
   },
   "CancellationReason": {
     "late": "Cancelled late",
@@ -1964,6 +1987,53 @@
     "dependentPatient": "Dependent patient",
     "dependentOf": "Dependent of {name}",
     "viewResponsibleProfile": "View responsible contact's profile",
+    "dependents": {
+      "title": "Patients in their care",
+      "refresh": "Refresh",
+      "linkExisting": "Link existing",
+      "addNew": "New dependent",
+      "searchPlaceholder": "Search patient by name, document or phone...",
+      "searchHint": "Type to search a patient.",
+      "noResults": "No patients found.",
+      "alreadyLinked": "Already in their care",
+      "hasOtherResponsible": "In the care of another guardian",
+      "age": "{age} y/o",
+      "inactive": "Inactive",
+      "usesResponsiblePhone": "Uses guardian's phone",
+      "openProfile": "Open profile",
+      "unlink": "Unlink",
+      "retry": "Retry",
+      "empty": "No patients in their care",
+      "emptyHint": "Link an existing patient or register a new one (for example, a child) so this patient appears as their guardian.",
+      "noSiblings": "No other patients in the care of this guardian.",
+      "responsibleTitle": "Guardian",
+      "responsibleUnknown": "Guardian not found",
+      "responsibleHint": "To change the guardian, edit the patient details.",
+      "siblingsTitle": "Also in the care of {name}",
+      "unlinkTitle": "Unlink dependent?",
+      "unlinkDescription": "{name} will no longer be in the care of {responsible} and will become an independent patient.",
+      "unlinkNoPhoneWarning": "{name} has no phone of their own: reminders and alerts will stop reaching them until one is added.",
+      "unlinkConfirm": "Unlink",
+      "cancel": "Cancel",
+      "unlinkSuccess": "{name} is no longer a dependent",
+      "unlinkError": "Couldn't unlink the patient",
+      "linkSuccess": "{name} is now a dependent",
+      "linkError": "Couldn't link the patient",
+      "reassignTitle": "Change guardian?",
+      "reassignDescription": "{name} is already in the care of another guardian. If you continue, they will be in the care of {responsible}.",
+      "reassignDescriptionNamed": "{name} is in the care of {current}. If you continue, they will be in the care of {responsible} instead.",
+      "reassignConfirm": "Change guardian",
+      "createTitle": "New dependent",
+      "createDescription": "The new patient will be registered in the care of {name}.",
+      "errors": {
+        "selfResponsible": "A patient cannot be their own guardian.",
+        "responsibleIsDependent": "The selected guardian is a dependent patient: a dependent cannot be in charge of other patients.",
+        "guardianHasDependents": "This patient has dependents in their care, so they cannot be a dependent. Unlink their dependents first.",
+        "notFound": "The patient no longer exists or couldn't be found."
+      }
+    },
+    "responsibleMatch": "In the care of {name}",
+    "responsibleMatchWithPhone": "In the care of {name} · {phone}",
     "preferencesButton": "Preferences",
     "dischargeButton": "Discharge",
     "readmitButton": "Readmit",
@@ -1993,7 +2063,9 @@
       "anamnesis": "Anamnesis",
       "summary": "Summary",
       "history": "Timeline",
-      "medicalInstructions": "Medical Instructions"
+      "medicalInstructions": "Medical Instructions",
+      "dependents": "Dependents",
+      "responsible": "Guardian"
     },
     "createDialog": {
       "title": "Create New Patient",
@@ -2003,6 +2075,7 @@
       "editDescription": "Update the details for this patient.",
       "createSuccessTitle": "Patient Created",
       "createSuccessDescription": "The new patient has been added successfully.",
+      "createdNotResolvedDescription": "The patient was created but could not be selected automatically. Search for it in the list.",
       "editSuccessTitle": "Patient Updated",
       "editSuccessDescription": "The patient has been updated successfully.",
       "name": "Name",
@@ -2062,7 +2135,10 @@
           "email": "Email",
           "phone": "Phone",
           "identity_document": "Identity Document"
-        }
+        },
+        "nameInvalid": "Use only letters, spaces, hyphens, apostrophes and periods (no numbers or symbols).",
+        "nameTooShort": "The name must have at least 2 letters.",
+        "nameTooLong": "The name can't be longer than 120 characters."
       },
       "birth_date": "Birth Date",
       "birth_date_placeholder": "01/01/1999",
@@ -5757,6 +5833,12 @@
       "moveTo": "Move to…",
       "duration": "Duration",
       "minutes": "{minutes} min"
+    },
+    "visibleHours": {
+      "outsideCount": "{count, plural, one {# appointment outside the visible hours} other {# appointments outside the visible hours}}",
+      "showAll": "Show all hours",
+      "showingAll": "Showing all hours",
+      "backToRange": "Back to visible hours"
     }
   },
   "Reminders": {
@@ -6925,7 +7007,10 @@
       "tabs": "Normal"
     },
     "calendarSection": "Calendar",
-    "signatureSection": "Signature"
+    "signatureSection": "Signature",
+    "assistantSection": "Assistant",
+    "showMascotLabel": "Show animated assistant",
+    "showMascotDescription": "Invoke's mascot keeps you company, points on screen at what it explains and hides behind the bar when you're not using it. When off, it stays asleep and doesn't react."
   },
   "UserCommunicationPreferences": {
     "title": "Preferences",
@@ -9137,7 +9222,9 @@
       "promptDescription": "Enter the master key to access license management.",
       "placeholder": "Master key...",
       "invalid": "Invalid master key. Could not decrypt the current license.",
-      "submit": "Verify"
+      "submit": "Verify",
+      "notConfigured": "NEXT_PUBLIC_MASTER_SEC is not configured on the server.",
+      "wrong": "Wrong key. Please try again."
     },
     "management": {
       "title": "License Management",
@@ -9301,7 +9388,10 @@
       "emailRequired": "Email is required",
       "emailInvalid": "Email is not valid",
       "documentDigits": "ID number can only contain digits",
-      "documentMax": "ID number cannot exceed 10 digits"
+      "documentMax": "ID number cannot exceed 10 digits",
+      "nameInvalid": "Use only letters, spaces, hyphens, apostrophes and periods (no numbers or symbols).",
+      "nameTooShort": "The name must have at least 2 letters.",
+      "nameTooLong": "The name can't be longer than 120 characters."
     },
     "errors": {
       "title": "Error",
@@ -9453,6 +9543,9 @@
       "availableCount": "{count, plural, =0 {No times available} one {# time available} other {# times available}}",
       "closedDay": "The clinic is closed that day. Try another one.",
       "noneAvailable": "No times left that day. Try another one.",
+      "windowLimit": "For now, you can book up to {date}.",
+      "windowLastDay": "There are no times left today, and it's the last day you can book here. Contact the clinic for a later date.",
+      "windowExceeded": "For now, you can only book up to {date}. Contact the clinic for a later date.",
       "slotTaken": "Time unavailable",
       "reasonLabel": "What's going on?",
       "reasonPlaceholder": "Briefly tell us the reason: discomfort, check-up, urgent care…",
@@ -9576,6 +9669,11 @@
       "required": {
         "label": "Require identity document",
         "help": "When on, the patient form won't save without an identity document. Off by default, the document can be left empty."
+      },
+      "warnOnStatus": {
+        "label": "Require it to change an appointment's status",
+        "help": "When on, an appointment can't move to the selected statuses if the patient has no identity document: the change is blocked until the document is added to the patient's record. Cancelling is never blocked. Independent of the setting above.",
+        "statusesLabel": "Require the document for the appointment to move to:"
       }
     },
     "duplicateContact": {
@@ -9638,6 +9736,17 @@
           "description": "Combines both directions."
         }
       }
+    },
+    "assistant": {
+      "sectionTitle": "Guided assistant",
+      "mascotVisible": {
+        "label": "Mascot visible",
+        "help": "The Invoke mascot walks you through guides by pointing at each step and hides behind the bar when you are not using it.",
+        "notice": {
+          "on": "The mascot is visible: it points at each step and, when idle, peeks out from behind the floating bar.",
+          "off": "No mascot: guides still show the highlight, the step description, the navigation bar and the step list. Open the assistant with the help icon in the floating bar."
+        }
+      }
     }
   },
   "DuplicateContact": {
@@ -9659,6 +9768,59 @@
     "conflictDescription": "This information already exists and can't be repeated. Check whether the person is already registered.",
     "conflictNoOwner": "{field} is already registered.",
     "understood": "Understood"
+  },
+  "PatientMatch": {
+    "useExisting": "Use this patient",
+    "review": "View matches",
+    "createAnyway": "Create anyway",
+    "notPatient": "Not a patient",
+    "phone": "Phone: {value}",
+    "dependentOf": "Dependent of {name}",
+    "selectedTitle": "Existing patient selected",
+    "selectedDescription": "{name}'s record will be used; no new record was created.",
+    "completedTitle": "Record updated",
+    "completedDescription": "{name}'s details were completed and the record will be used for the appointment.",
+    "matchedBy": {
+      "identity_document": "Same ID",
+      "phone": "Same phone",
+      "email": "Same email"
+    },
+    "hint": {
+      "title": "{count, plural, one {A record with these details already exists} other {# records with these details already exist}}",
+      "more": "{count, plural, one {and 1 more record} other {and # more records}}"
+    },
+    "lookup": {
+      "title": "This patient may already be registered",
+      "description": "We found records with the same details you're entering.",
+      "hint": "If it's the same person, use their record and continue with the appointment. If it's a relative sharing the phone, continue creating the patient.",
+      "cancel": "Continue creating"
+    },
+    "warning": {
+      "title": "This phone is already registered",
+      "description": "Another patient already uses this phone number.",
+      "hint": "If it's the same person, use their record and continue with the appointment. If it's a relative sharing the phone, you can create it anyway.",
+      "cancel": "Review details"
+    },
+    "conflict": {
+      "title": "This patient is already registered",
+      "description": "Some details already belong to another record and can't be repeated.",
+      "hint": "Use the existing record to continue with the appointment, or review the details if they were entered incorrectly.",
+      "cancel": "Review details"
+    },
+    "completing": {
+      "dialogTitle": "Complete {name}'s record",
+      "dialogDescription": "This record will be used for the appointment. Review the added details before saving.",
+      "title": "Completing {name}'s record",
+      "added": "Added what the record was missing: {fields}.",
+      "differingIntro": "What you entered in these fields doesn't match the record; the record's value is kept:",
+      "differingValue": "{field}: you entered \"{typed}\", the record has \"{existing}\".",
+      "differingField": "{field}: what you entered differs from the record.",
+      "hint": "Review the details and save to use this record for the appointment. No new patient is created.",
+      "useWithoutChanges": "Use without saving changes",
+      "backToNew": "Back to new patient",
+      "addedBadge": "Added",
+      "saveAndUse": "Save and use for appointment"
+    }
   },
   "CalendarColorsPage": {
     "title": "Calendar Colors",
@@ -9818,6 +9980,17 @@
       "showPricing": {
         "label": "Show duration and prices",
         "help": "The patient sees each service's price and the total time and cost of what they picked. When off they only see the names: the duration is still used to book the right slot, but it isn't shown, and prices never leave the system."
+      },
+      "bookingWindow": {
+        "label": "How far ahead patients can book",
+        "help": "Limits the dates patients see in the portal, including when rescheduling. It doesn't affect clinic staff, who can schedule any date from the calendar.",
+        "unitLabel": "Unit",
+        "days": "Days from today",
+        "months": "Calendar months",
+        "daysHint": "Counted from the day the patient opens the portal.",
+        "monthsHint": "1 is the current month only; 2 runs through the end of next month. Fewer days are left to choose from near the end of each month.",
+        "preview": "Today, a patient could book up to {date}.",
+        "invalid": "Enter a number between 1 and {max}."
       }
     },
     "qr": {
@@ -11170,5 +11343,267 @@
       "confirm": "Delete",
       "deactivate": "Deactivate"
     }
+  },
+  "HelpAssistant": {
+    "title": "Invoke Assistant",
+    "close": "Close assistant",
+    "catalogError": "Help could not be loaded. Reload the page to try again.",
+    "tabs": {
+      "onboarding": "Getting started",
+      "chat": "Help",
+      "screen": "This screen"
+    },
+    "onboarding": {
+      "title": "Getting your clinic ready",
+      "readyTitle": "The essentials are done!",
+      "progress": "{done}/{total}",
+      "description": "Complete these steps and the clinic is ready to book appointments. Each step is checked automatically when you do it.",
+      "readyDescription": "Your clinic can now book appointments. Below are optional steps to get more out of it.",
+      "loadError": "I couldn't load your progress.",
+      "retry": "Retry",
+      "optionalHeader": "Optional",
+      "next": "Next",
+      "guideMe": "Take me there and guide me",
+      "takeMeThere": "Just take me there",
+      "skip": "Skip",
+      "unskip": "Reactivate",
+      "skipError": "The step could not be updated",
+      "guideAgain": "Guide me to add another"
+    },
+    "screen": {
+      "noScreen": "There is no help for this screen yet.",
+      "autoOnly": "This screen has no written guide yet: here is what I detected.",
+      "guides": "Guides for this screen",
+      "prerequisites": "Set up first",
+      "tips": "Tips",
+      "elements": "Fields and buttons",
+      "show": "Show",
+      "tourCta": "Guide me through this screen",
+      "tourTitle": "Tour of {screen}"
+    },
+    "chat": {
+      "welcomeTitle": "Hi! What do you want to do now?",
+      "welcomeDescription": "Ask me anything or dictate the details and I'll fill them in. You always confirm before saving.",
+      "quick": {
+        "patients": {
+          "label": "Manage patients",
+          "prompt": "How do I register a new patient?"
+        },
+        "agenda": {
+          "label": "Manage the schedule",
+          "prompt": "How does the schedule work and how do I book an appointment?"
+        },
+        "sales": {
+          "label": "Manage sales and cash",
+          "prompt": "How do I charge a treatment and close the cash register?"
+        },
+        "reports": {
+          "label": "View reports",
+          "prompt": "Which reports do I have and where are they?"
+        },
+        "integrations": {
+          "label": "Set up integrations",
+          "prompt": "How do I connect WhatsApp to confirm appointments?"
+        }
+      },
+      "placeholder": "Type your question or ask me to “guide me”…",
+      "listening": "Listening… tap the microphone to finish",
+      "dictate": "Dictate",
+      "stopDictation": "Stop dictation",
+      "send": "Send",
+      "thinking": "Thinking…",
+      "guideMe": "Guide me",
+      "fillForMe": "Fill it in for me",
+      "takeMeTo": "Take me to {label}",
+      "watchVideo": "Watch video",
+      "watchVideoOf": "Watch the video of “{title}”",
+      "escalated": "If this didn't help, I logged the question so the Invoke team can review it.",
+      "helpful": "Helpful",
+      "notHelpful": "Not helpful",
+      "feedbackError": "Your feedback could not be saved",
+      "fallbackFound": "I can't reach the assistant right now, but this is what I found in the help:",
+      "fallbackNone": "I can't reach the assistant right now and found nothing about that in the help. Try other words or check the “This screen” tab.",
+      "tourTitle": "Tour of {screen}",
+      "ticketCreated": "I opened ticket #{id} for the support team.",
+      "subtitles": "Subtitles",
+      "mascotError": "Oops, something failed. Shall we try again?",
+      "mascotSorry": "Oops, I couldn't find that. I let the team know.",
+      "mascotLetsGo": "Let's go! I'll take you there.",
+      "onboardingTitle": "Getting started",
+      "onboardingPending": "{count, plural, one {# step} other {# steps}} left to get started",
+      "guideThisScreen": "Guide me on this screen",
+      "readAloud": "Listen",
+      "stopReading": "Stop reading",
+      "stepsCount": "{count, plural, one {# step} other {# steps}}"
+    },
+    "mascot": {
+      "label": "Invoke assistant",
+      "pendingSteps": "Hi! {count, plural, one {# step} other {# steps}} left to get started. Shall I guide you?",
+      "guideFinished": "Done! We finished “{title}”.",
+      "guideLost": "What I was showing you closed. Tap me and we’ll pick up the guide again.",
+      "guideError": {
+        "targetNotFound": "Oops, I can't find that element on the screen. A permission may be missing. Retry or skip it?",
+        "navigationFailed": "Oops, I couldn't open the screen. You may not have permission to see it.",
+        "noPermission": "Oops, it looks like you don't have permission to continue. Ask an administrator to grant it.",
+        "noPermissionVideo": "Oops, it looks like you don't have permission to continue. If you like, you can watch this guide's video instead."
+      },
+      "appError": "Oops, something went wrong. Check the message.",
+      "loading": {
+        "loadingScreen": "Opening the screen… the first time can take a while.",
+        "loadingElement": "Waiting for the screen to finish loading…"
+      },
+      "wake": "Wake the assistant up",
+      "railLabel": "Assistant",
+      "openHelp": "Open help",
+      "helpLabel": "Help"
+    },
+    "toolbar": {
+      "label": "Guide: step {current} of {total}",
+      "step": "Step {current}/{total}",
+      "first": "Go to first step",
+      "previous": "Previous step",
+      "next": "Next step",
+      "alreadyDone": "I did it",
+      "skip": "Skip this step",
+      "last": "Go to last step",
+      "close": "Close guide",
+      "required": "Required",
+      "retry": "Retry",
+      "showAgain": "Show again",
+      "hideSteps": "Hide the steps",
+      "showSteps": "Show the steps",
+      "stepsLabel": "Guide steps",
+      "goTo": "Go to: {title}",
+      "yourTurn": "your turn",
+      "waitingForYou": "Waiting for you to do it",
+      "watchVideo": "Watch video"
+    },
+    "back": "Back",
+    "voiceOn": "Turn voice on",
+    "voiceOff": "Mute voice",
+    "hideMascot": "Hide the assistant",
+    "stopGuide": "Stop the guide",
+    "stop": "Stop",
+    "mascotActions": "Assistant options",
+    "video": {
+      "label": "Video: {title}",
+      "move": "Drag to move it",
+      "guideMe": "Guide me while I watch",
+      "guideMeShort": "Guide me",
+      "enlarge": "Enlarge",
+      "shrink": "Shrink",
+      "close": "Close the video",
+      "play": "Play",
+      "pause": "Pause",
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "speed": "Speed {rate}x",
+      "fullscreen": "Full screen",
+      "exitFullscreen": "Exit full screen",
+      "seek": "Video position",
+      "loading": "Loading the video…",
+      "error": "The video could not be loaded.",
+      "openExternal": "Open it in another tab"
+    }
+  },
+  "HelpInsightsPage": {
+    "title": "Assistant insights",
+    "description": "How much the assistant solves on its own, what gets escalated and where people get stuck.",
+    "range": "Last {days} days",
+    "refresh": "Refresh",
+    "retry": "Retry",
+    "empty": "No data for this period yet.",
+    "kpi": {
+      "questions": "Questions",
+      "resolved": "Solved by the assistant",
+      "resolvedGoal": "Goal: 85% or more",
+      "escalated": "Escalated",
+      "feedback": "👍 / 👎",
+      "confidence": "Average confidence",
+      "weekend": "Weekend escalations",
+      "weekendGoal": "Goal: critical incidents only"
+    },
+    "byWeek": {
+      "title": "Questions per week",
+      "description": "Total and escalated to the support team."
+    },
+    "byScreen": {
+      "title": "Screens with most questions",
+      "description": "In red, the ones the assistant could not solve.",
+      "none": "No screen"
+    },
+    "open": {
+      "title": "Unanswered questions ({count})",
+      "description": "Escalated or rated 👎. Fill in the screen guide or a use case, then mark it solved.",
+      "empty": "No pending questions.",
+      "confidence": "confidence {value}%",
+      "resolve": "Solved",
+      "ignore": "Ignore"
+    },
+    "tickets": {
+      "title": "Open tickets ({count})",
+      "description": "What the assistant handed over to the team, with its screen and context.",
+      "empty": "No open tickets.",
+      "take": "Take",
+      "resolve": "Resolve",
+      "priority": {
+        "low": "Low",
+        "normal": "Normal",
+        "high": "High",
+        "critical": "Critical"
+      },
+      "status": {
+        "open": "Open",
+        "in_progress": "In progress",
+        "resolved": "Resolved",
+        "closed": "Closed"
+      }
+    },
+    "catalog": {
+      "title": "Product map",
+      "screens": "{validated} of {total} screens validated",
+      "tables": "{count} documented database tables",
+      "version": "Version {version} · published {date}"
+    },
+    "videos": {
+      "title": "Demo videos",
+      "ready": "{count} videos published",
+      "requests": "{count} requests in progress",
+      "stale": "{count} outdated videos",
+      "failed": "{count} failed requests"
+    },
+    "onboarding": {
+      "title": "Onboarding",
+      "done": "Done",
+      "pending": "Pending",
+      "skipped": "Skipped"
+    },
+    "steps": {
+      "business": "Clinic details",
+      "sedes": "Locations",
+      "schedules": "Opening hours",
+      "calendars": "Rooms",
+      "doctors": "Practitioners",
+      "availability": "Availability",
+      "services": "Services",
+      "first_appointment": "Test appointment",
+      "staff": "Admin team",
+      "payment_methods": "Payment methods",
+      "whatsapp": "WhatsApp",
+      "patients_import": "Import patients"
+    },
+    "toast": {
+      "questionUpdated": "Question updated",
+      "ticketUpdated": "Ticket updated",
+      "error": "Could not update"
+    }
+  },
+  "RouteError": {
+    "title": "Something went wrong",
+    "description": "We couldn't show this screen. Please try again.",
+    "chunkDescription": "There is a newer version of this screen. Reload the page to continue.",
+    "retry": "Try again",
+    "reload": "Reload page",
+    "reloading": "Reloading the page…"
   }
 }

@@ -45,7 +45,7 @@ export const OpenCashSessionWidget = () => {
         return (
             <Popover>
                 <PopoverTrigger asChild>
-                    <Button
+                    <Button data-help-id="rail.btn.cash"
                         variant="ghost"
                         size="icon"
                         className="relative rounded-xl h-10 w-10 bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25"
@@ -54,7 +54,7 @@ export const OpenCashSessionWidget = () => {
                         <Banknote className="h-5 w-5" />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent side="left" align="center" className="w-52 p-3 rounded-xl">
+                <PopoverContent data-help-id="rail.section.cash-panel" side="left" align="center" className="w-52 p-3 rounded-xl">
                     <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
                         {t('activeSession.button')}
                     </p>
@@ -79,7 +79,7 @@ export const OpenCashSessionWidget = () => {
     return (
         <Popover>
             <PopoverTrigger asChild>
-                <Button
+                <Button data-help-id="rail.btn.cash"
                     variant="ghost"
                     size="icon"
                     className={cn(
@@ -91,7 +91,7 @@ export const OpenCashSessionWidget = () => {
                     <Box className="h-5 w-5" />
                 </Button>
             </PopoverTrigger>
-            <PopoverContent side="left" align="center" className="w-48 p-3 rounded-xl">
+            <PopoverContent data-help-id="rail.section.cash-panel" side="left" align="center" className="w-48 p-3 rounded-xl">
                 <p className="text-xs text-muted-foreground mb-2">{t('tooltip')}</p>
                 <Link href={`/${locale}/cashier`} passHref>
                     <Button size="sm" className="w-full h-7 text-xs rounded-lg bg-orange-500 hover:bg-orange-600 text-white">

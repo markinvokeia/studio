@@ -40,7 +40,7 @@ export function TVDisplayWidget() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
+        <Button data-help-id="rail.btn.tv"
           variant="outline"
           size="sm"
           className={cn(
@@ -59,7 +59,7 @@ export function TVDisplayWidget() {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent side="left" align="start" className="w-56">
+      <DropdownMenuContent data-help-id="rail.section.tv-menu" side="left" align="start" className="w-56">
         <DropdownMenuLabel className="flex items-center justify-between">
           <span>{t('status')}</span>
           <span className={cn(

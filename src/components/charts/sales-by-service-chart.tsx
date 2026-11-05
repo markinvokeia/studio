@@ -26,7 +26,7 @@ export function SalesByServiceChart({ chartData, isLoading, className, formatAmo
   const t = useTranslations('SalesByServiceChart');
   if (isLoading) {
     return (
-        <Card className={cn('lg:col-span-1', className)}>
+        <Card data-help-id="dashboard.section.top-services" className={cn('lg:col-span-1', className)}>
             <CardHeader>
                 <CardTitle>{t('title')}</CardTitle>
                 <CardDescription>{t('description')}</CardDescription>
@@ -42,7 +42,7 @@ export function SalesByServiceChart({ chartData, isLoading, className, formatAmo
   }
 
   return (
-    <Card className={cn('lg:col-span-1', className)}>
+    <Card data-help-id="dashboard.section.top-services" className={cn('lg:col-span-1', className)}>
       <CardHeader>
         <div className="flex items-start gap-3">
             <div className="header-icon-circle mt-0.5">

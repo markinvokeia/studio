@@ -1,0 +1,85 @@
+{
+  "id": "appointments.create",
+  "title": "Book an appointment",
+  "summary": "Create an appointment from the Create button: patient, service, doctor, room, date and time.",
+  "module": "Calendar",
+  "inputs": {
+    "patient": "Patient name",
+    "service": "Service name",
+    "doctor": "Doctor name",
+    "calendar": "Room name",
+    "date": "Date YYYY-MM-DD",
+    "time": "Time HH:MM",
+    "notes": "Internal note"
+  },
+  "keywords": [
+    "book",
+    "appointment",
+    "slot",
+    "reserve",
+    "new appointment",
+    "create appointment",
+    "schedule"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Appointments",
+      "details": "The calendar shows appointments by room and doctor."
+    },
+    {
+      "id": "menu",
+      "title": "Create",
+      "details": "From here you create appointments, reminders and notes."
+    },
+    {
+      "id": "new",
+      "title": "New appointment"
+    },
+    {
+      "id": "patient",
+      "title": "Choose the patient",
+      "details": "Search by name, phone or ID. If the patient has a default doctor, it's suggested automatically."
+    },
+    {
+      "id": "services",
+      "title": "Service",
+      "details": "Optional. Sets the appointment's duration and what will be billed."
+    },
+    {
+      "id": "doctor",
+      "title": "Doctor",
+      "details": "Who sees the patient. Only the times when they're available are offered."
+    },
+    {
+      "id": "calendar",
+      "title": "Room",
+      "details": "The calendar (room or chair) where the spot is booked."
+    },
+    {
+      "id": "date",
+      "title": "Date",
+      "details": "Appointment day (dd/mm/yyyy)."
+    },
+    {
+      "id": "time",
+      "title": "Time",
+      "details": "Start time; the end is calculated from the service's duration."
+    },
+    {
+      "id": "notes",
+      "title": "Notes",
+      "details": "Optional. Internal text shown on the appointment."
+    },
+    {
+      "id": "save",
+      "title": "Save the appointment",
+      "details": "Review the details and save. The patient is notified if they have reminders turned on."
+    },
+    {
+      "id": "future-confirm",
+      "title": "Confirm the new time",
+      "details": "Only shows up if the patient already has appointments: it lists them and asks whether to give this time anyway. \"Yes\" saves the new appointment."
+    }
+  ]
+}

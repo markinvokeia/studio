@@ -1,0 +1,85 @@
+{
+  "id": "system.staff.overview",
+  "title": "Recorrer Secretarias y Administración",
+  "module": "Configuración de Negocio",
+  "summary": "Listado, ficha con pestañas y acceso al sistema.",
+  "screens": [
+    "system.staff"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "secretarias y administración",
+    "ver persona del equipo"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/staff",
+      "title": "Menú → Configuración de Negocio → Secretarias y Administración"
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "system.staff.filter.search",
+      "title": "Buscá",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "system.staff.section.first-row",
+      "title": "Elegí al persona del equipo",
+      "until": "system.staff.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "detail",
+      "action": "highlight",
+      "target": "system.staff.section.detail",
+      "title": "Ficha"
+    },
+    {
+      "id": "tab-details",
+      "action": "click",
+      "target": "system.staff.detail.tab.details",
+      "title": "Datos",
+      "skipIfMissing": true
+    },
+    {
+      "id": "tab-roles",
+      "action": "click",
+      "target": "system.staff.detail.tab.roles",
+      "title": "Roles",
+      "details": "Los roles asignados: cada uno suma permisos.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "tab-logs",
+      "action": "click",
+      "target": "system.staff.detail.tab.logs",
+      "title": "Actividad",
+      "details": "Lo que hizo en el sistema.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "tab-preferences",
+      "action": "click",
+      "target": "system.staff.detail.tab.preferences",
+      "title": "Preferencias",
+      "skipIfMissing": true
+    },
+    {
+      "id": "pw",
+      "action": "highlight",
+      "target": "system.staff.btn.initial-password",
+      "title": "Contraseña inicial",
+      "details": "Le envía por correo una contraseña para entrar. Se envía al tocarlo.",
+      "skipIfMissing": true
+    }
+  ]
+}

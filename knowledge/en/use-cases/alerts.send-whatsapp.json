@@ -1,0 +1,29 @@
+{
+  "id": "alerts.send-whatsapp",
+  "title": "Notify the patient by WhatsApp from an alert",
+  "summary": "Send the rule's WhatsApp template to the alert's patient.",
+  "module": "Alerts Center",
+  "keywords": [
+    "whatsapp",
+    "message",
+    "notify the patient",
+    "whatsapp reminder"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Alerts Center",
+      "details": "What the system detected with the alert rules and the team needs to work on."
+    },
+    {
+      "id": "alert",
+      "title": "Choose the alert",
+      "details": "The message goes out with the rule's template and the alert's details (patient, date, amount…)."
+    },
+    {
+      "id": "send",
+      "title": "Send WhatsApp",
+      "details": "Sent as soon as you tap it. Disabled if the patient has no phone or the rule has no WhatsApp template. It stays in the alert's history."
+    }
+  ]
+}

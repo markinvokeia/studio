@@ -1,0 +1,62 @@
+{
+  "id": "config.clinic-prefs",
+  "status": "draft",
+  "summary": "Preferencias generales de la clínica.",
+  "purpose": "Opciones de funcionamiento: descuentos, comportamiento de cobros y presupuestos y otros ajustes que afectan a todo el equipo.",
+  "tips": [
+    "Afectan a todos los usuarios: conviene cambiarlas con el equipo avisado."
+  ],
+  "prerequisites": [
+    "config.clinics"
+  ],
+  "useCases": [
+    "config.clinic-prefs.overview",
+    "config.clinic-prefs.mascot",
+    "config.clinic-prefs.identity-document"
+  ],
+  "elements": {
+    "config.clinic-prefs.section.discounts": {
+      "label": "Descuentos",
+      "description": "Habilita descuentos en presupuestos y facturas, con el tope por porcentaje o monto."
+    },
+    "config.clinic-prefs.section.identity-document": {
+      "label": "Documento de identidad",
+      "description": "Si es obligatorio al registrar pacientes."
+    },
+    "config.clinic-prefs.section.duplicate-contact": {
+      "label": "Contactos duplicados",
+      "description": "Si se permite el mismo teléfono o correo en dos pacientes (familias). Afecta WhatsApp y el portal."
+    },
+    "config.clinic-prefs.section.automation": {
+      "label": "Automatización",
+      "description": "Envíos automáticos que hace el sistema."
+    },
+    "config.clinic-prefs.section.alert-email": {
+      "label": "Emails de alertas",
+      "description": "Si las alertas envían su correo solas al paciente."
+    },
+    "config.clinic-prefs.section.assistant": {
+      "label": "Asistente guiado",
+      "description": "Mascota visible o sólo el ícono de ayuda."
+    },
+    "config.clinic-prefs.section.google-calendar": {
+      "label": "Google Calendar",
+      "description": "Sincronización de la agenda con Google Calendar."
+    },
+    "config.clinic-prefs.btn.save": {
+      "label": "Guardar"
+    },
+    "config.clinic-prefs.field.identity_document_required": {
+      "label": "Exigir documento de identidad",
+      "description": "La ficha del paciente no se guarda sin documento."
+    },
+    "config.clinic-prefs.field.identity_document_warn": {
+      "label": "Exigirlo para cambiar el estado de una cita",
+      "description": "La cita no pasa a los estados elegidos si el paciente no tiene documento; cancelar nunca se bloquea."
+    },
+    "config.clinic-prefs.field.identity_document_warn_statuses": {
+      "label": "Estados que exigen el documento",
+      "description": "En qué estados se pide (por defecto, Completada)."
+    }
+  }
+}

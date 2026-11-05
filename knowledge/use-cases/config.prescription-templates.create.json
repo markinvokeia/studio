@@ -1,0 +1,70 @@
+{
+  "id": "config.prescription-templates.create",
+  "title": "Crear una plantilla de receta",
+  "module": "Configuración de Negocio",
+  "summary": "Alta de una plantilla de receta.",
+  "screens": [
+    "config.prescription-templates"
+  ],
+  "inputs": {
+    "name": "Nombre",
+    "content": "Contenido de la receta (texto, admite variables)"
+  },
+  "keywords": [
+    "nuevo plantilla de receta",
+    "nueva plantilla de receta",
+    "crear plantilla de receta",
+    "agregar plantilla de receta"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/prescription-templates",
+      "title": "Menú → Configuración de Negocio → Plantillas de Receta",
+      "details": "Recetas habituales con medicamentos e indicaciones; se eligen al recetar."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "config.prescription-templates.btn.new",
+      "title": "Crear",
+      "until": "config.prescription-templates.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "config.prescription-templates.field.name",
+      "title": "Nombre",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "description",
+      "action": "highlight",
+      "target": "config.prescription-templates.field.description",
+      "title": "Descripción",
+      "skipIfMissing": true
+    },
+    {
+      "id": "content_html",
+      "action": "fill",
+      "target": "config.prescription-templates.field.content_html",
+      "title": "Contenido",
+      "value": "{{values.content}}",
+      "details": "Obligatorio: el cuerpo de la receta. Las variables ({paciente}, {fecha}…) se completan solas al recetar."
+    },
+    {
+      "id": "is_active",
+      "action": "highlight",
+      "target": "config.prescription-templates.field.is_active",
+      "title": "Activa",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.prescription-templates.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

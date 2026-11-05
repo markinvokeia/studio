@@ -1,0 +1,70 @@
+{
+  "id": "appointments.cancel",
+  "title": "Cancelar una cita",
+  "module": "Agenda",
+  "summary": "Cancelar con el motivo correcto: con tiempo, tarde, por el profesional, sin aviso, por la clínica u otro.",
+  "screens": [
+    "appointments"
+  ],
+  "keywords": [
+    "cancelar",
+    "cancelacion",
+    "anular cita",
+    "motivo",
+    "sin aviso",
+    "baja de turno"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/appointments",
+      "title": "Menú → Citas",
+      "details": "La agenda muestra las citas por consultorio y profesional."
+    },
+    {
+      "id": "open-menu",
+      "action": "highlight",
+      "target": "appointments.section.event",
+      "title": "Clic derecho sobre la cita",
+      "until": [
+        "appointments.btn.cancel-in_time",
+        "appointments.btn.change-status"
+      ],
+      "blocking": true,
+      "details": "Se abre el menú de la cita. Si no la ves, cambiá de día con las flechas o usá Buscar cita."
+    },
+    {
+      "id": "status-menu",
+      "action": "highlight",
+      "target": "appointments.btn.change-status",
+      "title": "Cambiar estado",
+      "skipIfMissing": true,
+      "until": "appointments.btn.cancel-in_time",
+      "details": "Pasá el mouse por Cambiar estado para ver los estados."
+    },
+    {
+      "id": "reason",
+      "action": "highlight",
+      "target": "appointments.btn.cancel-in_time",
+      "title": "Elegí el motivo",
+      "doneOnClose": true,
+      "details": "Con tiempo: avisó con anticipación. Tarde: avisó sobre la hora. Por el doctor: la cancela el profesional. En Cancelar… están sin aviso, por la clínica y Otro motivo (con nota). El motivo queda en el historial y en los reportes de cancelaciones."
+    },
+    {
+      "id": "note",
+      "action": "highlight",
+      "target": "appointments.field.cancellation-note",
+      "title": "Nota de la cancelación",
+      "skipIfMissing": true,
+      "details": "Sólo con Otro motivo: explicá por qué se cancela."
+    },
+    {
+      "id": "confirm",
+      "action": "confirm",
+      "target": "appointments.btn.cancellation-confirm",
+      "title": "Confirmar la cancelación",
+      "skipIfMissing": true
+    }
+  ]
+}

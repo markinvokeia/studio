@@ -4,16 +4,16 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- La clínica se resuelve igual que en `clinic/patient-portal-config`: una sola\n-- instalación, una sola clínica activa. No se depende de un claim del JWT.\nSELECT cp.id,\n       cp.clinic_id,\n       cp.discounts_enabled,\n       cp.discount_scope,\n       cp.default_discount_pct,\n       cp.max_discount_pct,\n       cp.identity_document_required,\n       cp.allow_duplicate_phone\nFROM public.clinic_preferences cp\nWHERE cp.clinic_id = (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1)\nLIMIT 1",
+        "query": "-- La clínica se resuelve igual que en `clinic/patient-portal-config`: una sola\n-- instalación, una sola clínica activa. No se depende de un claim del JWT.\nSELECT cp.id,\n       cp.clinic_id,\n       cp.discounts_enabled,\n       cp.discount_scope,\n       cp.default_discount_pct,\n       cp.max_discount_pct,\n       cp.identity_document_required,\n       cp.allow_duplicate_phone,\n       array_to_json(cp.identity_document_warn_statuses) AS identity_document_warn_statuses\nFROM public.clinic_preferences cp\nWHERE cp.clinic_id = (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1)\nLIMIT 1",
         "options": {}
       },
-      "id": "86178dd4-9b7f-42dd-8cf0-8ddba778023f",
+      "id": "681cffb5-26b6-4ea5-8f50-8ca7784531db",
       "name": "Buscar Preferencias",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        -80,
-        -192
+        224,
+        0
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -27,15 +27,15 @@
     },
     {
       "parameters": {
-        "jsCode": "const row = $input.first()?.json;\n\nif (row && row.error) {\n  return [\n    {\n      json: {\n        statusCode: 500,\n        body: {\n          message: \"No se pudieron leer las preferencias de la clínica.\",\n        },\n      },\n    },\n  ];\n}\n\n// Sin fila todavía (clínica recién creada, o el script 068 aún no corrió):\n// se devuelven los valores por defecto en lugar de un 404. El frontend no\n// distingue los dos casos y así nunca queda sin configuración.\nif (!row || !row.id) {\n  return [\n    {\n      json: {\n        statusCode: 200,\n        body: {\n          discounts_enabled: false,\n          discount_scope: \"line\",\n          default_discount_pct: 0,\n          max_discount_pct: 100,\n          identity_document_required: false,\n          allow_duplicate_phone: false,\n        },\n      },\n    },\n  ];\n}\n\nreturn [\n  {\n    json: {\n      statusCode: 200,\n      body: {\n        discounts_enabled: row.discounts_enabled === true,\n        discount_scope: row.discount_scope === \"total\" ? \"total\" : \"line\",\n        default_discount_pct: Number(row.default_discount_pct ?? 0),\n        max_discount_pct: Number(row.max_discount_pct ?? 100),\n        identity_document_required: row.identity_document_required === true,\n        allow_duplicate_phone: row.allow_duplicate_phone === true,\n      },\n    },\n  },\n];\n"
+        "jsCode": "const row = $input.first()?.json;\n\n// text[] llega como array (array_to_json); se filtra por las dudas.\nconst asStatuses = (v) => (Array.isArray(v) ? v.filter((s) => typeof s === \"string\" && s) : []);\n\nif (row && row.error) {\n  return [\n    {\n      json: {\n        statusCode: 500,\n        body: {\n          message: \"No se pudieron leer las preferencias de la clínica.\",\n        },\n      },\n    },\n  ];\n}\n\n// Sin fila todavía (clínica recién creada, o el script 068 aún no corrió):\n// se devuelven los valores por defecto en lugar de un 404. El frontend no\n// distingue los dos casos y así nunca queda sin configuración.\nif (!row || !row.id) {\n  return [\n    {\n      json: {\n        statusCode: 200,\n        body: {\n          discounts_enabled: false,\n          discount_scope: \"line\",\n          default_discount_pct: 0,\n          max_discount_pct: 100,\n          identity_document_required: false,\n          allow_duplicate_phone: false,\n          identity_document_warn_statuses: [],\n        },\n      },\n    },\n  ];\n}\n\nreturn [\n  {\n    json: {\n      statusCode: 200,\n      body: {\n        discounts_enabled: row.discounts_enabled === true,\n        discount_scope: row.discount_scope === \"total\" ? \"total\" : \"line\",\n        default_discount_pct: Number(row.default_discount_pct ?? 0),\n        max_discount_pct: Number(row.max_discount_pct ?? 100),\n        identity_document_required: row.identity_document_required === true,\n        allow_duplicate_phone: row.allow_duplicate_phone === true,\n        identity_document_warn_statuses: asStatuses(row.identity_document_warn_statuses),\n      },\n    },\n  },\n];\n"
       },
-      "id": "1953fdae-175a-4055-aeb9-9ad6511b3061",
+      "id": "04daf8c9-1884-405c-95b7-0eb37c7ccbfe",
       "name": "Formatear Respuesta",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        144,
-        -192
+        448,
+        0
       ]
     },
     {
@@ -46,13 +46,13 @@
           "responseCode": "={{ $json.statusCode }}"
         }
       },
-      "id": "9231086f-7fd6-4ff4-baf9-4c6f25e66bae",
+      "id": "38b23f12-3ffb-46a9-9c35-9057deca891c",
       "name": "Responder",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        368,
-        -192
+        672,
+        0
       ]
     },
     {
@@ -62,13 +62,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "37074c8f-619f-4e41-8c58-d4f1a9109539",
+      "id": "5f7d312f-c666-450f-a54d-7538ecff9295",
       "name": "GET /clinic/preferences",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -304,
-        -192
+        0,
+        0
       ],
       "webhookId": "39aed54a-02bb-4eaf-bb99-3e7a3d0091e0",
       "credentials": {
@@ -80,32 +80,32 @@
     },
     {
       "parameters": {
-        "jsCode": "// Política de descuentos + obligatoriedad del documento de identidad. Nada de\n// nombre, RUT ni datos fiscales: eso vive en Datos de la Clínica.\nconst body = $input.first().json.body ?? $input.first().json ?? {};\n\nconst asBool = (v) => v === true || v === \"true\";\nconst asPct = (v, fallback) => {\n  const n = Number(v);\n  if (!Number.isFinite(n)) return fallback;\n  // Se acota en el servidor además de en el formulario: el CHECK de la tabla\n  // rechazaría el INSERT y el usuario vería un 500 sin explicación.\n  return Math.min(100, Math.max(0, Math.round(n * 100) / 100));\n};\n\nreturn [\n  {\n    json: {\n      discounts_enabled: asBool(body.discounts_enabled),\n      discount_scope: body.discount_scope === \"total\" ? \"total\" : \"line\",\n      default_discount_pct: asPct(body.default_discount_pct, 0),\n      max_discount_pct: asPct(body.max_discount_pct, 100),\n      identity_document_required: asBool(body.identity_document_required),\n      allow_duplicate_phone: asBool(body.allow_duplicate_phone),\n    },\n  },\n];\n"
+        "jsCode": "// Política de descuentos + obligatoriedad del documento de identidad. Nada de\n// nombre, RUT ni datos fiscales: eso vive en Datos de la Clínica.\nconst body = $input.first().json.body ?? $input.first().json ?? {};\n\nconst asBool = (v) => v === true || v === \"true\";\nconst asPct = (v, fallback) => {\n  const n = Number(v);\n  if (!Number.isFinite(n)) return fallback;\n  // Se acota en el servidor además de en el formulario: el CHECK de la tabla\n  // rechazaría el INSERT y el usuario vería un 500 sin explicación.\n  return Math.min(100, Math.max(0, Math.round(n * 100) / 100));\n};\n\n// Estados de cita que exigen documento de identidad (bloquean el cambio si el\n// paciente no lo tiene). Se filtra contra la misma lista que el CHECK de la\n// tabla (script 144, sin 'cancelled') para que un valor desconocido no\n// termine en un 500.\nconst WARN_STATUSES = [\n  \"pending\", \"scheduled\", \"confirmed\", \"arrived\", \"arrived_late\",\n  \"in_progress\", \"completed\", \"attended_late\", \"no_show\",\n];\nconst warnStatuses = Array.isArray(body.identity_document_warn_statuses)\n  ? [...new Set(body.identity_document_warn_statuses.map((s) => String(s).toLowerCase().trim()))]\n      .filter((s) => WARN_STATUSES.includes(s))\n  : [];\n\nreturn [\n  {\n    json: {\n      discounts_enabled: asBool(body.discounts_enabled),\n      discount_scope: body.discount_scope === \"total\" ? \"total\" : \"line\",\n      default_discount_pct: asPct(body.default_discount_pct, 0),\n      max_discount_pct: asPct(body.max_discount_pct, 100),\n      identity_document_required: asBool(body.identity_document_required),\n      allow_duplicate_phone: asBool(body.allow_duplicate_phone),\n      // Viaja como JSON: el queryReplacement de n8n aplana los arrays.\n      identity_document_warn_statuses: JSON.stringify(warnStatuses),\n    },\n  },\n];\n"
       },
-      "id": "5023bd2b-7fd5-4506-9b96-9850b1da3df6",
+      "id": "fda4b4c8-412a-468c-ab46-d73f4245f056",
       "name": "Validar Campos",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -80,
-        32
+        224,
+        224
       ]
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- INSERT … ON CONFLICT: la fila puede no existir si la clínica se creó después\n-- de correr el script 068.\nINSERT INTO public.clinic_preferences (\n    clinic_id, discounts_enabled, discount_scope, default_discount_pct, max_discount_pct, identity_document_required,\n    allow_duplicate_phone\n)\nSELECT (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1),\n       $1, $2, $3, $4, $5, $6\nON CONFLICT (clinic_id) DO UPDATE\n    SET discounts_enabled    = EXCLUDED.discounts_enabled,\n        discount_scope       = EXCLUDED.discount_scope,\n        default_discount_pct = EXCLUDED.default_discount_pct,\n        max_discount_pct     = EXCLUDED.max_discount_pct,\n        identity_document_required = EXCLUDED.identity_document_required,\n        allow_duplicate_phone = EXCLUDED.allow_duplicate_phone\nRETURNING id,\n          discounts_enabled,\n          discount_scope,\n          default_discount_pct,\n          max_discount_pct,\n          identity_document_required,\n          allow_duplicate_phone",
+        "query": "-- INSERT … ON CONFLICT: la fila puede no existir si la clínica se creó después\n-- de correr el script 068.\nINSERT INTO public.clinic_preferences (\n    clinic_id, discounts_enabled, discount_scope, default_discount_pct, max_discount_pct, identity_document_required,\n    allow_duplicate_phone, identity_document_warn_statuses\n)\nSELECT (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1),\n       $1, $2, $3, $4, $5, $6,\n       ARRAY(SELECT jsonb_array_elements_text($7::jsonb))\nON CONFLICT (clinic_id) DO UPDATE\n    SET discounts_enabled    = EXCLUDED.discounts_enabled,\n        discount_scope       = EXCLUDED.discount_scope,\n        default_discount_pct = EXCLUDED.default_discount_pct,\n        max_discount_pct     = EXCLUDED.max_discount_pct,\n        identity_document_required = EXCLUDED.identity_document_required,\n        allow_duplicate_phone = EXCLUDED.allow_duplicate_phone,\n        identity_document_warn_statuses = EXCLUDED.identity_document_warn_statuses\nRETURNING id,\n          discounts_enabled,\n          discount_scope,\n          default_discount_pct,\n          max_discount_pct,\n          identity_document_required,\n          allow_duplicate_phone,\n          array_to_json(identity_document_warn_statuses) AS identity_document_warn_statuses",
         "options": {
-          "queryReplacement": "={{ [ $json.discounts_enabled, $json.discount_scope, $json.default_discount_pct, $json.max_discount_pct, $json.identity_document_required, $json.allow_duplicate_phone ] }}"
+          "queryReplacement": "={{ [ $json.discounts_enabled, $json.discount_scope, $json.default_discount_pct, $json.max_discount_pct, $json.identity_document_required, $json.allow_duplicate_phone, $json.identity_document_warn_statuses ] }}"
         }
       },
-      "id": "12437e93-a16e-4221-82d1-ca7845525175",
+      "id": "ff497a7f-3581-496e-9e5f-424c623ba93c",
       "name": "Guardar Preferencias",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.5,
       "position": [
-        144,
-        32
+        448,
+        224
       ],
       "alwaysOutputData": true,
       "credentials": {
@@ -119,15 +119,15 @@
     },
     {
       "parameters": {
-        "jsCode": "\nconst row = $input.first()?.json;\n\nif (!row || row.error || !row.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudieron guardar las preferencias de la clínica.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  discounts_enabled:    row.discounts_enabled === true,\n  discount_scope:       row.discount_scope === 'total' ? 'total' : 'line',\n  default_discount_pct: Number(row.default_discount_pct ?? 0),\n  max_discount_pct:     Number(row.max_discount_pct ?? 100),\n  identity_document_required: row.identity_document_required === true,\n  allow_duplicate_phone: row.allow_duplicate_phone === true\n} } }];\n"
+        "jsCode": "\nconst row = $input.first()?.json;\n\nif (!row || row.error || !row.id) {\n  return [{ json: { statusCode: 500, body: { message: 'No se pudieron guardar las preferencias de la clínica.' } } }];\n}\n\nreturn [{ json: { statusCode: 200, body: {\n  success: true,\n  discounts_enabled:    row.discounts_enabled === true,\n  discount_scope:       row.discount_scope === 'total' ? 'total' : 'line',\n  default_discount_pct: Number(row.default_discount_pct ?? 0),\n  max_discount_pct:     Number(row.max_discount_pct ?? 100),\n  identity_document_required: row.identity_document_required === true,\n  allow_duplicate_phone: row.allow_duplicate_phone === true,\n  identity_document_warn_statuses: Array.isArray(row.identity_document_warn_statuses) ? row.identity_document_warn_statuses : []\n} } }];\n"
       },
-      "id": "8a9c1e89-31c0-4449-ad41-52412d6a89fe",
+      "id": "fd8318ea-8796-44f7-8e7f-02040c0d3c40",
       "name": "Formatear Respuesta1",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        368,
-        32
+        672,
+        224
       ]
     },
     {
@@ -138,13 +138,13 @@
           "responseCode": "={{ $json.statusCode }}"
         }
       },
-      "id": "0f6ba766-00a5-43fc-a3f2-45ee0a7d2eb6",
+      "id": "ce8c2df6-030d-4020-968c-7a3899b12124",
       "name": "Responder1",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        576,
-        32
+        880,
+        224
       ]
     },
     {
@@ -155,13 +155,13 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "b5caaca4-675b-4c39-b418-8848ca2edf35",
+      "id": "32e3539a-2d7b-40a5-b2f1-1ef96fb15791",
       "name": "POST /clinic/preferences/upsert",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        -304,
-        32
+        0,
+        224
       ],
       "webhookId": "c864527a-70b5-4e07-b43f-d73e266aac03",
       "credentials": {
@@ -307,7 +307,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "c5596b7e-7fb6-430a-9134-eed6f8608f78",
+  "versionId": "038425cc-147b-461c-81b0-2bb78e20bcd5",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"

@@ -1,0 +1,70 @@
+{
+  "id": "sales.payments.prepaid",
+  "title": "Record a prepayment",
+  "summary": "Payment on account without an invoice; it stays as a balance to apply later.",
+  "module": "Sales",
+  "inputs": {
+    "party": "Patient",
+    "amount": "Amount",
+    "notes": "Notes",
+    "payment_method": "Payment method (e.g. Cash)"
+  },
+  "keywords": [
+    "prepayment",
+    "deposit",
+    "payment on account",
+    "advance"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Sales → Payments",
+      "details": "Payments from patients: invoice payments and prepayments (money on account that's later applied to invoices)."
+    },
+    {
+      "id": "new",
+      "title": "Create prepayment",
+      "details": "Money the patient leaves on account; later it's applied to invoices."
+    },
+    {
+      "id": "party",
+      "title": "Patient"
+    },
+    {
+      "id": "amount",
+      "title": "Amount"
+    },
+    {
+      "id": "currency",
+      "title": "Currency"
+    },
+    {
+      "id": "method",
+      "title": "Payment method",
+      "details": "Required. Cash adds to the open cash register's cash count."
+    },
+    {
+      "id": "date",
+      "title": "Date"
+    },
+    {
+      "id": "notes",
+      "title": "Notes"
+    },
+    {
+      "id": "historical",
+      "title": "Historical",
+      "details": "To record old payments without an open cash register."
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "It asks for one more confirmation before recording it."
+    },
+    {
+      "id": "ok",
+      "title": "Confirm prepayment",
+      "details": "It stays as the patient's credit balance. It needs an open cash register."
+    }
+  ]
+}

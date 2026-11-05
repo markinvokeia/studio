@@ -1,6 +1,7 @@
 'use client';
 
-import { AlertTriangle, CalendarCheck, Download, ExternalLink, HelpCircle, MessageSquareText, Save, Sparkles, Video } from 'lucide-react';
+import { format } from 'date-fns';
+import { AlertTriangle, CalendarCheck, CalendarRange, Download, ExternalLink, HelpCircle, MessageSquareText, Save, Sparkles, Video } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { QRCodeCanvas } from 'qrcode.react';
 import * as React from 'react';
@@ -33,8 +34,14 @@ import { useAsyncAction } from '@/hooks/use-async-action';
 import { useDataLoader } from '@/hooks/use-data-loader';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { getDateFnsLocale } from '@/lib/locale';
+import {
+  BOOKING_WINDOW_MAX,
+  getBookingLimitDate,
+  isValidBookingWindow,
+} from '@/lib/patient-booking-window';
 import { REQUEST_TIMEOUT_MS, isTimeoutError } from '@/services/api';
-import type { PatientPortalConfig, Service } from '@/lib/types';
+import type { PatientBookingWindowUnit, PatientPortalConfig, Service } from '@/lib/types';
 import {
   DEFAULT_PATIENT_PORTAL_CONFIG,
   fetchPatientPortalConfig,
@@ -143,6 +150,9 @@ export default function PatientsPortalConfigPage() {
   );
   const canEdit = canUpdate && !save.isPending && !isRefreshing;
 
+  const canEditBookingWindow = canEdit && config.patient_portal_enabled && config.online_booking_enabled;
+  const isBookingWindowValid = isValidBookingWindow(config.booking_window_unit, config.booking_window_value);
+
   if (isLoading) {
     return (
       <div className="space-y-4 p-4">
@@ -183,7 +193,7 @@ export default function PatientsPortalConfigPage() {
           description={t('description')}
           actions={
             canUpdate ? (
-              <Button onClick={() => save.run(config)} disabled={!isDirty || isRefreshing} loading={save.isPending} className="gap-1.5">
+              <Button data-help-id="config.patients-portal.btn.save" onClick={() => save.run(config)} disabled={!isDirty || isRefreshing || !isBookingWindowValid} loading={save.isPending} className="gap-1.5">
                 <Save className="h-4 w-4" />
                 {t('save')}
               </Button>
@@ -193,7 +203,7 @@ export default function PatientsPortalConfigPage() {
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-1 pb-6">
           {/* ── Acceso ─────────────────────────────────────────────────── */}
-          <Card>
+          <Card data-help-id="config.patients-portal.section.access">
             <CardContent className="p-5">
               <div className="grid gap-6 lg:grid-cols-[1fr_auto]">
                 <div className="space-y-4">
@@ -301,7 +311,7 @@ export default function PatientsPortalConfigPage() {
           </Card>
 
           {/* ── Servicios de la reserva ────────────────────────────────── */}
-          <Card>
+          <Card data-help-id="config.patients-portal.section.booking-services">
             <CardContent className="space-y-4 p-5">
               <SettingRow
                 label={t('fields.serviceSelection.label')}
@@ -364,8 +374,83 @@ export default function PatientsPortalConfigPage() {
             </CardContent>
           </Card>
 
+          {/* ── Hasta cuándo se puede reservar ─────────────────────────── */}
+          <Card data-help-id="config.patients-portal.section.booking-window">
+            <CardContent className="space-y-2 p-5">
+              <FieldLabel
+                htmlFor="booking-window-value"
+                icon={CalendarRange}
+                label={t('fields.bookingWindow.label')}
+                help={t('fields.bookingWindow.help')}
+              />
+              <div className="flex max-w-sm items-center gap-2">
+                <Input
+                  id="booking-window-value"
+                  data-help-id="config.patients-portal.field.booking-window-value"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={BOOKING_WINDOW_MAX[config.booking_window_unit]}
+                  className="w-24"
+                  // 0 representa el campo vacío mientras se escribe: el guardado queda
+                  // bloqueado hasta que haya un número válido.
+                  value={config.booking_window_value || ''}
+                  disabled={!canEditBookingWindow}
+                  aria-invalid={!isBookingWindowValid}
+                  onChange={(e) => patch({ booking_window_value: Number.parseInt(e.target.value, 10) || 0 })}
+                />
+                <Select
+                  value={config.booking_window_unit}
+                  disabled={!canEditBookingWindow}
+                  onValueChange={(v) => {
+                    const unit = v as PatientBookingWindowUnit;
+                    // 200 días no tiene equivalente en meses: se recorta al máximo de la unidad.
+                    patch({
+                      booking_window_unit: unit,
+                      booking_window_value: Math.min(config.booking_window_value, BOOKING_WINDOW_MAX[unit]),
+                    });
+                  }}
+                >
+                  <SelectTrigger
+                    data-help-id="config.patients-portal.field.booking-window-unit"
+                    aria-label={t('fields.bookingWindow.unitLabel')}
+                    className="flex-1"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="days">{t('fields.bookingWindow.days')}</SelectItem>
+                    <SelectItem value="months">{t('fields.bookingWindow.months')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {isBookingWindowValid ? (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    {config.booking_window_unit === 'months'
+                      ? t('fields.bookingWindow.monthsHint')
+                      : t('fields.bookingWindow.daysHint')}
+                  </p>
+                  <p className="text-xs font-medium">
+                    {t('fields.bookingWindow.preview', {
+                      date: format(
+                        getBookingLimitDate(new Date(), config.booking_window_unit, config.booking_window_value),
+                        'PPP',
+                        { locale: getDateFnsLocale(locale) },
+                      ),
+                    })}
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs text-destructive">
+                  {t('fields.bookingWindow.invalid', { max: BOOKING_WINDOW_MAX[config.booking_window_unit] })}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
           {/* ── Presentación ───────────────────────────────────────────── */}
-          <Card>
+          <Card data-help-id="config.patients-portal.section.presentation">
             <CardContent className="space-y-5 p-5">
               <div className="space-y-2">
                 <FieldLabel

@@ -1,0 +1,36 @@
+{
+  "id": "clinic-catalog.medications.create",
+  "title": "Add a medication",
+  "summary": "New entry in the medications catalog.",
+  "module": "Clinic Catalog",
+  "inputs": {
+    "name": "Name"
+  },
+  "keywords": [
+    "new medication",
+    "add medication"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic Catalog → Medications",
+      "details": "The medications used in prescriptions and in the patient's regular medication."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    },
+    {
+      "id": "nombre_generico",
+      "title": "Generic name"
+    },
+    {
+      "id": "nombre_comercial",
+      "title": "Brand name"
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

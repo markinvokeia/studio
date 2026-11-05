@@ -1,0 +1,45 @@
+{
+  "id": "sales.payments.edit",
+  "title": "Correct the payment method",
+  "summary": "Change the payment method of a recorded payment (the amount isn't changed).",
+  "module": "Sales",
+  "inputs": {
+    "query": "Payment number"
+  },
+  "keywords": [
+    "edit payment",
+    "change payment method",
+    "correct payment",
+    "i picked the wrong method"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Sales → Payments",
+      "details": "Payments from patients: invoice payments and prepayments (money on account that's later applied to invoices)."
+    },
+    {
+      "id": "search",
+      "title": "Find the payment"
+    },
+    {
+      "id": "actions",
+      "title": "Payment actions",
+      "details": "Open the row's menu."
+    },
+    {
+      "id": "edit",
+      "title": "Edit",
+      "details": "Only payments that can be corrected (from the open cash register)."
+    },
+    {
+      "id": "method",
+      "title": "Payment method",
+      "details": "The amount stays fixed; to change it, void it and record it again."
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

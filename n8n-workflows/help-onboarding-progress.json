@@ -1,0 +1,151 @@
+{
+  "name": "Help - Onboarding Progreso",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "help/onboarding/progress",
+        "authentication": "jwtAuth",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "credentials": {
+        "jwtAuth": {
+          "id": "C6sB1r7ab5H5EmJj",
+          "name": "JWT Auth account"
+        }
+      },
+      "position": [
+        100,
+        300
+      ]
+    },
+    {
+      "id": "node-auth",
+      "name": "Validar Entrada",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "// Usuario autenticado: el Webhook ya verificó el JWT (credencial JWT Auth account)\nconst input = $input.first().json;\nconst userId = input.jwtPayload?.userId ?? input.jwtPayload?.sub;\nif (!userId) throw new Error('userId no encontrado en el token');\n\nconst body = input.body || {};\nconst stepId = String(body.step_id || '').trim();\nconst status = String(body.status || '');\nif (!/^[a-z_]{2,40}$/.test(stepId)) throw new Error('step_id inválido');\nif (!['skipped', 'pending'].includes(status)) throw new Error('status inválido');\nconst notes = typeof body.notes === 'string' ? body.notes.slice(0, 2000) : null;\nreturn [{ json: { user_id: String(userId), step_id: stepId, status, notes } }];"
+      },
+      "position": [
+        330,
+        300
+      ]
+    },
+    {
+      "id": "node-pg-upsert",
+      "name": "Guardar Progreso",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.onboarding_progress (step_id, status, notes, updated_by, updated_at)\nSELECT $1, $2, $3, $4::uuid, now()\n WHERE EXISTS (\n    SELECT 1\n      FROM public.user_roles ur\n      JOIN public.role_permissions rp ON rp.role_id = ur.role_id\n      JOIN public.permissions p ON p.id = rp.permission_id\n     WHERE ur.user_id = $4::uuid\n       AND COALESCE((to_jsonb(ur) ->> 'is_active')::boolean, true)\n       AND p.code = 'HELP_ONBOARDING_MANAGE'\n  )\nON CONFLICT (step_id) DO UPDATE\n    SET status     = CASE WHEN public.onboarding_progress.status = 'done' THEN 'done' ELSE EXCLUDED.status END,\n        notes      = COALESCE(EXCLUDED.notes, public.onboarding_progress.notes),\n        updated_by = EXCLUDED.updated_by,\n        updated_at = now()\nRETURNING step_id, status, notes, completed_at;",
+        "options": {
+          "queryReplacement": "={{ [ $json.step_id, $json.status, $json.notes, $json.user_id ] }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "alwaysOutputData": true,
+      "position": [
+        560,
+        300
+      ]
+    },
+    {
+      "id": "node-format",
+      "name": "Formatear Respuesta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "const row = $input.first().json;\nif (row.error) throw new Error('Error en base de datos: ' + (row.error?.message || String(row.error)));\nif (!row.step_id) return [{ json: { status: 403, body: { error: 'forbidden', message: 'Falta el permiso HELP_ONBOARDING_MANAGE' } } }];\nreturn [{ json: { status: 200, body: row } }];"
+      },
+      "position": [
+        790,
+        300
+      ]
+    },
+    {
+      "id": "node-respond",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json.body }}",
+        "options": {
+          "responseCode": "={{ $json.status }}"
+        }
+      },
+      "position": [
+        1020,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validar Entrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Entrada": {
+      "main": [
+        [
+          {
+            "node": "Guardar Progreso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Progreso": {
+      "main": [
+        [
+          {
+            "node": "Formatear Respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear Respuesta": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "CONFIGURACIÓN:\n1. Credenciales ya asignadas: \"JWT Auth account\" en el Webhook y \"Postgres account\" en los nodos Postgres.\n2. Activar el workflow.\n\nGENERADO por scripts/n8n/generate-help-workflows.mjs — no editar a mano.\nTablas: database/scripts/140_20261023_help-assistant-and-onboarding.sql\n\nRUTA: POST /webhook/help/onboarding/progress (Authorization: Bearer <JWT>)\nBODY: { step_id, status: 'skipped' | 'pending', notes? }\nPERMISO: HELP_ONBOARDING_MANAGE (si no lo tiene, 403).\n\nUn paso ya cumplido ('done') no vuelve atrás por esta vía."
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "id": "clinic-catalog.ailments.create",
+  "title": "Agregar un padecimiento",
+  "module": "Catálogo de la Clínica",
+  "summary": "Alta en el catálogo de padecimientos.",
+  "screens": [
+    "clinic-catalog.ailments"
+  ],
+  "inputs": {
+    "name": "Nombre",
+    "category": "Categoría (ej. Cardiovascular)",
+    "alert_level": "Nivel de alerta: 1 (Normal) | 2 (Advertencia) | 3 (Crítico)"
+  },
+  "keywords": [
+    "nuevo padecimiento",
+    "agregar padecimiento"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/clinic-catalog/ailments",
+      "title": "Menú → Catálogo de la Clínica → Padecimientos",
+      "details": "Las enfermedades y condiciones que se cargan en la anamnesis; las de nivel de alerta alto aparecen como alerta en la ficha del paciente."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "clinic-catalog.ailments.btn.new",
+      "title": "Crear",
+      "until": "clinic-catalog.ailments.field.nombre"
+    },
+    {
+      "id": "nombre",
+      "action": "fill",
+      "target": "clinic-catalog.ailments.field.nombre",
+      "title": "Nombre",
+      "value": "{{values.name}}"
+    },
+    {
+      "id": "categoria",
+      "action": "fill",
+      "target": "clinic-catalog.ailments.field.categoria",
+      "title": "Categoría",
+      "value": "{{values.category}}",
+      "details": "Obligatoria: agrupa los padecimientos en la anamnesis y en los reportes."
+    },
+    {
+      "id": "nivel_alerta",
+      "action": "fill",
+      "target": "clinic-catalog.ailments.field.nivel_alerta",
+      "title": "Nivel de alerta",
+      "details": "Obligatorio. 3 (Crítico): se muestra como alerta en la ficha del paciente.",
+      "value": "{{values.alert_level}}"
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "clinic-catalog.ailments.btn.submit",
+      "title": "Guardar"
+    }
+  ]
+}

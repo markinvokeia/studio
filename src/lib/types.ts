@@ -30,6 +30,10 @@ export type User = {
   is_dependent?: boolean;
   responsible_contact_id?: string;
   responsible_contact_name?: string;
+  /** Teléfono del tutor (propio o alternativo); lo trae la búsqueda de `/users`. */
+  responsible_phone_number?: string;
+  /** La búsqueda lo encontró solo por los datos de su tutor, no por los suyos. */
+  matched_by_responsible?: boolean;
   calendar_source_id?: string;
   /** Default doctor assigned to this patient. Nullable. */
   doctor_id?: string | null;
@@ -609,6 +613,8 @@ export type GoogleCalendarSyncMode = 'none' | 'from_google' | 'to_google' | 'bot
 export interface ClinicAutomationSettings {
   alert_email_auto_send_enabled: boolean;
   google_calendar_sync_mode: GoogleCalendarSyncMode;
+  /** `help_mascot_visible`: la mascota del asistente se ve en pantalla (por defecto sí). */
+  help_mascot_visible: boolean;
 }
 
 export type AuditLog = {
@@ -749,6 +755,20 @@ export type ResponsibleContact = {
   phone_number?: string | null;
   address?: string | null;
 };
+
+/** Paciente a cargo de un tutor, tal como lo lista `/users/dependents`. */
+export interface PatientDependent {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone_number?: string | null;
+  identity_document?: string | null;
+  identity_document_type?: string | null;
+  birth_date?: string | null;
+  is_active: boolean;
+  /** Sin teléfono propio: alertas y recordatorios le escriben al tutor. */
+  uses_responsible_phone: boolean;
+}
 
 export type Appointment = {
   id: string; // appointmentId in backend
@@ -1229,6 +1249,15 @@ export type CalendarSettings = {
    *  change the date range fetched, only which day columns are rendered.
    *  Default []. */
   hidden_weekdays?: number[];
+  /** Hours shown on the day/week grid: 'full' (whole day), 'custom'
+   *  (`visible_hours_start`..`visible_hours_end`) or 'clinic' (the clinic's
+   *  working hours for the days on screen). Purely visual. Default 'full'.
+   *  See VISIBLE_HOURS_MODES. */
+  visible_hours_mode?: string;
+  /** Last custom range ("HH:mm"; end may be "24:00"). Kept while another mode
+   *  is selected so switching back to 'custom' restores it. */
+  visible_hours_start?: string | null;
+  visible_hours_end?: string | null;
 };
 
 export type Sede = {
@@ -2078,6 +2107,8 @@ export type UserPreferences = {
   alert_style?: DoctorAlertStyle;
   finance_view?: PatientFinanceView;
   toast_position?: ToastPosition;
+  /** Mostrar la mascota animada del asistente (por defecto true). */
+  show_mascot?: boolean;
 };
 
 export type UserPreferencesResponse = {
@@ -3520,6 +3551,10 @@ export type PublicClinicInfo = {
    * `null` ⇒ la cita se crea sin servicio y con la duración genérica.
    */
   default_service: BookableService | null;
+  /** Unidad de la ventana de reserva. Ver `getBookingLimitDate`. */
+  booking_window_unit: PatientBookingWindowUnit;
+  /** Tamaño de la ventana de reserva, en `booking_window_unit`. */
+  booking_window_value: number;
   /** Horarios de atención de la clínica, si no están cargados por sede. */
   schedules?: PublicClinicSchedule[];
 };
@@ -3647,6 +3682,13 @@ export type ClinicPreferences = {
   /** TRUE ⇒ el formulario de pacientes exige un documento de identidad no vacío. */
   identity_document_required: boolean;
   /**
+   * Estados de cita que exigen que el paciente tenga documento de identidad:
+   * sin él, `update_status` rechaza el cambio (`identity_document_missing`).
+   * Vacío ⇒ sin restricción. Nunca incluye `cancelled`. Independiente de
+   * `identity_document_required`.
+   */
+  identity_document_warn_statuses: AppointmentStatus[];
+  /**
    * TRUE ⇒ un paciente puede compartir teléfono con otro: el alta solo
    * advierte de quién lo tiene y pide confirmación. FALSE ⇒ se bloquea. El
    * correo siempre es único.
@@ -3662,16 +3704,28 @@ export interface DuplicateContactOwner {
   /** Documento de identidad (o RUT) para distinguir homónimos y familiares. */
   document?: string | null;
   birth_date?: string | null;
+  phone_number?: string | null;
+  is_dependent?: boolean;
+  /** Tutor, si la ficha es de un dependiente. */
+  responsible_name?: string | null;
+  /** Tiene el rol paciente: solo esas fichas se pueden elegir para una cita. `undefined` = el backend no lo informó. */
+  is_patient?: boolean;
 }
 
+/** Campo por el que una ficha existente coincide con el alta en curso. */
+export type PatientMatchField = 'identity_document' | 'phone' | 'email';
+
 /** Dueños del contacto repetido, por campo. */
-export type DuplicateContactOwners = Partial<Record<'email' | 'phone', DuplicateContactOwner[]>>;
+export type DuplicateContactOwners = Partial<Record<PatientMatchField, DuplicateContactOwner[]>>;
 
 /** `unique_conflict` de `/users/upsert`: campos que no se pueden repetir y, si se sabe, quién los tiene. */
 export interface UniqueConflict {
   conflictedFields: string[];
   owners: DuplicateContactOwners;
 }
+
+/** `days`: desde hoy. `months`: meses calendario, el actual cuenta como el primero. */
+export type PatientBookingWindowUnit = 'days' | 'months';
 
 /** Ajustes de Configuración → Portal del Paciente. */
 export type PatientPortalConfig = {
@@ -3687,6 +3741,9 @@ export type PatientPortalConfig = {
   default_service_id: string;
   /** Muestra precios y duraciones en el portal. Sólo presentación. */
   show_pricing: boolean;
+  /** Hasta qué fecha puede reservar el paciente. Ver `getBookingLimitDate`. */
+  booking_window_unit: PatientBookingWindowUnit;
+  booking_window_value: number;
   welcome_video_url: string;
   welcome_message: string;
 };
@@ -3706,3 +3763,267 @@ export type PatientAiQueryResponse = {
   suggestions?: string[];
   action?: PatientAiAction | null;
 };
+
+// ─── Asistente guiado / base de conocimiento ────────────────────────────────
+// Catálogo generado por scripts/knowledge/build-catalog.mjs en
+// src/generated/help-catalog.json. Ver docs/onboarding-asistente.md.
+
+/** Tipo de elemento indexado. Es el segundo segmento del help id: `<scope>.<kind>.<name>`. */
+export type HelpElementKind = 'field' | 'btn' | 'tab' | 'filter' | 'nav' | 'section';
+
+export interface HelpCatalogElement {
+  /** Help id estable (`config.sedes.field.name`). Lo usan el asistente, los tests y la documentación. */
+  id: string;
+  kind: HelpElementKind;
+  /** Etiqueta visible (resuelta desde es.json cuando el extractor la encuentra). */
+  label?: string;
+  description?: string;
+  /** Archivo donde el extractor lo encontró. */
+  source?: string;
+}
+
+export interface HelpCatalogScreen {
+  /** Scope de la pantalla, derivado de la ruta (`/config/sedes` → `config.sedes`). */
+  id: string;
+  route: string;
+  title: string;
+  module?: string;
+  permissions: string[];
+  summary?: string;
+  purpose?: string;
+  prerequisites?: string[];
+  tips?: string[];
+  useCases?: string[];
+  /** `draft` = generado/redactado por IA; `validated` = revisado por soporte/QA. */
+  status: 'auto' | 'draft' | 'validated';
+  inMenu: boolean;
+  elements: HelpCatalogElement[];
+}
+
+/**
+ * Paso de una guía. El motor (src/lib/help/guide-engine.ts) nunca hace clic
+ * solo en un paso `confirm`: lo resalta y espera a que la persona lo pulse.
+ */
+export type HelpGuideStepAction =
+  | 'navigate'
+  | 'click'
+  | 'highlight'
+  | 'fill'
+  | 'confirm'
+  | 'wait';
+
+/** Dato dictado que completa un campo (los días de la semana van como lista). */
+export type HelpValue = string | number | boolean | Array<string | number>;
+
+export interface HelpGuideStep {
+  id: string;
+  action: HelpGuideStepAction;
+  title: string;
+  description?: string;
+  /** Help id del elemento (todas las acciones menos `navigate`). */
+  target?: string;
+  /** Ruta sin locale (`/config/sedes`) para `navigate`. */
+  route?: string;
+  /** Valor para `fill`. Admite `{{values.campo}}`, que se resuelve con los datos dictados. */
+  value?: string | number | boolean;
+  /** Si el paso es opcional, sin valor para `fill` se salta en vez de esperar. */
+  optional?: boolean;
+  /**
+   * Lo que se ve junto a la manito: para qué sirve, qué cambia según lo que se
+   * elija. Si la guía no lo trae, el extractor copia la descripción del
+   * elemento desde su ficha.
+   */
+  details?: string;
+  /** Recorridos de pantalla: si el elemento no está a la vista, el paso se salta. */
+  skipIfMissing?: boolean;
+  /**
+   * `highlight`: el paso se da por hecho cuando aparece alguno de estos help ids
+   * (p. ej. la persona hizo clic derecho en el turno y se abrió su menú). Sirve para
+   * gestos que la guía no puede hacer por la persona: clic derecho, arrastrar.
+   */
+  until?: string | string[];
+  /**
+   * `highlight` sobre una opción de menú: el paso se da por hecho cuando el elemento
+   * desaparece (la persona eligió una opción y el menú se cerró), aunque haya
+   * elegido otra opción distinta de la señalada.
+   */
+  doneOnClose?: boolean;
+  /**
+   * La persona tiene que hacerlo (elegir un registro real, abrir su menú…): "Siguiente",
+   * "Saltar" e "Ir al final" quedan deshabilitados hasta que lo haga. Los pasos con
+   * `until` lo son siempre.
+   */
+  blocking?: boolean;
+  /**
+   * `fill` opcional que igual se muestra sin dato dictado (preferencias: se explica cada
+   * opción y la persona decide si la cambia). Sin `ask`, un opcional sin dato se salta.
+   */
+  ask?: boolean;
+  /**
+   * `highlight` con `until`: si la guía corre con datos dictados (pruebas, videos demo),
+   * la guía pulsa el elemento sola; con una persona, espera a que lo haga.
+   */
+  autoClick?: boolean;
+  /**
+   * El paso sólo corre si se cumple (si no, se salta). Un estado que registra la app
+   * (`cash-session-open`, `cash-session-closed`) o un help id que tiene que estar en pantalla.
+   * Con `@start`, el estado de cuando arrancó la guía. Así una guía cubre los dos casos:
+   * "abrir la caja" con la caja ya abierta empieza por cerrarla.
+   */
+  onlyIf?: string;
+  /** Lo contrario de `onlyIf`: el paso se salta si se cumple. */
+  unless?: string;
+}
+
+export interface HelpUseCase {
+  id: string;
+  title: string;
+  summary?: string;
+  module?: string;
+  /** Pantallas involucradas (scopes). */
+  screens: string[];
+  /** Agrupa las guías de una pantalla con muchas funciones (p. ej. la pestaña de la ficha). */
+  group?: string;
+  /** Datos que la guía puede completar con lo dictado: nombre → descripción. */
+  inputs?: Record<string, string>;
+  steps: HelpGuideStep[];
+  /** Fase 3: id del video demo generado desde el test E2E de este caso. */
+  videoId?: string;
+  keywords?: string[];
+}
+
+export interface HelpJourneyStep {
+  id: string;
+  title: string;
+  description: string;
+  route: string;
+  useCaseId?: string;
+  required: boolean;
+}
+
+export interface HelpPermissionDoc {
+  code: string;
+  constant: string;
+  description?: string;
+}
+
+export interface HelpCatalog {
+  /** Hash del contenido: cambia sólo cuando cambia el catálogo. */
+  version: string;
+  screens: HelpCatalogScreen[];
+  useCases: HelpUseCase[];
+  journey: HelpJourneyStep[];
+  permissions: HelpPermissionDoc[];
+}
+
+export type OnboardingStepStatus = 'done' | 'pending' | 'skipped';
+
+export interface OnboardingStepState {
+  step_id: string;
+  status: OnboardingStepStatus;
+  /** Cuántos registros encontró el chequeo (sedes, consultorios…). */
+  count?: number;
+  completed_at?: string | null;
+  notes?: string | null;
+}
+
+/** Respuesta de GET /help/onboarding/status. Qué pasos son obligatorios lo dice el journey del catálogo. */
+export interface OnboardingStatusResponse {
+  steps: OnboardingStepState[];
+}
+
+/** Elemento visible en pantalla que el frontend le manda al asistente como contexto. */
+export interface HelpVisibleTarget {
+  id: string;
+  kind: HelpElementKind;
+  label?: string;
+}
+
+export interface HelpAssistantLink {
+  route: string;
+  label: string;
+}
+
+/** Respuesta de POST /help/assistant/chat (ya validada por el workflow contra el catálogo). */
+/**
+ * Video grabado de una guía (help_videos). `useCaseId` es el id de la guía, o
+ * `tour.<pantalla>` para "Guiarme por esta pantalla". `url`: el mp4 publicado o el
+ * archivo en Google Drive (ver src/lib/help/video-source.ts).
+ */
+export interface HelpVideo {
+  useCaseId: string;
+  url: string;
+  title: string;
+  durationSeconds?: number | null;
+  locale?: string;
+}
+
+export interface HelpAssistantReply {
+  answer: string;
+  confidence?: number;
+  links?: HelpAssistantLink[];
+  /** La guía del catálogo más parecida al pedido (la primera de `useCaseIds`). */
+  useCaseId?: string | null;
+  /** Hasta 3 guías predefinidas, de la más parecida a la menos. Nunca se arman guías al vuelo. */
+  useCaseIds?: string[];
+  /** Valores extraídos de lo dictado para `{{values.x}}`. */
+  values?: Record<string, HelpValue>;
+  /** true cuando la persona pidió "guiame": la guía arranca sola. */
+  autoStart?: boolean;
+  /** Video de `useCaseId` (compatibilidad: `videos` trae los de todas las guías propuestas). */
+  videoUrl?: string | null;
+  /** Videos publicados (help_videos) de las guías propuestas y de la pantalla actual. */
+  videos?: HelpVideo[];
+  questionId?: string | null;
+  escalated?: boolean;
+  /** Ticket de soporte abierto al escalar. */
+  ticketId?: string | null;
+}
+
+export interface HelpInsightsTotals {
+  total: number;
+  resolved: number;
+  escalated: number;
+  positive: number;
+  negative: number;
+  avg_confidence: number | null;
+  /** Escaladas en fin de semana (la meta es sólo incidentes críticos). */
+  weekend_human: number;
+}
+
+export interface HelpInsightsOpenQuestion {
+  id: string;
+  question: string;
+  answer: string | null;
+  confidence: number | null;
+  rating: number | null;
+  route: string | null;
+  screen_id: string | null;
+  created_at: string;
+  user_name: string | null;
+}
+
+export type HelpTicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+
+export interface HelpInsightsTicket {
+  id: number;
+  subject: string;
+  route: string | null;
+  status: HelpTicketStatus;
+  priority: 'low' | 'normal' | 'high' | 'critical';
+  channel: string;
+  created_at: string;
+  user_name: string | null;
+}
+
+/** Respuesta de GET /help/insights. */
+export interface HelpInsights {
+  totals: HelpInsightsTotals;
+  by_week: { week: string; total: number; escalated: number }[];
+  by_screen: { screen_id: string; total: number; unresolved: number }[];
+  open_questions: HelpInsightsOpenQuestion[];
+  tickets: HelpInsightsTicket[];
+  onboarding: { step_id: string; status: OnboardingStepStatus; completed_at: string | null }[];
+  videos: { ready: number; stale: number; requests_open: number; requests_failed: number } | null;
+  catalog: { version: string | null; synced_at: string | null; screens: number; validated: number; tables: number } | null;
+}

@@ -1,0 +1,73 @@
+{
+  "id": "patients.odontogram",
+  "title": "Registrar un odontograma",
+  "module": "Pacientes",
+  "summary": "Desde la ficha: Crear → Sesión de odontograma, para marcar el estado de cada pieza.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Historia clínica",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "odontograma",
+    "piezas",
+    "dientes",
+    "caries",
+    "estado dental",
+    "carta dental"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.create-menu",
+      "title": "Crear",
+      "details": "Todo lo que se puede crear para este paciente: clínico, financiero y agenda.",
+      "until": "patients.btn.new-odontogram"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "patients.btn.new-odontogram",
+      "title": "Sesión de odontograma",
+      "details": "Abre el odontograma de una nueva sesión.",
+      "until": "patients.section.odontogram-create"
+    },
+    {
+      "id": "chart",
+      "action": "highlight",
+      "target": "patients.section.odontogram-create",
+      "title": "Odontograma",
+      "details": "Elegí una condición y tocá la pieza o cara. Al guardar queda como sesión en la línea de tiempo.",
+      "doneOnClose": true
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "id": "sales.services",
+  "summary": "Catalog of services and treatments with price and duration.",
+  "purpose": "They're chosen when booking, quoting and invoicing. The duration sets the appointment length; services with a workflow have steps (sessions).",
+  "tips": [
+    "Check 'Bookable online' so the patient can book it from the portal."
+  ],
+  "elements": {
+    "sales.services.field.name": {
+      "description": "Service name."
+    },
+    "sales.services.field.price": {
+      "description": "List price."
+    },
+    "sales.services.field.currency": {
+      "description": "Price currency."
+    },
+    "sales.services.field.duration_minutes": {
+      "description": "Appointment length in minutes."
+    },
+    "sales.services.field.category_id": {
+      "description": "Category to group them in lists and reports."
+    },
+    "sales.services.field.bookable_online": {
+      "description": "The patient can book it from the portal."
+    },
+    "sales.services.field.service_type": {
+      "description": "Service with a workflow: a treatment in several steps/sessions."
+    },
+    "sales.services.section.first-row": {
+      "label": "First in the list"
+    },
+    "sales.services.section.row": {
+      "label": "Record"
+    },
+    "sales.services.section.detail": {
+      "label": "Record"
+    },
+    "sales.services.btn.delete": {
+      "label": "Delete",
+      "description": "Asks for confirmation."
+    },
+    "sales.services.btn.delete-confirm": {
+      "label": "Confirm deletion"
+    },
+    "sales.services.field.color": {
+      "label": "Color",
+      "description": "Appointment color on the calendar."
+    },
+    "sales.services.field.description": {
+      "label": "Description"
+    },
+    "sales.services.field.indications": {
+      "label": "Instructions",
+      "description": "What the patient is told before the appointment."
+    },
+    "sales.services.field.is_active": {
+      "label": "Active"
+    },
+    "sales.services.btn.add-step": {
+      "label": "Add stage"
+    },
+    "sales.services.tab.details": {
+      "label": "Details"
+    }
+  }
+}

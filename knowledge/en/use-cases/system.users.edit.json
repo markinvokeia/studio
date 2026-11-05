@@ -1,0 +1,40 @@
+{
+  "id": "system.users.edit",
+  "title": "Edit a user",
+  "summary": "Details tab of the record.",
+  "module": "System",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "edit user",
+    "modify user"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Users",
+      "details": "Everyone who signs in to the system (doctors, receptionists, administration) with their roles."
+    },
+    {
+      "id": "search",
+      "title": "Find the user"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the user"
+    },
+    {
+      "id": "tab",
+      "title": "Details"
+    },
+    {
+      "id": "name",
+      "title": "Name"
+    },
+    {
+      "id": "save",
+      "title": "Save changes"
+    }
+  ]
+}

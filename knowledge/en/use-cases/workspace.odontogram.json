@@ -1,0 +1,35 @@
+{
+  "id": "workspace.odontogram",
+  "title": "View and record the patient's odontogram",
+  "summary": "Open the odontogram from the appointment to see the status of each tooth and mark what was done.",
+  "module": "My Workspace",
+  "keywords": [
+    "odontogram",
+    "teeth",
+    "teeth",
+    "cavities",
+    "mark tooth",
+    "dental status"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → My Workspace",
+      "details": "The doctor's view: their schedule and the clinical panel of the patient they're seeing."
+    },
+    {
+      "id": "select",
+      "title": "Choose the patient's appointment",
+      "details": "Tap the appointment on the schedule: the patient panel opens on the right. If you don't see appointments, change the day or the period at the top."
+    },
+    {
+      "id": "tab",
+      "title": "Odontogram"
+    },
+    {
+      "id": "chart",
+      "title": "Odontogram",
+      "details": "Tap a tooth to see and mark its status and its surfaces. What you mark today stays in an odontogram session for this appointment."
+    }
+  ]
+}

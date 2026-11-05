@@ -11,6 +11,8 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { useHelpScope } from '@/components/help/help-scope';
+import { composeHelpId } from '@/lib/help/help-id';
 import { cn } from '@/lib/utils';
 import { Table } from '@tanstack/react-table';
 import { Check, PlusCircle, RefreshCw, Search, Settings2, SlidersHorizontal, X } from 'lucide-react';
@@ -65,6 +67,7 @@ export function DataTableAdvancedToolbar<TData>({
     viewControls,
 }: DataTableAdvancedToolbarProps<TData>) {
     const t = useTranslations('DataTableToolbar');
+    const helpScope = useHelpScope();
     const inputRef = React.useRef<HTMLInputElement>(null);
 
     const activeFilters = filters.filter((f) => f.isActive);
@@ -96,6 +99,7 @@ export function DataTableAdvancedToolbar<TData>({
 
                 <Input
                     ref={inputRef}
+                    data-help-id={composeHelpId(helpScope, 'filter', 'search')}
                     placeholder={filterPlaceholder}
                     value={searchQuery}
                     onChange={(event) => onSearchChange?.(event.target.value)}
@@ -126,6 +130,7 @@ export function DataTableAdvancedToolbar<TData>({
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
+                                data-help-id={composeHelpId(helpScope, 'btn', 'filters')}
                                 variant="ghost"
                                 size="sm"
                                 className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
@@ -134,7 +139,7 @@ export function DataTableAdvancedToolbar<TData>({
                                 <SlidersHorizontal className="h-3.5 w-3.5" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-[200px] z-50">
+                        <DropdownMenuContent data-help-id={composeHelpId(helpScope, 'section', 'filters')} align="end" className="w-[200px] z-50">
                             <DropdownMenuLabel className="text-xs">{t('advancedFilters') || 'Advanced Filters'}</DropdownMenuLabel>
                             <DropdownMenuSeparator />
                             {Object.entries(groupedFilters).map(([group, groupFilters], index) => (
@@ -150,6 +155,7 @@ export function DataTableAdvancedToolbar<TData>({
                                     {groupFilters.map((filter) => (
                                         <DropdownMenuItem
                                             key={filter.value}
+                                            data-help-id={composeHelpId(helpScope, 'filter', `option-${filter.value}`)}
                                             className="flex items-center justify-between text-sm py-1.5"
                                             onSelect={(e) => {
                                                 e.preventDefault();
@@ -199,6 +205,7 @@ export function DataTableAdvancedToolbar<TData>({
                                 !createButtonIconOnly && "sm:w-auto sm:px-3 sm:gap-1.5"
                             )}
                             onClick={onCreate}
+                            data-help-id={composeHelpId(helpScope, 'btn', 'new')}
                             aria-label={createButtonLabel || t('create')}
                         >
                             <PlusCircle className="h-4 w-4" />
@@ -222,6 +229,7 @@ export function DataTableAdvancedToolbar<TData>({
                             size="icon"
                             className="h-9 w-9 shrink-0"
                             onClick={onRefresh}
+                            data-help-id={composeHelpId(helpScope, 'btn', 'refresh')}
                             disabled={isRefreshing}
                         >
                             <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />

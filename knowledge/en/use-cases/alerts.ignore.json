@@ -1,0 +1,36 @@
+{
+  "id": "alerts.ignore",
+  "title": "Ignore an alert",
+  "summary": "Dismiss an alert that doesn't need action, leaving the reason.",
+  "module": "Alerts Center",
+  "inputs": {
+    "reason": "Reason"
+  },
+  "keywords": [
+    "ignore",
+    "dismiss",
+    "doesn't apply",
+    "delete alert"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Alerts Center",
+      "details": "What the system detected with the alert rules and the team needs to work on."
+    },
+    {
+      "id": "open",
+      "title": "Ignore",
+      "details": "Tap the alert's cross. Do it on the alert you want to work on."
+    },
+    {
+      "id": "reason",
+      "title": "Reason",
+      "details": "Why nothing needs to be done: it stays in the history."
+    },
+    {
+      "id": "save",
+      "title": "Ignore"
+    }
+  ]
+}

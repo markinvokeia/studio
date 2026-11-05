@@ -1,0 +1,31 @@
+{
+  "id": "system.alert-rules.test",
+  "title": "Test or duplicate an alert rule",
+  "summary": "From the row actions: «Test» runs the rule now and shows how many cases it finds; «Duplicate» creates a copy to adjust.",
+  "module": "System",
+  "keywords": [
+    "test rule",
+    "duplicate rule",
+    "see if the rule works"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Alert Rules"
+    },
+    {
+      "id": "actions",
+      "title": "Row actions"
+    },
+    {
+      "id": "duplicate",
+      "title": "Duplicate",
+      "details": "Opens the new rule form with this rule's details."
+    },
+    {
+      "id": "test",
+      "title": "Test",
+      "details": "Runs the rule as soon as you tap it: it can create real alerts."
+    }
+  ]
+}

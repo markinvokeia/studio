@@ -1,0 +1,62 @@
+{
+  "id": "roles.edit",
+  "title": "Editar un rol",
+  "module": "Sistema",
+  "summary": "Pestaña Datos de la ficha.",
+  "screens": [
+    "roles"
+  ],
+  "inputs": {
+    "query": "Buscar"
+  },
+  "keywords": [
+    "editar rol",
+    "modificar rol"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/roles",
+      "title": "Menú → Sistema → Roles",
+      "details": "Los perfiles de acceso (Recepción, Doctor, Administración…): cada uno agrupa permisos."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "roles.filter.search",
+      "title": "Buscá el rol",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "roles.section.first-row",
+      "title": "Elegí el rol",
+      "until": "roles.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "roles.detail.tab.details",
+      "title": "Datos",
+      "until": "roles.detail.field.name",
+      "skipIfMissing": true
+    },
+    {
+      "id": "name",
+      "action": "highlight",
+      "target": "roles.detail.field.name",
+      "title": "Nombre"
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "roles.detail.btn.submit",
+      "title": "Guardar cambios"
+    }
+  ]
+}

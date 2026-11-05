@@ -17,6 +17,11 @@ interface PatientCreateDialogProps {
   onCreated: (user: User) => void;
   /** Show the guarded Cancel action used when opened from custom calendar mode. */
   showCancelAction?: boolean;
+  /**
+   * Alta desde una cita: si la cédula/teléfono ya son de otra ficha, recepción puede elegir
+   * esa ficha y se devuelve acá (la ventana se cierra igual que al crear).
+   */
+  onSelectExisting?: (user: User) => void;
 }
 
 /**
@@ -24,20 +29,26 @@ interface PatientCreateDialogProps {
  * quick view, in create mode. Used by flows that need a richer form than an
  * inline mini-create (e.g. the calendar's inline appointment draft).
  */
-export function PatientCreateDialog({ open, onOpenChange, initialName, onCreated, showCancelAction = false }: PatientCreateDialogProps) {
+export function PatientCreateDialog({ open, onOpenChange, initialName, onCreated, showCancelAction = false, onSelectExisting }: PatientCreateDialogProps) {
   const t = useTranslations('UsersPage.createDialog');
+  const tMatch = useTranslations('PatientMatch.completing');
   const [isPatientFormDirty, setIsPatientFormDirty] = React.useState(false);
+  // Nombre de la ficha existente que se está completando en lugar del alta.
+  const [completingName, setCompletingName] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (open) setIsPatientFormDirty(false);
+    if (open) {
+      setIsPatientFormDirty(false);
+      setCompletingName(null);
+    }
   }, [initialName, open]);
 
   return (
     <PatientFormDialogShell
       open={open}
       onOpenChange={onOpenChange}
-      title={t('title')}
-      description={t('description')}
+      title={completingName ? tMatch('dialogTitle', { name: completingName }) : t('title')}
+      description={completingName ? tMatch('dialogDescription') : t('description')}
       confirmOnClose={showCancelAction}
       isDirty={isPatientFormDirty}
     >
@@ -48,10 +59,15 @@ export function PatientCreateDialog({ open, onOpenChange, initialName, onCreated
           initialName={initialName}
           showCancelAction={showCancelAction}
           onDirtyChange={setIsPatientFormDirty}
+          onCompletingChange={setCompletingName}
           onSaved={(created) => {
             onCreated(created);
             onOpenChange(false);
           }}
+          onSelectExisting={onSelectExisting && ((existing) => {
+            onSelectExisting(existing);
+            onOpenChange(false);
+          })}
         />
       )}
     </PatientFormDialogShell>

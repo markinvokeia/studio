@@ -1,0 +1,73 @@
+{
+  "id": "sales.invoices.overview",
+  "title": "Tour invoices",
+  "summary": "List with a filter by type (invoice or credit note), details with status, payment and due date, actions and tabs.",
+  "module": "Sales",
+  "inputs": {
+    "query": "Invoice number"
+  },
+  "keywords": [
+    "invoices",
+    "view invoice",
+    "invoice status",
+    "credit notes"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Sales → Invoices",
+      "details": "What the patient is charged: it comes from a confirmed quote, a quick payment or is entered directly."
+    },
+    {
+      "id": "search",
+      "title": "Search",
+      "details": "By document number."
+    },
+    {
+      "id": "filters",
+      "title": "Filter by type",
+      "details": "Invoices or credit notes."
+    },
+    {
+      "id": "type",
+      "title": "Document type",
+      "details": "All, invoices only or credit notes only."
+    },
+    {
+      "id": "export",
+      "title": "Export"
+    },
+    {
+      "id": "pick",
+      "title": "Open an invoice"
+    },
+    {
+      "id": "summary",
+      "title": "Summary",
+      "details": "Status (draft or confirmed), payment status, total, patient, source quote, due date and date."
+    },
+    {
+      "id": "actions",
+      "title": "Actions",
+      "details": "Draft: confirm. Confirmed with a balance: add payment. Always: print and send."
+    },
+    {
+      "id": "items",
+      "title": "Items"
+    },
+    {
+      "id": "payments",
+      "title": "Payments",
+      "details": "The payments applied to this invoice."
+    },
+    {
+      "id": "notes",
+      "title": "Notes"
+    },
+    {
+      "id": "credit",
+      "title": "Credit notes",
+      "details": "The credit notes deducted from this invoice."
+    }
+  ]
+}

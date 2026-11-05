@@ -1,0 +1,123 @@
+{
+  "id": "workspace.complete-session",
+  "title": "Completar la sesión clínica de una cita",
+  "module": "Mi Consultorio",
+  "summary": "Registrar el procedimiento, el diagnóstico, las notas y el plan de la próxima sesión; al guardar, la cita queda completada.",
+  "screens": [
+    "workspace"
+  ],
+  "inputs": {
+    "procedure": "Procedimiento realizado",
+    "diagnosis": "Diagnóstico",
+    "notes": "Notas clínicas",
+    "next_plan": "Plan de la próxima sesión"
+  },
+  "keywords": [
+    "sesion clinica",
+    "completar sesion",
+    "registrar atencion",
+    "evolucion",
+    "procedimiento",
+    "diagnostico",
+    "plan",
+    "nota clinica",
+    "cerrar la cita",
+    "alta"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/workspace",
+      "title": "Menú → Mi Consultorio",
+      "details": "La vista del profesional: su agenda y el panel clínico del paciente que atiende."
+    },
+    {
+      "id": "select",
+      "action": "highlight",
+      "target": "workspace.section.appointment",
+      "title": "Elegí la cita del paciente",
+      "until": "workspace.section.focus",
+      "autoClick": true,
+      "details": "Tocá la cita en la agenda: a la derecha se abre el panel del paciente. Si no ves citas, cambiá el día o el período arriba."
+    },
+    {
+      "id": "open",
+      "action": "highlight",
+      "target": "workspace.btn.session",
+      "title": "Completar sesión clínica",
+      "until": "workspace.field.session-procedure",
+      "autoClick": true,
+      "details": "Si el botón está deshabilitado: ya hay una sesión de hoy, la cita es de otro día o la sesión es de odontograma (se edita desde Odontograma)."
+    },
+    {
+      "id": "procedure",
+      "action": "fill",
+      "target": "workspace.field.session-procedure",
+      "value": "{{values.procedure}}",
+      "title": "Procedimiento",
+      "details": "Qué se hizo hoy. Podés dictarlo; los tratamientos del presupuesto aparecen como etiquetas para marcar."
+    },
+    {
+      "id": "diagnosis",
+      "action": "fill",
+      "target": "workspace.field.session-diagnosis",
+      "value": "{{values.diagnosis}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true,
+      "title": "Diagnóstico"
+    },
+    {
+      "id": "notes",
+      "action": "fill",
+      "target": "workspace.field.session-notes",
+      "value": "{{values.notes}}",
+      "optional": true,
+      "ask": true,
+      "skipIfMissing": true,
+      "title": "Notas"
+    },
+    {
+      "id": "plan",
+      "action": "fill",
+      "target": "workspace.field.session-next-plan",
+      "value": "{{values.next_plan}}",
+      "optional": true,
+      "ask": true,
+      "title": "Plan de la próxima sesión",
+      "details": "Lo que toca la próxima vez: queda como contexto cuando se agende la siguiente cita."
+    },
+    {
+      "id": "treatments",
+      "action": "highlight",
+      "target": "workspace.field.session-treatments",
+      "title": "Tratamientos",
+      "details": "Los tratamientos del presupuesto: marcá los que se realizaron hoy.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "attachments",
+      "action": "highlight",
+      "target": "workspace.field.session-attachments",
+      "title": "Adjuntos",
+      "details": "Fotos, radiografías o documentos de esta sesión.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "discharge",
+      "action": "highlight",
+      "target": "workspace.field.session-discharge",
+      "title": "Dar de alta",
+      "details": "Si el tratamiento terminó, marca al paciente como dado de alta.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "workspace.btn.submit",
+      "title": "Guardar la sesión",
+      "details": "Al guardar, la cita queda Completada."
+    }
+  ]
+}

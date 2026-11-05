@@ -269,7 +269,7 @@ export default function MedicationsPage() {
 
     const rightPanel = (
         <Card className="h-full flex flex-col border-0 lg:border shadow-none lg:shadow-sm">
-            <CardHeader className="flex-none p-4 pb-2 space-y-0">
+            <CardHeader data-help-id="clinic-catalog.medications.section.detail" className="flex-none p-4 pb-2 space-y-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 min-w-0">
                         <div className="header-icon-circle flex-none"><Pill className="h-5 w-5" /></div>
@@ -279,13 +279,13 @@ export default function MedicationsPage() {
                     </div>
                     <div className="flex items-center gap-1 ml-2 flex-none">
                         {selectedMedication && !isEditing && canUpdate && (
-                            <Button aria-label={tColumns('edit')} variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
+                            <Button data-help-id="clinic-catalog.medications.btn.edit" aria-label={tColumns('edit')} variant="outline" size="sm" className="h-8 gap-1.5" onClick={() => setIsEditing(true)}>
                                 <Pencil className="h-3.5 w-3.5" />
                                 <span className="hidden sm:inline">{tColumns('edit')}</span>
                             </Button>
                         )}
                         {selectedMedication && !isEditing && canDelete && (
-                            <Button aria-label={tColumns('delete')} variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingMedication(selectedMedication); setIsDeleteDialogOpen(true); }}>
+                            <Button data-help-id="clinic-catalog.medications.btn.delete" aria-label={tColumns('delete')} variant="ghost" size="icon" className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeletingMedication(selectedMedication); setIsDeleteDialogOpen(true); }}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
                         )}
@@ -355,7 +355,7 @@ export default function MedicationsPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>{t('deleteDialog.cancel')}</AlertDialogCancel>
-                        <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
+                        <AlertDialogAction data-help-id="clinic-catalog.medications.btn.delete-confirm" onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">{t('deleteDialog.confirm')}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

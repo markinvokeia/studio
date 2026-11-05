@@ -1,0 +1,50 @@
+{
+  "id": "config.calendars.overview",
+  "title": "Tour Calendars",
+  "summary": "The rooms or chairs: each one is a column on the calendar, with its branch, color and who works there.",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "calendars",
+    "calendar",
+    "view calendar",
+    "what is calendar"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Calendars",
+      "details": "The rooms or chairs: each one is a column on the calendar, with its branch, color and who works there."
+    },
+    {
+      "id": "search",
+      "title": "Find the calendar"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the calendar",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "detail",
+      "title": "Details",
+      "details": "The details of the chosen record."
+    },
+    {
+      "id": "edit",
+      "title": "Edit"
+    },
+    {
+      "id": "delete",
+      "title": "Delete",
+      "details": "Asks for confirmation."
+    },
+    {
+      "id": "new",
+      "title": "Create",
+      "details": "Adds a new calendar."
+    }
+  ]
+}

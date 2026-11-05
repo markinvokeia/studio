@@ -1,0 +1,20 @@
+{
+  "id": "system.errors",
+  "status": "draft",
+  "summary": "Registro de errores.",
+  "purpose": "Errores técnicos registrados, útil para reportarlos a soporte.",
+  "useCases": [
+    "system.errors.overview"
+  ],
+  "elements": {
+    "system.errors.section.first-row": {
+      "label": "El más reciente"
+    },
+    "system.errors.section.row": {
+      "label": "Registro"
+    },
+    "system.errors.section.detail": {
+      "label": "Detalle"
+    }
+  }
+}

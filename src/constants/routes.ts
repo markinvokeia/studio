@@ -440,6 +440,10 @@ export const API_ROUTES = {
     },
     ORDER_INVOICE: '/order/invoice',
     USER_DEPENDANT: '/user_dependant',
+    /** Pacientes a cargo de un tutor (`?user_id=` del tutor). */
+    USERS_DEPENDENTS: '/users/dependents',
+    /** Vincula/desvincula un dependiente: solo toca `is_dependant` y `responsible_contact_id`. */
+    USERS_RESPONSIBLE: '/users/responsible',
     USERS_UPSERT: '/users/upsert',
     USER_NOTES: '/user/notes',
     USERS_ACTIVATE: '/users/activate',
@@ -579,5 +583,33 @@ export const API_ROUTES = {
         /** Unit of each service (service_catalog.unit_id) */
         SERVICE_UNITS: '/services/units',
         SERVICE_UNIT_SAVE: '/services/unit/save',
+    },
+    /**
+     * Asistente guiado (workflows generados por scripts/n8n/generate-help-workflows.mjs).
+     * Ver docs/onboarding-asistente.md.
+     */
+    HELP: {
+        /** Estado de cada paso, derivado de los datos reales (`help_onboarding_status()`). */
+        ONBOARDING_STATUS:   '/help/onboarding/status',
+        /** Omitir / reactivar un paso o guardar una nota de implementador. */
+        ONBOARDING_PROGRESS: '/help/onboarding/progress',
+        /** RAG sobre el catálogo + OpenAI. Devuelve respuesta, links y guía validados. */
+        ASSISTANT_CHAT:      '/help/assistant/chat',
+        /** 👍/👎 de una respuesta: alimenta la cola de preguntas sin resolver. */
+        ASSISTANT_FEEDBACK:  '/help/assistant/feedback',
+        /** Versión del catálogo publicado en la BD del cliente. */
+        CATALOG_VERSION:     '/help/catalog/version',
+        /** Publica el catálogo que trae este frontend (requiere HELP_CATALOG_SYNC). */
+        CATALOG_SYNC:        '/help/catalog/sync',
+        /** Pide el video de un caso de uso (lo genera el worker de scripts/videos). */
+        VIDEO_REQUEST:       '/help/videos/request',
+        /** Videos publicados, uno por guía, en el idioma pedido (o el español). */
+        VIDEOS:              '/help/videos',
+        /** Panel de métricas del asistente (HELP_INSIGHTS_VIEW). */
+        INSIGHTS:            '/help/insights',
+        /** Resolver/ignorar una pregunta o cambiar el estado de un ticket. */
+        SUPPORT_UPDATE:      '/help/support/update',
+        /** Ajustes del asistente que fija la clínica (mascota visible). */
+        SETTINGS:            '/help/settings',
     },
 };

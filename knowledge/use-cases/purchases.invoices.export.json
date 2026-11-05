@@ -1,0 +1,43 @@
+{
+  "id": "purchases.invoices.export",
+  "title": "Exportar facturas",
+  "module": "Compras",
+  "summary": "Bajar el listado de facturas a Excel o CSV.",
+  "screens": [
+    "purchases.invoices"
+  ],
+  "keywords": [
+    "exportar facturas",
+    "excel",
+    "csv"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/purchases/invoices",
+      "title": "Menú → Compras → Facturas de Compra",
+      "details": "Lo que la clínica le debe a un proveedor: sale de un presupuesto de compra o se carga/importa directo."
+    },
+    {
+      "id": "export",
+      "action": "click",
+      "target": "purchases.invoices.btn.export",
+      "title": "Exportar",
+      "until": "purchases.invoices.section.export"
+    },
+    {
+      "id": "format",
+      "action": "highlight",
+      "target": "purchases.invoices.section.export",
+      "title": "Formato",
+      "details": "Excel o CSV."
+    },
+    {
+      "id": "run",
+      "action": "confirm",
+      "target": "purchases.invoices.btn.export-run",
+      "title": "Descargar"
+    }
+  ]
+}

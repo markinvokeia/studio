@@ -1,0 +1,81 @@
+{
+  "id": "onboarding.sede",
+  "title": "Crear una sede",
+  "module": "Configuración del negocio",
+  "summary": "Una sede es cada lugar físico donde atendés. Los consultorios y los horarios cuelgan de una sede.",
+  "screens": [
+    "config.sedes"
+  ],
+  "inputs": {
+    "name": "Nombre de la sede (ej. Sede Centro)",
+    "address": "Dirección",
+    "phone": "Teléfono",
+    "email": "Correo"
+  },
+  "keywords": [
+    "sede",
+    "sucursal",
+    "local",
+    "dirección"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/config/sedes",
+      "title": "Abro Sedes"
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "config.sedes.btn.new",
+      "title": "Nueva sede",
+      "details": "Abre el formulario de sede nueva."
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "config.sedes.field.name",
+      "value": "{{values.name}}",
+      "title": "Nombre de la sede",
+      "description": "Usá un nombre que el equipo reconozca rápido: Centro, Pocitos, Consultorio Ruta 5…",
+      "details": "Es lo que elige el equipo al trabajar y el paciente al reservar online. Usá un nombre corto y reconocible."
+    },
+    {
+      "id": "address",
+      "action": "fill",
+      "target": "config.sedes.field.address",
+      "value": "{{values.address}}",
+      "title": "Dirección",
+      "description": "Se muestra en el mapa, en el portal de pacientes y en los recordatorios.",
+      "optional": true,
+      "details": "Si la cargás, aparece en el mapa, en los recordatorios y en el portal; sin dirección el paciente no ve dónde atenderse."
+    },
+    {
+      "id": "phone",
+      "action": "fill",
+      "target": "config.sedes.field.phone",
+      "value": "{{values.phone}}",
+      "title": "Teléfono",
+      "optional": true,
+      "details": "Teléfono de esta sede. Si lo dejás vacío se usa el de la clínica."
+    },
+    {
+      "id": "email",
+      "action": "fill",
+      "target": "config.sedes.field.email",
+      "value": "{{values.email}}",
+      "title": "Correo",
+      "optional": true,
+      "details": "Correo de esta sede. Si lo dejás vacío se usa el de la clínica."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "config.sedes.btn.submit",
+      "title": "Crear la sede",
+      "description": "Revisá los datos y pulsá Crear.",
+      "details": "Crea la sede activa. Una sede inactiva no se ofrece para agendar pero conserva su historial."
+    }
+  ]
+}

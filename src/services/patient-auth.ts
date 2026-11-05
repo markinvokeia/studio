@@ -6,6 +6,7 @@ import type {
   PatientSendCodeResponse,
   PatientVerifyCodeResponse,
 } from '@/lib/types';
+import { normalizePersonName } from '@/lib/person-name';
 import { api } from '@/services/api';
 
 /**
@@ -125,7 +126,7 @@ export async function registerPatient(
   options: { skipCode?: boolean } = {},
 ): Promise<PatientRegisterResponse> {
   const body: Record<string, string> = {
-    name: payload.name.trim(),
+    name: normalizePersonName(payload.name),
     email: payload.email.trim(),
   };
   if (payload.phone?.trim()) body.phone = payload.phone.trim();

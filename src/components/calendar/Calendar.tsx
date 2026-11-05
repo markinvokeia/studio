@@ -27,6 +27,7 @@ import { CalendarFab } from './calendar-fab';
 import { CalendarFilterSheet } from './calendar-filter-sheet';
 import { CalendarAnchoredInlineDraft, CalendarInlineDraftOverlay } from './inline-draft-overlay';
 import { CalendarDraftPreviewProvider } from './calendar-draft-preview';
+import { expandVisibleHoursRange } from './calendar-visible-hours';
 
 // Re-export types for backward compatibility
 export type { CalendarGroupBy, CalendarEvent, CalendarGroupingColumn, CalendarView } from './calendar-types';
@@ -97,6 +98,7 @@ const Calendar: React.FC<CalendarProps> = ({
   hourSlotHeight,
   slotMinutes,
   hiddenWeekdays,
+  visibleHours,
   onViewChange,
   groupBy = 'none',
   groupingColumns = [],
@@ -308,6 +310,16 @@ const Calendar: React.FC<CalendarProps> = ({
     [hiddenWeekdays, previewWeekday],
   );
 
+  // Lo mismo con la franja horaria: si el borrador cae fuera, se amplía para que se vea.
+  const previewStartMin = activeDraftPreview ? activeDraftPreview.start.getHours() * 60 + activeDraftPreview.start.getMinutes() : null;
+  const previewDurationMin = previewStartMs !== null && previewEndMs !== null ? (previewEndMs - previewStartMs) / 60000 : 0;
+  const effectiveVisibleHours = React.useMemo(
+    () => (visibleHours && previewStartMin !== null
+      ? expandVisibleHoursRange(visibleHours, previewStartMin, previewStartMin + previewDurationMin)
+      : visibleHours ?? null),
+    [visibleHours, previewStartMin, previewDurationMin],
+  );
+
   // Si la fecha del borrador queda fuera del rango visible, el calendario navega a
   // ese día. Solo cuenta el día: cambiar la hora dentro del rango no navega.
   React.useEffect(() => {
@@ -444,6 +456,7 @@ const Calendar: React.FC<CalendarProps> = ({
               hourSlotHeight={effectiveSlotHeight}
               slotMinutes={slotMinutes}
               hiddenWeekdays={effectiveHiddenWeekdays}
+              visibleHours={effectiveVisibleHours}
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
@@ -474,6 +487,7 @@ const Calendar: React.FC<CalendarProps> = ({
               hideTimeGutter={hideTimeGutter}
               onNavigatePeriod={handleDragEdgeNavigate}
               hiddenWeekdays={effectiveHiddenWeekdays}
+              visibleHours={effectiveVisibleHours}
               {...eventHandlers}
               {...gapProps}
               {...blockProps}
@@ -497,6 +511,7 @@ const Calendar: React.FC<CalendarProps> = ({
             showTimeColumn={showTimeColumn}
             onToggleTimeColumn={handleToggleTimeColumn}
             hiddenWeekdays={effectiveHiddenWeekdays}
+            visibleHours={effectiveVisibleHours}
             {...eventHandlers}
             {...gapProps}
             {...blockProps}
@@ -568,7 +583,7 @@ const Calendar: React.FC<CalendarProps> = ({
   };
 
   return (
-    <div className="calendar-container">
+    <div className="calendar-container" data-help-id="appointments.section.calendar">
       {/* Mobile: date subtitle under header */}
       <CalendarHeader
         headerTitle={headerTitle}

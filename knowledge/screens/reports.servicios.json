@@ -1,0 +1,70 @@
+{
+  "id": "reports.servicios",
+  "status": "draft",
+  "summary": "Rendimiento de los servicios.",
+  "purpose": "Qué servicios se venden más y cuánto aportan.",
+  "prerequisites": [
+    "sales.services"
+  ],
+  "useCases": [
+    "reports.servicios.overview"
+  ],
+  "tips": [
+    "Elegí los filtros y tocá «Generar»: el reporte no se calcula solo."
+  ],
+  "elements": {
+    "reports.servicios.section.filters": {
+      "label": "Filtros",
+      "description": "Moneda."
+    },
+    "reports.servicios.btn.generate": {
+      "label": "Generar",
+      "description": "Calcula el reporte."
+    },
+    "reports.servicios.section.empty": {
+      "label": "Sin datos"
+    },
+    "reports.servicios.section.kpi": {
+      "label": "Indicadores",
+      "description": "Servicios activos y sesiones realizadas."
+    },
+    "reports.servicios.section.results": {
+      "label": "Resultados",
+      "description": "Ranking de servicios por cantidad y facturación."
+    },
+    "reports.servicios.section.table": {
+      "label": "Detalle"
+    },
+    "reports.servicios.section.export": {
+      "label": "Exportar e imprimir"
+    },
+    "reports.servicios.btn.export": {
+      "label": "Exportar",
+      "description": "Excel, CSV o PDF."
+    },
+    "reports.servicios.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.servicios.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.servicios.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.servicios.btn.print": {
+      "label": "Imprimir"
+    },
+    "reports.servicios.filter.period": {
+      "label": "Período"
+    },
+    "reports.servicios.section.period-options": {
+      "label": "Opciones de período"
+    },
+    "reports.servicios.filter.currency": {
+      "label": "Moneda"
+    },
+    "reports.servicios.filter.currency-filter": {
+      "label": "Moneda"
+    }
+  }
+}

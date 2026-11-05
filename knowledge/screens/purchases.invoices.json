@@ -1,0 +1,91 @@
+{
+  "id": "purchases.invoices",
+  "status": "draft",
+  "summary": "Facturas de compra a proveedores.",
+  "purpose": "Lo que la clínica le debe a un proveedor: sale de un presupuesto de compra o se carga/importa directo.",
+  "prerequisites": [
+    "purchases.providers"
+  ],
+  "useCases": [
+    "purchases.invoices.overview",
+    "purchases.invoices.create",
+    "purchases.invoices.confirm",
+    "purchases.invoices.pay",
+    "purchases.invoices.send",
+    "purchases.invoices.items",
+    "purchases.invoices.credit-notes",
+    "purchases.invoices.export",
+    "purchases.invoices.import"
+  ],
+  "elements": {
+    "purchases.invoices.section.detail-header": {
+      "label": "Resumen del documento"
+    },
+    "purchases.invoices.section.first-row": {
+      "label": "Primer documento de la lista"
+    },
+    "purchases.invoices.section.row": {
+      "label": "Documento"
+    },
+    "purchases.invoices.btn.row-actions": {
+      "label": "Acciones de la fila"
+    },
+    "purchases.invoices.btn.export": {
+      "label": "Exportar",
+      "description": "Excel o CSV."
+    },
+    "purchases.invoices.section.export": {
+      "label": "Formato de exportación"
+    },
+    "purchases.invoices.btn.export-run": {
+      "label": "Descargar"
+    },
+    "purchases.invoices.field.doc-email-to": {
+      "label": "Destinatarios",
+      "description": "Correos separados por coma."
+    },
+    "purchases.invoices.btn.doc-email-send": {
+      "label": "Enviar por correo"
+    },
+    "purchases.invoices.detail.section.first-row": {
+      "label": "Primera línea"
+    },
+    "purchases.invoices.detail.section.row": {
+      "label": "Línea"
+    },
+    "purchases.invoices.detail.btn.new": {
+      "label": "Agregar"
+    },
+    "purchases.invoices.btn.filters": {
+      "label": "Filtros"
+    },
+    "purchases.invoices.section.filters": {
+      "label": "Opciones de filtro"
+    },
+    "purchases.invoices.btn.row-add-payment": {
+      "label": "Agregar pago"
+    },
+    "purchases.invoices.btn.row-confirm": {
+      "label": "Confirmar"
+    },
+    "purchases.invoices.btn.row-edit": {
+      "label": "Editar"
+    },
+    "purchases.invoices.btn.row-print": {
+      "label": "Imprimir"
+    },
+    "purchases.invoices.btn.row-email": {
+      "label": "Enviar por correo"
+    },
+    "purchases.invoices.btn.import": {
+      "label": "Importar"
+    },
+    "purchases.invoices.filter.option-Factura": {
+      "label": "Sólo facturas"
+    },
+    "purchases.invoices.btn.add-item": {
+      "label": "Agregar ítem",
+      "description": "Agrega una línea con servicio, cantidad y precio."
+    }
+  }
+}

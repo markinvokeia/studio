@@ -1,0 +1,54 @@
+{
+  "id": "patients.preferences",
+  "title": "Patient preferences",
+  "summary": "Notices they get, how their Finance section looks and their scheduling preferences.",
+  "module": "Patients",
+  "group": "Information",
+  "inputs": {
+    "patient": "Patient's name, email or ID"
+  },
+  "keywords": [
+    "preferences",
+    "patient notifications",
+    "don't send reminders",
+    "finance view",
+    "scheduling preferences"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or ID."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide continues once their record is open."
+    },
+    {
+      "id": "menu",
+      "title": "More actions",
+      "details": "Communication, patient status and preferences."
+    },
+    {
+      "id": "item",
+      "title": "Preferences",
+      "details": "Opens Information → Preferences."
+    },
+    {
+      "id": "finance",
+      "title": "Finance view",
+      "details": "Normal: quotes, invoices and payments in tabs. Custom: a single account ledger. Saved as soon as you tap it."
+    },
+    {
+      "id": "calendar",
+      "title": "Calendar",
+      "details": "This patient's scheduling preferences."
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "id": "purchases.providers.prepaid",
+  "title": "Registrar un anticipo al proveedor",
+  "module": "Compras",
+  "summary": "Crear → Prepago: dinero adelantado que se aplica a sus facturas.",
+  "screens": [
+    "purchases.providers"
+  ],
+  "group": "Compras al proveedor",
+  "inputs": {
+    "query": "Nombre, correo o RUT",
+    "amount": "Monto (número)",
+    "payment_method": "Medio de pago (ej. Efectivo)"
+  },
+  "keywords": [
+    "registrar un anticipo al proveedor",
+    "proveedor"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/purchases/providers",
+      "title": "Menú → Compras → Proveedores",
+      "details": "Laboratorios, depósitos y servicios a los que la clínica les compra; con su cuenta: presupuestos, facturas y pagos."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "purchases.providers.filter.search",
+      "title": "Buscá el proveedor",
+      "details": "Por nombre, correo o RUT.",
+      "value": "{{values.query}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "purchases.providers.section.first-row",
+      "title": "Abrí su ficha",
+      "until": "purchases.providers.section.detail",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "purchases.providers.btn.create-menu",
+      "title": "Crear",
+      "until": "purchases.providers.btn.new-prepaid"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "purchases.providers.btn.new-prepaid",
+      "title": "Registrar un anticipo al proveedor",
+      "details": "Crear → Prepago: dinero adelantado que se aplica a sus facturas.",
+      "until": "purchases.providers.btn.submit"
+    },
+    {
+      "id": "amount",
+      "action": "fill",
+      "target": "purchases.providers.field.payment_amount",
+      "value": "{{values.amount}}",
+      "title": "Monto",
+      "details": "Obligatorio: cuánto se le adelanta; después se aplica a sus facturas."
+    },
+    {
+      "id": "method",
+      "action": "fill",
+      "target": "purchases.providers.field.payment_method_id",
+      "value": "{{values.payment_method}}",
+      "title": "Medio de pago",
+      "details": "Obligatorio. Los pagos en efectivo salen de la caja abierta."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "purchases.providers.btn.submit",
+      "title": "Guardar",
+      "details": "Completá los datos del formulario y guardá."
+    },
+    {
+      "id": "ok",
+      "target": "purchases.providers.btn.prepaid-confirm",
+      "action": "confirm",
+      "title": "Confirmar el pago anticipado",
+      "details": "Pide una confirmación más antes de registrarlo: el importe queda como saldo a favor.",
+      "skipIfMissing": true
+    }
+  ]
+}

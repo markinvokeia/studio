@@ -1,0 +1,39 @@
+{
+  "id": "system.help-insights",
+  "summary": "Invoke assistant metrics: questions, resolution, tickets, videos and onboarding progress.",
+  "purpose": "Shows how much the assistant resolves on its own, what gets escalated to the team and on which screens people get stuck. From here you work through the queue of unresolved questions and the tickets.",
+  "tips": [
+    "An unresolved question is closed by completing the record or guide for its screen in knowledge/ and marking it as resolved.",
+    "The goal is for the assistant to resolve 85% of questions and for only critical incidents to come in over the weekend."
+  ],
+  "elements": {
+    "system.help-insights.section.by-week": {
+      "label": "Per week",
+      "description": "Questions, guides started and resolved."
+    },
+    "system.help-insights.section.by-screen": {
+      "label": "Per screen",
+      "description": "Where help is requested the most."
+    },
+    "system.help-insights.section.open": {
+      "label": "Questions without a good answer",
+      "description": "What people asked for and didn't help them: candidates for a new guide."
+    },
+    "system.help-insights.section.tickets": {
+      "label": "Tickets",
+      "description": "Questions escalated to support."
+    },
+    "system.help-insights.section.catalog": {
+      "label": "Catalog",
+      "description": "Published version of the product map."
+    },
+    "system.help-insights.section.videos": {
+      "label": "Videos",
+      "description": "Requests for guide videos."
+    },
+    "system.help-insights.section.onboarding": {
+      "label": "Getting started",
+      "description": "Clinics' onboarding progress."
+    }
+  }
+}

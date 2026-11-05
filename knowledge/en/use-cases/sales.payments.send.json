@@ -1,0 +1,48 @@
+{
+  "id": "sales.payments.send",
+  "title": "Print or send a receipt",
+  "summary": "Print a payment's receipt or email it as a PDF.",
+  "module": "Sales",
+  "inputs": {
+    "query": "Payment number"
+  },
+  "keywords": [
+    "receipt",
+    "print receipt",
+    "send receipt",
+    "payment receipt"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Sales → Payments",
+      "details": "Payments from patients: invoice payments and prepayments (money on account that's later applied to invoices)."
+    },
+    {
+      "id": "search",
+      "title": "Find the payment",
+      "details": "By document number."
+    },
+    {
+      "id": "pick",
+      "title": "Open the payment",
+      "details": "Tap it in the list. The guide continues once its details open."
+    },
+    {
+      "id": "print",
+      "title": "Print receipt"
+    },
+    {
+      "id": "email",
+      "title": "Send by email"
+    },
+    {
+      "id": "to",
+      "title": "Recipients"
+    },
+    {
+      "id": "send",
+      "title": "Send"
+    }
+  ]
+}

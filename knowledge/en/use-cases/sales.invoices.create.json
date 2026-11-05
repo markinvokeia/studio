@@ -1,0 +1,70 @@
+{
+  "id": "sales.invoices.create",
+  "title": "Create an invoice",
+  "summary": "Direct invoice (no quote): patient, dates, currency, branch and items. It stays as a draft.",
+  "module": "Sales",
+  "inputs": {
+    "party": "Patient",
+    "service": "Service or product",
+    "quantity": "Quantity"
+  },
+  "keywords": [
+    "new invoice",
+    "create invoice",
+    "invoice without a quote"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Sales → Invoices",
+      "details": "What the patient is charged: it comes from a confirmed quote, a quick payment or is entered directly."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    },
+    {
+      "id": "party",
+      "title": "Patient"
+    },
+    {
+      "id": "date",
+      "title": "Date"
+    },
+    {
+      "id": "due",
+      "title": "Due date",
+      "details": "After this date the debt shows as overdue."
+    },
+    {
+      "id": "currency",
+      "title": "Currency"
+    },
+    {
+      "id": "sede",
+      "title": "Branch"
+    },
+    {
+      "id": "add",
+      "title": "Add item"
+    },
+    {
+      "id": "service",
+      "title": "Service"
+    },
+    {
+      "id": "qty",
+      "title": "Quantity"
+    },
+    {
+      "id": "historical",
+      "title": "Historical",
+      "details": "To enter old invoices without affecting today's cash register."
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "It stays as a draft; confirm it to be able to charge it."
+    }
+  ]
+}

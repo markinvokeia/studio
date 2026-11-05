@@ -1,0 +1,67 @@
+{
+  "id": "reports.balance-mensual",
+  "status": "draft",
+  "summary": "Balance mensual.",
+  "purpose": "Producido, cobrado y pendiente de cada mes.",
+  "useCases": [
+    "reports.balance-mensual.overview"
+  ],
+  "tips": [
+    "Elegí los filtros y tocá «Generar»: el reporte no se calcula solo."
+  ],
+  "elements": {
+    "reports.balance-mensual.section.filters": {
+      "label": "Filtros",
+      "description": "Moneda."
+    },
+    "reports.balance-mensual.btn.generate": {
+      "label": "Generar",
+      "description": "Calcula el reporte."
+    },
+    "reports.balance-mensual.section.empty": {
+      "label": "Sin datos"
+    },
+    "reports.balance-mensual.section.kpi": {
+      "label": "Indicadores",
+      "description": "Producido, cobrado y pendiente."
+    },
+    "reports.balance-mensual.section.results": {
+      "label": "Resultados",
+      "description": "Una fila por mes y el detalle."
+    },
+    "reports.balance-mensual.section.table": {
+      "label": "Detalle"
+    },
+    "reports.balance-mensual.section.export": {
+      "label": "Exportar e imprimir"
+    },
+    "reports.balance-mensual.btn.export": {
+      "label": "Exportar",
+      "description": "Excel, CSV o PDF."
+    },
+    "reports.balance-mensual.btn.export-excel": {
+      "label": "Excel"
+    },
+    "reports.balance-mensual.btn.export-csv": {
+      "label": "CSV"
+    },
+    "reports.balance-mensual.btn.export-pdf": {
+      "label": "PDF"
+    },
+    "reports.balance-mensual.btn.print": {
+      "label": "Imprimir"
+    },
+    "reports.balance-mensual.filter.period": {
+      "label": "Período"
+    },
+    "reports.balance-mensual.section.period-options": {
+      "label": "Opciones de período"
+    },
+    "reports.balance-mensual.filter.currency": {
+      "label": "Moneda"
+    },
+    "reports.balance-mensual.filter.currency-filter": {
+      "label": "Moneda"
+    }
+  }
+}

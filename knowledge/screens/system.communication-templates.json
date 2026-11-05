@@ -1,0 +1,72 @@
+{
+  "id": "system.communication-templates",
+  "status": "draft",
+  "summary": "Plantillas de mensajes.",
+  "purpose": "Textos de correos y WhatsApp que usan las alertas y los recordatorios.",
+  "tips": [
+    "Las plantillas de WhatsApp pueden requerir aprobación previa del proveedor."
+  ],
+  "useCases": [
+    "system.communication-templates.overview",
+    "system.communication-templates.create",
+    "system.communication-templates.edit",
+    "system.communication-templates.delete"
+  ],
+  "elements": {
+    "system.communication-templates.section.first-row": {
+      "label": "Primero de la lista"
+    },
+    "system.communication-templates.section.row": {
+      "label": "Registro"
+    },
+    "system.communication-templates.section.detail": {
+      "label": "Detalle"
+    },
+    "system.communication-templates.btn.edit": {
+      "label": "Editar"
+    },
+    "system.communication-templates.btn.delete": {
+      "label": "Eliminar",
+      "description": "Pide confirmación."
+    },
+    "system.communication-templates.btn.confirm-action": {
+      "label": "Confirmar"
+    },
+    "system.communication-templates.field.name": {
+      "label": "Nombre"
+    },
+    "system.communication-templates.field.code": {
+      "label": "Código"
+    },
+    "system.communication-templates.field.type": {
+      "label": "Tipo",
+      "description": "Correo, SMS o WhatsApp."
+    },
+    "system.communication-templates.field.category_id": {
+      "label": "Categoría"
+    },
+    "system.communication-templates.field.subject": {
+      "label": "Asunto",
+      "description": "Sólo correo."
+    },
+    "system.communication-templates.field.body_html": {
+      "label": "Contenido",
+      "description": "Texto con variables que se completan al enviar."
+    },
+    "system.communication-templates.field.default_sender": {
+      "label": "Remitente"
+    },
+    "system.communication-templates.field.is_active": {
+      "label": "Activa"
+    },
+    "system.communication-templates.btn.row-edit": {
+      "label": "Editar"
+    },
+    "system.communication-templates.btn.row-duplicate": {
+      "label": "Duplicar"
+    },
+    "system.communication-templates.btn.row-delete": {
+      "label": "Eliminar"
+    }
+  }
+}

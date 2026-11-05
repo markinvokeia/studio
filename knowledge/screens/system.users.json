@@ -1,0 +1,57 @@
+{
+  "id": "system.users",
+  "status": "draft",
+  "summary": "Usuarios del sistema.",
+  "purpose": "Todos los usuarios con acceso (staff y profesionales), sus roles y su estado.",
+  "tips": [
+    "Para dar de alta recepción o administración es más simple Secretarias y Administración."
+  ],
+  "prerequisites": [
+    "roles"
+  ],
+  "useCases": [
+    "system.users.overview",
+    "system.users.create",
+    "system.users.edit",
+    "system.users.roles",
+    "system.users.initial-password"
+  ],
+  "elements": {
+    "system.users.section.first-row": {
+      "label": "Primero de la lista"
+    },
+    "system.users.section.row": {
+      "label": "Registro"
+    },
+    "system.users.section.detail": {
+      "label": "Ficha"
+    },
+    "system.users.detail.field.name": {
+      "label": "Nombre"
+    },
+    "system.users.detail.btn.submit": {
+      "label": "Guardar"
+    },
+    "system.users.detail.tab.details": {
+      "label": "Datos"
+    },
+    "system.users.detail.tab.roles": {
+      "label": "Roles",
+      "description": "Qué roles tiene: cada rol suma permisos."
+    },
+    "system.users.detail.tab.logs": {
+      "label": "Registros",
+      "description": "Lo que hizo en el sistema."
+    },
+    "system.users.detail.tab.signature": {
+      "label": "Firma"
+    },
+    "system.users.detail.tab.preferences": {
+      "label": "Preferencias"
+    },
+    "system.users.btn.initial-password": {
+      "label": "Contraseña inicial",
+      "description": "Se envía al tocarlo."
+    }
+  }
+}

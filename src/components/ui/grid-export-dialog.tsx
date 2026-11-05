@@ -12,6 +12,8 @@ import {
 import { DatePickerInput } from '@/components/ui/date-picker';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useHelpScope } from '@/components/help/help-scope';
+import { composeHelpId } from '@/lib/help/help-id';
 import { differenceInDays, format as formatDate, parseISO, startOfMonth } from 'date-fns';
 import { FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -37,6 +39,7 @@ export function GridExportDialog({
   title,
 }: GridExportDialogProps) {
   const t = useTranslations('GridExportDialog');
+  const helpScope = useHelpScope();
   const [format, setFormat] = React.useState<GridExportFormat>('excel');
   const [dateFrom, setDateFrom] = React.useState('');
   const [dateTo, setDateTo] = React.useState('');
@@ -82,7 +85,7 @@ export function GridExportDialog({
           <DialogTitle>{title ?? t('title')}</DialogTitle>
         </DialogHeader>
 
-        <DialogBody className="space-y-5 py-4 px-6">
+        <DialogBody data-help-id={composeHelpId(helpScope, 'section', 'export')} className="space-y-5 py-4 px-6">
           {/* Format selector */}
           <div className="space-y-2">
             <Label>{t('format')}</Label>
@@ -135,7 +138,7 @@ export function GridExportDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isExporting}>
             {t('cancel')}
           </Button>
-          <Button onClick={handleExport} disabled={isDisabled}>
+          <Button data-help-id={composeHelpId(helpScope, 'btn', 'export-run')} onClick={handleExport} disabled={isDisabled}>
             {isExporting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

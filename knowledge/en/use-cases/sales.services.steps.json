@@ -1,0 +1,44 @@
+{
+  "id": "sales.services.steps",
+  "title": "Build a treatment in stages",
+  "summary": "Service of type «in stages»: its sessions, intervals between them and whether they depend on the lab. Treatment plans are built with it.",
+  "module": "Sales",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "stages",
+    "treatment in stages",
+    "treatment plan",
+    "treatment sessions",
+    "lab"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Sales → Services"
+    },
+    {
+      "id": "search",
+      "title": "Find the service"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the service"
+    },
+    {
+      "id": "type",
+      "title": "Type",
+      "details": "Choose «in stages» and save so the Stages tab shows up."
+    },
+    {
+      "id": "tab",
+      "title": "Stages"
+    },
+    {
+      "id": "add",
+      "title": "Add stage",
+      "details": "Name, days since the previous stage and whether it depends on the lab."
+    }
+  ]
+}

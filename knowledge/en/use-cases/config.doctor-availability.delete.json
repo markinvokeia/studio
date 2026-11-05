@@ -1,0 +1,39 @@
+{
+  "id": "config.doctor-availability.delete",
+  "title": "Delete the availability rule",
+  "summary": "Delete an availability rule (asks for confirmation).",
+  "module": "Business Setup",
+  "inputs": {
+    "query": "Search"
+  },
+  "keywords": [
+    "delete availability rule",
+    "remove availability rule",
+    "clear availability rule"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Business Setup → Doctor Availability",
+      "details": "When each doctor sees patients: days and hours, from and until when. The calendar only offers slots within this availability."
+    },
+    {
+      "id": "search",
+      "title": "Find the availability rule"
+    },
+    {
+      "id": "pick",
+      "title": "Choose the availability rule",
+      "details": "Tap it in the list to see its details."
+    },
+    {
+      "id": "delete",
+      "title": "Delete"
+    },
+    {
+      "id": "ok",
+      "title": "Confirm",
+      "details": "This can't be undone."
+    }
+  ]
+}

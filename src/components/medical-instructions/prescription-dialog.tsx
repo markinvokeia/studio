@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 
+import { useHelpScope } from '@/components/help/help-scope';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -40,6 +41,7 @@ import {
     PRESCRIPTION_TEMPLATE_VARIABLES,
     PRESCRIPTION_TEMPLATE_VARIABLE_GROUP_ORDER,
 } from '@/lib/prescription-template-variables';
+import { composeHelpId } from '@/lib/help/help-id';
 import type { PrescriptionPatientInfo } from '@/lib/prescription-render';
 import { PatientPrescription, PrescriptionItem, PrescriptionTemplate } from '@/lib/types';
 import { cn, formatDate, formatDisplayDate } from '@/lib/utils';
@@ -102,6 +104,9 @@ export function PrescriptionDialog({
     lockDoctor = false,
 }: PrescriptionDialogProps) {
     const t = useTranslations('PrescriptionDialog');
+    // Help ids del asistente con el scope de la pantalla (workspace.field.rx-medication…).
+    const helpScope = useHelpScope();
+    const rxHelpId = (name: string) => composeHelpId(helpScope, 'field', name);
     const tPrint = useTranslations('PrescriptionPrint');
     const { toast } = useToast();
     const { user } = useAuth();
@@ -374,7 +379,7 @@ export function PrescriptionDialog({
     const formPane = (
         <div className="space-y-5 p-4 sm:p-5">
             <div className="space-y-4">
-                <div className="space-y-2">
+                <div data-help-id={rxHelpId('rx-template')} className="space-y-2">
                     <Label>{t('template')}</Label>
                     <Select value={templateId} onValueChange={handleSelectTemplate}>
                         <SelectTrigger className="w-full">
@@ -395,7 +400,7 @@ export function PrescriptionDialog({
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
+                    <div data-help-id={rxHelpId('rx-date')} className="space-y-2">
                         <Label>{t('date')}</Label>
                         <Popover>
                             <PopoverTrigger asChild>
@@ -418,7 +423,7 @@ export function PrescriptionDialog({
                             </PopoverContent>
                         </Popover>
                     </div>
-                    <div className="space-y-2">
+                    <div data-help-id={rxHelpId('rx-doctor')} className="space-y-2">
                         <Label>{t('doctor')}</Label>
                         {isDoctorLocked ? (
                             <div className="flex h-10 items-center rounded-md border border-input bg-muted/50 px-3 text-sm text-foreground">
@@ -454,11 +459,11 @@ export function PrescriptionDialog({
                     </Alert>
                 )}
 
-                <div className="space-y-2">
+                <div data-help-id={rxHelpId('rx-diagnosis')} className="space-y-2">
                     <Label>{t('diagnosis')}</Label>
                     <Textarea rows={2} value={diagnostico} onChange={(e) => setDiagnostico(e.target.value)} placeholder={t('diagnosisPlaceholder')} />
                 </div>
-                <div className="space-y-2">
+                <div data-help-id={rxHelpId('rx-notes')} className="space-y-2">
                     <Label>{t('notes')}</Label>
                     <Textarea rows={2} value={notas} onChange={(e) => setNotas(e.target.value)} placeholder={t('notesPlaceholder')} />
                 </div>
@@ -468,7 +473,7 @@ export function PrescriptionDialog({
             <div className="space-y-2.5">
                 <div className="flex items-center justify-between">
                     <Label className="text-base">{t('medications')}</Label>
-                    <Button type="button" variant="outline" size="sm" onClick={handleAddItem}>
+                    <Button data-help-id={composeHelpId(helpScope, 'btn', 'rx-add-medication')} type="button" variant="outline" size="sm" onClick={handleAddItem}>
                         <Plus className="mr-1 h-3.5 w-3.5" />
                         {t('addMedication')}
                     </Button>
@@ -526,7 +531,7 @@ export function PrescriptionDialog({
                     return (
                         <div key={index} className="space-y-3 rounded-lg border p-3">
                             <div className="flex items-start gap-2">
-                                <div className="min-w-0 flex-1 space-y-1.5">
+                                <div data-help-id={rxHelpId('rx-medication')} className="min-w-0 flex-1 space-y-1.5">
                                     <Label className="text-xs text-muted-foreground">{t('item.medication')}</Label>
                                     <MedicationSelector
                                         value={item.medicamento_id || undefined}
@@ -553,7 +558,7 @@ export function PrescriptionDialog({
                                     <Label className="text-xs text-muted-foreground">{t('item.presentation')}</Label>
                                     <Input value={item.presentacion || ''} onChange={(e) => updateItem(index, { presentacion: e.target.value })} placeholder={t('item.presentationPlaceholder')} />
                                 </div>
-                                <div className="space-y-1.5">
+                                <div data-help-id={rxHelpId('rx-dosage')} className="space-y-1.5">
                                     <Label className="text-xs text-muted-foreground">{t('item.dosage')}</Label>
                                     <Input value={item.dosis || ''} onChange={(e) => updateItem(index, { dosis: e.target.value })} placeholder={t('item.dosagePlaceholder')} />
                                 </div>
@@ -561,11 +566,11 @@ export function PrescriptionDialog({
                                     <Label className="text-xs text-muted-foreground">{t('item.route')}</Label>
                                     <Input value={item.via_administracion || ''} onChange={(e) => updateItem(index, { via_administracion: e.target.value })} placeholder={t('item.routePlaceholder')} />
                                 </div>
-                                <div className="space-y-1.5">
+                                <div data-help-id={rxHelpId('rx-frequency')} className="space-y-1.5">
                                     <Label className="text-xs text-muted-foreground">{t('item.frequency')}</Label>
                                     <Input value={item.frecuencia || ''} onChange={(e) => updateItem(index, { frecuencia: e.target.value })} placeholder={t('item.frequencyPlaceholder')} />
                                 </div>
-                                <div className="space-y-1.5">
+                                <div data-help-id={rxHelpId('rx-duration')} className="space-y-1.5">
                                     <Label className="text-xs text-muted-foreground">{t('item.durationDays')}</Label>
                                     <Input
                                         type="number"
@@ -574,7 +579,7 @@ export function PrescriptionDialog({
                                         onChange={(e) => updateItem(index, { duracion_dias: e.target.value ? parseInt(e.target.value, 10) : null })}
                                     />
                                 </div>
-                                <div className="space-y-1.5">
+                                <div data-help-id={rxHelpId('rx-quantity')} className="space-y-1.5">
                                     <Label className="text-xs text-muted-foreground">{t('item.quantity')}</Label>
                                     <Input value={item.cantidad || ''} onChange={(e) => updateItem(index, { cantidad: e.target.value })} placeholder={t('item.quantityPlaceholder')} />
                                 </div>
@@ -596,7 +601,7 @@ export function PrescriptionDialog({
                                 </div>
                             </div>
 
-                            <div className="space-y-1.5">
+                            <div data-help-id={rxHelpId('rx-instructions')} className="space-y-1.5">
                                 <Label className="text-xs text-muted-foreground">{t('item.instructions')}</Label>
                                 <Textarea rows={2} value={item.indicaciones || ''} onChange={(e) => updateItem(index, { indicaciones: e.target.value })} placeholder={t('item.instructionsPlaceholder')} />
                             </div>
@@ -725,6 +730,7 @@ export function PrescriptionDialog({
                             type="button"
                             variant="outline"
                             disabled={!savedPrescription || isPrinting}
+                            data-help-id={composeHelpId(helpScope, 'btn', 'rx-print')}
                             onClick={handlePrint}
                         >
                             {isPrinting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Printer className="mr-1.5 h-4 w-4" />}

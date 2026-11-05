@@ -47,6 +47,8 @@ import {
 } from '@/components/patients/patient-detail-main-content';
 import { PatientDetailHeader } from '@/components/patients/patient-detail-header';
 import { PatientInfoTab, ResponsibleContactField } from '@/components/patients/patient-info-tab';
+import { PatientDependentsTab } from '@/components/patients/patient-dependents-tab';
+import { ResponsibleMatchHint } from '@/components/patients/responsible-match-hint';
 import { PatientActionsMenu } from '@/components/patients/patient-actions-menu';
 import { DuplicateContactDialog, UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
 import {
@@ -173,6 +175,8 @@ function mapApiUser(apiUser: any): User {
     is_dependent: apiUser.is_dependent ?? apiUser.is_dependant ?? false,
     responsible_contact_id: apiUser.responsible_contact_id ? String(apiUser.responsible_contact_id) : undefined,
     responsible_contact_name: apiUser.responsible_contact_name || undefined,
+    responsible_phone_number: apiUser.responsible_phone_number || undefined,
+    matched_by_responsible: apiUser.matched_by_responsible === true,
     doctor_id: apiUser.doctor_id !== undefined && apiUser.doctor_id !== null && apiUser.doctor_id !== ''
       ? String(apiUser.doctor_id)
       : null,
@@ -282,11 +286,11 @@ const NotesTab = ({ user, onUpdate }: { user: User; onUpdate: (notes: string) =>
   };
 
   return (
-    <Card className="h-full flex flex-col shadow-none border-0">
+    <Card data-help-id="patients.section.notes" className="h-full flex flex-col shadow-none border-0">
       <CardHeader className="flex flex-row items-center justify-end flex-none p-4 pb-2">
         <div className="flex items-center gap-2">
           {!isEditing && (
-            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+            <Button data-help-id="patients.btn.notes-edit" variant="outline" size="sm" onClick={() => setIsEditing(true)}>
               {t('UsersPage.notes.edit')}
             </Button>
           )}
@@ -295,7 +299,7 @@ const NotesTab = ({ user, onUpdate }: { user: User; onUpdate: (notes: string) =>
               <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
                 {t('UsersPage.notes.cancel')}
               </Button>
-              <Button size="sm" onClick={handleSave} disabled={isSaving}>
+              <Button data-help-id="patients.btn.notes-save" size="sm" onClick={handleSave} disabled={isSaving}>
                 {isSaving ? t('UsersPage.notes.saving') : t('UsersPage.notes.save')}
               </Button>
             </>
@@ -305,6 +309,7 @@ const NotesTab = ({ user, onUpdate }: { user: User; onUpdate: (notes: string) =>
       <CardContent className="flex-1 overflow-auto p-4 pt-2">
         {isEditing ? (
           <Textarea
+            data-help-id="patients.field.notes-text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder={t('UsersPage.notes.placeholder')}
@@ -375,7 +380,12 @@ function UsersTableWithCards({
       renderCard={(user: User, _isSelected: boolean) => (
         <DataCard isSelected={_isSelected}
           title={user.name}
-          subtitle={user.email || user.phone_number || user.identity_document || ''}
+          subtitle={user.matched_by_responsible && user.responsible_contact_name
+            ? t(user.responsible_phone_number ? 'UsersPage.responsibleMatchWithPhone' : 'UsersPage.responsibleMatch', {
+                name: user.responsible_contact_name,
+                phone: user.responsible_phone_number ?? '',
+              })
+            : user.email || user.phone_number || user.identity_document || ''}
           avatar={user.name ? user.name.slice(0, 2).toUpperCase() : '?'}
           showArrow
           onClick={() => handleRowSelectionChange([user])}
@@ -736,7 +746,7 @@ export default function UsersPage() {
 
   const onInvalidSubmit = useInvalidSubmitToast();
   const form = useForm<UserFormValues>({
-    resolver: zodResolver(userFormSchema(t, { identityDocumentRequired })),
+    resolver: zodResolver(userFormSchema(t, { identityDocumentRequired, originalName: editingUser?.name })),
     defaultValues: {
       name: '',
       email: '',
@@ -1068,6 +1078,13 @@ export default function UsersPage() {
     {
       accessorKey: 'name',
       header: ({ column }) => <DataTableColumnHeader column={column} title={t('UserColumns.name')} />,
+      // Un dependiente encontrado por el teléfono de su tutor: se aclara por qué aparece.
+      cell: ({ row }) => (
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate">{row.original.name}</span>
+          <ResponsibleMatchHint user={row.original} onlyWhenMatched />
+        </div>
+      ),
     },
     {
       accessorKey: 'email',
@@ -1496,6 +1513,19 @@ export default function UsersPage() {
                         preferencesContent={
                           <UserPreferencesTab user={selectedUser} showFinanceView />
                         }
+                        dependentsLabel={t(selectedUser.is_dependent ? 'UsersPage.tabs.responsible' : 'UsersPage.tabs.dependents')}
+                        dependentsContent={
+                          <PatientDependentsTab
+                            patient={selectedUser}
+                            responsible={selectedUser.is_dependent && (dependantContactInfo?.id || selectedUser.responsible_contact_id)
+                              ? {
+                                  id: dependantContactInfo?.id || selectedUser.responsible_contact_id || '',
+                                  name: selectedUser.responsible_contact_name || dependantContactInfo?.name || '',
+                                }
+                              : null}
+                            onDependentsChanged={loadUsers}
+                          />
+                        }
                         anamnesisContent={
                           <AnamnesisViewer
                             userId={selectedUser.id}
@@ -1858,8 +1888,8 @@ export default function UsersPage() {
               {t('ClinicHistoryPage.discharge.dialogDescription')}
             </DialogDescription>
           </DialogHeader>
-          <DialogBody className="space-y-6 px-6 py-4">
-            <div className="space-y-3">
+          <DialogBody data-help-id="patients.section.discharge" className="space-y-6 px-6 py-4">
+            <div data-help-id="patients.field.discharge-options" className="space-y-3">
               <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                 {t('ClinicHistoryPage.discharge.optionsLabel')}
               </Label>
@@ -1867,6 +1897,7 @@ export default function UsersPage() {
                 {([1, 3, 6, 12] as const).map((months) => (
                   <Button
                     key={months}
+                    data-help-id={`patients.btn.discharge-${months}m`}
                     variant={dischargePreset === months ? 'default' : 'secondary'}
                     size="sm"
                     className="rounded-full"
@@ -1887,7 +1918,7 @@ export default function UsersPage() {
               </div>
             </div>
 
-            <div className="space-y-3 pt-2">
+            <div data-help-id="patients.field.discharge-date" className="space-y-3 pt-2">
               <Label className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                 {t('ClinicHistoryPage.discharge.dateLabel')}
               </Label>
@@ -1901,6 +1932,7 @@ export default function UsersPage() {
           </DialogBody>
           <DialogFooter>
             <Button
+              data-help-id="patients.btn.discharge-save"
               className="px-8"
               onClick={handleSaveDischarge}
               disabled={!dischargeDate || isSubmittingDischarge}

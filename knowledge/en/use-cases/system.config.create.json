@@ -1,0 +1,51 @@
+{
+  "id": "system.config.create",
+  "title": "Create a configuration",
+  "summary": "New configuration.",
+  "module": "System",
+  "inputs": {
+    "key": "Key",
+    "value": "Value"
+  },
+  "keywords": [
+    "new configuration",
+    "new configuration",
+    "create configuration"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → System → Configurations",
+      "details": "Technical system parameters (key and value). Changing them affects how things work: only do it if you know what each key controls."
+    },
+    {
+      "id": "new",
+      "title": "Create"
+    },
+    {
+      "id": "key",
+      "title": "Key"
+    },
+    {
+      "id": "value",
+      "title": "Value"
+    },
+    {
+      "id": "data_type",
+      "title": "Data type"
+    },
+    {
+      "id": "description",
+      "title": "Description"
+    },
+    {
+      "id": "is_public",
+      "title": "Public",
+      "details": "Visible to the app without special permissions."
+    },
+    {
+      "id": "save",
+      "title": "Save"
+    }
+  ]
+}

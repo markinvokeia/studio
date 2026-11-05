@@ -25,6 +25,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
+import { HelpScopeProvider } from '@/components/help/help-scope';
 import { minutesToTimeString, planSlotEnable, type ClosureChange, type Interval } from '@/components/calendar/calendar-gaps';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { useToast } from '@/hooks/use-toast';
@@ -208,6 +209,7 @@ export function EnableSlotDialog({ target, permissions, onOpenChange, onEnabled 
                     </DialogTitle>
                     <DialogDescription>{t('description', { date: dateLabel, scope: scopeLabel })}</DialogDescription>
                 </DialogHeader>
+                <HelpScopeProvider scope="appointments.enable-slot">
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(() => save.run())}>
                         <DialogBody className="space-y-4 px-6 py-4">
@@ -308,6 +310,7 @@ export function EnableSlotDialog({ target, permissions, onOpenChange, onEnabled 
                         </DialogFooter>
                     </form>
                 </Form>
+                </HelpScopeProvider>
             </DialogContent>
         </Dialog>
     );

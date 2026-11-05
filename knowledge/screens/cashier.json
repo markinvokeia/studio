@@ -1,0 +1,106 @@
+{
+  "id": "cashier",
+  "status": "draft",
+  "summary": "Caja del día: apertura, movimientos y cierre de la caja física.",
+  "purpose": "Para cobrar o registrar movimientos tiene que haber una sesión de caja abierta. Se abre contando el efectivo inicial y se cierra contando el efectivo final: el sistema compara lo contado con lo registrado (arqueo) y deja el reporte de cierre.",
+  "tips": [
+    "Cada usuario puede tener una sola caja abierta a la vez.",
+    "El ícono de caja de la barra flotante está verde con la caja abierta y naranja con la caja cerrada.",
+    "«Rellenar con último cierre» copia el conteo del cierre anterior en la apertura.",
+    "Las diferencias del arqueo se explican en las notas del cierre."
+  ],
+  "prerequisites": [
+    "cashier.cash-points",
+    "sales.payment-methods"
+  ],
+  "elements": {
+    "cashier.section.cash-points": {
+      "label": "Cajas físicas",
+      "description": "Cada caja con su estado (abierta por quién, o cerrada)."
+    },
+    "cashier.btn.open-session": {
+      "label": "Abrir"
+    },
+    "cashier.btn.view-session": {
+      "label": "Ver registro",
+      "description": "Abre tu sesión de caja abierta."
+    },
+    "cashier.section.active-session": {
+      "label": "Sesión activa",
+      "description": "Apertura, efectivo en mano, ingresos, egresos y POS por moneda."
+    },
+    "cashier.btn.all-cash-points": {
+      "label": "Ver todas las cajas"
+    },
+    "cashier.btn.print-opening": {
+      "label": "Imprimir apertura"
+    },
+    "cashier.btn.start-closing": {
+      "label": "Iniciar cierre / Siguiente"
+    },
+    "cashier.field.date-rate": {
+      "label": "Tipo de cambio"
+    },
+    "cashier.field.open-currency": {
+      "label": "Moneda"
+    },
+    "cashier.btn.open-next": {
+      "label": "Siguiente"
+    },
+    "cashier.btn.open-back": {
+      "label": "Atrás"
+    },
+    "cashier.section.count": {
+      "label": "Conteo de efectivo",
+      "description": "Cantidad de billetes y monedas por valor."
+    },
+    "cashier.btn.prefill-zero": {
+      "label": "Rellenar con 0"
+    },
+    "cashier.btn.prefill-last": {
+      "label": "Rellenar con último cierre"
+    },
+    "cashier.section.open-summary": {
+      "label": "Confirmación de apertura"
+    },
+    "cashier.btn.open-confirm": {
+      "label": "Confirmar y abrir"
+    },
+    "cashier.btn.close-next": {
+      "label": "Siguiente"
+    },
+    "cashier.btn.close-back": {
+      "label": "Atrás"
+    },
+    "cashier.section.bank-deposit": {
+      "label": "Depósito bancario",
+      "description": "Efectivo que se retira para el banco, opcional."
+    },
+    "cashier.section.declare": {
+      "label": "Arqueo",
+      "description": "Sistema vs. declarado y diferencia por medio de pago."
+    },
+    "cashier.field.closing-notes": {
+      "label": "Notas del cierre"
+    },
+    "cashier.btn.close-confirm": {
+      "label": "Cerrar sesión"
+    },
+    "cashier.section.report": {
+      "label": "Reporte del cierre"
+    },
+    "cashier.btn.print-closing": {
+      "label": "Imprimir cierre"
+    },
+    "cashier.btn.report-finish": {
+      "label": "Finalizar y volver"
+    }
+  },
+  "useCases": [
+    "cashier.open",
+    "cashier.close",
+    "cashier.overview",
+    "cashier.misc-expense",
+    "cashier.misc-income"
+  ]
+}
