@@ -1,5 +1,5 @@
 {
- "version": "2b14401b2be1cad6",
+ "version": "675d7b15a5ebd56d",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -6304,6 +6304,17 @@
      "kind": "tab",
      "label": "Firma",
      "source": "src/app/[locale]/config/doctors/page.tsx"
+    },
+    {
+     "id": "patients.btn.adopt-dependents",
+     "kind": "btn",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
+    {
+     "id": "patients.section.adopt-dependents",
+     "kind": "section",
+     "label": "Este teléfono ya está registrado",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
     }
    ],
    "id": "config.doctors",
@@ -7833,6 +7844,13 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "Guarda, pasa el teléfono o correo repetido a esta ficha y vincula al familiar como dependiente.",
+     "id": "patients.btn.adopt-dependents",
+     "kind": "btn",
+     "label": "Es dependiente de esta persona",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
+    {
      "description": "Alergias y padecimientos de la anamnesis.",
      "id": "patients.btn.alerts",
      "kind": "btn",
@@ -8749,6 +8767,13 @@
      "source": "src/app/[locale]/patients/page.tsx"
     },
     {
+     "description": "Aparece cuando el teléfono o correo que se guarda es de una ficha que puede pasar a depender de esta persona.",
+     "id": "patients.section.adopt-dependents",
+     "kind": "section",
+     "label": "Familiar a cargo de esta persona",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
+    {
      "description": "Se muestran como alerta en la ficha.",
      "id": "patients.section.anamnesis-allergies",
      "kind": "section",
@@ -9016,6 +9041,7 @@
    "tips": [
     "El teléfono con código de país habilita los recordatorios por WhatsApp.",
     "Un paciente dependiente (menor) tiene un contacto responsable: email y WhatsApp van a ese contacto.",
+    "Si al guardar al responsable su teléfono o correo ya está en la ficha de un familiar a su cargo, elige «es dependiente de esta persona»: el contacto pasa a su ficha y el familiar queda vinculado, sin números temporales.",
     "Las alergias y padecimientos de la anamnesis aparecen como alerta en el encabezado de la ficha.",
     "La sección Finanzas se ve como cuenta corriente (Personalizado) o en pestañas (Normal), según tus Preferencias.",
     "Cobro rápido, prepago y pagos necesitan una caja abierta.",
@@ -10044,6 +10070,17 @@
   },
   {
    "elements": [
+    {
+     "id": "patients.btn.adopt-dependents",
+     "kind": "btn",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
+    {
+     "id": "patients.section.adopt-dependents",
+     "kind": "section",
+     "label": "Este teléfono ya está registrado",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
     {
      "description": "En la factura o el presupuesto: agrega una línea con servicio, cantidad y precio. Sin al menos una línea no se puede guardar.",
      "id": "purchases.providers.btn.add-item",
@@ -16742,6 +16779,17 @@
   {
    "elements": [
     {
+     "id": "patients.btn.adopt-dependents",
+     "kind": "btn",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
+    {
+     "id": "patients.section.adopt-dependents",
+     "kind": "section",
+     "label": "Este teléfono ya está registrado",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
+    {
      "id": "system.staff.btn.initial-password",
      "kind": "btn",
      "label": "Contraseña inicial",
@@ -16931,6 +16979,17 @@
   },
   {
    "elements": [
+    {
+     "id": "patients.btn.adopt-dependents",
+     "kind": "btn",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
+    {
+     "id": "patients.section.adopt-dependents",
+     "kind": "section",
+     "label": "Este teléfono ya está registrado",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
     {
      "description": "Se envía al tocarlo.",
      "id": "system.users.btn.initial-password",

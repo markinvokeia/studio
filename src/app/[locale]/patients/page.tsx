@@ -450,7 +450,7 @@ export default function UsersPage() {
   // Otro paciente ya usa este teléfono/correo: se pide confirmación antes de guardar.
   const [duplicateWarning, setDuplicateWarning] = React.useState<{ owners: DuplicateContactOwners; data: UserFormValues } | null>(null);
   // Dato que no se puede repetir: modal en vez de texto inline, que no se ve con el form scrolleado.
-  const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
+  const [uniqueConflict, setUniqueConflict] = React.useState<(UniqueConflict & { data: UserFormValues }) | null>(null);
   const [financeView] = useFinanceViewPreference(currentUser?.id);
   const { toast } = useToast();
   const { open: openBillingWizard } = useBillingWizard();
@@ -1143,12 +1143,12 @@ export default function UsersPage() {
     setRowSelection({});
   };
 
-  const onSubmit = async (data: UserFormValues, confirmDuplicates = false) => {
+  const onSubmit = async (data: UserFormValues, confirmDuplicates = false, adoptDependentIds: string[] = []) => {
     setSubmissionError(null);
     form.clearErrors();
 
     try {
-      const savedData = await upsertUser(data, { confirmDuplicates });
+      const savedData = await upsertUser(data, { confirmDuplicates, adoptDependentIds });
       const isEditing = !!editingUser;
       const savedUserId = data.id || savedData?.id || savedData?.user_id;
       if (data.mutual_society_id && data.mutual_society_id !== 'none' && savedUserId) {
@@ -1165,10 +1165,15 @@ export default function UsersPage() {
         }
       }
 
-      toast({
-        title: isEditing ? t('UsersPage.createDialog.editSuccessTitle') : t('UsersPage.createDialog.createSuccessTitle'),
-        description: isEditing ? t('UsersPage.createDialog.editSuccessDescription') : t('UsersPage.createDialog.createSuccessDescription'),
-      });
+      toast(adoptDependentIds.length > 0
+        ? {
+          title: t('DuplicateContact.adopt.successTitle'),
+          description: t('DuplicateContact.adopt.successDescription', { count: adoptDependentIds.length }),
+        }
+        : {
+          title: isEditing ? t('UsersPage.createDialog.editSuccessTitle') : t('UsersPage.createDialog.createSuccessTitle'),
+          description: isEditing ? t('UsersPage.createDialog.editSuccessDescription') : t('UsersPage.createDialog.createSuccessDescription'),
+        });
       if (selectedUser && savedUserId === selectedUser.id) {
         setSelectedUser({
           ...selectedUser,
@@ -1204,7 +1209,7 @@ export default function UsersPage() {
       if (duplicateOwners) {
         setDuplicateWarning({ owners: duplicateOwners, data });
       } else if (conflict) {
-        setUniqueConflict(conflict);
+        setUniqueConflict({ ...conflict, data });
       } else if ((error.status === 400 || error.status === 409) && errorData?.errors) {
         const errors = Array.isArray(errorData.errors) ? errorData.errors : [];
         if (errors.length > 0) {
@@ -1627,8 +1632,22 @@ export default function UsersPage() {
           setDuplicateWarning(null);
           if (pending) void onSubmit(pending.data, true);
         }}
+        onAdopt={canUpdate && !duplicateWarning?.data.is_dependent ? (ids) => {
+          const pending = duplicateWarning;
+          setDuplicateWarning(null);
+          // Si otra ficha sigue compartiendo el teléfono, ya se la mostró: no se vuelve a preguntar.
+          if (pending) void onSubmit(pending.data, true, ids);
+        } : undefined}
       />
-      <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
+      <UniqueConflictDialog
+        conflict={uniqueConflict}
+        onClose={() => setUniqueConflict(null)}
+        onAdopt={canUpdate && !uniqueConflict?.data.is_dependent ? (ids) => {
+          const pending = uniqueConflict;
+          setUniqueConflict(null);
+          if (pending) void onSubmit(pending.data, false, ids);
+        } : undefined}
+      />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent confirmOnClose isDirty={form.formState.isDirty}>
@@ -1856,6 +1875,7 @@ export default function UsersPage() {
                     currentUserId={editingUser?.id}
                     initialDisplayName={selectedGuardianDisplayName}
                     onDisplayNameChange={setSelectedGuardianDisplayName}
+                    onContactMoved={() => void loadUsers()}
                   />
                 ) : null}
                 <FormField

@@ -113,7 +113,14 @@ export type DependantContactInfo = {
 };
 
 // ── Data helpers ─────────────────────────────────────────────────────────────
-export async function upsertUser(userData: UserFormValues, options?: { confirmDuplicates?: boolean }) {
+export async function upsertUser(
+  userData: UserFormValues,
+  options?: {
+    confirmDuplicates?: boolean;
+    /** Fichas que le ceden su teléfono/correo a este paciente y quedan a su cargo. */
+    adoptDependentIds?: string[];
+  },
+) {
   const payload = {
     ...userData,
     name: normalizePersonName(userData.name),
@@ -127,8 +134,9 @@ export async function upsertUser(userData: UserFormValues, options?: { confirmDu
     is_sales: true,
     // Segundo envío tras la advertencia de contacto repetido (`duplicate_contact`).
     ...(options?.confirmDuplicates ? { confirm_duplicates: true } : {}),
+    ...(options?.adoptDependentIds?.length ? { adopt_dependent_ids: options.adoptDependentIds } : {}),
   };
-  const responseData = await api.post(API_ROUTES.USERS_UPSERT, payload);
+  const responseData = await api.post(API_ROUTES.USERS_UPSERT, payload, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
 
   if (responseData.error && (responseData.error.error || responseData.code > 200)) {
     const error = new Error('API Error') as any;
@@ -164,6 +172,48 @@ export function getDuplicateContactWarning(error: any): DuplicateContactOwners |
 export function getUniqueConflict(payload: any): UniqueConflict | null {
   if (payload?.code !== 'unique_conflict' || !Array.isArray(payload.conflictedFields)) return null;
   return { conflictedFields: payload.conflictedFields, owners: payload.owners ?? {} };
+}
+
+/**
+ * Fichas a las que se puede pasar a depender de quien se guarda, cediéndole el teléfono o el
+ * correo repetido. Con `blockedFields` (`unique_conflict`) tienen que poder ceder todas las
+ * dueñas de todos los campos bloqueados: si queda alguno sin resolver, ofrecerlo solo
+ * llevaría a otro rechazo. Un backend sin `adoptable` no ofrece nada.
+ */
+export function getAdoptableOwners(owners: DuplicateContactOwners, blockedFields?: string[]): DuplicateContactOwner[] {
+  const contactOwners = [...(owners.phone ?? []), ...(owners.email ?? [])];
+  if (blockedFields) {
+    const canUnblock = blockedFields.every((field) => {
+      if (field !== 'phone' && field !== 'email') return false;
+      const fieldOwners = owners[field] ?? [];
+      return fieldOwners.length > 0 && fieldOwners.every((owner) => owner.adoptable === true);
+    });
+    if (!canUnblock) return [];
+  }
+  const seen = new Set<string>();
+  return contactOwners.filter((owner) => {
+    const id = String(owner.id);
+    if (owner.adoptable !== true || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
+
+/**
+ * Datos que el alta del responsable toma de la ficha del dependiente, y qué hay que sacarle a
+ * esa ficha una vez creado: el backend le quita lo que coincide, pero el formulario abierto
+ * lo sigue teniendo y al guardarlo se lo devolvería (el upsert reescribe la ficha entera).
+ */
+export function contactMovedToGuardian(
+  dependent: { phone?: string | null; email?: string | null },
+  guardian: { phone_number?: string | null; email?: string | null },
+): { phone: boolean; email: boolean } {
+  const phoneKey = phoneMatchKey(dependent.phone);
+  const email = dependent.email?.trim().toLowerCase();
+  return {
+    phone: !!phoneKey && phoneKey === phoneMatchKey(guardian.phone_number),
+    email: !!email && email === guardian.email?.trim().toLowerCase(),
+  };
 }
 
 /**
@@ -218,6 +268,8 @@ const DEPENDENCY_ERROR_KEYS: Record<string, string> = {
   guardian_has_dependents: 'UsersPage.dependents.errors.guardianHasDependents',
   user_not_found: 'UsersPage.dependents.errors.notFound',
   responsible_not_found: 'UsersPage.dependents.errors.notFound',
+  adopt_save_failed: 'UsersPage.dependents.errors.adoptSaveFailed',
+  adopt_link_failed: 'UsersPage.dependents.errors.adoptLinkFailed',
 };
 
 export function resolveDependencyErrorCode(

@@ -1,5 +1,5 @@
 {
- "version": "69ea2fe424a74a23",
+ "version": "61b229601158ccc9",
  "locale": "en",
  "journey": [
   {
@@ -6217,6 +6217,17 @@
      "kind": "tab",
      "label": "Signature",
      "source": "src/app/[locale]/config/doctors/page.tsx"
+    },
+    {
+     "id": "patients.btn.adopt-dependents",
+     "kind": "btn",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
+    {
+     "id": "patients.section.adopt-dependents",
+     "kind": "section",
+     "label": "This phone is already registered",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
     }
    ],
    "id": "config.doctors",
@@ -7746,6 +7757,13 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "Saves, moves the repeated phone or email to this record and links the relative as a dependent.",
+     "id": "patients.btn.adopt-dependents",
+     "kind": "btn",
+     "label": "Is a dependent of this person",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
+    {
      "description": "Allergies and ailments from the medical history.",
      "id": "patients.btn.alerts",
      "kind": "btn",
@@ -8662,6 +8680,13 @@
      "source": "src/app/[locale]/patients/page.tsx"
     },
     {
+     "description": "Appears when the phone or email being saved belongs to a record that can become a dependent of this person.",
+     "id": "patients.section.adopt-dependents",
+     "kind": "section",
+     "label": "Relative in this person's care",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
+    {
      "description": "Shown as an alert on the record.",
      "id": "patients.section.anamnesis-allergies",
      "kind": "section",
@@ -8929,6 +8954,7 @@
    "tips": [
     "A phone with country code enables WhatsApp reminders.",
     "A dependent patient (minor) has a responsible contact: email and WhatsApp go to that contact.",
+    "If the guardian's phone or email is already on the record of a relative in their care when you save, choose «is a dependent of this person»: the contact moves to their record and the relative gets linked, with no temporary numbers.",
     "Allergies and ailments from the medical history show as an alert in the record's header.",
     "The Finance section shows as an account ledger (Custom) or in tabs (Normal), depending on your Preferences.",
     "Quick payment, prepayment and payments need an open cash register.",
@@ -9957,6 +9983,17 @@
   },
   {
    "elements": [
+    {
+     "id": "patients.btn.adopt-dependents",
+     "kind": "btn",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
+    {
+     "id": "patients.section.adopt-dependents",
+     "kind": "section",
+     "label": "This phone is already registered",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
     {
      "description": "In the invoice or quote: adds a line with service, quantity and price. It can't be saved without at least one line.",
      "id": "purchases.providers.btn.add-item",
@@ -16655,6 +16692,17 @@
   {
    "elements": [
     {
+     "id": "patients.btn.adopt-dependents",
+     "kind": "btn",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
+    {
+     "id": "patients.section.adopt-dependents",
+     "kind": "section",
+     "label": "This phone is already registered",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
+    {
      "id": "system.staff.btn.initial-password",
      "kind": "btn",
      "label": "Initial password",
@@ -16844,6 +16892,17 @@
   },
   {
    "elements": [
+    {
+     "id": "patients.btn.adopt-dependents",
+     "kind": "btn",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
+    {
+     "id": "patients.section.adopt-dependents",
+     "kind": "section",
+     "label": "This phone is already registered",
+     "source": "src/components/patients/duplicate-contact-dialog.tsx"
+    },
     {
      "description": "Sent as soon as you tap it.",
      "id": "system.users.btn.initial-password",

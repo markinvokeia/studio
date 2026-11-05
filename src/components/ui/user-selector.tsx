@@ -4,16 +4,19 @@ import { useTranslations } from 'next-intl';
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { DuplicateContactDialog, UniqueConflictDialog } from '@/components/patients/duplicate-contact-dialog';
-import { PERSON_NAME_ISSUE_MESSAGES } from '@/components/patients/patient-form-utils';
+import { PERSON_NAME_ISSUE_MESSAGES, resolveDependencyErrorCode } from '@/components/patients/patient-form-utils';
 import { ResponsibleMatchHint } from '@/components/patients/responsible-match-hint';
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
+import { useToast } from '@/hooks/use-toast';
+import { usePermissions } from '@/hooks/usePermissions';
 import { DuplicateContactOwners, UniqueConflict, User } from '@/lib/types';
 import { getPersonNameIssue, normalizePersonName } from '@/lib/person-name';
 import { cn } from '@/lib/utils';
-import { api } from '@/services/api';
+import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { Check, ChevronsUpDown, Loader2, Plus } from 'lucide-react';
 
 interface UserSelectorProps {
@@ -50,6 +53,10 @@ export function UserSelector({
     onRequestCreate,
 }: UserSelectorProps) {
     const t = useTranslations();
+    const { toast } = useToast();
+    const { hasPermission } = usePermissions();
+    // Poner a otra ficha a cargo del paciente nuevo la modifica; proveedores no aplica.
+    const canAdoptDependents = filterType === 'PACIENTE' && hasPermission(PATIENTS_PERMISSIONS.UPDATE);
     const [open, setOpen] = React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState('');
     const [users, setUsers] = React.useState<User[]>([]);
@@ -180,7 +187,7 @@ export function UserSelector({
         setIsCreating(true);
     };
 
-    const handleCreateUser = async (confirmDuplicates = false) => {
+    const handleCreateUser = async (confirmDuplicates = false, adoptDependentIds: string[] = []) => {
         const name = normalizePersonName(createName);
         if (!name) return;
         // Proveedores son empresas ("Dental 2000 S.A."): la regla de nombre es solo para pacientes.
@@ -200,7 +207,8 @@ export function UserSelector({
                 is_sales: isSales,
                 is_active: true,
                 ...(confirmDuplicates ? { confirm_duplicates: true } : {}),
-            });
+                ...(adoptDependentIds.length ? { adopt_dependent_ids: adoptDependentIds } : {}),
+            }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
 
             const errPayload = responseData?.error;
             if (errPayload?.code === 'duplicate_contact' && errPayload.owners) {
@@ -215,9 +223,20 @@ export function UserSelector({
                 setCreateError(t('UsersPage.createDialog.validation.nameInvalid'));
                 return;
             }
+            const dependencyError = resolveDependencyErrorCode(errPayload?.code, t);
+            if (dependencyError) {
+                setCreateError(dependencyError);
+                return;
+            }
             if (errPayload) {
                 setCreateError('Revisá que la información ingresada sea válida.');
                 return;
+            }
+            if (adoptDependentIds.length > 0) {
+                toast({
+                    title: t('DuplicateContact.adopt.successTitle'),
+                    description: t('DuplicateContact.adopt.successDescription', { count: adoptDependentIds.length }),
+                });
             }
 
             const params: Record<string, string> = { filter_type: filterType, search: name };
@@ -252,7 +271,7 @@ export function UserSelector({
             } else if (errPayload?.code === 'invalid_name') {
                 setCreateError(t('UsersPage.createDialog.validation.nameInvalid'));
             } else {
-                setCreateError('Revisá que la información ingresada sea válida.');
+                setCreateError(resolveDependencyErrorCode(errPayload?.code, t) ?? 'Revisá que la información ingresada sea válida.');
             }
         } finally {
             setIsSaving(false);
@@ -387,8 +406,20 @@ export function UserSelector({
                 setDuplicateOwners(null);
                 void handleCreateUser(true);
             }}
+            onAdopt={canAdoptDependents ? (ids) => {
+                setDuplicateOwners(null);
+                // Si otra ficha sigue compartiendo el teléfono, ya se la mostró: no se vuelve a preguntar.
+                void handleCreateUser(true, ids);
+            } : undefined}
         />
-        <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
+        <UniqueConflictDialog
+            conflict={uniqueConflict}
+            onClose={() => setUniqueConflict(null)}
+            onAdopt={canAdoptDependents ? (ids) => {
+                setUniqueConflict(null);
+                void handleCreateUser(false, ids);
+            } : undefined}
+        />
         </>
     );
 }

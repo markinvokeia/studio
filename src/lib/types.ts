@@ -3701,6 +3701,11 @@ export interface DuplicateContactOwner {
   responsible_name?: string | null;
   /** Tiene el rol paciente: solo esas fichas se pueden elegir para una cita. `undefined` = el backend no lo informó. */
   is_patient?: boolean;
+  /**
+   * Puede pasar a depender de quien se está guardando, cediéndole este contacto: es paciente,
+   * no es dependiente ni tiene dependientes y no entra al portal. `undefined` = el backend no lo informó.
+   */
+  adoptable?: boolean;
 }
 
 /** Campo por el que una ficha existente coincide con el alta en curso. */

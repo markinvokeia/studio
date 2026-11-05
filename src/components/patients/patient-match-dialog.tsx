@@ -15,7 +15,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { AdoptDependentsPanel } from '@/components/patients/duplicate-contact-dialog';
 
+import { getAdoptableOwners } from '@/components/patients/patient-form-utils';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { formatDisplayDate } from '@/lib/utils';
 import type { DuplicateContactOwner, DuplicateContactOwners, PatientMatchField } from '@/lib/types';
@@ -73,6 +75,8 @@ interface PatientMatchDialogProps {
   onCancel: () => void;
   /** Solo con `warning`: crear igual, sabiendo que otra ficha comparte el teléfono. */
   onCreateAnyway?: () => void;
+  /** Crear pasando a las fichas elegidas a depender del paciente nuevo. Sin esto no se ofrece. */
+  onAdopt?: (ownerIds: string[]) => void;
 }
 
 /**
@@ -80,7 +84,7 @@ interface PatientMatchDialogProps {
  * cédula, correo o teléfono, con datos para distinguir a la persona de un familiar, y deja
  * elegir la correcta para seguir con la cita sin salir de la ventana.
  */
-export function PatientMatchDialog({ match, onSelect, onCancel, onCreateAnyway }: PatientMatchDialogProps) {
+export function PatientMatchDialog({ match, onSelect, onCancel, onCreateAnyway, onAdopt }: PatientMatchDialogProps) {
   const t = useTranslations('PatientMatch');
   const tContact = useTranslations('DuplicateContact');
   const [selectingId, setSelectingId] = React.useState<string | null>(null);
@@ -100,6 +104,10 @@ export function PatientMatchDialog({ match, onSelect, onCancel, onCreateAnyway }
     (field) => !match?.owners[field as PatientMatchField]?.length,
   );
   const reason = match?.reason ?? 'lookup';
+  // Solo tras intentar guardar: el aviso mientras se escribe aún no tiene `adoptable`.
+  const adoptable = match && onAdopt && reason !== 'lookup'
+    ? getAdoptableOwners(match.owners, reason === 'conflict' ? match.conflictedFields : undefined)
+    : [];
   const Icon = reason === 'conflict' ? Ban : reason === 'warning' ? AlertTriangle : UserSearch;
 
   return (
@@ -173,6 +181,14 @@ export function PatientMatchDialog({ match, onSelect, onCancel, onCreateAnyway }
             const label = tContact.has(`fields.${field}`) ? tContact(`fields.${field}`) : field;
             return <p key={field} className="text-sm">{tContact('conflictNoOwner', { field: label })}</p>;
           })}
+          {onAdopt && (
+            <AdoptDependentsPanel
+              owners={adoptable}
+              allRequired={reason === 'conflict'}
+              disabled={select.isPending}
+              onAdopt={onAdopt}
+            />
+          )}
           <p className="pt-1 text-xs leading-relaxed text-muted-foreground">{t(`${reason}.hint`)}</p>
         </div>
 

@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { AlertTriangle, Ban } from 'lucide-react';
+import { AlertTriangle, Ban, Users } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 import {
@@ -15,7 +15,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
+import { getAdoptableOwners } from '@/components/patients/patient-form-utils';
 import { formatDisplayDate } from '@/lib/utils';
 import type { DuplicateContactOwner, DuplicateContactOwners, PatientMatchField, UniqueConflict } from '@/lib/types';
 
@@ -51,6 +54,73 @@ function OwnersSection({ field, owners }: { field: OwnerField; owners: Duplicate
   );
 }
 
+interface AdoptDependentsPanelProps {
+  owners: DuplicateContactOwner[];
+  /** Hay que ceder todas: con alguna menos, el backend volvería a rechazar el guardado. */
+  allRequired?: boolean;
+  disabled?: boolean;
+  onAdopt: (ownerIds: string[]) => void;
+}
+
+/**
+ * El dueño del contacto repetido es un familiar a cargo de quien se está guardando (un menor
+ * cargado antes que su responsable, con el número de este): al guardar, el contacto pasa a
+ * esta ficha y esa persona queda como dependiente. Mejor que compartir el número: con dos
+ * fichas activas en el mismo teléfono, WhatsApp no identifica a nadie y deriva a recepción.
+ */
+export function AdoptDependentsPanel({ owners, allRequired = false, disabled = false, onAdopt }: AdoptDependentsPanelProps) {
+  const t = useTranslations('DuplicateContact.adopt');
+  const [excluded, setExcluded] = React.useState<Set<string>>(new Set());
+  if (owners.length === 0) return null;
+
+  const showChoice = !allRequired && owners.length > 1;
+  const selected = owners.map((owner) => String(owner.id)).filter((id) => !excluded.has(id));
+  const toggle = (id: string, checked: boolean) => setExcluded((current) => {
+    const next = new Set(current);
+    if (checked) next.delete(id);
+    else next.add(id);
+    return next;
+  });
+
+  return (
+    <section className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3" data-help-id="patients.section.adopt-dependents">
+      <h3 className="flex items-center gap-2 text-sm font-medium">
+        <Users className="h-4 w-4 shrink-0 text-primary" />
+        {t('title')}
+      </h3>
+      <p className="text-xs leading-relaxed text-muted-foreground">{t('description')}</p>
+      {showChoice && (
+        <ul className="space-y-1.5">
+          {owners.map((owner) => {
+            const id = String(owner.id);
+            return (
+              <li key={id} className="flex items-center gap-2">
+                <Checkbox
+                  id={`adopt-${id}`}
+                  checked={!excluded.has(id)}
+                  disabled={disabled}
+                  onCheckedChange={(checked) => toggle(id, checked === true)}
+                />
+                <Label htmlFor={`adopt-${id}`} className="text-sm font-normal">{owner.name}</Label>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <Button
+        type="button"
+        size="sm"
+        className="h-auto w-full whitespace-normal py-1.5"
+        disabled={disabled || selected.length === 0}
+        onClick={() => onAdopt(selected)}
+        data-help-id="patients.btn.adopt-dependents"
+      >
+        {owners.length === 1 ? t('actionOne', { name: owners[0].name }) : t('actionMany', { count: selected.length })}
+      </Button>
+    </section>
+  );
+}
+
 interface DuplicateContactDialogProps {
   /** Dueños del contacto repetido; `null` mantiene el diálogo cerrado. */
   owners: DuplicateContactOwners | null;
@@ -58,6 +128,8 @@ interface DuplicateContactDialogProps {
   onCancel: () => void;
   /** Guardar igualmente, sabiendo que otro paciente comparte el contacto. */
   onConfirm: () => void;
+  /** Guardar pasando a las fichas elegidas a depender de este paciente. Sin esto no se ofrece. */
+  onAdopt?: (ownerIds: string[]) => void;
 }
 
 /**
@@ -66,9 +138,10 @@ interface DuplicateContactDialogProps {
  * documento y fecha de nacimiento para que recepción distinga a un familiar de un
  * paciente ya registrado, y deja elegir entre corregir o guardar de todos modos.
  */
-export function DuplicateContactDialog({ owners, onCancel, onConfirm }: DuplicateContactDialogProps) {
+export function DuplicateContactDialog({ owners, onCancel, onConfirm, onAdopt }: DuplicateContactDialogProps) {
   const t = useTranslations('DuplicateContact');
   const phoneOwners = owners?.phone;
+  const adoptable = owners && onAdopt ? getAdoptableOwners(owners) : [];
 
   return (
     <AlertDialog open={owners !== null} onOpenChange={(open) => { if (!open) onCancel(); }}>
@@ -83,6 +156,7 @@ export function DuplicateContactDialog({ owners, onCancel, onConfirm }: Duplicat
 
         <div className="max-h-[50vh] space-y-4 overflow-y-auto px-6 py-3">
           {phoneOwners?.length ? <OwnersSection field="phone" owners={phoneOwners} /> : null}
+          {onAdopt && <AdoptDependentsPanel owners={adoptable} onAdopt={onAdopt} />}
           <p className="text-xs leading-relaxed text-muted-foreground">{t('hint')}</p>
         </div>
 
@@ -99,6 +173,8 @@ interface UniqueConflictDialogProps {
   /** Campo(s) repetido(s) y quién los tiene; `null` mantiene el diálogo cerrado. */
   conflict: UniqueConflict | null;
   onClose: () => void;
+  /** Guardar pasando a los dueños a depender de este paciente. Sin esto no se ofrece. */
+  onAdopt?: (ownerIds: string[]) => void;
 }
 
 /**
@@ -106,8 +182,9 @@ interface UniqueConflictDialogProps {
  * opción apagada). Es un modal a propósito: un error inline pasa desapercibido cuando el
  * formulario está scrolleado hacia abajo. Nombra a quien ya tiene el dato.
  */
-export function UniqueConflictDialog({ conflict, onClose }: UniqueConflictDialogProps) {
+export function UniqueConflictDialog({ conflict, onClose, onAdopt }: UniqueConflictDialogProps) {
   const t = useTranslations('DuplicateContact');
+  const adoptable = conflict && onAdopt ? getAdoptableOwners(conflict.owners, conflict.conflictedFields) : [];
 
   return (
     <AlertDialog open={conflict !== null} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -129,6 +206,7 @@ export function UniqueConflictDialog({ conflict, onClose }: UniqueConflictDialog
             const label = t.has(`fields.${field}`) ? t(`fields.${field}`) : field;
             return <p key={field} className="text-sm">{t('conflictNoOwner', { field: label })}</p>;
           })}
+          {onAdopt && <AdoptDependentsPanel owners={adoptable} allRequired onAdopt={onAdopt} />}
         </div>
 
         <AlertDialogFooter>

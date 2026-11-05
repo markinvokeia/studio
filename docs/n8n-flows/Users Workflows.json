@@ -1415,9 +1415,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Dueños del correo/teléfono: la unicidad ya no la garantiza la tabla, la valida este\n-- flujo. Devuelve QUIÉN lo tiene para que recepción sepa qué hacer.\nWITH cfg AS (\n  SELECT COALESCE((\n    SELECT cp.allow_duplicate_phone\n    FROM public.clinic_preferences cp\n    WHERE cp.clinic_id = (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1)\n    LIMIT 1\n  ), false) AS allow_duplicates\n),\nme AS (\n  SELECT lower(email) AS email,\n         name,\n         regexp_replace(coalesce(phone_number, ''), '\\D', '', 'g') AS phone\n  FROM public.users WHERE id = $4::uuid\n)\nSELECT\n  (SELECT allow_duplicates FROM cfg) AS allow_duplicates,\n  (SELECT name FROM me) AS current_name,\n\n  CASE\n    WHEN $1 IS NOT NULL AND $1 <> ''\n     AND lower($1) IS DISTINCT FROM (SELECT email FROM me)\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente')\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE lower(u.email) = lower($1) AND u.id <> $4::uuid\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS email_owners,\n\n  CASE\n    WHEN regexp_replace(coalesce($2, ''), '\\D', '', 'g') <> ''\n     AND regexp_replace($2, '\\D', '', 'g') IS DISTINCT FROM (SELECT phone FROM me)\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente')\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') = regexp_replace($2, '\\D', '', 'g') AND u.id <> $4::uuid\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS phone_owners,\n\n  -- Documento de identidad (identity_document si is_sales, rut si no). Sigue siendo único.\n  CASE\n    WHEN $3 IS NOT NULL AND $3 <> ''\n    THEN (\n      CASE WHEN $5\n        THEN EXISTS(SELECT 1 FROM users WHERE identity_document = $3 AND id <> $4::uuid)\n        ELSE EXISTS(SELECT 1 FROM users WHERE rut = $3 AND id <> $4::uuid)\n      END\n    )\n    ELSE false\n  END AS identity_document_exists,\n\n  -- Dueños del documento: mismo dato que *_owners, para elegir la ficha existente\n  -- (p. ej. al crear un paciente desde una cita) en vez de crear un duplicado.\n  CASE\n    WHEN $3 IS NOT NULL AND $3 <> ''\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente')\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE (CASE WHEN $5 THEN u.identity_document = $3 ELSE u.rut = $3 END) AND u.id <> $4::uuid\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS identity_document_owners,\n\n  -- Tutor/dependiente: el tutor elegido no puede ser dependiente y este paciente no\n  -- puede pasar a dependiente si ya tiene dependientes a su cargo.\n  EXISTS(SELECT 1 FROM public.users g WHERE g.id = NULLIF($6, '')::uuid AND g.is_dependant IS TRUE) AS responsible_is_dependent,\n  EXISTS(SELECT 1 FROM public.users c WHERE c.responsible_contact_id = $4::uuid AND c.is_dependant IS TRUE) AS has_dependents;",
+        "query": "-- Dueños del correo/teléfono: la unicidad ya no la garantiza la tabla, la valida este\n-- flujo. Devuelve QUIÉN lo tiene para que recepción sepa qué hacer.\nWITH cfg AS (\n  SELECT COALESCE((\n    SELECT cp.allow_duplicate_phone\n    FROM public.clinic_preferences cp\n    WHERE cp.clinic_id = (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1)\n    LIMIT 1\n  ), false) AS allow_duplicates\n),\nme AS (\n  SELECT lower(email) AS email,\n         name,\n         regexp_replace(coalesce(phone_number, ''), '\\D', '', 'g') AS phone\n  FROM public.users WHERE id = $4::uuid\n)\nSELECT\n  (SELECT allow_duplicates FROM cfg) AS allow_duplicates,\n  (SELECT name FROM me) AS current_name,\n\n  CASE\n    WHEN $1 IS NOT NULL AND $1 <> ''\n     AND lower($1) IS DISTINCT FROM (SELECT email FROM me)\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente'),\n             -- Se le puede pasar este contacto a quien se guarda y dejarla a su cargo.\n             'adoptable', (COALESCE(u.is_dependant, false) = false\n             AND u.password IS NULL AND COALESCE(u.is_portal_user, false) = false\n             AND NOT EXISTS(SELECT 1 FROM public.users c WHERE c.responsible_contact_id = u.id AND c.is_dependant IS TRUE)\n             AND EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                        WHERE ur.user_id = u.id AND rl.name = 'paciente'))\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE lower(u.email) = lower($1) AND u.id <> $4::uuid\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS email_owners,\n\n  CASE\n    WHEN regexp_replace(coalesce($2, ''), '\\D', '', 'g') <> ''\n     AND regexp_replace($2, '\\D', '', 'g') IS DISTINCT FROM (SELECT phone FROM me)\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente'),\n             -- Se le puede pasar este contacto a quien se guarda y dejarla a su cargo.\n             'adoptable', (COALESCE(u.is_dependant, false) = false\n             AND u.password IS NULL AND COALESCE(u.is_portal_user, false) = false\n             AND NOT EXISTS(SELECT 1 FROM public.users c WHERE c.responsible_contact_id = u.id AND c.is_dependant IS TRUE)\n             AND EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                        WHERE ur.user_id = u.id AND rl.name = 'paciente'))\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') = regexp_replace($2, '\\D', '', 'g') AND u.id <> $4::uuid\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS phone_owners,\n\n  -- Documento de identidad (identity_document si is_sales, rut si no). Sigue siendo único.\n  CASE\n    WHEN $3 IS NOT NULL AND $3 <> ''\n    THEN (\n      CASE WHEN $5\n        THEN EXISTS(SELECT 1 FROM users WHERE identity_document = $3 AND id <> $4::uuid)\n        ELSE EXISTS(SELECT 1 FROM users WHERE rut = $3 AND id <> $4::uuid)\n      END\n    )\n    ELSE false\n  END AS identity_document_exists,\n\n  -- Dueños del documento: mismo dato que *_owners, para elegir la ficha existente\n  -- (p. ej. al crear un paciente desde una cita) en vez de crear un duplicado.\n  CASE\n    WHEN $3 IS NOT NULL AND $3 <> ''\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente')\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE (CASE WHEN $5 THEN u.identity_document = $3 ELSE u.rut = $3 END) AND u.id <> $4::uuid\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS identity_document_owners,\n\n  -- Tutor/dependiente: el tutor elegido no puede ser dependiente y este paciente no\n  -- puede pasar a dependiente si ya tiene dependientes a su cargo.\n  EXISTS(SELECT 1 FROM public.users g WHERE g.id = NULLIF($6, '')::uuid AND g.is_dependant IS TRUE) AS responsible_is_dependent,\n  EXISTS(SELECT 1 FROM public.users c WHERE c.responsible_contact_id = $4::uuid AND c.is_dependant IS TRUE) AS has_dependents,\n\n  -- Fichas que el frontend pidió poner a cargo de quien se guarda (adopt_dependent_ids).\n  -- El teléfono se compara normalizado (Uruguay) y no solo por dígitos: '099123456' y\n  -- '+59899123456' son el mismo número para WhatsApp.\n  COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id,\n             'eligible', (COALESCE(u.is_dependant, false) = false\n             AND u.password IS NULL AND COALESCE(u.is_portal_user, false) = false\n             AND NOT EXISTS(SELECT 1 FROM public.users c WHERE c.responsible_contact_id = u.id AND c.is_dependant IS TRUE)\n             AND EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                        WHERE ur.user_id = u.id AND rl.name = 'paciente')),\n             'phone_match', ((CASE WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(u.phone_number, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(u.phone_number, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') END) <> '' AND (CASE WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(u.phone_number, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(u.phone_number, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') END) = (CASE WHEN regexp_replace(coalesce($2, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace($2, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce($2, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace($2, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce($2, ''), '\\D', '', 'g') END)),\n             'email_match', (COALESCE($1, '') <> '' AND lower(u.email) = lower($1))\n           ))\n    FROM public.users u\n    WHERE u.id IN (SELECT value::uuid FROM jsonb_array_elements_text($7::jsonb)) AND u.id <> $4::uuid\n  ), '[]'::json) AS adopt_candidates;",
         "options": {
-          "queryReplacement": "={{ [$json.body.email, $json.body.phone, $json.body.identity_document, $('/users/upsert').first().json.body.id, $json.body.is_sales, $json.body.responsible_contact_id || null] }}"
+          "queryReplacement": "={{ [$json.body.email, $json.body.phone, $json.body.identity_document, $('/users/upsert').first().json.body.id, $json.body.is_sales, $json.body.responsible_contact_id || null, JSON.stringify($json.body.adopt_dependent_ids || [])] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -1437,7 +1437,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Documento de identidad y correo: siempre únicos.\n// Teléfono: la tabla ya no lo obliga a ser único. Según la preferencia\n// clinic_preferences.allow_duplicate_phone:\n//   - false (o no es paciente): BLOQUEA, indicando quién lo tiene.\n//   - true y es paciente: ADVIERTE (code 'duplicate_contact') y solo guarda si el\n//     frontend reenvía la petición con confirm_duplicates = true.\nconst res = items[0].json;\nconst body = $('/users/upsert').first().json.body || {};\n\nconst emailOwners = res.email_owners || [];\nconst phoneOwners = res.phone_owners || [];\nconst documentOwners = res.identity_document_owners || [];\nconst isPatient = body.filter_type === 'PACIENTE';\nconst canDuplicate = res.allow_duplicates === true && isPatient;\nconst confirmed = body.confirm_duplicates === true;\n\n// Nombre de paciente: misma regla que src/lib/person-name.ts (frontend). Letras de\n// cualquier alfabeto separadas por un espacio, guion, apóstrofo o punto de\n// abreviatura; sin números ni otros símbolos. No exige apellido ni toca mayúsculas.\nconst normalizeName = (v) => String(v ?? '').trim().replace(/\\s+/g, ' ');\nconst NAME_RE = /^[\\p{L}\\p{M}]+(?:(?:\\. ?|[ '’-])[\\p{L}\\p{M}]+)*\\.?$/u;\nconst isValidName = (v) => {\n  const n = normalizeName(v);\n  return n.length > 0 && n.length <= 120 && NAME_RE.test(n) && (n.match(/\\p{L}/gu) || []).length >= 2;\n};\nconst INVALID_NAME = { error: true, code: 'invalid_name', conflictedFields: ['name'],\n  message: 'El nombre solo puede tener letras, espacios, guiones, apóstrofos y puntos.' };\n// Al editar solo se valida si el nombre cambió: una ficha vieja con el documento\n// en el nombre no debe bloquear, por ejemplo, un cambio de teléfono.\nif (isPatient && body.name !== undefined && normalizeName(body.name) !== normalizeName(res.current_name) && !isValidName(body.name)) {\n  return [{ json: INVALID_NAME }];\n}\n\n// Tutor/dependiente: sin cadenas. El tutor no puede ser dependiente y quien ya\n// tiene dependientes no puede pasar a serlo (mismas reglas que /users/responsible).\nif (body.is_dependent === true) {\n  if (body.id && body.responsible_contact_id && String(body.responsible_contact_id) === String(body.id)) {\n    return [{ json: { error: true, code: 'self_responsible', conflictedFields: ['responsible_contact_id'] } }];\n  }\n  if (res.responsible_is_dependent === true) {\n    return [{ json: { error: true, code: 'responsible_is_dependent', conflictedFields: ['responsible_contact_id'] } }];\n  }\n  if (res.has_dependents === true) {\n    return [{ json: { error: true, code: 'guardian_has_dependents', conflictedFields: ['is_dependent'] } }];\n  }\n}\n\nconst conflictedFields = [];\nconst owners = {};\n\nif (res.identity_document_exists) {\n  conflictedFields.push('identity_document');\n  // Quién tiene el documento: el frontend ofrece usar esa ficha en vez de crear otra.\n  if (documentOwners.length) owners.identity_document = documentOwners;\n}\nif (emailOwners.length) {\n  owners.email = emailOwners;\n  conflictedFields.push('email');\n}\nif (phoneOwners.length) {\n  owners.phone = phoneOwners;\n  if (!canDuplicate) conflictedFields.push('phone');\n}\n\nif (conflictedFields.length > 0) {\n  return [{ json: { error: true, code: 'unique_conflict', conflictedFields, owners } }];\n}\n\nif (phoneOwners.length && !confirmed) {\n  return [{ json: { error: true, code: 'duplicate_contact', conflictedFields: ['phone'], owners: { phone: phoneOwners } } }];\n}\n\nreturn [{ json: { error: false } }];"
+        "jsCode": "// Documento de identidad y correo: siempre únicos.\n// Teléfono: la tabla ya no lo obliga a ser único. Según la preferencia\n// clinic_preferences.allow_duplicate_phone:\n//   - false (o no es paciente): BLOQUEA, indicando quién lo tiene.\n//   - true y es paciente: ADVIERTE (code 'duplicate_contact') y solo guarda si el\n//     frontend reenvía la petición con confirm_duplicates = true.\nconst res = items[0].json;\nconst body = $('/users/upsert').first().json.body || {};\n\n// Fichas que pasan a depender de quien se guarda: su teléfono/correo repetido se le pasa a\n// esta ficha, así que dejan de contar como dueñas. Las que no cumplen las reglas siguen\n// contando y se responde el conflicto de siempre.\nconst adoptIds = (body.filter_type === 'PACIENTE' && body.is_dependent !== true\n  ? (res.adopt_candidates || []).filter((c) => c.eligible === true && (c.phone_match === true || c.email_match === true))\n  : []).map((c) => String(c.id));\nconst isAdopted = (owner) => adoptIds.includes(String(owner.id));\nconst emailOwners = (res.email_owners || []).filter((o) => !isAdopted(o));\nconst phoneOwners = (res.phone_owners || []).filter((o) => !isAdopted(o));\nconst documentOwners = res.identity_document_owners || [];\nconst isPatient = body.filter_type === 'PACIENTE';\nconst canDuplicate = res.allow_duplicates === true && isPatient;\nconst confirmed = body.confirm_duplicates === true;\n\n// Nombre de paciente: misma regla que src/lib/person-name.ts (frontend). Letras de\n// cualquier alfabeto separadas por un espacio, guion, apóstrofo o punto de\n// abreviatura; sin números ni otros símbolos. No exige apellido ni toca mayúsculas.\nconst normalizeName = (v) => String(v ?? '').trim().replace(/\\s+/g, ' ');\nconst NAME_RE = /^[\\p{L}\\p{M}]+(?:(?:\\. ?|[ '’-])[\\p{L}\\p{M}]+)*\\.?$/u;\nconst isValidName = (v) => {\n  const n = normalizeName(v);\n  return n.length > 0 && n.length <= 120 && NAME_RE.test(n) && (n.match(/\\p{L}/gu) || []).length >= 2;\n};\nconst INVALID_NAME = { error: true, code: 'invalid_name', conflictedFields: ['name'],\n  message: 'El nombre solo puede tener letras, espacios, guiones, apóstrofos y puntos.' };\n// Al editar solo se valida si el nombre cambió: una ficha vieja con el documento\n// en el nombre no debe bloquear, por ejemplo, un cambio de teléfono.\nif (isPatient && body.name !== undefined && normalizeName(body.name) !== normalizeName(res.current_name) && !isValidName(body.name)) {\n  return [{ json: INVALID_NAME }];\n}\n\n// Tutor/dependiente: sin cadenas. El tutor no puede ser dependiente y quien ya\n// tiene dependientes no puede pasar a serlo (mismas reglas que /users/responsible).\nif (body.is_dependent === true) {\n  if (body.id && body.responsible_contact_id && String(body.responsible_contact_id) === String(body.id)) {\n    return [{ json: { error: true, code: 'self_responsible', conflictedFields: ['responsible_contact_id'] } }];\n  }\n  if (res.responsible_is_dependent === true) {\n    return [{ json: { error: true, code: 'responsible_is_dependent', conflictedFields: ['responsible_contact_id'] } }];\n  }\n  if (res.has_dependents === true) {\n    return [{ json: { error: true, code: 'guardian_has_dependents', conflictedFields: ['is_dependent'] } }];\n  }\n}\n\nconst conflictedFields = [];\nconst owners = {};\n\nif (res.identity_document_exists) {\n  conflictedFields.push('identity_document');\n  // Quién tiene el documento: el frontend ofrece usar esa ficha en vez de crear otra.\n  if (documentOwners.length) owners.identity_document = documentOwners;\n}\nif (emailOwners.length) {\n  owners.email = emailOwners;\n  conflictedFields.push('email');\n}\nif (phoneOwners.length) {\n  owners.phone = phoneOwners;\n  if (!canDuplicate) conflictedFields.push('phone');\n}\n\nif (conflictedFields.length > 0) {\n  return [{ json: { error: true, code: 'unique_conflict', conflictedFields, owners } }];\n}\n\nif (phoneOwners.length && !confirmed) {\n  return [{ json: { error: true, code: 'duplicate_contact', conflictedFields: ['phone'], owners: { phone: phoneOwners } } }];\n}\n\nreturn [{ json: { error: false, adopt_ids: adoptIds } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1525,9 +1525,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "-- Dueños del correo/teléfono: la unicidad ya no la garantiza la tabla, la valida este\n-- flujo. Devuelve QUIÉN lo tiene para que recepción sepa qué hacer.\nWITH cfg AS (\n  SELECT COALESCE((\n    SELECT cp.allow_duplicate_phone\n    FROM public.clinic_preferences cp\n    WHERE cp.clinic_id = (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1)\n    LIMIT 1\n  ), false) AS allow_duplicates\n)\nSELECT\n  (SELECT allow_duplicates FROM cfg) AS allow_duplicates,\n\n  CASE\n    WHEN $1 IS NOT NULL AND $1 <> ''\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente')\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE lower(u.email) = lower($1)\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS email_owners,\n\n  CASE\n    WHEN regexp_replace(coalesce($2, ''), '\\D', '', 'g') <> ''\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente')\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') = regexp_replace($2, '\\D', '', 'g')\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS phone_owners,\n\n  -- Documento de identidad (identity_document si is_sales, rut si no). Sigue siendo único.\n  CASE\n    WHEN $3 IS NOT NULL AND $3 <> ''\n    THEN (\n      CASE WHEN $4\n        THEN EXISTS(SELECT 1 FROM users WHERE identity_document = $3)\n        ELSE EXISTS(SELECT 1 FROM users WHERE rut = $3)\n      END\n    )\n    ELSE false\n  END AS identity_document_exists,\n\n  -- Dueños del documento: mismo dato que *_owners, para elegir la ficha existente\n  -- (p. ej. al crear un paciente desde una cita) en vez de crear un duplicado.\n  CASE\n    WHEN $3 IS NOT NULL AND $3 <> ''\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente')\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE (CASE WHEN $4 THEN u.identity_document = $3 ELSE u.rut = $3 END)\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS identity_document_owners,\n\n  -- Tutor/dependiente: el tutor elegido no puede ser dependiente.\n  EXISTS(SELECT 1 FROM public.users g WHERE g.id = NULLIF($5, '')::uuid AND g.is_dependant IS TRUE) AS responsible_is_dependent;",
+        "query": "-- Dueños del correo/teléfono: la unicidad ya no la garantiza la tabla, la valida este\n-- flujo. Devuelve QUIÉN lo tiene para que recepción sepa qué hacer.\nWITH cfg AS (\n  SELECT COALESCE((\n    SELECT cp.allow_duplicate_phone\n    FROM public.clinic_preferences cp\n    WHERE cp.clinic_id = (SELECT id FROM public.clinic WHERE is_active IS NOT FALSE ORDER BY id LIMIT 1)\n    LIMIT 1\n  ), false) AS allow_duplicates\n)\nSELECT\n  (SELECT allow_duplicates FROM cfg) AS allow_duplicates,\n\n  CASE\n    WHEN $1 IS NOT NULL AND $1 <> ''\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente'),\n             -- Se le puede pasar este contacto a quien se guarda y dejarla a su cargo.\n             'adoptable', (COALESCE(u.is_dependant, false) = false\n             AND u.password IS NULL AND COALESCE(u.is_portal_user, false) = false\n             AND NOT EXISTS(SELECT 1 FROM public.users c WHERE c.responsible_contact_id = u.id AND c.is_dependant IS TRUE)\n             AND EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                        WHERE ur.user_id = u.id AND rl.name = 'paciente'))\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE lower(u.email) = lower($1)\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS email_owners,\n\n  CASE\n    WHEN regexp_replace(coalesce($2, ''), '\\D', '', 'g') <> ''\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente'),\n             -- Se le puede pasar este contacto a quien se guarda y dejarla a su cargo.\n             'adoptable', (COALESCE(u.is_dependant, false) = false\n             AND u.password IS NULL AND COALESCE(u.is_portal_user, false) = false\n             AND NOT EXISTS(SELECT 1 FROM public.users c WHERE c.responsible_contact_id = u.id AND c.is_dependant IS TRUE)\n             AND EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                        WHERE ur.user_id = u.id AND rl.name = 'paciente'))\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') = regexp_replace($2, '\\D', '', 'g')\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS phone_owners,\n\n  -- Documento de identidad (identity_document si is_sales, rut si no). Sigue siendo único.\n  CASE\n    WHEN $3 IS NOT NULL AND $3 <> ''\n    THEN (\n      CASE WHEN $4\n        THEN EXISTS(SELECT 1 FROM users WHERE identity_document = $3)\n        ELSE EXISTS(SELECT 1 FROM users WHERE rut = $3)\n      END\n    )\n    ELSE false\n  END AS identity_document_exists,\n\n  -- Dueños del documento: mismo dato que *_owners, para elegir la ficha existente\n  -- (p. ej. al crear un paciente desde una cita) en vez de crear un duplicado.\n  CASE\n    WHEN $3 IS NOT NULL AND $3 <> ''\n    THEN COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id, 'name', u.name, 'is_active', u.is_active,\n             'is_sales', u.is_sales, 'has_login', (u.password IS NOT NULL),\n             'document', COALESCE(u.identity_document, u.rut), 'birth_date', u.birthday,\n             'phone_number', u.phone_number, 'is_dependent', COALESCE(u.is_dependant, false),\n             'responsible_name', (SELECT r.name FROM public.users r WHERE r.id = u.responsible_contact_id AND u.is_dependant IS TRUE),\n             'is_patient', EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                                  WHERE ur.user_id = u.id AND rl.name = 'paciente')\n           ) ORDER BY u.created_at)\n    FROM public.users u\n    WHERE (CASE WHEN $4 THEN u.identity_document = $3 ELSE u.rut = $3 END)\n  ), '[]'::json)\n    ELSE '[]'::json\n  END AS identity_document_owners,\n\n  -- Tutor/dependiente: el tutor elegido no puede ser dependiente.\n  EXISTS(SELECT 1 FROM public.users g WHERE g.id = NULLIF($5, '')::uuid AND g.is_dependant IS TRUE) AS responsible_is_dependent,\n\n  -- Fichas que el frontend pidió poner a cargo de quien se guarda (adopt_dependent_ids).\n  -- El teléfono se compara normalizado (Uruguay) y no solo por dígitos: '099123456' y\n  -- '+59899123456' son el mismo número para WhatsApp.\n  COALESCE((\n    SELECT json_agg(json_build_object(\n             'id', u.id,\n             'eligible', (COALESCE(u.is_dependant, false) = false\n             AND u.password IS NULL AND COALESCE(u.is_portal_user, false) = false\n             AND NOT EXISTS(SELECT 1 FROM public.users c WHERE c.responsible_contact_id = u.id AND c.is_dependant IS TRUE)\n             AND EXISTS(SELECT 1 FROM public.user_roles ur JOIN public.roles rl ON rl.id = ur.role_id\n                        WHERE ur.user_id = u.id AND rl.name = 'paciente')),\n             'phone_match', ((CASE WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(u.phone_number, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(u.phone_number, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') END) <> '' AND (CASE WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(u.phone_number, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(u.phone_number, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') END) = (CASE WHEN regexp_replace(coalesce($2, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace($2, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce($2, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace($2, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce($2, ''), '\\D', '', 'g') END)),\n             'email_match', (COALESCE($1, '') <> '' AND lower(u.email) = lower($1))\n           ))\n    FROM public.users u\n    WHERE u.id IN (SELECT value::uuid FROM jsonb_array_elements_text($6::jsonb))\n  ), '[]'::json) AS adopt_candidates;",
         "options": {
-          "queryReplacement": "={{ [$json.body.email, $json.body.phone, $json.body.identity_document, $json.body.is_sales, $json.body.responsible_contact_id || null] }}"
+          "queryReplacement": "={{ [$json.body.email, $json.body.phone, $json.body.identity_document, $json.body.is_sales, $json.body.responsible_contact_id || null, JSON.stringify($json.body.adopt_dependent_ids || [])] }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -1547,7 +1547,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Documento de identidad y correo: siempre únicos.\n// Teléfono: la tabla ya no lo obliga a ser único. Según la preferencia\n// clinic_preferences.allow_duplicate_phone:\n//   - false (o no es paciente): BLOQUEA, indicando quién lo tiene.\n//   - true y es paciente: ADVIERTE (code 'duplicate_contact') y solo guarda si el\n//     frontend reenvía la petición con confirm_duplicates = true.\nconst res = items[0].json;\nconst body = $('/users/upsert').first().json.body || {};\n\nconst emailOwners = res.email_owners || [];\nconst phoneOwners = res.phone_owners || [];\nconst documentOwners = res.identity_document_owners || [];\nconst isPatient = body.filter_type === 'PACIENTE';\nconst canDuplicate = res.allow_duplicates === true && isPatient;\nconst confirmed = body.confirm_duplicates === true;\n\n// Nombre de paciente: misma regla que src/lib/person-name.ts (frontend). Letras de\n// cualquier alfabeto separadas por un espacio, guion, apóstrofo o punto de\n// abreviatura; sin números ni otros símbolos. No exige apellido ni toca mayúsculas.\nconst normalizeName = (v) => String(v ?? '').trim().replace(/\\s+/g, ' ');\nconst NAME_RE = /^[\\p{L}\\p{M}]+(?:(?:\\. ?|[ '’-])[\\p{L}\\p{M}]+)*\\.?$/u;\nconst isValidName = (v) => {\n  const n = normalizeName(v);\n  return n.length > 0 && n.length <= 120 && NAME_RE.test(n) && (n.match(/\\p{L}/gu) || []).length >= 2;\n};\nconst INVALID_NAME = { error: true, code: 'invalid_name', conflictedFields: ['name'],\n  message: 'El nombre solo puede tener letras, espacios, guiones, apóstrofos y puntos.' };\nif (isPatient && !isValidName(body.name)) {\n  return [{ json: INVALID_NAME }];\n}\n\n// Tutor/dependiente: sin cadenas. El tutor no puede ser dependiente y quien ya\n// tiene dependientes no puede pasar a serlo (mismas reglas que /users/responsible).\nif (body.is_dependent === true) {\n  if (body.id && body.responsible_contact_id && String(body.responsible_contact_id) === String(body.id)) {\n    return [{ json: { error: true, code: 'self_responsible', conflictedFields: ['responsible_contact_id'] } }];\n  }\n  if (res.responsible_is_dependent === true) {\n    return [{ json: { error: true, code: 'responsible_is_dependent', conflictedFields: ['responsible_contact_id'] } }];\n  }\n  if (res.has_dependents === true) {\n    return [{ json: { error: true, code: 'guardian_has_dependents', conflictedFields: ['is_dependent'] } }];\n  }\n}\n\nconst conflictedFields = [];\nconst owners = {};\n\nif (res.identity_document_exists) {\n  conflictedFields.push('identity_document');\n  // Quién tiene el documento: el frontend ofrece usar esa ficha en vez de crear otra.\n  if (documentOwners.length) owners.identity_document = documentOwners;\n}\nif (emailOwners.length) {\n  owners.email = emailOwners;\n  conflictedFields.push('email');\n}\nif (phoneOwners.length) {\n  owners.phone = phoneOwners;\n  if (!canDuplicate) conflictedFields.push('phone');\n}\n\nif (conflictedFields.length > 0) {\n  return [{ json: { error: true, code: 'unique_conflict', conflictedFields, owners } }];\n}\n\nif (phoneOwners.length && !confirmed) {\n  return [{ json: { error: true, code: 'duplicate_contact', conflictedFields: ['phone'], owners: { phone: phoneOwners } } }];\n}\n\nreturn [{ json: { error: false } }];"
+        "jsCode": "// Documento de identidad y correo: siempre únicos.\n// Teléfono: la tabla ya no lo obliga a ser único. Según la preferencia\n// clinic_preferences.allow_duplicate_phone:\n//   - false (o no es paciente): BLOQUEA, indicando quién lo tiene.\n//   - true y es paciente: ADVIERTE (code 'duplicate_contact') y solo guarda si el\n//     frontend reenvía la petición con confirm_duplicates = true.\nconst res = items[0].json;\nconst body = $('/users/upsert').first().json.body || {};\n\n// Fichas que pasan a depender de quien se guarda: su teléfono/correo repetido se le pasa a\n// esta ficha, así que dejan de contar como dueñas. Las que no cumplen las reglas siguen\n// contando y se responde el conflicto de siempre.\nconst adoptIds = (body.filter_type === 'PACIENTE' && body.is_dependent !== true\n  ? (res.adopt_candidates || []).filter((c) => c.eligible === true && (c.phone_match === true || c.email_match === true))\n  : []).map((c) => String(c.id));\nconst isAdopted = (owner) => adoptIds.includes(String(owner.id));\nconst emailOwners = (res.email_owners || []).filter((o) => !isAdopted(o));\nconst phoneOwners = (res.phone_owners || []).filter((o) => !isAdopted(o));\nconst documentOwners = res.identity_document_owners || [];\nconst isPatient = body.filter_type === 'PACIENTE';\nconst canDuplicate = res.allow_duplicates === true && isPatient;\nconst confirmed = body.confirm_duplicates === true;\n\n// Nombre de paciente: misma regla que src/lib/person-name.ts (frontend). Letras de\n// cualquier alfabeto separadas por un espacio, guion, apóstrofo o punto de\n// abreviatura; sin números ni otros símbolos. No exige apellido ni toca mayúsculas.\nconst normalizeName = (v) => String(v ?? '').trim().replace(/\\s+/g, ' ');\nconst NAME_RE = /^[\\p{L}\\p{M}]+(?:(?:\\. ?|[ '’-])[\\p{L}\\p{M}]+)*\\.?$/u;\nconst isValidName = (v) => {\n  const n = normalizeName(v);\n  return n.length > 0 && n.length <= 120 && NAME_RE.test(n) && (n.match(/\\p{L}/gu) || []).length >= 2;\n};\nconst INVALID_NAME = { error: true, code: 'invalid_name', conflictedFields: ['name'],\n  message: 'El nombre solo puede tener letras, espacios, guiones, apóstrofos y puntos.' };\nif (isPatient && !isValidName(body.name)) {\n  return [{ json: INVALID_NAME }];\n}\n\n// Tutor/dependiente: sin cadenas. El tutor no puede ser dependiente y quien ya\n// tiene dependientes no puede pasar a serlo (mismas reglas que /users/responsible).\nif (body.is_dependent === true) {\n  if (body.id && body.responsible_contact_id && String(body.responsible_contact_id) === String(body.id)) {\n    return [{ json: { error: true, code: 'self_responsible', conflictedFields: ['responsible_contact_id'] } }];\n  }\n  if (res.responsible_is_dependent === true) {\n    return [{ json: { error: true, code: 'responsible_is_dependent', conflictedFields: ['responsible_contact_id'] } }];\n  }\n  if (res.has_dependents === true) {\n    return [{ json: { error: true, code: 'guardian_has_dependents', conflictedFields: ['is_dependent'] } }];\n  }\n}\n\nconst conflictedFields = [];\nconst owners = {};\n\nif (res.identity_document_exists) {\n  conflictedFields.push('identity_document');\n  // Quién tiene el documento: el frontend ofrece usar esa ficha en vez de crear otra.\n  if (documentOwners.length) owners.identity_document = documentOwners;\n}\nif (emailOwners.length) {\n  owners.email = emailOwners;\n  conflictedFields.push('email');\n}\nif (phoneOwners.length) {\n  owners.phone = phoneOwners;\n  if (!canDuplicate) conflictedFields.push('phone');\n}\n\nif (conflictedFields.length > 0) {\n  return [{ json: { error: true, code: 'unique_conflict', conflictedFields, owners } }];\n}\n\nif (phoneOwners.length && !confirmed) {\n  return [{ json: { error: true, code: 'duplicate_contact', conflictedFields: ['phone'], owners: { phone: phoneOwners } } }];\n}\n\nreturn [{ json: { error: false, adopt_ids: adoptIds } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -5407,7 +5407,6 @@
       ],
       "id": "c17743f5-8bb4-4dbf-a59d-444ac4cde0e3",
       "name": "Update user",
-      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
@@ -6170,6 +6169,455 @@
       "typeVersion": 1,
       "id": "ed6f0150-b389-4cbb-bc07-b85b89dc60eb",
       "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1b25a24d-eedf-4f68-80e8-b62c335d58ae",
+              "leftValue": "={{ ($('Code in JavaScript3').first().json.adopt_ids || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "77be33e5-bb4e-4a7c-be91-efca0ee3e5ad",
+      "name": "Adopt? (create)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1600,
+        2520
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Saca de las fichas adoptadas el teléfono/correo que pasa a quien se guarda. Va ANTES de\n-- guardar porque el correo es único en la tabla. Devuelve lo que tenían para poder\n-- restaurarlo si el guardado falla (n8n no da una transacción entre nodos).\nWITH input AS (\n  SELECT $2::text AS phone, $3::text AS email, NULLIF($4, '')::uuid AS actor_id\n),\ntarget AS (\n  SELECT u.id, u.phone_number, u.email\n  FROM public.users u\n  WHERE u.id IN (SELECT value::uuid FROM jsonb_array_elements_text($1::jsonb))\n),\nupd AS (\n  UPDATE public.users u\n  SET phone_number = CASE WHEN (CASE WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(u.phone_number, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(u.phone_number, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') END) <> '' AND (CASE WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(u.phone_number, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(u.phone_number, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') END) = (CASE WHEN regexp_replace(coalesce(i.phone, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(i.phone, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(i.phone, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(i.phone, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(i.phone, ''), '\\D', '', 'g') END) THEN NULL ELSE u.phone_number END,\n      email = CASE WHEN COALESCE(i.email, '') <> '' AND lower(u.email) = lower(i.email) THEN NULL ELSE u.email END,\n      updated_at = NOW(),\n      updated_by = COALESCE(i.actor_id, u.updated_by)\n  FROM input i, target t\n  WHERE u.id = t.id\n  RETURNING u.id\n)\nSELECT COALESCE((SELECT json_agg(t) FROM target t), '[]'::json) AS released,\n       (SELECT count(*) FROM upd)::int AS released_count;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($('Code in JavaScript3').first().json.adopt_ids), $('/users/upsert').first().json.body.phone || '', $('/users/upsert').first().json.body.email || '', $('/users/upsert').first().json.jwtPayload.userId || ''] }}"
+        }
+      },
+      "id": "3dea0bf2-a6f3-402c-a423-c2c802ecc8cc",
+      "name": "Release contact (create)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1640,
+        2700
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a2ab4adf-8357-4e60-8719-878ec50bafc5",
+              "leftValue": "={{ ($('Code in JavaScript3').first().json.adopt_ids || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2189f1d6-f0d3-4e85-be5c-f534a005e040",
+      "name": "Adopted? (create)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1800,
+        2720
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Las fichas adoptadas quedan a cargo de quien se acaba de guardar. Devuelve `id` porque el\n-- nodo siguiente del alta (\"Insert default preferences\") lo lee de su entrada.\nWITH upd AS (\n  UPDATE public.users u\n  SET is_dependant = true,\n      responsible_contact_id = $2::uuid,\n      updated_at = NOW(),\n      updated_by = COALESCE(NULLIF($3, '')::uuid, u.updated_by)\n  WHERE u.id IN (SELECT value::uuid FROM jsonb_array_elements_text($1::jsonb))\n  RETURNING u.id\n)\nSELECT $2::uuid::text AS id, (SELECT count(*) FROM upd)::int AS linked_count;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($('Code in JavaScript3').first().json.adopt_ids), $('Insert user').first().json.id, $('/users/upsert').first().json.jwtPayload.userId || ''] }}"
+        }
+      },
+      "id": "82eaf5f8-6fb4-4869-985c-bda748a07476",
+      "name": "Link dependents (create)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1980,
+        2720
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- No se pudo vincular a los dependientes: se deshace el alta recién creada (todavía no tiene\n-- rol ni preferencias) para no dejar una ficha a medias.\nDELETE FROM public.users WHERE id = $1::uuid\nRETURNING id;",
+        "options": {
+          "queryReplacement": "={{ [$('Insert user').first().json.id] }}"
+        }
+      },
+      "id": "c2fcf106-420c-472f-97fc-c18681090aeb",
+      "name": "Undo create",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2160,
+        2840
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8ea52277-313a-40cf-8aba-0b77ffe7ca42",
+              "leftValue": "={{ ($('Code in JavaScript3').first().json.adopt_ids || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a4dbbc4d-2650-4101-ab0d-b7dd51d5e1b4",
+      "name": "Adopted on error? (create)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1800,
+        2880
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- El guardado falló: las fichas adoptadas recuperan el teléfono/correo que se les sacó.\nWITH data AS (\n  SELECT * FROM json_to_recordset($1::json) AS x(id uuid, phone_number text, email text)\n),\nupd AS (\n  UPDATE public.users u\n  SET phone_number = d.phone_number, email = d.email, updated_at = NOW()\n  FROM data d\n  WHERE u.id = d.id\n  RETURNING u.id\n)\nSELECT (SELECT count(*) FROM upd)::int AS restored_count;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($('Release contact (create)').first().json.released)] }}"
+        }
+      },
+      "id": "6e71cffc-5574-4d0b-b347-e31ce427ed03",
+      "name": "Restore contact (create)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2340,
+        2880
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "74da1c16-b2b2-41e8-8faf-8dc063de6364",
+              "name": "error",
+              "value": "={{ JSON.stringify({ error: true, code: 'adopt_save_failed' }) }}",
+              "type": "object"
+            },
+            {
+              "id": "2991af26-51f3-4f0f-a470-982f3ed1a524",
+              "name": "code",
+              "value": 409,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "73f56773-bc2b-459a-aedb-498136e8bc31",
+      "name": "Error adopt (create)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2520,
+        2880
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "344399f0-cd85-44f6-bc55-99da48474506",
+              "leftValue": "={{ ($('Code in JavaScript2').first().json.adopt_ids || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "33256e49-91db-4719-a736-e404f1dbc9c4",
+      "name": "Adopt? (update)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1600,
+        1880
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Saca de las fichas adoptadas el teléfono/correo que pasa a quien se guarda. Va ANTES de\n-- guardar porque el correo es único en la tabla. Devuelve lo que tenían para poder\n-- restaurarlo si el guardado falla (n8n no da una transacción entre nodos).\nWITH input AS (\n  SELECT $2::text AS phone, $3::text AS email, NULLIF($4, '')::uuid AS actor_id\n),\ntarget AS (\n  SELECT u.id, u.phone_number, u.email\n  FROM public.users u\n  WHERE u.id IN (SELECT value::uuid FROM jsonb_array_elements_text($1::jsonb))\n),\nupd AS (\n  UPDATE public.users u\n  SET phone_number = CASE WHEN (CASE WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(u.phone_number, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(u.phone_number, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') END) <> '' AND (CASE WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(u.phone_number, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(u.phone_number, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(u.phone_number, ''), '\\D', '', 'g') END) = (CASE WHEN regexp_replace(coalesce(i.phone, ''), '\\D', '', 'g') ~ '^0[0-9]{8}$' THEN '598' || substr(regexp_replace(i.phone, '\\D', '', 'g'), 2)\n              WHEN regexp_replace(coalesce(i.phone, ''), '\\D', '', 'g') ~ '^[2-9][0-9]{7}$' THEN '598' || regexp_replace(i.phone, '\\D', '', 'g')\n              ELSE regexp_replace(coalesce(i.phone, ''), '\\D', '', 'g') END) THEN NULL ELSE u.phone_number END,\n      email = CASE WHEN COALESCE(i.email, '') <> '' AND lower(u.email) = lower(i.email) THEN NULL ELSE u.email END,\n      updated_at = NOW(),\n      updated_by = COALESCE(i.actor_id, u.updated_by)\n  FROM input i, target t\n  WHERE u.id = t.id\n  RETURNING u.id\n)\nSELECT COALESCE((SELECT json_agg(t) FROM target t), '[]'::json) AS released,\n       (SELECT count(*) FROM upd)::int AS released_count;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($('Code in JavaScript2').first().json.adopt_ids), $('/users/upsert').first().json.body.phone || '', $('/users/upsert').first().json.body.email || '', $('/users/upsert').first().json.jwtPayload.userId || ''] }}"
+        }
+      },
+      "id": "392ec31e-564b-4053-8d34-2999816ed9c8",
+      "name": "Release contact (update)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1640,
+        1720
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "358be59b-4685-497a-b418-5a010e7e3e2f",
+              "leftValue": "={{ ($('Code in JavaScript2').first().json.adopt_ids || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c0362904-6d8c-47b5-928e-6ad481b728d6",
+      "name": "Adopted? (update)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1840,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- Las fichas adoptadas quedan a cargo de quien se acaba de guardar. Devuelve `id` porque el\n-- nodo siguiente del alta (\"Insert default preferences\") lo lee de su entrada.\nWITH upd AS (\n  UPDATE public.users u\n  SET is_dependant = true,\n      responsible_contact_id = $2::uuid,\n      updated_at = NOW(),\n      updated_by = COALESCE(NULLIF($3, '')::uuid, u.updated_by)\n  WHERE u.id IN (SELECT value::uuid FROM jsonb_array_elements_text($1::jsonb))\n  RETURNING u.id\n)\nSELECT $2::uuid::text AS id, (SELECT count(*) FROM upd)::int AS linked_count;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($('Code in JavaScript2').first().json.adopt_ids), $('/users/upsert').first().json.body.id, $('/users/upsert').first().json.jwtPayload.userId || ''] }}"
+        }
+      },
+      "id": "3c72a83a-d2aa-4b29-9cf3-961f51317183",
+      "name": "Link dependents (update)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2000,
+        1720
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "02cd8212-9524-4f15-94db-cca2cbe5f4be",
+              "name": "error",
+              "value": "={{ JSON.stringify({ error: true, code: 'adopt_link_failed' }) }}",
+              "type": "object"
+            },
+            {
+              "id": "010b09c3-8c33-4a02-923e-9c12a0e33c84",
+              "name": "code",
+              "value": 409,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "24bc2bb7-5d84-4e15-b0f7-61fe51ee29bd",
+      "name": "Error adopt link (update)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2180,
+        1640
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b3def58f-d595-43a4-a854-0a8de910c024",
+              "leftValue": "={{ ($('Code in JavaScript2').first().json.adopt_ids || []).length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8384b101-fe63-438d-946a-0ee6c6c02d6c",
+      "name": "Adopted on error? (update)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1840,
+        2220
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- El guardado falló: las fichas adoptadas recuperan el teléfono/correo que se les sacó.\nWITH data AS (\n  SELECT * FROM json_to_recordset($1::json) AS x(id uuid, phone_number text, email text)\n),\nupd AS (\n  UPDATE public.users u\n  SET phone_number = d.phone_number, email = d.email, updated_at = NOW()\n  FROM data d\n  WHERE u.id = d.id\n  RETURNING u.id\n)\nSELECT (SELECT count(*) FROM upd)::int AS restored_count;",
+        "options": {
+          "queryReplacement": "={{ [JSON.stringify($('Release contact (update)').first().json.released)] }}"
+        }
+      },
+      "id": "cab3c211-de97-469a-8d72-41685edd038d",
+      "name": "Restore contact (update)",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2000,
+        2320
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "6b7Sjdnppbfve8ka",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "83f0adb7-fbe7-476b-9a21-8259d41f0738",
+              "name": "error",
+              "value": "={{ JSON.stringify({ error: true, code: 'adopt_save_failed' }) }}",
+              "type": "object"
+            },
+            {
+              "id": "82a65af0-e54b-4d51-af91-5540a52f4bf8",
+              "name": "code",
+              "value": 409,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "807058fd-654d-4ad0-93b0-ed6b36f36818",
+      "name": "Error adopt (update)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2180,
+        2320
+      ]
     }
   ],
   "pinData": {
@@ -10476,7 +10924,7 @@
       "main": [
         [
           {
-            "node": "Insert user",
+            "node": "Adopt? (create)",
             "type": "main",
             "index": 0
           }
@@ -10517,7 +10965,7 @@
       "main": [
         [
           {
-            "node": "Update user",
+            "node": "Adopt? (update)",
             "type": "main",
             "index": 0
           }
@@ -11196,19 +11644,14 @@
       "main": [
         [
           {
-            "node": "Switch",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Insert default preferences",
+            "node": "Adopted? (create)",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Error3",
+            "node": "Adopted on error? (create)",
             "type": "main",
             "index": 0
           }
@@ -11219,14 +11662,14 @@
       "main": [
         [
           {
-            "node": "Success2",
+            "node": "Adopted? (update)",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Error2",
+            "node": "Adopted on error? (update)",
             "type": "main",
             "index": 0
           }
@@ -11462,6 +11905,215 @@
         [
           {
             "node": "Set responsible contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adopt? (create)": {
+      "main": [
+        [
+          {
+            "node": "Release contact (create)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Insert user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Release contact (create)": {
+      "main": [
+        [
+          {
+            "node": "Insert user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adopted? (create)": {
+      "main": [
+        [
+          {
+            "node": "Link dependents (create)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert default preferences",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Link dependents (create)": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert default preferences",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Undo create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Undo create": {
+      "main": [
+        [
+          {
+            "node": "Restore contact (create)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adopted on error? (create)": {
+      "main": [
+        [
+          {
+            "node": "Restore contact (create)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore contact (create)": {
+      "main": [
+        [
+          {
+            "node": "Error adopt (create)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adopt? (update)": {
+      "main": [
+        [
+          {
+            "node": "Release contact (update)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Release contact (update)": {
+      "main": [
+        [
+          {
+            "node": "Update user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adopted? (update)": {
+      "main": [
+        [
+          {
+            "node": "Link dependents (update)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Success2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Link dependents (update)": {
+      "main": [
+        [
+          {
+            "node": "Success2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error adopt link (update)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adopted on error? (update)": {
+      "main": [
+        [
+          {
+            "node": "Restore contact (update)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore contact (update)": {
+      "main": [
+        [
+          {
+            "node": "Error adopt (update)",
             "type": "main",
             "index": 0
           }

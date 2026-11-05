@@ -5,12 +5,21 @@
   "tips": [
     "A phone with country code enables WhatsApp reminders.",
     "A dependent patient (minor) has a responsible contact: email and WhatsApp go to that contact.",
+    "If the guardian's phone or email is already on the record of a relative in their care when you save, choose «is a dependent of this person»: the contact moves to their record and the relative gets linked, with no temporary numbers.",
     "Allergies and ailments from the medical history show as an alert in the record's header.",
     "The Finance section shows as an account ledger (Custom) or in tabs (Normal), depending on your Preferences.",
     "Quick payment, prepayment and payments need an open cash register.",
     "Readmit and Activate/Deactivate apply as soon as you tap them, with no dialog first."
   ],
   "elements": {
+    "patients.section.adopt-dependents": {
+      "label": "Relative in this person's care",
+      "description": "Appears when the phone or email being saved belongs to a record that can become a dependent of this person."
+    },
+    "patients.btn.adopt-dependents": {
+      "label": "Is a dependent of this person",
+      "description": "Saves, moves the repeated phone or email to this record and links the relative as a dependent."
+    },
     "patients.btn.new": {
       "label": "Create",
       "description": "Registers a new patient."

@@ -2029,7 +2029,9 @@
         "selfResponsible": "A patient cannot be their own guardian.",
         "responsibleIsDependent": "The selected guardian is a dependent patient: a dependent cannot be in charge of other patients.",
         "guardianHasDependents": "This patient has dependents in their care, so they cannot be a dependent. Unlink their dependents first.",
-        "notFound": "The patient no longer exists or couldn't be found."
+        "notFound": "The patient no longer exists or couldn't be found.",
+        "adoptSaveFailed": "Couldn't save. The selected records keep their phone and email, and they weren't linked.",
+        "adoptLinkFailed": "The changes were saved, but the dependents couldn't be linked. Check their contact details and link them from the Dependents tab."
       }
     },
     "responsibleMatch": "In the care of {name}",
@@ -9874,7 +9876,17 @@
     "conflictTitle": "Can't save yet",
     "conflictDescription": "This information already exists and can't be repeated. Check whether the person is already registered.",
     "conflictNoOwner": "{field} is already registered.",
-    "understood": "Understood"
+    "understood": "Understood",
+    "adopt": {
+      "title": "Is this a relative in this person's care?",
+      "description": "The repeated phone or email moves to this record and the relative becomes a dependent. Their reminders will go to this contact.",
+      "actionOne": "{name} is a dependent of this person",
+      "actionMany": "{count, plural, one {Link # dependent} other {Link # dependents}}",
+      "successTitle": "Saved and linked",
+      "successDescription": "{count, plural, one {# patient is now in their care and handed over their contact details.} other {# patients are now in their care and handed over their contact details.}}",
+      "movedTitle": "Contact moved to the guardian",
+      "movedDescription": "{name} keeps the phone or email they had in common, and it was removed from this record."
+    }
   },
   "PatientMatch": {
     "useExisting": "Use this patient",

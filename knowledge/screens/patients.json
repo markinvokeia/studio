@@ -7,6 +7,7 @@
   "tips": [
     "El teléfono con código de país habilita los recordatorios por WhatsApp.",
     "Un paciente dependiente (menor) tiene un contacto responsable: email y WhatsApp van a ese contacto.",
+    "Si al guardar al responsable su teléfono o correo ya está en la ficha de un familiar a su cargo, elige «es dependiente de esta persona»: el contacto pasa a su ficha y el familiar queda vinculado, sin números temporales.",
     "Las alergias y padecimientos de la anamnesis aparecen como alerta en el encabezado de la ficha.",
     "La sección Finanzas se ve como cuenta corriente (Personalizado) o en pestañas (Normal), según tus Preferencias.",
     "Cobro rápido, prepago y pagos necesitan una caja abierta.",
@@ -42,6 +43,14 @@
     "patients.toggle-active"
   ],
   "elements": {
+    "patients.section.adopt-dependents": {
+      "label": "Familiar a cargo de esta persona",
+      "description": "Aparece cuando el teléfono o correo que se guarda es de una ficha que puede pasar a depender de esta persona."
+    },
+    "patients.btn.adopt-dependents": {
+      "label": "Es dependiente de esta persona",
+      "description": "Guarda, pasa el teléfono o correo repetido a esta ficha y vincula al familiar como dependiente."
+    },
     "patients.btn.new": {
       "label": "Crear",
       "description": "Alta de un paciente nuevo."

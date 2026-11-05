@@ -2029,7 +2029,9 @@
         "selfResponsible": "Un paciente no puede ser su propio responsable.",
         "responsibleIsDependent": "El responsable elegido es un paciente dependiente: un dependiente no puede tener pacientes a cargo.",
         "guardianHasDependents": "Este paciente tiene dependientes a su cargo, así que no puede ser dependiente. Desvinculá primero a sus dependientes.",
-        "notFound": "El paciente ya no existe o no se encontró."
+        "notFound": "El paciente ya no existe o no se encontró.",
+        "adoptSaveFailed": "No se pudo guardar. Las fichas elegidas conservan su teléfono y correo, y no quedaron vinculadas.",
+        "adoptLinkFailed": "Los cambios se guardaron, pero no se pudo vincular a los dependientes. Revisá sus datos de contacto y vinculalos desde la pestaña Dependientes."
       }
     },
     "responsibleMatch": "A cargo de {name}",
@@ -9874,7 +9876,17 @@
     "conflictTitle": "No se puede guardar",
     "conflictDescription": "Estos datos ya existen y no pueden repetirse. Revise si la persona ya está registrada.",
     "conflictNoOwner": "{field} ya está registrado.",
-    "understood": "Entendido"
+    "understood": "Entendido",
+    "adopt": {
+      "title": "¿Es un familiar a cargo de esta persona?",
+      "description": "El teléfono o correo repetido pasa a esta ficha y el familiar queda como dependiente. Sus recordatorios llegarán a este contacto.",
+      "actionOne": "{name} es dependiente de esta persona",
+      "actionMany": "{count, plural, one {Vincular # dependiente} other {Vincular # dependientes}}",
+      "successTitle": "Guardado y vinculado",
+      "successDescription": "{count, plural, one {# paciente quedó a su cargo y le pasó su contacto.} other {# pacientes quedaron a su cargo y le pasaron su contacto.}}",
+      "movedTitle": "Contacto pasado al responsable",
+      "movedDescription": "{name} se queda con el teléfono o correo que tenían en común, y se quitó de esta ficha."
+    }
   },
   "PatientMatch": {
     "useExisting": "Usar este paciente",

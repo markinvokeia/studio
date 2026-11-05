@@ -34,8 +34,10 @@ import { cn, formatDisplayDate } from '@/lib/utils';
 import { IDENTITY_DOCUMENT_TYPES } from '@/lib/identity-document';
 import { normalizePersonName } from '@/lib/person-name';
 import { useClinicPreferencesStore } from '@/stores/clinic-preferences-store';
+import { usePatientView } from '@/stores/patient-view-store';
 import type { DuplicateContactOwner, DuplicateContactOwners, IdentityDocumentType, MutualSociety, UniqueConflict, User } from '@/lib/types';
 import {
+  contactMovedToGuardian,
   fetchPatientById,
   findPatientByName,
   getDependantContactInfo,
@@ -84,6 +86,7 @@ export function ResponsibleContactField({
   onDisplayNameChange,
   showCancelAction = false,
   locked = false,
+  onContactMoved,
 }: {
   form: UseFormReturn<UserFormValues>;
   currentUserId?: string;
@@ -93,10 +96,15 @@ export function ResponsibleContactField({
   showCancelAction?: boolean;
   /** Tutor fijado por quien abrió el formulario: se muestra pero no se puede quitar ni cambiar. */
   locked?: boolean;
+  /** El alta del tutor le sacó a la ficha guardada su teléfono/correo: el host puede refrescar. */
+  onContactMoved?: () => void;
 }) {
   const t = useTranslations();
+  const { toast } = useToast();
   const { hasPermission } = usePermissions();
+  const notifyPatientUpdated = usePatientView((s) => s.notifyPatientUpdated);
   const canCreatePatient = hasPermission(PATIENTS_PERMISSIONS.CREATE);
+  const canAdopt = !!currentUserId && hasPermission(PATIENTS_PERMISSIONS.UPDATE);
   const [query, setQuery] = React.useState('');
   const [results, setResults] = React.useState<User[]>([]);
   const [isSearching, setIsSearching] = React.useState(false);
@@ -105,6 +113,28 @@ export function ResponsibleContactField({
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
   const [isGuardianFormDirty, setIsGuardianFormDirty] = React.useState(false);
   const guardianName = query.trim();
+
+  /**
+   * El tutor recién creado se quedó con el contacto de esta ficha. Se lo saca al formulario
+   * abierto: al guardarlo se lo devolvería, porque el upsert reescribe la ficha entera.
+   */
+  const handleGuardianCreated = (guardian: User) => {
+    const moved = contactMovedToGuardian(
+      { phone: form.getValues('phone'), email: form.getValues('email') },
+      guardian,
+    );
+    if (moved.phone) form.setValue('phone', '', { shouldDirty: true, shouldValidate: true });
+    if (moved.email) form.setValue('email', '', { shouldDirty: true, shouldValidate: true });
+    if (!moved.phone && !moved.email) return;
+    toast({
+      title: t('DuplicateContact.adopt.movedTitle'),
+      description: t('DuplicateContact.adopt.movedDescription', { name: guardian.name }),
+    });
+    if (currentUserId) {
+      onContactMoved?.();
+      fetchPatientById(currentUserId).then((u) => { if (u) notifyPatientUpdated(u); }).catch(() => {});
+    }
+  };
 
   React.useEffect(() => { setDisplayName(initialDisplayName || ''); }, [initialDisplayName, currentUserId]);
   React.useEffect(() => { onDisplayNameChange?.(displayName); }, [displayName, onDisplayNameChange]);
@@ -221,6 +251,12 @@ export function ResponsibleContactField({
               <PatientInfoTab
                 variant="dialog"
                 initialName={guardianName}
+                initialContact={{
+                  phone: form.getValues('phone'),
+                  email: form.getValues('email'),
+                  address: form.getValues('address'),
+                }}
+                adoptDependentId={canAdopt ? currentUserId : undefined}
                 showDependentField={false}
                 showCancelAction={showCancelAction}
                 onDirtyChange={setIsGuardianFormDirty}
@@ -232,6 +268,7 @@ export function ResponsibleContactField({
                   field.onChange(String(created.id));
                   setDisplayName(created.name);
                   setQuery('');
+                  handleGuardianCreated(created);
                 }}
               />
             )}
@@ -284,6 +321,14 @@ interface PatientInfoTabProps {
    * como dependiente y con ese tutor elegido. Solo aplica en modo alta.
    */
   initialResponsible?: { id: string; name: string };
+  /** Alta del tutor desde la ficha del dependiente: arranca con los datos de contacto de esa ficha. */
+  initialContact?: { phone?: string; email?: string; address?: string };
+  /**
+   * Alta del tutor desde una ficha guardada: esa ficha le cede el contacto que tengan en
+   * común y queda a su cargo. Es el mismo traspaso que se ofrece al chocar con un dueño,
+   * pero sin chocar: quien lo pide ya dijo que esa ficha depende de este paciente.
+   */
+  adoptDependentId?: string;
   /**
    * Alta desde una cita: si la cédula, el correo o el teléfono ya son de otra ficha, deja
    * elegir esa ficha (recibe el paciente existente) en vez de crear un duplicado. Sin esto
@@ -318,6 +363,8 @@ export function PatientInfoTab({
   variant = 'tab',
   showDependentField = true,
   initialResponsible,
+  initialContact,
+  adoptDependentId,
   onSelectExisting,
   onCompletingChange,
 }: PatientInfoTabProps) {
@@ -349,7 +396,7 @@ export function PatientInfoTab({
   // Otro paciente ya usa este teléfono/correo: se pide confirmación antes de guardar.
   const [duplicateWarning, setDuplicateWarning] = React.useState<{ owners: DuplicateContactOwners; data: UserFormValues } | null>(null);
   // Dato que no se puede repetir: modal en vez de texto inline, que no se ve con el form scrolleado.
-  const [uniqueConflict, setUniqueConflict] = React.useState<UniqueConflict | null>(null);
+  const [uniqueConflict, setUniqueConflict] = React.useState<(UniqueConflict & { data: UserFormValues }) | null>(null);
   // Alta desde una cita: coincidencias con fichas existentes, con la opción de elegir una.
   const [patientMatch, setPatientMatch] = React.useState<(PatientMatchState & { data?: UserFormValues }) | null>(null);
   const savingRef = React.useRef(false);
@@ -357,6 +404,7 @@ export function PatientInfoTab({
   const [completing, setCompleting] = React.useState<CompletingExisting | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const { hasPermission } = usePermissions();
+  const notifyPatientUpdated = usePatientView((s) => s.notifyPatientUpdated);
   const canSelectExisting = isCreateMode && !!onSelectExisting && !presetResponsible && !completing;
   const completingName = completing?.user.name ?? null;
   React.useEffect(() => {
@@ -368,7 +416,7 @@ export function PatientInfoTab({
   const infoForm = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema(t, { identityDocumentRequired, originalName: user?.name })),
     defaultValues: {
-      id: '', name: initialName || '', email: '', phone: '', identity_document: '', identity_document_type: 'cedula_uy', birth_date: '', address: '',
+      id: '', name: initialName || '', email: initialContact?.email || '', phone: initialContact?.phone || '', identity_document: '', identity_document_type: 'cedula_uy', birth_date: '', address: initialContact?.address || '',
       notes: '', is_active: true, mutual_society_id: '',
       is_dependent: !!presetResponsible, responsible_contact_id: presetResponsible?.id ?? null,
       doctor_id: null, sex: null,
@@ -437,10 +485,25 @@ export function PatientInfoTab({
     return () => { cancelled = true; };
   }, [user]);
 
-  const handleSave = async (formData: UserFormValues, confirmDuplicates = false) => {
+  // Poner a otra ficha a cargo de este paciente la modifica: hace falta permiso de edición, y
+  // un dependiente no puede tener dependientes.
+  const canAdoptDependents = !isPortal && !isDependent && !presetResponsible && hasPermission(PATIENTS_PERMISSIONS.UPDATE);
+
+  /** Las fichas recién pasadas a dependientes cambiaron: la agenda y sus paneles las muestran. */
+  const notifyAdopted = (ids: string[]) => {
+    ids.forEach((id) => {
+      fetchPatientById(id).then((u) => { if (u) notifyPatientUpdated(u); }).catch(() => {});
+    });
+  };
+
+  const handleSave = async (formData: UserFormValues, confirmDuplicates = false, adoptIds: string[] = []) => {
     const data = presetResponsible
       ? { ...formData, is_dependent: true, responsible_contact_id: presetResponsible.id }
       : formData;
+    const adoptDependentIds = adoptDependentId ? [adoptDependentId, ...adoptIds] : adoptIds;
+    const adoptedToast = adoptIds.length > 0
+      ? { title: t('DuplicateContact.adopt.successTitle'), description: t('DuplicateContact.adopt.successDescription', { count: adoptIds.length }) }
+      : null;
     // `isSaving` llega un render tarde: Enter + clic podría crear la ficha dos veces.
     if (savingRef.current) return;
     savingRef.current = true;
@@ -448,17 +511,18 @@ export function PatientInfoTab({
     setSaveError(null);
     try {
       if (isCreateMode && !completing) {
-        await upsertUser({ ...data, id: undefined }, { confirmDuplicates });
+        await upsertUser({ ...data, id: undefined }, { confirmDuplicates, adoptDependentIds });
         // The upsert response doesn't return the record — resolve the new id by name.
         const created = await findPatientByName(data.name);
         // Sin id, quien abrió el alta (p. ej. la cita) no puede seleccionarlo: se avisa
         // en vez de dejar el selector vacío sin explicación.
-        toast({
+        toast(adoptedToast ?? {
           title: t('UsersPage.createDialog.createSuccessTitle'),
           description: created?.id
             ? t('UsersPage.createDialog.createSuccessDescription')
             : t('UsersPage.createDialog.createdNotResolvedDescription'),
         });
+        notifyAdopted(adoptIds);
         if (created?.id && pendingGroupIds.length > 0) {
           try {
             await savePatientGroups(created.id, pendingGroupIds);
@@ -484,10 +548,11 @@ export function PatientInfoTab({
         });
         return;
       }
-      await upsertUser(data, { confirmDuplicates });
-      toast(completing
+      await upsertUser(data, { confirmDuplicates, adoptDependentIds });
+      toast(adoptedToast ?? (completing
         ? { title: t('PatientMatch.completedTitle'), description: t('PatientMatch.completedDescription', { name: data.name }) }
-        : { title: t('UsersPage.createDialog.editSuccessTitle'), description: t('UsersPage.createDialog.editSuccessDescription') });
+        : { title: t('UsersPage.createDialog.editSuccessTitle'), description: t('UsersPage.createDialog.editSuccessDescription') }));
+      notifyAdopted(adoptIds);
       const updated: User = {
         ...(user as User),
         name: data.name,
@@ -518,11 +583,11 @@ export function PatientInfoTab({
       if (canSelectExisting && (duplicateOwners || conflict)) {
         setPatientMatch(duplicateOwners
           ? { reason: 'warning', owners: duplicateOwners, data }
-          : { reason: 'conflict', owners: conflict!.owners, conflictedFields: conflict!.conflictedFields });
+          : { reason: 'conflict', owners: conflict!.owners, conflictedFields: conflict!.conflictedFields, data });
       } else if (duplicateOwners) {
         setDuplicateWarning({ owners: duplicateOwners, data });
       } else if (conflict) {
-        setUniqueConflict(conflict);
+        setUniqueConflict({ ...conflict, data });
       } else {
         setSaveError(
           resolveUserUpsertError(e, t)
@@ -888,7 +953,7 @@ export function PatientInfoTab({
             {!isPortal && showDependentField && isDependent ? (
               <ResponsibleContactField
                 form={infoForm}
-                currentUserId={userId}
+                currentUserId={user?.id ?? userId}
                 initialDisplayName={responsibleContactName}
                 onDisplayNameChange={setResponsibleContactName}
                 showCancelAction={showCancelAction}
@@ -941,8 +1006,22 @@ export function PatientInfoTab({
           setDuplicateWarning(null);
           if (pending) void handleSave(pending.data, true);
         }}
+        onAdopt={canAdoptDependents ? (ids) => {
+          const pending = duplicateWarning;
+          setDuplicateWarning(null);
+          // Si otra ficha sigue compartiendo el teléfono, ya se la mostró: no se vuelve a preguntar.
+          if (pending) void handleSave(pending.data, true, ids);
+        } : undefined}
       />
-      <UniqueConflictDialog conflict={uniqueConflict} onClose={() => setUniqueConflict(null)} />
+      <UniqueConflictDialog
+        conflict={uniqueConflict}
+        onClose={() => setUniqueConflict(null)}
+        onAdopt={canAdoptDependents ? (ids) => {
+          const pending = uniqueConflict;
+          setUniqueConflict(null);
+          if (pending) void handleSave(pending.data, false, ids);
+        } : undefined}
+      />
       <PatientMatchDialog
         match={patientMatch}
         onSelect={selectExisting}
@@ -952,6 +1031,11 @@ export function PatientInfoTab({
           setPatientMatch(null);
           if (pending) void handleSave(pending, true);
         }}
+        onAdopt={canAdoptDependents ? (ids) => {
+          const pending = patientMatch;
+          setPatientMatch(null);
+          if (pending?.data) void handleSave(pending.data, pending.reason === 'warning', ids);
+        } : undefined}
       />
     </Form>
   );
