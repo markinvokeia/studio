@@ -14,7 +14,8 @@
     "Readmitir y Activar/Desactivar se aplican al tocarlos, sin diálogo previo.",
     "La sesión de estética se guarda sola y se retoma en el primer paso que falta. Cerrada, queda en solo lectura y sólo admite enmiendas.",
     "En estética, sin firma no se puede marcar el servicio. Sin autorización de fotos clínicas la cámara se bloquea y se puede cerrar sin fotos.",
-    "Los avisos de máximo por sesión, intervalo mínimo y lote vencido informan, pero no bloquean."
+    "Los avisos de máximo por sesión, intervalo mínimo y lote vencido informan, pero no bloquean.",
+    "Un pago puede cubrir facturas en la otra moneda de la clínica, al tipo de cambio de la caja: la caja guarda el monto y la moneda originales, y a la factura se aplica lo convertido. Un pago con conversión no admite sobrante."
   ],
   "useCases": [
     "patients.search",
@@ -835,6 +836,10 @@
     "aesthetic-session.section.amendments": {
       "label": "Enmiendas",
       "description": "Correcciones de una sesión cerrada, sin borrar lo original."
+    },
+    "patients.field.payment_exchange_rate": {
+      "label": "Tipo de cambio",
+      "description": "Unidades de la moneda principal por cada unidad de la secundaria. Se toma de la caja abierta y se puede cambiar; en un pago histórico hay que escribirlo."
     }
   }
 }

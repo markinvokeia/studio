@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { AppliedDiscountNote } from '@/components/ui/discount-control';
 import { formatDisplayDate } from '@/lib/utils';
-import type { LedgerRow } from '@/lib/patient-ledger';
+import { computeLedgerTotals, type LedgerRow } from '@/lib/patient-ledger';
 import type { LedgerPrintData } from '@/stores/print-document-store';
 import { currencySymbol, formatMoney } from '@/lib/currency';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
@@ -56,14 +56,7 @@ function rowTint(row: LedgerRow): React.CSSProperties {
   return base;
 }
 
-export function computeTotals(rows: LedgerRow[]) {
-  const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
-  return {
-    totalDebe: round2(rows.reduce((s, r) => s + (r.kind === 'balance' || r.status === 'presupuestado' ? 0 : r.debe), 0)),
-    totalHaber: round2(rows.reduce((s, r) => s + (r.kind === 'balance' ? 0 : r.haber), 0)),
-    finalBalance: rows.length > 0 ? rows[rows.length - 1].runningBalance : 0,
-  };
-}
+export { computeLedgerTotals as computeTotals };
 
 export function LedgerPrintTemplate({ data }: LedgerPrintTemplateProps) {
   const t = useTranslations('PatientLedger');
@@ -88,7 +81,7 @@ export function LedgerPrintTemplate({ data }: LedgerPrintTemplateProps) {
 
       {currencies.map((currency) => {
         const rows = rowsByCurrency[currency] || [];
-        const totals = computeTotals(rows);
+        const totals = computeLedgerTotals(rows);
         return (
           <section key={currency} className="mb-6">
             {currencies.length > 1 && (

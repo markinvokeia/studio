@@ -8,10 +8,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1264,
-        2880
+        -2336,
+        5104
       ],
-      "id": "468fcbce-31a5-4838-9418-1642cfea91ca",
+      "id": "7c3222e2-f065-4fca-9752-dd121736faaf",
       "name": "Code"
     },
     {
@@ -25,10 +25,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1072,
-        2880
+        -2528,
+        5104
       ],
-      "id": "95576215-f6f0-4b81-a925-e7084eab788e",
+      "id": "9a22180f-6a4a-448d-8819-28d7357f7d34",
       "name": "Select USERS",
       "alwaysOutputData": false,
       "credentials": {
@@ -47,10 +47,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1072,
-        3056
+        -2528,
+        5280
       ],
-      "id": "03d83012-306f-4a3c-967f-a401053b984f",
+      "id": "c49932e3-1436-433f-9cdb-3ff46d1ed92d",
       "name": "Select Roles of User",
       "credentials": {
         "postgres": {
@@ -70,10 +70,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1072,
-        3232
+        -2528,
+        5456
       ],
-      "id": "80bf81ce-88d1-4cab-ace9-d4117ea9c6b8",
+      "id": "4e58a2c8-7d77-4884-933b-e0df2ccd90e2",
       "name": "Select Services of User",
       "credentials": {
         "postgres": {
@@ -90,11 +90,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        784,
-        2800
+        -2816,
+        5024
       ],
       "typeVersion": 1,
-      "id": "089ba81b-c173-4b35-9116-bcc3c609cdfe",
+      "id": "5ee18bbc-6b96-48d8-b0ac-e868e817fb0b",
       "name": "Sticky Note"
     },
     {
@@ -108,10 +108,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1072,
-        3552
+        -2528,
+        5776
       ],
-      "id": "a5bd5a75-0716-4b9f-a4ab-851dac748d27",
+      "id": "f0ecb36c-5e77-482e-9a58-4aa6519b1ce7",
       "name": "Select Quotes of User",
       "credentials": {
         "postgres": {
@@ -129,10 +129,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1072,
-        3712
+        -2528,
+        5936
       ],
-      "id": "4aafa606-45ce-42f0-8819-10791e5587b3",
+      "id": "b6353c19-2cc1-4be6-bf57-b3dabe17f7da",
       "name": "Select Access logs of User",
       "credentials": {
         "postgres": {
@@ -684,10 +684,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1264,
-        1840
+        -3648,
+        3792
       ],
-      "id": "bbccc757-0602-449b-b0ff-8e8500fa1cd5",
+      "id": "3020f4c5-cde1-4c98-bf53-3c428125239d",
       "name": "Update rows in a table",
       "alwaysOutputData": true,
       "credentials": {
@@ -711,10 +711,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        848,
-        1840
+        -4064,
+        3792
       ],
-      "id": "c0806751-3036-45cd-856f-8106ed155967",
+      "id": "d86d7833-198d-44c0-a127-9f7d21fc680e",
       "name": "/users/activate",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -741,10 +741,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1472,
-        1936
+        -3440,
+        3888
       ],
-      "id": "c33d6ec7-7aed-4203-a1dc-0268cb2bec8f",
+      "id": "94d629dc-b78a-48a6-a799-2953416043d4",
       "name": "Error"
     },
     {
@@ -770,10 +770,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1472,
-        1776
+        -3440,
+        3728
       ],
-      "id": "8fdd98e4-ebe5-45bc-9588-2f63cfb1dba8",
+      "id": "5205ac18-4dbc-4553-9c57-ad553df8efd0",
       "name": "Success"
     },
     {
@@ -793,10 +793,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2000,
-        2144
+        -2304,
+        4080
       ],
-      "id": "7b8f43ef-683c-4a7e-9412-7363455160ae",
+      "id": "712e96e7-68d3-4b84-88ec-07067cb72a45",
       "name": "Error2"
     },
     {
@@ -822,10 +822,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2000,
-        1984
+        -2096,
+        3712
       ],
-      "id": "0e5ea7d1-ae3b-4c98-8ff0-718f60b69ff8",
+      "id": "c24bf0e0-bb0d-4c13-8b1d-4f786b9e8e69",
       "name": "Success2"
     },
     {
@@ -841,10 +841,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        832,
-        2320
+        -4128,
+        4272
       ],
-      "id": "7274ed49-2ecb-47e8-b2df-fac9c6d93119",
+      "id": "38b4343d-d05e-4484-a6d0-22b2dff3d76d",
       "name": "/users/upsert",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -871,10 +871,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1920,
-        2592
+        -2272,
+        4688
       ],
-      "id": "1f212980-801f-43c6-b5f7-10ce442b7cba",
+      "id": "73b62714-4dac-4c9a-8e2f-8f9c96e37132",
       "name": "Error3"
     },
     {
@@ -906,10 +906,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2576,
-        2288
+        -1024,
+        4576
       ],
-      "id": "d38581f9-a696-4e6b-9361-c4efe425a700",
+      "id": "522a91a8-71d5-4121-911c-0aeb1f8b6ecf",
       "name": "Success3"
     },
     {
@@ -929,10 +929,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3888,
-        2224
+        288,
+        4448
       ],
-      "id": "7f40118e-a41d-4e58-9481-78e810b8a96c",
+      "id": "d114b296-7bf2-4c24-a909-e3fb58e1f78e",
       "name": "Error4"
     },
     {
@@ -958,10 +958,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3888,
-        2032
+        288,
+        4256
       ],
-      "id": "5e999b16-7164-4619-afac-cbe11a1678e1",
+      "id": "1f806576-29e9-4255-8da2-9e59bf0f4b56",
       "name": "Success4"
     },
     {
@@ -976,10 +976,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        2960,
-        1792
+        -640,
+        4016
       ],
-      "id": "4329b1d0-29cc-4949-9aaf-583c190bb96c",
+      "id": "ed46c30e-505c-4128-a0e2-8b4f8c62e73f",
       "name": "roles/assign",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -996,10 +996,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3344,
-        1792
+        -256,
+        4016
       ],
-      "id": "f6b48579-8d5a-4554-b97b-1fefcc5a1359",
+      "id": "e2cbaeff-5d3d-453e-9bd7-120b2bf026a7",
       "name": "Code in JavaScript"
     },
     {
@@ -1013,10 +1013,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3168,
-        2000
+        -432,
+        4224
       ],
-      "id": "789d6d02-f707-4412-923f-968e5de3b50d",
+      "id": "bc91b633-2f77-43a8-ba14-944ad52050f7",
       "name": "Execute a SQL query",
       "alwaysOutputData": true,
       "credentials": {
@@ -1040,10 +1040,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        2960,
-        2000
+        -640,
+        4224
       ],
-      "id": "e4ea6839-6390-4368-9895-2826f2464065",
+      "id": "471717c1-e7c8-4309-8459-5188d6d580c5",
       "name": "roles/user_roles",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1131,10 +1131,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3520,
-        1792
+        -80,
+        4016
       ],
-      "id": "4c414344-0195-4b1d-b7d8-743873557083",
+      "id": "0771f9b4-5eb4-43f7-839b-fbd77498c5eb",
       "name": "Insert rows in a table1",
       "alwaysOutputData": true,
       "credentials": {
@@ -1173,10 +1173,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3168,
-        1792
+        -432,
+        4016
       ],
-      "id": "0b29e275-b105-4457-9810-b5e9712c27a6",
+      "id": "ec49ab74-2983-411c-a4b3-aef0452325b6",
       "name": "Delete table or rows1",
       "credentials": {
         "postgres": {
@@ -1202,10 +1202,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3888,
-        3216
+        288,
+        5440
       ],
-      "id": "269d2d37-5cfa-4a89-805b-68e4f53f0aa9",
+      "id": "c6ab4d2b-d596-4d66-b72c-bd25eb74a854",
       "name": "Error5"
     },
     {
@@ -1231,10 +1231,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        3888,
-        3040
+        288,
+        5264
       ],
-      "id": "a9742433-988f-41a4-a3b2-f63a1d78ce8e",
+      "id": "3c56c37d-803b-4d76-abdb-da83687b5ef7",
       "name": "Success5"
     },
     {
@@ -1244,10 +1244,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3264,
-        2928
+        -336,
+        5152
       ],
-      "id": "17dee68a-09db-4fd4-927c-a143b82fbe12",
+      "id": "945d0d44-6999-482b-83f9-678d290feb9b",
       "name": "Code in JavaScript1",
       "alwaysOutputData": true
     },
@@ -1332,10 +1332,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3648,
-        2880
+        48,
+        5104
       ],
-      "id": "2712b558-7963-4574-8dd1-2c620d12fb4c",
+      "id": "48bf5f88-2567-4143-b41b-2fa0c5b9e36d",
       "name": "Insert rows in a table2",
       "alwaysOutputData": true,
       "credentials": {
@@ -1374,10 +1374,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3072,
-        2928
+        -528,
+        5152
       ],
-      "id": "e1bd328d-cfa4-485b-8e18-c366e17ed1a0",
+      "id": "a7b6bb9f-b086-4eb2-8bdd-b637639f85c3",
       "name": "Delete table or rows",
       "credentials": {
         "postgres": {
@@ -1399,10 +1399,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        2896,
-        2928
+        -704,
+        5152
       ],
-      "id": "4c392034-98e7-461a-af99-e74e877be575",
+      "id": "6015f39c-2439-4956-9990-46a279845e1a",
       "name": "services/assign",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1423,10 +1423,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1200,
-        2192
+        -3712,
+        4144
       ],
-      "id": "855a4561-393d-4949-ac6e-5ee1c800398d",
+      "id": "881ac057-903b-42dc-9901-e65bb051579c",
       "name": "Execute a SQL query2",
       "credentials": {
         "postgres": {
@@ -1442,10 +1442,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1376,
-        2192
+        -3536,
+        4144
       ],
-      "id": "cb79b214-ce3d-4f8a-a4df-9b5359f88f02",
+      "id": "def66766-3319-4d76-86b3-421a55de5440",
       "name": "Code in JavaScript2"
     },
     {
@@ -1471,10 +1471,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1712,
-        2224
+        -3152,
+        4224
       ],
-      "id": "e45ce129-c627-4e50-ae4b-8c3210d905b3",
+      "id": "b12e5586-524d-4bd0-ab60-30de9d11108a",
       "name": "Error8"
     },
     {
@@ -1516,10 +1516,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1024,
-        2320
+        -3936,
+        4272
       ],
-      "id": "ee260944-7acd-4b88-8c56-72473686a33b",
+      "id": "123db86a-5338-47d8-b042-5fdd57aab931",
       "name": "If2"
     },
     {
@@ -1533,10 +1533,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1200,
-        2432
+        -3712,
+        4576
       ],
-      "id": "d868ff63-31a9-415a-aef7-a35c1eb5b7cb",
+      "id": "80f40036-3af0-4fd1-b4b2-5ea63f1001e6",
       "name": "Execute a SQL query3",
       "credentials": {
         "postgres": {
@@ -1552,10 +1552,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1360,
-        2432
+        -3552,
+        4576
       ],
-      "id": "2ac4f196-06fc-4c13-b9e3-b5707666f97b",
+      "id": "bec4b3eb-38e4-4fdc-a3c9-0ea4381b9d86",
       "name": "Code in JavaScript3"
     },
     {
@@ -1586,10 +1586,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1520,
-        2432
+        -3392,
+        4576
       ],
-      "id": "8bb63f97-958c-49d3-8f3d-62482603334a",
+      "id": "3a24acfb-eef0-4f6f-a9ec-413bad65bc52",
       "name": "If"
     },
     {
@@ -1609,10 +1609,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1712,
-        2592
+        -2992,
+        4576
       ],
-      "id": "4e766c40-f916-4768-a5ac-ab061e13365e",
+      "id": "7fbc36af-dda4-4dba-b313-c6bc202013a2",
       "name": "Error9"
     },
     {
@@ -1626,10 +1626,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3104,
-        3200
+        -496,
+        5424
       ],
-      "id": "50db2b64-b314-4fb1-843e-c8bbdc46da54",
+      "id": "9a19c855-0cd5-4127-9c23-23637729249b",
       "name": "Execute a SQL query1",
       "alwaysOutputData": true,
       "credentials": {
@@ -1653,10 +1653,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        2896,
-        3200
+        -704,
+        5424
       ],
-      "id": "d2a576d1-45f9-47d1-86c3-780eef059f56",
+      "id": "407ce9dc-2e67-4432-9689-6003433a728b",
       "name": "services/user_services",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1669,16 +1669,16 @@
     {
       "parameters": {
         "content": "## CRUD  Users\n",
-        "height": 1088,
-        "width": 2016
+        "height": 1504,
+        "width": 3392
       },
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        784,
-        1680
+        -4192,
+        3488
       ],
-      "id": "b0ca6aeb-bd69-4d01-9511-dfa1f9ec4912",
+      "id": "4f80400c-7356-45a6-9399-ce02d362c74e",
       "name": "Sticky Note14"
     },
     {
@@ -1690,10 +1690,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        2832,
-        1680
+        -768,
+        3904
       ],
-      "id": "b5f2b7f6-9979-482c-bfac-34e2e582a5e2",
+      "id": "6f42596d-e785-44e3-aa8b-bc428f7a18ee",
       "name": "Sticky Note15"
     },
     {
@@ -1724,10 +1724,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1552,
-        2192
+        -3360,
+        4144
       ],
-      "id": "cec1c32a-b220-4a12-bbed-befab4f15051",
+      "id": "083e0be8-96bf-40d2-b0bb-a339a28c465d",
       "name": "If3"
     },
     {
@@ -1739,10 +1739,10 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        2832,
-        2800
+        -768,
+        5024
       ],
-      "id": "b3ac2956-7207-4f40-9585-ff1cd64e4fac",
+      "id": "afb4dc01-333e-4482-b4d5-619a775e2ed8",
       "name": "Sticky Note16"
     },
     {
@@ -1758,10 +1758,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        2960,
-        2192
+        -640,
+        4416
       ],
-      "id": "d0df6097-0615-440a-b3de-419591259b52",
+      "id": "aa5848ea-07fb-453a-9189-e2fa3a7fa580",
       "name": "users/doctors",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1782,10 +1782,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3168,
-        2192
+        -432,
+        4416
       ],
-      "id": "2728ceac-d886-4411-b77f-d15e39513173",
+      "id": "dbbc8d11-91b0-4bb2-875a-d6b944f5847f",
       "name": "Get Doctors",
       "alwaysOutputData": true,
       "credentials": {
@@ -1809,10 +1809,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        2960,
-        2496
+        -640,
+        4720
       ],
-      "id": "fff7d2f4-20dc-4964-b829-dc981195ee3d",
+      "id": "d1afeb86-ebd1-42c6-9449-113262931d7c",
       "name": "users/patients",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7",
       "credentials": {
@@ -1831,10 +1831,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3168,
-        2384
+        -432,
+        4608
       ],
-      "id": "7b49b021-eafe-44e4-85d2-15fb12ee00c9",
+      "id": "535d42d0-7e9a-4782-a84a-0f2b3bf05028",
       "name": "Get Patients",
       "alwaysOutputData": true,
       "credentials": {
@@ -1949,10 +1949,10 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.3,
       "position": [
-        1920,
-        2368
+        -1680,
+        4640
       ],
-      "id": "80ebbab7-a5dd-4944-945d-6936f634f886",
+      "id": "9123a1dc-00b1-4843-add8-8167f1311273",
       "name": "Switch"
     },
     {
@@ -2036,10 +2036,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2336,
-        2384
+        -1232,
+        4672
       ],
-      "id": "730a3051-c1d5-4163-b482-70d9c65bd5df",
+      "id": "62200668-393a-4830-84ec-8bfc00d288f5",
       "name": "Insert rows in users_role",
       "credentials": {
         "postgres": {
@@ -2066,10 +2066,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2576,
-        2480
+        -1024,
+        4768
       ],
-      "id": "f0b7f2a7-b318-4f4e-a482-6ce8a03b71d9",
+      "id": "420516bc-6977-4c57-9f6e-621deef02ced",
       "name": "Error6"
     },
     {
@@ -2089,10 +2089,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2144,
-        2240
+        -1456,
+        4512
       ],
-      "id": "21d4c42a-fbbb-4cea-90a0-c1064016f75a",
+      "id": "95856c07-e468-4f86-9738-e8a704172ad7",
       "name": "Asignar role paciente"
     },
     {
@@ -2112,10 +2112,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2144,
-        2384
+        -1456,
+        4672
       ],
-      "id": "347f0210-ec0d-47cd-a1a3-77f0a5e9b889",
+      "id": "e176d06a-d994-49c3-9f92-4929ca80284f",
       "name": "Asignar role medico"
     },
     {
@@ -2132,10 +2132,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        864,
-        3888
+        -2736,
+        6112
       ],
-      "id": "8a60dd6e-0f44-4106-a5ab-c8db64844413",
+      "id": "d72c6042-ef11-48ec-9788-61e425603501",
       "name": "user_invoices",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2156,10 +2156,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1072,
-        3888
+        -2528,
+        6112
       ],
-      "id": "a25e54cb-cc9f-45cf-b308-a6280fa722b2",
+      "id": "e40793e8-5f1f-48b0-8c70-20ec2a210eac",
       "name": "Select Invoices of User",
       "credentials": {
         "postgres": {
@@ -2182,10 +2182,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        864,
-        4048
+        -2736,
+        6272
       ],
-      "id": "8c09ac2d-b965-4321-a09b-034f35259063",
+      "id": "2c3b65e5-2695-456c-8cce-d753fdc8da79",
       "name": "user_payments",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2198,7 +2198,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH all_transactions AS (\n    -- BLOQUE 1: PAGOS DIRECTOS\n    SELECT \n        p.id AS transaction_id,\n        p.created_at,\n        u.name AS user_name,\n        p.doc_no AS transaction_doc_no,\n        p.doc_no AS source_doc_no,\n        i.doc_no AS invoice_doc_no,\n        'direct_payment' AS transaction_type,\n        ABS(COALESCE(p.converted_amount, p.amount)) AS amount_applied, \n        ABS(p.amount) AS source_amount,\n        p.currency AS source_currency,\n        p.exchange_rate,\n        pm.name AS payment_method_name,\n        pm.code AS payment_method_code,\n        p.is_sales,\n        p.doc_no,\n        p.invoice_id,\n        p.notes,\n        p.is_historical,\n        p.external_id,\n        p.doctor_id\n    FROM public.payments p\n    INNER JOIN public.users u ON p.user_id = u.id\n    LEFT JOIN public.invoices i ON p.invoice_id = i.id\n    LEFT JOIN public.payment_methods pm ON p.payment_method_id = pm.id\n    WHERE p.user_id = $1\n\n    UNION ALL\n\n    -- BLOQUE 2: ASIGNACIONES DE PAGOS (Remanentes aplicados a otras facturas)\n    SELECT \n        pa.id AS transaction_id,\n        pa.created_at,\n        u.name AS user_name,\n        CONCAT(orig_p.doc_no, '-A', pa.id) AS transaction_doc_no, \n        orig_p.doc_no AS source_doc_no,\n        i.doc_no AS invoice_doc_no,\n        'payment_allocation' AS transaction_type,\n        ABS(pa.target_amount) AS amount_applied,\n        ABS(pa.amount) AS source_amount,\n        orig_p.currency AS source_currency,\n        pa.exchange_rate,\n        pm.name AS payment_method_name,\n        pm.code AS payment_method_code,\n        orig_p.is_sales,\n        CONCAT(orig_p.doc_no, '-A', pa.id) AS doc_no, \n        pa.invoice_id,\n        '' AS notes,\n        false AS is_historical,\n        null AS external_id,\n        null AS doctor_id\n    FROM public.payment_allocations pa\n    JOIN public.payments orig_p ON pa.payment_id = orig_p.id\n    LEFT JOIN public.invoices i ON pa.invoice_id = i.id\n    LEFT JOIN public.users u ON orig_p.user_id = u.id\n    LEFT JOIN public.payment_methods pm ON orig_p.payment_method_id = pm.id\n    WHERE orig_p.user_id = $1\n      AND (orig_p.invoice_id IS DISTINCT FROM pa.invoice_id)\n\n    UNION ALL\n\n    -- BLOQUE 3: ASIGNACIONES DE NOTAS DE CRÉDITO\n    SELECT \n        ia.id AS transaction_id,\n        ia.created_at,\n        u.name AS user_name,\n        CONCAT(nc.doc_no, '-A', ia.id) AS transaction_doc_no, \n        nc.doc_no AS source_doc_no,\n        target_i.doc_no AS invoice_doc_no,\n        'credit_note_allocation' AS transaction_type,\n        ABS(ia.target_amount) AS amount_applied,\n        ABS(ia.amount) AS source_amount,\n        nc.currency AS source_currency,\n        ia.exchange_rate,\n        'Credit Note' AS payment_method_name,\n        'CN' AS payment_method_code,\n        target_i.is_sales,\n        CONCAT(nc.doc_no, '-A', ia.id) AS doc_no, \n        ia.target_id AS invoice_id,\n        '' AS notes,\n        false AS is_historical,\n        null AS external_id,\n        null AS doctor_id\n    FROM public.invoice_allocations ia\n    JOIN public.invoices nc ON ia.source_id = nc.id\n    JOIN public.invoices target_i ON ia.target_id = target_i.id\n    JOIN public.users u ON target_i.user_id = u.id\n    WHERE target_i.user_id = $1\n)\nSELECT * FROM all_transactions\nORDER BY created_at DESC, transaction_id DESC;",
+        "query": "WITH all_transactions AS (\n    -- BLOQUE 1: PAGOS DIRECTOS\n    SELECT \n        p.id AS transaction_id,\n        p.created_at,\n        u.name AS user_name,\n        p.doc_no AS transaction_doc_no,\n        p.doc_no AS source_doc_no,\n        i.doc_no AS invoice_doc_no,\n        'direct_payment' AS transaction_type,\n        ABS(COALESCE(p.converted_amount, p.amount)) AS amount_applied, \n        ABS(p.amount) AS source_amount,\n        p.currency AS source_currency,\n        p.exchange_rate,\n        pm.name AS payment_method_name,\n        pm.code AS payment_method_code,\n        p.is_sales,\n        p.doc_no,\n        p.invoice_id,\n        p.notes,\n        p.is_historical,\n        p.external_id,\n        p.doctor_id,\n        COALESCE(i.currency, p.currency) AS invoice_currency,\n        p.id AS payment_id\n    FROM public.payments p\n    INNER JOIN public.users u ON p.user_id = u.id\n    LEFT JOIN public.invoices i ON p.invoice_id = i.id\n    LEFT JOIN public.payment_methods pm ON p.payment_method_id = pm.id\n    WHERE p.user_id = $1\n\n    UNION ALL\n\n    -- BLOQUE 2: ASIGNACIONES DE PAGOS (Remanentes aplicados a otras facturas)\n    SELECT \n        pa.id AS transaction_id,\n        pa.created_at,\n        u.name AS user_name,\n        CONCAT(orig_p.doc_no, '-A', pa.id) AS transaction_doc_no, \n        orig_p.doc_no AS source_doc_no,\n        i.doc_no AS invoice_doc_no,\n        'payment_allocation' AS transaction_type,\n        ABS(pa.target_amount) AS amount_applied,\n        ABS(pa.amount) AS source_amount,\n        orig_p.currency AS source_currency,\n        pa.exchange_rate,\n        pm.name AS payment_method_name,\n        pm.code AS payment_method_code,\n        orig_p.is_sales,\n        CONCAT(orig_p.doc_no, '-A', pa.id) AS doc_no, \n        pa.invoice_id,\n        '' AS notes,\n        false AS is_historical,\n        null AS external_id,\n        null AS doctor_id,\n        COALESCE(i.currency, orig_p.currency) AS invoice_currency,\n        pa.payment_id AS payment_id\n    FROM public.payment_allocations pa\n    JOIN public.payments orig_p ON pa.payment_id = orig_p.id\n    LEFT JOIN public.invoices i ON pa.invoice_id = i.id\n    LEFT JOIN public.users u ON orig_p.user_id = u.id\n    LEFT JOIN public.payment_methods pm ON orig_p.payment_method_id = pm.id\n    WHERE orig_p.user_id = $1\n      AND (orig_p.invoice_id IS DISTINCT FROM pa.invoice_id)\n\n    UNION ALL\n\n    -- BLOQUE 3: ASIGNACIONES DE NOTAS DE CRÉDITO\n    SELECT \n        ia.id AS transaction_id,\n        ia.created_at,\n        u.name AS user_name,\n        CONCAT(nc.doc_no, '-A', ia.id) AS transaction_doc_no, \n        nc.doc_no AS source_doc_no,\n        target_i.doc_no AS invoice_doc_no,\n        'credit_note_allocation' AS transaction_type,\n        ABS(ia.target_amount) AS amount_applied,\n        ABS(ia.amount) AS source_amount,\n        nc.currency AS source_currency,\n        ia.exchange_rate,\n        'Credit Note' AS payment_method_name,\n        'CN' AS payment_method_code,\n        target_i.is_sales,\n        CONCAT(nc.doc_no, '-A', ia.id) AS doc_no, \n        ia.target_id AS invoice_id,\n        '' AS notes,\n        false AS is_historical,\n        null AS external_id,\n        null AS doctor_id,\n        target_i.currency AS invoice_currency,\n        NULL::integer AS payment_id\n    FROM public.invoice_allocations ia\n    JOIN public.invoices nc ON ia.source_id = nc.id\n    JOIN public.invoices target_i ON ia.target_id = target_i.id\n    JOIN public.users u ON target_i.user_id = u.id\n    WHERE target_i.user_id = $1\n)\nSELECT * FROM all_transactions\nORDER BY created_at DESC, transaction_id DESC;",
         "options": {
           "queryReplacement": "={{ $json.query.user_id }}"
         }
@@ -2206,10 +2206,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1072,
-        4048
+        -2528,
+        6272
       ],
-      "id": "d58ada24-fdc2-4c9a-8380-f9ab937897ea",
+      "id": "6371176d-a0f3-49ce-8c6c-03b8c3a49990",
       "name": "Select Payments of User",
       "credentials": {
         "postgres": {
@@ -2231,10 +2231,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        864,
-        2880
+        -2736,
+        5104
       ],
-      "id": "10d18cda-3292-436c-9a0b-2f9fbd7dadce",
+      "id": "2630e3c4-03b0-4a8f-abfe-2ece61171f42",
       "name": "users",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2258,10 +2258,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        864,
-        3056
+        -2736,
+        5280
       ],
-      "id": "bab8d49b-0221-449c-8f5c-a8d3a9191db4",
+      "id": "cc823a72-4358-4766-8b09-1f55b7f2e7d5",
       "name": "user_roles",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2285,10 +2285,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        864,
-        3232
+        -2736,
+        5456
       ],
-      "id": "2e1556b6-f84e-4be7-bfd9-66013413ae18",
+      "id": "e1a0de96-3462-41cf-9c8b-054c85af2943",
       "name": "user_services",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2312,10 +2312,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        864,
-        3552
+        -2736,
+        5776
       ],
-      "id": "32c05947-3614-40cd-b61a-95d8c01c8d82",
+      "id": "25f49daa-09af-4f9d-a782-c8066f92db02",
       "name": "user_quotes",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2339,10 +2339,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        864,
-        3712
+        -2736,
+        5936
       ],
-      "id": "f479d9ab-6198-43cc-8e8e-5934338043b2",
+      "id": "3e6b3305-7ac5-4dd3-9126-1f9a96596757",
       "name": "user_logs",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2366,10 +2366,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        864,
-        4208
+        -2736,
+        6432
       ],
-      "id": "0fbfbebd-6699-46ed-af9d-eafeaed325ae",
+      "id": "860009c0-cd7d-4d4c-a5e1-f557c8bdb3b2",
       "name": "user_orders",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2390,10 +2390,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1072,
-        4208
+        -2528,
+        6432
       ],
-      "id": "903238c2-de71-4a62-9daf-f61e9ad0d8df",
+      "id": "46495f91-9538-490f-9f55-43adcded5010",
       "name": "Select Orders of User",
       "credentials": {
         "postgres": {
@@ -2415,10 +2415,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        864,
-        4400
+        -2736,
+        6624
       ],
-      "id": "f82881d3-3aa1-4845-a35f-f4d15f105bca",
+      "id": "9b5ccabd-05a4-41d1-8a44-ae96576575a9",
       "name": "debtors",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2437,10 +2437,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1072,
-        4400
+        -2528,
+        6624
       ],
-      "id": "9e00b026-e97b-4849-8089-b424de7720b1",
+      "id": "51e5648f-b9a5-4eb3-99c1-e8f240736fda",
       "name": "Select Debtors",
       "alwaysOutputData": true,
       "credentials": {
@@ -2468,10 +2468,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        1280,
-        4400
+        -2320,
+        6624
       ],
-      "id": "042e6af9-9d69-4e95-b069-9996d9519454",
+      "id": "b79d5bb6-a3dc-4e22-bae6-c922d8c862da",
       "name": "OK: List of debtors"
     },
     {
@@ -2531,10 +2531,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1056,
-        1840
+        -3856,
+        3792
       ],
-      "id": "3033fc80-1a6e-426c-ab41-3f722fd5eaac",
+      "id": "ba3a228f-2cbf-4f2b-aa0e-dc4f2e681fb9",
       "name": "Call 'Check security'"
     },
     {
@@ -2565,10 +2565,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        3456,
-        2928
+        -144,
+        5152
       ],
-      "id": "7b3fa7c5-a1f1-4713-b131-6567d6147002",
+      "id": "b465aa7d-d373-4fd7-8abc-eb7b8ae42a54",
       "name": "If1"
     },
     {
@@ -2579,11 +2579,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        2832,
-        3408
+        -768,
+        5632
       ],
       "typeVersion": 1,
-      "id": "a87c2ee8-8e5d-4106-bee5-c2f3899fbd1e",
+      "id": "91e4149b-9da0-4747-8191-5ff07b1971fa",
       "name": "Sticky Note1"
     },
     {
@@ -2600,10 +2600,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        2912,
-        3520
+        -688,
+        5744
       ],
-      "id": "905b8d75-5506-4060-b197-3cd7bb7009a6",
+      "id": "6ebaef12-94d4-4ad6-9710-dab60a358fd9",
       "name": "POST /patient/discharge",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -2900,10 +2900,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3120,
-        3520
+        -480,
+        5744
       ],
-      "id": "ed5df289-627c-4734-89cf-6686b8a533ad",
+      "id": "0fbb3845-67a6-460b-8112-89b2845d5d95",
       "name": "Update appointment field",
       "credentials": {
         "postgres": {
@@ -2930,10 +2930,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        3344,
-        3616
+        -256,
+        5840
       ],
-      "id": "572d919a-d42e-4e86-b2d0-57455cc723f5",
+      "id": "55ef6fe5-aa3a-4278-a862-1ad4eb12f59f",
       "name": "OK"
     },
     {
@@ -2953,10 +2953,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        3344,
-        3792
+        -256,
+        6016
       ],
-      "id": "802021f4-ade9-44c1-a188-9ef1d619ee6a",
+      "id": "66ed48a9-d1a7-4c7e-acdb-8d05fd65d1b3",
       "name": "Error1"
     },
     {
@@ -3241,10 +3241,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3120,
-        3712
+        -480,
+        5936
       ],
-      "id": "f75553cf-4a0d-4807-8b96-0cb5a772eceb",
+      "id": "460d785c-9427-44a3-82d9-92c5f7a40bb1",
       "name": "Update appointment field1",
       "credentials": {
         "postgres": {
@@ -3268,10 +3268,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        2912,
-        3712
+        -688,
+        5936
       ],
-      "id": "9cf80e93-98d8-4e18-881a-300939632a83",
+      "id": "5e1dd62a-6ffa-4c3e-ac02-35832f55ba83",
       "name": "POST /patient/discharge/cancel",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3294,10 +3294,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        2912,
-        3904
+        -688,
+        6128
       ],
-      "id": "248830cc-4691-4cdc-9daa-6ab8f86d58ef",
+      "id": "ee25eb00-736e-4005-b7af-db89cbe708af",
       "name": "GET /patient/discharge",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3318,10 +3318,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3120,
-        3904
+        -480,
+        6128
       ],
-      "id": "1112471c-be97-4757-8517-a2aaadaf76b1",
+      "id": "3c80e2c6-0377-4e1d-9c31-c698d9cc66cd",
       "name": "Get appointment field",
       "credentials": {
         "postgres": {
@@ -3339,11 +3339,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1520,
-        3632
+        -2080,
+        5856
       ],
       "typeVersion": 1,
-      "id": "c28f5cc2-7992-4bac-8e45-b1b2db92da9c",
+      "id": "2c4f93bc-8e55-470f-b129-241508dd5704",
       "name": "Sticky Note2"
     },
     {
@@ -3359,10 +3359,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1584,
-        4000
+        -2016,
+        6224
       ],
-      "id": "a511c838-f776-46be-b14a-937bd3bdbc3d",
+      "id": "12df25b5-47df-4107-bea2-55ff609eb724",
       "name": "GET /user/financial-summary/print",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3376,7 +3376,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH service_agg AS (\n    SELECT \n        ii.invoice_id,\n        jsonb_agg(sc.name ORDER BY ii.id) AS services_list\n    FROM public.invoice_items ii\n    JOIN public.service_catalog sc ON ii.service_id = sc.id\n    GROUP BY ii.invoice_id\n),\npayment_refs AS (\n    SELECT \n        pa.payment_id,\n        jsonb_agg(i.doc_no ORDER BY i.doc_no) AS allocated_invoices\n    FROM public.payment_allocations pa\n    JOIN public.invoices i ON pa.invoice_id = i.id\n    GROUP BY pa.payment_id\n),\ncredit_note_refs AS (\n    SELECT \n        ia.source_id AS credit_note_id,\n        jsonb_agg(i.doc_no ORDER BY i.doc_no) AS target_invoices\n    FROM public.invoice_allocations ia\n    JOIN public.invoices i ON ia.target_id = i.id\n    GROUP BY ia.source_id\n),\nall_movements AS (\n    -- Unificamos todos los documentos primero\n    SELECT \n        i.user_id, i.currency, i.created_at, 'invoice' AS document_type, i.doc_no, i.total AS amount,\n        jsonb_build_object('label', 'Factura', 'doc_no', i.doc_no, 'services', COALESCE(sa.services_list, '[]'::jsonb), 'notes', i.notes) AS metadata,\n        i.id AS internal_id\n    FROM public.invoices i\n    LEFT JOIN service_agg sa ON i.id = sa.invoice_id\n    WHERE i.type = 'invoice' AND i.status = 'booked'\n\n    UNION ALL\n\n    SELECT \n        i.user_id, i.currency, i.created_at, 'credit_note' AS document_type, i.doc_no, -i.total AS amount,\n        jsonb_build_object('label', 'Nota de Crédito', 'doc_no', i.doc_no, 'applied_to', COALESCE(cnr.target_invoices, '[]'::jsonb), 'services', COALESCE(sa.services_list, '[]'::jsonb), 'notes', i.notes) AS metadata,\n        i.id AS internal_id\n    FROM public.invoices i\n    LEFT JOIN service_agg sa ON i.id = sa.invoice_id\n    LEFT JOIN credit_note_refs cnr ON i.id = cnr.credit_note_id\n    WHERE i.type = 'credit_note' AND i.status = 'booked'\n\n    UNION ALL\n\n    SELECT \n        p.user_id, p.currency, p.created_at, 'payment' AS document_type, p.doc_no, -p.amount AS amount,\n        jsonb_build_object(\n            'label', 'Pago',\n            'payment_type', CASE WHEN p.invoice_id IS NOT NULL THEN 'Directo' WHEN pr.allocated_invoices IS NOT NULL THEN 'Prepago Aplicado' ELSE 'A cuenta' END,\n            'target_invoices', CASE WHEN p.invoice_id IS NOT NULL THEN jsonb_build_array((SELECT doc_no FROM public.invoices WHERE id = p.invoice_id)) ELSE COALESCE(pr.allocated_invoices, '[]'::jsonb) END,\n            'notes', p.notes\n        ) AS metadata,\n        p.id AS internal_id\n    FROM public.payments p\n    LEFT JOIN payment_refs pr ON p.id = pr.payment_id\n),\nhistory_calculated AS (\n    -- 1. CAMBIO: Añadida prioridad por tipo de documento para desempatar el saldo progresivo\n    SELECT \n        *,\n        SUM(amount) OVER (\n            PARTITION BY user_id, currency \n            ORDER BY \n                created_at ASC, \n                CASE \n                    WHEN document_type = 'invoice' THEN 1 \n                    WHEN document_type = 'credit_note' THEN 2 \n                    ELSE 3 \n                END ASC,\n                internal_id ASC\n        ) AS running_balance\n    FROM all_movements\n),\nopening_balances AS (\n    -- 2. CAMBIO: Añadida prioridad en orden DESC para asegurar que se tome el último saldo correcto del segundo en conflicto\n    SELECT DISTINCT ON (user_id, currency)\n        user_id, currency, running_balance\n    FROM history_calculated\n    WHERE ($2 IS NOT NULL AND created_at < $2)\n    ORDER BY \n        user_id, \n        currency, \n        created_at DESC, \n        CASE \n            WHEN document_type = 'invoice' THEN 1 \n            WHEN document_type = 'credit_note' THEN 2 \n            ELSE 3 \n        END DESC,\n        internal_id DESC\n),\nclosing_balances AS (\n    -- 3. CAMBIO: Añadida prioridad idéntica a opening_balances para el saldo final\n    SELECT DISTINCT ON (user_id, currency)\n        user_id, currency, running_balance\n    FROM history_calculated\n    WHERE ($3 IS NULL OR created_at <= $3)\n    ORDER BY \n        user_id, \n        currency, \n        created_at DESC, \n        CASE \n            WHEN document_type = 'invoice' THEN 1 \n            WHEN document_type = 'credit_note' THEN 2 \n            ELSE 3 \n        END DESC,\n        internal_id DESC\n)\nSELECT \n    u.id AS user_id,\n    u.name,\n    u.email,\n    u.phone_number,\n    u.identity_document,\n    $2 AS report_start_date,\n    $3 AS report_end_date,\n    jsonb_object_agg(\n        hc.currency, \n        jsonb_build_object(\n            'initial_balance', COALESCE((SELECT running_balance FROM opening_balances ob WHERE ob.user_id = u.id AND ob.currency = hc.currency), 0),\n            'final_balance', COALESCE((SELECT running_balance FROM closing_balances cb WHERE cb.user_id = u.id AND cb.currency = hc.currency), 0),\n            'movements', (\n                -- 4. CAMBIO: Alineado el orden del array JSON con el mismo criterio matemático del saldo progresivo\n                SELECT jsonb_agg(h ORDER BY \n                    h.created_at ASC, \n                    CASE \n                        WHEN h.document_type = 'invoice' THEN 1 \n                        WHEN h.document_type = 'credit_note' THEN 2 \n                        ELSE 3 \n                    END ASC, \n                    h.internal_id ASC\n                )\n                FROM history_calculated h \n                WHERE h.user_id = u.id \n                  AND h.currency = hc.currency\n                  AND (h.created_at >= $2 OR $2 IS NULL)\n                  AND (h.created_at <= $3 OR $3 IS NULL)\n            )\n        )\n    ) FILTER (WHERE EXISTS (\n        SELECT 1 FROM history_calculated h2 \n        WHERE h2.user_id = u.id \n          AND h2.currency = hc.currency\n          AND (h2.created_at >= $2 OR $2 IS NULL)\n          AND (h2.created_at <= $3 OR $3 IS NULL)\n    )) AS history_by_currency\nFROM public.users u\nJOIN history_calculated hc ON u.id = hc.user_id\nWHERE u.id = $1\nGROUP BY u.id, u.name, u.email, u.phone_number, u.identity_document;",
+        "query": "WITH service_agg AS (\n    SELECT \n        ii.invoice_id,\n        jsonb_agg(sc.name ORDER BY ii.id) AS services_list\n    FROM public.invoice_items ii\n    JOIN public.service_catalog sc ON ii.service_id = sc.id\n    GROUP BY ii.invoice_id\n),\npayment_refs AS (\n    SELECT \n        pa.payment_id,\n        jsonb_agg(i.doc_no ORDER BY i.doc_no) AS allocated_invoices\n    FROM public.payment_allocations pa\n    JOIN public.invoices i ON pa.invoice_id = i.id\n    GROUP BY pa.payment_id\n),\ncredit_note_refs AS (\n    SELECT \n        ia.source_id AS credit_note_id,\n        jsonb_agg(i.doc_no ORDER BY i.doc_no) AS target_invoices\n    FROM public.invoice_allocations ia\n    JOIN public.invoices i ON ia.target_id = i.id\n    GROUP BY ia.source_id\n),\nall_movements AS (\n    -- Unificamos todos los documentos primero\n    SELECT \n        i.user_id, i.currency, i.created_at, 'invoice' AS document_type, i.doc_no, i.total AS amount,\n        jsonb_build_object('label', 'Factura', 'doc_no', i.doc_no, 'services', COALESCE(sa.services_list, '[]'::jsonb), 'notes', i.notes) AS metadata,\n        i.id AS internal_id\n    FROM public.invoices i\n    LEFT JOIN service_agg sa ON i.id = sa.invoice_id\n    WHERE i.type = 'invoice' AND i.status = 'booked'\n\n    UNION ALL\n\n    SELECT \n        i.user_id, i.currency, i.created_at, 'credit_note' AS document_type, i.doc_no, -i.total AS amount,\n        jsonb_build_object('label', 'Nota de Crédito', 'doc_no', i.doc_no, 'applied_to', COALESCE(cnr.target_invoices, '[]'::jsonb), 'services', COALESCE(sa.services_list, '[]'::jsonb), 'notes', i.notes) AS metadata,\n        i.id AS internal_id\n    FROM public.invoices i\n    LEFT JOIN service_agg sa ON i.id = sa.invoice_id\n    LEFT JOIN credit_note_refs cnr ON i.id = cnr.credit_note_id\n    WHERE i.type = 'credit_note' AND i.status = 'booked'\n\n    UNION ALL\n\n    SELECT\n        -- Un pago directo a una factura en otra moneda se muestra en la moneda de la factura, por lo convertido.\n        p.user_id, COALESCE(pay_inv.currency, p.currency) AS currency, p.created_at, 'payment' AS document_type, p.doc_no,\n        -CASE WHEN pay_inv.currency <> p.currency THEN COALESCE(p.converted_amount, p.amount) ELSE p.amount END AS amount,\n        jsonb_build_object(\n            'label', 'Pago',\n            'payment_type', CASE WHEN p.invoice_id IS NOT NULL THEN 'Directo' WHEN pr.allocated_invoices IS NOT NULL THEN 'Prepago Aplicado' ELSE 'A cuenta' END,\n            'target_invoices', CASE WHEN p.invoice_id IS NOT NULL THEN jsonb_build_array((SELECT doc_no FROM public.invoices WHERE id = p.invoice_id)) ELSE COALESCE(pr.allocated_invoices, '[]'::jsonb) END,\n            'notes', p.notes\n        ) AS metadata,\n        p.id AS internal_id\n    FROM public.payments p\n    LEFT JOIN payment_refs pr ON p.id = pr.payment_id\n    LEFT JOIN public.invoices pay_inv ON pay_inv.id = p.invoice_id\n\n    UNION ALL\n\n    -- Aplicación de un pago a una factura en otra moneda: sale del saldo de la moneda del pago...\n    SELECT\n        p.user_id, p.currency, pa.created_at, 'payment' AS document_type, CONCAT(p.doc_no, '-A', pa.id), ABS(pa.amount) AS amount,\n        jsonb_build_object('label', 'Aplicación de pago', 'payment_type', 'Conversión', 'target_invoices', jsonb_build_array(pa_inv.doc_no), 'notes', p.notes) AS metadata,\n        pa.id AS internal_id\n    FROM public.payment_allocations pa\n    JOIN public.payments p ON p.id = pa.payment_id\n    JOIN public.invoices pa_inv ON pa_inv.id = pa.invoice_id\n    WHERE pa_inv.currency <> p.currency\n\n    UNION ALL\n\n    -- ...y entra como pago en la moneda de la factura.\n    SELECT\n        p.user_id, pa_inv.currency, pa.created_at, 'payment' AS document_type, CONCAT(p.doc_no, '-A', pa.id), -ABS(pa.target_amount) AS amount,\n        jsonb_build_object('label', 'Pago', 'payment_type', 'Conversión', 'target_invoices', jsonb_build_array(pa_inv.doc_no), 'notes', p.notes) AS metadata,\n        pa.id AS internal_id\n    FROM public.payment_allocations pa\n    JOIN public.payments p ON p.id = pa.payment_id\n    JOIN public.invoices pa_inv ON pa_inv.id = pa.invoice_id\n    WHERE pa_inv.currency <> p.currency\n),\nhistory_calculated AS (\n    -- 1. CAMBIO: Añadida prioridad por tipo de documento para desempatar el saldo progresivo\n    SELECT \n        *,\n        SUM(amount) OVER (\n            PARTITION BY user_id, currency \n            ORDER BY \n                created_at ASC, \n                CASE \n                    WHEN document_type = 'invoice' THEN 1 \n                    WHEN document_type = 'credit_note' THEN 2 \n                    ELSE 3 \n                END ASC,\n                internal_id ASC\n        ) AS running_balance\n    FROM all_movements\n),\nopening_balances AS (\n    -- 2. CAMBIO: Añadida prioridad en orden DESC para asegurar que se tome el último saldo correcto del segundo en conflicto\n    SELECT DISTINCT ON (user_id, currency)\n        user_id, currency, running_balance\n    FROM history_calculated\n    WHERE ($2 IS NOT NULL AND created_at < $2)\n    ORDER BY \n        user_id, \n        currency, \n        created_at DESC, \n        CASE \n            WHEN document_type = 'invoice' THEN 1 \n            WHEN document_type = 'credit_note' THEN 2 \n            ELSE 3 \n        END DESC,\n        internal_id DESC\n),\nclosing_balances AS (\n    -- 3. CAMBIO: Añadida prioridad idéntica a opening_balances para el saldo final\n    SELECT DISTINCT ON (user_id, currency)\n        user_id, currency, running_balance\n    FROM history_calculated\n    WHERE ($3 IS NULL OR created_at <= $3)\n    ORDER BY \n        user_id, \n        currency, \n        created_at DESC, \n        CASE \n            WHEN document_type = 'invoice' THEN 1 \n            WHEN document_type = 'credit_note' THEN 2 \n            ELSE 3 \n        END DESC,\n        internal_id DESC\n)\nSELECT \n    u.id AS user_id,\n    u.name,\n    u.email,\n    u.phone_number,\n    u.identity_document,\n    $2 AS report_start_date,\n    $3 AS report_end_date,\n    jsonb_object_agg(\n        hc.currency, \n        jsonb_build_object(\n            'initial_balance', COALESCE((SELECT running_balance FROM opening_balances ob WHERE ob.user_id = u.id AND ob.currency = hc.currency), 0),\n            'final_balance', COALESCE((SELECT running_balance FROM closing_balances cb WHERE cb.user_id = u.id AND cb.currency = hc.currency), 0),\n            'movements', (\n                -- 4. CAMBIO: Alineado el orden del array JSON con el mismo criterio matemático del saldo progresivo\n                SELECT jsonb_agg(h ORDER BY \n                    h.created_at ASC, \n                    CASE \n                        WHEN h.document_type = 'invoice' THEN 1 \n                        WHEN h.document_type = 'credit_note' THEN 2 \n                        ELSE 3 \n                    END ASC, \n                    h.internal_id ASC\n                )\n                FROM history_calculated h \n                WHERE h.user_id = u.id \n                  AND h.currency = hc.currency\n                  AND (h.created_at >= $2 OR $2 IS NULL)\n                  AND (h.created_at <= $3 OR $3 IS NULL)\n            )\n        )\n    ) FILTER (WHERE EXISTS (\n        SELECT 1 FROM history_calculated h2 \n        WHERE h2.user_id = u.id \n          AND h2.currency = hc.currency\n          AND (h2.created_at >= $2 OR $2 IS NULL)\n          AND (h2.created_at <= $3 OR $3 IS NULL)\n    )) AS history_by_currency\nFROM public.users u\nJOIN history_calculated hc ON u.id = hc.user_id\nWHERE u.id = $1\nGROUP BY u.id, u.name, u.email, u.phone_number, u.identity_document;",
         "options": {
           "queryReplacement": "={{ [$json.query.user_id, $json.query.from, $json.query.to] }}"
         }
@@ -3384,10 +3384,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1792,
-        4000
+        -1808,
+        6224
       ],
-      "id": "db7f0976-9267-41ad-8992-5d24e4c2a645",
+      "id": "4ee4b5e6-7d1d-42cb-a4a2-8f5ad34388d7",
       "name": "Get user financial summary",
       "credentials": {
         "postgres": {
@@ -3443,10 +3443,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        2000,
-        4000
+        -1600,
+        6224
       ],
-      "id": "484b38e6-1442-4d83-bcfd-0b9a31c3118c",
+      "id": "80a74528-1684-4187-8e90-863d56b04707",
       "name": "Call 'Build PDF'",
       "disabled": true
     },
@@ -3478,10 +3478,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        2208,
-        4000
+        -1392,
+        6224
       ],
-      "id": "c965c21d-dcb9-4d84-b187-78a356907b58",
+      "id": "6c9c0585-7a95-4cf2-97f2-58c0262b0046",
       "name": "If4",
       "disabled": true
     },
@@ -3495,10 +3495,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2416,
-        3904
+        -1184,
+        6128
       ],
-      "id": "41277639-8500-4341-9d35-f17781d6aa82",
+      "id": "47fdfb63-714a-4bc9-a9bb-938484d04fef",
       "name": "OK: File",
       "disabled": true
     },
@@ -3511,17 +3511,17 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2416,
-        4096
+        -1184,
+        6320
       ],
-      "id": "2e3697f1-7ba3-4113-a8a7-588d33f841a9",
+      "id": "9a7ee3ae-444e-4ee4-a549-bdab7f942cd0",
       "name": "Error7",
       "disabled": true
     },
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH all_movements AS (\n    -- 1. FACTURAS\n    SELECT \n        i.user_id, i.currency, 'invoice' AS type,\n        CASE WHEN u.is_sales THEN i.total ELSE -i.total END AS amount\n    FROM public.invoices i\n    JOIN public.users u ON i.user_id = u.id\n    WHERE i.status = 'booked' AND i.type = 'invoice' AND i.user_id = $1\n\n    UNION ALL\n\n    -- 2. NOTAS DE CRÉDITO\n    SELECT \n        i.user_id, i.currency, 'credit_note' AS type,\n        CASE WHEN u.is_sales THEN -i.total ELSE i.total END AS amount\n    FROM public.invoices i\n    JOIN public.users u ON i.user_id = u.id\n    WHERE i.status = 'booked' AND i.type = 'credit_note' AND i.user_id = $1\n\n    UNION ALL\n\n    -- 3. PAGOS (El ingreso bruto de dinero)\n    SELECT \n        p.user_id, p.currency, 'payment' AS type,\n        -p.amount AS amount\n    FROM public.payments p\n    WHERE p.user_id = $1\n\n    UNION ALL\n\n    -- 4. COMPENSACIÓN: Pagos con invoice_id directo\n    SELECT \n        p.user_id, p.currency AS currency, 'compensation' AS type,\n        p.amount AS amount \n    FROM public.payments p\n    WHERE p.user_id = $1 AND p.invoice_id IS NOT NULL\n\n    UNION ALL\n\n    SELECT \n        p.user_id, p.invoice_currency AS currency, 'compensation' AS type,\n        -p.converted_amount AS amount \n    FROM public.payments p\n    WHERE p.user_id = $1 AND p.invoice_id IS NOT NULL\n\n    UNION ALL\n\n    -- 5. COMPENSACIÓN: Tabla payment_allocations\n    SELECT \n        p.user_id, p.currency AS currency, 'compensation' AS type,\n        pa.amount AS amount\n    FROM public.payment_allocations pa\n    JOIN public.payments p ON pa.payment_id = p.id\n    WHERE p.user_id = $1\n\n    UNION ALL\n\n    SELECT \n        p.user_id, i.currency AS currency, 'compensation' AS type,\n        -pa.target_amount AS amount\n    FROM public.payment_allocations pa\n    JOIN public.invoices i ON pa.invoice_id = i.id\n    JOIN public.payments p ON pa.payment_id = p.id\n    WHERE p.user_id = $1\n\n    UNION ALL\n\n    -- 6. COMPENSACIÓN: Tabla invoice_allocations (NC aplicadas a Facturas)\n    SELECT \n        i.user_id, i.currency AS currency, 'compensation' AS type,\n        ia.amount AS amount\n    FROM public.invoice_allocations ia\n    JOIN public.invoices i ON ia.source_id = i.id\n    WHERE i.user_id = $1\n\n    UNION ALL\n\n    SELECT \n        i_target.user_id, i_target.currency AS currency, 'compensation' AS type,\n        -ia.target_amount AS amount\n    FROM public.invoice_allocations ia\n    JOIN public.invoices i_target ON ia.target_id = i_target.id\n    WHERE i_target.user_id = $1\n),\nfinancial_summary AS (\n    SELECT \n        user_id,\n        currency,\n        SUM(CASE WHEN type = 'invoice' THEN ABS(amount) ELSE 0 END) AS total_invoiced,\n        SUM(CASE WHEN type = 'credit_note' THEN ABS(amount) ELSE 0 END) AS total_credit_notes,\n        SUM(CASE WHEN type = 'payment' THEN -amount ELSE 0 END) AS total_paid,\n        SUM(amount) AS net_balance\n    FROM all_movements\n    GROUP BY user_id, currency\n)\nSELECT \n    u.id AS user_id,\n    u.is_sales,\n    jsonb_object_agg(\n        fs.currency, \n        jsonb_build_object(\n            'total_invoiced', fs.total_invoiced,\n            'total_credit_notes', fs.total_credit_notes,\n            'total_paid', fs.total_paid,\n            'current_debt', CASE \n                WHEN u.is_sales THEN GREATEST(fs.net_balance, 0)\n                ELSE ABS(LEAST(fs.net_balance, 0))\n            END,\n            'available_balance', CASE \n                WHEN u.is_sales THEN ABS(LEAST(fs.net_balance, 0))\n                ELSE GREATEST(fs.net_balance, 0)\n            END,\n            'account_status', fs.net_balance\n        )\n    ) AS financial_data\nFROM public.users u\nJOIN financial_summary fs ON u.id = fs.user_id\nWHERE u.id = $1\nGROUP BY u.id, u.is_sales;",
+        "query": "WITH all_movements AS (\n    -- 1. FACTURAS\n    SELECT \n        i.user_id, i.currency, 'invoice' AS type,\n        CASE WHEN u.is_sales THEN i.total ELSE -i.total END AS amount\n    FROM public.invoices i\n    JOIN public.users u ON i.user_id = u.id\n    WHERE i.status = 'booked' AND i.type = 'invoice' AND i.user_id = $1\n\n    UNION ALL\n\n    -- 2. NOTAS DE CRÉDITO\n    SELECT \n        i.user_id, i.currency, 'credit_note' AS type,\n        CASE WHEN u.is_sales THEN -i.total ELSE i.total END AS amount\n    FROM public.invoices i\n    JOIN public.users u ON i.user_id = u.id\n    WHERE i.status = 'booked' AND i.type = 'credit_note' AND i.user_id = $1\n\n    UNION ALL\n\n    -- 3. PAGOS (El ingreso bruto de dinero)\n    SELECT \n        p.user_id, p.currency, 'payment' AS type,\n        -p.amount AS amount\n    FROM public.payments p\n    WHERE p.user_id = $1\n\n    UNION ALL\n\n    -- 4. COMPENSACIÓN: Pagos con invoice_id directo\n    SELECT \n        p.user_id, p.currency AS currency, 'compensation' AS type,\n        p.amount AS amount \n    FROM public.payments p\n    WHERE p.user_id = $1 AND p.invoice_id IS NOT NULL\n\n    UNION ALL\n\n    SELECT \n        p.user_id, p.invoice_currency AS currency, 'compensation' AS type,\n        -p.converted_amount AS amount \n    FROM public.payments p\n    WHERE p.user_id = $1 AND p.invoice_id IS NOT NULL\n\n    UNION ALL\n\n    -- 5. COMPENSACIÓN: Tabla payment_allocations (un pago con invoice_id ya se compensó en el punto 4)\n    SELECT \n        p.user_id, p.currency AS currency, 'compensation' AS type,\n        pa.amount AS amount\n    FROM public.payment_allocations pa\n    JOIN public.payments p ON pa.payment_id = p.id\n    WHERE p.user_id = $1 AND p.invoice_id IS NULL\n\n    UNION ALL\n\n    SELECT \n        p.user_id, i.currency AS currency, 'compensation' AS type,\n        -pa.target_amount AS amount\n    FROM public.payment_allocations pa\n    JOIN public.invoices i ON pa.invoice_id = i.id\n    JOIN public.payments p ON pa.payment_id = p.id\n    WHERE p.user_id = $1 AND p.invoice_id IS NULL\n\n    UNION ALL\n\n    -- 6. COMPENSACIÓN: Tabla invoice_allocations (NC aplicadas a Facturas)\n    SELECT \n        i.user_id, i.currency AS currency, 'compensation' AS type,\n        ia.amount AS amount\n    FROM public.invoice_allocations ia\n    JOIN public.invoices i ON ia.source_id = i.id\n    WHERE i.user_id = $1\n\n    UNION ALL\n\n    SELECT \n        i_target.user_id, i_target.currency AS currency, 'compensation' AS type,\n        -ia.target_amount AS amount\n    FROM public.invoice_allocations ia\n    JOIN public.invoices i_target ON ia.target_id = i_target.id\n    WHERE i_target.user_id = $1\n),\nfinancial_summary AS (\n    SELECT \n        user_id,\n        currency,\n        SUM(CASE WHEN type = 'invoice' THEN ABS(amount) ELSE 0 END) AS total_invoiced,\n        SUM(CASE WHEN type = 'credit_note' THEN ABS(amount) ELSE 0 END) AS total_credit_notes,\n        SUM(CASE WHEN type = 'payment' THEN -amount ELSE 0 END) AS total_paid,\n        SUM(amount) AS net_balance\n    FROM all_movements\n    GROUP BY user_id, currency\n)\nSELECT \n    u.id AS user_id,\n    u.is_sales,\n    jsonb_object_agg(\n        fs.currency, \n        jsonb_build_object(\n            'total_invoiced', fs.total_invoiced,\n            'total_credit_notes', fs.total_credit_notes,\n            'total_paid', fs.total_paid,\n            'current_debt', CASE \n                WHEN u.is_sales THEN GREATEST(fs.net_balance, 0)\n                ELSE ABS(LEAST(fs.net_balance, 0))\n            END,\n            'available_balance', CASE \n                WHEN u.is_sales THEN ABS(LEAST(fs.net_balance, 0))\n                ELSE GREATEST(fs.net_balance, 0)\n            END,\n            'account_status', fs.net_balance\n        )\n    ) AS financial_data\nFROM public.users u\nJOIN financial_summary fs ON u.id = fs.user_id\nWHERE u.id = $1\nGROUP BY u.id, u.is_sales;",
         "options": {
           "queryReplacement": "={{ $json.query.user_id }}"
         }
@@ -3529,10 +3529,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1792,
-        3776
+        -1808,
+        6000
       ],
-      "id": "630ea459-b480-4fe1-b2a6-064101017178",
+      "id": "73228c95-9602-4168-848a-e25b385909f8",
       "name": "Get user financial summary1",
       "credentials": {
         "postgres": {
@@ -3555,10 +3555,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1584,
-        3776
+        -2016,
+        6000
       ],
-      "id": "cad3c5c3-2627-4c6d-a21d-d2d3b1f044b9",
+      "id": "e230a282-5296-43c9-9d41-0e165de98f13",
       "name": "user_financial",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3586,10 +3586,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2000,
-        3680
+        -1600,
+        5904
       ],
-      "id": "013b733f-b18f-4c75-a01c-76e71c3e1287",
+      "id": "42feac50-122f-48ad-bd84-1b11d60cfc80",
       "name": "OK1"
     },
     {
@@ -3609,10 +3609,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2000,
-        3872
+        -1600,
+        6096
       ],
-      "id": "a5af9bd8-61aa-43a9-acec-aa1578554d75",
+      "id": "14e81890-2978-4c40-85bb-5f7f9a046ec3",
       "name": "Error10"
     },
     {
@@ -3629,10 +3629,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        864,
-        3392
+        -2736,
+        5616
       ],
-      "id": "e84ce111-ce7d-4c87-86c4-ffac373aebc8",
+      "id": "ee8870c0-8f0d-4c3b-ac1e-e6f02e78c5b8",
       "name": "users_services",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3653,10 +3653,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1072,
-        3392
+        -2528,
+        5616
       ],
-      "id": "c49b1a4f-e036-455d-8fa1-bcac44ae862c",
+      "id": "0a9e09d1-7ae2-44ad-bf7d-6d8780fb1973",
       "name": "Select Services of users",
       "credentials": {
         "postgres": {
@@ -3677,10 +3677,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        2944,
-        2352
+        -656,
+        4576
       ],
-      "id": "e2234037-f204-4bd9-9c7f-1b65afb395e3",
+      "id": "7e50eded-2e2e-40a2-b251-c61842d2b8e5",
       "name": "users/doctors_noauth",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7"
     },
@@ -3696,10 +3696,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        3056,
-        2624
+        -544,
+        4848
       ],
-      "id": "f57fe436-faf6-4e7d-82e0-13fb6b72dbf2",
+      "id": "fee1da30-5628-4f19-8a7e-699340b7a546",
       "name": "users/patients_noauth",
       "webhookId": "6894d4fa-789c-408c-a11b-171c9f70eda7"
     },
@@ -3711,11 +3711,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1520,
-        3296
+        -2080,
+        5520
       ],
       "typeVersion": 1,
-      "id": "cf2d103b-b447-4db9-9001-c862fd1eff56",
+      "id": "2b5e8158-66f0-4912-98dd-aab2fac777fd",
       "name": "Sticky Note4"
     },
     {
@@ -3732,10 +3732,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1584,
-        3408
+        -2016,
+        5632
       ],
-      "id": "7c4929ca-021c-4f06-9fb7-5299143a0825",
+      "id": "76a6978e-e3de-48fc-a2b1-2865cadf926c",
       "name": "user_dependant",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3756,10 +3756,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1792,
-        3408
+        -1808,
+        5632
       ],
-      "id": "678fd76a-ec7f-45d7-b074-26d03fbdb2ab",
+      "id": "89e8e61b-3b27-4a1d-bae5-8242b49b5056",
       "name": "Select dependant contact",
       "credentials": {
         "postgres": {
@@ -3776,11 +3776,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1280,
-        4592
+        -2320,
+        6816
       ],
       "typeVersion": 1,
-      "id": "b33fc415-3b9d-4387-bcc8-9ecdce1eaa16",
+      "id": "ed166125-c845-457e-a11e-37f50264521f",
       "name": "Doctors"
     },
     {
@@ -3797,10 +3797,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1328,
-        4736
+        -2272,
+        6960
       ],
-      "id": "fbb8554b-7e6e-47ff-8d7c-19eab25d76ed",
+      "id": "b68191d7-e33b-47d7-855d-5bbb2657dbb7",
       "name": "ai/doctor/query",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -3822,10 +3822,10 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
-        1952,
-        4736
+        -1648,
+        6960
       ],
-      "id": "0c878d5f-ccd0-4b40-842b-ef338f0dcd8b",
+      "id": "5fa90e50-72b3-48b8-b45a-c70b2650f354",
       "name": "Manager",
       "retryOnFail": true,
       "maxTries": 2,
@@ -3849,10 +3849,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2608,
-        4672
+        -992,
+        6896
       ],
-      "id": "aa304c30-18df-43cd-9e35-8b025ea24b81",
+      "id": "0d378e68-6060-4c26-8628-b6ffcee2afe3",
       "name": "OK2"
     },
     {
@@ -3872,10 +3872,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2608,
-        4816
+        -992,
+        7040
       ],
-      "id": "cf621022-d365-4c42-8fd0-fab4113e450f",
+      "id": "5877d57a-b8b4-4d1d-bd3d-cf3cbefca2a1",
       "name": "Error11"
     },
     {
@@ -3922,10 +3922,10 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.3,
       "position": [
-        1536,
-        4736
+        -2064,
+        6960
       ],
-      "id": "2cba5cb1-1947-4c93-9ac8-6c1a0b9c6a4b",
+      "id": "16aea345-cc73-4e83-a480-902a05c43ecc",
       "name": "Get User Data"
     },
     {
@@ -3936,10 +3936,10 @@
       "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
       "typeVersion": 1.3,
       "position": [
-        1824,
-        5024
+        -1776,
+        7248
       ],
-      "id": "e02ef539-8bfa-4b28-9699-20a27820b239",
+      "id": "3e7b425f-bade-4598-8f8b-58cf3bfcdc1b",
       "name": "Postgres Chat Memory",
       "credentials": {
         "postgres": {
@@ -3959,10 +3959,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        1920,
-        5184
+        -1680,
+        7408
       ],
-      "id": "b58ae263-e469-4f35-a5c8-a397925190b8",
+      "id": "a7c554bf-2413-4afa-af3c-6af9e587fbbf",
       "name": "Patient anamnesis",
       "credentials": {
         "postgres": {
@@ -3982,10 +3982,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        2016,
-        5024
+        -1584,
+        7248
       ],
-      "id": "203a196b-e781-4266-86d0-537929accf40",
+      "id": "093042e7-8cfa-4349-800c-350c7db314cc",
       "name": "Patient clinic sessions",
       "credentials": {
         "postgres": {
@@ -4005,10 +4005,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        2112,
-        5184
+        -1488,
+        7408
       ],
-      "id": "40685a03-1980-4ddf-9d77-8aadf89c658f",
+      "id": "99faf6d8-27ec-45e0-a21f-0f3336695541",
       "name": "Patient personal information",
       "credentials": {
         "postgres": {
@@ -4028,10 +4028,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        2208,
-        5024
+        -1392,
+        7248
       ],
-      "id": "f1cf840a-e43f-4bdc-94b2-ee2e047c10d5",
+      "id": "720bc4c9-fb78-4187-8979-dd8eba0e9104",
       "name": "Patient appointment",
       "credentials": {
         "postgres": {
@@ -4051,10 +4051,10 @@
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.6,
       "position": [
-        2304,
-        5184
+        -1296,
+        7408
       ],
-      "id": "d82fcf39-0c93-4e51-87ee-84a9c66d6bf8",
+      "id": "9712a5e8-ff52-4ac5-aea2-82d9b27658ff",
       "name": "Patient treatment plans",
       "credentials": {
         "postgres": {
@@ -4070,10 +4070,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1744,
-        4736
+        -1856,
+        6960
       ],
-      "id": "03483156-cfcc-4a1e-b14e-562fc8708451",
+      "id": "fb6a4903-5465-4020-b246-cf75a7e7c828",
       "name": "Format data"
     },
     {
@@ -4083,10 +4083,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2384,
-        4672
+        -1216,
+        6896
       ],
-      "id": "a6d6fab2-0e2a-4f5b-a55f-e10ceb35d846",
+      "id": "94a23e4a-f18c-4036-8ed7-8ccae5b495ed",
       "name": "Format output"
     },
     {
@@ -4097,11 +4097,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        2832,
-        4096
+        -768,
+        6320
       ],
       "typeVersion": 1,
-      "id": "7c75ca8e-756a-46d3-b867-49b64ad20b8f",
+      "id": "ca225005-1692-435e-99a2-74cb1341ceea",
       "name": "Sticky Note5"
     },
     {
@@ -4118,10 +4118,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        2912,
-        4208
+        -688,
+        6432
       ],
-      "id": "fef3148b-e1a2-4878-8a7f-444f4f2ae1e0",
+      "id": "a75e3112-e2e8-4788-b427-d2d547dde630",
       "name": "POST /users/preferences",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -4142,10 +4142,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3120,
-        4208
+        -480,
+        6432
       ],
-      "id": "091dd734-81e2-4b47-a496-23bb81962ad1",
+      "id": "e67984de-7fa4-4efc-8dc4-41f3f0149897",
       "name": "Update user preferences",
       "credentials": {
         "postgres": {
@@ -4172,10 +4172,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        3328,
-        4192
+        -272,
+        6416
       ],
-      "id": "18535530-2772-40ad-a879-9f0f074c3609",
+      "id": "cbe31ca8-70fe-4a61-91ca-9ce892163601",
       "name": "OK3"
     },
     {
@@ -4195,10 +4195,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        3328,
-        4400
+        -272,
+        6624
       ],
-      "id": "87875329-79fc-42da-87bf-4fad272195ae",
+      "id": "1a6b3628-1e8b-4f6d-8cec-cff47784d063",
       "name": "Error12"
     },
     {
@@ -4214,10 +4214,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        2912,
-        4384
+        -688,
+        6608
       ],
-      "id": "67fe9848-fddd-467a-bae9-15f7e3b04d67",
+      "id": "744dfeae-1e47-4789-b9a0-f0346f1c1524",
       "name": "GET /users/preferences",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -4238,10 +4238,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3120,
-        4384
+        -480,
+        6608
       ],
-      "id": "e2256904-195d-41b7-ab7b-9b768c207cc7",
+      "id": "0ca27c9e-e954-449a-b39b-b0e2bfdda45a",
       "name": "Get user preferences",
       "alwaysOutputData": true,
       "credentials": {
@@ -4820,10 +4820,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1712,
-        2416
+        -2784,
+        4480
       ],
-      "id": "66946cf0-376e-4374-ac14-9e78abe73d87",
+      "id": "27488dad-85d3-4202-9ddb-d875b4452c62",
       "name": "Insert user",
       "credentials": {
         "postgres": {
@@ -5401,10 +5401,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1712,
-        2064
+        -2720,
+        3888
       ],
-      "id": "c17743f5-8bb4-4dbf-a59d-444ac4cde0e3",
+      "id": "ee316444-6877-429d-b915-1c9622109ef5",
       "name": "Update user",
       "credentials": {
         "postgres": {
@@ -5422,11 +5422,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1280,
-        5392
+        -2320,
+        7616
       ],
       "typeVersion": 1,
-      "id": "bec259fd-48ce-46e4-aad6-fc7b65afe438",
+      "id": "231f2958-acb5-41cc-8713-d8170d991ebb",
       "name": "Doctors1"
     },
     {
@@ -5440,10 +5440,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1520,
-        5536
+        -2080,
+        7760
       ],
-      "id": "965d77bd-67ea-448b-9746-d17cd238319d",
+      "id": "78d4d924-bb67-4f28-8825-cbafd0b01411",
       "name": "Get user by ID",
       "credentials": {
         "postgres": {
@@ -5465,10 +5465,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1312,
-        5536
+        -2288,
+        7760
       ],
-      "id": "4c4407b4-2115-4d14-a2aa-d0201f6b7a90",
+      "id": "54d4dca3-0c34-41ce-ab56-428d3932e8b5",
       "name": "GET user",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5491,10 +5491,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1568,
-        4320
+        -2032,
+        6544
       ],
-      "id": "9c6ee36d-ecd5-40ec-ab26-669ead9c8ab5",
+      "id": "ba979264-a523-45cb-a142-1466d4478a4f",
       "name": "GET /user/financial-summary/print1",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5507,7 +5507,7 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH service_agg AS (\n    SELECT \n        ii.invoice_id,\n        jsonb_agg(sc.name ORDER BY ii.id) AS services_list\n    FROM public.invoice_items ii\n    JOIN public.service_catalog sc ON ii.service_id = sc.id\n    GROUP BY ii.invoice_id\n),\npayment_refs AS (\n    SELECT \n        pa.payment_id,\n        jsonb_agg(i.doc_no ORDER BY i.doc_no) AS allocated_invoices\n    FROM public.payment_allocations pa\n    JOIN public.invoices i ON pa.invoice_id = i.id\n    GROUP BY pa.payment_id\n),\ncredit_note_refs AS (\n    SELECT \n        ia.source_id AS credit_note_id,\n        jsonb_agg(i.doc_no ORDER BY i.doc_no) AS target_invoices\n    FROM public.invoice_allocations ia\n    JOIN public.invoices i ON ia.target_id = i.id\n    GROUP BY ia.source_id\n),\nall_movements AS (\n    -- Unificamos todos los documentos primero\n    SELECT \n        i.user_id, i.currency, i.created_at, 'invoice' AS document_type, i.doc_no, i.total AS amount,\n        jsonb_build_object('label', 'Factura', 'doc_no', i.doc_no, 'services', COALESCE(sa.services_list, '[]'::jsonb), 'notes', i.notes) AS metadata,\n        i.id AS internal_id\n    FROM public.invoices i\n    LEFT JOIN service_agg sa ON i.id = sa.invoice_id\n    WHERE i.type = 'invoice' AND i.status = 'booked'\n\n    UNION ALL\n\n    SELECT \n        i.user_id, i.currency, i.created_at, 'credit_note' AS document_type, i.doc_no, -i.total AS amount,\n        jsonb_build_object('label', 'Nota de Crédito', 'doc_no', i.doc_no, 'applied_to', COALESCE(cnr.target_invoices, '[]'::jsonb), 'services', COALESCE(sa.services_list, '[]'::jsonb), 'notes', i.notes) AS metadata,\n        i.id AS internal_id\n    FROM public.invoices i\n    LEFT JOIN service_agg sa ON i.id = sa.invoice_id\n    LEFT JOIN credit_note_refs cnr ON i.id = cnr.credit_note_id\n    WHERE i.type = 'credit_note' AND i.status = 'booked'\n\n    UNION ALL\n\n    SELECT \n        p.user_id, p.currency, p.created_at, 'payment' AS document_type, p.doc_no, -p.amount AS amount,\n        jsonb_build_object(\n            'label', 'Pago',\n            'payment_type', CASE WHEN p.invoice_id IS NOT NULL THEN 'Directo' WHEN pr.allocated_invoices IS NOT NULL THEN 'Prepago Aplicado' ELSE 'A cuenta' END,\n            'target_invoices', CASE WHEN p.invoice_id IS NOT NULL THEN jsonb_build_array((SELECT doc_no FROM public.invoices WHERE id = p.invoice_id)) ELSE COALESCE(pr.allocated_invoices, '[]'::jsonb) END,\n            'notes', p.notes\n        ) AS metadata,\n        p.id AS internal_id\n    FROM public.payments p\n    LEFT JOIN payment_refs pr ON p.id = pr.payment_id\n),\nhistory_calculated AS (\n    -- 1. CAMBIO: Añadida prioridad por tipo de documento para desempatar el saldo progresivo\n    SELECT \n        *,\n        SUM(amount) OVER (\n            PARTITION BY user_id, currency \n            ORDER BY \n                created_at ASC, \n                CASE \n                    WHEN document_type = 'invoice' THEN 1 \n                    WHEN document_type = 'credit_note' THEN 2 \n                    ELSE 3 \n                END ASC,\n                internal_id ASC\n        ) AS running_balance\n    FROM all_movements\n),\nopening_balances AS (\n    -- 2. CAMBIO: Añadida prioridad en orden DESC para asegurar que se tome el último saldo correcto del segundo en conflicto\n    SELECT DISTINCT ON (user_id, currency)\n        user_id, currency, running_balance\n    FROM history_calculated\n    WHERE ($2 IS NOT NULL AND created_at < $2)\n    ORDER BY \n        user_id, \n        currency, \n        created_at DESC, \n        CASE \n            WHEN document_type = 'invoice' THEN 1 \n            WHEN document_type = 'credit_note' THEN 2 \n            ELSE 3 \n        END DESC,\n        internal_id DESC\n),\nclosing_balances AS (\n    -- 3. CAMBIO: Añadida prioridad idéntica a opening_balances para el saldo final\n    SELECT DISTINCT ON (user_id, currency)\n        user_id, currency, running_balance\n    FROM history_calculated\n    WHERE ($3 IS NULL OR created_at <= $3)\n    ORDER BY \n        user_id, \n        currency, \n        created_at DESC, \n        CASE \n            WHEN document_type = 'invoice' THEN 1 \n            WHEN document_type = 'credit_note' THEN 2 \n            ELSE 3 \n        END DESC,\n        internal_id DESC\n)\nSELECT \n    u.id AS user_id,\n    u.name,\n    u.email,\n    u.phone_number,\n    u.identity_document,\n    $2 AS report_start_date,\n    $3 AS report_end_date,\n    jsonb_object_agg(\n        hc.currency, \n        jsonb_build_object(\n            'initial_balance', COALESCE((SELECT running_balance FROM opening_balances ob WHERE ob.user_id = u.id AND ob.currency = hc.currency), 0),\n            'final_balance', COALESCE((SELECT running_balance FROM closing_balances cb WHERE cb.user_id = u.id AND cb.currency = hc.currency), 0),\n            'movements', (\n                -- 4. CAMBIO: Alineado el orden del array JSON con el mismo criterio matemático del saldo progresivo\n                SELECT jsonb_agg(h ORDER BY \n                    h.created_at ASC, \n                    CASE \n                        WHEN h.document_type = 'invoice' THEN 1 \n                        WHEN h.document_type = 'credit_note' THEN 2 \n                        ELSE 3 \n                    END ASC, \n                    h.internal_id ASC\n                )\n                FROM history_calculated h \n                WHERE h.user_id = u.id \n                  AND h.currency = hc.currency\n                  AND (h.created_at >= $2 OR $2 IS NULL)\n                  AND (h.created_at <= $3 OR $3 IS NULL)\n            )\n        )\n    ) FILTER (WHERE EXISTS (\n        SELECT 1 FROM history_calculated h2 \n        WHERE h2.user_id = u.id \n          AND h2.currency = hc.currency\n          AND (h2.created_at >= $2 OR $2 IS NULL)\n          AND (h2.created_at <= $3 OR $3 IS NULL)\n    )) AS history_by_currency\nFROM public.users u\nJOIN history_calculated hc ON u.id = hc.user_id\nWHERE u.id = $1\nGROUP BY u.id, u.name, u.email, u.phone_number, u.identity_document;",
+        "query": "WITH service_agg AS (\n    SELECT \n        ii.invoice_id,\n        jsonb_agg(sc.name ORDER BY ii.id) AS services_list\n    FROM public.invoice_items ii\n    JOIN public.service_catalog sc ON ii.service_id = sc.id\n    GROUP BY ii.invoice_id\n),\npayment_refs AS (\n    SELECT \n        pa.payment_id,\n        jsonb_agg(i.doc_no ORDER BY i.doc_no) AS allocated_invoices\n    FROM public.payment_allocations pa\n    JOIN public.invoices i ON pa.invoice_id = i.id\n    GROUP BY pa.payment_id\n),\ncredit_note_refs AS (\n    SELECT \n        ia.source_id AS credit_note_id,\n        jsonb_agg(i.doc_no ORDER BY i.doc_no) AS target_invoices\n    FROM public.invoice_allocations ia\n    JOIN public.invoices i ON ia.target_id = i.id\n    GROUP BY ia.source_id\n),\nall_movements AS (\n    -- Unificamos todos los documentos primero\n    SELECT \n        i.user_id, i.currency, i.created_at, 'invoice' AS document_type, i.doc_no, i.total AS amount,\n        jsonb_build_object('label', 'Factura', 'doc_no', i.doc_no, 'services', COALESCE(sa.services_list, '[]'::jsonb), 'notes', i.notes) AS metadata,\n        i.id AS internal_id\n    FROM public.invoices i\n    LEFT JOIN service_agg sa ON i.id = sa.invoice_id\n    WHERE i.type = 'invoice' AND i.status = 'booked'\n\n    UNION ALL\n\n    SELECT \n        i.user_id, i.currency, i.created_at, 'credit_note' AS document_type, i.doc_no, -i.total AS amount,\n        jsonb_build_object('label', 'Nota de Crédito', 'doc_no', i.doc_no, 'applied_to', COALESCE(cnr.target_invoices, '[]'::jsonb), 'services', COALESCE(sa.services_list, '[]'::jsonb), 'notes', i.notes) AS metadata,\n        i.id AS internal_id\n    FROM public.invoices i\n    LEFT JOIN service_agg sa ON i.id = sa.invoice_id\n    LEFT JOIN credit_note_refs cnr ON i.id = cnr.credit_note_id\n    WHERE i.type = 'credit_note' AND i.status = 'booked'\n\n    UNION ALL\n\n    SELECT\n        -- Un pago directo a una factura en otra moneda se muestra en la moneda de la factura, por lo convertido.\n        p.user_id, COALESCE(pay_inv.currency, p.currency) AS currency, p.created_at, 'payment' AS document_type, p.doc_no,\n        -CASE WHEN pay_inv.currency <> p.currency THEN COALESCE(p.converted_amount, p.amount) ELSE p.amount END AS amount,\n        jsonb_build_object(\n            'label', 'Pago',\n            'payment_type', CASE WHEN p.invoice_id IS NOT NULL THEN 'Directo' WHEN pr.allocated_invoices IS NOT NULL THEN 'Prepago Aplicado' ELSE 'A cuenta' END,\n            'target_invoices', CASE WHEN p.invoice_id IS NOT NULL THEN jsonb_build_array((SELECT doc_no FROM public.invoices WHERE id = p.invoice_id)) ELSE COALESCE(pr.allocated_invoices, '[]'::jsonb) END,\n            'notes', p.notes\n        ) AS metadata,\n        p.id AS internal_id\n    FROM public.payments p\n    LEFT JOIN payment_refs pr ON p.id = pr.payment_id\n    LEFT JOIN public.invoices pay_inv ON pay_inv.id = p.invoice_id\n\n    UNION ALL\n\n    -- Aplicación de un pago a una factura en otra moneda: sale del saldo de la moneda del pago...\n    SELECT\n        p.user_id, p.currency, pa.created_at, 'payment' AS document_type, CONCAT(p.doc_no, '-A', pa.id), ABS(pa.amount) AS amount,\n        jsonb_build_object('label', 'Aplicación de pago', 'payment_type', 'Conversión', 'target_invoices', jsonb_build_array(pa_inv.doc_no), 'notes', p.notes) AS metadata,\n        pa.id AS internal_id\n    FROM public.payment_allocations pa\n    JOIN public.payments p ON p.id = pa.payment_id\n    JOIN public.invoices pa_inv ON pa_inv.id = pa.invoice_id\n    WHERE pa_inv.currency <> p.currency\n\n    UNION ALL\n\n    -- ...y entra como pago en la moneda de la factura.\n    SELECT\n        p.user_id, pa_inv.currency, pa.created_at, 'payment' AS document_type, CONCAT(p.doc_no, '-A', pa.id), -ABS(pa.target_amount) AS amount,\n        jsonb_build_object('label', 'Pago', 'payment_type', 'Conversión', 'target_invoices', jsonb_build_array(pa_inv.doc_no), 'notes', p.notes) AS metadata,\n        pa.id AS internal_id\n    FROM public.payment_allocations pa\n    JOIN public.payments p ON p.id = pa.payment_id\n    JOIN public.invoices pa_inv ON pa_inv.id = pa.invoice_id\n    WHERE pa_inv.currency <> p.currency\n),\nhistory_calculated AS (\n    -- 1. CAMBIO: Añadida prioridad por tipo de documento para desempatar el saldo progresivo\n    SELECT \n        *,\n        SUM(amount) OVER (\n            PARTITION BY user_id, currency \n            ORDER BY \n                created_at ASC, \n                CASE \n                    WHEN document_type = 'invoice' THEN 1 \n                    WHEN document_type = 'credit_note' THEN 2 \n                    ELSE 3 \n                END ASC,\n                internal_id ASC\n        ) AS running_balance\n    FROM all_movements\n),\nopening_balances AS (\n    -- 2. CAMBIO: Añadida prioridad en orden DESC para asegurar que se tome el último saldo correcto del segundo en conflicto\n    SELECT DISTINCT ON (user_id, currency)\n        user_id, currency, running_balance\n    FROM history_calculated\n    WHERE ($2 IS NOT NULL AND created_at < $2)\n    ORDER BY \n        user_id, \n        currency, \n        created_at DESC, \n        CASE \n            WHEN document_type = 'invoice' THEN 1 \n            WHEN document_type = 'credit_note' THEN 2 \n            ELSE 3 \n        END DESC,\n        internal_id DESC\n),\nclosing_balances AS (\n    -- 3. CAMBIO: Añadida prioridad idéntica a opening_balances para el saldo final\n    SELECT DISTINCT ON (user_id, currency)\n        user_id, currency, running_balance\n    FROM history_calculated\n    WHERE ($3 IS NULL OR created_at <= $3)\n    ORDER BY \n        user_id, \n        currency, \n        created_at DESC, \n        CASE \n            WHEN document_type = 'invoice' THEN 1 \n            WHEN document_type = 'credit_note' THEN 2 \n            ELSE 3 \n        END DESC,\n        internal_id DESC\n)\nSELECT \n    u.id AS user_id,\n    u.name,\n    u.email,\n    u.phone_number,\n    u.identity_document,\n    $2 AS report_start_date,\n    $3 AS report_end_date,\n    jsonb_object_agg(\n        hc.currency, \n        jsonb_build_object(\n            'initial_balance', COALESCE((SELECT running_balance FROM opening_balances ob WHERE ob.user_id = u.id AND ob.currency = hc.currency), 0),\n            'final_balance', COALESCE((SELECT running_balance FROM closing_balances cb WHERE cb.user_id = u.id AND cb.currency = hc.currency), 0),\n            'movements', (\n                -- 4. CAMBIO: Alineado el orden del array JSON con el mismo criterio matemático del saldo progresivo\n                SELECT jsonb_agg(h ORDER BY \n                    h.created_at ASC, \n                    CASE \n                        WHEN h.document_type = 'invoice' THEN 1 \n                        WHEN h.document_type = 'credit_note' THEN 2 \n                        ELSE 3 \n                    END ASC, \n                    h.internal_id ASC\n                )\n                FROM history_calculated h \n                WHERE h.user_id = u.id \n                  AND h.currency = hc.currency\n                  AND (h.created_at >= $2 OR $2 IS NULL)\n                  AND (h.created_at <= $3 OR $3 IS NULL)\n            )\n        )\n    ) FILTER (WHERE EXISTS (\n        SELECT 1 FROM history_calculated h2 \n        WHERE h2.user_id = u.id \n          AND h2.currency = hc.currency\n          AND (h2.created_at >= $2 OR $2 IS NULL)\n          AND (h2.created_at <= $3 OR $3 IS NULL)\n    )) AS history_by_currency\nFROM public.users u\nJOIN history_calculated hc ON u.id = hc.user_id\nWHERE u.id = $1\nGROUP BY u.id, u.name, u.email, u.phone_number, u.identity_document;",
         "options": {
           "queryReplacement": "={{ [$json.query.user_id, $json.query.from, $json.query.to] }}"
         }
@@ -5515,10 +5515,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1776,
-        4320
+        -1824,
+        6544
       ],
-      "id": "85927a1a-2d9f-4874-a629-eb3d5bd1637d",
+      "id": "19f55b67-0af8-46a1-a706-5720ae2d6241",
       "name": "Get user financial summary2",
       "credentials": {
         "postgres": {
@@ -5537,10 +5537,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2000,
-        4416
+        -1600,
+        6640
       ],
-      "id": "9370777d-70a9-4e07-ada4-626f48aa6efe",
+      "id": "2a339b35-bbce-409c-ac7a-dd3b3a450984",
       "name": "Error13"
     },
     {
@@ -5552,10 +5552,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2000,
-        4240
+        -1600,
+        6464
       ],
-      "id": "8c39ada2-11a3-405a-80dc-c5c5be54d763",
+      "id": "1aef5eee-81c3-4b29-8717-e64469a6ff70",
       "name": "OK4"
     },
     {
@@ -5566,11 +5566,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        2832,
-        4592
+        -768,
+        6816
       ],
       "typeVersion": 1,
-      "id": "58fbe3ea-c220-4387-b1ba-59811b52d628",
+      "id": "e204c772-6ee9-4504-8050-d9f5c97947eb",
       "name": "Sticky Note6"
     },
     {
@@ -5584,10 +5584,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        3088,
-        4880
+        -512,
+        7104
       ],
-      "id": "9f4afacb-0234-4aca-9635-628cddfbdf94",
+      "id": "f183aac0-9e47-4b0f-8faf-13e425a6f287",
       "name": "Get user email",
       "alwaysOutputData": true,
       "credentials": {
@@ -5608,10 +5608,10 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        3520,
-        4688
+        -80,
+        6912
       ],
-      "id": "163c5345-662b-4561-bce8-d03b19387287",
+      "id": "66f5af72-0694-4a20-ad43-79ef30363c55",
       "name": "Send Email",
       "webhookId": "55042c48-fb23-4de2-b8d5-71a4ec30cbfc",
       "credentials": {
@@ -5638,10 +5638,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        3728,
-        4688
+        128,
+        6912
       ],
-      "id": "3882c845-ba2c-48a5-aa1b-a7bae834f936",
+      "id": "c592467c-b0f5-4369-bfe5-10bde464e5ad",
       "name": "OK5"
     },
     {
@@ -5672,10 +5672,10 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        3296,
-        4784
+        -304,
+        7008
       ],
-      "id": "5862481a-04c5-43c3-b5e3-eac5802fc31d",
+      "id": "efc45025-7f01-47b4-bc85-d70b42bde7f4",
       "name": "Has email?"
     },
     {
@@ -5695,10 +5695,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        3520,
-        4880
+        -80,
+        7104
       ],
-      "id": "160ce272-cfdb-489e-a4fd-f0e2734c2d4d",
+      "id": "34e41ad3-0ab6-4310-acdc-70578c3caecb",
       "name": "Error14"
     },
     {
@@ -5715,10 +5715,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        2880,
-        4880
+        -720,
+        7104
       ],
-      "id": "ce790fb7-44a9-45ea-98c0-87c85755b07f",
+      "id": "1035c232-a4bf-4820-95a8-aa12a347ad44",
       "name": "POST /users/send_email",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5736,11 +5736,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1520,
-        2800
+        -2080,
+        5024
       ],
       "typeVersion": 1,
-      "id": "75c6fd89-d532-4a27-93a7-73e4379c6753",
+      "id": "5b0404b2-5042-433a-b098-4096ca5ad34e",
       "name": "User Quotes/Invoices"
     },
     {
@@ -5754,10 +5754,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1792,
-        2896
+        -1808,
+        5120
       ],
-      "id": "07819865-683c-49e7-8f3d-6d669ef39a71",
+      "id": "34cbbb8b-c47a-4994-b587-560d2394ae00",
       "name": "Select Quotes of User1",
       "alwaysOutputData": true,
       "credentials": {
@@ -5780,10 +5780,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        1568,
-        2992
+        -2032,
+        5216
       ],
-      "id": "e3bdf323-60aa-4f4f-9c58-66ecee0ee613",
+      "id": "e38466f7-471f-4b3e-a002-6ab71c747953",
       "name": "GET user_quotes_invoices",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5804,10 +5804,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1792,
-        3088
+        -1808,
+        5312
       ],
-      "id": "b2dd781d-8c3f-45d6-8dee-5cc749b25802",
+      "id": "b9f02884-9fbd-4315-9165-4d815cc1b6fb",
       "name": "Select Invoices of User1",
       "alwaysOutputData": true,
       "credentials": {
@@ -5826,10 +5826,10 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        2256,
-        2992
+        -1344,
+        5216
       ],
-      "id": "5b38a870-2ada-4d1e-9c32-11df4e6f028d",
+      "id": "6fb28051-a692-431b-98d5-7f65ee8b9833",
       "name": "Merge"
     },
     {
@@ -5839,10 +5839,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2016,
-        2896
+        -1584,
+        5120
       ],
-      "id": "05ee5c6e-654e-414f-bef5-dbee162f141d",
+      "id": "fa7abdfc-b13d-4c20-909e-54c88aaf10e1",
       "name": "Code in JavaScript4"
     },
     {
@@ -5852,10 +5852,10 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2016,
-        3088
+        -1584,
+        5312
       ],
-      "id": "b6bf045d-cf0b-40d0-8b31-d79d3c091901",
+      "id": "e7637813-344e-4bd6-87d6-ad201ba3b5d8",
       "name": "Code in JavaScript5"
     },
     {
@@ -5875,10 +5875,10 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        2480,
-        2992
+        -1120,
+        5216
       ],
-      "id": "1bb5aa43-09c0-4f34-ba6a-16635dd80093",
+      "id": "994a6665-8990-44fc-bf13-2cf297f3af0d",
       "name": "Respond to Webhook"
     },
     {
@@ -5892,10 +5892,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1056,
-        4640
+        -2544,
+        6864
       ],
-      "id": "f921dad4-1e30-4f4b-9cd3-7e3305a1582c",
+      "id": "119b315a-f521-49fb-a310-b03235b08ec2",
       "name": "Select contact info of users",
       "alwaysOutputData": true,
       "credentials": {
@@ -5920,10 +5920,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        848,
-        4640
+        -2752,
+        6864
       ],
-      "id": "2a942d9c-3fa1-4d1d-a899-a37ae9a06206",
+      "id": "f31a342a-1e36-4a7e-a4e7-93a6c0f068ab",
       "name": "POST /user_contact",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5948,10 +5948,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        848,
-        4832
+        -2752,
+        7056
       ],
-      "id": "e45406c3-14cf-41d3-8a64-1695b217261c",
+      "id": "5888af32-6ef4-4158-8ea9-622e91810265",
       "name": "POST /user/notes",
       "webhookId": "2dea130a-06e3-41b8-8d50-71b48d63ad3c",
       "credentials": {
@@ -5972,10 +5972,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1056,
-        4832
+        -2544,
+        7056
       ],
-      "id": "bc67b4b2-bf2d-48fe-9668-849da930ac7a",
+      "id": "98b0e8e5-79ef-467f-845a-22cf971bb1d2",
       "name": "Update user notes",
       "alwaysOutputData": true,
       "credentials": {
@@ -5999,10 +5999,10 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        1952,
-        4912
+        -1648,
+        7136
       ],
-      "id": "6375c245-f255-4778-be7d-950314e0abee",
+      "id": "4db76848-c1f6-46a1-aade-8af749a69c85",
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
@@ -6028,10 +6028,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2144,
-        2560
+        -1456,
+        4832
       ],
-      "id": "275d3d52-2375-4793-ae14-365cfa5f6c79",
+      "id": "58837008-fbe5-4de2-a16e-37f043706a75",
       "name": "Asignar role operador"
     },
     {
@@ -6045,10 +6045,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1888,
-        2304
+        -1920,
+        4688
       ],
-      "id": "5cd0e478-570e-4122-9f7c-7af960460f9f",
+      "id": "2f6ea624-036e-4421-9e0e-9e2d68ab6ee2",
       "name": "Insert default preferences",
       "credentials": {
         "postgres": {
@@ -6070,10 +6070,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        832,
-        5280
+        -2768,
+        7504
       ],
-      "id": "6a3a6e2c-82d9-4324-b0d5-c971b26aa5b5",
+      "id": "717aab49-28d2-4a8c-9e80-fe6c6524256d",
       "name": "GET /users/dependents",
       "webhookId": "76246297-c8e5-4cc8-9f95-fc21eafb009b",
       "credentials": {
@@ -6094,10 +6094,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1040,
-        5280
+        -2560,
+        7504
       ],
-      "id": "e5797855-ca38-4029-b621-3d2d328ee552",
+      "id": "767415f2-39c1-4e20-99ee-39ea7a7307b7",
       "name": "Select dependents",
       "credentials": {
         "postgres": {
@@ -6119,10 +6119,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        832,
-        5104
+        -2768,
+        7328
       ],
-      "id": "8e8d66b6-71dd-4c6f-8a41-c3268b08da3d",
+      "id": "c51ee4c4-e719-45f1-9a58-e9e125b2832e",
       "name": "POST /users/responsible",
       "webhookId": "579f87f3-2207-4f6e-a445-4a68a65f0cf1",
       "credentials": {
@@ -6143,10 +6143,10 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1040,
-        5104
+        -2560,
+        7328
       ],
-      "id": "6a17e9d2-acdd-419b-9d8e-a15e80b248b9",
+      "id": "397de325-0ad4-4adb-9bb2-f09cb7f129af",
       "name": "Set responsible contact",
       "credentials": {
         "postgres": {
@@ -6163,11 +6163,11 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        768,
-        4992
+        -2832,
+        7216
       ],
       "typeVersion": 1,
-      "id": "ed6f0150-b389-4cbb-bc07-b85b89dc60eb",
+      "id": "12a7757d-93d9-4f61-bd93-b61e14a41459",
       "name": "Sticky Note3"
     },
     {
@@ -6194,13 +6194,13 @@
         },
         "options": {}
       },
-      "id": "77be33e5-bb4e-4a7c-be91-efca0ee3e5ad",
+      "id": "7be5d111-9e4d-4f5a-b984-f8f6066d9258",
       "name": "Adopt? (create)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1600,
-        2520
+        -3184,
+        4480
       ]
     },
     {
@@ -6211,13 +6211,13 @@
           "queryReplacement": "={{ [JSON.stringify($('Code in JavaScript3').first().json.adopt_ids), $('/users/upsert').first().json.body.phone || '', $('/users/upsert').first().json.body.email || '', $('/users/upsert').first().json.jwtPayload.userId || ''] }}"
         }
       },
-      "id": "3dea0bf2-a6f3-402c-a423-c2c802ecc8cc",
+      "id": "aefc6585-272e-4f20-b179-8ebf2bef1689",
       "name": "Release contact (create)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1640,
-        2700
+        -2992,
+        4384
       ],
       "credentials": {
         "postgres": {
@@ -6250,13 +6250,13 @@
         },
         "options": {}
       },
-      "id": "2189f1d6-f0d3-4e85-be5c-f534a005e040",
+      "id": "8f60ee34-2150-4a1a-999d-7735cbb8a793",
       "name": "Adopted? (create)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1800,
-        2720
+        -2512,
+        4384
       ]
     },
     {
@@ -6267,13 +6267,13 @@
           "queryReplacement": "={{ [JSON.stringify($('Code in JavaScript3').first().json.adopt_ids), $('Insert user').first().json.id, $('/users/upsert').first().json.jwtPayload.userId || ''] }}"
         }
       },
-      "id": "82eaf5f8-6fb4-4869-985c-bda748a07476",
+      "id": "6399e77d-78de-4a5f-bffd-3225cfacfeb5",
       "name": "Link dependents (create)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1980,
-        2720
+        -2336,
+        4384
       ],
       "credentials": {
         "postgres": {
@@ -6291,13 +6291,13 @@
           "queryReplacement": "={{ [$('Insert user').first().json.id] }}"
         }
       },
-      "id": "c2fcf106-420c-472f-97fc-c18681090aeb",
+      "id": "c288d0c9-2311-41f1-b8c2-738f762aead8",
       "name": "Undo create",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2160,
-        2840
+        -2128,
+        4384
       ],
       "credentials": {
         "postgres": {
@@ -6331,13 +6331,13 @@
         },
         "options": {}
       },
-      "id": "a4dbbc4d-2650-4101-ab0d-b7dd51d5e1b4",
+      "id": "d3789240-9bd1-467c-afb1-c7418047a7e9",
       "name": "Adopted on error? (create)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1800,
-        2880
+        -2512,
+        4576
       ]
     },
     {
@@ -6348,13 +6348,13 @@
           "queryReplacement": "={{ [JSON.stringify($('Release contact (create)').first().json.released)] }}"
         }
       },
-      "id": "6e71cffc-5574-4d0b-b347-e31ce427ed03",
+      "id": "3b4becda-13f8-4b79-8b6a-7903a03aa3bf",
       "name": "Restore contact (create)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2340,
-        2880
+        -1920,
+        4384
       ],
       "credentials": {
         "postgres": {
@@ -6383,13 +6383,13 @@
         },
         "options": {}
       },
-      "id": "73f56773-bc2b-459a-aedb-498136e8bc31",
+      "id": "1efb01b8-80e2-4563-b342-24f1e5bb99e0",
       "name": "Error adopt (create)",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2520,
-        2880
+        -1712,
+        4384
       ]
     },
     {
@@ -6416,13 +6416,13 @@
         },
         "options": {}
       },
-      "id": "33256e49-91db-4719-a736-e404f1dbc9c4",
+      "id": "45994193-444f-4b14-bde8-4cd3bdd82394",
       "name": "Adopt? (update)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1600,
-        1880
+        -3152,
+        3888
       ]
     },
     {
@@ -6433,13 +6433,13 @@
           "queryReplacement": "={{ [JSON.stringify($('Code in JavaScript2').first().json.adopt_ids), $('/users/upsert').first().json.body.phone || '', $('/users/upsert').first().json.body.email || '', $('/users/upsert').first().json.jwtPayload.userId || ''] }}"
         }
       },
-      "id": "392ec31e-564b-4053-8d34-2999816ed9c8",
+      "id": "314f1bd3-7b2d-4350-b15d-aa1d2327b8ef",
       "name": "Release contact (update)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        1640,
-        1720
+        -2928,
+        3792
       ],
       "credentials": {
         "postgres": {
@@ -6472,13 +6472,13 @@
         },
         "options": {}
       },
-      "id": "c0362904-6d8c-47b5-928e-6ad481b728d6",
+      "id": "72d95ccb-343e-4450-ae77-bd18134f5a00",
       "name": "Adopted? (update)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1840,
-        1800
+        -2512,
+        3712
       ]
     },
     {
@@ -6489,13 +6489,13 @@
           "queryReplacement": "={{ [JSON.stringify($('Code in JavaScript2').first().json.adopt_ids), $('/users/upsert').first().json.body.id, $('/users/upsert').first().json.jwtPayload.userId || ''] }}"
         }
       },
-      "id": "3c72a83a-d2aa-4b29-9cf3-961f51317183",
+      "id": "485819da-4ee8-4942-b15d-84fb6920dedc",
       "name": "Link dependents (update)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2000,
-        1720
+        -2304,
+        3616
       ],
       "credentials": {
         "postgres": {
@@ -6525,13 +6525,13 @@
         },
         "options": {}
       },
-      "id": "24bc2bb7-5d84-4e15-b0f7-61fe51ee29bd",
+      "id": "fc7fb514-1b6c-40be-b26b-2cfd29724fa4",
       "name": "Error adopt link (update)",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2180,
-        1640
+        -2096,
+        3520
       ]
     },
     {
@@ -6558,13 +6558,13 @@
         },
         "options": {}
       },
-      "id": "8384b101-fe63-438d-946a-0ee6c6c02d6c",
+      "id": "14e508bb-70d5-4bfa-9d21-c0fc6deee90a",
       "name": "Adopted on error? (update)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1840,
-        2220
+        -2512,
+        3984
       ]
     },
     {
@@ -6575,13 +6575,13 @@
           "queryReplacement": "={{ [JSON.stringify($('Release contact (update)').first().json.released)] }}"
         }
       },
-      "id": "cab3c211-de97-469a-8d72-41685edd038d",
+      "id": "cc77e88b-c303-4e5b-8c35-c59e326775f7",
       "name": "Restore contact (update)",
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.6,
       "position": [
-        2000,
-        2320
+        -2304,
+        3888
       ],
       "credentials": {
         "postgres": {
@@ -6610,13 +6610,13 @@
         },
         "options": {}
       },
-      "id": "807058fd-654d-4ad0-93b0-ed6b36f36818",
+      "id": "90417d06-b298-4b83-b673-83ea8c77cf80",
       "name": "Error adopt (update)",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2180,
-        2320
+        -2096,
+        3888
       ]
     }
   ],
@@ -12128,7 +12128,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "b4a85e49-f3d5-4dea-9e47-b3b682abe6f6",
+  "versionId": "c43757c4-80dc-48c1-bf0b-22b26cc28cfa",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "495c3cde11c05270c3f134769756f56ef19d9d5b8640237c6146a638fc28118e"

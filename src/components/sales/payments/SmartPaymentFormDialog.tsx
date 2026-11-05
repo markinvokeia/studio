@@ -18,7 +18,9 @@ import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { useClinicInfo } from '@/hooks/useClinicInfo';
 import { Credit, Invoice, PaymentMethod, User } from '@/lib/types';
 import { toLocalISOString } from '@/lib/utils';
-import { api } from '@/services/api';
+import { useCurrencySettings } from '@/hooks/useCurrencySettings';
+import { buildAllocationsPayload, canConvertBetween, distributeFifo, sortAllocatableInvoices, type CurrencyPair } from '@/lib/payment-conversion';
+import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { fetchPatientLedgerData } from '@/services/patient-ledger-data';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format, parseISO } from 'date-fns';
@@ -38,6 +40,8 @@ const smartPaymentFormSchema = (t: (key: string) => string) => z.object({
   currency: currencySchema,
   notes: z.string().optional(),
   is_historical: z.boolean().default(false),
+  /** Only used when the payment reaches invoices in another currency. */
+  exchange_rate: z.coerce.number().min(0).default(0),
 }).refine(
   (data) => Number(data.payment_amount) <= 0 || !!data.payment_method_id,
   { message: t('validation.methodRequired'), path: ['payment_method_id'] }
@@ -94,14 +98,24 @@ export interface SmartPaymentFormDialogProps {
  * Registers a payment for a patient without picking an invoice: the amount is applied
  * to their unpaid/partial invoices oldest-first (FIFO), and whatever is left over (or
  * the whole amount, if nothing is pending) is booked as a prepayment/credit.
+ *
+ * Once the invoices in its own currency are covered, the rest can pay invoices in the
+ * clinic's other currency at the given rate. That part goes as one payment in its original
+ * currency with converted allocations, and it can't leave a leftover (see
+ * `@/lib/payment-conversion`).
  */
 export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSaveSuccess }: SmartPaymentFormDialogProps) {
   const t = useTranslations('PaymentsPage');
   const tValidation = useTranslations('InvoicesPage');
   const { toast } = useToast();
-  const { user, checkActiveSession } = useAuth();
+  const { user, checkActiveSession, activeCashSession } = useAuth();
   const { validateActiveSession, showCashSessionError } = useCashSessionValidation();
   const clinicInfo = useClinicInfo();
+  const { code: primaryCurrency, secondaryCode } = useCurrencySettings();
+  const sessionRate = Number(activeCashSession?.data?.opening_details?.date_rate) || 0;
+  // Synchronous lock: `isSubmitting` only takes effect on the next render.
+  const submitLockRef = React.useRef(false);
+  const rateTouchedRef = React.useRef(false);
 
   const [paymentMethods, setPaymentMethods] = React.useState<PaymentMethod[]>([]);
   const [pendingInvoices, setPendingInvoices] = React.useState<PendingInvoice[]>([]);
@@ -123,11 +137,14 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
       currency: clinicInfo?.currency ?? getClinicCurrency(),
       notes: '',
       is_historical: false,
+      exchange_rate: sessionRate,
     },
   });
 
   const watchedAmount = form.watch('payment_amount');
   const watchedCurrency = form.watch('currency');
+  const watchedHistorical = form.watch('is_historical');
+  const watchedRate = form.watch('exchange_rate') || 0;
 
   React.useEffect(() => {
     if (!open) return;
@@ -140,10 +157,22 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
       currency: clinicInfo?.currency ?? getClinicCurrency(),
       notes: '',
       is_historical: false,
+      exchange_rate: sessionRate,
     });
+    rateTouchedRef.current = false;
     getPaymentMethods().then(setPaymentMethods);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // The rate follows the open session until someone types one. A historical payment isn't
+  // at today's rate, so it starts empty and has to be typed in.
+  React.useEffect(() => {
+    rateTouchedRef.current = false;
+  }, [watchedHistorical]);
+  React.useEffect(() => {
+    if (!open || rateTouchedRef.current) return;
+    form.setValue('exchange_rate', watchedHistorical ? 0 : sessionRate);
+  }, [open, form, watchedHistorical, sessionRate]);
 
   React.useEffect(() => {
     if (!open || !initialUser?.id) return;
@@ -168,7 +197,11 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
       const data = await fetchPatientLedgerData(initialUser.id);
       const eligible = data.invoices
         .filter((inv) => (inv.type || 'invoice') !== 'credit_note')
-        .filter((inv) => (inv.currency || getClinicCurrency()) === watchedCurrency)
+        .filter((inv) => {
+          const invoiceCurrency = inv.currency || getClinicCurrency();
+          return invoiceCurrency === watchedCurrency
+            || canConvertBetween(watchedCurrency, invoiceCurrency, { primary: primaryCurrency, secondary: secondaryCode });
+        })
         .filter((inv) => ['unpaid', 'partial', 'partially_paid'].includes(String(inv.payment_status || '').toLowerCase()))
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
@@ -181,7 +214,7 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
       if (active) setIsLoadingInvoices(false);
     })();
     return () => { active = false; };
-  }, [open, initialUser?.id, watchedCurrency]);
+  }, [open, initialUser?.id, watchedCurrency, primaryCurrency, secondaryCode]);
 
   const creditsInCurrency = React.useMemo(
     () => credits.filter((c) => c.currency === watchedCurrency),
@@ -207,7 +240,9 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
       creditBreakdown: { source_id: string; amount: number; type: string; currency: string }[];
     }[] = [];
 
-    for (const p of pendingInvoices) {
+    const isSameCurrency = (p: PendingInvoice) => (p.invoice.currency || getClinicCurrency()) === watchedCurrency;
+
+    for (const p of pendingInvoices.filter(isSameCurrency)) {
       const hasCredit = creditPool.some((c) => c.remaining > 0);
       if (cashRemaining <= 0 && !hasCredit) break;
       let need = p.remaining;
@@ -230,13 +265,54 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
       }
     }
 
-    return { applied, leftover: Math.max(0, cashRemaining) };
-  }, [pendingInvoices, watchedAmount, creditsInCurrency, useCredit]);
+    // What its own currency didn't absorb goes to the invoices in the other currency.
+    const pair: CurrencyPair = { primary: primaryCurrency, secondary: secondaryCode, rate: watchedRate };
+    const crossInvoices = sortAllocatableInvoices(
+      pendingInvoices.filter((p) => !isSameCurrency(p)).map((p) => ({
+        id: p.invoice.id,
+        docNo: p.invoice.doc_no || p.invoice.id,
+        pending: p.remaining,
+        currency: p.invoice.currency || getClinicCurrency(),
+        date: p.invoice.createdAt,
+      })),
+      watchedCurrency,
+      pair,
+    );
+    const crossAllocations = buildAllocationsPayload(
+      distributeFifo(cashRemaining, crossInvoices, watchedCurrency, pair),
+      crossInvoices,
+      watchedCurrency,
+      pair,
+    );
+    const crossTotal = round2(crossAllocations.reduce((sum, a) => sum + a.amount, 0));
+
+    return {
+      applied,
+      crossInvoices,
+      crossAllocations,
+      crossTotal,
+      needsConversion: crossInvoices.length > 0 && cashRemaining > 0.005,
+      leftover: Math.max(0, round2(cashRemaining - crossTotal)),
+    };
+  }, [pendingInvoices, watchedAmount, creditsInCurrency, useCredit, watchedCurrency, watchedRate, primaryCurrency, secondaryCode]);
+
+  const formatInCurrency = (amount: number, currency: string) =>
+    new Intl.NumberFormat('es-UY', { style: 'currency', currency }).format(amount);
+  const rateMissing = allocation.needsConversion && !(watchedRate > 0);
+  const conversionLeftover = allocation.crossAllocations.length > 0 && allocation.leftover > 0.005;
 
   const onSubmit = (data: SmartPaymentFormValues) => {
     const hasCreditToUse = useCredit && totalCreditAvailable > 0;
     if ((Number(data.payment_amount) || 0) <= 0 && !hasCreditToUse) {
       setSubmissionError(tValidation('validation.noPaymentAmount'));
+      return;
+    }
+    if (rateMissing) {
+      setSubmissionError(t('smartPaymentDialog.rateRequired'));
+      return;
+    }
+    if (conversionLeftover) {
+      setSubmissionError(t('smartPaymentDialog.conversionLeftover', { amount: formatInCurrency(allocation.leftover, data.currency) }));
       return;
     }
     setSubmissionError(null);
@@ -245,7 +321,8 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
   };
 
   const handleConfirm = async () => {
-    if (!pendingData || !user || !initialUser || isSubmitting) return;
+    if (!pendingData || !user || !initialUser || submitLockRef.current) return;
+    submitLockRef.current = true;
     setIsSubmitting(true);
     try {
       let sessionId: string | null = null;
@@ -296,7 +373,21 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
             converted_amount: cashAmount,
             total_paid: round2(cashAmount + creditAmount),
           },
-        });
+        }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
+      }
+
+      // Keeps its own amount and currency, like the cash movement. The conversion lives on
+      // each allocation, so the payment itself still goes with rate 1.
+      if (allocation.crossAllocations.length > 0) {
+        await api.post(API_ROUTES.SALES.INVOICE_PAYMENT, {
+          ...basePayload,
+          invoice_allocations: allocation.crossAllocations,
+          query: {
+            ...baseQuery,
+            amount: allocation.crossTotal,
+            is_prepaid: true,
+          },
+        }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
       }
 
       if (allocation.leftover > 0) {
@@ -307,7 +398,7 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
             amount: allocation.leftover,
             is_prepaid: true,
           },
-        });
+        }, undefined, undefined, { timeoutMs: REQUEST_TIMEOUT_MS.mutation });
       }
 
       toast({ title: t('prepaidDialog.toasts.successTitle'), description: t('smartPaymentDialog.toasts.successDescription') });
@@ -320,11 +411,12 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
       setSubmissionError(error instanceof Error ? error.message : t('prepaidDialog.toasts.errorDescription'));
       toast({ variant: 'destructive', title: t('prepaidDialog.toasts.errorTitle'), description: error instanceof Error ? error.message : t('prepaidDialog.toasts.errorDescription') });
     } finally {
+      submitLockRef.current = false;
       setIsSubmitting(false);
     }
   };
 
-  const isHistorical = form.watch('is_historical');
+  const isHistorical = watchedHistorical;
   const hasAmount = Number(watchedAmount) > 0;
 
   return (
@@ -394,6 +486,27 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
                   </FormItem>
                 )} />
 
+                {allocation.crossInvoices.length > 0 && (
+                  <FormField control={form.control} name="exchange_rate" render={({ field: { onChange, value } }) => (
+                    <FormItem>
+                      <FormLabel>{t('smartPaymentDialog.exchangeRate')}</FormLabel>
+                      <FormControl>
+                        <FormattedNumberInput
+                          value={value}
+                          onChange={(v) => { rateTouchedRef.current = true; onChange(v); }}
+                          placeholder="0.00"
+                          aria-invalid={rateMissing || undefined}
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        {t('smartPaymentDialog.exchangeRateHint', { primary: primaryCurrency, secondary: secondaryCode ?? '' })}
+                      </p>
+                      {rateMissing && <p className="text-xs text-destructive">{t('smartPaymentDialog.rateRequired')}</p>}
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                )}
+
                 {/* Available credit */}
                 {totalCreditAvailable > 0 && (
                   <div className="flex items-center justify-between rounded-md border p-3 bg-muted/50">
@@ -419,7 +532,7 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
                       </div>
                     ) : (
                       <>
-                        {allocation.applied.length === 0 && (
+                        {allocation.applied.length === 0 && allocation.crossAllocations.length === 0 && (
                           <p className="text-sm text-muted-foreground">{t('smartPaymentDialog.noPendingInvoices')}</p>
                         )}
                         {allocation.applied.map(({ invoice, cashAmount, creditAmount }) => (
@@ -437,7 +550,23 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
                             </span>
                           </div>
                         ))}
-                        {allocation.leftover > 0 && (
+                        {allocation.crossAllocations.map((a) => {
+                          const invoice = allocation.crossInvoices.find((inv) => Number(inv.id) === a.invoice_id);
+                          return (
+                            <div key={a.invoice_id} className="flex justify-between text-sm">
+                              <span>#{invoice?.docNo ?? a.invoice_id}</span>
+                              <span className="tabular-nums">
+                                {formatInCurrency(a.amount, watchedCurrency)} → {formatInCurrency(a.target_amount, invoice?.currency ?? watchedCurrency)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        {conversionLeftover && (
+                          <p className="text-sm text-destructive pt-2 border-t">
+                            {t('smartPaymentDialog.conversionLeftover', { amount: formatInCurrency(allocation.leftover, watchedCurrency) })}
+                          </p>
+                        )}
+                        {allocation.leftover > 0 && !conversionLeftover && !rateMissing && (
                           <div className="flex justify-between text-sm font-medium pt-2 border-t">
                             <span>{t('smartPaymentDialog.prepaidRemainder')}</span>
                             <span className="tabular-nums">
@@ -483,7 +612,7 @@ export function SmartPaymentFormDialog({ open, onOpenChange, initialUser, onSave
               </DialogBody>
               <DialogFooter>
                 <DialogCancelButton variant="outline">{t('smartPaymentDialog.cancel')}</DialogCancelButton>
-                <Button type="submit">{t('smartPaymentDialog.save')}</Button>
+                <Button type="submit" disabled={rateMissing || conversionLeftover}>{t('smartPaymentDialog.save')}</Button>
               </DialogFooter>
             </form>
           </Form>

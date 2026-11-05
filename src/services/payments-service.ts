@@ -111,6 +111,7 @@ export function mapApiPaymentToPayment(apiPayment: any): Payment {
     payment_method_code: apiPayment.payment_method_code,
     transaction_type: apiPayment.transaction_type || 'direct_payment',
     transaction_id: apiPayment.transaction_id ? String(apiPayment.transaction_id) : 'N/A',
+    source_payment_id: apiPayment.payment_id != null ? String(apiPayment.payment_id) : undefined,
     reference_doc_id: apiPayment.reference_doc_id,
     // Source document of an allocation row (the prepaid payment or the credit note being applied)
     payment_doc_no: apiPayment.payment_doc_no || apiPayment.source_doc_no || apiPayment.origin_doc_no || apiPayment.credit_note_doc_no || undefined,

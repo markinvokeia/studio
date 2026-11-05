@@ -1,5 +1,5 @@
 {
- "version": "80b2be0aee8bb787",
+ "version": "09fd2fd4d3ab8ff0",
  "locale": "en",
  "journey": [
   {
@@ -8881,6 +8881,13 @@
      "source": "src/components/sales/payments/PrepaidFormDialog.tsx"
     },
     {
+     "description": "Units of the primary currency per unit of the secondary one. It comes from the open cash register and can be changed; on a historical payment it has to be typed in.",
+     "id": "patients.field.payment_exchange_rate",
+     "kind": "field",
+     "label": "Exchange rate",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "id": "patients.field.payment_method_id",
      "kind": "field",
      "label": "Payment method",
@@ -9416,7 +9423,8 @@
     "Readmit and Activate/Deactivate apply as soon as you tap them, with no dialog first.",
     "The aesthetic session saves on its own and resumes at the first step still missing. Once closed it is read-only and only accepts amendments.",
     "In aesthetics, a service can't be marked without a signature. Without clinical photo authorization the camera locks and the session can close without photos.",
-    "The maximum per session, minimum interval and expired lot warnings inform you, but don't block."
+    "The maximum per session, minimum interval and expired lot warnings inform you, but don't block.",
+    "A payment can cover invoices in the clinic's other currency at the cash register's exchange rate: the register keeps the original amount and currency, and the invoice gets the converted amount. A payment with conversion can't leave a leftover."
    ],
    "title": "Patients",
    "useCases": [

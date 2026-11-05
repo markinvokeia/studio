@@ -37,6 +37,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
+import { useAsyncAction } from '@/hooks/use-async-action';
 import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { Credit, Invoice, PaymentMethod } from '@/lib/types';
 import { cn, toLocalISOString } from '@/lib/utils';
@@ -52,6 +53,7 @@ import * as z from 'zod';
 import { CurrencySelect } from '@/components/ui/currency-select';
 import { useCurrencySettings } from '@/hooks/useCurrencySettings';
 import { convertAmount } from '@/lib/currency';
+import { pendingInPaymentCurrency, targetAmountFor } from '@/lib/payment-conversion';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 // ── Schema ────────────────────────────────────────────────────────────────────
@@ -155,15 +157,12 @@ export function InvoicePaymentDialog({
     return convertAmount(watchedAmount, watchedPaymentCurrency, watchedInvoiceCurrency, watchedExchangeRate, companyCurrency);
   }, [showExchangeRate, watchedAmount, watchedExchangeRate, watchedInvoiceCurrency, watchedPaymentCurrency, companyCurrency]);
 
-  // Keep exchange_rate in sync with session rate
+  // Keep exchange_rate in sync with the open session's rate. Without a session it stays empty
+  // and has to be typed in: a rate of 1 would pass as a valid conversion.
+  const openSessionRate = Number(activeCashSession?.data?.opening_details?.date_rate) || 0;
   React.useEffect(() => {
-    const isSameAsClinicCurrency = watchedInvoiceCurrency === companyCurrency;
-    if (showExchangeRate && watchedInvoiceCurrency !== watchedPaymentCurrency) {
-      form.setValue('exchange_rate', isSameAsClinicCurrency ? 1 : sessionExchangeRate);
-    } else if (!showExchangeRate) {
-      form.setValue('exchange_rate', 1);
-    }
-  }, [showExchangeRate, sessionExchangeRate, form, watchedInvoiceCurrency, watchedPaymentCurrency, companyCurrency]);
+    form.setValue('exchange_rate', showExchangeRate ? openSessionRate : 1);
+  }, [showExchangeRate, openSessionRate, form]);
 
   // ── Credits total with currency conversion ───────────────────────────────
   const creditsTotalInInvoiceCurrency = React.useMemo(() => {
@@ -187,7 +186,7 @@ export function InvoicePaymentDialog({
       ? convertAmount(remainingBalance, invoiceCurrency, paymentCurrency, sessionExchangeRate, companyCurrency)
       : remainingBalance;
     form.setValue('amount', Math.round(amountToSet * 100) / 100);
-  }, [creditsTotalInInvoiceCurrency, invoice, isOpen, form, sessionExchangeRate, appliedCredits.size, paidAmount, companyCurrency]);
+  }, [creditsTotalInInvoiceCurrency, invoice, isOpen, form, sessionExchangeRate, appliedCredits.size, paidAmount, companyCurrency, watchedPaymentCurrency]);
 
   // Remaining amount (live, as user types)
   const remainingAmountToPay = React.useMemo(() => {
@@ -269,7 +268,7 @@ export function InvoicePaymentDialog({
   }, [isOpen, invoice, fetchPaymentMethods, fetchUserCredits, fetchInvoicePaidAmount, form]);
 
   // ── Submit ────────────────────────────────────────────────────────────────
-  const handleSubmit = async (values: PaymentFormValues) => {
+  const submitPayment = async (values: PaymentFormValues) => {
     if (!invoice) return;
 
     let sessionId: string | null = null;
@@ -323,13 +322,33 @@ export function InvoicePaymentDialog({
       setPaymentSubmissionError(t('validation.overpayment'));
       return;
     }
+    // A payment with conversion can't leave a leftover in another currency: its ceiling is what
+    // the invoice still owes, expressed in the payment's currency.
+    const conversionPair = { primary: companyCurrency, rate: values.exchange_rate || 0 };
+    const pendingForCash = {
+      id: invoice.id,
+      pending: Math.max(0, remainingBalance - creditsTotalConverted),
+      currency: invoiceCurrency,
+      date: '',
+    };
+    if (
+      showExchangeRate &&
+      values.amount > 0 &&
+      values.amount > pendingInPaymentCurrency(pendingForCash, values.payment_currency, conversionPair) + 0.005
+    ) {
+      setPaymentSubmissionError(t('validation.overpayment'));
+      return;
+    }
 
     setPaymentSubmissionError(null);
     setIsSubmitting(true);
 
     const selectedMethod = paymentMethods.find((pm) => pm.id === values.method);
-    const convertedAmount =
-      showExchangeRate && equivalentAmount ? equivalentAmount : values.amount;
+    // Covering the invoice counts as its exact pending amount: the rounding of the amount in the
+    // payment's currency would otherwise leave a cent owed or turn a cent into a prepayment.
+    const convertedAmount = showExchangeRate
+      ? targetAmountFor(values.amount, pendingForCash, values.payment_currency, conversionPair)
+      : values.amount;
 
     try {
       const payload = {
@@ -364,7 +383,7 @@ export function InvoicePaymentDialog({
           payment_currency: values.payment_currency,
           exchange_rate: values.exchange_rate || 1,
           is_sales: isSales,
-          total_paid: totalAttemptedPayment,
+          total_paid: convertedAmount + creditsTotalConverted,
           notes: values.notes || '',
           is_historical: values.is_historical || false,
         },
@@ -400,6 +419,7 @@ export function InvoicePaymentDialog({
       setIsSubmitting(false);
     }
   };
+  const submit = useAsyncAction(submitPayment);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -409,7 +429,7 @@ export function InvoicePaymentDialog({
         <DialogContent maxWidth="2xl" confirmOnClose isDirty={form.formState.isDirty}>
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit(handleSubmit, onInvalidSubmit)}
+              onSubmit={form.handleSubmit(submit.run, onInvalidSubmit)}
               className="flex flex-col flex-1 w-full overflow-hidden"
             >
               <DialogHeader>

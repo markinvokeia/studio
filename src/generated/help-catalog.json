@@ -1,5 +1,5 @@
 {
- "version": "16030fcf4f1f2859",
+ "version": "3573947c720969a8",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -8968,6 +8968,13 @@
      "source": "src/components/sales/payments/PrepaidFormDialog.tsx"
     },
     {
+     "description": "Unidades de la moneda principal por cada unidad de la secundaria. Se toma de la caja abierta y se puede cambiar; en un pago histórico hay que escribirlo.",
+     "id": "patients.field.payment_exchange_rate",
+     "kind": "field",
+     "label": "Tipo de cambio",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "id": "patients.field.payment_method_id",
      "kind": "field",
      "label": "Medio de pago",
@@ -9503,7 +9510,8 @@
     "Readmitir y Activar/Desactivar se aplican al tocarlos, sin diálogo previo.",
     "La sesión de estética se guarda sola y se retoma en el primer paso que falta. Cerrada, queda en solo lectura y sólo admite enmiendas.",
     "En estética, sin firma no se puede marcar el servicio. Sin autorización de fotos clínicas la cámara se bloquea y se puede cerrar sin fotos.",
-    "Los avisos de máximo por sesión, intervalo mínimo y lote vencido informan, pero no bloquean."
+    "Los avisos de máximo por sesión, intervalo mínimo y lote vencido informan, pero no bloquean.",
+    "Un pago puede cubrir facturas en la otra moneda de la clínica, al tipo de cambio de la caja: la caja guarda el monto y la moneda originales, y a la factura se aplica lo convertido. Un pago con conversión no admite sobrante."
    ],
    "title": "Pacientes",
    "useCases": [

@@ -177,6 +177,10 @@
       "deleteCreditNote": {
         "title": "Delete credit note",
         "description": "This will permanently delete the credit note along with its allocations. This action cannot be undone."
+      },
+      "deletePaymentAllocation": {
+        "title": "Remove payment application",
+        "description": "This undoes the application to the invoice. The money stays as credit in the payment's original currency and the cash register doesn't change. To delete the whole payment, use its own row."
       }
     },
     "toasts": {
@@ -209,11 +213,24 @@
       "creditNoteDeleteError": "Could not delete the credit note",
       "paymentUpdated": "Payment updated",
       "releasedCredit": "{amount} became available as patient credit",
+
+      "releasedPending": "{amount} is no longer applied to invoices, which show that balance as pending again",
       "paymentUpdateError": "Could not update the payment",
       "creditNoteUpdated": "Credit note updated",
       "creditNoteUpdateError": "Could not update the credit note",
       "printError": "Could not print the document",
       "emailNotFound": "Couldn't find the document to send"
+    },
+    "conversion": {
+      "rate": "Exchange rate",
+      "rateHint": "{primary} per {secondary}",
+      "rateRequired": "Enter the exchange rate to apply the payment to invoices in another currency.",
+      "leftoverBlocked": "A payment with conversion must be fully applied: {amount} is left over. Lower the amount or allocate it.",
+      "useMax": "Use {amount}",
+      "equivalent": "Will apply: {amount}",
+      "editExceeds": "A payment with conversion can't exceed {amount}: the excess would be left over.",
+      "rowSource": "Applied to {doc}: {target} (rate {rate})",
+      "rowTarget": "Paid with {source} (rate {rate})"
     }
   },
   "QuickTreatmentDialog": {
@@ -3707,7 +3724,11 @@
       "confirm": "Confirm",
       "toasts": {
         "successDescription": "Payment registered and applied successfully."
-      }
+      },
+      "exchangeRate": "Exchange rate",
+      "exchangeRateHint": "{primary} per {secondary}",
+      "rateRequired": "Enter the exchange rate to apply the payment to invoices in another currency.",
+      "conversionLeftover": "A payment with conversion must be fully applied: {amount} is left over. Lower the amount or allocate it."
     },
     "tabs": {
       "allocations": "Allocations",

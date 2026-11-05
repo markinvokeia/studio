@@ -31,6 +31,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CASHIER_PERMISSIONS } from '@/constants/permissions';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
+import { useAsyncAction } from '@/hooks/use-async-action';
 import { useCashSessionValidation } from '@/hooks/use-cash-session-validation';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useToast } from '@/hooks/use-toast';
@@ -40,6 +41,7 @@ import { cn, toLocalISOString } from '@/lib/utils';
 import { api } from '@/services/api';
 import { CurrencySelect } from '@/components/ui/currency-select';
 import { convertAmount, formatMoney } from '@/lib/currency';
+import { pendingInPaymentCurrency, targetAmountFor } from '@/lib/payment-conversion';
 import { getClinicCurrency } from '@/stores/clinic-info-store';
 
 // ── Schema ────────────────────────────────────────────────────────────────────
@@ -503,7 +505,7 @@ export function StepPayment({
     onSubStepChange?.(1);
   };
 
-  const handleSubmitPayments = async (values: FormValues) => {
+  const submitPayments = async (values: FormValues) => {
     let sessionId: string | null = null;
 
     if (!values.is_historical) {
@@ -518,6 +520,23 @@ export function StepPayment({
     const rate = values.exchange_rate || sessionExchangeRate || 1;
     const endpoint = isSales ? API_ROUTES.SALES.INVOICE_PAYMENT : API_ROUTES.PURCHASES.INVOICE_PAYMENT;
     const creditPayload = buildCreditPayload();
+
+    // A payment with conversion can't leave a leftover in another currency: its ceiling is what
+    // the invoice still owes after credits and same-currency entries, in the payment's currency.
+    const conversionPair = { primary: getClinicCurrency(), rate };
+    const sumEntries = (entries: FormValues['entries']) => entries.reduce((sum, entry) => sum + (Number(entry.amount) || 0), 0);
+    const crossEntries = values.entries.filter((entry) => entry.payment_currency !== invoiceCurrency);
+    const sameCurrencyCash = sumEntries(values.entries.filter((entry) => entry.payment_currency === invoiceCurrency));
+    let pendingForConverted = Math.max(0, pendingAmount - creditsTotalConverted - sameCurrencyCash);
+    const pendingForEntries = () => ({ id: invoice.id, pending: pendingForConverted, currency: invoiceCurrency, date: '' });
+    if (
+      !isMultiInvoice &&
+      crossEntries.length > 0 &&
+      sumEntries(crossEntries) > pendingInPaymentCurrency(pendingForEntries(), crossEntries[0].payment_currency, conversionPair) + 0.005
+    ) {
+      setError(t('validation.overpayment'));
+      return;
+    }
 
     setError(null);
     setIsSubmitting(true);
@@ -606,12 +625,13 @@ export function StepPayment({
           const entry = values.entries[i];
           const isFirst = i === 0;
           const selectedMethod = paymentMethods.find((pm) => pm.id === entry.method);
-          const convertedAmount = calcEquivalent(
-            Number(entry.amount),
-            entry.payment_currency,
-            invoiceCurrency,
-            rate,
-          );
+          // Covering the invoice counts as its exact pending amount: the rounding of the amount in
+          // the payment's currency would otherwise leave a cent owed or turn a cent into a prepayment.
+          const isCrossEntry = entry.payment_currency !== invoiceCurrency;
+          const convertedAmount = isCrossEntry
+            ? targetAmountFor(Number(entry.amount), pendingForEntries(), entry.payment_currency, conversionPair)
+            : Number(entry.amount);
+          if (isCrossEntry) pendingForConverted = Math.max(0, pendingForConverted - convertedAmount);
 
           const payload = {
             cash_session_id: sessionId,
@@ -680,6 +700,7 @@ export function StepPayment({
       setIsSubmitting(false);
     }
   };
+  const submit = useAsyncAction(submitPayments);
 
   // ── Invoice detail expandable panel ──
   const renderDetailPanel = () => {
@@ -1029,7 +1050,7 @@ export function StepPayment({
       )}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmitPayments, onInvalidSubmit)} id="billing-payment-form" className="space-y-4">
+        <form onSubmit={form.handleSubmit(submit.run, onInvalidSubmit)} id="billing-payment-form" className="space-y-4">
           {error && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />

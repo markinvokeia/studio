@@ -417,6 +417,8 @@ export type Payment = {
   payment_method_code?: string;
   transaction_type: 'direct_payment' | 'credit_note_allocation' | 'payment_allocation';
   transaction_id: string | null;
+  /** The `payments.id` behind this row. On an allocation, `transaction_id` is the allocation's own id. */
+  source_payment_id?: string;
   reference_doc_id?: string;
   notes?: string;
   status: 'pending' | 'completed' | 'failed';

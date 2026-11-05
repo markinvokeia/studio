@@ -177,6 +177,10 @@
       "deleteCreditNote": {
         "title": "Eliminar nota de crédito",
         "description": "Esto eliminará permanentemente la nota de crédito junto con sus alocaciones. Esta acción no se puede deshacer."
+      },
+      "deletePaymentAllocation": {
+        "title": "Quitar aplicación del pago",
+        "description": "Esto deshace la aplicación a la factura. El dinero queda como saldo a favor en la moneda original del pago y la caja no cambia. Para eliminar el pago completo, hazlo desde su propia fila."
       }
     },
     "toasts": {
@@ -209,11 +213,24 @@
       "creditNoteDeleteError": "No se pudo eliminar la nota de crédito",
       "paymentUpdated": "Pago actualizado",
       "releasedCredit": "{amount} pasó a estar disponible como crédito del paciente",
+
+      "releasedPending": "{amount} dejó de aplicarse a facturas, que vuelven a tener ese saldo pendiente",
       "paymentUpdateError": "No se pudo actualizar el pago",
       "creditNoteUpdated": "Nota de crédito actualizada",
       "creditNoteUpdateError": "No se pudo actualizar la nota de crédito",
       "printError": "No se pudo imprimir el documento",
       "emailNotFound": "No se encontró el documento para enviar"
+    },
+    "conversion": {
+      "rate": "Tipo de cambio",
+      "rateHint": "{primary} por cada {secondary}",
+      "rateRequired": "Ingresa el tipo de cambio para aplicar el pago a facturas en otra moneda.",
+      "leftoverBlocked": "Un pago con conversión debe aplicarse por completo: sobran {amount}. Reduce el monto o asígnalo.",
+      "useMax": "Usar {amount}",
+      "equivalent": "Se aplicará: {amount}",
+      "editExceeds": "Un pago con conversión no puede superar {amount}: el excedente quedaría como sobrante.",
+      "rowSource": "Aplicado a {doc}: {target} (tipo de cambio {rate})",
+      "rowTarget": "Pagado con {source} (tipo de cambio {rate})"
     }
   },
   "QuickTreatmentDialog": {
@@ -3707,7 +3724,11 @@
       "confirm": "Confirmar",
       "toasts": {
         "successDescription": "Pago registrado y aplicado correctamente."
-      }
+      },
+      "exchangeRate": "Tipo de cambio",
+      "exchangeRateHint": "{primary} por cada {secondary}",
+      "rateRequired": "Ingresa el tipo de cambio para aplicar el pago a facturas en otra moneda.",
+      "conversionLeftover": "Un pago con conversión debe aplicarse por completo: sobran {amount}. Reduce el monto o asígnalo."
     },
     "tabs": {
       "allocations": "Asignaciones",
