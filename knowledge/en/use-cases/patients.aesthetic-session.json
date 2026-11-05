@@ -1,0 +1,109 @@
+{
+  "id": "patients.aesthetic-session",
+  "title": "Record an aesthetic session",
+  "summary": "The full four-step flow, saved automatically: consent, photos, treatment and closing.",
+  "module": "Patients",
+  "group": "Aesthetic record",
+  "inputs": {
+    "patient": "Patient's name, email or ID"
+  },
+  "keywords": [
+    "aesthetics",
+    "aesthetic session",
+    "aesthetic record",
+    "botox",
+    "toxin",
+    "filler",
+    "hyaluronic acid",
+    "thread lift",
+    "mesotherapy",
+    "record aesthetic treatment"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or ID."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide continues once their record is open."
+    },
+    {
+      "id": "menu",
+      "title": "Create",
+      "details": "Everything that can be created for this patient: clinical, financial and scheduling."
+    },
+    {
+      "id": "item",
+      "title": "Aesthetic session",
+      "details": "Opens the guided flow of a new session. Nothing is saved until you choose a service."
+    },
+    {
+      "id": "progress",
+      "title": "Status and progress",
+      "details": "The status comes from the data: Draft, Consented, In treatment, Ready to close. Each finished step adds 25%. Next to it you see what is missing and when it was saved: everything saves on its own."
+    },
+    {
+      "id": "data",
+      "title": "Date and doctor",
+      "details": "Session date (it can't be in the future) and who performs it. From My Workspace they come from the appointment."
+    },
+    {
+      "id": "services",
+      "title": "Today's services",
+      "details": "Check what is being done today. Only aesthetic services appear; if one is missing, set it up in Sales → Services. \"Last session\" adds those from the previous time."
+    },
+    {
+      "id": "sign-area",
+      "title": "Sign the consent",
+      "details": "Appears once a service is chosen: risks explained, photo authorizations, who signs and the signature. Without a signature that service cannot be marked."
+    },
+    {
+      "id": "sign",
+      "title": "Sign",
+      "details": "Signs all pending services at once. What was signed can no longer be changed."
+    },
+    {
+      "id": "photos",
+      "title": "Today's photos",
+      "details": "Step 2. A photo of any view is enough; none is needed if the patient declined photos or if every mark is on the body."
+    },
+    {
+      "id": "views",
+      "title": "Views",
+      "details": "Front, left and right profile, each with today's photo and the earlier ones."
+    },
+    {
+      "id": "take",
+      "title": "Take photo",
+      "details": "Opens the camera with a framing guide and, if there is one, the last photo see-through to repeat pose, distance and light."
+    },
+    {
+      "id": "treatment",
+      "title": "Treatment",
+      "details": "Step 3. It stays locked until at least one consent is signed."
+    },
+    {
+      "id": "map",
+      "title": "Mark on the map",
+      "details": "Choose the service below and tap the face or body. Each mark needs a quantity above 0. A separate guide covers all the tools."
+    },
+    {
+      "id": "close-step",
+      "title": "Closing",
+      "details": "Step 4: what was applied, the summary, the charge and the next appointment."
+    },
+    {
+      "id": "close",
+      "title": "Close session",
+      "details": "Enabled once consents, the photo and the marks are complete. After that it stays read-only and only accepts amendments."
+    }
+  ]
+}

@@ -1,6 +1,8 @@
 import coreWebVitals from 'eslint-config-next/core-web-vitals';
 
 const eslintConfig = [
+  // La config de Next no cubre .cjs: sin esto, las reglas de abajo rompen ESLint al llegar a uno.
+  { ignores: ['**/*.cjs'] },
   ...coreWebVitals,
   {
     rules: {

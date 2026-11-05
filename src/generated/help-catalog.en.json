@@ -1,5 +1,5 @@
 {
- "version": "cf34f95229db8289",
+ "version": "9fed24f8e0243683",
  "locale": "en",
  "journey": [
   {
@@ -111,11 +111,13 @@
   },
   {
    "code": "AESTHETIC_RECORD_REGISTER_SESSION",
-   "constant": "AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION"
+   "constant": "AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION",
+   "description": "Crear y completar sesiones de estética: consentimiento, fotos, marcas, cierre, anulación y enmiendas."
   },
   {
    "code": "AESTHETIC_RECORD_VIEW",
-   "constant": "AESTHETIC_RECORD_PERMISSIONS.VIEW"
+   "constant": "AESTHETIC_RECORD_PERMISSIONS.VIEW",
+   "description": "Ver las sesiones de estética en la línea de tiempo del paciente y abrirlas en solo lectura."
   },
   {
    "code": "ALERT_CATEGORIES_CREATE",
@@ -5034,18 +5036,45 @@
   {
    "elements": [
     {
+     "description": "If it's in use, it becomes inactive instead of being deleted.",
+     "id": "clinic-catalog.measurement-units.btn.delete",
+     "kind": "btn",
+     "label": "Delete",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "id": "clinic-catalog.measurement-units.btn.delete-confirm",
+     "kind": "btn",
+     "label": "Confirm",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "id": "clinic-catalog.measurement-units.btn.edit",
+     "kind": "btn",
+     "label": "Edit",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "id": "clinic-catalog.measurement-units.btn.new",
+     "kind": "btn",
+     "label": "New unit",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
      "id": "clinic-catalog.measurement-units.btn.submit",
      "kind": "btn",
      "label": "Save",
      "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
     },
     {
+     "description": "Unique identifier: letters, numbers, hyphen and underscore.",
      "id": "clinic-catalog.measurement-units.field.code",
      "kind": "field",
      "label": "Code",
      "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
     },
     {
+     "description": "Inactive ones aren't offered when setting up services.",
      "id": "clinic-catalog.measurement-units.field.isActive",
      "kind": "field",
      "label": "Active",
@@ -5058,15 +5087,29 @@
      "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
     },
     {
+     "description": "How much + and − change when marking: 1 for whole units, 0.05 for ml.",
      "id": "clinic-catalog.measurement-units.field.step",
      "kind": "field",
      "label": "Quantity step",
      "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
     },
     {
+     "description": "What shows next to each quantity.",
      "id": "clinic-catalog.measurement-units.field.symbol",
      "kind": "field",
      "label": "Symbol",
+     "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
+    },
+    {
+     "id": "clinic-catalog.measurement-units.section.first-row",
+     "kind": "section",
+     "label": "First in the list",
+     "source": "knowledge/screens/clinic-catalog.measurement-units.json"
+    },
+    {
+     "id": "clinic-catalog.measurement-units.section.table",
+     "kind": "section",
+     "label": "Units",
      "source": "src/app/[locale]/clinic-catalog/measurement-units/page.tsx"
     }
    ],
@@ -5076,9 +5119,21 @@
    "permissions": [
     "CATALOG_UNITS_VIEW_LIST"
    ],
+   "prerequisites": [],
+   "purpose": "Each aesthetic service needs a unit: it shows next to each quantity on the aesthetic record, and its step sets how much the + and − buttons change when marking.",
    "route": "/clinic-catalog/measurement-units",
-   "status": "auto",
-   "title": "Measurement Units"
+   "status": "draft",
+   "summary": "Units that service doses are recorded in (U, ml, mg, cc…).",
+   "tips": [
+    "A unit in use isn't deleted: it becomes inactive and old sessions keep showing it."
+   ],
+   "title": "Measurement Units",
+   "useCases": [
+    "clinic-catalog.measurement-units.overview",
+    "clinic-catalog.measurement-units.create",
+    "clinic-catalog.measurement-units.edit",
+    "clinic-catalog.measurement-units.delete"
+   ]
   },
   {
    "elements": [
@@ -7655,6 +7710,366 @@
   {
    "elements": [
     {
+     "description": "Who did what and when in the session.",
+     "id": "aesthetic-session.btn.activity",
+     "kind": "btn",
+     "label": "Activity",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "It becomes read-only.",
+     "id": "aesthetic-session.btn.close-confirm",
+     "kind": "btn",
+     "label": "Confirm closing",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Enabled with everything signed, the photo and complete marks.",
+     "id": "aesthetic-session.btn.close-session",
+     "kind": "btn",
+     "label": "Close session",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Compares with the first session.",
+     "id": "aesthetic-session.btn.compare-initial",
+     "kind": "btn",
+     "label": "Compare with the first one",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Adds the services from the previous session.",
+     "id": "aesthetic-session.btn.from-last-session",
+     "kind": "btn",
+     "label": "Last session",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Fits the photo to the map so the zones match.",
+     "id": "aesthetic-session.btn.photo-align",
+     "kind": "btn",
+     "label": "Align photo",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Camera with a framing guide and the last photo see-through.",
+     "id": "aesthetic-session.btn.photo-take",
+     "kind": "btn",
+     "label": "Take photo",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "From the device.",
+     "id": "aesthetic-session.btn.photo-upload",
+     "kind": "btn",
+     "label": "Upload photo",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Reuses an already signed consent for that service.",
+     "id": "aesthetic-session.btn.reuse",
+     "kind": "btn",
+     "label": "Use earlier signature",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Signs all pending services at once.",
+     "id": "aesthetic-session.btn.sign",
+     "kind": "btn",
+     "label": "Sign",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "What was applied, charge, next appointment and closing.",
+     "id": "aesthetic-session.btn.step-close",
+     "kind": "btn",
+     "label": "Closing step",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Today's services and signature.",
+     "id": "aesthetic-session.btn.step-consent",
+     "kind": "btn",
+     "label": "Consent step",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Photos per view and comparison.",
+     "id": "aesthetic-session.btn.step-photos",
+     "kind": "btn",
+     "label": "Today's photos step",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Map with the marks. Locked until a consent is signed.",
+     "id": "aesthetic-session.btn.step-treatment",
+     "kind": "btn",
+     "label": "Treatment step",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "aesthetic-session.btn.to-close",
+     "kind": "btn",
+     "label": "Go to closing",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Enabled once every service is signed.",
+     "id": "aesthetic-session.btn.to-photos",
+     "kind": "btn",
+     "label": "Continue to photos",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "aesthetic-session.btn.to-treatment",
+     "kind": "btn",
+     "label": "Continue to treatment",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Goes to the treatment of the signed services, even if others are unsigned.",
+     "id": "aesthetic-session.btn.treat-signed",
+     "kind": "btn",
+     "label": "Mark the signed ones",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "With a reason; it stays read-only, nothing is deleted.",
+     "id": "aesthetic-session.btn.void",
+     "kind": "btn",
+     "label": "Void session",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "aesthetic-session.btn.void-confirm",
+     "kind": "btn",
+     "label": "Confirm voiding",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Without this authorization the camera stays locked and the session can close without photos.",
+     "id": "aesthetic-session.field.allowsClinicalPhotos",
+     "kind": "field",
+     "label": "Photos for the clinical record",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Optional.",
+     "id": "aesthetic-session.field.allowsMarketingPhotos",
+     "kind": "field",
+     "label": "Marketing photos",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Required to sign.",
+     "id": "aesthetic-session.field.risksExplained",
+     "kind": "field",
+     "label": "Risks explained",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "The patient or their guardian.",
+     "id": "aesthetic-session.field.signerName",
+     "kind": "field",
+     "label": "Who signs",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "id": "aesthetic-session.field.void-reason",
+     "kind": "field",
+     "label": "Reason for voiding",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Corrections to a closed session, without erasing the original.",
+     "id": "aesthetic-session.section.amendments",
+     "kind": "section",
+     "label": "Amendments",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Services, zones, totals, lots used and today's photos.",
+     "id": "aesthetic-session.section.applied",
+     "kind": "section",
+     "label": "Treatment applied",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Charge the session; then, the linked invoice with its balance and payments.",
+     "id": "aesthetic-session.section.billing",
+     "kind": "section",
+     "label": "Charge",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Slider, side by side or overlaid.",
+     "id": "aesthetic-session.section.compare-modes",
+     "kind": "section",
+     "label": "Comparison mode",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "The service's text with the patient details. What was signed is stored as is, with a SHA-256 fingerprint.",
+     "id": "aesthetic-session.section.consent-text",
+     "kind": "section",
+     "label": "Consent text",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Send the aftercare by WhatsApp and schedule the suggested follow-up.",
+     "id": "aesthetic-session.section.follow-up",
+     "kind": "section",
+     "label": "Aftercare and next appointment",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Session header: patient, session number and the four steps.",
+     "id": "aesthetic-session.section.header",
+     "kind": "section",
+     "label": "Aesthetic session",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Entered once per service and apply to all its marks.",
+     "id": "aesthetic-session.section.layer-supply",
+     "kind": "section",
+     "label": "Product and lot",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Active service, total and visibility. Locked without a signature.",
+     "id": "aesthetic-session.section.layers",
+     "kind": "section",
+     "label": "Services",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Where what was applied is marked; the zone is detected on its own.",
+     "id": "aesthetic-session.section.map",
+     "kind": "section",
+     "label": "Map",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Quantity, zone, depth, technique, note, mirror and its own product or lot. The maximum, interval and expired lot warnings don't block.",
+     "id": "aesthetic-session.section.mark-editor",
+     "kind": "section",
+     "label": "Mark details",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Notices that lead to the step that solves them.",
+     "id": "aesthetic-session.section.missing",
+     "kind": "section",
+     "label": "What is missing",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Summary, notes and per-zone history.",
+     "id": "aesthetic-session.section.panel",
+     "kind": "section",
+     "label": "Side panel",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Photos of this view in other sessions.",
+     "id": "aesthetic-session.section.photo-history",
+     "kind": "section",
+     "label": "Earlier sessions",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Today's photo and the comparison with another session.",
+     "id": "aesthetic-session.section.photo-stage",
+     "kind": "section",
+     "label": "Photo of the view",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Front, left and right profile.",
+     "id": "aesthetic-session.section.photo-views",
+     "kind": "section",
+     "label": "Photo views",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Session status, percentage (25% per step), last save and what is missing.",
+     "id": "aesthetic-session.section.progress",
+     "kind": "section",
+     "label": "Status and progress",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Aesthetic services to perform and the status of their consents.",
+     "id": "aesthetic-session.section.services",
+     "kind": "section",
+     "label": "Today's services",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Session date (not in the future) and who performs it.",
+     "id": "aesthetic-session.section.session-data",
+     "kind": "section",
+     "label": "Date and doctor",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Text kept on the timeline.",
+     "id": "aesthetic-session.section.session-summary",
+     "kind": "section",
+     "label": "Session summary",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Authorizations, who signs and the signature.",
+     "id": "aesthetic-session.section.signature",
+     "kind": "section",
+     "label": "Signature",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "With a finger, stylus or mouse.",
+     "id": "aesthetic-session.section.signature-pad",
+     "kind": "section",
+     "label": "Signature area",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Select, point, area, line, undo, redo, zones and the previous session's marks.",
+     "id": "aesthetic-session.section.tools",
+     "kind": "section",
+     "label": "Tools",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Face or body, the view and the background (model or today's photo).",
+     "id": "aesthetic-session.section.views",
+     "kind": "section",
+     "label": "Region, view and background",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "What was applied to each zone in earlier sessions.",
+     "id": "aesthetic-session.tab.history",
+     "kind": "tab",
+     "label": "History",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Timestamped notes, with dictation and frequent phrases.",
+     "id": "aesthetic-session.tab.notes",
+     "kind": "tab",
+     "label": "Notes",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Each service with its total, marks, product and lot.",
+     "id": "aesthetic-session.tab.summary",
+     "kind": "tab",
+     "label": "Summary",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "id": "appointments.btn.back-to-new-patient",
      "kind": "btn",
      "label": "Back to new patient",
@@ -7938,6 +8353,13 @@
      "source": "src/app/[locale]/patients/page.tsx"
     },
     {
+     "description": "Creates an aesthetic session: consent, photos, treatment and closing.",
+     "id": "patients.btn.new-aesthetic",
+     "kind": "btn",
+     "label": "Aesthetic session",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "id": "patients.btn.new-appointment",
      "kind": "btn",
      "label": "Appointment",
@@ -8073,6 +8495,13 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "New aesthetic session from the timeline.",
+     "id": "patients.btn.timeline-add-aesthetic",
+     "kind": "btn",
+     "label": "Aesthetics",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "id": "patients.btn.timeline-add-clinical",
      "kind": "btn",
      "label": "Clinical session",
@@ -8088,6 +8517,13 @@
      "id": "patients.btn.timeline-filters",
      "kind": "btn",
      "label": "Filter events",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Opens the aesthetic session; a closed or void one, read-only.",
+     "id": "patients.btn.timeline-open-aesthetic",
+     "kind": "btn",
+     "label": "Continue session",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -8866,7 +9302,7 @@
     "PATIENTS_VIEW_LIST"
    ],
    "prerequisites": [],
-   "purpose": "Find, register and edit patients. The record gathers everything about the patient: details and notes, medical history, clinical timeline, treatment plans, instructions and prescriptions, documents, and their account (quotes, invoices and payments). From «Create» and «More actions» you log sessions, take payments, book and message them.",
+   "purpose": "Find, register and edit patients. The record gathers everything about the patient: details and notes, medical history, clinical timeline (including aesthetic sessions), treatment plans, instructions and prescriptions, documents, and their account (quotes, invoices and payments). From «Create» and «More actions» you log sessions, take payments, book and message them.",
    "route": "/patients",
    "status": "draft",
    "summary": "Patient list and their full record: details, clinical history and finances.",
@@ -8876,7 +9312,10 @@
     "Allergies and ailments from the medical history show as an alert in the record's header.",
     "The Finance section shows as an account ledger (Custom) or in tabs (Normal), depending on your Preferences.",
     "Quick payment, prepayment and payments need an open cash register.",
-    "Readmit and Activate/Deactivate apply as soon as you tap them, with no dialog first."
+    "Readmit and Activate/Deactivate apply as soon as you tap them, with no dialog first.",
+    "The aesthetic session saves on its own and resumes at the first step still missing. Once closed it is read-only and only accepts amendments.",
+    "In aesthetics, a service can't be marked without a signature. Without clinical photo authorization the camera locks and the session can close without photos.",
+    "The maximum per session, minimum interval and expired lot warnings inform you, but don't block."
    ],
    "title": "Patients",
    "useCases": [
@@ -8906,7 +9345,12 @@
     "patients.whatsapp",
     "patients.whatsapp-reminder",
     "patients.discharge",
-    "patients.toggle-active"
+    "patients.toggle-active",
+    "patients.aesthetic-session",
+    "patients.aesthetic-consent",
+    "patients.aesthetic-photos",
+    "patients.aesthetic-treatment",
+    "patients.aesthetic-close"
    ]
   },
   {
@@ -15204,6 +15648,30 @@
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
+     "id": "sales.services.btn.aesthetic-save",
+     "kind": "btn",
+     "label": "Save aesthetic settings",
+     "source": "src/components/services/service-aesthetic-config.tsx"
+    },
+    {
+     "id": "sales.services.btn.consent-from-generic",
+     "kind": "btn",
+     "label": "Start from the generic one",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "id": "sales.services.btn.consent-preview",
+     "kind": "btn",
+     "label": "Preview",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "id": "sales.services.btn.consent-save",
+     "kind": "btn",
+     "label": "Save consent",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
      "description": "Asks for confirmation.",
      "id": "sales.services.btn.delete",
      "kind": "btn",
@@ -15235,6 +15703,46 @@
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
+     "description": "Sent by WhatsApp when closing the session.",
+     "id": "sales.services.field.aesthetic-aftercare",
+     "kind": "field",
+     "label": "Aftercare",
+     "source": "src/components/services/service-aesthetic-config.tsx"
+    },
+    {
+     "id": "sales.services.field.aesthetic-default-quantity",
+     "kind": "field",
+     "label": "Initial quantity per mark",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "description": "Days until the follow-up offered when closing.",
+     "id": "sales.services.field.aesthetic-follow-up-days",
+     "kind": "field",
+     "label": "Suggested next appointment",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "id": "sales.services.field.aesthetic-follow-up-label",
+     "kind": "field",
+     "label": "Next appointment name",
+     "source": "src/components/services/service-aesthetic-config.tsx"
+    },
+    {
+     "description": "Warns, doesn't block.",
+     "id": "sales.services.field.aesthetic-max-per-session",
+     "kind": "field",
+     "label": "Maximum per session",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "description": "Warns, doesn't block.",
+     "id": "sales.services.field.aesthetic-min-interval",
+     "kind": "field",
+     "label": "Minimum interval on a zone",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
      "description": "The patient can book it from the portal.",
      "id": "sales.services.field.bookable_online",
      "kind": "field",
@@ -15254,6 +15762,18 @@
      "kind": "field",
      "label": "Color",
      "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
+     "id": "sales.services.field.consent-body",
+     "kind": "field",
+     "label": "Consent text",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "id": "sales.services.field.consent-title",
+     "kind": "field",
+     "label": "Document title",
+     "source": "knowledge/screens/sales.services.json"
     },
     {
      "description": "Price currency.",
@@ -15289,6 +15809,7 @@
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
+     "description": "Adds it to the aesthetic record and enables the Aesthetics tab.",
      "id": "sales.services.field.is_aesthetic",
      "kind": "field",
      "label": "Aesthetic service",
@@ -15316,6 +15837,7 @@
      "source": "src/app/[locale]/sales/services/page.tsx"
     },
     {
+     "description": "What the applied or sold amount is measured in (U, ml, mg…). Required for an aesthetic service.",
      "id": "sales.services.field.unit_id",
      "kind": "field",
      "label": "Unit of measure",
@@ -15326,6 +15848,34 @@
      "kind": "filter",
      "label": "Filter here...",
      "source": "src/app/[locale]/sales/services/page.tsx"
+    },
+    {
+     "description": "Tool, dose, limits, next appointment and aftercare. Saved separately from the service.",
+     "id": "sales.services.section.aesthetic-config",
+     "kind": "section",
+     "label": "Aesthetic record",
+     "source": "src/components/services/service-aesthetic-config.tsx"
+    },
+    {
+     "description": "Points, areas or line.",
+     "id": "sales.services.section.aesthetic-tool",
+     "kind": "section",
+     "label": "Marked with",
+     "source": "src/components/services/service-aesthetic-config.tsx"
+    },
+    {
+     "description": "The service's own text. Without one the generic text is used; changing it only affects new signatures.",
+     "id": "sales.services.section.consent-template",
+     "kind": "section",
+     "label": "Consent",
+     "source": "knowledge/screens/sales.services.json"
+    },
+    {
+     "description": "Patient, doctor, service, product and date.",
+     "id": "sales.services.section.consent-variables",
+     "kind": "section",
+     "label": "Variables",
+     "source": "knowledge/screens/sales.services.json"
     },
     {
      "id": "sales.services.section.detail",
@@ -15346,6 +15896,7 @@
      "source": "knowledge/screens/sales.services.json"
     },
     {
+     "description": "How it is marked on the aesthetic record and its consent.",
      "id": "sales.services.tab.aesthetic",
      "kind": "tab",
      "label": "Aesthetics",
@@ -15378,7 +15929,8 @@
    "status": "draft",
    "summary": "Catalog of services and treatments with price and duration.",
    "tips": [
-    "Check 'Bookable online' so the patient can book it from the portal."
+    "Check 'Bookable online' so the patient can book it from the portal.",
+    "To use it on the aesthetic record: choose the unit of measure, check \"Aesthetic service\", save and complete the Aesthetics tab."
    ],
    "title": "Services",
    "useCases": [
@@ -15387,7 +15939,9 @@
     "sales.services.create",
     "sales.services.edit",
     "sales.services.delete",
-    "sales.services.steps"
+    "sales.services.steps",
+    "sales.services.aesthetic",
+    "sales.services.consent-template"
    ]
   },
   {
@@ -17175,6 +17729,13 @@
   {
    "elements": [
     {
+     "description": "Opens the aesthetic session linked to this appointment and its doctor.",
+     "id": "workspace.btn.aesthetic",
+     "kind": "btn",
+     "label": "Aesthetic session",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
      "description": "The appointment's AI clinical agent.",
      "id": "workspace.btn.agent-chat",
      "kind": "btn",
@@ -17519,7 +18080,8 @@
     "workspace.complete-session",
     "workspace.prescribe",
     "workspace.odontogram",
-    "workspace.agent"
+    "workspace.agent",
+    "workspace.aesthetic-session"
    ]
   }
  ],
@@ -21831,6 +22393,254 @@
    ],
    "summary": "The faces of each tooth (occlusal, mesial, distal…) chosen on the odontogram.",
    "title": "Tour Dental Surfaces"
+  },
+  {
+   "id": "clinic-catalog.measurement-units.create",
+   "inputs": {
+    "code": "Unique code, no spaces",
+    "name": "Name",
+    "step": "Quantity step, as a number (1, 0.05)",
+    "symbol": "Symbol (e.g. ml, U)"
+   },
+   "keywords": [
+    "new measurement unit",
+    "add unit",
+    "create unit"
+   ],
+   "module": "Clinic Catalog",
+   "screens": [
+    "clinic-catalog.measurement-units"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "What doses of aesthetic services are recorded in (U, ml, mg, cc…).",
+     "id": "go",
+     "route": "/clinic-catalog/measurement-units",
+     "title": "Menu → Clinic Catalog → Measurement Units"
+    },
+    {
+     "action": "click",
+     "id": "new",
+     "target": "clinic-catalog.measurement-units.btn.new",
+     "title": "New unit",
+     "until": "clinic-catalog.measurement-units.field.name"
+    },
+    {
+     "action": "fill",
+     "id": "name",
+     "target": "clinic-catalog.measurement-units.field.name",
+     "title": "Name",
+     "value": "{{values.name}}"
+    },
+    {
+     "action": "fill",
+     "details": "What shows next to each quantity.",
+     "id": "symbol",
+     "target": "clinic-catalog.measurement-units.field.symbol",
+     "title": "Symbol",
+     "value": "{{values.symbol}}"
+    },
+    {
+     "action": "fill",
+     "details": "Unique identifier: letters, numbers, hyphen and underscore.",
+     "id": "code",
+     "target": "clinic-catalog.measurement-units.field.code",
+     "title": "Code",
+     "value": "{{values.code}}"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "How much the + and − buttons change when marking: 1 for whole units, 0.05 for ml.",
+     "id": "step",
+     "optional": true,
+     "target": "clinic-catalog.measurement-units.field.step",
+     "title": "Quantity step",
+     "value": "{{values.step}}"
+    },
+    {
+     "action": "highlight",
+     "details": "Inactive ones aren't offered when setting up services.",
+     "id": "active",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.field.isActive",
+     "title": "Active"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "clinic-catalog.measurement-units.btn.submit",
+     "title": "Save"
+    }
+   ],
+   "summary": "New entry in the measurement units catalog.",
+   "title": "Add a measurement unit"
+  },
+  {
+   "id": "clinic-catalog.measurement-units.delete",
+   "inputs": {},
+   "keywords": [
+    "delete unit",
+    "remove unit"
+   ],
+   "module": "Clinic Catalog",
+   "screens": [
+    "clinic-catalog.measurement-units"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "What doses of aesthetic services are recorded in (U, ml, mg, cc…).",
+     "id": "go",
+     "route": "/clinic-catalog/measurement-units",
+     "title": "Menu → Clinic Catalog → Measurement Units"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the unit's trash icon.",
+     "id": "delete",
+     "target": "clinic-catalog.measurement-units.btn.delete",
+     "title": "Delete",
+     "until": "clinic-catalog.measurement-units.btn.delete-confirm"
+    },
+    {
+     "action": "confirm",
+     "details": "If services or sessions use it, it isn't deleted: it becomes inactive and old sessions keep showing it.",
+     "id": "ok",
+     "target": "clinic-catalog.measurement-units.btn.delete-confirm",
+     "title": "Confirm"
+    }
+   ],
+   "summary": "Remove it from the catalog; if it's in use, it becomes inactive.",
+   "title": "Delete a measurement unit"
+  },
+  {
+   "id": "clinic-catalog.measurement-units.edit",
+   "inputs": {},
+   "keywords": [
+    "edit unit",
+    "change symbol",
+    "deactivate unit"
+   ],
+   "module": "Clinic Catalog",
+   "screens": [
+    "clinic-catalog.measurement-units"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "What doses of aesthetic services are recorded in (U, ml, mg, cc…).",
+     "id": "go",
+     "route": "/clinic-catalog/measurement-units",
+     "title": "Menu → Clinic Catalog → Measurement Units"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the pencil of the unit you want to change.",
+     "id": "edit",
+     "target": "clinic-catalog.measurement-units.btn.edit",
+     "title": "Edit",
+     "until": "clinic-catalog.measurement-units.field.name"
+    },
+    {
+     "action": "highlight",
+     "id": "name",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.field.name",
+     "title": "Name"
+    },
+    {
+     "action": "highlight",
+     "details": "What shows next to each quantity.",
+     "id": "symbol",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.field.symbol",
+     "title": "Symbol"
+    },
+    {
+     "action": "highlight",
+     "details": "How much + and − change when marking: 1 for whole units, 0.05 for ml.",
+     "id": "step",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.field.step",
+     "title": "Quantity step"
+    },
+    {
+     "action": "highlight",
+     "details": "Inactive stops being offered without affecting what is already recorded.",
+     "id": "active",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.field.isActive",
+     "title": "Active"
+    },
+    {
+     "action": "confirm",
+     "id": "save",
+     "target": "clinic-catalog.measurement-units.btn.submit",
+     "title": "Save changes"
+    }
+   ],
+   "summary": "Change its details or deactivate it.",
+   "title": "Edit a measurement unit"
+  },
+  {
+   "id": "clinic-catalog.measurement-units.overview",
+   "inputs": {},
+   "keywords": [
+    "measurement units",
+    "unit",
+    "ml",
+    "mg",
+    "what is the step"
+   ],
+   "module": "Clinic Catalog",
+   "screens": [
+    "clinic-catalog.measurement-units"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "What doses of aesthetic services are recorded in (U, ml, mg, cc…).",
+     "id": "go",
+     "route": "/clinic-catalog/measurement-units",
+     "title": "Menu → Clinic Catalog → Measurement Units"
+    },
+    {
+     "action": "highlight",
+     "details": "Name, symbol (what shows next to each quantity), code, step and status.",
+     "id": "table",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.section.table",
+     "title": "Units"
+    },
+    {
+     "action": "highlight",
+     "id": "edit",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.btn.edit",
+     "title": "Edit"
+    },
+    {
+     "action": "highlight",
+     "details": "If it's in use, it isn't deleted: it becomes inactive.",
+     "id": "delete",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.btn.delete",
+     "title": "Delete"
+    },
+    {
+     "action": "highlight",
+     "id": "new",
+     "skipIfMissing": true,
+     "target": "clinic-catalog.measurement-units.btn.new",
+     "title": "New unit"
+    }
+   ],
+   "summary": "The units doses are recorded in and how they are used.",
+   "title": "Tour Measurement Units"
   },
   {
    "id": "clinic-catalog.medications.create",
@@ -29715,6 +30525,815 @@
    ],
    "summary": "The agent confirms appointments and replies to patients over WhatsApp. It's turned on here; the Invoke team connects the number.",
    "title": "Turn on the WhatsApp agent"
+  },
+  {
+   "group": "Aesthetic record",
+   "id": "patients.aesthetic-close",
+   "inputs": {
+    "patient": "Patient's name, email or ID"
+   },
+   "keywords": [
+    "close aesthetic session",
+    "charge aesthetics",
+    "invoice session",
+    "aftercare",
+    "schedule follow-up",
+    "next appointment",
+    "void session",
+    "amendment",
+    "correct closed session",
+    "lot usage"
+   ],
+   "module": "Patients",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Patient list; tapping one opens their record on the right.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menu → Patients"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By name, email or ID.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Find the patient",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the patient in the list. The guide continues once their record is open.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Open their record",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "id": "clinical",
+     "target": "patients.tab.clinical",
+     "title": "Clinical history",
+     "until": "patients.tab.clinical-history"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "target": "patients.tab.clinical-history",
+     "title": "Timeline",
+     "until": "patients.section.timeline"
+    },
+    {
+     "action": "highlight",
+     "details": "You can tell it by its status (Draft, In treatment, Ready to close, Closed…). Tapping it expands it. If the patient has none, create one first with Create → Aesthetic session.",
+     "id": "session",
+     "target": "patients.section.timeline",
+     "title": "Tap the aesthetic session",
+     "until": "patients.btn.timeline-open-aesthetic"
+    },
+    {
+     "action": "click",
+     "details": "Resumes at the first step still missing. A closed or void session opens read-only.",
+     "id": "open",
+     "target": "patients.btn.timeline-open-aesthetic",
+     "title": "Continue session",
+     "until": "aesthetic-session.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Step 4.",
+     "id": "close-step",
+     "target": "aesthetic-session.btn.step-close",
+     "title": "Closing"
+    },
+    {
+     "action": "highlight",
+     "details": "Tap each notice to go to the step that solves it.",
+     "id": "missing",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.missing",
+     "title": "What is missing"
+    },
+    {
+     "action": "highlight",
+     "details": "Each service with its zones, total, lots used and today's photos. An expired lot shows in red.",
+     "id": "applied",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.applied",
+     "title": "Treatment applied"
+    },
+    {
+     "action": "highlight",
+     "details": "Free text kept on the patient's timeline, along with the notes taken during the session.",
+     "id": "summary",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.session-summary",
+     "title": "Session summary"
+    },
+    {
+     "action": "highlight",
+     "details": "\"Charge\" opens billing with the session's services already filled in. The invoice stays linked: its total, amount paid, balance and payments show here and can be printed. Charging is not required to close.",
+     "id": "billing",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.billing",
+     "title": "Charge"
+    },
+    {
+     "action": "highlight",
+     "details": "Sends each service's aftercare by WhatsApp and schedules the follow-up on the suggested date. Both are set in the service's Aesthetics tab.",
+     "id": "follow-up",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.follow-up",
+     "title": "Aftercare and next appointment"
+    },
+    {
+     "action": "highlight",
+     "details": "Who signed, uploaded photos, added notes or closed, and when.",
+     "id": "activity",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.activity",
+     "title": "Activity"
+    },
+    {
+     "action": "highlight",
+     "details": "Asks for a reason and leaves the session read-only. Nothing is deleted. Only an open session can be deleted, from the timeline.",
+     "id": "void",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.void",
+     "title": "Void session"
+    },
+    {
+     "action": "highlight",
+     "details": "In a closed session, corrections are added as an amendment, without erasing the original.",
+     "id": "amendments",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.amendments",
+     "title": "Amendments"
+    },
+    {
+     "action": "highlight",
+     "details": "Asks for confirmation. It requires everything signed, a photo (unless not applicable) and each service with at least one mark with a quantity.",
+     "id": "close",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.close-session",
+     "title": "Close session"
+    }
+   ],
+   "summary": "Review what was applied, charge, send aftercare, schedule the follow-up and close; afterwards, amendments or voiding.",
+   "title": "Close, charge or void an aesthetic session"
+  },
+  {
+   "group": "Aesthetic record",
+   "id": "patients.aesthetic-consent",
+   "inputs": {
+    "patient": "Patient's name, email or ID"
+   },
+   "keywords": [
+    "consent",
+    "informed consent",
+    "signature",
+    "sign",
+    "photo authorization",
+    "reuse signature",
+    "print consent"
+   ],
+   "module": "Patients",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Patient list; tapping one opens their record on the right.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menu → Patients"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By name, email or ID.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Find the patient",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the patient in the list. The guide continues once their record is open.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Open their record",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Everything that can be created for this patient: clinical, financial and scheduling.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Create",
+     "until": "patients.btn.new-aesthetic"
+    },
+    {
+     "action": "click",
+     "details": "Opens the guided flow of a new session. Nothing is saved until you choose a service.",
+     "id": "item",
+     "target": "patients.btn.new-aesthetic",
+     "title": "Aesthetic session",
+     "until": "aesthetic-session.section.header"
+    },
+    {
+     "action": "highlight",
+     "details": "The status comes from the data: Draft, Consented, In treatment, Ready to close. Each finished step adds 25%. Next to it you see what is missing and when it was saved: everything saves on its own.",
+     "id": "progress",
+     "target": "aesthetic-session.section.progress",
+     "title": "Status and progress"
+    },
+    {
+     "action": "highlight",
+     "details": "Session date (it can't be in the future) and who performs it. From My Workspace they come from the appointment.",
+     "id": "data",
+     "target": "aesthetic-session.section.session-data",
+     "title": "Date and doctor"
+    },
+    {
+     "action": "highlight",
+     "details": "Check what is being done today. Only aesthetic services appear; if one is missing, set it up in Sales → Services. \"Last session\" adds those from the previous time.",
+     "id": "services",
+     "target": "aesthetic-session.section.services",
+     "title": "Today's services"
+    },
+    {
+     "action": "highlight",
+     "details": "If the patient already signed this service, you can use that signature instead of asking again. It never changes an authorization already given in this session.",
+     "id": "reuse",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.reuse",
+     "title": "Reuse a signature"
+    },
+    {
+     "action": "highlight",
+     "details": "The one for the service, with the patient details filled in; \"View text\" shows another service's. If the service has no template of its own, the generic text is used. What was signed is stored as is, with its SHA-256 fingerprint.",
+     "id": "text",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.consent-text",
+     "title": "Consent text"
+    },
+    {
+     "action": "highlight",
+     "details": "Required. Authorizations are checked once for all pending consents.",
+     "id": "risks",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.field.risksExplained",
+     "title": "Risks explained"
+    },
+    {
+     "action": "highlight",
+     "details": "Without this authorization the camera stays locked and the session can be closed without photos.",
+     "id": "clinical-photos",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.field.allowsClinicalPhotos",
+     "title": "Photos for the clinical record"
+    },
+    {
+     "action": "highlight",
+     "details": "Optional: allows using them for promotion.",
+     "id": "marketing-photos",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.field.allowsMarketingPhotos",
+     "title": "Marketing photos"
+    },
+    {
+     "action": "highlight",
+     "details": "The patient by default; change it if a guardian signs.",
+     "id": "signer",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.field.signerName",
+     "title": "Who signs"
+    },
+    {
+     "action": "highlight",
+     "details": "Sign with your finger, a stylus or the mouse.",
+     "id": "pad",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.signature-pad",
+     "title": "Signature"
+    },
+    {
+     "action": "confirm",
+     "details": "Signs all pending services at once. What was signed can no longer be changed.",
+     "id": "sign",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.sign",
+     "title": "Sign"
+    },
+    {
+     "action": "highlight",
+     "details": "Enabled once every service is signed. If some are still unsigned, \"Mark the signed ones\" goes straight to the treatment of those already signed.",
+     "id": "continue",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.to-photos",
+     "title": "Continue to photos"
+    }
+   ],
+   "summary": "Choose today's services, check the photo authorizations and sign, or use an earlier signature.",
+   "title": "Sign or reuse the aesthetic consent"
+  },
+  {
+   "group": "Aesthetic record",
+   "id": "patients.aesthetic-photos",
+   "inputs": {
+    "patient": "Patient's name, email or ID"
+   },
+   "keywords": [
+    "photos",
+    "before and after",
+    "compare photos",
+    "progress",
+    "align photo",
+    "camera"
+   ],
+   "module": "Patients",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Patient list; tapping one opens their record on the right.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menu → Patients"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By name, email or ID.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Find the patient",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the patient in the list. The guide continues once their record is open.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Open their record",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "id": "clinical",
+     "target": "patients.tab.clinical",
+     "title": "Clinical history",
+     "until": "patients.tab.clinical-history"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "target": "patients.tab.clinical-history",
+     "title": "Timeline",
+     "until": "patients.section.timeline"
+    },
+    {
+     "action": "highlight",
+     "details": "You can tell it by its status (Draft, In treatment, Ready to close, Closed…). Tapping it expands it. If the patient has none, create one first with Create → Aesthetic session.",
+     "id": "session",
+     "target": "patients.section.timeline",
+     "title": "Tap the aesthetic session",
+     "until": "patients.btn.timeline-open-aesthetic"
+    },
+    {
+     "action": "click",
+     "details": "Resumes at the first step still missing. A closed or void session opens read-only.",
+     "id": "open",
+     "target": "patients.btn.timeline-open-aesthetic",
+     "title": "Continue session",
+     "until": "aesthetic-session.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Step 2. A photo of any view is enough; none is needed if the patient declined photos or if every mark is on the body.",
+     "id": "photos",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.step-photos",
+     "title": "Today's photos"
+    },
+    {
+     "action": "highlight",
+     "details": "Front, left and right profile, each with today's photo and the earlier ones.",
+     "id": "views",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.photo-views",
+     "title": "Views"
+    },
+    {
+     "action": "highlight",
+     "details": "Opens the camera with a framing guide and, if there is one, the last photo see-through to repeat pose, distance and light.",
+     "id": "take",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.photo-take",
+     "title": "Take photo"
+    },
+    {
+     "action": "highlight",
+     "details": "Choose images from the device, or drag them here.",
+     "id": "upload",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.photo-upload",
+     "title": "Upload"
+    },
+    {
+     "action": "highlight",
+     "details": "With a photo from today and an earlier one of the same view, this is where they're compared.",
+     "id": "stage",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.photo-stage",
+     "title": "Photo of the view"
+    },
+    {
+     "action": "highlight",
+     "details": "Slider, side by side or overlaid with opacity. Below you can show each session's marks over the photo.",
+     "id": "modes",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.compare-modes",
+     "title": "Comparison mode"
+    },
+    {
+     "action": "highlight",
+     "details": "Goes back to the first session; any other can be chosen in the list of earlier ones.",
+     "id": "initial",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.compare-initial",
+     "title": "Compare with the first one"
+    },
+    {
+     "action": "highlight",
+     "details": "The photos of this view in earlier sessions, with their date and how many days ago.",
+     "id": "history",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.photo-history",
+     "title": "Earlier sessions"
+    },
+    {
+     "action": "highlight",
+     "details": "Fits the photo to the map (eyes, nose, mouth) so the zones match when it is used as a background.",
+     "id": "align",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.photo-align",
+     "title": "Align"
+    },
+    {
+     "action": "highlight",
+     "details": "Goes to the treatment. Today's photo can also be used as a background for marking.",
+     "id": "continue",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.to-treatment",
+     "title": "Continue"
+    }
+   ],
+   "summary": "Today's photos per view, aligning them with the map and comparing progress against earlier sessions.",
+   "title": "Take and compare aesthetic photos"
+  },
+  {
+   "group": "Aesthetic record",
+   "id": "patients.aesthetic-session",
+   "inputs": {
+    "patient": "Patient's name, email or ID"
+   },
+   "keywords": [
+    "aesthetics",
+    "aesthetic session",
+    "aesthetic record",
+    "botox",
+    "toxin",
+    "filler",
+    "hyaluronic acid",
+    "thread lift",
+    "mesotherapy",
+    "record aesthetic treatment"
+   ],
+   "module": "Patients",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Patient list; tapping one opens their record on the right.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menu → Patients"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By name, email or ID.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Find the patient",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the patient in the list. The guide continues once their record is open.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Open their record",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Everything that can be created for this patient: clinical, financial and scheduling.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Create",
+     "until": "patients.btn.new-aesthetic"
+    },
+    {
+     "action": "click",
+     "details": "Opens the guided flow of a new session. Nothing is saved until you choose a service.",
+     "id": "item",
+     "target": "patients.btn.new-aesthetic",
+     "title": "Aesthetic session",
+     "until": "aesthetic-session.section.header"
+    },
+    {
+     "action": "highlight",
+     "details": "The status comes from the data: Draft, Consented, In treatment, Ready to close. Each finished step adds 25%. Next to it you see what is missing and when it was saved: everything saves on its own.",
+     "id": "progress",
+     "target": "aesthetic-session.section.progress",
+     "title": "Status and progress"
+    },
+    {
+     "action": "highlight",
+     "details": "Session date (it can't be in the future) and who performs it. From My Workspace they come from the appointment.",
+     "id": "data",
+     "target": "aesthetic-session.section.session-data",
+     "title": "Date and doctor"
+    },
+    {
+     "action": "highlight",
+     "details": "Check what is being done today. Only aesthetic services appear; if one is missing, set it up in Sales → Services. \"Last session\" adds those from the previous time.",
+     "id": "services",
+     "target": "aesthetic-session.section.services",
+     "title": "Today's services"
+    },
+    {
+     "action": "highlight",
+     "details": "Appears once a service is chosen: risks explained, photo authorizations, who signs and the signature. Without a signature that service cannot be marked.",
+     "id": "sign-area",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.signature",
+     "title": "Sign the consent"
+    },
+    {
+     "action": "confirm",
+     "details": "Signs all pending services at once. What was signed can no longer be changed.",
+     "id": "sign",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.sign",
+     "title": "Sign"
+    },
+    {
+     "action": "click",
+     "details": "Step 2. A photo of any view is enough; none is needed if the patient declined photos or if every mark is on the body.",
+     "id": "photos",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.step-photos",
+     "title": "Today's photos"
+    },
+    {
+     "action": "highlight",
+     "details": "Front, left and right profile, each with today's photo and the earlier ones.",
+     "id": "views",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.photo-views",
+     "title": "Views"
+    },
+    {
+     "action": "highlight",
+     "details": "Opens the camera with a framing guide and, if there is one, the last photo see-through to repeat pose, distance and light.",
+     "id": "take",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.photo-take",
+     "title": "Take photo"
+    },
+    {
+     "action": "click",
+     "details": "Step 3. It stays locked until at least one consent is signed.",
+     "id": "treatment",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.step-treatment",
+     "title": "Treatment"
+    },
+    {
+     "action": "highlight",
+     "details": "Choose the service below and tap the face or body. Each mark needs a quantity above 0. A separate guide covers all the tools.",
+     "id": "map",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.map",
+     "title": "Mark on the map"
+    },
+    {
+     "action": "click",
+     "details": "Step 4: what was applied, the summary, the charge and the next appointment.",
+     "id": "close-step",
+     "target": "aesthetic-session.btn.step-close",
+     "title": "Closing"
+    },
+    {
+     "action": "confirm",
+     "details": "Enabled once consents, the photo and the marks are complete. After that it stays read-only and only accepts amendments.",
+     "id": "close",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.close-session",
+     "title": "Close session"
+    }
+   ],
+   "summary": "The full four-step flow, saved automatically: consent, photos, treatment and closing.",
+   "title": "Record an aesthetic session"
+  },
+  {
+   "group": "Aesthetic record",
+   "id": "patients.aesthetic-treatment",
+   "inputs": {
+    "patient": "Patient's name, email or ID"
+   },
+   "keywords": [
+    "face map",
+    "body map",
+    "mark points",
+    "injection points",
+    "area",
+    "line",
+    "threads",
+    "dose",
+    "units",
+    "lot",
+    "expiry",
+    "symmetry",
+    "mirror",
+    "zone history",
+    "undo"
+   ],
+   "module": "Patients",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Patient list; tapping one opens their record on the right.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menu → Patients"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By name, email or ID.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Find the patient",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the patient in the list. The guide continues once their record is open.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Open their record",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "id": "clinical",
+     "target": "patients.tab.clinical",
+     "title": "Clinical history",
+     "until": "patients.tab.clinical-history"
+    },
+    {
+     "action": "click",
+     "id": "tab",
+     "target": "patients.tab.clinical-history",
+     "title": "Timeline",
+     "until": "patients.section.timeline"
+    },
+    {
+     "action": "highlight",
+     "details": "You can tell it by its status (Draft, In treatment, Ready to close, Closed…). Tapping it expands it. If the patient has none, create one first with Create → Aesthetic session.",
+     "id": "session",
+     "target": "patients.section.timeline",
+     "title": "Tap the aesthetic session",
+     "until": "patients.btn.timeline-open-aesthetic"
+    },
+    {
+     "action": "click",
+     "details": "Resumes at the first step still missing. A closed or void session opens read-only.",
+     "id": "open",
+     "target": "patients.btn.timeline-open-aesthetic",
+     "title": "Continue session",
+     "until": "aesthetic-session.section.header"
+    },
+    {
+     "action": "click",
+     "details": "It stays locked until at least one consent is signed.",
+     "id": "treatment",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.step-treatment",
+     "title": "Treatment"
+    },
+    {
+     "action": "highlight",
+     "details": "Face or body, the view, and what's behind: the model (with its skin tone) or today's photo.",
+     "id": "views",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.views",
+     "title": "Region, view and background"
+    },
+    {
+     "action": "highlight",
+     "details": "What you mark goes to this service; the eye hides or shows it. Those not signed show a lock and can't be marked.",
+     "id": "layers",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.layers",
+     "title": "Active service"
+    },
+    {
+     "action": "highlight",
+     "details": "Select and move, point, area and line, undo and redo (Ctrl+Z), show the zones and show the previous session's marks. Each service starts with its configured tool.",
+     "id": "tools",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.tools",
+     "title": "Tools"
+    },
+    {
+     "action": "highlight",
+     "details": "A point: one tap. An area: tap the vertices and close on the first one or with Enter. A line: tap the start and the end. The zone is detected on its own. Tapping an empty zone with Select shows its history.",
+     "id": "map",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.map",
+     "title": "Map"
+    },
+    {
+     "action": "highlight",
+     "details": "Appears when a mark is selected: quantity, zone, depth, technique and note. \"Mirror\" duplicates it on the other side and \"Change on this mark\" uses another product or lot. It warns if the maximum is exceeded, the interval was not respected or the lot expired, but it does not block.",
+     "id": "editor",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.mark-editor",
+     "title": "Mark details"
+    },
+    {
+     "action": "click",
+     "details": "Each service with its total and marks. Tap one to enter product, lot and expiry just once for all its marks.",
+     "id": "summary",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.tab.summary",
+     "title": "Summary"
+    },
+    {
+     "action": "click",
+     "details": "Timestamped notes while you work, with voice dictation and frequent phrases.",
+     "id": "notes",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.tab.notes",
+     "title": "Notes"
+    },
+    {
+     "action": "click",
+     "details": "What was applied to each zone in earlier sessions (last 12 months).",
+     "id": "history",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.tab.history",
+     "title": "History"
+    },
+    {
+     "action": "highlight",
+     "details": "When you have finished marking.",
+     "id": "to-close",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.btn.to-close",
+     "title": "Go to closing"
+    }
+   ],
+   "summary": "Points, areas and lines on the face or body, with dose, lot, notes and per-zone history.",
+   "title": "Mark the treatment on the aesthetic map"
   },
   {
    "group": "Clinical history",
@@ -40311,6 +41930,260 @@
    "title": "Print or email a quote"
   },
   {
+   "id": "sales.services.aesthetic",
+   "inputs": {
+    "query": "Search"
+   },
+   "keywords": [
+    "aesthetic service",
+    "aesthetic record",
+    "marking tool",
+    "default dose",
+    "maximum per session",
+    "minimum interval",
+    "suggested next appointment",
+    "aftercare",
+    "service unit"
+   ],
+   "module": "Sales",
+   "screens": [
+    "sales.services"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "A service appears on the aesthetic record only if it is marked as an aesthetic service.",
+     "id": "go",
+     "route": "/sales/services",
+     "title": "Menu → Sales → Services"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "sales.services.filter.search",
+     "title": "Find the service",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap it to open its record.",
+     "id": "pick",
+     "target": "sales.services.section.first-row",
+     "title": "Choose the service",
+     "until": "sales.services.section.detail"
+    },
+    {
+     "action": "click",
+     "id": "details",
+     "skipIfMissing": true,
+     "target": "sales.services.tab.details",
+     "title": "Details"
+    },
+    {
+     "action": "highlight",
+     "details": "What the applied amount is measured in (U, ml, mg…). It is required for an aesthetic service. Units are created in Clinic Catalog → Measurement Units.",
+     "id": "unit",
+     "target": "sales.services.field.unit_id",
+     "title": "Unit of measure"
+    },
+    {
+     "action": "highlight",
+     "details": "Adds it to the aesthetic record and enables the Aesthetics tab. If you turn it off, it stops appearing for new sessions; those already recorded don't change.",
+     "id": "flag",
+     "target": "sales.services.field.is_aesthetic",
+     "title": "Aesthetic service"
+    },
+    {
+     "action": "confirm",
+     "details": "Saves the unit and the aesthetic flag. The Aesthetics tab settings are saved separately.",
+     "id": "save-service",
+     "skipIfMissing": true,
+     "target": "sales.services.btn.submit",
+     "title": "Save the service"
+    },
+    {
+     "action": "click",
+     "details": "How this service is recorded on the aesthetic record.",
+     "id": "tab",
+     "skipIfMissing": true,
+     "target": "sales.services.tab.aesthetic",
+     "title": "Aesthetics",
+     "until": "sales.services.section.aesthetic-config"
+    },
+    {
+     "action": "highlight",
+     "details": "Points (each tap is one application: toxin, lips), areas (outline of the zone: mesotherapy) or line (two ends: thread lifts).",
+     "id": "tool",
+     "skipIfMissing": true,
+     "target": "sales.services.section.aesthetic-tool",
+     "title": "Marked with"
+    },
+    {
+     "action": "highlight",
+     "details": "What each new mark starts with; it can be adjusted later.",
+     "id": "qty",
+     "skipIfMissing": true,
+     "target": "sales.services.field.aesthetic-default-quantity",
+     "title": "Initial quantity per mark"
+    },
+    {
+     "action": "highlight",
+     "details": "Warns when it's exceeded during marking; it doesn't block.",
+     "id": "max",
+     "skipIfMissing": true,
+     "target": "sales.services.field.aesthetic-max-per-session",
+     "title": "Maximum per session"
+    },
+    {
+     "action": "highlight",
+     "details": "Days that should pass between applications on the same zone. This one only warns too.",
+     "id": "interval",
+     "skipIfMissing": true,
+     "target": "sales.services.field.aesthetic-min-interval",
+     "title": "Minimum interval on a zone"
+    },
+    {
+     "action": "highlight",
+     "details": "How many days out the follow-up is offered when closing the session; it can be given a name.",
+     "id": "follow",
+     "skipIfMissing": true,
+     "target": "sales.services.field.aesthetic-follow-up-days",
+     "title": "Suggested next appointment"
+    },
+    {
+     "action": "highlight",
+     "details": "What can be sent to the patient by WhatsApp when closing the session.",
+     "id": "aftercare",
+     "skipIfMissing": true,
+     "target": "sales.services.field.aesthetic-aftercare",
+     "title": "Aftercare"
+    },
+    {
+     "action": "confirm",
+     "details": "Appears when there are changes. Until it's saved for the first time, the service doesn't show on the aesthetic record.",
+     "id": "save",
+     "skipIfMissing": true,
+     "target": "sales.services.btn.aesthetic-save",
+     "title": "Save"
+    }
+   ],
+   "summary": "Unit of measure, how it is marked on the map, initial dose, limits, next appointment and aftercare.",
+   "title": "Set up an aesthetic service"
+  },
+  {
+   "id": "sales.services.consent-template",
+   "inputs": {
+    "query": "Search"
+   },
+   "keywords": [
+    "consent template",
+    "consent text",
+    "service consent",
+    "variables",
+    "consent preview"
+   ],
+   "module": "Sales",
+   "screens": [
+    "sales.services"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Each aesthetic service can have its own consent.",
+     "id": "go",
+     "route": "/sales/services",
+     "title": "Menu → Sales → Services"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "id": "search",
+     "optional": true,
+     "target": "sales.services.filter.search",
+     "title": "Find the service",
+     "value": "{{values.query}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap it to open its record.",
+     "id": "pick",
+     "target": "sales.services.section.first-row",
+     "title": "Choose the service",
+     "until": "sales.services.section.detail"
+    },
+    {
+     "action": "click",
+     "details": "If it is not there, first mark the service as an aesthetic service in Details.",
+     "id": "tab",
+     "skipIfMissing": true,
+     "target": "sales.services.tab.aesthetic",
+     "title": "Aesthetics",
+     "until": "sales.services.section.consent-template"
+    },
+    {
+     "action": "highlight",
+     "details": "Without its own text, the generic one is used. Changing it only affects new signatures: what's already signed stays as it was.",
+     "id": "section",
+     "skipIfMissing": true,
+     "target": "sales.services.section.consent-template",
+     "title": "Consent"
+    },
+    {
+     "action": "highlight",
+     "id": "title",
+     "skipIfMissing": true,
+     "target": "sales.services.field.consent-title",
+     "title": "Document title"
+    },
+    {
+     "action": "highlight",
+     "details": "Loads the generic text to edit it. It only appears when the text is empty.",
+     "id": "generic",
+     "skipIfMissing": true,
+     "target": "sales.services.btn.consent-from-generic",
+     "title": "Start from the generic one"
+    },
+    {
+     "action": "highlight",
+     "details": "What the patient sees before signing.",
+     "id": "body",
+     "skipIfMissing": true,
+     "target": "sales.services.field.consent-body",
+     "title": "Text"
+    },
+    {
+     "action": "highlight",
+     "details": "Replaced when signing: patient, doctor, service, product and date. An unknown variable prevents saving.",
+     "id": "variables",
+     "skipIfMissing": true,
+     "target": "sales.services.section.consent-variables",
+     "title": "Variables"
+    },
+    {
+     "action": "highlight",
+     "details": "How it looks with sample data.",
+     "id": "preview",
+     "skipIfMissing": true,
+     "target": "sales.services.btn.consent-preview",
+     "title": "Preview"
+    },
+    {
+     "action": "confirm",
+     "details": "Appears when there are changes.",
+     "id": "save",
+     "skipIfMissing": true,
+     "target": "sales.services.btn.consent-save",
+     "title": "Save"
+    }
+   ],
+   "summary": "Its own consent text, with patient, doctor and service variables, and a preview.",
+   "title": "Write an aesthetic service's consent"
+  },
+  {
    "id": "sales.services.create",
    "inputs": {
     "category": "Category (e.g. Other services)",
@@ -43557,6 +45430,74 @@
    ],
    "summary": "Theme, which rooms to show, how often it refreshes, promotional videos, where the video column goes and music.",
    "title": "Set up the TV display"
+  },
+  {
+   "id": "workspace.aesthetic-session",
+   "inputs": {},
+   "keywords": [
+    "aesthetics",
+    "aesthetic session",
+    "aesthetic record",
+    "botox",
+    "toxin",
+    "filler",
+    "consent"
+   ],
+   "module": "My Workspace",
+   "screens": [
+    "workspace"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "The doctor's view: their schedule and the clinical panel of the patient they're seeing.",
+     "id": "go",
+     "route": "/workspace",
+     "title": "Menu → My Workspace"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the appointment on the schedule: the patient panel opens on the right. If you don't see appointments, change the day or the period at the top.",
+     "id": "select",
+     "target": "workspace.section.appointment",
+     "title": "Choose the patient's appointment",
+     "until": "workspace.section.focus"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Opens the flow with the appointment and doctor already filled in. If it's disabled, the appointment doesn't allow editing sessions (for example, it's on another day).",
+     "id": "open",
+     "target": "workspace.btn.aesthetic",
+     "title": "Aesthetic session",
+     "until": "aesthetic-session.section.header"
+    },
+    {
+     "action": "highlight",
+     "details": "Check what is being done today. Only aesthetic services appear; if one is missing, set it up in Sales → Services. \"Last session\" adds those from the previous time.",
+     "id": "services",
+     "target": "aesthetic-session.section.services",
+     "title": "Today's services"
+    },
+    {
+     "action": "highlight",
+     "details": "Without a signature that service can't be marked.",
+     "id": "sign-area",
+     "skipIfMissing": true,
+     "target": "aesthetic-session.section.signature",
+     "title": "Sign the consent"
+    },
+    {
+     "action": "highlight",
+     "details": "Consent, Today's photos, Treatment and Closing. Everything saves on its own and the session stays on the patient's timeline. The Patients guides explain each step.",
+     "id": "steps",
+     "target": "aesthetic-session.section.header",
+     "title": "The four steps"
+    }
+   ],
+   "summary": "Open the guided flow from My Workspace: the session is linked to the appointment and the doctor.",
+   "title": "Record an aesthetic session from the appointment"
   },
   {
    "id": "workspace.agent",

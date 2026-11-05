@@ -18,7 +18,8 @@
     "workspace.complete-session",
     "workspace.prescribe",
     "workspace.odontogram",
-    "workspace.agent"
+    "workspace.agent",
+    "workspace.aesthetic-session"
   ],
   "elements": {
     "workspace.section.agenda": {
@@ -186,6 +187,10 @@
     "workspace.btn.submit": {
       "label": "Guardar",
       "description": "Guardar la sesión clínica o la receta."
+    },
+    "workspace.btn.aesthetic": {
+      "label": "Sesión estética",
+      "description": "Abre la sesión de estética vinculada a esta cita y su profesional."
     }
   }
 }

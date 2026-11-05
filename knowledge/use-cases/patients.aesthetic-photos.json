@@ -1,0 +1,160 @@
+{
+  "id": "patients.aesthetic-photos",
+  "title": "Tomar y comparar fotos de estética",
+  "module": "Pacientes",
+  "summary": "Fotos de hoy por vista, alinearlas con el mapa y comparar la evolución con sesiones anteriores.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Ficha estética",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "fotos",
+    "foto antes y después",
+    "antes y después",
+    "comparar fotos",
+    "evolución",
+    "alinear foto",
+    "cámara"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "clinical",
+      "action": "click",
+      "target": "patients.tab.clinical",
+      "title": "Historia clínica",
+      "until": "patients.tab.clinical-history"
+    },
+    {
+      "id": "tab",
+      "action": "click",
+      "target": "patients.tab.clinical-history",
+      "title": "Línea de tiempo",
+      "until": "patients.section.timeline"
+    },
+    {
+      "id": "session",
+      "action": "highlight",
+      "target": "patients.section.timeline",
+      "title": "Tocá la sesión de estética",
+      "details": "Se reconoce por el estado (Borrador, En tratamiento, Por cerrar, Cerrada…). Al tocarla se despliega. Si el paciente no tiene ninguna, primero hay que crearla con Crear → Sesión estética.",
+      "until": "patients.btn.timeline-open-aesthetic"
+    },
+    {
+      "id": "open",
+      "action": "click",
+      "target": "patients.btn.timeline-open-aesthetic",
+      "title": "Continuar sesión",
+      "details": "Retoma en el primer paso que falta. Una sesión cerrada o anulada se abre en solo lectura.",
+      "until": "aesthetic-session.section.header"
+    },
+    {
+      "id": "photos",
+      "action": "click",
+      "target": "aesthetic-session.btn.step-photos",
+      "title": "Fotos de hoy",
+      "details": "Paso 2. Con una foto de cualquier vista ya alcanza; no hace falta si el paciente no autorizó fotos o si todas las marcas son en el cuerpo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "views",
+      "action": "highlight",
+      "target": "aesthetic-session.section.photo-views",
+      "title": "Vistas",
+      "details": "Frente, perfil izquierdo y derecho, cada una con su foto de hoy y las anteriores.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "take",
+      "action": "highlight",
+      "target": "aesthetic-session.btn.photo-take",
+      "title": "Tomar foto",
+      "details": "Abre la cámara con una guía de encuadre y, si hay, la última foto translúcida para repetir pose, distancia y luz.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "upload",
+      "action": "highlight",
+      "target": "aesthetic-session.btn.photo-upload",
+      "title": "Subir",
+      "details": "Elegí imágenes del dispositivo, o arrastralas hasta acá.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "stage",
+      "action": "highlight",
+      "target": "aesthetic-session.section.photo-stage",
+      "title": "Foto de la vista",
+      "details": "Con una foto de hoy y otra anterior de la misma vista, acá se comparan.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "modes",
+      "action": "highlight",
+      "target": "aesthetic-session.section.compare-modes",
+      "title": "Modo de comparación",
+      "details": "Deslizador, lado a lado o superpuestas con opacidad. Abajo se pueden mostrar las marcas de cada sesión encima de la foto.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "initial",
+      "action": "highlight",
+      "target": "aesthetic-session.btn.compare-initial",
+      "title": "Comparar con la inicial",
+      "details": "Vuelve a la primera sesión; en la columna de anteriores se elige cualquier otra.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "history",
+      "action": "highlight",
+      "target": "aesthetic-session.section.photo-history",
+      "title": "Sesiones anteriores",
+      "details": "Las fotos de esta vista en sesiones anteriores, con su fecha y hace cuántos días.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "align",
+      "action": "highlight",
+      "target": "aesthetic-session.btn.photo-align",
+      "title": "Alinear",
+      "details": "Ajusta la foto al mapa (ojos, nariz, boca) para que las zonas coincidan cuando se use de fondo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "continue",
+      "action": "highlight",
+      "target": "aesthetic-session.btn.to-treatment",
+      "title": "Continuar",
+      "details": "Lleva al tratamiento. La foto de hoy también sirve de fondo para marcar.",
+      "skipIfMissing": true
+    }
+  ]
+}

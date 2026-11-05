@@ -18,6 +18,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ResizableSheet, SheetTitle } from '@/components/ui/resizable-sheet';
 import { Skeleton } from '@/components/ui/skeleton';
+import { HelpScopeProvider } from '@/components/help/help-scope';
 
 import { AESTHETIC_RECORD_PERMISSIONS } from '@/constants/permissions';
 import { usePanelWidth } from '@/hooks/use-panel-width';
@@ -111,7 +112,8 @@ export function AestheticSessionSheet({ open, onOpenChange, ...panelProps }: Aes
       maxWidth={1800}
       storageKey="aesthetic-session-sheet-width"
     >
-      {open && <SessionFlow {...panelProps} onClose={() => onOpenChange(false)} closeRequestRef={closeRequestRef} />}
+      {/* Se monta desde varias pantallas: el asistente usa siempre los mismos ids (aesthetic-session.*) */}
+      {open && <HelpScopeProvider scope="aesthetic-session"><SessionFlow {...panelProps} onClose={() => onOpenChange(false)} closeRequestRef={closeRequestRef} /></HelpScopeProvider>}
     </ResizableSheet>
   );
 }
@@ -508,7 +510,7 @@ function FlowHeader({ signedAny, leaving }: { signedAny: boolean; leaving: boole
   const compact = width > 0 && width < HEADER_COMPACT_WIDTH;
 
   return (
-    <header ref={headerRef} className={cn('relative flex shrink-0 items-center border-b bg-card', compact ? 'flex-wrap gap-x-2 gap-y-1.5 py-2 pl-3 pr-12' : 'gap-x-5 gap-y-2 px-4 py-2.5 pr-24', !compact && (oneRow ? 'flex-nowrap' : 'flex-wrap'))}>
+    <header ref={headerRef} data-help-id="aesthetic-session.section.header" className={cn('relative flex shrink-0 items-center border-b bg-card', compact ? 'flex-wrap gap-x-2 gap-y-1.5 py-2 pl-3 pr-12' : 'gap-x-5 gap-y-2 px-4 py-2.5 pr-24', !compact && (oneRow ? 'flex-nowrap' : 'flex-wrap'))}>
       <div className={cn('flex min-w-0 items-center', compact ? 'flex-[1_1_0] gap-2' : 'gap-3')}>
         <span className={cn('flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-pink-500 font-semibold text-white', compact ? 'h-8 w-8 text-xs' : 'h-10 w-10 text-sm')} aria-hidden>
           {initials || '·'}
@@ -536,6 +538,7 @@ function FlowHeader({ signedAny, leaving }: { signedAny: boolean; leaving: boole
               >
               <button
                 type="button"
+                data-help-id={`aesthetic-session.btn.step-${STEP_LABELS[n]}`}
                 onClick={() => !locked && goToStep(n)}
                 aria-current={isOn ? 'step' : undefined}
                 aria-disabled={locked || undefined}
@@ -562,7 +565,7 @@ function FlowHeader({ signedAny, leaving }: { signedAny: boolean; leaving: boole
         })}
       </nav>
 
-      <div className={cn('ml-auto flex items-center gap-3', oneRow || compact ? 'shrink-0' : 'min-w-0')}>
+      <div data-help-id="aesthetic-session.section.progress" className={cn('ml-auto flex items-center gap-3', oneRow || compact ? 'shrink-0' : 'min-w-0')}>
         {!compact && (
         <Hint label={t('flow.header.completeness', { value: completeness })} description={t('flow.hints.completeness')}>
         <svg viewBox="0 0 38 38" className="h-9 w-9 shrink-0" role="img" aria-label={t('flow.header.completeness', { value: completeness })}>

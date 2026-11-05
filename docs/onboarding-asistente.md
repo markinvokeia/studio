@@ -280,7 +280,7 @@ Cobertura por pantalla (todas probadas en la app real, sin guardar en DEV):
   También la vista por defecto (modo, vista, agrupación, sede, tamaño, slots, formato,
   días ocultos, color por estado) y las reglas al agendar, en Ajustes de la agenda.
 - **Mi Consultorio** (`/workspace`): usar la pantalla, ver otro día/período/calendario,
-  completar la sesión clínica, recetar, odontograma y agente clínico con IA.
+  completar la sesión clínica, recetar, odontograma, sesión de estética y agente clínico con IA.
 - **Centro de Alertas** (`/alerts`): usar la pantalla, filtrar, registrar llamada,
   pausar, ignorar, agregar nota, WhatsApp, correo, marcar resueltas y trabajar en lote.
   Las acciones que se ejecutan al tocarlas (WhatsApp, completar) son `confirm`: la guía
@@ -291,15 +291,28 @@ Cobertura por pantalla (todas probadas en la app real, sin guardar en DEV):
   apertura), ver la caja abierta, gasto e ingreso varios con ejemplos (si la caja está
   cerrada, primero la abre), ver/editar movimientos, categorías, historial de sesiones y
   cajas físicas.
-- **Pacientes** (`/patients`, 27 guías agrupadas por pestaña con `group`): *Listado y
+- **Pacientes** (`/patients`, 32 guías agrupadas por pestaña con `group`): *Listado y
   alta* (buscar y filtrar, registrar, recorrer la ficha); *Información* (recorrido de la
   pestaña, editar datos, notas, preferencias); *Historia clínica* (recorrido, anamnesis,
   línea de tiempo, sesión clínica, odontograma, planes, receta, indicación, documentos);
-  *Finanzas* (cuenta en sus dos vistas, cobro rápido, presupuesto, factura, prepago);
-  *Agenda y comunicación* (cita, email, WhatsApp, recordatorio); *Estado* (alta /
-  readmitir, activar / desactivar). Toda guía de ficha arranca buscando al paciente y
-  espera a que la persona abra su ficha. Readmitir y Activar/Desactivar se aplican al
+  *Ficha estética* (la sesión completa, consentimiento, fotos, tratamiento en el mapa,
+  cierre/cobro/anulación); *Finanzas* (cuenta en sus dos vistas, cobro rápido, presupuesto,
+  factura, prepago); *Agenda y comunicación* (cita, email, WhatsApp, recordatorio); *Estado*
+  (alta / readmitir, activar / desactivar). Toda guía de ficha arranca buscando al paciente
+  y espera a que la persona abra su ficha. Readmitir y Activar/Desactivar se aplican al
   tocarlos: son `confirm`.
+- **Estética**: la hoja de la sesión (`AestheticSessionSheet`) se abre desde Pacientes y Mi
+  Consultorio, así que usa siempre el scope `aesthetic-session.*` (`HelpScopeProvider` en la
+  hoja; los ids están declarados en la ficha `patients`, el extractor no llega hasta ahí).
+  La sesión se autoguarda en cuanto se elige un servicio, por eso las guías sólo señalan en
+  sus pasos: nada escribe hasta que la persona actúa, y firmar y cerrar son `confirm`.
+  Entradas: `patients.btn.new-aesthetic` (Crear), `patients.btn.timeline-open-aesthetic`
+  (sesión existente), `workspace.btn.aesthetic` (`workspace.aesthetic-session`). Las guías de
+  fotos, tratamiento y cierre parten de una sesión existente: si el paciente no tiene
+  ninguna, el paso de la línea de tiempo espera y lo avisa. La configuración está en Ventas →
+  Servicios (`sales.services.aesthetic`, `sales.services.consent-template`) y las unidades en
+  Catálogo de la Clínica → Unidades de medida. Tests y videos no pulsan el OK de estas guías
+  (`KEEPS_EXISTING` en `e2e/utils/help.ts`).
 - **Ventas y Compras** (Presupuestos, Facturas y Pagos, en paralelo: la misma guía en las
   dos, aterrizada a paciente o proveedor; se generan juntas). Presupuestos: recorrer, crear,
   editar borrador, confirmar/rechazar, facturar, imprimir/enviar, eliminar, ítems, exportar.
@@ -316,7 +329,8 @@ Cobertura por pantalla (todas probadas en la app real, sin guardar en DEV):
   colores, plantillas de impresión, datos de la clínica, tipo de cambio): recorrido por
   sección y guardar. Catálogo de la Clínica va al final, después de Pantalla TV.
 - **Ventas y Compras, resto**: Servicios y Productos de proveedores en paralelo (recorrer,
-  crear, cambiar precio, eliminar; etapas de tratamientos en ventas), Métodos de pago, y
+  crear, cambiar precio, eliminar; en ventas, etapas de tratamientos, configuración estética
+  y consentimiento por servicio), Métodos de pago, y
   Proveedores como la ficha del paciente (13 guías agrupadas: listado y alta, información,
   compras al proveedor, comunicación y estado).
 - **Sistema** (19 pantallas, 43 guías): usuarios, roles y permisos (ficha con pestañas,
@@ -333,7 +347,7 @@ Cobertura por pantalla (todas probadas en la app real, sin guardar en DEV):
   TV/cobro, alertas/cambio/inbox/notas) y «Conocer <sección>» que entra a cada pantalla de
   la sección (tramos de hasta 6, según los separadores del menú). Sin guías de 1–2 pasos.
   La barra tiene ids globales `rail.*`; el contenido de cada pantalla, `app.section.page`.
-- **Pantalla TV** (4) y **Catálogo de la Clínica** (16). Estudios y Estudios compartidos
+- **Pantalla TV** (4) y **Catálogo de la Clínica** (20). Estudios y Estudios compartidos
   quedan sin cubrir por decisión del usuario.
 
 Más reglas de ubicación: un botón que se repite en varias filas (acciones por alerta o
@@ -373,7 +387,7 @@ contenedores con overflow hidden y desarmaba banner y footer de los diálogos.
 
 ## Backend
 
-### BD (scripts 140 y 141)
+### BD (scripts 140, 141 y 142)
 
 | Objeto | Para qué |
 | --- | --- |
@@ -403,6 +417,7 @@ Generados por `pnpm n8n:help` (no editar los JSON):
 | `GET help/videos?locale=` | `help-videos.json` (un video por guía, del idioma pedido o el español; lo usa la ficha de la pantalla) |
 | `GET help/insights` | `help-insights.json` |
 | `POST help/support/update` | `help-support-update.json` |
+| `GET help/settings` | `help-settings.json` (mascota visible) |
 
 El chat es RAG sin herramientas: búsqueda full-text → prompt con fichas,
 pantalla actual, **elementos visibles** (los manda el frontend), casos de uso y
@@ -497,8 +512,8 @@ evita los límites de descarga de Drive y no cambia nada en el frontend.
 
 ### Despliegue
 
-1. Aplicar `140_20261023_help-assistant-and-onboarding.sql` y `141_20261023_help-schema-videos-support.sql`.
-2. Importar `n8n-workflows/help-*.json` (11 workflows) y activarlos. Ya traen las credenciales compartidas: "JWT Auth account" en los Webhooks (el token se valida en n8n y el usuario sale de `jwtPayload.userId`), "Postgres account" en los nodos Postgres y "OpenAi account 2" en el nodo "OpenAI" del chat.
+1. Aplicar `140_20261023_help-assistant-and-onboarding.sql`, `141_20261023_help-schema-videos-support.sql` y `142_20261026_help-mascot-visible.sql`.
+2. Importar `n8n-workflows/help-*.json` (13 workflows) y activarlos. Ya traen las credenciales compartidas: "JWT Auth account" en los Webhooks (el token se valida en n8n y el usuario sale de `jwtPayload.userId`), "Postgres account" en los nodos Postgres y "OpenAi account 2" en el nodo "OpenAI" del chat.
 3. Desplegar el frontend. Al entrar un administrador, el catálogo se publica solo.
 
 Sin el script nadie tiene `HELP_ASSISTANT_USE` y el asistente no aparece.
@@ -507,7 +522,7 @@ Sin el script nadie tiene `HELP_ASSISTANT_USE` y el asistente no aparece.
 
 | Fase | Estado |
 | --- | --- |
-| 1 · Mapa del producto | IDs automáticos en toda la app; 96 pantallas, ~810 elementos, 456 permisos; **ficha en el 100% del menú** (`draft`, falta la validación de soporte); esquema de la BD documentado en cada sync; `knowledge:strict` en el job nocturno. **Falta**: validar fichas (`validated`), comentarios de negocio en las tablas principales, embeddings (requiere pgvector en el servidor). |
+| 1 · Mapa del producto | IDs automáticos en toda la app; 97 pantallas, ~2200 elementos, 342 guías, 462 permisos; **ficha en el 100% del menú** (`draft`, falta la validación de soporte); esquema de la BD documentado en cada sync; `knowledge:strict` en el job nocturno. **Falta**: validar fichas (`validated`), comentarios de negocio en las tablas principales, embeddings (requiere pgvector en el servidor). |
 | 2 · Asistente de onboarding | Checklist derivada de datos con "Llevarme y guiarme" en los 12 pasos; guías con la mascota señalando, detalle y obligatorio/opcional; chat con dictado que siempre ofrece guiar y llevar; ayuda contextual con recorrido de pantalla; modo implementador. **Falta**: probar con dos clínicas nuevas; modo multitenant. |
 | 3 · Tests y videos | Regresión de guías; grabación de la guía real, narración ElevenLabs, subtítulos y logo; publicación en GCS + registro; video a demanda con cola y worker; videos desactualizados por el job nocturno. **Falta**: levantar el tenant demo, elegir la voz y el bucket, correr la primera tanda de los 13 casos (y llegar a 30). |
 | 4 · Soporte automático | Tickets al escalar, cola de preguntas sin resolver, panel de métricas, job nocturno. **Falta**: canal WhatsApp (YCloud) con el mismo agente, aviso a soporte por ticket crítico. |

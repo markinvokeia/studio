@@ -1582,7 +1582,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                 </Button>
               )}
               {activePanel === 'sessions' && canCreateAesthetic && (
-                <Button size="sm" variant="outline" onClick={() => setCreateAestheticTrigger((n) => n + 1)} disabled={!canManageSessions || isSessionEditingBlockedByDate} className="hidden shrink-0 sm:inline-flex" title={isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : undefined}>
+                <Button size="sm" variant="outline" data-help-id="workspace.btn.aesthetic" onClick={() => setCreateAestheticTrigger((n) => n + 1)} disabled={!canManageSessions || isSessionEditingBlockedByDate} className="hidden shrink-0 sm:inline-flex" title={isSessionEditingBlockedByDate ? t('focus.sessionOnlyOnAppointmentDay') : undefined}>
                   <Sparkles className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">{t('focus.aestheticSession')}</span>
                 </Button>
@@ -1631,7 +1631,7 @@ export function DoctorWorkspace({ locale, initialAppointmentId }: DoctorWorkspac
                     </Button>
                   )}
                   {canCreateAesthetic && (
-                    <Button variant="outline" size="icon" onClick={() => setCreateAestheticTrigger((n) => n + 1)} disabled={!canManageSessions || isSessionEditingBlockedByDate} className="shrink-0" aria-label={t('focus.aestheticSession')} title={t('focus.aestheticSession')}>
+                    <Button variant="outline" size="icon" data-help-id="workspace.btn.aesthetic" onClick={() => setCreateAestheticTrigger((n) => n + 1)} disabled={!canManageSessions || isSessionEditingBlockedByDate} className="shrink-0" aria-label={t('focus.aestheticSession')} title={t('focus.aestheticSession')}>
                       <Sparkles className="h-4 w-4" />
                     </Button>
                   )}

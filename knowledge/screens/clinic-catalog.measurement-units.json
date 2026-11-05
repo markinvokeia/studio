@@ -1,0 +1,59 @@
+{
+  "id": "clinic-catalog.measurement-units",
+  "status": "draft",
+  "summary": "Unidades en que se registran las dosis de los servicios (U, ml, mg, cc…).",
+  "purpose": "Cada servicio de estética necesita una unidad: es la que aparece junto a cada cantidad en la ficha estética, y su paso define cuánto cambian los botones + y − al marcar.",
+  "prerequisites": [],
+  "tips": [
+    "Una unidad en uso no se borra: queda inactiva y las sesiones viejas la siguen mostrando."
+  ],
+  "useCases": [
+    "clinic-catalog.measurement-units.overview",
+    "clinic-catalog.measurement-units.create",
+    "clinic-catalog.measurement-units.edit",
+    "clinic-catalog.measurement-units.delete"
+  ],
+  "elements": {
+    "clinic-catalog.measurement-units.btn.new": {
+      "label": "Nueva unidad"
+    },
+    "clinic-catalog.measurement-units.section.table": {
+      "label": "Unidades"
+    },
+    "clinic-catalog.measurement-units.section.first-row": {
+      "label": "Primera de la lista"
+    },
+    "clinic-catalog.measurement-units.btn.edit": {
+      "label": "Editar"
+    },
+    "clinic-catalog.measurement-units.btn.delete": {
+      "label": "Eliminar",
+      "description": "Si está en uso, queda inactiva en lugar de borrarse."
+    },
+    "clinic-catalog.measurement-units.btn.delete-confirm": {
+      "label": "Confirmar"
+    },
+    "clinic-catalog.measurement-units.field.name": {
+      "label": "Nombre"
+    },
+    "clinic-catalog.measurement-units.field.symbol": {
+      "label": "Símbolo",
+      "description": "Lo que se ve junto a cada cantidad."
+    },
+    "clinic-catalog.measurement-units.field.code": {
+      "label": "Código",
+      "description": "Identificador único: letras, números, guion y guion bajo."
+    },
+    "clinic-catalog.measurement-units.field.step": {
+      "label": "Paso de la cantidad",
+      "description": "Cuánto cambian + y − al marcar: 1 para enteras, 0,05 para ml."
+    },
+    "clinic-catalog.measurement-units.field.isActive": {
+      "label": "Activa",
+      "description": "Las inactivas no se ofrecen al configurar servicios."
+    },
+    "clinic-catalog.measurement-units.btn.submit": {
+      "label": "Guardar"
+    }
+  }
+}

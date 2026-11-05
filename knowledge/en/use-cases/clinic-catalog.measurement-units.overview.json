@@ -1,0 +1,39 @@
+{
+  "id": "clinic-catalog.measurement-units.overview",
+  "title": "Tour Measurement Units",
+  "summary": "The units doses are recorded in and how they are used.",
+  "module": "Clinic Catalog",
+  "inputs": {},
+  "keywords": [
+    "measurement units",
+    "unit",
+    "ml",
+    "mg",
+    "what is the step"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Clinic Catalog → Measurement Units",
+      "details": "What doses of aesthetic services are recorded in (U, ml, mg, cc…)."
+    },
+    {
+      "id": "table",
+      "title": "Units",
+      "details": "Name, symbol (what shows next to each quantity), code, step and status."
+    },
+    {
+      "id": "edit",
+      "title": "Edit"
+    },
+    {
+      "id": "delete",
+      "title": "Delete",
+      "details": "If it's in use, it isn't deleted: it becomes inactive."
+    },
+    {
+      "id": "new",
+      "title": "New unit"
+    }
+  ]
+}

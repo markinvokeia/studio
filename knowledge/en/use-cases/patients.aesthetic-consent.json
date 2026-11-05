@@ -1,0 +1,106 @@
+{
+  "id": "patients.aesthetic-consent",
+  "title": "Sign or reuse the aesthetic consent",
+  "summary": "Choose today's services, check the photo authorizations and sign, or use an earlier signature.",
+  "module": "Patients",
+  "group": "Aesthetic record",
+  "inputs": {
+    "patient": "Patient's name, email or ID"
+  },
+  "keywords": [
+    "consent",
+    "informed consent",
+    "signature",
+    "sign",
+    "photo authorization",
+    "reuse signature",
+    "print consent"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or ID."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide continues once their record is open."
+    },
+    {
+      "id": "menu",
+      "title": "Create",
+      "details": "Everything that can be created for this patient: clinical, financial and scheduling."
+    },
+    {
+      "id": "item",
+      "title": "Aesthetic session",
+      "details": "Opens the guided flow of a new session. Nothing is saved until you choose a service."
+    },
+    {
+      "id": "progress",
+      "title": "Status and progress",
+      "details": "The status comes from the data: Draft, Consented, In treatment, Ready to close. Each finished step adds 25%. Next to it you see what is missing and when it was saved: everything saves on its own."
+    },
+    {
+      "id": "data",
+      "title": "Date and doctor",
+      "details": "Session date (it can't be in the future) and who performs it. From My Workspace they come from the appointment."
+    },
+    {
+      "id": "services",
+      "title": "Today's services",
+      "details": "Check what is being done today. Only aesthetic services appear; if one is missing, set it up in Sales → Services. \"Last session\" adds those from the previous time."
+    },
+    {
+      "id": "reuse",
+      "title": "Reuse a signature",
+      "details": "If the patient already signed this service, you can use that signature instead of asking again. It never changes an authorization already given in this session."
+    },
+    {
+      "id": "text",
+      "title": "Consent text",
+      "details": "The one for the service, with the patient details filled in; \"View text\" shows another service's. If the service has no template of its own, the generic text is used. What was signed is stored as is, with its SHA-256 fingerprint."
+    },
+    {
+      "id": "risks",
+      "title": "Risks explained",
+      "details": "Required. Authorizations are checked once for all pending consents."
+    },
+    {
+      "id": "clinical-photos",
+      "title": "Photos for the clinical record",
+      "details": "Without this authorization the camera stays locked and the session can be closed without photos."
+    },
+    {
+      "id": "marketing-photos",
+      "title": "Marketing photos",
+      "details": "Optional: allows using them for promotion."
+    },
+    {
+      "id": "signer",
+      "title": "Who signs",
+      "details": "The patient by default; change it if a guardian signs."
+    },
+    {
+      "id": "pad",
+      "title": "Signature",
+      "details": "Sign with your finger, a stylus or the mouse."
+    },
+    {
+      "id": "sign",
+      "title": "Sign",
+      "details": "Signs all pending services at once. What was signed can no longer be changed."
+    },
+    {
+      "id": "continue",
+      "title": "Continue to photos",
+      "details": "Enabled once every service is signed. If some are still unsigned, \"Mark the signed ones\" goes straight to the treatment of those already signed."
+    }
+  ]
+}

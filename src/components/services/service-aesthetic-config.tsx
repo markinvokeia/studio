@@ -161,7 +161,7 @@ export function ServiceAestheticConfigPanel({ serviceId, unitId, units, canManag
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex min-w-0 items-start gap-2">
+      <div data-help-id="sales.services.section.aesthetic-config" className="flex min-w-0 items-start gap-2">
         <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
         <div className="min-w-0">
           <p className="text-sm font-medium">{t('title')}</p>
@@ -180,7 +180,7 @@ export function ServiceAestheticConfigPanel({ serviceId, unitId, units, canManag
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label className="text-xs">{t('tool')}</Label>
-          <div className="inline-flex h-9 overflow-hidden rounded-md border" role="radiogroup" aria-label={t('tool')}>
+          <div data-help-id="sales.services.section.aesthetic-tool" className="inline-flex h-9 overflow-hidden rounded-md border" role="radiogroup" aria-label={t('tool')}>
             {TOOLS.map(({ id, icon: Icon }) => (
               <button
                 key={id}
@@ -200,19 +200,19 @@ export function ServiceAestheticConfigPanel({ serviceId, unitId, units, canManag
             ))}
           </div>
         </div>
-        <NumberField id={`aes-config-qty-${serviceId}`} label={t('defaultQuantity')} value={draft.defaultQuantity} invalid={quantityInvalid} step={unit?.step} suffix={unitSuffix} disabled={disabled} onChange={(v) => update({ defaultQuantity: v })} />
+        <NumberField helpId="sales.services.field.aesthetic-default-quantity" id={`aes-config-qty-${serviceId}`} label={t('defaultQuantity')} value={draft.defaultQuantity} invalid={quantityInvalid} step={unit?.step} suffix={unitSuffix} disabled={disabled} onChange={(v) => update({ defaultQuantity: v })} />
         <p className="text-[11px] text-muted-foreground sm:col-span-2">{t(`toolHints.${draft.markingTool}`)}</p>
 
-        <NumberField id={`aes-config-max-${serviceId}`} label={t('maxPerSession')} value={draft.maxPerSession} invalid={maxInvalid} step={unit?.step} suffix={unitSuffix} disabled={disabled} onChange={(v) => update({ maxPerSession: v })} />
-        <NumberField id={`aes-config-interval-${serviceId}`} label={t('minIntervalDays')} value={draft.minIntervalDays} invalid={intervalInvalid} step={1} suffix={daysSuffix} disabled={disabled} onChange={(v) => update({ minIntervalDays: v })} />
-        <NumberField id={`aes-config-followup-${serviceId}`} label={t('followUpDays')} value={draft.followUpDays} invalid={followUpInvalid} step={1} suffix={daysSuffix} disabled={disabled} onChange={(v) => update({ followUpDays: v })} />
+        <NumberField helpId="sales.services.field.aesthetic-max-per-session" id={`aes-config-max-${serviceId}`} label={t('maxPerSession')} value={draft.maxPerSession} invalid={maxInvalid} step={unit?.step} suffix={unitSuffix} disabled={disabled} onChange={(v) => update({ maxPerSession: v })} />
+        <NumberField helpId="sales.services.field.aesthetic-min-interval" id={`aes-config-interval-${serviceId}`} label={t('minIntervalDays')} value={draft.minIntervalDays} invalid={intervalInvalid} step={1} suffix={daysSuffix} disabled={disabled} onChange={(v) => update({ minIntervalDays: v })} />
+        <NumberField helpId="sales.services.field.aesthetic-follow-up-days" id={`aes-config-followup-${serviceId}`} label={t('followUpDays')} value={draft.followUpDays} invalid={followUpInvalid} step={1} suffix={daysSuffix} disabled={disabled} onChange={(v) => update({ followUpDays: v })} />
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={`aes-config-followup-label-${serviceId}`} className="text-xs">{t('followUpLabel')}</Label>
-          <Input id={`aes-config-followup-label-${serviceId}`} value={draft.followUpLabel} onChange={(e) => update({ followUpLabel: e.target.value })} placeholder={t('followUpLabelPlaceholder')} disabled={disabled || !draft.followUpDays.trim()} className="h-9" />
+          <Input data-help-id="sales.services.field.aesthetic-follow-up-label" id={`aes-config-followup-label-${serviceId}`} value={draft.followUpLabel} onChange={(e) => update({ followUpLabel: e.target.value })} placeholder={t('followUpLabelPlaceholder')} disabled={disabled || !draft.followUpDays.trim()} className="h-9" />
         </div>
         <div className="flex flex-col gap-1.5 sm:col-span-2">
           <Label htmlFor={`aes-config-aftercare-${serviceId}`} className="text-xs">{t('aftercare')}</Label>
-          <Textarea id={`aes-config-aftercare-${serviceId}`} value={draft.aftercare} onChange={(e) => update({ aftercare: e.target.value })} placeholder={t('aftercarePlaceholder')} rows={3} disabled={disabled} className="text-sm" />
+          <Textarea data-help-id="sales.services.field.aesthetic-aftercare" id={`aes-config-aftercare-${serviceId}`} value={draft.aftercare} onChange={(e) => update({ aftercare: e.target.value })} placeholder={t('aftercarePlaceholder')} rows={3} disabled={disabled} className="text-sm" />
           <p className="text-[11px] text-muted-foreground">{t('limitsHint')}</p>
         </div>
       </div>
@@ -220,14 +220,15 @@ export function ServiceAestheticConfigPanel({ serviceId, unitId, units, canManag
       {canManage && isDirty && (
         <div className="flex justify-end gap-2">
           {exists && <Button type="button" size="sm" variant="ghost" onClick={() => setDraft(saved)} disabled={save.isPending}>{t('discard')}</Button>}
-          <Button type="button" size="sm" onClick={() => save.run(draft)} disabled={!canSave} loading={save.isPending}>{t('save')}</Button>
+          <Button data-help-id="sales.services.btn.aesthetic-save" type="button" size="sm" onClick={() => save.run(draft)} disabled={!canSave} loading={save.isPending}>{t('save')}</Button>
         </div>
       )}
     </div>
   );
 }
 
-function NumberField({ id, label, value, invalid, step, suffix, disabled, onChange }: {
+function NumberField({ helpId, id, label, value, invalid, step, suffix, disabled, onChange }: {
+  helpId: string;
   id: string;
   label: string;
   value: string;
@@ -238,7 +239,7 @@ function NumberField({ id, label, value, invalid, step, suffix, disabled, onChan
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div data-help-id={helpId} className="flex flex-col gap-1.5">
       <Label htmlFor={id} className={cn('text-xs', invalid && 'text-destructive')}>{label}</Label>
       <div className="flex items-center gap-2">
         <Input id={id} type="number" inputMode="decimal" min={0} step={step ?? 'any'} value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} aria-invalid={invalid || undefined} className="h-9" />

@@ -1,0 +1,161 @@
+{
+  "id": "patients.aesthetic-session",
+  "title": "Registrar una sesión de estética",
+  "module": "Pacientes",
+  "summary": "El flujo completo en cuatro pasos, con guardado automático: consentimiento, fotos, tratamiento y cierre.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Ficha estética",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "estética",
+    "sesión estética",
+    "ficha estética",
+    "botox",
+    "toxina",
+    "relleno",
+    "ácido hialurónico",
+    "hilos tensores",
+    "mesoterapia",
+    "registrar tratamiento estético"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.create-menu",
+      "title": "Crear",
+      "details": "Todo lo que se puede crear para este paciente: clínico, financiero y agenda.",
+      "until": "patients.btn.new-aesthetic"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "patients.btn.new-aesthetic",
+      "title": "Sesión estética",
+      "details": "Abre el flujo guiado de una sesión nueva. No se guarda nada hasta que elijas un servicio.",
+      "until": "aesthetic-session.section.header"
+    },
+    {
+      "id": "progress",
+      "action": "highlight",
+      "target": "aesthetic-session.section.progress",
+      "title": "Estado y avance",
+      "details": "El estado sale de los datos: Borrador, Consentida, En tratamiento, Por cerrar. Cada paso completo suma 25 %. Al lado dice qué falta y cuándo se guardó: todo se guarda solo."
+    },
+    {
+      "id": "data",
+      "action": "highlight",
+      "target": "aesthetic-session.section.session-data",
+      "title": "Fecha y profesional",
+      "details": "Fecha de la sesión (no puede ser futura) y quién la realiza. Desde Mi Consultorio ya vienen de la cita."
+    },
+    {
+      "id": "services",
+      "action": "highlight",
+      "target": "aesthetic-session.section.services",
+      "title": "Servicios de hoy",
+      "details": "Marcá lo que se hace hoy. Sólo aparecen los servicios de estética; si falta uno, se configura en Ventas → Servicios. «Última sesión» agrega los de la vez anterior."
+    },
+    {
+      "id": "sign-area",
+      "action": "highlight",
+      "target": "aesthetic-session.section.signature",
+      "title": "Firmar el consentimiento",
+      "details": "Aparece al elegir un servicio: riesgos explicados, autorizaciones de fotos, quién firma y la firma. Sin firma no se puede marcar ese servicio.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "sign",
+      "action": "confirm",
+      "target": "aesthetic-session.btn.sign",
+      "title": "Firmar",
+      "details": "Firma todos los servicios pendientes de una vez. Lo firmado ya no se modifica.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "photos",
+      "action": "click",
+      "target": "aesthetic-session.btn.step-photos",
+      "title": "Fotos de hoy",
+      "details": "Paso 2. Con una foto de cualquier vista ya alcanza; no hace falta si el paciente no autorizó fotos o si todas las marcas son en el cuerpo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "views",
+      "action": "highlight",
+      "target": "aesthetic-session.section.photo-views",
+      "title": "Vistas",
+      "details": "Frente, perfil izquierdo y derecho, cada una con su foto de hoy y las anteriores.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "take",
+      "action": "highlight",
+      "target": "aesthetic-session.btn.photo-take",
+      "title": "Tomar foto",
+      "details": "Abre la cámara con una guía de encuadre y, si hay, la última foto translúcida para repetir pose, distancia y luz.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "treatment",
+      "action": "click",
+      "target": "aesthetic-session.btn.step-treatment",
+      "title": "Tratamiento",
+      "details": "Paso 3. Queda con candado hasta que haya al menos un consentimiento firmado.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "map",
+      "action": "highlight",
+      "target": "aesthetic-session.section.map",
+      "title": "Marcá en el mapa",
+      "details": "Elegí el servicio abajo y tocá el rostro o el cuerpo. Cada marca necesita una cantidad mayor que 0. Hay una guía aparte con todas las herramientas.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "close-step",
+      "action": "click",
+      "target": "aesthetic-session.btn.step-close",
+      "title": "Cierre",
+      "details": "Paso 4: lo aplicado, el resumen, el cobro y la próxima cita."
+    },
+    {
+      "id": "close",
+      "action": "confirm",
+      "target": "aesthetic-session.btn.close-session",
+      "title": "Cerrar sesión",
+      "details": "Se habilita cuando los consentimientos, la foto y las marcas están completos. Después queda en solo lectura y sólo admite enmiendas.",
+      "skipIfMissing": true
+    }
+  ]
+}
