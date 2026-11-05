@@ -1208,6 +1208,14 @@
    "description": "Payment Methods (Métodos de Pago)"
   },
   {
+   "code": "PERIO_RECORD_REGISTER_SESSION",
+   "constant": "PERIO_RECORD_PERMISSIONS.REGISTER_SESSION"
+  },
+  {
+   "code": "PERIO_RECORD_VIEW",
+   "constant": "PERIO_RECORD_PERMISSIONS.VIEW"
+  },
+  {
    "code": "PERMISSIONS_CREATE",
    "constant": "SYSTEM_PERMISSIONS.PERMISSIONS_CREATE"
   },
@@ -8506,6 +8514,13 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "Opens the clinical record with a new periodontal chart: guided probing, site by site.",
+     "id": "patients.btn.new-periodontogram",
+     "kind": "btn",
+     "label": "Periodontal chart",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "description": "Money on account.",
      "id": "patients.btn.new-prepaid",
      "kind": "btn",
@@ -8644,6 +8659,27 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "Probing at 6 sites per tooth (depth, bleeding, gingival margin, furcations and mobility). It saves automatically and is closed with a signature.",
+     "id": "patients.btn.timeline-add-periodontogram",
+     "kind": "btn",
+     "label": "Periodontal chart",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Opens the latest periodontal chart on Progress, compared with this one.",
+     "id": "patients.btn.timeline-compare-perio",
+     "kind": "btn",
+     "label": "Compare with today",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Only if it is not closed; a closed one is clinical record.",
+     "id": "patients.btn.timeline-delete-perio",
+     "kind": "btn",
+     "label": "Delete periodontal chart",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "id": "patients.btn.timeline-filters",
      "kind": "btn",
      "label": "Filter events",
@@ -8657,9 +8693,30 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "Opens the odontogram on that session; the arrows step through earlier and later sessions to compare how the mouth changed.",
+     "id": "patients.btn.timeline-open-odontogram",
+     "kind": "btn",
+     "label": "View odontogram",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Opens the periodontal chart: continue if open, view if closed.",
+     "id": "patients.btn.timeline-open-perio",
+     "kind": "btn",
+     "label": "Continue or view periodontal chart",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "id": "patients.btn.timeline-print",
      "kind": "btn",
      "label": "Print history",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Tap it to expand it: preview, exam type, diagnosis, indices and buttons.",
+     "id": "patients.btn.timeline-row-perio",
+     "kind": "btn",
+     "label": "Periodontal chart on the timeline",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -9479,6 +9536,566 @@
      "kind": "tab",
      "label": "Treatment plans",
      "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Adds an amendment: what is corrected and why.",
+     "id": "perio-session.btn.amend",
+     "kind": "btn",
+     "label": "Amend",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Opens the schedule with the patient, date and reason filled in.",
+     "id": "perio-session.btn.book",
+     "kind": "btn",
+     "label": "Book",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Keeps the suggested date; the maintenance reminder uses it.",
+     "id": "perio-session.btn.book-later",
+     "kind": "btn",
+     "label": "Schedule later",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Opens the billing wizard; the invoice is linked to the periodontal chart.",
+     "id": "perio-session.btn.charge",
+     "kind": "btn",
+     "label": "Charge",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Puts the diagnosis in the clinical record. It is enabled once probing is complete; if something changes afterwards, it has to be confirmed again.",
+     "id": "perio-session.btn.confirm-diagnosis",
+     "kind": "btn",
+     "label": "Confirm diagnosis",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "The three passes at once. It never overwrites what was measured today.",
+     "id": "perio-session.btn.copy-all",
+     "kind": "btn",
+     "label": "Copy everything from the previous exam",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Fills the missing mobility and furcations with the previous exam's.",
+     "id": "perio-session.btn.copy-fm",
+     "kind": "btn",
+     "label": "Start from the previous exam (furcations and mobility)",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Fills the empty margins with the previous exam's. It stays pending confirmation.",
+     "id": "perio-session.btn.copy-mg",
+     "kind": "btn",
+     "label": "Start from the previous exam (margin)",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Fills the empty depths, with their bleeding, suppuration and plaque, with the previous exam's. It stays pending confirmation.",
+     "id": "perio-session.btn.copy-ps",
+     "kind": "btn",
+     "label": "Start from the previous exam (depth)",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Turns the microphone on (Chrome or Edge). Each phrase is applied as soon as it is said; “stop dictation” turns it off.",
+     "id": "perio-session.btn.dictate",
+     "kind": "btn",
+     "label": "Dictate",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Moves from one exam to the next, from the compared one to today.",
+     "id": "perio-session.btn.evolution-play",
+     "kind": "btn",
+     "label": "Play the progress",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "What is missing to move on. Tap it: it highlights the missing sites in amber or takes you to the next step.",
+     "id": "perio-session.btn.missing",
+     "kind": "btn",
+     "label": "What is missing",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Goes to step 4.",
+     "id": "perio-session.btn.next-diagnosis",
+     "kind": "btn",
+     "label": "Go to closing",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Goes to step 3.",
+     "id": "perio-session.btn.next-evolution",
+     "kind": "btn",
+     "label": "Go to diagnosis",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Goes to step 2.",
+     "id": "perio-session.btn.next-probe",
+     "kind": "btn",
+     "label": "Next: Progress",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Mobility (0 to III) and the furcation grade of each entry, per tooth.",
+     "id": "perio-session.btn.pass-fm",
+     "kind": "btn",
+     "label": "Furcations and mobility",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Margin of each site: positive is recession, negative enlargement (or the other way round, per the settings).",
+     "id": "perio-session.btn.pass-mg",
+     "kind": "btn",
+     "label": "Gingival margin",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Depth of each site; bleeding, suppuration and plaque with B, S and P.",
+     "id": "perio-session.btn.pass-ps",
+     "kind": "btn",
+     "label": "Depth and bleeding",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Copies the report text.",
+     "id": "perio-session.btn.report-copy",
+     "kind": "btn",
+     "label": "Copy",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Opens the email with the report (needs the patient's email; uses the PERIO_REPORT_EMAIL template if it exists).",
+     "id": "perio-session.btn.report-email",
+     "kind": "btn",
+     "label": "Send",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "The report with both arches, ready to print.",
+     "id": "perio-session.btn.report-print",
+     "kind": "btn",
+     "label": "Print",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Opens the message to send it by WhatsApp (needs the patient's phone).",
+     "id": "perio-session.btn.report-whatsapp",
+     "kind": "btn",
+     "label": "WhatsApp",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "The clinic's probing order, margin sign and maintenance intervals. Those who edit the system settings can change them.",
+     "id": "perio-session.btn.settings",
+     "kind": "btn",
+     "label": "Periodontal chart settings",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Saves the settings for the whole clinic.",
+     "id": "perio-session.btn.settings-save",
+     "kind": "btn",
+     "label": "Save settings",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Enabled once everything is settled; once closed, it is read-only.",
+     "id": "perio-session.btn.sign",
+     "kind": "btn",
+     "label": "Sign and close",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Confirms the signature: the chart goes into the clinical record.",
+     "id": "perio-session.btn.sign-confirm",
+     "kind": "btn",
+     "label": "Sign and close (confirm)",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Patient report, billing, next visit, notes and signature.",
+     "id": "perio-session.btn.step-close",
+     "kind": "btn",
+     "label": "Step 4 · Closing",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Suggested stability, 2017 classification, risk and plan; the doctor confirms them.",
+     "id": "perio-session.btn.step-diagnosis",
+     "kind": "btn",
+     "label": "Step 3 · Diagnosis",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Comparison with the patient's earlier periodontal charts.",
+     "id": "perio-session.btn.step-evolution",
+     "kind": "btn",
+     "label": "Step 2 · Progress",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Depth and bleeding, gingival margin, furcations and mobility (in a screening, the six sextants).",
+     "id": "perio-session.btn.step-probe",
+     "kind": "btn",
+     "label": "Step 1 · Probing",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "The last change (Ctrl+Z). Redo with Ctrl+Y. Keeps up to 60 steps.",
+     "id": "perio-session.btn.undo",
+     "kind": "btn",
+     "label": "Undo",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Keeps the dictated or copied values.",
+     "id": "perio-session.btn.voice-confirm",
+     "kind": "btn",
+     "label": "Confirm",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Puts every dictated or copied site back as it was.",
+     "id": "perio-session.btn.voice-discard",
+     "kind": "btn",
+     "label": "Discard",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "The list of what can be said, in Spanish and in English.",
+     "id": "perio-session.btn.voice-help",
+     "kind": "btn",
+     "label": "Voice commands",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Initial diagnosis, re-evaluation or maintenance (full probing); PSR/BPE screening (one code per sextant); implants only (only implants are probed).",
+     "id": "perio-session.field.exam-type",
+     "kind": "field",
+     "label": "Exam type",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "To close without invoicing.",
+     "id": "perio-session.field.no-charge",
+     "kind": "field",
+     "label": "Nothing to charge today",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Its values in grey in empty cells and its curve dashed. Enter records that value as measured today.",
+     "id": "perio-session.field.show-guide",
+     "kind": "field",
+     "label": "Show the previous exam as a guide",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Free text for this tooth, for example an X-ray follow-up.",
+     "id": "perio-session.field.tooth-note",
+     "kind": "field",
+     "label": "Tooth note",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Present, missing, pontic or implant. Missing teeth and pontics are not probed.",
+     "id": "perio-session.field.tooth-status",
+     "kind": "field",
+     "label": "Tooth status",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "To type the command instead of dictating it; Enter applies it. The / key brings the focus here.",
+     "id": "perio-session.field.voice-command",
+     "kind": "field",
+     "label": "Command",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Corrections of a closed chart: the exam does not change; the text is added with author and date.",
+     "id": "perio-session.section.amendments",
+     "kind": "section",
+     "label": "Amendments",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Exam type, the exam used as a guide, what came from the odontogram, settings and dictation.",
+     "id": "perio-session.section.banner",
+     "kind": "section",
+     "label": "Exam bar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Sites that gained 2 mm or more.",
+     "id": "perio-session.section.better",
+     "kind": "section",
+     "label": "Better",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "What the plan marks Today; once charged, the linked invoice with its payments.",
+     "id": "perio-session.section.billing",
+     "kind": "section",
+     "label": "Today's billing",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Each arch with its outer face on top and its inner face below: blue margin curve, red pocket-bottom curve and the BOP, GM and PD rows. Tap a cell to measure there.",
+     "id": "perio-session.section.chart",
+     "kind": "section",
+     "label": "Periodontal chart",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Probing, diagnosis, billing, next visit and confirmed dictated or copied values. What is pending can be tapped.",
+     "id": "perio-session.section.checklist",
+     "kind": "section",
+     "label": "What is missing to sign",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "The patient's exams with their date and bleeding; tap one to compare it with today.",
+     "id": "perio-session.section.compare-with",
+     "kind": "section",
+     "label": "Compare today with…",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Periodontitis case, stage (from the initial exam; it does not go down), extent and grade, each with its reason. What is changed by hand is marked.",
+     "id": "perio-session.section.dx-classification",
+     "kind": "section",
+     "label": "AAP/EFP 2017 classification",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "In “implants only”: the suggested status of each implant (healthy, mucositis or peri-implantitis) and the maintenance interval.",
+     "id": "perio-session.section.dx-implants",
+     "kind": "section",
+     "label": "Implants",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Teeth lost to periodontitis, X-ray bone loss, age, cigarettes per day and diabetes. They carry over to the next chart.",
+     "id": "perio-session.section.dx-inputs",
+     "kind": "section",
+     "label": "Data not from the probing",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "The EFP steps the probing calls for, each with its checkbox and Today or Later.",
+     "id": "perio-session.section.dx-plan",
+     "kind": "section",
+     "label": "Plan by steps",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Lang & Tonetti hexagon with six parameters, the risk and the suggested maintenance interval.",
+     "id": "perio-session.section.dx-risk",
+     "kind": "section",
+     "label": "Risk of progression",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "The highest code, what it means, what to do and which sextants need a full periodontal chart.",
+     "id": "perio-session.section.dx-screening",
+     "kind": "section",
+     "label": "Screening result",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Stable, stable with inflammation or unstable, with the list that supports it and whether the therapy endpoints are met.",
+     "id": "perio-session.section.dx-today",
+     "kind": "section",
+     "label": "How it is today",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "The earlier chart and today's, in the chosen mode.",
+     "id": "perio-session.section.evolution-chart",
+     "kind": "section",
+     "label": "Comparison",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Slider, overlay or changes; arch; curves or map; animation.",
+     "id": "perio-session.section.evolution-controls",
+     "kind": "section",
+     "label": "How to compare",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "It is the patient's first periodontal chart: progress shows from the next one.",
+     "id": "perio-session.section.evolution-empty",
+     "kind": "section",
+     "label": "No earlier exam",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "In a screening, the codes of each sextant, session by session.",
+     "id": "perio-session.section.evolution-screening",
+     "kind": "section",
+     "label": "Codes per session",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Follows the probe (shows where it is measuring), upper, lower or both. When the arch changes, the view moves by itself.",
+     "id": "perio-session.section.focus",
+     "kind": "section",
+     "label": "Which arch is shown",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Back and next, always in the same place; on the closing step, what is missing to sign.",
+     "id": "perio-session.section.footer",
+     "kind": "section",
+     "label": "Step footer",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "The tooth, site and value that goes next, the progress of the pass and the keyboard shortcuts.",
+     "id": "perio-session.section.guide-bar",
+     "kind": "section",
+     "label": "What to record now",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Patient, chart number, date and doctor; the four steps, progress and status.",
+     "id": "perio-session.section.header",
+     "kind": "section",
+     "label": "Periodontal chart header",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "The ten indicators of the exam (natural teeth).",
+     "id": "perio-session.section.indices",
+     "kind": "section",
+     "label": "Today's indices",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Exam indicators, the active tooth with its table, the keypad, the tooth history and its note.",
+     "id": "perio-session.section.inspector",
+     "kind": "section",
+     "label": "Inspector",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Digits, delete, +1, “Same as before” and, on the margin pass, the minus sign.",
+     "id": "perio-session.section.keypad",
+     "kind": "section",
+     "label": "Keypad",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "What each colour and symbol of the chart means.",
+     "id": "perio-session.section.legend",
+     "kind": "section",
+     "label": "Legend",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Bleeding, suppuration and plaque: they go to the site with the dashed ring (the last one measured or the one you tapped).",
+     "id": "perio-session.section.marks",
+     "kind": "section",
+     "label": "Marks",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Reinstrumentation (in 1 to 2 weeks) or maintenance (at the risk interval), with the suggested date.",
+     "id": "perio-session.section.next-visit",
+     "kind": "section",
+     "label": "Next visit",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Free text of the periodontal chart.",
+     "id": "perio-session.section.notes",
+     "kind": "section",
+     "label": "Session notes",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "The three rounds of probing, each with its progress: depth and bleeding, gingival margin, furcations and mobility.",
+     "id": "perio-session.section.passes",
+     "kind": "section",
+     "label": "Passes",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Percentage complete (probing is 90% and the confirmed diagnosis 10%), status of the chart and autosave.",
+     "id": "perio-session.section.progress",
+     "kind": "section",
+     "label": "Progress and status",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "What each code and the asterisk mean.",
+     "id": "perio-session.section.psr-legend",
+     "kind": "section",
+     "label": "PSR/BPE codes",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "A summary in plain words: how their gums are, bleeding and pockets against the first check-up, and one tip.",
+     "id": "perio-session.section.report",
+     "kind": "section",
+     "label": "Patient report",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Applies to the whole clinic. Order: by arch or buccal first. Sign: recession positive or negative (stored the same way). Maintenance months per risk.",
+     "id": "perio-session.section.settings",
+     "kind": "section",
+     "label": "Settings",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "One code per sextant: that of the worst site (0 to 4, X with fewer than two teeth) and the asterisk. Keyboard: 0–4 or X code it and move on.",
+     "id": "perio-session.section.sextants",
+     "kind": "section",
+     "label": "Sextants",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "PD, GM and CAL of each site per face, with the previous value small, and the bleeding, suppuration and plaque buttons.",
+     "id": "perio-session.section.tooth-table",
+     "kind": "section",
+     "label": "Tooth table",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Bleeding, plaque, sites of 5 mm or more, mean PD and CAL in each session, with the difference against the compared exam.",
+     "id": "perio-session.section.trends",
+     "kind": "section",
+     "label": "Trends",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "What was last understood, the active line of marks, what is pending confirmation, the microphone and the commands.",
+     "id": "perio-session.section.voice",
+     "kind": "section",
+     "label": "Dictation",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Sites dictated or copied from the previous exam that are not confirmed yet (underlined in violet). The chart cannot be signed with anything pending.",
+     "id": "perio-session.section.voice-pending",
+     "kind": "section",
+     "label": "Pending confirmation",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Sites that lost 2 mm or more of depth or attachment. Tap one to see it.",
+     "id": "perio-session.section.worse",
+     "kind": "section",
+     "label": "Worse",
+     "source": "knowledge/screens/patients.json"
     }
    ],
    "id": "patients",
@@ -9538,7 +10155,16 @@
     "patients.aesthetic-consent",
     "patients.aesthetic-photos",
     "patients.aesthetic-treatment",
-    "patients.aesthetic-close"
+    "patients.aesthetic-close",
+    "patients.perio-overview",
+    "patients.perio-probing",
+    "patients.perio-dictation",
+    "patients.perio-screening",
+    "patients.perio-evolution",
+    "patients.perio-diagnosis",
+    "patients.perio-close",
+    "patients.perio-history",
+    "patients.perio-settings"
    ]
   },
   {
@@ -16580,6 +17206,13 @@
      "source": "src/app/[locale]/system/alert-rules/page.tsx"
     },
     {
+     "description": "Which rows of the source create the alert. For dates: column, operator “=” and value {{TODAY}}; “Days before the event” shifts that date.",
+     "id": "system.alert-rules.section.conditions",
+     "kind": "section",
+     "label": "Conditions",
+     "source": "src/app/[locale]/system/alert-rules/page.tsx"
+    },
+    {
      "id": "system.alert-rules.section.detail",
      "kind": "section",
      "label": "Details",
@@ -16620,7 +17253,8 @@
     "system.alert-rules.create",
     "system.alert-rules.edit",
     "system.alert-rules.delete",
-    "system.alert-rules.test"
+    "system.alert-rules.test",
+    "system.alert-rules.perio-maintenance"
    ]
   },
   {
@@ -17995,6 +18629,13 @@
      "source": "src/components/dashboard/doctor-workspace.tsx"
     },
     {
+     "description": "Opens a new periodontal chart for the appointment's patient, linked to that appointment.",
+     "id": "workspace.btn.periodontogram",
+     "kind": "btn",
+     "label": "Periodontal chart",
+     "source": "src/components/dashboard/doctor-workspace.tsx"
+    },
+    {
      "id": "workspace.btn.prescribe",
      "kind": "btn",
      "label": "Prescribe",
@@ -18362,7 +19003,8 @@
     "workspace.prescribe",
     "workspace.odontogram",
     "workspace.agent",
-    "workspace.aesthetic-session"
+    "workspace.aesthetic-session",
+    "workspace.perio-session"
    ]
   }
  ],
@@ -33603,6 +34245,1138 @@
    "title": "Tour the patient record"
   },
   {
+   "group": "Periodontics record",
+   "id": "patients.perio-close",
+   "inputs": {
+    "patient": "Patient's name, email or document"
+   },
+   "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "close periodontal chart",
+    "sign",
+    "patient report",
+    "billing",
+    "next visit",
+    "amendment"
+   ],
+   "module": "Patients",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Patient list; tapping one opens their record on the right.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menu → Patients"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By name, email or document.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Find the patient",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the patient in the list. The guide goes on when their record is open.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Open their record",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Everything that can be created for this patient.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Create",
+     "until": "patients.btn.new-periodontogram"
+    },
+    {
+     "action": "click",
+     "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart with probing is the guide (a screening never is).",
+     "id": "item",
+     "target": "patients.btn.new-periodontogram",
+     "title": "Periodontal chart",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "click",
+     "details": "What is needed to sign, on one screen.",
+     "id": "step",
+     "target": "perio-session.btn.step-close",
+     "title": "Closing"
+    },
+    {
+     "action": "highlight",
+     "details": "A plain-words summary of how their gums are and what to do.",
+     "id": "report",
+     "target": "perio-session.section.report",
+     "title": "Patient report"
+    },
+    {
+     "action": "highlight",
+     "details": "Copies the report text.",
+     "id": "copy",
+     "target": "perio-session.btn.report-copy",
+     "title": "Copy"
+    },
+    {
+     "action": "highlight",
+     "details": "By WhatsApp, printed with both arches or by email. Sending it is recorded.",
+     "id": "send",
+     "target": "perio-session.btn.report-whatsapp",
+     "title": "WhatsApp, Print or Send"
+    },
+    {
+     "action": "highlight",
+     "details": "Charge opens the billing wizard; the invoice is linked and shows here with its payments. Or “Nothing to charge today”.",
+     "id": "billing",
+     "target": "perio-session.section.billing",
+     "title": "Today's billing"
+    },
+    {
+     "action": "highlight",
+     "details": "Book on the suggested date, or Schedule later (the maintenance reminder uses it).",
+     "id": "next",
+     "target": "perio-session.section.next-visit",
+     "title": "Next visit"
+    },
+    {
+     "action": "highlight",
+     "details": "Free text of the periodontal chart.",
+     "id": "notes",
+     "target": "perio-session.section.notes",
+     "title": "Session notes"
+    },
+    {
+     "action": "highlight",
+     "details": "Probing, diagnosis, billing, next visit and confirmed dictation. Tap what is pending to settle it.",
+     "id": "checklist",
+     "target": "perio-session.section.checklist",
+     "title": "What is missing to sign"
+    },
+    {
+     "action": "highlight",
+     "details": "With everything settled, sign: it becomes read-only and changes are added as amendments.",
+     "id": "sign",
+     "target": "perio-session.btn.sign",
+     "title": "Sign and close"
+    }
+   ],
+   "summary": "Patient report, billing, next visit, notes and signature.",
+   "title": "Close the periodontal chart"
+  },
+  {
+   "group": "Periodontics record",
+   "id": "patients.perio-diagnosis",
+   "inputs": {
+    "patient": "Patient's name, email or document"
+   },
+   "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "diagnosis",
+    "stage",
+    "grade",
+    "risk",
+    "periodontal plan",
+    "2017 classification",
+    "stability"
+   ],
+   "module": "Patients",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Patient list; tapping one opens their record on the right.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menu → Patients"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By name, email or document.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Find the patient",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the patient in the list. The guide goes on when their record is open.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Open their record",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Everything that can be created for this patient.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Create",
+     "until": "patients.btn.new-periodontogram"
+    },
+    {
+     "action": "click",
+     "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart with probing is the guide (a screening never is).",
+     "id": "item",
+     "target": "patients.btn.new-periodontogram",
+     "title": "Periodontal chart",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Everything is worked out by the system as a suggestion; the doctor reviews and confirms it.",
+     "id": "step",
+     "target": "perio-session.btn.step-diagnosis",
+     "title": "Diagnosis"
+    },
+    {
+     "action": "highlight",
+     "details": "Stable, stable with inflammation or unstable, with the list that supports it.",
+     "id": "today",
+     "skipIfMissing": true,
+     "target": "perio-session.section.dx-today",
+     "title": "How it is today"
+    },
+    {
+     "action": "highlight",
+     "details": "Teeth lost to periodontitis, X-ray bone loss, age, smoking and diabetes: they define stage IV and the grade.",
+     "id": "inputs",
+     "skipIfMissing": true,
+     "target": "perio-session.section.dx-inputs",
+     "title": "Data not from the probing"
+    },
+    {
+     "action": "highlight",
+     "details": "Case, stage (how severe), extent (where) and grade (how fast), with the reason. They can be changed; what is changed is marked.",
+     "id": "class",
+     "skipIfMissing": true,
+     "target": "perio-session.section.dx-classification",
+     "title": "2017 classification"
+    },
+    {
+     "action": "highlight",
+     "details": "Six Lang & Tonetti parameters; the risk suggests how many months between check-ups.",
+     "id": "risk",
+     "skipIfMissing": true,
+     "target": "perio-session.section.dx-risk",
+     "title": "Risk"
+    },
+    {
+     "action": "highlight",
+     "details": "In “implants only”: healthy, mucositis or peri-implantitis for each implant.",
+     "id": "implants",
+     "skipIfMissing": true,
+     "target": "perio-session.section.dx-implants",
+     "title": "Implants"
+    },
+    {
+     "action": "highlight",
+     "details": "Hygiene, reinstrumentation per tooth, re-evaluation and maintenance, each Today or Later.",
+     "id": "plan",
+     "skipIfMissing": true,
+     "target": "perio-session.section.dx-plan",
+     "title": "Plan by steps"
+    },
+    {
+     "action": "highlight",
+     "details": "With probing complete, tap it to put the diagnosis in the clinical record. If you change something afterwards, it has to be confirmed again.",
+     "id": "confirm",
+     "skipIfMissing": true,
+     "target": "perio-session.btn.confirm-diagnosis",
+     "title": "Confirm diagnosis"
+    }
+   ],
+   "summary": "Review and confirm the suggested stability, 2017 classification, risk and plan.",
+   "title": "Diagnosis and plan"
+  },
+  {
+   "group": "Periodontics record",
+   "id": "patients.perio-dictation",
+   "inputs": {
+    "patient": "Patient's name, email or document"
+   },
+   "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "dictation",
+    "voice",
+    "microphone",
+    "voice commands",
+    "dictate probing"
+   ],
+   "module": "Patients",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Patient list; tapping one opens their record on the right.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menu → Patients"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By name, email or document.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Find the patient",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the patient in the list. The guide goes on when their record is open.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Open their record",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Everything that can be created for this patient.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Create",
+     "until": "patients.btn.new-periodontogram"
+    },
+    {
+     "action": "click",
+     "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart with probing is the guide (a screening never is).",
+     "id": "item",
+     "target": "patients.btn.new-periodontogram",
+     "title": "Periodontal chart",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "highlight",
+     "details": "It shows what was understood from each phrase and what is left to confirm.",
+     "id": "voice",
+     "target": "perio-session.section.voice",
+     "title": "Dictation"
+    },
+    {
+     "action": "highlight",
+     "details": "Turn the microphone on and speak: “38 lingual 3 2 4 bleeds distal”, “SS 23”, “gingival margin”, “lower arch”. Each phrase is applied when you finish it.",
+     "id": "mic",
+     "target": "perio-session.btn.dictate",
+     "title": "Dictate"
+    },
+    {
+     "action": "highlight",
+     "details": "The same command typed, then Enter. If a phrase is not understood, the AI rewrites it.",
+     "id": "type",
+     "target": "perio-session.field.voice-command",
+     "title": "Or type it"
+    },
+    {
+     "action": "highlight",
+     "details": "The full list, in Spanish and in English.",
+     "id": "help",
+     "target": "perio-session.btn.voice-help",
+     "title": "Voice commands"
+    },
+    {
+     "action": "highlight",
+     "details": "What you dictated pulses on the chart and stays underlined in violet; if it is another arch, the view changes by itself.",
+     "id": "chart",
+     "target": "perio-session.section.chart",
+     "title": "Where it went"
+    },
+    {
+     "action": "highlight",
+     "details": "Review it and tap Confirm (or say “confirm”). Discard reverts it. The chart cannot be signed with dictation pending.",
+     "id": "pending",
+     "skipIfMissing": true,
+     "target": "perio-session.section.voice-pending",
+     "title": "Confirm what was dictated"
+    }
+   ],
+   "summary": "Record the probing by voice: commands, active line and confirming what was dictated.",
+   "title": "Dictate the probing"
+  },
+  {
+   "group": "Periodontics record",
+   "id": "patients.perio-evolution",
+   "inputs": {
+    "patient": "Patient's name, email or document"
+   },
+   "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "progress",
+    "compare",
+    "before and after",
+    "slider",
+    "trends",
+    "attachment"
+   ],
+   "module": "Patients",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Patient list; tapping one opens their record on the right.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menu → Patients"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By name, email or document.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Find the patient",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the patient in the list. The guide goes on when their record is open.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Open their record",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Everything that can be created for this patient.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Create",
+     "until": "patients.btn.new-periodontogram"
+    },
+    {
+     "action": "click",
+     "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart with probing is the guide (a screening never is).",
+     "id": "item",
+     "target": "patients.btn.new-periodontogram",
+     "title": "Periodontal chart",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Compares today with any earlier exam; by default, with the initial one.",
+     "id": "step",
+     "target": "perio-session.btn.step-evolution",
+     "title": "Progress"
+    },
+    {
+     "action": "highlight",
+     "details": "If it is the patient's first one, there is nothing to compare with yet.",
+     "id": "empty",
+     "skipIfMissing": true,
+     "target": "perio-session.section.evolution-empty",
+     "title": "First periodontal chart"
+    },
+    {
+     "action": "highlight",
+     "details": "Slider (before and after), Overlay (green bars where attachment was gained, red where lost) or Changes; arch; curves or map.",
+     "id": "controls",
+     "skipIfMissing": true,
+     "target": "perio-session.section.evolution-controls",
+     "title": "How to compare"
+    },
+    {
+     "action": "highlight",
+     "details": "Drag the slider handle to show the patient the before and after.",
+     "id": "chart",
+     "skipIfMissing": true,
+     "target": "perio-session.section.evolution-chart",
+     "title": "Comparison"
+    },
+    {
+     "action": "highlight",
+     "details": "Moves from one exam to the next to tell the story of the treatment.",
+     "id": "play",
+     "skipIfMissing": true,
+     "target": "perio-session.btn.evolution-play",
+     "title": "Play the progress"
+    },
+    {
+     "action": "highlight",
+     "details": "Tap another exam to change what today is compared with.",
+     "id": "with",
+     "skipIfMissing": true,
+     "target": "perio-session.section.compare-with",
+     "title": "Compare today with…"
+    },
+    {
+     "action": "highlight",
+     "details": "Each index across all sessions: green when it improves, red when it gets worse.",
+     "id": "trends",
+     "skipIfMissing": true,
+     "target": "perio-session.section.trends",
+     "title": "Trends"
+    },
+    {
+     "action": "highlight",
+     "details": "Only changes of 2 mm or more: 1 mm is within the error of a manual probe. Tap a site to see it.",
+     "id": "worse",
+     "skipIfMissing": true,
+     "target": "perio-session.section.worse",
+     "title": "Worse and better"
+    },
+    {
+     "action": "highlight",
+     "details": "The next step.",
+     "id": "next",
+     "skipIfMissing": true,
+     "target": "perio-session.btn.next-evolution",
+     "title": "Go to diagnosis"
+    }
+   ],
+   "summary": "See the patient's progress: slider, overlay, changes, map, animation and trends.",
+   "title": "Compare with earlier exams"
+  },
+  {
+   "group": "Periodontics record",
+   "id": "patients.perio-history",
+   "inputs": {
+    "patient": "Patient's name, email or document"
+   },
+   "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "clinical record",
+    "earlier periodontal charts",
+    "continue periodontal chart",
+    "compare with today"
+   ],
+   "module": "Patients",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Patient list; tapping one opens their record on the right.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menu → Patients"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By name, email or document.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Find the patient",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the patient in the list.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Open their record",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "The patient's sessions, odontogram, periodontal chart and documents.",
+     "id": "clinical",
+     "target": "patients.tab.clinical",
+     "title": "Clinical record",
+     "until": "patients.tab.clinical-history"
+    },
+    {
+     "action": "click",
+     "details": "All sessions, from the most recent to the oldest.",
+     "id": "timeline",
+     "target": "patients.tab.clinical-history",
+     "title": "Timeline",
+     "until": "patients.section.timeline"
+    },
+    {
+     "action": "highlight",
+     "details": "With the “Periodontal chart” filter only those remain.",
+     "id": "filters",
+     "skipIfMissing": true,
+     "target": "patients.btn.timeline-filters",
+     "title": "Filter"
+    },
+    {
+     "action": "highlight",
+     "details": "Expand it: the preview of both arches (or the sextants, for a screening), the type, the diagnosis and the indices.",
+     "id": "card",
+     "target": "patients.btn.timeline-row-perio",
+     "title": "Tap a periodontal chart",
+     "until": "patients.btn.timeline-open-perio"
+    },
+    {
+     "action": "highlight",
+     "details": "On one that is not the latest: opens the most recent on Progress, compared with that one.",
+     "id": "compare",
+     "skipIfMissing": true,
+     "target": "patients.btn.timeline-compare-perio",
+     "title": "Compare with today"
+    },
+    {
+     "action": "highlight",
+     "details": "Only if it is not closed: a closed one is clinical record.",
+     "id": "delete",
+     "skipIfMissing": true,
+     "target": "patients.btn.timeline-delete-perio",
+     "title": "Delete"
+    },
+    {
+     "action": "click",
+     "details": "Opens the periodontal chart: to keep recording it or, if closed, to view and amend it.",
+     "id": "open",
+     "target": "patients.btn.timeline-open-perio",
+     "title": "Continue or view",
+     "until": "perio-session.section.header"
+    }
+   ],
+   "summary": "Find the periodontal charts in the clinical record, open them and compare them with today.",
+   "title": "View, continue or compare periodontal charts"
+  },
+  {
+   "group": "Periodontics record",
+   "id": "patients.perio-overview",
+   "inputs": {
+    "patient": "Patient's name, email or document"
+   },
+   "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "probing",
+    "tour"
+   ],
+   "module": "Patients",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Patient list; tapping one opens their record on the right.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menu → Patients"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By name, email or document.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Find the patient",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the patient in the list. The guide goes on when their record is open.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Open their record",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Everything that can be created for this patient.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Create",
+     "until": "patients.btn.new-periodontogram"
+    },
+    {
+     "action": "click",
+     "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart with probing is the guide (a screening never is).",
+     "id": "item",
+     "target": "patients.btn.new-periodontogram",
+     "title": "Periodontal chart",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "highlight",
+     "details": "Patient, chart number, date and doctor.",
+     "id": "header",
+     "target": "perio-session.section.header",
+     "title": "Header"
+    },
+    {
+     "action": "highlight",
+     "details": "Probing, Progress, Diagnosis and Closing. You can jump between steps at any time; a finished one has a tick.",
+     "id": "steps",
+     "target": "perio-session.btn.step-probe",
+     "title": "The four steps"
+    },
+    {
+     "action": "highlight",
+     "details": "The ring says how complete it is; the status is worked out by the system and saving is automatic.",
+     "id": "progress",
+     "target": "perio-session.section.progress",
+     "title": "Progress and status"
+    },
+    {
+     "action": "highlight",
+     "details": "Tap it to see the missing sites in amber on the chart.",
+     "id": "missing",
+     "skipIfMissing": true,
+     "target": "perio-session.btn.missing",
+     "title": "What is missing"
+    },
+    {
+     "action": "highlight",
+     "details": "Exam type, the guide exam, what came from the odontogram, settings and dictation.",
+     "id": "banner",
+     "target": "perio-session.section.banner",
+     "title": "Exam bar"
+    },
+    {
+     "action": "highlight",
+     "details": "Probing is done in three rounds: depth and bleeding, gingival margin, furcations and mobility.",
+     "id": "passes",
+     "target": "perio-session.section.passes",
+     "title": "Passes"
+    },
+    {
+     "action": "highlight",
+     "details": "Outer face on top, inner face below; blue margin curve and red pocket-bottom curve. Tap a cell to measure there.",
+     "id": "chart",
+     "target": "perio-session.section.chart",
+     "title": "Periodontal chart"
+    },
+    {
+     "action": "highlight",
+     "details": "The active tooth with its table, the keypad, the marks and the note.",
+     "id": "inspector",
+     "target": "perio-session.section.inspector",
+     "title": "Inspector"
+    },
+    {
+     "action": "highlight",
+     "details": "Back and next, always in the same place.",
+     "id": "footer",
+     "target": "perio-session.section.footer",
+     "title": "Footer"
+    }
+   ],
+   "summary": "The parts of the periodontal chart sheet: steps, progress, probing, inspector and footer.",
+   "title": "Tour of the periodontal chart"
+  },
+  {
+   "group": "Periodontics record",
+   "id": "patients.perio-probing",
+   "inputs": {
+    "patient": "Patient's name, email or document"
+   },
+   "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "probing",
+    "depth",
+    "bleeding",
+    "gingival margin",
+    "recession",
+    "furcation",
+    "mobility",
+    "copy previous exam"
+   ],
+   "module": "Patients",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Patient list; tapping one opens their record on the right.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menu → Patients"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By name, email or document.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Find the patient",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the patient in the list. The guide goes on when their record is open.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Open their record",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Everything that can be created for this patient.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Create",
+     "until": "patients.btn.new-periodontogram"
+    },
+    {
+     "action": "click",
+     "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart with probing is the guide (a screening never is).",
+     "id": "item",
+     "target": "patients.btn.new-periodontogram",
+     "title": "Periodontal chart",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "highlight",
+     "details": "Initial, re-evaluation or maintenance need full probing. Screening and implants only have their own guide.",
+     "id": "type",
+     "target": "perio-session.field.exam-type",
+     "title": "Exam type"
+    },
+    {
+     "action": "highlight",
+     "details": "If the patient is stable, start from the previous exam's values and adjust what changed. What is copied stays underlined until confirmed.",
+     "id": "copy",
+     "skipIfMissing": true,
+     "target": "perio-session.btn.copy-all",
+     "title": "Copy everything from the previous exam"
+    },
+    {
+     "action": "click",
+     "details": "First pass: the depth of each site.",
+     "id": "ps",
+     "target": "perio-session.btn.pass-ps",
+     "title": "Depth and bleeding"
+    },
+    {
+     "action": "highlight",
+     "details": "It says the tooth and site of the next number. Type the digits: the probe moves on by itself to the next empty site.",
+     "id": "guide",
+     "target": "perio-session.section.guide-bar",
+     "title": "What to record now"
+    },
+    {
+     "action": "highlight",
+     "details": "The curves are drawn as you record. Tap a cell to go to that site; a BOP dot cycles bleeds → suppurates.",
+     "id": "chart",
+     "target": "perio-session.section.chart",
+     "title": "The chart"
+    },
+    {
+     "action": "highlight",
+     "details": "They go to the site with the dashed ring: the last one measured or the one you tapped. Keyboard: B, S and P.",
+     "id": "marks",
+     "skipIfMissing": true,
+     "target": "perio-session.section.marks",
+     "title": "Bleeding, suppuration and plaque"
+    },
+    {
+     "action": "highlight",
+     "details": "With “Follows the probe” the view goes with the probe; a notice shows when the arch changes.",
+     "id": "focus",
+     "target": "perio-session.section.focus",
+     "title": "Which arch is shown"
+    },
+    {
+     "action": "click",
+     "details": "Second pass: positive is recession (the gum went down), negative enlargement. “No recession” records 0.",
+     "id": "mg",
+     "target": "perio-session.btn.pass-mg",
+     "title": "Gingival margin"
+    },
+    {
+     "action": "highlight",
+     "details": "Digits, delete, +1 for 10 mm or more, “Same as before” and the minus sign.",
+     "id": "keypad",
+     "skipIfMissing": true,
+     "target": "perio-session.section.keypad",
+     "title": "Keypad"
+    },
+    {
+     "action": "click",
+     "details": "Third pass, per tooth: mobility from 0 to III and the grade of each furcation. It does not block closing.",
+     "id": "fm",
+     "target": "perio-session.btn.pass-fm",
+     "title": "Furcations and mobility"
+    },
+    {
+     "action": "highlight",
+     "details": "If the odontogram does not match the mouth, fix it here: missing teeth and pontics are not probed.",
+     "id": "status",
+     "target": "perio-session.field.tooth-status",
+     "title": "Tooth status"
+    },
+    {
+     "action": "highlight",
+     "details": "With probing complete, the next step compares with earlier exams.",
+     "id": "next",
+     "target": "perio-session.btn.next-probe",
+     "title": "Next: Progress"
+    }
+   ],
+   "summary": "Record the probing in the three passes, with the keypad, the previous exam as a guide or copying it.",
+   "title": "Probing: depth, margin, furcations and mobility"
+  },
+  {
+   "group": "Periodontics record",
+   "id": "patients.perio-screening",
+   "inputs": {
+    "patient": "Patient's name, email or document"
+   },
+   "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "screening",
+    "PSR",
+    "BPE",
+    "sextants",
+    "implants"
+   ],
+   "module": "Patients",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Patient list; tapping one opens their record on the right.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menu → Patients"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By name, email or document.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Find the patient",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the patient in the list. The guide goes on when their record is open.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Open their record",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Everything that can be created for this patient.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Create",
+     "until": "patients.btn.new-periodontogram"
+    },
+    {
+     "action": "click",
+     "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart with probing is the guide (a screening never is).",
+     "id": "item",
+     "target": "patients.btn.new-periodontogram",
+     "title": "Periodontal chart",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "Change the exam type. (With “Implants only”, the probe goes over the implants only.)",
+     "id": "type",
+     "target": "perio-session.field.exam-type",
+     "title": "Choose “PSR/BPE screening”",
+     "until": "perio-session.section.sextants"
+    },
+    {
+     "action": "highlight",
+     "details": "In each sextant, the code of the worst site: 0 healthy, 1 bleeds, 2 calculus, 3 pocket of 3.5 to 5.5 mm, 4 deeper, X excluded. The asterisk marks furcation, mobility or recession.",
+     "id": "sextants",
+     "target": "perio-session.section.sextants",
+     "title": "Sextants"
+    },
+    {
+     "action": "highlight",
+     "details": "Keyboard: 0–4 or X code the marked sextant and move on.",
+     "id": "legend",
+     "target": "perio-session.section.psr-legend",
+     "title": "What each code means"
+    },
+    {
+     "action": "click",
+     "details": "A screening is not classified: the highest code is interpreted.",
+     "id": "dx",
+     "target": "perio-session.btn.step-diagnosis",
+     "title": "Diagnosis"
+    },
+    {
+     "action": "highlight",
+     "details": "What the highest code means, what to do and which sextants need a full periodontal chart.",
+     "id": "result",
+     "skipIfMissing": true,
+     "target": "perio-session.section.dx-screening",
+     "title": "Screening result"
+    },
+    {
+     "action": "highlight",
+     "details": "Hygiene, professional cleaning or a full periodontal chart depending on the codes.",
+     "id": "plan",
+     "skipIfMissing": true,
+     "target": "perio-session.section.dx-plan",
+     "title": "Plan"
+    }
+   ],
+   "summary": "One code per sextant instead of full probing, and what it suggests.",
+   "title": "Do a PSR/BPE screening"
+  },
+  {
+   "group": "Periodontics record",
+   "id": "patients.perio-settings",
+   "inputs": {
+    "patient": "Patient's name, email or document"
+   },
+   "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "periodontal chart settings",
+    "probing order",
+    "margin sign",
+    "maintenance interval"
+   ],
+   "module": "Patients",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Patient list; tapping one opens their record on the right.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menu → Patients"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "By name, email or document.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Find the patient",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tap the patient in the list. The guide goes on when their record is open.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Open their record",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Everything that can be created for this patient.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Create",
+     "until": "patients.btn.new-periodontogram"
+    },
+    {
+     "action": "click",
+     "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart with probing is the guide (a screening never is).",
+     "id": "item",
+     "target": "patients.btn.new-periodontogram",
+     "title": "Periodontal chart",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "click",
+     "details": "The gear on the exam bar. It applies to the whole clinic.",
+     "id": "gear",
+     "target": "perio-session.btn.settings",
+     "title": "Settings",
+     "until": "perio-session.section.settings"
+    },
+    {
+     "action": "highlight",
+     "details": "Probing order (by arch or buccal first), margin sign (recession positive or negative: stored the same way) and maintenance months for each risk.",
+     "id": "form",
+     "target": "perio-session.section.settings",
+     "title": "What can be set"
+    },
+    {
+     "action": "confirm",
+     "details": "Only those who edit the system settings can save it.",
+     "id": "save",
+     "skipIfMissing": true,
+     "target": "perio-session.btn.settings-save",
+     "title": "Save"
+    }
+   ],
+   "summary": "Probing order, margin sign and maintenance intervals.",
+   "title": "Set up the clinic's periodontal chart"
+  },
+  {
    "group": "Information",
    "id": "patients.preferences",
    "inputs": {
@@ -43722,6 +45496,155 @@
    "title": "Tour Alert Rules"
   },
   {
+   "id": "system.alert-rules.perio-maintenance",
+   "inputs": {
+    "category": "Alert category name (e.g. Appointments)"
+   },
+   "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "maintenance reminder",
+    "alert rule",
+    "periodontal maintenance"
+   ],
+   "module": "System",
+   "screens": [
+    "system.alert-rules"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "What creates an alert and when.",
+     "id": "go",
+     "route": "/system/alert-rules",
+     "title": "Menu → System → Alert Rules"
+    },
+    {
+     "action": "click",
+     "details": "A new rule.",
+     "id": "new",
+     "target": "system.alert-rules.btn.new",
+     "title": "Create",
+     "until": "system.alert-rules.field.name"
+    },
+    {
+     "action": "fill",
+     "details": "How it shows in the Alerts Center.",
+     "id": "name",
+     "target": "system.alert-rules.field.name",
+     "title": "Name",
+     "value": "Mantenimiento periodontal"
+    },
+    {
+     "action": "fill",
+     "details": "A unique code for the rule.",
+     "id": "code",
+     "target": "system.alert-rules.field.code",
+     "title": "Code",
+     "value": "PERIO_MAINTENANCE_DUE"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "The Alerts Center group, for example the one for patient reminders.",
+     "id": "category",
+     "optional": true,
+     "target": "system.alert-rules.field.category_id",
+     "title": "Category",
+     "value": "{{values.category}}"
+    },
+    {
+     "action": "fill",
+     "details": "The v_alert_perio_maintenance view: one row per patient with their latest closed chart and the date maintenance is due.",
+     "id": "source",
+     "target": "system.alert-rules.field.source_table",
+     "title": "Source",
+     "value": "v_alert_perio_maintenance"
+    },
+    {
+     "action": "fill",
+     "details": "“id”: it is the patient (so the automatic sending knows who to message).",
+     "id": "idfield",
+     "target": "system.alert-rules.field.table_id_field",
+     "title": "ID field",
+     "value": "id ("
+    },
+    {
+     "action": "fill",
+     "details": "“patient_id”.",
+     "id": "user",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.user_id_field",
+     "title": "User field",
+     "value": "patient_id ("
+    },
+    {
+     "action": "fill",
+     "details": "“due_date”: when maintenance is due.",
+     "id": "event",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.event_field",
+     "title": "Event date",
+     "value": "due_date ("
+    },
+    {
+     "action": "highlight",
+     "details": "Add one: column due_date, operator “=” and value {{TODAY}}. Without it the rule does not filter by date.",
+     "id": "conditions",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.section.conditions",
+     "title": "Condition"
+    },
+    {
+     "action": "fill",
+     "details": "How far ahead to warn: with 14, the alert comes 14 days before maintenance.",
+     "id": "before",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.days_before",
+     "title": "Days before the event",
+     "value": "14"
+    },
+    {
+     "action": "fill",
+     "details": "Daily: every day it looks for the maintenance that is due.",
+     "id": "recurrence",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.recurrence_type",
+     "title": "Recurrence",
+     "value": "Diaria"
+    },
+    {
+     "action": "highlight",
+     "details": "To message the patient: a patient-type template. Sending is turned on by “Send SMS automatically”.",
+     "id": "whatsapp",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.whatsapp_template_id",
+     "title": "WhatsApp template (optional)"
+    },
+    {
+     "action": "highlight",
+     "details": "With “Send email automatically” and the global alert email switch. Only patient and clinic variables.",
+     "id": "email",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.email_template_id",
+     "title": "Email template (optional)"
+    },
+    {
+     "action": "confirm",
+     "details": "From the next day, the alert engine creates a warning for each patient whose maintenance is due.",
+     "id": "save",
+     "target": "system.alert-rules.btn.submit",
+     "title": "Save"
+    }
+   ],
+   "summary": "Alert rule that warns (and can message the patient) when maintenance is due.",
+   "title": "Create the periodontal maintenance reminder"
+  },
+  {
    "id": "system.alert-rules.test",
    "keywords": [
     "test rule",
@@ -46289,6 +48212,82 @@
    ],
    "summary": "Tour the day's schedule and the patient panel: alerts, record, clinical sessions, odontogram, prescription and AI agent.",
    "title": "Use My Workspace"
+  },
+  {
+   "id": "workspace.perio-session",
+   "inputs": {},
+   "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "appointment",
+    "my office",
+    "probing"
+   ],
+   "module": "My Office",
+   "screens": [
+    "workspace"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "The doctor's appointments of the day.",
+     "id": "go",
+     "route": "/workspace",
+     "title": "Menu → My Office"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "The guide goes on when the appointment is open.",
+     "id": "appt",
+     "target": "workspace.section.appointment",
+     "title": "Pick the patient's appointment",
+     "until": "workspace.section.focus"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Opens a new one, linked to this appointment and this doctor.",
+     "id": "btn",
+     "target": "workspace.btn.periodontogram",
+     "title": "Periodontal chart",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "highlight",
+     "details": "Exam type, guide exam and dictation.",
+     "id": "banner",
+     "target": "perio-session.section.banner",
+     "title": "Exam bar"
+    },
+    {
+     "action": "highlight",
+     "details": "Depth and bleeding, gingival margin, furcations and mobility.",
+     "id": "passes",
+     "target": "perio-session.section.passes",
+     "title": "Passes"
+    },
+    {
+     "action": "highlight",
+     "details": "Type or dictate: the probe moves on by itself.",
+     "id": "chart",
+     "target": "perio-session.section.chart",
+     "title": "Periodontal chart"
+    },
+    {
+     "action": "highlight",
+     "details": "Probing, Progress, Diagnosis and Closing.",
+     "id": "steps",
+     "target": "perio-session.section.header",
+     "title": "The four steps"
+    }
+   ],
+   "summary": "Open a periodontal chart for the appointment's patient in My Office.",
+   "title": "Periodontal chart from the appointment"
   },
   {
    "id": "workspace.prescribe",

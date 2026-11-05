@@ -166,7 +166,7 @@ Supuestos: el esquema vivo coincide con lo que muestran los scripts y las export
 
 Rama `perio/fase-1` desde `periodoncia` actualizada. Un PR contra `periodoncia`.
 
-### Migración `database/scripts/162_20261105_perio-record.sql`
+### Migración `database/scripts/163_20261105_perio-record.sql`
 
 - `perio_exams`: `id bigserial`, `patient_id uuid`, `doctor_id uuid`, `appointment_id integer`, `exam_date date`, `exam_type` (`initial`, `reevaluation`, `maintenance`, `psr`, `implants`), `guide_exam_id`, `status` calculado (`probing`, `probed`, `diagnosed`, `ready_to_close`, `closed`, `void`), `completeness`, `gm_sign`, `stats jsonb`, `notes`, cierre (`closed_at`, `closed_by`), anulación (`voided_at`, `voided_by`, `void_reason`), auditoría (`created_*`, `updated_*`, `deleted_at`). Las columnas de diagnóstico se agregan en la migración del PR 3.
 - `perio_teeth` y `perio_sites` como la guía: clave natural, `CHECK` de rangos, `cal_mm` generado, `source` (`manual`, `dictation`, `same`), `confirmed`.
@@ -174,7 +174,7 @@ Rama `perio/fase-1` desde `periodoncia` actualizada. Un PR contra `periodoncia`.
 - Funciones: `perio_exam_create(jsonb, uuid)` (congela piezas desde el último odontograma y elige el examen guía), `perio_exam_json(bigint)`, `perio_exams_list(uuid)`, `perio_sites_save(bigint, jsonb, uuid)` (lote), `perio_tooth_save(bigint, jsonb, uuid)`, `perio_exam_recompute(bigint)`, `perio_exam_close(bigint, uuid)`, `perio_exam_delete(bigint, uuid)` (solo sin cerrar). Todas rechazan escribir en exámenes cerrados (`PERIO:EXAM_CLOSED`) y en piezas ausentes o pónticos.
 - Permisos `PERIO_RECORD_VIEW` y `PERIO_RECORD_REGISTER_SESSION`, copiando los roles de `ODONTOGRAM_VIEW` y `ODONTOGRAM_REGISTER_SESSION`.
 - `INSERT INTO db_migrations`.
-- `162_20261105_perio-record_down.sql`: borra las tablas solo si están vacías.
+- `163_20261105_perio-record_down.sql`: borra las tablas solo si están vacías. Está comentado entero: sólo se corre a mano.
 
 ### n8n
 

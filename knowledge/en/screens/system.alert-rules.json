@@ -82,6 +82,10 @@
     },
     "system.alert-rules.btn.row-delete": {
       "label": "Delete"
+    },
+    "system.alert-rules.section.conditions": {
+      "label": "Conditions",
+      "description": "Which rows of the source create the alert. For dates: column, operator “=” and value {{TODAY}}; “Days before the event” shifts that date."
     }
   }
 }

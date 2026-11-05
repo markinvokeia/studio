@@ -1,0 +1,96 @@
+{
+  "id": "patients.perio-close",
+  "title": "Close the periodontal chart",
+  "summary": "Patient report, billing, next visit, notes and signature.",
+  "module": "Patients",
+  "group": "Periodontics record",
+  "inputs": {
+    "patient": "Patient's name, email or document"
+  },
+  "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "close periodontal chart",
+    "sign",
+    "patient report",
+    "billing",
+    "next visit",
+    "amendment"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or document."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide goes on when their record is open."
+    },
+    {
+      "id": "menu",
+      "title": "Create",
+      "details": "Everything that can be created for this patient."
+    },
+    {
+      "id": "item",
+      "title": "Periodontal chart",
+      "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart with probing is the guide (a screening never is)."
+    },
+    {
+      "id": "step",
+      "title": "Closing",
+      "details": "What is needed to sign, on one screen."
+    },
+    {
+      "id": "report",
+      "title": "Patient report",
+      "details": "A plain-words summary of how their gums are and what to do."
+    },
+    {
+      "id": "copy",
+      "title": "Copy",
+      "details": "Copies the report text."
+    },
+    {
+      "id": "send",
+      "title": "WhatsApp, Print or Send",
+      "details": "By WhatsApp, printed with both arches or by email. Sending it is recorded."
+    },
+    {
+      "id": "billing",
+      "title": "Today's billing",
+      "details": "Charge opens the billing wizard; the invoice is linked and shows here with its payments. Or “Nothing to charge today”."
+    },
+    {
+      "id": "next",
+      "title": "Next visit",
+      "details": "Book on the suggested date, or Schedule later (the maintenance reminder uses it)."
+    },
+    {
+      "id": "notes",
+      "title": "Session notes",
+      "details": "Free text of the periodontal chart."
+    },
+    {
+      "id": "checklist",
+      "title": "What is missing to sign",
+      "details": "Probing, diagnosis, billing, next visit and confirmed dictation. Tap what is pending to settle it."
+    },
+    {
+      "id": "sign",
+      "title": "Sign and close",
+      "details": "With everything settled, sign: it becomes read-only and changes are added as amendments."
+    }
+  ]
+}

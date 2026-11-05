@@ -219,6 +219,12 @@ function HelpAssistantRoot() {
   const [catalogError, setCatalogError] = React.useState(false);
   const [pendingSteps, setPendingSteps] = React.useState(0);
   const windowRef = React.useRef<HTMLDivElement | null>(null);
+  // The window element itself: it mounts when the mascot is placed, which may come after it is opened
+  const [windowNode, setWindowNode] = React.useState<HTMLDivElement | null>(null);
+  const setWindowRef = React.useCallback((el: HTMLDivElement | null) => {
+    windowRef.current = el;
+    setWindowNode(el);
+  }, []);
 
   const canSeeOnboarding = hasPermission(HELP_PERMISSIONS.ONBOARDING_VIEW);
   const canSync = hasPermission(HELP_PERMISSIONS.CATALOG_SYNC);
@@ -390,14 +396,18 @@ function HelpAssistantRoot() {
     if (showWindow) void mascotRef.current.setMood('happy');
   }, [showWindow]);
 
-  // Los clics en la ventana no deben cerrar el diálogo de Radix abierto debajo.
+  // Los clics en la ventana no deben cerrar el diálogo de Radix abierto debajo. Y la rueda y el
+  // arrastre táctil no deben llegar al bloqueo de scroll de ese diálogo (react-remove-scroll los
+  // anula en el documento): sin esto, con una hoja abierta (p. ej. al terminar una guía) la ventana
+  // no scrollea.
   React.useEffect(() => {
-    const el = windowRef.current;
+    const el = windowNode;
     if (!el) return;
     const stop = (e: Event) => e.stopPropagation();
-    el.addEventListener('pointerdown', stop);
-    return () => el.removeEventListener('pointerdown', stop);
-  }, [showWindow]);
+    const events = ['pointerdown', 'wheel', 'touchstart', 'touchmove'] as const;
+    events.forEach((type) => el.addEventListener(type, stop, { passive: true }));
+    return () => events.forEach((type) => el.removeEventListener(type, stop));
+  }, [windowNode]);
 
   // "Guiarme" desde el reproductor: arranca la guía del video y el video sigue flotando.
   const guideFromVideo = React.useCallback((video: HelpVideo) => {
@@ -451,7 +461,8 @@ function HelpAssistantRoot() {
         {/* El lanzador es la mascota (MascotHost): al hacerle clic se abre esta ventana arriba de ella. */}
         {showWindow && anchor && (
           <div
-            ref={windowRef}
+            ref={setWindowRef}
+            data-help-window=""
             role="dialog"
             aria-label={t('title')}
             data-help-panel

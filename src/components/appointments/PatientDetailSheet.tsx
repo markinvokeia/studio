@@ -16,7 +16,7 @@ import { PatientQuickActions } from '@/components/patients/patient-quick-actions
 
 import { InlineAppointmentDraftHost } from '@/components/appointments/inline-appointment-draft-host';
 import { usePermissions } from '@/hooks/usePermissions';
-import { AESTHETIC_RECORD_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
+import { AESTHETIC_RECORD_PERMISSIONS, CLINICAL_HISTORY_PERMISSIONS, MEDICAL_HISTORY_PERMISSIONS, PATIENTS_PERMISSIONS, PATIENT_FINANCIAL_VIEW_PERMISSIONS, PERIO_RECORD_PERMISSIONS, TIMELINE_PERMISSIONS } from '@/constants/permissions';
 import { AnamnesisViewer, ClinicHistoryViewer, DocumentsViewer } from '@/components/users/clinic-history-viewer';
 import { PatientIndicationsTab } from '@/components/medical-instructions/patient-indications-tab';
 import { UserTreatmentPlans } from '@/components/users/user-treatment-plans';
@@ -151,6 +151,7 @@ export function PatientDetailSheet({
   // clinical-only layout regardless.
   const canViewInfoTab = hasPermission(PATIENTS_PERMISSIONS.VIEW_DETAIL_INFO);
   const canCreateAesthetic = hasPermission(AESTHETIC_RECORD_PERMISSIONS.VIEW) && hasPermission(AESTHETIC_RECORD_PERMISSIONS.REGISTER_SESSION);
+  const canCreatePerio = hasPermission(PERIO_RECORD_PERMISSIONS.VIEW) && hasPermission(PERIO_RECORD_PERMISSIONS.REGISTER_SESSION);
   const canViewFinancialTab = hasAnyPermission([...PATIENT_FINANCIAL_VIEW_PERMISSIONS]);
   const canWriteClinical = hasAnyPermission([
     TIMELINE_PERMISSIONS.CREATE,
@@ -189,6 +190,7 @@ export function PatientDetailSheet({
   const [createSessionTrigger, setCreateSessionTrigger] = React.useState(0);
   const [createOdontogramTrigger, setCreateOdontogramTrigger] = React.useState(0);
   const [createAestheticTrigger, setCreateAestheticTrigger] = React.useState(0);
+  const [createPerioTrigger, setCreatePerioTrigger] = React.useState(0);
   const [createDocumentTrigger, setCreateDocumentTrigger] = React.useState(0);
   const [createMedicalInstructionTrigger, setCreateMedicalInstructionTrigger] = React.useState(0);
   const [createPrescriptionTrigger, setCreatePrescriptionTrigger] = React.useState(0);
@@ -277,9 +279,10 @@ export function PatientDetailSheet({
     }
   }, [clinicalHistoryDefaultView, resolveInitialTab, open, userId]);
 
-  // A pending "new aesthetic session" belongs to the patient it was asked for
+  // A pending "new aesthetic session" or periodontogram belongs to the patient it was asked for
   React.useEffect(() => {
     setCreateAestheticTrigger(0);
+    setCreatePerioTrigger(0);
   }, [open, userId]);
 
   // The Finance tab's account statement needs the full width to render without horizontal
@@ -481,6 +484,7 @@ export function PatientDetailSheet({
                   onCreateClinicalSession={() => { setActiveTab('clinical'); setActiveClinicalSubTab('clinical-history'); setCreateSessionTrigger((n) => n + 1); }}
                   onCreateOdontogram={() => { setActiveTab('clinical'); setActiveClinicalSubTab('clinical-history'); setCreateOdontogramTrigger((n) => n + 1); }}
                   onCreateAestheticSession={canCreateAesthetic ? () => { setActiveTab('clinical'); setActiveClinicalSubTab('clinical-history'); setCreateAestheticTrigger((n) => n + 1); } : undefined}
+                  onCreatePerioExam={canCreatePerio ? () => { setActiveTab('clinical'); setActiveClinicalSubTab('clinical-history'); setCreatePerioTrigger((n) => n + 1); } : undefined}
                   onCreateMedicalInstruction={() => { setActiveTab('clinical'); setActiveClinicalSubTab('medical-instructions'); setCreateMedicalInstructionTrigger((n) => n + 1); }}
                   onCreatePrescription={() => { setActiveTab('clinical'); setActiveClinicalSubTab('medical-instructions'); setCreatePrescriptionTrigger((n) => n + 1); }}
                   onCreateDocument={() => { setActiveTab('clinical'); setActiveClinicalSubTab('documents'); setCreateDocumentTrigger((n) => n + 1); }}
@@ -521,7 +525,7 @@ export function PatientDetailSheet({
             />
           ) : undefined}
           anamnesisContent={<AnamnesisViewer userId={userId} readOnly={isReadOnly} />}
-          clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} createAestheticTrigger={createAestheticTrigger} onAestheticTriggerConsumed={() => setCreateAestheticTrigger(0)} refreshAppointmentsTrigger={apptRefreshTrigger} onEditAppointment={canManageAppointments ? setEditingAppointment : undefined} readOnly={isReadOnly} />}
+          clinicalHistoryContent={<ClinicHistoryViewer userId={userId} userName={userName} deepLinkView={clinicalHistoryDefaultView} isDoctorMode={isDoctorMode} createSessionTrigger={createSessionTrigger} createOdontogramTrigger={createOdontogramTrigger} createAestheticTrigger={createAestheticTrigger} onAestheticTriggerConsumed={() => setCreateAestheticTrigger(0)} createPerioTrigger={createPerioTrigger} onPerioTriggerConsumed={() => setCreatePerioTrigger(0)} refreshAppointmentsTrigger={apptRefreshTrigger} onEditAppointment={canManageAppointments ? setEditingAppointment : undefined} readOnly={isReadOnly} />}
           treatmentPlansContent={<UserTreatmentPlans userId={userId} userName={userName} readOnly={isReadOnly} />}
           medicalInstructionsContent={<PatientIndicationsTab userId={userId} userName={userName} createTrigger={createMedicalInstructionTrigger} createPrescriptionTrigger={createPrescriptionTrigger} readOnly={isReadOnly} lockDoctor={isDoctorMode} />}
           documentsContent={<DocumentsViewer userId={userId} createTrigger={createDocumentTrigger} readOnly={isReadOnly} />}

@@ -145,6 +145,10 @@
     "patients.btn.new-odontogram": {
       "label": "Odontogram session"
     },
+    "patients.btn.new-periodontogram": {
+      "label": "Periodontal chart",
+      "description": "Opens the clinical record with a new periodontal chart: guided probing, site by site."
+    },
     "patients.btn.new-indication": {
       "label": "Medical instruction"
     },
@@ -323,6 +327,10 @@
     },
     "patients.btn.timeline-add-odontogram": {
       "label": "Odontogram"
+    },
+    "patients.btn.timeline-add-periodontogram": {
+      "label": "Periodontal chart",
+      "description": "Probing at 6 sites per tooth (depth, bleeding, gingival margin, furcations and mobility). It saves automatically and is closed with a signature."
     },
     "patients.section.odontogram-create": {
       "label": "New odontogram session"
@@ -593,6 +601,10 @@
       "label": "Aesthetics",
       "description": "New aesthetic session from the timeline."
     },
+    "patients.btn.timeline-open-odontogram": {
+      "label": "View odontogram",
+      "description": "Opens the odontogram on that session; the arrows step through earlier and later sessions to compare how the mouth changed."
+    },
     "patients.btn.timeline-open-aesthetic": {
       "label": "Continue session",
       "description": "Opens the aesthetic session; a closed or void one, read-only."
@@ -804,6 +816,342 @@
     "patients.field.payment_exchange_rate": {
       "label": "Exchange rate",
       "description": "Units of the primary currency per unit of the secondary one. It comes from the open cash register and can be changed; on a historical payment it has to be typed in."
+    },
+    "perio-session.section.header": {
+      "label": "Periodontal chart header",
+      "description": "Patient, chart number, date and doctor; the four steps, progress and status."
+    },
+    "perio-session.btn.step-probe": {
+      "label": "Step 1 · Probing",
+      "description": "Depth and bleeding, gingival margin, furcations and mobility (in a screening, the six sextants)."
+    },
+    "perio-session.btn.step-evolution": {
+      "label": "Step 2 · Progress",
+      "description": "Comparison with the patient's earlier periodontal charts."
+    },
+    "perio-session.btn.step-diagnosis": {
+      "label": "Step 3 · Diagnosis",
+      "description": "Suggested stability, 2017 classification, risk and plan; the doctor confirms them."
+    },
+    "perio-session.btn.step-close": {
+      "label": "Step 4 · Closing",
+      "description": "Patient report, billing, next visit, notes and signature."
+    },
+    "perio-session.section.progress": {
+      "label": "Progress and status",
+      "description": "Percentage complete (probing is 90% and the confirmed diagnosis 10%), status of the chart and autosave."
+    },
+    "perio-session.btn.missing": {
+      "label": "What is missing",
+      "description": "What is missing to move on. Tap it: it highlights the missing sites in amber or takes you to the next step."
+    },
+    "perio-session.section.footer": {
+      "label": "Step footer",
+      "description": "Back and next, always in the same place; on the closing step, what is missing to sign."
+    },
+    "perio-session.section.banner": {
+      "label": "Exam bar",
+      "description": "Exam type, the exam used as a guide, what came from the odontogram, settings and dictation."
+    },
+    "perio-session.field.exam-type": {
+      "label": "Exam type",
+      "description": "Initial diagnosis, re-evaluation or maintenance (full probing); PSR/BPE screening (one code per sextant); implants only (only implants are probed)."
+    },
+    "perio-session.btn.settings": {
+      "label": "Periodontal chart settings",
+      "description": "The clinic's probing order, margin sign and maintenance intervals. Those who edit the system settings can change them."
+    },
+    "perio-session.section.settings": {
+      "label": "Settings",
+      "description": "Applies to the whole clinic. Order: by arch or buccal first. Sign: recession positive or negative (stored the same way). Maintenance months per risk."
+    },
+    "perio-session.btn.settings-save": {
+      "label": "Save settings",
+      "description": "Saves the settings for the whole clinic."
+    },
+    "perio-session.section.voice": {
+      "label": "Dictation",
+      "description": "What was last understood, the active line of marks, what is pending confirmation, the microphone and the commands."
+    },
+    "perio-session.btn.dictate": {
+      "label": "Dictate",
+      "description": "Turns the microphone on (Chrome or Edge). Each phrase is applied as soon as it is said; “stop dictation” turns it off."
+    },
+    "perio-session.field.voice-command": {
+      "label": "Command",
+      "description": "To type the command instead of dictating it; Enter applies it. The / key brings the focus here."
+    },
+    "perio-session.btn.voice-help": {
+      "label": "Voice commands",
+      "description": "The list of what can be said, in Spanish and in English."
+    },
+    "perio-session.section.voice-pending": {
+      "label": "Pending confirmation",
+      "description": "Sites dictated or copied from the previous exam that are not confirmed yet (underlined in violet). The chart cannot be signed with anything pending."
+    },
+    "perio-session.btn.voice-confirm": {
+      "label": "Confirm",
+      "description": "Keeps the dictated or copied values."
+    },
+    "perio-session.btn.voice-discard": {
+      "label": "Discard",
+      "description": "Puts every dictated or copied site back as it was."
+    },
+    "perio-session.section.passes": {
+      "label": "Passes",
+      "description": "The three rounds of probing, each with its progress: depth and bleeding, gingival margin, furcations and mobility."
+    },
+    "perio-session.btn.pass-ps": {
+      "label": "Depth and bleeding",
+      "description": "Depth of each site; bleeding, suppuration and plaque with B, S and P."
+    },
+    "perio-session.btn.pass-mg": {
+      "label": "Gingival margin",
+      "description": "Margin of each site: positive is recession, negative enlargement (or the other way round, per the settings)."
+    },
+    "perio-session.btn.pass-fm": {
+      "label": "Furcations and mobility",
+      "description": "Mobility (0 to III) and the furcation grade of each entry, per tooth."
+    },
+    "perio-session.btn.copy-ps": {
+      "label": "Start from the previous exam (depth)",
+      "description": "Fills the empty depths, with their bleeding, suppuration and plaque, with the previous exam's. It stays pending confirmation."
+    },
+    "perio-session.btn.copy-mg": {
+      "label": "Start from the previous exam (margin)",
+      "description": "Fills the empty margins with the previous exam's. It stays pending confirmation."
+    },
+    "perio-session.btn.copy-fm": {
+      "label": "Start from the previous exam (furcations and mobility)",
+      "description": "Fills the missing mobility and furcations with the previous exam's."
+    },
+    "perio-session.btn.copy-all": {
+      "label": "Copy everything from the previous exam",
+      "description": "The three passes at once. It never overwrites what was measured today."
+    },
+    "perio-session.section.focus": {
+      "label": "Which arch is shown",
+      "description": "Follows the probe (shows where it is measuring), upper, lower or both. When the arch changes, the view moves by itself."
+    },
+    "perio-session.field.show-guide": {
+      "label": "Show the previous exam as a guide",
+      "description": "Its values in grey in empty cells and its curve dashed. Enter records that value as measured today."
+    },
+    "perio-session.btn.undo": {
+      "label": "Undo",
+      "description": "The last change (Ctrl+Z). Redo with Ctrl+Y. Keeps up to 60 steps."
+    },
+    "perio-session.section.chart": {
+      "label": "Periodontal chart",
+      "description": "Each arch with its outer face on top and its inner face below: blue margin curve, red pocket-bottom curve and the BOP, GM and PD rows. Tap a cell to measure there."
+    },
+    "perio-session.section.guide-bar": {
+      "label": "What to record now",
+      "description": "The tooth, site and value that goes next, the progress of the pass and the keyboard shortcuts."
+    },
+    "perio-session.section.legend": {
+      "label": "Legend",
+      "description": "What each colour and symbol of the chart means."
+    },
+    "perio-session.section.inspector": {
+      "label": "Inspector",
+      "description": "Exam indicators, the active tooth with its table, the keypad, the tooth history and its note."
+    },
+    "perio-session.field.tooth-status": {
+      "label": "Tooth status",
+      "description": "Present, missing, pontic or implant. Missing teeth and pontics are not probed."
+    },
+    "perio-session.section.tooth-table": {
+      "label": "Tooth table",
+      "description": "PD, GM and CAL of each site per face, with the previous value small, and the bleeding, suppuration and plaque buttons."
+    },
+    "perio-session.section.keypad": {
+      "label": "Keypad",
+      "description": "Digits, delete, +1, “Same as before” and, on the margin pass, the minus sign."
+    },
+    "perio-session.section.marks": {
+      "label": "Marks",
+      "description": "Bleeding, suppuration and plaque: they go to the site with the dashed ring (the last one measured or the one you tapped)."
+    },
+    "perio-session.field.tooth-note": {
+      "label": "Tooth note",
+      "description": "Free text for this tooth, for example an X-ray follow-up."
+    },
+    "perio-session.btn.next-probe": {
+      "label": "Next: Progress",
+      "description": "Goes to step 2."
+    },
+    "perio-session.section.sextants": {
+      "label": "Sextants",
+      "description": "One code per sextant: that of the worst site (0 to 4, X with fewer than two teeth) and the asterisk. Keyboard: 0–4 or X code it and move on."
+    },
+    "perio-session.section.psr-legend": {
+      "label": "PSR/BPE codes",
+      "description": "What each code and the asterisk mean."
+    },
+    "perio-session.section.evolution-controls": {
+      "label": "How to compare",
+      "description": "Slider, overlay or changes; arch; curves or map; animation."
+    },
+    "perio-session.btn.evolution-play": {
+      "label": "Play the progress",
+      "description": "Moves from one exam to the next, from the compared one to today."
+    },
+    "perio-session.section.evolution-chart": {
+      "label": "Comparison",
+      "description": "The earlier chart and today's, in the chosen mode."
+    },
+    "perio-session.section.compare-with": {
+      "label": "Compare today with…",
+      "description": "The patient's exams with their date and bleeding; tap one to compare it with today."
+    },
+    "perio-session.section.trends": {
+      "label": "Trends",
+      "description": "Bleeding, plaque, sites of 5 mm or more, mean PD and CAL in each session, with the difference against the compared exam."
+    },
+    "perio-session.section.worse": {
+      "label": "Worse",
+      "description": "Sites that lost 2 mm or more of depth or attachment. Tap one to see it."
+    },
+    "perio-session.section.better": {
+      "label": "Better",
+      "description": "Sites that gained 2 mm or more."
+    },
+    "perio-session.btn.next-evolution": {
+      "label": "Go to diagnosis",
+      "description": "Goes to step 3."
+    },
+    "perio-session.section.evolution-empty": {
+      "label": "No earlier exam",
+      "description": "It is the patient's first periodontal chart: progress shows from the next one."
+    },
+    "perio-session.section.evolution-screening": {
+      "label": "Codes per session",
+      "description": "In a screening, the codes of each sextant, session by session."
+    },
+    "perio-session.section.dx-today": {
+      "label": "How it is today",
+      "description": "Stable, stable with inflammation or unstable, with the list that supports it and whether the therapy endpoints are met."
+    },
+    "perio-session.section.dx-inputs": {
+      "label": "Data not from the probing",
+      "description": "Teeth lost to periodontitis, X-ray bone loss, age, cigarettes per day and diabetes. They carry over to the next chart."
+    },
+    "perio-session.section.dx-classification": {
+      "label": "AAP/EFP 2017 classification",
+      "description": "Periodontitis case, stage (from the initial exam; it does not go down), extent and grade, each with its reason. What is changed by hand is marked."
+    },
+    "perio-session.section.dx-risk": {
+      "label": "Risk of progression",
+      "description": "Lang & Tonetti hexagon with six parameters, the risk and the suggested maintenance interval."
+    },
+    "perio-session.section.dx-plan": {
+      "label": "Plan by steps",
+      "description": "The EFP steps the probing calls for, each with its checkbox and Today or Later."
+    },
+    "perio-session.section.dx-implants": {
+      "label": "Implants",
+      "description": "In “implants only”: the suggested status of each implant (healthy, mucositis or peri-implantitis) and the maintenance interval."
+    },
+    "perio-session.section.dx-screening": {
+      "label": "Screening result",
+      "description": "The highest code, what it means, what to do and which sextants need a full periodontal chart."
+    },
+    "perio-session.btn.confirm-diagnosis": {
+      "label": "Confirm diagnosis",
+      "description": "Puts the diagnosis in the clinical record. It is enabled once probing is complete; if something changes afterwards, it has to be confirmed again."
+    },
+    "perio-session.btn.next-diagnosis": {
+      "label": "Go to closing",
+      "description": "Goes to step 4."
+    },
+    "perio-session.section.report": {
+      "label": "Patient report",
+      "description": "A summary in plain words: how their gums are, bleeding and pockets against the first check-up, and one tip."
+    },
+    "perio-session.btn.report-copy": {
+      "label": "Copy",
+      "description": "Copies the report text."
+    },
+    "perio-session.btn.report-whatsapp": {
+      "label": "WhatsApp",
+      "description": "Opens the message to send it by WhatsApp (needs the patient's phone)."
+    },
+    "perio-session.btn.report-print": {
+      "label": "Print",
+      "description": "The report with both arches, ready to print."
+    },
+    "perio-session.btn.report-email": {
+      "label": "Send",
+      "description": "Opens the email with the report (needs the patient's email; uses the PERIO_REPORT_EMAIL template if it exists)."
+    },
+    "perio-session.section.billing": {
+      "label": "Today's billing",
+      "description": "What the plan marks Today; once charged, the linked invoice with its payments."
+    },
+    "perio-session.btn.charge": {
+      "label": "Charge",
+      "description": "Opens the billing wizard; the invoice is linked to the periodontal chart."
+    },
+    "perio-session.field.no-charge": {
+      "label": "Nothing to charge today",
+      "description": "To close without invoicing."
+    },
+    "perio-session.section.next-visit": {
+      "label": "Next visit",
+      "description": "Reinstrumentation (in 1 to 2 weeks) or maintenance (at the risk interval), with the suggested date."
+    },
+    "perio-session.btn.book": {
+      "label": "Book",
+      "description": "Opens the schedule with the patient, date and reason filled in."
+    },
+    "perio-session.btn.book-later": {
+      "label": "Schedule later",
+      "description": "Keeps the suggested date; the maintenance reminder uses it."
+    },
+    "perio-session.section.notes": {
+      "label": "Session notes",
+      "description": "Free text of the periodontal chart."
+    },
+    "perio-session.section.indices": {
+      "label": "Today's indices",
+      "description": "The ten indicators of the exam (natural teeth)."
+    },
+    "perio-session.section.checklist": {
+      "label": "What is missing to sign",
+      "description": "Probing, diagnosis, billing, next visit and confirmed dictated or copied values. What is pending can be tapped."
+    },
+    "perio-session.btn.sign": {
+      "label": "Sign and close",
+      "description": "Enabled once everything is settled; once closed, it is read-only."
+    },
+    "perio-session.btn.sign-confirm": {
+      "label": "Sign and close (confirm)",
+      "description": "Confirms the signature: the chart goes into the clinical record."
+    },
+    "perio-session.section.amendments": {
+      "label": "Amendments",
+      "description": "Corrections of a closed chart: the exam does not change; the text is added with author and date."
+    },
+    "perio-session.btn.amend": {
+      "label": "Amend",
+      "description": "Adds an amendment: what is corrected and why."
+    },
+    "patients.btn.timeline-open-perio": {
+      "label": "Continue or view periodontal chart",
+      "description": "Opens the periodontal chart: continue if open, view if closed."
+    },
+    "patients.btn.timeline-compare-perio": {
+      "label": "Compare with today",
+      "description": "Opens the latest periodontal chart on Progress, compared with this one."
+    },
+    "patients.btn.timeline-delete-perio": {
+      "label": "Delete periodontal chart",
+      "description": "Only if it is not closed; a closed one is clinical record."
+    },
+    "patients.btn.timeline-row-perio": {
+      "label": "Periodontal chart on the timeline",
+      "description": "Tap it to expand it: preview, exam type, diagnosis, indices and buttons."
     }
   }
 }

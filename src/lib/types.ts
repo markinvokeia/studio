@@ -2621,6 +2621,174 @@ export interface AestheticPhotoConsent {
  * Computed on the server from what the session holds, never picked:
  * draft → consented → in_treatment → ready_to_close → closed (or void before closing)
  */
+// ──── Periodontograma (database/scripts/163) ────
+
+/** v: vestibular · i: palatino/lingual */
+export type PerioSide = 'v' | 'i';
+export type PerioToothStatus = 'present' | 'missing' | 'pontic' | 'implant';
+export type PerioExamType = 'initial' | 'reevaluation' | 'maintenance' | 'screening' | 'implants';
+/** PSR/BPE code of a sextant; X: excluded (fewer than two teeth) */
+export type PerioPsrCode = '0' | '1' | '2' | '3' | '4' | 'X';
+export type PerioSextant = '1' | '2' | '3' | '4' | '5' | '6';
+
+export interface PerioScreening {
+  codes: Partial<Record<PerioSextant, PerioPsrCode>>;
+  /** Sextants with * (furcation, mobility, mucogingival problem or recession ≥ 3.5 mm) */
+  star?: PerioSextant[];
+}
+export type PerioImplantStatus = 'health' | 'mucositis' | 'periimplantitis';
+/** Calculated by the database: probing → probed → closed (void: cancelled) */
+export type PerioExamStatus = 'probing' | 'probed' | 'diagnosed' | 'closed' | 'void';
+/** manual · same: "igual que antes" (guide exam value) · dictation */
+export type PerioSiteSource = 'manual' | 'same' | 'dictation';
+/** Furcation entries: v vestibular, mp mesiopalatine, dp distopalatine (upper), l lingual (lower) */
+export type PerioFurcationEntry = 'v' | 'mp' | 'dp' | 'l';
+
+export interface PerioSite {
+  /** Probing depth (mm) */
+  pd: number | null;
+  /** Gingival margin (mm): recession positive, enlargement negative */
+  gm: number | null;
+  bop: boolean;
+  sup: boolean;
+  plaque: boolean;
+  source: PerioSiteSource;
+}
+
+export interface PerioTooth {
+  tooth: number;
+  status: PerioToothStatus;
+  mobility: number | null;
+  furcation: Partial<Record<PerioFurcationEntry, number>>;
+  note: string;
+  /** Three sites per side, in anatomical order: distal, center, mesial */
+  sites: Record<PerioSide, PerioSite[]>;
+}
+
+/** Indices of the natural teeth, calculated by perio_exam_recompute() */
+export interface PerioStats {
+  sites: number;
+  bopPct: number;
+  plaquePct: number;
+  meanPd: number | null;
+  meanCal: number | null;
+  n4: number;
+  n5: number;
+  n6: number;
+  b4: number;
+  b5: number;
+  teeth5: number;
+  maxInterproximalCal: number | null;
+}
+
+export interface PerioExam {
+  id: string;
+  patientId: string;
+  doctorId?: string;
+  doctorName?: string;
+  appointmentId?: string;
+  date: string;
+  examType: PerioExamType;
+  guideExamId?: string;
+  title: string;
+  notes: string;
+  status: PerioExamStatus;
+  completeness: number;
+  stats: PerioStats | null;
+  closedAt?: string;
+  closedByName?: string;
+  createdAt: string;
+  updatedAt?: string;
+  teeth: PerioTooth[];
+  /** Confirmed (or in progress) diagnosis and plan; null until the Diagnosis step is opened */
+  diagnosis: PerioDiagnosis | null;
+  /** Patient's date of birth (YYYY-MM-DD), for the grade (bone loss / age) */
+  patientBirthday?: string;
+  /** Patient's phone and email, for the report */
+  patientPhone?: string;
+  patientEmail?: string;
+  /** Sales invoice of the exam (same shape as the aesthetic session's) */
+  invoice: AestheticSessionInvoice | null;
+  closing: PerioClosing | null;
+  /** Amendments added after closing, oldest first */
+  amendments: PerioAmendment[];
+  /** PSR/BPE screening (screening exams) */
+  screening: PerioScreening | null;
+}
+
+/** What the closing step resolves before signing */
+export interface PerioClosing {
+  /** Nothing is charged today (resolves the billing without an invoice) */
+  noCharge?: boolean;
+  nextVisit?: {
+    /** booked: appointment made · later: "agendar después" */
+    mode: 'booked' | 'later';
+    /** Suggested or booked date (YYYY-MM-DD) */
+    date?: string;
+    /** Booked time (HH:mm) */
+    time?: string;
+    /** What it is for: maintenance or reinstrumentation */
+    kind?: 'maintenance' | 'reinstrumentation' | 'other';
+    appointmentId?: string;
+  };
+  reportSentAt?: string;
+}
+
+export interface PerioAmendment {
+  id: string;
+  body: string;
+  createdAt: string;
+  createdByName?: string;
+}
+
+export type PerioStability = 'stable' | 'gingivitis' | 'unstable';
+export type PerioStage = 'I' | 'II' | 'III' | 'IV';
+export type PerioGrade = 'A' | 'B' | 'C';
+export type PerioExtent = 'localized' | 'generalized' | 'molarIncisor';
+export type PerioRisk = 'low' | 'moderate' | 'high';
+export type PerioDiabetes = 'no' | 'controlled' | 'uncontrolled';
+export type PerioPlanKind = 'hygiene' | 'scaling' | 'fullChart' | 'reinstrumentation' | 'surgery' | 'implantRx' | 'periImplant' | 'maintenance';
+
+/** One step of the EFP plan, built from today's probing */
+export interface PerioPlanItem {
+  id: string;
+  kind: PerioPlanKind;
+  tooth?: number;
+  /** Sites that justify it, e.g. "V distal 6 mm con sangrado" (already written for the record) */
+  detail?: string;
+  include: boolean;
+  /** Done today (to the bill) or later (pending plan) */
+  today: boolean;
+}
+
+/**
+ * Diagnosis of the exam (AAP/EFP 2017 and Lang & Tonetti risk). Inputs that do not come from the
+ * probing are typed by the professional; the classification starts as the suggestion and is what
+ * the professional confirms.
+ */
+export interface PerioDiagnosis {
+  teethLost: number | null;
+  boneLossPct: number | null;
+  age: number | null;
+  cigarettes: number;
+  diabetes: PerioDiabetes;
+  isCase: boolean;
+  stability: PerioStability;
+  stage: PerioStage | null;
+  extent: PerioExtent | null;
+  grade: PerioGrade | null;
+  risk: PerioRisk;
+  maintenanceMonths: number;
+  plan: PerioPlanItem[];
+  /** Screening: highest PSR/BPE code (the classification does not apply) */
+  psrMax?: number | null;
+  /** Implants-only exam: status of each implant */
+  implants?: { tooth: number; status: PerioImplantStatus }[];
+  /** Values the professional changed by hand; the rest follow the suggestion until confirmed */
+  manual?: Partial<Record<'isCase' | 'stability' | 'stage' | 'extent' | 'grade' | 'risk' | 'maintenanceMonths' | 'implants', boolean>>;
+  confirmedAt: string | null;
+}
+
 export type AestheticSessionStatus = 'draft' | 'consented' | 'in_treatment' | 'ready_to_close' | 'closed' | 'void';
 
 /** Timestamped note of the session; once closed only amendments are added, nothing is erased */

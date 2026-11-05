@@ -1,0 +1,80 @@
+{
+  "id": "patients.perio-dictation",
+  "title": "Dictate the probing",
+  "summary": "Record the probing by voice: commands, active line and confirming what was dictated.",
+  "module": "Patients",
+  "group": "Periodontics record",
+  "inputs": {
+    "patient": "Patient's name, email or document"
+  },
+  "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "dictation",
+    "voice",
+    "microphone",
+    "voice commands",
+    "dictate probing"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or document."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide goes on when their record is open."
+    },
+    {
+      "id": "menu",
+      "title": "Create",
+      "details": "Everything that can be created for this patient."
+    },
+    {
+      "id": "item",
+      "title": "Periodontal chart",
+      "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart with probing is the guide (a screening never is)."
+    },
+    {
+      "id": "voice",
+      "title": "Dictation",
+      "details": "It shows what was understood from each phrase and what is left to confirm."
+    },
+    {
+      "id": "mic",
+      "title": "Dictate",
+      "details": "Turn the microphone on and speak: “38 lingual 3 2 4 bleeds distal”, “SS 23”, “gingival margin”, “lower arch”. Each phrase is applied when you finish it."
+    },
+    {
+      "id": "type",
+      "title": "Or type it",
+      "details": "The same command typed, then Enter. If a phrase is not understood, the AI rewrites it."
+    },
+    {
+      "id": "help",
+      "title": "Voice commands",
+      "details": "The full list, in Spanish and in English."
+    },
+    {
+      "id": "chart",
+      "title": "Where it went",
+      "details": "What you dictated pulses on the chart and stays underlined in violet; if it is another arch, the view changes by itself."
+    },
+    {
+      "id": "pending",
+      "title": "Confirm what was dictated",
+      "details": "Review it and tap Confirm (or say “confirm”). Discard reverts it. The chart cannot be signed with dictation pending."
+    }
+  ]
+}
