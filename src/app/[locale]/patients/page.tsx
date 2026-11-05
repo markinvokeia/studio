@@ -95,6 +95,7 @@ import { Appointment, Calendar as CalendarType, DuplicateContactOwners, PatientD
 import { getSalesServices, getUsersServicesBatch } from '@/services/services';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { api } from '@/services/api';
+import { extractCreatedUserId } from '@/services/users';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { ColumnDef, ColumnFiltersState, PaginationState, RowSelectionState } from '@tanstack/react-table';
 import { addMonths, endOfDay, endOfMonth, endOfWeek, format, parseISO, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
@@ -1150,7 +1151,7 @@ export default function UsersPage() {
     try {
       const savedData = await upsertUser(data, { confirmDuplicates, adoptDependentIds });
       const isEditing = !!editingUser;
-      const savedUserId = data.id || savedData?.id || savedData?.user_id;
+      const savedUserId = data.id || extractCreatedUserId(savedData);
       if (data.mutual_society_id && data.mutual_society_id !== 'none' && savedUserId) {
         try {
           await api.post(API_ROUTES.MUTUAL_SOCIETIES_ASSIGN_USER, {

@@ -638,7 +638,7 @@ export async function fetchPatientById(userId: string): Promise<User | null> {
 }
 
 /** Finds a patient by exact name — used to resolve a just-created patient's id
- *  (the upsert response doesn't return the record). Falls back to the first match.
+ *  when the upsert response has none (n8n flow not yet updated). Falls back to the first match.
  *  Normaliza el nombre como `upsertUser` al guardarlo: con el nombre crudo
  *  ("Ana  Pérez ") el ILIKE no encuentra la ficha recién creada. */
 export async function findPatientByName(name: string): Promise<User | null> {

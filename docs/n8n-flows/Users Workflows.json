@@ -783,7 +783,7 @@
             {
               "id": "84900b52-c892-4800-8dc8-64820fe9d27b",
               "name": "error",
-              "value": "={\n\"message\":{{ $json.error.description }},\n\"code\": 400,\n  \"error\": true\n}",
+              "value": "={{ JSON.stringify({ message: $json.error?.description || $json.error?.message || $json.error || $json.message || 'Error', code: 400, error: true }) }}",
               "type": "object"
             }
           ]
@@ -861,7 +861,7 @@
             {
               "id": "84900b52-c892-4800-8dc8-64820fe9d27b",
               "name": "error",
-              "value": "={\n\"message\":{{ $json.error.description }},\n\"code\": 400,\n  \"error\": true\n}",
+              "value": "={{ JSON.stringify({ message: $json.error?.description || $json.error?.message || $json.error || $json.message || 'Error', code: 400, error: true }) }}",
               "type": "object"
             }
           ]
@@ -896,7 +896,7 @@
             {
               "id": "be0b52da-ff70-4694-9a23-9fe73b3eeb50",
               "name": "data",
-              "value": "={{ $('Insert user').first().json }}",
+              "value": "={{ { id: $('Insert user').first().json.id, name: $('Insert user').first().json.name, email: $('Insert user').first().json.email, phone_number: $('Insert user').first().json.phone_number, doctor_id: $('Insert user').first().json.doctor_id, is_dependant: $('Insert user').first().json.is_dependant, responsible_contact_id: $('Insert user').first().json.responsible_contact_id } }}",
               "type": "object"
             }
           ]
@@ -1859,7 +1859,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $('/users/upsert').item.json.body.filter_type }}",
+                    "leftValue": "={{ $('/users/upsert').first().json.body.filter_type }}",
                     "rightValue": "PACIENTE",
                     "operator": {
                       "type": "string",
@@ -1882,7 +1882,7 @@
                 "conditions": [
                   {
                     "id": "24696343-2c75-4aea-b334-f4d08d458a28",
-                    "leftValue": "={{ $('/users/upsert').item.json.body.filter_type }}",
+                    "leftValue": "={{ $('/users/upsert').first().json.body.filter_type }}",
                     "rightValue": "DOCTOR",
                     "operator": {
                       "type": "string",
@@ -1905,7 +1905,7 @@
                 "conditions": [
                   {
                     "id": "182a7173-70b5-471b-b5ab-7fa675b90f3f",
-                    "leftValue": "={{ $('/users/upsert').item.json.body.filter_type }}",
+                    "leftValue": "={{ $('/users/upsert').first().json.body.filter_type }}",
                     "rightValue": "PROVEEDOR",
                     "operator": {
                       "type": "string",
@@ -1928,7 +1928,7 @@
                 "conditions": [
                   {
                     "id": "e0cc1304-bdb6-490b-b337-0f90a4102615",
-                    "leftValue": "={{ $('/users/upsert').item.json.body.filter_type }}",
+                    "leftValue": "={{ $('/users/upsert').first().json.body.filter_type }}",
                     "rightValue": "OPERADOR",
                     "operator": {
                       "type": "string",
@@ -1971,7 +1971,7 @@
         "columns": {
           "mappingMode": "defineBelow",
           "value": {
-            "user_id": "={{ $('Insert user').item.json.id }}",
+            "user_id": "={{ $('Insert user').first().json.id }}",
             "role_id": "={{ $json.role_id }}"
           },
           "matchingColumns": [
@@ -2041,7 +2041,6 @@
       ],
       "id": "730a3051-c1d5-4163-b482-70d9c65bd5df",
       "name": "Insert rows in users_role",
-      "alwaysOutputData": true,
       "credentials": {
         "postgres": {
           "id": "6b7Sjdnppbfve8ka",
@@ -2057,7 +2056,7 @@
             {
               "id": "84900b52-c892-4800-8dc8-64820fe9d27b",
               "name": "error",
-              "value": "={\n\"message\":{{ $json.error.description }},\n\"code\": 400,\n  \"error\": true\n}",
+              "value": "={{ JSON.stringify({ message: $json.error?.description || $json.error?.message || $json.error || $json.message || 'Error', code: 400, error: true }) }}",
               "type": "object"
             }
           ]
@@ -6056,7 +6055,8 @@
           "id": "6b7Sjdnppbfve8ka",
           "name": "Postgres account"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -11951,11 +11951,6 @@
         ],
         [
           {
-            "node": "Switch",
-            "type": "main",
-            "index": 0
-          },
-          {
             "node": "Insert default preferences",
             "type": "main",
             "index": 0
@@ -11966,11 +11961,6 @@
     "Link dependents (create)": {
       "main": [
         [
-          {
-            "node": "Switch",
-            "type": "main",
-            "index": 0
-          },
           {
             "node": "Insert default preferences",
             "type": "main",
@@ -12114,6 +12104,17 @@
         [
           {
             "node": "Error adopt (update)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert default preferences": {
+      "main": [
+        [
+          {
+            "node": "Switch",
             "type": "main",
             "index": 0
           }

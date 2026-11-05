@@ -17,6 +17,7 @@ import { DuplicateContactOwners, UniqueConflict, User } from '@/lib/types';
 import { getPersonNameIssue, normalizePersonName } from '@/lib/person-name';
 import { cn } from '@/lib/utils';
 import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
+import { extractCreatedUserId } from '@/services/users';
 import { Check, ChevronsUpDown, Loader2, Plus } from 'lucide-react';
 
 interface UserSelectorProps {
@@ -260,7 +261,11 @@ export function UserSelector({
             }));
             setUsers(newUsers);
 
-            const created = newUsers.find((u: User) => u.name.toLowerCase() === name.toLowerCase()) || newUsers[0];
+            // Por id primero: con homónimos, el nombre podría seleccionar a otra persona.
+            const createdId = extractCreatedUserId(responseData);
+            const created = newUsers.find((u: User) => u.id === createdId)
+                || newUsers.find((u: User) => u.name.toLowerCase() === name.toLowerCase())
+                || newUsers[0];
             if (created) handleSelect(created);
         } catch (err: any) {
             const errPayload = err?.response?.error || err?.data?.error || err?.error;

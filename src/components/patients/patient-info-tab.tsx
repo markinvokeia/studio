@@ -33,6 +33,7 @@ import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { cn, formatDisplayDate } from '@/lib/utils';
 import { IDENTITY_DOCUMENT_TYPES } from '@/lib/identity-document';
 import { normalizePersonName } from '@/lib/person-name';
+import { extractCreatedUserId } from '@/services/users';
 import { useClinicPreferencesStore } from '@/stores/clinic-preferences-store';
 import { usePatientView } from '@/stores/patient-view-store';
 import type { DuplicateContactOwner, DuplicateContactOwners, IdentityDocumentType, MutualSociety, UniqueConflict, User } from '@/lib/types';
@@ -511,27 +512,31 @@ export function PatientInfoTab({
     setSaveError(null);
     try {
       if (isCreateMode && !completing) {
-        await upsertUser({ ...data, id: undefined }, { confirmDuplicates, adoptDependentIds });
-        // The upsert response doesn't return the record — resolve the new id by name.
-        const created = await findPatientByName(data.name);
+        const response = await upsertUser({ ...data, id: undefined }, { confirmDuplicates, adoptDependentIds });
+        const createdId = extractCreatedUserId(response);
+        // Con el id no se busca por nombre: con homónimos podría devolver a otra persona.
+        // El nombre queda solo para el flujo de n8n anterior, que no devuelve el id.
+        const fetched = createdId ? await fetchPatientById(createdId) : await findPatientByName(data.name);
+        const created = !createdId || fetched?.id === createdId ? fetched : null;
+        const resolvedId = createdId ?? created?.id ?? '';
         // Sin id, quien abrió el alta (p. ej. la cita) no puede seleccionarlo: se avisa
         // en vez de dejar el selector vacío sin explicación.
         toast(adoptedToast ?? {
           title: t('UsersPage.createDialog.createSuccessTitle'),
-          description: created?.id
+          description: resolvedId
             ? t('UsersPage.createDialog.createSuccessDescription')
             : t('UsersPage.createDialog.createdNotResolvedDescription'),
         });
         notifyAdopted(adoptIds);
-        if (created?.id && pendingGroupIds.length > 0) {
+        if (resolvedId && pendingGroupIds.length > 0) {
           try {
-            await savePatientGroups(created.id, pendingGroupIds);
+            await savePatientGroups(resolvedId, pendingGroupIds);
           } catch (groupsError) {
             console.error('Failed to assign groups to the new patient:', groupsError);
           }
         }
         onSaved?.(created ?? {
-          id: '',
+          id: resolvedId,
           name: normalizePersonName(data.name),
           email: data.email || '',
           phone_number: data.phone || '',
