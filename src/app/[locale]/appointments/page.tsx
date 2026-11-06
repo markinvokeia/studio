@@ -121,7 +121,7 @@ import { resolveColorSources, useCalendarColorSourceStore } from '@/stores/calen
 import { useAppointmentReschedule } from '@/hooks/use-appointment-reschedule';
 import { CancellationNoteDialog } from '@/components/appointments/CancellationNoteDialog';
 import { getAppointmentColumns } from './columns';
-import { useCalendarLiveRefresh, CALENDAR_PATCH_EVENT, type CalendarChangePayload, type CalendarPatchEventDetail } from '@/hooks/use-calendar-live-refresh';
+import { useCalendarLiveRefresh, CALENDAR_PATCH_EVENT, AVAILABILITY_CHANGED_EVENT, type CalendarChangePayload, type CalendarPatchEventDetail } from '@/hooks/use-calendar-live-refresh';
 import { useNotifications } from '@/context/notifications-context';
 import { useAuth } from '@/context/AuthContext';
 import { canManageReminder, isRecurringReminder, normalizeReminder } from '@/lib/reminders';
@@ -4047,10 +4047,14 @@ export default function AppointmentsPage() {
 
     // ── "Huecos"/blocking: clinic schedules. `/schedules` requires `sede_id`, so
     // fetch the availability of every sede and combine.
-    React.useEffect(() => {
+    // `loadClinicSchedules` se reusa desde el refresco en vivo: si otro usuario
+    // edita los horarios semanales (Configuración → Horarios), la grilla tiene
+    // que repintar las bandas sin esperar a un reload de la página.
+    const clinicSchedulesRequestRef = React.useRef(0);
+    const loadClinicSchedules = React.useCallback(async () => {
         if (sedes.length === 0) return;
-        let cancelled = false;
-        Promise.all(
+        const requestId = ++clinicSchedulesRequestRef.current;
+        const all = await Promise.all(
             sedes.map((sede) =>
                 api.get(API_ROUTES.CLINIC_SCHEDULES, { sede_id: String(sede.id) })
                     .then((data) => {
@@ -4065,21 +4069,45 @@ export default function AppointmentsPage() {
                     })
                     .catch(() => [] as ClinicSchedule[]),
             ),
-        ).then((all) => { if (!cancelled) setClinicSchedules(all.flat()); });
-        return () => { cancelled = true; };
+        );
+        // Only the latest load may write: changing sede twice quickly, or an SSE
+        // refresh racing the initial load, can't leave another sede's hours.
+        if (requestId === clinicSchedulesRequestRef.current) setClinicSchedules(all.flat());
     }, [sedes]);
+    React.useEffect(() => {
+        void loadClinicSchedules();
+    }, [loadClinicSchedules]);
 
     // Clinic exceptions (holidays / one-off openings) for out-of-office blocking.
     // A failed reload keeps the previous list: clearing it would lift every closure.
-    const loadClinicExceptions = React.useCallback(() =>
-        api.get(API_ROUTES.EXCEPTIONS)
+    const clinicExceptionsRequestRef = React.useRef(0);
+    const loadClinicExceptions = React.useCallback(() => {
+        const requestId = ++clinicExceptionsRequestRef.current;
+        return api.get(API_ROUTES.EXCEPTIONS)
             // Recurrence and its day lists come along: without them calendar-gaps.ts
             // couldn't match weekly/biweekly/monthly or multi-date exceptions.
-            .then((data) => setClinicExceptions(parseClinicExceptions(data)))
-            .catch(() => undefined), []);
+            .then((data) => {
+                if (requestId === clinicExceptionsRequestRef.current) setClinicExceptions(parseClinicExceptions(data));
+            })
+            .catch(() => undefined);
+    }, []);
     React.useEffect(() => {
         void loadClinicExceptions();
     }, [loadClinicExceptions]);
+
+    // Cambios de disponibilidad hechos por OTRO usuario (o desde otra pestaña):
+    // n8n publica `availability_changed` en `feriados/*` y `clinicschedules/*`.
+    // Las bandas grises/rojas y los "huecos" se calculan de estos dos estados,
+    // así que recargarlos alcanza para que el cambio se vea al instante, sin
+    // recargar la página ni volver a pedir las citas (no cambiaron).
+    React.useEffect(() => {
+        const handler = () => {
+            void loadClinicExceptions();
+            void loadClinicSchedules();
+        };
+        window.addEventListener(AVAILABILITY_CHANGED_EVENT, handler);
+        return () => window.removeEventListener(AVAILABILITY_CHANGED_EVENT, handler);
+    }, [loadClinicExceptions, loadClinicSchedules]);
 
     // Schedules scoped to the selected sede (matching sede + rows with no sede).
     const effectiveSchedules = React.useMemo(() => {
