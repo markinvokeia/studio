@@ -8,7 +8,8 @@
   ],
   "group": "Ficha periodoncia",
   "inputs": {
-    "patient": "Nombre, correo o documento del paciente"
+    "patient": "Nombre, correo o documento del paciente",
+    "examType": "Tipo de examen como figura en la lista (p. ej. «Cribado PSR/BPE»)"
   },
   "keywords": [
     "periodontograma",
@@ -65,6 +66,15 @@
       "title": "Periodontograma",
       "details": "Abre un periodontograma nuevo: los dientes ausentes, pónticos e implantes vienen del último odontograma y el último periodontograma cerrado queda como guía.",
       "until": "perio-session.section.header"
+    },
+    {
+      "id": "type-pick",
+      "action": "fill",
+      "target": "perio-session.field.exam-type",
+      "title": "Tipo de examen",
+      "details": "Cribado PSR/BPE: un código por sextante en lugar del sondaje completo.",
+      "value": "{{values.examType}}",
+      "optional": true
     },
     {
       "id": "type",

@@ -57,7 +57,7 @@ const BASE_VALUES: Record<string, Record<string, unknown>> = {
   'patients.perio-overview': { patient: 'Matias Beltran' },
   'patients.perio-probing': { patient: 'Matias Beltran' },
   'patients.perio-dictation': { patient: 'Matias Beltran' },
-  'patients.perio-screening': { patient: 'Matias Beltran' },
+  'patients.perio-screening': { patient: 'Matias Beltran', examType: 'PSR/BPE' },
   'patients.perio-evolution': { patient: 'Matias Beltran' },
   'patients.perio-diagnosis': { patient: 'Matias Beltran' },
   'patients.perio-close': { patient: 'Matias Beltran' },

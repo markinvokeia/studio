@@ -5,7 +5,8 @@
   "module": "Patients",
   "group": "Periodontics record",
   "inputs": {
-    "patient": "Patient's name, email or document"
+    "patient": "Patient's name, email or document",
+    "examType": "Exam type as shown in the list (e.g. \"PSR/BPE screening\")"
   },
   "keywords": [
     "periodontal chart",
@@ -45,6 +46,11 @@
       "id": "item",
       "title": "Periodontal chart",
       "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart is the guide."
+    },
+    {
+      "id": "type-pick",
+      "title": "Exam type",
+      "details": "PSR/BPE screening: one code per sextant instead of the full probing."
     },
     {
       "id": "type",
