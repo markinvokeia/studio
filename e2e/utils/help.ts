@@ -356,6 +356,10 @@ export async function driveGuide(page: Page, id: string, options: DriveOptions =
     if (personActs && !acted.has(index)) {
       acted.add(index);
       await personActs(page, step);
+      // El gesto (un clic dentro de lo señalado) ya pudo hacer avanzar la guía: un "Siguiente"
+      // de más se saltaría el paso que viene.
+      const after = (await state(page)).guide;
+      if (!after || after.finished || after.current !== guide.current || after.statuses[after.current] !== guide.statuses[guide.current]) continue;
     }
     await page.evaluate(() => window.__invokeHelp!.next());
     await page.waitForTimeout(250);

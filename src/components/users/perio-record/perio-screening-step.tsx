@@ -121,7 +121,7 @@ export function PerioScreeningStep({ screening, onChange, examType, onExamTypeCh
       <div className="flex flex-wrap items-center gap-2.5 rounded-xl border bg-card px-3 py-1.5 text-[12.5px] text-muted-foreground">
         <span>{t('probe.banner.examType')}</span>
         <Select value={examType} onValueChange={(v) => onExamTypeChange(v as PerioExamType)} disabled={readOnly}>
-          <SelectTrigger className="h-7 w-auto gap-1 text-xs"><SelectValue /></SelectTrigger>
+          <SelectTrigger data-help-id="perio-session.field.exam-type" className="h-7 w-auto gap-1 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>{PERIO_EXAM_TYPES.map((type) => <SelectItem key={type} value={type}>{t(`examTypes.${type}`)}</SelectItem>)}</SelectContent>
         </Select>
         <span>· {t('screening.lead')}</span>

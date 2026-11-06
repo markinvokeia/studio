@@ -243,6 +243,16 @@ const PERIO_GESTURES: Record<string, Record<string, (page: Page) => Promise<void
       await page.getByRole('option', { name: /PSR\/BPE/ }).click({ timeout: 5000 });
       await page.waitForTimeout(1200);
     },
+    // Un código por sextante (en el orden en pantalla: 1-2-3 arriba, 6-5-4 abajo): el resultado
+    // y el plan del diagnóstico salen de estos.
+    sextants: async (page) => {
+      const groups = page.locator('[data-help-id="perio-session.section.sextants"]').locator('xpath=..').getByRole('radiogroup');
+      for (const [i, code] of ['1', '3', '4', '2', '4', '0'].entries()) {
+        await groups.nth(i).getByRole('radio', { name: code, exact: true }).click({ timeout: 5000 });
+        await page.waitForTimeout(450);
+      }
+      await page.waitForTimeout(800);
+    },
   },
 };
 

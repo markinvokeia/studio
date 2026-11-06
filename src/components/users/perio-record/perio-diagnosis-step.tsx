@@ -495,7 +495,8 @@ function ScreeningDiagnosis({ today, base, intervals, probed, readOnly, onChange
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <section data-help-id="perio-session.section.dx-screening" className="flex flex-col gap-3 rounded-2xl border bg-card p-4">
           <h3 className="text-[11.5px] font-semibold uppercase tracking-wider text-muted-foreground">{t('diagnosis.screening.title')}</h3>
-          <div className={cn('rounded-xl border px-4 py-3', STABILITY_TONE[a.stability])}>
+          {/* Sin códigos todavía no hay resultado: neutro, no el verde de "estable". */}
+          <div className={cn('rounded-xl border px-4 py-3', code == null ? 'border-dashed bg-muted/40 text-muted-foreground' : STABILITY_TONE[a.stability])}>
             <b className="text-lg font-bold">{code == null ? t('diagnosis.screening.notCoded') : t('diagnosis.phrase.psr', { code })}</b>
             {code != null && <p className="mt-0.5 text-[12.5px] opacity-90">{t(`screening.codes.${code}`)}</p>}
           </div>
