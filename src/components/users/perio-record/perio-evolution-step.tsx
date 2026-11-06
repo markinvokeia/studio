@@ -98,7 +98,7 @@ export function PerioEvolutionStep({ earlier, today, initialBaseId, onBackToProb
 
   if (!base) {
     return (
-      <div className="mx-auto flex w-full max-w-[720px] flex-col items-center gap-3 p-8 text-center">
+      <div data-help-id="perio-session.section.evolution-empty" className="mx-auto flex w-full max-w-[720px] flex-col items-center gap-3 p-8 text-center">
         <ChartSpline className="h-10 w-10 text-muted-foreground" />
         <h2 className="text-lg font-semibold">{t('evolution.empty.title')}</h2>
         <p className="max-w-[52ch] text-sm text-muted-foreground">{t('evolution.empty.description')}</p>
@@ -120,9 +120,9 @@ export function PerioEvolutionStep({ earlier, today, initialBaseId, onBackToProb
           <p className="mt-0.5 max-w-[80ch] text-[13px] text-muted-foreground">{t(`evolution.lead.${leadKey}`, { date: formatDisplayDate(base.date) })}</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div data-help-id="perio-session.section.evolution-controls" className="flex flex-wrap items-center gap-2">
           {view === 'curves' && <Segmented label={t('evolution.modesLabel')} value={mode} options={[['slider', t('evolution.modes.slider')], ['overlay', t('evolution.modes.overlay')], ['diff', t('evolution.modes.diff')]]} onChange={(m) => { stopPlay(); setMode(m); }} />}
-          <Button type="button" size="sm" variant="outline" className="h-8" onClick={play == null ? startPlay : stopPlay} disabled={sessions.length - 1 - playFrom <= 0}>
+          <Button type="button" size="sm" variant="outline" className="h-8" onClick={play == null ? startPlay : stopPlay} data-help-id="perio-session.btn.evolution-play" disabled={sessions.length - 1 - playFrom <= 0}>
             {play == null ? <Play className="mr-1.5 h-3.5 w-3.5" /> : <Pause className="mr-1.5 h-3.5 w-3.5" />}
             {play == null ? t('evolution.play') : t('evolution.pause')}
           </Button>
@@ -132,7 +132,7 @@ export function PerioEvolutionStep({ earlier, today, initialBaseId, onBackToProb
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col overflow-hidden rounded-2xl border bg-card">
+        <div data-help-id="perio-session.section.evolution-chart" className="flex min-h-0 flex-col overflow-hidden rounded-2xl border bg-card">
           <div className="relative min-h-0 flex-1 overflow-auto px-2.5 pb-2">
             {playFrame && (
               <span className="pointer-events-none absolute right-4 top-2 z-10 rounded-xl bg-foreground px-3 py-1.5 text-[13px] font-semibold text-background">
@@ -169,7 +169,7 @@ export function PerioEvolutionStep({ earlier, today, initialBaseId, onBackToProb
             )}
           </div>
           <EvolutionLegend mode={view === 'map' ? 'map' : mode} />
-          <div className="border-t px-3 py-2.5">
+          <div data-help-id="perio-session.section.compare-with" className="border-t px-3 py-2.5">
             <h3 className="mb-1.5 text-[11.5px] font-semibold uppercase tracking-wider text-muted-foreground">{t('evolution.compareWith')}</h3>
             <div className="flex items-start overflow-x-auto pb-1" role="radiogroup" aria-label={t('evolution.compareWith')}>
               {sessions.map((s, j) => {
@@ -201,7 +201,7 @@ export function PerioEvolutionStep({ earlier, today, initialBaseId, onBackToProb
       </section>
 
       <aside className="flex min-h-0 flex-col overflow-auto rounded-2xl border bg-card">
-        <section className="flex flex-col border-b px-3.5 py-3">
+        <section data-help-id="perio-session.section.trends" className="flex flex-col border-b px-3.5 py-3">
           <h3 className="mb-1 text-[11.5px] font-semibold uppercase tracking-wider text-muted-foreground">{t('evolution.trends.title')}</h3>
           {(['bopPct', 'plaquePct', 'n5', 'meanPd', 'meanCal'] as const).map((key) => (
             <Trend key={key} statKey={key} series={series} baseIndex={sessions.findIndex((s) => s.id === base.id)} baseDate={base.date} />
@@ -227,7 +227,7 @@ function ScreeningEvolution({ earlier, today, onBack, onNext }: { earlier: Perio
         <h2 className="text-lg font-semibold">{t('evolution.screening.title')}</h2>
         <p className="mt-0.5 text-[13px] text-muted-foreground">{t('evolution.screening.lead')}</p>
       </div>
-      <div className="overflow-x-auto rounded-2xl border bg-card">
+      <div data-help-id="perio-session.section.evolution-screening" className="overflow-x-auto rounded-2xl border bg-card">
         <table className="w-full text-[13px]">
           <thead>
             <tr className="border-b text-left text-[11.5px] uppercase tracking-wider text-muted-foreground">
@@ -260,7 +260,7 @@ function EvolutionFooter({ onBack, onNext }: { onBack: () => void; onNext: () =>
     <PerioStepFooter>
       <FooterSpacer />
       <Button type="button" variant="outline" onClick={onBack}><ArrowLeft className="mr-1.5 h-4 w-4" />{t('backToProbe')}</Button>
-      <Button type="button" onClick={onNext}>{t('next')}<ArrowRight className="ml-1.5 h-4 w-4" /></Button>
+      <Button type="button" data-help-id="perio-session.btn.next-evolution" onClick={onNext}>{t('next')}<ArrowRight className="ml-1.5 h-4 w-4" /></Button>
     </PerioStepFooter>
   );
 }
@@ -402,7 +402,7 @@ function ChangeList({ title, empty, items, more = 0, tone, onPick, selectedTooth
   const sideName = (c: SiteChange) => t(c.side === 'v' ? 'chart.sides.v' : isUpperPerio(c.tooth) ? 'chart.sides.iUpper' : 'chart.sides.iLower');
   const signed = (v: number) => `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v)}`;
   return (
-    <section className="flex flex-col gap-1 border-b px-3.5 py-3">
+    <section data-help-id={`perio-session.section.${tone}`} className="flex flex-col gap-1 border-b px-3.5 py-3">
       <h3 className="text-[11.5px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
       {items.length ? items.map((c) => (
         <button

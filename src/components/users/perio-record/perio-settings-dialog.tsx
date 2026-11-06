@@ -45,11 +45,11 @@ export function PerioSettingsButton({ onSaved }: { onSaved?: (settings: PerioSet
 
   return (
     <>
-      <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setForm(current); setOpen(true); }} aria-label={t('title')} title={t('title')}>
+      <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setForm(current); setOpen(true); }} aria-label={t('title')} title={t('title')} data-help-id="perio-session.btn.settings">
         <Settings2 className="h-4 w-4" />
       </Button>
       <Dialog open={open} onOpenChange={(next) => { if (!save.isPending) setOpen(next); }}>
-        <DialogContent className="max-w-lg">
+        <DialogContent data-help-id="perio-session.section.settings" className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{t('title')}</DialogTitle>
             <DialogDescription>{canEdit ? t('lead') : t('readOnly')}</DialogDescription>
@@ -72,7 +72,7 @@ export function PerioSettingsButton({ onSaved }: { onSaved?: (settings: PerioSet
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={save.isPending}>{t('cancel')}</Button>
-            {canEdit && <Button type="button" loading={save.isPending} onClick={() => save.run()}>{t('save')}</Button>}
+            {canEdit && <Button type="button" loading={save.isPending} onClick={() => save.run()} data-help-id="perio-session.btn.settings-save">{t('save')}</Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>

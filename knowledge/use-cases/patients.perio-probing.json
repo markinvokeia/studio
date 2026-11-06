@@ -1,0 +1,159 @@
+{
+  "id": "patients.perio-probing",
+  "title": "Sondar: profundidad, margen, furcas y movilidad",
+  "module": "Pacientes",
+  "summary": "Cargar el sondaje en las tres pasadas, con el teclado, la guía del examen anterior o copiándolo.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Ficha periodoncia",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "sondaje",
+    "profundidad",
+    "sangrado",
+    "margen gingival",
+    "recesión",
+    "furca",
+    "movilidad",
+    "copiar examen anterior"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.create-menu",
+      "title": "Crear",
+      "details": "Todo lo que se puede crear para este paciente.",
+      "until": "patients.btn.new-periodontogram"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "patients.btn.new-periodontogram",
+      "title": "Periodontograma",
+      "details": "Abre un periodontograma nuevo: los dientes ausentes, pónticos e implantes vienen del último odontograma y el último periodontograma cerrado queda como guía.",
+      "until": "perio-session.section.header"
+    },
+    {
+      "id": "type",
+      "action": "highlight",
+      "target": "perio-session.field.exam-type",
+      "title": "Tipo de examen",
+      "details": "Inicial, reevaluación o mantenimiento llevan el sondaje completo. Cribado y solo implantes tienen su propia guía."
+    },
+    {
+      "id": "copy",
+      "action": "highlight",
+      "target": "perio-session.btn.copy-all",
+      "title": "Copiar todo del examen anterior",
+      "details": "Si el paciente está estable, empezá con los valores del examen anterior y retocá lo que cambió. Lo copiado queda subrayado hasta confirmarlo.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "ps",
+      "action": "click",
+      "target": "perio-session.btn.pass-ps",
+      "title": "Profundidad y sangrado",
+      "details": "Primera pasada: la profundidad de cada sitio."
+    },
+    {
+      "id": "guide",
+      "action": "highlight",
+      "target": "perio-session.section.guide-bar",
+      "title": "Qué toca cargar",
+      "details": "Dice la pieza y el sitio del próximo número. Escribí los dígitos: la sonda avanza sola al próximo sitio vacío."
+    },
+    {
+      "id": "chart",
+      "action": "highlight",
+      "target": "perio-session.section.chart",
+      "title": "El gráfico",
+      "details": "Las curvas se dibujan mientras cargás. Tocá una celda para ir a ese sitio; un punto de SS cicla sangra → supura."
+    },
+    {
+      "id": "marks",
+      "action": "highlight",
+      "target": "perio-session.section.marks",
+      "title": "Sangrado, supuración y placa",
+      "details": "Van al sitio con el anillo punteado: el último medido o el que tocaste. Con el teclado: B, S y P.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "focus",
+      "action": "highlight",
+      "target": "perio-session.section.focus",
+      "title": "Qué arcada se ve",
+      "details": "Con «Sigue a la sonda» la vista acompaña a la sonda; al cambiar de arcada aparece un aviso."
+    },
+    {
+      "id": "mg",
+      "action": "click",
+      "target": "perio-session.btn.pass-mg",
+      "title": "Margen gingival",
+      "details": "Segunda pasada: positivo es recesión (la encía bajó), negativo agrandamiento. «Sin recesión» carga 0."
+    },
+    {
+      "id": "keypad",
+      "action": "highlight",
+      "target": "perio-session.section.keypad",
+      "title": "Teclado",
+      "details": "Dígitos, borrar, +1 para 10 mm o más, «Igual que antes» y el signo menos.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "fm",
+      "action": "click",
+      "target": "perio-session.btn.pass-fm",
+      "title": "Furcas y movilidad",
+      "details": "Tercera pasada, por pieza: movilidad de 0 a III y el grado de cada furca. No bloquea el cierre."
+    },
+    {
+      "id": "status",
+      "action": "highlight",
+      "target": "perio-session.field.tooth-status",
+      "title": "Estado de la pieza",
+      "details": "Si el odontograma no coincide con la boca, corregilo acá: ausentes y pónticos no se sondean."
+    },
+    {
+      "id": "next",
+      "action": "highlight",
+      "target": "perio-session.btn.next-probe",
+      "title": "Siguiente: Evolución",
+      "details": "Con el sondaje completo, el paso siguiente compara con los exámenes anteriores."
+    }
+  ]
+}

@@ -3,12 +3,13 @@
 import React from 'react';
 import { useTranslations } from 'next-intl';
 
-import { SEXTANT_ORDER } from '@/lib/perio/assess';
+import { SEXTANT_ORDER, SEXTANTS } from '@/lib/perio/assess';
 import { cn } from '@/lib/utils';
 import { fetchPerioExams } from '@/services/perio-record';
 
-import type { PerioExam, PerioExamStatus } from '@/lib/types';
+import type { PerioExam, PerioExamStatus, PerioScreening, PerioSextant } from '@/lib/types';
 import { PerioPreview } from './perio-arch';
+import { CODE_TONE } from './perio-screening-step';
 import { diagnosisPhrase } from './perio-diagnosis-step';
 import { PERIO_STATUS_CHIP } from './perio-session-sheet';
 
@@ -86,10 +87,31 @@ export function PerioExamDetails({ exam }: { exam: PerioExam }) {
   );
 }
 
-/** Small read-only chart of the exam; a click opens it */
+/** A screening's capture: the six sextants as in the mouth (1 2 3 above, 6 5 4 below) with their code */
+function ScreeningPreview({ screening }: { screening: PerioScreening | null }) {
+  const t = useTranslations('PerioRecord');
+  const cell = (x: PerioSextant) => {
+    const code = screening?.codes[x];
+    const teeth = SEXTANTS[x];
+    return (
+      <div key={x} className={cn('flex flex-col items-center gap-0.5 rounded-lg border px-1 py-1.5', code ? CODE_TONE[code] : 'border-dashed bg-muted/40 text-muted-foreground')}>
+        <span className="text-[10px] font-medium opacity-80">{t('screening.sextantShort', { n: x })} · {teeth[0]}–{teeth[teeth.length - 1]}</span>
+        <b className="text-lg font-bold leading-none tabular-nums">{code ?? '–'}{screening?.star?.includes(x) ? '*' : ''}</b>
+      </div>
+    );
+  };
+  return (
+    <div className="flex flex-col gap-1" role="img" aria-label={t('examTypes.screening')}>
+      <div className="grid grid-cols-3 gap-1">{SEXTANT_ORDER.slice(0, 3).map(cell)}</div>
+      <div className="grid grid-cols-3 gap-1">{SEXTANT_ORDER.slice(3).map(cell)}</div>
+    </div>
+  );
+}
+
+/** Small read-only chart of the exam (a screening shows its sextants); a click opens it */
 export function PerioExamPreview({ exam, onOpen }: { exam: PerioExam; onOpen?: () => void }) {
   const t = useTranslations('PerioRecord');
-  const body = <PerioPreview teeth={exam.teeth} />;
+  const body = exam.examType === 'screening' ? <ScreeningPreview screening={exam.screening} /> : <PerioPreview teeth={exam.teeth} />;
   return onOpen ? (
     <button
       type="button"

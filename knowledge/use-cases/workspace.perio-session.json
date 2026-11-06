@@ -1,0 +1,75 @@
+{
+  "id": "workspace.perio-session",
+  "title": "Periodontograma desde la cita",
+  "module": "Mi Consultorio",
+  "summary": "Abrir un periodontograma del paciente de la cita en Mi Consultorio.",
+  "screens": [
+    "workspace"
+  ],
+  "inputs": {},
+  "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "cita",
+    "mi consultorio",
+    "sondaje"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/workspace",
+      "title": "Menú → Mi Consultorio",
+      "details": "Las citas del día del profesional."
+    },
+    {
+      "id": "appt",
+      "action": "highlight",
+      "target": "workspace.section.appointment",
+      "title": "Elegí la cita del paciente",
+      "details": "La guía sigue cuando la cita está abierta.",
+      "until": "workspace.section.focus",
+      "autoClick": true
+    },
+    {
+      "id": "btn",
+      "action": "highlight",
+      "target": "workspace.btn.periodontogram",
+      "title": "Periodontograma",
+      "details": "Abre uno nuevo, vinculado a esta cita y a este profesional.",
+      "until": "perio-session.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "banner",
+      "action": "highlight",
+      "target": "perio-session.section.banner",
+      "title": "Barra del examen",
+      "details": "Tipo de examen, examen guía y dictado."
+    },
+    {
+      "id": "passes",
+      "action": "highlight",
+      "target": "perio-session.section.passes",
+      "title": "Pasadas",
+      "details": "Profundidad y sangrado, margen gingival, furcas y movilidad."
+    },
+    {
+      "id": "chart",
+      "action": "highlight",
+      "target": "perio-session.section.chart",
+      "title": "Periodontograma",
+      "details": "Escribí o dictá: la sonda avanza sola."
+    },
+    {
+      "id": "steps",
+      "action": "highlight",
+      "target": "perio-session.section.header",
+      "title": "Los cuatro pasos",
+      "details": "Sondaje, Evolución, Diagnóstico y Cierre."
+    }
+  ]
+}

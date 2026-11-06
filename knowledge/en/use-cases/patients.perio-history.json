@@ -1,0 +1,74 @@
+{
+  "id": "patients.perio-history",
+  "title": "View, continue or compare periodontal charts",
+  "summary": "Find the periodontal charts in the clinical record, open them and compare them with today.",
+  "module": "Patients",
+  "group": "Periodontics record",
+  "inputs": {
+    "patient": "Patient's name, email or document"
+  },
+  "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "clinical record",
+    "earlier periodontal charts",
+    "continue periodontal chart",
+    "compare with today"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or document."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list."
+    },
+    {
+      "id": "clinical",
+      "title": "Clinical record",
+      "details": "The patient's sessions, odontogram, periodontal chart and documents."
+    },
+    {
+      "id": "timeline",
+      "title": "Timeline",
+      "details": "All sessions, from the most recent to the oldest."
+    },
+    {
+      "id": "filters",
+      "title": "Filter",
+      "details": "With the “Periodontal chart” filter only those remain."
+    },
+    {
+      "id": "card",
+      "title": "Tap a periodontal chart",
+      "details": "Expanded: the preview of both arches, the type, the diagnosis and the indices."
+    },
+    {
+      "id": "compare",
+      "title": "Compare with today",
+      "details": "On one that is not the latest: opens the most recent on Progress, compared with that one."
+    },
+    {
+      "id": "delete",
+      "title": "Delete",
+      "details": "Only if it is not closed: a closed one is clinical record."
+    },
+    {
+      "id": "open",
+      "title": "Continue or view",
+      "details": "Opens the periodontal chart: to keep recording it or, if closed, to view and amend it."
+    }
+  ]
+}

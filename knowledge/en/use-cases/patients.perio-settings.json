@@ -1,0 +1,64 @@
+{
+  "id": "patients.perio-settings",
+  "title": "Set up the clinic's periodontal chart",
+  "summary": "Probing order, margin sign and maintenance intervals.",
+  "module": "Patients",
+  "group": "Periodontics record",
+  "inputs": {
+    "patient": "Patient's name, email or document"
+  },
+  "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "periodontal chart settings",
+    "probing order",
+    "margin sign",
+    "maintenance interval"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or document."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide goes on when their record is open."
+    },
+    {
+      "id": "menu",
+      "title": "Create",
+      "details": "Everything that can be created for this patient."
+    },
+    {
+      "id": "item",
+      "title": "Periodontal chart",
+      "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart is the guide."
+    },
+    {
+      "id": "gear",
+      "title": "Settings",
+      "details": "The gear on the exam bar. It applies to the whole clinic."
+    },
+    {
+      "id": "form",
+      "title": "What can be set",
+      "details": "Probing order (by arch or buccal first), margin sign (recession positive or negative: stored the same way) and maintenance months for each risk."
+    },
+    {
+      "id": "save",
+      "title": "Save",
+      "details": "Only those who edit the system settings can save it."
+    }
+  ]
+}

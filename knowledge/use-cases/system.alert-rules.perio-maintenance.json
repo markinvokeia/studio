@@ -1,0 +1,148 @@
+{
+  "id": "system.alert-rules.perio-maintenance",
+  "title": "Crear el recordatorio de mantenimiento periodontal",
+  "module": "Sistema",
+  "summary": "Regla de alerta que avisa (y puede mandarle un mensaje al paciente) cuando le toca el mantenimiento.",
+  "screens": [
+    "system.alert-rules"
+  ],
+  "inputs": {
+    "category": "Nombre de la categoría de alertas (ej. Citas)"
+  },
+  "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "recordatorio mantenimiento",
+    "regla de alerta",
+    "mantenimiento periodontal"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/system/alert-rules",
+      "title": "Menú → Sistema → Reglas de Alertas",
+      "details": "Qué genera una alerta y cuándo."
+    },
+    {
+      "id": "new",
+      "action": "click",
+      "target": "system.alert-rules.btn.new",
+      "title": "Crear",
+      "details": "Una regla nueva.",
+      "until": "system.alert-rules.field.name"
+    },
+    {
+      "id": "name",
+      "action": "fill",
+      "target": "system.alert-rules.field.name",
+      "title": "Nombre",
+      "details": "Cómo se va a ver en el Centro de Alertas.",
+      "value": "Mantenimiento periodontal"
+    },
+    {
+      "id": "code",
+      "action": "fill",
+      "target": "system.alert-rules.field.code",
+      "title": "Código",
+      "details": "Un código único para la regla.",
+      "value": "PERIO_MAINTENANCE_DUE"
+    },
+    {
+      "id": "category",
+      "action": "fill",
+      "target": "system.alert-rules.field.category_id",
+      "title": "Categoría",
+      "details": "El grupo del Centro de Alertas, por ejemplo el de recordatorios a pacientes.",
+      "value": "{{values.category}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "source",
+      "action": "fill",
+      "target": "system.alert-rules.field.source_table",
+      "title": "Origen",
+      "details": "La vista v_alert_perio_maintenance: una fila por paciente con su último periodontograma cerrado y la fecha en que le toca el mantenimiento.",
+      "value": "v_alert_perio_maintenance"
+    },
+    {
+      "id": "idfield",
+      "action": "fill",
+      "target": "system.alert-rules.field.table_id_field",
+      "title": "Campo de ID",
+      "details": "«id»: es el paciente (así el envío automático sabe a quién mandarle).",
+      "value": "id ("
+    },
+    {
+      "id": "user",
+      "action": "fill",
+      "target": "system.alert-rules.field.user_id_field",
+      "title": "Campo de usuario",
+      "details": "«patient_id».",
+      "value": "patient_id (",
+      "skipIfMissing": true
+    },
+    {
+      "id": "event",
+      "action": "fill",
+      "target": "system.alert-rules.field.event_field",
+      "title": "Fecha del evento",
+      "details": "«due_date»: cuándo le toca el mantenimiento.",
+      "value": "due_date (",
+      "skipIfMissing": true
+    },
+    {
+      "id": "conditions",
+      "action": "highlight",
+      "target": "system.alert-rules.section.conditions",
+      "title": "Condición",
+      "details": "Agregá una: columna due_date, operador «=» y valor {{TODAY}}. Sin ella la regla no filtra por fecha.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "before",
+      "action": "fill",
+      "target": "system.alert-rules.field.days_before",
+      "title": "Días antes del evento",
+      "details": "Con cuánta anticipación avisar: con 14, la alerta sale 14 días antes del mantenimiento.",
+      "value": "14",
+      "skipIfMissing": true
+    },
+    {
+      "id": "recurrence",
+      "action": "fill",
+      "target": "system.alert-rules.field.recurrence_type",
+      "title": "Recurrencia",
+      "details": "Diaria: cada día busca los mantenimientos que vencen.",
+      "value": "Diaria",
+      "skipIfMissing": true
+    },
+    {
+      "id": "whatsapp",
+      "action": "highlight",
+      "target": "system.alert-rules.field.whatsapp_template_id",
+      "title": "Plantilla de WhatsApp (opcional)",
+      "details": "Para mandarle el aviso al paciente: una plantilla de tipo paciente. El envío lo activa «Enviar SMS Automáticamente».",
+      "skipIfMissing": true
+    },
+    {
+      "id": "email",
+      "action": "highlight",
+      "target": "system.alert-rules.field.email_template_id",
+      "title": "Plantilla de correo (opcional)",
+      "details": "Con «Enviar correo automático» y el interruptor general de envío de emails de alertas. Solo variables del paciente y de la clínica.",
+      "skipIfMissing": true
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "system.alert-rules.btn.submit",
+      "title": "Guardar",
+      "details": "Desde el día siguiente, el motor de alertas crea un aviso por cada paciente cuyo mantenimiento vence."
+    }
+  ]
+}

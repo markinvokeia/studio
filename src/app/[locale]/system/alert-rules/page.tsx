@@ -1009,7 +1009,7 @@ export default function AlertRulesPage() {
                                 )} />
                             </div>
 
-                            <div className="space-y-4">
+                            <div data-help-id="system.alert-rules.section.conditions" className="space-y-4">
                                 <div className="flex items-center justify-between gap-3">
                                     <Label>{t('dialog.conditions')}</Label>
                                     <Button

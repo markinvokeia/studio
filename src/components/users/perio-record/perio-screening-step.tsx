@@ -15,7 +15,8 @@ import { FooterSpacer, PerioStepFooter } from './perio-step-footer';
 
 export const PERIO_EXAM_TYPES: PerioExamType[] = ['initial', 'reevaluation', 'maintenance', 'screening', 'implants'];
 
-const CODE_TONE: Record<PerioPsrCode, string> = {
+/** Colour of each PSR/BPE code (also the timeline preview) */
+export const CODE_TONE: Record<PerioPsrCode, string> = {
   '0': 'border-emerald-500 bg-emerald-500/15 text-emerald-800 dark:text-emerald-300',
   '1': 'border-lime-500 bg-lime-500/15 text-lime-800 dark:text-lime-300',
   '2': 'border-amber-500 bg-amber-500/15 text-amber-800 dark:text-amber-300',
@@ -126,10 +127,10 @@ export function PerioScreeningStep({ screening, onChange, examType, onExamTypeCh
         <span>· {t('screening.lead')}</span>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">{SEXTANT_ORDER.slice(0, 3).map(card)}</div>
+      <div data-help-id="perio-session.section.sextants" className="grid gap-3 md:grid-cols-3">{SEXTANT_ORDER.slice(0, 3).map(card)}</div>
       <div className="grid gap-3 md:grid-cols-3">{SEXTANT_ORDER.slice(3).map(card)}</div>
 
-      <section className="grid gap-x-6 gap-y-1 rounded-2xl border bg-card p-3 text-[12.5px] sm:grid-cols-2">
+      <section data-help-id="perio-session.section.psr-legend" className="grid gap-x-6 gap-y-1 rounded-2xl border bg-card p-3 text-[12.5px] sm:grid-cols-2">
         {PSR_CODES.map((c) => (
           <p key={c} className="flex gap-2"><b className={cn('grid h-5 min-w-5 place-items-center rounded border px-1 text-[11px]', CODE_TONE[c])}>{c}</b><span className="text-muted-foreground">{t(`screening.codes.${c}`)}</span></p>
         ))}
@@ -142,7 +143,7 @@ export function PerioScreeningStep({ screening, onChange, examType, onExamTypeCh
           {a.coded === 6 && <Check className="h-3.5 w-3.5" />}{t('screening.progress', { done: a.coded })}
         </span>
         <FooterSpacer />
-        <Button type="button" variant={a.coded === 6 ? 'default' : 'outline'} onClick={onNext}>{t('probe.nextStep')}<ArrowRight className="ml-1.5 h-4 w-4" /></Button>
+        <Button type="button" data-help-id="perio-session.btn.next-probe" variant={a.coded === 6 ? 'default' : 'outline'} onClick={onNext}>{t('probe.nextStep')}<ArrowRight className="ml-1.5 h-4 w-4" /></Button>
       </PerioStepFooter>
     </div>
   );

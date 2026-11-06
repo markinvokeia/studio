@@ -1,0 +1,91 @@
+{
+  "id": "patients.perio-settings",
+  "title": "Configurar el periodontograma de la clínica",
+  "module": "Pacientes",
+  "summary": "Orden de sondaje, signo del margen e intervalos de mantenimiento.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Ficha periodoncia",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "configuración periodontograma",
+    "orden de sondaje",
+    "signo del margen",
+    "intervalo de mantenimiento"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.create-menu",
+      "title": "Crear",
+      "details": "Todo lo que se puede crear para este paciente.",
+      "until": "patients.btn.new-periodontogram"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "patients.btn.new-periodontogram",
+      "title": "Periodontograma",
+      "details": "Abre un periodontograma nuevo: los dientes ausentes, pónticos e implantes vienen del último odontograma y el último periodontograma cerrado queda como guía.",
+      "until": "perio-session.section.header"
+    },
+    {
+      "id": "gear",
+      "action": "click",
+      "target": "perio-session.btn.settings",
+      "title": "Configuración",
+      "details": "El engranaje de la barra del examen. Vale para toda la clínica.",
+      "until": "perio-session.section.settings"
+    },
+    {
+      "id": "form",
+      "action": "highlight",
+      "target": "perio-session.section.settings",
+      "title": "Qué se configura",
+      "details": "Orden de sondaje (por arcada o vestibulares primero), signo del margen (recesión positiva o negativa: se guarda igual) y meses de mantenimiento para cada riesgo."
+    },
+    {
+      "id": "save",
+      "action": "confirm",
+      "target": "perio-session.btn.settings-save",
+      "title": "Guardar",
+      "details": "Solo quien edita la configuración del sistema puede guardarla.",
+      "skipIfMissing": true
+    }
+  ]
+}

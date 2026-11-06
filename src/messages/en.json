@@ -213,7 +213,6 @@
       "creditNoteDeleteError": "Could not delete the credit note",
       "paymentUpdated": "Payment updated",
       "releasedCredit": "{amount} became available as patient credit",
-
       "releasedPending": "{amount} is no longer applied to invoices, which show that balance as pending again",
       "paymentUpdateError": "Could not update the payment",
       "creditNoteUpdated": "Credit note updated",
@@ -10507,7 +10506,8 @@
       "elements": "Fields and buttons",
       "show": "Show",
       "tourCta": "Guide me through this screen",
-      "tourTitle": "Tour of {screen}"
+      "tourTitle": "Tour of {screen}",
+      "about": "About this screen"
     },
     "chat": {
       "welcomeTitle": "Hi! What do you want to do now?",

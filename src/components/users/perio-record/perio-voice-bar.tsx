@@ -117,7 +117,7 @@ export function PerioVoiceBar({ inputRef, onPhrase, pendingCount, onConfirm, onD
 
   // Sits at the right of the exam banner, on the same row: the chart keeps the height
   return (
-    <div className="flex min-w-0 flex-[1_1_420px] flex-wrap items-center justify-end gap-x-2 gap-y-1 text-[12.5px]" aria-live="polite">
+    <div data-help-id="perio-session.section.voice" className="flex min-w-0 flex-[1_1_420px] flex-wrap items-center justify-end gap-x-2 gap-y-1 text-[12.5px]" aria-live="polite">
       {lineLabel && (
         <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/12 py-0.5 pl-2 pr-1 font-medium text-primary">
           {t('line', { line: lineLabel })}
@@ -127,11 +127,11 @@ export function PerioVoiceBar({ inputRef, onPhrase, pendingCount, onConfirm, onD
       {dictation.error && <span className="inline-flex shrink-0 items-center gap-1 text-destructive"><AlertTriangle className="h-3.5 w-3.5" />{t(`errors.${dictation.error}`)}</span>}
       {status && <span className="flex min-w-0 max-w-[340px] flex-[0_1_auto] items-center">{status}</span>}
       {pendingCount > 0 && (
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-violet-500/40 bg-violet-500/10 py-0.5 pl-2.5 pr-1 text-violet-800 dark:text-violet-200">
+        <span data-help-id="perio-session.section.voice-pending" className="inline-flex shrink-0 items-center gap-1 rounded-full border border-violet-500/40 bg-violet-500/10 py-0.5 pl-2.5 pr-1 text-violet-800 dark:text-violet-200">
           <i className="inline-block h-[2px] w-3 rounded" style={{ background: 'var(--perio-dict)' }} aria-hidden />
           {t('pending', { count: pendingCount })}
-          <Button type="button" size="sm" variant="ghost" className="h-6 gap-1 px-2 text-xs" onClick={onDiscard}><Trash2 className="h-3 w-3" />{t('discard')}</Button>
-          <Button type="button" size="sm" className="h-6 gap-1 px-2 text-xs" onClick={onConfirm}><Check className="h-3 w-3" />{t('confirm')}</Button>
+          <Button type="button" size="sm" variant="ghost" className="h-6 gap-1 px-2 text-xs" onClick={onDiscard} data-help-id="perio-session.btn.voice-discard"><Trash2 className="h-3 w-3" />{t('discard')}</Button>
+          <Button type="button" size="sm" className="h-6 gap-1 px-2 text-xs" onClick={onConfirm} data-help-id="perio-session.btn.voice-confirm"><Check className="h-3 w-3" />{t('confirm')}</Button>
         </span>
       )}
       <div className={cn('flex min-w-[260px] max-w-[460px] flex-[1_1_300px] items-center gap-1 rounded-lg border bg-background p-0.5 transition-shadow', dictation.isListening && 'border-red-400/70 ring-2 ring-red-500/20')}>
@@ -141,6 +141,7 @@ export function PerioVoiceBar({ inputRef, onPhrase, pendingCount, onConfirm, onD
           variant={dictation.isListening ? 'destructive' : 'ghost'}
           className="h-7 shrink-0 gap-1.5 px-2"
           onClick={dictation.isListening ? dictation.stop : dictation.start}
+          data-help-id="perio-session.btn.dictate"
           disabled={!dictation.isSupported}
           title={!dictation.isSupported ? t('unsupported') : undefined}
           aria-pressed={dictation.isListening}
@@ -155,6 +156,7 @@ export function PerioVoiceBar({ inputRef, onPhrase, pendingCount, onConfirm, onD
             onKeyDown={(e) => { if (e.key === 'Escape') (e.target as HTMLInputElement).blur(); }}
             placeholder={dictation.isListening ? t('listening') : t('placeholder')}
             aria-label={t('label')}
+            data-help-id="perio-session.field.voice-command"
             className="h-7 min-w-0 border-0 px-1.5 text-[12.5px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
           />
           <Button type="submit" size="icon" variant="ghost" className="h-7 w-7 shrink-0" disabled={!text.trim()} aria-label={t('send')} title={t('send')}>
@@ -163,7 +165,7 @@ export function PerioVoiceBar({ inputRef, onPhrase, pendingCount, onConfirm, onD
         </form>
         <Popover>
           <PopoverTrigger asChild>
-            <Button type="button" size="icon" variant="ghost" className="h-7 w-7 shrink-0 text-muted-foreground" aria-label={t('help.button')} title={t('help.title')}>
+            <Button type="button" size="icon" variant="ghost" className="h-7 w-7 shrink-0 text-muted-foreground" aria-label={t('help.button')} title={t('help.title')} data-help-id="perio-session.btn.voice-help">
               <HelpCircle className="h-4 w-4" />
             </Button>
           </PopoverTrigger>

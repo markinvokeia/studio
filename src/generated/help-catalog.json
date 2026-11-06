@@ -1,5 +1,5 @@
 {
- "version": "3573947c720969a8",
+ "version": "c3419c6270059944",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -8674,6 +8674,20 @@
      "source": "knowledge/screens/patients.json"
     },
     {
+     "description": "Abre el periodontograma más reciente en Evolución, comparado con este.",
+     "id": "patients.btn.timeline-compare-perio",
+     "kind": "btn",
+     "label": "Comparar con hoy",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Solo si no está cerrado; uno cerrado es historia clínica.",
+     "id": "patients.btn.timeline-delete-perio",
+     "kind": "btn",
+     "label": "Eliminar periodontograma",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
      "id": "patients.btn.timeline-filters",
      "kind": "btn",
      "label": "Filtrar eventos",
@@ -8684,6 +8698,13 @@
      "id": "patients.btn.timeline-open-aesthetic",
      "kind": "btn",
      "label": "Continuar sesión",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Abre el periodontograma: continuar si está abierto, ver si está cerrado.",
+     "id": "patients.btn.timeline-open-perio",
+     "kind": "btn",
+     "label": "Continuar o ver periodontograma",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -9509,6 +9530,566 @@
      "kind": "tab",
      "label": "Planes de tratamiento",
      "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Agrega una enmienda: qué se corrige y por qué.",
+     "id": "perio-session.btn.amend",
+     "kind": "btn",
+     "label": "Enmendar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Abre la agenda con el paciente, la fecha y el motivo cargados.",
+     "id": "perio-session.btn.book",
+     "kind": "btn",
+     "label": "Reservar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Deja anotada la fecha sugerida; la usa el recordatorio de mantenimiento.",
+     "id": "perio-session.btn.book-later",
+     "kind": "btn",
+     "label": "Agendar después",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Abre el asistente de cobro; la factura queda vinculada al periodontograma.",
+     "id": "perio-session.btn.charge",
+     "kind": "btn",
+     "label": "Cobrar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Deja el diagnóstico en la historia clínica. Se habilita con el sondaje completo; si después se cambia algo, hay que volver a confirmar.",
+     "id": "perio-session.btn.confirm-diagnosis",
+     "kind": "btn",
+     "label": "Confirmar diagnóstico",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Las tres pasadas de una vez. Nunca pisa lo medido hoy.",
+     "id": "perio-session.btn.copy-all",
+     "kind": "btn",
+     "label": "Copiar todo del examen anterior",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Llena la movilidad y las furcas que faltan con las del examen anterior.",
+     "id": "perio-session.btn.copy-fm",
+     "kind": "btn",
+     "label": "Iniciar con el examen anterior (furcas y movilidad)",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Llena los márgenes vacíos con los del examen anterior. Queda pendiente de confirmar.",
+     "id": "perio-session.btn.copy-mg",
+     "kind": "btn",
+     "label": "Iniciar con el examen anterior (margen)",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Llena las profundidades vacías, con su sangrado, supuración y placa, con las del examen anterior. Queda pendiente de confirmar.",
+     "id": "perio-session.btn.copy-ps",
+     "kind": "btn",
+     "label": "Iniciar con el examen anterior (profundidad)",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Enciende el micrófono (Chrome o Edge). Cada frase se aplica apenas se termina de decir; «parar dictado» lo apaga.",
+     "id": "perio-session.btn.dictate",
+     "kind": "btn",
+     "label": "Dictar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Pasa de un examen al siguiente, desde el comparado hasta hoy.",
+     "id": "perio-session.btn.evolution-play",
+     "kind": "btn",
+     "label": "Ver la evolución animada",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Lo que falta para avanzar. Tocalo: resalta en ámbar los sitios que faltan o lleva al paso que sigue.",
+     "id": "perio-session.btn.missing",
+     "kind": "btn",
+     "label": "Qué falta",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Pasa al paso 4.",
+     "id": "perio-session.btn.next-diagnosis",
+     "kind": "btn",
+     "label": "Ir al cierre",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Pasa al paso 3.",
+     "id": "perio-session.btn.next-evolution",
+     "kind": "btn",
+     "label": "Ir al diagnóstico",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Pasa al paso 2.",
+     "id": "perio-session.btn.next-probe",
+     "kind": "btn",
+     "label": "Siguiente: Evolución",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Movilidad (0 a III) y grado de furca de cada entrada, por pieza.",
+     "id": "perio-session.btn.pass-fm",
+     "kind": "btn",
+     "label": "Furcas y movilidad",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Margen de cada sitio: positivo es recesión, negativo agrandamiento (o al revés, según la configuración).",
+     "id": "perio-session.btn.pass-mg",
+     "kind": "btn",
+     "label": "Margen gingival",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Profundidad de cada sitio; sangrado, supuración y placa con B, S y P.",
+     "id": "perio-session.btn.pass-ps",
+     "kind": "btn",
+     "label": "Profundidad y sangrado",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Copia el texto del reporte.",
+     "id": "perio-session.btn.report-copy",
+     "kind": "btn",
+     "label": "Copiar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Abre el email con el reporte (necesita el email del paciente; usa la plantilla PERIO_REPORT_EMAIL si existe).",
+     "id": "perio-session.btn.report-email",
+     "kind": "btn",
+     "label": "Enviar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "El reporte con las dos arcadas, listo para imprimir.",
+     "id": "perio-session.btn.report-print",
+     "kind": "btn",
+     "label": "Imprimir",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Abre el mensaje para enviarlo por WhatsApp (necesita el teléfono del paciente).",
+     "id": "perio-session.btn.report-whatsapp",
+     "kind": "btn",
+     "label": "WhatsApp",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Orden de sondaje, signo del margen e intervalos de mantenimiento de la clínica. La cambia quien edita la configuración del sistema.",
+     "id": "perio-session.btn.settings",
+     "kind": "btn",
+     "label": "Configuración del periodontograma",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Guarda la configuración para toda la clínica.",
+     "id": "perio-session.btn.settings-save",
+     "kind": "btn",
+     "label": "Guardar configuración",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Se habilita con todo resuelto; cerrado, queda en solo lectura.",
+     "id": "perio-session.btn.sign",
+     "kind": "btn",
+     "label": "Firmar y cerrar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Confirma la firma: el periodontograma queda en la historia clínica.",
+     "id": "perio-session.btn.sign-confirm",
+     "kind": "btn",
+     "label": "Firmar y cerrar (confirmar)",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Reporte para el paciente, cobro, próxima cita, notas y firma.",
+     "id": "perio-session.btn.step-close",
+     "kind": "btn",
+     "label": "Paso 4 · Cierre",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Estabilidad, clasificación 2017, riesgo y plan sugeridos; el profesional los confirma.",
+     "id": "perio-session.btn.step-diagnosis",
+     "kind": "btn",
+     "label": "Paso 3 · Diagnóstico",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Comparación con los periodontogramas anteriores del paciente.",
+     "id": "perio-session.btn.step-evolution",
+     "kind": "btn",
+     "label": "Paso 2 · Evolución",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Profundidad y sangrado, margen gingival, furcas y movilidad (en el cribado, los seis sextantes).",
+     "id": "perio-session.btn.step-probe",
+     "kind": "btn",
+     "label": "Paso 1 · Sondaje",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "El último cambio (Ctrl+Z). Rehacer con Ctrl+Y. Guarda hasta 60 pasos.",
+     "id": "perio-session.btn.undo",
+     "kind": "btn",
+     "label": "Deshacer",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Deja firmes los valores dictados o copiados.",
+     "id": "perio-session.btn.voice-confirm",
+     "kind": "btn",
+     "label": "Confirmar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Devuelve cada sitio dictado o copiado a como estaba.",
+     "id": "perio-session.btn.voice-discard",
+     "kind": "btn",
+     "label": "Descartar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "La lista de lo que se puede decir, en español y en inglés.",
+     "id": "perio-session.btn.voice-help",
+     "kind": "btn",
+     "label": "Comandos de voz",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Diagnóstico inicial, reevaluación o mantenimiento (sondaje completo); cribado PSR/BPE (un código por sextante); solo implantes (se sondean solo los implantes).",
+     "id": "perio-session.field.exam-type",
+     "kind": "field",
+     "label": "Tipo de examen",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Para cerrar sin facturar.",
+     "id": "perio-session.field.no-charge",
+     "kind": "field",
+     "label": "Sin cobro hoy",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Sus valores en gris en las celdas vacías y su curva punteada. Enter carga ese valor como medido hoy.",
+     "id": "perio-session.field.show-guide",
+     "kind": "field",
+     "label": "Mostrar el examen anterior como guía",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Texto libre de esta pieza, por ejemplo un control radiográfico.",
+     "id": "perio-session.field.tooth-note",
+     "kind": "field",
+     "label": "Nota de la pieza",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Presente, ausente, póntico o implante. Ausentes y pónticos no se sondean.",
+     "id": "perio-session.field.tooth-status",
+     "kind": "field",
+     "label": "Estado de la pieza",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Para escribir el comando en lugar de dictarlo; Enter lo aplica. La tecla / trae el foco acá.",
+     "id": "perio-session.field.voice-command",
+     "kind": "field",
+     "label": "Comando",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Correcciones de un periodontograma cerrado: el examen no cambia, se agrega el texto con autor y fecha.",
+     "id": "perio-session.section.amendments",
+     "kind": "section",
+     "label": "Enmiendas",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Tipo de examen, el examen que se usa como guía, lo que se trajo del odontograma, la configuración y el dictado.",
+     "id": "perio-session.section.banner",
+     "kind": "section",
+     "label": "Barra del examen",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Sitios que ganaron 2 mm o más.",
+     "id": "perio-session.section.better",
+     "kind": "section",
+     "label": "Mejoraron",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Lo marcado Hoy en el plan; al cobrar, la factura vinculada con sus pagos.",
+     "id": "perio-session.section.billing",
+     "kind": "section",
+     "label": "Cobro de hoy",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Cada arcada con su cara de afuera arriba y la de adentro abajo: curva azul del margen, roja del fondo de la bolsa y las filas SS, MG y PS. Tocá una celda para medir ahí.",
+     "id": "perio-session.section.chart",
+     "kind": "section",
+     "label": "Periodontograma",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Sondaje, diagnóstico, cobro, próxima cita y lo dictado o copiado confirmado. Lo pendiente se puede tocar.",
+     "id": "perio-session.section.checklist",
+     "kind": "section",
+     "label": "Lo que falta para firmar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Los exámenes del paciente con su fecha y sangrado; tocá uno para compararlo con hoy.",
+     "id": "perio-session.section.compare-with",
+     "kind": "section",
+     "label": "Comparar hoy con…",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Caso de periodontitis, estadio (desde el examen inicial; no baja), extensión y grado, cada uno con su porqué. Lo cambiado a mano queda marcado.",
+     "id": "perio-session.section.dx-classification",
+     "kind": "section",
+     "label": "Clasificación AAP/EFP 2017",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "En «solo implantes»: el estado sugerido de cada implante (sano, mucositis o periimplantitis) y el intervalo de mantenimiento.",
+     "id": "perio-session.section.dx-implants",
+     "kind": "section",
+     "label": "Implantes",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Dientes perdidos por periodontitis, pérdida ósea de la Rx, edad, cigarrillos por día y diabetes. Pasan al próximo periodontograma.",
+     "id": "perio-session.section.dx-inputs",
+     "kind": "section",
+     "label": "Datos que no salen del sondaje",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Los pasos de la guía EFP que pide el sondaje, cada uno con su casilla y Hoy o Más adelante.",
+     "id": "perio-session.section.dx-plan",
+     "kind": "section",
+     "label": "Plan por pasos",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Hexágono de Lang y Tonetti con seis parámetros, el riesgo y el intervalo de mantenimiento sugerido.",
+     "id": "perio-session.section.dx-risk",
+     "kind": "section",
+     "label": "Riesgo de progresión",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "El código más alto, qué significa, qué hacer y en qué sextantes hace falta un periodontograma completo.",
+     "id": "perio-session.section.dx-screening",
+     "kind": "section",
+     "label": "Resultado del cribado",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Estable, estable con inflamación o inestable, con la lista que lo justifica y si se cumplen los objetivos de la terapia.",
+     "id": "perio-session.section.dx-today",
+     "kind": "section",
+     "label": "Cómo está hoy",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "El periodontograma de antes y el de hoy según el modo elegido.",
+     "id": "perio-session.section.evolution-chart",
+     "kind": "section",
+     "label": "Comparación",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Deslizador, superponer o cambios; arcada; curvas o mapa; animación.",
+     "id": "perio-session.section.evolution-controls",
+     "kind": "section",
+     "label": "Cómo comparar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Es el primer periodontograma del paciente: la evolución se ve desde el próximo.",
+     "id": "perio-session.section.evolution-empty",
+     "kind": "section",
+     "label": "Sin examen anterior",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "En el cribado, los códigos de cada sextante, sesión por sesión.",
+     "id": "perio-session.section.evolution-screening",
+     "kind": "section",
+     "label": "Códigos por sesión",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Sigue a la sonda (muestra dónde se mide), superior, inferior o ambas. Al cambiar de arcada, la vista se mueve sola.",
+     "id": "perio-session.section.focus",
+     "kind": "section",
+     "label": "Qué arcada se ve",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Volver y seguir, siempre en el mismo lugar; en el cierre, lo que falta para firmar.",
+     "id": "perio-session.section.footer",
+     "kind": "section",
+     "label": "Pie del paso",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "La pieza, el sitio y el dato que va ahora, el avance de la pasada y los atajos de teclado.",
+     "id": "perio-session.section.guide-bar",
+     "kind": "section",
+     "label": "Qué toca cargar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Paciente, número de periodontograma, fecha y profesional; los cuatro pasos, el avance y el estado.",
+     "id": "perio-session.section.header",
+     "kind": "section",
+     "label": "Encabezado del periodontograma",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Los diez indicadores del examen (dientes propios).",
+     "id": "perio-session.section.indices",
+     "kind": "section",
+     "label": "Índices de hoy",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Indicadores del examen, la pieza activa con su tabla, el teclado, la historia de la pieza y su nota.",
+     "id": "perio-session.section.inspector",
+     "kind": "section",
+     "label": "Inspector",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Dígitos, borrar, +1, «Igual que antes» y, en margen, el signo menos.",
+     "id": "perio-session.section.keypad",
+     "kind": "section",
+     "label": "Teclado",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Qué significa cada color y símbolo del gráfico.",
+     "id": "perio-session.section.legend",
+     "kind": "section",
+     "label": "Leyenda",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Sangrado, supuración y placa: van al sitio con el anillo punteado (el último medido o el que tocaste).",
+     "id": "perio-session.section.marks",
+     "kind": "section",
+     "label": "Marcas",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "La reinstrumentación (en 1 a 2 semanas) o el mantenimiento (en el intervalo del riesgo), con la fecha sugerida.",
+     "id": "perio-session.section.next-visit",
+     "kind": "section",
+     "label": "Próxima cita",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Texto libre del periodontograma.",
+     "id": "perio-session.section.notes",
+     "kind": "section",
+     "label": "Notas de la sesión",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Las tres vueltas del sondaje, cada una con su avance: profundidad y sangrado, margen gingival, furcas y movilidad.",
+     "id": "perio-session.section.passes",
+     "kind": "section",
+     "label": "Pasadas",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Porcentaje completo (el sondaje vale 90 % y el diagnóstico confirmado 10 %), estado del periodontograma y guardado automático.",
+     "id": "perio-session.section.progress",
+     "kind": "section",
+     "label": "Avance y estado",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Qué significa cada código y el asterisco.",
+     "id": "perio-session.section.psr-legend",
+     "kind": "section",
+     "label": "Códigos PSR/BPE",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Un resumen en palabras simples: cómo están sus encías, sangrado y bolsas comparados con el primer control, y una indicación.",
+     "id": "perio-session.section.report",
+     "kind": "section",
+     "label": "Reporte para el paciente",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Vale para toda la clínica. Orden: por arcada o vestibulares primero. Signo: recesión positiva o negativa (se guarda igual). Meses de mantenimiento por riesgo.",
+     "id": "perio-session.section.settings",
+     "kind": "section",
+     "label": "Configuración",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Un código por sextante: el del peor sitio (0 a 4, X si tiene menos de dos piezas) y el asterisco. Con el teclado: 0–4 o X codifican y pasan al siguiente.",
+     "id": "perio-session.section.sextants",
+     "kind": "section",
+     "label": "Sextantes",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "PS, MG y NIC de cada sitio por cara, con el valor anterior en chiquito, y los botones de sangrado, supuración y placa.",
+     "id": "perio-session.section.tooth-table",
+     "kind": "section",
+     "label": "Tabla de la pieza",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Sangrado, placa, sitios de 5 mm o más, PS y NIC medios en cada sesión, con la diferencia contra el examen comparado.",
+     "id": "perio-session.section.trends",
+     "kind": "section",
+     "label": "Tendencias",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Lo último que se entendió, la línea de marcas activa, lo pendiente de confirmar, el micrófono y los comandos.",
+     "id": "perio-session.section.voice",
+     "kind": "section",
+     "label": "Dictado",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Sitios dictados o copiados del examen anterior que todavía no se confirmaron (subrayados en violeta). No se puede firmar con nada pendiente.",
+     "id": "perio-session.section.voice-pending",
+     "kind": "section",
+     "label": "Pendiente de confirmar",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Sitios que perdieron 2 mm o más de profundidad o inserción. Tocá uno para verlo.",
+     "id": "perio-session.section.worse",
+     "kind": "section",
+     "label": "Empeoraron",
+     "source": "knowledge/screens/patients.json"
     }
    ],
    "id": "patients",
@@ -9568,7 +10149,16 @@
     "patients.aesthetic-consent",
     "patients.aesthetic-photos",
     "patients.aesthetic-treatment",
-    "patients.aesthetic-close"
+    "patients.aesthetic-close",
+    "patients.perio-overview",
+    "patients.perio-probing",
+    "patients.perio-dictation",
+    "patients.perio-screening",
+    "patients.perio-evolution",
+    "patients.perio-diagnosis",
+    "patients.perio-close",
+    "patients.perio-history",
+    "patients.perio-settings"
    ]
   },
   {
@@ -16606,6 +17196,13 @@
      "source": "src/app/[locale]/system/alert-rules/page.tsx"
     },
     {
+     "description": "Qué filas del origen generan la alerta. Para fechas: columna, operador «=» y valor {{TODAY}}; «Días antes del evento» corre esa fecha.",
+     "id": "system.alert-rules.section.conditions",
+     "kind": "section",
+     "label": "Condiciones",
+     "source": "src/app/[locale]/system/alert-rules/page.tsx"
+    },
+    {
      "id": "system.alert-rules.section.detail",
      "kind": "section",
      "label": "Detalle",
@@ -16646,7 +17243,8 @@
     "system.alert-rules.create",
     "system.alert-rules.edit",
     "system.alert-rules.delete",
-    "system.alert-rules.test"
+    "system.alert-rules.test",
+    "system.alert-rules.perio-maintenance"
    ]
   },
   {
@@ -18395,7 +18993,8 @@
     "workspace.prescribe",
     "workspace.odontogram",
     "workspace.agent",
-    "workspace.aesthetic-session"
+    "workspace.aesthetic-session",
+    "workspace.perio-session"
    ]
   }
  ],
@@ -33553,6 +34152,1131 @@
    "title": "Recorrer la ficha del paciente"
   },
   {
+   "group": "Ficha periodoncia",
+   "id": "patients.perio-close",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "cerrar periodontograma",
+    "firmar",
+    "reporte paciente",
+    "cobro",
+    "próxima cita",
+    "enmienda"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-periodontogram"
+    },
+    {
+     "action": "click",
+     "details": "Abre un periodontograma nuevo: los dientes ausentes, pónticos e implantes vienen del último odontograma y el último periodontograma cerrado queda como guía.",
+     "id": "item",
+     "target": "patients.btn.new-periodontogram",
+     "title": "Periodontograma",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Lo que hace falta para firmar, en una pantalla.",
+     "id": "step",
+     "target": "perio-session.btn.step-close",
+     "title": "Cierre"
+    },
+    {
+     "action": "highlight",
+     "details": "Un resumen en palabras simples de cómo están sus encías y qué hacer.",
+     "id": "report",
+     "target": "perio-session.section.report",
+     "title": "Reporte para el paciente"
+    },
+    {
+     "action": "highlight",
+     "details": "Copia el texto del reporte.",
+     "id": "copy",
+     "target": "perio-session.btn.report-copy",
+     "title": "Copiar"
+    },
+    {
+     "action": "highlight",
+     "details": "Por WhatsApp, impreso con las dos arcadas o por email. Al enviarlo queda registrado.",
+     "id": "send",
+     "target": "perio-session.btn.report-whatsapp",
+     "title": "WhatsApp, Imprimir o Enviar"
+    },
+    {
+     "action": "highlight",
+     "details": "Cobrar abre el asistente de cobro; la factura queda vinculada y se ve acá con sus pagos. O «Sin cobro hoy».",
+     "id": "billing",
+     "target": "perio-session.section.billing",
+     "title": "Cobro de hoy"
+    },
+    {
+     "action": "highlight",
+     "details": "Reservar con la fecha sugerida, o Agendar después (lo usa el recordatorio de mantenimiento).",
+     "id": "next",
+     "target": "perio-session.section.next-visit",
+     "title": "Próxima cita"
+    },
+    {
+     "action": "highlight",
+     "details": "Texto libre del periodontograma.",
+     "id": "notes",
+     "target": "perio-session.section.notes",
+     "title": "Notas de la sesión"
+    },
+    {
+     "action": "highlight",
+     "details": "Sondaje, diagnóstico, cobro, próxima cita y lo dictado confirmado. Tocá lo pendiente para resolverlo.",
+     "id": "checklist",
+     "target": "perio-session.section.checklist",
+     "title": "Lo que falta para firmar"
+    },
+    {
+     "action": "highlight",
+     "details": "Con todo resuelto, firmá: queda en solo lectura y los cambios se agregan como enmienda.",
+     "id": "sign",
+     "target": "perio-session.btn.sign",
+     "title": "Firmar y cerrar"
+    }
+   ],
+   "summary": "Reporte para el paciente, cobro, próxima cita, notas y firma.",
+   "title": "Cerrar el periodontograma"
+  },
+  {
+   "group": "Ficha periodoncia",
+   "id": "patients.perio-diagnosis",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "diagnóstico",
+    "estadio",
+    "grado",
+    "riesgo",
+    "plan periodontal",
+    "clasificación 2017",
+    "estabilidad"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-periodontogram"
+    },
+    {
+     "action": "click",
+     "details": "Abre un periodontograma nuevo: los dientes ausentes, pónticos e implantes vienen del último odontograma y el último periodontograma cerrado queda como guía.",
+     "id": "item",
+     "target": "patients.btn.new-periodontogram",
+     "title": "Periodontograma",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo calcula el sistema como sugerencia; el profesional lo revisa y confirma.",
+     "id": "step",
+     "target": "perio-session.btn.step-diagnosis",
+     "title": "Diagnóstico"
+    },
+    {
+     "action": "highlight",
+     "details": "Estable, estable con inflamación o inestable, con la lista que lo justifica.",
+     "id": "today",
+     "skipIfMissing": true,
+     "target": "perio-session.section.dx-today",
+     "title": "Cómo está hoy"
+    },
+    {
+     "action": "highlight",
+     "details": "Dientes perdidos por periodontitis, pérdida ósea de la Rx, edad, tabaco y diabetes: definen el estadio IV y el grado.",
+     "id": "inputs",
+     "skipIfMissing": true,
+     "target": "perio-session.section.dx-inputs",
+     "title": "Datos que no salen del sondaje"
+    },
+    {
+     "action": "highlight",
+     "details": "Caso, estadio (qué tan grave), extensión (dónde) y grado (qué tan rápido), con su porqué. Se pueden cambiar; lo cambiado queda marcado.",
+     "id": "class",
+     "skipIfMissing": true,
+     "target": "perio-session.section.dx-classification",
+     "title": "Clasificación 2017"
+    },
+    {
+     "action": "highlight",
+     "details": "Seis parámetros de Lang y Tonetti; el riesgo sugiere cada cuántos meses controlar.",
+     "id": "risk",
+     "skipIfMissing": true,
+     "target": "perio-session.section.dx-risk",
+     "title": "Riesgo"
+    },
+    {
+     "action": "highlight",
+     "details": "En «solo implantes»: sano, mucositis o periimplantitis para cada implante.",
+     "id": "implants",
+     "skipIfMissing": true,
+     "target": "perio-session.section.dx-implants",
+     "title": "Implantes"
+    },
+    {
+     "action": "highlight",
+     "details": "Higiene, reinstrumentación por pieza, reevaluación y mantenimiento, cada uno Hoy o Más adelante.",
+     "id": "plan",
+     "skipIfMissing": true,
+     "target": "perio-session.section.dx-plan",
+     "title": "Plan por pasos"
+    },
+    {
+     "action": "highlight",
+     "details": "Con el sondaje completo, tocalo para dejar el diagnóstico en la historia clínica. Si después cambiás algo, hay que volver a confirmar.",
+     "id": "confirm",
+     "skipIfMissing": true,
+     "target": "perio-session.btn.confirm-diagnosis",
+     "title": "Confirmar diagnóstico"
+    }
+   ],
+   "summary": "Revisar y confirmar la estabilidad, la clasificación 2017, el riesgo y el plan sugeridos.",
+   "title": "Diagnóstico y plan"
+  },
+  {
+   "group": "Ficha periodoncia",
+   "id": "patients.perio-dictation",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "dictado",
+    "voz",
+    "micrófono",
+    "comandos de voz",
+    "dictar sondaje"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-periodontogram"
+    },
+    {
+     "action": "click",
+     "details": "Abre un periodontograma nuevo: los dientes ausentes, pónticos e implantes vienen del último odontograma y el último periodontograma cerrado queda como guía.",
+     "id": "item",
+     "target": "patients.btn.new-periodontogram",
+     "title": "Periodontograma",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "highlight",
+     "details": "Muestra lo que se entendió de cada frase y lo que falta confirmar.",
+     "id": "voice",
+     "target": "perio-session.section.voice",
+     "title": "Dictado"
+    },
+    {
+     "action": "highlight",
+     "details": "Encendé el micrófono y hablá: «38 lingual 3 2 4 sangra distal», «SS 23», «margen gingival», «arcada inferior». Cada frase se aplica al terminar.",
+     "id": "mic",
+     "target": "perio-session.btn.dictate",
+     "title": "Dictar"
+    },
+    {
+     "action": "highlight",
+     "details": "El mismo comando escrito y Enter. Si una frase no se entiende, la IA la reescribe.",
+     "id": "type",
+     "target": "perio-session.field.voice-command",
+     "title": "O escribilo"
+    },
+    {
+     "action": "highlight",
+     "details": "La lista completa, en español y en inglés.",
+     "id": "help",
+     "target": "perio-session.btn.voice-help",
+     "title": "Comandos de voz"
+    },
+    {
+     "action": "highlight",
+     "details": "Lo dictado parpadea en el gráfico y queda subrayado en violeta; si es otra arcada, la vista cambia sola.",
+     "id": "chart",
+     "target": "perio-session.section.chart",
+     "title": "Dónde quedó"
+    },
+    {
+     "action": "highlight",
+     "details": "Revisalo y tocá Confirmar (o decí «confirmar»). Descartar lo deshace. No se puede firmar con dictado pendiente.",
+     "id": "pending",
+     "skipIfMissing": true,
+     "target": "perio-session.section.voice-pending",
+     "title": "Confirmar lo dictado"
+    }
+   ],
+   "summary": "Cargar el sondaje con la voz: comandos, línea activa y confirmar lo dictado.",
+   "title": "Dictar el sondaje"
+  },
+  {
+   "group": "Ficha periodoncia",
+   "id": "patients.perio-evolution",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "evolución",
+    "comparar",
+    "antes y después",
+    "deslizador",
+    "tendencias",
+    "inserción"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-periodontogram"
+    },
+    {
+     "action": "click",
+     "details": "Abre un periodontograma nuevo: los dientes ausentes, pónticos e implantes vienen del último odontograma y el último periodontograma cerrado queda como guía.",
+     "id": "item",
+     "target": "patients.btn.new-periodontogram",
+     "title": "Periodontograma",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Compara hoy con cualquier examen anterior; por defecto, con el inicial.",
+     "id": "step",
+     "target": "perio-session.btn.step-evolution",
+     "title": "Evolución"
+    },
+    {
+     "action": "highlight",
+     "details": "Si es el primero del paciente, no hay con qué comparar todavía.",
+     "id": "empty",
+     "skipIfMissing": true,
+     "target": "perio-session.section.evolution-empty",
+     "title": "Primer periodontograma"
+    },
+    {
+     "action": "highlight",
+     "details": "Deslizador (antes y después), Superponer (barras verdes si se ganó inserción, rojas si se perdió) o Cambios; arcada; curvas o mapa.",
+     "id": "controls",
+     "skipIfMissing": true,
+     "target": "perio-session.section.evolution-controls",
+     "title": "Cómo comparar"
+    },
+    {
+     "action": "highlight",
+     "details": "Arrastrá la manija del deslizador para mostrarle al paciente el antes y el después.",
+     "id": "chart",
+     "skipIfMissing": true,
+     "target": "perio-session.section.evolution-chart",
+     "title": "Comparación"
+    },
+    {
+     "action": "highlight",
+     "details": "Pasa de un examen al siguiente para contar la historia del tratamiento.",
+     "id": "play",
+     "skipIfMissing": true,
+     "target": "perio-session.btn.evolution-play",
+     "title": "Ver la evolución animada"
+    },
+    {
+     "action": "highlight",
+     "details": "Tocá otro examen para cambiar contra cuál se compara.",
+     "id": "with",
+     "skipIfMissing": true,
+     "target": "perio-session.section.compare-with",
+     "title": "Comparar hoy con…"
+    },
+    {
+     "action": "highlight",
+     "details": "Cada índice en todas las sesiones: verde si mejora, rojo si empeora.",
+     "id": "trends",
+     "skipIfMissing": true,
+     "target": "perio-session.section.trends",
+     "title": "Tendencias"
+    },
+    {
+     "action": "highlight",
+     "details": "Solo cambios de 2 mm o más: 1 mm entra en el error de la sonda manual. Tocá un sitio para verlo.",
+     "id": "worse",
+     "skipIfMissing": true,
+     "target": "perio-session.section.worse",
+     "title": "Empeoraron y mejoraron"
+    },
+    {
+     "action": "highlight",
+     "details": "El paso siguiente.",
+     "id": "next",
+     "skipIfMissing": true,
+     "target": "perio-session.btn.next-evolution",
+     "title": "Ir al diagnóstico"
+    }
+   ],
+   "summary": "Ver la evolución del paciente: deslizador, superponer, cambios, mapa, animación y tendencias.",
+   "title": "Comparar con exámenes anteriores"
+  },
+  {
+   "group": "Ficha periodoncia",
+   "id": "patients.perio-history",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "historia clínica",
+    "periodontogramas anteriores",
+    "continuar periodontograma",
+    "comparar con hoy"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Sesiones, odontograma, periodontograma y documentos del paciente.",
+     "id": "clinical",
+     "target": "patients.tab.clinical",
+     "title": "Historia clínica",
+     "until": "patients.tab.clinical-history"
+    },
+    {
+     "action": "click",
+     "details": "Todas las sesiones, de la más reciente a la más vieja.",
+     "id": "timeline",
+     "target": "patients.tab.clinical-history",
+     "title": "Línea de tiempo",
+     "until": "patients.section.timeline"
+    },
+    {
+     "action": "highlight",
+     "details": "Con el filtro «Periodontograma» quedan solo esos.",
+     "id": "filters",
+     "skipIfMissing": true,
+     "target": "patients.btn.timeline-filters",
+     "title": "Filtrar"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "Al expandirlo: la vista previa de las dos arcadas, el tipo, el diagnóstico y los índices.",
+     "id": "card",
+     "target": "patients.section.timeline",
+     "title": "Tocá un periodontograma",
+     "until": "patients.btn.timeline-open-perio"
+    },
+    {
+     "action": "highlight",
+     "details": "En uno que no es el último: abre el más reciente en Evolución, comparado con ese.",
+     "id": "compare",
+     "skipIfMissing": true,
+     "target": "patients.btn.timeline-compare-perio",
+     "title": "Comparar con hoy"
+    },
+    {
+     "action": "highlight",
+     "details": "Solo si no está cerrado: uno cerrado es historia clínica.",
+     "id": "delete",
+     "skipIfMissing": true,
+     "target": "patients.btn.timeline-delete-perio",
+     "title": "Eliminar"
+    },
+    {
+     "action": "click",
+     "details": "Abre el periodontograma: para seguir cargándolo o, si está cerrado, verlo y enmendarlo.",
+     "id": "open",
+     "target": "patients.btn.timeline-open-perio",
+     "title": "Continuar o ver",
+     "until": "perio-session.section.header"
+    }
+   ],
+   "summary": "Encontrar los periodontogramas en la historia clínica, abrirlos y compararlos con hoy.",
+   "title": "Ver, continuar o comparar periodontogramas"
+  },
+  {
+   "group": "Ficha periodoncia",
+   "id": "patients.perio-overview",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "sondaje",
+    "recorrido"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-periodontogram"
+    },
+    {
+     "action": "click",
+     "details": "Abre un periodontograma nuevo: los dientes ausentes, pónticos e implantes vienen del último odontograma y el último periodontograma cerrado queda como guía.",
+     "id": "item",
+     "target": "patients.btn.new-periodontogram",
+     "title": "Periodontograma",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "highlight",
+     "details": "Paciente, número de periodontograma, fecha y profesional.",
+     "id": "header",
+     "target": "perio-session.section.header",
+     "title": "Encabezado"
+    },
+    {
+     "action": "highlight",
+     "details": "Sondaje, Evolución, Diagnóstico y Cierre. Se puede saltar entre pasos en cualquier momento; el terminado lleva tilde.",
+     "id": "steps",
+     "target": "perio-session.btn.step-probe",
+     "title": "Los cuatro pasos"
+    },
+    {
+     "action": "highlight",
+     "details": "El anillo dice cuánto está completo; el estado lo calcula el sistema y el guardado es automático.",
+     "id": "progress",
+     "target": "perio-session.section.progress",
+     "title": "Avance y estado"
+    },
+    {
+     "action": "highlight",
+     "details": "Tocalo para ver en el gráfico, en ámbar, los sitios que faltan.",
+     "id": "missing",
+     "skipIfMissing": true,
+     "target": "perio-session.btn.missing",
+     "title": "Qué falta"
+    },
+    {
+     "action": "highlight",
+     "details": "Tipo de examen, el examen guía, lo que vino del odontograma, la configuración y el dictado.",
+     "id": "banner",
+     "target": "perio-session.section.banner",
+     "title": "Barra del examen"
+    },
+    {
+     "action": "highlight",
+     "details": "El sondaje se hace en tres vueltas: profundidad y sangrado, margen gingival, furcas y movilidad.",
+     "id": "passes",
+     "target": "perio-session.section.passes",
+     "title": "Pasadas"
+    },
+    {
+     "action": "highlight",
+     "details": "La cara de afuera arriba y la de adentro abajo; curva azul del margen y roja del fondo de la bolsa. Tocá una celda para medir ahí.",
+     "id": "chart",
+     "target": "perio-session.section.chart",
+     "title": "Periodontograma"
+    },
+    {
+     "action": "highlight",
+     "details": "La pieza activa con su tabla, el teclado, las marcas y la nota.",
+     "id": "inspector",
+     "target": "perio-session.section.inspector",
+     "title": "Inspector"
+    },
+    {
+     "action": "highlight",
+     "details": "Volver y seguir, siempre en el mismo lugar.",
+     "id": "footer",
+     "target": "perio-session.section.footer",
+     "title": "Pie"
+    }
+   ],
+   "summary": "Las partes de la hoja del periodontograma: pasos, avance, sondaje, inspector y pie.",
+   "title": "Recorrer el periodontograma"
+  },
+  {
+   "group": "Ficha periodoncia",
+   "id": "patients.perio-probing",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "sondaje",
+    "profundidad",
+    "sangrado",
+    "margen gingival",
+    "recesión",
+    "furca",
+    "movilidad",
+    "copiar examen anterior"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-periodontogram"
+    },
+    {
+     "action": "click",
+     "details": "Abre un periodontograma nuevo: los dientes ausentes, pónticos e implantes vienen del último odontograma y el último periodontograma cerrado queda como guía.",
+     "id": "item",
+     "target": "patients.btn.new-periodontogram",
+     "title": "Periodontograma",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "highlight",
+     "details": "Inicial, reevaluación o mantenimiento llevan el sondaje completo. Cribado y solo implantes tienen su propia guía.",
+     "id": "type",
+     "target": "perio-session.field.exam-type",
+     "title": "Tipo de examen"
+    },
+    {
+     "action": "highlight",
+     "details": "Si el paciente está estable, empezá con los valores del examen anterior y retocá lo que cambió. Lo copiado queda subrayado hasta confirmarlo.",
+     "id": "copy",
+     "skipIfMissing": true,
+     "target": "perio-session.btn.copy-all",
+     "title": "Copiar todo del examen anterior"
+    },
+    {
+     "action": "click",
+     "details": "Primera pasada: la profundidad de cada sitio.",
+     "id": "ps",
+     "target": "perio-session.btn.pass-ps",
+     "title": "Profundidad y sangrado"
+    },
+    {
+     "action": "highlight",
+     "details": "Dice la pieza y el sitio del próximo número. Escribí los dígitos: la sonda avanza sola al próximo sitio vacío.",
+     "id": "guide",
+     "target": "perio-session.section.guide-bar",
+     "title": "Qué toca cargar"
+    },
+    {
+     "action": "highlight",
+     "details": "Las curvas se dibujan mientras cargás. Tocá una celda para ir a ese sitio; un punto de SS cicla sangra → supura.",
+     "id": "chart",
+     "target": "perio-session.section.chart",
+     "title": "El gráfico"
+    },
+    {
+     "action": "highlight",
+     "details": "Van al sitio con el anillo punteado: el último medido o el que tocaste. Con el teclado: B, S y P.",
+     "id": "marks",
+     "skipIfMissing": true,
+     "target": "perio-session.section.marks",
+     "title": "Sangrado, supuración y placa"
+    },
+    {
+     "action": "highlight",
+     "details": "Con «Sigue a la sonda» la vista acompaña a la sonda; al cambiar de arcada aparece un aviso.",
+     "id": "focus",
+     "target": "perio-session.section.focus",
+     "title": "Qué arcada se ve"
+    },
+    {
+     "action": "click",
+     "details": "Segunda pasada: positivo es recesión (la encía bajó), negativo agrandamiento. «Sin recesión» carga 0.",
+     "id": "mg",
+     "target": "perio-session.btn.pass-mg",
+     "title": "Margen gingival"
+    },
+    {
+     "action": "highlight",
+     "details": "Dígitos, borrar, +1 para 10 mm o más, «Igual que antes» y el signo menos.",
+     "id": "keypad",
+     "skipIfMissing": true,
+     "target": "perio-session.section.keypad",
+     "title": "Teclado"
+    },
+    {
+     "action": "click",
+     "details": "Tercera pasada, por pieza: movilidad de 0 a III y el grado de cada furca. No bloquea el cierre.",
+     "id": "fm",
+     "target": "perio-session.btn.pass-fm",
+     "title": "Furcas y movilidad"
+    },
+    {
+     "action": "highlight",
+     "details": "Si el odontograma no coincide con la boca, corregilo acá: ausentes y pónticos no se sondean.",
+     "id": "status",
+     "target": "perio-session.field.tooth-status",
+     "title": "Estado de la pieza"
+    },
+    {
+     "action": "highlight",
+     "details": "Con el sondaje completo, el paso siguiente compara con los exámenes anteriores.",
+     "id": "next",
+     "target": "perio-session.btn.next-probe",
+     "title": "Siguiente: Evolución"
+    }
+   ],
+   "summary": "Cargar el sondaje en las tres pasadas, con el teclado, la guía del examen anterior o copiándolo.",
+   "title": "Sondar: profundidad, margen, furcas y movilidad"
+  },
+  {
+   "group": "Ficha periodoncia",
+   "id": "patients.perio-screening",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "cribado",
+    "PSR",
+    "BPE",
+    "sextantes",
+    "screening",
+    "implantes"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-periodontogram"
+    },
+    {
+     "action": "click",
+     "details": "Abre un periodontograma nuevo: los dientes ausentes, pónticos e implantes vienen del último odontograma y el último periodontograma cerrado queda como guía.",
+     "id": "item",
+     "target": "patients.btn.new-periodontogram",
+     "title": "Periodontograma",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "Cambiá el tipo de examen. (Con «Solo implantes», la sonda recorre solo los implantes.)",
+     "id": "type",
+     "target": "perio-session.field.exam-type",
+     "title": "Elegí «Cribado PSR/BPE»",
+     "until": "perio-session.section.sextants"
+    },
+    {
+     "action": "highlight",
+     "details": "En cada sextante, el código del peor sitio: 0 sano, 1 sangra, 2 sarro, 3 bolsa de 3,5 a 5,5 mm, 4 más profunda, X excluido. El asterisco marca furca, movilidad o recesión.",
+     "id": "sextants",
+     "target": "perio-session.section.sextants",
+     "title": "Sextantes"
+    },
+    {
+     "action": "highlight",
+     "details": "Con el teclado: 0–4 o X codifican el sextante marcado y pasan al siguiente.",
+     "id": "legend",
+     "target": "perio-session.section.psr-legend",
+     "title": "Qué significa cada código"
+    },
+    {
+     "action": "click",
+     "details": "El cribado no se clasifica: se interpreta el código más alto.",
+     "id": "dx",
+     "target": "perio-session.btn.step-diagnosis",
+     "title": "Diagnóstico"
+    },
+    {
+     "action": "highlight",
+     "details": "Qué significa el código más alto, qué hacer y en qué sextantes hace falta un periodontograma completo.",
+     "id": "result",
+     "skipIfMissing": true,
+     "target": "perio-session.section.dx-screening",
+     "title": "Resultado del cribado"
+    },
+    {
+     "action": "highlight",
+     "details": "Higiene, limpieza profesional o periodontograma completo según los códigos.",
+     "id": "plan",
+     "skipIfMissing": true,
+     "target": "perio-session.section.dx-plan",
+     "title": "Plan"
+    }
+   ],
+   "summary": "Un código por sextante en lugar del sondaje completo, y qué sugiere.",
+   "title": "Hacer un cribado PSR/BPE"
+  },
+  {
+   "group": "Ficha periodoncia",
+   "id": "patients.perio-settings",
+   "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+   },
+   "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "configuración periodontograma",
+    "orden de sondaje",
+    "signo del margen",
+    "intervalo de mantenimiento"
+   ],
+   "module": "Pacientes",
+   "screens": [
+    "patients"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha.",
+     "id": "go",
+     "route": "/patients",
+     "title": "Menú → Pacientes"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "Por nombre, correo o documento.",
+     "id": "search",
+     "optional": true,
+     "target": "patients.filter.search",
+     "title": "Buscá al paciente",
+     "value": "{{values.patient}}"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+     "id": "pick",
+     "target": "patients.section.first-row",
+     "title": "Abrí su ficha",
+     "until": "patients.section.header"
+    },
+    {
+     "action": "click",
+     "details": "Todo lo que se puede crear para este paciente.",
+     "id": "menu",
+     "target": "patients.btn.create-menu",
+     "title": "Crear",
+     "until": "patients.btn.new-periodontogram"
+    },
+    {
+     "action": "click",
+     "details": "Abre un periodontograma nuevo: los dientes ausentes, pónticos e implantes vienen del último odontograma y el último periodontograma cerrado queda como guía.",
+     "id": "item",
+     "target": "patients.btn.new-periodontogram",
+     "title": "Periodontograma",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "click",
+     "details": "El engranaje de la barra del examen. Vale para toda la clínica.",
+     "id": "gear",
+     "target": "perio-session.btn.settings",
+     "title": "Configuración",
+     "until": "perio-session.section.settings"
+    },
+    {
+     "action": "highlight",
+     "details": "Orden de sondaje (por arcada o vestibulares primero), signo del margen (recesión positiva o negativa: se guarda igual) y meses de mantenimiento para cada riesgo.",
+     "id": "form",
+     "target": "perio-session.section.settings",
+     "title": "Qué se configura"
+    },
+    {
+     "action": "confirm",
+     "details": "Solo quien edita la configuración del sistema puede guardarla.",
+     "id": "save",
+     "skipIfMissing": true,
+     "target": "perio-session.btn.settings-save",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Orden de sondaje, signo del margen e intervalos de mantenimiento.",
+   "title": "Configurar el periodontograma de la clínica"
+  },
+  {
    "group": "Información",
    "id": "patients.preferences",
    "inputs": {
@@ -43673,6 +45397,154 @@
    "title": "Recorrer Reglas de Alertas"
   },
   {
+   "id": "system.alert-rules.perio-maintenance",
+   "inputs": {
+    "category": "Nombre de la categoría de alertas (ej. Citas)"
+   },
+   "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "recordatorio mantenimiento",
+    "regla de alerta",
+    "mantenimiento periodontal"
+   ],
+   "module": "Sistema",
+   "screens": [
+    "system.alert-rules"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Qué genera una alerta y cuándo.",
+     "id": "go",
+     "route": "/system/alert-rules",
+     "title": "Menú → Sistema → Reglas de Alertas"
+    },
+    {
+     "action": "click",
+     "details": "Una regla nueva.",
+     "id": "new",
+     "target": "system.alert-rules.btn.new",
+     "title": "Crear",
+     "until": "system.alert-rules.field.name"
+    },
+    {
+     "action": "fill",
+     "details": "Cómo se va a ver en el Centro de Alertas.",
+     "id": "name",
+     "target": "system.alert-rules.field.name",
+     "title": "Nombre",
+     "value": "Mantenimiento periodontal"
+    },
+    {
+     "action": "fill",
+     "details": "Un código único para la regla.",
+     "id": "code",
+     "target": "system.alert-rules.field.code",
+     "title": "Código",
+     "value": "PERIO_MAINTENANCE_DUE"
+    },
+    {
+     "action": "fill",
+     "ask": true,
+     "details": "El grupo del Centro de Alertas, por ejemplo el de recordatorios a pacientes.",
+     "id": "category",
+     "optional": true,
+     "target": "system.alert-rules.field.category_id",
+     "title": "Categoría",
+     "value": "{{values.category}}"
+    },
+    {
+     "action": "fill",
+     "details": "La vista v_alert_perio_maintenance: una fila por paciente con su último periodontograma cerrado y la fecha en que le toca el mantenimiento.",
+     "id": "source",
+     "target": "system.alert-rules.field.source_table",
+     "title": "Origen",
+     "value": "v_alert_perio_maintenance"
+    },
+    {
+     "action": "fill",
+     "details": "«id»: es el paciente (así el envío automático sabe a quién mandarle).",
+     "id": "idfield",
+     "target": "system.alert-rules.field.table_id_field",
+     "title": "Campo de ID",
+     "value": "id ("
+    },
+    {
+     "action": "fill",
+     "details": "«patient_id».",
+     "id": "user",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.user_id_field",
+     "title": "Campo de usuario",
+     "value": "patient_id ("
+    },
+    {
+     "action": "fill",
+     "details": "«due_date»: cuándo le toca el mantenimiento.",
+     "id": "event",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.event_field",
+     "title": "Fecha del evento",
+     "value": "due_date ("
+    },
+    {
+     "action": "highlight",
+     "details": "Agregá una: columna due_date, operador «=» y valor {{TODAY}}. Sin ella la regla no filtra por fecha.",
+     "id": "conditions",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.section.conditions",
+     "title": "Condición"
+    },
+    {
+     "action": "fill",
+     "details": "Con cuánta anticipación avisar: con 14, la alerta sale 14 días antes del mantenimiento.",
+     "id": "before",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.days_before",
+     "title": "Días antes del evento",
+     "value": "14"
+    },
+    {
+     "action": "fill",
+     "details": "Diaria: cada día busca los mantenimientos que vencen.",
+     "id": "recurrence",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.recurrence_type",
+     "title": "Recurrencia",
+     "value": "Diaria"
+    },
+    {
+     "action": "highlight",
+     "details": "Para mandarle el aviso al paciente: una plantilla de tipo paciente. El envío lo activa «Enviar SMS Automáticamente».",
+     "id": "whatsapp",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.whatsapp_template_id",
+     "title": "Plantilla de WhatsApp (opcional)"
+    },
+    {
+     "action": "highlight",
+     "details": "Con «Enviar correo automático» y el interruptor general de envío de emails de alertas. Solo variables del paciente y de la clínica.",
+     "id": "email",
+     "skipIfMissing": true,
+     "target": "system.alert-rules.field.email_template_id",
+     "title": "Plantilla de correo (opcional)"
+    },
+    {
+     "action": "confirm",
+     "details": "Desde el día siguiente, el motor de alertas crea un aviso por cada paciente cuyo mantenimiento vence.",
+     "id": "save",
+     "target": "system.alert-rules.btn.submit",
+     "title": "Guardar"
+    }
+   ],
+   "summary": "Regla de alerta que avisa (y puede mandarle un mensaje al paciente) cuando le toca el mantenimiento.",
+   "title": "Crear el recordatorio de mantenimiento periodontal"
+  },
+  {
    "id": "system.alert-rules.test",
    "keywords": [
     "probar regla",
@@ -46240,6 +48112,81 @@
    ],
    "summary": "Recorrer la agenda del día y el panel del paciente: alertas, ficha, sesiones clínicas, odontograma, receta y agente con IA.",
    "title": "Usar Mi Consultorio"
+  },
+  {
+   "id": "workspace.perio-session",
+   "inputs": {},
+   "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "cita",
+    "mi consultorio",
+    "sondaje"
+   ],
+   "module": "Mi Consultorio",
+   "screens": [
+    "workspace"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "Las citas del día del profesional.",
+     "id": "go",
+     "route": "/workspace",
+     "title": "Menú → Mi Consultorio"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "La guía sigue cuando la cita está abierta.",
+     "id": "appt",
+     "target": "workspace.section.appointment",
+     "title": "Elegí la cita del paciente",
+     "until": "workspace.section.focus"
+    },
+    {
+     "action": "highlight",
+     "autoClick": true,
+     "details": "Abre uno nuevo, vinculado a esta cita y a este profesional.",
+     "id": "btn",
+     "target": "workspace.btn.periodontogram",
+     "title": "Periodontograma",
+     "until": "perio-session.section.header"
+    },
+    {
+     "action": "highlight",
+     "details": "Tipo de examen, examen guía y dictado.",
+     "id": "banner",
+     "target": "perio-session.section.banner",
+     "title": "Barra del examen"
+    },
+    {
+     "action": "highlight",
+     "details": "Profundidad y sangrado, margen gingival, furcas y movilidad.",
+     "id": "passes",
+     "target": "perio-session.section.passes",
+     "title": "Pasadas"
+    },
+    {
+     "action": "highlight",
+     "details": "Escribí o dictá: la sonda avanza sola.",
+     "id": "chart",
+     "target": "perio-session.section.chart",
+     "title": "Periodontograma"
+    },
+    {
+     "action": "highlight",
+     "details": "Sondaje, Evolución, Diagnóstico y Cierre.",
+     "id": "steps",
+     "target": "perio-session.section.header",
+     "title": "Los cuatro pasos"
+    }
+   ],
+   "summary": "Abrir un periodontograma del paciente de la cita en Mi Consultorio.",
+   "title": "Periodontograma desde la cita"
   },
   {
    "id": "workspace.prescribe",

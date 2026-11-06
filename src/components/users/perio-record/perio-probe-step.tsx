@@ -594,7 +594,7 @@ export function PerioProbeStep(props: PerioProbeStepProps) {
   const markTarget = pass === 'ps' ? flagRef ?? cursor : null;
 
   const guideBar = (
-    <div className={cn('flex flex-wrap items-center gap-2.5 border-b px-3 py-2 text-[13px]', passDone ? 'bg-gradient-to-r from-emerald-500/10 to-transparent' : 'bg-gradient-to-r from-primary/10 to-transparent')}>
+    <div data-help-id="perio-session.section.guide-bar" className={cn('flex flex-wrap items-center gap-2.5 border-b px-3 py-2 text-[13px]', passDone ? 'bg-gradient-to-r from-emerald-500/10 to-transparent' : 'bg-gradient-to-r from-primary/10 to-transparent')}>
       {passDone ? (
         <span className="flex items-center gap-1.5"><Check className="h-4 w-4 text-emerald-600" />{t('probe.guide.passDone', { done, total })}</span>
       ) : (
@@ -618,11 +618,11 @@ export function PerioProbeStep(props: PerioProbeStepProps) {
     <div ref={rootRef} className={cn('grid min-h-0 gap-3 p-3', side ? 'h-full grid-cols-[minmax(0,1fr)_330px] grid-rows-[minmax(0,1fr)]' : 'grid-cols-1')}>
       <section className="flex min-h-0 min-w-0 flex-col gap-2">
         {/* Exam banner and, on its right, the dictation */}
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border bg-card px-3 py-1.5 text-[12.5px] text-muted-foreground">
+        <div data-help-id="perio-session.section.banner" className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl border bg-card px-3 py-1.5 text-[12.5px] text-muted-foreground">
           <div className="flex min-w-0 flex-[0_1_auto] flex-wrap items-center gap-2.5">
             <span>{t('probe.banner.examType')}</span>
             <Select value={props.examType} onValueChange={(v) => props.onExamTypeChange(v as PerioExamType)} disabled={readOnly}>
-              <SelectTrigger className="h-7 w-auto gap-1 text-xs"><SelectValue /></SelectTrigger>
+              <SelectTrigger data-help-id="perio-session.field.exam-type" className="h-7 w-auto gap-1 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {PERIO_EXAM_TYPES.map((type) => (
                   <SelectItem key={type} value={type}>{t(`examTypes.${type}`)}</SelectItem>
@@ -648,7 +648,7 @@ export function PerioProbeStep(props: PerioProbeStepProps) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div role="group" aria-label={t('probe.passes.label')} className="flex flex-wrap gap-1.5">
+          <div data-help-id="perio-session.section.passes" role="group" aria-label={t('probe.passes.label')} className="flex flex-wrap gap-1.5">
             {(['ps', 'mg', 'fm'] as PerioPass[]).map((p, i) => {
               const [a, b] = passCount(p);
               const complete = b > 0 && a >= b;
@@ -657,6 +657,7 @@ export function PerioProbeStep(props: PerioProbeStepProps) {
                 <div key={p} className="flex flex-col items-start gap-0.5">
                 <button
                   type="button"
+                  data-help-id={`perio-session.btn.pass-${p}`}
                   onClick={() => setPass(p)}
                   aria-pressed={pass === p}
                   className={cn('inline-flex h-[34px] items-center gap-2 rounded-full border bg-card pl-2 pr-3 text-[12.5px] font-medium text-muted-foreground', pass === p && 'border-primary bg-primary/10 text-primary dark:text-foreground')}
@@ -668,7 +669,7 @@ export function PerioProbeStep(props: PerioProbeStepProps) {
                   <small className="tabular-nums text-muted-foreground">{a}/{b}</small>
                 </button>
                 {!readOnly && fillable > 0 && (
-                  <button type="button" onClick={() => copyFromGuide(p)} className="inline-flex items-center gap-1 pl-2 text-[11.5px] font-medium text-primary hover:underline" title={t(p === 'fm' ? 'probe.copy.hintTeeth' : 'probe.copy.hintSites', { count: fillable })}>
+                  <button type="button" data-help-id={`perio-session.btn.copy-${p}`} onClick={() => copyFromGuide(p)} className="inline-flex items-center gap-1 pl-2 text-[11.5px] font-medium text-primary hover:underline" title={t(p === 'fm' ? 'probe.copy.hintTeeth' : 'probe.copy.hintSites', { count: fillable })}>
                     <CopyPlus className="h-3 w-3" />{t('probe.copy.pass')}
                   </button>
                 )}
@@ -676,7 +677,7 @@ export function PerioProbeStep(props: PerioProbeStepProps) {
               );
             })}
           </div>
-          <div role="radiogroup" aria-label={t('probe.focus.label')} className="ml-auto inline-flex gap-0.5 rounded-[11px] border bg-muted/60 p-0.5">
+          <div data-help-id="perio-session.section.focus" role="radiogroup" aria-label={t('probe.focus.label')} className="ml-auto inline-flex gap-0.5 rounded-[11px] border bg-muted/60 p-0.5">
             {(['auto', 'U', 'L', 'both'] as Focus[]).map((f) => (
               <button
                 key={f}
@@ -705,12 +706,12 @@ export function PerioProbeStep(props: PerioProbeStepProps) {
           </div>
           {guide && (
             <div className="flex flex-col items-start gap-0.5">
-              <label className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
+              <label data-help-id="perio-session.field.show-guide" className="flex items-center gap-2 text-[12.5px] text-muted-foreground">
                 <Switch checked={showGhost} onCheckedChange={setShowGhost} />
                 {t('probe.showGuide')}
               </label>
               {!readOnly && copyCounts && copyCounts.ps + copyCounts.mg + copyCounts.fm > 0 && (
-                <button type="button" onClick={() => copyFromGuide('all')} className="inline-flex items-center gap-1 text-[11.5px] font-medium text-primary hover:underline">
+                <button type="button" data-help-id="perio-session.btn.copy-all" onClick={() => copyFromGuide('all')} className="inline-flex items-center gap-1 text-[11.5px] font-medium text-primary hover:underline">
                   <CopyPlus className="h-3 w-3" />{t('probe.copy.all')}
                 </button>
               )}
@@ -718,13 +719,13 @@ export function PerioProbeStep(props: PerioProbeStepProps) {
           )}
           {!readOnly && (
             <span className="flex items-center gap-0.5">
-              <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={props.onUndo} disabled={!props.canUndo} aria-label={t('probe.undo')} title={t('probe.undo')}><Undo2 className="h-4 w-4" /></Button>
+              <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={props.onUndo} disabled={!props.canUndo} data-help-id="perio-session.btn.undo" aria-label={t('probe.undo')} title={t('probe.undo')}><Undo2 className="h-4 w-4" /></Button>
               <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={props.onRedo} disabled={!props.canRedo} aria-label={t('probe.redo')} title={t('probe.redo')}><Redo2 className="h-4 w-4" /></Button>
             </span>
           )}
         </div>
 
-        <div className={cn('relative flex min-h-0 flex-col overflow-hidden rounded-2xl border bg-card', side && 'flex-1')}>
+        <div data-help-id="perio-session.section.chart" className={cn('relative flex min-h-0 flex-col overflow-hidden rounded-2xl border bg-card', side && 'flex-1')}>
           {guideBar}
           {activeHighlight && (
             <div className="flex flex-wrap items-center gap-2 border-b bg-amber-500/10 px-3 py-1.5 text-[12.5px] text-amber-800 dark:text-amber-300">
@@ -786,7 +787,7 @@ export function PerioProbeStep(props: PerioProbeStepProps) {
         </div>
       </section>
 
-      <aside className={cn('flex min-h-0 flex-col overflow-auto rounded-2xl border bg-card', side && 'h-full')} aria-label={t('inspector.label')}>
+      <aside data-help-id="perio-session.section.inspector" className={cn('flex min-h-0 flex-col overflow-auto rounded-2xl border bg-card', side && 'h-full')} aria-label={t('inspector.label')}>
         <PerioInspector
           teeth={teeth}
           tooth={activeTooth}
@@ -828,7 +829,7 @@ export function PerioProbeStep(props: PerioProbeStepProps) {
             })}
           </span>
           <FooterSpacer />
-          <Button type="button" variant={probed ? 'default' : 'outline'} onClick={props.onNext}>
+          <Button type="button" data-help-id="perio-session.btn.next-probe" variant={probed ? 'default' : 'outline'} onClick={props.onNext}>
             {t('probe.nextStep')}<ArrowRight className="ml-1.5 h-4 w-4" />
           </Button>
         </PerioStepFooter>
@@ -884,7 +885,7 @@ function Legend() {
   );
   const dot = (color: string, label: string) => <span className="inline-flex items-center gap-1.5"><i className="inline-block h-2 w-2 rounded-full" style={{ background: color }} />{label}</span>;
   return (
-    <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 border-t px-3 py-2 text-[11.5px] text-muted-foreground">
+    <div data-help-id="perio-session.section.legend" className="flex flex-wrap items-center gap-x-3.5 gap-y-1 border-t px-3 py-2 text-[11.5px] text-muted-foreground">
       {line('var(--perio-gm)', t('margin'))}
       {line('var(--perio-pd)', t('pocket'))}
       {line('hsl(var(--border))', t('cej'), true)}
@@ -1043,7 +1044,7 @@ function PerioInspector(p: PerioInspectorProps) {
           <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => p.onNavigate(1)} aria-label={t('inspector.next')}><ChevronRight className="h-4 w-4" /></Button>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <div data-help-id="perio-session.field.tooth-status" className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>{t('inspector.statusLabel')}</span>
           <Select value={tooth.status} onValueChange={(v) => p.onStatus(p.tooth, v as PerioToothStatus)} disabled={p.readOnly}>
             <SelectTrigger className="h-7 w-auto gap-1 text-xs"><SelectValue /></SelectTrigger>
@@ -1055,7 +1056,7 @@ function PerioInspector(p: PerioInspectorProps) {
 
         {probeable ? (
           <>
-            <table className="w-full border-separate [border-spacing:3px] text-[12.5px]">
+            <table data-help-id="perio-session.section.tooth-table" className="w-full border-separate [border-spacing:3px] text-[12.5px]">
               <thead>
                 <tr><th />{order.map((i) => <th key={i} className="text-center text-[10.5px] font-semibold text-muted-foreground">{t(`chart.sitesShort.${i}`)}</th>)}</tr>
               </thead>
@@ -1114,7 +1115,7 @@ function PerioInspector(p: PerioInspectorProps) {
         </Section>
       ) : !p.docked && (
         <Section>
-          <div className="grid grid-cols-4 gap-1.5">
+          <div data-help-id="perio-session.section.keypad" className="grid grid-cols-4 gap-1.5">
             {[7, 8, 9, 'bk', 4, 5, 6, 'plus', 1, 2, 3, 0].map((k) => (
               k === 'bk' ? <Button key={k} type="button" variant="outline" className="h-11" onClick={p.onBackspace} aria-label={t('inspector.backspace')}><Delete className="h-4 w-4" /></Button>
                 : k === 'plus' ? <Button key={k} type="button" variant="outline" className="h-11 text-[13px]" onClick={p.onBump} title={t('inspector.bumpHint')}>+1</Button>
@@ -1129,7 +1130,7 @@ function PerioInspector(p: PerioInspectorProps) {
                 <span className="col-span-4 text-[11.5px] text-muted-foreground">{t(sign < 0 ? 'inspector.marginHelpNegative' : 'inspector.marginHelp')}</span>
               </>
             ) : (
-              <div className="col-span-4 flex flex-col gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 p-2">
+              <div data-help-id="perio-session.section.marks" className="col-span-4 flex flex-col gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 p-2">
                 <span className="flex items-center gap-1.5 text-[11.5px] text-muted-foreground">
                   <i className="inline-block h-3 w-3 shrink-0 rounded-full border border-dashed border-primary" aria-hidden />
                   {targetLabel ? <span>{t('inspector.marksOnLabel')} <b className="text-foreground">{targetLabel}</b></span> : t('inspector.flagsApplyToLast')}
@@ -1161,6 +1162,7 @@ function PerioInspector(p: PerioInspectorProps) {
           readOnly={p.readOnly}
           onChange={(e) => p.onNote(p.tooth, e.target.value)}
           placeholder={t('inspector.notePlaceholder')}
+          data-help-id="perio-session.field.tooth-note"
           className="text-[13px]"
         />
       </Section>

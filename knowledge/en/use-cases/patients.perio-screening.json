@@ -1,0 +1,80 @@
+{
+  "id": "patients.perio-screening",
+  "title": "Do a PSR/BPE screening",
+  "summary": "One code per sextant instead of full probing, and what it suggests.",
+  "module": "Patients",
+  "group": "Periodontics record",
+  "inputs": {
+    "patient": "Patient's name, email or document"
+  },
+  "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "screening",
+    "PSR",
+    "BPE",
+    "sextants",
+    "implants"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or document."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide goes on when their record is open."
+    },
+    {
+      "id": "menu",
+      "title": "Create",
+      "details": "Everything that can be created for this patient."
+    },
+    {
+      "id": "item",
+      "title": "Periodontal chart",
+      "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart is the guide."
+    },
+    {
+      "id": "type",
+      "title": "Choose “PSR/BPE screening”",
+      "details": "Change the exam type. (With “Implants only”, the probe goes over the implants only.)"
+    },
+    {
+      "id": "sextants",
+      "title": "Sextants",
+      "details": "In each sextant, the code of the worst site: 0 healthy, 1 bleeds, 2 calculus, 3 pocket of 3.5 to 5.5 mm, 4 deeper, X excluded. The asterisk marks furcation, mobility or recession."
+    },
+    {
+      "id": "legend",
+      "title": "What each code means",
+      "details": "Keyboard: 0–4 or X code the marked sextant and move on."
+    },
+    {
+      "id": "dx",
+      "title": "Diagnosis",
+      "details": "A screening is not classified: the highest code is interpreted."
+    },
+    {
+      "id": "result",
+      "title": "Screening result",
+      "details": "What the highest code means, what to do and which sextants need a full periodontal chart."
+    },
+    {
+      "id": "plan",
+      "title": "Plan",
+      "details": "Hygiene, professional cleaning or a full periodontal chart depending on the codes."
+    }
+  ]
+}

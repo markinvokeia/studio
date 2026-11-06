@@ -1,0 +1,92 @@
+{
+  "id": "patients.perio-diagnosis",
+  "title": "Diagnosis and plan",
+  "summary": "Review and confirm the suggested stability, 2017 classification, risk and plan.",
+  "module": "Patients",
+  "group": "Periodontics record",
+  "inputs": {
+    "patient": "Patient's name, email or document"
+  },
+  "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "diagnosis",
+    "stage",
+    "grade",
+    "risk",
+    "periodontal plan",
+    "2017 classification",
+    "stability"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or document."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide goes on when their record is open."
+    },
+    {
+      "id": "menu",
+      "title": "Create",
+      "details": "Everything that can be created for this patient."
+    },
+    {
+      "id": "item",
+      "title": "Periodontal chart",
+      "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart is the guide."
+    },
+    {
+      "id": "step",
+      "title": "Diagnosis",
+      "details": "Everything is worked out by the system as a suggestion; the doctor reviews and confirms it."
+    },
+    {
+      "id": "today",
+      "title": "How it is today",
+      "details": "Stable, stable with inflammation or unstable, with the list that supports it."
+    },
+    {
+      "id": "inputs",
+      "title": "Data not from the probing",
+      "details": "Teeth lost to periodontitis, X-ray bone loss, age, smoking and diabetes: they define stage IV and the grade."
+    },
+    {
+      "id": "class",
+      "title": "2017 classification",
+      "details": "Case, stage (how severe), extent (where) and grade (how fast), with the reason. They can be changed; what is changed is marked."
+    },
+    {
+      "id": "risk",
+      "title": "Risk",
+      "details": "Six Lang & Tonetti parameters; the risk suggests how many months between check-ups."
+    },
+    {
+      "id": "implants",
+      "title": "Implants",
+      "details": "In “implants only”: healthy, mucositis or peri-implantitis for each implant."
+    },
+    {
+      "id": "plan",
+      "title": "Plan by steps",
+      "details": "Hygiene, reinstrumentation per tooth, re-evaluation and maintenance, each Today or Later."
+    },
+    {
+      "id": "confirm",
+      "title": "Confirm diagnosis",
+      "details": "With probing complete, tap it to put the diagnosis in the clinical record. If you change something afterwards, it has to be confirmed again."
+    }
+  ]
+}

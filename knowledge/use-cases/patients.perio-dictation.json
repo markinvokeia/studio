@@ -1,0 +1,112 @@
+{
+  "id": "patients.perio-dictation",
+  "title": "Dictar el sondaje",
+  "module": "Pacientes",
+  "summary": "Cargar el sondaje con la voz: comandos, línea activa y confirmar lo dictado.",
+  "screens": [
+    "patients"
+  ],
+  "group": "Ficha periodoncia",
+  "inputs": {
+    "patient": "Nombre, correo o documento del paciente"
+  },
+  "keywords": [
+    "periodontograma",
+    "periodoncia",
+    "periodontal",
+    "encías",
+    "perio",
+    "dictado",
+    "voz",
+    "micrófono",
+    "comandos de voz",
+    "dictar sondaje"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "action": "navigate",
+      "route": "/patients",
+      "title": "Menú → Pacientes",
+      "details": "Listado de pacientes; al tocar uno se abre su ficha a la derecha."
+    },
+    {
+      "id": "search",
+      "action": "fill",
+      "target": "patients.filter.search",
+      "title": "Buscá al paciente",
+      "details": "Por nombre, correo o documento.",
+      "value": "{{values.patient}}",
+      "optional": true,
+      "ask": true
+    },
+    {
+      "id": "pick",
+      "action": "highlight",
+      "target": "patients.section.first-row",
+      "title": "Abrí su ficha",
+      "details": "Tocá al paciente en la lista. La guía sigue cuando su ficha está abierta.",
+      "until": "patients.section.header",
+      "autoClick": true
+    },
+    {
+      "id": "menu",
+      "action": "click",
+      "target": "patients.btn.create-menu",
+      "title": "Crear",
+      "details": "Todo lo que se puede crear para este paciente.",
+      "until": "patients.btn.new-periodontogram"
+    },
+    {
+      "id": "item",
+      "action": "click",
+      "target": "patients.btn.new-periodontogram",
+      "title": "Periodontograma",
+      "details": "Abre un periodontograma nuevo: los dientes ausentes, pónticos e implantes vienen del último odontograma y el último periodontograma cerrado queda como guía.",
+      "until": "perio-session.section.header"
+    },
+    {
+      "id": "voice",
+      "action": "highlight",
+      "target": "perio-session.section.voice",
+      "title": "Dictado",
+      "details": "Muestra lo que se entendió de cada frase y lo que falta confirmar."
+    },
+    {
+      "id": "mic",
+      "action": "highlight",
+      "target": "perio-session.btn.dictate",
+      "title": "Dictar",
+      "details": "Encendé el micrófono y hablá: «38 lingual 3 2 4 sangra distal», «SS 23», «margen gingival», «arcada inferior». Cada frase se aplica al terminar."
+    },
+    {
+      "id": "type",
+      "action": "highlight",
+      "target": "perio-session.field.voice-command",
+      "title": "O escribilo",
+      "details": "El mismo comando escrito y Enter. Si una frase no se entiende, la IA la reescribe."
+    },
+    {
+      "id": "help",
+      "action": "highlight",
+      "target": "perio-session.btn.voice-help",
+      "title": "Comandos de voz",
+      "details": "La lista completa, en español y en inglés."
+    },
+    {
+      "id": "chart",
+      "action": "highlight",
+      "target": "perio-session.section.chart",
+      "title": "Dónde quedó",
+      "details": "Lo dictado parpadea en el gráfico y queda subrayado en violeta; si es otra arcada, la vista cambia sola."
+    },
+    {
+      "id": "pending",
+      "action": "highlight",
+      "target": "perio-session.section.voice-pending",
+      "title": "Confirmar lo dictado",
+      "details": "Revisalo y tocá Confirmar (o decí «confirmar»). Descartar lo deshace. No se puede firmar con dictado pendiente.",
+      "skipIfMissing": true
+    }
+  ]
+}

@@ -171,8 +171,15 @@ export function PerioDiagnosisStep({ today, earlier, diagnosis, onChange, birthd
       {isManual && <span className="inline-flex items-center gap-0.5 text-[11px] text-primary" title={t('diagnosis.manualHint')}><Pencil className="h-3 w-3" />{t('diagnosis.manual')}</span>}
     </span>
   );
+  // Help ids of the four cards, by their title (the assistant's guides point at them)
+  const cardIds: Record<string, string> = {
+    [t('diagnosis.today.title')]: 'perio-session.section.dx-today',
+    [t('diagnosis.classification.title')]: 'perio-session.section.dx-classification',
+    [t('diagnosis.risk.title')]: 'perio-session.section.dx-risk',
+    [t('diagnosis.plan.title')]: 'perio-session.section.dx-plan',
+  };
   const card = (title: string, children: React.ReactNode, aside?: React.ReactNode) => (
-    <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4">
+    <section data-help-id={cardIds[title]} className="flex flex-col gap-3 rounded-2xl border bg-card p-4">
       <div className="flex items-center gap-2">
         <h3 className="text-[11.5px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
         {aside && <span className="ml-auto">{aside}</span>}
@@ -242,7 +249,7 @@ export function PerioDiagnosisStep({ today, earlier, diagnosis, onChange, birthd
 
           {card(t('diagnosis.classification.title'), (
             <>
-              <div className="grid gap-2 rounded-xl bg-muted/40 p-3 sm:grid-cols-2">
+              <div data-help-id="perio-session.section.dx-inputs" className="grid gap-2 rounded-xl bg-muted/40 p-3 sm:grid-cols-2">
                 {row(t('diagnosis.inputs.teethLost'), number(base.teethLost, (v) => change({ teethLost: v }), { min: 0, max: 32 }))}
                 {row(t('diagnosis.inputs.boneLoss'), <span className="inline-flex items-center gap-1">{number(base.boneLossPct, (v) => change({ boneLossPct: v }), { min: 0, max: 100, placeholder: t('diagnosis.inputs.fromXray') })}%</span>)}
                 {row(t('diagnosis.inputs.age'), number(base.age, (v) => change({ age: v }), { min: 1, max: 120 }))}
@@ -324,11 +331,11 @@ export function PerioDiagnosisStep({ today, earlier, diagnosis, onChange, birthd
         <FooterSpacer />
         <Button type="button" variant="outline" onClick={onBack}><ArrowLeft className="mr-1.5 h-4 w-4" />{t('diagnosis.back')}</Button>
         {!readOnly && !confirmed && (
-          <Button type="button" onClick={confirm} disabled={!probed} title={!probed ? t('diagnosis.notProbed') : undefined}>
+          <Button type="button" data-help-id="perio-session.btn.confirm-diagnosis" onClick={confirm} disabled={!probed} title={!probed ? t('diagnosis.notProbed') : undefined}>
             <Check className="mr-1.5 h-4 w-4" />{t('diagnosis.confirm')}
           </Button>
         )}
-        {(confirmed || readOnly) && <Button type="button" onClick={onNext}>{t('diagnosis.next')}<ArrowRight className="ml-1.5 h-4 w-4" /></Button>}
+        {(confirmed || readOnly) && <Button type="button" data-help-id="perio-session.btn.next-diagnosis" onClick={onNext}>{t('diagnosis.next')}<ArrowRight className="ml-1.5 h-4 w-4" /></Button>}
       </PerioStepFooter>
     </div>
   );
@@ -420,7 +427,7 @@ function ImplantsCard({ rows, statuses, months, readOnly, onStatus, onMonths }: 
   const t = useTranslations('PerioRecord.diagnosis');
   const tone: Record<PerioImplantStatus, string> = { health: 'text-emerald-700 dark:text-emerald-400', mucositis: 'text-amber-700 dark:text-amber-400', periimplantitis: 'text-red-700 dark:text-red-400' };
   return (
-    <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4">
+    <section data-help-id="perio-session.section.dx-implants" className="flex flex-col gap-3 rounded-2xl border bg-card p-4">
       <h3 className="text-[11.5px] font-semibold uppercase tracking-wider text-muted-foreground">{t('implants.title')}</h3>
       <p className="-mt-1 text-[12px] text-muted-foreground">{t('implants.lead')}</p>
       {rows.length ? rows.map((r) => {
@@ -486,7 +493,7 @@ function ScreeningDiagnosis({ today, base, intervals, probed, readOnly, onChange
         <p className="mt-1 max-w-[80ch] text-sm text-muted-foreground">{t('diagnosis.screening.lead')}</p>
       </div>
       <div className="grid items-start gap-4 lg:grid-cols-2">
-        <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4">
+        <section data-help-id="perio-session.section.dx-screening" className="flex flex-col gap-3 rounded-2xl border bg-card p-4">
           <h3 className="text-[11.5px] font-semibold uppercase tracking-wider text-muted-foreground">{t('diagnosis.screening.title')}</h3>
           <div className={cn('rounded-xl border px-4 py-3', STABILITY_TONE[a.stability])}>
             <b className="text-lg font-bold">{code == null ? t('diagnosis.screening.notCoded') : t('diagnosis.phrase.psr', { code })}</b>
@@ -517,8 +524,8 @@ function ScreeningDiagnosis({ today, base, intervals, probed, readOnly, onChange
           : <span className="text-[13px] text-muted-foreground">{t(probed ? 'diagnosis.toConfirm' : 'diagnosis.screening.notProbed')}</span>}
         <FooterSpacer />
         <Button type="button" variant="outline" onClick={onBack}><ArrowLeft className="mr-1.5 h-4 w-4" />{t('diagnosis.back')}</Button>
-        {!readOnly && !confirmed && <Button type="button" onClick={() => onChange({ ...effective, confirmedAt: new Date().toISOString() })} disabled={!probed}><Check className="mr-1.5 h-4 w-4" />{t('diagnosis.confirm')}</Button>}
-        {(confirmed || readOnly) && <Button type="button" onClick={onNext}>{t('diagnosis.next')}<ArrowRight className="ml-1.5 h-4 w-4" /></Button>}
+        {!readOnly && !confirmed && <Button type="button" data-help-id="perio-session.btn.confirm-diagnosis" onClick={() => onChange({ ...effective, confirmedAt: new Date().toISOString() })} disabled={!probed}><Check className="mr-1.5 h-4 w-4" />{t('diagnosis.confirm')}</Button>}
+        {(confirmed || readOnly) && <Button type="button" data-help-id="perio-session.btn.next-diagnosis" onClick={onNext}>{t('diagnosis.next')}<ArrowRight className="ml-1.5 h-4 w-4" /></Button>}
       </PerioStepFooter>
     </div>
   );

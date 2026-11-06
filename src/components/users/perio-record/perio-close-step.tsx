@@ -131,14 +131,14 @@ export function PerioCloseStep(p: PerioCloseStepProps) {
         {/* Notes next to the next visit: everything to close is in view without scrolling */}
         <div className="flex flex-col gap-4">
           <NextVisitCard {...p} closing={closing} editable={editable} />
-          <section className="flex flex-col gap-2 rounded-2xl border bg-card p-4">
+          <section data-help-id="perio-session.section.notes" className="flex flex-col gap-2 rounded-2xl border bg-card p-4">
             <h3 className="text-[11.5px] font-semibold uppercase tracking-wider text-muted-foreground">{t('close.notes')}</h3>
             <Textarea rows={4} value={draft.notes} readOnly={!editable} onChange={(e) => p.onNotes(e.target.value)} placeholder={t('close.notesPlaceholder')} />
           </section>
         </div>
       </div>
 
-      {!isScreening && <section className="flex flex-col gap-3 rounded-2xl border bg-card p-4">
+      {!isScreening && <section data-help-id="perio-session.section.indices" className="flex flex-col gap-3 rounded-2xl border bg-card p-4">
         <h3 className="text-[11.5px] font-semibold uppercase tracking-wider text-muted-foreground">{t('close.indices')}</h3>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           {kpi(t('close.kpi.sites'), stats.sites)}
@@ -158,7 +158,7 @@ export function PerioCloseStep(p: PerioCloseStepProps) {
       {closed && p.stored && <Amendments exam={p.stored} canAmend={p.canAmend} onServer={p.onServer} />}
 
       <PerioStepFooter>
-        <div className="flex min-w-0 flex-wrap gap-x-4 gap-y-1 text-[12.5px]">
+        <div data-help-id="perio-session.section.checklist" className="flex min-w-0 flex-wrap gap-x-4 gap-y-1 text-[12.5px]">
           {items.map(([label, ok, reveal]) => (ok || !reveal ? (
             <span key={label} className={cn('inline-flex items-center gap-1', ok ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400')}>
               {ok ? <Check className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}{label}
@@ -175,7 +175,7 @@ export function PerioCloseStep(p: PerioCloseStepProps) {
         <FooterSpacer />
         <Button type="button" variant="outline" onClick={p.onGoToDiagnosis}><ArrowLeft className="mr-1.5 h-4 w-4" />{t('close.backToDiagnosis')}</Button>
         {!closed && (
-          <Button type="button" disabled={p.readOnly || !canSign} onClick={() => setConfirming(true)} title={blocker}>
+          <Button type="button" data-help-id="perio-session.btn.sign" disabled={p.readOnly || !canSign} onClick={() => setConfirming(true)} title={blocker}>
             <Lock className="mr-1.5 h-4 w-4" />{t('close.sign')}
           </Button>
         )}
@@ -189,7 +189,7 @@ export function PerioCloseStep(p: PerioCloseStepProps) {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={close.isPending}>{t('close.confirm.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={(e) => { e.preventDefault(); close.run(); }} disabled={close.isPending}>
+            <AlertDialogAction data-help-id="perio-session.btn.sign-confirm" onClick={(e) => { e.preventDefault(); close.run(); }} disabled={close.isPending}>
               {close.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {t('close.confirm.action')}
             </AlertDialogAction>
@@ -202,9 +202,9 @@ export function PerioCloseStep(p: PerioCloseStepProps) {
 
 type CardProps = PerioCloseStepProps & { closing: PerioClosing; editable: boolean };
 
-function Card({ title, icon, done, children }: { title: string; icon: React.ReactNode; done?: boolean; children: React.ReactNode }) {
+function Card({ title, icon, done, children, helpId }: { title: string; icon: React.ReactNode; done?: boolean; children: React.ReactNode; helpId?: string }) {
   return (
-    <section className={cn('flex flex-col gap-3 rounded-2xl border bg-card p-4', done && 'border-emerald-500/40')}>
+    <section data-help-id={helpId} className={cn('flex flex-col gap-3 rounded-2xl border bg-card p-4', done && 'border-emerald-500/40')}>
       <div className="flex items-center gap-2">
         <span className="text-muted-foreground">{icon}</span>
         <h3 className="text-[15px] font-semibold">{title}</h3>
@@ -263,21 +263,21 @@ function ReportCard(p: CardProps & { stats: PerioStats }) {
   const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
 
   return (
-    <Card title={t('title')} icon={<MessageCircle className="h-4 w-4" />} done={!!p.closing.reportSentAt}>
+    <Card helpId="perio-session.section.report" title={t('title')} icon={<MessageCircle className="h-4 w-4" />} done={!!p.closing.reportSentAt}>
       {/* Like the output box of a chat assistant: the text, with copy in its corner */}
       <div className="relative rounded-2xl rounded-tl-sm bg-muted/70 p-3 pr-10 text-[13px] leading-relaxed">
-        <button type="button" onClick={copy} className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-foreground" aria-label={copied ? t('copied') : t('copy')} title={copied ? t('copied') : t('copy')}>
+        <button type="button" data-help-id="perio-session.btn.report-copy" onClick={copy} className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-background hover:text-foreground" aria-label={copied ? t('copied') : t('copy')} title={copied ? t('copied') : t('copy')}>
           {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
         </button>
         {lines.map((line, i) => <p key={i} className={cn(i > 0 && 'mt-1', i === 1 && 'font-semibold')}>{line}</p>)}
       </div>
       {p.closing.reportSentAt && <p className="text-[12px] text-emerald-700 dark:text-emerald-400">{t('sentAt', { date: formatUtcDateTime(p.closing.reportSentAt) })}</p>}
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" onClick={() => setWhatsApp(true)} disabled={!p.stored?.patientPhone} title={!p.stored?.patientPhone ? t('noPhone') : undefined}>
+        <Button type="button" size="sm" data-help-id="perio-session.btn.report-whatsapp" onClick={() => setWhatsApp(true)} disabled={!p.stored?.patientPhone} title={!p.stored?.patientPhone ? t('noPhone') : undefined}>
           <MessageCircle className="mr-1.5 h-4 w-4" />{t('whatsapp')}
         </Button>
-        <Button type="button" size="sm" variant="outline" onClick={print}><Printer className="mr-1.5 h-4 w-4" />{t('print')}</Button>
-        <Button type="button" size="sm" variant="outline" onClick={() => setEmail(true)} disabled={!p.stored?.patientEmail} title={!p.stored?.patientEmail ? t('noEmail') : undefined}>
+        <Button type="button" size="sm" variant="outline" data-help-id="perio-session.btn.report-print" onClick={print}><Printer className="mr-1.5 h-4 w-4" />{t('print')}</Button>
+        <Button type="button" size="sm" variant="outline" data-help-id="perio-session.btn.report-email" onClick={() => setEmail(true)} disabled={!p.stored?.patientEmail} title={!p.stored?.patientEmail ? t('noEmail') : undefined}>
           <Mail className="mr-1.5 h-4 w-4" />{t('email')}
         </Button>
       </div>
@@ -388,7 +388,7 @@ function BillingCard(p: CardProps) {
   };
 
   return (
-    <Card title={t('title')} icon={<Receipt className="h-4 w-4" />} done={!!invoice || !!p.closing.noCharge}>
+    <Card helpId="perio-session.section.billing" title={t('title')} icon={<Receipt className="h-4 w-4" />} done={!!invoice || !!p.closing.noCharge}>
       {unlinked && (
         <p className="flex flex-wrap items-center gap-2 rounded-lg bg-destructive/10 px-2.5 py-1.5 text-xs text-destructive">
           {t('unlinked')}
@@ -409,11 +409,11 @@ function BillingCard(p: CardProps) {
           ) : <p className="text-[13px] text-muted-foreground">{t('nothingToday')}</p>}
           <p className="text-[11.5px] text-muted-foreground">{t('pickServices')}</p>
           {canCreate && !voided && !unlinked && (
-            <Button type="button" size="sm" className="self-start" disabled={!!p.closing.noCharge} loading={start.isPending} onClick={() => start.run()}>
+            <Button type="button" size="sm" className="self-start" disabled={!!p.closing.noCharge} loading={start.isPending} onClick={() => start.run()} data-help-id="perio-session.btn.charge">
               <Receipt className="mr-1.5 h-4 w-4" />{t('charge')}
             </Button>
           )}
-          <label className={cn('flex items-center gap-2 text-[13px]', !p.editable && 'opacity-60')}>
+          <label data-help-id="perio-session.field.no-charge" className={cn('flex items-center gap-2 text-[13px]', !p.editable && 'opacity-60')}>
             <Checkbox checked={!!p.closing.noCharge} disabled={!p.editable} onCheckedChange={(v) => p.onClosing({ ...p.closing, noCharge: v === true })} />
             {t('noCharge')}
           </label>
@@ -455,7 +455,7 @@ function NextVisitCard(p: CardProps) {
   const patient: User = { id: p.patientId, name: p.patientName ?? '', email: '', phone_number: p.stored?.patientPhone ?? '', is_active: true, avatar: '' };
 
   return (
-    <Card title={t('title')} icon={<CalendarClock className="h-4 w-4" />} done={!!visit}>
+    <Card helpId="perio-session.section.next-visit" title={t('title')} icon={<CalendarClock className="h-4 w-4" />} done={!!visit}>
       {visit ? (
         <div className="flex flex-col gap-2">
           <p className="flex items-center gap-1.5 text-[13px]">
@@ -478,8 +478,8 @@ function NextVisitCard(p: CardProps) {
             ))}
           </div>
           <div className="flex flex-wrap gap-2">
-            {canBook && p.editable && <Button type="button" size="sm" loading={openBooking.isPending} onClick={() => openBooking.run()}><CalendarCheck className="mr-1.5 h-4 w-4" />{t('book')}</Button>}
-            <Button type="button" size="sm" variant="outline" disabled={!p.editable} onClick={() => p.onClosing({ ...p.closing, nextVisit: { mode: 'later', date: option.date, kind: option.kind } })}>{t('bookLater')}</Button>
+            {canBook && p.editable && <Button type="button" size="sm" loading={openBooking.isPending} onClick={() => openBooking.run()} data-help-id="perio-session.btn.book"><CalendarCheck className="mr-1.5 h-4 w-4" />{t('book')}</Button>}
+            <Button type="button" size="sm" variant="outline" data-help-id="perio-session.btn.book-later" disabled={!p.editable} onClick={() => p.onClosing({ ...p.closing, nextVisit: { mode: 'later', date: option.date, kind: option.kind } })}>{t('bookLater')}</Button>
           </div>
         </>
       )}
@@ -514,10 +514,10 @@ function Amendments({ exam, canAmend, onServer }: { exam: PerioExam; canAmend: b
     describeError,
   });
   return (
-    <section className="flex flex-col gap-2 rounded-2xl border bg-card p-4">
+    <section data-help-id="perio-session.section.amendments" className="flex flex-col gap-2 rounded-2xl border bg-card p-4">
       <div className="flex items-center gap-2">
         <h3 className="text-[11.5px] font-semibold uppercase tracking-wider text-muted-foreground">{t('title')}</h3>
-        {canAmend && <Button type="button" size="sm" variant="outline" className="ml-auto" onClick={() => setOpen(true)}><PenLine className="mr-1.5 h-4 w-4" />{t('add')}</Button>}
+        {canAmend && <Button type="button" size="sm" variant="outline" className="ml-auto" data-help-id="perio-session.btn.amend" onClick={() => setOpen(true)}><PenLine className="mr-1.5 h-4 w-4" />{t('add')}</Button>}
       </div>
       {exam.amendments.length ? exam.amendments.map((a) => (
         <div key={a.id} className="rounded-xl bg-muted/60 px-3 py-2 text-[13px]">

@@ -19,7 +19,8 @@
     "workspace.prescribe",
     "workspace.odontogram",
     "workspace.agent",
-    "workspace.aesthetic-session"
+    "workspace.aesthetic-session",
+    "workspace.perio-session"
   ],
   "elements": {
     "workspace.section.agenda": {

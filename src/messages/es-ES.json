@@ -213,7 +213,6 @@
       "creditNoteDeleteError": "No se pudo eliminar la nota de crédito",
       "paymentUpdated": "Pago actualizado",
       "releasedCredit": "{amount} pasó a estar disponible como crédito del paciente",
-
       "releasedPending": "{amount} ha dejado de aplicarse a facturas, que vuelven a tener ese saldo pendiente",
       "paymentUpdateError": "No se pudo actualizar el pago",
       "creditNoteUpdated": "Nota de crédito actualizada",
@@ -10507,7 +10506,8 @@
       "elements": "Campos y botones",
       "show": "Mostrar",
       "tourCta": "Guíame por esta pantalla",
-      "tourTitle": "Recorrido por {screen}"
+      "tourTitle": "Recorrido por {screen}",
+      "about": "Sobre esta pantalla"
     },
     "chat": {
       "welcomeTitle": "¡Hola! ¿Qué quieres hacer ahora?",

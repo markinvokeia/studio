@@ -513,7 +513,7 @@ function PerioFlow({ patientId, patientName, examId, doctorId, doctorName, appoi
             )}
           </div>
         </PerioFooterSlotContext.Provider>
-        <div ref={setFooterSlot} className="shrink-0 border-t bg-card/95 px-4 py-2.5 shadow-[0_-4px_12px_-8px_rgb(0_0_0/0.25)] backdrop-blur empty:hidden" />
+        <div ref={setFooterSlot} data-help-id="perio-session.section.footer" className="shrink-0 border-t bg-card/95 px-4 py-2.5 shadow-[0_-4px_12px_-8px_rgb(0_0_0/0.25)] backdrop-blur empty:hidden" />
       </div>
 
       <AlertDialog open={confirmLeave} onOpenChange={setConfirmLeave}>
@@ -576,7 +576,7 @@ function FlowHeader({ patientName, date, doctorName, examNumber, step, onStep, s
   const compact = width > 0 && width < HEADER_COMPACT_WIDTH;
 
   return (
-    <header ref={headerRef} className={cn('relative flex shrink-0 items-center border-b bg-card', compact ? 'flex-wrap gap-x-2 gap-y-1.5 py-2 pl-3 pr-12' : 'gap-x-5 gap-y-2 px-4 py-2.5 pr-24', !compact && (oneRow ? 'flex-nowrap' : 'flex-wrap'))}>
+    <header ref={headerRef} data-help-id="perio-session.section.header" className={cn('relative flex shrink-0 items-center border-b bg-card', compact ? 'flex-wrap gap-x-2 gap-y-1.5 py-2 pl-3 pr-12' : 'gap-x-5 gap-y-2 px-4 py-2.5 pr-24', !compact && (oneRow ? 'flex-nowrap' : 'flex-wrap'))}>
       <div className={cn('flex min-w-0 items-center', compact ? 'flex-[1_1_0] gap-2' : 'gap-3')}>
         <span className={cn('flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-pink-500 font-semibold text-white', compact ? 'h-8 w-8 text-xs' : 'h-10 w-10 text-sm')} aria-hidden>
           {initials || '·'}
@@ -600,6 +600,7 @@ function FlowHeader({ patientName, date, doctorName, examNumber, step, onStep, s
               <Hint className="shrink-0" label={t('flow.hints.step', { step: n, name: t(`flow.steps.${STEP_KEYS[n]}`) })} description={locked ? t('flow.hints.comingSoon') : t(`flow.hints.steps.${STEP_KEYS[n]}`)}>
                 <button
                   type="button"
+                  data-help-id={`perio-session.btn.step-${STEP_KEYS[n]}`}
                   onClick={() => !locked && onStep(n)}
                   aria-current={isOn ? 'step' : undefined}
                   aria-disabled={locked || undefined}
@@ -621,7 +622,7 @@ function FlowHeader({ patientName, date, doctorName, examNumber, step, onStep, s
         })}
       </nav>
 
-      <div className={cn('ml-auto flex items-center gap-3', oneRow || compact ? 'shrink-0' : 'min-w-0')}>
+      <div data-help-id="perio-session.section.progress" className={cn('ml-auto flex items-center gap-3', oneRow || compact ? 'shrink-0' : 'min-w-0')}>
         {!compact && (
           <svg viewBox="0 0 38 38" className="h-9 w-9 shrink-0" role="img" aria-label={t('flow.header.completeness', { value: completeness })}>
             <circle cx="19" cy="19" r={radius} fill="none" className="stroke-muted" strokeWidth="4" />
@@ -637,7 +638,7 @@ function FlowHeader({ patientName, date, doctorName, examNumber, step, onStep, s
           {saveIndicator}
         </div>
         {!compact && (onMissingClick ? (
-          <button type="button" onClick={onMissingClick} title={status === 'probing' ? t('flow.missing.show') : undefined} className={cn('line-clamp-2 rounded-md text-left text-xs leading-snug underline decoration-dotted underline-offset-2 hover:text-foreground', status === 'probing' ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground', oneRow ? 'w-40' : 'max-w-[15rem]')} aria-live="polite">
+          <button type="button" data-help-id="perio-session.btn.missing" onClick={onMissingClick} title={status === 'probing' ? t('flow.missing.show') : undefined} className={cn('line-clamp-2 rounded-md text-left text-xs leading-snug underline decoration-dotted underline-offset-2 hover:text-foreground', status === 'probing' ? 'text-amber-700 dark:text-amber-400' : 'text-muted-foreground', oneRow ? 'w-40' : 'max-w-[15rem]')} aria-live="polite">
             {status === 'probing' && <AlertTriangle className="mr-1 inline h-3 w-3 align-[-2px]" />}{missing}
           </button>
         ) : (

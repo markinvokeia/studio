@@ -2974,6 +2974,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                 variant={canManagePerio && isOpenExam ? 'default' : 'outline'}
                                                                 size="sm"
                                                                 className="h-7 gap-1.5 text-xs"
+                                                                data-help-id={composeHelpId(helpScope, 'btn', 'timeline-open-perio')}
                                                                 onClick={() => setPerioSheet({ examId: exam.id })}
                                                             >
                                                                 {canManagePerio && isOpenExam ? <Edit3 className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
@@ -2985,6 +2986,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                     variant="outline"
                                                                     size="sm"
                                                                     className="h-7 gap-1.5 text-xs"
+                                                                    data-help-id={composeHelpId(helpScope, 'btn', 'timeline-compare-perio')}
                                                                     onClick={() => setPerioSheet({ examId: latestPerio.id, compareWithId: exam.id })}
                                                                 >
                                                                     <GitCompareArrows className="h-3.5 w-3.5" />
@@ -2998,6 +3000,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                                                     variant="ghost"
                                                                     size="sm"
                                                                     className="h-7 gap-1.5 text-xs text-destructive hover:text-destructive"
+                                                                    data-help-id={composeHelpId(helpScope, 'btn', 'timeline-delete-perio')}
                                                                     onClick={() => setDeletingPerio(exam)}
                                                                 >
                                                                     <Trash2 className="h-3.5 w-3.5" />

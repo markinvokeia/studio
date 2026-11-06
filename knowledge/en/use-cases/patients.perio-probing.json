@@ -1,0 +1,113 @@
+{
+  "id": "patients.perio-probing",
+  "title": "Probing: depth, margin, furcations and mobility",
+  "summary": "Record the probing in the three passes, with the keypad, the previous exam as a guide or copying it.",
+  "module": "Patients",
+  "group": "Periodontics record",
+  "inputs": {
+    "patient": "Patient's name, email or document"
+  },
+  "keywords": [
+    "periodontal chart",
+    "periodontics",
+    "periodontal",
+    "gums",
+    "perio",
+    "periodontogram",
+    "probing",
+    "depth",
+    "bleeding",
+    "gingival margin",
+    "recession",
+    "furcation",
+    "mobility",
+    "copy previous exam"
+  ],
+  "steps": [
+    {
+      "id": "go",
+      "title": "Menu → Patients",
+      "details": "Patient list; tapping one opens their record on the right."
+    },
+    {
+      "id": "search",
+      "title": "Find the patient",
+      "details": "By name, email or document."
+    },
+    {
+      "id": "pick",
+      "title": "Open their record",
+      "details": "Tap the patient in the list. The guide goes on when their record is open."
+    },
+    {
+      "id": "menu",
+      "title": "Create",
+      "details": "Everything that can be created for this patient."
+    },
+    {
+      "id": "item",
+      "title": "Periodontal chart",
+      "details": "Opens a new periodontal chart: missing teeth, pontics and implants come from the latest odontogram, and the latest closed chart is the guide."
+    },
+    {
+      "id": "type",
+      "title": "Exam type",
+      "details": "Initial, re-evaluation or maintenance need full probing. Screening and implants only have their own guide."
+    },
+    {
+      "id": "copy",
+      "title": "Copy everything from the previous exam",
+      "details": "If the patient is stable, start from the previous exam's values and adjust what changed. What is copied stays underlined until confirmed."
+    },
+    {
+      "id": "ps",
+      "title": "Depth and bleeding",
+      "details": "First pass: the depth of each site."
+    },
+    {
+      "id": "guide",
+      "title": "What to record now",
+      "details": "It says the tooth and site of the next number. Type the digits: the probe moves on by itself to the next empty site."
+    },
+    {
+      "id": "chart",
+      "title": "The chart",
+      "details": "The curves are drawn as you record. Tap a cell to go to that site; a BOP dot cycles bleeds → suppurates."
+    },
+    {
+      "id": "marks",
+      "title": "Bleeding, suppuration and plaque",
+      "details": "They go to the site with the dashed ring: the last one measured or the one you tapped. Keyboard: B, S and P."
+    },
+    {
+      "id": "focus",
+      "title": "Which arch is shown",
+      "details": "With “Follows the probe” the view goes with the probe; a notice shows when the arch changes."
+    },
+    {
+      "id": "mg",
+      "title": "Gingival margin",
+      "details": "Second pass: positive is recession (the gum went down), negative enlargement. “No recession” records 0."
+    },
+    {
+      "id": "keypad",
+      "title": "Keypad",
+      "details": "Digits, delete, +1 for 10 mm or more, “Same as before” and the minus sign."
+    },
+    {
+      "id": "fm",
+      "title": "Furcations and mobility",
+      "details": "Third pass, per tooth: mobility from 0 to III and the grade of each furcation. It does not block closing."
+    },
+    {
+      "id": "status",
+      "title": "Tooth status",
+      "details": "If the odontogram does not match the mouth, fix it here: missing teeth and pontics are not probed."
+    },
+    {
+      "id": "next",
+      "title": "Next: Progress",
+      "details": "With probing complete, the next step compares with earlier exams."
+    }
+  ]
+}
