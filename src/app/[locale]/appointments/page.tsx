@@ -13,7 +13,7 @@ import { CalendarSearchPanel, CalendarSearchResultsChip, type CalendarSearchResu
 import { CalendarAgendasPanel } from '@/components/calendar/calendar-agendas-panel';
 import { CalendarViewMenu } from '@/components/calendar/calendar-view-menu';
 import { CalendarZoomMenu } from '@/components/calendar/calendar-zoom-menu';
-import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, filterExceptionsForSede, gapKey, suggestEnableWindow, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
+import { computeRangeGaps, computeDayGaps, computeDayGapsForIntervals, getBusinessWindow, getAvailableIntervals, computeBlockedRanges, filterExceptionsForSede, gapKey, suggestBlockWindow, suggestEnableWindow, DEFAULT_MIN_GAP_MINUTES, type Gap, type BlockedRange } from '@/components/calendar/calendar-gaps';
 import { filterEventsByDayAndGroup } from '@/components/calendar/calendar-utils';
 import { DEFAULT_CALENDAR_MODE, DEFAULT_COLOR_BY_STATUS, DEFAULT_EVENT_LABEL_FORMAT, DEFAULT_SLOT_DURATION, DEFAULT_VISIBLE_HOURS_MODE, DURATION_PRESET_MINUTES, HOUR_SLOT_HEIGHT, MINUTES_IN_DAY } from '@/components/calendar/calendar-constants';
 import { clinicVisibleHoursRange, countEventsOutsideVisibleHours, customVisibleHoursRange, isOutsideVisibleHours, type ClinicHoursScope, type VisibleHoursRange } from '@/components/calendar/calendar-visible-hours';
@@ -81,7 +81,7 @@ import { useAsyncAction, useKeyedAsyncAction } from '@/hooks/use-async-action';
 import { useSlotAvailability } from '@/hooks/use-slot-availability';
 import { getSalesServices, getUsersServicesBatch, fetchServicesByIds } from '@/services/services';
 import { ColumnDef } from '@tanstack/react-table';
-import { addMinutes, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isValid, parseISO, set, startOfMonth, startOfWeek } from 'date-fns';
+import { addMinutes, eachDayOfInterval, endOfDay, endOfMonth, endOfWeek, format, isSameDay, isValid, parseISO, set, startOfDay, startOfMonth, startOfWeek } from 'date-fns';
 import { AlarmClock, AlertTriangle, Ban, BellRing, BookOpenText, Building2, Calendar as CalendarIcon, CalendarClock, CalendarDays, Clock, CalendarPlus, CalendarSearch, CalendarSync, Check, ChevronDown, ClipboardCheck, Edit, FileSpreadsheet, FileText, History, Images, Layers, Link2, Loader2, Palette, PlusCircle, Receipt, RefreshCw, Search, Stethoscope, Trash2, UserCog, UserRound, Users, X, Zap } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
@@ -97,6 +97,7 @@ import { ReminderMobileSheet } from '@/components/calendar/reminder-mobile-sheet
 import { ReminderScopeDialog } from '@/components/appointments/ReminderScopeDialog';
 import { PatientCreateDialog } from '@/components/patients/patient-create-dialog';
 import { BulkReassignDoctorDialog } from '@/components/appointments/BulkReassignDoctorDialog';
+import { BlockSlotDialog, type BlockSlotTarget } from '@/components/appointments/block-slot-dialog';
 import { EnableSlotDialog, type EnableSlotTarget } from '@/components/appointments/enable-slot-dialog';
 import { PrintScheduleDialog } from '@/components/appointments/PrintScheduleDialog';
 import { reassignAppointmentField, type AppointmentReassignChange } from '@/lib/appointment-reassign';
@@ -861,6 +862,7 @@ export default function AppointmentsPage() {
     const tOrderStatus = useTranslations('OrderStatus');
     const tReminders = useTranslations('Reminders');
     const tEnableSlot = useTranslations('AppointmentsPage.enableSlot');
+    const tBlockSlot = useTranslations('AppointmentsPage.blockSlot');
     const tPanel = useTranslations('AppointmentPanel');
     const tInline = useTranslations('AppointmentsPage.inlineCreate');
     const tGaps = useTranslations('Calendar.gaps');
@@ -4177,8 +4179,45 @@ export default function AppointmentsPage() {
         };
     }, [blockUnavailable, effectiveSchedules, blockingScopeForSlot, sedes]);
 
+    // ── "Bloquear horario" desde un horario abierto ───────────────────────────
+    // Crea un cierre de una vez. Que además recorte aperturas pide su propio
+    // permiso, y eso lo controla el diálogo escritura por escritura.
+    const [blockSlotTarget, setBlockSlotTarget] = React.useState<BlockSlotTarget | null>(null);
+
+    const blockSlotTargetFor = React.useCallback((slot: CalendarSlotContextMenuContext): BlockSlotTarget | null => {
+        if (slot.isBlocked || !blockUnavailable || effectiveSchedules.length === 0) return null;
+        // Un cierre es de la sede, no del doctor: desde su columna se leería como
+        // "bloquear a este doctor" y cerraría a todos.
+        if (slot.context?.groupBy === 'doctor') return null;
+        const { sedeId, schedules, exceptions } = blockingScopeForSlot(slot);
+        const slotMin = slot.date.getHours() * 60 + slot.date.getMinutes();
+        const suggested = suggestBlockWindow(slot.date, schedules, exceptions, slotMin);
+        if (!suggested) return null;
+        return {
+            day: slot.date,
+            sedeId: sedeId || undefined,
+            sedeName: sedeId ? sedes.find((s) => String(s.id) === sedeId)?.name : undefined,
+            singleBranch: sedes.length <= 1,
+            schedules,
+            exceptions: clinicExceptions,
+            calendarIds: calendars
+                .filter((c) => !sedeId || String(c.sede_id ?? '') === sedeId)
+                .map((c) => String(c.id)),
+            initialStartMin: suggested.startMin,
+            initialEndMin: suggested.endMin,
+        };
+    }, [blockUnavailable, effectiveSchedules, blockingScopeForSlot, sedes, clinicExceptions, calendars]);
+
+    // Todas las agendas que alcanza el cierre: `appointments` solo tiene las visibles.
+    // Sin agendas no se consulta, porque sin filtro el backend devolvería todas las citas.
+    const loadDayAppointmentsForBlock = React.useCallback(async (target: BlockSlotTarget) => {
+        if (target.calendarIds.length === 0) return [];
+        return getAppointments(target.calendarIds, startOfDay(target.day), endOfDay(target.day), calendars, services, doctors, t, colorSourcesFor);
+    }, [calendars, services, doctors, t, colorSourcesFor]);
+
     const renderSlotContextMenu = React.useCallback((slot: CalendarSlotContextMenuContext) => {
         const enableTarget = canEnableSlots ? enableSlotTargetFor(slot) : null;
+        const blockTarget = enableSlotPermissions.create ? blockSlotTargetFor(slot) : null;
         return (
             <>
                 {enableTarget && (
@@ -4221,9 +4260,23 @@ export default function AppointmentsPage() {
                     <FileText className="h-4 w-4" />
                     {tReminders('createType.note')}
                 </ContextMenuItem>
+                {blockTarget && (
+                    <>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem
+                            className="flex cursor-pointer items-center gap-2"
+                            data-help-id="appointments.btn.slot-block"
+                            // Next tick, like "Habilitar": the menu releases its pointer-events lock first.
+                            onSelect={() => setTimeout(() => setBlockSlotTarget(blockTarget), 0)}
+                        >
+                            <Ban className="h-4 w-4" />
+                            {tBlockSlot('menuItem')}
+                        </ContextMenuItem>
+                    </>
+                )}
             </>
         );
-    }, [canEnableSlots, enableSlotTargetFor, handleCreateAppointmentFromSlot, handleCreateNoteFromSlot, handleCreateReminderFromSlot, tReminders, tEnableSlot]);
+    }, [canEnableSlots, enableSlotPermissions.create, enableSlotTargetFor, blockSlotTargetFor, handleCreateAppointmentFromSlot, handleCreateNoteFromSlot, handleCreateReminderFromSlot, tReminders, tEnableSlot, tBlockSlot]);
 
     // Visible days for the blocking overlay (independent of the Huecos toggle).
     const blockVisibleDays = React.useMemo(() => {
@@ -6234,6 +6287,14 @@ export default function AppointmentsPage() {
                 permissions={enableSlotPermissions}
                 onOpenChange={(open) => { if (!open) setEnableSlotTarget(null); }}
                 onEnabled={loadClinicExceptions}
+            />
+
+            <BlockSlotDialog
+                target={blockSlotTarget}
+                permissions={enableSlotPermissions}
+                onOpenChange={(open) => { if (!open) setBlockSlotTarget(null); }}
+                onBlocked={loadClinicExceptions}
+                loadDayAppointments={loadDayAppointmentsForBlock}
             />
 
             <AppointmentFormDialog

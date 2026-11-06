@@ -36,6 +36,7 @@
     "appointments.default-view",
     "appointments.booking-rules",
     "appointments.enable-slot",
+    "appointments.block-slot",
     "appointments.missing-identity-document"
   ],
   "elements": {
@@ -431,6 +432,30 @@
     "appointments.enable-slot.btn.submit": {
       "label": "Habilitar",
       "description": "Guarda el horario de excepción de ese día."
+    },
+    "appointments.btn.slot-block": {
+      "label": "Bloquear horario…",
+      "description": "En el menú de clic derecho de un horario abierto: cierra ese rango sólo ese día, para toda la sede, como horario de excepción. No aparece en las columnas de doctor."
+    },
+    "appointments.block-slot.field.start_time": {
+      "label": "Desde",
+      "description": "Inicio del horario a bloquear."
+    },
+    "appointments.block-slot.field.end_time": {
+      "label": "Hasta",
+      "description": "Fin del horario a bloquear; tiene que ser posterior al inicio."
+    },
+    "appointments.block-slot.field.notes": {
+      "label": "Motivo",
+      "description": "Opcional: nota del cierre, se ve sobre la banda roja del calendario."
+    },
+    "appointments.block-slot.section.affected-appointments": {
+      "label": "Citas en ese horario",
+      "description": "Citas de la sede que caen en el rango. El bloqueo no las cancela ni las mueve."
+    },
+    "appointments.block-slot.btn.submit": {
+      "label": "Bloquear",
+      "description": "Guarda el cierre de ese día."
     },
     "appointments.btn.missing-document-open": {
       "label": "Entendido (falta el documento)",

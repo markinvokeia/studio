@@ -1,5 +1,5 @@
 {
- "version": "191e7bdfdadec533",
+ "version": "600181dbeaf4d312",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -3237,6 +3237,41 @@
   {
    "elements": [
     {
+     "description": "Guarda el cierre de ese día.",
+     "id": "appointments.block-slot.btn.submit",
+     "kind": "btn",
+     "label": "Bloquear",
+     "source": "src/components/appointments/block-slot-dialog.tsx"
+    },
+    {
+     "description": "Fin del horario a bloquear; tiene que ser posterior al inicio.",
+     "id": "appointments.block-slot.field.end_time",
+     "kind": "field",
+     "label": "Hasta",
+     "source": "src/components/appointments/block-slot-dialog.tsx"
+    },
+    {
+     "description": "Opcional: nota del cierre, se ve sobre la banda roja del calendario.",
+     "id": "appointments.block-slot.field.notes",
+     "kind": "field",
+     "label": "Motivo",
+     "source": "src/components/appointments/block-slot-dialog.tsx"
+    },
+    {
+     "description": "Inicio del horario a bloquear.",
+     "id": "appointments.block-slot.field.start_time",
+     "kind": "field",
+     "label": "Desde",
+     "source": "src/components/appointments/block-slot-dialog.tsx"
+    },
+    {
+     "description": "Citas de la sede que caen en el rango. El bloqueo no las cancela ni las mueve.",
+     "id": "appointments.block-slot.section.affected-appointments",
+     "kind": "section",
+     "label": "Citas en ese horario",
+     "source": "src/components/appointments/block-slot-dialog.tsx"
+    },
+    {
      "description": "Abre el formulario del dependiente. Si su cédula o su teléfono ya son de otra ficha, podés vincular esa ficha en vez de crear otra.",
      "id": "appointments.btn.add-dependent",
      "kind": "btn",
@@ -3569,6 +3604,13 @@
      "kind": "btn",
      "label": "Ajustes de la agenda",
      "source": "src/components/calendar/calendar-settings-popover.tsx"
+    },
+    {
+     "description": "En el menú de clic derecho de un horario abierto: cierra ese rango sólo ese día, para toda la sede, como horario de excepción. No aparece en las columnas de doctor.",
+     "id": "appointments.btn.slot-block",
+     "kind": "btn",
+     "label": "Bloquear horario…",
+     "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
      "description": "En el menú de clic derecho de un horario cerrado: abre esas horas sólo ese día, como horario de excepción.",
@@ -4205,6 +4247,7 @@
     "appointments.default-view",
     "appointments.booking-rules",
     "appointments.enable-slot",
+    "appointments.block-slot",
     "appointments.missing-identity-document"
    ]
   },
@@ -19016,6 +19059,90 @@
    ],
    "summary": "Sacar una alerta de la bandeja hasta una fecha, con el motivo.",
    "title": "Pausar una alerta hasta otra fecha"
+  },
+  {
+   "id": "appointments.block-slot",
+   "inputs": {
+    "end_time": "Hasta (HH:MM)",
+    "notes": "Motivo",
+    "start_time": "Desde (HH:MM)"
+   },
+   "keywords": [
+    "bloquear horario",
+    "cerrar horario",
+    "cerrar un rato",
+    "no atender",
+    "reunión",
+    "excepción",
+    "cierre"
+   ],
+   "module": "Agenda",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "En la agenda, lo que se ve en blanco está abierto para agendar.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menú → Citas"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "Sobre un horario libre, no sobre una cita. En una franja cerrada o en una columna de doctor la opción no aparece.",
+     "id": "slot",
+     "target": "appointments.section.calendar",
+     "title": "Clic derecho en un horario abierto",
+     "until": "appointments.btn.slot-block"
+    },
+    {
+     "action": "click",
+     "details": "Propone una hora desde donde hiciste clic.",
+     "id": "block",
+     "target": "appointments.btn.slot-block",
+     "title": "Bloquear horario…",
+     "until": "appointments.block-slot.field.start_time"
+    },
+    {
+     "action": "fill",
+     "details": "Hora en la que empieza el bloqueo.",
+     "id": "start",
+     "optional": true,
+     "target": "appointments.block-slot.field.start_time",
+     "title": "Desde",
+     "value": "{{values.start_time}}"
+    },
+    {
+     "action": "fill",
+     "details": "Tiene que ser posterior a «Desde». Abajo se ven las citas que caen en el rango y cómo queda el horario del día.",
+     "id": "end",
+     "optional": true,
+     "target": "appointments.block-slot.field.end_time",
+     "title": "Hasta",
+     "value": "{{values.end_time}}"
+    },
+    {
+     "action": "fill",
+     "details": "Opcional. Se ve sobre la banda roja del calendario (ej.: reunión de equipo).",
+     "id": "notes",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "appointments.block-slot.field.notes",
+     "title": "Motivo",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "confirm",
+     "details": "Cierra toda la sede ese día en ese rango, también para el agente de WhatsApp. Las citas existentes no se tocan. Se deshace con clic derecho → Habilitar horario.",
+     "id": "save",
+     "target": "appointments.block-slot.btn.submit",
+     "title": "Bloquear"
+    }
+   ],
+   "summary": "Clic derecho en un horario abierto → Bloquear horario: cierra ese rango sólo ese día, para toda la sede, como horario de excepción.",
+   "title": "Bloquear un horario desde la agenda"
   },
   {
    "id": "appointments.booking-rules",

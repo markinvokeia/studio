@@ -1,5 +1,5 @@
 {
- "version": "bb104f468ce9b210",
+ "version": "68f79ad0d8936468",
  "locale": "en",
  "journey": [
   {
@@ -3150,6 +3150,41 @@
   {
    "elements": [
     {
+     "description": "Saves that day's closure.",
+     "id": "appointments.block-slot.btn.submit",
+     "kind": "btn",
+     "label": "Block",
+     "source": "src/components/appointments/block-slot-dialog.tsx"
+    },
+    {
+     "description": "End of the hours to block; it must be after the start.",
+     "id": "appointments.block-slot.field.end_time",
+     "kind": "field",
+     "label": "To",
+     "source": "src/components/appointments/block-slot-dialog.tsx"
+    },
+    {
+     "description": "Optional: the closure's note, shown on the calendar's red band.",
+     "id": "appointments.block-slot.field.notes",
+     "kind": "field",
+     "label": "Reason",
+     "source": "src/components/appointments/block-slot-dialog.tsx"
+    },
+    {
+     "description": "Start of the hours to block.",
+     "id": "appointments.block-slot.field.start_time",
+     "kind": "field",
+     "label": "From",
+     "source": "src/components/appointments/block-slot-dialog.tsx"
+    },
+    {
+     "description": "The branch's appointments within the range. Blocking doesn't cancel or move them.",
+     "id": "appointments.block-slot.section.affected-appointments",
+     "kind": "section",
+     "label": "Appointments at that time",
+     "source": "src/components/appointments/block-slot-dialog.tsx"
+    },
+    {
      "description": "Opens the dependent's form. If their ID or phone already belongs to another record, you can link that record instead of creating another.",
      "id": "appointments.btn.add-dependent",
      "kind": "btn",
@@ -3482,6 +3517,13 @@
      "kind": "btn",
      "label": "Calendar settings",
      "source": "src/components/calendar/calendar-settings-popover.tsx"
+    },
+    {
+     "description": "In the right-click menu of an open time: closes that range for that day only, for the whole branch, as an exception schedule. It doesn't show up in doctor columns.",
+     "id": "appointments.btn.slot-block",
+     "kind": "btn",
+     "label": "Block hours…",
+     "source": "src/app/[locale]/appointments/page.tsx"
     },
     {
      "description": "In the right-click menu of a closed time: opens those hours for that day only, as an exception schedule.",
@@ -4118,6 +4160,7 @@
     "appointments.default-view",
     "appointments.booking-rules",
     "appointments.enable-slot",
+    "appointments.block-slot",
     "appointments.missing-identity-document"
    ]
   },
@@ -18929,6 +18972,90 @@
    ],
    "summary": "Remove an alert from the inbox until a date, with the reason.",
    "title": "Snooze an alert until another date"
+  },
+  {
+   "id": "appointments.block-slot",
+   "inputs": {
+    "end_time": "To (HH:MM)",
+    "notes": "Reason",
+    "start_time": "From (HH:MM)"
+   },
+   "keywords": [
+    "block hours",
+    "close hours",
+    "close for a while",
+    "not available",
+    "meeting",
+    "exception",
+    "closure"
+   ],
+   "module": "Calendar",
+   "screens": [
+    "appointments"
+   ],
+   "steps": [
+    {
+     "action": "navigate",
+     "details": "In the calendar, what shows in white is open for booking.",
+     "id": "go",
+     "route": "/appointments",
+     "title": "Menu → Appointments"
+    },
+    {
+     "action": "highlight",
+     "blocking": true,
+     "details": "On a free time, not on an appointment. The option doesn't show up on a closed band or in a doctor column.",
+     "id": "slot",
+     "target": "appointments.section.calendar",
+     "title": "Right-click an open time",
+     "until": "appointments.btn.slot-block"
+    },
+    {
+     "action": "click",
+     "details": "It suggests one hour from where you clicked.",
+     "id": "block",
+     "target": "appointments.btn.slot-block",
+     "title": "Block hours…",
+     "until": "appointments.block-slot.field.start_time"
+    },
+    {
+     "action": "fill",
+     "details": "Time the block starts.",
+     "id": "start",
+     "optional": true,
+     "target": "appointments.block-slot.field.start_time",
+     "title": "From",
+     "value": "{{values.start_time}}"
+    },
+    {
+     "action": "fill",
+     "details": "It must be after \"From\". Below you can see the appointments within the range and the resulting hours for the day.",
+     "id": "end",
+     "optional": true,
+     "target": "appointments.block-slot.field.end_time",
+     "title": "To",
+     "value": "{{values.end_time}}"
+    },
+    {
+     "action": "fill",
+     "details": "Optional. Shown on the calendar's red band (e.g. team meeting).",
+     "id": "notes",
+     "optional": true,
+     "skipIfMissing": true,
+     "target": "appointments.block-slot.field.notes",
+     "title": "Reason",
+     "value": "{{values.notes}}"
+    },
+    {
+     "action": "confirm",
+     "details": "It closes the whole branch for that range that day, for the WhatsApp agent too. Existing appointments aren't touched. Undo it with right-click → Enable hours.",
+     "id": "save",
+     "target": "appointments.block-slot.btn.submit",
+     "title": "Block"
+    }
+   ],
+   "summary": "Right-click an open time → Block hours: closes that range for that day only, for the whole branch, as an exception schedule.",
+   "title": "Block hours from the calendar"
   },
   {
    "id": "appointments.booking-rules",

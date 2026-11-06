@@ -1386,6 +1386,54 @@
         "otherScope": "«{name}» aplica a otro alcance de sedes (por ejemplo, todas las sedes).",
         "link": "Abrir Horarios de excepción"
       }
+    },
+    "blockSlot": {
+      "menuItem": "Bloquear horario…",
+      "title": "Bloquear horario",
+      "description": "{date} · {scope}",
+      "thisBranch": "Esta sede",
+      "allBranches": "Todas las sedes",
+      "startTime": "Desde",
+      "endTime": "Hasta",
+      "notes": "Motivo (opcional)",
+      "notesPlaceholder": "Ej.: reunión de equipo",
+      "defaultNote": "Bloqueado desde el calendario",
+      "scopeBranch": "Se cierra toda la sede {name}, con todos sus consultorios, no solo esta columna.",
+      "scopeAll": "Se cierra en todas las sedes de la clínica.",
+      "resultingHours": "Horario de atención ese día: {hours}",
+      "alreadyClosed": "Ese horario ya está cerrado. Elegí un rango dentro del horario de atención.",
+      "hint": "Solo cambia este día. Se guarda como horario de excepción; para deshacerlo, hacé clic derecho sobre el horario bloqueado → Habilitar horario.",
+      "cancel": "Cancelar",
+      "confirm": "Bloquear",
+      "successTitle": "Horario bloqueado",
+      "successDescription": "Horario de atención ese día: {hours}",
+      "partialError": "Solo se aplicaron {saved} de {total} cambios: el agente de WhatsApp todavía podría ofrecer ese horario. Revisá el día en Horarios de excepción.",
+      "validation": {
+        "time": "Ingresá una hora válida",
+        "endAfterStart": "El fin tiene que ser posterior al inicio"
+      },
+      "unnamedOpening": "Apertura sin nota",
+      "closedAllDay": "cerrado todo el día",
+      "missingPermission": "No tenés permiso para hacer todos los cambios en Horarios de excepción que hacen falta.",
+      "changes": {
+        "title": "Qué más va a cambiar",
+        "liftOpening": "Se quita la apertura «{name}».",
+        "trimOpening": "La apertura «{name}» queda solo en {hours}.",
+        "removeDate": "Se quita este día de la apertura «{name}» (sigue en {count, plural, one {# fecha más} other {# fechas más}}).",
+        "removeDatePartial": "Se quita este día de la apertura «{name}» (sigue en {count, plural, one {# fecha más} other {# fechas más}}); hoy queda abierta {hours}."
+      },
+      "appointments": {
+        "checking": "Revisando las citas de ese día…",
+        "checkFailed": "No se pudieron revisar las citas de ese día: puede haber citas en ese horario.",
+        "title": "{count, plural, one {Hay # cita en ese horario. No se cancela ni se mueve:} other {Hay # citas en ese horario. No se cancelan ni se mueven:}}",
+        "more": "y {count} más"
+      },
+      "locked": {
+        "title": "Estas aperturas le ganan al bloqueo para el agente de WhatsApp y no se pueden cambiar desde el calendario:",
+        "recurring": "«{name}» se repite en otras fechas.",
+        "otherScope": "«{name}» aplica también a otras sedes.",
+        "link": "Abrir Horarios de excepción"
+      }
     }
   },
   "PrintScheduleDialog": {

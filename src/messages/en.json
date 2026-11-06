@@ -1386,6 +1386,54 @@
         "otherScope": "“{name}” applies to another branch scope (e.g. all branches).",
         "link": "Open Exception schedules"
       }
+    },
+    "blockSlot": {
+      "menuItem": "Block hours…",
+      "title": "Block hours",
+      "description": "{date} · {scope}",
+      "thisBranch": "This branch",
+      "allBranches": "All branches",
+      "startTime": "From",
+      "endTime": "To",
+      "notes": "Reason (optional)",
+      "notesPlaceholder": "E.g. team meeting",
+      "defaultNote": "Blocked from the calendar",
+      "scopeBranch": "This closes the whole {name} branch, with all its rooms, not just this column.",
+      "scopeAll": "This closes every branch of the clinic.",
+      "resultingHours": "Opening hours that day: {hours}",
+      "alreadyClosed": "Those hours are already closed. Pick a range within opening hours.",
+      "hint": "It only changes this day. It is saved as an exception schedule; to undo it, right-click the blocked time → Enable hours.",
+      "cancel": "Cancel",
+      "confirm": "Block",
+      "successTitle": "Hours blocked",
+      "successDescription": "Opening hours that day: {hours}",
+      "partialError": "Only {saved} of {total} changes were applied: the WhatsApp agent could still offer those hours. Check the day in Exception schedules.",
+      "validation": {
+        "time": "Enter a valid time",
+        "endAfterStart": "The end must be after the start"
+      },
+      "unnamedOpening": "Opening without a note",
+      "closedAllDay": "closed all day",
+      "missingPermission": "You don't have permission to make all the changes needed in Exception schedules.",
+      "changes": {
+        "title": "What else will change",
+        "liftOpening": "The opening “{name}” is removed.",
+        "trimOpening": "The opening “{name}” stays only at {hours}.",
+        "removeDate": "This day is removed from the opening “{name}” (it stays on {count, plural, one {# more date} other {# more dates}}).",
+        "removeDatePartial": "This day is removed from the opening “{name}” (it stays on {count, plural, one {# more date} other {# more dates}}); today it stays open at {hours}."
+      },
+      "appointments": {
+        "checking": "Checking that day's appointments…",
+        "checkFailed": "That day's appointments couldn't be checked: there may be appointments at that time.",
+        "title": "{count, plural, one {There is # appointment at that time. It is not canceled or moved:} other {There are # appointments at that time. They are not canceled or moved:}}",
+        "more": "and {count} more"
+      },
+      "locked": {
+        "title": "These openings override the block for the WhatsApp agent and can't be changed from the calendar:",
+        "recurring": "“{name}” repeats on other dates.",
+        "otherScope": "“{name}” also applies to other branches.",
+        "link": "Open Exception schedules"
+      }
     }
   },
   "PrintScheduleDialog": {

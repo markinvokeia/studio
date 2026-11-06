@@ -405,6 +405,30 @@
       "label": "Enable",
       "description": "Saves that day's exception schedule."
     },
+    "appointments.btn.slot-block": {
+      "label": "Block hours…",
+      "description": "In the right-click menu of an open time: closes that range for that day only, for the whole branch, as an exception schedule. It doesn't show up in doctor columns."
+    },
+    "appointments.block-slot.field.start_time": {
+      "label": "From",
+      "description": "Start of the hours to block."
+    },
+    "appointments.block-slot.field.end_time": {
+      "label": "To",
+      "description": "End of the hours to block; it must be after the start."
+    },
+    "appointments.block-slot.field.notes": {
+      "label": "Reason",
+      "description": "Optional: the closure's note, shown on the calendar's red band."
+    },
+    "appointments.block-slot.section.affected-appointments": {
+      "label": "Appointments at that time",
+      "description": "The branch's appointments within the range. Blocking doesn't cancel or move them."
+    },
+    "appointments.block-slot.btn.submit": {
+      "label": "Block",
+      "description": "Saves that day's closure."
+    },
     "appointments.btn.missing-document-open": {
       "label": "Got it (missing document)",
       "description": "Notice when the appointment can't move to a status because the patient has no document: opens their details to add it."
@@ -456,6 +480,7 @@
   },
   "useCases": [
     "appointments.enable-slot",
+    "appointments.block-slot",
     "appointments.missing-identity-document"
   ]
 }
