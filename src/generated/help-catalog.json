@@ -1,5 +1,5 @@
 {
- "version": "c3419c6270059944",
+ "version": "4b9f07a5f84f7526",
  "journey": [
   {
    "description": "Nombre, logo, contacto y moneda con la que vas a cobrar.",
@@ -8711,6 +8711,13 @@
      "id": "patients.btn.timeline-print",
      "kind": "btn",
      "label": "Imprimir historia",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Tocalo para desplegarlo: vista previa, tipo de examen, diagnóstico, índices y botones.",
+     "id": "patients.btn.timeline-row-perio",
+     "kind": "btn",
+     "label": "Periodontograma en la línea de tiempo",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -34745,10 +34752,9 @@
     },
     {
      "action": "highlight",
-     "blocking": true,
-     "details": "Al expandirlo: la vista previa de las dos arcadas, el tipo, el diagnóstico y los índices.",
+     "details": "Desplegalo: la vista previa de las dos arcadas (o los sextantes, si es un cribado), el tipo, el diagnóstico y los índices.",
      "id": "card",
-     "target": "patients.section.timeline",
+     "target": "patients.btn.timeline-row-perio",
      "title": "Tocá un periodontograma",
      "until": "patients.btn.timeline-open-perio"
     },

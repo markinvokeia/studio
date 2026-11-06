@@ -1841,6 +1841,8 @@ interface TimelineRowProps {
     onToggle?: () => void;
     /** Resalta el registro ligado a la cita que se está atendiendo. */
     highlighted?: boolean;
+    /** data-help-id de la cabecera (para que una guía señale este tipo de registro). */
+    helpId?: string;
     /** Detalle completo, sin truncar. Solo se monta desplegado. */
     children?: React.ReactNode;
 }
@@ -1853,7 +1855,7 @@ interface TimelineRowProps {
  * los lectores de pantalla (su clic sube a la cabecera, no se maneja dos veces).
  * Las `actions` cortan la propagación, también la de los menús en portal de Radix.
  */
-function TimelineRow({ icon, summary, trailing, actions, expanded, onToggle, highlighted = false, children }: TimelineRowProps) {
+function TimelineRow({ icon, summary, trailing, actions, expanded, onToggle, highlighted = false, helpId, children }: TimelineRowProps) {
     const isExpandable = Boolean(onToggle);
     const isOpen = isExpandable && expanded;
     const summaryContent = (
@@ -1872,6 +1874,7 @@ function TimelineRow({ icon, summary, trailing, actions, expanded, onToggle, hig
             )}
         >
             <div
+                data-help-id={helpId}
                 className={cn('flex items-start gap-2 px-2.5 py-2', isExpandable && 'cursor-pointer transition-colors hover:bg-muted/50')}
                 onClick={onToggle}
             >
@@ -2937,6 +2940,7 @@ export function TreatmentTimeline({ sessions, appointments = [], isLoading, isLo
                                             return (
                                                 <TimelineRow
                                                     key={key}
+                                                    helpId={composeHelpId(helpScope, 'btn', 'timeline-row-perio')}
                                                     icon={(
                                                         <div className="w-5 h-5 rounded-full border-2 border-background shadow-sm bg-card flex items-center justify-center shrink-0 mt-0.5">
                                                             <Activity className="h-3 w-3 text-rose-600 dark:text-rose-400" />

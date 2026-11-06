@@ -75,11 +75,10 @@
     {
       "id": "card",
       "action": "highlight",
-      "target": "patients.section.timeline",
+      "target": "patients.btn.timeline-row-perio",
       "title": "Tocá un periodontograma",
-      "details": "Al expandirlo: la vista previa de las dos arcadas, el tipo, el diagnóstico y los índices.",
-      "until": "patients.btn.timeline-open-perio",
-      "blocking": true
+      "details": "Desplegalo: la vista previa de las dos arcadas (o los sextantes, si es un cribado), el tipo, el diagnóstico y los índices.",
+      "until": "patients.btn.timeline-open-perio"
     },
     {
       "id": "compare",

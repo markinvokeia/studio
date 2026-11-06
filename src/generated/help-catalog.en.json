@@ -1,5 +1,5 @@
 {
- "version": "049ef4e7a5586268",
+ "version": "2b469fb775362be8",
  "locale": "en",
  "journey": [
   {
@@ -8624,6 +8624,13 @@
      "id": "patients.btn.timeline-print",
      "kind": "btn",
      "label": "Print history",
+     "source": "knowledge/screens/patients.json"
+    },
+    {
+     "description": "Tap it to expand it: preview, exam type, diagnosis, indices and buttons.",
+     "id": "patients.btn.timeline-row-perio",
+     "kind": "btn",
+     "label": "Periodontal chart on the timeline",
      "source": "knowledge/screens/patients.json"
     },
     {
@@ -34662,10 +34669,9 @@
     },
     {
      "action": "highlight",
-     "blocking": true,
-     "details": "Expanded: the preview of both arches, the type, the diagnosis and the indices.",
+     "details": "Expand it: the preview of both arches (or the sextants, for a screening), the type, the diagnosis and the indices.",
      "id": "card",
-     "target": "patients.section.timeline",
+     "target": "patients.btn.timeline-row-perio",
      "title": "Tap a periodontal chart",
      "until": "patients.btn.timeline-open-perio"
     },

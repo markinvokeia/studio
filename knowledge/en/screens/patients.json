@@ -1144,6 +1144,10 @@
     "patients.btn.timeline-delete-perio": {
       "label": "Delete periodontal chart",
       "description": "Only if it is not closed; a closed one is clinical record."
+    },
+    "patients.btn.timeline-row-perio": {
+      "label": "Periodontal chart on the timeline",
+      "description": "Tap it to expand it: preview, exam type, diagnosis, indices and buttons."
     }
   }
 }
