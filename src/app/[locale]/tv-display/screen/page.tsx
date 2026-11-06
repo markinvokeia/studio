@@ -8,6 +8,7 @@ import { ClockDisplay } from '@/components/tv-display/clock-display';
 import { VideoColumn } from '@/components/tv-display/video-column';
 import { BROADCAST_CHANNEL } from '@/context/tv-display-context';
 import type { TVDisplaySettings, TVRoomState } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import type { TVBroadcastMessage, TVDisplayStatus, TVAnnouncement, TVClinicInfo } from '@/context/tv-display-context';
 
 const STORAGE_KEY = 'invoke-ia-tv-settings';
@@ -482,7 +483,7 @@ export default function TVScreenPage() {
                       style={{ fontSize: 'clamp(0.6rem, 0.9vw, 0.8rem)' }}
                     >
                       <Phone style={{ width: '0.8em', height: '0.8em', flexShrink: 0 }} />
-                      {clinicInfo.phone}
+                      {formatPhoneNumber(clinicInfo.phone)}
                     </span>
                   )}
                   {settings.showClinicAddress && clinicInfo.address && (

@@ -20,6 +20,7 @@ import { AdoptDependentsPanel } from '@/components/patients/duplicate-contact-di
 import { getAdoptableOwners } from '@/components/patients/patient-form-utils';
 import { useAsyncAction } from '@/hooks/use-async-action';
 import { formatDisplayDate } from '@/lib/utils';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import type { DuplicateContactOwner, DuplicateContactOwners, PatientMatchField } from '@/lib/types';
 
 /**
@@ -132,7 +133,7 @@ export function PatientMatchDialog({ match, onSelect, onCancel, onCreateAnyway, 
             const details = [
               owner.document && tContact('document', { value: owner.document }),
               owner.birth_date && tContact('birthDate', { value: formatDisplayDate(owner.birth_date) }),
-              owner.phone_number && t('phone', { value: owner.phone_number }),
+              owner.phone_number && t('phone', { value: formatPhoneNumber(owner.phone_number) }),
             ].filter(Boolean);
             return (
               <div key={owner.id} className="flex items-start gap-3 rounded-lg border bg-muted/40 px-3 py-2.5">

@@ -15,6 +15,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { DuplicateContactOwners, UniqueConflict, User } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { getPersonNameIssue, normalizePersonName } from '@/lib/person-name';
 import { cn } from '@/lib/utils';
 import { api, REQUEST_TIMEOUT_MS } from '@/services/api';
@@ -330,7 +331,7 @@ export function UserSelector({
                                                 <div className="flex flex-col truncate">
                                                     <span className="truncate">{user.name}</span>
                                                     {user.phone_number && (
-                                                        <span className="text-xs text-muted-foreground truncate">{user.phone_number}</span>
+                                                        <span className="text-xs text-muted-foreground truncate">{formatPhoneNumber(user.phone_number)}</span>
                                                     )}
                                                     <ResponsibleMatchHint user={user} />
                                                 </div>
@@ -365,8 +366,8 @@ export function UserSelector({
                                                     <PhoneInput
                                                         value={createPhone}
                                                         onChange={phone => { setCreatePhone(phone); setCreateError(null); }}
-                                                        placeholder={t('EntitySelectors.phonePlaceholder')}
-                                                        className="[&_[role=combobox]]:h-7 [&_[role=combobox]]:px-2 [&_input]:h-7"
+                                                        aria-label={t('EntitySelectors.phonePlaceholder')}
+                                                        className="[&>div]:min-h-7 [&_[role=combobox]]:px-2 [&_input]:h-7"
                                                     />
                                                 </div>
                                                 <Input

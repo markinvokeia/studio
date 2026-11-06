@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getErrorMessage } from '@/lib/error-utils';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { Clinic, Sede } from '@/lib/types';
 import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 import { api, isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
@@ -358,7 +359,7 @@ export default function ClinicsPage() {
                 <FormItem>
                     <FormLabel>{t('SedesPage.form.phone')}</FormLabel>
                     <FormControl>
-                        <PhoneInput {...field} defaultCountry="UY" disabled={disabled} placeholder={t('SedesPage.form.phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                        <PhoneInput {...field} defaultCountry="UY" disabled={disabled} onChange={field.onChange} value={field.value} />
                     </FormControl>
                     <FormMessage />
                 </FormItem>
@@ -498,7 +499,7 @@ export default function ClinicsPage() {
 
                             <div className="space-y-2" data-help-id="config.clinics.field.clinic-phone">
                                 <Label htmlFor="phone_number">{tc('phoneLabel')}</Label>
-                                <PhoneInput defaultCountry="UY" value={clinic.phone_number} onChange={handlePhoneChange} placeholder={tc('phonePlaceholder')} />
+                                <PhoneInput defaultCountry="UY" value={clinic.phone_number} onChange={handlePhoneChange} />
                                 {phoneError && <p className="text-sm font-medium text-destructive">{phoneError}</p>}
                             </div>
 
@@ -613,7 +614,7 @@ export default function ClinicsPage() {
                                                     <div className="flex items-center gap-3 mt-0.5">
                                                         {sede.phone && (
                                                             <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                                <Phone className="h-3 w-3" />{sede.phone}
+                                                                <Phone className="h-3 w-3" />{formatPhoneNumber(sede.phone)}
                                                             </span>
                                                         )}
                                                         {sede.email && (

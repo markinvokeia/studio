@@ -746,7 +746,9 @@
   },
   "PhoneInput": {
     "ambiguous": "También puede ser un número de {country} ({number}).",
-    "useAlternative": "Usar +{callingCode}"
+    "useAlternative": "Usar +{callingCode}",
+    "searchCountry": "Buscar país...",
+    "noCountryFound": "No se encontró ningún país."
   },
   "DataTablePagination": {
     "selected": "{count, plural, one {# seleccionado} other {# seleccionados}} de {total} fila(s).",
@@ -2119,7 +2121,6 @@
       "email": "Correo Electrónico",
       "emailPlaceholder": "juan.perez@ejemplo.com",
       "phone": "Teléfono",
-      "phonePlaceholder": "123-456-7890",
       "isDependent": "Paciente dependiente (menor, adulto mayor, a cargo de tutor)",
       "responsibleContact": "Contacto responsable (tutor/padre)",
       "responsibleContactPlaceholder": "Sin asignar",
@@ -3996,9 +3997,7 @@
       "email": "Correo Electrónico",
       "emailPlaceholder": "ej. juan.perez@ejemplo.com",
       "phone": "Teléfono",
-      "phonePlaceholder": "123-456-7890",
       "alternative_phone": "Teléfono Alternativo",
-      "alternative_phonePlaceholder": "123-456-7890",
       "identity_document": "RUT",
       "identity_document_placeholder": "ej. 1234567890",
       "address": "Dirección",
@@ -4124,7 +4123,6 @@
     "locationLabel": "Dirección",
     "locationPlaceholder": "ej. Calle Principal 123, Ciudad, País",
     "phoneLabel": "Teléfono",
-    "phonePlaceholder": "ej. +1 234 567 890",
     "rutLabel": "RUT",
     "rutPlaceholder": "ej. 21234567-8",
     "emailLabel": "Correo Electrónico",
@@ -4462,7 +4460,6 @@
       "email": "Correo Electrónico",
       "emailPlaceholder": "ej. dr.smith@ejemplo.com",
       "phone": "Teléfono",
-      "phonePlaceholder": "ej. 123-456-7890",
       "identity_document": "Documento de Identidad",
       "identity_document_placeholder": "ej. 1234567890",
       "color": "Color",
@@ -4799,7 +4796,6 @@
       "email": "Correo Electrónico",
       "emailPlaceholder": "ej. juan.perez@ejemplo.com",
       "phone": "Teléfono",
-      "phonePlaceholder": "ej. 123-456-7890",
       "identity_document": "Documento de Identidad",
       "identity_document_placeholder": "ej. 1234567890",
       "defaultSede": "Sede por defecto",
@@ -4884,7 +4880,6 @@
       "email": "Correo Electrónico",
       "emailPlaceholder": "ej. maria@clinica.com",
       "phone": "Teléfono",
-      "phonePlaceholder": "ej. 099 123 456",
       "identity_document": "Documento de Identidad",
       "identity_document_placeholder": "ej. 12345678",
       "defaultSede": "Sede por defecto",
@@ -9756,7 +9751,6 @@
       "address": "Dirección",
       "addressPlaceholder": "ej. Av. Principal 123",
       "phone": "Teléfono",
-      "phonePlaceholder": "ej. 099 123 456",
       "email": "Correo Electrónico",
       "emailPlaceholder": "ej. sede@clinica.com",
       "isActive": "¿Está Activa?"

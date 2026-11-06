@@ -11,6 +11,7 @@ import { API_ROUTES } from '@/constants/routes';
 import { api } from '@/services/api';
 import { useReportExport } from '@/hooks/use-report-export';
 import type { ReportTratamientosCursoResponse, ReportTratamientosCursoRow } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { formatDate, cn } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
 import { endOfMonth, format, startOfMonth } from 'date-fns';
@@ -154,7 +155,7 @@ export default function TratamientosEnCursoPage() {
 
   const columns: ColumnDef<ReportTratamientosCursoRow>[] = [
     { accessorKey: 'patient_name', header: t('col_paciente') },
-    { accessorKey: 'phone_number', header: t('col_telefono'), size: 120 },
+    { accessorKey: 'phone_number', header: t('col_telefono'), size: 120, cell: ({ row }) => formatPhoneNumber(row.original.phone_number) },
     { accessorKey: 'service_name', header: t('col_servicio') },
     { accessorKey: 'category',     header: t('col_categoria'), size: 130 },
     { accessorKey: 'doctor_name',  header: t('col_doctor') },

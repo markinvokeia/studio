@@ -24,6 +24,7 @@ import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useViewportNarrow } from '@/hooks/use-viewport-narrow';
 import { getErrorMessage } from '@/lib/error-utils';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { Clinic, Sede } from '@/lib/types';
 import api, { isTimeoutError, REQUEST_TIMEOUT_MS } from '@/services/api';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -231,7 +232,7 @@ export default function SedesPage() {
         {
             accessorKey: 'phone',
             header: ({ column }) => <DataTableColumnHeader column={column} title={t('SedesPage.columns.phone')} />,
-            cell: ({ row }) => <span className="text-muted-foreground text-sm">{row.original.phone || '—'}</span>,
+            cell: ({ row }) => <span className="text-muted-foreground text-sm">{formatPhoneNumber(row.original.phone) || '—'}</span>,
         },
         {
             accessorKey: 'email',
@@ -276,7 +277,7 @@ export default function SedesPage() {
                 <FormItem>
                     <FormLabel>{t('SedesPage.form.phone')}</FormLabel>
                     <FormControl>
-                        <PhoneInput {...field} defaultCountry="UY" disabled={disabled} placeholder={t('SedesPage.form.phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                        <PhoneInput {...field} defaultCountry="UY" disabled={disabled} onChange={field.onChange} value={field.value} />
                     </FormControl>
                     <FormMessage />
                 </FormItem>

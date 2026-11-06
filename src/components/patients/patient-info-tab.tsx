@@ -31,6 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useInvalidSubmitToast } from '@/hooks/use-invalid-submit-toast';
 import { PATIENTS_PERMISSIONS } from '@/constants/permissions';
 import { cn, formatDisplayDate } from '@/lib/utils';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { IDENTITY_DOCUMENT_TYPES } from '@/lib/identity-document';
 import { normalizePersonName } from '@/lib/person-name';
 import { extractCreatedUserId } from '@/services/users';
@@ -226,7 +227,7 @@ export function ResponsibleContactField({
                         <Check className={cn('mr-2 h-4 w-4', field.value === guardian.id ? 'opacity-100' : 'opacity-0')} />
                         <div className="min-w-0">
                           <div className="truncate">{guardian.name}</div>
-                          <div className="truncate text-xs text-muted-foreground">{guardian.email || guardian.phone_number || guardian.identity_document || guardian.id}</div>
+                          <div className="truncate text-xs text-muted-foreground">{guardian.email || formatPhoneNumber(guardian.phone_number) || guardian.identity_document || guardian.id}</div>
                         </div>
                       </CommandItem>
                     ))}
@@ -937,7 +938,7 @@ export function PatientInfoTab({
               <FormItem>
                 <FormLabel>{t('UsersPage.createDialog.phone')}{addedMark('phone')}</FormLabel>
                 <FormControl>
-                  <PhoneInput {...field} defaultCountry="UY" placeholder={t('UsersPage.createDialog.phonePlaceholder')} onChange={field.onChange} value={field.value} />
+                  <PhoneInput {...field} defaultCountry="UY" onChange={field.onChange} value={field.value} />
                 </FormControl>
                 <FormMessage />
                 {renderExistingMatchHint('phone')}

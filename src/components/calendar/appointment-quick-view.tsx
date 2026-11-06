@@ -10,6 +10,7 @@ import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { normalizeAppointmentStatus } from '@/constants/appointment-status';
 import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { cn, formatDisplayDateWithWeekday } from '@/lib/utils';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { getEffectiveAppointmentContact } from '@/lib/appointment-contact';
 import type { Appointment } from '@/lib/types';
 
@@ -246,7 +247,7 @@ export function AppointmentSummary({
         <Row
           icon={Phone}
           label={tColumns('phone')}
-          value={phone}
+          value={formatPhoneNumber(phone)}
           hint={fromResponsibleContact ? t('responsibleContactHint') : undefined}
         />
         <Row icon={UserRound} label={tColumns('doctor')} value={appointment.doctorName} />

@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { normalizeAppointmentStatus } from '@/constants/appointment-status';
 import { useAppointmentStatusDisplay } from '@/hooks/useAppointmentStatusDisplay';
 import { statusBadgeClassNames, statusBadgeInlineStyle } from '@/lib/appointment-status-display';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { API_ROUTES } from '@/constants/routes';
 import { useAuth } from '@/context/AuthContext';
 import { useNotifications } from '@/context/notifications-context';
@@ -865,7 +866,7 @@ function WhatsappHandoffCard({ notification }: { notification: WhatsappHandoffRe
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-xs font-semibold text-foreground truncate">
-              {patientName || phone || t('unknownPatient')}
+              {patientName || formatPhoneNumber(phone) || t('unknownPatient')}
             </span>
             <RelativeTime iso={createdAt} />
           </div>
@@ -874,7 +875,7 @@ function WhatsappHandoffCard({ notification }: { notification: WhatsappHandoffRe
 
           {phone && (
             <p className="mt-1.5 text-[11px] text-muted-foreground">
-              {t('handoffPhone')}: <span className="font-medium text-foreground">{phone}</span>
+              {t('handoffPhone')}: <span className="font-medium text-foreground">{formatPhoneNumber(phone)}</span>
             </p>
           )}
 

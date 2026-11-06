@@ -34,6 +34,7 @@ import { usePatientLedgerSheet } from '@/stores/patient-ledger-sheet-store';
 import { usePatientView } from '@/stores/patient-view-store';
 import { fetchPatientById, getDependantContactInfo, type DependantContactInfo } from '@/components/patients/patient-form-utils';
 import type { Appointment, User } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import {
   AlertTriangle, Heart, Lock, Mail, Phone, Users,
 } from 'lucide-react';
@@ -422,7 +423,7 @@ export function PatientDetailSheet({
                   {userPhone && (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Phone className="h-3 w-3" />
-                      {userPhone}
+                      {formatPhoneNumber(userPhone)}
                     </span>
                   )}
                   {dependencyPatient?.is_dependent && (() => {
@@ -463,7 +464,7 @@ export function PatientDetailSheet({
                   {dependantContactInfo?.phone_number && dependantContactInfo.phone_number !== userPhone && (
                     <span className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Phone className="h-3 w-3" />
-                      {dependantContactInfo.phone_number}
+                      {formatPhoneNumber(dependantContactInfo.phone_number)}
                     </span>
                   )}
                 </div>
@@ -476,7 +477,7 @@ export function PatientDetailSheet({
                   userId={userId}
                   userName={userName}
                   userEmail={userEmail}
-                  userPhone={userPhone}
+                  userPhone={formatPhoneNumber(userPhone)}
                   onCreateClinicalSession={() => { setActiveTab('clinical'); setActiveClinicalSubTab('clinical-history'); setCreateSessionTrigger((n) => n + 1); }}
                   onCreateOdontogram={() => { setActiveTab('clinical'); setActiveClinicalSubTab('clinical-history'); setCreateOdontogramTrigger((n) => n + 1); }}
                   onCreateAestheticSession={canCreateAesthetic ? () => { setActiveTab('clinical'); setActiveClinicalSubTab('clinical-history'); setCreateAestheticTrigger((n) => n + 1); } : undefined}

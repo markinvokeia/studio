@@ -9,6 +9,7 @@ import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { searchDependentCandidates } from '@/components/patients/patient-form-utils';
 import { getErrorMessage } from '@/lib/error-utils';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { isAbortError } from '@/services/api';
 import type { User } from '@/lib/types';
 
@@ -111,7 +112,7 @@ export function PatientDependentLinkPicker({
                             ? t('alreadyLinked')
                             : candidate.is_dependent
                               ? t('hasOtherResponsible')
-                              : candidate.identity_document || candidate.phone_number || candidate.email}
+                              : candidate.identity_document || formatPhoneNumber(candidate.phone_number) || candidate.email}
                         </div>
                       </div>
                       {linkingId === candidate.id && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}

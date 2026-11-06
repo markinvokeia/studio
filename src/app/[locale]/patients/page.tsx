@@ -66,6 +66,7 @@ import {
 } from '@/components/patients/patient-form-utils';
 import { ToothIcon } from '@/components/users/dental-record/tooth-icon';
 import { IDENTITY_DOCUMENT_TYPES } from '@/lib/identity-document';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { useClinicPreferencesStore } from '@/stores/clinic-preferences-store';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AppointmentFormDialog } from '@/components/appointments/AppointmentFormDialog';
@@ -390,9 +391,9 @@ function UsersTableWithCards({
           subtitle={user.matched_by_responsible && user.responsible_contact_name
             ? t(user.responsible_phone_number ? 'UsersPage.responsibleMatchWithPhone' : 'UsersPage.responsibleMatch', {
                 name: user.responsible_contact_name,
-                phone: user.responsible_phone_number ?? '',
+                phone: formatPhoneNumber(user.responsible_phone_number),
               })
-            : user.email || user.phone_number || user.identity_document || ''}
+            : user.email || formatPhoneNumber(user.phone_number) || user.identity_document || ''}
           avatar={user.name ? user.name.slice(0, 2).toUpperCase() : '?'}
           showArrow
           onClick={() => handleRowSelectionChange([user])}
@@ -1732,7 +1733,6 @@ export default function UsersPage() {
                         <PhoneInput
                           {...field}
                           defaultCountry="UY"
-                          placeholder={t('UsersPage.createDialog.phonePlaceholder')}
                           onChange={field.onChange}
                           value={field.value}
                         />

@@ -746,7 +746,9 @@
   },
   "PhoneInput": {
     "ambiguous": "It can also be read as a number from {country} ({number}).",
-    "useAlternative": "Use +{callingCode}"
+    "useAlternative": "Use +{callingCode}",
+    "searchCountry": "Search country...",
+    "noCountryFound": "No country found."
   },
   "DataTablePagination": {
     "selected": "{count, plural, one {# selected} other {# selected}} of {total} row(s).",
@@ -2119,7 +2121,6 @@
       "email": "Email",
       "emailPlaceholder": "john.doe@example.com",
       "phone": "Phone",
-      "phonePlaceholder": "123-456-7890",
       "isDependent": "Dependent patient (child, elderly, caregiver-managed)",
       "responsibleContact": "Responsible contact (guardian)",
       "responsibleContactPlaceholder": "Not assigned",
@@ -3996,9 +3997,7 @@
       "email": "Email",
       "emailPlaceholder": "e.g. john.doe@example.com",
       "phone": "Phone",
-      "phonePlaceholder": "123-456-7890",
       "alternative_phone": "Alternative Phone",
-      "alternative_phonePlaceholder": "123-456-7890",
       "identity_document": "RUT",
       "identity_document_placeholder": "e.g. 1234567890",
       "address": "Address",
@@ -4124,7 +4123,6 @@
     "locationLabel": "Address",
     "locationPlaceholder": "e.g. 123 Main St, City, Country",
     "phoneLabel": "Phone",
-    "phonePlaceholder": "e.g. +1 234 567 890",
     "rutLabel": "RUT",
     "rutPlaceholder": "e.g. 21234567-8",
     "emailLabel": "Email",
@@ -4462,7 +4460,6 @@
       "email": "Email",
       "emailPlaceholder": "e.g. dr.smith@example.com",
       "phone": "Phone",
-      "phonePlaceholder": "e.g. 123-456-7890",
       "identity_document": "Identity Document",
       "identity_document_placeholder": "e.g. 1234567890",
       "color": "Color",
@@ -4799,7 +4796,6 @@
       "email": "Email",
       "emailPlaceholder": "e.g. john.doe@example.com",
       "phone": "Phone",
-      "phonePlaceholder": "e.g. 123-456-7890",
       "identity_document": "Identity Document",
       "identity_document_placeholder": "e.g. 1234567890",
       "defaultSede": "Default sede",
@@ -4884,7 +4880,6 @@
       "email": "Email",
       "emailPlaceholder": "e.g. mary@clinic.com",
       "phone": "Phone",
-      "phonePlaceholder": "e.g. 099 123 456",
       "identity_document": "Identity Document",
       "identity_document_placeholder": "e.g. 12345678",
       "defaultSede": "Default sede",
@@ -9756,7 +9751,6 @@
       "address": "Address",
       "addressPlaceholder": "e.g. 123 Main St",
       "phone": "Phone",
-      "phonePlaceholder": "e.g. 099 123 456",
       "email": "Email",
       "emailPlaceholder": "e.g. branch@clinic.com",
       "isActive": "Is Active?"

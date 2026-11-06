@@ -1,4 +1,6 @@
-import { AsYouType, getCountryCallingCode, type CountryCode, type PhoneNumber } from 'libphonenumber-js/min';
+import { AsYouType, getCountryCallingCode, Metadata, type CountryCode, type PhoneNumber } from 'libphonenumber-js/min';
+
+import { DEFAULT_PHONE_COUNTRY } from '@/lib/countries';
 
 export interface ParsedPhoneText {
   /** Valor que el campo entrega al formulario: E.164 si se pudo interpretar, si no el texto tal cual ('' si está vacío). */
@@ -21,10 +23,66 @@ export interface ParsePhoneTextOptions {
   detectCallingCode?: boolean;
 }
 
+/** Lo que muestra y entrega el campo de teléfono tras una edición. */
+export interface PhoneEdit {
+  /** Texto del input, siempre en formato internacional ("+598 93 098 237"). */
+  text: string;
+  /** Valor para el formulario: E.164, o '' si sólo está el prefijo. */
+  value: string;
+  /** País reconocido; `undefined` mientras el prefijo no alcanza para saberlo ("+5"). */
+  country?: CountryCode;
+  /** El prefijo lo puso el campo: el usuario pudo haber querido escribir otro país. */
+  assumed: boolean;
+  alternative?: PhoneNumber;
+}
+
+/**
+ * Desde esta cantidad de dígitos ya no parece un número local a medio escribir, así que se
+ * puede pasar a otro país sin esperar a que salga del campo. No alcanza con mirar las
+ * longitudes del país: Uruguay, por ejemplo, admite hasta 13 dígitos.
+ */
+const MIN_DIGITS_TO_SWITCH_COUNTRY_WHILE_TYPING = 10;
+
+/**
+ * Hasta acá, si los dígitos no pueden empezar un número del país es que traen otro código. Más
+ * adelante ya no: un dígito de más en un celular ("930982371") saltaría a Afganistán (+93).
+ */
+const MAX_DIGITS_TO_RULE_OUT_LOCAL = 3;
+
 const parseWith = (text: string, country?: CountryCode): PhoneNumber | undefined => {
   const asYouType = new AsYouType(country);
   asYouType.input(text);
   return asYouType.getNumber();
+};
+
+/** "+598 93 098 237" → "+59893098237". */
+const toCanonical = (text: string): string => text.replace(/[^\d+]/g, '');
+
+const callingCodeOf = (canonical: string): string | undefined => {
+  const asYouType = new AsYouType();
+  asYouType.input(canonical);
+  return asYouType.getCallingCode();
+};
+
+/** Vacío, un "+" o sólo el prefijo: todavía no hay un teléfono que guardar. */
+export const isBarePhoneText = (text: string): boolean => {
+  const canonical = toCanonical(text);
+  if (!canonical || canonical === '+') return true;
+  return canonical.startsWith('+') && callingCodeOf(canonical) === canonical.slice(1);
+};
+
+export const getPhonePrefix = (country: CountryCode): string => `+${getCountryCallingCode(country)}`;
+
+const describeCanonical = (canonical: string, fallback?: CountryCode): Omit<PhoneEdit, 'assumed'> => {
+  const asYouType = new AsYouType();
+  const text = asYouType.input(canonical);
+  const callingCode = asYouType.getCallingCode();
+  // "+1" o "+7" los comparten varios países: se conserva el elegido hasta que los dígitos digan otro.
+  const country = asYouType.getCountry()
+    ?? (fallback && callingCode === getCountryCallingCode(fallback) ? fallback : undefined);
+  const number = asYouType.getNumber();
+  const value = number ? number.format('E.164') : isBarePhoneText(canonical) ? '' : canonical;
+  return { text, value, country };
 };
 
 /**
@@ -34,7 +92,7 @@ const parseWith = (text: string, country?: CountryCode): PhoneNumber | undefined
  */
 export const parsePhoneText = (
   text: string,
-  country: CountryCode,
+  country: CountryCode | undefined,
   { detectCallingCode = false }: ParsePhoneTextOptions = {},
 ): ParsedPhoneText => {
   const trimmed = text.trim();
@@ -65,27 +123,190 @@ export const parsePhoneText = (
 };
 
 /**
+ * Quita el 0 troncal sólo donde corresponde: lo decide la metadata de cada país porque "+598 093…"
+ * es "+598 93…", pero en Italia el 0 es parte del número ("+39 06…").
+ */
+const dropTrunkPrefix = (national: string, country?: CountryCode): string => {
+  if (!national.startsWith('0') || !country) return national;
+  return parseWith(national, country)?.nationalNumber ?? national;
+};
+
+export interface PhoneEditContext {
+  /** País con el que leer los dígitos que no traen código. */
+  country: CountryCode;
+  /** Texto que había antes de esta edición. */
+  previousText: string;
+  /** Si el prefijo actual lo puso el campo (ver `PhoneEdit.assumed`). */
+  assumed: boolean;
+  /** El país se eligió a mano: los dígitos son de ese país aunque parezcan de otro. */
+  countryPicked?: boolean;
+}
+
+/** Si `digits` puede ser el comienzo de un número nacional del país, según su metadata. */
+const canStartNationalNumber = (digits: string, country: CountryCode): boolean => {
+  const metadata = new Metadata();
+  metadata.selectNumberingPlan(country);
+  // `nationalNumberPattern` existe en la metadata, pero los tipos de la librería no lo declaran.
+  const plan = metadata.numberingPlan as unknown as {
+    possibleLengths(): number[];
+    nationalNumberPattern(): string;
+  } | undefined;
+  if (!plan) return true;
+  const pattern = new RegExp(`^(?:${plan.nationalNumberPattern()})$`);
+  // El patrón sólo valida números completos: se prueba completando con dos dígitos distintos,
+  // que alcanza para los rangos ("9[1-9]") con los que empiezan los patrones.
+  return plan.possibleLengths().some((length) => {
+    const missing = length - digits.length;
+    if (missing < 0) return false;
+    if (missing === 0) return pattern.test(digits);
+    for (let next = 0; next <= 9; next += 1) {
+      for (let rest = 0; rest <= 9; rest += 1) {
+        if (pattern.test(`${digits}${next}${String(rest).repeat(missing - 1)}`)) return true;
+      }
+    }
+    return false;
+  });
+};
+
+/** Convierte lo que quedó en el input tras una tecla en el texto a mostrar y el valor a entregar. */
+export const applyPhoneEdit = (
+  text: string,
+  { country, previousText, assumed, countryPicked = false }: PhoneEditContext,
+): PhoneEdit => {
+  const previous = toCanonical(previousText);
+  let chars = toCanonical(text);
+  if (!chars) return { text: '', value: '', country, assumed: true };
+
+  // Un "+" escrito después del prefijo empieza otro país; en medio de un número no significa nada.
+  const lastPlus = chars.lastIndexOf('+');
+  if (lastPlus > 0) {
+    chars = isBarePhoneText(previous) ? chars.slice(lastPlus) : `+${chars.replace(/\+/g, '')}`;
+  }
+
+  let isAssumed = assumed;
+  let canonical: string;
+  if (chars.startsWith('+') && !chars.startsWith('+0')) {
+    canonical = chars;
+    if (lastPlus > 0 || !previous.startsWith('+')) isAssumed = false;
+  } else {
+    const digits = chars.replace(/\+/g, '');
+    // Sólo se borró el "+" de lo que ya estaba: esos dígitos ya traen su código.
+    if (`+${digits}` === previous) {
+      canonical = previous;
+    } else {
+      canonical = `${getPhonePrefix(country)}${digits}`;
+      isAssumed = !countryPicked;
+    }
+  }
+
+  const callingCode = callingCodeOf(canonical);
+  if (!callingCode) return { ...describeCanonical(canonical, country), assumed: isAssumed };
+
+  const described = describeCanonical(canonical, country);
+  const national = canonical.slice(callingCode.length + 1);
+  const withoutTrunk = dropTrunkPrefix(national, described.country);
+  if (withoutTrunk !== national) {
+    // Con el 0 local es un número nacional seguro: ya no hay otro país posible.
+    return { ...describeCanonical(`+${callingCode}${withoutTrunk}`, country), assumed: false };
+  }
+
+  // Sólo al agregar dígitos: borrando no se está escribiendo otro código.
+  if (
+    isAssumed
+    && canonical.length > previous.length
+    && national.length <= MAX_DIGITS_TO_RULE_OUT_LOCAL
+    && /^[1-9]/.test(national)
+    && !canStartNationalNumber(national, described.country ?? country)
+  ) {
+    return { ...describeCanonical(`+${national}`, country), assumed: false };
+  }
+
+  if (isAssumed && national.length >= MIN_DIGITS_TO_SWITCH_COUNTRY_WHILE_TYPING) {
+    const international = parseWith(`+${national}`);
+    if (international?.isValid() && !parseWith(canonical)?.isValid()) {
+      return { ...describeCanonical(`+${national}`, country), assumed: false };
+    }
+  }
+
+  return { ...described, assumed: isAssumed };
+};
+
+/** Pegar sobre un campo vacío o con todo seleccionado: se lee lo pegado solo, aunque no traiga "+". */
+export const applyPhonePaste = (pasted: string, country: CountryCode): PhoneEdit | null => {
+  // "00" es la salida internacional habitual; depender del país elegido leería mal "00598…" desde Cuba.
+  const chars = toCanonical(pasted).replace(/^00(?=[1-9])/, '+');
+  if (!chars.replace(/\+/g, '')) return null;
+
+  const parsed = parsePhoneText(chars, country, { detectCallingCode: true });
+  if (!parsed.number) return applyPhoneEdit(chars, { country, previousText: '', assumed: !chars.startsWith('+') });
+
+  return {
+    ...describeCanonical(parsed.number.format('E.164'), country),
+    assumed: false,
+    alternative: parsed.alternative,
+  };
+};
+
+/**
+ * Al salir del campo: si el prefijo lo puso el campo, los dígitos pueden ser un internacional
+ * escrito sin "+" (se cambia de país) o admitir las dos lecturas (se avisa, no se decide).
+ */
+export const finishPhoneEdit = (text: string, country: CountryCode | undefined, assumed: boolean): PhoneEdit => {
+  const canonical = toCanonical(text);
+  const callingCode = callingCodeOf(canonical);
+  if (assumed && callingCode && country) {
+    const parsed = parsePhoneText(canonical.slice(callingCode.length + 1), country, { detectCallingCode: true });
+    if (parsed.number) {
+      return {
+        ...describeCanonical(parsed.number.format('E.164'), country),
+        assumed: false,
+        alternative: parsed.alternative,
+      };
+    }
+  }
+  return { ...describeCanonical(canonical, country), assumed: false };
+};
+
+/**
  * Reinterpreta el número al elegir otro país a mano. Si los dígitos nacionales empiezan con el
  * código del país elegido y así forman un número válido, ese código ya estaba en lo pegado
  * ("98562848" leído como UY → Irán es +98 562848, no +98 98562848); si no, se le antepone.
  */
-export const reinterpretForCountry = (text: string, from: CountryCode, to: CountryCode): ParsedPhoneText => {
-  const national = parsePhoneText(text, from).number?.nationalNumber ?? text.replace(/^\+\d+\s/, '').trim();
-  if (!national) return parsePhoneText('', to);
-
+export const reinterpretForCountry = (text: string, from: CountryCode | undefined, to: CountryCode): PhoneEdit => {
+  const national = parsePhoneText(text, from).number?.nationalNumber ?? '';
   const callingCode = getCountryCallingCode(to);
+  let canonical = `+${callingCode}${national}`;
   if (national.startsWith(callingCode)) {
-    const embedded = parsePhoneText(`+${national}`, to);
-    if (embedded.number?.isValid() && embedded.number.countryCallingCode === callingCode) return embedded;
+    const embedded = parseWith(`+${national}`);
+    if (embedded?.isValid() && embedded.countryCallingCode === callingCode) canonical = `+${national}`;
   }
-  return parsePhoneText(`+${callingCode} ${national}`, to);
+  // El país lo eligió el usuario: manda aunque el prefijo lo compartan varios ("+1").
+  return { ...describeCanonical(canonical, to), country: to, assumed: false };
+};
+
+/** Lectura de un valor guardado, que puede no tener "+" ni código ("59895009988", "099 123 456"). */
+const parseStoredPhone = (value: string, fallback: CountryCode): PhoneNumber | undefined => {
+  const trimmed = value.trim();
+  // "SIN_TELEFONO1" y similares: sacarle los dígitos inventaría un número.
+  if (!trimmed || /[^\d\s().+-]/.test(trimmed)) return undefined;
+  const number = parseWith(trimmed, fallback);
+  if (trimmed.startsWith('+') || number?.isValid()) return number;
+  if (/^[1-9]/.test(trimmed)) {
+    const international = parseWith(`+${toCanonical(trimmed)}`);
+    if (international?.isValid()) return international;
+  }
+  return undefined;
 };
 
 /** Texto a mostrar y país para un valor que llega de afuera (carga o reset del formulario). */
-export const formatPhoneForDisplay = (value: string): { text: string; country?: CountryCode } => {
-  const number = parseWith(value);
-  if (number?.country) {
-    return { text: number.formatNational(), country: number.country };
-  }
-  return { text: value };
+export const formatPhoneForDisplay = (
+  value: string,
+  fallback: CountryCode = DEFAULT_PHONE_COUNTRY,
+): { text: string; country?: CountryCode } => {
+  const number = parseStoredPhone(value, fallback);
+  return number ? { text: number.formatInternational(), country: number.country } : { text: value };
 };
+
+/** Teléfono en pantallas de sólo lectura: "+598 93 098 237". Lo que no es un teléfono queda como está. */
+export const formatPhoneNumber = (value: string | null | undefined): string =>
+  value ? formatPhoneForDisplay(value).text : '';

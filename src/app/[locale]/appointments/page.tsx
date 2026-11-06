@@ -66,6 +66,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useClinicHistory } from '@/hooks/useClinicHistory';
 import { Appointment, AppointmentBulkFilterParams, AppointmentDatePreset, AppointmentStatus, Calendar as CalendarType, CalendarColorSources, CalendarItemScope, CalendarItemType, CalendarReminder, CalendarSettings, ClinicSchedule, ClinicException, Invoice, Order, PatientSession, Quote, QuoteItem, ResponsibleContact, Sede, Service, SessionPreloadedService, User as UserType } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 import { getEffectiveAppointmentContact, normalizeResponsibleContact, patchAppointmentsForPatient } from '@/lib/appointment-contact';
 import { parseClinicExceptions } from '@/lib/clinic-exceptions';
 import { getDependantContactInfo } from '@/components/patients/patient-form-utils';
@@ -395,7 +396,7 @@ function buildEventLabel(appt: Appointment, start: Date, fmt: string, noneLabel:
     const notes = isImported ? '' : (appt.notes || '').trim();
     // Solo lo usa el formato que lo pide, y solo si el paciente (o su responsable,
     // cuando el paciente no tiene teléfono propio) lo tiene cargado.
-    const phone = isImported ? '' : cleanEventLabelPart(getEffectiveAppointmentContact(appt).phone, noneLabel);
+    const phone = isImported ? '' : formatPhoneNumber(cleanEventLabelPart(getEffectiveAppointmentContact(appt).phone, noneLabel));
     if (fmt === 'patient_treatment_time') {
         return [patient, treatment, time].filter(Boolean).join(' ');
     }

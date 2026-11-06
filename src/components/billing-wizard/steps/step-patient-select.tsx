@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 
 import { UserSelector } from '@/components/ui/user-selector';
 import type { User } from '@/lib/types';
+import { formatPhoneNumber } from '@/lib/phone-text';
 
 interface StepPatientSelectProps {
   selectedPatient: User | null;
@@ -34,7 +35,7 @@ export function StepPatientSelect({
           <div className="min-w-0">
             <p className="text-sm font-semibold">{readonlyPatient.name}</p>
             {readonlyPatient.phone && (
-              <p className="text-xs text-muted-foreground">{readonlyPatient.phone}</p>
+              <p className="text-xs text-muted-foreground">{formatPhoneNumber(readonlyPatient.phone)}</p>
             )}
             {readonlyPatient.email && (
               <p className="text-xs text-muted-foreground">{readonlyPatient.email}</p>
@@ -76,7 +77,7 @@ export function StepPatientSelect({
           <div className="min-w-0">
             <p className="text-sm font-semibold">{selectedPatient.name}</p>
             {selectedPatient.phone_number && (
-              <p className="text-xs text-muted-foreground">{selectedPatient.phone_number}</p>
+              <p className="text-xs text-muted-foreground">{formatPhoneNumber(selectedPatient.phone_number)}</p>
             )}
             {selectedPatient.email && (
               <p className="text-xs text-muted-foreground">{selectedPatient.email}</p>

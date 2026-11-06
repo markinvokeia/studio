@@ -21,6 +21,7 @@ import { ResponsibleMatchHint } from '@/components/patients/responsible-match-hi
 import { usePatientView } from '@/stores/patient-view-store';
 import { api } from '@/services/api';
 import { cn } from '@/lib/utils';
+import { formatPhoneNumber } from '@/lib/phone-text';
 
 /** Title-cases the typed query so the new patient is prefilled with capitalized words. */
 function toTitleCase(value: string): string {
@@ -174,7 +175,7 @@ export function QuickPatientSearch() {
                       <span className="truncate text-sm font-medium">{patient.name}</span>
                       {(patient.phone_number || patient.email) && (
                         <span className={cn('truncate text-xs text-muted-foreground')}>
-                          {patient.phone_number || patient.email}
+                          {formatPhoneNumber(patient.phone_number) || patient.email}
                         </span>
                       )}
                       <ResponsibleMatchHint user={patient} />
